@@ -1,0 +1,3 @@
+[submodule "submodules/Tensors"]
+	path = submodules/Tensors
+	url = git@github.com:HenrikSchumacher/Tensors.git
