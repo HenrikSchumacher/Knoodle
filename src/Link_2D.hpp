@@ -40,7 +40,7 @@ namespace KnotTools
         
         using Real = Real_;
         using Int  = Int_;
-        using Int  = SInt_;
+        using SInt = SInt_;
         
         using Base_T = Link<Int>;
         
@@ -70,8 +70,8 @@ namespace KnotTools
         using Tree2_T        = AABBTree<2,Real,Int>;
         using Tree3_T        = AABBTree<3,Real,Int>;
         
-        using Vector2_T      = Tree2_T::Vector_T:
-        using Vector2_T      = Tree3_T::Vector_T:
+        using Vector2_T      = Tree2_T::Vector_T;
+        using Vector3_T      = Tree3_T::Vector_T;
         
         using EContainer_T   = Tree3_T::EContainer_T;
 
@@ -93,7 +93,7 @@ namespace KnotTools
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         EContainer_T edge_coords;
         
-        Tiny::Matrix<3,3,Real,Int> { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
+        Tiny::Matrix<3,3,Real,Int> R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
 
         Tree2_T T;
         
@@ -118,10 +118,10 @@ namespace KnotTools
         
         // Calling this constructor makes the object assume that it represents a cyclic polyline.
         explicit Link_2D( const Int edge_count_ )
-        :   Base_T      ( edge_count_   )
-        ,   edge_coords ( edge_count_   )
-        ,   T           ( edge_count_   )
-        ,   box_coords  ( T.NodeCount() )
+        :   Base_T      ( edge_count_         )
+        ,   edge_coords ( edge_count_, 2, 3   )
+        ,   T           ( edge_count_         )
+        ,   box_coords  ( T.NodeCount(), 2, 2 )
         {
             ptic(ClassName()+"() (cyclic)");
             
@@ -133,25 +133,25 @@ namespace KnotTools
         template<typename J, typename K, IS_INT(J), IS_INT(K)>
         explicit Link_2D( Tensor1<J,K> & component_ptr_ )
         :   Base_T      ( component_ptr_       )
-        ,   edge_coords ( component_ptr.Last() )
+        ,   edge_coords ( component_ptr.Last(), 2 ,3 )
         ,   T           ( component_ptr.Last() )
-        ,   box_coords  ( T.NodeCount()        )
+        ,   box_coords  ( T.NodeCount(), 2, 2 )
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         Link_2D( cptr<Int> edges_, const Int edge_count_ )
-        :   Base_T      ( edges_, edge_count_ )
-        ,   edge_coords ( edge_count_         )
-        ,   T           ( edge_count_         )
-        ,   box_coords  ( T.NodeCount()       )
+        :   Base_T      ( edges_, edge_count_  )
+        ,   edge_coords ( edge_count_, 2, 3    )
+        ,   T           ( edge_count_          )
+        ,   box_coords  ( T.NodeCount(), 2 , 2 )
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         Link_2D( cptr<Int> edge_tails_, cptr<Int> edge_tips_, const Int edge_count_ )
         :   Base_T      ( edge_tails_, edge_tips_ )
-        ,   edge_coords ( edge_count_             )
+        ,   edge_coords ( edge_count_, 2, 3       )
         ,   T           ( edge_count_             )
-        ,   box_coords  ( T.NodeCount()           )
+        ,   box_coords  ( T.NodeCount(), 2, 3     )
         {}
         
     public:
@@ -169,7 +169,7 @@ namespace KnotTools
 
                     for( Int i = i_begin; i < i_end-1; ++i )
                     {
-                        const int j = i+1;
+                        const Int j = i+1;
                       
                         copy_buffer<3>( &v[3*i], edge_coords.data(i,0) );
                         copy_buffer<3>( &v[3*j], edge_coords.data(i,1) );
@@ -294,12 +294,14 @@ namespace KnotTools
         {
             ptic(ClassName()+"FindIntersections");
             
+            // TODO: Randomly rotate until not degenerate.
+            
             // Here we do something strange:
             // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
             // to a T which is a Tree2_T.
             // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
             // enties only via operator(i,j,k), so this is safe!
-
+            
             T.ComputeBoundingBoxes( edge_coords, box_coords );
 
             FindIntersectingEdges_DFS();
@@ -339,7 +341,7 @@ namespace KnotTools
             }
             
             // Sort intersections edgewise w.r.t. edge_times.
-            ThreeArrayQuickSort<Real,Int,bool> Q;
+            TwoArraySort<Real,Int,bool> Q;
 
             for( Int i = 0; i < edge_count; ++i )
             {
@@ -418,10 +420,10 @@ namespace KnotTools
                     // Warning: This assumes that both children in a cluster tree are either defined or empty.
                     if( is_interior_i || is_interior_j )
                     {
-                        const Int L_i  = Tree_T::LeftChild(i);
+                        const Int L_i  = Tree2_T::LeftChild(i);
                         const Int R_i = L_i+1;
                         
-                        const Int L_j  = Tree_T::LeftChild(j);
+                        const Int L_j  = Tree2_T::LeftChild(j);
                         const Int R_j = L_j+1;
                         
                         // TODO: Improve score.
@@ -654,7 +656,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return "Link_2D<"+TypeName<Real>+","+TypeName<Int>+">";
+            return std::string("Link_2D")+"<"+TypeName<Real>+","+TypeName<Int>+">";
         }
     };
     

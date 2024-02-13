@@ -6,8 +6,12 @@
 	objectVersion = 56;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AFF305502B7AF4E2009ABC74 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFF3054F2B7AF4E2009ABC74 /* main.cpp */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXCopyFilesBuildPhase section */
-		AF5BC0B129D1AF1C008CA8B7 /* CopyFiles */ = {
+		AFF3054B2B7AF4E2009ABC74 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = /usr/share/man/man1/;
@@ -19,14 +23,16 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AF5BC0B329D1AF1C008CA8B7 /* KnotTools */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = KnotTools; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305472B7AEB55009ABC74 /* Hide */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Hide; sourceTree = "<group>"; };
+		AFF305482B7AF300009ABC74 /* KnotTools.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KnotTools.hpp; sourceTree = "<group>"; };
+		AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_Link_2D; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFF3054F2B7AF4E2009ABC74 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		AF5BC0B029D1AF1C008CA8B7 /* Frameworks */ = {
+		AFF3054A2B7AF4E2009ABC74 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -39,9 +45,11 @@
 		AF5BC0AA29D1AF1C008CA8B7 = {
 			isa = PBXGroup;
 			children = (
+				AFF305482B7AF300009ABC74 /* KnotTools.hpp */,
 				AFF305472B7AEB55009ABC74 /* Hide */,
-				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305442B7ACE3B009ABC74 /* submodules */,
+				AF5BC0BD29D1AF70008CA8B7 /* src */,
+				AFF3054E2B7AF4E2009ABC74 /* Test_Link_2D */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -49,29 +57,37 @@
 		AF5BC0B429D1AF1C008CA8B7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AF5BC0B329D1AF1C008CA8B7 /* KnotTools */,
+				AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AFF3054E2B7AF4E2009ABC74 /* Test_Link_2D */ = {
+			isa = PBXGroup;
+			children = (
+				AFF3054F2B7AF4E2009ABC74 /* main.cpp */,
+			);
+			path = Test_Link_2D;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AF5BC0B229D1AF1C008CA8B7 /* KnotTools */ = {
+		AFF3054C2B7AF4E2009ABC74 /* Test_Link_2D */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AF5BC0BA29D1AF1C008CA8B7 /* Build configuration list for PBXNativeTarget "KnotTools" */;
+			buildConfigurationList = AFF305512B7AF4E2009ABC74 /* Build configuration list for PBXNativeTarget "Test_Link_2D" */;
 			buildPhases = (
-				AF5BC0AF29D1AF1C008CA8B7 /* Sources */,
-				AF5BC0B029D1AF1C008CA8B7 /* Frameworks */,
-				AF5BC0B129D1AF1C008CA8B7 /* CopyFiles */,
+				AFF305492B7AF4E2009ABC74 /* Sources */,
+				AFF3054A2B7AF4E2009ABC74 /* Frameworks */,
+				AFF3054B2B7AF4E2009ABC74 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = KnotTools;
-			productName = KnotTools;
-			productReference = AF5BC0B329D1AF1C008CA8B7 /* KnotTools */;
+			name = Test_Link_2D;
+			productName = Test_Link_2D;
+			productReference = AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -83,8 +99,8 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1520;
 				TargetAttributes = {
-					AF5BC0B229D1AF1C008CA8B7 = {
-						CreatedOnToolsVersion = 14.2;
+					AFF3054C2B7AF4E2009ABC74 = {
+						CreatedOnToolsVersion = 15.2;
 					};
 				};
 			};
@@ -101,16 +117,17 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AF5BC0B229D1AF1C008CA8B7 /* KnotTools */,
+				AFF3054C2B7AF4E2009ABC74 /* Test_Link_2D */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		AF5BC0AF29D1AF1C008CA8B7 /* Sources */ = {
+		AFF305492B7AF4E2009ABC74 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFF305502B7AF4E2009ABC74 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,24 +247,40 @@
 			};
 			name = Release;
 		};
-		AF5BC0BB29D1AF1C008CA8B7 /* Debug */ = {
+		AFF305522B7AF4E2009ABC74 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
 		};
-		AF5BC0BC29D1AF1C008CA8B7 /* Release */ = {
+		AFF305532B7AF4E2009ABC74 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -264,11 +297,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AF5BC0BA29D1AF1C008CA8B7 /* Build configuration list for PBXNativeTarget "KnotTools" */ = {
+		AFF305512B7AF4E2009ABC74 /* Build configuration list for PBXNativeTarget "Test_Link_2D" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				AF5BC0BB29D1AF1C008CA8B7 /* Debug */,
-				AF5BC0BC29D1AF1C008CA8B7 /* Release */,
+				AFF305522B7AF4E2009ABC74 /* Debug */,
+				AFF305532B7AF4E2009ABC74 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
