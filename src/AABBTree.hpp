@@ -165,7 +165,7 @@ namespace KnotTools
                 for( Int k = 0; k < AmbDim; ++k )
                 {
                     B(C,k,0) = Min( B(L,k,0), B(R,k,0) );
-                    B(C,k,1) = Min( B(L,k,1), B(R,k,1) );
+                    B(C,k,1) = Max( B(L,k,1), B(R,k,1) );
                 }
             }
             
@@ -228,7 +228,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("AABBTree")+"<"+AmbDim+","+TypeName<Real>+","+TypeName<Int>+">";
+            return std::string("AABBTree")+"<"+ToString(AmbDim)+","+TypeName<Real>+","+TypeName<Int>+">";
         }
 
     }; // AABBTree

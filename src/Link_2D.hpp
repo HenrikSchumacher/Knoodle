@@ -303,7 +303,7 @@ namespace KnotTools
             // enties only via operator(i,j,k), so this is safe!
             
             T.ComputeBoundingBoxes( edge_coords, box_coords );
-
+            
             FindIntersectingEdges_DFS();
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
@@ -321,6 +321,8 @@ namespace KnotTools
             
             
             const Int intersection_count = static_cast<Int>(intersections.size());
+            
+            dump(intersection_count);
             
             for( Int k = intersection_count-1; k > -1; --k )
             {
@@ -341,7 +343,7 @@ namespace KnotTools
             }
             
             // Sort intersections edgewise w.r.t. edge_times.
-            TwoArraySort<Real,Int,bool> Q;
+            ThreeArraySort<Real,Int,bool,Size_T> S ( intersection_count );
 
             for( Int i = 0; i < edge_count; ++i )
             {
@@ -349,7 +351,7 @@ namespace KnotTools
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
 
-                Q.Sort(
+                S(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
                     &edge_overQ[k_begin],
@@ -497,8 +499,11 @@ namespace KnotTools
                     else
                     {
                         // Translate node indices i and j to edge indices k and l.
-                        const Int k = i - int_node_count;
-                        const Int l = j - int_node_count;
+//                        const Int k = i - int_node_count;
+//                        const Int l = j - int_node_count;
+                        
+                        const Int k = T.Begin(i);
+                        const Int l = T.Begin(j);
                     
                         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
                         if( (l != k) && (l != next[k]) && (k != next[l]) )
@@ -506,11 +511,11 @@ namespace KnotTools
                             // Get the edge lengths in order to decide what's a "small" determinant.
                             
                             const Vector3_T x[2] = {
-                                { edge_coords.data(k,0) }, { edge_coords.data(k,1) }
+                                edge_coords.data(k,0), edge_coords.data(k,1)
                             };
                             
                             const Vector3_T y[2] = {
-                                { edge_coords.data(l,0) }, { edge_coords.data(l,1) }
+                                edge_coords.data(l,0), edge_coords.data(l,1)
                             };
                             
                             const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
@@ -523,13 +528,13 @@ namespace KnotTools
 
                             bool intersecting;
 
-                            if( std::abs(det*det) > eps * u.NormSquared() * v.NormSquared() )
+                            if( det * det > eps * Dot(u,u) * Dot(v,v) )
                             {
                                 const Real det_inv = static_cast<Real>(1) / det;
                                 
                                 t[0] = Det2D_Kahan( d[0], d[1], v[0], v[1] ) * det_inv;
                                 t[1] = Det2D_Kahan( d[0], d[1], u[0], u[1] ) * det_inv;
-
+                                
                                 intersecting = (t[0] > - eps) && (t[0] < big_one) && (t[1] > - eps) && (t[1] < big_one);
                             }
                             else
@@ -652,6 +657,16 @@ namespace KnotTools
         Int InvalidIntersectionCount() const
         {
             return intersections_3D;
+        }
+        
+        cref<EContainer_T> EdgeCoordinates()
+        {
+            return edge_coords;
+        }
+        
+        cref<BContainer_T> BoundingBoxes()
+        {
+            return box_coords;
         }
         
         static std::string ClassName()

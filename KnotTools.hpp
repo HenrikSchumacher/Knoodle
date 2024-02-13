@@ -1,6 +1,7 @@
 #pragma once
 
 #include "submodules/Tensors/Tensors.hpp"
+#include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
 namespace KnotTools 
 {
