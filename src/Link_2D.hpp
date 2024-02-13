@@ -54,7 +54,7 @@ namespace KnotTools
         static constexpr Real one     = 1;
         static constexpr Real eps     = std::numeric_limits<Real>::epsilon();
         static constexpr Real big_one = 1 + eps;
-
+        
         
         using Base_T::edges;
         using Base_T::next_edge;
@@ -65,9 +65,18 @@ namespace KnotTools
         using Base_T::component_ptr;
         using Base_T::cyclicQ;
         using Base_T::preorderedQ;
-    
+
         
-        using Tree_T   = AABBTree<2,Real,Int>;
+        using Tree2_T        = AABBTree<2,Real,Int>;
+        using Tree3_T        = AABBTree<3,Real,Int>;
+        
+        using Vector2_T      = Tree2_T::Vector_T:
+        using Vector2_T      = Tree3_T::Vector_T:
+        
+        using EContainer_T   = Tree3_T::EContainer_T;
+
+        using BContainer_T   = Tree2_T::BContainer_T;
+        
         using Intersection_T = Intersection<Real,Int,SInt>;
         
         using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
@@ -82,11 +91,13 @@ namespace KnotTools
     protected:
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
-        Tiny::MatrixList<2,3,Real,Int> edge_coords;
+        EContainer_T edge_coords;
+        
+        Tiny::Matrix<3,3,Real,Int> { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
 
-        Tiny::Matrix<3,3,Real,Int> { {1,0,0}, {0,1,0}, {0,0,1} }; // a rotation matrix (later to be randomized)
-
-        Tree_T T;
+        Tree2_T T;
+        
+        BContainer_T  box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
         std::vector<Intersection_T> intersections;
@@ -106,60 +117,48 @@ namespace KnotTools
         
         
         // Calling this constructor makes the object assume that it represents a cyclic polyline.
-        explicit Link_2D(
-            const Int edge_count_
-        )
-        :   Base_T      ( edge_count_)
-        ,   edge_coords ( edge_count_)
-        ,   T           ( edge_count_)
+        explicit Link_2D( const Int edge_count_ )
+        :   Base_T      ( edge_count_   )
+        ,   edge_coords ( edge_count_   )
+        ,   T           ( edge_count_   )
+        ,   box_coords  ( T.NodeCount() )
         {
             ptic(ClassName()+"() (cyclic)");
             
-            intersections.reserve( static_cast<size_t>(2 * edge_count_) );
+//            intersections.reserve( static_cast<size_t>(2 * edge_count_) );
                         
             ptoc(ClassName()+"() (cyclic)");
         }
         
         template<typename J, typename K, IS_INT(J), IS_INT(K)>
-        explicit Link_2D(
-            Tensor1<J,K> & component_ptr_
-        )
+        explicit Link_2D( Tensor1<J,K> & component_ptr_ )
         :   Base_T      ( component_ptr_       )
         ,   edge_coords ( component_ptr.Last() )
         ,   T           ( component_ptr.Last() )
+        ,   box_coords  ( T.NodeCount()        )
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        Link_2D(
-            cptr<Int> edges_,
-            const Int edge_count_
-        )
+        Link_2D( cptr<Int> edges_, const Int edge_count_ )
         :   Base_T      ( edges_, edge_count_ )
-        ,   edge_coords ( edge_count_ )
-        ,   T           ( edge_count_ )
+        ,   edge_coords ( edge_count_         )
+        ,   T           ( edge_count_         )
+        ,   box_coords  ( T.NodeCount()       )
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
-        Link_2D(
-            cptr<Int> edge_tails_,
-            cptr<Int> edge_tips_,
-            const Int edge_count_
-        )
+        Link_2D( cptr<Int> edge_tails_, cptr<Int> edge_tips_, const Int edge_count_ )
         :   Base_T      ( edge_tails_, edge_tips_ )
-        ,   edge_coords ( edge_count_ )
-        ,   T           ( edge_count_ )
+        ,   edge_coords ( edge_count_             )
+        ,   T           ( edge_count_             )
+        ,   box_coords  ( T.NodeCount()           )
         {}
         
     public:
         
-        void ReadVertexCoordinates( cptr<Real> v_, const bool update = false )
+        void ReadVertexCoordinates( cptr<Real> v, const bool update = false )
         {
             ptic(ClassName()+"::ReadVertexCoordinates (AoS)");
-            
-            mptr<Real> p [2][3] = {
-                { edge_coords.data(0,0), edge_coords.data(0,1), edge_coords.data(0,2) },
-                { edge_coords.data(1,0), edge_coords.data(1,1), edge_coords.data(1,2) }
-            };
             
             if( preorderedQ )
             {
@@ -172,24 +171,16 @@ namespace KnotTools
                     {
                         const int j = i+1;
                       
-                        p[0][0][i] = v_[3*i+0];
-                        p[0][1][i] = v_[3*i+1];
-                        p[0][2][i] = v_[3*i+2];
-                        p[1][0][i] = v_[3*j+0];
-                        p[1][1][i] = v_[3*j+1];
-                        p[1][2][i] = v_[3*j+2];
+                        copy_buffer<3>( &v[3*i], edge_coords.data(i,0) );
+                        copy_buffer<3>( &v[3*j], edge_coords.data(i,1) );
                     }
 
                     {
                         const Int i = i_end-1;
                         const Int j = i_begin;
 
-                        p[0][0][i] = v_[3*i+0];
-                        p[0][1][i] = v_[3*i+1];
-                        p[0][2][i] = v_[3*i+2];
-                        p[1][0][i] = v_[3*j+0];
-                        p[1][1][i] = v_[3*j+1];
-                        p[1][2][i] = v_[3*j+2];
+                        copy_buffer<3>( &v[3*i], edge_coords.data(i,0) );
+                        copy_buffer<3>( &v[3*j], edge_coords.data(i,1) );
                     }
                 }
             }
@@ -203,28 +194,15 @@ namespace KnotTools
                     const Int i = edge_tails[edge];
                     const Int j = edge_tips [edge];
                     
-                    p[0][0][edge] = v_[3*i+0];
-                    p[0][1][edge] = v_[3*i+1];
-                    p[0][2][edge] = v_[3*i+2];
-                    p[1][0][edge] = v_[3*j+0];
-                    p[1][1][edge] = v_[3*j+1];
-                    p[1][2][edge] = v_[3*j+2];
+                    copy_buffer<3>( &v[3*i], edge_coords.data(edge,0) );
+                    copy_buffer<3>( &v[3*j], edge_coords.data(edge,1) );
                 }
             }
             ptoc(ClassName()+"::ReadVertexCoordinates (AoS)");
         }
         
-        void ReadVertexCoordinates(
-            cptr<Real> x_,
-            cptr<Real> y_,
-            cptr<Real> z_
-        )
+        void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
         {
-            mptr<Real> p [2][3] = {
-                { edge_coords.data(0,0), edge_coords.data(0,1), edge_coords.data(0,2) },
-                { edge_coords.data(1,0), edge_coords.data(1,1), edge_coords.data(1,2) }
-            };
-            
             if( preorderedQ )
             {
                 for( Int c = 0; c < component_count; ++c )
@@ -236,24 +214,26 @@ namespace KnotTools
                     {
                         const int j = i+1;
 
-                        p[0][0][i] = x_[i];
-                        p[0][1][i] = y_[i];
-                        p[0][2][i] = z_[i];
-                        p[1][0][i] = x_[j];
-                        p[1][1][i] = y_[j];
-                        p[1][2][i] = z_[j];
+                        edge_coords(i,0,0) = x[i];
+                        edge_coords(i,0,1) = y[i];
+                        edge_coords(i,0,2) = z[i];
+                        
+                        edge_coords(i,1,0) = x[j];
+                        edge_coords(i,1,1) = y[j];
+                        edge_coords(i,1,2) = z[j];
                     }
 
                     {
                         const Int i = i_end-1;
                         const Int j = i_begin;
 
-                        p[0][0][i] = x_[i];
-                        p[0][1][i] = y_[i];
-                        p[0][2][i] = z_[i];
-                        p[1][0][i] = x_[j];
-                        p[1][1][i] = y_[j];
-                        p[1][2][i] = z_[j];
+                        edge_coords(i,0,0) = x[i];
+                        edge_coords(i,0,1) = y[i];
+                        edge_coords(i,0,2) = z[i];
+                        
+                        edge_coords(i,1,0) = x[j];
+                        edge_coords(i,1,1) = y[j];
+                        edge_coords(i,1,2) = z[j];
                     }
                 }
             }
@@ -267,12 +247,13 @@ namespace KnotTools
                     const Int i = edge_tails[edge];
                     const Int j = edge_tips [edge];
                     
-                    p[0][0][edge] = x_[i];
-                    p[0][1][edge] = y_[i];
-                    p[0][2][edge] = z_[i];
-                    p[1][0][edge] = x_[j];
-                    p[1][1][edge] = y_[j];
-                    p[1][2][edge] = z_[j];
+                    edge_coords(edge,0,0) = x[i];
+                    edge_coords(edge,0,1) = y[i];
+                    edge_coords(edge,0,2) = z[i];
+                    
+                    edge_coords(edge,1,0) = x[j];
+                    edge_coords(edge,1,1) = y[j];
+                    edge_coords(edge,1,2) = z[j];
                 }
             }
             ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
@@ -281,11 +262,6 @@ namespace KnotTools
         
         void Rotate()
         {
-            mptr<Real> p [2][3] = {
-                { edge_coords.data(0,0), edge_coords.data(0,1), edge_coords.data(0,2) },
-                { edge_coords.data(1,0), edge_coords.data(1,1), edge_coords.data(1,2) }
-            };
-            
             cptr<Int> edge_tails = edges.data(0);
             cptr<Int> edge_tips  = edges.data(1);
             
@@ -294,15 +270,14 @@ namespace KnotTools
                 const Int i = edge_tails[edge];
                 const Int j = edge_tips [edge];
                 
-                const Real x [3] = { p[0][0][edge], p[0][1][edge], p[0][2][edge] };
-                const Real y [3] = { p[1][0][edge], p[1][1][edge], p[1][2][edge] };
+                const Vector3_T x ( edge_coords.data(edge,0) );
+                const Vector3_T y ( edge_coords.data(edge,1) );
                 
-                p[0][0][edge] = R[0][0] * x[0] + R[0][1] * x[1] + R[0][2] * x[2];
-                p[0][1][edge] = R[1][0] * x[0] + R[1][1] * x[1] + R[1][2] * x[2];
-                p[0][2][edge] = R[2][0] * x[0] + R[2][1] * x[1] + R[2][2] * x[2];
-                p[1][0][edge] = R[0][0] * y[0] + R[0][1] * y[1] + R[0][2] * y[2];
-                p[1][1][edge] = R[1][0] * y[0] + R[1][1] * y[1] + R[1][2] * y[2];
-                p[1][2][edge] = R[2][0] * y[0] + R[2][1] * y[1] + R[2][2] * y[2];
+                const Vector3_T Rx = Dot( R, x );
+                const Vector3_T Ry = Dot( R, y );
+                
+                Rx.Write( edge_coords.data(edge,0) );
+                Ry.Write( edge_coords.data(edge,1) );
             }
         }
         
@@ -319,7 +294,13 @@ namespace KnotTools
         {
             ptic(ClassName()+"FindIntersections");
             
-            T.LoadCoordinates( edge_coords );
+            // Here we do something strange:
+            // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
+            // to a T which is a Tree2_T.
+            // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
+            // enties only via operator(i,j,k), so this is safe!
+
+            T.ComputeBoundingBoxes( edge_coords, box_coords );
 
             FindIntersectingEdges_DFS();
             
@@ -328,7 +309,7 @@ namespace KnotTools
             
             if( edge_intersections.Size() < edge_ptr.Last() )
             {
-                edge_intersections = Tensor1<Int,Int> ( edge_ptr.Last() );
+                edge_intersections = Tensor1<Int, Int>( edge_ptr.Last() );
                 edge_times         = Tensor1<Real,Int>( edge_ptr.Last() );
                 edge_overQ         = Tensor1<bool,Int>( edge_ptr.Last() );
             }
@@ -387,18 +368,11 @@ namespace KnotTools
         {
             ptic(ClassName()+"::FindIntersectingEdges_DFS");
             
-//            const Int expected = ( 2 * edge_count );
-            
             const Int int_node_count = T.InteriorNodeCount();
             
             intersections.clear();
-//            crossing_edges[0].clear();
-//            crossing_edges[1].clear();
-//
-//            crossing_times[0].clear();
-//            crossing_times[1].clear();
-//
-//            crossing_orient.clear();
+            
+            intersections.reserve( 2 * edge_coords.Dimension(0) );
             
             intersections_3D = 0;
             intersections_nontransversal = 0;
@@ -417,16 +391,6 @@ namespace KnotTools
             cptr<Int> next = next_edge.data();
             mptr<Int> ctr  = &edge_ptr.data()[1];
             
-            cptr<Real> b [2][2] = {
-                { T.ClusterBoxes().data(0,0), T.ClusterBoxes().data(0,1) },
-                { T.ClusterBoxes().data(1,0), T.ClusterBoxes().data(1,1) }
-            };
-            
-            cptr<Real> p [2][3] = {
-                { edge_coords.data(0,0), edge_coords.data(0,1), edge_coords.data(0,2) },
-                { edge_coords.data(1,0), edge_coords.data(1,1), edge_coords.data(1,2) }
-            };
-            
             while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
             {
                 const Int i = i_stack[stack_ptr];
@@ -436,10 +400,16 @@ namespace KnotTools
                 bool boxes_intersecting = (i == j)
                     ? true
                     : (
-                        ( b[0][0][i] <= b[0][1][j] && b[0][1][i] >= b[0][0][j] ) &&
-                        ( b[1][0][i] <= b[1][1][j] && b[1][1][i] >= b[1][0][j] )
+                       ( box_coords(i,0,0) <= box_coords(j,0,1) )
+                       &&
+                       ( box_coords(i,0,1) >= box_coords(j,0,0) )
+                       &&
+                       ( box_coords(i,1,0) <= box_coords(j,1,1) )
+                       &&
+                       ( box_coords(i,1,1) >= box_coords(j,1,0) )
                     );
                 
+
                 if( boxes_intersecting )
                 {
                     const bool is_interior_i = (i < int_node_count);
@@ -448,11 +418,11 @@ namespace KnotTools
                     // Warning: This assumes that both children in a cluster tree are either defined or empty.
                     if( is_interior_i || is_interior_j )
                     {
-                        const Int left_i  = Tree_T::LeftChild(i);
-                        const Int right_i = left_i+1;
+                        const Int L_i  = Tree_T::LeftChild(i);
+                        const Int R_i = L_i+1;
                         
-                        const Int left_j  = Tree_T::LeftChild(j);
-                        const Int right_j = left_j+1;
+                        const Int L_j  = Tree_T::LeftChild(j);
+                        const Int R_j = L_j+1;
                         
                         // TODO: Improve score.
 
@@ -463,36 +433,36 @@ namespace KnotTools
                                 //  Creating 3 blockcluster children, since there is one block that is just the mirror of another one.
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = right_j;
+                                i_stack[stack_ptr] = L_i;
+                                j_stack[stack_ptr] = R_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = right_j;
+                                i_stack[stack_ptr] = R_i;
+                                j_stack[stack_ptr] = R_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = left_j;
+                                i_stack[stack_ptr] = L_i;
+                                j_stack[stack_ptr] = L_j;
                             }
                             else
                             {
                                 // tie breaker: split both clusters
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = right_j;
+                                i_stack[stack_ptr] = R_i;
+                                j_stack[stack_ptr] = R_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = right_j;
+                                i_stack[stack_ptr] = L_i;
+                                j_stack[stack_ptr] = R_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = left_j;
+                                i_stack[stack_ptr] = R_i;
+                                j_stack[stack_ptr] = L_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = left_j;
+                                i_stack[stack_ptr] = L_i;
+                                j_stack[stack_ptr] = L_j;
                             }
                         }
                         else
@@ -501,12 +471,12 @@ namespace KnotTools
                             if( is_interior_i ) // !is_interior_j follows from this.
                             {
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
+                                i_stack[stack_ptr] = R_i;
                                 j_stack[stack_ptr] = j;
                                 
                                 //split cluster i
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
+                                i_stack[stack_ptr] = L_i;
                                 j_stack[stack_ptr] = j;
                             }
                             else //score_i < score_j
@@ -514,11 +484,11 @@ namespace KnotTools
                                 //split cluster j
                                 ++stack_ptr;
                                 i_stack[stack_ptr] = i;
-                                j_stack[stack_ptr] = right_j;
+                                j_stack[stack_ptr] = R_j;
                                 
                                 ++stack_ptr;
                                 i_stack[stack_ptr] = i;
-                                j_stack[stack_ptr] = left_j;
+                                j_stack[stack_ptr] = L_j;
                             }
                         }
                     }
@@ -532,30 +502,31 @@ namespace KnotTools
                         if( (l != k) && (l != next[k]) && (k != next[l]) )
                         {
                             // Get the edge lengths in order to decide what's a "small" determinant.
+                            
+                            const Vector3_T x[2] = {
+                                { edge_coords.data(k,0) }, { edge_coords.data(k,1) }
+                            };
+                            
+                            const Vector3_T y[2] = {
+                                { edge_coords.data(l,0) }, { edge_coords.data(l,1) }
+                            };
+                            
+                            const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
+                            const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
+                            const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
 
-                            const Real x[2][2] = { { p[0][0][k], p[0][1][k] }, { p[1][0][k], p[1][1][k] } };
-
-                            const Real y[2][2] = { { p[0][0][l], p[0][1][l] }, { p[1][0][l], p[1][1][l] } };
-
-                            const Real d[2] = { y[0][0]-x[0][0], y[0][1]-x[0][1] };
-                            const Real u[2] = { x[1][0]-x[0][0], x[1][1]-x[0][1] };
-                            const Real v[2] = { y[1][0]-y[0][0], y[1][1]-y[0][1] };
-
-                            const Real det = u[0] * v[1] - u[1] * v[0];
+                            const Real det = Det2D_Kahan( u[0], u[1], v[0], v[1] );
                             
                             Real t[2];
 
                             bool intersecting;
 
-                            const Real u_length_squared = u[0] * u[0] + u[1] * u[1];
-                            const Real v_length_squared = v[0] * v[0] + v[1] * v[1];
-
-                            if( std::abs(det*det) > eps * u_length_squared * v_length_squared )
+                            if( std::abs(det*det) > eps * u.NormSquared() * v.NormSquared() )
                             {
                                 const Real det_inv = static_cast<Real>(1) / det;
                                 
-                                t[0] = (d[0] * v[1] - d[1] * v[0]) * det_inv;
-                                t[1] = (d[0] * u[1] - d[1] * u[0]) * det_inv;
+                                t[0] = Det2D_Kahan( d[0], d[1], v[0], v[1] ) * det_inv;
+                                t[1] = Det2D_Kahan( d[0], d[1], u[0], u[1] ) * det_inv;
 
                                 intersecting = (t[0] > - eps) && (t[0] < big_one) && (t[1] > - eps) && (t[1] < big_one);
                             }
@@ -568,10 +539,11 @@ namespace KnotTools
 
                             if( intersecting )
                             {
+                                
                                 // Compute heights at the intersection.
                                 const Real h[2] = {
-                                    p[0][2][k] * (one - t[0]) + t[0] * p[1][2][k],
-                                    p[0][2][l] * (one - t[1]) + t[1] * p[1][2][l]
+                                    x[0][2] * (one - t[0]) + t[0] * x[1][2],
+                                    y[0][2] * (one - t[1]) + t[1] * y[1][2]
                                 };
                                 
                                 // Tell edges k and l that they contain an additional crossing.
@@ -659,142 +631,10 @@ namespace KnotTools
         
         
     public:
-
-        constexpr bool Tip   = true;
-        constexpr bool Tail  = false;
-        constexpr bool Left  = false;
-        constexpr bool Right = true;
-        constexpr bool In    = true;
-        constexpr bool Out   = false;
-        
-        PlanarDiagram<Int> CreatePlanarDiagram()
-        {
-            const Int intersection_count = static_cast<Int>(intersections.size());
-            
-            Int unlink_count = 0;
-            for( Int c = 0; c < component_count; ++c )
-            {
-                // The range of arcs belonging to this component.
-                const Int arc_begin  = edge_ptr[component_ptr[c  ]];
-                const Int arc_end    = edge_ptr[component_ptr[c+1]];
-
-                if( arc_begin == arc_end )
-                {
-                    ++unlink_count;
-                }
-            }
-            
-            PlanarDiagram<Int> pd ( intersection_count, unlink_count );
-            
-            //Preparing pointers for quick access.
-            
-            mptr<Int> C_arcs [2][2] = {
-                {pd.Crossings().data(0,0), pd.Crossings().data(0,1)},
-                {pd.Crossings().data(1,0), pd.Crossings().data(1,1)}
-            };
-            
-            mptr<Crossing_State> C_state = pd.CrossingStates().data();
-            
-            mptr<Int> A_crossings [2] = {pd.Arcs().data(0), pd.Arcs().data(1)};
-            
-            mptr<Arc_State> A_state = pd.ArcStates().data();
-            
-            // Now we go through all components
-            //      then through all edges of the component
-            //              then through all intersections of the edge
-            // and generate new vertices, edges, crossings, and arcs in one go.
-            
-
-            
-            PD_print("Begin of Link");
-            PD_print("{");
-            for( Int comp = 0; comp < component_count; ++comp )
-            {
-                PD_print("\tBegin of component " + ToString(c));
-                PD_print("\t{");
-                
-                // The range of arcs belonging to this component.
-                const Int arc_begin  = edge_ptr[component_ptr[comp  ]];
-                const Int arc_end    = edge_ptr[component_ptr[comp+1]];
-                
-                PD_valprint("\t\tarc_begin", arc_begin);
-                PD_valprint("\t\tarc_end"  , arc_end  );
-
-                if( arc_begin == arc_end )
-                {
-                    // Component is an unlink. Just skip it.
-                    continue;
-                }
-                
-                // If we arrive here, then there is definitely a crossing in the first edge.
-
-                for( Int b = arc_begin, a = arc_end-1; b < arc_end; a = (b++) )
-                {
-                    const Int c = edge_intersections[b];
-                    
-                    const bool overQ = edge_overQ[b];
-                    
-                    Intersection_T & inter = intersections[c];
-                    
-                    A_crossings[Tip ][a] = c; // c is tip  of a
-                    A_crossings[Tail][b] = c; // c is tail of b
-                    
-                    PD_assert( inter.sign > SI(0) || inter.sign < SI(0) );
-                    
-                    bool positiveQ = inter.sign > SI(0);
-                    
-                    C_state[c] = positiveQ ? Crossing_State::Positive : Crossing_State::Negative;
-                    A_state[a] = Arc_State::Active;
-                    
-                    /*
-                        positiveQ == true and overQ == true:
-
-                          C_arcs[Out][Left][c]  .       .  C_arcs[Out][Right][c] = b
-                                                .       .
-                                                +       +
-                                                 ^     ^
-                                                  \   /
-                                                   \ /
-                                                    /
-                                                   / \
-                                                  /   \
-                                                 /     \
-                                                +       +
-                                                .       .
-                       a = C_arcs[In][Left][c]  .       .  C_arcs[In][Right][c]
-                    */
-                    const bool over_in_side = (positiveQ == overQ) ? Left : Right ;
-                    
-                    
-                    C_arcs[In ][ over_in_side][c] = a;
-                    C_arcs[Out][!over_in_side][c] = b;
-                }
-        
-                
-                
-                PD_print("\t}");
-                PD_print("\tEnd   of component " + ToString(c));
-                
-                PD_print("");
-                
-            }
-            PD_print("");
-            PD_print("}");
-            PD_print("End   of Link");
-            PD_print("");
-            
-//            pd.CheckAllCrossings();
-//            pd.CheckAllArcs();
-            
-            return pd;
-        }
-        
-        
-    public:
         
         static inline SInt Sign( const Real x )
         {
-            return (x>0) ? static_cast<SInt>(1) : ( (x<0) ? static_cast<SInt>(-1) : static_cast<SInt>(0) );
+            return Tools::Sign<SInt>(x);
         }
         
         Int CrossingCount() const

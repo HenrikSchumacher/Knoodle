@@ -18,6 +18,8 @@ namespace KnotTools
         
         static constexpr Int AmbDim = AmbDim_;
         
+        using Vector_T     = Tiny::Vector<3,Real,Int>;
+        
         using BContainer_T = Tensor3<Real,Int>;
         
         using EContainer_T = Tensor3<Real,Int>;
@@ -33,7 +35,7 @@ namespace KnotTools
             // Leaves are precisely the last edge count nodes.
         ,   last_row_begin ( (Int(1) << Depth(node_count-1)) - 1            )
         ,           offset ( node_count - int_node_count - last_row_begin   )
-        ,            C_box ( 2 * edge_count - 1, AmbDim, 2                      )
+        ,            C_box ( 2 * edge_count - 1, AmbDim, 2                  )
         ,          C_begin ( node_count                                     )
         ,            C_end ( node_count                                     )
         {

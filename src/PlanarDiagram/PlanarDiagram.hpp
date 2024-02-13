@@ -17,6 +17,13 @@ namespace KnotTools
         
         using Arrow_T = std::pair<Int,bool>;
         
+        constexpr bool Tip   = true;
+        constexpr bool Tail  = false;
+        constexpr bool Left  = false;
+        constexpr bool Right = true;
+        constexpr bool In    = true;
+        constexpr bool Out   = false;
+        
     protected:
         
         // It is my habit to make all data members private/protected and to provided accessor references to only those members that the use is allowed to manipulate.
