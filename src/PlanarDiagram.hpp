@@ -6,7 +6,7 @@ namespace KnotTools
     
 
 #ifdef PD_ASSERTS
-    #define PD_print( s ) print(s);
+    #define PD_print( s ) Tools::print(s);
 #else
     #define PD_print( s )
 #endif
@@ -17,14 +17,19 @@ namespace KnotTools
     #define PD_assert( s )
 #endif
     
+#ifdef PD_ASSERTS
+    #define PD_valprint( key, val ) Tools::valprint( key, val )
+#else
+    #define PD_valprint( key, val )
+#endif
+    
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram
     {
     public:
-        ASSERT_INT(Int_)
         
-        // Specify local typedefs within this class.
+        ASSERT_INT(Int_)
 
         using Int = Int_;
         
@@ -46,28 +51,13 @@ namespace KnotTools
         
     protected:
         
-        // It is my habit to make all data members private/protected and to provided accessor references to only those members that the use is allowed to manipulate.
-        
-        // We try to make access to stored data as fast as possible by using a Structure of Array (SoA) data layout. That crossing data is stored in the heap-allocated array C_arc_cont of size 2 x 2 x crossing_count. The arc data is stored in the heap-allocated array A_cross_cont of size 2 x arc_count.
-        
-        Tensor3<Int,Int>         C_arcs;
+        CrossingContainer_T      C_arcs;
         CrossingStateContainer_T C_state;
-        Tensor1<Int,Int>         C_label;       // List of vertex labels that stay persistent throughout.
+        Tensor1<Int,Int>         C_label; // List of vertex labels that stay persistent throughout.
         
-        Tensor2<Int,Int>         A_cross;
+        ArcContainer_T           A_cross;
         ArcStateContainer_T      A_state;
-        Tensor1<Int,Int>         A_label;       // List of arc labels that stay persistent throughout.
-        
-        // Provide class members for the container sizes as convenience for loops.
-        // For example compared to
-        //
-        //     for( Int i = 0; i < C_arcs.Dimension(0); ++i )
-        //
-        // this
-        //
-        //     for( Int i = 0; i < initial_crossing_count; ++i )
-        //
-        // makes it easier for the compiler to figure out that the upper end of the loop does not change.
+        Tensor1<Int,Int>         A_label; // List of arc labels that stay persistent throughout.
         
         Int initial_crossing_count = 0;
         Int initial_arc_count      = 0;
@@ -111,36 +101,36 @@ namespace KnotTools
         // This constructor is supposed to allocate all relevant buffers.
         // Data has to be filled in manually by using the references provided by Crossings() and Arcs() method.
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   C_arcs           ( crossing_count_, 2, 2 )
-        ,   C_state          ( crossing_count_      )
-        ,   C_label          ( iota<Int,Int>(crossing_count_) )
-        ,   A_cross          ( Int(2)*crossing_count_, 2 )
-        ,   A_state          ( Int(2)*crossing_count_ )
-        ,   A_label          ( iota<Int,Int>(Int(2)*crossing_count_) )
-        ,   initial_crossing_count ( crossing_count_      )
-        ,   initial_arc_count      ( Int(2)*crossing_count_ )
-        ,   crossing_count         ( crossing_count_      )
-        ,   arc_count              ( Int(2)*crossing_count_ )
-        ,   unlink_count           ( unlink_count_        )
+        :   C_arcs                  ( crossing_count_, 2, 2                 )
+        ,   C_state                 ( crossing_count_                       )
+        ,   C_label                 ( iota<Int,Int>(crossing_count_)        )
+        ,   A_cross                 ( Int(2)*crossing_count_, 2             )
+        ,   A_state                 ( Int(2)*crossing_count_                )
+        ,   A_label                 ( iota<Int,Int>(Int(2)*crossing_count_) )
+        ,   initial_crossing_count  ( crossing_count_                       )
+        ,   initial_arc_count       ( Int(2)*crossing_count_                )
+        ,   crossing_count          ( crossing_count_                       )
+        ,   arc_count               ( Int(2)*crossing_count_                )
+        ,   unlink_count            ( unlink_count_                         )
         {
             PushAllCrossings();
         }
         
         // Copy constructor
         PlanarDiagram( const PlanarDiagram & other )
-        :   C_arcs           ( other.C_arcs       )
-        ,   C_state          ( other.C_state      )
-        ,   C_label          ( other.C_label      )
-        ,   A_cross          ( other.A_cross      )
-        ,   A_state          ( other.A_state      )
-        ,   A_label          ( other.A_label      )
-        ,   initial_crossing_count ( other.crossing_count    )
-        ,   initial_arc_count      ( other.initial_arc_count )
-        ,   crossing_count         ( other.crossing_count    )
-        ,   arc_count              ( other.arc_count         )
-        ,   unlink_count           ( other.unlink_count      )
-        ,   touched_crossings      ( other.touched_crossings )
-        ,   touched_arcs           ( other.touched_arcs   )
+        :   C_arcs                  ( other.C_arcs              )
+        ,   C_state                 ( other.C_state             )
+        ,   C_label                 ( other.C_label             )
+        ,   A_cross                 ( other.A_cross             )
+        ,   A_state                 ( other.A_state             )
+        ,   A_label                 ( other.A_label             )
+        ,   initial_crossing_count  ( other.crossing_count      )
+        ,   initial_arc_count       ( other.initial_arc_count   )
+        ,   crossing_count          ( other.crossing_count      )
+        ,   arc_count               ( other.arc_count           )
+        ,   unlink_count            ( other.unlink_count        )
+        ,   touched_crossings       ( other.touched_crossings   )
+        ,   touched_arcs            ( other.touched_arcs        )
         {
             PushAllCrossings();
         }
@@ -189,6 +179,110 @@ namespace KnotTools
         }
         
         
+        
+        
+        template<typename Real, typename SInt>
+        PlanarDiagram( cref<Link_2D<Real,Int,SInt>> L )
+        :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
+        {
+            using Link_T         = Link_2D<Real,Int>;
+            using Intersection_T = Link_T::Intersection_T;
+
+            const Int component_count     = L.ComponentCount();
+            
+            cptr<Int>  component_ptr      = L.ComponentPointers().data();
+            cptr<Int>  edge_ptr           = L.EdgePointers().data();
+            cptr<Int>  edge_intersections = L.EdgeIntersections().data();
+            cptr<bool> edge_overQ         = L.EdgeOverQ().data();
+            
+            cref<std::vector<Intersection_T>> intersections = L.Intersections();
+            
+            // Now we go through all components
+            //      then through all edges of the component
+            //      then through all intersections of the edge
+            // and generate new vertices, edges, crossings, and arcs in one go.
+            
+
+            PD_print("Begin of Link");
+            PD_print("{");
+            for( Int comp = 0; comp < component_count; ++comp )
+            {
+                PD_print("\tBegin of component " + ToString(c));
+                PD_print("\t{");
+                
+                // The range of arcs belonging to this component.
+                const Int arc_begin = edge_ptr[component_ptr[comp  ]];
+                const Int arc_end   = edge_ptr[component_ptr[comp+1]];
+                
+                PD_valprint("\t\tarc_begin", arc_begin);
+                PD_valprint("\t\tarc_end"  , arc_end  );
+
+                if( arc_begin == arc_end )
+                {
+                    // Component is an unlink. Just skip it.
+                    continue;
+                }
+                
+                // If we arrive here, then there is definitely a crossing in the first edge.
+
+                for( Int b = arc_begin, a = arc_end-1; b < arc_end; a = (b++) )
+                {
+                    const Int c = edge_intersections[b];
+                    
+                    const bool overQ = edge_overQ[b];
+                    
+                    cref<Intersection_T> inter = intersections[c];
+                    
+                    A_cross(a,Tip ) = c; // c is tip  of a
+                    A_cross(b,Tail) = c; // c is tail of b
+                    
+                    PD_assert( inter.sign > SInt(0) || inter.sign < SInt(0) );
+                    
+                    bool positiveQ = inter.sign > SInt(0);
+                    
+                    C_state[c] = positiveQ ? Crossing_State::Positive : Crossing_State::Negative;
+                    A_state[a] = Arc_State::Active;
+                    
+                    /*
+                        positiveQ == true and overQ == true:
+
+                            C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
+                                                .       .
+                                                +       +
+                                                 ^     ^
+                                                  \   /
+                                                   \ /
+                                                    /
+                                                   / \
+                                                  /   \
+                                                 /     \
+                                                +       +
+                                                .       .
+                         a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
+                    */
+                    const bool over_in_side = (positiveQ == overQ) ? Left : Right ;
+                    
+                    
+                    C_arcs(c,In , over_in_side) = a;
+                    C_arcs(c,Out,!over_in_side) = b;
+                }
+        
+                
+                
+                PD_print("\t}");
+                PD_print("\tEnd   of component " + ToString(c));
+                
+                PD_print("");
+                
+            }
+            PD_print("");
+            PD_print("}");
+            PD_print("End   of Link");
+            PD_print("");
+        }
+        
+        
+        
         Int UnlinkCount() const
         {
             return unlink_count;
@@ -205,28 +299,18 @@ namespace KnotTools
         {
             return crossing_count;
         }
-   
-        Tensor1<Int, Int> & CrossingLabels()
+        
+        cref<Tensor1<Int, Int>> CrossingLabels() const
         {
             return C_label;
         }
         
-        CrossingContainer_T & Crossings()
+        cref<CrossingContainer_T> Crossings() const
         {
             return C_arcs;
         }
         
-        const CrossingContainer_T& Crossings() const
-        {
-            return C_arcs;
-        }
-        
-        CrossingStateContainer_T & CrossingStates()
-        {
-            return C_state;
-        }
-        
-        const CrossingStateContainer_T& CrossingStates() const
+        cref<CrossingStateContainer_T> CrossingStates() const
         {
             return C_state;
         }
@@ -242,27 +326,17 @@ namespace KnotTools
             return arc_count;
         }
         
-        Tensor1<Int, Int> & ArcLabels()
+        cref<Tensor1<Int,Int>> ArcLabels() const
         {
             return A_label;
         }
         
-        ArcContainer_T & Arcs()
+        cref<ArcContainer_T> Arcs() const
         {
             return A_cross;
         }
         
-        const ArcContainer_T & Arcs() const
-        {
-            return A_cross;
-        }
-
-        ArcStateContainer_T & ArcStates()
-        {
-            return A_state;
-        }
-        
-        const ArcStateContainer_T& ArcStates() const
+        cref<ArcStateContainer_T> ArcStates() const
         {
             return A_state;
         }
@@ -739,148 +813,6 @@ namespace KnotTools
         }
         
     };
-    
-    
-    template<typename Real, typename Int >
-    PlanarDiagram<Int> CreatePlanarDiagram( cref<Link_2D<Real,Int>> L )
-    {
-        using Link_T         = Link_2D<Real,Int>;
-        using SInt           = Link_T::SInt;
-        using Intersection_T = Link_T::Intersection_T;
-        
-        using PD_T           = PlanarDiagram<Int>;
-
-        using SInt = Intersection_T::Sint;
-        
-        constexpr bool Tip   = PD_T::Tip;
-        constexpr bool Tail  = PD_T::Tail;
-        constexpr bool Left  = PD_T::Left;
-        constexpr bool Right = PD_T::Right;
-        constexpr bool In    = PD_T::In;
-        constexpr bool Out   = PD_T::Out;
-    
-    
-        const Int edge_count          = L.EdgeCount();
-        const Int component_count     = L.ComponentCout();
-        
-        cptr<Int>  component_ptr      = L.ComponentPointers().data();
-        cptr<Int>  edge_ptr           = L.EdgePointers().data();
-        cptr<Int>  edge_intersections = L.EdgeIntersections().data();
-        cptr<bool> edge_overQ         = L.EdgeOverQ().data();
-        
-        cref<std::vector<Intersection_T>> intersections = L.Intersections();
-        
-        const Int intersection_count = L.EdgeIntersections().Size();
-
-        Int unlink_count = 0;
-        for( Int c = 0; c < L.ComponentCount(); ++c )
-        {
-            // The range of arcs belonging to this component.
-            const Int arc_begin  = edge_ptr[component_ptr[c  ]];
-            const Int arc_end    = edge_ptr[component_ptr[c+1]];
-
-            if( arc_begin == arc_end )
-            {
-                ++unlink_count;
-            }
-        }
-        
-        PD_T pd ( intersection_count, unlink_count );
-        
-        mref<typename PD_T::CrossingContainer_T>      C_arcs  = pd.Crossings();
-        mref<typename PD_T::ArcContainer_T>           A_cross = pd.Arcs();
-        
-        mref<typename PD_T::CrossingStateContainer_T> C_state = pd.CrossingStates();
-        mref<typename PD_T::ArcStateContainer_T>      A_state = pd.ArcStates();
-        
-        // Now we go through all components
-        //      then through all edges of the component
-        //              then through all intersections of the edge
-        // and generate new vertices, edges, crossings, and arcs in one go.
-        
-
-        PD_print("Begin of Link");
-        PD_print("{");
-        for( Int comp = 0; comp < component_count; ++comp )
-        {
-            PD_print("\tBegin of component " + ToString(c));
-            PD_print("\t{");
-            
-            // The range of arcs belonging to this component.
-            const Int arc_begin  = edge_ptr[component_ptr[comp  ]];
-            const Int arc_end    = edge_ptr[component_ptr[comp+1]];
-            
-            PD_valprint("\t\tarc_begin", arc_begin);
-            PD_valprint("\t\tarc_end"  , arc_end  );
-
-            if( arc_begin == arc_end )
-            {
-                // Component is an unlink. Just skip it.
-                continue;
-            }
-            
-            // If we arrive here, then there is definitely a crossing in the first edge.
-
-            for( Int b = arc_begin, a = arc_end-1; b < arc_end; a = (b++) )
-            {
-                const Int c = edge_intersections[b];
-                
-                const bool overQ = edge_overQ[b];
-                
-                cref<Intersection_T> inter = intersections[c];
-                
-                A_cross(a,Tip ) = c; // c is tip  of a
-                A_cross(b,Tail) = c; // c is tail of b
-                
-                PD_assert( inter.sign > SInt(0) || inter.sign < SInt(0) );
-                
-                bool positiveQ = inter.sign > SInt(0);
-                
-                C_state[c] = positiveQ ? Crossing_State::Positive : Crossing_State::Negative;
-                A_state[a] = Arc_State::Active;
-                
-                /*
-                    positiveQ == true and overQ == true:
-
-                        C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
-                                            .       .
-                                            +       +
-                                             ^     ^
-                                              \   /
-                                               \ /
-                                                /
-                                               / \
-                                              /   \
-                                             /     \
-                                            +       +
-                                            .       .
-                     a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
-                */
-                const bool over_in_side = (positiveQ == overQ) ? Left : Right ;
-                
-                
-                C_arcs(c,In , over_in_side) = a;
-                C_arcs(c,Out,!over_in_side) = b;
-            }
-    
-            
-            
-            PD_print("\t}");
-            PD_print("\tEnd   of component " + ToString(c));
-            
-            PD_print("");
-            
-        }
-        PD_print("");
-        PD_print("}");
-        PD_print("End   of Link");
-        PD_print("");
-        
-//            pd.CheckAllCrossings();
-//            pd.CheckAllArcs();
-        
-        return pd;
-    }
 
 
 

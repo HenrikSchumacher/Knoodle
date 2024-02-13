@@ -387,6 +387,7 @@ namespace KnotTools
             
             return e;
         }
+
     
         const Tiny::VectorList<2,Int,Int> & Edges() const
         {

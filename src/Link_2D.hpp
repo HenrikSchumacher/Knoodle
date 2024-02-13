@@ -36,6 +36,9 @@ namespace KnotTools
         
         
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
+        
+        // TODO: Add value semantics.
+        
     public:
         
         using Real = Real_;
@@ -43,6 +46,20 @@ namespace KnotTools
         using SInt = SInt_;
         
         using Base_T = Link<Int>;
+        
+        using Tree2_T        = AABBTree<2,Real,Int>;
+        using Tree3_T        = AABBTree<3,Real,Int>;
+        
+        using Vector2_T      = Tree2_T::Vector_T;
+        using Vector3_T      = Tree3_T::Vector_T;
+        
+        using EContainer_T   = Tree3_T::EContainer_T;
+
+        using BContainer_T   = Tree2_T::BContainer_T;
+        
+        using Intersection_T = Intersection<Real,Int,SInt>;
+        
+        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
     protected:
         
@@ -66,20 +83,6 @@ namespace KnotTools
         using Base_T::cyclicQ;
         using Base_T::preorderedQ;
 
-        
-        using Tree2_T        = AABBTree<2,Real,Int>;
-        using Tree3_T        = AABBTree<3,Real,Int>;
-        
-        using Vector2_T      = Tree2_T::Vector_T;
-        using Vector3_T      = Tree3_T::Vector_T;
-        
-        using EContainer_T   = Tree3_T::EContainer_T;
-
-        using BContainer_T   = Tree2_T::BContainer_T;
-        
-        using Intersection_T = Intersection<Real,Int,SInt>;
-        
-        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
     public:
         
@@ -368,8 +371,29 @@ namespace KnotTools
             
             ptoc(ClassName()+"FindIntersections");
         }
+        
+    public:
+        
+        Int UnlinkCount() const
+        {
+            //TODO: Ensure that edge_ptr is initialized correctly when this is called!
+            
+            Int unlink_count = 0;
+            
+            for( Int c = 0; c < component_count; ++c )
+            {
+                // The range of arcs belonging to this component.
+                const Int arc_begin  = edge_ptr[component_ptr[c  ]];
+                const Int arc_end    = edge_ptr[component_ptr[c+1]];
 
-#include "Link_2D/CreatePlanarDiagram.hpp"
+                if( arc_begin == arc_end )
+                {
+                    ++unlink_count;
+                }
+            }
+            
+            return unlink_count;
+        }
         
     public:
         
