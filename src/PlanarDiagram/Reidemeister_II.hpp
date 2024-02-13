@@ -1,6 +1,6 @@
-#include "PD_Reidemeister_II_Horizontal.hpp"
-#include "PD_Reidemeister_II_Vertical.hpp"
-#include "PD_HandleTangle.hpp"
+#include "Reidemeister_II_Horizontal.hpp"
+#include "Reidemeister_II_Vertical.hpp"
+#include "HandleTangle.hpp"
 
 bool Reidemeister_II( const Int c_0 )
 {

@@ -22,6 +22,7 @@
 		AF5BC0B329D1AF1C008CA8B7 /* KnotTools */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = KnotTools; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
+		AFF305472B7AEB55009ABC74 /* Hide */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Hide; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,6 +39,7 @@
 		AF5BC0AA29D1AF1C008CA8B7 = {
 			isa = PBXGroup;
 			children = (
+				AFF305472B7AEB55009ABC74 /* Hide */,
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305442B7ACE3B009ABC74 /* submodules */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,

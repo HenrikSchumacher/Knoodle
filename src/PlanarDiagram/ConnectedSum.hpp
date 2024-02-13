@@ -70,10 +70,18 @@ void SplitOffConnectedSum( const Int a_0, const Int a_1 )
 //    PD_assert( (C_arcs[_in][Left][c_1] == a_1) || (C_arcs[_in][Right][c_1] == a_1) );
     
     if(
-       ( (C_arcs[_in][Left][ C[Tip][0] ] == a_0) || (C_arcs[_in][Right][ C[Tip][0] ] == a_0) )
-       &&
-       ( (C_arcs[_in][Left][ C[Tip][1] ] == a_1) || (C_arcs[_in][Right][ C[Tip][1] ] == a_1) )
-       )
+        (
+            (C_arcs[_in][Left ][ C[Tip][0] ] == a_0)
+            ||
+            (C_arcs[_in][Right][ C[Tip][0] ] == a_0) 
+        )
+        &&
+        (
+            (C_arcs[_in][Left ][ C[Tip][1] ] == a_1)
+            ||
+            (C_arcs[_in][Right][ C[Tip][1] ] == a_1)
+        )
+    )
     {
         
         const Int side_0 = (C_arcs[_in][Left][ C[Tip][0] ] == a_0) ? Left : Right;

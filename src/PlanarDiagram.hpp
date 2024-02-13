@@ -378,14 +378,14 @@ namespace KnotTools
     public:
         
         
-#include "PD_Checks.hpp"
-#include "PD_Reidemeister_I.hpp"
-#include "PD_Reidemeister_II.hpp"
-#include "PD_Break.hpp"
-#include "PD_Switch.hpp"
+#include "PlanarDiagram/Checks.hpp"
+#include "PlanarDiagram/Reidemeister_I.hpp"
+#include "PlanarDiagram/Reidemeister_II.hpp"
+#include "PlanarDiagram/Break.hpp"
+#include "PlanarDiagram/Switch.hpp"
         
-#include "PD_Faces.hpp"
-#include "PD_ConnectedSum.hpp"
+#include "PlanarDiagram/Faces.hpp"
+#include "PlanarDiagram/ConnectedSum.hpp"
         
 
         void PushAllCrossings()
