@@ -87,11 +87,11 @@ bool Reidemeister_II( const Int c_0 )
                 return true;
             }
             
-            if( C_arcs[Out][side][c_0] == C_arcs[In ][side][c_1] )
+            if( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side) )
             {
 // This horizontal alignment in the case of side==Right.
 //
-//                 C_arcs[Out][side][c_0] = b = C_arcs[In ][_side][c_1]
+//                   C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,side)
 //
 //                   O----<----O       O---->----O       O----<----O
 //                       e_3    ^     ^     b     \     /    e_2
@@ -103,7 +103,7 @@ bool Reidemeister_II( const Int c_0 )
 //                       e_0    /     \     a     v     v    e_1
 //                   O---->----O       O----<----O       O---->----O
 //
-//                C_arcs[In ][_side][c_0] = a = C_arcs[Out][_side][c_1]
+//                   C_arcs(c_0,In ,side) = a = C_arcs(c_1,Out,side)
 //
 //               Beware: The cases e_0 == e_3 and e_1 == e_2 might still be possible.
 //               Well, actually, the preceeding test for Reidemeister_I should rule this out.

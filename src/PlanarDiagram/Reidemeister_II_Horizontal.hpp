@@ -10,11 +10,11 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     PD_assert( CheckCrossing(c_1) );
     
     
-    const Int a_0 = C_arcs[Out][side][c_0];
-    const Int a_1 = C_arcs[In ][side][c_1];
+    const Int a_0 = C_arcs(c_0,Out,side);
+    const Int a_1 = C_arcs(c_1,In ,side);
     
-    const Int b_0 = C_arcs[In ][side][c_0];
-    const Int b_1 = C_arcs[Out][side][c_1];
+    const Int b_0 = C_arcs(c_0,In ,side);
+    const Int b_1 = C_arcs(c_0,Out,side);
     
     PD_assert( CheckArc(a_0) );
     PD_assert( CheckArc(a_1) );
@@ -49,7 +49,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     
 // We assume this horizontal alignment in the case of side==Right.
 //
-//                C_arcs[Out][side][c_0] = b = C_arcs[In ][_side][c_1]
+//                   C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,side)
 //
 //               v_3 O----<----O       O---->----O       O----<----O v_2
 //                       e_3    ^     ^     b     \     /    e_2
@@ -61,18 +61,18 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                       e_0    /     \     a     v     v    e_1
 //               v_0 O---->----O       O----<----O       O---->----O v_1
 //
-//               C_arcs[In ][_side][c_0] = a = C_arcs[Out][_side][c_1]
+//                   C_arcs(c_0,In ,side) = a = C_arcs(c_0,Out,side)
 //
 // In the case side == Left, we just flip everything around.
     
     
-    const Int a = C_arcs[In ][side][c_0];
-    const Int b = C_arcs[Out][side][c_0];
+    const Int a = C_arcs(c_0,In ,side);
+    const Int b = C_arcs(c_0,Out,side);
     
-    const Int e_0 = C_arcs[In ][!side][c_0];
-    const Int e_1 = C_arcs[Out][!side][c_1];
-    const Int e_2 = C_arcs[In ][!side][c_1];
-    const Int e_3 = C_arcs[Out][!side][c_0];
+    const Int e_0 = C_arcs(c_0,In ,!side);
+    const Int e_1 = C_arcs(c_1,Out,!side);
+    const Int e_2 = C_arcs(c_1,In ,!side);
+    const Int e_3 = C_arcs(c_0,Out,!side);
     
     if( e_0 == e_1 )
     {
@@ -256,7 +256,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
 
         
-        //  Should happen be cause we first check for a Reidemeister_I at c_1.
+        //  Should not happen because we first check for a Reidemeister_I at c_1.
         PD_assert( false );
 
         
@@ -275,7 +275,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 // Finally, the most common case/
 // This is for side == Right. In the other case (side == Left), we just flip everything around.
 //
-  //              C_arcs[Out][Right][c_0] = b = C_arcs[In ][Right][c_1]
+//                  C_arcs(c_0,Out,Right) = b = C_arcs(c_1,In ,Right)
 //
 //               v_3 O----<----O       O---->----O       O----<----O v_2
 //                       e_3    ^     ^     b     \     /    e_2
@@ -287,7 +287,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                       e_0    /     \     a     v     v    e_1
 //               v_0 O---->----O       O----<----O       O---->----O v_1
 //
-//                C_arcs[In ][Right][c_0] = a = C_arcs[Out][Right][c_1]
+//                  C_arcs(c_0,In ,Right) = a = C_arcs(c_1,Out,Right)
 //
 //
 // State after the move:

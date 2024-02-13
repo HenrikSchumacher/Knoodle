@@ -15,10 +15,7 @@ bool Reidemeister_I( const Int c )
     // Let's see on which side the loop is.
     bool side;
     
-    const Int A [2][2] = {
-        { C_arcs[0][0][c], C_arcs[0][1][c] },
-        { C_arcs[1][0][c], C_arcs[1][1][c] }
-    };
+    const Tiny::Matrix<2,2,Int,Int> A ( C_arcs.data(c) );
     
     if( A[Out][Left ] == A[In ][Left ] )
     {

@@ -48,10 +48,10 @@ bool Break( const Int c )
 //                       e_0    /     \    e_1
 //               v_0 O---->----O       O----<----O v_1
 
-        const Int e_0 = C_arcs[In ][Left ][c];
-        const Int e_1 = C_arcs[In ][Right][c];
-        const Int e_2 = C_arcs[Out][Right][c];
-        const Int e_3 = C_arcs[Out][Left ][c];
+        const Int e_0 = C_arcs(c,In ,Left );
+        const Int e_1 = C_arcs(c,In ,Right);
+        const Int e_2 = C_arcs(c,Out,Right);
+        const Int e_3 = C_arcs(c,Out,Left );
 
         // Should not be possible for topological reasons.
         PD_assert(e_0!=e_2);
@@ -61,11 +61,11 @@ bool Break( const Int c )
         PD_assert(e_0!=e_3);
         PD_assert(e_1!=e_3);
 
-//        const Int v_0 = A_crossings[Tail][e_0];
-//        const Int v_1 = A_crossings[Tail][e_1];
+//        const Int v_0 = A_cross(e_0,Tail);
+//        const Int v_1 = A_cross(e_1,Tail);
 //
-//        const Int v_2 = A_crossings[Tip ][e_2];
-//        const Int v_3 = A_crossings[Tip ][e_3];
+//        const Int v_2 = A_cross(e_2,Tip );
+//        const Int v_3 = A_cross(e_3,Tip );
 //
 //        valprint("v_0",v_0);
 //        valprint("v_1",v_1);

@@ -5,16 +5,15 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
     // We can resolve boths crossings in any case of sign distribution.
     // See the commented-out code below for an explanation
     
-    PD_assert( C_arcs[Out][side][c_0] == C_arcs[In ][!side][c_1] );
-    PD_assert( C_arcs[Out][side][c_0] == C_arcs[In ][!side][c_1] );
+    PD_assert( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,!side) );
     
-    const Int a   = C_arcs[In ][ side][c_0];
-    const Int b   = C_arcs[Out][ side][c_0];
+    const Int a   = C_arcs(c_0,In , side);
+    const Int b   = C_arcs(c_0,Out, side);
     
-    const Int e_0 = C_arcs[In ][!side][c_0];
-    const Int e_3 = C_arcs[Out][!side][c_0];
-    const Int e_1 = C_arcs[In ][ side][c_1];
-    const Int e_2 = C_arcs[Out][ side][c_1];
+    const Int e_0 = C_arcs(c_0,In ,!side);
+    const Int e_3 = C_arcs(c_0,Out,!side);
+    const Int e_1 = C_arcs(c_1,In , side);
+    const Int e_2 = C_arcs(c_1,Out, side);
 
     Reconnect(a, Tip , e_3);
     Reconnect(a, Tail, e_1);
@@ -39,7 +38,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 //// This horizontal alignment in the case of side == Right and positive crossing c_0
 //// Cases side == Left and sign = -1 are analogous.
 ////
-////                      C_arcs[Out][side][c_0] = b = C_arcs[In ][!side][c_1]
+////                         C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,!side,c_1)
 ////                                        +------->-------+
 ////                                       /                 \
 ////                                      /                   \
@@ -55,7 +54,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 ////                                      \                   /
 ////                                       \                 /
 ////                                        +-------<-------+
-////                      C_arcs[In ][side][c_0] = a = C_arcs[Out][!side][c_1]
+////                     C_arcs(c_0,In ,side,c_0) = a = C_arcs(c_1,Out,!side)
 ////
 //// We have several possibilities to simplify this:
 ////
@@ -100,7 +99,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 //// This horizontal alignment in the case of side == Right and positive crossing c_0/
 //// Note that this case differs from the one above only by the sign of the crossing c_1.
 ////
-////                      C_arcs[Out][side][c_0] = b = C_arcs[In ][!_side][c_1]
+////                         C_arcs(c_0,Out,side) = b = C_arcs(c_1,In, !side)
 ////                                        +------->-------+
 ////                                       /                 \
 ////                                      /                   \
@@ -116,7 +115,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 ////                                      \                   /
 ////                                       \                 /
 ////                                        +-------<-------+
-////                     C_arcs[In ][_side][c_0] = a = C_arcs[Out][!_side][c_1]
+////                         C_arcs(c_0,In ,side) = a = C_arcs(c_1,Out,!side)
 ////
 //// This can simply resolved by moving b over the tangle to the bottom of the diagram and a under the tangle to the top of the diagram. The new diagramm looks like this:
 ////

@@ -12,7 +12,7 @@ bool CheckCrossing( const Int c  )
     {
         for( bool lr : { Left, Right } )
         {
-            const Int a = C_arcs[io][lr][c];
+            const Int a = C_arcs(c,io,lr);
             
             const int active = (A_state[a] == Arc_State::Active);
             
@@ -24,7 +24,7 @@ bool CheckCrossing( const Int c  )
             
             const bool tailtip = ( io == In ) ? Tip : Tail;
             
-            const bool good = (A_crossings[tailtip][a] == c);
+            const bool good = (A_cross(a,tailtip) == c);
             
             if( !good )
             {
@@ -72,7 +72,7 @@ bool CheckArc( const Int a  )
 
     for( bool tiptail : {Tail, Tip} )
     {
-        const Int c = A_crossings[tiptail][a];
+        const Int c = A_cross(a,tiptail);
         
         const bool active = ( 
             (C_state[c] == Crossing_State::Positive)
@@ -88,7 +88,7 @@ bool CheckArc( const Int a  )
         }
         const bool inout = (tiptail == Tail) ? Out : In;
     
-        const bool good = ( (C_arcs[inout][Left ][c] == a) || (C_arcs[inout][Right][c] == a) );
+        const bool good = ( (C_arcs(c,inout,Left) == a) || (C_arcs(c,inout,Right) == a) );
         
         if( !good )
         {

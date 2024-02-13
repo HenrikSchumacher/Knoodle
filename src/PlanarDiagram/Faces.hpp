@@ -137,7 +137,7 @@ void RequireFaces()
 //                        face_arcs[arc_counter] = dir ? (a+1) : -(a+1);
                 
 //                        // Return the tail.
-//                        faces_crossings[arc_counter] = A_crossings[!dir][a];
+//                        faces_crossings[arc_counter] = A_cross(a,!dir);
                 
                 // Remember this arc to find the other face later.
                 if( A_faces[dir][a] == -1 )

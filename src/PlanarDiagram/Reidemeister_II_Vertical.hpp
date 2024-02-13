@@ -6,16 +6,16 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     PD_assert( c_0 != c_1 );
     
     // This is the central assumption here.
-    PD_assert( C_arcs[In ][Left ][c_1] == C_arcs[Out][Left ][c_0] );
-    PD_assert( C_arcs[In ][Right][c_1] == C_arcs[Out][Right][c_0] );
+    PD_assert( C_arcs(c_1,In ,Left ) == C_arcs(c_0,Out,Left ) );
+    PD_assert( C_arcs(c_1,In ,Right) == C_arcs(c_0,Out,Right) );
     
-    const Int a = C_arcs[Out][Left ][c_0];
-    const Int b = C_arcs[Out][Right][c_0];
+    const Int a = C_arcs(c_0,Out,Left );
+    const Int b = C_arcs(c_0,Out,Right);
     
-    const Int e_0 = C_arcs[In ][Left ][c_0];
-    const Int e_1 = C_arcs[In ][Right][c_0];
-    const Int e_2 = C_arcs[Out][Right][c_1];
-    const Int e_3 = C_arcs[Out][Left ][c_1];
+    const Int e_0 = C_arcs(c_0,In ,Left );
+    const Int e_1 = C_arcs(c_0,In ,Right);
+    const Int e_2 = C_arcs(c_1,Out,Right);
+    const Int e_3 = C_arcs(c_1,Out,Left );
     
     PD_assert( e_0 != e_2 );    // Should be impossible because of topology.
     PD_assert( e_1 != e_3 );    // Should be impossible because of topology.
@@ -37,11 +37,11 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             //                                 / \
             //                                /   \
             //                               /     \
-            //  C_arcs[In ][Left ][c_1]     O       O    C_arcs[In ][Right][c_1]
+            //     C_arcs(c_1,In ,Left )    O       O    C_arcs(c_1,In ,Right)
             //                          \\  ^       ^  //
             //                            a |       | b
             //                          //  |       |  \\
-            //  C_arcs[Out][Left ][c_0]     O       O    C_arcs[Out][Right][c_0]
+            //     C_arcs(c_0,Out,Left )    O       O    C_arcs(c_0,Out,Right)
             //                               ^     ^
             //                                \   /
             //                                 \ /
