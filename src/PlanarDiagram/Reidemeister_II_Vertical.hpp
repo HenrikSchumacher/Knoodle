@@ -165,7 +165,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         //           \           /     \           /
         //            +---->----O       O----<----+
                 
-        unlink_count += I(2);
+        unlink_count += Int(2);
         
         DeactivateArc(a);
         DeactivateArc(b);

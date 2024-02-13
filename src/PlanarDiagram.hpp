@@ -2,14 +2,34 @@
 
 namespace KnotTools
 {
-    template<typename Int>
+    
+    
+
+#ifdef PD_ASSERTS
+    #define PD_print( s ) print(s);
+#else
+    #define PD_print( s )
+#endif
+    
+#ifdef PD_ASSERTS
+    #define PD_assert( s ) std::assert(s);
+#else
+    #define PD_assert( s )
+#endif
+    
+    
+    template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram
     {
     public:
-        ASSERT_INT(Int)
+        ASSERT_INT(Int_)
         
         // Specify local typedefs within this class.
 
+        using Int = Int_;
+        
+        using Class_T = PlanarDiagram<Int>;
+        
         using CrossingContainer_T       = Tiny::MatrixList<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList<2,  Int,Int>;
         using CrossingStateContainer_T  = Tensor1<Crossing_State,Int>;
@@ -17,12 +37,12 @@ namespace KnotTools
         
         using Arrow_T = std::pair<Int,bool>;
         
-        constexpr bool Tip   = true;
-        constexpr bool Tail  = false;
-        constexpr bool Left  = false;
-        constexpr bool Right = true;
-        constexpr bool In    = true;
-        constexpr bool Out   = false;
+        static constexpr bool Tip   = true;
+        static constexpr bool Tail  = false;
+        static constexpr bool Left  = false;
+        static constexpr bool Right = true;
+        static constexpr bool In    = true;
+        static constexpr bool Out   = false;
         
     protected:
         
@@ -99,18 +119,18 @@ namespace KnotTools
         :   C_arc_cont       ( crossing_count_      )
         ,   C_state          ( crossing_count_      )
         ,   C_label          ( iota<Int,Int>(crossing_count_) )
-        ,   A_cross_cont     ( I(2)*crossing_count_ )
-        ,   A_state          ( I(2)*crossing_count_ )
-        ,   A_label          ( iota<Int,Int>(I(2)*crossing_count_) )
+        ,   A_cross_cont     ( Int(2)*crossing_count_ )
+        ,   A_state          ( Int(2)*crossing_count_ )
+        ,   A_label          ( iota<Int,Int>(Int(2)*crossing_count_) )
         ,   C_arcs {
                 {C_arc_cont.data(0,0), C_arc_cont.data(0,1)},
                 {C_arc_cont.data(1,0), C_arc_cont.data(1,1)}
             }
         ,   A_crossings {A_cross_cont.data(0), A_cross_cont.data(1)}
         ,   initial_crossing_count ( crossing_count_      )
-        ,   initial_arc_count      ( I(2)*crossing_count_ )
+        ,   initial_arc_count      ( Int(2)*crossing_count_ )
         ,   crossing_count         ( crossing_count_      )
-        ,   arc_count              ( I(2)*crossing_count_ )
+        ,   arc_count              ( Int(2)*crossing_count_ )
         ,   unlink_count           ( unlink_count_        )
         {
             PushAllCrossings();
@@ -192,6 +212,155 @@ namespace KnotTools
         }
         
         
+        
+        
+        
+        
+        
+        template<typename Real>
+        PlanarDiagram( cref<Link_2D<Real,Int>> L )
+        {
+            using Link_T         = Link_2D<Real,Int>;
+            using SInt           = Link_T::SInt;
+            using Intersection_T = Link_T::Intersection_T;
+//            
+//            using SInt = Intersection_T::Sint;
+//            constexpr bool Tip   = true;
+//            constexpr bool Tail  = false;
+//            constexpr bool Left  = false;
+//            constexpr bool Right = true;
+//            constexpr bool In    = true;
+//            constexpr bool Out   = false;
+        
+        
+            const Int edge_count          = L.EdgeCount();
+            const Int component_count     = L.ComponentCout();
+            
+            cptr<Int>  component_ptr      = L.ComponentPointers().data();
+            cptr<Int>  edge_ptr           = L.EdgePointers().data();
+            cptr<Int>  edge_intersections = L.EdgeIntersections().data();
+            cptr<bool> edge_overQ         = L.EdgeOverQ().data();
+            
+            cref<std::vector<Intersection_T>> intersections = L.Intersections();
+            
+            const Int intersection_count = L.EdgeIntersections().Size();
+
+            Int unlink_count = 0;
+            for( Int c = 0; c < L.ComponentCount(); ++c )
+            {
+                // The range of arcs belonging to this component.
+                const Int arc_begin  = edge_ptr[component_ptr[c  ]];
+                const Int arc_end    = edge_ptr[component_ptr[c+1]];
+
+                if( arc_begin == arc_end )
+                {
+                    ++unlink_count;
+                }
+            }
+            
+            PlanarDiagram<Int> pd ( intersection_count, unlink_count );
+            
+            //Preparing pointers for quick access.
+            
+            mptr<Int> C_arcs [2][2] = {
+                {pd.Crossings().data(0,0), pd.Crossings().data(0,1)},
+                {pd.Crossings().data(1,0), pd.Crossings().data(1,1)}
+            };
+            
+            mptr<Crossing_State> C_state = pd.CrossingStates().data();
+            
+            mptr<Int> A_crossings [2] = {pd.Arcs().data(0), pd.Arcs().data(1)};
+            
+            mptr<Arc_State> A_state = pd.ArcStates().data();
+            
+            // Now we go through all components
+            //      then through all edges of the component
+            //              then through all intersections of the edge
+            // and generate new vertices, edges, crossings, and arcs in one go.
+            
+
+            PD_print("Begin of Link");
+            PD_print("{");
+            for( Int comp = 0; comp < component_count; ++comp )
+            {
+                PD_print("\tBegin of component " + ToString(c));
+                PD_print("\t{");
+                
+                // The range of arcs belonging to this component.
+                const Int arc_begin  = edge_ptr[component_ptr[comp  ]];
+                const Int arc_end    = edge_ptr[component_ptr[comp+1]];
+                
+                PD_valprint("\t\tarc_begin", arc_begin);
+                PD_valprint("\t\tarc_end"  , arc_end  );
+
+                if( arc_begin == arc_end )
+                {
+                    // Component is an unlink. Just skip it.
+                    continue;
+                }
+                
+                // If we arrive here, then there is definitely a crossing in the first edge.
+
+                for( Int b = arc_begin, a = arc_end-1; b < arc_end; a = (b++) )
+                {
+                    const Int c = edge_intersections[b];
+                    
+                    const bool overQ = edge_overQ[b];
+                    
+                    cref<Intersection_T> inter = intersections[c];
+                    
+                    A_crossings[Tip ][a] = c; // c is tip  of a
+                    A_crossings[Tail][b] = c; // c is tail of b
+                    
+                    PD_assert( inter.sign > SInt(0) || inter.sign < SInt(0) );
+                    
+                    bool positiveQ = inter.sign > SInt(0);
+                    
+                    C_state[c] = positiveQ ? Crossing_State::Positive : Crossing_State::Negative;
+                    A_state[a] = Arc_State::Active;
+                    
+                    /*
+                        positiveQ == true and overQ == true:
+
+                          C_arcs[Out][Left][c]  .       .  C_arcs[Out][Right][c] = b
+                                                .       .
+                                                +       +
+                                                 ^     ^
+                                                  \   /
+                                                   \ /
+                                                    /
+                                                   / \
+                                                  /   \
+                                                 /     \
+                                                +       +
+                                                .       .
+                       a = C_arcs[In][Left][c]  .       .  C_arcs[In][Right][c]
+                    */
+                    const bool over_in_side = (positiveQ == overQ) ? Left : Right ;
+                    
+                    
+                    C_arcs[In ][ over_in_side][c] = a;
+                    C_arcs[Out][!over_in_side][c] = b;
+                }
+        
+                
+                
+                PD_print("\t}");
+                PD_print("\tEnd   of component " + ToString(c));
+                
+                PD_print("");
+                
+            }
+            PD_print("");
+            PD_print("}");
+            PD_print("End   of Link");
+            PD_print("");
+            
+    //            pd.CheckAllCrossings();
+    //            pd.CheckAllArcs();
+            
+            return pd;
+        }
         
         
         
@@ -288,7 +457,11 @@ namespace KnotTools
         
         bool CrossingActive( const Int c ) const
         {
-            return (C_state[c] == _plus) || (C_state[c] == _minus);
+            return (
+                (C_state[c] == Crossing_State::Positive)
+                ||
+                (C_state[c] == Crossing_State::Negative)
+            );
         }
 
         bool OppositeCrossingSigns( const Int c_0, const Int c_1 ) const
@@ -302,7 +475,8 @@ namespace KnotTools
             {
                 --crossing_count;
             }
-            C_state[c] = Crossing_State::Inactive;
+//            C_state[c] = Crossing_State::Inactive;
+            C_state[c] = Crossing_State::Unitialized;
         }
         
         
@@ -354,7 +528,6 @@ namespace KnotTools
 #ifdef PD_ASSERTS
             const Int d = A_crossings[ tiptail][a];
             const Int p = A_crossings[!tiptail][a];
-#endif
             
             PD_assert( (C_arcs[io][Left][c] == b) || (C_arcs[io][Right][c] == b) );
             
@@ -364,7 +537,8 @@ namespace KnotTools
             PD_assert( CrossingActive(c) );
             PD_assert( CrossingActive(d) );
             PD_assert( CrossingActive(p) );
-
+#endif
+            
             A_crossings[tiptail][a] = c;
 
             const bool lr = (C_arcs[io][Left][c] == b) ? Left : Right;
@@ -500,7 +674,7 @@ namespace KnotTools
                 }
                 else
                 {
-                    return Arrow_T(C_arcs[_in][Left][c], Tail);
+                    return Arrow_T(C_arcs[In][Left][c], Tail);
                 }
             }
             else
@@ -511,7 +685,7 @@ namespace KnotTools
                 }
                 else
                 {
-                    return Arrow_T(C_arcs[_in][Right][c],Tail);
+                    return Arrow_T(C_arcs[In][Right][c],Tail);
                 }
             }
         }
@@ -686,57 +860,59 @@ namespace KnotTools
             return pd;
         }
         
-        OrientedLinkDiagram<Int> CreateOrientedLinkDiagram()
-        {
-            OrientedLinkDiagram<Int> L ( crossing_count );
-            
-            mptr<Int> C [2][2] = {
-                { L.Crossings().data(0,0), L.Crossings().data(0,1) },
-                { L.Crossings().data(1,0), L.Crossings().data(1,1) }
-            };
-            
-            std::vector<bool> & C_sign = L.CrossingSigns();
-            
-            Tensor1<Int,Int> C_lookup ( initial_crossing_count );
-            
-            Int C_counter = 0;
-            for( Int c = 0; c < initial_crossing_count; ++c )
-            {
-                if( CrossingActive(c) )
-                {
-                    // We have to remember for each crossing what its new position is.
-                    C_lookup[c] = C_counter;
-                    ++C_counter;
-                }
-            }
-            
-            C_counter = 0;
-            for( Int c = 0; c < initial_crossing_count; ++c )
-            {
-                if( CrossingActive(c) )
-                {
-                    for( bool io : { _in, Out} )
-                    {
-                        for( bool lr : { Left, Right} )
-                        {
-                            const Int a = C_arcs[io][lr][c];
-                            
-                            const Int d = A_crossings[ (io == Out) ? Tip : Tail ][a];
-                            
-                            PD_assert( CrossingActive(d) );
-                            
-                            C[io][lr][C_counter] = C_lookup[d];
-                        }
-                    }
-                    
-                    C_sign[C_counter] = (C_state[c] == Crossing_State::Positive) ? _pos : _neg;
-                    
-                    ++C_counter;
-                }
-            }
-            
-            return L;
-        }
+        
+        // TODO: Is this really needed anywhere?
+//        OrientedLinkDiagram<Int> CreateOrientedLinkDiagram()
+//        {
+//            OrientedLinkDiagram<Int> L ( crossing_count );
+//            
+//            mptr<Int> C [2][2] = {
+//                { L.Crossings().data(0,0), L.Crossings().data(0,1) },
+//                { L.Crossings().data(1,0), L.Crossings().data(1,1) }
+//            };
+//            
+//            std::vector<bool> & C_sign = L.CrossingSigns();
+//            
+//            Tensor1<Int,Int> C_lookup ( initial_crossing_count );
+//            
+//            Int C_counter = 0;
+//            for( Int c = 0; c < initial_crossing_count; ++c )
+//            {
+//                if( CrossingActive(c) )
+//                {
+//                    // We have to remember for each crossing what its new position is.
+//                    C_lookup[c] = C_counter;
+//                    ++C_counter;
+//                }
+//            }
+//            
+//            C_counter = 0;
+//            for( Int c = 0; c < initial_crossing_count; ++c )
+//            {
+//                if( CrossingActive(c) )
+//                {
+//                    for( bool io : { _in, Out} )
+//                    {
+//                        for( bool lr : { Left, Right} )
+//                        {
+//                            const Int a = C_arcs[io][lr][c];
+//                            
+//                            const Int d = A_crossings[ (io == Out) ? Tip : Tail ][a];
+//                            
+//                            PD_assert( CrossingActive(d) );
+//                            
+//                            C[io][lr][C_counter] = C_lookup[d];
+//                        }
+//                    }
+//                    
+//                    C_sign[C_counter] = (C_state[c] == Crossing_State::Positive) ? _pos : _neg;
+//                    
+//                    ++C_counter;
+//                }
+//            }
+//            
+//            return L;
+//        }
         
     public:
         
@@ -747,4 +923,9 @@ namespace KnotTools
         
     };
     
+    
+    
+
+
+
 } // namespace KnotTools

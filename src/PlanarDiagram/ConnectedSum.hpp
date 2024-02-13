@@ -66,32 +66,32 @@ void SplitOffConnectedSum( const Int a_0, const Int a_1 )
 //    print( CrossingString(C[Tip][0]) );
 //    print( CrossingString(C[Tip][1]) );
     
-//    PD_assert( (C_arcs[_in][Left][c_0] == a_0) || (C_arcs[_in][Right][c_0] == a_0) );
-//    PD_assert( (C_arcs[_in][Left][c_1] == a_1) || (C_arcs[_in][Right][c_1] == a_1) );
+//    PD_assert( (C_arcs[In][Left][c_0] == a_0) || (C_arcs[In][Right][c_0] == a_0) );
+//    PD_assert( (C_arcs[In][Left][c_1] == a_1) || (C_arcs[In][Right][c_1] == a_1) );
     
     if(
         (
-            (C_arcs[_in][Left ][ C[Tip][0] ] == a_0)
+            (C_arcs[In][Left ][ C[Tip][0] ] == a_0)
             ||
-            (C_arcs[_in][Right][ C[Tip][0] ] == a_0) 
+            (C_arcs[In][Right][ C[Tip][0] ] == a_0) 
         )
         &&
         (
-            (C_arcs[_in][Left ][ C[Tip][1] ] == a_1)
+            (C_arcs[In][Left ][ C[Tip][1] ] == a_1)
             ||
-            (C_arcs[_in][Right][ C[Tip][1] ] == a_1)
+            (C_arcs[In][Right][ C[Tip][1] ] == a_1)
         )
     )
     {
         
-        const Int side_0 = (C_arcs[_in][Left][ C[Tip][0] ] == a_0) ? Left : Right;
-        const Int side_1 = (C_arcs[_in][Left][ C[Tip][1] ] == a_1) ? Left : Right;
+        const Int side_0 = (C_arcs[In][Left][ C[Tip][0] ] == a_0) ? Left : Right;
+        const Int side_1 = (C_arcs[In][Left][ C[Tip][1] ] == a_1) ? Left : Right;
         
         A_crossings[Tip][a_0] = C[Tip][1];
         A_crossings[Tip][a_1] = C[Tip][0];
 
-        C_arcs[_in][side_0][ C[Tip][0] ] = a_1;
-        C_arcs[_in][side_1][ C[Tip][1] ] = a_0;
+        C_arcs[In][side_0][ C[Tip][0] ] = a_1;
+        C_arcs[In][side_1][ C[Tip][1] ] = a_0;
         
         touched_crossings.push_back(C[Tip ][0]);
         touched_crossings.push_back(C[Tip ][1]);

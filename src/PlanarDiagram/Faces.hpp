@@ -272,10 +272,10 @@ const Tiny::VectorList<2,Int,Int> DuplicateDualArcs()
         }
     }
 
-    TwoArrayQuickSort<Int,Int> Q2;
-    ThreeArrayQuickSort<Int,Int,Int> Q3;
+    TwoArraySort<Int,Int,Size_T> Q2;
+    ThreeArraySort<Int,Int,Int,Size_T> Q3;
 
-    Q3.Sort( e[0], e[1], e[2], arc_count);
+    Q3( e[0], e[1], e[2], arc_count);
     
     //Now e[0] is sorted.
     //Continue to sort parts of e[1] that belong to ties in e[0];
@@ -291,7 +291,7 @@ const Tiny::VectorList<2,Int,Int> DuplicateDualArcs()
             ++b;
         }
         
-        Q2.Sort( &e[1][a], &e[2][a], b-a );
+        Q2( &e[1][a], &e[2][a], b-a );
         
 //        for( Int i = a; i < b-1; ++i )
 //        {

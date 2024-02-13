@@ -74,7 +74,12 @@ bool CheckArc( const Int a  )
     {
         const Int c = A_crossings[tiptail][a];
         
-        const bool active = ( (C_state[c] == _plus) || (C_state[c] == _minus) );
+        const bool active = ( 
+            (C_state[c] == Crossing_State::Positive)
+            ||
+            (C_state[c] == Crossing_State::Negative)
+        );
+        
         
         if( !active )
         {
@@ -100,7 +105,7 @@ bool CheckArc( const Int a  )
         eprint("Arc "+ToString(a)+" failed to pass CheckArc.");
     }
     
-    PD_assert( passed );
+//    PD_assert( passed );
     
     return passed;
 }
@@ -124,6 +129,6 @@ bool CheckAllArcs()
 bool CheckAll()
 {
     const bool passed = CheckAllCrossings() && CheckAllArcs();
-    PD_assert( passed );
+//    PD_assert( passed );
     return passed;
 }

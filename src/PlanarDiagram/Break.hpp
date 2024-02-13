@@ -1,21 +1,17 @@
-CLASS BreakChild( const Int c )
+Class_T BreakChild( const Int c )
 {
     print("BreakChild");
     // Make sure that Reidemeister_I is not applicable;
     
-    CLASS pd = CreateCompressed();
-//    CLASS pd (*this);
- 
+    Class_T pd = CreateCompressed();
+    
     valprint("c",c);
     
     print( "labels = " + pd.CrossingLabels().ToString() );
     
     valprint("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
-    
-    
-    bool check = pd.Break( pd.CrossingLabelLookUp(c) );
-    
-    PD_assert(check);
+        
+    PD_assert( pd.Break( pd.CrossingLabelLookUp(c) ) );
     
     return pd;
 }

@@ -96,7 +96,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             // We should arrive here because this is a vertical case.
             PD_assert(false);
             
-            unlink_count += I(1);
+            unlink_count++;
             
             PD_print("\tUnlink detectd.");
             
@@ -135,7 +135,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             
             PD_print("\tTwo unlinks detectd.");
             
-            unlink_count += I(2);
+            unlink_count += 2;
             
             DeactivateArc(a);
             DeactivateArc(b);
@@ -166,7 +166,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         // We should arrive here because this is a vertical case.
         PD_assert(false);
         
-        unlink_count += I(1);
+        unlink_count ++;
         
         PD_print("\tUnlink detectd.");
         
