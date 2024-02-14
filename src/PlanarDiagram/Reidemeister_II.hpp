@@ -1,3 +1,22 @@
+Int Reidemeister_II()
+{
+    Int prev_count = 1;
+    Int count = 0;
+    
+    while( count != prev_count )
+    {
+        prev_count = count;
+        
+        for( Int c = 0; c < C_arcs.Size(); ++c )
+        {
+            count += Reidemeister_II(c);
+        }
+    }
+    
+    return count;
+}
+
+
 #include "Reidemeister_II_Horizontal.hpp"
 #include "Reidemeister_II_Vertical.hpp"
 #include "HandleTangle.hpp"
@@ -6,7 +25,7 @@ bool Reidemeister_II( const Int c_0 )
 {
     PD_print("\nReidemeister_II( c = "+CrossingString(c_0)+" )");
         
-    if( !CrossingActive(c_0) )
+    if( !CrossingActiveQ(c_0) )
     {
         PD_print("Crossing "+ToString(c_0)+" is not active. Skipping");
         return false;
@@ -44,7 +63,7 @@ bool Reidemeister_II( const Int c_0 )
         {
             if( OppositeCrossingSigns(c_0,c_1) )
             {
-                PD_assert( CrossingActive(c_1) );
+                PD_assert( CrossingActiveQ(c_1) );
                 
                 if( io == Out )
                 {
@@ -60,8 +79,8 @@ bool Reidemeister_II( const Int c_0 )
             else
             {
                 PD_print("\tCrossing "+ToString(c_1)+" does not have opposite sing.");
-                PD_valprint("\tC_state["+ToString(c_0)+"]", SI(C_state[c_0]) );
-                PD_valprint("\tC_state["+ToString(c_1)+"]", SI(C_state[c_1]) );
+                PD_valprint("\tC_state["+ToString(c_0)+"]", to_underlying(C_state[c_0]) );
+                PD_valprint("\tC_state["+ToString(c_1)+"]", to_underlying(C_state[c_1]) );
                 
                 is_switch_candidate = true;
             }

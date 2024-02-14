@@ -5,9 +5,9 @@ Int ConnectedSummandCount()
 
 bool ConnectedSum()
 {
-    Tiny::VectorList<2,Int,Int> duplicates_arcs = DuplicateDualArcs();
+    Tensor2<Int,Int> duplicates_arcs = DuplicateDualArcs();
     
-    cptr<Int> A [2] = { duplicates_arcs.data(0), duplicates_arcs.data(1) };
+//    cptr<Int> A [2] = { duplicates_arcs.data(0), duplicates_arcs.data(1) };
     
     const Int n = duplicates_arcs.Dimension(1);
     
@@ -15,8 +15,8 @@ bool ConnectedSum()
     
     for( Int i = 0; i < n; ++i )
     {
-        const Int a_0 = A[0][i];
-        const Int a_1 = A[1][i];
+        const Int a_0 = duplicates_arcs(i,0);
+        const Int a_1 = duplicates_arcs(i,1);
         
         ++counter;
         SplitOffConnectedSum(a_0,a_1);
@@ -39,8 +39,8 @@ bool ConnectedSum()
 void SplitOffConnectedSum( const Int a_0, const Int a_1 )
 {
     PD_assert(a_0!=a_1);
-    PD_assert(ArcActive(a_0));
-    PD_assert(ArcActive(a_1));
+    PD_assert(ArcActiveQ(a_0));
+    PD_assert(ArcActiveQ(a_1));
     
     // Make a copy of the previous state.
     
@@ -56,10 +56,10 @@ void SplitOffConnectedSum( const Int a_0, const Int a_1 )
 //           X-----------<-----------X
 // C[Tip ][1]           a_1           C[Tail][1]
     
-    PD_assert(CrossingActive(C[0][0]));
-    PD_assert(CrossingActive(C[0][1]));
-    PD_assert(CrossingActive(C[1][0]));
-    PD_assert(CrossingActive(C[1][1]));
+    PD_assert(CrossingActiveQ(C[0][0]));
+    PD_assert(CrossingActiveQ(C[0][1]));
+    PD_assert(CrossingActiveQ(C[1][0]));
+    PD_assert(CrossingActiveQ(C[1][1]));
     
     
     if(

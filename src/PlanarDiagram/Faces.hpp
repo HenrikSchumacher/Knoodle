@@ -19,23 +19,23 @@ void RequireFaces()
     arc_comp = Tensor1<Int,Int>( initial_arc_count );
     
     // These are going to become edge of the dual graph(s). One dual edge for each arc.
-    arc_faces = Tiny::VectorList<2,Int,Int>( initial_arc_count );
+    A_faces = Tiny::VectorList<2,Int,Int>( initial_arc_count );
     
-    mptr<Int> A_faces [2] = { arc_faces.data(0), arc_faces.data(1) };
+    mptr<Int> A_faces [2] = { A_faces.data(0), A_faces.data(1) };
     // Convention: Left face first:
     //
-    //            arc_faces[1][a]
+    //            A_faces[1][a]
     //
     //            <------------|  a
     //
-    //            arc_faces[0][a]
+    //            A_faces[0][a]
     //
     // Entry -1 means "unvisited but to be visited".
     // Entry -2 means "do not visited".
     
     for( Int a = 0; a < initial_arc_count; ++ a )
     {
-        if( ArcActive(a) )
+        if( ArcActiveQ(a) )
         {
             A_faces[0][a] = -1;
             A_faces[1][a] = -1;
@@ -90,8 +90,6 @@ void RequireFaces()
             // Pop
             Int a = comp_arc_stack.back();
             comp_arc_stack.pop_back();
-            
-//                    valprint("a",a);
             
             Int dir;
             
@@ -173,8 +171,8 @@ exit:
 //            print("comps = " + ToString(comps));
 //            print("comp_ptr = " + ToString(comp_ptr));
     
-//            print("A_faces[0] = " + ToString(arc_faces[0]));
-//            print("A_faces[1] = " + ToString(arc_faces[1]));
+//            print("A_faces[0] = " + ToString(A_faces[0]));
+//            print("A_faces[1] = " + ToString(A_faces[1]));
 }
 
 const Tensor1<Int,Int> & FaceArcs()
@@ -209,7 +207,7 @@ const Tiny::VectorList<2,Int,Int> ArcFaces()
 {
     RequireFaces();
     
-    return arc_faces;
+    return A_faces;
 }
 
 const Tensor1<Int,Int> & ArcComponents()
@@ -225,7 +223,7 @@ const Tiny::VectorList<3,Int,Int> DualArcData()
     
     Tiny::VectorList<3,Int,Int> dual_arc_data (arc_count); // Convention: Left face first.
     
-    cptr<Int> A_faces [2] = { arc_faces.data(0), arc_faces.data(1) };
+    cptr<Int> A_faces [2] = { A_faces.data(0), A_faces.data(1) };
     
     mptr<Int> e [3] = { dual_arc_data.data(0), dual_arc_data.data(1), dual_arc_data.data(2) };
     
@@ -249,10 +247,11 @@ const Tiny::VectorList<3,Int,Int> DualArcData()
 const Tiny::VectorList<2,Int,Int> DuplicateDualArcs()
 {
     RequireFaces();
-
+    
+    // It is tempting to use a Tensor2 here, but that disallows the use of ThreeArraySort below!
     Tiny::VectorList<3,Int,Int> dual_arc_data (arc_count); // Convention: Left face first.
     
-    cptr<Int> A_faces [2] = { arc_faces.data(0), arc_faces.data(1) };
+    cptr<Int> A_faces [2] = { A_faces.data(0), A_faces.data(1) };
     
     mptr<Int> e [3] = { dual_arc_data.data(0), dual_arc_data.data(1), dual_arc_data.data(2) };
 

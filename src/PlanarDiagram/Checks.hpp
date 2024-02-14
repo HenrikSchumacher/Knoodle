@@ -1,6 +1,6 @@
 bool CheckCrossing( const Int c  )
 {
-    if( (C_state[c] != Crossing_State::Positive) && (C_state[c] != Crossing_State::Negative) )
+    if( (C_state[c] != CrossingState::Positive) && (C_state[c] != CrossingState::Negative) )
     {
         return true;
     }
@@ -14,7 +14,7 @@ bool CheckCrossing( const Int c  )
         {
             const Int a = C_arcs(c,io,lr);
             
-            const int active = (A_state[a] == Arc_State::Active);
+            const int active = (A_state[a] == ArcState::Active);
             
             if( !active )
             {
@@ -61,7 +61,7 @@ bool CheckAllCrossings()
 
 bool CheckArc( const Int a  )
 {
-    if( A_state[a] == Arc_State::Inactive )
+    if( A_state[a] == ArcState::Inactive )
     {
         return true;
     }
@@ -75,9 +75,9 @@ bool CheckArc( const Int a  )
         const Int c = A_cross(a,tiptail);
         
         const bool active = ( 
-            (C_state[c] == Crossing_State::Positive)
+            (C_state[c] == CrossingState::Positive)
             ||
-            (C_state[c] == Crossing_State::Negative)
+            (C_state[c] == CrossingState::Negative)
         );
         
         

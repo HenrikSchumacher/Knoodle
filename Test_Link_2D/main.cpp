@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#define PD_ASSERTS
+
 #include "KnotTools.hpp"
 
 using namespace KnotTools;

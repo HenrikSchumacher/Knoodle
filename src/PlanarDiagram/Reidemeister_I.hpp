@@ -1,3 +1,17 @@
+Int Reidemeister_I()
+{
+    // One round of Reidemeister_I checks.
+    
+    Int count = 0;
+    
+    for( Int c = 0; c < C_arcs.Size(); ++c )
+    {
+        count += Reidemeister_I(c);
+    }
+    
+    return count;
+}
+
 bool Reidemeister_I( const Int c )
 {
     PD_print("\nReidemeister_I( c = "+CrossingString(c)+" )");
@@ -5,7 +19,7 @@ bool Reidemeister_I( const Int c )
     // Checks whether a Reidemeister I move can be made at the c-th crossing, then applies it (if possible), and returns a Boolean that indicates whether a change has been made or not.
     // This is precisely the case if two consecutive arcs coincide.
     
-    if( !CrossingActive(c) )
+    if( !CrossingActiveQ(c) )
     {
         PD_print("Crossing "+ToString(c)+" is not active. Skipping");
 

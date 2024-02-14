@@ -26,23 +26,23 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     
     if( !((a_0 == a_1) && (b_0 == b_1)))
     {
-        if( side == Left )
-        {
-            print("left");
-        }
-        else
-        {
-            print("right");
-        }
-        valprint( "C_state[c_0]", SI(C_state[c_0]));
-        valprint( "C_state[c_1]", SI(C_state[c_1]));
-        print( CrossingString(c_0));
-        print( CrossingString(c_1));
+//        if( side == Left )
+//        {
+//            print("left");
+//        }
+//        else
+//        {
+//            print("right");
+//        }
+        PD_valprint( "C_state[c_0]", to_underlying(C_state[c_0]));
+        PD_valprint( "C_state[c_1]", to_underlying(C_state[c_1]));
+        PD_print( CrossingString(c_0));
+        PD_print( CrossingString(c_1));
         
-        print( ArcString(a_0));
-        print( ArcString(a_1));
-        print( ArcString(b_0));
-        print( ArcString(b_1));
+        PD_print( ArcString(a_0));
+        PD_print( ArcString(a_1));
+        PD_print( ArcString(b_0));
+        PD_print( ArcString(b_1));
     }
     
     
@@ -294,7 +294,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
 //                     +----<---------------<---------------<----+
 //                    /                     a                     \
-//               v_3 O         P       O         O       O         O v_2
+//               v_3 O         O       O         O       O         O v_2
 //                              ^     ^           \     /
 //                               \   /             \   /
 //                                \ /               \ /

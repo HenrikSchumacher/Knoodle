@@ -5,11 +5,11 @@ Class_T BreakChild( const Int c )
     
     Class_T pd = CreateCompressed();
     
-    valprint("c",c);
+    PD_valprint("c",c);
     
-    print( "labels = " + pd.CrossingLabels().ToString() );
+    PD_print( "labels = " + pd.CrossingLabels().ToString() );
     
-    valprint("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
+    PD_valprint("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
         
     PD_assert( pd.Break( pd.CrossingLabelLookUp(c) ) );
     
@@ -19,14 +19,14 @@ Class_T BreakChild( const Int c )
 
 bool Break( const Int c )
 {
-    print("Break");
-    valprint("c",c);
+    PD_print("Break");
+    PD_valprint("c",c);
     
-    PD_assert(CrossingActive(c));
+    PD_assert(CrossingActiveQ(c));
     
-    if( CrossingActive(c) )
+    if( CrossingActiveQ(c) )
     {
-        valprint("c",c);
+        PD_valprint("c",c);
 
         // Make sure that Reidemeister_I is not applicable;
 
@@ -61,20 +61,6 @@ bool Break( const Int c )
         PD_assert(e_0!=e_3);
         PD_assert(e_1!=e_3);
 
-//        const Int v_0 = A_cross(e_0,Tail);
-//        const Int v_1 = A_cross(e_1,Tail);
-//
-//        const Int v_2 = A_cross(e_2,Tip );
-//        const Int v_3 = A_cross(e_3,Tip );
-//
-//        valprint("v_0",v_0);
-//        valprint("v_1",v_1);
-//        valprint("v_2",v_2);
-//        valprint("v_3",v_3);
-//
-//        PD_assert(v_0!=v_3);
-//        PD_assert(v_1!=v_2);
-
         Reconnect(e_0,Tip,e_3);
         Reconnect(e_1,Tip,e_2);
 
@@ -86,7 +72,7 @@ bool Break( const Int c )
     }
     else
     {
-        wprint("Break failed.");
+        PD_wprint("Break failed.");
         return false;
     }
 }
