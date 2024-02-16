@@ -79,8 +79,8 @@ bool Reidemeister_II( const Int c_0 )
             else
             {
                 PD_print("\tCrossing "+ToString(c_1)+" does not have opposite sing.");
-                PD_valprint("\tC_state["+ToString(c_0)+"]", to_underlying(C_state[c_0]) );
-                PD_valprint("\tC_state["+ToString(c_1)+"]", to_underlying(C_state[c_1]) );
+                PD_valprint("\tC_state["+ToString(c_0)+"]", ToUnderlying(C_state[c_0]) );
+                PD_valprint("\tC_state["+ToString(c_1)+"]", ToUnderlying(C_state[c_1]) );
                 
                 is_switch_candidate = true;
             }

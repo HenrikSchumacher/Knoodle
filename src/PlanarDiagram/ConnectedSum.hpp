@@ -5,7 +5,7 @@ Int ConnectedSummandCount()
 
 bool ConnectedSum()
 {
-    Tensor2<Int,Int> duplicates_arcs = DuplicateDualArcs();
+    Tiny::VectorList<2,Int,Int> duplicates_arcs = DuplicateDualArcs();
     
 //    cptr<Int> A [2] = { duplicates_arcs.data(0), duplicates_arcs.data(1) };
     
@@ -15,10 +15,11 @@ bool ConnectedSum()
     
     for( Int i = 0; i < n; ++i )
     {
-        const Int a_0 = duplicates_arcs(i,0);
-        const Int a_1 = duplicates_arcs(i,1);
+        const Int a_0 = duplicates_arcs[0][i];
+        const Int a_1 = duplicates_arcs[1][i];
         
         ++counter;
+        
         SplitOffConnectedSum(a_0,a_1);
     }
     

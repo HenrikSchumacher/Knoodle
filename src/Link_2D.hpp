@@ -2,7 +2,7 @@
 
 namespace KnotTools
 {
-    template<typename Real_ = double, typename Int_ = long long, typename SInt_ = signed char>
+    template<typename Real_ = double, typename Int_ = long long, typename SInt_ = int>
     struct Intersection
     {
         using Real = Real_;
@@ -36,6 +36,10 @@ namespace KnotTools
         
         
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
+        
+        
+        // TODO: Read  GeomView .vect files.
+        // TODO: Write GeomView .vect files.
         
         // TODO: Add value semantics.
         

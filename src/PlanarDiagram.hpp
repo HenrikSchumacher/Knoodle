@@ -37,7 +37,8 @@ namespace KnotTools
         
         ASSERT_INT(Int_)
 
-        using Int = Int_;
+        using Int  = Int_;
+        using Sint = int;
         
         using Class_T = PlanarDiagram<Int>;
         
@@ -108,17 +109,17 @@ namespace KnotTools
         // This constructor is supposed to allocate all relevant buffers.
         // Data has to be filled in manually by using the references provided by Crossings() and Arcs() method.
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   C_arcs                  ( crossing_count_, 2, 2                 )
-        ,   C_state                 ( crossing_count_                       )
-        ,   C_label                 ( iota<Int,Int>(crossing_count_)        )
-        ,   A_cross                 ( Int(2)*crossing_count_, 2             )
-        ,   A_state                 ( Int(2)*crossing_count_                )
-        ,   A_label                 ( iota<Int,Int>(Int(2)*crossing_count_) )
-        ,   initial_crossing_count  ( crossing_count_                       )
-        ,   initial_arc_count       ( Int(2)*crossing_count_                )
-        ,   crossing_count          ( crossing_count_                       )
-        ,   arc_count               ( Int(2)*crossing_count_                )
-        ,   unlink_count            ( unlink_count_                         )
+        :   C_arcs                  ( crossing_count_, 2, 2                         )
+        ,   C_state                 ( crossing_count_, CrossingState::Unitialized   )
+        ,   C_label                 ( iota<Int,Int>(crossing_count_)                )
+        ,   A_cross                 ( Int(2)*crossing_count_, 2                     )
+        ,   A_state                 ( Int(2)*crossing_count_, ArcState::Inactive    )
+        ,   A_label                 ( iota<Int,Int>(Int(2)*crossing_count_)         )
+        ,   initial_crossing_count  ( crossing_count_                               )
+        ,   initial_arc_count       ( Int(2)*crossing_count_                        )
+        ,   crossing_count          ( crossing_count_                               )
+        ,   arc_count               ( Int(2)*crossing_count_                        )
+        ,   unlink_count            ( unlink_count_                                 )
         {
             PushAllCrossings();
         }
@@ -273,8 +274,6 @@ namespace KnotTools
                     C_arcs(c,In , over_in_side) = a;
                     C_arcs(c,Out,!over_in_side) = b;
                 }
-        
-                
                 
                 PD_print("\t}");
                 PD_print("\tEnd   of component " + ToString(comp));
@@ -401,7 +400,7 @@ namespace KnotTools
 
         bool OppositeCrossingSigns( const Int c_0, const Int c_1 ) const
         {
-            return ( to_underlying(C_state[c_0]) == -to_underlying(C_state[c_1]) );
+            return ( ToUnderlying(C_state[c_0]) == -ToUnderlying(C_state[c_1]) );
         }
         
         void DeactivateCrossing( const Int c )
@@ -436,56 +435,22 @@ namespace KnotTools
             A_state[a] = ArcState::Inactive;
         }
         
-
-        
-    private:
-        
         Int NextCrossing( const Int c, bool io, bool lr ) const
         {
             return A_cross( C_arcs(c,io,lr), ( io == In ) ? Tail : Tip );
         }
 
-        inline void Reconnect( const Int a, const bool tiptail, const Int b )
-        {
-            // Read: "Reconnect arc a with its tip/tail to where b pointed/started. Then deactivates b.
-            // Also keeps track of crossings that got touched and might be interesting for further simplication.
-            
-            const bool io = (tiptail==Tip) ? In : Out;
-            
-            PD_assert( a != b );
-            
-            PD_assert( ArcActiveQ(a) );
-            PD_assert( ArcActiveQ(b) );
-            
-            const Int c = A_cross(b, tiptail);
-            
-            PD_assert( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
-            
-            PD_assert(CheckArc(b));
-            PD_assert(CheckCrossing(c));
-            
-            PD_assert( CrossingActiveQ(c) );
-            PD_assert( CrossingActiveQ(A_cross(a, tiptail)) );
-            PD_assert( CrossingActiveQ(A_cross(a,!tiptail)) );
-            
-            A_cross(a,tiptail) = c;
+        
 
-            const bool lr = (C_arcs(c,io,Left) == b) ? Left : Right;
-            
-            C_arcs(c,io,lr) = a;
-            
-            touched_crossings.push_back(c);
-//            touched_crossings.push_back(A_cross(a,Tip));
-        }
-
+        
     public:
         
-        
+#include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/Reidemeister_I.hpp"
 #include "PlanarDiagram/Reidemeister_II.hpp"
-#include "PlanarDiagram/Break.hpp"
-#include "PlanarDiagram/Switch.hpp"
+//#include "PlanarDiagram/Break.hpp"
+//#include "PlanarDiagram/Switch.hpp"
         
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"
@@ -493,6 +458,8 @@ namespace KnotTools
 
         void PushAllCrossings()
         {
+            touched_crossings.reserve( initial_crossing_count );
+            
             for( Int i = initial_crossing_count-1; i >= 0; --i )
             {
                 touched_crossings.push_back( i );
@@ -580,29 +547,61 @@ namespace KnotTools
             }
         }
         
-        Arrow_T NextArc( const Int a, const bool tiptail )
+//        Arrow_T NextArc( const Int a, const bool tiptail )
+//        {
+//            PD_assert( ArcActiveQ(a) );
+//            
+//            const Int c = A_cross(a,tiptail);
+//            
+//            PD_assert( CrossingActiveQ(c) );
+//            
+//            // Find out whether arc a is connected to an <In>going or <Out>going port of c.
+//            const bool io = (tiptail == Tip) ? In : Out;
+//
+//            // Find out whether arc a is connected to a <Left> or <Right> port of c.
+//            const bool lr = (C_arcs(c,io,Left) == a) ? Left : Right;
+//            
+//            // We leave through the arc at the opposite port.
+//            //If everything is set up correctly, the ourgoing arc points into the same direction as a.
+//            return Arrow_T(C_arcs(c,!io,!lr), tiptail );
+//        }
+        
+        Int NextArc( const Int a ) const
         {
             PD_assert( ArcActiveQ(a) );
             
-            const Int c = A_cross(a,tiptail);
+            const Int c = A_cross( a, Tip );
             
             PD_assert( CrossingActiveQ(c) );
-            
-            // Find out whether arc a is connected to an <_in>going or <Out>going port of c.
-            const bool io = (tiptail == Tip) ? In : Out;
 
             // Find out whether arc a is connected to a <Left> or <Right> port of c.
-            const bool lr = (C_arcs(c,io,Left) == a) ? Left : Right;
+            const bool lr = (C_arcs(c,In,Left) == a) ? Left : Right;
             
             // We leave through the arc at the opposite port.
             //If everything is set up correctly, the ourgoing arc points into the same direction as a.
-            return Arrow_T(C_arcs(c,!io,!lr), tiptail );
+            return C_arcs(c,Out,!lr);
         }
         
-        Int NextCrossing( const Int a, const bool tiptail )
+        Int PrevArc( const Int a ) const
         {
-            return A_cross(a,tiptail);
+            PD_assert( ArcActiveQ(a) );
+            
+            const Int c = A_cross( a, Tail );
+            
+            PD_assert( CrossingActiveQ(c) );
+
+            // Find out whether arc a is connected to a <Left> or <Right> port of c.
+            const bool lr = (C_arcs(c,Out,Left) == a) ? Left : Right;
+            
+            // We leave through the arc at the opposite port.
+            //If everything is set up correctly, the ourgoing arc points into the same direction as a.
+            return C_arcs(c,In,!lr);
         }
+        
+//        Int NextCrossing( const Int a, const bool tiptail )
+//        {
+//            return A_cross(a,tiptail);
+//        }
         
         Tensor1<Int,Int> ExportSwitchCandidates()
         {
@@ -657,6 +656,50 @@ namespace KnotTools
                 return pos;
             }
         }
+        
+        
+        void Simplify()
+        {
+            ptic(ClassName()+"::Simplify()");
+            
+            faces_initialized = false;
+            
+            R_I_counter  = 0;
+            R_II_counter = 0;
+            tangle_move_counter = 0;
+            
+//            switch_candidates.clear();
+
+            while( !touched_crossings.empty() )
+            {
+                const Int c = touched_crossings.back();
+                touched_crossings.pop_back();
+                
+                PD_assert( CheckCrossing(c) );
+                
+                const bool R_I = Reidemeister_I(c);
+                
+                if( !R_I )
+                {
+                    (void)Reidemeister_II(c);
+                }
+            }
+            
+            print( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
+            print( "Performed Reidemeister II moves = " + ToString(R_II_counter));
+            print( "Performed Tangle          moves = " + ToString(tangle_move_counter));
+            
+//            const bool connected_sum_Q = ConnectedSum();
+//
+//            if( connected_sum_Q )
+//            {
+//                print("A");
+//                Simplify();
+//            }
+            
+            ptoc(ClassName()+"::Simplify()");
+        }
+        
     
         PlanarDiagram CreateCompressed()
         {
@@ -664,12 +707,12 @@ namespace KnotTools
             
             PlanarDiagram pd ( crossing_count, unlink_count );
             
-            mref<CrossingContainer_T> C_arcs_new  = pd.Crossings();
-            mptr<CrossingState>      C_state_new = pd.C_state.data();
+            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
+            mptr<CrossingState>       C_state_new = pd.C_state.data();
             mptr<Int>                 C_label_new = pd.C_label.data();
             
-            mref<ArcContainer_T>      A_cross_new = pd.Arcs();
-            mptr<ArcState>           A_state_new = pd.A_state.data();
+            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
+            mptr<ArcState>            A_state_new = pd.A_state.data();
             mptr<Int>                 A_label_new = pd.A_label.data();
             
             
@@ -679,6 +722,8 @@ namespace KnotTools
             Tensor1<Int,Int> C_lookup ( initial_crossing_count );
             // Will tell each old arc where it has to go into the new array of arcs.
             Tensor1<Int,Int> A_lookup ( initial_arc_count );
+            
+            // TODO: Rename the crossings and arcs so that they are ordered by first appearance during a curve traversal.
 
             Int C_counter = 0;
             for( Int c = 0; c < initial_crossing_count; ++c )
@@ -731,7 +776,7 @@ namespace KnotTools
                 A_cross_new(a,0) = C_lookup[ A_cross(a_from,0) ];
                 A_cross_new(a,1) = C_lookup[ A_cross(a_from,1) ];
                 
-                A_state_new[a] = A_state[a_from];
+                A_state_new[a]   = A_state[a_from];
                 
 //                PD_assert( pd.ArcActiveQ(a) );
                 
@@ -800,46 +845,263 @@ namespace KnotTools
 //        }
         
         
-        void Simplify()
+        PlanarDiagram CreateCompressed2()
         {
-            ptic(ClassName()+"::Simplify()");
+            // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
             
-            faces_initialized = false;
+            // Relabeling is done as follows:
+            // First active arc becomes first arc in new planar diagram.
+            // The _tail_ of this arc becomes the new first crossing.
+            // Then we follow all arcs in the component with NextArc(a); the new labels increase by one for each invisited arc. Same for the crossings.
             
-            R_I_counter  = 0;
-            R_II_counter = 0;
-            tangle_move_counter = 0;
+            PlanarDiagram pd ( crossing_count, unlink_count );
             
-//            switch_candidates.clear();
-
-            while( !touched_crossings.empty() )
+            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
+            mptr<CrossingState>       C_state_new = pd.C_state.data();
+//            mptr<Int>                 C_label_new = pd.C_label.data();
+            
+            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
+            mptr<ArcState>            A_state_new = pd.A_state.data();
+//            mptr<Int>                 A_label_new = pd.A_label.data();
+            
+            
+            Tensor1<Int,Int>  A_labels   ( arc_count, -1 );
+            Tensor1<Int,Int>  C_labels   ( crossing_count, -1 );
+            Tensor1<Sint,Int> A_visisted ( arc_count,       0 );
+            
+            const Int m = A_cross.Dimension(0);
+            
+            Int a_counter = 0;
+            Int c_counter = 0;
+            Int a_ptr     = 0;
+            Int a         = 0;
+            
+            Int comp_counter = 0;
+            
+            while( a_ptr < m )
             {
-                const Int c = touched_crossings.back();
-                touched_crossings.pop_back();
-                
-                PD_assert( CheckCrossing(c) );
-                
-                const bool R_I = Reidemeister_I(c);
-                
-                if( !R_I )
+                // Search for next arc that is active and has not yet been handled.
+                while( ( ( a_ptr < m ) && (A_visisted[a_ptr] > 0) ) || (!ArcActiveQ(a_ptr)) )
                 {
-                    (void)Reidemeister_II(c);
+                    ++a_ptr;
                 }
+                
+                if( a_ptr >= m )
+                {
+                    break;
+                }
+                
+                ++comp_counter;
+                
+                a = a_ptr;
+                
+                {
+                    const Int c_prev = A_cross(a,0);
+                    const Int label = C_labels[c_prev] = c_counter;
+                    
+                    C_state_new[label] = C_state[c_prev];
+                    
+                    ++c_counter;
+                }
+                
+                
+                // Cycle along all arcs in the link component, until we return where we started.
+                do
+                {
+                    // TODO: Do we have to set A_state?
+                    
+                    const Int c_prev = A_cross(a,0);
+                    const Int c_next = A_cross(a,1);
+                    
+                    A_visisted[a]++;
+                    
+                    if( C_labels[c_next] < 0 )
+                    {
+                        const Int label = C_labels[c_next] = c_counter;
+                        
+                        C_state_new[label] = C_state[c_next];
+                        
+                        ++c_counter;
+                    }
+                    
+                    {
+                        const Int  c   = C_labels[c_prev];
+                        const bool lr  = C_arcs(c_prev,0,1) == a;
+                        
+                        C_arcs_new( c, Out, lr ) = a_counter;
+                        
+                        A_cross_new( a_counter, Tip ) = c;
+                        
+                    }
+                    
+                    {
+                        const Int  c  = C_labels[c_next];
+                        const bool lr = C_arcs(c_next,1,1) == a;
+                        
+                        C_arcs_new( c, In, lr ) = a_counter;
+                        
+                        A_cross_new( a_counter, Tail ) = c;
+                    }
+                    
+                    a = NextArc(a);
+                    
+                    ++a_counter;
+                }
+                while( a != a_ptr );
+                
+                ++a_ptr;
             }
             
-            print( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
-            print( "Performed Reidemeister II moves = " + ToString(R_II_counter));
-            print( "Performed Tangle          moves = " + ToString(tangle_move_counter));
+            dump( ToString(pd.A_state) );
+            dump( ToString(pd.A_cross) );
+            dump( ToString(pd.C_arcs) );
+        }
+        
+       
+        
+        Tensor2<Int,Int> PDCode() const
+        {
+            const Int m = A_cross.Dimension(0);
             
-//            const bool connected_sum_Q = ConnectedSum();
-//
-//            if( connected_sum_Q )
-//            {
-//                print("A");
-//                Simplify();
-//            }
+            Tensor2<Int,Int>  pdcode     ( crossing_count,  4 );
+            Tensor1<Int,Int>  C_labels   ( crossing_count, -1 );
+            Tensor1<Sint,Int> A_visisted ( arc_count,       0 );
             
-            ptoc(ClassName()+"::Simplify()");
+            
+            Int a_counter = 0;
+            Int c_counter = 0;
+            Int a_ptr     = 0;
+            Int a         = 0;
+            
+            Int comp_counter = 0;
+            
+            while( a_ptr < m )
+            {
+                // Search for next arc that is active and has not yet been handled.
+                while( ( ( a_ptr < m ) && (A_visisted[a_ptr] > 0) ) || (!ArcActiveQ(a_ptr)) )
+                {
+                    ++a_ptr;
+                }
+                
+                if( a_ptr >= m )
+                {
+                    break;
+                }
+                
+                ++comp_counter;
+                
+                a = a_ptr;
+                
+                
+                C_labels[A_cross(a,0)] = c_counter++;
+                
+                
+                // Cycle along all arcs in the link component, until we return where we started.
+                do
+                {
+                    const Int c_prev = A_cross(a,0);
+                    const Int c_next = A_cross(a,1);
+                    
+                    
+//                    if( !ArcActiveQ(a) )
+//                    {
+//                        valprint("inactive arc",a);
+//                    }
+//                    
+//                    if( !CrossingActiveQ(c_prev) )
+//                    {
+//                        valprint("inactive crossing",c_prev);
+//                    }
+//                    
+//                    if( !CrossingActiveQ(c_next) )
+//                    {
+//                        valprint("inactive crossing",c_next);
+//                    }
+                    
+                    A_visisted[a]++;
+                    
+//                    if( C_labels[c_prev] < 0 )
+//                    {
+//                        C_labels[c_prev] = c_counter++;
+//                    }
+                    
+                    if( C_labels[c_next] < 0 )
+                    {
+                        C_labels[c_next] = c_counter++;
+                    }
+                    
+                    {
+                        const CrossingState sign  = C_state[c_prev];
+                        const Int           label = C_labels[c_prev];
+                        const bool          lr    = C_arcs(c_prev,0,1) == a;
+                        
+                        if( sign == CrossingState::Positive )
+                        {
+                            if( lr == 0 )
+                            {
+                                pdcode( label, 3 ) = a_counter;
+                            }
+                            else
+                            {
+                                pdcode( label, 2 ) = a_counter;
+                            }
+                        }
+                        else if( sign == CrossingState::Negative )
+                        {
+                            if( lr == 0 )
+                            {
+                                pdcode( label, 2 ) = a_counter;
+                            }
+                            else
+                            {
+                                pdcode( label, 1 ) = a_counter;
+                            }
+                        }
+                        
+                    }
+                    
+                    
+                    {
+                        const CrossingState sign  = C_state[c_next];
+                        const Int           label = C_labels[c_next];
+                        const bool          lr    = C_arcs(c_next,1,1) == a;
+                        
+                        if( sign == CrossingState::Positive )
+                        {
+                            if( lr == 0 )
+                            {
+                                pdcode( label, 0 ) = a_counter;
+                            }
+                            else
+                            {
+                                pdcode( label, 1 ) = a_counter;
+                            }
+                        }
+                        else if( sign == CrossingState::Negative )
+                        {
+                            if( lr == 0 )
+                            {
+                                pdcode( label, 3 ) = a_counter;
+                            }
+                            else
+                            {
+                                pdcode( label, 0 ) = a_counter;
+                            }
+                        }
+                        
+                    }
+                    
+                    a = NextArc(a);
+                    
+                    ++a_counter;
+                }
+                while( a != a_ptr );
+                
+                ++a_ptr;
+            }
+            
+            
+            return pdcode;
         }
         
     public:

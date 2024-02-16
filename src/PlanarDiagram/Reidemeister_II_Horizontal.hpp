@@ -34,8 +34,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
 //            print("right");
 //        }
-        PD_valprint( "C_state[c_0]", to_underlying(C_state[c_0]));
-        PD_valprint( "C_state[c_1]", to_underlying(C_state[c_1]));
+        PD_valprint( "C_state[c_0]", ToUnderlying(C_state[c_0]));
+        PD_valprint( "C_state[c_1]", ToUnderlying(C_state[c_1]));
         PD_print( CrossingString(c_0));
         PD_print( CrossingString(c_1));
         

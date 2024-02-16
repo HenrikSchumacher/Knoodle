@@ -108,7 +108,7 @@ namespace KnotTools
         {
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
-
+            
             // using edges.data(0) temporarily as scratch space.
             mptr<Int> tail_of_edge = edges.data(0);
 
@@ -125,7 +125,7 @@ namespace KnotTools
 
                 next_edge[e] = tail_of_edge[tip];
             }
-
+            
             FindComponents();
 
             // using edge_ptr temporarily as scratch space.

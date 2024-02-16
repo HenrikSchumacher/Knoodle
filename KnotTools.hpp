@@ -8,7 +8,7 @@ namespace KnotTools
     using namespace Tensors;
     using namespace Tools;
     
-    enum class CrossingState : signed char
+    enum class CrossingState : int
     {
         Unitialized = -2,
         Positive    =  1,
@@ -16,7 +16,7 @@ namespace KnotTools
         Untied      =  0
     };
     
-    enum class ArcState : signed char
+    enum class ArcState : int
     {
         Active    =  1,
         Inactive  =  0
