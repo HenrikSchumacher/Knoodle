@@ -1118,31 +1118,21 @@ namespace KnotTools
             
             return over_arc_idx;
         }
+
         
-        
-        
-        
-        Tensor1<Int,Int> AlexanderMatrixI() const
+        template<typename Scal>
+        Sparse::MatrixCSR<Scal,Int,Int> AlexanderMatrix( const Scal t ) const
         {
-            Tensor1<Int,Int> I ( 3 * crossing_count );
+            Tensor1<Int,Int>  I ( 3 * crossing_count );
+            Tensor1<Int,Int>  J ( 3 * crossing_count );
+            Tensor1<Scal,Int> A ( 3 * crossing_count );
             
-            for( Int c = 0; c < crossing_count; ++c )
-            {
-                I[3 * c + 0] = c;
-                I[3 * c + 1] = c;
-                I[3 * c + 2] = c;
-            }
-            
-            return I;
-        }
-        
-        Tensor1<Int,Int> AlexanderMatrixJ() const
-        {
             const Tensor1<Int,Int> over_arc_indices = OverArcIndices();
             
-            Tensor1<Int,Int> J ( 3 * crossing_count );
-            
             Int counter = 0;
+            
+            
+            const Tiny::Vector<3,Scal,Int> v ( { Scalar::One<Scal> - t, -Scalar::One<Scal>, t} );
             
             for( Int c = 0; c < C_arcs.Size(); ++c )
             {
@@ -1155,24 +1145,42 @@ namespace KnotTools
                 {
                     case CrossingState::Negative:
                     {
-                        Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                    
+                        const Int pos = 3 * counter;
                         
-                        J[3 * counter + 0] = over_arc_indices[C[1][0]];  // i
-                        J[3 * counter + 1] = over_arc_indices[C[1][1]];  // j
-                        J[3 * counter + 2] = over_arc_indices[C[0][0]];  // k
+                        I[pos + 0] = counter;
+                        I[pos + 1] = counter;
+                        I[pos + 2] = counter;
+                        
+                        J[pos + 0] = over_arc_indices[C[1][0]];  // i
+                        J[pos + 1] = over_arc_indices[C[1][1]];  // j
+                        J[pos + 2] = over_arc_indices[C[0][0]];  // k
+                        
+                        v.Write( &A[pos] );
                         
                         ++counter;
+                        
                         break;
                     }
                     case CrossingState::Positive:
                     {
-                        Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                    
+                        const Int pos = 3 * counter;
                         
-                        J[3 * counter + 0] = over_arc_indices[C[1][1]];  // i
-                        J[3 * counter + 1] = over_arc_indices[C[0][1]];  // k
-                        J[3 * counter + 2] = over_arc_indices[C[1][0]];  // j
+                        I[pos + 0] = counter;
+                        I[pos + 1] = counter;
+                        I[pos + 2] = counter;
+
+                        J[pos + 0] = over_arc_indices[C[1][1]];  // i
+                        J[pos + 1] = over_arc_indices[C[0][1]];  // k
+                        J[pos + 2] = over_arc_indices[C[1][0]];  // j
                         
+                        v.Write( &A[pos] );
+                            
                         ++counter;
+                        
                         break;
                     }
                     default:
@@ -1181,32 +1189,6 @@ namespace KnotTools
                     }
                 }
             }
-            
-            return J;
-        }
-        
-        template<typename Scal>
-        Tensor1<Scal,Int> AlexanderMatrixA( const Scal t ) const
-        {
-            Tensor1<Scal,Int> vals ( 3 * crossing_count );
-            
-            const Tiny::Vector<3,Scal,Int> v ( { Scalar::One<Scal> - t, -Scalar::One<Scal>, t} );
-            
-            for( Int i = 0; i < crossing_count; ++i )
-            {
-                v.Write( &vals[3*i] );
-            }
-            
-            return vals;
-        }
-        
-        
-        template<typename Scal>
-        Sparse::MatrixCSR<Scal,Int,Int> AlexanderMatrix( const Scal t ) const
-        {
-            const auto I = AlexanderMatrixI();
-            const auto J = AlexanderMatrixJ();
-            const auto A = AlexanderMatrixA(t);
             
             return Sparse::MatrixCSR<Scal,Int,Int>(
                 I.Size(), I.data(), J.data(), A.data(), 
