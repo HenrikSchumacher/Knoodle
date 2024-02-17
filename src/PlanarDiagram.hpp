@@ -35,7 +35,7 @@ namespace KnotTools
     {
     public:
         
-        ASSERT_INT(Int_)
+        ASSERT_SIGNED_INT(Int_)
 
         using Int  = Int_;
         using Sint = int;
@@ -247,6 +247,23 @@ namespace KnotTools
                     PD_assert( inter.sign > SInt(0) || inter.sign < SInt(0) );
                     
                     bool positiveQ = inter.sign > SInt(0);
+
+                    
+//                 negative         positive
+//                 right-handed     left-handed
+//                 .       .        .       .
+//                 .       .        .       .
+//                 +       +        +       +
+//                  ^     ^          ^     ^
+//                   \   /            \   /
+//                    \ /              \ /
+//                     /                \
+//                    / \              / \
+//                   /   \            /   \
+//                  /     \          /     \
+//                 +       +        +       +
+//                 .       .        .       .
+//                 .       .        .       .
                     
                     C_state[c] = positiveQ ? CrossingState::Positive : CrossingState::Negative;
                     A_state[a] = ArcState::Active;
@@ -306,12 +323,12 @@ namespace KnotTools
             return crossing_count;
         }
    
-        mref<Tensor1<Int, Int>> CrossingLabels()
+        mref<Tensor1<Int,Int>> CrossingLabels()
         {
             return C_label;
         }
         
-        cref<Tensor1<Int, Int>> CrossingLabels() const
+        cref<Tensor1<Int,Int>> CrossingLabels() const
         {
             return C_label;
         }
@@ -409,7 +426,7 @@ namespace KnotTools
             {
                 --crossing_count;
             }
-//            C_state[c] = CrossingState::Inactive;
+
             C_state[c] = CrossingState::Unitialized;
         }
         
@@ -700,153 +717,99 @@ namespace KnotTools
             ptoc(ClassName()+"::Simplify()");
         }
         
-    
-        PlanarDiagram CreateCompressed()
-        {
-            // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
-            
-            PlanarDiagram pd ( crossing_count, unlink_count );
-            
-            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-            mptr<CrossingState>       C_state_new = pd.C_state.data();
-            mptr<Int>                 C_label_new = pd.C_label.data();
-            
-            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-            mptr<ArcState>            A_state_new = pd.A_state.data();
-            mptr<Int>                 A_label_new = pd.A_label.data();
-            
-            
-            // Lookup tables to translate the connectivity data.
-            
-            // Will tell each old crossing where it has to go into the new array of crossings.
-            Tensor1<Int,Int> C_lookup ( initial_crossing_count );
-            // Will tell each old arc where it has to go into the new array of arcs.
-            Tensor1<Int,Int> A_lookup ( initial_arc_count );
-            
-            // TODO: Rename the crossings and arcs so that they are ordered by first appearance during a curve traversal.
-
-            Int C_counter = 0;
-            for( Int c = 0; c < initial_crossing_count; ++c )
-            {
-                if( CrossingActiveQ(c) )
-                {
-                    // We abuse C_label_new for the moment in order to store where each crossing came from.
-                    C_label_new[C_counter] = c;
-                    // We have to remember for each crossing what its new position is.
-                    C_lookup[c] = C_counter;
-                    ++C_counter;
-                }
-            }
-            
-            Int A_counter = 0;
-            for( Int a = 0; a < initial_arc_count; ++a )
-            {
-                if( ArcActiveQ(a) )
-                {
-                    // We abuse A_label_new for the moment in order to store where each arc came from.
-                    A_label_new[A_counter] = a;
-
-                    // We have to remember for each arc what its new position is.
-                    A_lookup[a] = A_counter;
-                    ++A_counter;
-                }
-            }
-            
-            for( Int c = 0; c < crossing_count; ++c )
-            {
-                const Int c_from = C_label_new[c];
-                                
-                C_arcs_new(c,0,0) = A_lookup[ C_arcs(c_from,0,0) ];
-                C_arcs_new(c,0,1) = A_lookup[ C_arcs(c_from,0,1) ];
-                C_arcs_new(c,1,0) = A_lookup[ C_arcs(c_from,1,0) ];
-                C_arcs_new(c,1,1) = A_lookup[ C_arcs(c_from,1,1) ];
-                
-                C_state_new[c] = C_state[c_from];
-                
-                // Finally we overwrite C_label_new with the actual labels.
-                C_label_new[c] = C_label[c_from];
-            }
-            
-            for( Int a = 0; a < arc_count; ++a )
-            {
-                const Int a_from = A_label_new[a];
-                
-                PD_assert( ArcActiveQ(a_from) );
-                
-                A_cross_new(a,0) = C_lookup[ A_cross(a_from,0) ];
-                A_cross_new(a,1) = C_lookup[ A_cross(a_from,1) ];
-                
-                A_state_new[a]   = A_state[a_from];
-                
-//                PD_assert( pd.ArcActiveQ(a) );
-                
-                // Finally we overwrite A_label_new with the actual labels.
-                A_label_new[a] = A_label[a_from];
-            }
-            
-            pd.connected_sum_counter = connected_sum_counter;
-            
-            return pd;
-        }
         
-        
-        // TODO: Is this really needed anywhere?
-        // TODO: Really outdated code here!
-//        OrientedLinkDiagram<Int> CreateOrientedLinkDiagram()
+//        PlanarDiagram CreateCompressed()
 //        {
-//            OrientedLinkDiagram<Int> L ( crossing_count );
-//            
-//            mptr<Int> C [2][2] = {
-//                { L.Crossings().data(0,0), L.Crossings().data(0,1) },
-//                { L.Crossings().data(1,0), L.Crossings().data(1,1) }
-//            };
-//            
-//            std::vector<bool> & C_sign = L.CrossingSigns();
-//            
+//            // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
+//
+//            PlanarDiagram pd ( crossing_count, unlink_count );
+//
+//            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
+//            mptr<CrossingState>       C_state_new = pd.C_state.data();
+//            mptr<Int>                 C_label_new = pd.C_label.data();
+//
+//            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
+//            mptr<ArcState>            A_state_new = pd.A_state.data();
+//            mptr<Int>                 A_label_new = pd.A_label.data();
+//
+//
+//            // Lookup tables to translate the connectivity data.
+//
+//            // Will tell each old crossing where it has to go into the new array of crossings.
 //            Tensor1<Int,Int> C_lookup ( initial_crossing_count );
-//            
+//            // Will tell each old arc where it has to go into the new array of arcs.
+//            Tensor1<Int,Int> A_lookup ( initial_arc_count );
+//
+//            // TODO: Rename the crossings and arcs so that they are ordered by first appearance during a curve traversal.
+//
 //            Int C_counter = 0;
 //            for( Int c = 0; c < initial_crossing_count; ++c )
 //            {
 //                if( CrossingActiveQ(c) )
 //                {
+//                    // We abuse C_label_new for the moment in order to store where each crossing came from.
+//                    C_label_new[C_counter] = c;
 //                    // We have to remember for each crossing what its new position is.
 //                    C_lookup[c] = C_counter;
 //                    ++C_counter;
 //                }
 //            }
-//            
-//            C_counter = 0;
-//            for( Int c = 0; c < initial_crossing_count; ++c )
+//
+//            Int A_counter = 0;
+//            for( Int a = 0; a < initial_arc_count; ++a )
 //            {
-//                if( CrossingActiveQ(c) )
+//                if( ArcActiveQ(a) )
 //                {
-//                    for( bool io : { _in, Out} )
-//                    {
-//                        for( bool lr : { Left, Right} )
-//                        {
-//                            const Int a = C_arcs(c,io,lr);
-//                            
-//                            const Int d = A_cross(a, (io == Out) ? Tip : Tail );
+//                    // We abuse A_label_new for the moment in order to store where each arc came from.
+//                    A_label_new[A_counter] = a;
 //
-//                            PD_assert( CrossingActiveQ(d) );
-//
-//                            C[io][lr][C_counter] = C_lookup[d];
-//                        }
-//                    }
-//                    
-//                    C_sign[C_counter] = (C_state[c] == CrossingState::Positive) ? _pos : _neg;
-//                    
-//                    ++C_counter;
+//                    // We have to remember for each arc what its new position is.
+//                    A_lookup[a] = A_counter;
+//                    ++A_counter;
 //                }
 //            }
-//            
-//            return L;
+//
+//            for( Int c = 0; c < crossing_count; ++c )
+//            {
+//                const Int c_from = C_label_new[c];
+//
+//                C_arcs_new(c,0,0) = A_lookup[ C_arcs(c_from,0,0) ];
+//                C_arcs_new(c,0,1) = A_lookup[ C_arcs(c_from,0,1) ];
+//                C_arcs_new(c,1,0) = A_lookup[ C_arcs(c_from,1,0) ];
+//                C_arcs_new(c,1,1) = A_lookup[ C_arcs(c_from,1,1) ];
+//
+//                C_state_new[c] = C_state[c_from];
+//
+//                // Finally we overwrite C_label_new with the actual labels.
+//                C_label_new[c] = C_label[c_from];
+//            }
+//
+//            for( Int a = 0; a < arc_count; ++a )
+//            {
+//                const Int a_from = A_label_new[a];
+//
+//                PD_assert( ArcActiveQ(a_from) );
+//
+//                A_cross_new(a,0) = C_lookup[ A_cross(a_from,0) ];
+//                A_cross_new(a,1) = C_lookup[ A_cross(a_from,1) ];
+//
+//                A_state_new[a]   = A_state[a_from];
+//
+////                PD_assert( pd.ArcActiveQ(a) );
+//
+//                // Finally we overwrite A_label_new with the actual labels.
+//                A_label_new[a] = A_label[a_from];
+//            }
+//
+//            pd.connected_sum_counter = connected_sum_counter;
+//
+//            return pd;
 //        }
+    
         
-        
-        PlanarDiagram CreateCompressed2()
+        PlanarDiagram CreateCompressed()
         {
+            ptic( ClassName()+"::CreateCompressed");
             // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
             
             // Relabeling is done as follows:
@@ -858,16 +821,12 @@ namespace KnotTools
             
             mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
             mptr<CrossingState>       C_state_new = pd.C_state.data();
-//            mptr<Int>                 C_label_new = pd.C_label.data();
             
             mref<ArcContainer_T>      A_cross_new = pd.A_cross;
             mptr<ArcState>            A_state_new = pd.A_state.data();
-//            mptr<Int>                 A_label_new = pd.A_label.data();
             
-            
-            Tensor1<Int,Int>  A_labels   ( arc_count, -1 );
-            Tensor1<Int,Int>  C_labels   ( crossing_count, -1 );
-            Tensor1<Sint,Int> A_visisted ( arc_count,       0 );
+            Tensor1<Int,Int>  C_labels   ( C_arcs.Size(),  -1 );
+            Tensor1<char,Int> A_visisted ( A_cross.Size(), false );
             
             const Int m = A_cross.Dimension(0);
             
@@ -881,7 +840,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( ( a_ptr < m ) && (A_visisted[a_ptr] > 0) ) || (!ArcActiveQ(a_ptr)) )
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }
@@ -897,29 +856,32 @@ namespace KnotTools
                 
                 {
                     const Int c_prev = A_cross(a,0);
-                    const Int label = C_labels[c_prev] = c_counter;
+                    const Int c      = C_labels[c_prev] = c_counter;
                     
-                    C_state_new[label] = C_state[c_prev];
+                    C_state_new[c] = C_state[c_prev];
                     
                     ++c_counter;
                 }
                 
-                
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
-                    // TODO: Do we have to set A_state?
-                    
                     const Int c_prev = A_cross(a,0);
                     const Int c_next = A_cross(a,1);
                     
-                    A_visisted[a]++;
+                    if( !A_visisted[a] )
+                    {
+                        A_state_new[a_counter] = ArcState::Active;
+                        A_visisted[a] = true;
+                    }
+                    
+                    
                     
                     if( C_labels[c_next] < 0 )
                     {
-                        const Int label = C_labels[c_next] = c_counter;
+                        const Int c = C_labels[c_next] = c_counter;
                         
-                        C_state_new[label] = C_state[c_next];
+                        C_state_new[c] = C_state[c_next];
                         
                         ++c_counter;
                     }
@@ -930,8 +892,7 @@ namespace KnotTools
                         
                         C_arcs_new( c, Out, lr ) = a_counter;
                         
-                        A_cross_new( a_counter, Tip ) = c;
-                        
+                        A_cross_new( a_counter, Tail ) = c;
                     }
                     
                     {
@@ -940,7 +901,7 @@ namespace KnotTools
                         
                         C_arcs_new( c, In, lr ) = a_counter;
                         
-                        A_cross_new( a_counter, Tail ) = c;
+                        A_cross_new( a_counter, Tip ) = c;
                     }
                     
                     a = NextArc(a);
@@ -952,9 +913,9 @@ namespace KnotTools
                 ++a_ptr;
             }
             
-            dump( ToString(pd.A_state) );
-            dump( ToString(pd.A_cross) );
-            dump( ToString(pd.C_arcs) );
+            ptoc( ClassName()+"::CreateCompressed");
+            
+            return pd;
         }
         
        
@@ -963,9 +924,10 @@ namespace KnotTools
         {
             const Int m = A_cross.Dimension(0);
             
-            Tensor2<Int,Int>  pdcode     ( crossing_count,  4 );
-            Tensor1<Int,Int>  C_labels   ( crossing_count, -1 );
-            Tensor1<Sint,Int> A_visisted ( arc_count,       0 );
+            Tensor2<Int ,Int> pdcode     ( crossing_count, 4 );
+            Tensor1<Int ,Int> C_labels   ( C_arcs.Size(), -1 );
+            
+            Tensor1<char,Int> A_visisted ( A_cross.Size(), false );
             
             
             Int a_counter = 0;
@@ -978,7 +940,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( ( a_ptr < m ) && (A_visisted[a_ptr] > 0) ) || (!ArcActiveQ(a_ptr)) )
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }
@@ -1002,28 +964,7 @@ namespace KnotTools
                     const Int c_prev = A_cross(a,0);
                     const Int c_next = A_cross(a,1);
                     
-                    
-//                    if( !ArcActiveQ(a) )
-//                    {
-//                        valprint("inactive arc",a);
-//                    }
-//                    
-//                    if( !CrossingActiveQ(c_prev) )
-//                    {
-//                        valprint("inactive crossing",c_prev);
-//                    }
-//                    
-//                    if( !CrossingActiveQ(c_next) )
-//                    {
-//                        valprint("inactive crossing",c_next);
-//                    }
-                    
-                    A_visisted[a]++;
-                    
-//                    if( C_labels[c_prev] < 0 )
-//                    {
-//                        C_labels[c_prev] = c_counter++;
-//                    }
+                    A_visisted[a] = true;
                     
                     if( C_labels[c_next] < 0 )
                     {
@@ -1059,7 +1000,6 @@ namespace KnotTools
                         }
                         
                     }
-                    
                     
                     {
                         const CrossingState sign  = C_state[c_next];
@@ -1102,6 +1042,201 @@ namespace KnotTools
             
             
             return pdcode;
+        }
+        
+        Tensor1<Int,Int> OverArcIndices() const
+        {
+            const Int m = A_cross.Dimension(0);
+            
+            Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
+            
+            Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
+            Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
+            
+            
+            Int counter = 0;
+            Int a_ptr   = 0;
+//            Int a       = 0;
+            
+            while( a_ptr < m )
+            {
+                // Search for next arc that is active and has not yet been handled.
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                {
+                    ++a_ptr;
+                }
+                
+                if( a_ptr >= m )
+                {
+                    break;
+                }
+                
+                Int a = a_ptr;
+                
+                Int tail = A_cross(a,0);
+                
+                // Go backwards until a goes under crossing tail.
+                while(
+                    (C_state[tail] == CrossingState::Positive)
+                    ==
+                    (C_arcs(tail,Out,0) == a)
+                )
+                {
+                    a = PrevArc(a);
+                    
+                    tail = A_cross(a,0);
+                }
+                
+                const Int a_0 = a;
+                
+                // Cycle along all arcs in the link component, until we return where we started.
+                do
+                {
+                    const Int tip = A_cross(a,1);
+                    
+                    A_visisted[a] = true;
+                    
+                    over_arc_idx[a] = counter;
+                    
+                    const bool goes_underQ =
+                        (C_state[tip] == CrossingState::Positive)
+                        ==
+                        (C_arcs(tip,In,0) == a);
+                    
+                    if( goes_underQ )
+                    {
+                        ++counter;
+                    }
+                    
+                    a = NextArc(a);
+                }
+                while( a != a_0 );
+                
+                ++a_ptr;
+            }
+            
+            
+            return over_arc_idx;
+        }
+        
+        
+        
+        
+        Tensor1<Int,Int> AlexanderMatrixI() const
+        {
+            Tensor1<Int,Int> I ( 3 * crossing_count );
+            
+            for( Int c = 0; c < crossing_count; ++c )
+            {
+                I[3 * c + 0] = c;
+                I[3 * c + 1] = c;
+                I[3 * c + 2] = c;
+            }
+            
+            return I;
+        }
+        
+        Tensor1<Int,Int> AlexanderMatrixJ() const
+        {
+            const Tensor1<Int,Int> over_arc_indices = OverArcIndices();
+            
+            Tensor1<Int,Int> J ( 3 * crossing_count );
+            
+            Int counter = 0;
+            
+            for( Int c = 0; c < C_arcs.Size(); ++c )
+            {
+                if( counter >= crossing_count )
+                {
+                    break;
+                }
+                
+                switch( C_state[c] )
+                {
+                    case CrossingState::Negative:
+                    {
+                        Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        
+                        J[3 * counter + 0] = over_arc_indices[C[1][0]];  // i
+                        J[3 * counter + 1] = over_arc_indices[C[1][1]];  // j
+                        J[3 * counter + 2] = over_arc_indices[C[0][0]];  // k
+                        
+                        ++counter;
+                        break;
+                    }
+                    case CrossingState::Positive:
+                    {
+                        Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        
+                        J[3 * counter + 0] = over_arc_indices[C[1][1]];  // i
+                        J[3 * counter + 1] = over_arc_indices[C[0][1]];  // k
+                        J[3 * counter + 2] = over_arc_indices[C[1][0]];  // j
+                        
+                        ++counter;
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            return J;
+        }
+        
+        template<typename Scal>
+        Tensor1<Scal,Int> AlexanderMatrixA( const Scal t ) const
+        {
+            Tensor1<Scal,Int> vals ( 3 * crossing_count );
+            
+            const Tiny::Vector<3,Scal,Int> v ( { Scalar::One<Scal> - t, -Scalar::One<Scal>, t} );
+            
+            for( Int i = 0; i < crossing_count; ++i )
+            {
+                v.Write( &vals[3*i] );
+            }
+            
+            return vals;
+        }
+        
+        
+        template<typename Scal>
+        Sparse::MatrixCSR<Scal,Int,Int> AlexanderMatrix( const Scal t ) const
+        {
+            const auto I = AlexanderMatrixI();
+            const auto J = AlexanderMatrixJ();
+            const auto A = AlexanderMatrixA(t);
+            
+            return Sparse::MatrixCSR<Scal,Int,Int>(
+                I.Size(), I.data(), J.data(), A.data(), 
+                crossing_count, crossing_count,
+                1, true, false
+            );
+        }
+        
+        Int Writhe() const
+        {
+            const Int writhe = 0;
+            
+            for( Int c = 0; c < C_state.Size(); ++c )
+            {
+                switch( C_state[c] )
+                {
+                    case CrossingState::Positive:
+                    {
+                        ++writhe;
+                        break;
+                    }
+                    case CrossingState::Negative:
+                    {
+                        --writhe;
+                        break;
+                    }
+                }
+            }
+            
+            return writhe;
         }
         
     public:
