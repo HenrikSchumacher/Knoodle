@@ -31,7 +31,7 @@ namespace KnotTools
     
     
     template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagram
+    class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
     {
     public:
         
@@ -1118,84 +1118,6 @@ namespace KnotTools
             
             return over_arc_idx;
         }
-
-        
-        template<typename Scal>
-        Sparse::MatrixCSR<Scal,Int,Int> AlexanderMatrix( const Scal t ) const
-        {
-            Tensor1<Int,Int>  I ( 3 * crossing_count );
-            Tensor1<Int,Int>  J ( 3 * crossing_count );
-            Tensor1<Scal,Int> A ( 3 * crossing_count );
-            
-            const Tensor1<Int,Int> over_arc_indices = OverArcIndices();
-            
-            Int counter = 0;
-            
-            
-            const Tiny::Vector<3,Scal,Int> v ( { Scalar::One<Scal> - t, -Scalar::One<Scal>, t} );
-            
-            for( Int c = 0; c < C_arcs.Size(); ++c )
-            {
-                if( counter >= crossing_count )
-                {
-                    break;
-                }
-                
-                switch( C_state[c] )
-                {
-                    case CrossingState::Negative:
-                    {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
-                    
-                        const Int pos = 3 * counter;
-                        
-                        I[pos + 0] = counter;
-                        I[pos + 1] = counter;
-                        I[pos + 2] = counter;
-                        
-                        J[pos + 0] = over_arc_indices[C[1][0]];  // i
-                        J[pos + 1] = over_arc_indices[C[1][1]];  // j
-                        J[pos + 2] = over_arc_indices[C[0][0]];  // k
-                        
-                        v.Write( &A[pos] );
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    case CrossingState::Positive:
-                    {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
-                    
-                        const Int pos = 3 * counter;
-                        
-                        I[pos + 0] = counter;
-                        I[pos + 1] = counter;
-                        I[pos + 2] = counter;
-
-                        J[pos + 0] = over_arc_indices[C[1][1]];  // i
-                        J[pos + 1] = over_arc_indices[C[0][1]];  // k
-                        J[pos + 2] = over_arc_indices[C[1][0]];  // j
-                        
-                        v.Write( &A[pos] );
-                            
-                        ++counter;
-                        
-                        break;
-                    }
-                    default:
-                    {
-                        break;
-                    }
-                }
-            }
-            
-            return Sparse::MatrixCSR<Scal,Int,Int>(
-                I.Size(), I.data(), J.data(), A.data(), 
-                crossing_count, crossing_count,
-                1, true, false
-            );
-        }
         
         Int Writhe() const
         {
@@ -1229,7 +1151,5 @@ namespace KnotTools
         }
         
     };
-
-
 
 } // namespace KnotTools

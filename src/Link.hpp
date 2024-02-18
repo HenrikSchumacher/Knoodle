@@ -78,8 +78,10 @@ namespace KnotTools
 //        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        Link( cptr<Int> edges_, const Int edge_count_ )
-        :   Link( edge_count_ )
+        
+        template<typename I_0, typename I_1>
+        Link( cptr<I_0> edges_, const I_1 edge_count_ )
+        :   Link( static_cast<Int>(edge_count_) )
         {
             // AoS = array of structures, i.e., loading data in interleaved form
 //            ptic(ClassName()+"() (AoS)");
@@ -90,8 +92,9 @@ namespace KnotTools
         }
         
         // Provide lists of e tails and e tips to make the object figure out its topology.
-        Link( cptr<Int> edge_tails_, cptr<Int> edge_tips_, const Int edge_count_ )
-        :   Link( edge_count_ )
+        template<typename I_0, typename I_1>
+        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
+        :   Link( static_cast<Int>(edge_count_) )
         {
             // SoA = array of structures; should be more performant because it can exploit more vectorization.
             
@@ -104,7 +107,8 @@ namespace KnotTools
 
     public:
         
-        void ReadEdges( cptr<Int> edges_ )
+        template<typename I>
+        void ReadEdges( cptr<I> edges_ )
         {
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
@@ -114,7 +118,7 @@ namespace KnotTools
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tail = edges_[2*e];
+                const Int tail = static_cast<Int>(edges_[2*e]);
 
                 tail_of_edge[tail] = e;
             }
@@ -123,7 +127,7 @@ namespace KnotTools
             {
                 const Int tip = edges_[2*e+1];
 
-                next_edge[e] = tail_of_edge[tip];
+                next_edge[e] = static_cast<Int>(tail_of_edge[tip]);
             }
             
             FindComponents();

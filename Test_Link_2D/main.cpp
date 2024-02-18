@@ -7,6 +7,10 @@
 
 #include <iostream>
 
+#define LAPACK_DISABLE_NAN_CHECK
+#define ACCELERATE_NEW_LAPACK
+#include <Accelerate/Accelerate.h>
+
 #define PD_ASSERTS
 
 #include "KnotTools.hpp"
@@ -31,5 +35,6 @@ int main(void)
     
     dump( L.AmbientDimension() );
     
+
     return 0;
 }

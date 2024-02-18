@@ -125,11 +125,12 @@ namespace KnotTools
         
         
         // Calling this constructor makes the object assume that it represents a cyclic polyline.
-        explicit Link_2D( const Int edge_count_ )
-        :   Base_T      ( edge_count_         )
-        ,   edge_coords ( edge_count_, 2, 3   )
-        ,   T           ( edge_count_         )
-        ,   box_coords  ( T.NodeCount(), 2, 2 )
+        template<typename I>
+        explicit Link_2D( const I edge_count_ )
+        :   Base_T      ( static_cast<Int>(edge_count_)         )
+        ,   edge_coords ( static_cast<Int>(edge_count_), 2, 3   )
+        ,   T           ( static_cast<Int>(edge_count_)         )
+        ,   box_coords  ( T.NodeCount()                , 2, 2   )
         {
             ptic(ClassName()+"() (cyclic)");
             
@@ -147,7 +148,8 @@ namespace KnotTools
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        Link_2D( cptr<Int> edges_, const Int edge_count_ )
+        template<typename I_0, typename I_1>
+        Link_2D( cptr<I_0> edges_, const I_1 edge_count_ )
         :   Base_T      ( edges_, edge_count_  )
         ,   edge_coords ( edge_count_, 2, 3    )
         ,   T           ( edge_count_          )
@@ -155,11 +157,12 @@ namespace KnotTools
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
-        Link_2D( cptr<Int> edge_tails_, cptr<Int> edge_tips_, const Int edge_count_ )
-        :   Base_T      ( edge_tails_, edge_tips_ )
-        ,   edge_coords ( edge_count_, 2, 3       )
-        ,   T           ( edge_count_             )
-        ,   box_coords  ( T.NodeCount(), 2, 3     )
+        template<typename I_0, typename I_1>
+        Link_2D( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
+        :   Base_T      ( edge_tails_, edge_tips_, edge_count_ )
+        ,   edge_coords ( edge_count_, 2, 3                    )
+        ,   T           ( edge_count_                          )
+        ,   box_coords  ( T.NodeCount(), 2, 3                  )
         {}
         
     public:

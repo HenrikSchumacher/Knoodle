@@ -34,3 +34,6 @@ namespace KnotTools
 #include "src/Link_2D.hpp"
 
 #include "src/PlanarDiagram.hpp"
+
+//#include "submodules/Tensors/src/Sparse/Metis.hpp"
+#include "src/Alexander.hpp"
