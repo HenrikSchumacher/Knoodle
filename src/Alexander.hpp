@@ -21,10 +21,7 @@ namespace KnotTools
         using Aggregator_T = TripleAggregator<Int,Int,Scal,LInt>;
         
     
-        Alexander() 
-        {
-            dump( TypeName<Scal> );
-        }
+        Alexander()  = default;
         
         ~Alexander() = default;
         
@@ -185,7 +182,7 @@ namespace KnotTools
             auto & M = Matrix(pd,-1);
             
             auto A = M.Transpose().Dot(M);
-
+            
             auto perm = Metis<Int>()( A.Outer().data(), A.Inner().data(), A.RowCount(), Int(1) );
             
             Sparse::CholeskyDecomposition<Scal,Int,LInt> S (
@@ -195,9 +192,9 @@ namespace KnotTools
             S.SymbolicFactorization();
             
             S.NumericFactorization( A.Values().data() );
-            
-            const auto U = S.GetU();
 
+            const auto & U = S.GetU();
+            
             Scal det = 1;
 
             for( Int i = 0; i < U.RowCount(); ++i )
@@ -228,7 +225,7 @@ namespace KnotTools
             
             S.NumericFactorization( A.Values().data() );
             
-            const auto U = S.GetU();
+            const auto & U = S.GetU();
 
             Scal log2_det = 0;
 
