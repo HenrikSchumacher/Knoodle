@@ -16,9 +16,10 @@ namespace KnotTools
         using Int  = Int_;
         using LInt = LInt_;
         
-        using Matrix_T     = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using PD_T         = PlanarDiagram<Int>;
-        using Aggregator_T = TripleAggregator<Int,Int,Scal,LInt>;
+        using Matrix_T        = Sparse::MatrixCSR<Scal,Int,LInt>;
+        using Factorization_T = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
+        using PD_T            = PlanarDiagram<Int>;
+        using Aggregator_T    = TripleAggregator<Int,Int,Scal,LInt>;
         
     
         Alexander()  = default;
@@ -173,7 +174,50 @@ namespace KnotTools
             return std::any_cast<Matrix_T &>( pd.GetCache(tag) );
         }
         
+        cref<Matrix_T> AlexanderATA( cref<PD_T> pd ) const
+        {
+            std::string tag ( "AlexanderATA" );
+            
+            ptic(ClassName()+"::AlexanderATA");
+            
+            if( !pd.InCacheQ(tag) )
+            {
+                auto & M = Matrix(pd);
+                
+                pd.SetCache( tag,
+                    std::make_any<Matrix_T>( M.Transpose().Dot(M) )
+                );
+            }
+            
+            ptoc(ClassName()+"::AlexanderATA");
+            
+            return std::any_cast<Matrix_T &>( pd.GetCache(tag) );
+        }
         
+        std::unique_ptr<Factorization_T> AlexanderFactorization( cref<PD_T> pd ) const
+        {   
+            auto & B = AlexanderATA(pd);
+            
+            Permutation<Int> perm = MetisReordering( pd );
+
+//            Permutation<Int> perm ( B.RowCount(), 1 );
+            
+            std::unique_ptr<Factorization_T> S = std::make_unique<Factorization_T>(
+                B.Outer().data(), B.Inner().data(), std::move(perm)
+            );
+            
+            S->SymbolicFactorization();
+            
+            S->NumericFactorization( B.Values().data(), Scal(0) );
+            
+            return std::move(S);
+        }
+        
+        
+        cref<Permutation<Int>> AlexanderReordering( cref<PD_T> pd ) const
+        {
+            return AlexanderFactorization(pd)->GetPermutation();
+        }
         
         Scal KnotDeterminant( cref<PD_T> pd ) const
         {
@@ -183,17 +227,9 @@ namespace KnotTools
             
             auto A = M.Transpose().Dot(M);
             
-            auto perm = Metis<Int>()( A.Outer().data(), A.Inner().data(), A.RowCount(), Int(1) );
-            
-            Sparse::CholeskyDecomposition<Scal,Int,LInt> S (
-                A.Outer().data(), A.Inner().data(), std::move(perm)
-            );
+            std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
 
-            S.SymbolicFactorization();
-            
-            S.NumericFactorization( A.Values().data() );
-
-            const auto & U = S.GetU();
+            const auto & U = S->GetU();
             
             Scal det = 1;
 
@@ -215,17 +251,9 @@ namespace KnotTools
             
             auto A = M.Transpose().Dot(M);
 
-            auto perm = Metis<Int>()( A.Outer().data(), A.Inner().data(), A.RowCount(), Int(1) );
+            std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
             
-            Sparse::CholeskyDecomposition<Scal,Int,LInt> S (
-                A.Outer().data(), A.Inner().data(), std::move(perm)
-            );
-
-            S.SymbolicFactorization();
-            
-            S.NumericFactorization( A.Values().data() );
-            
-            const auto & U = S.GetU();
+            const auto & U = S->GetU();
 
             Scal log2_det = 0;
 
@@ -239,33 +267,34 @@ namespace KnotTools
             return log2_det;
         }
         
-        Permutation<Int> MetisPermutation( mref<PD_T> pd ) const
+        mref<Permutation<Int>> MetisReordering( cref<PD_T> pd ) const
         {
-            std::string tag ( "MetisPermutation" );
-            
+            std::string tag ( "MetisReordering" );
+
             std::string m_tag ( "AlexanderMatrix" );
-            
-            
+
+
             ptic(ClassName()+"::"+tag);
-            
+
             if( !pd.InCacheQ(tag) )
             {
                 auto & M = Matrix( pd );
-                
+
                 auto A = M.Transpose().Dot(M);
-                
+
                 Metis<Int> metis;
-                
+
                 Permutation<Int> perm = metis(
                     A.Outer().data(), A.Inner().data(), A.RowCount(), Int(1)
                 );
-                
+
                 pd.SetCache( tag, std::move(perm) );
             }
-            
+
             ptoc(ClassName()+"::"+tag);
-            
+
             return std::any_cast<Permutation<Int> &>( pd.GetCache(tag) );
+            
         }
         
         

@@ -322,6 +322,16 @@ namespace KnotTools
         {
             return crossing_count;
         }
+        
+        Int Reidemeister_I_Counter() const
+        {
+            return R_I_counter;
+        }
+        
+        Int Reidemeister_II_Counter() const
+        {
+            return R_II_counter;
+        }
    
         mref<Tensor1<Int,Int>> CrossingLabels()
         {
@@ -500,9 +510,9 @@ namespace KnotTools
         {
             faces_initialized = false;
             
-            R_I_counter  = 0;
-            R_II_counter = 0;
-            tangle_move_counter = 0;
+//            R_I_counter  = 0;
+//            R_II_counter = 0;
+//            tangle_move_counter = 0;
             
 //            switch_candidates.clear();
                         
@@ -685,8 +695,6 @@ namespace KnotTools
             R_II_counter = 0;
             tangle_move_counter = 0;
             
-//            switch_candidates.clear();
-
             while( !touched_crossings.empty() )
             {
                 const Int c = touched_crossings.back();
@@ -702,9 +710,9 @@ namespace KnotTools
                 }
             }
             
-            print( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
-            print( "Performed Reidemeister II moves = " + ToString(R_II_counter));
-            print( "Performed Tangle          moves = " + ToString(tangle_move_counter));
+            logprint( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
+//            logprint( "Performed Reidemeister II moves = " + ToString(R_II_counter));
+//            logprint( "Performed Tangle          moves = " + ToString(tangle_move_counter));
             
 //            const bool connected_sum_Q = ConnectedSum();
 //
