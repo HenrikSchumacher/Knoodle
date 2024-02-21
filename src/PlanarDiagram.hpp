@@ -695,6 +695,9 @@ namespace KnotTools
             R_II_counter = 0;
             tangle_move_counter = 0;
             
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+            
             while( !touched_crossings.empty() )
             {
                 const Int c = touched_crossings.back();
@@ -702,13 +705,17 @@ namespace KnotTools
                 
                 PD_assert( CheckCrossing(c) );
                 
-                const bool R_I = Reidemeister_I(c);
+
                 
-                if( !R_I )
-                {
-                    (void)Reidemeister_II(c);
-                }
+                const bool R_I = Reidemeister_I(c);
+//                
+//                if( !R_I )
+//                {
+//                    (void)Reidemeister_II(c);
+//                }
             }
+            
+#pragma clang diagnostic pop
             
             logprint( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
 //            logprint( "Performed Reidemeister II moves = " + ToString(R_II_counter));

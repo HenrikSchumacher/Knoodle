@@ -182,10 +182,12 @@ namespace KnotTools
             
             if( !pd.InCacheQ(tag) )
             {
-                auto & M = Matrix(pd);
+                auto & A = Matrix(pd);
+                
+                auto AT = A.Transpose();
                 
                 pd.SetCache( tag,
-                    std::make_any<Matrix_T>( M.Transpose().Dot(M) )
+                    std::make_any<Matrix_T>( AT.Dot(A) )
                 );
             }
             
@@ -221,31 +223,32 @@ namespace KnotTools
         
         Scal KnotDeterminant( cref<PD_T> pd ) const
         {
-            ptic("KnotDeterminant");
-
-            auto & M = Matrix(pd,-1);
             
-            auto A = M.Transpose().Dot(M);
-            
-            std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
-
-            const auto & U = S->GetU();
+            ptic(ClassName()+"::KnotDeterminant");
             
             Scal det = 1;
-
-            for( Int i = 0; i < U.RowCount(); ++i )
+            
+            if( pd.CrossingCount() >0 )
             {
-                det *= U.Value(U.Outer(i));
+                
+                std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
+                
+                const auto & U = S->GetU();
+                
+                for( Int i = 0; i < U.RowCount(); ++i )
+                {
+                    det *= U.Value(U.Outer(i));
+                }
             }
 
-            ptoc("KnotDeterminant");
+            ptoc(ClassName()+"::KnotDeterminant");
 
             return det;
         }
         
         Scal Log2KnotDeterminant( cref<PD_T> pd ) const
         {
-            ptic("Log2KnotDeterminant");
+            ptic(ClassName()+"::Log2KnotDeterminant");
 
             auto & M = Matrix(pd,-1);
             
@@ -262,7 +265,7 @@ namespace KnotTools
                 log2_det += std::log2( U.Value(U.Outer(i)) );
             }
 
-            ptoc("Log2KnotDeterminant");
+            ptoc(ClassName()+"::Log2KnotDeterminant");
 
             return log2_det;
         }

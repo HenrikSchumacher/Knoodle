@@ -54,8 +54,8 @@ namespace KnotTools
         using Tree2_T        = AABBTree<2,Real,Int>;
         using Tree3_T        = AABBTree<3,Real,Int>;
         
-        using Vector2_T      = Tree2_T::Vector_T;
-        using Vector3_T      = Tree3_T::Vector_T;
+        using Vector2_T      = Tiny::Vector<2,Real,Int>;
+        using Vector3_T      = Tiny::Vector<3,Real,Int>;
         
         using EContainer_T   = Tree3_T::EContainer_T;
 
@@ -171,6 +171,7 @@ namespace KnotTools
         {
             ptic(ClassName()+"::ReadVertexCoordinates (AoS)");
             
+            // TODO: Translate the data so that everything lies in a box [L,2*L] x [L,2*L] z[L,2*L]. ->Subtraction without precision loss.
             if( preorderedQ )
             {
                 for( Int c = 0; c < component_count; ++c )
@@ -339,6 +340,7 @@ namespace KnotTools
             
             const Int intersection_count = static_cast<Int>(intersections.size());
             
+            // Counting sort.
             for( Int k = intersection_count-1; k > -1; --k )
             {
                 Intersection_T & inter = intersections[k];
@@ -366,15 +368,54 @@ namespace KnotTools
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
 
+//                // DEBUGGING
+//                
+//                if( k_end > k_begin )
+//                {
+//                    valprint("edge",i);
+//                    
+//                    print("before sort");
+//                    valprint(
+//                        "times",
+//                        ArrayToString( &edge_times[k_begin], {k_end-k_begin} )
+//                    );
+//                    
+//                    valprint(
+//                        "intersected edges",
+//                        ArrayToString( &edge_intersections[k_begin], {k_end-k_begin} )
+//                    );
+//                }
+                     
                 S(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
                     &edge_overQ[k_begin],
                     k_end - k_begin
                 );
+                
+//                // DEBUGGING
+//                    
+//                if( k_end > k_begin )
+//                {
+//                    print("after sort");
+//                    
+//                    valprint(
+//                        "times",
+//                        ArrayToString( &edge_times[k_begin], {k_end-k_begin} )
+//                    );
+//                    
+//                    valprint(
+//                        "intersected edges",
+//                        ArrayToString( &edge_intersections[k_begin], {k_end-k_begin} )
+//                    );
+//                }
             }
             
             // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
+            
+//            // DEBUGGING
+//            dump( intersections_nontransversal );
+//            dump( intersections_3D );
             
             ptoc(ClassName()+"FindIntersections");
         }
