@@ -124,21 +124,22 @@ namespace KnotTools
         
         ~Link_2D() = default;
         
-        
-        // Calling this constructor makes the object assume that it represents a cyclic polyline.
-        template<typename I>
-        explicit Link_2D( const I edge_count_ )
-        :   Base_T      ( static_cast<Int>(edge_count_)         )
-        ,   edge_coords ( static_cast<Int>(edge_count_), 2, 3   )
-        ,   T           ( static_cast<Int>(edge_count_)         )
-        ,   box_coords  ( T.NodeCount()                , 2, 2   )
-        {
-            ptic(ClassName()+"() (cyclic)");
-            
-//            intersections.reserve( static_cast<size_t>(2 * edge_count_) );
-                        
-            ptoc(ClassName()+"() (cyclic)");
-        }
+  
+        // TODO: Make this constructor work.
+//        // Calling this constructor makes the object assume that it represents a cyclic polyline.
+//        template<typename I>
+//        explicit Link_2D( const I edge_count_ )
+//        :   Base_T      ( static_cast<Int>(edge_count_)         )
+//        ,   edge_coords ( static_cast<Int>(edge_count_), 2, 3   )
+//        ,   T           ( static_cast<Int>(edge_count_)         )
+//        ,   box_coords  ( T.NodeCount()                , 2, 2   )
+//        {
+//            ptic(ClassName()+"() (cyclic)");
+//            
+////            intersections.reserve( static_cast<size_t>(2 * edge_count_) );
+//                        
+//            ptoc(ClassName()+"() (cyclic)");
+//        }
         
         template<typename J, typename K, IS_INT(J), IS_INT(K)>
         explicit Link_2D( Tensor1<J,K> & component_ptr_ )

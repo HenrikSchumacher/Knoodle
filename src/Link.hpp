@@ -40,26 +40,28 @@ namespace KnotTools
         ~Link() = default;
         
         
-        // Calling this constructor makes the object assume that it represents a cyclic polyline.
-        explicit Link( const Int edge_count_ )
-        :   edges           { edge_count_     }
-        ,   next_edge       { edge_count_     }
-        ,   edge_ctr        { edge_count_ + 1 }
-        ,   edge_ptr        { edge_count_ + 1 }
-        ,   edge_count      { edge_count_     }
-        ,   component_ptr   { 2               }
-        ,   component_lookup{ edge_count_     }
-        ,   cyclicQ         { true            }
-        ,   preorderedQ     { true            }
-        {
-//            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
-            
-            component_ptr[0] = 0;
-            
-            component_ptr[1] = edge_count_;
-            
-//            ptoc(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
-        }
+        // TODO: Make this constructor work correctly!
+        
+//        // Calling this constructor makes the object assume that it represents a cyclic polyline.
+//        explicit Link( const Int edge_count_ )
+//        :   edges           { edge_count_     }
+//        ,   next_edge       { edge_count_     }
+//        ,   edge_ctr        { edge_count_ + 1 }
+//        ,   edge_ptr        { edge_count_ + 1 }
+//        ,   edge_count      { edge_count_     }
+//        ,   component_ptr   { 2               }
+//        ,   component_lookup{ edge_count_     }
+//        ,   cyclicQ         { true            }
+//        ,   preorderedQ     { true            }
+//        {
+////            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
+//            
+//            component_ptr[0] = 0;
+//            
+//            component_ptr[1] = edge_count_;
+//            
+////            ptoc(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
+//        }
         
 //        template<typename J, typename K, IS_INT(J), IS_INT(K)>
 //        explicit Link( Tensor1<J,K> & component_ptr_ )
