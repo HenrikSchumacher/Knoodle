@@ -116,6 +116,7 @@ namespace KnotTools
         Int intersections_3D = 0;
         Int intersections_nontransversal = 0;
 
+        Vector3_T Sterbenz_shift {0};
 
     public:
         
@@ -293,6 +294,51 @@ namespace KnotTools
             }
         }
         
+        void ApplySterbenzShift()
+        {
+            // Add 1% security margin.
+            const Real margin = static_cast<Real>(1.01);
+            
+            
+            Real lo = edge_coords(0,0,2);
+            Real hi = edge_coords(0,1,2);
+            
+            for( Int e = 1; e < edge_count; ++e )
+            {
+                lo = Min ( lo, edge_coords(e,0,2) );
+                hi = Max ( hi, edge_coords(e,0,2) );
+            }
+            
+            constexpr Real two = 2;
+
+            Sterbenz_shift[0] = margin * ( box_coords(0,0,1) - two * box_coords(0,0,0) );
+            Sterbenz_shift[1] = margin * ( box_coords(0,1,1) - two * box_coords(0,1,0) );
+            Sterbenz_shift[2] = margin * ( hi                - two * lo                );
+
+            
+            for( Int C = 0; C < T.NodeCount(); ++C )
+            {
+                box_coords(C,0,0) += Sterbenz_shift[0];
+                box_coords(C,0,1) += Sterbenz_shift[0];
+                
+                box_coords(C,1,0) += Sterbenz_shift[1];
+                box_coords(C,1,1) += Sterbenz_shift[1];
+            }
+            
+            const Int edge_count = edge_coords.Dimension(0);
+            
+            for( Int e = 0; e < edge_count; ++e )
+            {
+                edge_coords(e,0,0) += Sterbenz_shift[0];
+                edge_coords(e,0,1) += Sterbenz_shift[1];
+                edge_coords(e,0,2) += Sterbenz_shift[2];
+                
+                edge_coords(e,1,0) += Sterbenz_shift[0];
+                edge_coords(e,1,1) += Sterbenz_shift[1];
+                edge_coords(e,1,2) += Sterbenz_shift[2];
+            }
+        }
+        
     public:
         
         static constexpr Int AmbientDimension()
@@ -320,9 +366,9 @@ namespace KnotTools
             
             T.ComputeBoundingBoxes( edge_coords, box_coords );
             
-            FindIntersectingEdges_DFS();
+            ApplySterbenzShift();
             
-            // TODO: Does all this below make any sense?
+            FindIntersectingEdges_DFS();
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             edge_ctr.Read( edge_ptr.data() );
@@ -503,6 +549,11 @@ namespace KnotTools
         cref<Tree2_T> Tree() const
         {
             return T;
+        }
+        
+        cref<Vector3_T> SterbenzShift() const
+        {
+            return Sterbenz_shift;
         }
         
         static std::string ClassName()

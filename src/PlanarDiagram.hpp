@@ -76,7 +76,7 @@ namespace KnotTools
         // Counters for Reidemeister moves.
         Int R_I_counter  = 0;
         Int R_II_counter = 0;
-        Int tangle_move_counter = 0;
+        Int twist_move_counter = 0;
         
         // Stacks for keeping track of recently modified entities.
         std::vector<Int> touched_crossings;
@@ -332,6 +332,11 @@ namespace KnotTools
         {
             return R_II_counter;
         }
+        
+        Int TwistMoveCounter() const
+        {
+            return twist_move_counter;
+        }
    
         mref<Tensor1<Int,Int>> CrossingLabels()
         {
@@ -512,7 +517,7 @@ namespace KnotTools
             
 //            R_I_counter  = 0;
 //            R_II_counter = 0;
-//            tangle_move_counter = 0;
+//            twise_move_counter = 0;
             
 //            switch_candidates.clear();
                         
@@ -689,11 +694,14 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Simplify()");
             
+            logvalprint( "Number of crossings  ", crossing_count      );
+            logvalprint( "Number of arcs       ", arc_count           );
+            
             faces_initialized = false;
             
             R_I_counter  = 0;
             R_II_counter = 0;
-            tangle_move_counter = 0;
+            twist_move_counter = 0;
             
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
@@ -705,22 +713,22 @@ namespace KnotTools
                 
                 PD_assert( CheckCrossing(c) );
                 
-
-                
                 const bool R_I = Reidemeister_I(c);
-//                
-//                if( !R_I )
-//                {
-//                    (void)Reidemeister_II(c);
-//                }
+                
+                if( !R_I )
+                {
+                    (void)Reidemeister_II(c);
+                }
             }
             
 #pragma clang diagnostic pop
             
-            logprint( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
-//            logprint( "Performed Reidemeister II moves = " + ToString(R_II_counter));
-//            logprint( "Performed Tangle          moves = " + ToString(tangle_move_counter));
+            logvalprint( "Reidemeister I  moves", R_I_counter         );
+            logvalprint( "Reidemeister II moves", R_II_counter        );
+            logvalprint( "Twist           moves", twist_move_counter  );
             
+            logvalprint( "Number of crossings  ", crossing_count      );
+            logvalprint( "Number of arcs       ", arc_count           );
 //            const bool connected_sum_Q = ConnectedSum();
 //
 //            if( connected_sum_Q )
@@ -731,96 +739,6 @@ namespace KnotTools
             
             ptoc(ClassName()+"::Simplify()");
         }
-        
-        
-//        PlanarDiagram CreateCompressed()
-//        {
-//            // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
-//
-//            PlanarDiagram pd ( crossing_count, unlink_count );
-//
-//            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-//            mptr<CrossingState>       C_state_new = pd.C_state.data();
-//            mptr<Int>                 C_label_new = pd.C_label.data();
-//
-//            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-//            mptr<ArcState>            A_state_new = pd.A_state.data();
-//            mptr<Int>                 A_label_new = pd.A_label.data();
-//
-//
-//            // Lookup tables to translate the connectivity data.
-//
-//            // Will tell each old crossing where it has to go into the new array of crossings.
-//            Tensor1<Int,Int> C_lookup ( initial_crossing_count );
-//            // Will tell each old arc where it has to go into the new array of arcs.
-//            Tensor1<Int,Int> A_lookup ( initial_arc_count );
-//
-//            // TODO: Rename the crossings and arcs so that they are ordered by first appearance during a curve traversal.
-//
-//            Int C_counter = 0;
-//            for( Int c = 0; c < initial_crossing_count; ++c )
-//            {
-//                if( CrossingActiveQ(c) )
-//                {
-//                    // We abuse C_label_new for the moment in order to store where each crossing came from.
-//                    C_label_new[C_counter] = c;
-//                    // We have to remember for each crossing what its new position is.
-//                    C_lookup[c] = C_counter;
-//                    ++C_counter;
-//                }
-//            }
-//
-//            Int A_counter = 0;
-//            for( Int a = 0; a < initial_arc_count; ++a )
-//            {
-//                if( ArcActiveQ(a) )
-//                {
-//                    // We abuse A_label_new for the moment in order to store where each arc came from.
-//                    A_label_new[A_counter] = a;
-//
-//                    // We have to remember for each arc what its new position is.
-//                    A_lookup[a] = A_counter;
-//                    ++A_counter;
-//                }
-//            }
-//
-//            for( Int c = 0; c < crossing_count; ++c )
-//            {
-//                const Int c_from = C_label_new[c];
-//
-//                C_arcs_new(c,0,0) = A_lookup[ C_arcs(c_from,0,0) ];
-//                C_arcs_new(c,0,1) = A_lookup[ C_arcs(c_from,0,1) ];
-//                C_arcs_new(c,1,0) = A_lookup[ C_arcs(c_from,1,0) ];
-//                C_arcs_new(c,1,1) = A_lookup[ C_arcs(c_from,1,1) ];
-//
-//                C_state_new[c] = C_state[c_from];
-//
-//                // Finally we overwrite C_label_new with the actual labels.
-//                C_label_new[c] = C_label[c_from];
-//            }
-//
-//            for( Int a = 0; a < arc_count; ++a )
-//            {
-//                const Int a_from = A_label_new[a];
-//
-//                PD_assert( ArcActiveQ(a_from) );
-//
-//                A_cross_new(a,0) = C_lookup[ A_cross(a_from,0) ];
-//                A_cross_new(a,1) = C_lookup[ A_cross(a_from,1) ];
-//
-//                A_state_new[a]   = A_state[a_from];
-//
-////                PD_assert( pd.ArcActiveQ(a) );
-//
-//                // Finally we overwrite A_label_new with the actual labels.
-//                A_label_new[a] = A_label[a_from];
-//            }
-//
-//            pd.connected_sum_counter = connected_sum_counter;
-//
-//            return pd;
-//        }
-    
         
         PlanarDiagram CreateCompressed()
         {

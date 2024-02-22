@@ -19,7 +19,7 @@ Int Reidemeister_II()
 
 #include "Reidemeister_II_Horizontal.hpp"
 #include "Reidemeister_II_Vertical.hpp"
-#include "HandleTangle.hpp"
+#include "TwistMove.hpp"
 
 bool Reidemeister_II( const Int c_0 )
 {
@@ -136,14 +136,13 @@ bool Reidemeister_II( const Int c_0 )
                 {
                     // At least we have found a potential candidate for a later break/switch.
                     is_switch_candidate = true;
-                
                 }
             }
             else
             {
                 // Very peculiar and seldom situation here!
                 // Call yourself lucky when you encouter it!
-                HandleTangle(c_0,c_1,side);
+                TwistMove(c_0,c_1,side);
                 return true;
             }
         }

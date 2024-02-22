@@ -230,7 +230,6 @@ namespace KnotTools
             
             if( pd.CrossingCount() >0 )
             {
-                
                 std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
                 
                 const auto & U = S->GetU();
@@ -248,27 +247,28 @@ namespace KnotTools
         
         Scal Log2KnotDeterminant( cref<PD_T> pd ) const
         {
+            
             ptic(ClassName()+"::Log2KnotDeterminant");
-
-            auto & M = Matrix(pd,-1);
             
-            auto A = M.Transpose().Dot(M);
-
-            std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
-            
-            const auto & U = S->GetU();
-
             Scal log2_det = 0;
-
-            for( Int i = 0; i < U.RowCount(); ++i )
+            
+            if( pd.CrossingCount() > 0 )
             {
-                log2_det += std::log2( U.Value(U.Outer(i)) );
+                std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
+                
+                const auto & U = S->GetU();
+                
+                for( Int i = 0; i < U.RowCount(); ++i )
+                {
+                    log2_det += std::log2( U.Value(U.Outer(i)) );
+                }
             }
 
             ptoc(ClassName()+"::Log2KnotDeterminant");
 
             return log2_det;
         }
+        
         
         mref<Permutation<Int>> MetisReordering( cref<PD_T> pd ) const
         {

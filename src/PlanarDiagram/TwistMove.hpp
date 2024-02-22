@@ -1,6 +1,6 @@
-bool HandleTangle( const Int c_0, const Int c_1, const bool side )
+bool TwistMove( const Int c_0, const Int c_1, const bool side )
 {
-    PD_print("\tHandleTangle( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
+    PD_print("\tTwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
         
     // We can resolve boths crossings in any case of sign distribution.
     // See the commented-out code below for an explanation
@@ -27,7 +27,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
 
-    ++tangle_move_counter;
+    ++twist_move_counter;
 
     return true;
     
@@ -90,7 +90,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 //                    DeactivateCrossing(c_0);
 //                    DeactivateCrossing(c_1);
 //
-//                    ++tangle_move_counter;
+//                    ++twist_move_counter;
 //
 //                    return true;
 //                }
@@ -99,7 +99,7 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 //// This horizontal alignment in the case of side == Right and positive crossing c_0/
 //// Note that this case differs from the one above only by the sign of the crossing c_1.
 ////
-////                         C_arcs(c_0,Out,side) = b = C_arcs(c_1,In, !side)
+////                         C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,!side)
 ////                                        +------->-------+
 ////                                       /                 \
 ////                                      /                   \
@@ -147,6 +147,6 @@ bool HandleTangle( const Int c_0, const Int c_1, const bool side )
 //                    DeactivateCrossing(c_0);
 //                    DeactivateCrossing(c_1);
 //
-//                    ++tangle_move_counter;
+//                    ++twist_move_counter;
 //                }
 }

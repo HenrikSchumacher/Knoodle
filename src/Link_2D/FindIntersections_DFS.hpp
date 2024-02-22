@@ -30,25 +30,9 @@ public:
                    ( box_coords(i,1,1) >= box_coords(j,1,0) )
                 );
         }
-        
-        
-//        return
-//            (i == j)
-//            ? true
-//            : (
-//               ( box_coords(i,0,0) <= box_coords(j,0,1) )
-//               &&
-//               ( box_coords(i,0,1) >= box_coords(j,0,0) )
-//               &&
-//               ( box_coords(i,1,0) <= box_coords(j,1,1) )
-//               &&
-//               ( box_coords(i,1,1) >= box_coords(j,1,0) )
-//            );
-//        }
     }
 
-
-    void ComputeEdgeIntersections( const Int k, const Int l )
+    void ComputeEdgeIntersection( const Int k, const Int l )
     {
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
@@ -58,37 +42,22 @@ public:
             const Vector3_T x[2] = { edge_coords.data(k,0), edge_coords.data(k,1) };
             
             const Vector3_T y[2] = { edge_coords.data(l,0), edge_coords.data(l,1) };
-            
-            // TODO: Need more exact intersection test!
-            
-            const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
-            const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
-            const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
 
-            const Real det = Det_Kahan( u, v );
-            
-            Real t[2];
+            const bool intersectingQ = LineSegmentsIntersectQ_Kahan(
+                    &x[0][0], &x[1][0], &y[0][0], &y[1][0]
+            );
 
-            bool intersecting;
-
-            if( det * det > eps * Dot_Kahan(u,u) * Dot_Kahan(v,v) )
+            if( intersectingQ )
             {
+                const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
+                const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
+                const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
+
+                const Real det = Det_Kahan( u, v );
+                
                 const Real det_inv = static_cast<Real>(1) / det;
                 
-                t[0] = Det_Kahan( d, v ) * det_inv;
-                t[1] = Det_Kahan( d, u ) * det_inv;
-                
-                intersecting = (t[0] > - eps) && (t[0] < big_one) && (t[1] > - eps) && (t[1] < big_one);
-            }
-            else
-            {
-                intersecting = false;
-
-                intersections_nontransversal++;
-            }
-
-            if( intersecting )
-            {
+                const Real t[2] { Det_Kahan( d, v ) * det_inv, Det_Kahan( d, u ) * det_inv };
                 
                 // Compute heights at the intersection.
                 const Real h[2] = {
@@ -108,29 +77,29 @@ public:
                         Intersection_T( l, k, t[1], t[0], -Sign(det) )
                     );
                     
-//      If det > 0, then this looks like this (negative crossing):
-//
-//        v       u
-//         ^     ^
-//          \   /
-//           \ /
-//            \
-//           / \
-//          /   \
-//         /     \
-//        k       l
-//
-//      If det < 0, then this looks like this (positive crossing):
-//
-//        u       v
-//         ^     ^
-//          \   /
-//           \ /
-//            /
-//           / \
-//          /   \
-//         /     \
-//        l       k
+    //      If det > 0, then this looks like this (negative crossing):
+    //
+    //        v       u
+    //         ^     ^
+    //          \   /
+    //           \ /
+    //            \
+    //           / \
+    //          /   \
+    //         /     \
+    //        k       l
+    //
+    //      If det < 0, then this looks like this (positive crossing):
+    //
+    //        u       v
+    //         ^     ^
+    //          \   /
+    //           \ /
+    //            /
+    //           / \
+    //          /   \
+    //         /     \
+    //        l       k
 
                 }
                 else if ( h[0] > h[1] )
@@ -140,29 +109,29 @@ public:
                     );
                     // edge k goes OVER l
                     
-//      If det > 0, then this looks like this (positive crossing):
-//
-//        v       u
-//         ^     ^
-//          \   /
-//           \ /
-//            /
-//           / \
-//          /   \
-//         /     \
-//        k       l
-//
-//      If det < 0, then this looks like this (positive crossing):
-//
-//        u       v
-//         ^     ^
-//          \   /
-//           \ /
-//            \
-//           / \
-//          /   \
-//         /     \
-//        l       k
+    //      If det > 0, then this looks like this (positive crossing):
+    //
+    //        v       u
+    //         ^     ^
+    //          \   /
+    //           \ /
+    //            /
+    //           / \
+    //          /   \
+    //         /     \
+    //        k       l
+    //
+    //      If det < 0, then this looks like this (positive crossing):
+    //
+    //        u       v
+    //         ^     ^
+    //          \   /
+    //           \ /
+    //            \
+    //           / \
+    //          /   \
+    //         /     \
+    //        l       k
                 }
                 else
                 {
@@ -171,6 +140,130 @@ public:
             }
         }
     }
+
+//    void ComputeEdgeIntersection( const Int k, const Int l )
+//    {
+//        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+//        if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
+//        {
+//            // Get the edge lengths in order to decide what's a "small" determinant.
+//            
+//            const Vector3_T x[2] = { edge_coords.data(k,0), edge_coords.data(k,1) };
+//            
+//            const Vector3_T y[2] = { edge_coords.data(l,0), edge_coords.data(l,1) };
+//            
+//            // TODO: Need more exact intersection test!
+//            
+//            const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
+//            const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
+//            const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
+//
+//            const Real det = Det_Kahan( u, v );
+//            
+//            Real t[2];
+//
+//            bool intersecting;
+//
+//            if( det * det > eps * Dot_Kahan(u,u) * Dot_Kahan(v,v) )
+//            {
+//                const Real det_inv = static_cast<Real>(1) / det;
+//                
+//                t[0] = Det_Kahan( d, v ) * det_inv;
+//                t[1] = Det_Kahan( d, u ) * det_inv;
+//                
+//                intersecting = (t[0] > - eps) && (t[0] < big_one) && (t[1] > - eps) && (t[1] < big_one);
+//            }
+//            else
+//            {
+//                intersecting = false;
+//
+//                intersections_nontransversal++;
+//            }
+//
+//            if( intersecting )
+//            {
+//                
+//                // Compute heights at the intersection.
+//                const Real h[2] = {
+//                    x[0][2] * (one - t[0]) + t[0] * x[1][2],
+//                    y[0][2] * (one - t[1]) + t[1] * y[1][2]
+//                };
+//                
+//                // Tell edges k and l that they contain an additional crossing.
+//                edge_ptr[k+1]++;
+//                edge_ptr[l+1]++;
+//
+//                if( h[0] < h[1] )
+//                {
+//                    // edge k goes UNDER edge l
+//                    
+//                    intersections.push_back(
+//                        Intersection_T( l, k, t[1], t[0], -Sign(det) )
+//                    );
+//                    
+////      If det > 0, then this looks like this (negative crossing):
+////
+////        v       u
+////         ^     ^
+////          \   /
+////           \ /
+////            \
+////           / \
+////          /   \
+////         /     \
+////        k       l
+////
+////      If det < 0, then this looks like this (positive crossing):
+////
+////        u       v
+////         ^     ^
+////          \   /
+////           \ /
+////            /
+////           / \
+////          /   \
+////         /     \
+////        l       k
+//
+//                }
+//                else if ( h[0] > h[1] )
+//                {
+//                    intersections.push_back(
+//                        Intersection_T( k, l, t[0], t[1], Sign(det) )
+//                    );
+//                    // edge k goes OVER l
+//                    
+////      If det > 0, then this looks like this (positive crossing):
+////
+////        v       u
+////         ^     ^
+////          \   /
+////           \ /
+////            /
+////           / \
+////          /   \
+////         /     \
+////        k       l
+////
+////      If det < 0, then this looks like this (positive crossing):
+////
+////        u       v
+////         ^     ^
+////          \   /
+////           \ /
+////            \
+////           / \
+////          /   \
+////         /     \
+////        l       k
+//                }
+//                else
+//                {
+//                    intersections_3D++;
+//                }
+//            }
+//        }
+//    }
 
 protected:
     
@@ -292,7 +385,7 @@ protected:
                 }
                 else
                 {
-                    ComputeEdgeIntersections( T.Begin(i), T.Begin(j ) );
+                    ComputeEdgeIntersection( T.Begin(i), T.Begin(j ) );
                 }
             }
         }
@@ -300,4 +393,5 @@ protected:
         edge_ptr.Accumulate();
         
         ptoc(ClassName()+"::FindIntersectingEdges_DFS");
+        
     } // FindIntersectingClusters_DFS

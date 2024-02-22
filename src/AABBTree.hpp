@@ -18,7 +18,7 @@ namespace KnotTools
         
         static constexpr Int AmbDim = AmbDim_;
         
-        using Vector_T     = Tiny::Vector<3,Real,Int>;
+        using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
         using BContainer_T = Tensor3<Real,Int>;
         
@@ -171,6 +171,7 @@ namespace KnotTools
             
             ptoc(ClassName()+"ComputeBoundingBoxes");
         }
+        
         
         void ComputeBoundingBoxes( cref<EContainer_T> E )
         {
