@@ -216,6 +216,8 @@ namespace KnotTools
         
         void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
         {
+            ptic(ClassName()+"::ReadVertexCoordinates (SoA)");
+            
             if( preorderedQ )
             {
                 for( Int c = 0; c < component_count; ++c )
@@ -269,7 +271,7 @@ namespace KnotTools
                     edge_coords(edge,1,2) = z[j];
                 }
             }
-            ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
+//            ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
         }
         
         
