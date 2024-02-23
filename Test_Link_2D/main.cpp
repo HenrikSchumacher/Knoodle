@@ -13,7 +13,7 @@
 
 #define PD_ASSERTS
 
-#include "KnotTools.hpp"
+#include "../KnotTools.hpp"
 
 using namespace KnotTools;
 using namespace Tensors;
@@ -36,5 +36,6 @@ int main(void)
     dump( L.AmbientDimension() );
     
 
+    PlanarDiagram<Int> PD(L);
     return 0;
 }

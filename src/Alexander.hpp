@@ -19,7 +19,7 @@ namespace KnotTools
         ASSERT_SIGNED_INT(Int);
         ASSERT_INT(LInt);
         
-        using Matrix_T        = Sparse::MatrixCSR<Scal,Int,LInt>;
+        using SparseMatrix_T  = Sparse::MatrixCSR<Scal,Int,LInt>;
         using Factorization_T = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
         using PD_T            = PlanarDiagram<Int>;
         using Aggregator_T    = TripleAggregator<Int,Int,Scal,LInt>;
@@ -75,34 +75,36 @@ namespace KnotTools
             if( t != GetArg( pd ) )
             {
                 pd.SetCache( std::string ( "AlexanderArgument" ), std::make_any<Scal>( t ) );
-                pd.ClearCache( std::string("AlexanderMatrix") );
+                pd.ClearCache( std::string("AlexanderSparseMatrix") );
+                pd.ClearCache( std::string("AlexanderDenseMatrix") );
             }
         }
         
         
-        cref<Matrix_T> Matrix( cref<PD_T> pd, const Scal t_ ) const
+        cref<SparseMatrix_T> SparseMatrix( cref<PD_T> pd, const Scal t_ ) const
         {
             SetArg( pd, t_ );
             
-            return Matrix( pd );
+            return SparseMatrix( pd );
         }
         
-        cref<Matrix_T> Matrix( cref<PD_T> pd ) const
+        cref<SparseMatrix_T> SparseMatrix( cref<PD_T> pd ) const
         {
-            std::string tag ( "AlexanderMatrix" );
+            std::string tag ( "AlexanderSparseMatrix" );
             
-            ptic(ClassName()+"::Matrix");
+            ptic(ClassName()+"::SparseMatrix");
             
             if( !pd.InCacheQ(tag) )
             {
                 const Scal t = GetArg( pd );
                 
-                const Int crossing_count = pd.CrossingCount();
+                // TODO: Insert shortcut for crossing_count <= 1.
                 
+                const Int n = pd.CrossingCount()-1;
                 
                 std::vector<Aggregator_T> Agg;
                 
-                Agg.emplace_back(3 * crossing_count);
+                Agg.emplace_back(3 * n);
                 
                 mref<Aggregator_T> agg = Agg[0];
                 
@@ -113,14 +115,12 @@ namespace KnotTools
                 cptr<CrossingState> C_state = pd.CrossingStates().data();
                 
                 Int counter = 0;
-                
-                const Int size = crossing_count-1;
-                
+
                 const Scal v [3] = { Scalar::One<Scal> - t, -Scalar::One<Scal>, t};
                 
                 for( Int c = 0; c < C_arcs.Size(); ++c )
                 {
-                    if( counter >= size )
+                    if( counter >= n )
                     {
                         break;
                     }
@@ -135,17 +135,17 @@ namespace KnotTools
                             const Int j = over_arc_indices[C[1][1]];
                             const Int k = over_arc_indices[C[0][0]];
                             
-                            if( i < size )
+                            if( i < n )
                             {
                                 agg.Push( counter, i, v[0] );
                             }
                             
-                            if( j < size )
+                            if( j < n )
                             {
                                 agg.Push( counter, j, v[1] );
                             }
                             
-                            if( k < size )
+                            if( k < n )
                             {
                                 agg.Push( counter, k, v[2] );
                             }
@@ -163,17 +163,17 @@ namespace KnotTools
                             const Int k = over_arc_indices[C[0][1]];
                             
                             
-                            if( i < size )
+                            if( i < n )
                             {
                                 agg.Push(counter, i, v[0] );
                             }
                             
-                            if( j < size )
+                            if( j < n )
                             {
                                 agg.Push(counter, j, v[2] );
                             }
                             
-                            if( k < size )
+                            if( k < n )
                             {
                                 agg.Push(counter, k, v[1] );
                             }
@@ -192,40 +192,40 @@ namespace KnotTools
                 agg.Finalize();
                 
                 pd.SetCache( tag,
-                    std::make_any<Matrix_T>( Agg, size, size, Int(1), true, false )
+                    std::make_any<SparseMatrix_T>( Agg, n, n, Int(1), true, false )
                 );
             }
             
-            ptoc(ClassName()+"::Matrix");
+            ptoc(ClassName()+"::SparseMatrix");
             
-            return std::any_cast<Matrix_T &>( pd.GetCache(tag) );
+            return std::any_cast<SparseMatrix_T &>( pd.GetCache(tag) );
         }
         
-        cref<Matrix_T> AlexanderATA( cref<PD_T> pd ) const
+        cref<SparseMatrix_T> AlexanderSparseATA( cref<PD_T> pd ) const
         {
-            std::string tag ( "AlexanderATA" );
+            std::string tag ( "AlexanderSparseATA" );
             
-            ptic(ClassName()+"::AlexanderATA");
+            ptic(ClassName()+"::AlexanderSparseATA");
             
             if( !pd.InCacheQ(tag) )
             {
-                auto & A = Matrix(pd);
+                auto & A = SparseMatrix(pd);
                 
                 auto AT = A.Transpose();
                 
                 pd.SetCache( tag,
-                    std::make_any<Matrix_T>( AT.Dot(A) )
+                    std::make_any<SparseMatrix_T>( AT.Dot(A) )
                 );
             }
             
-            ptoc(ClassName()+"::AlexanderATA");
+            ptoc(ClassName()+"::AlexanderSparseATA");
             
-            return std::any_cast<Matrix_T &>( pd.GetCache(tag) );
+            return std::any_cast<SparseMatrix_T &>( pd.GetCache(tag) );
         }
         
         std::unique_ptr<Factorization_T> AlexanderFactorization( cref<PD_T> pd ) const
         {   
-            auto & B = AlexanderATA(pd);
+            auto & B = AlexanderSparseATA(pd);
             
             Permutation<Int> perm = MetisReordering( pd );
 
@@ -248,70 +248,26 @@ namespace KnotTools
             return AlexanderFactorization(pd)->GetPermutation();
         }
         
-        Scal KnotDeterminant( cref<PD_T> pd ) const
+        
+        Scal Log2KnotDeterminant( cref<PD_T> pd ) const
         {
-            
-            ptic(ClassName()+"::KnotDeterminant");
-            
-            if( pd.CrossingCount() <= 1)
+            if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
-                ptoc(ClassName()+"::KnotDeterminant");
-                return 1;
-            }
-            
-            Scal det = 1;
-            
-            const Int n = pd.CrossingCount() - 1;
-            
-            if( n > sparsity_threshold )
-            {
-                // Using sparse Cholesky factorization.
-                
-                // TODO: Replace by more accurate LU factorization.
-
-                std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
-                
-                const auto & U = S->GetU();
-                
-                for( Int i = 0; i < n; ++i )
-                {
-                    det *= U.Value(U.Outer(i));
-                }
+                return Log2KnotDeterminant_Sparse( pd );
             }
             else
             {
-                // Using dense LU factorization.
-                
-                Matrix(pd).WriteDense( LU_buffer.data(), n ) ;
-                                
-                int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
-               
-                if( info == 0 )
-                {
-                    for( Int i = 0; i < n; ++i )
-                    {
-                        det *= LU_buffer( (n+1) * i );
-                    }
-                }
-                else
-                {
-                    det = 0;
-                }
+                return Log2KnotDeterminant_Dense( pd );
             }
-
-            ptoc(ClassName()+"::KnotDeterminant");
-
-            return Abs(det);
         }
         
-        Scal Log2KnotDeterminant( cref<PD_T> pd, Int sparsity_threshold = 1024 ) const
+        Scal Log2KnotDeterminant_Sparse( cref<PD_T> pd ) const
         {
-            
-            ptic(ClassName()+"::Log2KnotDeterminant");
+            ptic(ClassName()+"::Log2KnotDeterminant_Sparse");
 
             if( pd.CrossingCount() <= 1)
             {
-                ptoc(ClassName()+"::Log2KnotDeterminant");
+                ptoc(ClassName()+"::Log2KnotDeterminant_Sparse");
                 return 0;
             }
             
@@ -319,50 +275,156 @@ namespace KnotTools
             
             const Int n = pd.CrossingCount() - 1;
             
-            if( n > LU_buffer.Dimension(0) )
+            // TODO: Replace by more accurate LU factorization.
+            
+            std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
+            
+            const auto & U = S->GetU();
+            
+            for( Int i = 0; i < n; ++i )
             {
-                // Using sparse Cholesky factorization.
+                log2_det += std::log2( U.Value(U.Outer(i)) );
+            }
+
+            ptoc(ClassName()+"::Log2KnotDeterminant_Sparse");
+
+            return log2_det;
+        }
+        
+        Scal Log2KnotDeterminant_Dense( cref<PD_T> pd ) const
+        {
+            ptic(ClassName()+"::Log2KnotDeterminant_Dense");
+
+            if( pd.CrossingCount() <= 1)
+            {
+                ptoc(ClassName()+"::Log2KnotDeterminant_Dense");
+                return 0;
+            }
+            
+            Scal log2_det = 0;
+            
+            const Int n = pd.CrossingCount() - 1;
+            
+            SparseMatrix( pd ).WriteDense( LU_buffer.data(), n );
+            
+//            valprint( "converted sparse array", ArrayToString( LU_buffer.data(), {n,n} ) );
+
+            // Assemble dense Alexander matrix, skipping last row and last column.
+            
+            const Tensor1<Int,Int> over_arc_indices = pd.OverArcIndices();
+            
+            const auto & C_arcs  = pd.Crossings();
+            
+            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            
+            Int counter = 0;
+            
+            const Scal v [3] = { Scalar::Two<Scal>, -Scalar::One<Scal>, -Scalar::One<Scal>};
+            
+            for( Int c = 0; c < C_arcs.Size(); ++c )
+            {
+                if( counter >= n )
+                {
+                    break;
+                }
                 
-                // TODO: Replace by more accurate LU factorization.
-                
-                std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
-                
-                const auto & U = S->GetU();
-                
+                switch( C_state[c] )
+                {
+                    case CrossingState::Negative:
+                    {
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                    
+                        const Int i = over_arc_indices[C[1][0]];
+                        const Int j = over_arc_indices[C[1][1]];
+                        const Int k = over_arc_indices[C[0][0]];
+                        
+                        mptr<Scal> row = &LU_buffer[ n * counter ];
+                        
+                        zerofy_buffer( row, n );
+                        
+                        if( i < n )
+                        {
+                            row[i] += v[0];
+                        }
+                        
+                        if( j < n )
+                        {
+                            row[j] += v[1];
+                        }
+                        
+                        if( k < n )
+                        {
+                            row[k] += v[2];
+                        }
+                        
+                        ++counter;
+                        
+                        break;
+                    }
+                    case CrossingState::Positive:
+                    {
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                    
+                        const Int i = over_arc_indices[C[1][1]];
+                        const Int j = over_arc_indices[C[1][0]];
+                        const Int k = over_arc_indices[C[0][1]];
+                        
+                        mptr<Scal> row = &LU_buffer[ n * counter ];
+                        
+                        zerofy_buffer( row, n );
+                        
+                        if( i < n )
+                        {
+                            row[i] += v[0];
+                        }
+                        
+                        if( j < n )
+                        {
+                            row[j] += v[2];
+                        }
+                        
+                        if( k < n )
+                        {
+                            row[k] += v[1];
+                        }
+                        
+                        ++counter;
+                        
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+                        
+//            valprint( "dense array", ArrayToString( LU_buffer.data(), {n,n} ) );
+            
+            // Factorize dense Alexander matrix.
+            
+            int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
+            
+            if( info == 0 )
+            {
                 for( Int i = 0; i < n; ++i )
                 {
-                    log2_det += std::log2( U.Value(U.Outer(i)) );
+                    log2_det += std::log2( Abs( LU_buffer( (n+1) * i ) ) );
                 }
             }
             else
             {
-                // Using dense LU factorization.
-                
-                Matrix(pd).WriteDense( LU_buffer.data(), n ) ;
-                                
-                int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
-                
-                if( info == 0 )
+                if constexpr ( std::numeric_limits<Scal>::has_infinity )
                 {
-                    for( Int i = 0; i < n; ++i )
-                    {
-                        log2_det += std::log2( Abs( LU_buffer( (n+1) * i ) ) );
-                    }
+                    log2_det = -std::numeric_limits<Scal>::infinity();
                 }
                 else
                 {
-                    if constexpr ( std::numeric_limits<Scal>::has_infinity )
-                    {
-                        log2_det = -std::numeric_limits<Scal>::infinity();
-                    }
-                    else
-                    {
-                        log2_det = std::numeric_limits<Scal>::quiet_NaN;
-                    }
+                    log2_det = std::numeric_limits<Scal>::quiet_NaN;
                 }
             }
 
-            ptoc(ClassName()+"::Log2KnotDeterminant");
+            ptoc(ClassName()+"::Log2KnotDeterminant_Dense");
 
             return log2_det;
         }
@@ -379,7 +441,7 @@ namespace KnotTools
 
             if( !pd.InCacheQ(tag) )
             {
-                auto & M = Matrix( pd );
+                auto & M = SparseMatrix( pd );
 
                 auto A = M.Transpose().Dot(M);
 
