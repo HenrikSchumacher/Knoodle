@@ -21,12 +21,26 @@ namespace KnotTools
         using PD_T            = PlanarDiagram<Int>;
         using Aggregator_T    = TripleAggregator<Int,Int,Scal,LInt>;
         
-    
-        Alexander()  = default;
+        Alexander()
+        :   LU_buffer ( 1024 * 1024 )
+        ,   LU_perm       ( 1024 )
+        {}
+        
+        Alexander( const Int sparsity_threshold )
+        :   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm       ( sparsity_threshold )
+        {}
         
         ~Alexander() = default;
         
+    private:
+        
+        Tensor1<Scal,LInt> LU_buffer;
+        
+        Tensor1<int,Int>   LU_perm;
 
+    public:
+        
         Scal GetArg( cref<PD_T> pd ) const
         {
             std::string tag ( "AlexanderArgument" );
@@ -228,8 +242,14 @@ namespace KnotTools
             
             Scal det = 1;
             
-            if( pd.CrossingCount() >0 )
+            const Int n = pd.CrossingCount() - 1;
+            
+            if( n > LU_buffer.Dimension(0) )
             {
+                // Using sparse Cholesky factorization.
+                
+                // TODO: Replace by more accurate LU factorization.
+                
                 std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
                 
                 const auto & U = S->GetU();
@@ -239,21 +259,47 @@ namespace KnotTools
                     det *= U.Value(U.Outer(i));
                 }
             }
+            else if( n > 0 )
+            {
+                // Using dense LU factorization.
+                
+                Matrix(pd).WriteDense( LU_buffer.data(), n ) ;
+                                
+                int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
+               
+                if( info == 0 )
+                {
+                    for( Int i = 0; i < n; ++i )
+                    {
+                        det *= A(i,i);
+                    }
+                }
+                else
+                {
+                    det= 0;
+                }
+            }
 
             ptoc(ClassName()+"::KnotDeterminant");
 
-            return det;
+            return Abs(det);
         }
         
-        Scal Log2KnotDeterminant( cref<PD_T> pd ) const
+        Scal Log2KnotDeterminant( cref<PD_T> pd, Int sparsity_threshold = 1024 ) const
         {
             
             ptic(ClassName()+"::Log2KnotDeterminant");
             
             Scal log2_det = 0;
             
-            if( pd.CrossingCount() > 0 )
+            const Int n = pd.CrossingCount() - 1;
+            
+            if( n > LU_buffer.Dimension(0) )
             {
+                // Using sparse Cholesky factorization.
+                
+                // TODO: Replace by more accurate LU factorization.
+                
                 std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
                 
                 const auto & U = S->GetU();
@@ -261,6 +307,33 @@ namespace KnotTools
                 for( Int i = 0; i < U.RowCount(); ++i )
                 {
                     log2_det += std::log2( U.Value(U.Outer(i)) );
+                }
+            }
+            else if( n > 0 )
+            {
+                // Using dense LU factorization.
+                
+                Matrix(pd).WriteDense( LU_buffer.data(), n ) ;
+                                
+                int info = LAPACK::getrf( n, n, A.data(), n, LU_perm.data() );
+                
+                if( info == 0 )
+                {
+                    for( Int i = 0; i < n; ++i )
+                    {
+                        log2_det += std::log2( Abs(A(i,i)) );
+                    }
+                }
+                else
+                {
+                    if constexpr ( std::numeric_limits<Scal>::has_infinity )
+                    {
+                        log2_det = -std::numeric_limits<Scal>::infinity();
+                    }
+                    else
+                    {
+                        log2_det = std::numeric_limits<Scal>::quiet_NaN;
+                    }
                 }
             }
 
