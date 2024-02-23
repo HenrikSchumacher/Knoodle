@@ -16,28 +16,41 @@ namespace KnotTools
         using Int  = Int_;
         using LInt = LInt_;
         
+        ASSERT_SIGNED_INT(Int);
+        ASSERT_INT(LInt);
+        
         using Matrix_T        = Sparse::MatrixCSR<Scal,Int,LInt>;
         using Factorization_T = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
         using PD_T            = PlanarDiagram<Int>;
         using Aggregator_T    = TripleAggregator<Int,Int,Scal,LInt>;
         
         Alexander()
-        :   LU_buffer ( 1024 * 1024 )
-        ,   LU_perm       ( 1024 )
+        :   sparsity_threshold ( 1024 )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm   ( sparsity_threshold )
         {}
         
-        Alexander( const Int sparsity_threshold )
-        :   LU_buffer ( sparsity_threshold * sparsity_threshold )
-        ,   LU_perm       ( sparsity_threshold )
+        Alexander( const Int sparsity_threshold_ )
+        :   sparsity_threshold ( 
+                std::min(
+                    sparsity_threshold_,
+                    static_cast<Int>(std::floor(std::sqrt(std::abs(std::numeric_limits<Int>::max()))))
+                )
+            )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm   ( sparsity_threshold )
         {}
+      
         
         ~Alexander() = default;
         
     private:
         
-        Tensor1<Scal,LInt> LU_buffer;
+        Int sparsity_threshold;
         
-        Tensor1<int,Int>   LU_perm;
+        mutable Tensor1<Scal,Int> LU_buffer;
+        
+        mutable Tensor1<int,Int>  LU_perm;
 
     public:
         
@@ -240,26 +253,32 @@ namespace KnotTools
             
             ptic(ClassName()+"::KnotDeterminant");
             
+            if( pd.CrossingCount() <= 1)
+            {
+                ptoc(ClassName()+"::KnotDeterminant");
+                return 1;
+            }
+            
             Scal det = 1;
             
             const Int n = pd.CrossingCount() - 1;
             
-            if( n > LU_buffer.Dimension(0) )
+            if( n > sparsity_threshold )
             {
                 // Using sparse Cholesky factorization.
                 
                 // TODO: Replace by more accurate LU factorization.
-                
+
                 std::unique_ptr<Factorization_T> S = std::move( AlexanderFactorization(pd) );
                 
                 const auto & U = S->GetU();
                 
-                for( Int i = 0; i < U.RowCount(); ++i )
+                for( Int i = 0; i < n; ++i )
                 {
                     det *= U.Value(U.Outer(i));
                 }
             }
-            else if( n > 0 )
+            else
             {
                 // Using dense LU factorization.
                 
@@ -271,12 +290,12 @@ namespace KnotTools
                 {
                     for( Int i = 0; i < n; ++i )
                     {
-                        det *= A(i,i);
+                        det *= LU_buffer( (n+1) * i );
                     }
                 }
                 else
                 {
-                    det= 0;
+                    det = 0;
                 }
             }
 
@@ -289,6 +308,12 @@ namespace KnotTools
         {
             
             ptic(ClassName()+"::Log2KnotDeterminant");
+
+            if( pd.CrossingCount() <= 1)
+            {
+                ptoc(ClassName()+"::Log2KnotDeterminant");
+                return 0;
+            }
             
             Scal log2_det = 0;
             
@@ -304,24 +329,24 @@ namespace KnotTools
                 
                 const auto & U = S->GetU();
                 
-                for( Int i = 0; i < U.RowCount(); ++i )
+                for( Int i = 0; i < n; ++i )
                 {
                     log2_det += std::log2( U.Value(U.Outer(i)) );
                 }
             }
-            else if( n > 0 )
+            else
             {
                 // Using dense LU factorization.
                 
                 Matrix(pd).WriteDense( LU_buffer.data(), n ) ;
                                 
-                int info = LAPACK::getrf( n, n, A.data(), n, LU_perm.data() );
+                int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
                 
                 if( info == 0 )
                 {
                     for( Int i = 0; i < n; ++i )
                     {
-                        log2_det += std::log2( Abs(A(i,i)) );
+                        log2_det += std::log2( Abs( LU_buffer( (n+1) * i ) ) );
                     }
                 }
                 else
@@ -373,6 +398,10 @@ namespace KnotTools
             
         }
         
+        LInt SparsityThreshold() const
+        {
+            return sparsity_threshold;
+        }
         
         
         static std::string ClassName()
