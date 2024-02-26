@@ -855,6 +855,8 @@ namespace KnotTools
         
         Tensor2<Int,Int> PDCode() const
         {
+            ptic( ClassName()+"::PDCode");
+            
             const Int m = A_cross.Dimension(0);
             
             Tensor2<Int ,Int> pdcode     ( crossing_count, 4 );
@@ -973,83 +975,93 @@ namespace KnotTools
                 ++a_ptr;
             }
             
+            ptoc( ClassName()+"::PDCode");
             
             return pdcode;
         }
         
-        Tensor1<Int,Int> OverArcIndices() const
+        cref<Tensor1<Int,Int>> OverArcIndices() const
         {
-            const Int m = A_cross.Dimension(0);
+            std::string tag ( "OverArcIndices" );
             
-            Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
-            
-            Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
-            Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
-            
-            
-            Int counter = 0;
-            Int a_ptr   = 0;
-//            Int a       = 0;
-            
-            while( a_ptr < m )
+            if( !this->InCacheQ(tag) )
             {
-                // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                ptic(ClassName()+"::OverArcIndices()");
+                
+                const Int m = A_cross.Dimension(0);
+                
+                Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
+                
+                Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
+                Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
+                
+                
+                Int counter = 0;
+                Int a_ptr   = 0;
+                
+                while( a_ptr < m )
                 {
+                    // Search for next arc that is active and has not yet been handled.
+                    while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                    {
+                        ++a_ptr;
+                    }
+                    
+                    if( a_ptr >= m )
+                    {
+                        break;
+                    }
+                    
+                    Int a = a_ptr;
+                    
+                    Int tail = A_cross(a,0);
+                    
+                    // Go backwards until a goes under crossing tail.
+                    while(
+                        (C_state[tail] == CrossingState::Positive)
+                        ==
+                        (C_arcs(tail,Out,0) == a)
+                    )
+                    {
+                        a = PrevArc(a);
+                        
+                        tail = A_cross(a,0);
+                    }
+                    
+                    const Int a_0 = a;
+                    
+                    // Cycle along all arcs in the link component, until we return where we started.
+                    do
+                    {
+                        const Int tip = A_cross(a,1);
+                        
+                        A_visisted[a] = true;
+                        
+                        over_arc_idx[a] = counter;
+                        
+                        const bool goes_underQ =
+                            (C_state[tip] == CrossingState::Positive)
+                            ==
+                            (C_arcs(tip,In,0) == a);
+                        
+                        if( goes_underQ )
+                        {
+                            ++counter;
+                        }
+                        
+                        a = NextArc(a);
+                    }
+                    while( a != a_0 );
+                    
                     ++a_ptr;
                 }
                 
-                if( a_ptr >= m )
-                {
-                    break;
-                }
+                this->SetCache( tag, std::move( over_arc_idx ) );
                 
-                Int a = a_ptr;
-                
-                Int tail = A_cross(a,0);
-                
-                // Go backwards until a goes under crossing tail.
-                while(
-                    (C_state[tail] == CrossingState::Positive)
-                    ==
-                    (C_arcs(tail,Out,0) == a)
-                )
-                {
-                    a = PrevArc(a);
-                    
-                    tail = A_cross(a,0);
-                }
-                
-                const Int a_0 = a;
-                
-                // Cycle along all arcs in the link component, until we return where we started.
-                do
-                {
-                    const Int tip = A_cross(a,1);
-                    
-                    A_visisted[a] = true;
-                    
-                    over_arc_idx[a] = counter;
-                    
-                    const bool goes_underQ =
-                        (C_state[tip] == CrossingState::Positive)
-                        ==
-                        (C_arcs(tip,In,0) == a);
-                    
-                    if( goes_underQ )
-                    {
-                        ++counter;
-                    }
-                    
-                    a = NextArc(a);
-                }
-                while( a != a_0 );
-                
-                ++a_ptr;
+                ptoc(ClassName()+"::OverArcIndices()");
             }
             
-            
-            return over_arc_idx;
+            return std::any_cast<Tensor1<Int,Int> &>( this->GetCache( tag ) );
         }
         
         Int Writhe() const

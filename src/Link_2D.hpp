@@ -212,6 +212,7 @@ namespace KnotTools
                     copy_buffer<3>( &v[3*j], edge_coords.data(edge,1) );
                 }
             }
+            
             ptoc(ClassName()+"::ReadVertexCoordinates (AoS)");
         }
         
@@ -272,7 +273,8 @@ namespace KnotTools
                     edge_coords(edge,1,2) = z[j];
                 }
             }
-//            ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
+            
+            ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
         }
         
         
@@ -416,24 +418,6 @@ namespace KnotTools
                 // This is the range of data in edge_intersections/edge_times that belongs to edge i.
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
-
-//                // DEBUGGING
-//                
-//                if( k_end > k_begin )
-//                {
-//                    valprint("edge",i);
-//                    
-//                    print("before sort");
-//                    valprint(
-//                        "times",
-//                        ArrayToString( &edge_times[k_begin], {k_end-k_begin} )
-//                    );
-//                    
-//                    valprint(
-//                        "intersected edges",
-//                        ArrayToString( &edge_intersections[k_begin], {k_end-k_begin} )
-//                    );
-//                }
                      
                 S(
                     &edge_times[k_begin],
@@ -441,30 +425,9 @@ namespace KnotTools
                     &edge_overQ[k_begin],
                     k_end - k_begin
                 );
-                
-//                // DEBUGGING
-//                    
-//                if( k_end > k_begin )
-//                {
-//                    print("after sort");
-//                    
-//                    valprint(
-//                        "times",
-//                        ArrayToString( &edge_times[k_begin], {k_end-k_begin} )
-//                    );
-//                    
-//                    valprint(
-//                        "intersected edges",
-//                        ArrayToString( &edge_intersections[k_begin], {k_end-k_begin} )
-//                    );
-//                }
             }
             
             // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
-            
-//            // DEBUGGING
-//            dump( intersections_nontransversal );
-//            dump( intersections_3D );
             
             ptoc(ClassName()+"FindIntersections");
         }
