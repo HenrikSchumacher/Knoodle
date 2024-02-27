@@ -20,10 +20,11 @@ namespace KnotTools
         ASSERT_SIGNED_INT(Int);
         ASSERT_INT(LInt);
         
-        using SparseMatrix_T  = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Factorization_T = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
-        using PD_T            = PlanarDiagram<Int>;
-        using Aggregator_T    = TripleAggregator<Int,Int,Scal,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
+        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
+        using Factorization_Ptr = std::shared_ptr<Factorization_T>;
+        using PD_T              = PlanarDiagram<Int>;
+        using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
         Alexander()
         :   sparsity_threshold ( 1024 )
@@ -274,19 +275,20 @@ namespace KnotTools
             return A;
         }
         
-        std::shared_ptr<Factorization_T> AlexanderFactorization( cref<PD_T> pd, const Scal t ) const
+        Factorization_Ptr AlexanderFactorization( cref<PD_T> pd, const Scal t ) const
         {
-            std::string tag ( "AlexanderFactorization" );
+            std::string tag ( "AlexanderFactorization_" );
+            tag += TypeName<Scal>;
             
             ptic(ClassName()+"::AlexanderFactorization");
-            
-            std::shared_ptr<Factorization_T> S;
             
             auto A = SparseAlexanderMatrix( pd, t ) ;
             
             auto AT = A.ConjugateTranspose();
             
             auto B = AT.Dot(A);
+            
+            Factorization_Ptr S;
             
             if( !pd.InCacheQ(tag) )
             {
@@ -314,7 +316,7 @@ namespace KnotTools
             {
                 // Use old symbolic factorization; just redo numeric factorization.
                 
-                S = std::any_cast<std::shared_ptr<Factorization_T>>( pd.GetCache( tag ) );
+                S = std::any_cast<Factorization_Ptr>( pd.GetCache(tag) );
                 
                 S->NumericFactorization( B.Values().data(), Scal(0) );
             }
@@ -375,14 +377,7 @@ namespace KnotTools
                     }
                     else
                     {
-                        if constexpr ( std::numeric_limits<Real>::has_infinity )
-                        {
-                            log2_det = -std::numeric_limits<Real>::infinity();
-                        }
-                        else
-                        {
-                            log2_det = std::numeric_limits<Real>::quiet_NaN;
-                        }
+                        log2_det = std::numeric_limits<Real>::lowest();
                     }
                     
                     results[idx] = log2_det;
@@ -414,16 +409,23 @@ namespace KnotTools
                     
                     // TODO: Replace by more accurate LU factorization.
                     
-                    std::shared_ptr<Factorization_T> S = AlexanderFactorization( pd, args[idx] );
-                    
-                    const auto & U = S->GetU();
+                    const auto & U = AlexanderFactorization( pd, args[idx] )->GetU();
                     
                     for( Int i = 0; i < n; ++i )
                     {
                         log2_det += std::log2( Abs(U.Value(U.Outer(i))) );
                     }
                     
-                    results[idx] = log2_det;
+                    if( NaNQ(log2_det) )
+                    {
+                        pprint("NaN detected. Aborting.");
+                        results[idx] = std::numeric_limits<Real>::lowest();
+                    }
+                    else
+                    {
+                        results[idx] = log2_det;
+                    }
+                    
                 }
             }
 
