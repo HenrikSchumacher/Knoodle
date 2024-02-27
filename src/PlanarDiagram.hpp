@@ -694,8 +694,8 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Simplify()");
             
-            logvalprint( "Number of crossings  ", crossing_count      );
-            logvalprint( "Number of arcs       ", arc_count           );
+            pvalprint( "Number of crossings  ", crossing_count      );
+            pvalprint( "Number of arcs       ", arc_count           );
             
             faces_initialized = false;
             
@@ -723,12 +723,12 @@ namespace KnotTools
             
 #pragma clang diagnostic pop
             
-            logvalprint( "Reidemeister I  moves", R_I_counter         );
-            logvalprint( "Reidemeister II moves", R_II_counter        );
-            logvalprint( "Twist           moves", twist_move_counter  );
+            pvalprint( "Reidemeister I  moves", R_I_counter         );
+            pvalprint( "Reidemeister II moves", R_II_counter        );
+            pvalprint( "Twist           moves", twist_move_counter  );
             
-            logvalprint( "Number of crossings  ", crossing_count      );
-            logvalprint( "Number of arcs       ", arc_count           );
+            pvalprint( "Number of crossings  ", crossing_count      );
+            pvalprint( "Number of arcs       ", arc_count           );
 //            const bool connected_sum_Q = ConnectedSum();
 //
 //            if( connected_sum_Q )

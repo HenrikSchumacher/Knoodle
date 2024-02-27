@@ -76,10 +76,6 @@ namespace KnotTools
 //            SparseAlexanderMatrix( pd, t ).WriteDense( A, n );
 //
 //            valprint( "sparse matrix", ArrayToString( A, {n,n} ) );
-
-            
-            Int counter = 0;
-
             
             const auto & over_arc_indices = pd.OverArcIndices();
             
@@ -88,6 +84,8 @@ namespace KnotTools
             cptr<CrossingState> C_state = pd.CrossingStates().data();
             
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
+            
+            Int counter = 0;
             
             for( Int c = 0; c < C_arcs.Size(); ++c )
             {
@@ -186,15 +184,15 @@ namespace KnotTools
             
             mref<Aggregator_T> agg = Agg[0];
             
-            const Tensor1<Int,Int> over_arc_indices = pd.OverArcIndices();
+            const auto & over_arc_indices = pd.OverArcIndices();
             
             const auto & C_arcs  = pd.Crossings();
             
             cptr<CrossingState> C_state = pd.CrossingStates().data();
             
-            Int counter = 0;
-
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
+            
+            Int counter = 0;
             
             for( Int c = 0; c < C_arcs.Size(); ++c )
             {
@@ -348,7 +346,7 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Log2AlexanderModuli_Dense");
             
-            if( pd.CrossingCount() <= 1)
+            if( pd.CrossingCount() <= 1 )
             {
                 zerofy_buffer( results, arg_count );
             }
@@ -360,7 +358,7 @@ namespace KnotTools
                 {
                     Real log2_det = 0;
                                         
-                    DenseAlexanderMatrix(pd, args[idx], LU_buffer.data() );
+                    DenseAlexanderMatrix( pd, args[idx], LU_buffer.data() );
                     
 //                    valprint( "dense array", ArrayToString( LU_buffer.data(), {n,n} ) );
                     
@@ -402,7 +400,7 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Log2AlexanderModuli_Sparse");
             
-            if( pd.CrossingCount() <= 1)
+            if( pd.CrossingCount() <= 1 )
             {
                 zerofy_buffer( results, arg_count );
             }
