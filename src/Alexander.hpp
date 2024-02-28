@@ -52,7 +52,9 @@ namespace KnotTools
         
         mutable Tensor1<Scal,Int> LU_buffer;
         
-        mutable Tensor1<LAPACK::Int,Int>  LU_perm;
+        mutable Tensor1<LAPACK::Int,Int> LU_perm;
+        
+        mutable Tensor1<Real,Int> diagonal;
 
     public:
         
@@ -326,27 +328,27 @@ namespace KnotTools
             return S;
         }
 
-        void Log2AlexanderModuli(
+        void LogAlexanderModuli(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
-                Log2AlexanderModuli_Sparse( pd, args, arg_count, results );
+                LogAlexanderModuli_Sparse( pd, args, arg_count, results );
             }
             else
             {
-                Log2AlexanderModuli_Dense ( pd, args, arg_count, results );
+                LogAlexanderModuli_Dense ( pd, args, arg_count, results );
             }
         }
         
     private:
         
-        void Log2AlexanderModuli_Dense(
+        void LogAlexanderModuli_Dense(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::Log2AlexanderModuli_Dense");
+            ptic(ClassName()+"::LogAlexanderModuli_Dense");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -358,7 +360,7 @@ namespace KnotTools
                 
                 for( Int idx = 0; idx < arg_count; ++idx )
                 {
-                    Real log2_det = 0;
+                    Real log_det = 0;
                                         
                     DenseAlexanderMatrix( pd, args[idx], LU_buffer.data() );
                     
@@ -372,28 +374,28 @@ namespace KnotTools
                     {
                         for( Int i = 0; i < n; ++i )
                         {
-                            log2_det += std::log2( Abs( LU_buffer( (n+1) * i ) ) );
+                            log_det += std::log( Abs( LU_buffer( (n+1) * i ) ) );
                         }
                     }
                     else
                     {
-                        log2_det = std::numeric_limits<Real>::lowest();
+                        log_det = std::numeric_limits<Real>::lowest();
                     }
                     
-                    results[idx] = log2_det;
+                    results[idx] = log_det;
                 }
             }
         
-            ptoc(ClassName()+"::Log2AlexanderModuli_Dense");
+            ptoc(ClassName()+"::LogAlexanderModuli_Dense");
         }
         
         
     
-        void Log2AlexanderModuli_Sparse(
+        void LogAlexanderModuli_Sparse(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::Log2AlexanderModuli_Sparse");
+            ptic(ClassName()+"::LogAlexanderModuli_Sparse");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -403,34 +405,30 @@ namespace KnotTools
             {
                 const Int n = pd.CrossingCount() - 1;
                 
+                diagonal.RequireSize(n);
+                
                 for( Int idx = 0; idx < arg_count; ++idx )
                 {
-                    Real log2_det = 0;
-                    
                     // TODO: Replace by more accurate LU factorization.
                     
-                    const auto & S    = AlexanderFactorization( pd, args[idx] );
-                    const auto & diag = S->GetFactorDiagonal();
+                    const auto & S = AlexanderFactorization( pd, args[idx] );
                     
-                    for( Int i = 0; i < n; ++i )
-                    {
-                        log2_det += std::log2( diag(i) );
-                    }
+                    const Real log_det = S->FactorLogDeterminant();
                     
-                    if( NaNQ(log2_det) )
+                    if( NaNQ(log_det) )
                     {
                         pprint("NaN detected. Aborting.");
                         results[idx] = std::numeric_limits<Real>::lowest();
                     }
                     else
                     {
-                        results[idx] = log2_det;
+                        results[idx] = log_det;
                     }
                     
                 }
             }
 
-            ptoc(ClassName()+"::Log2AlexanderModuli_Sparse");
+            ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
         }
         
     public:
