@@ -409,11 +409,12 @@ namespace KnotTools
                     
                     // TODO: Replace by more accurate LU factorization.
                     
-                    const auto & U = AlexanderFactorization( pd, args[idx] )->GetU();
+                    const auto & S    = AlexanderFactorization( pd, args[idx] );
+                    const auto & diag = S->GetFactorDiagonal();
                     
                     for( Int i = 0; i < n; ++i )
                     {
-                        log2_det += std::log2( Abs(U.Value(U.Outer(i))) );
+                        log2_det += std::log2( diag(i) );
                     }
                     
                     if( NaNQ(log2_det) )
