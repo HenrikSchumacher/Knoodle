@@ -52,7 +52,7 @@ namespace KnotTools
         
         mutable Tensor1<Scal,Int> LU_buffer;
         
-        mutable Tensor1<int,Int>  LU_perm;
+        mutable Tensor1<LAPACK::Int,Int>  LU_perm;
 
     public:
         
