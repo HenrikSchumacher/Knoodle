@@ -302,6 +302,8 @@ namespace KnotTools
                     B.Outer().data(), B.Inner().data(), B.RowCount(), Int(1)
                 );
                 
+//                Permutation<Int> perm ( B.RowCount(), Int(1) );
+                
                 // Create Cholesky factoriation.
                 
                 S = std::make_shared<Factorization_T>(
