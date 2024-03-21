@@ -1,13 +1,13 @@
 #pragma once
 
 #include "../submodules/Tensors/Sparse.hpp"
-#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
 namespace KnotTools
 {
     
     template<typename Scal_, typename Int_, typename LInt_>
-    class Alexander
+    class Alexander_Metis_LeftLooking
     {
         
     public:
@@ -26,14 +26,14 @@ namespace KnotTools
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
-        Alexander()
+        Alexander_Metis_LeftLooking()
         :   sparsity_threshold ( 1024 )
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
         ,   LU_perm   ( sparsity_threshold )
         {}
         
-        Alexander( const Int sparsity_threshold_ )
-        :   sparsity_threshold ( 
+        Alexander_Metis_LeftLooking( const Int sparsity_threshold_ )
+        :   sparsity_threshold (
                 std::min(
                     sparsity_threshold_,
                     static_cast<Int>(std::floor(std::sqrt(std::abs(std::numeric_limits<Int>::max()))))
@@ -44,7 +44,7 @@ namespace KnotTools
         {}
       
         
-        ~Alexander() = default;
+        ~Alexander_Metis_LeftLooking() = default;
         
     private:
         
@@ -279,7 +279,7 @@ namespace KnotTools
         
         Factorization_Ptr AlexanderFactorization( cref<PD_T> pd, const Scal t ) const
         {
-            std::string tag ( "AlexanderFactorization_" );
+            std::string tag ( "AlexanderFactorization" );
             tag += TypeName<Scal>;
             
             ptic(ClassName()+"::AlexanderFactorization");
@@ -296,7 +296,7 @@ namespace KnotTools
             {
                 // Finding fill-in reducing reordering.
                 
-                Sparse::ApproximateMinimumDegree<Int> metis;
+                Sparse::Metis<Int> metis;
 
                 Permutation<Int> perm = metis(
                     B.Outer().data(), B.Inner().data(), B.RowCount(), Int(1)
@@ -312,7 +312,7 @@ namespace KnotTools
                 
                 S->SymbolicFactorization();
                 
-                S->NumericFactorization_Multifrontal( B.Values().data(), Scal(0) );
+                S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
                 
                 pd.SetCache( tag, S );
             }
@@ -322,13 +322,14 @@ namespace KnotTools
                 
                 S = std::any_cast<Factorization_Ptr>( pd.GetCache(tag) );
                 
-                S->NumericFactorization_Multifrontal( B.Values().data(), Scal(0) );
+                S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
             }
             
-            ptoc(ClassName()+"::AlexanderFactorization");
+            ptoc(ClassName()+"::AlexanderFactorization_Metis_LeftLooking");
             
             return S;
         }
+        
 
         void LogAlexanderModuli(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
@@ -436,7 +437,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("Alexander")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return std::string("Alexander_Metris_LeftLooking")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
         }
         
     }; // class Alexander
