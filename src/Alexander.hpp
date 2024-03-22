@@ -2,6 +2,7 @@
 
 #include "../submodules/Tensors/Sparse.hpp"
 #include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+//#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
 namespace KnotTools
 {
@@ -296,9 +297,11 @@ namespace KnotTools
             {
                 // Finding fill-in reducing reordering.
                 
-                Sparse::ApproximateMinimumDegree<Int> metis;
+                Sparse::ApproximateMinimumDegree<Int> reorderer;
+                
+//                Sparse::Metis<Int> reorderer;
 
-                Permutation<Int> perm = metis(
+                Permutation<Int> perm = reorderer(
                     B.Outer().data(), B.Inner().data(), B.RowCount(), Int(1)
                 );
                 
