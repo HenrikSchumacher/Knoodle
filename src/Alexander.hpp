@@ -24,6 +24,9 @@ namespace KnotTools
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
         
+        
+        using Helper_T = Tensor2<Scal,LInt>;
+        
         using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
@@ -58,6 +61,13 @@ namespace KnotTools
         mutable Tensor1<LAPACK::Int,Int> LU_perm;
         
         mutable Tensor1<Real,Int> diagonal;
+        
+        
+//        mutable Factorization_Ptr  herm_alex_fact;
+//        
+//        mutable Tensor2<Scal,LInt> herm_alex_help;
+        
+        mutable Tensor1<Scal,LInt> herm_alex_vals;
 
     public:
         
@@ -77,11 +87,6 @@ namespace KnotTools
 
             
             const Int n = pd.CrossingCount() - 1;
-            
-            
-//            SparseAlexanderMatrix( pd, t ).WriteDense( A, n );
-//
-//            valprint( "sparse matrix", ArrayToString( A, {n,n} ) );
             
             const auto & over_arc_indices = pd.OverArcIndices();
             
@@ -176,124 +181,19 @@ namespace KnotTools
             ptoc(ClassName()+"::DenseAlexanderMatrix");
         }
         
-        SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
-        {
-            ptic(ClassName()+"::SparseAlexanderMatrix");
-            
-            // TODO: Insert shortcut for crossing_count <= 1.
-            
-            const Int n = pd.CrossingCount()-1;
-            
-            std::vector<Aggregator_T> Agg;
-            
-            Agg.emplace_back(3 * n);
-            
-            mref<Aggregator_T> agg = Agg[0];
-            
-            const auto & over_arc_indices = pd.OverArcIndices();
-            
-            const auto & C_arcs  = pd.Crossings();
-            
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
-            
-            const Scal v [3] = { Scal(1) - t, Scal(-1), t};
-            
-            Int counter = 0;
-            
-            for( Int c = 0; c < C_arcs.Size(); ++c )
-            {
-                if( counter >= n )
-                {
-                    break;
-                }
-                
-                switch( C_state[c] )
-                {
-                    case CrossingState::Negative:
-                    {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
-                    
-                        const Int i = over_arc_indices[C[1][0]];
-                        const Int j = over_arc_indices[C[1][1]];
-                        const Int k = over_arc_indices[C[0][0]];
-                        
-                        if( i < n )
-                        {
-                            agg.Push( counter, i, v[0] );
-                        }
-                        
-                        if( j < n )
-                        {
-                            agg.Push( counter, j, v[1] );
-                        }
-                        
-                        if( k < n )
-                        {
-                            agg.Push( counter, k, v[2] );
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    case CrossingState::Positive:
-                    {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
-                    
-                        const Int i = over_arc_indices[C[1][1]];
-                        const Int j = over_arc_indices[C[1][0]];
-                        const Int k = over_arc_indices[C[0][1]];
-                        
-                        
-                        if( i < n )
-                        {
-                            agg.Push(counter, i, v[0] );
-                        }
-                        
-                        if( j < n )
-                        {
-                            agg.Push(counter, j, v[2] );
-                        }
-                        
-                        if( k < n )
-                        {
-                            agg.Push(counter, k, v[1] );
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    default:
-                    {
-                        break;
-                    }
-                }
-            }
-            
-            agg.Finalize();
-            
-            SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
-            
-            ptoc(ClassName()+"::SparseAlexanderMatrix");
-            
-            return A;
-        }
-
-        
-//      // TODO: Finish this.
-//        void PrepareSymmetricSparseAlexanderMatrix( cref<PD_T> pd  ) const
+//        SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
 //        {
+//            ptic(ClassName()+"::SparseAlexanderMatrix");
+//            
+//            // TODO: Insert shortcut for crossing_count <= 1.
+//            
 //            const Int n = pd.CrossingCount()-1;
 //            
-//            std::vector<Aggregator_T> Agg_0;
-//            std::vector<Aggregator_T> Agg_1;
+//            std::vector<Aggregator_T> Agg;
 //            
-//            Agg_0.emplace_back(3 * n);
-//            Agg_1.emplace_back(3 * n);
+//            Agg.emplace_back(3 * n);
 //            
-//            mref<Aggregator_T> agg_0 = Agg_0;
-//            mref<Aggregator_T> agg_1 = Agg_1;
+//            mref<Aggregator_T> agg = Agg[0];
 //            
 //            const auto & over_arc_indices = pd.OverArcIndices();
 //            
@@ -301,8 +201,7 @@ namespace KnotTools
 //            
 //            cptr<CrossingState> C_state = pd.CrossingStates().data();
 //            
-//            const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
-//            const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
+//            const Scal v [3] = { Scal(1) - t, Scal(-1), t};
 //            
 //            Int counter = 0;
 //            
@@ -325,20 +224,17 @@ namespace KnotTools
 //                        
 //                        if( i < n )
 //                        {
-//                            agg_0.Push( counter, i, v_0[0] );
-//                            agg_1.Push( counter, i, v_1[0] );
+//                            agg.Push( counter, i, v[0] );
 //                        }
 //                        
 //                        if( j < n )
 //                        {
-//                            agg_0.Push( counter, j, v_0[1] );
-//                            agg_1.Push( counter, j, v_1[1] );
+//                            agg.Push( counter, j, v[1] );
 //                        }
 //                        
 //                        if( k < n )
 //                        {
-//                            agg_0.Push( counter, k, v_0[2] );
-//                            agg_1.Push( counter, k, v_1[2] );
+//                            agg.Push( counter, k, v[2] );
 //                        }
 //                        
 //                        ++counter;
@@ -356,20 +252,17 @@ namespace KnotTools
 //                        
 //                        if( i < n )
 //                        {
-//                            agg_0.Push(counter, i, v_0[0] );
-//                            agg_1.Push(counter, i, v_1[0] );
+//                            agg.Push(counter, i, v[0] );
 //                        }
 //                        
 //                        if( j < n )
 //                        {
-//                            agg_0.Push(counter, j, v_0[2] );
-//                            agg_1.Push(counter, j, v_1[2] );
+//                            agg.Push(counter, j, v[2] );
 //                        }
 //                        
 //                        if( k < n )
 //                        {
-//                            agg_0.Push(counter, k, v_0[1] );
-//                            agg_1.Push(counter, k, v_1[1] );
+//                            agg.Push(counter, k, v[1] );
 //                        }
 //                        
 //                        ++counter;
@@ -383,88 +276,245 @@ namespace KnotTools
 //                }
 //            }
 //            
-//            agg_0.Finalize();
-//            agg_1.Finalize();
+//            agg.Finalize();
 //            
-//            SparseMatrix_T A_0 ( Agg_0, n, n, Int(1), true, false );
-//            SparseMatrix_T A_1 ( Agg_1, n, n, Int(1), true, false );
+//            SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
 //            
-//            SparseMatrix_T A = Dot( A_0.Transpose(), A_0 );
+//            ptoc(ClassName()+"::SparseAlexanderMatrix");
 //            
-//            Tensor2<Scal,LInt> a ( 4, A.NonzeroValues() );
-//            
-//            A.Values().Write( a[0].data() );
-//            
-//            A = Dot( A_0.Transpose(), A_1 );
-//            A.Values().Write( a[1].data() );
-//            
-//            A = Dot( A_1.Transpose(), A_0 );
-//            A.Values().Write( a[2].data() );
-//            
-//            A = Dot( A_1.Transpose(), A_1 );
-//            A.Values().Write( a[3].data() );
-//            
-//            BinaryMatrix_T pat (
-//                A.Outer(), A.Inner(), A.RowCount(), A.ColCount(), Int(1)
-//            );
-//            
-//            pd.SetCache( "SymmetricSparseAlexanderMatrixPattern", std::move(pat) );
-//            pd.SetCache( "SymmetricSparseAlexanderNonzeroValues", std::move(a)   );
+//            return A;
 //        }
+
         
-        Factorization_Ptr AlexanderFactorization( cref<PD_T> pd, const Scal t ) const
+        void RequireHermitianSparseAlexanderMatrix( cref<PD_T> pd  ) const
         {
-            std::string tag ( "AlexanderFactorization_" );
-            tag += TypeName<Scal>;
+            ptic(ClassName()+"::RequireHermitianSparseAlexanderMatrix");
             
-            ptic(ClassName()+"::AlexanderFactorization");
-            
-            auto A = SparseAlexanderMatrix( pd, t ) ;
-            
-            auto AT = A.ConjugateTranspose();
-            
-            auto B = AT.Dot(A);
-            
-            Factorization_Ptr S;
-            
-            if( !pd.InCacheQ(tag) )
+            std::string tag_help ( std::string( "HermitianSparseAlexanderHelpers_" ) + TypeName<Scal>);
+            std::string tag_fact ( std::string( "HermitianSparseAlexanderFactorization_" ) + TypeName<Scal> );
+
+            if( (!pd.InCacheQ(tag_fact)) || (!pd.InCacheQ(tag_help)) )
             {
-                // Finding fill-in reducing reordering.
+                const Int n = pd.CrossingCount()-1;
+                
+                std::vector<Aggregator_T> Agg_0;
+                std::vector<Aggregator_T> Agg_1;
+                
+                Agg_0.emplace_back(3 * n);
+                Agg_1.emplace_back(3 * n);
+                
+                mref<Aggregator_T> agg_0 = Agg_0[0];
+                mref<Aggregator_T> agg_1 = Agg_1[0];
+                
+                const auto & over_arc_indices = pd.OverArcIndices();
+                
+                const auto & C_arcs = pd.Crossings();
+                
+                cptr<CrossingState> C_state = pd.CrossingStates().data();
+                
+                const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
+                const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
+                
+                Int counter = 0;
+                
+                for( Int c = 0; c < C_arcs.Size(); ++c )
+                {
+                    if( counter >= n )
+                    {
+                        break;
+                    }
+                    
+                    switch( C_state[c] )
+                    {
+                        case CrossingState::Negative:
+                        {
+                            const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        
+                            const Int i = over_arc_indices[C[1][0]];
+                            const Int j = over_arc_indices[C[1][1]];
+                            const Int k = over_arc_indices[C[0][0]];
+                            
+                            if( i < n )
+                            {
+                                agg_0.Push( counter, i, v_0[0] );
+                                agg_1.Push( counter, i, v_1[0] );
+                            }
+                            
+                            if( j < n )
+                            {
+                                agg_0.Push( counter, j, v_0[1] );
+                                agg_1.Push( counter, j, v_1[1] );
+                            }
+                            
+                            if( k < n )
+                            {
+                                agg_0.Push( counter, k, v_0[2] );
+                                agg_1.Push( counter, k, v_1[2] );
+                            }
+                            
+                            ++counter;
+                            
+                            break;
+                        }
+                        case CrossingState::Positive:
+                        {
+                            const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        
+                            const Int i = over_arc_indices[C[1][1]];
+                            const Int j = over_arc_indices[C[1][0]];
+                            const Int k = over_arc_indices[C[0][1]];
+                            
+                            
+                            if( i < n )
+                            {
+                                agg_0.Push(counter, i, v_0[0] );
+                                agg_1.Push(counter, i, v_1[0] );
+                            }
+                            
+                            if( j < n )
+                            {
+                                agg_0.Push(counter, j, v_0[2] );
+                                agg_1.Push(counter, j, v_1[2] );
+                            }
+                            
+                            if( k < n )
+                            {
+                                agg_0.Push(counter, k, v_0[1] );
+                                agg_1.Push(counter, k, v_1[1] );
+                            }
+                            
+                            ++counter;
+                            
+                            break;
+                        }
+                        default:
+                        {
+                            break;
+                        }
+                    }
+                }
+                
+                agg_0.Finalize();
+                agg_1.Finalize();
+                
+                SparseMatrix_T A_0 ( Agg_0, n, n, Int(1), true, false );
+                SparseMatrix_T A_1 ( Agg_1, n, n, Int(1), true, false );
+                
+                SparseMatrix_T AH_0 = A_0.ConjugateTranspose();
+                SparseMatrix_T AH_1 = A_1.ConjugateTranspose();
+                
+                SparseMatrix_T AHA = AH_0.Dot( A_0 );
+                
                 
                 Sparse::ApproximateMinimumDegree<Int> reorderer;
                 
-//                Sparse::Metis<Int> reorderer;
+    //                Sparse::Metis<Int> reorderer;
 
                 Permutation<Int> perm = reorderer(
-                    B.Outer().data(), B.Inner().data(), B.RowCount(), Int(1)
+                    AHA.Outer().data(), AHA.Inner().data(), AHA.RowCount(), Int(1)
                 );
-                
-//                Permutation<Int> perm ( B.RowCount(), Int(1) );
                 
                 // Create Cholesky factoriation.
                 
-                S = std::make_shared<Factorization_T>(
-                    B.Outer().data(), B.Inner().data(), std::move(perm)
+                Factorization_Ptr S = std::make_shared<Factorization_T>(
+                    AHA.Outer().data(), AHA.Inner().data(), std::move(perm)
                 );
                 
                 S->SymbolicFactorization();
                 
-                S->NumericFactorization_Multifrontal( B.Values().data(), Scal(0) );
                 
-                pd.SetCache( tag, S );
+                pd.SetCache( tag_fact, std::move(S) );
+                
+                // TODO: We could reorder AHA here to (manginally) speed the numeric factorization.
+                
+                // TODO: Do we really have to compute 2 sparse transposes and 4 sparse dots?
+                Tensor2<Scal,LInt> herm_alex_help ( 4, AHA.NonzeroCount() );
+                
+                AHA.Values().Write( herm_alex_help.data(0) );
+                
+                AHA = AH_0.Dot( A_1 );
+                AHA.Values().Write( herm_alex_help.data(1) );
+                
+                AHA = AH_1.Dot( A_0 );
+                AHA.Values().Write( herm_alex_help.data(2) );
+                
+                AHA = AH_1.Dot( A_1 );
+                AHA.Values().Write( herm_alex_help.data(3) );
+                
+                pd.SetCache( tag_help, std::move(herm_alex_help) );
+            }
+            
+            
+
+            ptoc(ClassName()+"::RequireHermitianSparseAlexanderMatrix");
+        }
+        
+        void LogAlexanderModuli_Sparse(
+            cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
+        ) const
+        {
+            ptic(ClassName()+"::LogAlexanderModuli_Sparse");
+            
+            if( pd.CrossingCount() <= 1 )
+            {
+                zerofy_buffer( results, arg_count );
             }
             else
             {
-                // Use old symbolic factorization; just redo numeric factorization.
+                RequireHermitianSparseAlexanderMatrix( pd );
                 
-                S = std::any_cast<Factorization_Ptr>( pd.GetCache(tag) );
+                std::string tag_help ( std::string("HermitianSparseAlexanderHelpers_") + TypeName<Scal> );
                 
-                S->NumericFactorization_Multifrontal( B.Values().data(), Scal(0) );
+                cref<Helper_T> herm_alex_help = std::any_cast<Helper_T &>( pd.GetCache( tag_help )
+                );
+                
+                std::string tag_fact ( std::string("HermitianSparseAlexanderFactorization_") + TypeName<Scal> );
+        
+                mref<Factorization_Ptr> S = std::any_cast<Factorization_Ptr &>( pd.GetCache( tag_fact ) );
+                
+                const Int n = pd.CrossingCount() - 1;
+                
+                const LInt nnz = S->NonzeroCount();
+                
+                diagonal.RequireSize(n);
+                
+                herm_alex_vals.RequireSize( nnz );
+
+                for( Int idx = 0; idx < arg_count; ++idx )
+                {
+                    // TODO: Replace by more accurate LU factorization.
+                    
+                    const Scal t   = args[idx];
+                    const Scal tc  = Conj(t);
+                    const Scal tt  = t * tc;
+
+                    
+                    for( LInt i = 0; i < nnz; ++i )
+                    {
+                        herm_alex_vals[i]
+                        =          herm_alex_help[0][i]
+                            + t  * herm_alex_help[1][i]
+                            + tc * herm_alex_help[2][i]
+                            + tt * herm_alex_help[3][i];
+                    }
+                    
+                    S->NumericFactorization( herm_alex_vals.data() );
+                    
+                    const Real log_det = S->FactorLogDeterminant();
+                    
+                    if( NaNQ(log_det) )
+                    {
+                        pprint("NaN detected. Aborting.");
+                        results[idx] = std::numeric_limits<Real>::lowest();
+                    }
+                    else
+                    {
+                        results[idx] = log_det;
+                    }
+                }
             }
-            
-            ptoc(ClassName()+"::AlexanderFactorization");
-            
-            return S;
+
+            ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
         }
 
         void LogAlexanderModuli(
@@ -529,45 +579,6 @@ namespace KnotTools
         }
         
         
-        void LogAlexanderModuli_Sparse(
-            cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
-        ) const
-        {
-            ptic(ClassName()+"::LogAlexanderModuli_Sparse");
-            
-            if( pd.CrossingCount() <= 1 )
-            {
-                zerofy_buffer( results, arg_count );
-            }
-            else
-            {
-                const Int n = pd.CrossingCount() - 1;
-                
-                diagonal.RequireSize(n);
-                
-                for( Int idx = 0; idx < arg_count; ++idx )
-                {
-                    // TODO: Replace by more accurate LU factorization.
-                    
-                    const auto & S = AlexanderFactorization( pd, args[idx] );
-                    
-                    const Real log_det = S->FactorLogDeterminant();
-                    
-                    if( NaNQ(log_det) )
-                    {
-                        pprint("NaN detected. Aborting.");
-                        results[idx] = std::numeric_limits<Real>::lowest();
-                    }
-                    else
-                    {
-                        results[idx] = log_det;
-                    }
-                    
-                }
-            }
-
-            ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
-        }
         
     public:
         
