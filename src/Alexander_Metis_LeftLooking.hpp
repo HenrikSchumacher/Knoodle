@@ -325,7 +325,7 @@ namespace KnotTools
                 S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
             }
             
-            ptoc(ClassName()+"::AlexanderFactorization_Metis_LeftLooking");
+            ptoc(ClassName()+"::AlexanderFactorization");
             
             return S;
         }
@@ -437,7 +437,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("Alexander_Metris_LeftLooking")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return std::string("Alexander_Metis_LeftLooking")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
         }
         
     }; // class Alexander
