@@ -22,6 +22,8 @@ namespace KnotTools
         ASSERT_INT(LInt);
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        
         using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
@@ -277,6 +279,138 @@ namespace KnotTools
             
             return A;
         }
+
+        
+//      // TODO: Finish this.
+//        void PrepareSymmetricSparseAlexanderMatrix( cref<PD_T> pd  ) const
+//        {
+//            const Int n = pd.CrossingCount()-1;
+//            
+//            std::vector<Aggregator_T> Agg_0;
+//            std::vector<Aggregator_T> Agg_1;
+//            
+//            Agg_0.emplace_back(3 * n);
+//            Agg_1.emplace_back(3 * n);
+//            
+//            mref<Aggregator_T> agg_0 = Agg_0;
+//            mref<Aggregator_T> agg_1 = Agg_1;
+//            
+//            const auto & over_arc_indices = pd.OverArcIndices();
+//            
+//            const auto & C_arcs  = pd.Crossings();
+//            
+//            cptr<CrossingState> C_state = pd.CrossingStates().data();
+//            
+//            const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
+//            const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
+//            
+//            Int counter = 0;
+//            
+//            for( Int c = 0; c < C_arcs.Size(); ++c )
+//            {
+//                if( counter >= n )
+//                {
+//                    break;
+//                }
+//                
+//                switch( C_state[c] )
+//                {
+//                    case CrossingState::Negative:
+//                    {
+//                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+//                    
+//                        const Int i = over_arc_indices[C[1][0]];
+//                        const Int j = over_arc_indices[C[1][1]];
+//                        const Int k = over_arc_indices[C[0][0]];
+//                        
+//                        if( i < n )
+//                        {
+//                            agg_0.Push( counter, i, v_0[0] );
+//                            agg_1.Push( counter, i, v_1[0] );
+//                        }
+//                        
+//                        if( j < n )
+//                        {
+//                            agg_0.Push( counter, j, v_0[1] );
+//                            agg_1.Push( counter, j, v_1[1] );
+//                        }
+//                        
+//                        if( k < n )
+//                        {
+//                            agg_0.Push( counter, k, v_0[2] );
+//                            agg_1.Push( counter, k, v_1[2] );
+//                        }
+//                        
+//                        ++counter;
+//                        
+//                        break;
+//                    }
+//                    case CrossingState::Positive:
+//                    {
+//                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+//                    
+//                        const Int i = over_arc_indices[C[1][1]];
+//                        const Int j = over_arc_indices[C[1][0]];
+//                        const Int k = over_arc_indices[C[0][1]];
+//                        
+//                        
+//                        if( i < n )
+//                        {
+//                            agg_0.Push(counter, i, v_0[0] );
+//                            agg_1.Push(counter, i, v_1[0] );
+//                        }
+//                        
+//                        if( j < n )
+//                        {
+//                            agg_0.Push(counter, j, v_0[2] );
+//                            agg_1.Push(counter, j, v_1[2] );
+//                        }
+//                        
+//                        if( k < n )
+//                        {
+//                            agg_0.Push(counter, k, v_0[1] );
+//                            agg_1.Push(counter, k, v_1[1] );
+//                        }
+//                        
+//                        ++counter;
+//                        
+//                        break;
+//                    }
+//                    default:
+//                    {
+//                        break;
+//                    }
+//                }
+//            }
+//            
+//            agg_0.Finalize();
+//            agg_1.Finalize();
+//            
+//            SparseMatrix_T A_0 ( Agg_0, n, n, Int(1), true, false );
+//            SparseMatrix_T A_1 ( Agg_1, n, n, Int(1), true, false );
+//            
+//            SparseMatrix_T A = Dot( A_0.Transpose(), A_0 );
+//            
+//            Tensor2<Scal,LInt> a ( 4, A.NonzeroValues() );
+//            
+//            A.Values().Write( a[0].data() );
+//            
+//            A = Dot( A_0.Transpose(), A_1 );
+//            A.Values().Write( a[1].data() );
+//            
+//            A = Dot( A_1.Transpose(), A_0 );
+//            A.Values().Write( a[2].data() );
+//            
+//            A = Dot( A_1.Transpose(), A_1 );
+//            A.Values().Write( a[3].data() );
+//            
+//            BinaryMatrix_T pat (
+//                A.Outer(), A.Inner(), A.RowCount(), A.ColCount(), Int(1)
+//            );
+//            
+//            pd.SetCache( "SymmetricSparseAlexanderMatrixPattern", std::move(pat) );
+//            pd.SetCache( "SymmetricSparseAlexanderNonzeroValues", std::move(a)   );
+//        }
         
         Factorization_Ptr AlexanderFactorization( cref<PD_T> pd, const Scal t ) const
         {
