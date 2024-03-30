@@ -284,6 +284,131 @@ namespace KnotTools
 //            
 //            return A;
 //        }
+        
+        SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
+        {
+            ptic(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+
+            if( (degree != 0) && (degree!= 1) )
+            {
+                eprint(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+"): degree "+ToString(degree)+" is not a valid degree. Only 0 and 1 are allowed.");
+                
+                ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+                
+                return SparseMatrix_T();
+            }
+            
+            const Int n = pd.CrossingCount()-1;
+            
+            if( n <= 0 )
+            {
+                ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+                
+                return SparseMatrix_T();
+            }
+
+            std::vector<Aggregator_T> Agg;
+
+            Agg.emplace_back(3 * n);
+
+            mref<Aggregator_T> agg = Agg[0];
+
+            const auto & over_arc_indices = pd.OverArcIndices();
+
+            const auto & C_arcs  = pd.Crossings();
+
+            cptr<CrossingState> C_state = pd.CrossingStates().data();
+
+//            const Scal v [3] = { Scal(1) - t, Scal(-1), t};
+            const Scal v [3] = {
+                (degree == 0) ? Scal( 1) : Scal(-1),
+                (degree == 0) ? Scal(-1) : Scal( 0),
+                (degree == 0) ? Scal( 0) : Scal( 1)
+            };
+
+            Int counter = 0;
+
+            for( Int c = 0; c < C_arcs.Size(); ++c )
+            {
+                if( counter >= n )
+                {
+                    break;
+                }
+
+                switch( C_state[c] )
+                {
+                    case CrossingState::Negative:
+                    {
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+
+                        const Int i = over_arc_indices[C[1][0]];
+                        const Int j = over_arc_indices[C[1][1]];
+                        const Int k = over_arc_indices[C[0][0]];
+
+                        if( i < n )
+                        {
+                            agg.Push( counter, i, v[0] );
+                        }
+
+                        if( j < n )
+                        {
+                            agg.Push( counter, j, v[1] );
+                        }
+
+                        if( k < n )
+                        {
+                            agg.Push( counter, k, v[2] );
+                        }
+
+                        ++counter;
+
+                        break;
+                    }
+                    case CrossingState::Positive:
+                    {
+                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+
+                        const Int i = over_arc_indices[C[1][1]];
+                        const Int j = over_arc_indices[C[1][0]];
+                        const Int k = over_arc_indices[C[0][1]];
+
+
+                        if( i < n )
+                        {
+                            agg.Push(counter, i, v[0] );
+                        }
+
+                        if( j < n )
+                        {
+                            agg.Push(counter, j, v[2] );
+                        }
+
+                        if( k < n )
+                        {
+                            agg.Push(counter, k, v[1] );
+                        }
+
+                        ++counter;
+
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
+            }
+
+            agg.Finalize();
+            
+            
+
+            SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
+
+            ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+
+            return A;
+        }
 
         
         void RequireHermitianSparseAlexanderMatrix( cref<PD_T> pd  ) const
