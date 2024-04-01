@@ -100,8 +100,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             
             PD_print("\tUnlink detectd.");
             
-            Reconnect( a, Tail, e_2);
-            Reconnect( a, Tip , e_3);
+            Reconnect(a,Tail,e_2);
+            Reconnect(a,Tip ,e_3);
             
             DeactivateArc(b);
             DeactivateArc(e_0);
@@ -170,8 +170,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         
         PD_print("\tUnlink detectd.");
         
-        Reconnect( b, Tail, e_0);
-        Reconnect( b, Tip , e_1);
+        Reconnect(b,Tail,e_0);
+        Reconnect(b,Tip ,e_1);
         
         DeactivateArc(a);
         DeactivateArc(e_0);
@@ -260,8 +260,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         PD_assert( false );
 
         
-        Reconnect( e_1, Tail, e_0);
-        Reconnect( e_1, Tip , e_3);
+        Reconnect(e_1,Tail,e_0);
+        Reconnect(e_1,Tip ,e_3);
         
         DeactivateArc(a);
         DeactivateArc(b);
@@ -307,10 +307,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                     +---->--------------->--------------->----+
         
         PD_print(std::string("\t\tGeneric case (") + ((side==Left) ? "left)" : "right)") );
-        Reconnect( a, Tail, e_2 );
-        Reconnect( a, Tip , e_3 );
-        Reconnect( b, Tail, e_0 );
-        Reconnect( b, Tip , e_1 );
+        Reconnect(a,Tail,e_2);
+        Reconnect(a,Tip ,e_3);
+        Reconnect(b,Tail,e_0);
+        Reconnect(b,Tip ,e_1);
         
         DeactivateArc(e_0);
         DeactivateArc(e_1);
@@ -322,7 +322,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     
 exit:
     
-    // The two crossings are inactived in any case.
+    // The two crossings are inactivated in any case.
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
     

@@ -15,10 +15,10 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     const Int e_1 = C_arcs(c_1,In , side);
     const Int e_2 = C_arcs(c_1,Out, side);
 
-    Reconnect(a, Tip , e_3);
-    Reconnect(a, Tail, e_1);
-    Reconnect(b, Tip , e_2);
-    Reconnect(b, Tail, e_0);
+    Reconnect(a,Tip ,e_3);
+    Reconnect(a,Tail,e_1);
+    Reconnect(b,Tip ,e_2);
+    Reconnect(b,Tail,e_0);
 
     DeactivateArc(e_0);
     DeactivateArc(e_1);
@@ -59,7 +59,7 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
 //// We have several possibilities to simplify this:
 ////
 ////  I) The arcs e_1 and e_2 share two edges. So we could do also an inverse connect-sum operation.
-////  However, I suppose that this tangle is typically quite small. (Thus case happens only really rarely. So a brach is maybe not worth the effort.
+////  However, I suppose that this tangle is typically quite small. (This case happens only really rarely. So a brach is maybe not worth the effort.
 //
 ////  II) Rotate the tangle by 360 degrees about the horizontal axis. This resolves _both_ crossings!
 ////                      +-------------<--------------+

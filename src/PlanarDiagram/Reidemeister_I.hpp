@@ -59,7 +59,7 @@ bool Reidemeister_I( const Int c )
 //                           /       ^     ^             w
 //                          /         \   /
 //        A[Out][Left]     /           \ /
-//          = d =         |             /  c                v != w
+//           = d =        |             /  c                v != w
 //        A[In ][Left]     \           / \
 //                          \         /   \
 //                           \       /     \            v
@@ -73,7 +73,7 @@ bool Reidemeister_I( const Int c )
 //                           /       ^     ^          w ^
 //                          /         \   /             |
 //        A[Out][Left]     /           \ /              |
-//          = d =         |             /  c            |
+//           = d =        |             /  c            |
 //        A[In ][Left]     \           / \              |  a = A[In][Right]
 //                          \         /   \             |
 //                           \       /     \            |

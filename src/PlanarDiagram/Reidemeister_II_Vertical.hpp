@@ -51,10 +51,10 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             //                        e_0    /     \    e_1
             //               d_0  O---->----O       O----<----O  d_1
             
-            Reconnect( a, Tail, e_0 );
-            Reconnect( a, Tip , e_3 );
-            Reconnect( b, Tail, e_1 );
-            Reconnect( b, Tip , e_2 );
+            Reconnect(a,Tail,e_0);
+            Reconnect(a,Tip ,e_3);
+            Reconnect(b,Tail,e_1);
+            Reconnect(b,Tip ,e_2);
 
             DeactivateArc(e_0);
             DeactivateArc(e_1);
@@ -91,8 +91,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             //            O---->----O       O----<----+
         }
         
-        Reconnect(b, Tail, e_0);
-        Reconnect(b, Tip , e_3);
+        Reconnect(b,Tail,e_0);
+        Reconnect(b,Tip ,e_3);
         
         ++unlink_count;
         
@@ -123,13 +123,13 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         //        |               \   /
         //        |                \ /
         //        |             c_0 X
-        //         \                / \
+        //         \               / \
         //          \             /   \
         //           \           /     \    e_1
         //            +---->----O       O----<----O
         
-        Reconnect(a, Tail, e_1);
-        Reconnect(a, Tip , e_2);
+        Reconnect(a,Tail,e_1);
+        Reconnect(a,Tip ,e_2);
         
         ++unlink_count;
         
@@ -176,6 +176,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     }
  
 exit:
+    
+    // The two crossings are inactivated in any case.
     
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
