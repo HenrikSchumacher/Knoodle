@@ -1,3 +1,6 @@
 [submodule "submodules/Tensors"]
 	path = submodules/Tensors
 	url = git@github.com:HenrikSchumacher/Tensors.git
+[submodule "submodules/LTemplate"]
+	path = submodules/LTemplate
+	url = git@github.com:szhorvat/LTemplate.git
