@@ -1,7 +1,11 @@
 void Reconnect( const Int a, const bool tiptail, const Int b )
 {
-    // Read: "Reconnect arc a with its tip/tail to where b pointed/started. Then deactivates b.
-    // Also keeps track of crossings that got touched and might be interesting for further simplication.
+    // Read: 
+    // Reconnect arc a with its tip/tail to where b pointed/started.
+    // Then deactivate b.
+    //
+    // Also keeps track of crossings that got touched and that might thus
+    // be interesting for further simplification.
     
     const bool io = (tiptail==Tip) ? In : Out;
     
