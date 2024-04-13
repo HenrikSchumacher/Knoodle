@@ -1061,7 +1061,7 @@ namespace KnotTools
                 ptoc(ClassName()+"::OverArcIndices()");
             }
             
-            return std::any_cast<Tensor1<Int,Int> &>( this->GetCache( tag ) );
+            return this->template GetCache<Tensor1<Int,Int>>(tag);
         }
         
         Int Writhe() const

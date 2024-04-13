@@ -180,7 +180,10 @@ namespace KnotTools
             ptoc(ClassName()+"::DenseAlexanderMatrix");
         }
         
-        SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
+        template<bool fullQ = false>
+        SparseMatrix_T SparseAlexanderMatrix(
+            cref<PD_T> pd, const int degree
+        ) const
         {
             ptic(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
@@ -193,7 +196,7 @@ namespace KnotTools
                 return SparseMatrix_T();
             }
             
-            const Int n = pd.CrossingCount()-1;
+            const Int n = pd.CrossingCount() - 1 + fullQ;
             
             if( n <= 0 )
             {
@@ -221,7 +224,8 @@ namespace KnotTools
                 (degree == 0) ? Scal( 0) : Scal( 1)
             };
 
-
+            Int counter = 0;
+            
             for( Int c = 0; c < C_arcs.Size(); ++c )
             {
                 if( counter >= n )
@@ -238,17 +242,17 @@ namespace KnotTools
                         const Int j = over_arc_indices[C[1][1]];
                         const Int k = over_arc_indices[C[0][0]];
                         
-                        if( i < n )
+                        if( fullQ || (i < n) )
                         {
                             agg.Push( counter, i, v[0] );
                         }
 
-                        if( j < n )
+                        if( fullQ || (j < n) )
                         {
                             agg.Push( counter, j, v[1] );
                         }
 
-                        if( k < n )
+                        if( fullQ || (k < n) )
                         {
                             agg.Push( counter, k, v[2] );
                         }
@@ -262,17 +266,17 @@ namespace KnotTools
                         const Int j = over_arc_indices[C[1][0]];
                         const Int k = over_arc_indices[C[0][1]];
        
-                        if( i < n )
+                        if( fullQ || (i < n) )
                         {
                             agg.Push(counter, i, v[0] );
                         }
 
-                        if( j < n )
+                        if( fullQ || (j < n) )
                         {
                             agg.Push(counter, j, v[2] );
                         }
 
-                        if( k < n )
+                        if( fullQ || (k < n) )
                         {
                             agg.Push(counter, k, v[1] );
                         }
@@ -286,25 +290,13 @@ namespace KnotTools
                     }
                 }
             }
-<<<<<<< HEAD
-            
-            agg.Finalize();
-            
-            SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
-            
-            ptoc(ClassName()+"::SparseAlexanderMatrix");
-            
-=======
 
             agg.Finalize();
-            
-            
 
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
 
             ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
->>>>>>> ed7bc7aa567dd9bfa9bed4068c9a9366b854928c
             return A;
         }
 
@@ -486,12 +478,11 @@ namespace KnotTools
                 
                 std::string tag_help ( std::string("SparseHermitianAlexanderHelpers_") + TypeName<Scal> );
                 
-                cref<Helper_T> herm_alex_help = std::any_cast<Helper_T &>( pd.GetCache( tag_help )
-                );
+                cref<Helper_T> herm_alex_help = pd.template GetCache<Helper_T>(tag_help);
                 
                 std::string tag_fact ( std::string("SparseHermitianAlexanderFactorization_") + TypeName<Scal> );
         
-                mref<Factorization_Ptr> S = std::any_cast<Factorization_Ptr &>( pd.GetCache( tag_fact ) );
+                mref<Factorization_Ptr> S = pd.template GetCache<Factorization_Ptr>(tag_fact);
                 
                 const Int n = pd.CrossingCount() - 1;
                 

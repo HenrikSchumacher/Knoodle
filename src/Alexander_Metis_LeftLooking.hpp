@@ -320,7 +320,7 @@ namespace KnotTools
             {
                 // Use old symbolic factorization; just redo numeric factorization.
                 
-                S = std::any_cast<Factorization_Ptr>( pd.GetCache(tag) );
+                S = pd.template GetCache<Factorization_Ptr>(tag);
                 
                 S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
             }
