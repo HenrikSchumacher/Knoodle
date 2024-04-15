@@ -990,10 +990,15 @@ namespace KnotTools
                 
                 const Int m = A_cross.Dimension(0);
                 
-                Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
+//                Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
+//                
+//                Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
+//                Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
                 
-                Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
-                Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
+                Tensor1<Int,Int>  over_arc_idx ( m );
+                
+                Tensor1<Int,Int>  A_labels     ( m, -1 );
+                Tensor1<char,Int> A_visisted   ( m, false );
                 
                 
                 Int counter = 0;

@@ -181,9 +181,7 @@ namespace KnotTools
         }
         
         template<bool fullQ = false>
-        SparseMatrix_T SparseAlexanderMatrix(
-            cref<PD_T> pd, const int degree
-        ) const
+        SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
         {
             ptic(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
@@ -301,7 +299,7 @@ namespace KnotTools
         }
 
         
-        void RequireSparseHermitianAlexanderMatrix( cref<PD_T> pd  ) const
+        void RequireSparseHermitianAlexanderMatrix( cref<PD_T> pd ) const
         {
             ptic(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
             
@@ -429,7 +427,7 @@ namespace KnotTools
                     AHA.Outer().data(), AHA.Inner().data(), AHA.RowCount(), Int(1)
                 );
                 
-                // Create Cholesky factoriation.
+                // Create Cholesky factorization.
                 
                 Factorization_Ptr S = std::make_shared<Factorization_T>(
                     AHA.Outer().data(), AHA.Inner().data(), std::move(perm)
@@ -500,7 +498,6 @@ namespace KnotTools
                     const Scal tc  = Conj(t);
                     const Scal tt  = t * tc;
 
-                    
                     for( LInt i = 0; i < nnz; ++i )
                     {
                         herm_alex_vals[i]

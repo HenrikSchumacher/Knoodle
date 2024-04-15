@@ -354,6 +354,11 @@ namespace KnotTools
             return (i == j) || (i == next_edge[j]) || (j == next_edge[i]);
         }
         
+        cref<Tensor1<Int,Int>> NextEdge() const
+        {
+            return next_edge;
+        }
+        
         Int NextEdge( const Int i ) const
         {
             return next_edge[i];

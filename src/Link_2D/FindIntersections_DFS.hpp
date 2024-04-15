@@ -391,7 +391,7 @@ protected:
         }
         
         edge_ptr.Accumulate();
-        
+
         ptoc(ClassName()+"::FindIntersectingEdges_DFS");
         
     } // FindIntersectingClusters_DFS
