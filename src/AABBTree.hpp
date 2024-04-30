@@ -128,7 +128,7 @@ namespace KnotTools
         
         void ComputeBoundingBoxes( cref<EContainer_T> E, mref<BContainer_T> B ) const
         {
-            ptic(ClassName()+"ComputeBoundingBoxes");
+//            ptic(ClassName()+"ComputeBoundingBoxes");
             
 //            dump(C_begin);
 //            dump(int_node_count);
@@ -169,7 +169,7 @@ namespace KnotTools
                 }
             }
             
-            ptoc(ClassName()+"ComputeBoundingBoxes");
+//            ptoc(ClassName()+"ComputeBoundingBoxes");
         }
         
         
