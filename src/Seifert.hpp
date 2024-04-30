@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Multigraph.hpp"
 #include "../submodules/Tensors/Sparse.hpp"
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"

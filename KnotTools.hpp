@@ -35,7 +35,6 @@ namespace KnotTools
 
 #include "src/PlanarDiagram.hpp"
 
-#include "src/Alexander.hpp"
-
-#include "src/Multigraph.hpp"
-#include "src/Seifert.hpp"
+//#include "src/Alexander.hpp"
+//
+//#include "src/Seifert.hpp"
