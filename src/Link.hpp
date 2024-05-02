@@ -16,13 +16,12 @@ namespace KnotTools
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
 
+        const Int edge_count = 0;
+        
         Tiny::VectorList<2,Int,Int> edges;
         Tensor1<Int,Int> next_edge;
-        Tensor1<Int,Int> edge_ctr;
         Tensor1<Int,Int> edge_ptr;
 
-        
-        const Int edge_count = 0;
         Int component_count = 0;
         
         Tensor1<Int,Int> component_ptr;
@@ -43,22 +42,38 @@ namespace KnotTools
         // TODO: Make this constructor work correctly!
         
         // Calling this constructor makes the object assume that it represents a cyclic polyline.
-        explicit Link( const Int edge_count_ )
-        :   edges           { edge_count_     }
-        ,   next_edge       { edge_count_     }
-        ,   edge_ctr        { edge_count_ + 1 }
-        ,   edge_ptr        { edge_count_ + 1 }
-        ,   edge_count      { edge_count_     }
-        ,   component_ptr   { 2               }
-        ,   component_lookup{ edge_count_     }
-        ,   cyclicQ         { true            }
-        ,   preorderedQ     { true            }
+        template<typename I_0 >
+        explicit Link( const I_0 edge_count_ )
+        :   edge_count      { static_cast<Int>(edge_count_) }
+        ,   edges           { edge_count     }
+        ,   next_edge       { edge_count     }
+        ,   edge_ptr        { edge_count + 1 }
+        
+        ,   component_count { 1              }
+        ,   component_ptr   { 2              }
+        ,   component_lookup{ edge_count, 0  }
+        ,   cyclicQ         { true           }
+        ,   preorderedQ     { true           }
         {
 //            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             
+            const Int n = edge_count;
+            
             component_ptr[0] = 0;
             
-            component_ptr[1] = edge_count_;
+            component_ptr[1] = n;
+            
+            for( Int i = 0; i < n-1; ++i )
+            {
+                edges     [0][i] = i;
+                edges     [1][i] = i+1;
+                next_edge [i]    = i+1;
+            }
+            
+            edges     [0][n-1] = n-1;
+            edges     [1][n-1] = 0;
+            
+            next_edge [n-1] = 0;
             
 //            ptoc(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
         }

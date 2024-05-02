@@ -79,7 +79,6 @@ namespace KnotTools
         
         using Base_T::edges;
         using Base_T::next_edge;
-        using Base_T::edge_ctr;
         using Base_T::edge_ptr;
         using Base_T::edge_count;
         using Base_T::component_count;
@@ -97,6 +96,8 @@ namespace KnotTools
         using Base_T::Edges;
         
     protected:
+        
+        Tensor1<Int,Int> edge_ctr;
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         EContainer_T edge_coords;
@@ -155,7 +156,7 @@ namespace KnotTools
         :   Base_T      ( edges_, edge_count_  )
         ,   edge_coords ( edge_count_, 2, 3    )
         ,   T           ( edge_count_          )
-        ,   box_coords  ( T.NodeCount(), 2 , 2 )
+        ,   box_coords  ( T.NodeCount(), 2, 2  )
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
@@ -376,6 +377,7 @@ namespace KnotTools
             FindIntersectingEdges_DFS();
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
+            edge_ctr.RequireSize( edge_ptr.Size() );
             edge_ctr.Read( edge_ptr.data() );
             
             if( edge_intersections.Size() != edge_ptr.Last() )
