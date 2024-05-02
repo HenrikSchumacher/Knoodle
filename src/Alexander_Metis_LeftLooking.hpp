@@ -99,7 +99,7 @@ namespace KnotTools
                 
                 switch( C_state[c] )
                 {
-                    case CrossingState::Negative:
+                    case CrossingState::LeftHanded:
                     {
                         const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
                     
@@ -130,7 +130,7 @@ namespace KnotTools
                         
                         break;
                     }
-                    case CrossingState::Positive:
+                    case CrossingState::RightHanded:
                     {
                         const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
                     
@@ -206,7 +206,7 @@ namespace KnotTools
                 
                 switch( C_state[c] )
                 {
-                    case CrossingState::Negative:
+                    case CrossingState::LeftHanded:
                     {
                         const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
                     
@@ -233,7 +233,7 @@ namespace KnotTools
                         
                         break;
                     }
-                    case CrossingState::Positive:
+                    case CrossingState::RightHanded:
                     {
                         const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
                     
