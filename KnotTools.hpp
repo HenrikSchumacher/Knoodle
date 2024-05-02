@@ -11,8 +11,8 @@ namespace KnotTools
     enum class CrossingState : int
     {
         Unitialized = -2,
-        Positive    =  1,
-        Negative    = -1,
+        RightHanded =  1,
+        LeftHanded  = -1,
         Untied      =  0
     };
     
@@ -31,6 +31,7 @@ namespace KnotTools
 //#include "src/Arc.hpp"
 
 
+#include "src/Intersection.hpp"
 #include "src/Link_2D.hpp"
 
 #include "src/PlanarDiagram.hpp"

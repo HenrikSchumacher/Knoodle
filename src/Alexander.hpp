@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../submodules/Tensors/Sparse.hpp"
-#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hppApproximateMinimumDegree.hpp"
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
 namespace KnotTools
@@ -120,17 +120,17 @@ namespace KnotTools
                         
                         if( i < n )
                         {
-                            row[i] += v[0];
+                            row[i] += v[0]; // = 1 - t
                         }
                         
                         if( j < n )
                         {
-                            row[j] += v[1];
+                            row[j] += v[1]; // -1
                         }
                         
                         if( k < n )
                         {
-                            row[k] += v[2];
+                            row[k] += v[2]; // t
                         }
                         
                         ++counter;
@@ -151,17 +151,17 @@ namespace KnotTools
                         
                         if( i < n )
                         {
-                            row[i] += v[0];
+                            row[i] += v[0]; // = 1-t
                         }
                         
                         if( j < n )
                         {
-                            row[j] += v[2];
+                            row[j] += v[2]; // = t
                         }
                         
                         if( k < n )
                         {
-                            row[k] += v[1];
+                            row[k] += v[1]; // = -1
                         }
                         
                         ++counter;

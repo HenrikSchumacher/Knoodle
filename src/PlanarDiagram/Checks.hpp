@@ -1,12 +1,13 @@
 bool CheckCrossing( const Int c  )
 {
-    if( (C_state[c] != CrossingState::Positive) && (C_state[c] != CrossingState::Negative) )
+    
+    if( !CrossingActiveQ(c) )
     {
         return true;
     }
     
     // Check whether all arcs of crossing c are active and have the correct connectivity to c.
-    bool passed = true;
+    bool C_passedQ = true;
     
     for( bool io : { In, Out } )
     {
@@ -14,9 +15,9 @@ bool CheckCrossing( const Int c  )
         {
             const Int a = C_arcs(c,io,lr);
             
-            const int active = (A_state[a] == ArcState::Active);
+            const int A_activeQ = (A_state[a] == ArcState::Active);
             
-            if( !active )
+            if( !A_activeQ )
             {
                 print("Check at    " + CrossingString(c) );
                 print("Probem with " + ArcString(a) + ": It's not active." );
@@ -24,38 +25,39 @@ bool CheckCrossing( const Int c  )
             
             const bool tailtip = ( io == In ) ? Tip : Tail;
             
-            const bool good = (A_cross(a,tailtip) == c);
+            const bool A_goodQ = (A_cross(a,tailtip) == c);
             
-            if( !good )
+            if( !A_goodQ )
             {
                 print("Check at    " + CrossingString(c) );
                 print("Probem with " + ArcString(a) + ": It's not connected correctly to crossing.");
             }
-            passed = passed && active && good;
+            C_passedQ = C_passedQ && A_activeQ && A_goodQ;
         }
     }
     
-    if( !passed )
+    if( !C_passedQ )
     {
         eprint("Crossing "+ToString(c)+" failed to pass CheckCrossing.");
     }
-    return passed;
+    
+    return C_passedQ;
 }
 
 bool CheckAllCrossings()
 {
-    bool passed = true;
+    bool passedQ = true;
     
     for( Int c = 0; c < initial_crossing_count; ++c )
     {
-        passed = passed && CheckCrossing(c);
+        passedQ = passedQ && CheckCrossing(c);
     }
     
-    if( passed )
+    if( passedQ )
     {
         print("CheckAllCrossings passed.");
     }
-    return passed;
+    return passedQ;
 }
 
 
@@ -67,47 +69,43 @@ bool CheckArc( const Int a  )
     }
     
     // Check whether the two crossings of arc a are active and have the correct connectivity to c.
-    bool passed = true;
+    bool A_passedQ = true;
     
 
     for( bool tiptail : {Tail, Tip} )
     {
         const Int c = A_cross(a,tiptail);
         
-        const bool active = ( 
-            (C_state[c] == CrossingState::Positive)
-            ||
-            (C_state[c] == CrossingState::Negative)
-        );
+        const bool C_activeQ = CrossingActiveQ(c);
         
         
-        if( !active )
+        if( !C_activeQ )
         {
             print("Check at    " + ArcString(a) );
             print("Probem with " + CrossingString(c) + ": It's not active." );
         }
         const bool inout = (tiptail == Tail) ? Out : In;
     
-        const bool good = ( (C_arcs(c,inout,Left) == a) || (C_arcs(c,inout,Right) == a) );
+        const bool C_goodQ = ( (C_arcs(c,inout,Left) == a) || (C_arcs(c,inout,Right) == a) );
         
-        if( !good )
+        if( !C_goodQ )
         {
             print("Check at    " + ArcString(a) );
             print("Probem with " + CrossingString(c) + ": It's not connected correctly to arc.");
         }
         
-        passed = passed && active && good;
+        A_passedQ = A_passedQ && C_activeQ && C_goodQ;
         
     }
     
-    if( !passed )
+    if( !A_passedQ )
     {
         eprint("Arc "+ToString(a)+" failed to pass CheckArc.");
     }
     
 //    PD_assert( passed );
     
-    return passed;
+    return A_passedQ;
 }
 
 bool CheckAllArcs()

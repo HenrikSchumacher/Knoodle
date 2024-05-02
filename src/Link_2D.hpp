@@ -2,32 +2,6 @@
 
 namespace KnotTools
 {
-    template<typename Real_ = double, typename Int_ = long long, typename SInt_ = int>
-    struct Intersection
-    {
-        using Real = Real_;
-        using Int  = Int_;
-        using SInt = SInt_;
-        
-        const Int  edges [2] = {-2}; // First edge goes over, second edge goes under.
-        const Real times [2] = {-2};
-        
-        const SInt sign;
-        
-        Intersection(
-            const Int over_edge_,
-            const Int under_edge_,
-            const Real over_edge_time_,
-            const Real under_edge_time_,
-            const SInt sign_
-        )
-        :   edges { over_edge_,      under_edge_      }
-        ,   times { over_edge_time_, under_edge_time_ }
-        ,   sign  ( sign_ )
-        {}
-        
-        ~Intersection() = default;
-    };
 
     template<typename Real_ = double, typename Int_ = long long, typename SInt_ = short int>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>

@@ -39,13 +39,20 @@ public:
         {
             // Get the edge lengths in order to decide what's a "small" determinant.
             
-            const Vector3_T x[2] = { edge_coords.data(k,0), edge_coords.data(k,1) };
+            const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
             
-            const Vector3_T y[2] = { edge_coords.data(l,0), edge_coords.data(l,1) };
+            const Tiny::Matrix<2,3,Real,Int> y { edge_coords.data(l) };
 
-            const bool intersectingQ = LineSegmentsIntersectQ_Kahan(
-                    &x[0][0], &x[1][0], &y[0][0], &y[1][0]
-            );
+            const bool intersectingQ = LineSegmentsIntersectQ_Kahan( x[0], x[1], y[0], y[1] );
+            
+//            const Vector3_T x[2] = { edge_coords.data(k,0), edge_coords.data(k,1) };
+//            
+//            const Vector3_T y[2] = { edge_coords.data(l,0), edge_coords.data(l,1) };
+
+//            const bool intersectingQ = LineSegmentsIntersectQ_Kahan(
+//                    &x[0][0], &x[1][0], &y[0][0], &y[1][0]
+//            );
+
 
             if( intersectingQ )
             {
@@ -53,9 +60,16 @@ public:
                 const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
                 const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
 
+                // TODO: The following determinants probably have already been computed in LineSegmentsIntersectQ_Kahan.
+                
                 const Real det = Det_Kahan( u, v );
                 
-                const Real det_inv = static_cast<Real>(1) / det;
+                if( det == Scalar::Zero<Real> )
+                {
+                    wprint( ClassName()+"ComputeEdgeIntersection : Degenerate intersection detected.");
+                }
+                
+                const Real det_inv = Inv<Real>(det);
                 
                 const Real t[2] { Det_Kahan( d, v ) * det_inv, Det_Kahan( d, u ) * det_inv };
                 
@@ -73,11 +87,9 @@ public:
                 {
                     // edge k goes UNDER edge l
                     
-                    intersections.push_back(
-                        Intersection_T( l, k, t[1], t[0], -Sign(det) )
-                    );
+                    intersections.push_back( Intersection_T(l,k,t[1],t[0],-Sign(det)) );
                     
-    //      If det > 0, then this looks like this (negative crossing):
+    //      If det > 0, then this looks like this (left-handed crossing):
     //
     //        v       u
     //         ^     ^
@@ -89,7 +101,7 @@ public:
     //         /     \
     //        k       l
     //
-    //      If det < 0, then this looks like this (positive crossing):
+    //      If det < 0, then this looks like this (right-handed crossing):
     //
     //        u       v
     //         ^     ^
@@ -104,9 +116,7 @@ public:
                 }
                 else if ( h[0] > h[1] )
                 {
-                    intersections.push_back(
-                        Intersection_T( k, l, t[0], t[1], Sign(det) )
-                    );
+                    intersections.push_back( Intersection_T(k,l,t[0],t[1],Sign(det)) );
                     // edge k goes OVER l
                     
     //      If det > 0, then this looks like this (positive crossing):

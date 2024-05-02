@@ -244,9 +244,9 @@ namespace KnotTools
                     A_cross(a,Tip ) = c; // c is tip  of a
                     A_cross(b,Tail) = c; // c is tail of b
                     
-                    PD_assert( inter.sign > SInt(0) || inter.sign < SInt(0) );
+                    PD_assert( inter.handedness > SInt(0) || inter.handedness < SInt(0) );
                     
-                    bool positiveQ = inter.sign > SInt(0);
+                    bool righthandedQ = inter.handedness > SInt(0);
 
                     
 //                 negative         positive
@@ -265,11 +265,11 @@ namespace KnotTools
 //                 .       .        .       .
 //                 .       .        .       .
                     
-                    C_state[c] = positiveQ ? CrossingState::Positive : CrossingState::Negative;
+                    C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
                     A_state[a] = ArcState::Active;
                     
                     /*
-                        positiveQ == true and overQ == true:
+                     righthandedQ == true and overQ == true:
 
                             C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
                                                 .       .
@@ -285,7 +285,7 @@ namespace KnotTools
                                                 .       .
                          a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
                     */
-                    const bool over_in_side = (positiveQ == overQ) ? Left : Right ;
+                    const bool over_in_side = (righthandedQ == overQ) ? Left : Right ;
                     
                     
                     C_arcs(c,In , over_in_side) = a;
@@ -424,9 +424,9 @@ namespace KnotTools
         bool CrossingActiveQ( const Int c ) const
         {
             return (
-                (C_state[c] == CrossingState::Positive)
+                (C_state[c] == CrossingState::RightHanded)
                 ||
-                (C_state[c] == CrossingState::Negative)
+                (C_state[c] == CrossingState::LeftHanded)
             );
         }
 
@@ -907,11 +907,11 @@ namespace KnotTools
                     }
                     
                     {
-                        const CrossingState sign  = C_state[c_prev];
+                        const CrossingState state  = C_state[c_prev];
                         const Int           label = C_labels[c_prev];
                         const bool          lr    = C_arcs(c_prev,0,1) == a;
                         
-                        if( sign == CrossingState::Positive )
+                        if( state == CrossingState::RightHanded )
                         {
                             if( lr == 0 )
                             {
@@ -922,7 +922,7 @@ namespace KnotTools
                                 pdcode( label, 2 ) = a_counter;
                             }
                         }
-                        else if( sign == CrossingState::Negative )
+                        else if( state == CrossingState::LeftHanded )
                         {
                             if( lr == 0 )
                             {
@@ -937,11 +937,11 @@ namespace KnotTools
                     }
                     
                     {
-                        const CrossingState sign  = C_state[c_next];
+                        const CrossingState state = C_state[c_next];
                         const Int           label = C_labels[c_next];
                         const bool          lr    = C_arcs(c_next,1,1) == a;
                         
-                        if( sign == CrossingState::Positive )
+                        if( state == CrossingState::RightHanded )
                         {
                             if( lr == 0 )
                             {
@@ -952,7 +952,7 @@ namespace KnotTools
                                 pdcode( label, 1 ) = a_counter;
                             }
                         }
-                        else if( sign == CrossingState::Negative )
+                        else if( state == CrossingState::LeftHanded )
                         {
                             if( lr == 0 )
                             {
@@ -1023,7 +1023,7 @@ namespace KnotTools
                     
                     // Go backwards until a goes under crossing tail.
                     while(
-                        (C_state[tail] == CrossingState::Positive)
+                        (C_state[tail] == CrossingState::RightHanded)
                         ==
                         (C_arcs(tail,Out,0) == a)
                     )
@@ -1045,7 +1045,7 @@ namespace KnotTools
                         over_arc_idx[a] = counter;
                         
                         const bool goes_underQ =
-                            (C_state[tip] == CrossingState::Positive)
+                            (C_state[tip] == CrossingState::RightHanded)
                             ==
                             (C_arcs(tip,In,0) == a);
                         
@@ -1077,12 +1077,12 @@ namespace KnotTools
             {
                 switch( C_state[c] )
                 {
-                    case CrossingState::Positive:
+                    case CrossingState::RightHanded:
                     {
                         ++writhe;
                         break;
                     }
-                    case CrossingState::Negative:
+                    case CrossingState::LeftHanded:
                     {
                         --writhe;
                         break;
