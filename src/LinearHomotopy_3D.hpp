@@ -71,11 +71,11 @@ namespace KnotTools
         BContainer_T B_0_buffer;
         BContainer_T B_1_buffer;
         
-        cref<EContainer_T> E_0;
-        cref<EContainer_T> E_1;
+        mref<EContainer_T> E_0;
+        mref<EContainer_T> E_1;
         
-        cref<BContainer_T> B_0;
-        cref<BContainer_T> B_1;
+        mref<BContainer_T> B_0;
+        mref<BContainer_T> B_1;
         
         // Format for boxes
         // Real B_0 [3][2][edge_count];
