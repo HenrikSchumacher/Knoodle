@@ -66,6 +66,11 @@ namespace KnotTools
 //        cref<VContainer_T> V_0;
 //        cref<VContainer_T> V_1;
         
+        // Only needed when initialized from vertex coordinates.
+        EContainer_T E_1_buffer;
+        BContainer_T B_0_buffer;
+        BContainer_T B_1_buffer;
+        
         cref<EContainer_T> E_0;
         cref<EContainer_T> E_1;
         
@@ -91,6 +96,8 @@ namespace KnotTools
         
         LinearHomotopy_3D() = default;
         
+        // Initialization from precomputed edge coodinates and bounding boxes.
+        // This is usedful when handling piecewise-linear homotopies, because this data can be reused.
         LinearHomotopy_3D(
             cref<Link_T> L_,
             const Real T_0_, cref<EContainer_T> E_0_, cref<BContainer_T> B_0_,
@@ -106,6 +113,32 @@ namespace KnotTools
         ,   B_0     { B_0_      }
         ,   B_1     { B_1_      }
         {}
+        
+        // Initialization by times and vertex positions.
+        LinearHomotopy_3D(
+            cref<Link_T> L_,
+            const Real T_0_, cptr<Real> P_0,
+            const Real T_1_, cptr<Real> P_1
+        )
+        :   L           { L_                            }
+        ,   T           { L.Tree()                      }
+        ,   T_0         { T_0_                          }
+        ,   T_1         { T_1_                          }
+        ,   DeltaT      { T_1 - T_0                     }
+        ,   E_1_buffer  { L.EdgeCount(), 2, 3           }
+        ,   B_0_buffer  { L.Tree().NodeCount(), 3, 2    }
+        ,   B_1_buffer  { L.Tree().NodeCount(), 3, 2    }
+        ,   E_0         { L.EdgeCoordinates()           }
+        ,   E_1         { E_1_buffer                    }
+        ,   B_0         { B_0_buffer                    }
+        ,   B_1         { B_1_buffer                    }
+        {
+            L.ReadVertexCoordinates( P_0, E_0 );
+            L.ReadVertexCoordinates( P_1, E_1 );
+
+            L.Tree().ComputeBoundingBoxes( E_0, B_0 );
+            L.Tree().ComputeBoundingBoxes( E_1, B_1 );            
+        }
         
         ~LinearHomotopy_3D() = default;
         
