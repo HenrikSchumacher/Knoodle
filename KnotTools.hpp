@@ -25,13 +25,12 @@ namespace KnotTools
 } // namespace KnotTools
 
 #include "src/Link.hpp"
-#include "src/AABBTree.hpp"
 
-//#include "src/Crossing.hpp"
-//#include "src/Arc.hpp"
+#include "src/AABBTree.hpp"
 
 
 #include "src/Intersection.hpp"
+
 #include "src/Link_2D.hpp"
 
 #include "src/PlanarDiagram.hpp"
@@ -39,3 +38,9 @@ namespace KnotTools
 //#include "src/Alexander.hpp"
 //
 //#include "src/Seifert.hpp"
+
+#include "src/Link_3D.hpp"
+
+#include "src/Collision.hpp"
+
+#include "src/LinearHomotopy_3D.hpp"
