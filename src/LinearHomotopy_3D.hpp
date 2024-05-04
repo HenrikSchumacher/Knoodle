@@ -55,7 +55,7 @@ namespace KnotTools
         ASSERT_FLOAT(Real_);
         ASSERT_INT(Int_);
         
-        mref<Link_T> L;
+        cref<Link_T> L;
         
         cref<Tree_T> T;
         
@@ -72,11 +72,11 @@ namespace KnotTools
         BContainer_T B_0_buffer;
         BContainer_T B_1_buffer;
         
-        mref<EContainer_T> E_0;
-        mref<EContainer_T> E_1;
+        cref<EContainer_T> E_0;
+        cref<EContainer_T> E_1;
         
-        mref<BContainer_T> B_0;
-        mref<BContainer_T> B_1;
+        cref<BContainer_T> B_0;
+        cref<BContainer_T> B_1;
         
         // Format for boxes
         // Real B_0 [3][2][edge_count];
@@ -135,11 +135,11 @@ namespace KnotTools
         ,   B_0         { B_0_buffer                    }
         ,   B_1         { B_1_buffer                    }
         {
-            L.ReadVertexCoordinates( P_0, E_0 );
-            L.ReadVertexCoordinates( P_1, E_1 );
+            L.ReadVertexCoordinates( P_0, E_0_buffer );
+            L.ReadVertexCoordinates( P_1, E_1_buffer );
 
-            L.Tree().ComputeBoundingBoxes( E_0, B_0 );
-            L.Tree().ComputeBoundingBoxes( E_1, B_1 );            
+            L.Tree().ComputeBoundingBoxes( E_0, B_0_buffer );
+            L.Tree().ComputeBoundingBoxes( E_1, B_1_buffer );
         }
         
         ~LinearHomotopy_3D() = default;
