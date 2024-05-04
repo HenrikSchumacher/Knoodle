@@ -135,8 +135,8 @@ namespace KnotTools
         ,   B_0         { B_0_buffer                    }
         ,   B_1         { B_1_buffer                    }
         {
-            L.ReadVertexCoordinates( P_0, E_0_buffer );
-            L.ReadVertexCoordinates( P_1, E_1_buffer );
+            L.template ReadVertexCoordinates<false>( P_0, E_0_buffer );
+            L.template ReadVertexCoordinates<false>( P_1, E_1_buffer );
 
             L.Tree().ComputeBoundingBoxes( E_0, B_0_buffer );
             L.Tree().ComputeBoundingBoxes( E_1, B_1_buffer );

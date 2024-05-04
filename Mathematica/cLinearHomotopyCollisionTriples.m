@@ -64,7 +64,7 @@ EXTERN_C DLLEXPORT int "<>name<>"(WolframLibraryData libData, mint Argc, MArgume
 	cref<EContainer_T> E_0 = L.EdgeCoordinates();
     EContainer_T E_1 ( L.EdgeCount(), 2, 3 );
 
-	L.ReadVertexCoordinates( p_1, E_1 );
+	L.template ReadVertexCoordinates<true>( p_1, E_1 );
 
 	BContainer_T B_0 ( L.Tree().NodeCount(), 3, 2 );
 	BContainer_T B_1 ( L.Tree().NodeCount(), 3, 2 );
