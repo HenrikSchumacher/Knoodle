@@ -67,6 +67,7 @@ namespace KnotTools
 //        cref<VContainer_T> V_1;
         
         // Only needed when initialized from vertex coordinates.
+        EContainer_T E_0_buffer;
         EContainer_T E_1_buffer;
         BContainer_T B_0_buffer;
         BContainer_T B_1_buffer;
@@ -125,10 +126,11 @@ namespace KnotTools
         ,   T_0         { T_0_                          }
         ,   T_1         { T_1_                          }
         ,   DeltaT      { T_1 - T_0                     }
+        ,   E_0_buffer  { L.EdgeCount(), 2, 3           }
         ,   E_1_buffer  { L.EdgeCount(), 2, 3           }
         ,   B_0_buffer  { L.Tree().NodeCount(), 3, 2    }
         ,   B_1_buffer  { L.Tree().NodeCount(), 3, 2    }
-        ,   E_0         { L.EdgeCoordinates()           }
+        ,   E_0         { E_0_buffer                    }
         ,   E_1         { E_1_buffer                    }
         ,   B_0         { B_0_buffer                    }
         ,   B_1         { B_1_buffer                    }
