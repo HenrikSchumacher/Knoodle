@@ -55,7 +55,7 @@ namespace KnotTools
         ASSERT_FLOAT(Real_);
         ASSERT_INT(Int_);
         
-        cref<Link_T> L;
+        mref<Link_T> L;
         
         cref<Tree_T> T;
         
@@ -99,7 +99,7 @@ namespace KnotTools
         // Initialization from precomputed edge coodinates and bounding boxes.
         // This is usedful when handling piecewise-linear homotopies, because this data can be reused.
         LinearHomotopy_3D(
-            cref<Link_T> L_,
+            mref<Link_T> L_,
             const Real T_0_, cref<EContainer_T> E_0_, cref<BContainer_T> B_0_,
             const Real T_1_, cref<EContainer_T> E_1_, cref<BContainer_T> B_1_
         )
@@ -116,7 +116,7 @@ namespace KnotTools
         
         // Initialization by times and vertex positions.
         LinearHomotopy_3D(
-            cref<Link_T> L_,
+            mref<Link_T> L_,
             const Real T_0_, cptr<Real> P_0,
             const Real T_1_, cptr<Real> P_1
         )
