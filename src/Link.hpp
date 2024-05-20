@@ -79,7 +79,7 @@ namespace KnotTools
 //            ptoc(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
         }
         
-//        template<typename J, typename K, IS_INT(J), IS_INT(K)>
+//        template<typename J, typename K>
 //        explicit Link( Tensor1<J,K> & component_ptr_ )
 //        :   Link(
 //                (component_ptr_.Size() == 0) ? 0 : component_ptr_.Last()
