@@ -9,6 +9,8 @@ namespace KnotTools
     template<typename Scal_, typename Int_, typename LInt_>
     class Alexander_Metis_LeftLooking
     {
+        static_assert(SignedIntQ<Int_>,"");
+        static_assert(IntQ<LInt_>,"");
         
     public:
         
@@ -16,9 +18,6 @@ namespace KnotTools
         using Real = Scalar::Real<Scal>;
         using Int  = Int_;
         using LInt = LInt_;
-        
-        ASSERT_SIGNED_INT(Int);
-        ASSERT_INT(LInt);
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
         using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
@@ -371,7 +370,9 @@ namespace KnotTools
                     
                     // Factorize dense Alexander matrix.
                     
-                    int info = LAPACK::getrf( n, n, LU_buffer.data(), n, LU_perm.data() );
+                    int info = LAPACK::getrf<Layout::RowMajor>(
+                        n, n, LU_buffer.data(), n, LU_perm.data()
+                    );
                     
                     if( info == 0 )
                     {

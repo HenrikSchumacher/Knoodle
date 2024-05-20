@@ -6,8 +6,8 @@ namespace KnotTools
     template<int AmbDim_, typename Real_, typename Int_>
     class alignas( ObjectAlignment ) AABBTree
     {
-        ASSERT_FLOAT(Real_);
-        ASSERT_INT(Int_);
+        static_assert(FloatQ<Real_>,"");
+        static_assert(IntQ<Int_>,"");
         
     public:
         

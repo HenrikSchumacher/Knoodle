@@ -17,6 +17,10 @@ namespace KnotTools
         
         // TODO: Add value semantics.
         
+        
+        static_assert(FloatQ<Real_>,"");
+        static_assert(IntQ<Int_>,"");
+        
     public:
         
         using Real = Real_;
@@ -40,9 +44,7 @@ namespace KnotTools
         using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
     protected:
-        
-        ASSERT_FLOAT(Real);
-        ASSERT_INT(Int);
+
         
         static constexpr Int max_depth = 128;
         
@@ -116,13 +118,16 @@ namespace KnotTools
 //            ptoc(ClassName()+"() (cyclic)");
 //        }
         
-        template<typename J, typename K, IS_INT(J), IS_INT(K)>
+        template<typename J, typename K>
         explicit Link_2D( Tensor1<J,K> & component_ptr_ )
         :   Base_T      ( component_ptr_       )
         ,   edge_coords ( component_ptr.Last(), 2 ,3 )
         ,   T           ( component_ptr.Last() )
         ,   box_coords  ( T.NodeCount(), 2, 2 )
-        {}
+        {
+            static_assert(IntQ<J>,"");
+            static_assert(IntQ<K>,"");
+        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<typename I_0, typename I_1>
@@ -131,7 +136,10 @@ namespace KnotTools
         ,   edge_coords ( edge_count_, 2, 3    )
         ,   T           ( edge_count_          )
         ,   box_coords  ( T.NodeCount(), 2, 2  )
-        {}
+        {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+        }
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<typename I_0, typename I_1>
@@ -140,7 +148,10 @@ namespace KnotTools
         ,   edge_coords ( edge_count_, 2, 3                    )
         ,   T           ( edge_count_                          )
         ,   box_coords  ( T.NodeCount(), 2, 3                  )
-        {}
+        {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+        }
         
     public:
         

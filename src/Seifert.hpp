@@ -19,9 +19,9 @@ namespace KnotTools
         using Int  = Int_;
 //        using LInt = LInt_;
         
-        ASSERT_SIGNED_INT(Int);
-//        ASSERT_INT(LInt);
-        
+        static_assert(SignedIntQ<Int>,"");
+
+                
 //        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
 //        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
         

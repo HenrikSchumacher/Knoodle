@@ -8,7 +8,7 @@ namespace KnotTools
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
         
-        ASSERT_SIGNED_INT(Int_);
+        static_assert(SignedIntQ<Int_>,"");
                 
     public:
         

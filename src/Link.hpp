@@ -2,14 +2,13 @@
 
 namespace KnotTools
 {
-    
     template<typename Int_ = long long>
     class alignas( ObjectAlignment ) Link
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
         
-        ASSERT_INT(Int_);
-                
+        static_assert(IntQ<Int_>,"");
+
     protected:
         
         using Int = Int_;
@@ -57,6 +56,8 @@ namespace KnotTools
         {
 //            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             
+            static_assert(IntQ<I_0>,"");
+            
             const Int n = edge_count;
             
             component_ptr[0] = 0;
@@ -85,6 +86,9 @@ namespace KnotTools
 //            )
 //        ,   component_ptr( component_ptr_.data(), component_ptr_.Size() )
 //        {
+//            static_assert(IntQ<J>,"");
+//            static_assert(IntQ<K>,"");
+        
 //            // AoS = array of structures, i.e., loading data in interleaved form
 ////            ptic(ClassName()+"() (preordered)");
 //            
@@ -100,6 +104,9 @@ namespace KnotTools
         Link( cptr<I_0> edges_, const I_1 edge_count_ )
         :   Link( static_cast<Int>(edge_count_) )
         {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+            
             // AoS = array of structures, i.e., loading data in interleaved form
 //            ptic(ClassName()+"() (AoS)");
             
@@ -113,6 +120,9 @@ namespace KnotTools
         Link( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
         :   Link( static_cast<Int>(edge_count_) )
         {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+            
             // SoA = array of structures; should be more performant because it can exploit more vectorization.
             
 //            ptic(ClassName()+"() (SoA)");
@@ -127,6 +137,8 @@ namespace KnotTools
         template<typename I>
         void ReadEdges( cptr<I> edges_ )
         {
+            static_assert(IntQ<I>,"");
+            
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
             
@@ -261,10 +273,10 @@ namespace KnotTools
             
             component_count = Max(
                 static_cast<Int>(0),
-                static_cast<Int>(static_cast<Int>(comp_ptr.size()) - static_cast<Int>(1))
+                static_cast<Int>(comp_ptr.size()) - static_cast<Int>(1)
             );
             
-            component_ptr = Tensor1<Int,Int> ( &comp_ptr[0], component_count+1 );
+            component_ptr = Tensor1<Int,Int>( &comp_ptr[0], component_count+1 );
         }
         
         void FinishPreparations()

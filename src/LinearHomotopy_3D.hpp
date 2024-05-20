@@ -52,8 +52,8 @@ namespace KnotTools
         
     protected:
         
-        ASSERT_FLOAT(Real_);
-        ASSERT_INT(Int_);
+        static_assert(FloatQ<Real_>,"");
+        static_assert(IntQ<Int_>,"");
         
         cref<Link_T> L;
         

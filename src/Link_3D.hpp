@@ -10,8 +10,8 @@ namespace KnotTools
     template<typename Real_ = double, typename Int_ = long long>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
-        ASSERT_FLOAT(Real_);
-        ASSERT_INT(Int_);
+        static_assert(FloatQ<Real_>,"");
+        static_assert(IntQ<Int_>,"");
     
     public:
         
@@ -85,31 +85,37 @@ namespace KnotTools
         ~Link_3D() = default;
                 
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        template< typename I, IS_INT(I)>
+        template< typename I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
         :   Base_T   { edges_, edge_count_     }
 //        ,   V_coords { this->VertexCount(), 3  }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
-        {}
+        {
+            static_assert(IntQ<I>,"");
+        }
         
-        template< typename I, IS_INT(I)>
+        template< typename I>
         Link_3D( cptr<Real> V_coords_, cptr<Int> edges_, const I edge_count_ )
         :   Base_T   { edges_, edge_count_     }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
         {
+            static_assert(IntQ<I>,"");
+            
             ReadVertexCoordinates<false>(V_coords_);
         }
         
         
         // This constructor makes the link assume to be a simply cycle and that the vertices are sorted accordingly.
-        template< typename I, IS_INT(I)>
+        template< typename I>
         Link_3D( cptr<Real> V_coords_, const I edge_count_ )
         :   Base_T   { edge_count_     }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
         {
+            static_assert(IntQ<I>,"");
+            
             ReadVertexCoordinates<false>(V_coords_);
         }
         

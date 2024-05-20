@@ -35,7 +35,7 @@ namespace KnotTools
     {
     public:
         
-        ASSERT_SIGNED_INT(Int_)
+        static_assert(SignedIntQ<Int_>,"");
 
         using Int  = Int_;
         using Sint = int;
