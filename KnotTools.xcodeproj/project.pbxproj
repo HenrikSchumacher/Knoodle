@@ -107,7 +107,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1530;
+				LastUpgradeCheck = 1540;
 				TargetAttributes = {
 					AFF3054C2B7AF4E2009ABC74 = {
 						CreatedOnToolsVersion = 15.2;
@@ -200,11 +200,11 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
-					"/opt/homebrew/Cellar/suite-sparse/7.6.1/include/suitesparse",
+					"/opt/homebrew/Cellar/suite-sparse/7.7.0/include/suitesparse",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.6.1/lib",
+					"/opt/homebrew/Cellar/suite-sparse/7.7.0/lib",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -265,11 +265,11 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
-					"/opt/homebrew/Cellar/suite-sparse/7.6.1/include/suitesparse",
+					"/opt/homebrew/Cellar/suite-sparse/7.7.0/include/suitesparse",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.6.1/lib",
+					"/opt/homebrew/Cellar/suite-sparse/7.7.0/lib",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = NO;

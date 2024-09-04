@@ -4,6 +4,8 @@
 #include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
+#include "../submodules/Tensors/BLAS_Wrappers.hpp"
+
 namespace KnotTools
 {
     
@@ -438,18 +440,21 @@ namespace KnotTools
                 
                 pd.SetCache( tag_fact, std::move(S) );
                 
-                // TODO: We could reorder AHA here to (manginally) speed the numeric factorization.
+                // TODO: We could reorder AHA here to (marginally) speed up the numeric factorization.
                 
                 // TODO: Do we really have to compute 2 sparse transposes and 4 sparse dots?
                 Tensor2<Scal,LInt> herm_alex_help ( 4, AHA.NonzeroCount() );
                 
                 AHA.Values().Write( herm_alex_help.data(0) );
+                AHA = SparseMatrix_T(); // Release memory.
                 
                 AHA = AH_0.Dot( A_1 );
                 AHA.Values().Write( herm_alex_help.data(1) );
+                AHA = SparseMatrix_T(); // Release memory.
                 
                 AHA = AH_1.Dot( A_0 );
                 AHA.Values().Write( herm_alex_help.data(2) );
+                AHA = SparseMatrix_T(); // Release memory.
                 
                 AHA = AH_1.Dot( A_1 );
                 AHA.Values().Write( herm_alex_help.data(3) );

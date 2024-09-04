@@ -31,7 +31,7 @@ int main(void)
     
     Link_2D<Real,Int> L ( &edges[0][0], 4 );
     
-    L.template ReadVertexCoordinates<false>( &coords[0][0] );
+    L.ReadVertexCoordinates( &coords[0][0] );
     
     dump( L.AmbientDimension() );
     
