@@ -362,7 +362,7 @@ namespace KnotTools
             FindIntersectingEdges_DFS();
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
-            edge_ctr.RequireSize( edge_ptr.Size() );
+            edge_ctr.template RequireSize<false>( edge_ptr.Size() );
             edge_ctr.Read( edge_ptr.data() );
             
             if( edge_intersections.Size() != edge_ptr.Last() )

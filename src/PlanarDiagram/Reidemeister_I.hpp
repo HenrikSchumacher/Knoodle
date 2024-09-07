@@ -29,7 +29,8 @@ bool Reidemeister_I( const Int c )
     // Let's see on which side the loop is.
     bool side;
     
-    const Tiny::Matrix<2,2,Int,Int> A ( C_arcs.data(c) );
+    Int A [2][2];
+    copy_buffer<4>( C_arcs.data(c), &A[0][0] );
     
     if( A[Out][Left ] == A[In ][Left ] )
     {

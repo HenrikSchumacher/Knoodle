@@ -100,7 +100,8 @@ namespace KnotTools
                 {
                     case CrossingState::LeftHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                         const Int i = over_arc_indices[C[1][0]];
                         const Int j = over_arc_indices[C[1][1]];
@@ -131,7 +132,8 @@ namespace KnotTools
                     }
                     case CrossingState::RightHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                         const Int i = over_arc_indices[C[1][1]];
                         const Int j = over_arc_indices[C[1][0]];
@@ -207,7 +209,8 @@ namespace KnotTools
                 {
                     case CrossingState::LeftHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                         const Int i = over_arc_indices[C[1][0]];
                         const Int j = over_arc_indices[C[1][1]];
@@ -234,7 +237,8 @@ namespace KnotTools
                     }
                     case CrossingState::RightHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                         const Int i = over_arc_indices[C[1][1]];
                         const Int j = over_arc_indices[C[1][0]];
@@ -408,7 +412,7 @@ namespace KnotTools
             {
                 const Int n = pd.CrossingCount() - 1;
                 
-                diagonal.RequireSize(n);
+                diagonal.template RequireSize<false>(n);
                 
                 for( Int idx = 0; idx < arg_count; ++idx )
                 {

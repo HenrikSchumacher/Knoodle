@@ -111,7 +111,8 @@ namespace KnotTools
                     
                     const Int c = A_cross[a][1];
                     
-                    Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                    Int C [2][2];
+                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                     const bool rightQ = (C[1][1] == a);
                     

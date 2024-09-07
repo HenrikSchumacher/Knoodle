@@ -26,7 +26,7 @@ namespace KnotTools
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
         
         
-        using Helper_T = Tensor2<Scal,LInt>;
+        using Helper_T          = Tensor2<Scal,LInt>;
         
         using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
@@ -109,8 +109,9 @@ namespace KnotTools
                 {
                     case CrossingState::LeftHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
-                    
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                        
                         const Int i = over_arc_indices[C[1][0]];
                         const Int j = over_arc_indices[C[1][1]];
                         const Int k = over_arc_indices[C[0][0]];
@@ -140,7 +141,8 @@ namespace KnotTools
                     }
                     case CrossingState::RightHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
                         const Int i = over_arc_indices[C[1][1]];
                         const Int j = over_arc_indices[C[1][0]];
@@ -236,7 +238,8 @@ namespace KnotTools
                 {
                     case CrossingState::LeftHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                       
                         const Int i = over_arc_indices[C[1][0]];
                         const Int j = over_arc_indices[C[1][1]];
@@ -261,7 +264,9 @@ namespace KnotTools
                     }
                     case CrossingState::RightHanded:
                     {
-                        const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                        Int C [2][2];
+                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                        
                         const Int i = over_arc_indices[C[1][1]];
                         const Int j = over_arc_indices[C[1][0]];
                         const Int k = over_arc_indices[C[0][1]];
@@ -343,7 +348,8 @@ namespace KnotTools
                     {
                         case CrossingState::LeftHanded:
                         {
-                            const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                            Int C [2][2];
+                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
                             const Int i = over_arc_indices[C[1][0]];
                             const Int j = over_arc_indices[C[1][1]];
@@ -373,7 +379,8 @@ namespace KnotTools
                         }
                         case CrossingState::RightHanded:
                         {
-                            const Tiny::Matrix<2,2,Int,Int> C ( C_arcs.data(c) );
+                            Int C [2][2];
+                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
                             const Int i = over_arc_indices[C[1][1]];
                             const Int j = over_arc_indices[C[1][0]];
@@ -491,9 +498,9 @@ namespace KnotTools
                 
                 const LInt nnz = S->NonzeroCount();
                 
-                diagonal.RequireSize(n);
+                diagonal.template RequireSize<false>(n);
                 
-                herm_alex_vals.RequireSize( nnz );
+                herm_alex_vals.template RequireSize<false>( nnz );
 
                 for( Int idx = 0; idx < arg_count; ++idx )
                 {

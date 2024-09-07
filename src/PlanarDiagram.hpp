@@ -249,42 +249,48 @@ namespace KnotTools
                     bool righthandedQ = inter.handedness > SInt(0);
 
                     
-//                 negative         positive
-//                 right-handed     left-handed
-//                 .       .        .       .
-//                 .       .        .       .
-//                 +       +        +       +
-//                  ^     ^          ^     ^
-//                   \   /            \   /
-//                    \ /              \ /
-//                     /                \
-//                    / \              / \
-//                   /   \            /   \
-//                  /     \          /     \
-//                 +       +        +       +
-//                 .       .        .       .
-//                 .       .        .       .
+                    
+                    /*
+                    *
+                    *    negative         positive
+                    *    right-handed     left-handed
+                    *    .       .        .       .
+                    *    .       .        .       .
+                    *    +       +        +       +
+                    *     ^     ^          ^     ^
+                    *      \   /            \   /
+                    *       \ /              \ /
+                    *        /                \
+                    *       / \              / \
+                    *      /   \            /   \
+                    *     /     \          /     \
+                    *    +       +        +       +
+                    *    .       .        .       .
+                    *    .       .        .       .
+                    *
+                    */
                     
                     C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
                     A_state[a] = ArcState::Active;
                     
                     /*
-                     righthandedQ == true and overQ == true:
-
-                            C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
-                                                .       .
-                                                +       +
-                                                 ^     ^
-                                                  \   /
-                                                   \ /
-                                                    /
-                                                   / \
-                                                  /   \
-                                                 /     \
-                                                +       +
-                                                .       .
-                         a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
+                    * righthandedQ == true and overQ == true:
+                    *
+                    *        C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
+                    *                            .       .
+                    *                            +       +
+                    *                             ^     ^
+                    *                              \   /
+                    *                               \ /
+                    *                                /
+                    *                               / \
+                    *                              /   \
+                    *                             /     \
+                    *                            +       +
+                    *                            .       .
+                    *     a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
                     */
+                    
                     const bool over_in_side = (righthandedQ == overQ) ? Left : Right ;
                     
                     
@@ -313,25 +319,47 @@ namespace KnotTools
         
         // Crossings
 
+        /*!
+         * @brief Returns how many crossings there were in the original planar diagram, before any simplifications.
+         */
+        
         Int InitialCrossingCount() const
         {
             return initial_crossing_count;
         }
+        
+        /*!
+         * @brief The number of crossings in the planar diagram.
+         */
         
         Int CrossingCount() const
         {
             return crossing_count;
         }
         
+        /*!
+         * @brief Returns how many Reidemeister I moves have performed so far.
+         */
+        
         Int Reidemeister_I_Counter() const
         {
             return R_I_counter;
         }
         
+        /*!
+         * @brief Returns how many Reidemeister II moves have performed so far.
+         */
+        
         Int Reidemeister_II_Counter() const
         {
             return R_II_counter;
         }
+        
+        /*!
+         * @brief Returns how many twist moves have performed so far.
+         *
+         * See TwistMove.hpp for details.
+         */
         
         Int TwistMoveCounter() const
         {
@@ -348,10 +376,46 @@ namespace KnotTools
             return C_label;
         }
         
+        /*!
+         * @brief Returns the list of crossings as a reference to a Tensor3 object.
+         *
+         * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows:
+         *
+         *    Crossings()(c,0,0)                   Crossings()(c,0,1)
+         *            =              O       O             =
+         * Crossings()(c,Out,Left)    ^     ^   Crossings()(c,Out,Right)
+         *                             \   /
+         *                              \ /
+         *                               X
+         *                              / \
+         *                             /   \
+         *    Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
+         *            =              O       O             =
+         *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
+         */
+        
         mref<CrossingContainer_T> Crossings()
         {
             return C_arcs;
         }
+        
+        /*!
+         * @brief Returns the list of crossings as a reference to a Tensor3 object.
+         *
+         * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows:
+         *
+         *    Crossings()(c,0,0)                   Crossings()(c,0,1)
+         *            =              O       O             =
+         * Crossings()(c,Out,Left)    ^     ^   Crossings()(c,Out,Right)
+         *                             \   /
+         *                              \ /
+         *                               X
+         *                              / \
+         *                             /   \
+         *    Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
+         *            =              O       O             =
+         *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
+         */
         
         cref<CrossingContainer_T> Crossings() const
         {
@@ -369,10 +433,18 @@ namespace KnotTools
         }
         
         
+        /*!
+         * @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
+         */
+        
         Int InitialArcCount() const
         {
             return initial_arc_count;
         }
+        
+        /*!
+         * @brief Returns the number of arcs in the planar diagram.
+         */
         
         Int ArcCount() const
         {
@@ -389,10 +461,36 @@ namespace KnotTools
             return A_label;
         }
         
+        /*!
+         * @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
+         *
+         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
+         *
+         *                          a
+         *       Arc()(a,0) X -------------> X Arc()(a,0)
+         *           =                             =
+         *      Arc()(a,Tail)                 Arc()(a,Tip)
+         *
+         * This means that arc `a` leaves crossing `Arc()(a,0)` and enters `Arc()(a,1)`.
+         */
+        
         mref<ArcContainer_T> Arcs()
         {
             return A_cross;
         }
+        
+        /*!
+         * @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
+         *
+         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
+         *
+         *                          a
+         *       Arc()(a,0) X -------------> X Arc()(a,0)
+         *           =                             =
+         *      Arc()(a,Tail)                 Arc()(a,Tip)
+         *
+         * This means that arc `a` leaves crossing `Arc()(a,0)` and enters `Arc()(a,1)`.
+         */
         
         cref<ArcContainer_T> Arcs() const
         {
@@ -466,6 +564,11 @@ namespace KnotTools
             
             A_state[a] = ArcState::Inactive;
         }
+        
+        /*!
+         * @brief Returns the crossing you would get to by starting at crossing `c` and
+         * leaving trough the
+         */
         
         Int NextCrossing( const Int c, bool io, bool lr ) const
         {
@@ -851,6 +954,18 @@ namespace KnotTools
             return pd;
         }
         
+        
+        /*!
+         * @brief Returns the pd-codes of the crossing as Tensor2 object.
+         *
+         *  The pd-code of crossing `c` is given by
+         *
+         *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3) }`
+         *
+         *  TODO: What is the convention here? I think I made this compatible with
+         *  Dror's _KnotTheory_ package.
+         *
+         */
        
         
         Tensor2<Int,Int> PDCode() const
@@ -861,7 +976,6 @@ namespace KnotTools
             
             Tensor2<Int ,Int> pdcode     ( crossing_count, 4 );
             Tensor1<Int ,Int> C_labels   ( C_arcs.Size(), -1 );
-            
             Tensor1<char,Int> A_visisted ( A_cross.Size(), false );
             
             
@@ -907,7 +1021,7 @@ namespace KnotTools
                     }
                     
                     {
-                        const CrossingState state  = C_state[c_prev];
+                        const CrossingState state = C_state[c_prev];
                         const Int           label = C_labels[c_prev];
                         const bool          lr    = C_arcs(c_prev,0,1) == a;
                         
@@ -980,6 +1094,12 @@ namespace KnotTools
             return pdcode;
         }
         
+        /*!
+         * @brief Tells every orc to which over-arc it belongs.
+         *
+         * (An over-arc is a consecutive sequence of arcs that pass over.)
+         */
+        
         cref<Tensor1<Int,Int>> OverArcIndices() const
         {
             std::string tag ( "OverArcIndices" );
@@ -990,14 +1110,8 @@ namespace KnotTools
                 
                 const Int m = A_cross.Dimension(0);
                 
-//                Tensor1<Int,Int>  over_arc_idx ( A_cross.Size() );
-//                
-//                Tensor1<Int,Int>  A_labels     ( A_cross.Size(), -1 );
-//                Tensor1<char,Int> A_visisted   ( A_cross.Size(), false );
-                
-                Tensor1<Int,Int>  over_arc_idx ( m );
-                
-                Tensor1<Int,Int>  A_labels     ( m, -1 );
+                Tensor1<Int ,Int> over_arc_idx ( m );
+                Tensor1<Int ,Int> A_labels     ( m, -1 );
                 Tensor1<char,Int> A_visisted   ( m, false );
                 
                 
