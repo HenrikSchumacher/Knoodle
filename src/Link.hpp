@@ -35,7 +35,7 @@ namespace KnotTools
         
         Link() = default;
         
-        ~Link() = default;
+        virtual ~Link() = default;
         
         
         // TODO: Make this constructor work correctly!

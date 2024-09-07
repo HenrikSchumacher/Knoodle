@@ -40,6 +40,7 @@ namespace KnotTools
         using Int  = Int_;
         using Sint = int;
         
+        using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
         
         using CrossingContainer_T       = Tensor3<Int,Int>;
@@ -104,7 +105,7 @@ namespace KnotTools
         
         PlanarDiagram() = default;
         
-        ~PlanarDiagram() = default;
+        virtual ~PlanarDiagram() override = default;
         
         // This constructor is supposed to allocate all relevant buffers.
         // Data has to be filled in manually by using the references provided by Crossings() and Arcs() method.
@@ -123,30 +124,16 @@ namespace KnotTools
         {
             PushAllCrossings();
         }
-        
+  
         // Copy constructor
-        PlanarDiagram( const PlanarDiagram & other )
-        :   C_arcs                  ( other.C_arcs              )
-        ,   C_state                 ( other.C_state             )
-        ,   C_label                 ( other.C_label             )
-        ,   A_cross                 ( other.A_cross             )
-        ,   A_state                 ( other.A_state             )
-        ,   A_label                 ( other.A_label             )
-        ,   initial_crossing_count  ( other.crossing_count      )
-        ,   initial_arc_count       ( other.initial_arc_count   )
-        ,   crossing_count          ( other.crossing_count      )
-        ,   arc_count               ( other.arc_count           )
-        ,   unlink_count            ( other.unlink_count        )
-        ,   touched_crossings       ( other.touched_crossings   )
-        ,   touched_arcs            ( other.touched_arcs        )
-        {
-            PushAllCrossings();
-        }
+        PlanarDiagram( const PlanarDiagram & other ) = default;
         
-        friend void swap(PlanarDiagram &A, PlanarDiagram &B) noexcept
+        friend void swap(PlanarDiagram & A, PlanarDiagram & B ) noexcept
         {
             // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
             using std::swap;
+            
+            swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
             
             swap( A.C_arcs      , B.C_arcs       );
             swap( A.C_state     , B.C_state      );
@@ -160,8 +147,28 @@ namespace KnotTools
             swap( A.crossing_count        , B.crossing_count         );
             swap( A.arc_count             , B.arc_count              );
             swap( A.unlink_count          , B.unlink_count           );
+            
+            swap( A.R_I_counter           , B.R_I_counter            );
+            swap( A.R_II_counter          , B.R_II_counter           );
+            swap( A.twist_move_counter    , B.twist_move_counter     );
+            
             swap( A.touched_crossings     , B.touched_crossings      );
             swap( A.touched_arcs          , B.touched_arcs           );
+            swap( A.switch_candidates     , B.switch_candidates      );
+            
+            swap( A.A_faces               , B.A_faces                );
+            
+            swap( A.face_arcs             , B.face_arcs              );
+            swap( A.face_ptr              , B.face_ptr               );
+            
+            swap( A.comp_arcs             , B.comp_arcs              );
+            swap( A.comp_ptr              , B.comp_ptr               );
+            
+            swap( A.arc_comp              , B.arc_comp               );
+            
+            swap( A.faces_initialized     , B.faces_initialized      );
+            
+            swap( A.connected_sum_counter , B.connected_sum_counter  );
         }
         
         // Move constructor
@@ -172,21 +179,13 @@ namespace KnotTools
         }
 
         /* Copy assignment operator */
-        PlanarDiagram & operator=( const PlanarDiagram & other )
-        {
-            // Use the copy constructor.
-            swap( *this, PlanarDiagram(other) );
-            return *this;
-        }
-
-        /* Move assignment operator */
-        PlanarDiagram & operator=( PlanarDiagram && other ) noexcept
-        {
+        PlanarDiagram & operator=( PlanarDiagram other ) noexcept
+        {   //                                     ^
+            //                                     |
+            // Use the copy constructor     -------+
             swap( *this, other );
             return *this;
         }
-        
-        
         
         
         template<typename Real, typename SInt>
@@ -590,7 +589,6 @@ namespace KnotTools
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"
         
-
         void PushAllCrossings()
         {
             touched_crossings.reserve( initial_crossing_count );
@@ -839,6 +837,8 @@ namespace KnotTools
 //                print("A");
 //                Simplify();
 //            }
+            
+            this->ClearAllCache();
             
             ptoc(ClassName()+"::Simplify()");
         }

@@ -99,7 +99,7 @@ namespace KnotTools
         
         Link_2D() = default;
         
-        ~Link_2D() = default;
+        virtual ~Link_2D() override = default;
         
   
         // TODO: Make this constructor work.

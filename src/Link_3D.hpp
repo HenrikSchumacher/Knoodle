@@ -82,7 +82,7 @@ namespace KnotTools
         
         Link_3D() = default;
         
-        ~Link_3D() = default;
+        virtual ~Link_3D() override = default;
                 
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template< typename I>
