@@ -86,16 +86,15 @@ namespace KnotTools
         
         // Data for the faces and the dual graph
         
-        // TODO: I might want to replace this data type by a Tensor2.
-        Tiny::VectorList<2,Int,Int> A_faces; // Convention: Left face first.
+        Tensor2<Int,Int> A_faces; // Convention: Left face first.
         
-        Tensor1<Int,Int> face_arcs {0};
-        Tensor1<Int,Int> face_ptr  {2,0};
+        Tensor1<Int,Int> face_arcs    {0};
+        Tensor1<Int,Int> face_arc_ptr {2,0};
         
-        Tensor1<Int,Int> comp_arcs {0};
-        Tensor1<Int,Int> comp_ptr  {2,0};
+        Tensor1<Int,Int> comp_arcs    {0};
+        Tensor1<Int,Int> comp_arc_ptr {2,0};
         
-        Tensor1<Int,Int> arc_comp  {0};
+        Tensor1<Int,Int> arc_comp     {0};
         
         bool faces_initialized = false;
         
@@ -107,8 +106,13 @@ namespace KnotTools
         
         virtual ~PlanarDiagram() override = default;
         
-        // This constructor is supposed to allocate all relevant buffers.
-        // Data has to be filled in manually by using the references provided by Crossings() and Arcs() method.
+        
+    protected:
+        
+        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+         *  Data has to be filled in manually. Only for internal use.
+         */
+        
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
         :   C_arcs                  ( crossing_count_, 2, 2                         )
         ,   C_state                 ( crossing_count_, CrossingState::Unitialized   )
@@ -124,6 +128,8 @@ namespace KnotTools
         {
             PushAllCrossings();
         }
+        
+    public:
   
         // Copy constructor
         PlanarDiagram( const PlanarDiagram & other ) = default;
@@ -159,10 +165,10 @@ namespace KnotTools
             swap( A.A_faces               , B.A_faces                );
             
             swap( A.face_arcs             , B.face_arcs              );
-            swap( A.face_ptr              , B.face_ptr               );
+            swap( A.face_arc_ptr          , B.face_arc_ptr           );
             
             swap( A.comp_arcs             , B.comp_arcs              );
-            swap( A.comp_ptr              , B.comp_ptr               );
+            swap( A.comp_arc_ptr          , B.comp_arc_ptr           );
             
             swap( A.arc_comp              , B.arc_comp               );
             
@@ -187,6 +193,9 @@ namespace KnotTools
             return *this;
         }
         
+        
+        /*! @brief Construction from `Link_2D` object.
+         */
         
         template<typename Real, typename SInt>
         PlanarDiagram( cref<Link_2D<Real,Int,SInt>> L )
@@ -309,7 +318,178 @@ namespace KnotTools
             PD_print("");
         }
         
+        /*! @brief Construction from PD codes and handedness of crossings.
+         *
+         *  @param pd_codes_ Integer array of length `5 * crossing_count_`.
+         *  There is one 5-tuple for each crossing.
+         *  The first 4 entries in each 5-tuple store the actual PD code.
+         *  The last entry gives the handedness of the crossing:
+         *    >  0 for a right-handed crossing
+         *    <= 0 for a left-handed crossing
+         *
+         *  @param crossing_count_ Number of crossings in the diagram.
+         *
+         *  @param unlink_count_ Number of unlinks in the diagram. (This is necessary as PD codes cannot track trivial unlinks.
+         *
+         */
         
+        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+        PlanarDiagram(
+            cptr<ExtInt> pd_codes_,
+            const ExtInt2 crossing_count_,
+            const ExtInt3 unlink_count_
+        )
+        :   PlanarDiagram(
+                int_cast<Int>(crossing_count_),
+                int_cast<Int>(unlink_count_)
+            )
+        {
+            static_assert( IntQ<ExtInt>, "" );
+            
+            if( crossing_count_ <= 0 )
+            {
+                return ;
+            }
+            
+            A_cross.Fill(-1);
+
+            // The maximally allowed arc index.
+            const Int max_a = 2 * crossing_count_ - 1;
+            
+            for( Int c = 0; c < crossing_count; ++c )
+            {
+                Int X [5];
+                copy_buffer<5>( &pd_codes_[5*c], &X[0] );
+                
+                if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
+                {
+                    eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1." );
+                    return;
+                }
+                
+                bool righthandedQ = (X[4] > 0);
+                
+                Int C [2][2];
+                
+                if( righthandedQ )
+                {
+                    C_state[c] = CrossingState::RightHanded;
+                    
+                    if( A_cross(X[0],Tip  ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[0],Tip  ));
+                        dump(X[0]);
+                    }
+                    
+                    if( A_cross(X[1],Tail ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[1],Tail ));
+                        dump(X[1]);
+                    }
+                    
+                    if( A_cross(X[2],Tail ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[2],Tail ));
+                        dump(X[2]);
+                    }
+                    
+                    if( A_cross(X[3],Tip  ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[3],Tip  ));
+                        dump(X[3]);
+                    }
+                    
+                    /*
+                     *    X[2]           X[1]
+                     *          ^     ^
+                     *           \   /
+                     *            \ /
+                     *             / <--- c
+                     *            ^ ^
+                     *           /   \
+                     *          /     \
+                     *    X[3]           X[0]
+                     */
+                    
+                    A_cross(X[0],Tip  ) = c;
+                    A_cross(X[1],Tail ) = c;
+                    A_cross(X[2],Tail ) = c;
+                    A_cross(X[3],Tip  ) = c;
+
+                    C[Out][Left ] = X[2];
+                    C[Out][Right] = X[1];
+                    C[In ][Left ] = X[3];
+                    C[In ][Right] = X[0];
+                }
+                else // left-handed
+                {
+                    C_state[c] = CrossingState::LeftHanded;
+                    
+                    if( A_cross(X[0],Tip  ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[0],Tip  ));
+                        dump(X[0]);
+                    }
+                    
+                    if( A_cross(X[1],Tip  ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[1],Tip  ));
+                        dump(X[1]);
+                    }
+                    
+                    if( A_cross(X[2],Tail ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[2],Tail ));
+                        dump(X[2]);
+                    }
+                    
+                    if( A_cross(X[3],Tail ) != -1 )
+                    {
+                        dump(c);
+                        dump(A_cross(X[3],Tail ));
+                        dump(X[3]);
+                    }
+                    
+                    /*
+                     *    X[3]           X[2]
+                     *          ^     ^
+                     *           \   /
+                     *            \ /
+                     *             \ <--- c
+                     *            ^ ^
+                     *           /   \
+                     *          /     \
+                     *    X[0]           X[1]
+                     */
+                    
+                    A_cross(X[0],Tip  ) = c;
+                    A_cross(X[1],Tip  ) = c;
+                    A_cross(X[2],Tail ) = c;
+                    A_cross(X[3],Tail ) = c;
+                    
+                    C[Out][Left ] = X[3];
+                    C[Out][Right] = X[2];
+                    C[In ][Left ] = X[0];
+                    C[In ][Right] = X[1];
+                }
+                
+                copy_buffer<4>( &C[0][0], C_arcs.data(c) );
+            }
+            
+            fill_buffer( A_state.data(), ArcState::Active, arc_count );
+        }
+        
+        
+        /*!
+         * @brief Returns the number of trivial unlinks in the diagram, i.e., unknots that do not share any crossings with other link components.
+         */
         
         Int UnlinkCount() const
         {
@@ -421,10 +601,34 @@ namespace KnotTools
             return C_arcs;
         }
         
+        /*!
+         * @brief Returns the states of the crossings.
+         *
+         *  The states that a crossing can have are:
+         *
+         *  - `CrossingState::RightHanded`
+         *  - `CrossingState::LeftHanded`
+         *  - `CrossingState::Unitialized`
+         *
+         * `CrossingState::Unitialized` means that the crossing has been deactivated by topological manipulations.
+         */
+        
         mref<CrossingStateContainer_T> CrossingStates()
         {
             return C_state;
         }
+        
+        /*!
+         * @brief Returns the states of the crossings.
+         *
+         *  The states that a crossing can have are:
+         *
+         *  - `CrossingState::RightHanded`
+         *  - `CrossingState::LeftHanded`
+         *  - `CrossingState::Unitialized`
+         *
+         * `CrossingState::Unitialized` means that the crossing has been deactivated by topological manipulations.
+         */
         
         cref<CrossingStateContainer_T> CrossingStates() const
         {
@@ -496,10 +700,32 @@ namespace KnotTools
             return A_cross;
         }
 
+        /*!
+         * @brief Returns the states of the arcs.
+         *
+         *  The states that an arc can have are:
+         *
+         *  - `ArcState::Active`
+         *  - `ArcState::Inactive`
+         *
+         * `CrossingState::Inactive` means that the arc has been deactivated by topological manipulations.
+         */
+        
         mref<ArcStateContainer_T> ArcStates()
         {
             return A_state;
         }
+        
+        /*!
+         * @brief Returns the states of the arcs.
+         *
+         *  The states that an arc can have are:
+         *
+         *  - `ArcState::Active`
+         *  - `ArcState::Inactive`
+         *
+         * `CrossingState::Inactive` means that the arc has been deactivated by topological manipulations.
+         */
         
         cref<ArcStateContainer_T> ArcStates() const
         {
@@ -517,6 +743,9 @@ namespace KnotTools
                ToString(C_arcs(c,In ,Left ))+", "+ToString(C_arcs(c,In ,Right))+" } } ";
         }
         
+        /*!
+         * @brief Checks whether crossing `c` is still active.
+         */
         
         bool CrossingActiveQ( const Int c ) const
         {
@@ -527,19 +756,9 @@ namespace KnotTools
             );
         }
 
-        bool OppositeCrossingSigns( const Int c_0, const Int c_1 ) const
+        bool OppositeCrossingSignsQ( const Int c_0, const Int c_1 ) const
         {
             return ( ToUnderlying(C_state[c_0]) == -ToUnderlying(C_state[c_1]) );
-        }
-        
-        void DeactivateCrossing( const Int c )
-        {
-            if( CrossingActiveQ(c) )
-            {
-                --crossing_count;
-            }
-
-            C_state[c] = CrossingState::Unitialized;
         }
         
         
@@ -549,19 +768,13 @@ namespace KnotTools
                ToString(A_cross(a,Tail))+", "+ToString(A_cross(a,Tip))+" } ";
         }
         
+        /*!
+         * @brief Checks whether arc `a` is still active.
+         */
+        
         bool ArcActiveQ( const Int a ) const
         {
             return A_state[a] == ArcState::Active;
-        }
-        
-        void DeactivateArc( const Int a )
-        {
-            if( ArcActiveQ(a) )
-            {
-                --arc_count;
-            }
-            
-            A_state[a] = ArcState::Inactive;
         }
         
         /*!
@@ -575,7 +788,35 @@ namespace KnotTools
         }
 
         
+    protected:
+        
+        /*!
+         * @brief Deactivates crossing `c`. Only for internal use.
+         */
+        
+        void DeactivateCrossing( const Int c )
+        {
+            if( CrossingActiveQ(c) )
+            {
+                --crossing_count;
+            }
 
+            C_state[c] = CrossingState::Unitialized;
+        }
+        
+        /*!
+         * @brief Deactivates arc `a`. Only for internal use.
+         */
+        
+        void DeactivateArc( const Int a )
+        {
+            if( ArcActiveQ(a) )
+            {
+                --arc_count;
+            }
+            
+            A_state[a] = ArcState::Inactive;
+        }
         
     public:
         
@@ -636,7 +877,9 @@ namespace KnotTools
         }
         
 
-
+        /*!
+         * @brief Returns the arc following arc `a` by going to the crossing at the tip of `a` and then turning left.
+         */
         
         Arrow_T NextLeftArc( const Int a, const bool tiptail )
         {
@@ -680,24 +923,9 @@ namespace KnotTools
             }
         }
         
-//        Arrow_T NextArc( const Int a, const bool tiptail )
-//        {
-//            PD_assert( ArcActiveQ(a) );
-//            
-//            const Int c = A_cross(a,tiptail);
-//            
-//            PD_assert( CrossingActiveQ(c) );
-//            
-//            // Find out whether arc a is connected to an <In>going or <Out>going port of c.
-//            const bool io = (tiptail == Tip) ? In : Out;
-//
-//            // Find out whether arc a is connected to a <Left> or <Right> port of c.
-//            const bool lr = (C_arcs(c,io,Left) == a) ? Left : Right;
-//            
-//            // We leave through the arc at the opposite port.
-//            //If everything is set up correctly, the ourgoing arc points into the same direction as a.
-//            return Arrow_T(C_arcs(c,!io,!lr), tiptail );
-//        }
+        /*!
+         * @brief Returns the arc preceding arc `a`, i.e., the arc reached by going straight through the crossing at the tip of `a`.
+         */
         
         Int NextArc( const Int a ) const
         {
@@ -714,6 +942,10 @@ namespace KnotTools
             //If everything is set up correctly, the ourgoing arc points into the same direction as a.
             return C_arcs(c,Out,!lr);
         }
+        
+        /*!
+         * @brief Returns the arc preceding arc `a`, i.e., the arc reached by going straight through the crossing at the tail of `a`.
+         */
         
         Int PrevArc( const Int a ) const
         {
@@ -736,15 +968,15 @@ namespace KnotTools
 //            return A_cross(a,tiptail);
 //        }
         
-        Tensor1<Int,Int> ExportSwitchCandidates()
-        {
-            return Tensor1<Int,Int>( &switch_candidates[0], I(switch_candidates.size() ) );
-        }
-        
-        Tensor1<Int,Int> ExportTouchedCrossings()
-        {
-            return Tensor1<Int,Int>( &touched_crossings[0], I(touched_crossings.size() ) );
-        }
+//        Tensor1<Int,Int> ExportSwitchCandidates()
+//        {
+//            return Tensor1<Int,Int>( &switch_candidates[0], I(switch_candidates.size() ) );
+//        }
+//        
+//        Tensor1<Int,Int> ExportTouchedCrossings()
+//        {
+//            return Tensor1<Int,Int>( &touched_crossings[0], I(touched_crossings.size() ) );
+//        }
         
         
         Int CrossingLabelLookUp( const Int label )
@@ -790,6 +1022,14 @@ namespace KnotTools
             }
         }
         
+        /*!
+         * @brief Attempts to simplify the planar diagram by applying some standard moves.
+         *
+         *  So far, Reidemeister I and Reidemeister II moves are support as
+         *  well as a move we call "twist move". See the ASCII-art in
+         *  TwistMove.hpp for more details.
+         *
+         */
         
         void Simplify()
         {
@@ -843,15 +1083,20 @@ namespace KnotTools
             ptoc(ClassName()+"::Simplify()");
         }
         
+        /*!
+         * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
+         *
+         * Relabeling is done as follows:
+         * First active arc becomes first arc in new planar diagram.
+         * The _tail_ of this arc becomes the new first crossing.
+         * Then we follow all arcs in the component with `NextArc(a)`.
+         * The new labels increase by one for each invisited arc.
+         * Same for the crossings.
+         */
+        
         PlanarDiagram CreateCompressed()
         {
             ptic( ClassName()+"::CreateCompressed");
-            // Creates a copy of the planar diagram with all inactive crossings and arcs removed.
-            
-            // Relabeling is done as follows:
-            // First active arc becomes first arc in new planar diagram.
-            // The _tail_ of this arc becomes the new first crossing.
-            // Then we follow all arcs in the component with NextArc(a); the new labels increase by one for each invisited arc. Same for the crossings.
             
             PlanarDiagram pd ( crossing_count, unlink_count );
             
@@ -911,8 +1156,6 @@ namespace KnotTools
                         A_visisted[a] = true;
                     }
                     
-                    
-                    
                     if( C_labels[c_next] < 0 )
                     {
                         const Int c = C_labels[c_next] = c_counter;
@@ -960,31 +1203,34 @@ namespace KnotTools
          *
          *  The pd-code of crossing `c` is given by
          *
-         *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3) }`
+         *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3), PDCode()(c,4) }`
          *
-         *  TODO: What is the convention here? I think I made this compatible with
-         *  Dror's _KnotTheory_ package.
+         *  The first 4 entries are the arcs attached to crossing c.
+         *  `PDCode()(c,0)` is the incoming arc that goes under.
+         *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
+         *
+         *  The last entry stores the handedness of the crossing:
+         *    +1 for a right-handed crossing,
+         *    -1 for a left-handed crossing.
+         *
          *
          */
-       
         
         Tensor2<Int,Int> PDCode() const
         {
-            ptic( ClassName()+"::PDCode");
+            ptic( ClassName()+"::PDCode" );
             
             const Int m = A_cross.Dimension(0);
             
-            Tensor2<Int ,Int> pdcode     ( crossing_count, 4 );
-            Tensor1<Int ,Int> C_labels   ( C_arcs.Size(), -1 );
-            Tensor1<char,Int> A_visisted ( A_cross.Size(), false );
-            
+            Tensor2<Int ,Int> pdcode     ( crossing_count, 5 );
+//            Tensor1<Int ,Int> C_labels   ( A_cross.Max()+1, -1 );
+            Tensor1<Int ,Int> C_labels   ( m/2, -1 );
+            Tensor1<char,Int> A_visisted ( m, false           );
             
             Int a_counter = 0;
             Int c_counter = 0;
             Int a_ptr     = 0;
             Int a         = 0;
-            
-            Int comp_counter = 0;
             
             while( a_ptr < m )
             {
@@ -999,19 +1245,17 @@ namespace KnotTools
                     break;
                 }
                 
-                ++comp_counter;
-                
                 a = a_ptr;
                 
                 
-                C_labels[A_cross(a,0)] = c_counter++;
+                C_labels[A_cross(a,Tail)] = c_counter++;
                 
                 
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
-                    const Int c_prev = A_cross(a,0);
-                    const Int c_next = A_cross(a,1);
+                    const Int c_prev = A_cross(a,Tail);
+                    const Int c_next = A_cross(a,Tip );
                     
                     A_visisted[a] = true;
                     
@@ -1022,29 +1266,96 @@ namespace KnotTools
                     
                     {
                         const CrossingState state = C_state[c_prev];
-                        const Int           label = C_labels[c_prev];
-                        const bool          lr    = C_arcs(c_prev,0,1) == a;
+                        const Int           c     = C_labels[c_prev];
+
+                        pdcode( c, 4 ) = (state == CrossingState::RightHanded) ? 1 : -1;
                         
+                        const bool side  = (C_arcs(c_prev,Out,Right) == a) ? Right : Left;
+        
                         if( state == CrossingState::RightHanded )
                         {
-                            if( lr == 0 )
+                            if( side == Left )
                             {
-                                pdcode( label, 3 ) = a_counter;
+                                /*
+                                 *
+                                 * a_counter
+                                 *     =
+                                 *    X[2]           X[1]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             / <--- c = C_labels[c_prev]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[3]           X[0]
+                                 *
+                                 */
+                                
+                                pdcode( c, 2 ) = a_counter;
                             }
-                            else
+                            else // if( side == Right )
                             {
-                                pdcode( label, 2 ) = a_counter;
+                                /*
+                                 *
+                                 *                a_counter
+                                 *                    =
+                                 *    X[2]           X[1]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             / <--- c = C_labels[c_prev]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[3]           X[0]
+                                 *
+                                 */
+                                
+                                pdcode( c, 1 ) = a_counter;
                             }
                         }
                         else if( state == CrossingState::LeftHanded )
                         {
-                            if( lr == 0 )
+                            if( side == Left )
                             {
-                                pdcode( label, 2 ) = a_counter;
+                                /*
+                                 *
+                                 * a_counter
+                                 *     =
+                                 *    X[3]           X[2]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             \ <--- c = C_labels[c_prev]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[0]           X[1]
+                                 *
+                                 */
+                                
+                                pdcode( c, 3 ) = a_counter;
                             }
-                            else
+                            else // if( side == Right )
                             {
-                                pdcode( label, 1 ) = a_counter;
+                                /*
+                                 *
+                                 *                a_counter
+                                 *                    =
+                                 *    X[3]           X[2]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             \ <--- c = C_labels[c_prev]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[0]           X[1]
+                                 *
+                                 */
+                                
+                                pdcode( c, 2 ) = a_counter;
                             }
                         }
                         
@@ -1052,32 +1363,98 @@ namespace KnotTools
                     
                     {
                         const CrossingState state = C_state[c_next];
-                        const Int           label = C_labels[c_next];
-                        const bool          lr    = C_arcs(c_next,1,1) == a;
+                        const Int           c     = C_labels[c_next];
+                        
+                        pdcode( c, 4 ) = (state == CrossingState::RightHanded) ? 1 : -1;
+                        
+                        const bool side  = (C_arcs(c_next,In,Right)) == a ? Right : Left;
                         
                         if( state == CrossingState::RightHanded )
                         {
-                            if( lr == 0 )
+                            if( side == Left )
                             {
-                                pdcode( label, 0 ) = a_counter;
+                                /*
+                                 *
+                                 *    X[2]           X[1]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             / <--- c = C_labels[c_next]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[3]           X[0]
+                                 *     =
+                                 * a_counter
+                                 *
+                                 */
+                                
+                                pdcode( c, 3 ) = a_counter;
                             }
-                            else
+                            else // if( side == Right )
                             {
-                                pdcode( label, 1 ) = a_counter;
+                                /*
+                                 *
+                                 *    X[2]           X[1]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             / <--- c = C_labels[c_next]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[3]           X[0]
+                                 *                    =
+                                 *                a_counter
+                                 *
+                                 */
+                                
+                                pdcode( c, 0 ) = a_counter;
                             }
                         }
                         else if( state == CrossingState::LeftHanded )
                         {
-                            if( lr == 0 )
+                            if( side == Left )
                             {
-                                pdcode( label, 3 ) = a_counter;
+                                /*
+                                 *
+                                 *    X[3]           X[2]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             \ <--- c = C_labels[c_next]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[0]           X[1]
+                                 *     =
+                                 * a_counter
+                                 *
+                                 */
+                                
+                                pdcode( c, 0 ) = a_counter;
                             }
-                            else
+                            else // if( lr == Right )
                             {
-                                pdcode( label, 0 ) = a_counter;
+                                /*
+                                 *
+                                 *    X[3]           X[2]
+                                 *          ^     ^
+                                 *           \   /
+                                 *            \ /
+                                 *             \ <--- c = C_labels[c_next]
+                                 *            ^ ^
+                                 *           /   \
+                                 *          /     \
+                                 *    X[0]           X[1]
+                                 *                    =
+                                 *                a_counter
+                                 *
+                                 */
+                                
+                                pdcode( c, 1 ) = a_counter;
                             }
                         }
-                        
                     }
                     
                     a = NextArc(a);
@@ -1095,93 +1472,91 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Tells every orc to which over-arc it belongs.
+         * @brief Returns an array that tells every arc to which over-arc it belongs.
          *
-         * (An over-arc is a consecutive sequence of arcs that pass over.)
+         *  More precisely, arc `a` belongs to over-arc number `OverArcIndices()[a]`.
+         *
+         *  (An over-arc is a maximal consecutive sequence of arcs that pass over.)
          */
         
-        cref<Tensor1<Int,Int>> OverArcIndices() const
+        Tensor1<Int,Int> OverArcIndices() const
         {
-            std::string tag ( "OverArcIndices" );
+            ptic(ClassName()+"::OverArcIndices()");
             
-            if( !this->InCacheQ(tag) )
+            const Int m = A_cross.Dimension(0);
+            
+            Tensor1<Int ,Int> over_arc_idx ( m );
+            Tensor1<Int ,Int> A_labels     ( m, -1 );
+            Tensor1<char,Int> A_visisted   ( m, false );
+            
+            Int counter = 0;
+            Int a_ptr   = 0;
+            
+            while( a_ptr < m )
             {
-                ptic(ClassName()+"::OverArcIndices()");
-                
-                const Int m = A_cross.Dimension(0);
-                
-                Tensor1<Int ,Int> over_arc_idx ( m );
-                Tensor1<Int ,Int> A_labels     ( m, -1 );
-                Tensor1<char,Int> A_visisted   ( m, false );
-                
-                
-                Int counter = 0;
-                Int a_ptr   = 0;
-                
-                while( a_ptr < m )
+                // Search for next arc that is active and has not yet been handled.
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
                 {
-                    // Search for next arc that is active and has not yet been handled.
-                    while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
-                    {
-                        ++a_ptr;
-                    }
-                    
-                    if( a_ptr >= m )
-                    {
-                        break;
-                    }
-                    
-                    Int a = a_ptr;
-                    
-                    Int tail = A_cross(a,0);
-                    
-                    // Go backwards until a goes under crossing tail.
-                    while(
-                        (C_state[tail] == CrossingState::RightHanded)
-                        ==
-                        (C_arcs(tail,Out,0) == a)
-                    )
-                    {
-                        a = PrevArc(a);
-                        
-                        tail = A_cross(a,0);
-                    }
-                    
-                    const Int a_0 = a;
-                    
-                    // Cycle along all arcs in the link component, until we return where we started.
-                    do
-                    {
-                        const Int tip = A_cross(a,1);
-                        
-                        A_visisted[a] = true;
-                        
-                        over_arc_idx[a] = counter;
-                        
-                        const bool goes_underQ =
-                            (C_state[tip] == CrossingState::RightHanded)
-                            ==
-                            (C_arcs(tip,In,0) == a);
-                        
-                        if( goes_underQ )
-                        {
-                            ++counter;
-                        }
-                        
-                        a = NextArc(a);
-                    }
-                    while( a != a_0 );
-                    
                     ++a_ptr;
                 }
                 
-                this->SetCache( tag, std::move( over_arc_idx ) );
+                if( a_ptr >= m )
+                {
+                    break;
+                }
                 
-                ptoc(ClassName()+"::OverArcIndices()");
+                Int a = a_ptr;
+                
+                Int tail = A_cross(a,0);
+                
+                // Go backwards until a goes under crossing tail.
+                while(
+                    (C_state[tail] == CrossingState::RightHanded)
+                    ==
+                    (C_arcs(tail,Out,0) == a)
+                )
+                {
+                    a = PrevArc(a);
+                    
+                    tail = A_cross(a,0);
+                }
+                
+                const Int a_0 = a;
+                
+                // Cycle along all arcs in the link component, until we return where we started.
+                do
+                {
+                    const Int tip = A_cross(a,1);
+                    
+                    A_visisted[a] = true;
+                    
+                    over_arc_idx[a] = counter;
+                    
+                    const bool goes_underQ =
+                        (C_state[tip] == CrossingState::RightHanded)
+                        ==
+                        (C_arcs(tip,In,0) == a);
+                    
+                    if( goes_underQ )
+                    {
+                        ++counter;
+                    }
+                    
+                    a = NextArc(a);
+                }
+                while( a != a_0 );
+                
+                ++a_ptr;
             }
             
-            return this->template GetCache<Tensor1<Int,Int>>(tag);
+            ptoc(ClassName()+"::OverArcIndices()");
+            
+            return over_arc_idx;
         }
+        
+        /*!
+         * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+         */
         
         Int Writhe() const
         {
@@ -1208,6 +1583,12 @@ namespace KnotTools
         }
         
     public:
+        
+        /*!
+         * @brief Returns the name of the class, including template parameters.
+         *
+         *  Used for logging, profiling, and error handling.
+         */
         
         static std::string ClassName()
         {
