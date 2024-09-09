@@ -2,6 +2,26 @@
 
 namespace KnotTools
 {
+    template<typename Int>
+    Tensor2<Int,Int> CircleEdges( const Int n )
+    {
+        Tensor2<Int,Int> e ( n, 2 );
+        
+        if( n >= 1 )
+        {
+            for( Int i = 0; i < n-1; ++i )
+            {
+                e(i,0) = i  ;
+                e(i,1) = i+1;
+            }
+            
+            e(n-1,0) = n-1;
+            e(n-1,1) = 0;
+        }
+        
+        return e;
+    }
+    
     template<typename Int_ = long long>
     class alignas( ObjectAlignment ) Link
     {
@@ -38,9 +58,29 @@ namespace KnotTools
         virtual ~Link() = default;
         
         
+    private:
+        
+        /*! @brief This constructor only allocates the internal arrays. Only for internal use.
+         */
+        
+        template<typename I_0 >
+        explicit Link( const I_0 edge_count_, bool dummy )
+        :   edge_count      { static_cast<Int>(edge_count_) }
+        ,   edges           { edge_count     }
+        ,   next_edge       { edge_count     }
+        ,   edge_ptr        { edge_count + 1 }
+        
+        ,   component_count { 1              }
+        ,   component_ptr   { 2              }
+        ,   component_lookup{ edge_count     }
+        {}
+        
+    public:
+        
         // TODO: Make this constructor work correctly!
         
-        // Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+         */
         template<typename I_0 >
         explicit Link( const I_0 edge_count_ )
         :   edge_count      { static_cast<Int>(edge_count_) }
@@ -100,39 +140,49 @@ namespace KnotTools
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         
+        /*! @brief Construct oriented `Link` from a list of oriented edges.
+         *
+         *  @param edges_ Array of integers of length `2 * edge_count_`. Entries at odd positions are treated as tails; entries at even positions are treated as tips.
+         *
+         *  @param edge_count_ Number of edges.
+         *
+         */
+        
         template<typename I_0, typename I_1>
         Link( cptr<I_0> edges_, const I_1 edge_count_ )
-        :   Link( static_cast<Int>(edge_count_) )
+        :   Link( static_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
-            
-            // AoS = array of structures, i.e., loading data in interleaved form
-//            ptic(ClassName()+"() (AoS)");
             
             ReadEdges( edges_ );
-            
-//            ptoc(ClassName()+"() (AoS)");
         }
         
-        // Provide lists of e tails and e tips to make the object figure out its topology.
+        /*! @brief Construct oriented `Link` from a list of tails and from a list of tips.
+         *
+         *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.
+         *
+         *  @param edge_tips_ Array of integers of length `edge_count_`. Entries are treated as tips of edges.
+         *
+         *  @param edge_count_ Number of edges.
+         */
+        
         template<typename I_0, typename I_1>
         Link( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
-        :   Link( static_cast<Int>(edge_count_) )
+        :   Link( static_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
             
-            // SoA = array of structures; should be more performant because it can exploit more vectorization.
-            
-//            ptic(ClassName()+"() (SoA)");
-            
             ReadEdges( edge_tails_, edge_tips_ );
-            
-//            ptoc(ClassName()+"() (SoA)");
         }
 
     public:
+        
+        /*! @brief Reads edges from the array `edges_`.
+         *
+         *  @param edges_ Integer array of length `2 * EdgeCount()`.
+         */
         
         template<typename I>
         void ReadEdges( cptr<I> edges_ )
@@ -178,6 +228,13 @@ namespace KnotTools
             FinishPreparations();
         }
 
+        /*! @brief Reads edges from the arrays `edge_tails_` and `edge_tips_`.
+         *
+         *  @param edge_tails_ Integer array of length `EdgeCount()` that contains the list of tails.
+         *
+         *  @param edge_tips_ Integer array of length `EdgeCount()` that contains the list of tips.
+         */
+        
         void ReadEdges( cptr<Int> edge_tails_, cptr<Int> edge_tips_ )
         {
             // Finding for each e its next e.
@@ -224,7 +281,6 @@ namespace KnotTools
         void FindComponents()
         {
             // Finding components.
-            
             
             // using edge_ptr temporarily as scratch space.
             mptr<Int> perm = edge_ptr.data();
@@ -325,66 +381,104 @@ namespace KnotTools
         
     public:
         
+        /*! @brief Returns the number of components of the link.
+         */
+        
         Int ComponentCount() const
         {
             return static_cast<Int>(component_ptr.Size()-1);
         }
+        
+        /*! @brief This returns the component in which vertex `i` lies.
+         */
         
         Int ComponentLookup( const Int i ) const
         {
             return (cyclicQ) ? static_cast<Int>(0) : component_lookup[i];
         }
         
+        /*! @brief Returns the first vertex in component `c`.
+         */
+        
         Int ComponentBegin( const Int c ) const
         {
             return component_ptr[c];
         }
                 
+        /*! @brief Returns the first vertex in component `c`.
+         */
+        
         Int ComponentEnd( const Int c ) const
         {
             return component_ptr[c+1];
         }
+        
+        /*! @brief Returns the first vertex _after_ component `c`.
+         */
         
         const Tensor1<Int,Int> & ComponentPointers() const
         {
             return component_ptr;
         }
         
+        /*! @brief Returns the number of vertices in component `c`.
+         */
+        
         Int ComponentSize( const Int c ) const
         {
             return component_ptr[c+1] - component_ptr[c];
         }
+        
+        /*! @brief Returns the total number of vertices.
+         */
         
         Int VertexCount() const
         {
             return edge_count;
         }
         
+        /*! @brief Returns the number of vertices in component `c`.
+         */
+        
         Int VertexCount( const Int c ) const
         {
             return component_ptr[c+1] - component_ptr[c];
         }
+        
+        /*! @brief Returns the total number of edges.
+         */
         
         Int EdgeCount() const
         {
             return edge_count;
         }
         
+        /*! @brief Returns the number of edges in component `c`.
+         */
+        
         Int EdgeCount( const Int c ) const
         {
-            return component_ptr[c+1] - component_ptr[0];
+            return component_ptr[c+1] - component_ptr[c];
         }
         
+        
+        /*! @brief Checks whether edges `i` and `j` are neighbors of each other.
+         */
         
         bool EdgesAreNeighborsQ( const Int i, const Int j ) const
         {
             return (i == j) || (i == next_edge[j]) || (j == next_edge[i]);
         }
+
         
         cref<Tensor1<Int,Int>> NextEdge() const
         {
             return next_edge;
         }
+        
+        
+        /*! @brief Returns the edge that follows `i` when traversing `i`'s link component in positive orientation.
+         */
         
         Int NextEdge( const Int i ) const
         {
@@ -427,11 +521,22 @@ namespace KnotTools
         }
 
     
+        /*! @brief Returns a reference to the list of edges.
+         *
+         *  The tail of the edge `i` is given by `Edges()[0][i]`.
+         *  The tip  of the edge `i` is given by `Edges()[1][i]`.
+         */
+        
         const Tiny::VectorList<2,Int,Int> & Edges() const
         {
             return edges;
         }
                 
+        /*! @brief Returns the name of the class, including template parameters.
+         *
+         *  Used for logging, profiling, and error handling.
+         */
+        
         static std::string ClassName()
         {
             return std::string("Link")+"<"+TypeName<Int>+">";

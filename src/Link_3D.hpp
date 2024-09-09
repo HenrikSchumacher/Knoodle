@@ -84,11 +84,19 @@ namespace KnotTools
         
         virtual ~Link_3D() override = default;
                 
+        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+         */
+        template<typename I>
+        explicit Link_3D( const I edge_count_ )
+        :   Base_T      ( static_cast<Int>(edge_count_) )
+        ,   E_coords { this->EdgeCount(), 2, 3 }
+        ,   T        { this->EdgeCount()       }
+        {}
+        
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template< typename I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
         :   Base_T   { edges_, edge_count_     }
-//        ,   V_coords { this->VertexCount(), 3  }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
         {
