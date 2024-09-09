@@ -31,9 +31,9 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
 
     return true;
     
-//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeCrossingSigns(c_0,c_1):
+//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeCrossingSignsQ(c_0,c_1):
 //
-//                if( OppositeCrossingSigns(c_0,c_1) )
+//                if( OppositeCrossingSignsQ(c_0,c_1) )
 //                {
 //// This horizontal alignment in the case of side == Right and positive crossing c_0
 //// Cases side == Left and sign = -1 are analogous.

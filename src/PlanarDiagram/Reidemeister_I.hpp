@@ -1,10 +1,15 @@
+/*! @brief Goes once through the list of all crossings in increasing order
+ *  and attempts to perform Reidemeister I move. Returns the number of
+ *  moves actually performed.
+ */
+
 Int Reidemeister_I()
 {
     // One round of Reidemeister_I checks.
     
     Int count = 0;
     
-    for( Int c = 0; c < C_arcs.Size(); ++c )
+    for( Int c = 0; c < CrossingCount(); ++c )
     {
         count += Reidemeister_I(c);
     }
@@ -12,11 +17,16 @@ Int Reidemeister_I()
     return count;
 }
 
+/*! @brief Checks whether a Reidemeister I move can be made at crossing `c`,
+ *  then applies it (if possible), and returns a Boolean that indicates whether
+ *  a change has been made or not.
+ */
+
 bool Reidemeister_I( const Int c )
 {
     PD_print("\nReidemeister_I( c = "+CrossingString(c)+" )");
 
-    // Checks whether a Reidemeister I move can be made at the c-th crossing, then applies it (if possible), and returns a Boolean that indicates whether a change has been made or not.
+    //
     // This is precisely the case if two consecutive arcs coincide.
     
     if( !CrossingActiveQ(c) )

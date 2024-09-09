@@ -1,3 +1,8 @@
+/*! @brief Cyclically runs through the list of crossings and attempts to
+ *  perform Reidemeister II moves until no further moves can be made.
+ *  Returns the total number of Reidemeister II moves performed.
+ */
+
 Int Reidemeister_II()
 {
     Int prev_count = 1;
@@ -7,7 +12,7 @@ Int Reidemeister_II()
     {
         prev_count = count;
         
-        for( Int c = 0; c < C_arcs.Size(); ++c )
+        for( Int c = 0; c < CrossingCount(); ++c )
         {
             count += Reidemeister_II(c);
         }
@@ -16,10 +21,18 @@ Int Reidemeister_II()
     return count;
 }
 
+private:
 
 #include "Reidemeister_II_Horizontal.hpp"
 #include "Reidemeister_II_Vertical.hpp"
 #include "TwistMove.hpp"
+
+public:
+
+/*! @brief Checks whether a Reidemeister II move can be made at crossing `c`,
+ *  then applies it (if possible), and returns a Boolean that indicates whether
+ *  a change has been made or not.
+ */
 
 bool Reidemeister_II( const Int c_0 )
 {
@@ -61,7 +74,7 @@ bool Reidemeister_II( const Int c_0 )
         
         if( c_1 == c_2 )
         {
-            if( OppositeCrossingSigns(c_0,c_1) )
+            if( OppositeCrossingSignsQ(c_0,c_1) )
             {
                 PD_assert( CrossingActiveQ(c_1) );
                 
@@ -127,7 +140,7 @@ bool Reidemeister_II( const Int c_0 )
 //               Beware: The cases e_0 == e_3 and e_1 == e_2 might still be possible.
 //               Well, actually, the preceeding test for Reidemeister_I should rule this out.
                 
-                if( OppositeCrossingSigns(c_0,c_1) )
+                if( OppositeCrossingSignsQ(c_0,c_1) )
                 {
                     Reidemeister_II_Horizontal(c_0,c_1,side);
                     return true;
