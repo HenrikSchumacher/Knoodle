@@ -34,7 +34,7 @@ namespace KnotTools
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
         Alexander()
-        :   sparsity_threshold ( 64 )
+        :   sparsity_threshold ( 256 )
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
         ,   LU_perm   ( sparsity_threshold )
         {}
