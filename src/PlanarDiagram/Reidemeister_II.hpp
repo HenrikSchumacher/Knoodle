@@ -1,25 +1,32 @@
-/*! @brief Cyclically runs through the list of crossings and attempts to
- *  perform Reidemeister II moves until no further moves can be made.
- *  Returns the total number of Reidemeister II moves performed.
- */
+public:
 
-Int Reidemeister_II()
-{
-    Int prev_count = 1;
-    Int count = 0;
-    
-    while( count != prev_count )
-    {
-        prev_count = count;
-        
-        for( Int c = 0; c < CrossingCount(); ++c )
-        {
-            count += Reidemeister_II(c);
-        }
-    }
-    
-    return count;
-}
+///*! @brief Cyclically runs through the list of crossings and attempts to
+// *  perform Reidemeister II moves until no further moves can be made.
+// *  Occasionally, it may also perform a Reidemeister I move or a twist move.
+// *  Afterwards, the routine returns the total number of Reidemeister I,
+// *  Reidemeister II and twist moves performed.
+// *
+// *  For the exact number of Reidemeister II moves, check the values of
+// *  `Reidemeister_II_Counter()` before and after the call.
+// */
+//
+//Int Reidemeister_II()
+//{
+//    Int prev_count = 1;
+//    Int count = 0;
+//    
+//    while( count != prev_count )
+//    {
+//        prev_count = count;
+//        
+//        for( Int c = 0; c < initial_crossing_count; ++c )
+//        {
+//            count += Reidemeister_II(c);
+//        }
+//    }
+//    
+//    return count;
+//}
 
 private:
 
@@ -31,7 +38,9 @@ public:
 
 /*! @brief Checks whether a Reidemeister II move can be made at crossing `c`,
  *  then applies it (if possible), and returns a Boolean that indicates whether
- *  a change has been made or not.
+ *  any change has been made or not.
+ *  Occasionally, it may perform a Reidemeister I move or a twist move,
+ *  instead. Then it also returns `true`.
  */
 
 bool Reidemeister_II( const Int c_0 )
@@ -44,21 +53,21 @@ bool Reidemeister_II( const Int c_0 )
         return false;
     }
 
-    bool is_switch_candidate = false;
+//    bool is_switch_candidate = false;
     
     const Int C [2][2] = {
-        { NextCrossing(c_0,0,0), NextCrossing(c_0,0,1) },
-        { NextCrossing(c_0,1,0), NextCrossing(c_0,1,1) }
+        { NextCrossing(c_0,Out,Left), NextCrossing(c_0,Out,Right) },
+        { NextCrossing(c_0,In ,Left), NextCrossing(c_0,In ,Right) }
     };
 
     PD_print( "\n\tC = {  {"  + ToString(C[0][0]) + ", " + ToString(C[0][1]) + " }, { " + ToString(C[1][0]) + ", " + ToString(C[1][1]) + " } }\n" );
     
-    // We better test whether we can perform a Reidermeister_I move (and do it). That rules out a couple of nasty cases in the remainder.
+    // We better test whether we can perform a Reidemeister_I move (and do it). That rules out a couple of nasty cases in the remainder.
     
     const bool R_I = Reidemeister_I(c_0);
     if( R_I )
     {
-        PD_wprint("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_0)+".");
+        PD_wprint("Called Reidemeister_II on crossing "+ToString(c_0)+", but Reidemeister_I was performed instead.");
         return true;
     }
     
@@ -80,23 +89,23 @@ bool Reidemeister_II( const Int c_0 )
                 
                 if( io == Out )
                 {
-                    Reidemeister_II_Vertical(c_0, c_1);
+                    Reidemeister_II_Vertical(c_0,c_1);
                 }
                 else
                 {
-                    Reidemeister_II_Vertical(c_1, c_0);
+                    Reidemeister_II_Vertical(c_1,c_0);
                 }
                 
                 return true;
             }
-            else
-            {
-                PD_print("\tCrossing "+ToString(c_1)+" does not have opposite sing.");
-                PD_valprint("\tC_state["+ToString(c_0)+"]", ToUnderlying(C_state[c_0]) );
-                PD_valprint("\tC_state["+ToString(c_1)+"]", ToUnderlying(C_state[c_1]) );
-                
-                is_switch_candidate = true;
-            }
+//            else
+//            {
+//                PD_print("\tCrossings "+ToString(c_0)+" and "+ToString(c_1)+" do not have opposite signs.");
+//                PD_valprint("\tC_state["+ToString(c_0)+"]", ToUnderlying(C_state[c_0]) );
+//                PD_valprint("\tC_state["+ToString(c_1)+"]", ToUnderlying(C_state[c_1]) );
+//                
+//                is_switch_candidate = true;
+//            }
         }
     }
     
@@ -110,7 +119,7 @@ bool Reidemeister_II( const Int c_0 )
         
         if( c_1 == c_2 )
         {
-            // For the horizontal cases, it is better to make sure that no Reidermeister_I move can be applied to c_1.
+            // For the horizontal cases, it is better to make sure that no Reidemeister_I move can be applied to c_1.
             const bool flipped = Reidemeister_I(c_1);
             
             if( flipped )
@@ -118,10 +127,16 @@ bool Reidemeister_II( const Int c_0 )
                 PD_wprint("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_1)+".");
                 return true;
             }
+            else
+            {
+                PD_print("\tReidemeister_I did not apply.");
+            }
             
             if( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side) )
             {
-// This horizontal alignment in the case of side==Right.
+                PD_assert(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,side));
+                
+//              This horizontal alignment in the case of side==Right.
 //
 //                   C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,side)
 //
@@ -137,36 +152,36 @@ bool Reidemeister_II( const Int c_0 )
 //
 //                   C_arcs(c_0,In ,side) = a = C_arcs(c_1,Out,side)
 //
-//               Beware: The cases e_0 == e_3 and e_1 == e_2 might still be possible.
-//               Well, actually, the preceeding test for Reidemeister_I should rule this out.
+//               Because of the previous Reidemeister I tests we now know
+//               e_0 != e_3 and e_1 != e_2.
                 
                 if( OppositeCrossingSignsQ(c_0,c_1) )
                 {
                     Reidemeister_II_Horizontal(c_0,c_1,side);
                     return true;
                 }
-                else
-                {
-                    // At least we have found a potential candidate for a later break/switch.
-                    is_switch_candidate = true;
-                }
+//                else
+//                {
+//                    // At least we have found a potential candidate for a later break/switch.
+//                    is_switch_candidate = true;
+//                }
             }
             else
             {
                 // Very peculiar and seldom situation here!
-                // Call yourself lucky when you encouter it!
+                // Call yourself lucky when you encounter it!
                 TwistMove(c_0,c_1,side);
                 return true;
             }
         }
     }
     
-    // If we arrive here then no simplifications happend. But maybe we found that c_0 is a good candidate for a later break/switch.
-    
-    if( is_switch_candidate )
-    {
-        switch_candidates.push_back(c_0);
-    }
+//    // If we arrive here then no simplifications happend. But maybe we found that c_0 is a good candidate for a later break/switch.
+//    
+//    if( is_switch_candidate )
+//    {
+//        switch_candidates.push_back(c_0);
+//    }
 
     return false;
 }

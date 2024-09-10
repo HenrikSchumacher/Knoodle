@@ -11,7 +11,8 @@
 #define ACCELERATE_NEW_LAPACK
 #include <Accelerate/Accelerate.h>
 
-#define PD_ASSERTS
+#define PD_DEBUG
+//#define PD_VERBOSE
 
 #include "../KnotTools.hpp"
 

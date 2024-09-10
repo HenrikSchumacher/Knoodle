@@ -79,7 +79,8 @@ namespace KnotTools
 //
 //            valprint( "sparse matrix", ArrayToString( A, {n,n} ) );
             
-            const auto & over_arc_indices = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverArcs() and measure!
+            const auto over_arc_idx = pd.OverArcIndices();
             
             const auto & C_arcs  = pd.Crossings();
             
@@ -103,9 +104,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                        const Int i = over_arc_indices[C[1][0]];
-                        const Int j = over_arc_indices[C[1][1]];
-                        const Int k = over_arc_indices[C[0][0]];
+                        const Int i = over_arc_idx[C[1][0]];
+                        const Int j = over_arc_idx[C[1][1]];
+                        const Int k = over_arc_idx[C[0][0]];
                         
                         mptr<Scal> row = &A[ n * counter ];
                         
@@ -135,9 +136,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                        const Int i = over_arc_indices[C[1][1]];
-                        const Int j = over_arc_indices[C[1][0]];
-                        const Int k = over_arc_indices[C[0][1]];
+                        const Int i = over_arc_idx[C[1][1]];
+                        const Int j = over_arc_idx[C[1][0]];
+                        const Int k = over_arc_idx[C[0][1]];
                         
                         mptr<Scal> row = &A[ n * counter ];
                         
@@ -188,7 +189,8 @@ namespace KnotTools
             
             mref<Aggregator_T> agg = Agg[0];
             
-            const auto & over_arc_indices = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverArcs() and measure!
+            const auto over_arc_idx = pd.OverArcIndices();
             
             const auto & C_arcs  = pd.Crossings();
             
@@ -212,9 +214,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                        const Int i = over_arc_indices[C[1][0]];
-                        const Int j = over_arc_indices[C[1][1]];
-                        const Int k = over_arc_indices[C[0][0]];
+                        const Int i = over_arc_idx[C[1][0]];
+                        const Int j = over_arc_idx[C[1][1]];
+                        const Int k = over_arc_idx[C[0][0]];
                         
                         if( i < n )
                         {
@@ -240,9 +242,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                        const Int i = over_arc_indices[C[1][1]];
-                        const Int j = over_arc_indices[C[1][0]];
-                        const Int k = over_arc_indices[C[0][1]];
+                        const Int i = over_arc_idx[C[1][1]];
+                        const Int j = over_arc_idx[C[1][0]];
+                        const Int k = over_arc_idx[C[0][1]];
                         
                         
                         if( i < n )

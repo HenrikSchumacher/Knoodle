@@ -4,29 +4,52 @@
 
 namespace KnotTools
 {
+    
+    void PD_print( const std::string & s )
+    {
+#if defined(PD_VERBOSE)
+        Tools::print(s);
+#endif
+    }
+    
+    void PD_wprint( const std::string & s )
+    {
+#if defined(PD_VERBOSE)
+        Tools::wprint(s);
+#endif
+    }
 
-#ifdef PD_ASSERTS
-    #define PD_print( s ) Tools::print(s);
-#else
-    #define PD_print( s )
+    template<typename T >
+    void PD_valprint( const std::string & key, const T & val )
+    {
+#if defined(PD_VERBOSE)
+        Tools::valprint(key,val);
 #endif
+    }
+
+//#ifdef PD_VERBOSE
+//    #define PD_print( s ) Tools::print(s);
+//#else
+//    #define PD_print( s )
+//#endif
+//    
+//#ifdef PD_VERBOSE
+//    #define PD_valprint( key, val ) Tools::valprint( key, val )
+//#else
+//    #define PD_valprint( key, val )
+//#endif
+//    
+//    
+//#ifdef PD_VERBOSE
+//    #define PD_wprint( s ) Tools::wprint(s);
+//#else
+//    #define PD_wprint( s )
+//#endif
     
-#ifdef PD_ASSERTS
-    #define PD_wprint( s ) Tools::wprint(s);
-#else
-    #define PD_wprint( s )
-#endif
-    
-#ifdef PD_ASSERTS
-    #define PD_assert( s ) assert(s);
+#ifdef PD_DEBUG
+    #define PD_assert( s ) if(!(s)) { Tools::eprint( "PD_assert failed: " + std::string(#s) ); }
 #else
     #define PD_assert( s )
-#endif
-    
-#ifdef PD_ASSERTS
-    #define PD_valprint( key, val ) Tools::valprint( key, val )
-#else
-    #define PD_valprint( key, val )
 #endif
     
     
@@ -784,7 +807,17 @@ namespace KnotTools
         
         Int NextCrossing( const Int c, bool io, bool lr ) const
         {
-            return A_cross( C_arcs(c,io,lr), ( io == In ) ? Tail : Tip );
+            PD_assert( CrossingActiveQ(c) );
+
+            const Int a = C_arcs(c,io,lr);
+
+            PD_assert( ArcActiveQ(a) );
+            
+            const Int c_next = A_cross( a, ( io == In ) ? Tail : Tip );
+
+            PD_assert( CrossingActiveQ(c_next) );
+            
+            return c_next;
         }
 
         
@@ -799,9 +832,14 @@ namespace KnotTools
             if( CrossingActiveQ(c) )
             {
                 --crossing_count;
+                C_state[c] = CrossingState::Unitialized;
             }
-
-            C_state[c] = CrossingState::Unitialized;
+            else
+            {
+#if defined(PD_DEBUG)
+                wprint("Attempted to deactivate already inactive crossing " + ToString(c) + ".");
+#endif
+            }
         }
         
         /*!
@@ -813,9 +851,14 @@ namespace KnotTools
             if( ArcActiveQ(a) )
             {
                 --arc_count;
+                A_state[a] = ArcState::Inactive;
             }
-            
-            A_state[a] = ArcState::Inactive;
+            else
+            {
+#if defined(PD_DEBUG)
+                wprint("Attempted to deactivate already inactive arc " + ToString(a) + ".");
+#endif
+            }
         }
         
     public:
@@ -824,6 +867,7 @@ namespace KnotTools
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/Reidemeister_I.hpp"
 #include "PlanarDiagram/Reidemeister_II.hpp"
+#include "PlanarDiagram/PassMove.hpp"
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
         
@@ -886,18 +930,14 @@ namespace KnotTools
             // TODO: Signed indexing does not work because of 0!
             
             PD_assert( ArcActiveQ(a) );
-            
-            
             const Int c = A_cross(a,tiptail);
             
             PD_assert( CrossingActiveQ(c) );
             
-            
             const bool io = (tiptail == Tip) ? In : Out;
 
             const bool lr = (C_arcs(c,io,Left) == a) ? Left : Right;
-            
-            
+
             
             if( io == In )
             {
@@ -939,8 +979,28 @@ namespace KnotTools
             const bool lr = (C_arcs(c,In,Left) == a) ? Left : Right;
             
             // We leave through the arc at the opposite port.
-            //If everything is set up correctly, the ourgoing arc points into the same direction as a.
-            return C_arcs(c,Out,!lr);
+            //If everything is set up correctly, the outgoing arc points into the same direction as a.
+        
+            const Int a_next = C_arcs(c,Out,!lr);
+        
+//            // DEBUGGING
+//            
+//            if( a == a_next )
+//            {
+//                wprint( ClassName() + "::NextArc: a == a_next");
+//                
+//                logdump(A_cross( a, Tail ));
+//                logdump(A_cross( a, Tip ));
+//                
+//                logdump(C_arcs(c,Out,Left ));
+//                logdump(C_arcs(c,Out,Right));
+//                logdump(C_arcs(c,In ,Left ));
+//                logdump(C_arcs(c,In ,Right));
+//            }
+            
+            PD_assert( ArcActiveQ(a_next) );
+            
+            return a_next;
         }
         
         /*!
@@ -962,11 +1022,6 @@ namespace KnotTools
             //If everything is set up correctly, the ourgoing arc points into the same direction as a.
             return C_arcs(c,In,!lr);
         }
-        
-//        Int NextCrossing( const Int a, const bool tiptail )
-//        {
-//            return A_cross(a,tiptail);
-//        }
         
 //        Tensor1<Int,Int> ExportSwitchCandidates()
 //        {
@@ -1033,12 +1088,10 @@ namespace KnotTools
         
         void Simplify()
         {
-            ptic(ClassName()+"::Simplify()");
+            ptic(ClassName()+"::Simplify");
             
             pvalprint( "Number of crossings  ", crossing_count      );
             pvalprint( "Number of arcs       ", arc_count           );
-            
-            faces_initialized = false;
             
             R_I_counter  = 0;
             R_II_counter = 0;
@@ -1078,9 +1131,13 @@ namespace KnotTools
 //                Simplify();
 //            }
             
+            // TODO: We should clear these only if we truely made changes.
+            
+            faces_initialized = false;
+    
             this->ClearAllCache();
             
-            ptoc(ClassName()+"::Simplify()");
+            ptoc(ClassName()+"::Simplify");
         }
         
         /*!
@@ -1147,6 +1204,9 @@ namespace KnotTools
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
+                    // DEBUGGING
+                    logdump(a);
+                    
                     const Int c_prev = A_cross(a,0);
                     const Int c_next = A_cross(a,1);
                     
@@ -1232,6 +1292,11 @@ namespace KnotTools
             Int a_ptr     = 0;
             Int a         = 0;
             
+//            logdump( C_arcs  );
+//            logdump( C_state );
+//            logdump( A_cross );
+//            logdump( A_state );
+            
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
@@ -1254,6 +1319,14 @@ namespace KnotTools
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
+//                    logdump(a);
+//                    logdump(a_ptr);
+                    
+                    if( !ArcActiveQ(a) )
+                    {
+                        logprint("!!!");
+                    }
+                    
                     const Int c_prev = A_cross(a,Tail);
                     const Int c_next = A_cross(a,Tip );
                     
@@ -1472,6 +1545,210 @@ namespace KnotTools
         }
         
         /*!
+         * @brief Returns an array of that tells every cross which over-arcs end or start in it.
+         *
+         *  More precisely, crossing `c` has the outgoing over-arcs `CrossingOverArcs()(c,0,0)` and `CrossingOverArcs()(c,0,1)`
+         *  and the incoming over-arcs `CrossingOverArcs()(c,1,0)` and `CrossingOverArcs()(c,1,1)`.
+         *
+         *  (An over-arc is a maximal consecutive sequence of arcs that pass over.)
+         */
+        
+        Tensor3<Int,Int> CrossingOverArcs() const
+        {
+            ptic(ClassName()+"::CrossingOverArcs");
+            
+            const Int n = C_arcs.Dimension(0);
+            const Int m = A_cross.Dimension(0);
+            
+            Tensor3<Int ,Int> C_over_arcs  ( n, 2, 2, -1 );
+            Tensor1<Int ,Int> A_labels     ( m, -1 );
+            Tensor1<char,Int> A_visisted   ( m, false );
+            
+            Int oa_counter = 0;
+            Int a_ptr   = 0;
+            
+            while( a_ptr < m )
+            {
+                // Search for next arc that is active and has not yet been handled.
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                {
+                    ++a_ptr;
+                }
+                
+                if( a_ptr >= m )
+                {
+                    break;
+                }
+                
+                Int a = a_ptr;
+                
+                Int tail = A_cross(a,0);
+                
+                // Go backwards until a goes under crossing tail.
+                while(
+                    (C_state[tail] == CrossingState::RightHanded)
+                    ==
+                    (C_arcs(tail,Out,0) == a)
+                )
+                {
+                    a = PrevArc(a);
+                    
+                    tail = A_cross(a,0);
+                }
+                
+                const Int a_0 = a;
+                
+                // Cycle along all arcs in the link component, until we return where we started.
+                do
+                {
+                    const Int tail = A_cross(a,0);
+                    const Int tip  = A_cross(a,1);
+                    
+                    A_visisted[a] = true;
+                    
+                    if( C_arcs(tail,Out,Left) == a )
+                    {
+                        C_over_arcs(tail,Out,Left ) = oa_counter;
+                    }
+                    else
+                    {
+                        C_over_arcs(tail,Out,Right) = oa_counter;
+                    }
+                    
+                    const bool b = (C_arcs(tip,In,Left) == a);
+                    
+                    const bool goes_underQ =
+                        (C_state[tip] == CrossingState::RightHanded)
+                        ==
+                        b;
+                    
+                    if( b )
+                    {
+                        C_over_arcs(tip,In,Left ) = oa_counter;
+                    }
+                    else
+                    {
+                        C_over_arcs(tip,In,Right) = oa_counter;
+                    }
+                    
+                    oa_counter += goes_underQ;
+                    
+                    a = NextArc(a);
+                }
+                while( a != a_0 );
+                
+                ++a_ptr;
+            }
+            
+            ptoc(ClassName()+"::CrossingOverArcs");
+            
+            return C_over_arcs;
+        }
+        
+        /*!
+         * @brief Returns an array of that tells every cross which under-arcs end or start in it.
+         *
+         *  More precisely, crossing `c` has the outgoing under-arcs `CrossingOverArcs()(c,0,0)` and `CrossingOverArcs()(c,0,1)`
+         *  and the incoming under-arcs `CrossingOverArcs()(c,1,0)` and `CrossingOverArcs()(c,1,1)`.
+         *
+         *  (An under-arc is a maximal consecutive sequence of arcs that pass under.)
+         */
+        
+        Tensor3<Int,Int> CrossingUnderArcs() const
+        {
+            ptic(ClassName()+"::CrossingUnderArcs");
+            
+            const Int n = C_arcs.Dimension(0);
+            const Int m = A_cross.Dimension(0);
+            
+            Tensor3<Int ,Int> C_under_arcs ( n, 2, 2, -1 );
+            Tensor1<Int ,Int> A_labels     ( m, -1 );
+            Tensor1<char,Int> A_visisted   ( m, false );
+            
+            Int oa_counter = 0;
+            Int a_ptr   = 0;
+            
+            eprint( ClassName()+"::CrossingUnderArcs: Not implemented yet. Returning garbage." );
+            
+//            while( a_ptr < m )
+//            {
+//                // Search for next arc that is active and has not yet been handled.
+//                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+//                {
+//                    ++a_ptr;
+//                }
+//                
+//                if( a_ptr >= m )
+//                {
+//                    break;
+//                }
+//                
+//                Int a = a_ptr;
+//                
+//                Int tail = A_cross(a,0);
+//                
+//                // Go backwards until a goes under crossing tail.
+//                while(
+//                    (C_state[tail] == CrossingState::RightHanded)
+//                    ==
+//                    (C_arcs(tail,Out,0) == a)
+//                )
+//                {
+//                    a = PrevArc(a);
+//                    
+//                    tail = A_cross(a,0);
+//                }
+//                
+//                const Int a_0 = a;
+//                
+//                // Cycle along all arcs in the link component, until we return where we started.
+//                do
+//                {
+//                    const Int tail = A_cross(a,0);
+//                    const Int tip  = A_cross(a,1);
+//                    
+//                    A_visisted[a] = true;
+//                    
+//                    if( C_arcs(tail,Out,Left) == a )
+//                    {
+//                        C_over_arcs(tail,Out,Left ) = oa_counter;
+//                    }
+//                    else
+//                    {
+//                        C_over_arcs(tail,Out,Right) = oa_counter;
+//                    }
+//                    
+//                    const bool b = (C_arcs(tip,In,Left) == a);
+//                    
+//                    const bool goes_underQ =
+//                        (C_state[tip] == CrossingState::RightHanded)
+//                        ==
+//                        b;
+//                    
+//                    if( b )
+//                    {
+//                        C_over_arcs(tip,In,Left ) = oa_counter;
+//                    }
+//                    else
+//                    {
+//                        C_over_arcs(tip,In,Right) = oa_counter;
+//                    }
+//                    
+//                    oa_counter += goes_underQ;
+//                    
+//                    a = NextArc(a);
+//                }
+//                while( a != a_0 );
+//                
+//                ++a_ptr;
+//            }
+            
+            ptoc(ClassName()+"::CrossingUnderArcs");
+            
+            return C_under_arcs;
+        }
+        
+        /*!
          * @brief Returns an array that tells every arc to which over-arc it belongs.
          *
          *  More precisely, arc `a` belongs to over-arc number `OverArcIndices()[a]`.
@@ -1481,7 +1758,7 @@ namespace KnotTools
         
         Tensor1<Int,Int> OverArcIndices() const
         {
-            ptic(ClassName()+"::OverArcIndices()");
+            ptic(ClassName()+"::OverArcIndices");
             
             const Int m = A_cross.Dimension(0);
             
@@ -1549,7 +1826,7 @@ namespace KnotTools
                 ++a_ptr;
             }
             
-            ptoc(ClassName()+"::OverArcIndices()");
+            ptoc(ClassName()+"::OverArcIndices");
             
             return over_arc_idx;
         }

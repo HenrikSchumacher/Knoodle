@@ -1,5 +1,7 @@
+public:
+
 bool Switch( const Int c )
-{   
+{
     if( C_state[c] == CrossingState::RightHanded)
     {
         C_state[c] = CrossingState::LeftHanded;

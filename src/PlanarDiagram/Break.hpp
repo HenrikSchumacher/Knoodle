@@ -65,8 +65,8 @@ bool Break( const Int c )
         Reconnect(e_1,Tip,e_2);
 
         DeactivateCrossing(c);
-        DeactivateArc(e_2);
-        DeactivateArc(e_3);
+        DeactivateArc(e_2); // Done by Reconnect.
+        DeactivateArc(e_3); // Done by Reconnect.
 
         return true;
     }

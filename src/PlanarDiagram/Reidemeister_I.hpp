@@ -1,21 +1,23 @@
-/*! @brief Goes once through the list of all crossings in increasing order
- *  and attempts to perform Reidemeister I move. Returns the number of
- *  moves actually performed.
- */
+public:
 
-Int Reidemeister_I()
-{
-    // One round of Reidemeister_I checks.
-    
-    Int count = 0;
-    
-    for( Int c = 0; c < CrossingCount(); ++c )
-    {
-        count += Reidemeister_I(c);
-    }
-    
-    return count;
-}
+///*! @brief Goes once through the list of all crossings in increasing order
+// *  and attempts to perform Reidemeister I move. Returns the number of
+// *  moves actually performed.
+// */
+//
+//Int Reidemeister_I()
+//{
+//    // One round of Reidemeister_I checks.
+//    
+//    Int count = 0;
+//
+//    for( Int c = 0; c < initial_crossing_count; ++c )
+//    {
+//        count += Reidemeister_I(c);
+//    }
+//    
+//    return count;
+//}
 
 /*! @brief Checks whether a Reidemeister I move can be made at crossing `c`,
  *  then applies it (if possible), and returns a Boolean that indicates whether
@@ -95,7 +97,7 @@ bool Reidemeister_I( const Int c )
         Reconnect(a, Tip, b);
         
         DeactivateArc(d);
-        DeactivateArc(b);
+        DeactivateArc(b); // Done by Reconnect.
         
         DeactivateCrossing(c);
         

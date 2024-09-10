@@ -1,30 +1,33 @@
+private:
+
 void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 {
-    PD_print("\tReidemeister_II_Horizontal( "+ToString(c_0)+", "+ToString(c_1)+", "+ ToString(side) +" )");
-    
+    PD_print("\nReidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_assert( c_0 != c_1 );
+    PD_assert( OppositeCrossingSignsQ(c_0,c_1) );
     
     PD_assert( CheckCrossing(c_0) );
     PD_assert( CheckCrossing(c_1) );
     
+#ifdef PD_DEBUG
+    const Int a_0 = C_arcs(c_0,In ,side);
+    const Int a_1 = C_arcs(c_1,Out,side);
     
-    const Int a_0 = C_arcs(c_0,Out,side);
-    const Int a_1 = C_arcs(c_1,In ,side);
-    
-    const Int b_0 = C_arcs(c_0,In ,side);
-    const Int b_1 = C_arcs(c_0,Out,side);
+    const Int b_0 = C_arcs(c_0,Out,side);
+    const Int b_1 = C_arcs(c_1,In ,side);
     
     PD_assert( CheckArc(a_0) );
     PD_assert( CheckArc(a_1) );
     PD_assert( CheckArc(b_0) );
     PD_assert( CheckArc(b_1) );
+        
     
+    PD_assert( a_0 == a_1 );
+    PD_assert( b_0 == b_1 );
     // These are the central assumptions here.
-    PD_assert( ((a_0 == a_1) && (b_0 == b_1)) );
-    
-    if( !((a_0 == a_1) && (b_0 == b_1)))
+    if(!( (a_0 == a_1) && (b_0 == b_1) ))
     {
 //        if( side == Left )
 //        {
@@ -34,16 +37,17 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
 //            print("right");
 //        }
-        PD_valprint( "C_state[c_0]", ToUnderlying(C_state[c_0]));
-        PD_valprint( "C_state[c_1]", ToUnderlying(C_state[c_1]));
-        PD_print( CrossingString(c_0));
-        PD_print( CrossingString(c_1));
+        PD_valprint("C_state[c_0]",ToUnderlying(C_state[c_0]));
+        PD_valprint("C_state[c_1]",ToUnderlying(C_state[c_1]));
+        PD_print(CrossingString(c_0));
+        PD_print(CrossingString(c_1));
         
-        PD_print( ArcString(a_0));
-        PD_print( ArcString(a_1));
-        PD_print( ArcString(b_0));
-        PD_print( ArcString(b_1));
+        PD_print(ArcString(a_0));
+        PD_print(ArcString(a_1));
+        PD_print(ArcString(b_0));
+        PD_print(ArcString(b_1));
     }
+#endif
     
     
     
@@ -93,8 +97,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                               \      e_0 = e_1      /
 //                                +---------<---------+
             
-            // We should arrive here because this is a vertical case.
-            PD_assert(false);
+            // We should not arrive here because this is a vertical case.
+//            PD_assert(false);
+            wprint("We should not arrive here because this is a vertical case. (1)");
             
             unlink_count++;
             
@@ -105,8 +110,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             
             DeactivateArc(b);
             DeactivateArc(e_0);
-            DeactivateArc(e_2);
-            DeactivateArc(e_3);
+            DeactivateArc(e_2); // Done by Reconnect.
+            DeactivateArc(e_3); // Done by Reconnect.
             
             goto exit;
         }
@@ -130,8 +135,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                               \      e_0 = e_1      /
 //                                +---------<---------+
             
-            // We should arrive here because this is a vertical case.
-            PD_assert(false);
+            // We should not arrive here because this is a vertical case.
+//            PD_assert(false);
+            wprint("We should not arrive here because this is a vertical case. (2)");
             
             PD_print("\tTwo unlinks detectd.");
             
@@ -144,7 +150,6 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             
             goto exit;
         }
-        
     }
     else if( e_3 == e_2 )
     {
@@ -163,10 +168,12 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                       e_0    /     \     a     v     v    e_1
 //               v_0 O---->----O       O----<----O       O---->----O v_1
     
-        // We should arrive here because this is a vertical case.
-        PD_assert(false);
+        // We should not arrive here because this is a vertical case.
+//        PD_assert(false);
         
-        unlink_count ++;
+        wprint("We should not arrive here because this is a vertical case. (3)");
+        
+        unlink_count++;
         
         PD_print("\tUnlink detectd.");
         
@@ -174,8 +181,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         Reconnect(b,Tip ,e_1);
         
         DeactivateArc(a);
-        DeactivateArc(e_0);
-        DeactivateArc(e_1);
+        DeactivateArc(e_0); // Done by Reconnect.
+        DeactivateArc(e_1); // Done by Reconnect.
         DeactivateArc(e_2);
         
         goto exit;
@@ -197,8 +204,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                   +---->----O       O----<----O       O---->----O v_1
 //
 
-            //  Should happen because we first check for a Reidemeister_I at c_0.
-            PD_assert( false );
+            // We should not arrive here because we first check for a Reidemeister_I at c_0.
+//            PD_assert( false );
+            
+            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0.");
             
             Reconnect( e_0, Tail, e_2);
             Reconnect( e_0, Tip , e_1);
@@ -206,13 +215,15 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             DeactivateArc(a);
             DeactivateArc(b);
             
+            // TODO: Check whether it is okay that Reconnect deactivates e_1 and e_2.
+            
             PD_print("\t\tModified move 1.");
             
             goto exit;
         }
         else
         {
-// This very, very special case:
+// This is a very, very special case:
 //                   +----<----O       O---->----O       O----<----+
 //                  /    e_3    ^     ^     b     \     /           \
 //                 /             \   /             \   /             \
@@ -224,8 +235,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                   +---->----O       O----<----O       O---->----+
 //
 
-            //  Should happen because we first check for a Reidemeister_I at c_0.
-            PD_assert( false );
+            //  We should not arrive here because we first check for a Reidemeister_I at c_0.
+//            PD_assert( false );
+            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0. (2)");
 
             ++unlink_count;
             
@@ -256,8 +268,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
 
         
-        //  Should not happen because we first check for a Reidemeister_I at c_1.
-        PD_assert( false );
+        //  We should not arrive here because we first check for a Reidemeister_I at c_1.
+//        PD_assert( false );
+        wprint("We should not arrive here because we first check for a Reidemeister_I at c_0. (3)");
 
         
         Reconnect(e_1,Tail,e_0);
@@ -265,6 +278,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         
         DeactivateArc(a);
         DeactivateArc(b);
+        
+        DeactivateArc(e_0); // Done by Reconnect.
+        DeactivateArc(e_3); // Done by Reconnect.
         
         PD_print("\t\tModified move 2.");
         
@@ -312,10 +328,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         Reconnect(b,Tail,e_0);
         Reconnect(b,Tip ,e_1);
         
-        DeactivateArc(e_0);
-        DeactivateArc(e_1);
-        DeactivateArc(e_2);
-        DeactivateArc(e_3);
+        DeactivateArc(e_0); // Done by Reconnect.
+        DeactivateArc(e_1); // Done by Reconnect.
+        DeactivateArc(e_2); // Done by Reconnect.
+        DeactivateArc(e_3); // Done by Reconnect.
     
         goto exit;
     }

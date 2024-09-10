@@ -2,7 +2,7 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
 {
     // Read: 
     // Reconnect arc a with its tip/tail to where b pointed/started.
-    // Then deactivate b.
+    // Then deactivates b.
     //
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
@@ -33,5 +33,8 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     
     touched_crossings.push_back(c);
 //            touched_crossings.push_back(A_cross(a,Tip));
+    
+    // TODO: Is this a good idea?
+//    DeactivateArc(b);
 }
 

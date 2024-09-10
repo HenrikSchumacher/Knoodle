@@ -1,5 +1,10 @@
 bool CheckCrossing( const Int c  )
 {
+    if( (c < 0) || (c > initial_crossing_count) )
+    {
+        eprint(ClassName()+"::CheckCrossing: Crossing index c = " + ToString(c) + " is out of bounds.");
+        return false;
+    }
     
     if( !CrossingActiveQ(c) )
     {
@@ -20,7 +25,7 @@ bool CheckCrossing( const Int c  )
             if( !A_activeQ )
             {
                 print("Check at    " + CrossingString(c) );
-                print("Probem with " + ArcString(a) + ": It's not active." );
+                eprint("Probem with " + ArcString(a) + ": It's not active." );
             }
             
             const bool tailtip = ( io == In ) ? Tip : Tail;
@@ -30,7 +35,7 @@ bool CheckCrossing( const Int c  )
             if( !A_goodQ )
             {
                 print("Check at    " + CrossingString(c) );
-                print("Probem with " + ArcString(a) + ": It's not connected correctly to crossing.");
+                eprint("Probem with " + ArcString(a) + ": It's not connected correctly to crossing.");
             }
             C_passedQ = C_passedQ && A_activeQ && A_goodQ;
         }
@@ -38,7 +43,7 @@ bool CheckCrossing( const Int c  )
     
     if( !C_passedQ )
     {
-        eprint("Crossing "+ToString(c)+" failed to pass CheckCrossing.");
+        eprint(ClassName()+"::CheckCrossing: Crossing "+ToString(c)+" failed to pass.");
     }
     
     return C_passedQ;
@@ -55,7 +60,11 @@ bool CheckAllCrossings()
     
     if( passedQ )
     {
-        print("CheckAllCrossings passed.");
+        print(ClassName() + "::CheckAllCrossings: passed.");
+    }
+    else
+    {
+        eprint(ClassName() + "::CheckAllCrossings: failed.");
     }
     return passedQ;
 }
@@ -63,6 +72,12 @@ bool CheckAllCrossings()
 
 bool CheckArc( const Int a  )
 {
+    if( (a < 0) || (a > initial_arc_count) )
+    {
+        eprint(ClassName()+"::CheckArc: Arc index a = " + ToString(a) + " is out of bounds.");
+        return false;
+    }
+    
     if( A_state[a] == ArcState::Inactive )
     {
         return true;
@@ -100,10 +115,8 @@ bool CheckArc( const Int a  )
     
     if( !A_passedQ )
     {
-        eprint("Arc "+ToString(a)+" failed to pass CheckArc.");
+        eprint( ClassName() + "::CheckArc: Arc "+ToString(a)+" failed to pass.");
     }
-    
-//    PD_assert( passed );
     
     return A_passedQ;
 }
@@ -119,14 +132,19 @@ bool CheckAllArcs()
     
     if( passed )
     {
-        print("CheckAllArcs passed.");
+        print(ClassName()+"::CheckAllArcs: passed.");
     }
+    else
+    {
+        eprint(ClassName()+"::CheckAllArcs: failed.");
+    }
+    
     return passed;
 }
 
 bool CheckAll()
 {
     const bool passed = CheckAllCrossings() && CheckAllArcs();
-//    PD_assert( passed );
+
     return passed;
 }

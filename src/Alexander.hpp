@@ -88,7 +88,8 @@ namespace KnotTools
             
             const Int n = pd.CrossingCount() - 1;
             
-            const auto & over_arc_indices = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverArcs() and measure!
+            const auto over_arc_idx = pd.OverArcIndices();
             
             const auto & C_arcs  = pd.Crossings();
             
@@ -112,9 +113,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
-                        const Int i = over_arc_indices[C[1][0]];
-                        const Int j = over_arc_indices[C[1][1]];
-                        const Int k = over_arc_indices[C[0][0]];
+                        const Int i = over_arc_idx[C[1][0]];
+                        const Int j = over_arc_idx[C[1][1]];
+                        const Int k = over_arc_idx[C[0][0]];
                         
                         mptr<Scal> row = &A[ n * counter ];
                         
@@ -144,9 +145,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                        const Int i = over_arc_indices[C[1][1]];
-                        const Int j = over_arc_indices[C[1][0]];
-                        const Int k = over_arc_indices[C[0][1]];
+                        const Int i = over_arc_idx[C[1][1]];
+                        const Int j = over_arc_idx[C[1][0]];
+                        const Int k = over_arc_idx[C[0][1]];
                         
                         mptr<Scal> row = &A[ n * counter ];
                         
@@ -212,7 +213,8 @@ namespace KnotTools
 
             mref<Aggregator_T> agg = Agg[0];
 
-            const auto & over_arc_indices = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverArcs() and measure!
+            const auto over_arc_idx = pd.OverArcIndices();
 
             const auto & C_arcs  = pd.Crossings();
 
@@ -241,9 +243,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                       
-                        const Int i = over_arc_indices[C[1][0]];
-                        const Int j = over_arc_indices[C[1][1]];
-                        const Int k = over_arc_indices[C[0][0]];
+                        const Int i = over_arc_idx[C[1][0]];
+                        const Int j = over_arc_idx[C[1][1]];
+                        const Int k = over_arc_idx[C[0][0]];
                         
                         if( fullQ || (i < n) )
                         {
@@ -267,9 +269,9 @@ namespace KnotTools
                         Int C [2][2];
                         copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
-                        const Int i = over_arc_indices[C[1][1]];
-                        const Int j = over_arc_indices[C[1][0]];
-                        const Int k = over_arc_indices[C[0][1]];
+                        const Int i = over_arc_idx[C[1][1]];
+                        const Int j = over_arc_idx[C[1][0]];
+                        const Int k = over_arc_idx[C[0][1]];
        
                         if( fullQ || (i < n) )
                         {
@@ -326,7 +328,10 @@ namespace KnotTools
                 mref<Aggregator_T> agg_0 = Agg_0[0];
                 mref<Aggregator_T> agg_1 = Agg_1[0];
                 
-                const auto & over_arc_indices = pd.OverArcIndices();
+                // TODO: Replace this by pd.CrossingOverArcs() and measure!
+//                const auto C_over_arcs = pd.CrossingOverArcs();
+                
+                const auto over_arc_idx = pd.OverArcIndices();
                 
                 const auto & C_arcs = pd.Crossings();
                 
@@ -351,9 +356,9 @@ namespace KnotTools
                             Int C [2][2];
                             copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
-                            const Int i = over_arc_indices[C[1][0]];
-                            const Int j = over_arc_indices[C[1][1]];
-                            const Int k = over_arc_indices[C[0][0]];
+                            const Int i = over_arc_idx[C[1][0]];
+                            const Int j = over_arc_idx[C[1][1]];
+                            const Int k = over_arc_idx[C[0][0]];
                             
                             if( i < n )
                             {
@@ -382,9 +387,184 @@ namespace KnotTools
                             Int C [2][2];
                             copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                         
-                            const Int i = over_arc_indices[C[1][1]];
-                            const Int j = over_arc_indices[C[1][0]];
-                            const Int k = over_arc_indices[C[0][1]];
+                            const Int i = over_arc_idx[C[1][1]];
+                            const Int j = over_arc_idx[C[1][0]];
+                            const Int k = over_arc_idx[C[0][1]];
+                            
+                            if( i < n )
+                            {
+                                agg_0.Push(counter, i, v_0[0] );
+                                agg_1.Push(counter, i, v_1[0] );
+                            }
+                            
+                            if( j < n )
+                            {
+                                agg_0.Push(counter, j, v_0[2] );
+                                agg_1.Push(counter, j, v_1[2] );
+                            }
+                            
+                            if( k < n )
+                            {
+                                agg_0.Push(counter, k, v_0[1] );
+                                agg_1.Push(counter, k, v_1[1] );
+                            }
+                            
+                            ++counter;
+                            
+                            break;
+                        }
+                        default:
+                        {
+                            break;
+                        }
+                    }
+                }
+                
+                agg_0.Finalize();
+                agg_1.Finalize();
+                
+                SparseMatrix_T A_0 ( Agg_0, n, n, Int(1), true, false );
+                SparseMatrix_T A_1 ( Agg_1, n, n, Int(1), true, false );
+                
+                SparseMatrix_T AH_0 = A_0.ConjugateTranspose();
+                SparseMatrix_T AH_1 = A_1.ConjugateTranspose();
+                
+                SparseMatrix_T AHA = AH_0.Dot( A_0 );
+                
+                
+                Sparse::ApproximateMinimumDegree<Int> reorderer;
+                
+    //                Sparse::Metis<Int> reorderer;
+
+                Permutation<Int> perm = reorderer(
+                    AHA.Outer().data(), AHA.Inner().data(), AHA.RowCount(), Int(1)
+                );
+                
+                // Create Cholesky factorization.
+                
+                Factorization_Ptr S = std::make_shared<Factorization_T>(
+                    AHA.Outer().data(), AHA.Inner().data(), std::move(perm)
+                );
+                
+                S->SymbolicFactorization();
+                
+                pd.SetCache( tag_fact, std::move(S) );
+                
+                // TODO: We could reorder AHA here to (marginally) speed up the numeric factorization.
+                
+                // TODO: Do we really have to compute 2 sparse transposes and 4 sparse dots?
+                Tensor2<Scal,LInt> herm_alex_help ( 4, AHA.NonzeroCount() );
+                
+                AHA.Values().Write( herm_alex_help.data(0) );
+                AHA = SparseMatrix_T(); // Release memory.
+                
+                AHA = AH_0.Dot( A_1 );
+                AHA.Values().Write( herm_alex_help.data(1) );
+                AHA = SparseMatrix_T(); // Release memory.
+                
+                AHA = AH_1.Dot( A_0 );
+                AHA.Values().Write( herm_alex_help.data(2) );
+                AHA = SparseMatrix_T(); // Release memory.
+                
+                AHA = AH_1.Dot( A_1 );
+                AHA.Values().Write( herm_alex_help.data(3) );
+                
+                pd.SetCache( tag_help, std::move(herm_alex_help) );
+            }
+
+            ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
+        }
+        
+        void RequireSparseHermitianAlexanderMatrix2( cref<PD_T> pd ) const
+        {
+            ptic(ClassName()+"::RequireSparseHermitianAlexanderMatrix2");
+            
+            std::string tag_help ( std::string( "SparseHermitianAlexanderHelpers_" ) + TypeName<Scal>);
+            std::string tag_fact ( std::string( "SparseHermitianAlexanderFactorization_" ) + TypeName<Scal> );
+
+            if( (!pd.InCacheQ(tag_fact)) || (!pd.InCacheQ(tag_help)) )
+            {
+                const Int n = pd.CrossingCount()-1;
+                
+                std::vector<Aggregator_T> Agg_0;
+                std::vector<Aggregator_T> Agg_1;
+                
+                Agg_0.emplace_back(3 * n);
+                Agg_1.emplace_back(3 * n);
+                
+                mref<Aggregator_T> agg_0 = Agg_0[0];
+                mref<Aggregator_T> agg_1 = Agg_1[0];
+                
+                // TODO: Replace this by pd.CrossingOverArcs() and measure!
+                const auto C_over_arcs = pd.CrossingOverArcs();
+                
+//                const auto over_arc_idx = pd.OverArcIndices();
+                
+                const auto & C_arcs = pd.Crossings();
+                
+                cptr<CrossingState> C_state = pd.CrossingStates().data();
+                
+                const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
+                const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
+                
+                Int counter = 0;
+                
+                for( Int c = 0; c < C_arcs.Size(); ++c )
+                {
+                    if( counter >= n )
+                    {
+                        break;
+                    }
+                    
+                    switch( C_state[c] )
+                    {
+                        case CrossingState::LeftHanded:
+                        {
+//                            Int C [2][2];
+//                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+//
+//                            const Int i = over_arc_idx[C[1][0]];
+//                            const Int j = over_arc_idx[C[1][1]];
+//                            const Int k = over_arc_idx[C[0][0]];
+                            
+                            const Int i = C_over_arcs(c,1,0);
+                            const Int j = C_over_arcs(c,1,1);
+                            const Int k = C_over_arcs(c,0,0);
+                            
+                            if( i < n )
+                            {
+                                agg_0.Push( counter, i, v_0[0] );
+                                agg_1.Push( counter, i, v_1[0] );
+                            }
+                            
+                            if( j < n )
+                            {
+                                agg_0.Push( counter, j, v_0[1] );
+                                agg_1.Push( counter, j, v_1[1] );
+                            }
+                            
+                            if( k < n )
+                            {
+                                agg_0.Push( counter, k, v_0[2] );
+                                agg_1.Push( counter, k, v_1[2] );
+                            }
+                            
+                            ++counter;
+                            
+                            break;
+                        }
+                        case CrossingState::RightHanded:
+                        {
+//                            Int C [2][2];
+//                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+//
+//                            const Int i = over_arc_idx[C[1][1]];
+//                            const Int j = over_arc_idx[C[1][0]];
+//                            const Int k = over_arc_idx[C[0][1]];
+                            
+                            const Int i = C_over_arcs(c,1,1);
+                            const Int j = C_over_arcs(c,1,0);
+                            const Int k = C_over_arcs(c,0,1);
                             
                             
                             if( i < n )
@@ -444,7 +624,6 @@ namespace KnotTools
                 
                 S->SymbolicFactorization();
                 
-                
                 pd.SetCache( tag_fact, std::move(S) );
                 
                 // TODO: We could reorder AHA here to (marginally) speed up the numeric factorization.
@@ -469,7 +648,7 @@ namespace KnotTools
                 pd.SetCache( tag_help, std::move(herm_alex_help) );
             }
 
-            ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
+            ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix2");
         }
         
         void LogAlexanderModuli_Sparse(
