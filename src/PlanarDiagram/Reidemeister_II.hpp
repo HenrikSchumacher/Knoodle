@@ -95,7 +95,6 @@ bool Reidemeister_II( const Int c_0 )
                 {
                     Reidemeister_II_Vertical(c_1,c_0);
                 }
-                
                 return true;
             }
 //            else
@@ -182,6 +181,6 @@ bool Reidemeister_II( const Int c_0 )
 //    {
 //        switch_candidates.push_back(c_0);
 //    }
-
+    
     return false;
 }

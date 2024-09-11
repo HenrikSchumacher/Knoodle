@@ -61,11 +61,11 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             Reconnect(a,Tip ,e_3);
             Reconnect(b,Tail,e_1);
             Reconnect(b,Tip ,e_2);
-
-//            DeactivateArc(e_0); // Done by Reconnect.
-//            DeactivateArc(e_1); // Done by Reconnect.
-//            DeactivateArc(e_2); // Done by Reconnect.
-//            DeactivateArc(e_3); // Done by Reconnect.
+            
+            //            DeactivateArc(e_0); // Done by Reconnect.
+            //            DeactivateArc(e_1); // Done by Reconnect.
+            //            DeactivateArc(e_2); // Done by Reconnect.
+            //            DeactivateArc(e_3); // Done by Reconnect.
             
             goto exit;
         }
@@ -142,7 +142,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         ++unlink_count;
         
         DeactivateArc(b);
-//        DeactivateArc(e_0); // Done by Reconnect.
+        //        DeactivateArc(e_0); // Done by Reconnect.
         
         // TODO: Check whether it is okay that Reconnect deactivates e_1 and e_2.
         
@@ -174,7 +174,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         //          \             /   \             /
         //           \           /     \           /
         //            +---->----O       O----<----+
-                
+        
         unlink_count += Int(2);
         
         DeactivateArc(a);
@@ -184,7 +184,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         
         goto exit;
     }
- 
+    
 exit:
     
     // The two crossings are inactivated in any case.
@@ -194,6 +194,4 @@ exit:
     
     ++R_II_counter;
     
-//    CheckAll();
-
 } // Reidemeister_II_Vertical

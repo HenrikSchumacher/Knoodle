@@ -4,47 +4,25 @@
 
 namespace KnotTools
 {
-    
-    void PD_print( const std::string & s )
-    {
-#if defined(PD_VERBOSE)
-        Tools::print(s);
-#endif
-    }
-    
-    void PD_wprint( const std::string & s )
-    {
-#if defined(PD_VERBOSE)
-        Tools::wprint(s);
-#endif
-    }
 
-    template<typename T >
-    void PD_valprint( const std::string & key, const T & val )
-    {
-#if defined(PD_VERBOSE)
-        Tools::valprint(key,val);
+#ifdef PD_VERBOSE
+    #define PD_print( s ) Tools::print(s);
+#else
+    #define PD_print( s )
 #endif
-    }
-
-//#ifdef PD_VERBOSE
-//    #define PD_print( s ) Tools::print(s);
-//#else
-//    #define PD_print( s )
-//#endif
-//    
-//#ifdef PD_VERBOSE
-//    #define PD_valprint( key, val ) Tools::valprint( key, val )
-//#else
-//    #define PD_valprint( key, val )
-//#endif
-//    
-//    
-//#ifdef PD_VERBOSE
-//    #define PD_wprint( s ) Tools::wprint(s);
-//#else
-//    #define PD_wprint( s )
-//#endif
+    
+#ifdef PD_VERBOSE
+    #define PD_valprint( key, val ) Tools::valprint( key, val )
+#else
+    #define PD_valprint( key, val )
+#endif
+    
+#ifdef PD_VERBOSE
+    #define PD_wprint( s ) Tools::wprint(s);
+#else
+    #define PD_wprint( s )
+#endif
+    
     
 #ifdef PD_DEBUG
     #define PD_assert( s ) if(!(s)) { Tools::eprint( "PD_assert failed: " + std::string(#s) ); }
@@ -103,9 +81,9 @@ namespace KnotTools
         Int twist_move_counter = 0;
         
         // Stacks for keeping track of recently modified entities.
-        std::vector<Int> touched_crossings;
-        std::vector<Int> touched_arcs;
-        std::vector<Int> switch_candidates;
+//        std::vector<Int> touched_crossings;
+//        std::vector<Int> touched_arcs;
+//        std::vector<Int> switch_candidates;
         
         // Data for the faces and the dual graph
         
@@ -181,9 +159,9 @@ namespace KnotTools
             swap( A.R_II_counter          , B.R_II_counter           );
             swap( A.twist_move_counter    , B.twist_move_counter     );
             
-            swap( A.touched_crossings     , B.touched_crossings      );
-            swap( A.touched_arcs          , B.touched_arcs           );
-            swap( A.switch_candidates     , B.switch_candidates      );
+//            swap( A.touched_crossings     , B.touched_crossings      );
+//            swap( A.touched_arcs          , B.touched_arcs           );
+//            swap( A.switch_candidates     , B.switch_candidates      );
             
             swap( A.A_faces               , B.A_faces                );
             
@@ -873,52 +851,29 @@ namespace KnotTools
 //#include "PlanarDiagram/Switch.hpp"
         
 #include "PlanarDiagram/Faces.hpp"
-#include "PlanarDiagram/ConnectedSum.hpp"
+//#include "PlanarDiagram/ConnectedSum.hpp"
         
         void PushAllCrossings()
         {
-            touched_crossings.reserve( initial_crossing_count );
-            
-            for( Int i = initial_crossing_count-1; i >= 0; --i )
-            {
-                touched_crossings.push_back( i );
-            }
+//            touched_crossings.reserve( initial_crossing_count );
+//            
+//            for( Int i = initial_crossing_count-1; i >= 0; --i )
+//            {
+//                touched_crossings.push_back( i );
+//            }
         }
         
         void PushRemainingCrossings()
         {
-            Int counter = 0;
-            for( Int i = initial_crossing_count-1; i >= 0; --i )
-            {
-                if( CrossingActiveQ(i) )
-                {
-                    ++counter;
-                    touched_crossings.push_back( i );
-                }
-            }
-        }
-        
-        void RemoveLoops()
-        {
-            faces_initialized = false;
-            
-//            R_I_counter  = 0;
-//            R_II_counter = 0;
-//            twise_move_counter = 0;
-            
-//            switch_candidates.clear();
-                        
-            while( !touched_crossings.empty() )
-            {
-                const Int c = touched_crossings.back();
-                touched_crossings.pop_back();
-                
-                PD_assert( CheckCrossing(c) );
-                
-                (void)Reidemeister_I(c);
-            }
-            
-            PD_print( "Performed Reidemeister I  moves = " + ToString(R_I_counter ));
+//            Int counter = 0;
+//            for( Int i = initial_crossing_count-1; i >= 0; --i )
+//            {
+//                if( CrossingActiveQ(i) )
+//                {
+//                    ++counter;
+//                    touched_crossings.push_back( i );
+//                }
+//            }
         }
         
 
@@ -1076,8 +1031,8 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Simplify");
             
-            pvalprint( "Number of crossings  ", crossing_count      );
-            pvalprint( "Number of arcs       ", arc_count           );
+//            pvalprint( "Number of crossings  ", crossing_count      );
+//            pvalprint( "Number of arcs       ", arc_count           );
             
             R_I_counter  = 0;
             R_II_counter = 0;
@@ -1086,29 +1041,50 @@ namespace KnotTools
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
             
-            while( !touched_crossings.empty() )
+//            while( !touched_crossings.empty() )
+//            {
+//                const Int c = touched_crossings.back();
+//                touched_crossings.pop_back();
+//                
+//                PD_assert( CheckCrossing(c) );
+//                
+//                const bool R_I = Reidemeister_I(c);
+//                
+//                if( !R_I )
+//                {
+//                    (void)Reidemeister_II(c);
+//                }
+//            }
+            
+            Int old_counter = -1;
+            Int counter = 0;
+            
+            while( counter != old_counter )
             {
-                const Int c = touched_crossings.back();
-                touched_crossings.pop_back();
+                old_counter = counter;
                 
-                PD_assert( CheckCrossing(c) );
-                
-                const bool R_I = Reidemeister_I(c);
-                
-                if( !R_I )
+                for( Int c = 0; c < initial_crossing_count; ++c )
                 {
-                    (void)Reidemeister_II(c);
+                    const bool R_I = Reidemeister_I(c);
+                    
+                    counter += R_I;
+                    
+                    if( !R_I )
+                    {
+                        counter += Reidemeister_II(c);
+                    }
                 }
             }
             
 #pragma clang diagnostic pop
             
-            pvalprint( "Reidemeister I  moves", R_I_counter         );
-            pvalprint( "Reidemeister II moves", R_II_counter        );
-            pvalprint( "Twist           moves", twist_move_counter  );
+//            pvalprint( "Reidemeister I  moves", R_I_counter         );
+//            pvalprint( "Reidemeister II moves", R_II_counter        );
+//            pvalprint( "Twist           moves", twist_move_counter  );
+//            
+//            pvalprint( "Number of crossings  ", crossing_count      );
+//            pvalprint( "Number of arcs       ", arc_count           );
             
-            pvalprint( "Number of crossings  ", crossing_count      );
-            pvalprint( "Number of arcs       ", arc_count           );
 //            const bool connected_sum_Q = ConnectedSum();
 //
 //            if( connected_sum_Q )
@@ -1116,12 +1092,13 @@ namespace KnotTools
 //                print("A");
 //                Simplify();
 //            }
-            
-            // TODO: We should clear these only if we truely made changes.
-            
-            faces_initialized = false;
-    
-            this->ClearAllCache();
+
+            if( (R_I_counter > 0) || (R_II_counter > 0) || (twist_move_counter > 0) )
+            {
+                faces_initialized = false;
+                
+                this->ClearCache();
+            }
             
             ptoc(ClassName()+"::Simplify");
         }

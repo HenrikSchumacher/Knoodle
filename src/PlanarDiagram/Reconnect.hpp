@@ -31,9 +31,8 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     
     C_arcs(c,io,lr) = a;
     
-    touched_crossings.push_back(c);
-//            touched_crossings.push_back(A_cross(a,Tip));
-    
+//    touched_crossings.push_back(c);
+        
     // TODO: Is this a good idea?
     DeactivateArc(b);
 }
