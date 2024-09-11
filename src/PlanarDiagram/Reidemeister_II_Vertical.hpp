@@ -62,10 +62,10 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             Reconnect(b,Tail,e_1);
             Reconnect(b,Tip ,e_2);
 
-            DeactivateArc(e_0); // Done by Reconnect.
-            DeactivateArc(e_1); // Done by Reconnect.
-            DeactivateArc(e_2); // Done by Reconnect.
-            DeactivateArc(e_3); // Done by Reconnect.
+//            DeactivateArc(e_0); // Done by Reconnect.
+//            DeactivateArc(e_1); // Done by Reconnect.
+//            DeactivateArc(e_2); // Done by Reconnect.
+//            DeactivateArc(e_3); // Done by Reconnect.
             
             goto exit;
         }

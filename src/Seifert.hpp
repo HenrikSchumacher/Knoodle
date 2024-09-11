@@ -105,8 +105,6 @@ namespace KnotTools
                 
                 do
                 {
-                    logdump(a);
-                    
                     A_flag[a] = 1;
                     
                     const Int c = A_cross[a][1];

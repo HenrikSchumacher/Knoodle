@@ -97,7 +97,7 @@ bool Reidemeister_I( const Int c )
         Reconnect(a, Tip, b);
         
         DeactivateArc(d);
-        DeactivateArc(b); // Done by Reconnect.
+//        DeactivateArc(b); // Done by Reconnect.
         
         DeactivateCrossing(c);
         

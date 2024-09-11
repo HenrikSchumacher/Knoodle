@@ -27,10 +27,10 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     Reconnect(b,Tip ,e_2);
     Reconnect(b,Tail,e_0);
 
-    DeactivateArc(e_0); // Done by Reconnect.
-    DeactivateArc(e_1); // Done by Reconnect.
-    DeactivateArc(e_2); // Done by Reconnect.
-    DeactivateArc(e_3); // Done by Reconnect.
+//    DeactivateArc(e_0); // Done by Reconnect.
+//    DeactivateArc(e_1); // Done by Reconnect.
+//    DeactivateArc(e_2); // Done by Reconnect.
+//    DeactivateArc(e_3); // Done by Reconnect.
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
 

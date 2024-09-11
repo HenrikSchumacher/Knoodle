@@ -12,7 +12,7 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     PD_assert( a != b );
     
     PD_assert( ArcActiveQ(a) );
-    PD_assert( ArcActiveQ(b) );
+//    PD_assert( ArcActiveQ(b) ); // Could have been deactivated already.
     
     const Int c = A_cross(b, tiptail);
     
@@ -35,6 +35,6 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
 //            touched_crossings.push_back(A_cross(a,Tip));
     
     // TODO: Is this a good idea?
-//    DeactivateArc(b);
+    DeactivateArc(b);
 }
 

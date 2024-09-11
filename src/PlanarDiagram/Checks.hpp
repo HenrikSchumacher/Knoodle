@@ -25,7 +25,7 @@ bool CheckCrossing( const Int c  )
             if( !A_activeQ )
             {
                 print("Check at    " + CrossingString(c) );
-                eprint("Probem with " + ArcString(a) + ": It's not active." );
+                eprint("Problem with " + ArcString(a) + ": It's not active." );
             }
             
             const bool tailtip = ( io == In ) ? Tip : Tail;
@@ -35,7 +35,7 @@ bool CheckCrossing( const Int c  )
             if( !A_goodQ )
             {
                 print("Check at    " + CrossingString(c) );
-                eprint("Probem with " + ArcString(a) + ": It's not connected correctly to crossing.");
+                eprint("Problem with " + ArcString(a) + ": It's not connected correctly to crossing.");
             }
             C_passedQ = C_passedQ && A_activeQ && A_goodQ;
         }
@@ -97,7 +97,7 @@ bool CheckArc( const Int a  )
         if( !C_activeQ )
         {
             print("Check at    " + ArcString(a) );
-            print("Probem with " + CrossingString(c) + ": It's not active." );
+            print("Problem with " + CrossingString(c) + ": It's not active." );
         }
         const bool inout = (tiptail == Tail) ? Out : In;
     
@@ -106,7 +106,7 @@ bool CheckArc( const Int a  )
         if( !C_goodQ )
         {
             print("Check at    " + ArcString(a) );
-            print("Probem with " + CrossingString(c) + ": It's not connected correctly to arc.");
+            print("Problem with " + CrossingString(c) + ": It's not connected correctly to arc.");
         }
         
         A_passedQ = A_passedQ && C_activeQ && C_goodQ;

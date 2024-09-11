@@ -59,8 +59,12 @@ private:
             return true;
         }
         
+        // TODO: Detect potential over/under-arc 8-loop and reduce it to unlink!
+        
         if( C_pass_arcs(c,Out,Left) == C_pass_arcs(c,In,Left) )
         {
+            print("side = Left");
+            
             const Int a_begin = C_arcs(c,Out,Left);
             const Int a_end   = C_arcs(c,In ,Left);
             
@@ -72,6 +76,13 @@ private:
             
             // We also know that c is not the crossing of an 8-loop.
             PD_assert( C_arcs(c,Out,Right) != C_arcs(c,In,Right) );
+            
+            // DEBUGGING
+            
+            if( C_pass_arcs(c,Out,Right) == C_pass_arcs(c,In,Right) )
+            {
+                wprint("Overpassing 8-loop.");
+            }
             
             /*
              *             a_begin
@@ -88,23 +99,22 @@ private:
              *       ...X----         ----X
              *             a_end
              */
+
+
+            RemoveArcs( a_begin, a_end );
+        
+            Reconnect(C_arcs(c,In,Right),Tip,C_arcs(c,Out,Right));
             
-//            RemoveArcs( a_begin, a_end );
-//            
-//            // We also know that c is not the crossing of an 8-loop.
-//            PD_assert(C_arcs(c,In,Right) != C_arcs(c,Out,Right));
-//            
-//            Reconnect(C_arcs(c,In,Right),Tip,C_arcs(c,Out,Right));
-//            
-//            DeactivateCrossing(c);
-//            
-//            return true;
+            DeactivateCrossing(c);
             
-            return false;
+            return true;
+            
+//            return false;
             
         }
         else if ( C_pass_arcs(c,Out,Right) == C_pass_arcs(c,In,Right) )
         {
+            print("side = Right");
             const Int a_begin = C_arcs(c,Out,Right);
             const Int a_end   = C_arcs(c,In ,Right);
             
@@ -116,7 +126,13 @@ private:
             
             // We also know that c is not the crossing of an 8-loop.
             PD_assert( C_arcs(c,Out,Left) != C_arcs(c,In,Left) );
-
+            
+            // DEBUGGING
+            
+            if( C_pass_arcs(c,Out,Left) == C_pass_arcs(c,In,Left) )
+            {
+                wprint("Overpassing 8-loop.");
+            }
             /*
              *              a_begin
              *    X<---         --->X...
@@ -133,17 +149,15 @@ private:
              *                a_end
              */
             
-//            RemoveArcs( a_begin, a_end );
+            RemoveArcs( a_begin, a_end );
+//
+            Reconnect(C_arcs(c,In,Left),Tip,C_arcs(c,Out,Left));
 //            
-//            // We also know that c is not the crossing of an 8-loop.
-//            PD_assert(C_arcs(c,In,Left) !=  C_arcs(c,Out,Left));
-//            Reconnect(C_arcs(c,In,Left),Tip,C_arcs(c,Out,Left));
+            DeactivateCrossing(c);
 //            
-//            DeactivateCrossing(c);
-//            
-//            return true;
+            return true;
             
-            return false;
+//            return false;
         }
         else
         {
@@ -155,20 +169,31 @@ private:
     {
         Int a = a_begin;
         
+        PD_assert( ArcActiveQ(a_begin) );
+        PD_assert( ArcActiveQ(a_end) );
         
         PD_assert( A_cross(a_begin,Tail) == A_cross(a_end,Tip) );
+        
+        dump( A_cross(a_begin,Tail) );
         
         while( a != a_end )
         {
             const Int c = A_cross(a,Tip);
             
-            if( !CrossingActiveQ(c) )
-            {
-                continue;
-            }
+            dump( ArcString(a) );
+            dump( CrossingString(c) );
+                 
             
-            PD_assert( ArcActiveQ(a) );
+//            if( !CrossingActiveQ(c) )
+//            {
+//                continue;
+//            }
+            
+            
             PD_assert( CrossingActiveQ(c) );
+            PD_assert( ArcActiveQ(a) );
+            
+            PD_assert( (C_arcs(c,In,Left) == a) || (C_arcs(c,In,Right) == a) );
             
             // Find the arcs a_0 and a_1 go through c to the left and the right of a.
             bool side = C_arcs(c,In,Right) == a;
@@ -187,21 +212,24 @@ private:
              *        | a                 | a
              *        |                   |
              */
-             
-            const Int a_0 = C_arcs(c,In ,!side);
-            const Int a_1 = C_arcs(c,Out, side);
+            
+            const Int a_next = NextArc(a);
+            const Int a_0    = C_arcs(c,In ,!side);
+            const Int a_1    = C_arcs(c,Out, side);
 
             PD_assert( ArcActiveQ(a_0) );
             PD_assert( ArcActiveQ(a_1) );
             
             Reconnect(a_0,Tip,a_1);
-            
+
             DeactivateCrossing(c);
-            
             DeactivateArc(a);
             
-            a = NextArc(a);
+            a = a_next;
         }
         
-        DeactivateArc(a_end);
+        dump( ArcString(a) );
+        dump( A_cross(a_end,Tip) );
+        
+//        DeactivateArc(a_end);
     }

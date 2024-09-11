@@ -398,33 +398,33 @@ namespace KnotTools
                 {
                     C_state[c] = CrossingState::RightHanded;
                     
-                    if( A_cross(X[0],Tip  ) != -1 )
-                    {
-                        dump(c);
-                        dump(A_cross(X[0],Tip  ));
-                        dump(X[0]);
-                    }
-                    
-                    if( A_cross(X[1],Tail ) != -1 )
-                    {
-                        dump(c);
-                        dump(A_cross(X[1],Tail ));
-                        dump(X[1]);
-                    }
-                    
-                    if( A_cross(X[2],Tail ) != -1 )
-                    {
-                        dump(c);
-                        dump(A_cross(X[2],Tail ));
-                        dump(X[2]);
-                    }
-                    
-                    if( A_cross(X[3],Tip  ) != -1 )
-                    {
-                        dump(c);
-                        dump(A_cross(X[3],Tip  ));
-                        dump(X[3]);
-                    }
+//                    if( A_cross(X[0],Tip  ) != -1 )
+//                    {
+//                        dump(c);
+//                        dump(A_cross(X[0],Tip  ));
+//                        dump(X[0]);
+//                    }
+//                    
+//                    if( A_cross(X[1],Tail ) != -1 )
+//                    {
+//                        dump(c);
+//                        dump(A_cross(X[1],Tail ));
+//                        dump(X[1]);
+//                    }
+//                    
+//                    if( A_cross(X[2],Tail ) != -1 )
+//                    {
+//                        dump(c);
+//                        dump(A_cross(X[2],Tail ));
+//                        dump(X[2]);
+//                    }
+//                    
+//                    if( A_cross(X[3],Tip  ) != -1 )
+//                    {
+//                        dump(c);
+//                        dump(A_cross(X[3],Tip  ));
+//                        dump(X[3]);
+//                    }
                     
                     /*
                      *    X[2]           X[1]
@@ -867,7 +867,8 @@ namespace KnotTools
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/Reidemeister_I.hpp"
 #include "PlanarDiagram/Reidemeister_II.hpp"
-#include "PlanarDiagram/PassMove.hpp"
+//#include "PlanarDiagram/PassMove.hpp"
+        
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
         
@@ -982,21 +983,6 @@ namespace KnotTools
             //If everything is set up correctly, the outgoing arc points into the same direction as a.
         
             const Int a_next = C_arcs(c,Out,!lr);
-        
-//            // DEBUGGING
-//            
-//            if( a == a_next )
-//            {
-//                wprint( ClassName() + "::NextArc: a == a_next");
-//                
-//                logdump(A_cross( a, Tail ));
-//                logdump(A_cross( a, Tip ));
-//                
-//                logdump(C_arcs(c,Out,Left ));
-//                logdump(C_arcs(c,Out,Right));
-//                logdump(C_arcs(c,In ,Left ));
-//                logdump(C_arcs(c,In ,Right));
-//            }
             
             PD_assert( ArcActiveQ(a_next) );
             
@@ -1204,9 +1190,6 @@ namespace KnotTools
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
-                    // DEBUGGING
-                    logdump(a);
-                    
                     const Int c_prev = A_cross(a,0);
                     const Int c_next = A_cross(a,1);
                     
@@ -1319,14 +1302,6 @@ namespace KnotTools
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
-//                    logdump(a);
-//                    logdump(a_ptr);
-                    
-                    if( !ArcActiveQ(a) )
-                    {
-                        logprint("!!!");
-                    }
-                    
                     const Int c_prev = A_cross(a,Tail);
                     const Int c_next = A_cross(a,Tip );
                     

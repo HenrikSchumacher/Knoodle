@@ -110,8 +110,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
             
             DeactivateArc(b);
             DeactivateArc(e_0);
-            DeactivateArc(e_2); // Done by Reconnect.
-            DeactivateArc(e_3); // Done by Reconnect.
+//            DeactivateArc(e_2); // Done by Reconnect.
+//            DeactivateArc(e_3); // Done by Reconnect.
             
             goto exit;
         }
@@ -181,8 +181,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         Reconnect(b,Tip ,e_1);
         
         DeactivateArc(a);
-        DeactivateArc(e_0); // Done by Reconnect.
-        DeactivateArc(e_1); // Done by Reconnect.
+//        DeactivateArc(e_0); // Done by Reconnect.
+//        DeactivateArc(e_1); // Done by Reconnect.
         DeactivateArc(e_2);
         
         goto exit;
@@ -279,8 +279,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         DeactivateArc(a);
         DeactivateArc(b);
         
-        DeactivateArc(e_0); // Done by Reconnect.
-        DeactivateArc(e_3); // Done by Reconnect.
+//        DeactivateArc(e_0); // Done by Reconnect.
+//        DeactivateArc(e_3); // Done by Reconnect.
         
         PD_print("\t\tModified move 2.");
         
@@ -328,10 +328,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
         Reconnect(b,Tail,e_0);
         Reconnect(b,Tip ,e_1);
         
-        DeactivateArc(e_0); // Done by Reconnect.
-        DeactivateArc(e_1); // Done by Reconnect.
-        DeactivateArc(e_2); // Done by Reconnect.
-        DeactivateArc(e_3); // Done by Reconnect.
+//        DeactivateArc(e_0); // Done by Reconnect.
+//        DeactivateArc(e_1); // Done by Reconnect.
+//        DeactivateArc(e_2); // Done by Reconnect.
+//        DeactivateArc(e_3); // Done by Reconnect.
     
         goto exit;
     }
