@@ -81,10 +81,11 @@ namespace KnotTools
         Int twist_move_counter = 0;
         
         // Stacks for keeping track of recently modified entities.
-//        std::vector<Int> touched_crossings;
+#if defined(PD_USE_TOUCHING)
+        std::vector<Int> touched_crossings;
 //        std::vector<Int> touched_arcs;
 //        std::vector<Int> switch_candidates;
-        
+#endif
         // Data for the faces and the dual graph
         
         Tensor2<Int,Int> A_faces; // Convention: Left face first.
@@ -159,10 +160,12 @@ namespace KnotTools
             swap( A.R_II_counter          , B.R_II_counter           );
             swap( A.twist_move_counter    , B.twist_move_counter     );
             
-//            swap( A.touched_crossings     , B.touched_crossings      );
+#if defined(PD_USE_TOUCHING)
+            swap( A.touched_crossings     , B.touched_crossings      );
 //            swap( A.touched_arcs          , B.touched_arcs           );
 //            swap( A.switch_candidates     , B.switch_candidates      );
-            
+#endif
+    
             swap( A.A_faces               , B.A_faces                );
             
             swap( A.face_arcs             , B.face_arcs              );
@@ -855,25 +858,29 @@ namespace KnotTools
         
         void PushAllCrossings()
         {
-//            touched_crossings.reserve( initial_crossing_count );
-//            
-//            for( Int i = initial_crossing_count-1; i >= 0; --i )
-//            {
-//                touched_crossings.push_back( i );
-//            }
+#if defined(PD_USE_TOUCHING)
+            touched_crossings.reserve( initial_crossing_count );
+            
+            for( Int i = initial_crossing_count-1; i >= 0; --i )
+            {
+                touched_crossings.push_back( i );
+            }
+#endif
         }
         
         void PushRemainingCrossings()
         {
-//            Int counter = 0;
-//            for( Int i = initial_crossing_count-1; i >= 0; --i )
-//            {
-//                if( CrossingActiveQ(i) )
-//                {
-//                    ++counter;
-//                    touched_crossings.push_back( i );
-//                }
-//            }
+#if defined(PD_USE_TOUCHING)
+            Int counter = 0;
+            for( Int i = initial_crossing_count-1; i >= 0; --i )
+            {
+                if( CrossingActiveQ(i) )
+                {
+                    ++counter;
+                    touched_crossings.push_back( i );
+                }
+            }
+#endif
         }
         
 
@@ -1041,21 +1048,22 @@ namespace KnotTools
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
             
-//            while( !touched_crossings.empty() )
-//            {
-//                const Int c = touched_crossings.back();
-//                touched_crossings.pop_back();
-//                
-//                PD_assert( CheckCrossing(c) );
-//                
-//                const bool R_I = Reidemeister_I(c);
-//                
-//                if( !R_I )
-//                {
-//                    (void)Reidemeister_II(c);
-//                }
-//            }
-            
+#if defined(PD_USE_TOUCHING)
+            while( !touched_crossings.empty() )
+            {
+                const Int c = touched_crossings.back();
+                touched_crossings.pop_back();
+                
+                PD_assert( CheckCrossing(c) );
+                
+                const bool R_I = Reidemeister_I(c);
+                
+                if( !R_I )
+                {
+                    (void)Reidemeister_II(c);
+                }
+            }
+#else
             Int old_counter = -1;
             Int counter = 0;
             
@@ -1075,6 +1083,7 @@ namespace KnotTools
                     }
                 }
             }
+#endif
             
 #pragma clang diagnostic pop
             
@@ -1813,15 +1822,9 @@ namespace KnotTools
         
     public:
         
-        /*!
-         * @brief Returns the name of the class, including template parameters.
-         *
-         *  Used for logging, profiling, and error handling.
-         */
-        
         static std::string ClassName()
         {
-            return std::string("PlanarDiagram")+"<"+TypeName<Int>+">";
+            return std::string("PlanarDiagram") + "<" + TypeName<Int> + ">";
         }
         
     };

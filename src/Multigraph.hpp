@@ -521,8 +521,9 @@ namespace KnotTools
                 
         static std::string ClassName()
         {
-            return std::string("Multigraph")+"<"+TypeName<Int>+">";
+            return std::string("Multigraph") + "<" + TypeName<Int> + ">";
         }
+        
     };
     
 } // namespace KnotTools

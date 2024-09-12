@@ -21,9 +21,9 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     PD_assert(CheckArc(b));
     PD_assert(CheckCrossing(c));
     
-    PD_assert( CrossingActiveQ(c) );
-    PD_assert( CrossingActiveQ(A_cross(a, tiptail)) );
-    PD_assert( CrossingActiveQ(A_cross(a,!tiptail)) );
+    PD_assert(CrossingActiveQ(c));
+    PD_assert(CrossingActiveQ(A_cross(a, tiptail)));
+    PD_assert(CrossingActiveQ(A_cross(a,!tiptail)));
     
     A_cross(a,tiptail) = c;
 
@@ -31,9 +31,10 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     
     C_arcs(c,io,lr) = a;
     
-//    touched_crossings.push_back(c);
-        
-    // TODO: Is this a good idea?
+#if defined(PD_USE_TOUCHING)
+    touched_crossings.push_back(c);
+#endif
+    
     DeactivateArc(b);
 }
 

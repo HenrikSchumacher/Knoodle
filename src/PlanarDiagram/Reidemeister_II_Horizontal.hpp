@@ -5,11 +5,11 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     PD_print("\nReidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
-    PD_assert( c_0 != c_1 );
-    PD_assert( OppositeCrossingSignsQ(c_0,c_1) );
+    PD_assert(c_0 != c_1);
+    PD_assert(OppositeCrossingSignsQ(c_0,c_1));
     
-    PD_assert( CheckCrossing(c_0) );
-    PD_assert( CheckCrossing(c_1) );
+    PD_assert(CheckCrossing(c_0));
+    PD_assert(CheckCrossing(c_1));
     
 #ifdef PD_DEBUG
     const Int a_0 = C_arcs(c_0,In ,side);
@@ -18,10 +18,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     const Int b_0 = C_arcs(c_0,Out,side);
     const Int b_1 = C_arcs(c_1,In ,side);
     
-    PD_assert( CheckArc(a_0) );
-    PD_assert( CheckArc(a_1) );
-    PD_assert( CheckArc(b_0) );
-    PD_assert( CheckArc(b_1) );
+    PD_assert(CheckArc(a_0));
+    PD_assert(CheckArc(a_1));
+    PD_assert(CheckArc(b_0));
+    PD_assert(CheckArc(b_1));
         
     
     PD_assert( a_0 == a_1 );

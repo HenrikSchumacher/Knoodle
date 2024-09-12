@@ -440,11 +440,32 @@ namespace KnotTools
             ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
         }
         
+//    public:
+//        
+//        static std::string ClassName()
+//        {
+//            return std::string("Alexander_Metis_LeftLooking")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+//        }
+        
+    private:
+        
+        static constexpr ct_string class_name = ct_string("Alexander_Metis_LeftLooking")
+            + "<" + TypeName<Scal>
+            + "," + TypeName<Int>
+            + "," + TypeName<LInt>
+            + ">";
+        
     public:
         
-        static std::string ClassName()
+        /*!
+         * @brief Returns the name of the class, including template parameters.
+         *
+         *  Used for logging, profiling, and error handling.
+         */
+        
+        static constexpr ct_string<class_name.byte_count()> ClassName()
         {
-            return std::string("Alexander_Metis_LeftLooking")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return class_name;
         }
         
     }; // class Alexander
