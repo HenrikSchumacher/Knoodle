@@ -8,6 +8,8 @@ namespace KnotTools
     using namespace Tensors;
     using namespace Tools;
     
+    using Tools::ToString;
+    
     enum class CrossingState : int
     {
         Unitialized = -2,
@@ -16,11 +18,35 @@ namespace KnotTools
         Untied      =  0
     };
     
+    std::string ToString( const CrossingState & s )
+    {
+        switch( s )
+        {
+            case CrossingState::Unitialized : return "Unitialized";
+                
+            case CrossingState::RightHanded : return "RightHanded";
+                
+            case CrossingState::LeftHanded  : return "LeftHanded";
+                
+            case CrossingState::Untied      : return "Untied";
+        }
+    }
+    
     enum class ArcState : int
     {
         Active    =  1,
         Inactive  =  0
     };
+    
+    std::string ToString( const ArcState & s )
+    {
+        switch( s )
+        {
+            case ArcState::Active   : return "Active";
+                
+            case ArcState::Inactive : return "Inactive";
+        }
+    }
     
 } // namespace KnotTools
 

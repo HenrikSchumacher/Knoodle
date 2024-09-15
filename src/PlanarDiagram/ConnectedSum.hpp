@@ -23,7 +23,7 @@ bool ConnectedSum()
         SplitOffConnectedSum(a_0,a_1);
     }
     
-    PD_print( "Split off connected sums        = " + ToString(counter));
+    PD_PRINT( "Split off connected sums        = " + ToString(counter));
     
     if( counter > 0 )
     {
@@ -39,9 +39,9 @@ bool ConnectedSum()
 
 void SplitOffConnectedSum( const Int a_0, const Int a_1 )
 {
-    PD_assert(a_0!=a_1);
-    PD_assert(ArcActiveQ(a_0));
-    PD_assert(ArcActiveQ(a_1));
+    PD_ASSERT(a_0!=a_1);
+    PD_ASSERT(ArcActiveQ(a_0));
+    PD_ASSERT(ArcActiveQ(a_1));
     
     // Make a copy of the previous state.
     
@@ -50,45 +50,45 @@ void SplitOffConnectedSum( const Int a_0, const Int a_1 )
         {A_cross(a_0,1),A_cross(a_1,1)},
     };
     
-// C[Tail][0]           a_0           C[Tip ][0]
+// C[Tail][0]           a_0           C[Head][0]
 //           X----------->-----------X
 //
 //
 //           X-----------<-----------X
-// C[Tip ][1]           a_1           C[Tail][1]
+// C[Head][1]           a_1           C[Tail][1]
     
-    PD_assert(CrossingActiveQ(C[0][0]));
-    PD_assert(CrossingActiveQ(C[0][1]));
-    PD_assert(CrossingActiveQ(C[1][0]));
-    PD_assert(CrossingActiveQ(C[1][1]));
+    PD_ASSERT(CrossingActiveQ(C[0][0]));
+    PD_ASSERT(CrossingActiveQ(C[0][1]));
+    PD_ASSERT(CrossingActiveQ(C[1][0]));
+    PD_ASSERT(CrossingActiveQ(C[1][1]));
     
     
     if(
         (
-            (C_arcs(C[Tip][0],In,Left ) == a_0)
+            (C_arcs(C[Head][0],In,Left ) == a_0)
             ||
-            (C_arcs(C[Tip][0],In,Right) == a_0)
+            (C_arcs(C[Head][0],In,Right) == a_0)
         )
         &&
         (
-            (C_arcs(C[Tip][1],In,Left ) == a_1)
+            (C_arcs(C[Head][1],In,Left ) == a_1)
             ||
-            (C_arcs(C[Tip][1],In,Right) == a_1)
+            (C_arcs(C[Head][1],In,Right) == a_1)
         )
     )
     {
         
-        const Int side_0 = (C_arcs(C[Tip][0],In,Left) == a_0) ? Left : Right;
-        const Int side_1 = (C_arcs(C[Tip][1],In,Left) == a_1) ? Left : Right;
+        const Int side_0 = (C_arcs(C[Head][0],In,Left) == a_0) ? Left : Right;
+        const Int side_1 = (C_arcs(C[Head][1],In,Left) == a_1) ? Left : Right;
         
-        A_cross(a_0,Tip) = C[Tip][1];
-        A_cross(a_1,Tip) = C[Tip][0];
+        A_cross(a_0,Head) = C[Head][1];
+        A_cross(a_1,Head) = C[Head][0];
 
-        C_arcs(C[Tip][0],In,side_0) = a_1;
-        C_arcs(C[Tip][1],In,side_1) = a_0;
+        C_arcs(C[Head][0],In,side_0) = a_1;
+        C_arcs(C[Head][1],In,side_1) = a_0;
         
-        touched_crossings.push_back(C[Tip ][0]);
-        touched_crossings.push_back(C[Tip ][1]);
+        touched_crossings.push_back(C[Head][0]);
+        touched_crossings.push_back(C[Head][1]);
         
         touched_crossings.push_back(C[Tail][0]);
         touched_crossings.push_back(C[Tail][1]);

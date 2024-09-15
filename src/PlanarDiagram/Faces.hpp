@@ -102,7 +102,7 @@ public:
                 {
                     const Int e [2] = { A_faces(a,0), A_faces(a,1) };
                     
-                    PD_assert( (e[0] >= -1) || (e[1] >= -1) );
+                    PD_ASSERT( (e[0] >= -1) || (e[1] >= -1) );
                     
                     if( e[0] == -1 )
                     {

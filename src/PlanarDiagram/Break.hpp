@@ -5,13 +5,13 @@ Class_T BreakChild( const Int c )
     
     Class_T pd = CreateCompressed();
     
-    PD_valprint("c",c);
+    PD_VALPRINT("c",c);
     
-    PD_print( "labels = " + pd.CrossingLabels().ToString() );
+    PD_PRINT( "labels = " + pd.CrossingLabels().ToString() );
     
-    PD_valprint("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
+    PD_VALPRINT("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
         
-    PD_assert( pd.Break( pd.CrossingLabelLookUp(c) ) );
+    PD_ASSERT( pd.Break( pd.CrossingLabelLookUp(c) ) );
     
     return pd;
 }
@@ -19,14 +19,14 @@ Class_T BreakChild( const Int c )
 
 bool Break( const Int c )
 {
-    PD_print("Break");
-    PD_valprint("c",c);
+    PD_PRINT("Break");
+    PD_VALPRINT("c",c);
     
-    PD_assert(CrossingActiveQ(c));
+    PD_ASSERT(CrossingActiveQ(c));
     
     if( CrossingActiveQ(c) )
     {
-        PD_valprint("c",c);
+        PD_VALPRINT("c",c);
 
         // Make sure that Reidemeister_I is not applicable;
 
@@ -34,7 +34,7 @@ bool Break( const Int c )
 
         if( R_I )
         {
-            PD_wprint("Called Break, but Reidemeister_I was performed on crossing "+ToString(c)+".");
+            PD_WPRINT("Called Break, but Reidemeister_I was performed on crossing "+ToString(c)+".");
             return true;
         }
 
@@ -54,25 +54,23 @@ bool Break( const Int c )
         const Int e_3 = C_arcs(c,Out,Left );
 
         // Should not be possible for topological reasons.
-        PD_assert(e_0!=e_2);
-        PD_assert(e_1!=e_3);
+        PD_ASSERT(e_0!=e_2);
+        PD_ASSERT(e_1!=e_3);
 
         // Should be ruled out by Reidemeister_I check.
-        PD_assert(e_0!=e_3);
-        PD_assert(e_1!=e_3);
+        PD_ASSERT(e_0!=e_3);
+        PD_ASSERT(e_1!=e_3);
 
-        Reconnect(e_0,Tip,e_3);
-        Reconnect(e_1,Tip,e_2);
+        Reconnect(e_0,Head,e_3);
+        Reconnect(e_1,Head,e_2);
 
         DeactivateCrossing(c);
-//        DeactivateArc(e_2); // Done by Reconnect.
-//        DeactivateArc(e_3); // Done by Reconnect.
 
         return true;
     }
     else
     {
-        PD_wprint("Break failed.");
+        PD_WPRINT("Break failed.");
         return false;
     }
 }

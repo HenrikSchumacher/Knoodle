@@ -1,23 +1,4 @@
-public:
-
-///*! @brief Goes once through the list of all crossings in increasing order
-// *  and attempts to perform Reidemeister I move. Returns the number of
-// *  moves actually performed.
-// */
-//
-//Int Reidemeister_I()
-//{
-//    // One round of Reidemeister_I checks.
-//    
-//    Int count = 0;
-//
-//    for( Int c = 0; c < initial_crossing_count; ++c )
-//    {
-//        count += Reidemeister_I(c);
-//    }
-//    
-//    return count;
-//}
+private:
 
 /*! @brief Checks whether a Reidemeister I move can be made at crossing `c`,
  *  then applies it (if possible), and returns a Boolean that indicates whether
@@ -26,14 +7,14 @@ public:
 
 bool Reidemeister_I( const Int c )
 {
-    PD_print("\nReidemeister_I( c = "+CrossingString(c)+" )");
+    PD_PRINT("\nReidemeister_I( c = "+CrossingString(c)+" )");
 
     //
     // This is precisely the case if two consecutive arcs coincide.
     
     if( !CrossingActiveQ(c) )
     {
-        PD_print("Crossing "+ToString(c)+" is not active. Skipping");
+        PD_PRINT("Crossing "+ToString(c)+" is not active. Skipping");
 
         return false;
     }
@@ -58,7 +39,7 @@ bool Reidemeister_I( const Int c )
     }
     
     // This is the central assumption here.
-    PD_assert( A[Out][side] == A[In ][side] );
+    PD_ASSERT( A[Out][side] == A[In ][side] );
     
     const Int a = A[In ][!side];
     const Int b = A[Out][!side];
@@ -94,10 +75,9 @@ bool Reidemeister_I( const Int c )
 //
         
         // Make arc a point to where arc b pointed before.
-        Reconnect(a, Tip, b);
+        Reconnect(a,Head,b);
         
         DeactivateArc(d);
-//        DeactivateArc(b); // Done by Reconnect.
         
         DeactivateCrossing(c);
         

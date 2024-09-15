@@ -45,7 +45,7 @@ private:
     {
         if( !CrossingActiveQ(c) )
         {
-            PD_print( ClassName()+"PassMove: Crossing "+ToString(c)+" is not active. Skipping");
+            PD_PRINT( ClassName()+"PassMove: Crossing "+ToString(c)+" is not active. Skipping");
 
             return false;
         }
@@ -71,11 +71,11 @@ private:
             // When we arrive here, we know that a_begin != a_end.
             // Otherwise we would have quit through Reidemeister_I.
             
-            PD_assert( a_begin != a_end );
-            PD_assert( A_cross(a_begin,Tail) == A_cross(a_end,Tip) );
+            PD_ASSERT( a_begin != a_end );
+            PD_ASSERT( A_cross(a_begin,Tail) == A_cross(a_end,Head) );
             
             // We also know that c is not the crossing of an 8-loop.
-            PD_assert( C_arcs(c,Out,Right) != C_arcs(c,In,Right) );
+            PD_ASSERT( C_arcs(c,Out,Right) != C_arcs(c,In,Right) );
             
             // DEBUGGING
             
@@ -103,7 +103,7 @@ private:
 
             RemoveArcs( a_begin, a_end );
         
-            Reconnect(C_arcs(c,In,Right),Tip,C_arcs(c,Out,Right));
+            Reconnect(C_arcs(c,In,Right),Head,C_arcs(c,Out,Right));
             
             DeactivateCrossing(c);
             
@@ -121,11 +121,11 @@ private:
             // When we arrive here, we know that a_begin != a_end.
             // Otherwise we would have quit through Reidemeister_I.
             
-            PD_assert( a_begin != a_end );
-            PD_assert( A_cross(a_begin,Tail) == A_cross(a_end,Tip) );
+            PD_ASSERT( a_begin != a_end );
+            PD_ASSERT( A_cross(a_begin,Tail) == A_cross(a_end,Head) );
             
             // We also know that c is not the crossing of an 8-loop.
-            PD_assert( C_arcs(c,Out,Left) != C_arcs(c,In,Left) );
+            PD_ASSERT( C_arcs(c,Out,Left) != C_arcs(c,In,Left) );
             
             // DEBUGGING
             
@@ -151,8 +151,8 @@ private:
             
             RemoveArcs( a_begin, a_end );
 //
-            Reconnect(C_arcs(c,In,Left),Tip,C_arcs(c,Out,Left));
-//            
+            Reconnect(C_arcs(c,In,Left),Head,C_arcs(c,Out,Left));
+//
             DeactivateCrossing(c);
 //            
             return true;
@@ -169,16 +169,16 @@ private:
     {
         Int a = a_begin;
         
-        PD_assert( ArcActiveQ(a_begin) );
-        PD_assert( ArcActiveQ(a_end) );
+        PD_ASSERT( ArcActiveQ(a_begin) );
+        PD_ASSERT( ArcActiveQ(a_end) );
         
-        PD_assert( A_cross(a_begin,Tail) == A_cross(a_end,Tip) );
+        PD_ASSERT( A_cross(a_begin,Tail) == A_cross(a_end,Head) );
         
         dump( A_cross(a_begin,Tail) );
         
         while( a != a_end )
         {
-            const Int c = A_cross(a,Tip);
+            const Int c = A_cross(a,Head);
             
             dump( ArcString(a) );
             dump( CrossingString(c) );
@@ -190,10 +190,10 @@ private:
 //            }
             
             
-            PD_assert( CrossingActiveQ(c) );
-            PD_assert( ArcActiveQ(a) );
+            PD_ASSERT( CrossingActiveQ(c) );
+            PD_ASSERT( ArcActiveQ(a) );
             
-            PD_assert( (C_arcs(c,In,Left) == a) || (C_arcs(c,In,Right) == a) );
+            PD_ASSERT( (C_arcs(c,In,Left) == a) || (C_arcs(c,In,Right) == a) );
             
             // Find the arcs a_0 and a_1 go through c to the left and the right of a.
             bool side = C_arcs(c,In,Right) == a;
@@ -217,10 +217,10 @@ private:
             const Int a_0    = C_arcs(c,In ,!side);
             const Int a_1    = C_arcs(c,Out, side);
 
-            PD_assert( ArcActiveQ(a_0) );
-            PD_assert( ArcActiveQ(a_1) );
+            PD_ASSERT( ArcActiveQ(a_0) );
+            PD_ASSERT( ArcActiveQ(a_1) );
             
-            Reconnect(a_0,Tip,a_1);
+            Reconnect(a_0,Head,a_1);
 
             DeactivateCrossing(c);
             DeactivateArc(a);
@@ -229,7 +229,7 @@ private:
         }
         
         dump( ArcString(a) );
-        dump( A_cross(a_end,Tip) );
+        dump( A_cross(a_end,Head) );
         
 //        DeactivateArc(a_end);
     }

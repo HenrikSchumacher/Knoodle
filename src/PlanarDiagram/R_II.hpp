@@ -1,38 +1,9 @@
-public:
-
-///*! @brief Cyclically runs through the list of crossings and attempts to
-// *  perform Reidemeister II moves until no further moves can be made.
-// *  Occasionally, it may also perform a Reidemeister I move or a twist move.
-// *  Afterwards, the routine returns the total number of Reidemeister I,
-// *  Reidemeister II and twist moves performed.
-// *
-// *  For the exact number of Reidemeister II moves, check the values of
-// *  `Reidemeister_II_Counter()` before and after the call.
-// */
-//
-//Int Reidemeister_II()
-//{
-//    Int prev_count = 1;
-//    Int count = 0;
-//    
-//    while( count != prev_count )
-//    {
-//        prev_count = count;
-//        
-//        for( Int c = 0; c < initial_crossing_count; ++c )
-//        {
-//            count += Reidemeister_II(c);
-//        }
-//    }
-//    
-//    return count;
-//}
-
-private:
-
-#include "Reidemeister_II_Horizontal.hpp"
-#include "Reidemeister_II_Vertical.hpp"
+#include "R_II_Horizontal.hpp"
+#include "R_II_Vertical.hpp"
 #include "TwistMove.hpp"
+
+#include "R_Ia_Vertical.hpp"
+#include "R_Ia_Horizontal.hpp"
 
 public:
 
@@ -43,38 +14,42 @@ public:
  *  instead. Then it also returns `true`.
  */
 
+template<bool allow_R_IaQ = true>
 bool Reidemeister_II( const Int c_0 )
 {
-    PD_print("\nReidemeister_II( c = "+CrossingString(c_0)+" )");
-        
+    PD_PRINT("\nReidemeister_II( c = "+CrossingString(c_0)+" )");
+    
+    // TODO: Test might be redundant.
     if( !CrossingActiveQ(c_0) )
     {
-        PD_print("Crossing "+ToString(c_0)+" is not active. Skipping");
+        PD_PRINT("Crossing "+ToString(c_0)+" is not active. Skipping");
         return false;
     }
-
-//    bool is_switch_candidate = false;
+    
+    //    bool is_switch_candidate = false;
     
     const Int C [2][2] = {
         { NextCrossing(c_0,Out,Left), NextCrossing(c_0,Out,Right) },
         { NextCrossing(c_0,In ,Left), NextCrossing(c_0,In ,Right) }
     };
-
-    PD_print( "\n\tC = {  {"  + ToString(C[0][0]) + ", " + ToString(C[0][1]) + " }, { " + ToString(C[1][0]) + ", " + ToString(C[1][1]) + " } }\n" );
+    
+    PD_PRINT( "\n\tC = {  {"  + ToString(C[0][0]) + ", " + ToString(C[0][1]) + " }, { " + ToString(C[1][0]) + ", " + ToString(C[1][1]) + " } }\n" );
     
     // We better test whether we can perform a Reidemeister_I move (and do it). That rules out a couple of nasty cases in the remainder.
-    
-    const bool R_I = Reidemeister_I(c_0);
-    if( R_I )
+    // TODO: Test might be redundant if called when Reidemeister_I failed.
     {
-        PD_wprint("Called Reidemeister_II on crossing "+ToString(c_0)+", but Reidemeister_I was performed instead.");
-        return true;
+        const bool R_I = Reidemeister_I(c_0);
+        if( R_I )
+        {
+            PD_WPRINT("Called Reidemeister_II on crossing "+ToString(c_0)+", but Reidemeister_I was performed instead.");
+            return true;
+        }
     }
-    
-    PD_print("\tReidemeister_I did not apply.");
+    PD_PRINT("\tReidemeister_I did not apply.");
     
     
     // Test vertical cases
+    // TODO: Do we really have to check both the In and Out port? Typically, we check all crossings anyways (unless we use touching).
     
     for( bool io : { In, Out} )
     {
@@ -83,10 +58,9 @@ bool Reidemeister_II( const Int c_0 )
         
         if( c_1 == c_2 )
         {
-            if( OppositeCrossingSignsQ(c_0,c_1) )
+            if( OppositeHandednessQ(c_0,c_1) )
             {
-                PD_assert( CrossingActiveQ(c_1) );
-                
+                // Find out which one is above the other.
                 if( io == Out )
                 {
                     Reidemeister_II_Vertical(c_0,c_1);
@@ -97,14 +71,35 @@ bool Reidemeister_II( const Int c_0 )
                 }
                 return true;
             }
-//            else
-//            {
-//                PD_print("\tCrossings "+ToString(c_0)+" and "+ToString(c_1)+" do not have opposite signs.");
-//                PD_valprint("\tC_state["+ToString(c_0)+"]", ToUnderlying(C_state[c_0]) );
-//                PD_valprint("\tC_state["+ToString(c_1)+"]", ToUnderlying(C_state[c_1]) );
-//                
-//                is_switch_candidate = true;
-//            }
+            else
+            {
+                if constexpr ( allow_R_IaQ )
+                {
+                    // Find out which one is above the other.
+                    if( io == Out )
+                    {
+                        const bool R_Ia = Reidemeister_Ia_Vertical(c_0,c_1);
+                        
+                        if( R_Ia )
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        const bool R_Ia = Reidemeister_Ia_Vertical(c_1,c_0);
+                        
+                        if( R_Ia )
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        else // ( c_1 != c_2 )
+        {
+            // TODO: We could hook Reidemeister_IIa here.
         }
     }
     
@@ -118,22 +113,24 @@ bool Reidemeister_II( const Int c_0 )
         
         if( c_1 == c_2 )
         {
-            // For the horizontal cases, it is better to make sure that no Reidemeister_I move can be applied to c_1.
-            const bool flipped = Reidemeister_I(c_1);
+            PD_ASSERT( CrossingActiveQ(c_1) );
             
-            if( flipped )
+            // For the horizontal cases, it is better to make sure that no Reidemeister_I move can be applied to c_1.
+            const bool R_I = Reidemeister_I(c_1);
+            
+            if( R_I )
             {
-                PD_wprint("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_1)+".");
+                PD_WPRINT("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_1)+".");
                 return true;
             }
             else
             {
-                PD_print("\tReidemeister_I did not apply.");
+                PD_PRINT("\tReidemeister_I did not apply.");
             }
             
             if( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side) )
             {
-                PD_assert(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,side));
+                PD_ASSERT(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,side));
                 
 //              This horizontal alignment in the case of side==Right.
 //
@@ -154,16 +151,23 @@ bool Reidemeister_II( const Int c_0 )
 //               Because of the previous Reidemeister I tests we now know
 //               e_0 != e_3 and e_1 != e_2.
                 
-                if( OppositeCrossingSignsQ(c_0,c_1) )
+                if( OppositeHandednessQ(c_0,c_1) )
                 {
                     Reidemeister_II_Horizontal(c_0,c_1,side);
                     return true;
                 }
-//                else
-//                {
-//                    // At least we have found a potential candidate for a later break/switch.
-//                    is_switch_candidate = true;
-//                }
+                else
+                {
+                    if constexpr ( allow_R_IaQ )
+                    {
+                        const bool R_Ia = Reidemeister_Ia_Horizontal(c_0,c_1,side);
+                        
+                        if( R_Ia )
+                        {
+                            return true;
+                        }
+                    }
+                }
             }
             else
             {
@@ -174,13 +178,6 @@ bool Reidemeister_II( const Int c_0 )
             }
         }
     }
-    
-//    // If we arrive here then no simplifications happend. But maybe we found that c_0 is a good candidate for a later break/switch.
-//    
-//    if( is_switch_candidate )
-//    {
-//        switch_candidates.push_back(c_0);
-//    }
     
     return false;
 }

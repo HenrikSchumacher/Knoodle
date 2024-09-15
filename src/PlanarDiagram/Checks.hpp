@@ -20,31 +20,35 @@ bool CheckCrossing( const Int c  )
         {
             const Int a = C_arcs(c,io,lr);
             
+            if( (a < 0) || (a > initial_arc_count) )
+            {
+                eprint(ClassName()+"::CheckArc: Arc index a = " + ToString(a) + " in crossing " + CrossingString(c) + " is out of bounds.");
+                return false;
+            }
+            
             const int A_activeQ = (A_state[a] == ArcState::Active);
             
             if( !A_activeQ )
             {
-                print("Check at    " + CrossingString(c) );
-                eprint("Problem with " + ArcString(a) + ": It's not active." );
+                eprint(ClassName()+"::CheckCrossing: arc " + ArcString(a) + " attached to active crossing " + CrossingString(c) + "is not active.");
             }
             
-            const bool tailtip = ( io == In ) ? Tip : Tail;
+            const bool tailtip = ( io == In ) ? Head : Tail;
             
             const bool A_goodQ = (A_cross(a,tailtip) == c);
             
             if( !A_goodQ )
             {
-                print("Check at    " + CrossingString(c) );
-                eprint("Problem with " + ArcString(a) + ": It's not connected correctly to crossing.");
+                eprint(ClassName()+"::CheckCrossing: arc " + ArcString(a) + " is not properly attached to crossing " + CrossingString(c) + ".");
             }
             C_passedQ = C_passedQ && A_activeQ && A_goodQ;
         }
     }
     
-    if( !C_passedQ )
-    {
-        eprint(ClassName()+"::CheckCrossing: Crossing "+ToString(c)+" failed to pass.");
-    }
+//    if( !C_passedQ )
+//    {
+//        eprint(ClassName()+"::CheckCrossing: Crossing "+ToString(c)+" failed to pass.");
+//    }
     
     return C_passedQ;
 }
@@ -60,7 +64,7 @@ bool CheckAllCrossings()
     
     if( passedQ )
     {
-        print(ClassName() + "::CheckAllCrossings: passed.");
+        logprint(ClassName() + "::CheckAllCrossings: passed.");
     }
     else
     {
@@ -87,36 +91,40 @@ bool CheckArc( const Int a  )
     bool A_passedQ = true;
     
 
-    for( bool tiptail : {Tail, Tip} )
+    for( bool headtail : {Tail, Head} )
     {
-        const Int c = A_cross(a,tiptail);
+        const Int c = A_cross(a,headtail);
+        
+        if( (c < 0) || (c > initial_crossing_count) )
+        {
+            eprint(ClassName()+"::CheckArc: Crossing index c = " + ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
+            return false;
+        }
         
         const bool C_activeQ = CrossingActiveQ(c);
         
         
         if( !C_activeQ )
         {
-            print("Check at    " + ArcString(a) );
-            print("Problem with " + CrossingString(c) + ": It's not active." );
+            eprint(ClassName()+"::CheckArc: crossing " + CrossingString(c) + " in active arc " + ArcString(a) + "is not active.");
         }
-        const bool inout = (tiptail == Tail) ? Out : In;
+        const bool inout = (headtail == Tail) ? Out : In;
     
         const bool C_goodQ = ( (C_arcs(c,inout,Left) == a) || (C_arcs(c,inout,Right) == a) );
         
         if( !C_goodQ )
         {
-            print("Check at    " + ArcString(a) );
-            print("Problem with " + CrossingString(c) + ": It's not connected correctly to arc.");
+            eprint(ClassName()+"::CheckArc: crossing " + CrossingString(c) + " appears in crossing " + ArcString(a) + ", but it is not properly attached to it.");
         }
         
         A_passedQ = A_passedQ && C_activeQ && C_goodQ;
         
     }
     
-    if( !A_passedQ )
-    {
-        eprint( ClassName() + "::CheckArc: Arc "+ToString(a)+" failed to pass.");
-    }
+//    if( !A_passedQ )
+//    {
+//        eprint( ClassName() + "::CheckArc: Arc "+ToString(a)+" failed to pass.");
+//    }
     
     return A_passedQ;
 }
@@ -132,7 +140,7 @@ bool CheckAllArcs()
     
     if( passed )
     {
-        print(ClassName()+"::CheckAllArcs: passed.");
+        logprint(ClassName()+"::CheckAllArcs: passed.");
     }
     else
     {
