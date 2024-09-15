@@ -183,12 +183,12 @@ namespace KnotTools
                 return c_0 == C_1.c;
             }
             
-//            std::string CrossingString( const Int c ) const
-//            {
-//                return "crossing " + ToString(c) +" = { { " +
-//                   ToString(C[0])+", "+ToString(C[1])+" }, { "+
-//                   ToString(C[2])+", "+ToString(C[3])+" } } (" + ToString(S) +")";
-//            }
+            std::string String() const
+            {
+                return "crossing " + Tools::ToString(c) +" = { { " +
+                Tools::ToString(C[0])+", "+Tools::ToString(C[1])+" }, { "+
+                Tools::ToString(C[2])+", "+Tools::ToString(C[3])+" } } (" + KnotTools::ToString(S) +")";
+            }
             
         }; // class CrossingView
         
@@ -263,26 +263,23 @@ namespace KnotTools
                 return a_0 == A_1.a;
             }
             
-//            std::string String() const
-//            {
-//                return "arc " +ToString(a) +" = { " +
-//                   ToString(A[0])+", "+ToString(A[1])+" } (" + ToString(S) +")";
-//            }
+            std::string String() const
+            {
+                return "arc " +Tools::ToString(a) +" = { " +
+                Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + KnotTools::ToString(S) +")";
+            }
             
         }; // class ArcView
         
-//        std::string ToString( const CrossingView & C )
-//        {
-//            return "crossing " + ToString(C.Idx()) +" = { { " +
-//               ToString(C(Out,Left))+", "+ToString(C(Out,Right))+" }, { "+
-//               ToString(C(In ,Left))+", "+ToString(C(In ,Right))+" } } (" + ToString(C.State()) +")";
-//        }
-//        
-//        std::string ToString( const ArcView & A )
-//        {
-//            return "arc " +ToString(A.Idx()) +" = { " +
-//               ToString(A(Tail))+", "+ToString(A(Head))+" } (" + ToString(A.State()) +")";
-//        }
+        std::string ToString( const CrossingView & C )
+        {
+            return C.String();
+        }
+        
+        std::string ToString( const ArcView & A )
+        {
+            return A.String();
+        }
         
         ArcView GetArc( const Int a )
         {

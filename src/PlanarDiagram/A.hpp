@@ -1,453 +1,334 @@
-private:
-
-bool Reidemeister_IIa_Horizontal( const Int c_0 )
+void Reidemeister_II_Horizontal_B( const Int c_0, const Int c_1, const bool side )
 {
-    if( !CrossingActiveQ(c_0) )
-    {
-        return false;
-    }
+    PD_PRINT("\nReidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
     
-    PD_PRINT("Reidemeister_IIa_Horizontal");
+    // c_0 == c_1  should be made impossible by the way we call this function.
+    PD_ASSERT(c_0 != c_1);
+    PD_ASSERT(OppositeHandednessQ(c_0,c_1));
     
-    
-    PD_ASSERT( (0 <= c_0) && (c_0 < C_arcs.Dimension(0)) );
-    
-    const Int e_1 = C_arcs(c_0,Out,Left );
-    const Int f_3 = C_arcs(c_0,Out,Right);
-    const Int f_2 = C_arcs(c_0,In ,Left );
-    const Int e_0 = C_arcs(c_0,In ,Right);
-
-    PD_ASSERT(ArcActiveQ(e_1));
-    PD_ASSERT(ArcActiveQ(f_3));
-    PD_ASSERT(ArcActiveQ(f_2));
-    PD_ASSERT(ArcActiveQ(e_0));
-    
-    PD_ASSERT(CheckArc(e_1));
-    PD_ASSERT(CheckArc(f_3));
-    PD_ASSERT(CheckArc(f_2));
-    PD_ASSERT(CheckArc(e_0));
-    
-    
-    const Int c_1 = A_cross(e_1,Head);
-    const Int e_2 = NextArc(e_1);
-    const Int c_2 = A_cross(e_2,Head);
-    
-    PD_ASSERT(CrossingActiveQ(c_1));
-    PD_ASSERT(CrossingActiveQ(c_2));
-    
+    PD_ASSERT(CheckCrossing(c_0));
     PD_ASSERT(CheckCrossing(c_1));
-    PD_ASSERT(CheckCrossing(c_2));
     
-    PD_ASSERT(ArcActiveQ(e_2));
-    PD_ASSERT(CheckArc(e_2));
+#ifdef PD_DEBUG
+    const Int a_0 = C_arcs(c_0,In ,side);
+    const Int a_1 = C_arcs(c_1,Out,side);
     
-    PD_ASSERT( (0 <= c_1) && (c_1 < C_arcs.Dimension(0)) );
-    PD_ASSERT( (0 <= c_2) && (c_2 < C_arcs.Dimension(0)) );
+    const Int b_0 = C_arcs(c_0,Out,side);
+    const Int b_1 = C_arcs(c_1,In ,side);
     
-    if( SameHandednessQ(c_0,c_2) )
+    PD_ASSERT(CheckArc(a_0));
+    PD_ASSERT(CheckArc(a_1));
+    PD_ASSERT(CheckArc(b_0));
+    PD_ASSERT(CheckArc(b_1));
+        
+    
+    PD_ASSERT( a_0 == a_1 );
+    PD_ASSERT( b_0 == b_1 );
+    // These are the central assumptions here.
+    if(!( (a_0 == a_1) && (b_0 == b_1) ))
     {
-        // Not what we are looking for.
-        return false;
+        PD_VALPRINT("C_state[c_0]",ToUnderlying(C_state[c_0]));
+        PD_VALPRINT("C_state[c_1]",ToUnderlying(C_state[c_1]));
+        PD_PRINT(CrossingString(c_0));
+        PD_PRINT(CrossingString(c_1));
+        
+        PD_PRINT(ArcString(a_0));
+        PD_PRINT(ArcString(a_1));
+        PD_PRINT(ArcString(b_0));
+        PD_PRINT(ArcString(b_1));
     }
-    
-    if( (e_2 != C_arcs(c_2,In,Left))  )
-    {
-        // Rather look for twist move.
-        return false;
-    }
-    
-    const Int f_1 = C_arcs(c_2,Out,Left );
-    const Int e_3 = C_arcs(c_2,Out,Right);
-    const Int f_0 = C_arcs(c_2,In ,Right);
-    
-    PD_ASSERT(ArcActiveQ(f_1));
-    PD_ASSERT(ArcActiveQ(e_3));
-    PD_ASSERT(ArcActiveQ(f_0));
-    
-    PD_ASSERT(CheckArc(f_1));
-    PD_ASSERT(CheckArc(e_3));
-    PD_ASSERT(CheckArc(f_0));
-    
-    const Int c_3 = A_cross(f_1,Head);
-    
-    if( c_1 == c_3  )
-    {
-        // Not what we are looking for.
-        return false;
-    }
-    
-    if( SameHandednessQ(c_1,c_3) )
-    {
-        return false;
-    }
-    
-    if( (c_3 != A_cross(f_2,Tail))  )
-    {
-        // Not what we are looking for.
-        return false;
-    }
-    
-//     c_0 Righthanded
-//                             O
-//                             |
-//                             |c_1
-//                       O<----X-----O
-//                      /      |      ^
-//                 e_2 /       |       \ e_1
-//                    v        O        \
-//       f_0 O       O         |         O       O f_3
-//            \     /          |          ^     ^
-//             \   /           |           \   /
-//              \ /            |            \ /
-//               \ c_2         |             / c_0
-//              / \            |            / \
-//             /   \           |           /   \
-//            v     v          |          /     \
-//       e_3 O       O         |         O       O e_0
-//                    \        O        ^
-//                 f_1 \       |       / f_2
-//                      v      |c_3   /
-//                       O-----X---->O
-//                             |
-//                             |
-//                             O
-    
-    
-    PD_ASSERT( OppositeHandednessQ(c_0,c_2) );
-    
-    PD_ASSERT( C_arcs(c_0,Out,Left ) == e_1 );
-    PD_ASSERT( C_arcs(c_0,Out,Right) == f_3 );
-    PD_ASSERT( C_arcs(c_0,In ,Left ) == f_2 );
-    PD_ASSERT( C_arcs(c_0,In ,Right) == e_0 );
-    
-    
-    PD_ASSERT( C_arcs(c_2,Out,Left ) == f_1 );
-    PD_ASSERT( C_arcs(c_2,Out,Right) == e_3 );
-    PD_ASSERT( C_arcs(c_2,In ,Left ) == e_2 );
-    PD_ASSERT( C_arcs(c_2,In ,Right) == f_0 );
-    
-    
-    PD_ASSERT( A_cross(e_0,Head) == c_0 );
-    PD_ASSERT( A_cross(f_0,Head) == c_2 );
-    
-    PD_ASSERT( A_cross(e_1,Head) == c_1 );
-    PD_ASSERT( A_cross(e_2,Tail) == c_1 );
-    
-    PD_ASSERT( A_cross(f_1,Head) == c_3 );
-    PD_ASSERT( A_cross(f_2,Tail) == c_3 );
-    
-    PD_ASSERT( A_cross(e_3,Tail) == c_2 );
-    PD_ASSERT( A_cross(f_3,Tail) == c_0 );
-    
-    
-    PD_ASSERT( OppositeHandednessQ(c_1,c_3) );
-    
-    PD_PRINT("Incoming data");
-    
-    PD_VALPRINT("c_0",CrossingString(c_0));
-    PD_VALPRINT("c_1",CrossingString(c_1));
-    PD_VALPRINT("c_2",CrossingString(c_2));
-    PD_VALPRINT("c_3",CrossingString(c_3));
-    
-    PD_VALPRINT("e_0",ArcString(e_0));
-    PD_VALPRINT("e_1",ArcString(e_1));
-    PD_VALPRINT("e_2",ArcString(e_2));
-    PD_VALPRINT("e_3",ArcString(e_3));
-    
-    PD_VALPRINT("f_0",ArcString(f_0));
-    PD_VALPRINT("f_1",ArcString(f_1));
-    PD_VALPRINT("f_2",ArcString(f_2));
-    PD_VALPRINT("f_3",ArcString(f_3));
+#endif
     
     
     
-    
-    //
-    //                         O
-    //                         |
-    //        f_0              |c_1           f_3
-    //           +------>O-----X---->O-------+
-    //          /              |              \
-    //         /               |               \
-    //        /                O                v
-    //       O                 |                 O
-    //                         |
-    //                         |
-    //                         |
-    //                         |
-    //                         |
-    //                         |
-    //                         |
-    //       O                 |                 O
-    //        ^                O                /
-    //         \               |               /
-    //          \              |c_3           /
-    //           +-------O<----X-----O<------+
-    //        e_3              |              e_0
-    //                         |
-    //                         O
-
-    
-    
-
-    // Reconnect c_1.
-    const bool side_1 = (C_arcs(c_1,In,Right) == e_1) ? Right : Left;
-    C_arcs(c_1,Out, side_1) = C_arcs(c_1,Out,!side_1);
-    C_arcs(c_1,In ,!side_1) = C_arcs(c_1,In , side_1);
-    C_arcs(c_1,Out,!side_1) = f_3;
-    C_arcs(c_1,In , side_1) = f_0;
-    FlipHandedness(c_1);
-    
-//// For details see the following ASCII art:
+// We assume this horizontal alignment in the case of side==Right.
 //
-//    if( C_arcs(c_1,In,Right) == e_1 )
+//                   C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,side)
+//
+//               v_3 O----<----O       O---->----O       O----<----O v_2
+//                       e_3    ^     ^     b     \     /    e_2
+//                               \   /             \   /
+//                                \ /               \ /
+//                             c_0 X                 X c_1
+//                                / \               / \
+//                               /   \             /   \
+//                       e_0    /     \     a     v     v    e_1
+//               v_0 O---->----O       O----<----O       O---->----O v_1
+//
+//                   C_arcs(c_0,In ,side) = a = C_arcs(c_0,Out,side)
+//
+// In the case side == Left, we just flip everything around.
+    
+    
+    const Int a = C_arcs(c_0,In ,side);
+    const Int b = C_arcs(c_0,Out,side);
+    
+    const Int e_0 = C_arcs(c_0,In ,!side);
+    const Int e_1 = C_arcs(c_1,Out,!side);
+    const Int e_2 = C_arcs(c_1,In ,!side);
+    const Int e_3 = C_arcs(c_0,Out,!side);
+    
+    if( (e_0 == e_1) || (e_3 == e_2) )
+    {
+        eprint(ClassName()+"::Reidemeister_II_Horizontal: We should not arrive here because this is a vertical case.");
+    }
+    
+//    if( e_0 == e_1 )
 //    {
+//        if( e_2 != e_3 )
+//        {
+//// This special situation with a loop over or under a strand (in the case of side==Right):
 ////
-////                         O
-////                         ^
-////                         |c_1
-////                   O<----X-----O
-////                  /      |      ^
-////             e_2 /       |       \ e_1
-////                v        O        \
-////   f_0 O       O         |         O       O f_3
-////        \     /          |          ^     ^
+////               v_3 O----<----O       O---->----O       O----<----O v_2
+////                       e_3    ^     ^     b     \     /    e_2
+////                               \   /             \   /
+////                                \ /               \ /
+////           v_2 != v_3        c_0 X                 X c_1
+////                                / \               / \
+////                               /   \             /   \
+////                              /     \     a     v     v
+////                             O       O----<----O       O
+////                              \                       /
+////                               \      e_0 = e_1      /
+////                                +---------<---------+
+//
+//            // We should not arrive here because this is a vertical case.
+////            PD_ASSERT(false);
+//            wprint("We should not arrive here because this is a vertical case. (1)");
+//
+//            unlink_count++;
+//
+//            PD_PRINT("\tUnlink detectd.");
+//
+//            Reconnect(a,Tail,e_2);
+//            Reconnect(a,Tip ,e_3);
+//
+//            DeactivateArc(b);
+//            DeactivateArc(e_0);
+//
+//            goto exit;
+//        }
+//        else
+//        {
+//// This very,very special situation with two noninterlinked loops (in the case of side==Right):
 ////
-//// This is what we want to get:
-////
-////                         O
-////                         ^
-////        f_0              |c_1           f_3
-////           +------>O-----X---->O-------+
-////          /              |              \
-////         /               |               \
-////        /                O                v
-////       O                 |                 O
+////                                +--------->---------+
+////                               /     e_3 = e_2       \
+////                              /                       \
+////                             O       O---->----O       O
+////                              ^     ^     b     \     /
+////                               \   /             \   /
+////                                \ /               \ /
+////                             c_0 X                 X c_1
+////                                / \               / \
+////                               /   \             /   \
+////                              /     \     a     v     v
+////                             O       O----<----O       O
+////                              \                       /
+////                               \      e_0 = e_1      /
+////                                +---------<---------+
 //
-//        C_arcs(c_1,Out,Left ) = C_arcs(c_1,Out,Right);
-//        C_arcs(c_1,In ,Right) = C_arcs(c_1,In ,Left );
+//            // We should not arrive here because this is a vertical case.
+////            PD_ASSERT(false);
+//            wprint("We should not arrive here because this is a vertical case. (2)");
 //
-//        C_arcs(c_1,Out,Right) = f_3;
-//        C_arcs(c_1,In ,Left ) = f_0;
+//            PD_PRINT("\tTwo unlinks detectd.");
 //
-//        FlipHandedness(c_1);
+//            unlink_count += 2;
+//
+//            DeactivateArc(a);
+//            DeactivateArc(b);
+//            DeactivateArc(e_0);
+//            DeactivateArc(e_2);
+//
+//            goto exit;
+//        }
 //    }
-//    else // if( C_arcs(c_1,In,Left) == e_1 )
+//    else if( e_3 == e_2 )
 //    {
-////
-////                         O
-////                         |
-////                         |c_1
-////                   O<----X-----O
-////                  /      |      ^
-////             e_2 /       v       \ e_1
-////                v        O        \
-////   f_0 O       O         |         O       O f_3
-////        \     /          |          ^     ^
-////
-//// This is what we want to get:
-////
-////                         O
-////                         |
-////        f_0              |c_1           f_3
-////           +------>O-----X---->O-------+
-////          /              |              \
-////         /               V               \
-////        /                O                v
-////       O                 |                 O
+//        // We don't have to check the case e_0 = e_1 here.
 //
-//        C_arcs(c_1,Out,Right) = C_arcs(c_1,Out,Left );
-//        C_arcs(c_1,In ,Left ) = C_arcs(c_1,In ,Right);
+////                                +--------->---------+
+////                               /     e_3 = e_2       \
+////                              /                       \
+////                             O       O---->----O       O
+////                       e_3    ^     ^     b     \     /    e_2
+////                               \   /             \   /
+////                                \ /               \ /
+////         v_0 != v_1          c_0 X                 X c_1
+////                                / \               / \
+////                               /   \             /   \
+////                       e_0    /     \     a     v     v    e_1
+////               v_0 O---->----O       O----<----O       O---->----O v_1
 //
-//        C_arcs(c_1,Out,Left ) = f_3;
-//        C_arcs(c_1,In ,Right) = f_0;
+//        // We should not arrive here because this is a vertical case.
+////        PD_ASSERT(false);
 //
-//        FlipHandedness(c_1);
+//        wprint("We should not arrive here because this is a vertical case. (3)");
+//
+//        unlink_count++;
+//
+//        PD_PRINT("\tUnlink detectd.");
+//
+//        Reconnect(b,Tail,e_0);
+//        Reconnect(b,Tip ,e_1);
+//
+//        DeactivateArc(a);
+//        DeactivateArc(e_2);
+//
+//        goto exit;
 //    }
     
+    if( (e_0 == e_3) || ( e_1 == e_2 ) )
+    {
+        eprint(ClassName()+"::Reidemeister_II_Horizontal: We should not arrive here because we first check for a Reidemeister_I.");
+    }
     
-    
-    // Reconnect c_3.
-    const bool side_3 = (C_arcs(c_3,In,Right) == f_1) ? Right : Left;
-    C_arcs(c_3,Out,!side_3) = C_arcs(c_3,Out, side_3);
-    C_arcs(c_3,In , side_3) = C_arcs(c_3,In ,!side_3);
-    C_arcs(c_3,Out, side_3) = e_3;
-    C_arcs(c_3,In ,!side_3) = e_0;
-
-    FlipHandedness(c_3);
-    
-// For details see the following ASCII art:
-//
-//    if( C_arcs(c_3,In,Right) == f_1 )
+//    if( e_0 == e_3 )
 //    {
-////        v     v          |          /     \
-////   e_3 O       O         |         O       O e_0
-////                \        O        ^
-////             f_1 \       |       / f_2
-////                  v      |c_3   /
-////                   O-----X---->O
-////                         |
-////                         v
-////                         O
+//        if( e_1 != e_2 )
+//        {
+//// This special case:
+////                   +----<----O       O---->----O       O----<----O v_2
+////                  /    e_3    ^     ^     b     \     /    e_2
+////                 /             \   /             \   /
+////         e_3    /               \ /               \ /
+////          =    |             c_0 X                 X c_1        v_1 != v_2
+////         e_0    \               / \               / \
+////                 \             /   \             /   \
+////                  \    e_0    /     \     a     v     v    e_1
+////                   +---->----O       O----<----O       O---->----O v_1
 ////
-//// This is what we want to get:
-////
-////       O                 |                 O
-////        ^                O                /
-////         \               |               /
-////          \              |c_3           /
-////           +-------O<----X-----O<------+
-////        e_3              |              e_0
-////                         v
-////                         O
 //
-//        C_arcs(c_3,Out,Left ) = C_arcs(c_3,Out,Right);
-//        C_arcs(c_3,In ,Right) = C_arcs(c_3,In ,Left );
-//        C_arcs(c_3,Out,Right) = e_3;
-//        C_arcs(c_3,In ,Left ) = e_0;
-//        FlipHandedness(c_3);
+//            // We should not arrive here because we first check for a Reidemeister_I at c_0.
+////            PD_ASSERT( false );
+//
+//            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0.");
+//
+//            Reconnect( e_0, Tail, e_2);
+//            Reconnect( e_0, Tip , e_1);
+//
+//            DeactivateArc(a);
+//            DeactivateArc(b);
+//
+//            PD_PRINT("\t\tModified move 1.");
+//
+//            goto exit;
+//        }
+//        else
+//        {
+//// This is a very, very special case:
+////                   +----<----O       O---->----O       O----<----+
+////                  /    e_3    ^     ^     b     \     /           \
+////                 /             \   /             \   /             \
+////         e_3    /               \ /               \ /               \    e_2
+////          =    |             c_0 X                 X c_1             |    =
+////         e_0    \               / \               / \               /    e_1
+////                 \             /   \             /   \             /
+////                  \    e_0    /     \     a     v     v           /
+////                   +---->----O       O----<----O       O---->----+
+////
+//
+//            //  We should not arrive here because we first check for a Reidemeister_I at c_0.
+////            PD_ASSERT( false );
+//            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0. (2)");
+//
+//            ++unlink_count;
+//
+//            PD_PRINT("\t\tUnlink detected.");
+//
+//            DeactivateArc(a);
+//            DeactivateArc(b);
+//            DeactivateArc(e_0);
+//            DeactivateArc(e_1);
+//
+//            goto exit;
+//        }
 //    }
-//    else // if if( C_arcs(c_3,In,Left) == f_1 )
+//    else if( e_1 == e_2 )
 //    {
-////        v     v          |          /     \
-////   e_3 O       O         |         O       O e_0
-////                \        O        ^
-////             f_1 \       ^       / f_2
-////                  v      |c_3   /
-////                   O-----X---->O
-////                         |
-////                         |
-////                         O
-////
-//// This is what we want to get:
-////
-////       O                 |                 O
-////        ^                O                /
-////         \               ^               /
-////          \              |c_3           /
-////           +-------O<----X-----O<------+
-////        e_3              |              e_0
-////                         |
-////                         O
+//        // We do not have to check for e_0 == e_3 anymore.
 //
-//        C_arcs(c_3,Out,Right) = C_arcs(c_3,Out,Left );
-//        C_arcs(c_3,In ,Left ) = C_arcs(c_3,In ,Right);
-//        C_arcs(c_3,Out,Left ) = e_3;
-//        C_arcs(c_3,In ,Right) = e_0;
-//        FlipHandedness(c_3);
+//// This special case:
+////               v_3 O----<----O       O---->----O       O----<----+
+////                       e_3    ^     ^     b     \     /    e_2    \
+////                               \   /             \   /             \
+////                                \ /               \ /               \    e_2
+////         v_3 != v_0          c_0 X                 X c_1             |    =
+////                                / \               / \               /    e_1
+////                               /   \             /   \             /
+////                       e_0    /     \     a     v     v    e_1    /
+////               v_0 O---->----O       O----<----O       O---->----O
+////
+//
+//
+//        //  We should not arrive here because we first check for a Reidemeister_I at c_1.
+////        PD_ASSERT( false );
+//        wprint("We should not arrive here because we first check for a Reidemeister_I at c_0. (3)");
+//
+//
+//        Reconnect(e_1,Tail,e_0);
+//        Reconnect(e_1,Tip ,e_3);
+//
+//        DeactivateArc(a);
+//        DeactivateArc(b);
+//
+//        PD_PRINT("\t\tModified move 2.");
+//
+//        goto exit;
 //    }
 
+    {
+// Finally, the most common case/
+// This is for side == Right. In the other case (side == Left), we just flip everything around.
+//
+//                  C_arcs(c_0,Out,Right) = b = C_arcs(c_1,In ,Right)
+//
+//               v_3 O----<----O       O---->----O       O----<----O v_2
+//                       e_3    ^     ^     b     \     /    e_2
+//                               \   /             \   /
+//                                \ /               \ /
+//                             c_0 X                 X c_1
+//                                / \               / \
+//                               /   \             /   \
+//                       e_0    /     \     a     v     v    e_1
+//               v_0 O---->----O       O----<----O       O---->----O v_1
+//
+//                  C_arcs(c_0,In ,Right) = a = C_arcs(c_1,Out,Right)
+//
+//
+// State after the move:
+//
+//                     +----<---------------<---------------<----+
+//                    /                     a                     \
+//               v_3 O         O       O         O       O         O v_2
+//                              ^     ^           \     /
+//                               \   /             \   /
+//                                \ /               \ /
+//                             c_0 X                 X c_1
+//                                / \               / \
+//                               /   \             /   \
+//                              /     \           v     v
+//               v_0 O         O       O         O       O         O v_1
+//                    \                     b                     /
+//                     +---->--------------->--------------->----+
+        
+        PD_PRINT(std::string("\t\tGeneric case (") + ((side==Left) ? "left)" : "right)") );
+        Reconnect(a,Tail,e_2);
+        Reconnect(a,Head,e_3);
+        Reconnect(b,Tail,e_0);
+        Reconnect(b,Head,e_1);
     
-    A_cross(e_0,Head) = c_3;
-    A_cross(e_3,Tail) = c_3;
+        goto exit;
+    }
     
-    A_cross(f_0,Head) = c_1;
-    A_cross(f_3,Tail) = c_1;
+exit:
     
-    DeactivateArc(e_1);
-    DeactivateArc(e_2);
-    DeactivateArc(f_1);
-    DeactivateArc(f_2);
+    // The two crossings are inactivated in any case.
     DeactivateCrossing(c_0);
-    DeactivateCrossing(c_2);
- 
+    DeactivateCrossing(c_1);
     
-    PD_PRINT("Changed data");
-    
-    PD_VALPRINT("c_1",CrossingString(c_1));
-    PD_VALPRINT("c_3",CrossingString(c_3));
-    
-    PD_VALPRINT("e_0",ArcString(e_0));
-    PD_VALPRINT("e_3",ArcString(e_3));
-    
-    PD_VALPRINT("f_0",ArcString(f_0));
-    PD_VALPRINT("f_3",ArcString(f_3));
-    
-    PD_ASSERT(!CrossingActiveQ(c_0) );
-    PD_ASSERT(!CrossingActiveQ(c_2) );
-    PD_ASSERT( CrossingActiveQ(c_1) );
-    PD_ASSERT( CrossingActiveQ(c_3) );
-    
-    PD_ASSERT( CheckCrossing(c_1) );
-    PD_ASSERT( CheckCrossing(c_3) );
-    
-    
-    PD_ASSERT(!ArcActiveQ(e_1) );
-    PD_ASSERT(!ArcActiveQ(f_1) );
-    PD_ASSERT(!ArcActiveQ(e_2) );
-    PD_ASSERT(!ArcActiveQ(f_2) );
-    PD_ASSERT( ArcActiveQ(e_0) );
-    PD_ASSERT( ArcActiveQ(f_0) );
-    PD_ASSERT( ArcActiveQ(e_3) );
-    PD_ASSERT( ArcActiveQ(f_3) );
-    
-    PD_ASSERT( CheckArc(e_0) );
-    PD_ASSERT( CheckArc(f_0) );
-    PD_ASSERT( CheckArc(e_3) );
-    PD_ASSERT( CheckArc(f_3) );
-    
-    PD_ASSERT( OppositeHandednessQ(c_1,c_3) );
-    
-    PD_ASSERT( A_cross(e_0,Head) == c_3 );
-    PD_ASSERT( A_cross(f_0,Head) == c_1 );
+    ++R_II_counter;
+    ++R_II_horizontal_counter;
 
-    PD_ASSERT( A_cross(e_3,Tail) == c_3 );
-    PD_ASSERT( A_cross(f_3,Tail) == c_1 );
-    
-    
-    PD_ASSERT( CheckArc(C_arcs(c_1,Out,Left ) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_1,Out,Right) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_1,In ,Left ) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_1,In ,Right) ) );
-    
-    PD_ASSERT( CheckArc(C_arcs(c_3,Out,Left ) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_3,Out,Right) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_3,In ,Left ) ) );
-    PD_ASSERT( CheckArc(C_arcs(c_3,In ,Right) ) );
-    
-    
-    PD_ASSERT( CheckCrossing(A_cross(e_0,Head) ) );
-    PD_ASSERT( CheckCrossing(A_cross(e_0,Tail) ) );
-    
-    PD_ASSERT( CheckCrossing(A_cross(f_0,Head) ) );
-    PD_ASSERT( CheckCrossing(A_cross(f_0,Tail) ) );
-    
-    PD_ASSERT( CheckCrossing(A_cross(e_3,Head) ) );
-    PD_ASSERT( CheckCrossing(A_cross(e_3,Tail) ) );
-    
-    PD_ASSERT( CheckCrossing(A_cross(f_3,Head) ) );
-    PD_ASSERT( CheckCrossing(A_cross(f_3,Tail) ) );
-    
-    ++R_IIa_counter;
-    
-    return true;
-}
-
-
-// Done:
-//            |
-//      \   +-|-+   /
-//       \ /  |  \ /
-//        /   |   \
-//       / \  |  / \
-//      /   +-|-+   \
-//            |
-//
-// Done:
-//            |
-//      \   +---+   /
-//       \ /  |  \ /
-//        /   |   \
-//       / \  |  / \
-//      /   +---+   \
-//            |
-//
-// TODO: Do also this case:
-//            |
-//      \   +---+   /
-//       \ /  |  \ /
-//        /   |   \
-//       / \  |  / \
-//      /   +-|-+   \
-//            |
-
+} // Reidemeister_II_Horizontal
