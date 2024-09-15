@@ -462,6 +462,9 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_VALPRINT("F_0",F_0);
             PD_VALPRINT("F_0",F_0);
 
+            // DEBUGGING
+            wprint(ClassName()+"::Reidemeister_Ia_Horizontal_impl - twist move!");
+            //TODO: Test this.
                 
             PD_ASSERT( F_0( io == Out ? Tail : Head ) == C_2 );
             PD_ASSERT( F_1( io == Out ? Head : Tail ) == C_2 );
@@ -498,10 +501,6 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             
 
             PD_PRINT("Horizontal reroute checks done.");
-            
-            // DEBUGGING
-            wprint(ClassName()+"::Reidemeister_Ia_Horizontal_impl - twist move!");
-            
             
             return true;
             
