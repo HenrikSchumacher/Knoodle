@@ -56,7 +56,7 @@ void Reconnect( ArcView & A, const bool headtail, ArcView & B )
     PD_ASSERT( A.ActiveQ() );
 //    PD_ASSERT( B.ActiveQ() ); // Could have been deactivated already.
     
-    auto C = GetCrossing( B(headtail) );
+    auto C = Crossing( B(headtail) );
     
     
     PD_ASSERT( (C(io,Left) == B.Idx()) || (C(io,Right) == B.Idx()) );

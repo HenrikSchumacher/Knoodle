@@ -2,7 +2,7 @@ bool CheckCrossing( const Int c  )
 {
     if( (c < 0) || (c > initial_crossing_count) )
     {
-        eprint(ClassName()+"::CheckCrossing: Crossing index c = " + ToString(c) + " is out of bounds.");
+        eprint(ClassName()+"::CheckCrossing: Crossing index c = " + Tools::ToString(c) + " is out of bounds.");
         return false;
     }
     
@@ -22,7 +22,7 @@ bool CheckCrossing( const Int c  )
             
             if( (a < 0) || (a > initial_arc_count) )
             {
-                eprint(ClassName()+"::CheckArc: Arc index a = " + ToString(a) + " in crossing " + CrossingString(c) + " is out of bounds.");
+                eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " in crossing " + CrossingString(c) + " is out of bounds.");
                 return false;
             }
             
@@ -78,7 +78,7 @@ bool CheckArc( const Int a  )
 {
     if( (a < 0) || (a > initial_arc_count) )
     {
-        eprint(ClassName()+"::CheckArc: Arc index a = " + ToString(a) + " is out of bounds.");
+        eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " is out of bounds.");
         return false;
     }
     
@@ -97,7 +97,7 @@ bool CheckArc( const Int a  )
         
         if( (c < 0) || (c > initial_crossing_count) )
         {
-            eprint(ClassName()+"::CheckArc: Crossing index c = " + ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
+            eprint(ClassName()+"::CheckArc: Crossing index c = " + Tools::ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
             return false;
         }
         

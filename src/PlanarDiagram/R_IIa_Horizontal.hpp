@@ -458,15 +458,15 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     
     PD_PRINT("Reidemeister_IIa_Horizontal");
     
-    auto C_0 = GetCrossing( c_0 );
+    auto C_0 = Crossing( c_0 );
 
-    auto A_1 = GetArc( C_0(Out,Left ) );
-    auto B_3 = GetArc( C_0(Out,Right) );
-    auto B_2 = GetArc( C_0(In ,Left ) );
-    auto A_0 = GetArc( C_0(In ,Right) );
-    auto C_1 = GetCrossing( A_1(Head) );
+    auto A_1 = Arc( C_0(Out,Left ) );
+    auto B_3 = Arc( C_0(Out,Right) );
+    auto B_2 = Arc( C_0(In ,Left ) );
+    auto A_0 = Arc( C_0(In ,Right) );
+    auto C_1 = Crossing( A_1(Head) );
     auto A_2 = NextArc(A_1);
-    auto C_2 = GetCrossing( A_2(Head) );
+    auto C_2 = Crossing( A_2(Head) );
     
     if( SameHandednessQ(C_0,C_2) )
     {
@@ -480,10 +480,10 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
         return false;
     }
     
-    auto B_1 = GetArc( C_2(Out,Left ) );
-    auto A_3 = GetArc( C_2(Out,Right) );
-    auto B_0 = GetArc( C_2(In ,Right) );
-    auto C_3 = GetCrossing( B_1(Head) );
+    auto B_1 = Arc( C_2(Out,Left ) );
+    auto A_3 = Arc( C_2(Out,Right) );
+    auto B_0 = Arc( C_2(In ,Right) );
+    auto C_3 = Crossing( B_1(Head) );
     
     if( C_1 == C_3  )
     {

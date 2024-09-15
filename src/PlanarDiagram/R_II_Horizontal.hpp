@@ -7,17 +7,17 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT(c_0 != c_1);
     
-    auto C_0 = GetCrossing( c_0 );
-    auto C_1 = GetCrossing( c_1 );
+    auto C_0 = Crossing( c_0 );
+    auto C_1 = Crossing( c_1 );
     PD_ASSERT(OppositeHandednessQ(C_0,C_1));
 
     
 #ifdef PD_DEBUG
-    auto A_0 = C_0(In ,side);
-    auto A_1 = C_1(Out,side);
+    auto A_0 = Arc( C_0(In ,side) );
+    auto A_1 = Arc( C_1(Out,side) );
     
-    auto B_0 = C_0(Out,side);
-    auto B_1 = C_1(In ,side);
+    auto B_0 = Arc( C_0(Out,side) );
+    auto B_1 = Arc( C_1(In ,side) );
     
     PD_ASSERT(CheckArc(A_0.Idx()));
     PD_ASSERT(CheckArc(A_1.Idx()));
@@ -60,12 +60,12 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
 // In the case side == Left, we just flip everything around.
     
-    auto A   = GetArc( C_0(In , side) );
-    auto B   = GetArc( C_0(Out, side) );
-    auto E_0 = GetArc( C_0(In ,!side) );
-    auto E_1 = GetArc( C_1(Out,!side) );
-    auto E_2 = GetArc( C_1(In ,!side) );
-    auto E_3 = GetArc( C_0(Out,!side) );
+    auto A   = Arc( C_0(In , side) );
+    auto B   = Arc( C_0(Out, side) );
+    auto E_0 = Arc( C_0(In ,!side) );
+    auto E_1 = Arc( C_1(Out,!side) );
+    auto E_2 = Arc( C_1(In ,!side) );
+    auto E_3 = Arc( C_0(Out,!side) );
     
     if( (E_0 == E_1) || (E_3 == E_2) )
     {

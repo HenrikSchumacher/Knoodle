@@ -192,7 +192,7 @@ namespace KnotTools
             
         }; // class CrossingView
         
-        CrossingView GetCrossing( const Int c )
+        CrossingView Crossing( const Int c )
         {
             PD_ASSERT(CheckCrossing(c));
             PD_ASSERT(CrossingActiveQ(c));
@@ -243,7 +243,7 @@ namespace KnotTools
                 return A[headtail];
             }
             
-            bool ActiveQ()
+            bool ActiveQ() const
             {
                 return S == ArcState::Active;
             }
@@ -281,7 +281,7 @@ namespace KnotTools
             return A.String();
         }
         
-        ArcView GetArc( const Int a )
+        ArcView Arc( const Int a )
         {
             PD_ASSERT(CheckArc(a));
             PD_ASSERT(ArcActiveQ(a));
@@ -424,7 +424,7 @@ namespace KnotTools
             PD_PRINT("{");
             for( Int comp = 0; comp < component_count; ++comp )
             {
-                PD_PRINT("\tBegin of component " + ToString(comp));
+                PD_PRINT("\tBegin of component " + Tools::ToString(comp));
                 PD_PRINT("\t{");
                 
                 // The range of arcs belonging to this component.
@@ -508,7 +508,7 @@ namespace KnotTools
                 }
                 
                 PD_PRINT("\t}");
-                PD_PRINT("\tEnd   of component " + ToString(comp));
+                PD_PRINT("\tEnd   of component " + Tools::ToString(comp));
                 
                 PD_PRINT("");
                 
@@ -957,9 +957,12 @@ namespace KnotTools
         
         std::string CrossingString( const Int c ) const
         {
-            return "crossing " + ToString(c) +" = { { " +
-               ToString(C_arcs(c,Out,Left ))+", "+ToString(C_arcs(c,Out,Right))+" }, { "+
-               ToString(C_arcs(c,In ,Left ))+", "+ToString(C_arcs(c,In ,Right))+" } } (" + ToString(C_state[c]) +")";
+            return "crossing " + Tools::ToString(c) +" = { { "
+                + Tools::ToString(C_arcs(c,Out,Left )) + ", "
+                + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
+                + Tools::ToString(C_arcs(c,In ,Left )) + ", "
+                + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
+                + Tools::ToString(C_state[c])          +")";
         }
         
         /*!
@@ -1020,12 +1023,12 @@ namespace KnotTools
         
         void RotateCrossing( const Int c, const bool dir )
         {
-            Int A [2][2];
-            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
+//            Int C [2][2];
+//            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
             
         // Before:
         //
-        //   A[Out][Left ] O       O A[Out][Right]
+        //   C[Out][Left ] O       O C[Out][Right]
         //                  ^     ^
         //                   \   /
         //                    \ /
@@ -1033,13 +1036,13 @@ namespace KnotTools
         //                    / \
         //                   /   \
         //                  /     \
-        //   A[In ][Left ] O       O A[In ][Right]
+        //   C[In ][Left ] O       O C[In ][Right]
             
             if( dir == Right )
             {
         // After:
         //
-        //   A[Out][Left ] O       O A[Out][Right]
+        //   C[Out][Left ] O       O C[Out][Right]
         //                  \     ^
         //                   \   /
         //                    \ /
@@ -1047,12 +1050,19 @@ namespace KnotTools
         //                    / \
         //                   /   \
         //                  /     v
-        //   A[In ][Left ] O       O A[In ][Right]
+        //   C[In ][Left ] O       O C[In ][Right]
+
+                const Int buffer = C_arcs(c,Out,Left );
                 
-                C_arcs(c,Out,Left ) = A[Out][Right];
-                C_arcs(c,Out,Right) = A[In ][Right];
-                C_arcs(c,In ,Left ) = A[Out][Left ];
-                C_arcs(c,In ,Right) = A[In ][Left ];
+                C_arcs(c,Out,Left ) = C_arcs(c,Out,Right);
+                C_arcs(c,Out,Right) = C_arcs(c,In ,Right);
+                C_arcs(c,In ,Right) = C_arcs(c,In ,Left );
+                C_arcs(c,In ,Left ) = buffer;
+                
+//                C_arcs(c,Out,Left ) = A[Out][Right];
+//                C_arcs(c,Out,Right) = A[In ][Right];
+//                C_arcs(c,In ,Left ) = A[Out][Left ];
+//                C_arcs(c,In ,Right) = A[In ][Left ];
             }
             else
             {
@@ -1068,20 +1078,84 @@ namespace KnotTools
         //                  v     \
         //   A[In ][Left ] O       O A[In ][Right]
                 
-                C_arcs(c,Out,Left ) = A[In ][Left ];
-                C_arcs(c,Out,Right) = A[Out][Left ];
-                C_arcs(c,In ,Left ) = A[In ][Right];
-                C_arcs(c,In ,Right) = A[Out][Right];
+                const Int buffer = C_arcs(c,Out,Left );
+                
+                C_arcs(c,Out,Left ) = C_arcs(c,In ,Left );
+                C_arcs(c,In ,Left ) = C_arcs(c,In ,Right);
+                C_arcs(c,In ,Right) = C_arcs(c,Out,Right);
+                C_arcs(c,Out,Right) = buffer;
+                
+//                C_arcs(c,Out,Left ) = A[In ][Left ];
+//                C_arcs(c,Out,Right) = A[Out][Left ];
+//                C_arcs(c,In ,Left ) = A[In ][Right];
+//                C_arcs(c,In ,Right) = A[Out][Right];
             }
         }
+        
+        void RotateCrossing( CrossingView & C, const bool dir )
+        {
+        // Before:
+        //
+        //    C(Out,Left ) O       O C(Out,Right)
+        //                  ^     ^
+        //                   \   /
+        //                    \ /
+        //                     X
+        //                    / \
+        //                   /   \
+        //                  /     \
+        //    C(In ,Left ) O       O C(In ,Right)
+            
+            if( dir == Right )
+            {
+        // After:
+        //
+        //    C(Out,Left ) O       O C(Out,Right)
+        //                  \     ^
+        //                   \   /
+        //                    \ /
+        //                     X
+        //                    / \
+        //                   /   \
+        //                  /     v
+        //    C(In ,Left ) O       O C(In ,Right)
+                
+                const Int buffer = C(Out,Left );
+                
+                C(Out,Left ) = C(Out,Right);
+                C(Out,Right) = C(In ,Right);
+                C(In ,Right) = C(In ,Left );
+                C(In ,Left ) = buffer;
+            }
+            else
+            {
+        // After:
+        //
+        //    C(Out,Left ) O       O C(Out,Right)
+        //                  ^     /
+        //                   \   /
+        //                    \ /
+        //                     X
+        //                    / \
+        //                   /   \
+        //                  v     \
+        //    C(In ,Left ) O       O C(In ,Right)
+                
+                const Int buffer = C(Out,Left );
 
-        
-        
+                C(Out,Left ) = C(In ,Left );
+                C(In ,Left ) = C(In ,Right);
+                C(In ,Right) = C(Out,Right);
+                C(Out,Right) = buffer;
+            }
+        }
         
         std::string ArcString( const Int a ) const
         {
-            return "arc " +ToString(a) +" = { " +
-               ToString(A_cross(a,Tail))+", "+ToString(A_cross(a,Head))+" } (" + ToString(A_state[a]) +")";
+            return "arc " +Tools::ToString(a) +" = { "
+                + Tools::ToString(A_cross(a,Tail)) + ", "
+                + Tools::ToString(A_cross(a,Head)) + " } ("
+                + Tools::ToString(A_state[a])      + ")";
         }
         
         /*!
@@ -1130,7 +1204,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive crossing " + ToString(c) + ".");
+                wprint("Attempted to deactivate already inactive crossing " + Tools::ToString(c) + ".");
 #endif
             }
         }
@@ -1149,7 +1223,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + ToString(a) + ".");
+                wprint("Attempted to deactivate already inactive arc " + Tools::ToString(a) + ".");
 #endif
             }
         }
@@ -1283,7 +1357,7 @@ namespace KnotTools
             // We leave through the arc at the opposite port.
             //If everything is set up correctly, the outgoing arc points into the same direction as a.
             
-            return GetArc( C_arcs(c,Out,!side) );
+            return Arc( C_arcs(c,Out,!side) );
         }
         
         /*!
@@ -1372,7 +1446,7 @@ namespace KnotTools
         template<bool allow_R_IaQ = true, bool allow_R_IIaQ = true>
         void Simplify()
         {
-            ptic(ClassName()+"::Simplify" + "<" + ToString(allow_R_IaQ) + ">");
+            ptic(ClassName()+"::Simplify" + "<" + Tools::ToString(allow_R_IaQ) + ">");
             
 //            pvalprint( "Number of crossings  ", crossing_count      );
 //            pvalprint( "Number of arcs       ", arc_count           );
@@ -1463,7 +1537,7 @@ namespace KnotTools
 //            dump(R_II_vertical_counter);
 //            dump(R_IIa_counter);
             
-            ptoc(ClassName()+"::Simplify" + "<" + ToString(allow_R_IaQ) + ">");
+            ptoc(ClassName()+"::Simplify" + "<" + Tools::ToString(allow_R_IaQ) + ">");
         }
         
         /*!

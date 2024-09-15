@@ -12,9 +12,11 @@ bool Reidemeister_I( const Int c )
     //
     // This is precisely the case if two consecutive arcs coincide.
     
-    if( !CrossingActiveQ(c) )
+    auto C = Crossing( c );
+    
+    if( !C.ActiveQ() )
     {
-        PD_PRINT("Crossing "+ToString(c)+" is not active. Skipping");
+        PD_PRINT("Crossing "+ToString(C)+" is not active. Skipping");
 
         return false;
     }
@@ -22,7 +24,6 @@ bool Reidemeister_I( const Int c )
     // Let's see on which side the loop is.
     bool side;
     
-    auto C = GetCrossing( c );
     
     if( C(Out,Left ) == C(In ,Left ) )
     {
@@ -40,9 +41,9 @@ bool Reidemeister_I( const Int c )
     // This is the central assumption here.
     PD_ASSERT( C(Out,side) == C(In ,side) );
     
-    auto A = GetArc( C(In ,!side) );
-    auto B = GetArc( C(Out,!side) );
-    auto D = GetArc( C(Out, side) );   // This is the looping arc (see picture below).
+    auto A = Arc( C(In ,!side) );
+    auto B = Arc( C(Out,!side) );
+    auto D = Arc( C(Out, side) );   // This is the looping arc (see picture below).
     
     if( A != B )
     {
@@ -215,10 +216,7 @@ bool Reidemeister_I_B( const Int c )
     }
    
 exit:
-    
-//    CheckAll();
-    
-    
+        
     ++R_I_counter;
     
     return true;
