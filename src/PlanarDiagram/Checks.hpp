@@ -30,7 +30,7 @@ bool CheckCrossing( const Int c  )
             
             if( !A_activeQ )
             {
-                eprint(ClassName()+"::CheckCrossing: " + ArcString(a) + " attached to active crossing " + CrossingString(c) + " is not active.");
+                eprint(ClassName()+"::CheckCrossing: " + ArcString(a) + " attached to active " + CrossingString(c) + " is not active.");
             }
             
             const bool tailtip = ( io == In ) ? Head : Tail;

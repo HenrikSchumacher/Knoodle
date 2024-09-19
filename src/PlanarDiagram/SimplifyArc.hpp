@@ -476,8 +476,9 @@ bool twist_at_a()
         
         if( n_1 == e_1 )
         {
-            PD_ASSERT( w_0 != s_0 );
             PD_DPRINT( "\t\tn_1 == e_1" );
+            
+            PD_ASSERT( w_0 != s_0 );
             
            /*               +-------------------------+
             *               |                         |
@@ -502,6 +503,8 @@ bool twist_at_a()
             
             return true;
         }
+        
+        PD_DPRINT( "\t\t(w_0 != s_0) && (n_1 != e_1)." );
         
         // We have one of these two situations:
         
@@ -598,7 +601,7 @@ bool twist_at_a()
         
         
         Reconnect(w_0,Head,e_1);
-        Reconnect(s_0,!u_0,n_1);
+        Reconnect(s_0,u_0 ,n_1);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         DeactivateArc(a);
@@ -713,6 +716,8 @@ bool twist_at_a()
             
             return true;
         }
+        
+        PD_DPRINT( "\t\t(w_0 != n_0) && (s_1 != e_1)." );
         
         /* We have one of these two situations:
          *
