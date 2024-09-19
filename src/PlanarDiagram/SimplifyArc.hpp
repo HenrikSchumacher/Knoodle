@@ -37,13 +37,13 @@ bool SimplifyArc( const Int a_ )
     if( twist_at_a() ) return true;
     
     // TODO: Debug the following, too.
-//
-//    // Next we check for Reidemeister_I at crossings c_0 and c_1.
-//    // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
-//    
-//    if( RI_at_c_0() ) return true;
-//    
-//    if( RI_at_c_1() ) return true;
+
+    // Next we check for Reidemeister_I at crossings c_0 and c_1.
+    // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
+    
+    if( RI_at_c_0() ) return true;
+    
+    if( RI_at_c_1() ) return true;
 //    
 //    // Neglecting asserts, this is the only time we access C_state[c_0].
 //    // Whether the vertical strand at c_0 goes over.
@@ -792,7 +792,13 @@ bool RI_at_c_0()
     
     AssertArc(a);
     AssertCrossing(c_0);
-    AssertCrossing(c_1);
+    
+    logprint("Incoming data");
+    logvalprint("c_0",CrossingString(c_0));
+    logvalprint("a  ",ArcString(a  ));
+    logvalprint("n_0",ArcString(n_0));
+    logvalprint("w_0",ArcString(w_0));
+    logvalprint("s_0",ArcString(s_0));
     
     if( n_0 == w_0 )
     {
@@ -832,6 +838,8 @@ bool RI_at_c_0()
              
             if( e_1 != n_1 )
             {
+                PD_DPRINT( "t\t\te_1 != n_1" );
+                
                 /* A second Reidemeister I move can be performed.
                  *
                  *                            n_1
@@ -858,6 +866,8 @@ bool RI_at_c_0()
             }
             else
             {
+                PD_DPRINT( "t\t\te_1 == n_1" );
+                
                 /* A second Reidemeister I move can be performed.
                  *
                  *
@@ -944,6 +954,7 @@ bool RI_at_c_0()
                 DeactivateArc(n_0);
                 DeactivateArc(a  );
                 DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 R_I_counter += 2;
                 
                 AssertArc(e_1);
@@ -968,7 +979,6 @@ bool RI_at_c_0()
                  */
                 
                 ++unlink_count;
-                
                 DeactivateArc(e_1);
                 DeactivateArc(w_0);
                 DeactivateArc(n_0);
@@ -1049,7 +1059,6 @@ bool RI_at_c_1()
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
                 R_I_counter += 2;
                 
                 AssertArc(w_0);
@@ -1074,7 +1083,6 @@ bool RI_at_c_1()
                 DeactivateArc(e_1);
                 DeactivateArc(n_1);
                 DeactivateArc(a);
-                
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
 
@@ -1145,7 +1153,6 @@ bool RI_at_c_1()
                 DeactivateArc(s_0);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
                 R_I_counter += 2;
                 
                 AssertArc(w_0);
@@ -1166,15 +1173,13 @@ bool RI_at_c_1()
                  *                    s_0
                  */
                 
+                ++unlink_count;
                 DeactivateArc(w_0);
                 DeactivateArc(e_1);
                 DeactivateArc(a  );
                 DeactivateArc(s_0);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
-                ++unlink_count;
-                
                 R_I_counter += 2;
                 
                 return true;
