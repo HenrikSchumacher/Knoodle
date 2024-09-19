@@ -22,7 +22,7 @@ bool CheckCrossing( const Int c  )
             
             if( (a < 0) || (a > initial_arc_count) )
             {
-                eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " in crossing " + CrossingString(c) + " is out of bounds.");
+                eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " in " + CrossingString(c) + " is out of bounds.");
                 return false;
             }
             
@@ -30,7 +30,7 @@ bool CheckCrossing( const Int c  )
             
             if( !A_activeQ )
             {
-                eprint(ClassName()+"::CheckCrossing: arc " + ArcString(a) + " attached to active crossing " + CrossingString(c) + "is not active.");
+                eprint(ClassName()+"::CheckCrossing: " + ArcString(a) + " attached to active crossing " + CrossingString(c) + " is not active.");
             }
             
             const bool tailtip = ( io == In ) ? Head : Tail;
@@ -39,7 +39,7 @@ bool CheckCrossing( const Int c  )
             
             if( !A_goodQ )
             {
-                eprint(ClassName()+"::CheckCrossing: arc " + ArcString(a) + " is not properly attached to crossing " + CrossingString(c) + ".");
+                eprint(ClassName()+"::CheckCrossing: " + ArcString(a) + " is not properly attached to " + CrossingString(c) + ".");
             }
             C_passedQ = C_passedQ && A_activeQ && A_goodQ;
         }
@@ -106,7 +106,7 @@ bool CheckArc( const Int a  )
         
         if( !C_activeQ )
         {
-            eprint(ClassName()+"::CheckArc: crossing " + CrossingString(c) + " in active arc " + ArcString(a) + "is not active.");
+            eprint(ClassName()+"::CheckArc: " + CrossingString(c) + " in active " + ArcString(a) + " is not active.");
         }
         const bool inout = (headtail == Tail) ? Out : In;
     
@@ -114,7 +114,7 @@ bool CheckArc( const Int a  )
         
         if( !C_goodQ )
         {
-            eprint(ClassName()+"::CheckArc: crossing " + CrossingString(c) + " appears in crossing " + ArcString(a) + ", but it is not properly attached to it.");
+            eprint(ClassName()+"::CheckArc: " + CrossingString(c) + " appears in " + ArcString(a) + ", but it is not properly attached to it.");
         }
         
         A_passedQ = A_passedQ && C_activeQ && C_goodQ;

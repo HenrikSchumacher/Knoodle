@@ -29,7 +29,7 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
 
-    ++twist_move_counter;
+    ++twist_counter;
 
     return true;
     

@@ -6,30 +6,52 @@ namespace KnotTools
 {
 
 #ifdef PD_VERBOSE
-    #define PD_PRINT( s ) Tools::logprint(s);
+    #define PD_PRINT( s ) Tools::logprint((s));
+    
+    #define PD_VALPRINT( key, val ) Tools::logvalprint( (key), (val) )
+    
+    #define PD_WPRINT( s ) Tools::wprint((s));
+    
 #else
     #define PD_PRINT( s )
-#endif
     
-#ifdef PD_VERBOSE
-    #define PD_VALPRINT( key, val ) Tools::logvalprint( key, val )
-#else
     #define PD_VALPRINT( key, val )
-#endif
     
-#ifdef PD_VERBOSE
-    #define PD_WPRINT( s ) Tools::wprint(s);
-#else
     #define PD_WPRINT( s )
 #endif
     
     
+    
 #ifdef PD_DEBUG
     #define PD_ASSERT( c ) if(!(c)) { Tools::eprint( "PD_ASSERT failed: " + std::string(#c) ); }
+    
+    #define PD_DPRINT( s ) Tools::logprint((s));
 #else
     #define PD_ASSERT( c )
+    
+    #define PD_DPRINT( s )
 #endif
     
+    
+
+    
+    
+//    template<typename Int>
+//    struct Crossing
+//    {
+//        std::array<std::array<Int,2>,2> arcs;
+//        CrossingState state;
+//        
+//    }; // struct Crossing
+//    
+//    
+//    template<typename Int>
+//    struct Arc
+//    {
+//        std::array<Int,2> cross;
+//        ArcState state;
+//        
+//    }; // struct Arc
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
@@ -62,35 +84,38 @@ namespace KnotTools
         
         CrossingContainer_T      C_arcs;
         CrossingStateContainer_T C_state;
-        Tensor1<Int,Int>         C_label; // List of vertex labels that stay persistent throughout.
         
         ArcContainer_T           A_cross;
         ArcStateContainer_T      A_state;
-        Tensor1<Int,Int>         A_label; // List of arc labels that stay persistent throughout.
         
-        Int initial_crossing_count = 0;
-        Int initial_arc_count      = 0;
+        Int initial_crossing_count  = 0;
+        Int initial_arc_count       = 0;
         
-        Int crossing_count         = 0;
-        Int arc_count              = 0;
-        Int unlink_count           = 0;
+        Int crossing_count          = 0;
+        Int arc_count               = 0;
+        Int unlink_count            = 0;
         
         // Counters for Reidemeister moves.
         Int R_I_counter             = 0;
         Int R_Ia_counter            = 0;
+        Int R_II_counter            = 0;
+        Int R_IIa_counter           = 0;
+        Int twist_counter           = 0;
+        
+#ifdef PD_COUNTERS
+        Int R_I_check_counter       = 0;
+        Int R_Ia_check_counter      = 0;
         Int R_Ia_vertical_counter   = 0;
         Int R_Ia_horizontal_counter = 0;
-        Int R_II_counter            = 0;
+        Int R_II_check_counter      = 0;
         Int R_II_vertical_counter   = 0;
         Int R_II_horizontal_counter = 0;
-        Int R_IIa_counter           = 0;
-        Int twist_move_counter      = 0;
+        Int R_IIa_check_counter     = 0;
+#endif
         
         // Stacks for keeping track of recently modified entities.
 #if defined(PD_USE_TOUCHING)
         std::vector<Int> touched_crossings;
-//        std::vector<Int> touched_arcs;
-//        std::vector<Int> switch_candidates;
 #endif
         // Data for the faces and the dual graph
         
@@ -161,11 +186,13 @@ namespace KnotTools
             
             bool ActiveQ() const
             {
-                return (
-                    (S == CrossingState::RightHanded)
-                    ||
-                    (S == CrossingState::LeftHanded)
-                );
+//                return (
+//                    (S == CrossingState::RightHanded)
+//                    ||
+//                    (S == CrossingState::LeftHanded)
+//                );
+                
+                return ToUnderlying(S) % 2;
             }
             
             friend bool operator==( const CrossingView & C_0, const CrossingView & C_1 )
@@ -185,14 +212,22 @@ namespace KnotTools
             
             std::string String() const
             {
-                return "crossing " + Tools::ToString(c) +" = { { " +
-                Tools::ToString(C[0])+", "+Tools::ToString(C[1])+" }, { "+
-                Tools::ToString(C[2])+", "+Tools::ToString(C[3])+" } } (" + KnotTools::ToString(S) +")";
+                return "crossing " + Tools::ToString(c) +" = { { " 
+                + Tools::ToString(C[0]) + ", "
+                + Tools::ToString(C[1]) + " }, { "
+                + Tools::ToString(C[2]) + ", "
+                + Tools::ToString(C[3]) + " } } (" 
+                + KnotTools::ToString(S) +")";
+            }
+            
+            friend std::string ToString( const CrossingView & C )
+            {
+                return C.String();
             }
             
         }; // class CrossingView
         
-        CrossingView Crossing( const Int c )
+        CrossingView GetCrossing( const Int c )
         {
             PD_ASSERT(CheckCrossing(c));
             PD_ASSERT(CrossingActiveQ(c));
@@ -269,19 +304,18 @@ namespace KnotTools
                 Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + KnotTools::ToString(S) +")";
             }
             
+            friend std::string ToString( const ArcView & A )
+            {
+                return A.String();
+            }
+            
         }; // class ArcView
         
-        std::string ToString( const CrossingView & C )
-        {
-            return C.String();
-        }
         
-        std::string ToString( const ArcView & A )
-        {
-            return A.String();
-        }
         
-        ArcView Arc( const Int a )
+        
+        
+        ArcView GetArc( const Int a )
         {
             PD_ASSERT(CheckArc(a));
             PD_ASSERT(ArcActiveQ(a));
@@ -308,11 +342,9 @@ namespace KnotTools
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
         :   C_arcs                  ( crossing_count_, 2, 2                         )
-        ,   C_state                 ( crossing_count_, CrossingState::Unitialized   )
-        ,   C_label                 ( iota<Int,Int>(crossing_count_)                )
+        ,   C_state                 ( crossing_count_, CrossingState::Uninitialized )
         ,   A_cross                 ( Int(2)*crossing_count_, 2                     )
         ,   A_state                 ( Int(2)*crossing_count_, ArcState::Inactive    )
-        ,   A_label                 ( iota<Int,Int>(Int(2)*crossing_count_)         )
         ,   initial_crossing_count  ( crossing_count_                               )
         ,   initial_arc_count       ( Int(2)*crossing_count_                        )
         ,   crossing_count          ( crossing_count_                               )
@@ -336,46 +368,48 @@ namespace KnotTools
             
             swap( A.C_arcs      , B.C_arcs       );
             swap( A.C_state     , B.C_state      );
-            swap( A.C_label     , B.C_label      );
             swap( A.A_cross     , B.A_cross      );
             swap( A.A_state     , B.A_state      );
-            swap( A.A_label     , B.A_label      );
             
             swap( A.initial_crossing_count , B.initial_crossing_count  );
             swap( A.initial_arc_count      , B.initial_arc_count       );
             swap( A.crossing_count         , B.crossing_count          );
             swap( A.arc_count              , B.arc_count               );
             swap( A.unlink_count           , B.unlink_count            );
-            
             swap( A.R_I_counter            , B.R_I_counter             );
+
             swap( A.R_Ia_counter           , B.R_Ia_counter            );
+            swap( A.R_II_counter           , B.R_II_counter            );
+            swap( A.R_IIa_counter          , B.R_IIa_counter           );
+            swap( A.twist_counter          , B.twist_counter           );
+#ifdef PD_COUNTERS
+            swap( A.R_I_check_counter      , B.R_I_check_counter       );
+            swap( A.R_Ia_check_counter     , B.R_Ia_check_counter      );
             swap( A.R_Ia_horizontal_counter, B.R_Ia_horizontal_counter );
             swap( A.R_Ia_vertical_counter  , B.R_Ia_vertical_counter   );
-            swap( A.R_II_counter           , B.R_II_counter            );
+            swap( A.R_II_check_counter     , B.R_II_check_counter      );
             swap( A.R_II_horizontal_counter, B.R_II_horizontal_counter );
             swap( A.R_II_vertical_counter  , B.R_II_vertical_counter   );
-            swap( A.R_IIa_counter          , B.R_IIa_counter           );
-            swap( A.twist_move_counter     , B.twist_move_counter      );
+            swap( A.R_IIa_check_counter    , B.R_IIa_check_counter     );
+#endif
             
 #if defined(PD_USE_TOUCHING)
             swap( A.touched_crossings      , B.touched_crossings       );
-//            swap( A.touched_arcs          , B.touched_arcs           );
-//            swap( A.switch_candidates     , B.switch_candidates      );
 #endif
     
-            swap( A.A_faces               , B.A_faces                );
+            swap( A.A_faces                , B.A_faces                 );
             
-            swap( A.face_arcs             , B.face_arcs              );
-            swap( A.face_arc_ptr          , B.face_arc_ptr           );
+            swap( A.face_arcs              , B.face_arcs               );
+            swap( A.face_arc_ptr           , B.face_arc_ptr            );
             
-            swap( A.comp_arcs             , B.comp_arcs              );
-            swap( A.comp_arc_ptr          , B.comp_arc_ptr           );
+            swap( A.comp_arcs              , B.comp_arcs               );
+            swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
             
-            swap( A.arc_comp              , B.arc_comp               );
+            swap( A.arc_comp               , B.arc_comp                );
             
-            swap( A.faces_initialized     , B.faces_initialized      );
+            swap( A.faces_initialized      , B.faces_initialized       );
             
-            swap( A.connected_sum_counter , B.connected_sum_counter  );
+            swap( A.connected_sum_counter  , B.connected_sum_counter   );
         }
         
         // Move constructor
@@ -718,7 +752,7 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns how many Reidemeister I moves have performed so far.
+         * @brief Returns how many Reidemeister I moves have been performed so far.
          */
         
         Int Reidemeister_I_Counter() const
@@ -727,7 +761,20 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns how many Reidemeister Ia moves have performed so far.
+         * @brief Returns how many Reidemeister I moves have been tried so far.
+         */
+        
+        Int Reidemeister_I_CheckCounter() const
+        {
+#ifdef PD_COUNTERS
+            return R_I_check_counter;
+#else
+            return -1;
+#endif
+        }
+        
+        /*!
+         * @brief Returns how many Reidemeister Ia moves have been performed so far.
          */
         
         Int Reidemeister_Ia_Counter() const
@@ -736,7 +783,20 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns how many Reidemeister II moves have performed so far.
+         * @brief Returns how many Reidemeister Ia moves have been tried so far.
+         */
+        
+        Int Reidemeister_Ia_CheckCounter() const
+        {
+#ifdef PD_COUNTERS
+            return R_Ia_check_counter;
+#else
+            return -1;
+#endif
+        }
+        
+        /*!
+         * @brief Returns how many Reidemeister II moves have been performed so far.
          */
         
         Int Reidemeister_II_Counter() const
@@ -745,7 +805,20 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns how many Reidemeister IIa moves have performed so far.
+         * @brief Returns how many Reidemeister II moves have been tried so far.
+         */
+        
+        Int Reidemeister_II_CheckCounter() const
+        {
+#ifdef PD_COUNTERS
+            return R_II_check_counter;
+#else
+            return -1;
+#endif
+        }
+        
+        /*!
+         * @brief Returns how many Reidemeister IIa moves have been performed so far.
          */
         
         Int Reidemeister_IIa_Counter() const
@@ -753,25 +826,28 @@ namespace KnotTools
             return R_IIa_counter;
         }
         
+       /*!
+        * @brief Returns how many Reidemeister IIa moves have been tried so far.
+        */
+       
+       Int Reidemeister_IIa_CheckCounter() const
+       {
+#ifdef PD_COUNTERS
+            return R_IIa_check_counter;
+#else
+            return -1;
+#endif
+       }
+        
         /*!
-         * @brief Returns how many twist moves have performed so far.
+         * @brief Returns how many twist moves have been performed so far.
          *
          * See TwistMove.hpp for details.
          */
         
-        Int TwistMoveCounter() const
+        Int TwistMove_Counter() const
         {
-            return twist_move_counter;
-        }
-   
-        mref<Tensor1<Int,Int>> CrossingLabels()
-        {
-            return C_label;
-        }
-        
-        cref<Tensor1<Int,Int>> CrossingLabels() const
-        {
-            return C_label;
+            return twist_counter;
         }
         
         /*!
@@ -827,9 +903,9 @@ namespace KnotTools
          *
          *  - `CrossingState::RightHanded`
          *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::Unitialized`
+         *  - `CrossingState::Uninitialized`
          *
-         * `CrossingState::Unitialized` means that the crossing has been deactivated by topological manipulations.
+         * `CrossingState::Uninitialized` means that the crossing has been deactivated by topological manipulations.
          */
         
         mref<CrossingStateContainer_T> CrossingStates()
@@ -844,9 +920,9 @@ namespace KnotTools
          *
          *  - `CrossingState::RightHanded`
          *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::Unitialized`
+         *  - `CrossingState::Uninitialized`
          *
-         * `CrossingState::Unitialized` means that the crossing has been deactivated by topological manipulations.
+         * `CrossingState::Uninitialized` means that the crossing has been deactivated by topological manipulations.
          */
         
         cref<CrossingStateContainer_T> CrossingStates() const
@@ -873,27 +949,17 @@ namespace KnotTools
             return arc_count;
         }
         
-        mref<Tensor1<Int,Int>> ArcLabels()
-        {
-            return A_label;
-        }
-        
-        cref<Tensor1<Int,Int>> ArcLabels() const
-        {
-            return A_label;
-        }
-        
         /*!
          * @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
          *
          * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
          *
          *                          a
-         *       Arc()(a,0) X -------------> X Arc()(a,0)
-         *           =                             =
-         *      Arc()(a,Tail)                 Arc()(a,Head)
+         *    Arcs()(a,0) X -------------> X Arcs()(a,0)
+         *          =                             =
+         *    Arcs()(a,Tail)                Arcs()(a,Head)
          *
-         * This means that arc `a` leaves crossing `Arc()(a,0)` and enters `Arc()(a,1)`.
+         * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
          */
         
         mref<ArcContainer_T> Arcs()
@@ -907,11 +973,11 @@ namespace KnotTools
          * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
          *
          *                          a
-         *       Arc()(a,0) X -------------> X Arc()(a,0)
-         *           =                             =
-         *      Arc()(a,Tail)                 Arc()(a,Head)
+         *       Arcs()(a,0) X -------------> X Arcs()(a,0)
+         *            =                              =
+         *      Arcs()(a,Tail)                 Arcs()(a,Head)
          *
-         * This means that arc `a` leaves crossing `Arc()(a,0)` and enters `Arc()(a,1)`.
+         * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
          */
         
         cref<ArcContainer_T> Arcs() const
@@ -962,7 +1028,7 @@ namespace KnotTools
                 + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
                 + Tools::ToString(C_arcs(c,In ,Left )) + ", "
                 + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
-                + Tools::ToString(C_state[c])          +")";
+                + KnotTools::ToString(C_state[c])      +")";
         }
         
         /*!
@@ -1155,7 +1221,7 @@ namespace KnotTools
             return "arc " +Tools::ToString(a) +" = { "
                 + Tools::ToString(A_cross(a,Tail)) + ", "
                 + Tools::ToString(A_cross(a,Head)) + " } ("
-                + Tools::ToString(A_state[a])      + ")";
+                + KnotTools::ToString(A_state[a]) + ")";
         }
         
         /*!
@@ -1188,7 +1254,7 @@ namespace KnotTools
         }
 
         
-    protected:
+    private:
         
         /*!
          * @brief Deactivates crossing `c`. Only for internal use.
@@ -1199,12 +1265,31 @@ namespace KnotTools
             if( CrossingActiveQ(c) )
             {
                 --crossing_count;
-                C_state[c] = CrossingState::Unitialized;
+                C_state[c] = CrossingState::Uninitialized;
             }
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive crossing " + Tools::ToString(c) + ".");
+                wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
+#endif
+            }
+        }
+        
+        /*!
+         * @brief Deactivates crossing represented by `CrossingView` object `C`. Only for internal use.
+         */
+        
+        void Deactivate( mref<CrossingView> C )
+        {
+            if( C.ActiveQ() )
+            {
+                --crossing_count;
+                C.State() = CrossingState::Uninitialized;
+            }
+            else
+            {
+#if defined(PD_DEBUG)
+                wprint("Attempted to deactivate already inactive crossing " + C.String() + ".");
 #endif
             }
         }
@@ -1223,7 +1308,26 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + Tools::ToString(a) + ".");
+                wprint("Attempted to deactivate already inactive arc " + ArcString(a) + ".");
+#endif
+            }
+        }
+        
+        /*!
+         * @brief Deactivates arc represented by `ArcView` object `A`. Only for internal use.
+         */
+        
+        void Deactivate( mref<ArcView> A )
+        {
+            if( A.ArcActiveQ() )
+            {
+                --arc_count;
+                A.State() = ArcState::Inactive;
+            }
+            else
+            {
+#if defined(PD_DEBUG)
+                wprint("Attempted to deactivate already inactive arc " + A.String() + ".");
 #endif
             }
         }
@@ -1237,6 +1341,8 @@ namespace KnotTools
 #include "PlanarDiagram/R_IIa_Vertical.hpp"
 #include "PlanarDiagram/R_IIa_Horizontal.hpp"
 //#include "PlanarDiagram/PassMove.hpp"
+
+#include "PlanarDiagram/SimplifyArc.hpp"
         
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
@@ -1357,7 +1463,7 @@ namespace KnotTools
             // We leave through the arc at the opposite port.
             //If everything is set up correctly, the outgoing arc points into the same direction as a.
             
-            return Arc( C_arcs(c,Out,!side) );
+            return GetArc( C_arcs(c,Out,!side) );
         }
         
         /*!
@@ -1380,60 +1486,6 @@ namespace KnotTools
             return C_arcs(c,In,!lr);
         }
         
-//        Tensor1<Int,Int> ExportSwitchCandidates()
-//        {
-//            return Tensor1<Int,Int>( &switch_candidates[0], I(switch_candidates.size() ) );
-//        }
-//        
-//        Tensor1<Int,Int> ExportTouchedCrossings()
-//        {
-//            return Tensor1<Int,Int>( &touched_crossings[0], I(touched_crossings.size() ) );
-//        }
-        
-        
-        Int CrossingLabelLookUp( const Int label )
-        {
-            print("CrossingLabelLookUp");
-            
-            PD_VALPRINT("label",label);
-            
-            Int pos = std::distance(
-                    C_label.begin(),
-                    std::find( C_label.begin(), C_label.end(), label )
-            );
-            
-            PD_VALPRINT("pos",pos);
-            
-            if( pos >= C_label.Size() )
-            {
-                eprint(ClassName()+"::CrossingCrossingLookUp: Label "+ToString(label)+" not found. Returning 0");
-                return 0;
-            }
-            else
-            {
-                PD_VALPRINT("C_label[pos]",C_label[pos]);
-                return pos;
-            }
-        }
-        
-        Int ArcLabelLookUp( const Int label )
-        {
-            Int pos = std::distance(
-                    A_label.begin(),
-                    std::find( A_label.begin(), A_label.end(), label)
-            );
-            
-            if( pos >= A_label.Size() )
-            {
-                eprint(ClassName()+"::CrossingLabelLookUp: Label "+ToString(label)+" not found. Returning 0");
-                return 0;
-            }
-            else
-            {
-                return pos;
-            }
-        }
-        
         /*!
          * @brief Attempts to simplify the planar diagram by applying some standard moves.
          *
@@ -1450,16 +1502,6 @@ namespace KnotTools
             
 //            pvalprint( "Number of crossings  ", crossing_count      );
 //            pvalprint( "Number of arcs       ", arc_count           );
-            
-            R_I_counter             = 0;
-            R_Ia_counter            = 0;
-            R_Ia_horizontal_counter = 0;
-            R_Ia_vertical_counter   = 0;
-            R_II_counter            = 0;
-            R_II_horizontal_counter = 0;
-            R_II_vertical_counter   = 0;
-            R_IIa_counter           = 0;
-            twist_move_counter      = 0;
             
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"

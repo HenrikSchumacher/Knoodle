@@ -10,29 +10,30 @@ namespace KnotTools
     
     using Tools::ToString;
     
-    enum class CrossingState : int
+    enum class CrossingState : Int8
     {
-        Unitialized = -2,
-        RightHanded =  1,
-        LeftHanded  = -1,
-        Untied      =  0
+        // Important! Active values are the only odd ones.
+        Uninitialized = -2,
+        RightHanded   =  1,
+        LeftHanded    = -1,
+        Untied        =  0
     };
     
     std::string ToString( const CrossingState & s )
     {
         switch( s )
         {
-            case CrossingState::Unitialized : return "Unitialized";
+            case CrossingState::Uninitialized : return "Uninitialized";
                 
-            case CrossingState::RightHanded : return "RightHanded";
+            case CrossingState::RightHanded   : return "RightHanded";
                 
-            case CrossingState::LeftHanded  : return "LeftHanded";
+            case CrossingState::LeftHanded    : return "LeftHanded";
                 
-            case CrossingState::Untied      : return "Untied";
+            case CrossingState::Untied        : return "Untied";
         }
     }
     
-    enum class ArcState : int
+    enum class ArcState : bool
     {
         Active    =  1,
         Inactive  =  0

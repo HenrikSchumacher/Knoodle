@@ -9,6 +9,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     
     const bool io = (headtail==Head) ? In : Out;
     
+    // If a == b, then we should not do anything in the first place.
     PD_ASSERT( a != b );
     
     PD_ASSERT( ArcActiveQ(a) );
@@ -37,6 +38,9 @@ void Reconnect( const Int a, const bool headtail, const Int b )
 #endif
     
     DeactivateArc(b);
+    
+    
+    // TODO: If A_cross(a,Head) == A_cross(a,Tail), then we might want to make an immediate Reidemeister I move now. But it could make it difficult to test the correctness of Reconnect by later asserts, because this deactivates a and the crossing it loops at.
 }
 
 
@@ -56,7 +60,7 @@ void Reconnect( ArcView & A, const bool headtail, ArcView & B )
     PD_ASSERT( A.ActiveQ() );
 //    PD_ASSERT( B.ActiveQ() ); // Could have been deactivated already.
     
-    auto C = Crossing( B(headtail) );
+    auto C = GetCrossing( B(headtail) );
     
     
     PD_ASSERT( (C(io,Left) == B.Idx()) || (C(io,Right) == B.Idx()) );

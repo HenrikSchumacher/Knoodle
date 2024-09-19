@@ -53,6 +53,10 @@ bool Reidemeister_II( const Int c_0 )
     
     for( bool io : { In, Out} )
     {
+#ifdef PD_COUNTERS
+        ++R_II_check_counter;
+#endif
+        
         const Int c_1 = C[io][Left ];
         const Int c_2 = C[io][Right];
         
@@ -108,6 +112,10 @@ bool Reidemeister_II( const Int c_0 )
     
     for( bool side : {Left,Right} )
     {
+#ifdef PD_COUNTERS
+        ++R_II_check_counter;
+#endif
+        
         const Int c_1 = C[Out][side];
         const Int c_2 = C[In ][side];
         
@@ -130,6 +138,7 @@ bool Reidemeister_II( const Int c_0 )
             
             if( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side) )
             {
+                PD_ASSERT(C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side));
                 PD_ASSERT(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,side));
                 
 //              This horizontal alignment in the case of side==Right.
