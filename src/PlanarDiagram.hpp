@@ -1676,9 +1676,9 @@ namespace KnotTools
             PlanarDiagram pd ( crossing_count, unlink_count );
             
             mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-            mptr<CrossingState>       C_state_new = C_state.data();
+            mptr<CrossingState>       C_state_new = pd.C_state.data();
             
-            mref<ArcContainer_T>      A_cross_new = A_cross;
+            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
             mptr<ArcState>            A_state_new = pd.A_state.data();
             
             Tensor1<Int,Int>  C_labels   ( C_arcs.Size(),  -1 );
