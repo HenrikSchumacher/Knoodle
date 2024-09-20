@@ -150,9 +150,71 @@ bool CheckAllArcs()
     return passed;
 }
 
-bool CheckAll()
+bool CheckVertexDegrees()
 {
-    const bool passed = CheckAllCrossings() && CheckAllArcs();
+    bool passed = true;
+    
+    Tensor1<Int,Int> d (initial_crossing_count,0);
+    
+    for( Int a = 0; a < initial_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) )
+        {
+            ++d[A_cross(a,Tail)];
+            ++d[A_cross(a,Head)];
+        }
+    }
+    
+    for( Int c = 0; c < initial_crossing_count; ++c )
+    {
+        if( CrossingActiveQ(c) )
+        {
+            if( d[c] != 4 )
+            {
+                passed = false;
+                eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 4.");
+            }
+        }
+        else
+        {
+            if( d[c] != 0 )
+            {
+                passed = false;
+                eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 0.");
+            }
+        }
+    }
 
     return passed;
 }
+
+
+bool CheckAll()
+{
+    const bool passed = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees();
+
+    return passed;
+}
+
+
+public:
+
+void AssertArc( const Int a )
+{
+    PD_ASSERT(ArcActiveQ(a));
+    PD_ASSERT(CheckArc  (a));
+#ifndef PD_DEBUG
+    (void)a;
+#endif
+}
+
+void AssertCrossing( const Int c )
+{
+    PD_ASSERT(CrossingActiveQ(c));
+    PD_ASSERT(CheckCrossing(c));
+#ifndef PD_DEBUG
+    (void)c;
+#endif
+}
+
+

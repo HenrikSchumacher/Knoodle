@@ -61,6 +61,7 @@ namespace KnotTools
 #include "src/Link_2D.hpp"
 
 #include "src/PlanarDiagram.hpp"
+#include "src/ArcSimplifier.hpp"
 
 //#include "src/Alexander.hpp"
 //

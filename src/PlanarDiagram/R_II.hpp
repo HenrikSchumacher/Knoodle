@@ -128,7 +128,7 @@ bool Reidemeister_II( const Int c_0 )
             
             if( R_I )
             {
-                PD_WPRINT("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_1)+".");
+//                PD_WPRINT("Called Reidemeister_II, but Reidemeister_I was performed on crossing "+ToString(c_1)+".");
                 return true;
             }
             else

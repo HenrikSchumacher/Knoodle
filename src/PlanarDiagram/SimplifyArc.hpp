@@ -7,6 +7,7 @@ bool SimplifyArc( const Int a_ )
 
     a = a_;
     
+    PD_DPRINT( "===================================================" );
     PD_DPRINT( "SimplifyArc " + ArcString(a) );
     
     AssertArc(a);
@@ -19,7 +20,17 @@ bool SimplifyArc( const Int a_ )
     
     load_c_0();
 
-    if( a_is_loop() ) return true;
+    if( a_is_loop() ) 
+    {
+        PD_VALPRINT( "a  ", ArcString(n_0) );
+        
+        PD_VALPRINT( "c_0", CrossingString(c_0) );
+        PD_VALPRINT( "n_0", ArcString(n_0) );
+        PD_VALPRINT( "s_0", ArcString(s_0) );
+        PD_VALPRINT( "w_0", ArcString(w_0) );
+        
+        return true;
+    }
     
     /*              n_0           n_1
      *               O             O
@@ -34,42 +45,129 @@ bool SimplifyArc( const Int a_ )
     
     // We want to check for twist move _before_ Reidemeister I because the twist move can remove both crossings.
     
-    if( twist_at_a() ) return true;
+    if( twist_at_a() )
+    {
+        PD_ASSERT(CheckVertexDegrees());
+        
+        PD_VALPRINT( "a  ", ArcString(n_0) );
+        
+        PD_VALPRINT( "c_0", CrossingString(c_0) );
+        PD_VALPRINT( "n_0", ArcString(n_0) );
+        PD_VALPRINT( "s_0", ArcString(s_0) );
+        PD_VALPRINT( "w_0", ArcString(w_0) );
+        
+        PD_VALPRINT( "c_1", CrossingString(c_1) );
+        PD_VALPRINT( "n_1", ArcString(n_1) );
+        PD_VALPRINT( "e_1", ArcString(e_1) );
+        PD_VALPRINT( "s_1", ArcString(s_1) );
+        
+        return true;
+    }
     
     // TODO: Debug the following, too.
 
     // Next we check for Reidemeister_I at crossings c_0 and c_1.
     // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
     
-    if( RI_at_c_0() ) return true;
+    if( RI_at_c_0() ) 
+    {
+        PD_ASSERT(CheckVertexDegrees());
+        
+        PD_VALPRINT( "a  ", ArcString(n_0) );
+        
+        PD_VALPRINT( "c_0", CrossingString(c_0) );
+        PD_VALPRINT( "n_0", ArcString(n_0) );
+        PD_VALPRINT( "s_0", ArcString(s_0) );
+        PD_VALPRINT( "w_0", ArcString(w_0) );
+        
+        PD_VALPRINT( "c_1", CrossingString(c_1) );
+        PD_VALPRINT( "n_1", ArcString(n_1) );
+        PD_VALPRINT( "e_1", ArcString(e_1) );
+        PD_VALPRINT( "s_1", ArcString(s_1) );
+        
+        return true;
+    }
     
-    if( RI_at_c_1() ) return true;
-//    
-//    // Neglecting asserts, this is the only time we access C_state[c_0].
-//    // Whether the vertical strand at c_0 goes over.
-//    o_0 = (u_0 == ( C_state[c_0] == CrossingState::LeftHanded ));
-//    
-//    // Neglecting asserts, this is the only time we access C_state[c_1].
-//    // Whether the vertical strand at c_1 goes over.
-//    o_1 = (u_1 == ( C_state[c_1] == CrossingState::LeftHanded ));
-//
-//    // Deal with the case that a is part of a loop of length 2.
-//    // This can only occur if  the diagram has a more than one component.
-//    if constexpr( mult_compQ )
-//    {
-//        // Caution: This requires o_0 and o_1 to be defined already.
-//        if( a_is_2loop() ) return true;
-//    }
-//    
-//    if( o_0 == o_1 )
-//    {
-//        /*       |     a     |             |     a     |
-//         *    -->|---------->|-->   or  -->----------->--->
-//         *       |c_0        |c_1          |c_0        |c_1
-//         */
-//        
-//        return strands_same_side<mult_compQ>();
-//    }
+    if( RI_at_c_1() ) 
+    {
+        PD_ASSERT(CheckVertexDegrees());
+        
+        PD_VALPRINT( "a  ", ArcString(n_0) );
+        
+        PD_VALPRINT( "c_0", CrossingString(c_0) );
+        PD_VALPRINT( "n_0", ArcString(n_0) );
+        PD_VALPRINT( "s_0", ArcString(s_0) );
+        PD_VALPRINT( "w_0", ArcString(w_0) );
+        
+        PD_VALPRINT( "c_1", CrossingString(c_1) );
+        PD_VALPRINT( "n_1", ArcString(n_1) );
+        PD_VALPRINT( "e_1", ArcString(e_1) );
+        PD_VALPRINT( "s_1", ArcString(s_1) );
+        
+        return true;
+    }
+    
+    // Neglecting asserts, this is the only time we access C_state[c_0].
+    // Whether the vertical strand at c_0 goes over.
+    o_0 = (u_0 == ( C_state[c_0] == CrossingState::LeftHanded ));
+    PD_VALPRINT( "o_0", o_0 );
+    
+    // Neglecting asserts, this is the only time we access C_state[c_1].
+    // Whether the vertical strand at c_1 goes over.
+    o_1 = (u_1 == ( C_state[c_1] == CrossingState::LeftHanded ));
+    PD_VALPRINT( "o_1", o_1 );
+
+    // Deal with the case that a is part of a loop of length 2.
+    // This can only occur if  the diagram has a more than one component.
+    if constexpr( mult_compQ )
+    {
+        // Caution: This requires o_0 and o_1 to be defined already.
+        if( a_is_2loop() ) 
+        {
+            PD_ASSERT(CheckVertexDegrees());
+            
+            PD_VALPRINT( "a  ", ArcString(n_0) );
+            
+            PD_VALPRINT( "c_0", CrossingString(c_0) );
+            PD_VALPRINT( "n_0", ArcString(n_0) );
+            PD_VALPRINT( "s_0", ArcString(s_0) );
+            PD_VALPRINT( "w_0", ArcString(w_0) );
+            
+            PD_VALPRINT( "c_1", CrossingString(c_1) );
+            PD_VALPRINT( "n_1", ArcString(n_1) );
+            PD_VALPRINT( "e_1", ArcString(e_1) );
+            PD_VALPRINT( "s_1", ArcString(s_1) );
+            
+            return true;
+        }
+    }
+    
+    if( o_0 == o_1 )
+    {
+        /*       |     a     |             |     a     |
+         *    -->|---------->|-->   or  -->----------->--->
+         *       |c_0        |c_1          |c_0        |c_1
+         */
+        
+        if( strands_same_side<mult_compQ>() )
+        {
+            PD_ASSERT(CheckVertexDegrees());
+            
+            PD_VALPRINT( "a  ", ArcString(a) );
+            
+            PD_VALPRINT( "c_0", CrossingString(c_0) );
+            PD_VALPRINT( "n_0", ArcString(n_0) );
+            PD_VALPRINT( "s_0", ArcString(s_0) );
+            PD_VALPRINT( "w_0", ArcString(w_0) );
+            
+            PD_VALPRINT( "c_1", CrossingString(c_1) );
+            PD_VALPRINT( "n_1", ArcString(n_1) );
+            PD_VALPRINT( "e_1", ArcString(e_1) );
+            PD_VALPRINT( "s_1", ArcString(s_1) );
+            
+            return true;
+        }
+    }
 //    else
 //    {
 //        /*       |     a     |             |     a     |
@@ -77,30 +175,29 @@ bool SimplifyArc( const Int a_ )
 //         *       |c_0        |c_1          |c_0        |c_1
 //         */
 //        
-//        return strands_opposite_sides();
+//        if( strands_opposite_sides<mult_compQ>() )
+//        {
+//            PD_ASSERT(CheckVertexDegrees());
+//            
+//            PD_VALPRINT( "a  ", ArcString(a) );
+//            
+//            PD_VALPRINT( "c_0", CrossingString(c_0) );
+//            PD_VALPRINT( "n_0", ArcString(n_0) );
+//            PD_VALPRINT( "s_0", ArcString(s_0) );
+//            PD_VALPRINT( "w_0", ArcString(w_0) );
+//            
+//            PD_VALPRINT( "c_1", CrossingString(c_1) );
+//            PD_VALPRINT( "n_1", ArcString(n_1) );
+//            PD_VALPRINT( "e_1", ArcString(e_1) );
+//            PD_VALPRINT( "s_1", ArcString(s_1) );
+//            
+//            return true;
+//        }
 //    }
     
+    PD_ASSERT(CheckVertexDegrees());
+    
     return false;
-}
-
-public:
-
-void AssertArc( const Int a )
-{
-    PD_ASSERT(ArcActiveQ(a));
-    PD_ASSERT(CheckArc  (a));
-#ifndef PD_DEBUG
-    (void)a;
-#endif
-}
-
-void AssertCrossing( const Int c )
-{
-    PD_ASSERT(CrossingActiveQ(c));
-    PD_ASSERT(CheckCrossing(c));
-#ifndef PD_DEBUG
-    (void)c;
-#endif
 }
 
 private:
@@ -170,13 +267,19 @@ void load_c_0()
     AssertArc(s_0);
     AssertArc(w_0);
     
+
+    PD_VALPRINT("c_0",CrossingString(c_0));
+    PD_VALPRINT("n_0",ArcString(n_0));
+    PD_VALPRINT("w_0",ArcString(w_0));
+    PD_VALPRINT("s_0",ArcString(s_0));
+    PD_VALPRINT("u_0",u_0);
     // Remark: We are _not_ loading o_0 here, because this is not needed for the Reidemeister I moves. This may safe a cache miss.
 }
 
 void load_c_1()
 {
     // Whether the vertical strand at c_1 points upwards.
-    const bool u_1 = (C_arcs(c_1,In ,Left ) == a);
+    u_1 = (C_arcs(c_1,In ,Left ) == a);
     
     n_1 = C_arcs(c_1,!u_1, Left );
     e_1 = C_arcs(c_1, Out, u_1  );
@@ -185,6 +288,12 @@ void load_c_1()
     AssertArc(n_1);
     AssertArc(e_1);
     AssertArc(s_1);
+    
+    PD_VALPRINT("c_1",CrossingString(c_1));
+    PD_VALPRINT("n_1",ArcString(n_1));
+    PD_VALPRINT("e_1",ArcString(e_1));
+    PD_VALPRINT("s_1",ArcString(s_1));
+    PD_VALPRINT("u_1",u_1);
     
     // Remark: We are _not_ loading o_1 here, because this is not needed for the Reidemeister I moves. This may safe a cache miss.
 }
@@ -214,10 +323,11 @@ void load_c_2()
     
     const bool b_2 = (s_0 == C_arcs(c_2,!u_0,Right));
     
-    PD_ASSERT( s_0 == C_arcs(c_2, !u_0, b_2 ) );
+    PD_ASSERT( s_0 == C_arcs(c_2,!u_0,b_2) );
+    
+    s_2 = C_arcs(c_2, u_0,!b_2); // opposite to n_2 == s_0.
     
     e_2 = C_arcs(c_2, b_2, u_0);
-    s_2 = C_arcs(c_2, u_0,!b_2); // opposite to n_2 == s_0.
     w_2 = C_arcs(c_2,!b_2,!u_0); // opposite to e_2
     
     // u_2 == u_0
@@ -226,6 +336,12 @@ void load_c_2()
     AssertArc(e_2);
     AssertArc(s_2);
     AssertArc(w_2);
+    
+    PD_VALPRINT("c_2",CrossingString(c_2));
+    PD_VALPRINT("e_2",ArcString(e_2));
+    PD_VALPRINT("s_2",ArcString(s_2));
+    PD_VALPRINT("w_2",ArcString(w_2));
+    PD_VALPRINT("o_2",o_2);
 }
 
 void load_c_3()
@@ -253,11 +369,12 @@ void load_c_3()
     
     const bool b_3 = (n_0 == C_arcs(c_3,u_0,Right));
     
-    PD_ASSERT( n_0 == C_arcs(c_3, u_0, b_3) );
+    PD_ASSERT( n_0 == C_arcs(c_3,u_0,b_3) );
     
-    e_3 = C_arcs(c_3, b_3, u_0);
     n_3 = C_arcs(c_3,!u_0,!b_3); // opposite to s_3 == n_0.
-    w_3 = C_arcs(c_3,!b_3,!u_0); // opposite to e_3
+    
+    e_3 = C_arcs(c_3,!b_3, u_0);
+    w_3 = C_arcs(c_3, b_3,!u_0); // opposite to e_3
 
     // u_3 == u_0
     o_3 = (u_0 == ( C_state[c_3] == CrossingState::LeftHanded ));
@@ -265,6 +382,13 @@ void load_c_3()
     AssertArc(e_3);
     AssertArc(n_3);
     AssertArc(w_3);
+    
+    
+    PD_VALPRINT("c_3",CrossingString(c_3));
+    PD_VALPRINT("e_3",ArcString(e_3));
+    PD_VALPRINT("n_3",ArcString(n_3));
+    PD_VALPRINT("w_3",ArcString(w_3));
+    PD_VALPRINT("o_3",o_3);
 }
 
 
@@ -324,7 +448,6 @@ bool a_is_loop()
                 DeactivateArc(w_0);
                 DeactivateArc(a  );
                 DeactivateCrossing(c_0);
-                
                 R_I_counter += 2; // We make two R_I moves instead of one.
                 
                 return true;
@@ -467,7 +590,6 @@ bool twist_at_a()
                 DeactivateArc(n_0);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
                 R_I_counter += 2;
                 
                 return true;
@@ -498,7 +620,6 @@ bool twist_at_a()
             DeactivateArc(e_1);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
-            
             R_I_counter += 2;
             
             return true;
@@ -530,7 +651,7 @@ bool twist_at_a()
          *               O         |   O####  |    |
          *               |         |   |   #  |    |
          *       w_0 O---X---------+   |   O<-+    |
-         *               |c_0          |           |
+         *               |c_0          |  e_1      |
          *               O             O           |
          *              s_0            |           |
          *                             +-----------+
@@ -604,7 +725,8 @@ bool twist_at_a()
         Reconnect(s_0,u_0 ,n_1);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
-        DeactivateArc(a);
+        DeactivateArc(a  );
+        DeactivateArc(s_1);
         ++twist_counter;
         
         AssertArc(w_0);
@@ -640,13 +762,11 @@ bool twist_at_a()
                 */
                 
                 Reconnect(e_1,Tail,s_1);
-                
                 DeactivateArc(a  );
                 DeactivateArc(w_0);
                 DeactivateArc(s_0);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
                 R_I_counter += 2;
                 
                 AssertArc(e_1);
@@ -677,7 +797,6 @@ bool twist_at_a()
                 DeactivateArc(s_0);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-                
                 R_I_counter += 2;
                 
                 return true;
@@ -709,7 +828,6 @@ bool twist_at_a()
             DeactivateArc(s_0);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
-            
             R_I_counter += 2;
             
             AssertArc(w_0);
@@ -772,7 +890,8 @@ bool twist_at_a()
                 
         Reconnect(w_0,Head,e_1);
         Reconnect(n_0,!u_0,s_1);
-        DeactivateArc(a);
+        DeactivateArc(a  );
+        DeactivateArc(s_0);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         ++twist_counter;
@@ -792,13 +911,6 @@ bool RI_at_c_0()
     
     AssertArc(a);
     AssertCrossing(c_0);
-    
-    logprint("Incoming data");
-    logvalprint("c_0",CrossingString(c_0));
-    logvalprint("a  ",ArcString(a  ));
-    logvalprint("n_0",ArcString(n_0));
-    logvalprint("w_0",ArcString(w_0));
-    logvalprint("s_0",ArcString(s_0));
     
     if( n_0 == w_0 )
     {
@@ -1079,17 +1191,15 @@ bool RI_at_c_1()
                  *           +---v           +---+
                  */
                 
+                ++unlink_count;
                 DeactivateArc(w_0);
                 DeactivateArc(e_1);
                 DeactivateArc(n_1);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
-
                 R_I_counter += 2;
-                
-                ++unlink_count;
-                
+
                 return true;
             }
         }
@@ -1147,7 +1257,6 @@ bool RI_at_c_1()
                  */
                 
                 Reconnect(w_0,Head,n_0);
-                
                 DeactivateArc(a  );
                 DeactivateArc(e_1);
                 DeactivateArc(s_0);
@@ -1341,68 +1450,76 @@ bool strands_same_side()
         // TODO: If the endpoints of s_0 and s_1 coincide, we can remove even 3 crossings by doing the unlocked Reidemeister I move.
         // TODO: Price: Load 1 additional crossing for test. Since a later R_I would remove the crossing anyways, this does not seem to be overly attractive.
         // TODO: On the other hand: we need to reference to the two end point anyways to do the reconnecting right...
+
+        if constexpr( mult_compQ )
+        {
+            if( s_0 == s_1 )
+            {
+                PD_DPRINT( "\t\ts_0 == s_1" );
+                
+                /*               n_0                               n_0
+                 *          +-----------+                     +-----------+
+                 *          |           |                     |           |
+                 *          |     a     |                     |     a     |
+                 *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
+                 *          |c_0        |c_1                  |c_0        |c_1
+                 *          |           |                     |           |
+                 *          +-----------+                     +-----------+
+                 *               s_0         s_1                   s_0
+                 */
+                
+                ++unlink_count;
+                Reconnect(w_0,Head,e_1);
+                DeactivateArc(n_0);
+                DeactivateArc(s_0);
+                DeactivateArc(a);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+                ++R_II_counter;
+
+                AssertArc(w_0);
+                AssertArc(s_0);
+                
+                return true;
+            }
+        }
+        PD_DPRINT( "\t\ts_0 != s_1" );
         
+        /*          +-----------+                     +-----------+
+         *          |           |                     |           |
+         *          |     a     |                     |     a     |
+         *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
+         *          |c_0        |c_1                  |c_0        |c_1
+         *          |           |                     |           |
+         *           s_0         s_1                   s_0         s_1
+         */
         
         // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
+        PD_ASSERT( s_0 != s_1 )
         PD_ASSERT( w_0 != e_1 );
         PD_ASSERT( w_0 != s_0 );
         PD_ASSERT( e_1 != s_1 );
         
         // .. so this is safe:
         Reconnect(w_0,Head,e_1);
-        
-        if constexpr( mult_compQ )
-        {
-            if( s_0 != s_1 )
-            {
-                PD_DPRINT( "\t\ts_0 != s_1" );
-                
-                Reconnect(s_0,u_0,s_1);
-            }
-            else
-            {
-                PD_DPRINT( "\t\ts_0 == s_1" );
-                
-                ++unlink_count;
-                DeactivateArc(s_0);
-            }
-        }
-        else
-        {
-            Reconnect(s_0,u_0,s_1);
-        }
-        
+        Reconnect(s_0,u_0 ,s_1);
         DeactivateArc(n_0);
         DeactivateArc(a);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         ++R_II_counter;
         
-        AssertArc(s_0);
         AssertArc(w_0);
-
+        AssertArc(s_0);
         
         return true;
-    }
+        
+    } // if( n_0 == n_1 )
     
     // Check for Reidemeister II move.
     if( s_0 == s_1 )
     {
         PD_DPRINT( "\ts_0 == s_1" );
-        
-        logprint("Incoming data");
-        logvalprint("c_0",CrossingString(c_0));
-        logvalprint("c_1",CrossingString(c_1));
-        
-        logvalprint("a  ",ArcString(a  ));
-        
-        logvalprint("n_0",ArcString(n_0));
-        logvalprint("w_0",ArcString(w_0));
-        logvalprint("s_0",ArcString(s_0));
-        
-        logvalprint("n_1",ArcString(n_1));
-        logvalprint("e_1",ArcString(e_1));
-        logvalprint("s_1",ArcString(s_1));
         
         // TODO: If the endpoints of n_0 and n_1 coincide, we can remove even 3 crossings by doing the unlocked Reidemeister I move.
         // TODO: Price: Load 1 additional crossing for test. Since a later R_I would remove the crossing anyways, this does not seem to be overly attractive.
@@ -1532,26 +1649,60 @@ bool strands_same_side()
          */
         
         // Reidemeister IIa move
-        
-        Reconnect(n_0, u_0,w_3);
-        Reconnect(s_0,!u_0,w_2);
-        Reconnect(n_1, u_1,n_3);
-        Reconnect(s_1,!u_1,s_2);
-        DeactivateCrossing(c_2);
-        DeactivateCrossing(c_3);
-        ++R_IIa_counter;
-        
-        AssertArc(a);
-        AssertArc(n_0);
-        AssertArc(n_1);
-        AssertArc(s_0);
-        AssertArc(s_1);
-        AssertArc(w_0);
-        AssertArc(e_1);
-        AssertCrossing(c_0);
-        AssertCrossing(c_1);
-        
-        return true;
+
+
+        if( u_0 == u_1 )
+        {
+            PD_DPRINT( "\t\tu_0 == u_1" );
+            AssertArc(a  );
+            AssertArc(n_0);
+            AssertArc(s_0);
+            AssertArc(n_1);
+            AssertArc(s_1);
+            AssertArc(w_0);
+            AssertArc(e_1);
+            
+            AssertArc(w_3);
+            AssertArc(w_2);
+            AssertArc(n_3);
+            AssertArc(s_2);
+            
+            PD_ASSERT( n_0 != w_3 );
+            PD_ASSERT( s_0 != w_2 );
+            PD_ASSERT( n_1 != n_3 );
+            PD_ASSERT( s_1 != s_2 );
+            
+            PD_DPRINT("A");
+            Reconnect(n_0, u_0,w_3);
+            PD_DPRINT("B");
+            Reconnect(s_0,!u_0,w_2);
+            PD_DPRINT("C");
+            Reconnect(n_1, u_1,n_3);
+            PD_DPRINT("D");
+            Reconnect(s_1,!u_1,s_2);
+            PD_DPRINT("E");
+            DeactivateCrossing(c_2);
+            DeactivateCrossing(c_3);
+            ++R_IIa_counter;
+            PD_DPRINT("F");
+            AssertArc(a  );
+            AssertArc(n_0);
+            AssertArc(s_0);
+            AssertArc(n_1);
+            AssertArc(s_1);
+            AssertArc(w_0);
+            AssertArc(e_1);
+            AssertCrossing(c_0);
+            AssertCrossing(c_1);
+            
+            return true;
+        }
+        else
+        {
+            
+            // TODO: Here we have to reverse the vertical strands in c_0 and c_1.
+            return false;
+        }
     }
     
     return false;
@@ -1738,6 +1889,8 @@ bool strands_opposite_sides()
 //                ++R_Ia_counter;
 //
 //                return true;
+                
+                return false;
             }
             else
             {
@@ -1761,6 +1914,8 @@ bool strands_opposite_sides()
                 {
                     // TODO: trefoil as connect summand detected
                     // How to store this info?
+                    
+                    return false;
                 }
                 
             }
@@ -1806,8 +1961,8 @@ bool strands_opposite_sides()
                  *      This will probably happen seldomly.
                  */
                 
-                Reconnect(n_0, u_0,e_3);
-                Reconnect(n_1, u_1,w_3);
+                Reconnect(n_0,u_0,e_3);
+                Reconnect(n_1,u_1,w_3);
                 DeactivateCrossing(c_2);
                 ++twist_counter;
                 
@@ -1860,24 +2015,197 @@ bool strands_opposite_sides()
          
         // Reidemeister IIa move
         
-        Reconnect(s_0,!u_0,w_2);
-        Reconnect(n_0, u_0,w_3);
-        Reconnect(s_1,!u_1,s_2);
-        Reconnect(n_1, u_1,n_3);
-        DeactivateCrossing(c_2);
-        DeactivateCrossing(c_3);
-        ++R_IIa_counter;
-        
-        AssertArc(a);
-        AssertArc(s_0);
-        AssertArc(n_0);
-        AssertArc(s_1);
-        AssertArc(n_1);
-        AssertCrossing(c_0);
-        AssertCrossing(c_1);
-
-        return true;
+        if( u_0 == u_1 )
+        {
+            Reconnect(s_0,!u_0,w_2);
+            Reconnect(n_0, u_0,w_3);
+            Reconnect(s_1,!u_1,s_2);
+            Reconnect(n_1, u_1,n_3);
+            DeactivateCrossing(c_2);
+            DeactivateCrossing(c_3);
+            ++R_IIa_counter;
+            
+            AssertArc(a);
+            AssertArc(s_0);
+            AssertArc(n_0);
+            AssertArc(s_1);
+            AssertArc(n_1);
+            AssertCrossing(c_0);
+            AssertCrossing(c_1);
+            
+            return true;
+        }
+        else
+        {
+            // TODO: Here we have to reverse the vertical strands in c_0 and c_1.
+            return false;
+        }
     }
 
     return false;
 }
+
+/*
+ *              +--------------+
+ *              |  n_3         |
+ *          w_3 O   O########  |
+ *               \ /        #  |
+ *                / c_3     #  |
+ *               / \        #  |
+ *              O   O       #  |
+ *             /     \      #  |
+ *        n_0 /       \ n_1 #  |
+ *           O         O    #  |
+ *           |    a    | e_1#  |
+ *    w_0 O--|->O-->O---->O##  |
+ *           |c_0      |c_1    |
+ *           O         O       |
+ *        s_0 \       / s_1    |
+ *             \     /         |
+ *              O   O          |
+ *               \ /           |
+ *                / c_2        |
+ *               / \           |
+ *          w_2 O   O----------+
+ *                   s_2
+ */
+
+//            ||
+//            \/
+            
+/*
+ *                  +---------+
+ *                  |         |
+ *                  O######## |
+ *                 n_3      # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                       e_1# |
+ *    w_0 O-------------->O## |
+ *                  +---------+
+ *                 /   +-------+
+ *                /   / s_1    |
+ *               /   /         |
+ *              O   O          |
+ *               \ /           |
+ *                / c_2        |
+ *               / \           |
+ *          w_2 O   O----------+
+ *                   s_2
+ */
+
+//            ||
+//            \/
+            
+/*
+ *                  +---------+
+ *                  |         |
+ *                  O######## |
+ *                 n_3      # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                          # |
+ *                       e_1# |
+ *    w_0 O-------------->O## |
+ *                  +---------+
+ *                 /
+ *                /
+ *               /
+ *              +
+ *              |
+ *              |
+ *              |
+ *          w_2 O
+ *
+ */
+
+//################################
+
+
+/*
+ *              +--------------+
+ *              |  n_3         |
+ *          w_3 O   O########  |
+ *               \ /        #  |
+ *                / c_3     #  |
+ *               / \        #  |
+ *              O   O       #  |
+ *             /     \      #  |
+ *        n_0 /       \ n_1 #  |
+ *           O         O    #  |
+ *           |    a    | e_1#  |x
+ *    w_0 O---->O-->O--|->O##  |
+ *           |c_0      |c_1    |
+ *           O         O       |
+ *        s_0 \       / s_1    |
+ *             \     /         |
+ *              O   O          |
+ *               \ /           |
+ *                / c_2        |
+ *               / \           |
+ *          w_2 O   O----------+
+ *                   s_2
+ */
+
+//            ||
+//            \/
+
+/*
+ *
+ *
+ *                  O########
+ *                  |       #
+ *                  |       #
+ *                  |       #
+ *                  +       #
+ *                   \      #
+ *                    \ n_1 #
+ *                     O    #
+ *                     | e_1#
+ *    w_0 O------------|->O##
+ *                     |c_1
+ *                     O
+ *                    / s_1
+ *                   /
+ *                  O
+ *                 /
+ *                / c_2
+ *               /
+ *          w_2 O
+ *
+ */
+
+//            ||
+//            \/
+
+/*
+ *                  +----------+
+ *                  |          |
+ *                  O########  |
+ *                 n_1      #  |
+ *                          #  |
+ *                          #  |
+ *                          #  |
+ *                          #  |
+ *                          #  |
+ *                          #  |
+ *                       e_1#  |
+ *    w_0 O-------------->O##  |
+ *                             |
+ *                             |
+ *                             |
+ *                             |
+ *                             |
+ *                             |
+ *                             |
+ *                             |
+ *          w_2 O--------------+
+ *
+ */

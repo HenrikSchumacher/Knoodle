@@ -53,6 +53,8 @@ namespace KnotTools
 //        
 //    }; // struct Arc
     
+//    template<typename Int_, bool mult_compQ_> class ArcSimplifier;
+    
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
     {
@@ -71,6 +73,11 @@ namespace KnotTools
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
+        
+//        friend class ArcSimplifier<Int,true>;
+//        using ArcSimplifier_T           = ArcSimplifier<Int,true>;
+        
+        
         using Arrow_T = std::pair<Int,bool>;
         
         static constexpr bool Head  = true;
@@ -79,6 +86,7 @@ namespace KnotTools
         static constexpr bool Right = true;
         static constexpr bool In    = true;
         static constexpr bool Out   = false;
+
         
     protected:
         
@@ -133,9 +141,15 @@ namespace KnotTools
         
         Int connected_sum_counter = 0;
         
+    private:
+        
+//        ArcSimplifier_T arc_simplifier;
+        
     public:
         
-        PlanarDiagram() = default;
+        PlanarDiagram()
+//        :   arc_simplifier { *this }
+        {}
         
         virtual ~PlanarDiagram() override = default;
         
@@ -350,6 +364,7 @@ namespace KnotTools
         ,   crossing_count          ( crossing_count_                               )
         ,   arc_count               ( Int(2)*crossing_count_                        )
         ,   unlink_count            ( unlink_count_                                 )
+//        ,   arc_simplifier          ( *this                                         )
         {
             PushAllCrossings();
         }
@@ -410,6 +425,8 @@ namespace KnotTools
             swap( A.faces_initialized      , B.faces_initialized       );
             
             swap( A.connected_sum_counter  , B.connected_sum_counter   );
+            
+//            swap( A.arc_simplifier         , B.arc_simplifier          );
         }
         
         // Move constructor
@@ -1037,11 +1054,13 @@ namespace KnotTools
         
         bool CrossingActiveQ( const Int c ) const
         {
-            return (
-                (C_state[c] == CrossingState::RightHanded)
-                ||
-                (C_state[c] == CrossingState::LeftHanded)
-            );
+//            return (
+//                (C_state[c] == CrossingState::RightHanded)
+//                ||
+//                (C_state[c] == CrossingState::LeftHanded)
+//            );
+            
+            return ToUnderlying(C_state[c]) % 2;
         }
 
         bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
@@ -1230,7 +1249,7 @@ namespace KnotTools
         
         bool ArcActiveQ( const Int a ) const
         {
-            return A_state[a] == ArcState::Active;
+            return ToUnderlying(A_state[a]);
         }
         
         /*!
@@ -1342,7 +1361,7 @@ namespace KnotTools
 #include "PlanarDiagram/R_IIa_Horizontal.hpp"
 //#include "PlanarDiagram/PassMove.hpp"
 
-#include "PlanarDiagram/SimplifyArc.hpp"
+//#include "PlanarDiagram/SimplifyArc.hpp"
         
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
@@ -1498,7 +1517,10 @@ namespace KnotTools
         template<bool allow_R_IaQ = true, bool allow_R_IIaQ = true>
         void Simplify()
         {
-            ptic(ClassName()+"::Simplify" + "<" + Tools::ToString(allow_R_IaQ) + ">");
+            ptic(ClassName()+"::Simplify"
+                + "<" + Tools::ToString(allow_R_IaQ)
+                + "," + Tools::ToString(allow_R_IIaQ)
+                + ">");
             
 //            pvalprint( "Number of crossings  ", crossing_count      );
 //            pvalprint( "Number of arcs       ", arc_count           );
@@ -1579,7 +1601,61 @@ namespace KnotTools
 //            dump(R_II_vertical_counter);
 //            dump(R_IIa_counter);
             
-            ptoc(ClassName()+"::Simplify" + "<" + Tools::ToString(allow_R_IaQ) + ">");
+            ptic(ClassName()+"::Simplify"
+                + "<" + Tools::ToString(allow_R_IaQ)
+                + "," + Tools::ToString(allow_R_IIaQ)
+                + ">");
+        }
+        
+        
+        bool SimplifyArc( const Int a )
+        {
+//            if( arc_simplifier(a) )
+//            {
+//                faces_initialized = false;
+//                
+//                this->ClearCache();
+//                
+//                return true;
+//            }
+//            else
+//            {
+//                return false;
+//            }
+            
+            return false;
+        }
+
+        void Simplify3()
+        {
+            ptic(ClassName()+"::Simplify3");
+
+//            Int old_counter = -1;
+//            Int counter = 0;
+//            
+//            while( counter != old_counter )
+//            {
+//                old_counter = counter;
+//                
+//                for( Int a = 0; a < initial_arc_count; ++a )
+//                {
+//                    counter += arc_simplifier(a);
+//                }
+//            }
+//            
+//            dump(R_I_counter);
+//            dump(R_Ia_counter);
+//            dump(R_II_counter);
+//            dump(R_IIa_counter);
+//
+//            if( counter > 0 )
+//            {
+//                faces_initialized = false;
+//                
+//                this->ClearCache();
+//            }
+            
+            ptoc(ClassName()+"::Simplify3");
         }
         
         /*!
@@ -1600,9 +1676,9 @@ namespace KnotTools
             PlanarDiagram pd ( crossing_count, unlink_count );
             
             mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-            mptr<CrossingState>       C_state_new = pd.C_state.data();
+            mptr<CrossingState>       C_state_new = C_state.data();
             
-            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
+            mref<ArcContainer_T>      A_cross_new = A_cross;
             mptr<ArcState>            A_state_new = pd.A_state.data();
             
             Tensor1<Int,Int>  C_labels   ( C_arcs.Size(),  -1 );
