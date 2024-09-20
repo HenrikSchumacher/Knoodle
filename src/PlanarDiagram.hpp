@@ -541,7 +541,7 @@ namespace KnotTools
          * See TwistMove.hpp for details.
          */
         
-        Int TwistMoveCounter() const
+        Int TwistMove_Counter() const
         {
             return twist_move_counter;
         }
@@ -1027,6 +1027,7 @@ namespace KnotTools
          *
          */
         
+        template<bool R_Ia_Q = false, bool R_IIa_Q = false>
         void Simplify()
         {
             ptic(ClassName()+"::Simplify");
