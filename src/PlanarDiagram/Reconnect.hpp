@@ -1,11 +1,14 @@
 void Reconnect( const Int a, const bool headtail, const Int b )
 {
-    // Read: 
+    // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.
     // Then deactivates b.
     //
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
+    
+    PD_DPRINT( "Reconnect(" + Tools::ToString(a) + "," + (headtail ? "Head" : "Tail") + "," + Tools::ToString(b) +")" );
+    
     
     const bool io = (headtail==Head) ? In : Out;
     

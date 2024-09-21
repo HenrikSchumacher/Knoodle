@@ -1,6 +1,6 @@
-bool strands_opposite_sides()
+bool strands_opposite_o()
 {
-    PD_DPRINT("strands_opposite_sides()");
+    PD_DPRINT("strands_opposite_o()");
     
     /*       |     a     |             |     a     |
      *    -->|---------->--->   or  -->----------->|-->

@@ -47,8 +47,6 @@ bool SimplifyArc( const Int a_ )
     
     if( twist_at_a() )
     {
-        PD_ASSERT(CheckVertexDegrees());
-        
         PD_VALPRINT( "a  ", ArcString(n_0) );
         
         PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -71,8 +69,6 @@ bool SimplifyArc( const Int a_ )
     
     if( RI_at_c_0() ) 
     {
-        PD_ASSERT(CheckVertexDegrees());
-        
         PD_VALPRINT( "a  ", ArcString(n_0) );
         
         PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -90,8 +86,6 @@ bool SimplifyArc( const Int a_ )
     
     if( RI_at_c_1() ) 
     {
-        PD_ASSERT(CheckVertexDegrees());
-        
         PD_VALPRINT( "a  ", ArcString(n_0) );
         
         PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -124,8 +118,6 @@ bool SimplifyArc( const Int a_ )
         // Caution: This requires o_0 and o_1 to be defined already.
         if( a_is_2loop() ) 
         {
-            PD_ASSERT(CheckVertexDegrees());
-            
             PD_VALPRINT( "a  ", ArcString(n_0) );
             
             PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -151,8 +143,6 @@ bool SimplifyArc( const Int a_ )
         
         if( strands_same_side<mult_compQ>() )
         {
-            PD_ASSERT(CheckVertexDegrees());
-            
             PD_VALPRINT( "a  ", ArcString(a) );
             
             PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -177,8 +167,6 @@ bool SimplifyArc( const Int a_ )
 //        
 //        if( strands_opposite_sides<mult_compQ>() )
 //        {
-//            PD_ASSERT(CheckVertexDegrees());
-//            
 //            PD_VALPRINT( "a  ", ArcString(a) );
 //            
 //            PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -194,8 +182,6 @@ bool SimplifyArc( const Int a_ )
 //            return true;
 //        }
 //    }
-    
-    PD_ASSERT(CheckVertexDegrees());
     
     return false;
 }

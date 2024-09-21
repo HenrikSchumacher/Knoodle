@@ -51,33 +51,32 @@ bool twist_at_a()
                 
                 return true;
             }
-            else
-            {
-                PD_DPRINT( "\t\t\tn_1 == e_1" );
-                
-                /*               +-------------------------+
-                 *               |                         |
-                 *               |            n_1          |
-                 *               O             O---+       |
-                 *               |      a      |   |       |
-                 *       w_0 O---X-->O---->O---X-->O e_1   |
-                 *           |   |c_0          |c_1        |
-                 *           +---O             O           |
-                 *              s_0            |           |
-                 *                             +-----------+
-                 */
-                
-                ++pd.unlink_count;
-                DeactivateArc(w_0);
-                DeactivateArc(e_1);
-                DeactivateArc(a );
-                DeactivateArc(n_0);
-                DeactivateCrossing(c_0);
-                DeactivateCrossing(c_1);
-                pd.R_I_counter += 2;
-                
-                return true;
-            }
+            
+            PD_DPRINT( "\t\t\tn_1 == e_1" );
+            PD_ASSERT( n_1 == e_1 );
+            
+            /*               +-------------------------+
+             *               |                         |
+             *               |            n_1          |
+             *               O             O---+       |
+             *               |      a      |   |       |
+             *       w_0 O---X-->O---->O---X-->O e_1   |
+             *           |   |c_0          |c_1        |
+             *           +---O             O           |
+             *              s_0            |           |
+             *                             +-----------+
+             */
+            
+            ++pd.unlink_count;
+            DeactivateArc(w_0);
+            DeactivateArc(e_1);
+            DeactivateArc(a );
+            DeactivateArc(n_0);
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            pd.R_I_counter += 2;
+            
+            return true;
         }
         
         if( n_1 == e_1 )
@@ -207,10 +206,10 @@ bool twist_at_a()
         
         Reconnect(w_0,Head,e_1);
         Reconnect(s_0,u_0 ,n_1);
-        DeactivateCrossing(c_0);
-        DeactivateCrossing(c_1);
         DeactivateArc(a  );
         DeactivateArc(s_1);
+        DeactivateCrossing(c_0);
+        DeactivateCrossing(c_1);
         ++pd.twist_counter;
         
         AssertArc(w_0);
@@ -257,34 +256,34 @@ bool twist_at_a()
                 
                 return true;
             }
-            else
-            {
-                PD_DPRINT( "\t\t\te_1 == s_1" );
-                
-                /*                             +-----------+
-                 *                             |           |
-                 *              n_0            |           |
-                 *           +---O             O           |
-                 *           |   |      a      |           |
-                 *       w_0 O---X-->O---->O---X-->O e_1   |
-                 *               |c_0          |c_1|       |
-                 *               O             O---+       |
-                 *               |            s_1          |
-                 *               |                         |
-                 *               +-------------------------+
-                 */
-                
-                ++pd.unlink_count;
-                DeactivateArc(w_0);
-                DeactivateArc(a  );
-                DeactivateArc(e_1);
-                DeactivateArc(s_0);
-                DeactivateCrossing(c_0);
-                DeactivateCrossing(c_1);
-                pd.R_I_counter += 2;
-                
-                return true;
-            }
+
+            
+            PD_DPRINT( "\t\t\te_1 == s_1" );
+            PD_ASSERT( e_1 == s_1 );
+            
+            /*                             +-----------+
+             *                             |           |
+             *              n_0            |           |
+             *           +---O             O           |
+             *           |   |      a      |           |
+             *       w_0 O---X-->O---->O---X-->O e_1   |
+             *               |c_0          |c_1|       |
+             *               O             O---+       |
+             *               |            s_1          |
+             *               |                         |
+             *               +-------------------------+
+             */
+            
+            ++pd.unlink_count;
+            DeactivateArc(w_0);
+            DeactivateArc(a  );
+            DeactivateArc(e_1);
+            DeactivateArc(s_0);
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            pd.R_I_counter += 2;
+            
+            return true;
         }
         
         if( e_1 == s_1 )
@@ -320,6 +319,7 @@ bool twist_at_a()
         }
         
         PD_DPRINT( "\t\t(w_0 != n_0) && (s_1 != e_1)." );
+        PD_ASSERT( (w_0 != n_0) && (s_1 != e_1) );
         
         /* We have one of these two situations:
          *

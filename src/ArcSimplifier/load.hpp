@@ -84,7 +84,58 @@ void load_c_2()
     w_2 = C_arcs(c_2,!b_2,!u_0); // opposite to e_2
     
     // u_2 == u_0
-    o_2 = (u_0 == ( C_state[c_2] == CrossingState::LeftHanded ));
+    
+    // All possible sitations where o_2 == true...
+    //
+    // if u_0 == true:
+    //
+    //        ^                   ^
+    //        |                   |
+    //   <----|-----   and   -----|---->
+    //        |R                  |L
+    //        |                   |
+    //
+    //    (b_2 = 1)           (b_2 = 0)
+    //
+    //
+    // if u_0 == false:
+    //
+    //        |                   |
+    //        |                   |
+    //   <----|-----   and   -----|---->
+    //        |L                  |R
+    //        v                   v
+    //
+    //    (b_2 = 1)           (b_2 = 0)
+    //
+    
+    
+    
+    // All possible sitations where o_2 == false...
+    //
+    // if u_0 == true:
+    //
+    //        ^                   ^
+    //        |                   |
+    //   <----------   and   ---------->
+    //        |L                  |R
+    //        |                   |
+    //
+    //    (b_2 = 1)           (b_2 = 0)
+    //
+    //
+    // if u_0 == false:
+    //
+    //        |                   |
+    //        |                   |
+    //   <----------   and   ---------->
+    //        |R                  |L
+    //        v                   v
+    //
+    //    (b_2 = 1)           (b_2 = 0)
+    //
+    
+    o_2 = (u_0 == (b_2 == (C_state[c_2] == CrossingState::RightHanded)));
     
     AssertArc(e_2);
     AssertArc(s_2);
@@ -130,7 +181,58 @@ void load_c_3()
     w_3 = C_arcs(c_3, b_3,!u_0); // opposite to e_3
 
     // u_3 == u_0
-    o_3 = (u_0 == ( C_state[c_3] == CrossingState::LeftHanded ));
+    
+    // All possible situations where o_3 == true...
+    //
+    // if u_0 == true:
+    //
+    //        ^                   ^
+    //        |                   |
+    //   <----|-----   and   -----|---->
+    //        |R                  |L
+    //        |                   |
+    //
+    //    (b_3 = 0)           (b_3 = 1)
+    //
+    //
+    //
+    // if u_0 == false:
+    //
+    //        |                   |
+    //        |                   |
+    //   <----|-----   and   -----|---->
+    //        |L                  |R
+    //        v                   v
+    //
+    //    (b_3 = 0)           (b_3 = 1)
+    //
+    
+    // All possible sitations where o_3 == false...
+    //
+    // if u_0 == true:
+    //
+    //        ^                   ^
+    //        |                   |
+    //   <----------   and   ---------->
+    //        |L                  |R
+    //        |                   |
+    //
+    //    (b_3 = 0)           (b_3 = 1)
+    //
+    //
+    //
+    // if u_0 == false:
+    //
+    //        |                   |
+    //        |                   |
+    //   <----------   and   ---------->
+    //        |R                  |L
+    //        v                   v
+    //
+    //    (b_3 = 0)           (b_3 = 1)
+    //
+    
+    o_3 = (u_0 == (b_3 == (C_state[c_3] == CrossingState::LeftHanded)));
     
     AssertArc(e_3);
     AssertArc(n_3);

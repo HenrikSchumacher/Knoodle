@@ -53,7 +53,7 @@ namespace KnotTools
 //        
 //    }; // struct Arc
     
-//    template<typename Int_, bool mult_compQ_> class ArcSimplifier;
+    template<typename Int_, bool mult_compQ_> class ArcSimplifier;
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
@@ -74,8 +74,8 @@ namespace KnotTools
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
         
-//        friend class ArcSimplifier<Int,true>;
-//        using ArcSimplifier_T           = ArcSimplifier<Int,true>;
+        friend class ArcSimplifier<Int,true>;
+        using ArcSimplifier_T           = ArcSimplifier<Int,true>;
         
         
         using Arrow_T = std::pair<Int,bool>;
@@ -109,6 +109,7 @@ namespace KnotTools
         Int R_II_counter            = 0;
         Int R_IIa_counter           = 0;
         Int twist_counter           = 0;
+        Int four_counter            = 0;
         
 #ifdef PD_COUNTERS
         Int R_I_check_counter       = 0;
@@ -143,12 +144,12 @@ namespace KnotTools
         
     private:
         
-//        ArcSimplifier_T arc_simplifier;
+        ArcSimplifier_T arc_simplifier;
         
     public:
         
         PlanarDiagram()
-//        :   arc_simplifier { *this }
+        :   arc_simplifier { *this }
         {}
         
         virtual ~PlanarDiagram() override = default;
@@ -200,12 +201,6 @@ namespace KnotTools
             
             bool ActiveQ() const
             {
-//                return (
-//                    (S == CrossingState::RightHanded)
-//                    ||
-//                    (S == CrossingState::LeftHanded)
-//                );
-                
                 return ToUnderlying(S) % 2;
             }
             
@@ -364,7 +359,7 @@ namespace KnotTools
         ,   crossing_count          ( crossing_count_                               )
         ,   arc_count               ( Int(2)*crossing_count_                        )
         ,   unlink_count            ( unlink_count_                                 )
-//        ,   arc_simplifier          ( *this                                         )
+        ,   arc_simplifier          ( *this                                         )
         {
             PushAllCrossings();
         }
@@ -397,6 +392,7 @@ namespace KnotTools
             swap( A.R_II_counter           , B.R_II_counter            );
             swap( A.R_IIa_counter          , B.R_IIa_counter           );
             swap( A.twist_counter          , B.twist_counter           );
+            swap( A.four_counter           , B.four_counter           );
 #ifdef PD_COUNTERS
             swap( A.R_I_check_counter      , B.R_I_check_counter       );
             swap( A.R_Ia_check_counter     , B.R_Ia_check_counter      );
@@ -509,26 +505,25 @@ namespace KnotTools
                     bool righthandedQ = inter.handedness > SInt(0);
 
                     
-                    
                     /*
-                    *
-                    *    negative         positive
-                    *    right-handed     left-handed
-                    *    .       .        .       .
-                    *    .       .        .       .
-                    *    +       +        +       +
-                    *     ^     ^          ^     ^
-                    *      \   /            \   /
-                    *       \ /              \ /
-                    *        /                \
-                    *       / \              / \
-                    *      /   \            /   \
-                    *     /     \          /     \
-                    *    +       +        +       +
-                    *    .       .        .       .
-                    *    .       .        .       .
-                    *
-                    */
+                     *
+                     *    negative         positive
+                     *    right-handed     left-handed
+                     *    .       .        .       .
+                     *    .       .        .       .
+                     *    +       +        +       +
+                     *     ^     ^          ^     ^
+                     *      \   /            \   /
+                     *       \ /              \ /
+                     *        /                \
+                     *       / \              / \
+                     *      /   \            /   \
+                     *     /     \          /     \
+                     *    +       +        +       +
+                     *    .       .        .       .
+                     *    .       .        .       .
+                     *
+                     */
                     
                     C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
                     A_state[a] = ArcState::Active;
@@ -865,6 +860,15 @@ namespace KnotTools
         Int TwistMove_Counter() const
         {
             return twist_counter;
+        }
+        
+        /*!
+         * @brief Returns how many moves that remove 4 crossings at once have been performed so far.
+         */
+        
+        Int FourMove_Counter() const
+        {
+            return four_counter;
         }
         
         /*!
@@ -1288,10 +1292,25 @@ namespace KnotTools
             }
             else
             {
-#if defined(PD_DEBUG)
+#ifdef PD_DEBUG
                 wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
 #endif
             }
+            
+#ifdef PD_DEBUG
+            for( bool io : { In, Out } )
+            {
+                for( bool lr : { Left, Right } )
+                {
+                    const Int a  = C_arcs(c,io,lr);
+                    
+                    if( ArcActiveQ(a) && (A_cross(a,io) == c) )
+                    {
+                        eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                    }
+                }
+            }
+#endif
         }
         
         /*!
@@ -1311,6 +1330,21 @@ namespace KnotTools
                 wprint("Attempted to deactivate already inactive crossing " + C.String() + ".");
 #endif
             }
+            
+#ifdef PD_DEBUG
+            for( bool io : { In, Out } )
+            {
+                for( bool lr : { Left, Right } )
+                {
+                    const Int a  = C(io,lr);
+                    
+                    if( ArcActiveQ(a) && (A_cross(a,io) == C.Idx()) )
+                    {
+                        eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
+                    }
+                }
+            }
+#endif
         }
         
         /*!
@@ -1610,18 +1644,18 @@ namespace KnotTools
         
         bool SimplifyArc( const Int a )
         {
-//            if( arc_simplifier(a) )
-//            {
-//                faces_initialized = false;
-//                
-//                this->ClearCache();
-//                
-//                return true;
-//            }
-//            else
-//            {
-//                return false;
-//            }
+            if( arc_simplifier(a) )
+            {
+                faces_initialized = false;
+                
+                this->ClearCache();
+                
+                return true;
+            }
+            else
+            {
+                return false;
+            }
             
             return false;
         }
@@ -1630,30 +1664,38 @@ namespace KnotTools
         {
             ptic(ClassName()+"::Simplify3");
 
-//            Int old_counter = -1;
-//            Int counter = 0;
-//            
-//            while( counter != old_counter )
-//            {
-//                old_counter = counter;
-//                
-//                for( Int a = 0; a < initial_arc_count; ++a )
-//                {
-//                    counter += arc_simplifier(a);
-//                }
-//            }
-//            
+            Int old_counter = -1;
+            Int counter = 0;
+            Int iter = 0;
+            
+            while( counter != old_counter )
+            {
+                ++iter;
+                
+                old_counter = counter;
+                
+                for( Int a = 0; a < initial_arc_count; ++a )
+                {
+                    counter += arc_simplifier(a);
+                }
+                
+                // DEBUGGING
+                
+                dump(iter);
+                valprint("changes",counter-old_counter);
+            }
+            
 //            dump(R_I_counter);
 //            dump(R_Ia_counter);
 //            dump(R_II_counter);
 //            dump(R_IIa_counter);
-//
-//            if( counter > 0 )
-//            {
-//                faces_initialized = false;
-//                
-//                this->ClearCache();
-//            }
+
+            if( counter > 0 )
+            {
+                faces_initialized = false;
+                
+                this->ClearCache();
+            }
             
             ptoc(ClassName()+"::Simplify3");
         }

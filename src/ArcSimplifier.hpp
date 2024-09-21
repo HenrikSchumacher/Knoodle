@@ -146,6 +146,73 @@ namespace KnotTools
         
         ~ArcSimplifier() = default;
         
+        ArcSimplifier( const ArcSimplifier & other ) = delete;
+        
+        ArcSimplifier( ArcSimplifier && other ) = delete;
+        
+//        // Copy constructor
+//        ArcSimplifier( const ArcSimplifier & other ) = default;
+//        
+//        friend void swap(ArcSimplifier & A, ArcSimplifier & B ) noexcept
+//        {
+//            using std::swap;
+//    
+//            swap( A.pd,      B.pd      );
+//            swap( A.C_arcs,  B.C_arcs  );
+//            swap( A.C_state, B.C_state );
+//            swap( A.A_cross, B.A_cross );
+//            swap( A.A_state, B.A_state );
+//            
+//            swap( A.a,   B.a   );
+//            
+//            swap( A.c_0, B.c_0 );
+//            swap( A.c_1, B.c_1 );
+//            swap( A.c_2, B.c_2 );
+//            swap( A.c_3, B.c_3 );
+//            
+//            swap( A.n_0, B.n_0 );
+//            swap( A.s_0, B.s_0 );
+//            swap( A.w_0, B.w_0 );
+//            
+//            swap( A.n_1, B.n_1 );
+//            swap( A.e_1, B.e_1 );
+//            swap( A.s_1, B.s_1 );
+//
+//            swap( A.e_2, B.e_2 );
+//            swap( A.s_2, B.s_2 );
+//            swap( A.w_2, B.w_2 );
+//            
+//            swap( A.n_3, B.n_3 );
+//            swap( A.e_3, B.e_3 );
+//            swap( A.w_3, B.w_3 );
+//            
+//            swap( A.o_0, B.o_0 );
+//            swap( A.o_1, B.o_1 );
+//            swap( A.o_2, B.o_2 );
+//            swap( A.o_3, B.o_3 );
+//            
+//            swap( A.u_0, B.u_0 );
+//            swap( A.o_1, B.u_1 );
+//        }
+//        
+//        // Move constructor
+//        ArcSimplifier( ArcSimplifier && other ) noexcept
+//        :   ArcSimplifier()
+//        {
+//            swap(*this, other);
+//        }
+//
+//        /* Copy assignment operator */
+//        ArcSimplifier & operator=( ArcSimplifier other ) noexcept
+//        {   //                                     ^
+//            //                                     |
+//            // Use the copy constructor     -------+
+//            swap( *this, other );
+//            return *this;
+//        }
+        
+        
+        
         bool operator()( const Int a_ )
         {
             if( !pd.ArcActiveQ(a_) ) return false;
@@ -192,8 +259,6 @@ namespace KnotTools
             
             if( twist_at_a() )
             {
-                PD_ASSERT(pd.CheckVertexDegrees());
-                
                 PD_VALPRINT( "a  ", ArcString(n_0) );
                 
                 PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -214,10 +279,8 @@ namespace KnotTools
             // Next we check for Reidemeister_I at crossings c_0 and c_1.
             // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
             
-            if( RI_at_c_0() )
+            if( R_I_left() )
             {
-                PD_ASSERT(pd.CheckVertexDegrees());
-                
                 PD_VALPRINT( "a  ", ArcString(n_0) );
                 
                 PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -233,10 +296,8 @@ namespace KnotTools
                 return true;
             }
             
-            if( RI_at_c_1() )
+            if( R_I_right() )
             {
-                PD_ASSERT(pd.CheckVertexDegrees());
-                
                 PD_VALPRINT( "a  ", ArcString(n_0) );
                 
                 PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -254,12 +315,12 @@ namespace KnotTools
             
             // Neglecting asserts, this is the only time we access C_state[c_0].
             // Whether the vertical strand at c_0 goes over.
-            o_0 = (u_0 == ( C_state[c_0] == CrossingState::LeftHanded ));
+            o_0 = ( u_0 == ( C_state[c_0] == CrossingState::LeftHanded ) );
             PD_VALPRINT( "o_0", o_0 );
             
             // Neglecting asserts, this is the only time we access C_state[c_1].
             // Whether the vertical strand at c_1 goes over.
-            o_1 = (u_1 == ( C_state[c_1] == CrossingState::LeftHanded ));
+            o_1 = ( u_1 == ( C_state[c_1] == CrossingState::LeftHanded ) );
             PD_VALPRINT( "o_1", o_1 );
 
             // Deal with the case that a is part of a loop of length 2.
@@ -269,8 +330,6 @@ namespace KnotTools
                 // Caution: This requires o_0 and o_1 to be defined already.
                 if( a_is_2loop() )
                 {
-                    PD_ASSERT(pd.CheckVertexDegrees());
-                    
                     PD_VALPRINT( "a  ", ArcString(n_0) );
                     
                     PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -294,10 +353,8 @@ namespace KnotTools
                  *       |c_0        |c_1          |c_0        |c_1
                  */
                 
-                if( strands_same_side() )
+                if( strands_same_o() )
                 {
-                    PD_ASSERT(pd.CheckVertexDegrees());
-                    
                     PD_VALPRINT( "a  ", ArcString(a) );
                     
                     PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -309,6 +366,16 @@ namespace KnotTools
                     PD_VALPRINT( "n_1", ArcString(n_1) );
                     PD_VALPRINT( "e_1", ArcString(e_1) );
                     PD_VALPRINT( "s_1", ArcString(s_1) );
+                    
+                    PD_VALPRINT( "c_2", CrossingString(c_2) );
+                    PD_VALPRINT( "e_2", ArcString(e_2) );
+                    PD_VALPRINT( "s_2", ArcString(s_2) );
+                    PD_VALPRINT( "w_2", ArcString(w_2) );
+                    
+                    PD_VALPRINT( "c_3", CrossingString(c_3) );
+                    PD_VALPRINT( "n_3", ArcString(n_3) );
+                    PD_VALPRINT( "e_3", ArcString(e_3) );
+                    PD_VALPRINT( "w_3", ArcString(w_3) );
                     
                     return true;
                 }
@@ -322,8 +389,6 @@ namespace KnotTools
         //
         //        if( strands_opposite_sides() )
         //        {
-        //            PD_ASSERT(pd.CheckVertexDegrees());
-        //
         //            PD_VALPRINT( "a  ", ArcString(a) );
         //
         //            PD_VALPRINT( "c_0", CrossingString(c_0) );
@@ -336,12 +401,20 @@ namespace KnotTools
         //            PD_VALPRINT( "e_1", ArcString(e_1) );
         //            PD_VALPRINT( "s_1", ArcString(s_1) );
         //
+        //            PD_VALPRINT( "c_2", CrossingString(c_2) );
+        //            PD_VALPRINT( "e_2", ArcString(e_2) );
+        //            PD_VALPRINT( "s_2", ArcString(s_2) );
+        //            PD_VALPRINT( "w_2", ArcString(w_2) );
+        //
+        //            PD_VALPRINT( "c_3", CrossingString(c_3) );
+        //            PD_VALPRINT( "n_3", ArcString(n_3) );
+        //            PD_VALPRINT( "e_3", ArcString(e_3) );
+        //            PD_VALPRINT( "w_3", ArcString(w_3) );
+        //
         //            return true;
         //        }
         //    }
-            
-            PD_ASSERT(pd.CheckVertexDegrees());
-            
+                        
             return false;
         }
         
@@ -351,11 +424,13 @@ namespace KnotTools
 #include "ArcSimplifier/a_is_loop.hpp"
 #include "ArcSimplifier/a_is_2loop.hpp"
 #include "ArcSimplifier/twist_at_a.hpp"
-#include "ArcSimplifier/RI_at_c_0.hpp"
-#include "ArcSimplifier/RI_at_c_1.hpp"
+#include "ArcSimplifier/R_I_left.hpp"
+#include "ArcSimplifier/R_I_right.hpp"
+#include "ArcSimplifier/R_II_above.hpp"
+#include "ArcSimplifier/R_II_below.hpp"
         
-#include "ArcSimplifier/strands_same_side.hpp"
-#include "ArcSimplifier/strands_opposite_sides.hpp"
+#include "ArcSimplifier/strands_same_o.hpp"
+#include "ArcSimplifier/strands_opposite_o.hpp"
         
         
     public:

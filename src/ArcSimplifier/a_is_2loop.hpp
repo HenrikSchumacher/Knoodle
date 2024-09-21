@@ -49,74 +49,73 @@ bool a_is_2loop()
             
             return true;
         }
-        else // if( o_0 != o_1 )
-        {
-            PD_DPRINT( "\t\to_0 != o_1" );
-            
-            /* Looks like this:
-             *
-             *       +-------------------+              +-------------------+
-             *       |                   |              |                   |
-             *       |   O###########O   |              |   O###########O   |
-             *       |   |     a     |   |              |   |     a     |   |
-             *       +-->|---------->--->+      or      +-->----------->|-->+
-             *           |c_0        |c_1                   |c_0        |c_1
-             *           |           |                      |           |
-             *
-             *                 or                                 or
-             *
-             *           |           |                      |           |
-             *           |     a     |                      |     a     |
-             *       +-->----------->|-->+      or      +-->|---------->--->+
-             *       |   |c_0        |c_1|              |   |c_0        |c_1|
-             *       |   O###########O   |              |   O###########O   |
-             *       |                   |              |                   |
-             *       +-------------------+              +-------------------+
-             */
-            
-            // TODO: If additionally the endpoints of n_0 and n_1 or the endpoints of s_0 and s_1 coincide, there are subtle ways to remove the crossing there:
 
-            /*       +-------------------+              +-------------------+
-             *       |                   |              |   +--------------+|
-             *       |                   |              |   |              ||
-             *       |   O##TANGLE###O   |              |   O##TANGLE###O  ||
-             *       |   |           |   |              |              /   ||
-             *       |   |           |   |              |   +---------+    ||
-             *       |   |     a     |   |              |   |     a     +--+|
-             *       +-->|----------->---+     ==>      +-->------------|---+
-             *           |c_0        |c_1                   |c_0        |c_1
-             *           O           O                      O           O
-             *            \         /                        \         /
-             *             \       /                          \       /
-             *              \     /                            \     /
-             *               O   O                              +   +
-             *                \ /                               |   |
-             *                 \ c_2                            |   |2
-             *                / \                               |   |
-             *               O   O                              O   O
-             *
-             *       +-------------------+              +-------------------+
-             *       |                   |              |                   |
-             *       |   O##TANGLE###O   |              |   O##TANGLE###O   |
-             *       |   |           |   |              |   |           |   |
-             *       |   |     a     |   |   untwist    |   |     a     |   |
-             *       +-->------------|---+     ==>      +-->------------|---+
-             *           |c_0        |c_1                   |c_0        |c_1
-             *           O           O                      O           O
-             *            \         /                        \         /
-             *             \       /                          \       /
-             *              \     /                            \     /
-             *               O   O                              +   +
-             *                \ /                               |   |
-             *                 \ c_2                            |   |2
-             *                / \                               |   |
-             *               O   O                              O   O
-             */
-            
-            // But this comes at the price of an additional crossing load, and it might not be very likely. Also, I am working only on connected diagrams, so I have no test code for this.
-            
-            return false;
-        }
+        PD_DPRINT( "\t\to_0 != o_1" );
+        PD_ASSERT( o_0 != o_1 );
+        /* Looks like this:
+         *
+         *       +-------------------+              +-------------------+
+         *       |                   |              |                   |
+         *       |   O###########O   |              |   O###########O   |
+         *       |   |     a     |   |              |   |     a     |   |
+         *       +-->|---------->--->+      or      +-->----------->|-->+
+         *           |c_0        |c_1                   |c_0        |c_1
+         *           |           |                      |           |
+         *
+         *                 or                                 or
+         *
+         *           |           |                      |           |
+         *           |     a     |                      |     a     |
+         *       +-->----------->|-->+      or      +-->|---------->--->+
+         *       |   |c_0        |c_1|              |   |c_0        |c_1|
+         *       |   O###########O   |              |   O###########O   |
+         *       |                   |              |                   |
+         *       +-------------------+              +-------------------+
+         */
+        
+        // TODO: If additionally the endpoints of n_0 and n_1 or the endpoints of s_0 and s_1 coincide, there are subtle ways to remove the crossing there:
+
+        /*       +-------------------+              +-------------------+
+         *       |                   |              |   +--------------+|
+         *       |                   |              |   |              ||
+         *       |   O##TANGLE###O   |              |   O##TANGLE###O  ||
+         *       |   |           |   |              |              /   ||
+         *       |   |           |   |              |   +---------+    ||
+         *       |   |     a     |   |              |   |     a     +--+|
+         *       +-->|----------->---+     ==>      +-->------------|---+
+         *           |c_0        |c_1                   |c_0        |c_1
+         *           O           O                      O           O
+         *            \         /                        \         /
+         *             \       /                          \       /
+         *              \     /                            \     /
+         *               O   O                              +   +
+         *                \ /                               |   |
+         *                 \ c_2                            |   |2
+         *                / \                               |   |
+         *               O   O                              O   O
+         *
+         *       +-------------------+              +-------------------+
+         *       |                   |              |                   |
+         *       |   O##TANGLE###O   |              |   O##TANGLE###O   |
+         *       |   |           |   |              |   |           |   |
+         *       |   |     a     |   |   untwist    |   |     a     |   |
+         *       +-->------------|---+     ==>      +-->------------|---+
+         *           |c_0        |c_1                   |c_0        |c_1
+         *           O           O                      O           O
+         *            \         /                        \         /
+         *             \       /                          \       /
+         *              \     /                            \     /
+         *               O   O                              +   +
+         *                \ /                               |   |
+         *                 \ c_2                            |   |2
+         *                / \                               |   |
+         *               O   O                              O   O
+         */
+        
+        // TODO: But this comes at the price of an additional crossing load, and it might not be very likely. Also, I am working only on connected diagrams, so I have no test code for this.
+        
+        return false;
+        
     }
     
     return false;
