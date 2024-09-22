@@ -33,8 +33,9 @@ namespace KnotTools
         }
     }
     
-    enum class ArcState : bool
+    enum class ArcState : Int8
     {
+        Unchanged =  2,
         Active    =  1,
         Inactive  =  0
     };
@@ -43,9 +44,11 @@ namespace KnotTools
     {
         switch( s )
         {
-            case ArcState::Active   : return "Active";
+            case ArcState::Active    : return "Active";
                 
-            case ArcState::Inactive : return "Inactive";
+            case ArcState::Inactive  : return "Inactive";
+                
+            case ArcState::Unchanged : return "Unchanged";
         }
     }
     

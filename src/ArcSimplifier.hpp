@@ -1,5 +1,6 @@
 #pragma once
 
+// TODO: Use the state flag of arcs to mark unchanged arcs.
 namespace KnotTools
 {
     template<typename Int_, bool mult_compQ_ = true >
@@ -232,7 +233,7 @@ namespace KnotTools
             
             load_c_0();
 
-            if( a_is_loop() )
+            if( R_I_center() )
             {
                 PD_VALPRINT( "a  ", ArcString(n_0) );
                 
@@ -273,8 +274,6 @@ namespace KnotTools
                 
                 return true;
             }
-            
-            // TODO: Debug the following, too.
 
             // Next we check for Reidemeister_I at crossings c_0 and c_1.
             // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
@@ -380,57 +379,66 @@ namespace KnotTools
                     return true;
                 }
             }
-        //    else
-        //    {
-        //        /*       |     a     |             |     a     |
-        //         *    -->|---------->--->   or  -->----------->|-->
-        //         *       |c_0        |c_1          |c_0        |c_1
-        //         */
-        //
-        //        if( strands_opposite_sides() )
-        //        {
-        //            PD_VALPRINT( "a  ", ArcString(a) );
-        //
-        //            PD_VALPRINT( "c_0", CrossingString(c_0) );
-        //            PD_VALPRINT( "n_0", ArcString(n_0) );
-        //            PD_VALPRINT( "s_0", ArcString(s_0) );
-        //            PD_VALPRINT( "w_0", ArcString(w_0) );
-        //
-        //            PD_VALPRINT( "c_1", CrossingString(c_1) );
-        //            PD_VALPRINT( "n_1", ArcString(n_1) );
-        //            PD_VALPRINT( "e_1", ArcString(e_1) );
-        //            PD_VALPRINT( "s_1", ArcString(s_1) );
-        //
-        //            PD_VALPRINT( "c_2", CrossingString(c_2) );
-        //            PD_VALPRINT( "e_2", ArcString(e_2) );
-        //            PD_VALPRINT( "s_2", ArcString(s_2) );
-        //            PD_VALPRINT( "w_2", ArcString(w_2) );
-        //
-        //            PD_VALPRINT( "c_3", CrossingString(c_3) );
-        //            PD_VALPRINT( "n_3", ArcString(n_3) );
-        //            PD_VALPRINT( "e_3", ArcString(e_3) );
-        //            PD_VALPRINT( "w_3", ArcString(w_3) );
-        //
-        //            return true;
-        //        }
-        //    }
-                        
+            else
+            {
+                /*       |     a     |             |     a     |
+                 *    -->|---------->--->   or  -->----------->|-->
+                 *       |c_0        |c_1          |c_0        |c_1
+                 */
+        
+                if( strands_diff_o() )
+                {
+                    PD_VALPRINT( "a  ", ArcString(a) );
+        
+                    PD_VALPRINT( "c_0", CrossingString(c_0) );
+                    PD_VALPRINT( "n_0", ArcString(n_0) );
+                    PD_VALPRINT( "s_0", ArcString(s_0) );
+                    PD_VALPRINT( "w_0", ArcString(w_0) );
+        
+                    PD_VALPRINT( "c_1", CrossingString(c_1) );
+                    PD_VALPRINT( "n_1", ArcString(n_1) );
+                    PD_VALPRINT( "e_1", ArcString(e_1) );
+                    PD_VALPRINT( "s_1", ArcString(s_1) );
+        
+                    PD_VALPRINT( "c_2", CrossingString(c_2) );
+                    PD_VALPRINT( "e_2", ArcString(e_2) );
+                    PD_VALPRINT( "s_2", ArcString(s_2) );
+                    PD_VALPRINT( "w_2", ArcString(w_2) );
+        
+                    PD_VALPRINT( "c_3", CrossingString(c_3) );
+                    PD_VALPRINT( "n_3", ArcString(n_3) );
+                    PD_VALPRINT( "e_3", ArcString(e_3) );
+                    PD_VALPRINT( "w_3", ArcString(w_3) );
+        
+                    return true;
+                }
+            }
+                   
+            A_state[a] = ArcState::ActiveUnchanged;
+            
             return false;
         }
         
     private:
         
 #include "ArcSimplifier/load.hpp"
-#include "ArcSimplifier/a_is_loop.hpp"
 #include "ArcSimplifier/a_is_2loop.hpp"
 #include "ArcSimplifier/twist_at_a.hpp"
+#include "ArcSimplifier/strands_same_o.hpp"
+#include "ArcSimplifier/strands_diff_o.hpp"
+#include "ArcSimplifier/R_I_center.hpp"
 #include "ArcSimplifier/R_I_left.hpp"
 #include "ArcSimplifier/R_I_right.hpp"
+#include "ArcSimplifier/R_Ia_above.hpp"
+#include "ArcSimplifier/R_Ia_below.hpp"
 #include "ArcSimplifier/R_II_above.hpp"
 #include "ArcSimplifier/R_II_below.hpp"
+#include "ArcSimplifier/R_IIa_same_o_same_u.hpp"
+#include "ArcSimplifier/R_IIa_same_o_diff_u.hpp"
+#include "ArcSimplifier/R_IIa_diff_o_same_u.hpp"
+#include "ArcSimplifier/R_IIa_diff_o_diff_u.hpp"
         
-#include "ArcSimplifier/strands_same_o.hpp"
-#include "ArcSimplifier/strands_opposite_o.hpp"
+
         
         
     public:

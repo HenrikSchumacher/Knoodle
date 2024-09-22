@@ -1239,6 +1239,16 @@ namespace KnotTools
             }
         }
         
+        void TouchCrossing( const Int c )
+        {
+            PD_ASSERT( CrossingActiveQ(c) );
+            
+            A_state[C_arcs(Out,Left ) = ArcState::Active;
+            A_state[C_arcs(Out,Right) = ArcState::Active;
+            A_state[C_arcs(In ,Left ) = ArcState::Active;
+            A_state[C_arcs(In ,Right) = ArcState::Active;
+        }
+        
         std::string ArcString( const Int a ) const
         {
             return "arc " +Tools::ToString(a) +" = { "
@@ -1254,6 +1264,11 @@ namespace KnotTools
         bool ArcActiveQ( const Int a ) const
         {
             return ToUnderlying(A_state[a]);
+        }
+        
+        bool ArcUnchangedQ( const Int a ) const
+        {
+            return (A_state[a] == ArcState::Unchanged);
         }
         
         /*!
@@ -1635,7 +1650,7 @@ namespace KnotTools
 //            dump(R_II_vertical_counter);
 //            dump(R_IIa_counter);
             
-            ptic(ClassName()+"::Simplify"
+            ptoc(ClassName()+"::Simplify"
                 + "<" + Tools::ToString(allow_R_IaQ)
                 + "," + Tools::ToString(allow_R_IIaQ)
                 + ">");
@@ -1679,10 +1694,10 @@ namespace KnotTools
                     counter += arc_simplifier(a);
                 }
                 
-                // DEBUGGING
-                
-                dump(iter);
-                valprint("changes",counter-old_counter);
+//                // DEBUGGING
+//                
+//                dump(iter);
+//                valprint("changes",counter-old_counter);
             }
             
 //            dump(R_I_counter);

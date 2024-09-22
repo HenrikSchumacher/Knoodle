@@ -1,4 +1,4 @@
-bool a_is_loop()
+bool R_I_center()
 {
     PD_DPRINT( "a_is_loop()" );
     

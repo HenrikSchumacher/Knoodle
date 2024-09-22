@@ -282,7 +282,7 @@ bool R_II_above()
          *           s_0         s_1                   s_0         s_1
          */
         
-        // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
+        // The case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
         PD_ASSERT( s_0 != s_1 );
         PD_ASSERT( w_0 != e_1 );
         PD_ASSERT( w_0 != s_0 );
