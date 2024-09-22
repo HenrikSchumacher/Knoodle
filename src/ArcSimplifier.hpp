@@ -46,6 +46,11 @@ namespace KnotTools
             return pd.ArcActiveQ(a_);
         }
         
+        bool ArcNeedsProcessingQ( const Int a_ ) const
+        {
+            return pd.ArcNeedsProcessingQ(a_);
+        }
+        
         void DeactivateArc( const Int a_ ) const
         {
             return pd.DeactivateArc(a_);
@@ -84,6 +89,10 @@ namespace KnotTools
             return pd.CrossingString(c_);
         }
         
+        void TouchCrossing( const Int c_ )
+        {
+            pd.TouchCrossing(c_);
+        }
         
         
         void Reconnect( const Int a_, const bool headtail, const Int b_ )
@@ -216,7 +225,8 @@ namespace KnotTools
         
         bool operator()( const Int a_ )
         {
-            if( !pd.ArcActiveQ(a_) ) return false;
+//            if( !ArcActiveQ(a_) ) return false;
+            if( !ArcNeedsProcessingQ(a_) ) return false;
 
             a = a_;
             
@@ -413,8 +423,10 @@ namespace KnotTools
                     return true;
                 }
             }
+            
+            AssertArc(a);
                    
-            A_state[a] = ArcState::ActiveUnchanged;
+            A_state[a] = ArcState::Unchanged;
             
             return false;
         }

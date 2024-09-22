@@ -1,4 +1,4 @@
-bool CheckCrossing( const Int c  )
+bool CheckCrossing( const Int c  ) const
 {
     if( (c < 0) || (c > initial_crossing_count) )
     {
@@ -26,7 +26,7 @@ bool CheckCrossing( const Int c  )
                 return false;
             }
             
-            const int A_activeQ = (A_state[a] == ArcState::Active);
+            const int A_activeQ = (A_state[a] == ArcState::Active) || (A_state[a] == ArcState::Unchanged);
             
             if( !A_activeQ )
             {
@@ -53,7 +53,7 @@ bool CheckCrossing( const Int c  )
     return C_passedQ;
 }
 
-bool CheckAllCrossings()
+bool CheckAllCrossings() const
 {
     bool passedQ = true;
     
@@ -74,7 +74,7 @@ bool CheckAllCrossings()
 }
 
 
-bool CheckArc( const Int a  )
+bool CheckArc( const Int a ) const
 {
     if( (a < 0) || (a > initial_arc_count) )
     {
@@ -129,7 +129,7 @@ bool CheckArc( const Int a  )
     return A_passedQ;
 }
 
-bool CheckAllArcs()
+bool CheckAllArcs() const
 {
     bool passed = true;
     
@@ -150,7 +150,7 @@ bool CheckAllArcs()
     return passed;
 }
 
-bool CheckVertexDegrees()
+bool CheckVertexDegrees() const
 {
     bool passed = true;
     
@@ -189,7 +189,7 @@ bool CheckVertexDegrees()
 }
 
 
-bool CheckAll()
+bool CheckAll() const
 {
     const bool passed = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees();
 
@@ -199,7 +199,7 @@ bool CheckAll()
 
 public:
 
-void AssertArc( const Int a )
+void AssertArc( const Int a ) const
 {
     PD_ASSERT(ArcActiveQ(a));
     PD_ASSERT(CheckArc  (a));
@@ -208,7 +208,7 @@ void AssertArc( const Int a )
 #endif
 }
 
-void AssertCrossing( const Int c )
+void AssertCrossing( const Int c ) const
 {
     PD_ASSERT(CrossingActiveQ(c));
     PD_ASSERT(CheckCrossing(c));

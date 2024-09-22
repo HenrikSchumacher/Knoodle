@@ -115,5 +115,5 @@ bool strands_same_o()
         R_IIa_same_o_diff_u();
     }
     
-    return false;
+    return true;
 }

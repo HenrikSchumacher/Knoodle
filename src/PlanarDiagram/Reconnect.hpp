@@ -1,4 +1,43 @@
-void Reconnect( const Int a, const bool headtail, const Int b )
+//void Reconnect( const Int a, const bool tiptail, const Int b )
+//{
+//    // Read:
+//    // Reconnect arc a with its tip/tail to where b pointed/started.
+//    // Then deactivates b.
+//    //
+//    // Also keeps track of crossings that got touched and that might thus
+//    // be interesting for further simplification.
+//    
+//    const bool io = (tiptail==Head) ? In : Out;
+//    
+//    PD_ASSERT( a != b );
+//    
+//    PD_ASSERT( ArcActiveQ(a) );
+////    PD_assert( ArcActiveQ(b) ); // Could have been deactivated already.
+//    
+//    const Int c_0 = A_cross(a,!tiptail);
+//    const Int c_1 = A_cross(b, tiptail);
+//    
+//    PD_ASSERT( (C_arcs(c_1,io,Left) == b) || (C_arcs(c_1,io,Right) == b) );
+//    
+//    PD_ASSERT(CheckArc(b));
+//    PD_ASSERT(CheckCrossing(c_1));
+//    
+//    PD_ASSERT( CrossingActiveQ(c_1) );
+//    PD_ASSERT( CrossingActiveQ(A_cross(a, tiptail)) );
+//    PD_ASSERT( CrossingActiveQ(A_cross(a,!tiptail)) );
+//    
+//    A_cross(a,tiptail) = c_1;
+//
+//    const bool lr = (C_arcs(c_1,io,Left) == b) ? Left : Right;
+//    
+//    C_arcs(c_1,io,lr) = a;
+//    
+//    DeactivateArc(b);
+//    TouchCrossing(c_0);
+//    TouchCrossing(c_1);
+//}
+
+void Reconnect( const Int a, const bool tiptail, const Int b )
 {
     // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.
@@ -7,46 +46,38 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
     
-    PD_DPRINT( "Reconnect(" + Tools::ToString(a) + "," + (headtail ? "Head" : "Tail") + "," + Tools::ToString(b) +")" );
+    const bool io = (tiptail==Head) ? In : Out;
     
-    
-    const bool io = (headtail==Head) ? In : Out;
-    
-    // If a == b, then we should not do anything in the first place.
     PD_ASSERT( a != b );
     
     PD_ASSERT( ArcActiveQ(a) );
-//    PD_ASSERT( ArcActiveQ(b) ); // Could have been deactivated already.
+//    PD_assert( ArcActiveQ(b) ); // Could have been deactivated already.
     
-    const Int c = A_cross(b, headtail);
+    const Int c = A_cross(b, tiptail);
     
     PD_ASSERT( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
     
     PD_ASSERT(CheckArc(b));
     PD_ASSERT(CheckCrossing(c));
     
-    PD_ASSERT(CrossingActiveQ(c));
-    PD_ASSERT(CrossingActiveQ(A_cross(a, headtail)));
-    PD_ASSERT(CrossingActiveQ(A_cross(a,!headtail)));
+    PD_ASSERT( CrossingActiveQ(c) );
+    PD_ASSERT( CrossingActiveQ(A_cross(a, tiptail)) );
+    PD_ASSERT( CrossingActiveQ(A_cross(a,!tiptail)) );
     
-    A_cross(a,headtail) = c;
+    A_cross(a,tiptail) = c;
 
     const bool lr = (C_arcs(c,io,Left) == b) ? Left : Right;
     
     C_arcs(c,io,lr) = a;
     
-#if defined(PD_USE_TOUCHING)
-    //touched_crossings.push_back(a);
-    touched_crossings.push_back(c);
-#endif
-    
+    // TODO: Is this a good idea?
     DeactivateArc(b);
     
-    
-    // TODO: If A_cross(a,Head) == A_cross(a,Tail), then we might want to make an immediate Reidemeister I move now. But it could make it difficult to test the correctness of Reconnect by later asserts, because this deactivates a and the crossing it loops at.
+    TouchCrossing(A_cross(a,Tail));
+    TouchCrossing(A_cross(a,Head));
 }
 
-
+ 
 void Reconnect( ArcView & A, const bool headtail, ArcView & B )
 {
     // Read:

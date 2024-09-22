@@ -40,11 +40,13 @@ bool R_IIa_diff_o_diff_u()
     C_arcs(c_0, u_0,Left ) = w_3;
     C_arcs(c_0,!u_0,Left ) = C_arcs(c_0,!u_0,Right);
     C_arcs(c_0,!u_0,Right) = w_2;
+    TouchCrossing(c_0);
     
     C_arcs(c_1, u_1,Right) = C_arcs(c_1, u_1,Left );
     C_arcs(c_1, u_1,Left ) = n_3;
     C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
     C_arcs(c_1,!u_1,Right) = s_2;
+    TouchCrossing(c_1);
     
     DeactivateArc(n_0);
     DeactivateArc(n_1);

@@ -201,7 +201,7 @@ namespace KnotTools
             
             bool ActiveQ() const
             {
-                return ToUnderlying(S) % 2;
+                return (ToUnderlying(S) % 2);
             }
             
             friend bool operator==( const CrossingView & C_0, const CrossingView & C_1 )
@@ -238,8 +238,7 @@ namespace KnotTools
         
         CrossingView GetCrossing( const Int c )
         {
-            PD_ASSERT(CheckCrossing(c));
-            PD_ASSERT(CrossingActiveQ(c));
+            AssertCrossing(c);
 
             return CrossingView( c, C_arcs.data(c), C_state[c] );
         }
@@ -289,7 +288,7 @@ namespace KnotTools
             
             bool ActiveQ() const
             {
-                return S == ArcState::Active;
+                return (ToUnderlying(S) > 0);
             }
             
             friend bool operator==( const ArcView & A_0, const ArcView & A_1 )
@@ -326,9 +325,8 @@ namespace KnotTools
         
         ArcView GetArc( const Int a )
         {
-            PD_ASSERT(CheckArc(a));
-            PD_ASSERT(ArcActiveQ(a));
-
+            AssertArc(a);
+            
             return ArcView( a, A_cross.data(a), A_state[a] );
         }
         
@@ -1058,13 +1056,7 @@ namespace KnotTools
         
         bool CrossingActiveQ( const Int c ) const
         {
-//            return (
-//                (C_state[c] == CrossingState::RightHanded)
-//                ||
-//                (C_state[c] == CrossingState::LeftHanded)
-//            );
-            
-            return ToUnderlying(C_state[c]) % 2;
+            return (ToUnderlying(C_state[c]) % 2);
         }
 
         bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
@@ -1243,10 +1235,19 @@ namespace KnotTools
         {
             PD_ASSERT( CrossingActiveQ(c) );
             
-            A_state[C_arcs(Out,Left ) = ArcState::Active;
-            A_state[C_arcs(Out,Right) = ArcState::Active;
-            A_state[C_arcs(In ,Left ) = ArcState::Active;
-            A_state[C_arcs(In ,Right) = ArcState::Active;
+            for( bool io : { Out, In } )
+            {
+                for( bool lr : { Left, Right } )
+                {
+                    const Int      a = C_arcs(c,io,lr);
+                    const ArcState s = A_state[a];
+                    
+                    if( s == ArcState::Unchanged )
+                    {
+                        A_state[a] = ArcState::Active;
+                    }
+                }
+            }
         }
         
         std::string ArcString( const Int a ) const
@@ -1263,12 +1264,17 @@ namespace KnotTools
         
         bool ArcActiveQ( const Int a ) const
         {
-            return ToUnderlying(A_state[a]);
+            return (ToUnderlying(A_state[a]) != 0);
         }
         
         bool ArcUnchangedQ( const Int a ) const
         {
             return (A_state[a] == ArcState::Unchanged);
+        }
+        
+        bool ArcNeedsProcessingQ( const Int a ) const
+        {
+            return (ToUnderlying(A_state[a]) % 2);
         }
         
         /*!
@@ -1278,15 +1284,15 @@ namespace KnotTools
         
         Int NextCrossing( const Int c, bool io, bool lr ) const
         {
-            PD_ASSERT( CrossingActiveQ(c) );
+            AssertCrossing(c);
 
             const Int a = C_arcs(c,io,lr);
 
-            PD_ASSERT( ArcActiveQ(a) );
+            AssertArc(a);
             
             const Int c_next = A_cross( a, ( io == In ) ? Tail : Head );
 
-            PD_ASSERT( CrossingActiveQ(c_next) );
+            AssertCrossing(c_next);
             
             return c_next;
         }
@@ -1454,10 +1460,11 @@ namespace KnotTools
         {
             // TODO: Signed indexing does not work because of 0!
             
-            PD_ASSERT( ArcActiveQ(a) );
+            AssertArc(a);
+            
             const Int c = A_cross(a,headtail);
             
-            PD_ASSERT( CrossingActiveQ(c) );
+            AssertCrossing(c);
             
             const bool io = (headtail == Head) ? In : Out;
 
@@ -1494,11 +1501,11 @@ namespace KnotTools
         
         Int NextArc( const Int a ) const
         {
-            PD_ASSERT( ArcActiveQ(a) );
+            AssertArc(a);
             
             const Int c = A_cross( a, Head );
             
-            PD_ASSERT( CrossingActiveQ(c) );
+            AssertCrossing(c);
 
             // Find out whether arc a is connected to a <Left> or <Right> port of c.
             const bool side = (C_arcs(c,In,Left) == a) ? Left : Right;
@@ -1519,11 +1526,11 @@ namespace KnotTools
         
         ArcView NextArc( const ArcView & A )
         {
-            PD_ASSERT( A.ActiveQ() );
+            AssertArc(A.Idx());
             
             const Int c = A(Head);
 
-            PD_ASSERT( CrossingActiveQ(c) );
+            AssertCrossing(c);
 
             // Find out whether arc a is connected to a <Left> or <Right> port of c.
             const bool side = (C_arcs(c,In,Left) == A.Idx()) ? Left : Right;
@@ -1540,12 +1547,12 @@ namespace KnotTools
         
         Int PrevArc( const Int a ) const
         {
-            PD_ASSERT( ArcActiveQ(a) );
+            AssertArc(a);
             
             const Int c = A_cross( a, Tail );
-            
-            PD_ASSERT( CrossingActiveQ(c) );
 
+            AssertCrossing(c);
+            
             // Find out whether arc a is connected to a <Left> or <Right> port of c.
             const bool lr = (C_arcs(c,Out,Left) == a) ? Left : Right;
             
@@ -1753,7 +1760,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                while( ( a_ptr < m ) && ( A_visisted[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }

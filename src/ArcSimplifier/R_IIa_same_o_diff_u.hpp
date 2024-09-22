@@ -69,6 +69,8 @@ void R_IIa_same_o_diff_u()
     C_arcs(c_0, u_0,Left ) = w_3;
     C_arcs(c_0,!u_0,Left ) = C_arcs(c_0,!u_0,Right);
     C_arcs(c_0,!u_0,Right) = w_2;
+    pd.FlipHandedness(c_0);
+    TouchCrossing(c_0);
     
     /* By example u_1 = 1
      *
@@ -87,9 +89,8 @@ void R_IIa_same_o_diff_u()
     C_arcs(c_1, u_1,Left ) = n_3;
     C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
     C_arcs(c_1,!u_1,Right) = s_2;
-    
-    pd.FlipHandedness(c_0);
     pd.FlipHandedness(c_1);
+    TouchCrossing(c_1);
     
     DeactivateArc(s_0);
     DeactivateArc(s_1);
