@@ -100,12 +100,21 @@ void R_IIa_same_o_diff_u()
     DeactivateCrossing(c_3);
     ++pd.R_IIa_counter;
     
-    AssertArc(w_3);
-    AssertArc(w_2);
-    AssertArc(n_3);
-    AssertArc(s_2);
-    AssertArc(w_0);
-    AssertArc(e_1);
-    AssertCrossing(c_0);
-    AssertCrossing(c_1);
+    AssertArc<1>(a  );
+    AssertArc<0>(n_0);
+    AssertArc<0>(s_0);
+    AssertArc<1>(w_0);
+    AssertArc<0>(n_1);
+    AssertArc<1>(e_1);
+    AssertArc<0>(s_1);
+    AssertArc<0>(e_2);
+    AssertArc<1>(s_2);
+    AssertArc<1>(w_2);
+    AssertArc<1>(n_3);
+    AssertArc<0>(e_3);
+    AssertArc<1>(w_3);
+    AssertCrossing<1>(c_0);
+    AssertCrossing<1>(c_1);
+    AssertCrossing<0>(c_2);
+    AssertCrossing<0>(c_3);
 }

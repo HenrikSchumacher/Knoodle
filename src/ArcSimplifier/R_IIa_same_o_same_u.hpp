@@ -129,7 +129,23 @@ void R_IIa_same_o_same_u()
             ++pd.R_IIa_counter;
             ++pd.R_I_counter;
             
-            AssertArc(e_1);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<0>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<1>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(e_2);
+            AssertArc<0>(s_2);
+            AssertArc<0>(w_2);
+            AssertArc<0>(n_3);
+            AssertArc<0>(e_3);
+            AssertArc<0>(w_3);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_2);
+            AssertCrossing<0>(c_3);
             
             return;
         }
@@ -182,7 +198,23 @@ void R_IIa_same_o_same_u()
             ++pd.R_IIa_counter;
             ++pd.R_I_counter;
             
-            AssertArc(w_0);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(e_2);
+            AssertArc<0>(s_2);
+            AssertArc<0>(w_2);
+            AssertArc<0>(n_3);
+            AssertArc<0>(e_3);
+            AssertArc<0>(w_3);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_2);
+            AssertCrossing<0>(c_3);
             
             return;
         }
@@ -222,6 +254,7 @@ void R_IIa_same_o_same_u()
         DeactivateArc(n_1);
         DeactivateArc(s_0);
         DeactivateArc(s_1);
+        DeactivateArc(w_3);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         DeactivateCrossing(c_2);
@@ -229,8 +262,23 @@ void R_IIa_same_o_same_u()
         ++pd.R_IIa_counter;
         ++pd.twist_counter;
         
-        AssertArc(w_0);
-        AssertArc(n_3);
+        AssertArc<0>(a  );
+        AssertArc<0>(n_0);
+        AssertArc<0>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertArc<0>(e_2);
+        AssertArc<0>(s_2);
+        AssertArc<0>(w_2);
+        AssertArc<1>(n_3);
+        AssertArc<0>(e_3);
+        AssertArc<0>(w_3);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
+        AssertCrossing<0>(c_2);
+        AssertCrossing<0>(c_3);
         
         return;
         
@@ -318,6 +366,24 @@ void R_IIa_same_o_same_u()
                 DeactivateCrossing(c_3);
                 ++pd.four_counter;
                 
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<0>(e_1);
+                AssertArc<0>(s_1);
+                AssertArc<0>(e_2);
+                AssertArc<0>(s_2);
+                AssertArc<0>(w_2);
+                AssertArc<0>(n_3);
+                AssertArc<0>(e_3);
+                AssertArc<0>(w_3);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
+                AssertCrossing<0>(c_2);
+                AssertCrossing<0>(c_3);
+                
                 return;
             }
             
@@ -363,7 +429,24 @@ void R_IIa_same_o_same_u()
             DeactivateCrossing(c_3);
             ++pd.four_counter;
             
-            AssertArc(e_1);
+            
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<0>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<1>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(e_2);
+            AssertArc<0>(s_2);
+            AssertArc<0>(w_2);
+            AssertArc<0>(n_3);
+            AssertArc<0>(e_3);
+            AssertArc<0>(w_3);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_2);
+            AssertCrossing<0>(c_3);
             
             return;
         }
@@ -413,7 +496,23 @@ void R_IIa_same_o_same_u()
             DeactivateCrossing(c_3);
             ++pd.four_counter;
             
-            AssertArc(w_0);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(e_2);
+            AssertArc<0>(s_2);
+            AssertArc<0>(w_2);
+            AssertArc<0>(n_3);
+            AssertArc<0>(e_3);
+            AssertArc<0>(w_3);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_2);
+            AssertCrossing<0>(c_3);
             
             return;
         }
@@ -460,7 +559,23 @@ void R_IIa_same_o_same_u()
         DeactivateCrossing(c_3);
         ++pd.four_counter;
         
-        AssertArc(w_0);
+        AssertArc<0>(a  );
+        AssertArc<0>(n_0);
+        AssertArc<0>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertArc<0>(e_2);
+        AssertArc<0>(s_2);
+        AssertArc<0>(w_2);
+        AssertArc<0>(n_3);
+        AssertArc<0>(e_3);
+        AssertArc<0>(w_3);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
+        AssertCrossing<0>(c_2);
+        AssertCrossing<0>(c_3);
         
         return;
         
@@ -469,19 +584,7 @@ void R_IIa_same_o_same_u()
     PD_DPRINT( "\t\t\t(s_2 != w_3) && (w_2 != n_3)" );
     PD_ASSERT( (s_2 != w_3) && (w_2 != n_3) );
     
-    AssertArc(a  );
-    AssertArc(n_0);
-    AssertArc(s_0);
-    AssertArc(n_1);
-    AssertArc(s_1);
-    AssertArc(w_0);
-    AssertArc(e_1);
-    
-    AssertArc(w_3);
-    AssertArc(w_2);
-    AssertArc(n_3);
-    AssertArc(s_2);
-    
+
     PD_ASSERT( n_0 != w_3 );
     PD_ASSERT( s_0 != w_2 );
     PD_ASSERT( n_1 != n_3 );
@@ -495,13 +598,21 @@ void R_IIa_same_o_same_u()
     DeactivateCrossing(c_3);
     ++pd.R_IIa_counter;
     
-    AssertArc(a  );
-    AssertArc(w_3);
-    AssertArc(w_2);
-    AssertArc(n_3);
-    AssertArc(s_2);
-    AssertArc(w_0);
-    AssertArc(e_1);
-    AssertCrossing(c_0);
-    AssertCrossing(c_1);
+    AssertArc<1>(a  );
+    AssertArc<0>(n_0);
+    AssertArc<0>(s_0);
+    AssertArc<1>(w_0);
+    AssertArc<0>(n_1);
+    AssertArc<1>(e_1);
+    AssertArc<0>(s_1);
+    AssertArc<0>(e_2);
+    AssertArc<1>(s_2);
+    AssertArc<1>(w_2);
+    AssertArc<1>(n_3);
+    AssertArc<0>(e_3);
+    AssertArc<1>(w_3);
+    AssertCrossing<1>(c_0);
+    AssertCrossing<1>(c_1);
+    AssertCrossing<0>(c_2);
+    AssertCrossing<0>(c_3);
 }

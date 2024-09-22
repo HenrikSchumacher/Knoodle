@@ -57,9 +57,28 @@ namespace KnotTools
         }
         
         
+        template<bool should_be_activeQ>
         void AssertArc( const Int a_ )
         {
-            pd.AssertArc(a_);
+#ifdef DEBUG
+            if constexpr( should_be_activeQ )
+            {
+                if( !ArcActiveQ(a_) )
+                {
+                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
+                }
+                PD_ASSERT(pd.CheckArc(a_));
+            }
+            else
+            {
+                if( ArcActiveQ(a_) )
+                {
+                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
+                }
+            }
+#else
+            (void)a_;
+#endif
         }
         
         std::string ArcString( const Int a_ )
@@ -79,9 +98,28 @@ namespace KnotTools
             return pd.DeactivateCrossing(c_);
         }
         
+        template<bool should_be_activeQ>
         void AssertCrossing( const Int c_ )
         {
-            pd.AssertCrossing(c_);
+#ifdef DEBUG
+            if constexpr( should_be_activeQ )
+            {
+                if( !CrossingActiveQ(c_) )
+                {
+                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
+                }
+                PD_ASSERT(pd.CheckCrossing(c_));
+            }
+            else
+            {
+                if( CrossingActiveQ(c_) )
+                {
+                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
+                }
+            }
+#else
+            (void)c_;
+#endif
         }
         
         std::string CrossingString( const Int c_ )
@@ -141,6 +179,8 @@ namespace KnotTools
         // Whether the vertical strand at corresponding crossing goes up.
         bool u_0;
         bool u_1;
+        
+        Int test_count = 0;
         
     public:
         
@@ -222,27 +262,41 @@ namespace KnotTools
 //        }
         
         
+        Int TestCount() const
+        {
+            return test_count;
+        }
+        
         
         bool operator()( const Int a_ )
         {
 //            if( !ArcActiveQ(a_) ) return false;
             if( !ArcNeedsProcessingQ(a_) ) return false;
-
+            ++test_count;
             a = a_;
             
             PD_DPRINT( "===================================================" );
             PD_DPRINT( "Simplify a = " + ArcString(a) );
             
-            AssertArc(a);
+            AssertArc<1>(a);
 
             c_0 = A_cross(a,Tail);
-            AssertCrossing(c_0);
-
+            AssertCrossing<1>(c_0);
+            
             c_1 = A_cross(a,Head);
-            AssertCrossing(c_1);
+            AssertCrossing<1>(c_1);
             
             load_c_0();
-
+            
+            /*              n_0
+             *               O
+             *               |
+             *       w_0 O---X-->O a
+             *               |c_0
+             *               O
+             *              s_0
+             */
+            
             if( R_I_center() )
             {
                 PD_VALPRINT( "a  ", ArcString(n_0) );
@@ -254,6 +308,8 @@ namespace KnotTools
                 
                 return true;
             }
+             
+            load_c_1();
             
             /*              n_0           n_1
              *               O             O
@@ -263,8 +319,6 @@ namespace KnotTools
              *               O             O
              *              s_0           s_1
              */
-             
-            load_c_1();
             
             // We want to check for twist move _before_ Reidemeister I because the twist move can remove both crossings.
             
@@ -424,7 +478,7 @@ namespace KnotTools
                 }
             }
             
-            AssertArc(a);
+            AssertArc<1>(a);
                    
             A_state[a] = ArcState::Unchanged;
             

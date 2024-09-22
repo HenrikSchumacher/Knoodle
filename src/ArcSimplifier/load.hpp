@@ -1,5 +1,7 @@
 void load_c_0()
 {
+    PD_DPRINT( "load_c_0()" );
+    
     /*              n_0
      *               O
      *               |
@@ -16,9 +18,9 @@ void load_c_0()
     s_0 = C_arcs( c_0,  u_0,  Right );
     w_0 = C_arcs( c_0,  In , !u_0   );
     
-    AssertArc(n_0);
-    AssertArc(s_0);
-    AssertArc(w_0);
+    AssertArc<1>(n_0);
+    AssertArc<1>(s_0);
+    AssertArc<1>(w_0);
     
 
     PD_VALPRINT("c_0",CrossingString(c_0));
@@ -31,6 +33,8 @@ void load_c_0()
 
 void load_c_1()
 {
+    PD_DPRINT( "load_c_1()" );
+    
     // Whether the vertical strand at c_1 points upwards.
     u_1 = (C_arcs(c_1,In ,Left ) == a);
     
@@ -38,9 +42,9 @@ void load_c_1()
     e_1 = C_arcs(c_1, Out, u_1  );
     s_1 = C_arcs(c_1, u_1, Right);
     
-    AssertArc(n_1);
-    AssertArc(e_1);
-    AssertArc(s_1);
+    AssertArc<1>(n_1);
+    AssertArc<1>(e_1);
+    AssertArc<1>(s_1);
     
     PD_VALPRINT("c_1",CrossingString(c_1));
     PD_VALPRINT("n_1",ArcString(n_1));
@@ -53,7 +57,7 @@ void load_c_1()
 
 void load_c_2()
 {
-    // TODO: Check this thoroughly!
+    PD_DPRINT( "load_c_2()" );
     
     /*          n_0       n_1
      *           O         O
@@ -72,7 +76,7 @@ void load_c_2()
      
     c_2 = A_cross(s_0,!u_0);
     
-    AssertCrossing(c_2);
+    AssertCrossing<1>(c_2);
     
     const bool b_2 = (s_0 == C_arcs(c_2,!u_0,Right));
     
@@ -137,9 +141,9 @@ void load_c_2()
     
     o_2 = (u_0 == (b_2 == (C_state[c_2] == CrossingState::RightHanded)));
     
-    AssertArc(e_2);
-    AssertArc(s_2);
-    AssertArc(w_2);
+    AssertArc<1>(e_2);
+    AssertArc<1>(s_2);
+    AssertArc<1>(w_2);
     
     PD_VALPRINT("c_2",CrossingString(c_2));
     PD_VALPRINT("e_2",ArcString(e_2));
@@ -150,7 +154,7 @@ void load_c_2()
 
 void load_c_3()
 {
-    // TODO: Check this thoroughly!
+    PD_DPRINT( "load_c_3()" );
     
     /*           O n_3
      *           |
@@ -169,7 +173,7 @@ void load_c_3()
      
     c_3 = A_cross(n_0,u_0);
     
-    AssertCrossing(c_3);
+    AssertCrossing<1>(c_3);
     
     const bool b_3 = (n_0 == C_arcs(c_3,u_0,Right));
     
@@ -234,10 +238,9 @@ void load_c_3()
     
     o_3 = (u_0 == (b_3 == (C_state[c_3] == CrossingState::LeftHanded)));
     
-    AssertArc(e_3);
-    AssertArc(n_3);
-    AssertArc(w_3);
-    
+    AssertArc<1>(e_3);
+    AssertArc<1>(n_3);
+    AssertArc<1>(w_3);    
     
     PD_VALPRINT("c_3",CrossingString(c_3));
     PD_VALPRINT("e_3",ArcString(e_3));

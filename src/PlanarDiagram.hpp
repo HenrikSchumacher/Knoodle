@@ -1308,6 +1308,7 @@ namespace KnotTools
         {
             if( CrossingActiveQ(c) )
             {
+                PD_PRINT("Deactivating " + CrossingString(c) + "." );
                 --crossing_count;
                 C_state[c] = CrossingState::Uninitialized;
             }
@@ -1376,6 +1377,8 @@ namespace KnotTools
         {
             if( ArcActiveQ(a) )
             {
+                PD_PRINT("Deactivating " + ArcString(a) + "." );
+                
                 --arc_count;
                 A_state[a] = ArcState::Inactive;
             }
@@ -1690,21 +1693,28 @@ namespace KnotTools
             Int counter = 0;
             Int iter = 0;
             
+            Int old_test_count = 0;
+            
             while( counter != old_counter )
             {
                 ++iter;
                 
                 old_counter = counter;
                 
+                old_test_count = arc_simplifier.TestCount();
+                // DEBUGGING
+                dump(iter);
+                tic("Simplify3 loop");
                 for( Int a = 0; a < initial_arc_count; ++a )
                 {
                     counter += arc_simplifier(a);
                 }
+                toc("Simplify3 loop");
                 
-//                // DEBUGGING
-//                
-//                dump(iter);
-//                valprint("changes",counter-old_counter);
+                const Int changes = counter-old_counter;
+                dump(changes);
+                const Int test_count = arc_simplifier.TestCount()-old_test_count;
+                dump(test_count);
             }
             
 //            dump(R_I_counter);
@@ -1775,7 +1785,7 @@ namespace KnotTools
                 a = a_ptr;
                 
                 {
-                    const Int c_prev = A_cross(a,0);
+                    const Int c_prev = A_cross(a,Tail);
                     const Int c      = C_labels[c_prev] = c_counter;
                     
                     C_state_new[c] = C_state[c_prev];
@@ -1786,8 +1796,8 @@ namespace KnotTools
                 // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
-                    const Int c_prev = A_cross(a,0);
-                    const Int c_next = A_cross(a,1);
+                    const Int c_prev = A_cross(a,Tail);
+                    const Int c_next = A_cross(a,Head);
                     
                     if( !A_visisted[a] )
                     {
@@ -1806,7 +1816,7 @@ namespace KnotTools
                     
                     {
                         const Int  c   = C_labels[c_prev];
-                        const bool lr  = C_arcs(c_prev,0,1) == a;
+                        const bool lr  = C_arcs(c_prev,Out,Right) == a;
                         
                         C_arcs_new( c, Out, lr ) = a_counter;
                         
@@ -1815,7 +1825,7 @@ namespace KnotTools
                     
                     {
                         const Int  c  = C_labels[c_next];
-                        const bool lr = C_arcs(c_next,1,1) == a;
+                        const bool lr = C_arcs(c_next,In,Right) == a;
                         
                         C_arcs_new( c, In, lr ) = a_counter;
                         

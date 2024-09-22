@@ -60,7 +60,19 @@ bool R_II_above()
                     ++pd.R_II_counter;
                     pd.R_I_counter += 2;
                     
-                    AssertArc(w_0);
+                    AssertArc<0>(a  );
+                    AssertArc<0>(n_0);
+                    AssertArc<0>(s_0);
+                    AssertArc<1>(w_0);
+                    AssertArc<0>(n_1);
+                    AssertArc<0>(e_1);
+                    AssertArc<0>(s_1);
+                    AssertArc<0>(e_2);
+                    AssertArc<0>(s_2);
+                    AssertArc<0>(w_2);
+                    AssertCrossing<0>(c_0);
+                    AssertCrossing<0>(c_1);
+                    AssertCrossing<0>(c_2);
                     
                     return true;
                 }
@@ -109,6 +121,20 @@ bool R_II_above()
                         ++pd.R_II_counter;
                         ++pd.R_I_counter;
                         
+                        AssertArc<0>(a  );
+                        AssertArc<0>(n_0);
+                        AssertArc<0>(s_0);
+                        AssertArc<0>(w_0);
+                        AssertArc<0>(n_1);
+                        AssertArc<0>(e_1);
+                        AssertArc<0>(s_1);
+                        AssertArc<0>(e_2);
+                        AssertArc<0>(s_2);
+                        AssertArc<0>(w_2);
+                        AssertCrossing<0>(c_0);
+                        AssertCrossing<0>(c_1);
+                        AssertCrossing<0>(c_2);
+                        
                         return true;
                     }
                 }
@@ -145,7 +171,20 @@ bool R_II_above()
                 ++pd.R_II_counter;
                 ++pd.R_I_counter;
                 
-                AssertArc(e_1);
+                
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<1>(e_1);
+                AssertArc<0>(s_1);
+                AssertArc<0>(e_2);
+                AssertArc<0>(s_2);
+                AssertArc<0>(w_2);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
+                AssertCrossing<0>(c_2);
                 
                 return true;
             }
@@ -187,7 +226,19 @@ bool R_II_above()
                 ++pd.R_II_counter;
                 ++pd.R_I_counter;
                 
-                AssertArc(w_0);
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<1>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<0>(e_1);
+                AssertArc<0>(s_1);
+                AssertArc<0>(e_2);
+                AssertArc<0>(s_2);
+                AssertArc<0>(w_2);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
+                AssertCrossing<0>(c_2);
                 
                 return true;
             }
@@ -232,8 +283,19 @@ bool R_II_above()
             ++pd.R_II_counter;
             ++pd.R_I_counter;
             
-            AssertArc(w_0);
-            AssertArc(w_2);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(e_2);
+            AssertArc<0>(s_2);
+            AssertArc<1>(w_2);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_2);
             
             return true;
         }
@@ -264,7 +326,15 @@ bool R_II_above()
                 DeactivateCrossing(c_1);
                 ++pd.R_II_counter;
 
-                AssertArc(w_0);
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<1>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<0>(e_1);
+                AssertArc<0>(s_1);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
                 
                 return true;
             }
@@ -297,8 +367,15 @@ bool R_II_above()
         DeactivateCrossing(c_1);
         ++pd.R_II_counter;
         
-        AssertArc(w_0);
-        AssertArc(s_0);
+        AssertArc<0>(a  );
+        AssertArc<0>(n_0);
+        AssertArc<1>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
         
         return true;
         

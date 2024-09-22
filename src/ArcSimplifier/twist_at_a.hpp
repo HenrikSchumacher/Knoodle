@@ -2,17 +2,15 @@ bool twist_at_a()
 {
     PD_DPRINT( "twist_at_a()" );
     
-    AssertArc(a);
-    AssertCrossing(c_0);
-    AssertCrossing(c_1);
-    
-    AssertArc(w_0);
-    AssertArc(n_0);
-    AssertArc(s_0);
-    
-    AssertArc(n_1);
-    AssertArc(e_1);
-    AssertArc(s_1);
+    AssertArc<1>(a  );
+    AssertArc<1>(n_0);
+    AssertArc<1>(s_0);
+    AssertArc<1>(w_0);
+    AssertArc<1>(n_1);
+    AssertArc<1>(e_1);
+    AssertArc<1>(s_1);
+    AssertCrossing<1>(c_0);
+    AssertCrossing<1>(c_1);
     
     // Check for twist move. If successful, a, c_0, and c_1 are deleted.
     if( n_0 == s_1 )
@@ -47,7 +45,15 @@ bool twist_at_a()
                 DeactivateCrossing(c_1);
                 ++pd.twist_counter;
                 
-                AssertArc(e_1);
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<1>(e_1);
+                AssertArc<0>(s_1);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
                 
                 return true;
             }
@@ -75,6 +81,16 @@ bool twist_at_a()
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
             pd.R_I_counter += 2;
+            
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<0>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -104,6 +120,16 @@ bool twist_at_a()
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
             pd.R_I_counter += 2;
+            
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -203,7 +229,6 @@ bool twist_at_a()
          * s_0 and n_1 are fused.
          */
         
-        
         Reconnect(w_0,Head,e_1);
         Reconnect(s_0,u_0 ,n_1);
         DeactivateArc(a  );
@@ -211,9 +236,16 @@ bool twist_at_a()
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         ++pd.twist_counter;
-        
-        AssertArc(w_0);
-        AssertArc(s_0);
+
+        AssertArc<0>(a  );
+        AssertArc<0>(n_0);
+        AssertArc<1>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
         
         return true;
     }
@@ -251,8 +283,16 @@ bool twist_at_a()
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
                 pd.R_I_counter += 2;
-                
-                AssertArc(e_1);
+
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<1>(e_1);
+                AssertArc<0>(s_1);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
                 
                 return true;
             }
@@ -282,6 +322,16 @@ bool twist_at_a()
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
             pd.R_I_counter += 2;
+            
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<0>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -313,7 +363,15 @@ bool twist_at_a()
             DeactivateCrossing(c_1);
             pd.R_I_counter += 2;
             
-            AssertArc(w_0);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -380,8 +438,15 @@ bool twist_at_a()
         DeactivateCrossing(c_1);
         ++pd.twist_counter;
         
-        AssertArc(w_0);
-        AssertArc(n_0);
+        AssertArc<0>(a  );
+        AssertArc<1>(n_0);
+        AssertArc<0>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
         
         return true;
     }

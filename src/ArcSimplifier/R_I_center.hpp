@@ -1,6 +1,6 @@
 bool R_I_center()
 {
-    PD_DPRINT( "a_is_loop()" );
+    PD_DPRINT( "R_I_center()" );
     
     if( c_0 == c_1 )
     {
@@ -30,7 +30,11 @@ bool R_I_center()
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;
                 
-                AssertArc(w_0);
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<1>(w_0);
+                AssertArc<0>(s_0);
+                AssertCrossing<0>(c_0);
                 
                 return true;
             }
@@ -53,6 +57,12 @@ bool R_I_center()
                 DeactivateArc(a  );
                 DeactivateCrossing(c_0);
                 pd.R_I_counter += 2; // We make two R_I moves instead of one.
+                
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(s_0);
+                AssertCrossing<0>(c_0);
                 
                 return true;
             }
@@ -82,8 +92,12 @@ bool R_I_center()
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;
-                
-                AssertArc(w_0);
+
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<1>(w_0);
+                AssertArc<0>(s_0);
+                AssertCrossing<0>(c_0);
                 
                 return true;
             }
@@ -107,6 +121,12 @@ bool R_I_center()
                 
                 pd.R_I_counter += 2;
                 
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(s_0);
+                AssertCrossing<0>(c_0);
+
                 return true;
             }
         }

@@ -34,6 +34,7 @@ bool a_is_2loop()
             
             wprint("Feature of detecting over- or underloops is not tested, yet.");
             
+            ++pd.unlink_count;
             Reconnect(s_0,u_0,n_0);
             Reconnect(s_1,u_1,n_1);
             DeactivateArc(w_0);
@@ -42,10 +43,16 @@ bool a_is_2loop()
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
             // TODO: Invent some counter here and increment it.
-            ++pd.unlink_count;
-            
-            AssertArc(s_0);
-            AssertArc(s_1);
+
+            AssertArc<1>(a);
+            AssertArc<0>(n_0);
+            AssertArc<1>(s_0);
+            AssertArc<0>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<1>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
             
             return true;
         }

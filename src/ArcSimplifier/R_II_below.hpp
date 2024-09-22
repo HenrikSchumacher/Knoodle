@@ -64,7 +64,19 @@ bool R_II_below()
                     ++pd.R_II_counter;
                     pd.R_I_counter += 2;
                     
-                    AssertArc(w_0);
+                    AssertArc<0>(a  );
+                    AssertArc<0>(n_0);
+                    AssertArc<0>(s_0);
+                    AssertArc<1>(w_0);
+                    AssertArc<0>(n_1);
+                    AssertArc<0>(e_1);
+                    AssertArc<0>(s_1);
+                    AssertArc<0>(n_3);
+                    AssertArc<0>(e_3);
+                    AssertArc<0>(w_3);
+                    AssertCrossing<0>(c_0);
+                    AssertCrossing<0>(c_1);
+                    AssertCrossing<0>(c_3);
                     
                     return true;
                 }
@@ -128,6 +140,21 @@ bool R_II_below()
                         ++pd.R_II_counter;
                         ++pd.R_I_counter;
                         
+                        
+                        AssertArc<0>(a  );
+                        AssertArc<0>(n_0);
+                        AssertArc<0>(s_0);
+                        AssertArc<0>(w_0);
+                        AssertArc<0>(n_1);
+                        AssertArc<0>(e_1);
+                        AssertArc<0>(s_1);
+                        AssertArc<0>(n_3);
+                        AssertArc<0>(e_3);
+                        AssertArc<0>(w_3);
+                        AssertCrossing<0>(c_0);
+                        AssertCrossing<0>(c_1);
+                        AssertCrossing<0>(c_3);
+                        
                         return true;
                     }
                 }
@@ -162,6 +189,21 @@ bool R_II_below()
                 DeactivateCrossing(c_3);
                 ++pd.R_II_counter;
                 ++pd.R_I_counter;
+                
+                
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<1>(e_1);
+                AssertArc<0>(s_1);
+                AssertArc<0>(n_3);
+                AssertArc<0>(e_3);
+                AssertArc<0>(w_3);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
+                AssertCrossing<0>(c_3);
                 
                 return true;
             }
@@ -200,6 +242,21 @@ bool R_II_below()
                 DeactivateCrossing(c_3);
                 ++pd.R_II_counter;
                 ++pd.R_I_counter;
+                
+                
+                AssertArc<0>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<0>(s_0);
+                AssertArc<1>(w_0);
+                AssertArc<0>(n_1);
+                AssertArc<0>(e_1);
+                AssertArc<0>(s_1);
+                AssertArc<0>(n_3);
+                AssertArc<0>(e_3);
+                AssertArc<0>(w_3);
+                AssertCrossing<0>(c_0);
+                AssertCrossing<0>(c_1);
+                AssertCrossing<0>(c_3);
                 
                 return true;
             }
@@ -242,11 +299,25 @@ bool R_II_below()
             ++pd.R_II_counter;
             ++pd.R_I_counter;
             
-            AssertArc(w_0);
-            AssertArc(w_3);
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertArc<0>(n_3);
+            AssertArc<0>(e_3);
+            AssertArc<1>(w_3);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            AssertCrossing<0>(c_3);
             
             return true;
         }
+        
+        
+        PD_DPRINT( "\t\te_3 != n_1" );
         
         // These case w_0 == e_1, w_0 == n_0, e_1 == n_1 are ruled out already...
         PD_ASSERT( w_0 != e_1 );
@@ -266,8 +337,19 @@ bool R_II_below()
         DeactivateCrossing(c_1);
         ++pd.R_II_counter;
         
-        AssertArc(n_0);
-        AssertArc(w_0);
+        AssertArc<0>(a  );
+        AssertArc<1>(n_0);
+        AssertArc<0>(s_0);
+        AssertArc<1>(w_0);
+        AssertArc<0>(n_1);
+        AssertArc<0>(e_1);
+        AssertArc<0>(s_1);
+        AssertArc<0>(n_3);
+        AssertArc<0>(e_3);
+        AssertArc<0>(w_3);
+        AssertCrossing<0>(c_0);
+        AssertCrossing<0>(c_1);
+        AssertCrossing<0>(c_3);
         
         return true;
     }
