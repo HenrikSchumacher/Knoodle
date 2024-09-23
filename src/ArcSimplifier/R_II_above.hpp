@@ -3,17 +3,21 @@ bool R_II_above()
     PD_DPRINT( "R_II_above()" );
     
     // Check for Reidemeister II move.
-    if( n_0 == n_1 )
+    if( n_0 != n_1 )
     {
-        PD_DPRINT( "\tn_0 == n_1" );
-        
-        /*               +-----------+             +-----------+
-         *               |           |             |           |
-         *               |     a     |             |     a     |
-         *            -->|---------->|-->   or  -->----------->--->
-         *               |c_0        |c_1          |c_0        |c_1
-         */
-        
+        return false;
+    }
+    PD_DPRINT( "\tn_0 == n_1" );
+    
+    /*               +-----------+             +-----------+
+     *               |           |             |           |
+     *               |     a     |             |     a     |
+     *            -->|---------->|-->   or  -->----------->--->
+     *               |c_0        |c_1          |c_0        |c_1
+     */
+    
+    if constexpr ( tested_crossing_count >= 3 )
+    {
         load_c_2();
         
         if( e_2 == s_1 )
@@ -37,7 +41,7 @@ bool R_II_above()
              *              w_2 O   O s_2           w_2 O   O s_2
              *
              */
-
+            
             if constexpr ( mult_compQ )
             {
                 if( w_2 == s_2 )
@@ -268,7 +272,7 @@ bool R_II_above()
             PD_ASSERT( w_0 != e_1 );
             
             Reconnect(w_0,Head,e_1); // ... so this is safe.
-
+            
             // Assured by the checks above.
             Reconnect(w_2,u_1,s_2);
             
@@ -299,87 +303,83 @@ bool R_II_above()
             
             return true;
         }
-        
-        if constexpr ( mult_compQ )
-        {
-            if( s_0 == s_1 )
-            {
-                PD_DPRINT( "\t\ts_0 == s_1" );
-                
-                /*               n_0                               n_0
-                 *          +-----------+                     +-----------+
-                 *          |           |                     |           |
-                 *          |     a     |                     |     a     |
-                 *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
-                 *          |c_0        |c_1                  |c_0        |c_1
-                 *          |           |                     |           |
-                 *          +-----------+                     +-----------+
-                 *               s_0                               s_0
-                 */
-                
-                ++pd.unlink_count;
-                Reconnect(w_0,Head,e_1);
-                DeactivateArc(n_0);
-                DeactivateArc(s_0);
-                DeactivateArc(a);
-                DeactivateCrossing(c_0);
-                DeactivateCrossing(c_1);
-                ++pd.R_II_counter;
-
-                AssertArc<0>(a  );
-                AssertArc<0>(n_0);
-                AssertArc<0>(s_0);
-                AssertArc<1>(w_0);
-                AssertArc<0>(n_1);
-                AssertArc<0>(e_1);
-                AssertArc<0>(s_1);
-                AssertCrossing<0>(c_0);
-                AssertCrossing<0>(c_1);
-                
-                return true;
-            }
-        }
-        
-        PD_DPRINT( "\t\ts_0 != s_1" );
-        PD_ASSERT(s_0 != s_1);
-        
-        /*          +-----------+                     +-----------+
-         *          |           |                     |           |
-         *          |     a     |                     |     a     |
-         *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
-         *          |c_0        |c_1                  |c_0        |c_1
-         *          |           |                     |           |
-         *           s_0         s_1                   s_0         s_1
-         */
-        
-        // The case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
-        PD_ASSERT( s_0 != s_1 );
-        PD_ASSERT( w_0 != e_1 );
-        PD_ASSERT( w_0 != s_0 );
-        PD_ASSERT( e_1 != s_1 );
-        
-        // .. so this is safe:
-        Reconnect(w_0,Head,e_1);
-        Reconnect(s_0,u_0 ,s_1);
-        DeactivateArc(n_0);
-        DeactivateArc(a);
-        DeactivateCrossing(c_0);
-        DeactivateCrossing(c_1);
-        ++pd.R_II_counter;
-        
-        AssertArc<0>(a  );
-        AssertArc<0>(n_0);
-        AssertArc<1>(s_0);
-        AssertArc<1>(w_0);
-        AssertArc<0>(n_1);
-        AssertArc<0>(e_1);
-        AssertArc<0>(s_1);
-        AssertCrossing<0>(c_0);
-        AssertCrossing<0>(c_1);
-        
-        return true;
-        
-    } // if( n_0 == n_1 )
+    }
     
-    return false;
+    if constexpr ( mult_compQ )
+    {
+        if( s_0 == s_1 )
+        {
+            PD_DPRINT( "\t\ts_0 == s_1" );
+            
+            /*               n_0                               n_0
+             *          +-----------+                     +-----------+
+             *          |           |                     |           |
+             *          |     a     |                     |     a     |
+             *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
+             *          |c_0        |c_1                  |c_0        |c_1
+             *          |           |                     |           |
+             *          +-----------+                     +-----------+
+             *               s_0                               s_0
+             */
+            
+            ++pd.unlink_count;
+            Reconnect(w_0,Head,e_1);
+            DeactivateArc(n_0);
+            DeactivateArc(s_0);
+            DeactivateArc(a);
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            ++pd.R_II_counter;
+
+            AssertArc<0>(a  );
+            AssertArc<0>(n_0);
+            AssertArc<0>(s_0);
+            AssertArc<1>(w_0);
+            AssertArc<0>(n_1);
+            AssertArc<0>(e_1);
+            AssertArc<0>(s_1);
+            AssertCrossing<0>(c_0);
+            AssertCrossing<0>(c_1);
+            
+            return true;
+        }
+    }
+    
+    PD_DPRINT( "\t\ts_0 != s_1" );
+    
+    /*          +-----------+                     +-----------+
+     *          |           |                     |           |
+     *          |     a     |                     |     a     |
+     *   w_0 -->|---------->|--> e_1  or   w_0 -->----------->---> e_1
+     *          |c_0        |c_1                  |c_0        |c_1
+     *          |           |                     |           |
+     *           s_0         s_1                   s_0         s_1
+     */
+    
+    // The case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
+    PD_ASSERT( s_0 != s_1 );
+    PD_ASSERT( w_0 != e_1 );
+    PD_ASSERT( w_0 != s_0 );
+    PD_ASSERT( e_1 != s_1 );
+    
+    // .. so this is safe:
+    Reconnect(w_0,Head,e_1);
+    Reconnect(s_0,u_0 ,s_1);
+    DeactivateArc(n_0);
+    DeactivateArc(a);
+    DeactivateCrossing(c_0);
+    DeactivateCrossing(c_1);
+    ++pd.R_II_counter;
+    
+    AssertArc<0>(a  );
+    AssertArc<0>(n_0);
+    AssertArc<1>(s_0);
+    AssertArc<1>(w_0);
+    AssertArc<0>(n_1);
+    AssertArc<0>(e_1);
+    AssertArc<0>(s_1);
+    AssertCrossing<0>(c_0);
+    AssertCrossing<0>(c_1);
+    
+    return true;
 }

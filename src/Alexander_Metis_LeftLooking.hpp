@@ -97,76 +97,65 @@ namespace KnotTools
                     break;
                 }
                 
-                switch( C_state[c] )
+                if( LeftHandedQ(C_state[c]) )
                 {
-                    case CrossingState::LeftHanded:
-                    {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    Int C [2][2];
+                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                
+                    const Int i = over_arc_idx[C[1][0]];
+                    const Int j = over_arc_idx[C[1][1]];
+                    const Int k = over_arc_idx[C[0][0]];
                     
-                        const Int i = over_arc_idx[C[1][0]];
-                        const Int j = over_arc_idx[C[1][1]];
-                        const Int k = over_arc_idx[C[0][0]];
-                        
-                        mptr<Scal> row = &A[ n * counter ];
-                        
-                        zerofy_buffer( row, n );
-                        
-                        if( i < n )
-                        {
-                            row[i] += v[0];
-                        }
-                        
-                        if( j < n )
-                        {
-                            row[j] += v[1];
-                        }
-                        
-                        if( k < n )
-                        {
-                            row[k] += v[2];
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    case CrossingState::RightHanded:
-                    {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    mptr<Scal> row = &A[ n * counter ];
                     
-                        const Int i = over_arc_idx[C[1][1]];
-                        const Int j = over_arc_idx[C[1][0]];
-                        const Int k = over_arc_idx[C[0][1]];
-                        
-                        mptr<Scal> row = &A[ n * counter ];
-                        
-                        zerofy_buffer( row, n );
-                        
-                        if( i < n )
-                        {
-                            row[i] += v[0];
-                        }
-                        
-                        if( j < n )
-                        {
-                            row[j] += v[2];
-                        }
-                        
-                        if( k < n )
-                        {
-                            row[k] += v[1];
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    default:
+                    zerofy_buffer( row, n );
+                    
+                    if( i < n )
                     {
-                        break;
+                        row[i] += v[0];
                     }
+                    
+                    if( j < n )
+                    {
+                        row[j] += v[1];
+                    }
+                    
+                    if( k < n )
+                    {
+                        row[k] += v[2];
+                    }
+                    
+                    ++counter;
+                }
+                else if( RightHandedQ(C_state[c]) )
+                {
+                    Int C [2][2];
+                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                
+                    const Int i = over_arc_idx[C[1][1]];
+                    const Int j = over_arc_idx[C[1][0]];
+                    const Int k = over_arc_idx[C[0][1]];
+                    
+                    mptr<Scal> row = &A[ n * counter ];
+                    
+                    zerofy_buffer( row, n );
+                    
+                    if( i < n )
+                    {
+                        row[i] += v[0];
+                    }
+                    
+                    if( j < n )
+                    {
+                        row[j] += v[2];
+                    }
+                    
+                    if( k < n )
+                    {
+                        row[k] += v[1];
+                    }
+                    
+                    ++counter;
                 }
             }
             
@@ -207,69 +196,58 @@ namespace KnotTools
                     break;
                 }
                 
-                switch( C_state[c] )
+                if( LeftHandedQ( C_state[c] ) )
                 {
-                    case CrossingState::LeftHanded:
-                    {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    Int C [2][2];
+                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                
+                    const Int i = over_arc_idx[C[1][0]];
+                    const Int j = over_arc_idx[C[1][1]];
+                    const Int k = over_arc_idx[C[0][0]];
                     
-                        const Int i = over_arc_idx[C[1][0]];
-                        const Int j = over_arc_idx[C[1][1]];
-                        const Int k = over_arc_idx[C[0][0]];
-                        
-                        if( i < n )
-                        {
-                            agg.Push( counter, i, v[0] );
-                        }
-                        
-                        if( j < n )
-                        {
-                            agg.Push( counter, j, v[1] );
-                        }
-                        
-                        if( k < n )
-                        {
-                            agg.Push( counter, k, v[2] );
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    case CrossingState::RightHanded:
+                    if( i < n )
                     {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                        agg.Push( counter, i, v[0] );
+                    }
                     
-                        const Int i = over_arc_idx[C[1][1]];
-                        const Int j = over_arc_idx[C[1][0]];
-                        const Int k = over_arc_idx[C[0][1]];
-                        
-                        
-                        if( i < n )
-                        {
-                            agg.Push(counter, i, v[0] );
-                        }
-                        
-                        if( j < n )
-                        {
-                            agg.Push(counter, j, v[2] );
-                        }
-                        
-                        if( k < n )
-                        {
-                            agg.Push(counter, k, v[1] );
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    default:
+                    if( j < n )
                     {
-                        break;
+                        agg.Push( counter, j, v[1] );
                     }
+                    
+                    if( k < n )
+                    {
+                        agg.Push( counter, k, v[2] );
+                    }
+                    
+                    ++counter;
+                }
+                else if( RightHandedQ(C_state[c]) )
+                {
+                    Int C [2][2];
+                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                
+                    const Int i = over_arc_idx[C[1][1]];
+                    const Int j = over_arc_idx[C[1][0]];
+                    const Int k = over_arc_idx[C[0][1]];
+                    
+                    
+                    if( i < n )
+                    {
+                        agg.Push(counter, i, v[0] );
+                    }
+                    
+                    if( j < n )
+                    {
+                        agg.Push(counter, j, v[2] );
+                    }
+                    
+                    if( k < n )
+                    {
+                        agg.Push(counter, k, v[1] );
+                    }
+                    
+                    ++counter;
                 }
             }
             

@@ -17,6 +17,11 @@ bool strands_same_o()
         return true;
     }
     
+    if constexpr( tested_crossing_count < 4 )
+    {
+        return false;
+    }
+    
     PD_ASSERT(s_0 != s_1);
     PD_ASSERT(n_0 != n_1);
     PD_ASSERT(w_0 != e_1);
@@ -108,12 +113,10 @@ bool strands_same_o()
     
     if( u_0 == u_1 )
     {
-        R_IIa_same_o_same_u();
+        return R_IIa_same_o_same_u();
     }
     else
     {
-        R_IIa_same_o_diff_u();
+        return R_IIa_same_o_diff_u();
     }
-    
-    return true;
 }

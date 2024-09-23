@@ -1,7 +1,25 @@
-void R_IIa_same_o_same_u()
+bool R_IIa_same_o_same_u()
 {
     PD_DPRINT( "\t\tR_IIa_same_o_same_u()" );
     PD_ASSERT( u_0 == u_1 );
+    
+    AssertArc<1>(a  );
+    AssertArc<1>(n_0);
+    AssertArc<1>(s_0);
+    AssertArc<1>(w_0);
+    AssertArc<1>(n_1);
+    AssertArc<1>(e_1);
+    AssertArc<1>(s_1);
+    AssertArc<1>(e_2);
+    AssertArc<1>(s_2);
+    AssertArc<1>(w_2);
+    AssertArc<1>(n_3);
+    AssertArc<1>(e_3);
+    AssertArc<1>(w_3);
+    AssertCrossing<1>(c_0);
+    AssertCrossing<1>(c_1);
+    AssertCrossing<1>(c_2);
+    AssertCrossing<1>(c_3);
     
     // Check for four-crossing move.
     if( s_2 == w_3 )
@@ -82,7 +100,7 @@ void R_IIa_same_o_same_u()
                 ++pd.R_IIa_counter;
                 pd.R_I_counter += 2;
                 
-                return;
+                return true;
             }
             
             PD_DPRINT( "\t\t\t\t\te_1 != n_3" );
@@ -147,7 +165,7 @@ void R_IIa_same_o_same_u()
             AssertCrossing<0>(c_2);
             AssertCrossing<0>(c_3);
             
-            return;
+            return true;
         }
         
         PD_DPRINT( "\t\t\t\tw_0 != w_2" );
@@ -216,7 +234,7 @@ void R_IIa_same_o_same_u()
             AssertCrossing<0>(c_2);
             AssertCrossing<0>(c_3);
             
-            return;
+            return true;
         }
         
         PD_DPRINT( "\t\t\t\te_1 != n_3" );
@@ -280,7 +298,7 @@ void R_IIa_same_o_same_u()
         AssertCrossing<0>(c_2);
         AssertCrossing<0>(c_3);
         
-        return;
+        return true;
         
     } // if( s_2 == w_3 )
     
@@ -384,7 +402,7 @@ void R_IIa_same_o_same_u()
                 AssertCrossing<0>(c_2);
                 AssertCrossing<0>(c_3);
                 
-                return;
+                return true;
             }
             
             PD_DPRINT( "\t\t\t\t\te_1 != s_2" );
@@ -448,7 +466,7 @@ void R_IIa_same_o_same_u()
             AssertCrossing<0>(c_2);
             AssertCrossing<0>(c_3);
             
-            return;
+            return true;
         }
         
         PD_DPRINT( "\t\t\t\tw_0 != w_3" );
@@ -514,7 +532,7 @@ void R_IIa_same_o_same_u()
             AssertCrossing<0>(c_2);
             AssertCrossing<0>(c_3);
             
-            return;
+            return true;
         }
         
         
@@ -577,7 +595,7 @@ void R_IIa_same_o_same_u()
         AssertCrossing<0>(c_2);
         AssertCrossing<0>(c_3);
         
-        return;
+        return true;
         
     } // if( w_2 == n_3 )
     
@@ -615,4 +633,6 @@ void R_IIa_same_o_same_u()
     AssertCrossing<1>(c_1);
     AssertCrossing<0>(c_2);
     AssertCrossing<0>(c_3);
+    
+    return true;
 }

@@ -53,7 +53,7 @@ namespace KnotTools
 //        
 //    }; // struct Arc
     
-    template<typename Int_, bool mult_compQ_> class ArcSimplifier;
+    template<typename Int_, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
@@ -74,8 +74,10 @@ namespace KnotTools
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
         
-        friend class ArcSimplifier<Int,true>;
-        using ArcSimplifier_T           = ArcSimplifier<Int,true>;
+        friend class ArcSimplifier<Int,false,true>;
+        friend class ArcSimplifier<Int,true ,true>;
+        
+        using ArcSimplifier_T = ArcSimplifier<Int,false,true>;
         
         
         using Arrow_T = std::pair<Int,bool>;
@@ -86,7 +88,6 @@ namespace KnotTools
         static constexpr bool Right = true;
         static constexpr bool In    = true;
         static constexpr bool Out   = false;
-
         
     protected:
         
@@ -123,7 +124,7 @@ namespace KnotTools
 #endif
         
         // Stacks for keeping track of recently modified entities.
-#if defined(PD_USE_TOUCHING)
+#ifdef PD_USE_TOUCHING
         std::vector<Int> touched_crossings;
 #endif
         // Data for the faces and the dual graph
@@ -145,11 +146,15 @@ namespace KnotTools
     private:
         
         ArcSimplifier_T arc_simplifier;
+        ArcSimplifier<Int,true,true> arc_simplifier4;
+        
+        std::vector<Int> stack;
         
     public:
         
         PlanarDiagram()
-        :   arc_simplifier { *this }
+        :   arc_simplifier  { *this }
+        ,   arc_simplifier4 { *this }
         {}
         
         virtual ~PlanarDiagram() override = default;
@@ -349,7 +354,7 @@ namespace KnotTools
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
         :   C_arcs                  ( crossing_count_, 2, 2                         )
-        ,   C_state                 ( crossing_count_, CrossingState::Uninitialized )
+        ,   C_state                 ( crossing_count_, CrossingState::Inactive      )
         ,   A_cross                 ( Int(2)*crossing_count_, 2                     )
         ,   A_state                 ( Int(2)*crossing_count_, ArcState::Inactive    )
         ,   initial_crossing_count  ( crossing_count_                               )
@@ -357,7 +362,8 @@ namespace KnotTools
         ,   crossing_count          ( crossing_count_                               )
         ,   arc_count               ( Int(2)*crossing_count_                        )
         ,   unlink_count            ( unlink_count_                                 )
-        ,   arc_simplifier          ( *this                                         )
+        ,   arc_simplifier          ( *this )
+        ,   arc_simplifier4         ( *this )
         {
             PushAllCrossings();
         }
@@ -402,7 +408,7 @@ namespace KnotTools
             swap( A.R_IIa_check_counter    , B.R_IIa_check_counter     );
 #endif
             
-#if defined(PD_USE_TOUCHING)
+#ifdef PD_USE_TOUCHING
             swap( A.touched_crossings      , B.touched_crossings       );
 #endif
     
@@ -921,10 +927,12 @@ namespace KnotTools
          *  The states that a crossing can have are:
          *
          *  - `CrossingState::RightHanded`
+         *  - `CrossingState::RightHandedUnchanged`
          *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::Uninitialized`
+         *  - `CrossingState::LeftHandedUnchanged`
+         *  - `CrossingState::Inactive`
          *
-         * `CrossingState::Uninitialized` means that the crossing has been deactivated by topological manipulations.
+         * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
          */
         
         mref<CrossingStateContainer_T> CrossingStates()
@@ -938,10 +946,12 @@ namespace KnotTools
          *  The states that a crossing can have are:
          *
          *  - `CrossingState::RightHanded`
+         *  - `CrossingState::RightHandedUnchanged`
          *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::Uninitialized`
+         *  - `CrossingState::LeftHandedUnchanged`
+         *  - `CrossingState::Inactive`
          *
-         * `CrossingState::Uninitialized` means that the crossing has been deactivated by topological manipulations.
+         * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
          */
         
         cref<CrossingStateContainer_T> CrossingStates() const
@@ -1056,35 +1066,62 @@ namespace KnotTools
         
         bool CrossingActiveQ( const Int c ) const
         {
-            return (ToUnderlying(C_state[c]) % 2);
+            return KnotTools::ActiveQ(C_state[c]);
         }
+        
+        bool CrossingUnchangedQ( const Int c ) const
+        {
+            return KnotTools::UnchangedQ(C_state[c]);
+        }
+        
+        bool CrossingChangedQ( const Int c ) const
+        {
+            return KnotTools::ChangedQ(C_state[c]);
+        }
+        
+//        bool RightHandedQ( const Int c ) const
+//        {
+//            return KnotTools::RightHandedQ(C_state[c]);
+//        }
+//        
+//        bool LeftHandedQ( const Int c ) const
+//        {
+//            return KnotTools::LeftHandedQ(C_state[c]);
+//        }
 
         bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
         {
-            return ( ToUnderlying(C_state[c_0]) == -ToUnderlying(C_state[c_1]) );
+            return KnotTools::OppositeHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
         bool OppositeHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
         {
-            return ( ToUnderlying(C_0.State()) == -ToUnderlying(C_1.State()) );
+            return KnotTools::OppositeHandednessQ(C_0.State(),C_1.State());
         }
         
         bool SameHandednessQ( const Int c_0, const Int c_1 ) const
         {
-            return !OppositeHandednessQ(c_0,c_1);
+            return KnotTools::SameHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
         bool SameHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
         {
-            return !OppositeHandednessQ(C_0,C_1);
+            return KnotTools::SameHandednessQ(C_0.State(),C_1.State());
         }
         
         
         void FlipHandedness( const Int c_0 )
         {
+            // We intentionally remove the "Unchanged" attribute.
+            
             switch( C_state[c_0] )
             {
                 case CrossingState::RightHanded:
+                {
+                    C_state[c_0] = CrossingState::LeftHanded;
+                    return;
+                }
+                case CrossingState::RightHandedUnchanged:
                 {
                     C_state[c_0] = CrossingState::LeftHanded;
                     return;
@@ -1094,7 +1131,12 @@ namespace KnotTools
                     C_state[c_0] = CrossingState::RightHanded;
                     return;
                 }
-                default:     
+                case CrossingState::LeftHandedUnchanged:
+                {
+                    C_state[c_0] = CrossingState::RightHanded;
+                    return;
+                }
+                case CrossingState::Inactive:
                 {
                     return;
                 }
@@ -1231,25 +1273,6 @@ namespace KnotTools
             }
         }
         
-        void TouchCrossing( const Int c )
-        {
-            PD_ASSERT( CrossingActiveQ(c) );
-            
-            for( bool io : { Out, In } )
-            {
-                for( bool lr : { Left, Right } )
-                {
-                    const Int      a = C_arcs(c,io,lr);
-                    const ArcState s = A_state[a];
-                    
-                    if( s == ArcState::Unchanged )
-                    {
-                        A_state[a] = ArcState::Active;
-                    }
-                }
-            }
-        }
-        
         std::string ArcString( const Int a ) const
         {
             return "arc " +Tools::ToString(a) +" = { "
@@ -1264,17 +1287,27 @@ namespace KnotTools
         
         bool ArcActiveQ( const Int a ) const
         {
-            return (ToUnderlying(A_state[a]) != 0);
+            return KnotTools::ActiveQ(A_state[a]);
         }
         
         bool ArcUnchangedQ( const Int a ) const
         {
-            return (A_state[a] == ArcState::Unchanged);
+            return KnotTools::UnchangedQ(A_state[a]);
         }
         
-        bool ArcNeedsProcessingQ( const Int a ) const
+        bool ArcChangedQ( const Int a ) const
         {
-            return (ToUnderlying(A_state[a]) % 2);
+            return KnotTools::ChangedQ(A_state[a]);
+        }
+        
+        void TouchArc( const Int a )
+        {
+            if( ArcActiveQ(a) )
+            {
+                A_state[a] = ArcState::Active;
+                
+                stack.push_back(a);
+            }
         }
         
         /*!
@@ -1310,7 +1343,7 @@ namespace KnotTools
             {
                 PD_PRINT("Deactivating " + CrossingString(c) + "." );
                 --crossing_count;
-                C_state[c] = CrossingState::Uninitialized;
+                C_state[c] = CrossingState::Inactive;
             }
             else
             {
@@ -1344,7 +1377,7 @@ namespace KnotTools
             if( C.ActiveQ() )
             {
                 --crossing_count;
-                C.State() = CrossingState::Uninitialized;
+                C.State() = CrossingState::Inactive;
             }
             else
             {
@@ -1417,6 +1450,10 @@ namespace KnotTools
 #include "PlanarDiagram/R_II.hpp"
 #include "PlanarDiagram/R_IIa_Vertical.hpp"
 #include "PlanarDiagram/R_IIa_Horizontal.hpp"
+        
+#include "PlanarDiagram/Simplify.hpp"
+#include "PlanarDiagram/Simplify3.hpp"
+        
 //#include "PlanarDiagram/PassMove.hpp"
 
 //#include "PlanarDiagram/SimplifyArc.hpp"
@@ -1429,7 +1466,7 @@ namespace KnotTools
         
         void PushAllCrossings()
         {
-#if defined(PD_USE_TOUCHING)
+#ifdef PD_USE_TOUCHING
             touched_crossings.reserve( initial_crossing_count );
             
             for( Int i = initial_crossing_count-1; i >= 0; --i )
@@ -1441,7 +1478,7 @@ namespace KnotTools
         
         void PushRemainingCrossings()
         {
-#if defined(PD_USE_TOUCHING)
+#ifdef PD_USE_TOUCHING
             Int counter = 0;
             for( Int i = initial_crossing_count-1; i >= 0; --i )
             {
@@ -1562,174 +1599,6 @@ namespace KnotTools
             // We leave through the arc at the opposite port.
             //If everything is set up correctly, the ourgoing arc points into the same direction as a.
             return C_arcs(c,In,!lr);
-        }
-        
-        /*!
-         * @brief Attempts to simplify the planar diagram by applying some standard moves.
-         *
-         *  So far, Reidemeister I and Reidemeister II moves are support as
-         *  well as a move we call "twist move". See the ASCII-art in
-         *  TwistMove.hpp for more details.
-         *
-         */
-        
-        template<bool allow_R_IaQ = true, bool allow_R_IIaQ = true>
-        void Simplify()
-        {
-            ptic(ClassName()+"::Simplify"
-                + "<" + Tools::ToString(allow_R_IaQ)
-                + "," + Tools::ToString(allow_R_IIaQ)
-                + ">");
-            
-//            pvalprint( "Number of crossings  ", crossing_count      );
-//            pvalprint( "Number of arcs       ", arc_count           );
-            
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-            
-#if defined(PD_USE_TOUCHING)
-            while( !touched_crossings.empty() )
-            {
-                const Int c = touched_crossings.back();
-                touched_crossings.pop_back();
-                
-                PD_ASSERT( CheckCrossing(c) );
-                
-                const bool R_I = Reidemeister_I(c);
-                
-                if( !R_I )
-                {
-                    (void)Reidemeister_II<allow_R_IaQ>(c);
-                }
-            }
-#else
-            Int old_counter = -1;
-            Int counter = 0;
-            
-            while( counter != old_counter )
-            {
-                old_counter = counter;
-                
-                for( Int c = 0; c < initial_crossing_count; ++c )
-                {
-                    if( CrossingActiveQ(c) )
-                    {
-                        bool changed = Reidemeister_I(c);
-                        
-                        counter += changed;
-                        
-                        // If Reidemeister_I was successful, then c is inactive now.
-                        if( !changed )
-                        {
-                            bool changed = Reidemeister_II<allow_R_IaQ>(c);
-                            
-                            if constexpr( allow_R_IIaQ )
-                            {
-                                // If Reidemeister_II was successful, then c is _probably_ inactive now.
-                                if( !changed )
-                                {
-                                    changed = Reidemeister_IIa_Vertical(c);
-                                    
-                                    // If Reidemeister_IIa_Vertical was successful, then c is _probably_ inactive now.
-                                    if( !changed )
-                                    {
-                                        changed = Reidemeister_IIa_Horizontal(c);
-                                    }
-                                }
-                            }
-                            
-                            counter += changed;
-                        }
-                    }
-                }
-            }
-#endif
-            
-#pragma clang diagnostic pop
-            
-            if( counter > 0 )
-            {
-                faces_initialized = false;
-                
-                this->ClearCache();
-            }
-            
-//            dump(R_Ia_horizontal_counter);
-//            dump(R_Ia_vertical_counter);
-//            dump(R_II_horizontal_counter);
-//            dump(R_II_vertical_counter);
-//            dump(R_IIa_counter);
-            
-            ptoc(ClassName()+"::Simplify"
-                + "<" + Tools::ToString(allow_R_IaQ)
-                + "," + Tools::ToString(allow_R_IIaQ)
-                + ">");
-        }
-        
-        
-        bool SimplifyArc( const Int a )
-        {
-            if( arc_simplifier(a) )
-            {
-                faces_initialized = false;
-                
-                this->ClearCache();
-                
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-            
-            return false;
-        }
-
-        void Simplify3()
-        {
-            ptic(ClassName()+"::Simplify3");
-
-            Int old_counter = -1;
-            Int counter = 0;
-            Int iter = 0;
-            
-            Int old_test_count = 0;
-            
-            while( counter != old_counter )
-            {
-                ++iter;
-                
-                old_counter = counter;
-                
-                old_test_count = arc_simplifier.TestCount();
-                // DEBUGGING
-                dump(iter);
-                tic("Simplify3 loop");
-                for( Int a = 0; a < initial_arc_count; ++a )
-                {
-                    counter += arc_simplifier(a);
-                }
-                toc("Simplify3 loop");
-                
-                const Int changes = counter-old_counter;
-                dump(changes);
-                const Int test_count = arc_simplifier.TestCount()-old_test_count;
-                dump(test_count);
-            }
-            
-//            dump(R_I_counter);
-//            dump(R_Ia_counter);
-//            dump(R_II_counter);
-//            dump(R_IIa_counter);
-
-            if( counter > 0 )
-            {
-                faces_initialized = false;
-                
-                this->ClearCache();
-            }
-            
-            ptoc(ClassName()+"::Simplify3");
         }
         
         /*!
@@ -1922,11 +1791,11 @@ namespace KnotTools
                         const CrossingState state = C_state[c_prev];
                         const Int           c     = C_labels[c_prev];
 
-                        pdcode( c, 4 ) = (state == CrossingState::RightHanded) ? 1 : -1;
+                        pdcode( c, 4 ) = RightHandedQ(state) ? 1 : -1;
                         
                         const bool side  = (C_arcs(c_prev,Out,Right) == a) ? Right : Left;
         
-                        if( state == CrossingState::RightHanded )
+                        if( RightHandedQ(state) )
                         {
                             if( side == Left )
                             {
@@ -1969,7 +1838,7 @@ namespace KnotTools
                                 pdcode( c, 1 ) = a_counter;
                             }
                         }
-                        else if( state == CrossingState::LeftHanded )
+                        else if( LeftHandedQ(state) )
                         {
                             if( side == Left )
                             {
@@ -2019,11 +1888,11 @@ namespace KnotTools
                         const CrossingState state = C_state[c_next];
                         const Int           c     = C_labels[c_next];
                         
-                        pdcode( c, 4 ) = (state == CrossingState::RightHanded) ? 1 : -1;
+                        pdcode( c, 4 ) = RightHandedQ(state) ? 1 : -1;
                         
                         const bool side  = (C_arcs(c_next,In,Right)) == a ? Right : Left;
                         
-                        if( state == CrossingState::RightHanded )
+                        if( RightHandedQ(state) )
                         {
                             if( side == Left )
                             {
@@ -2066,7 +1935,7 @@ namespace KnotTools
                                 pdcode( c, 0 ) = a_counter;
                             }
                         }
-                        else if( state == CrossingState::LeftHanded )
+                        else if( LeftHandedQ(state) )
                         {
                             if( side == Left )
                             {
@@ -2166,11 +2035,7 @@ namespace KnotTools
                 Int tail = A_cross(a,0);
                 
                 // Go backwards until a goes under crossing tail.
-                while(
-                    (C_state[tail] == CrossingState::RightHanded)
-                    ==
-                    (C_arcs(tail,Out,0) == a)
-                )
+                while( RightHandedQ(C_state[tail]) == (C_arcs(tail,Out,0) == a) )
                 {
                     a = PrevArc(a);
                     
@@ -2198,10 +2063,7 @@ namespace KnotTools
                     
                     const bool b = (C_arcs(tip,In,Left) == a);
                     
-                    const bool goes_underQ =
-                        (C_state[tip] == CrossingState::RightHanded)
-                        ==
-                        b;
+                    const bool goes_underQ = (RightHandedQ(C_state[tip]) == b);
                     
                     if( b )
                     {
@@ -2235,99 +2097,8 @@ namespace KnotTools
          *  (An under-arc is a maximal consecutive sequence of arcs that pass under.)
          */
         
-        Tensor3<Int,Int> CrossingUnderArcs() const
-        {
-            ptic(ClassName()+"::CrossingUnderArcs");
-            
-            const Int n = C_arcs.Dimension(0);
-            const Int m = A_cross.Dimension(0);
-            
-            Tensor3<Int ,Int> C_under_arcs ( n, 2, 2, -1 );
-            Tensor1<Int ,Int> A_labels     ( m, -1 );
-            Tensor1<char,Int> A_visisted   ( m, false );
-            
-            Int oa_counter = 0;
-            Int a_ptr   = 0;
-            
-            eprint( ClassName()+"::CrossingUnderArcs: Not implemented yet. Returning garbage." );
-            
-//            while( a_ptr < m )
-//            {
-//                // Search for next arc that is active and has not yet been handled.
-//                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
-//                {
-//                    ++a_ptr;
-//                }
-//                
-//                if( a_ptr >= m )
-//                {
-//                    break;
-//                }
-//                
-//                Int a = a_ptr;
-//                
-//                Int tail = A_cross(a,0);
-//                
-//                // Go backwards until a goes under crossing tail.
-//                while(
-//                    (C_state[tail] == CrossingState::RightHanded)
-//                    ==
-//                    (C_arcs(tail,Out,0) == a)
-//                )
-//                {
-//                    a = PrevArc(a);
-//                    
-//                    tail = A_cross(a,0);
-//                }
-//                
-//                const Int a_0 = a;
-//                
-//                // Cycle along all arcs in the link component, until we return where we started.
-//                do
-//                {
-//                    const Int tail = A_cross(a,0);
-//                    const Int tip  = A_cross(a,1);
-//                    
-//                    A_visisted[a] = true;
-//                    
-//                    if( C_arcs(tail,Out,Left) == a )
-//                    {
-//                        C_over_arcs(tail,Out,Left ) = oa_counter;
-//                    }
-//                    else
-//                    {
-//                        C_over_arcs(tail,Out,Right) = oa_counter;
-//                    }
-//                    
-//                    const bool b = (C_arcs(tip,In,Left) == a);
-//                    
-//                    const bool goes_underQ =
-//                        (C_state[tip] == CrossingState::RightHanded)
-//                        ==
-//                        b;
-//                    
-//                    if( b )
-//                    {
-//                        C_over_arcs(tip,In,Left ) = oa_counter;
-//                    }
-//                    else
-//                    {
-//                        C_over_arcs(tip,In,Right) = oa_counter;
-//                    }
-//                    
-//                    oa_counter += goes_underQ;
-//                    
-//                    a = NextArc(a);
-//                }
-//                while( a != a_0 );
-//                
-//                ++a_ptr;
-//            }
-            
-            ptoc(ClassName()+"::CrossingUnderArcs");
-            
-            return C_under_arcs;
-        }
+        // TODO: To do!
+        
         
         /*!
          * @brief Returns an array that tells every arc to which over-arc it belongs.
@@ -2369,7 +2140,7 @@ namespace KnotTools
                 
                 // Go backwards until a goes under crossing tail.
                 while(
-                    (C_state[tail] == CrossingState::RightHanded)
+                    KnotTools::RightHandedQ(C_state[tail])
                     ==
                     (C_arcs(tail,Out,0) == a)
                 )
@@ -2390,10 +2161,11 @@ namespace KnotTools
                     
                     over_arc_idx[a] = counter;
                     
-                    const bool goes_underQ =
-                        (C_state[tip] == CrossingState::RightHanded)
+                    const bool goes_underQ = (
+                        KnotTools::RightHandedQ(C_state[tip])
                         ==
-                        (C_arcs(tip,In,0) == a);
+                        (C_arcs(tip,In,0) == a)
+                    );
                     
                     if( goes_underQ )
                     {
@@ -2422,18 +2194,13 @@ namespace KnotTools
             
             for( Int c = 0; c < C_state.Size(); ++c )
             {
-                switch( C_state[c] )
+                if( RightHandedQ(C_state[c]) )
                 {
-                    case CrossingState::RightHanded:
-                    {
-                        ++writhe;
-                        break;
-                    }
-                    case CrossingState::LeftHanded:
-                    {
-                        --writhe;
-                        break;
-                    }
+                    ++writhe;
+                }
+                else
+                {
+                    --writhe;
                 }
             }
             

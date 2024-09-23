@@ -13,25 +13,69 @@ namespace KnotTools
     enum class CrossingState : Int8
     {
         // Important! Active values are the only odd ones.
-        Uninitialized = -2,
-        RightHanded   =  1,
-        LeftHanded    = -1,
-        Untied        =  0
+        RightHanded          =  1,
+        RightHandedUnchanged =  2,
+        LeftHanded           = -1,
+        LeftHandedUnchanged  = -2,
+        Inactive             =  0
     };
     
-    std::string ToString( const CrossingState & s )
+    inline std::string ToString( const CrossingState & s )
     {
         switch( s )
         {
-            case CrossingState::Uninitialized : return "Uninitialized";
+            case CrossingState::Inactive             : return "Inactive";
                 
-            case CrossingState::RightHanded   : return "RightHanded";
+            case CrossingState::RightHanded          : return "RightHanded";
                 
-            case CrossingState::LeftHanded    : return "LeftHanded";
+            case CrossingState::RightHandedUnchanged : return "RightHandedUnchanged";
                 
-            case CrossingState::Untied        : return "Untied";
+            case CrossingState::LeftHanded           : return "LeftHanded";
+                
+            case CrossingState::LeftHandedUnchanged  : return "LeftHandedUnchanged";
         }
     }
+
+    inline constexpr bool ActiveQ( const CrossingState & s )
+    {
+        return ToUnderlying(s);
+    }
+    
+    inline constexpr bool ChangedQ( const CrossingState & s )
+    {
+        return ToUnderlying(s) % 2;
+    }
+    
+    inline constexpr bool UnchangedQ( const CrossingState & s )
+    {
+        return !ChangedQ(s);
+    }
+    
+    inline constexpr bool RightHandedQ( const CrossingState & s )
+    {
+        return ToUnderlying(s) > 0;
+    }
+    
+    inline constexpr bool LeftHandedQ( const CrossingState & s )
+    {
+        return ToUnderlying(s) < 0;
+    }
+    
+    inline constexpr bool OppositeHandednessQ(
+        const CrossingState & s_0, const CrossingState & s_1
+    )
+    {
+        return ( Sign(ToUnderlying(s_0)) == -Sign(ToUnderlying(s_1)) );
+    }
+    
+    inline constexpr bool SameHandednessQ(
+        const CrossingState & s_0, const CrossingState & s_1
+    )
+    {
+        return ( Sign(ToUnderlying(s_0)) == Sign(ToUnderlying(s_1)) );
+    }
+    
+    
     
     enum class ArcState : Int8
     {
@@ -40,7 +84,22 @@ namespace KnotTools
         Inactive  =  0
     };
     
-    std::string ToString( const ArcState & s )
+    inline constexpr bool ChangedQ( const ArcState & s )
+    {
+        return ToUnderlying(s) % 2;
+    }
+    
+    inline constexpr bool UnchangedQ( const ArcState & s )
+    {
+        return !ChangedQ(s);
+    }
+    
+    inline constexpr bool ActiveQ( const ArcState & s )
+    {
+        return ToUnderlying(s);
+    }
+    
+    inline std::string ToString( const ArcState & s )
     {
         switch( s )
         {

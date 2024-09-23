@@ -139,7 +139,7 @@ void load_c_2()
     //    (b_2 = 1)           (b_2 = 0)
     //
     
-    o_2 = (u_0 == (b_2 == (C_state[c_2] == CrossingState::RightHanded)));
+    o_2 = (u_0 == (b_2 == RightHandedQ(C_state[c_2])));
     
     AssertArc<1>(e_2);
     AssertArc<1>(s_2);
@@ -236,7 +236,7 @@ void load_c_3()
     //    (b_3 = 0)           (b_3 = 1)
     //
     
-    o_3 = (u_0 == (b_3 == (C_state[c_3] == CrossingState::LeftHanded)));
+    o_3 = (u_0 == (b_3 == LeftHandedQ(C_state[c_3])));
     
     AssertArc<1>(e_3);
     AssertArc<1>(n_3);

@@ -44,7 +44,7 @@ bool a_is_2loop()
             DeactivateCrossing(c_1);
             // TODO: Invent some counter here and increment it.
 
-            AssertArc<1>(a);
+            AssertArc<1>(a  );
             AssertArc<0>(n_0);
             AssertArc<1>(s_0);
             AssertArc<0>(w_0);
@@ -57,6 +57,11 @@ bool a_is_2loop()
             return true;
         }
 
+        if constexpr ( tested_crossing_count < 3 )
+        {
+            return false;
+        }
+        
         PD_DPRINT( "\t\to_0 != o_1" );
         PD_ASSERT( o_0 != o_1 );
         /* Looks like this:

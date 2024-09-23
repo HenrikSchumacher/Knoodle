@@ -7,6 +7,11 @@ bool strands_diff_o()
      *       |c_0        |c_1          |c_0        |c_1
      */
 
+    if constexpr( tested_crossing_count < 3 )
+    {
+        return false;
+    }
+    
     if( R_Ia_below() )
     {
         return true;
@@ -17,6 +22,11 @@ bool strands_diff_o()
         return true;
     }
 
+    if constexpr( tested_crossing_count < 4 )
+    {
+        return false;
+    }
+    
     load_c_2();
     load_c_3();
     

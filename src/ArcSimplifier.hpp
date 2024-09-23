@@ -3,7 +3,10 @@
 // TODO: Use the state flag of arcs to mark unchanged arcs.
 namespace KnotTools
 {
-    template<typename Int_, bool mult_compQ_ = true >
+    template<typename Int_,
+        bool use_flagsQ_ = false,
+        bool mult_compQ_ = true
+    >
     class alignas( ObjectAlignment ) ArcSimplifier
     {
     public:
@@ -21,6 +24,9 @@ namespace KnotTools
         using ArcStateContainer_T       = PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
+        static constexpr bool use_flagsQ = use_flagsQ_;
+        
+        static constexpr Int tested_crossing_count = 4;
         
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Tail  = PD_T::Tail;
@@ -28,6 +34,8 @@ namespace KnotTools
         static constexpr bool Right = PD_T::Right;
         static constexpr bool In    = PD_T::In;
         static constexpr bool Out   = PD_T::Out;
+        
+        
         
     private:
         
@@ -38,105 +46,6 @@ namespace KnotTools
         
         ArcContainer_T           & A_cross;
         ArcStateContainer_T      & A_state;
-        
-    private:
-        
-        bool ArcActiveQ( const Int a_ ) const
-        {
-            return pd.ArcActiveQ(a_);
-        }
-        
-        bool ArcNeedsProcessingQ( const Int a_ ) const
-        {
-            return pd.ArcNeedsProcessingQ(a_);
-        }
-        
-        void DeactivateArc( const Int a_ ) const
-        {
-            return pd.DeactivateArc(a_);
-        }
-        
-        
-        template<bool should_be_activeQ>
-        void AssertArc( const Int a_ )
-        {
-#ifdef DEBUG
-            if constexpr( should_be_activeQ )
-            {
-                if( !ArcActiveQ(a_) )
-                {
-                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
-                }
-                PD_ASSERT(pd.CheckArc(a_));
-            }
-            else
-            {
-                if( ArcActiveQ(a_) )
-                {
-                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
-                }
-            }
-#else
-            (void)a_;
-#endif
-        }
-        
-        std::string ArcString( const Int a_ )
-        {
-            return pd.ArcString(a_);
-        }
-        
-        
-        
-        bool CrossingActiveQ( const Int c_ ) const
-        {
-            return pd.CrossingActiveQ(c_);
-        }
-        
-        void DeactivateCrossing( const Int c_ ) const
-        {
-            return pd.DeactivateCrossing(c_);
-        }
-        
-        template<bool should_be_activeQ>
-        void AssertCrossing( const Int c_ )
-        {
-#ifdef DEBUG
-            if constexpr( should_be_activeQ )
-            {
-                if( !CrossingActiveQ(c_) )
-                {
-                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
-                }
-                PD_ASSERT(pd.CheckCrossing(c_));
-            }
-            else
-            {
-                if( CrossingActiveQ(c_) )
-                {
-                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
-                }
-            }
-#else
-            (void)c_;
-#endif
-        }
-        
-        std::string CrossingString( const Int c_ )
-        {
-            return pd.CrossingString(c_);
-        }
-        
-        void TouchCrossing( const Int c_ )
-        {
-            pd.TouchCrossing(c_);
-        }
-        
-        
-        void Reconnect( const Int a_, const bool headtail, const Int b_ )
-        {
-            pd.Reconnect(a_,headtail,b_);
-        }
         
     private:
         
@@ -202,28 +111,28 @@ namespace KnotTools
         
 //        // Copy constructor
 //        ArcSimplifier( const ArcSimplifier & other ) = default;
-//        
+//
 //        friend void swap(ArcSimplifier & A, ArcSimplifier & B ) noexcept
 //        {
 //            using std::swap;
-//    
+//
 //            swap( A.pd,      B.pd      );
 //            swap( A.C_arcs,  B.C_arcs  );
 //            swap( A.C_state, B.C_state );
 //            swap( A.A_cross, B.A_cross );
 //            swap( A.A_state, B.A_state );
-//            
+//
 //            swap( A.a,   B.a   );
-//            
+//
 //            swap( A.c_0, B.c_0 );
 //            swap( A.c_1, B.c_1 );
 //            swap( A.c_2, B.c_2 );
 //            swap( A.c_3, B.c_3 );
-//            
+//
 //            swap( A.n_0, B.n_0 );
 //            swap( A.s_0, B.s_0 );
 //            swap( A.w_0, B.w_0 );
-//            
+//
 //            swap( A.n_1, B.n_1 );
 //            swap( A.e_1, B.e_1 );
 //            swap( A.s_1, B.s_1 );
@@ -231,20 +140,20 @@ namespace KnotTools
 //            swap( A.e_2, B.e_2 );
 //            swap( A.s_2, B.s_2 );
 //            swap( A.w_2, B.w_2 );
-//            
+//
 //            swap( A.n_3, B.n_3 );
 //            swap( A.e_3, B.e_3 );
 //            swap( A.w_3, B.w_3 );
-//            
+//
 //            swap( A.o_0, B.o_0 );
 //            swap( A.o_1, B.o_1 );
 //            swap( A.o_2, B.o_2 );
 //            swap( A.o_3, B.o_3 );
-//            
+//
 //            swap( A.u_0, B.u_0 );
 //            swap( A.o_1, B.u_1 );
 //        }
-//        
+//
 //        // Move constructor
 //        ArcSimplifier( ArcSimplifier && other ) noexcept
 //        :   ArcSimplifier()
@@ -261,6 +170,190 @@ namespace KnotTools
 //            return *this;
 //        }
         
+
+    private:
+        
+        bool ArcActiveQ( const Int a_ ) const
+        {
+            return pd.ArcActiveQ(a_);
+        }
+        
+        bool ArcChangedQ( const Int a_ ) const
+        {
+            return pd.ArcChangedQ(a_);
+        }
+        
+        void DeactivateArc( const Int a_ ) const
+        {
+            return pd.DeactivateArc(a_);
+        }
+        
+        template<bool should_be_activeQ>
+        void AssertArc( const Int a_ )
+        {
+#ifdef DEBUG
+            if constexpr( should_be_activeQ )
+            {
+                if( !ArcActiveQ(a_) )
+                {
+                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
+                }
+                PD_ASSERT(pd.CheckArc(a_));
+            }
+            else
+            {
+                if( ArcActiveQ(a_) )
+                {
+                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
+                }
+            }
+#else
+            (void)a_;
+#endif
+        }
+        
+        std::string ArcString( const Int a_ )
+        {
+            return pd.ArcString(a_);
+        }
+        
+        bool CrossingActiveQ( const Int c_ ) const
+        {
+            return pd.CrossingActiveQ(c_);
+        }
+        
+        void DeactivateCrossing( const Int c_ ) const
+        {
+            return pd.DeactivateCrossing(c_);
+        }
+        
+        template<bool should_be_activeQ>
+        void AssertCrossing( const Int c_ )
+        {
+#ifdef DEBUG
+            if constexpr( should_be_activeQ )
+            {
+                if( !CrossingActiveQ(c_) )
+                {
+                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
+                }
+                PD_ASSERT(pd.CheckCrossing(c_));
+            }
+            else
+            {
+                if( CrossingActiveQ(c_) )
+                {
+                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
+                }
+            }
+#else
+            (void)c_;
+#endif
+        }
+        
+        std::string CrossingString( const Int c_ )
+        {
+            return pd.CrossingString(c_);
+        }
+        
+        void SetCrossingUnchanged( const Int c )
+        {
+            if constexpr ( use_flagsQ )
+            {
+                switch( C_state[c] )
+                {
+                    case CrossingState::LeftHanded:
+                    {
+                        C_state[c] = CrossingState::LeftHandedUnchanged;
+                        return;
+                    }
+                    case CrossingState::LeftHandedUnchanged:
+                    {
+                        return;
+                    }
+                    case CrossingState::RightHanded:
+                    {
+                        C_state[c] = CrossingState::RightHandedUnchanged;
+                        return;
+                    }
+                    case CrossingState::RightHandedUnchanged:
+                    {
+                        return;
+                    }
+                    case CrossingState::Inactive:
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+        
+        void SetCrossingChanged( const Int c )
+        {
+            if constexpr ( use_flagsQ )
+            {
+                switch( C_state[c] )
+                {
+                    case CrossingState::LeftHanded:
+                    {
+                        return;
+                    }
+                    case CrossingState::LeftHandedUnchanged:
+                    {
+                        C_state[c] = CrossingState::LeftHanded;
+                        return;
+                    }
+                    case CrossingState::RightHanded:
+                    {
+                        return;
+                    }
+                    case CrossingState::RightHandedUnchanged:
+                    {
+                        C_state[c] = CrossingState::RightHanded;
+                        return;
+                    }
+                    case CrossingState::Inactive:
+                    {
+                        return;
+                    }
+                }
+            }
+        }
+        
+        void TouchCrossing( const Int c )
+        {
+            if constexpr ( use_flagsQ )
+            {
+                PD_ASSERT( CrossingActiveQ(c) );
+                
+                SetCrossingChanged(c);
+                
+                for( bool io : { Out, In } )
+                {
+                    for( bool lr : { Left, Right } )
+                    {
+                        const Int a = C_arcs(c,io,lr);
+                        
+                        SetCrossingChanged(A_cross(a,Tail));
+                        SetCrossingChanged(A_cross(a,Head));
+                    }
+                }
+            }
+        }
+
+        void Reconnect( const Int a_, const bool headtail, const Int b_ )
+        {
+            pd.Reconnect(a_,headtail,b_);
+            
+            // TODO: Two crossings are touched multiply.
+            if constexpr ( use_flagsQ )
+            {
+                TouchCrossing(A_cross(a,Tail));
+                TouchCrossing(A_cross(a,Head));
+            }
+        }
+        
+    public:
         
         Int TestCount() const
         {
@@ -270,8 +363,10 @@ namespace KnotTools
         
         bool operator()( const Int a_ )
         {
-//            if( !ArcActiveQ(a_) ) return false;
-            if( !ArcNeedsProcessingQ(a_) ) return false;
+            if( !ArcActiveQ(a_) ) return false;
+
+//            if( !ArcChangedQ(a_) ) return false;
+            
             ++test_count;
             a = a_;
             
@@ -285,6 +380,14 @@ namespace KnotTools
             
             c_1 = A_cross(a,Head);
             AssertCrossing<1>(c_1);
+
+            if constexpr( use_flagsQ )
+            {
+                if( pd.CrossingUnchangedQ(c_0) && pd.CrossingUnchangedQ(c_1) )
+                {
+                    return false;
+                }
+            }
             
             load_c_0();
             
@@ -378,12 +481,12 @@ namespace KnotTools
             
             // Neglecting asserts, this is the only time we access C_state[c_0].
             // Whether the vertical strand at c_0 goes over.
-            o_0 = ( u_0 == ( C_state[c_0] == CrossingState::LeftHanded ) );
+            o_0 = ( u_0 == LeftHandedQ(C_state[c_0]));
             PD_VALPRINT( "o_0", o_0 );
             
             // Neglecting asserts, this is the only time we access C_state[c_1].
             // Whether the vertical strand at c_1 goes over.
-            o_1 = ( u_1 == ( C_state[c_1] == CrossingState::LeftHanded ) );
+            o_1 = ( u_1 == LeftHandedQ(C_state[c_1]));
             PD_VALPRINT( "o_1", o_1 );
 
             // Deal with the case that a is part of a loop of length 2.
@@ -479,8 +582,12 @@ namespace KnotTools
             }
             
             AssertArc<1>(a);
-                   
-            A_state[a] = ArcState::Unchanged;
+            
+            if constexpr( use_flagsQ )
+            {
+                SetCrossingUnchanged(c_0);
+                SetCrossingUnchanged(c_1);
+            }
             
             return false;
         }
@@ -511,7 +618,10 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ArcSimplifier") + "<" + TypeName<Int> + ">";
+            return std::string("ArcSimplifier")
+                + "<" + TypeName<Int>
+                + "," + ToString(use_flagsQ)
+                + "," + ToString(mult_compQ) + ">";
         }
 
     }; // class ArcSimplifier
