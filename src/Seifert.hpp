@@ -37,6 +37,12 @@ namespace KnotTools
         
         using Graph_T = Multigraph<Int>;
     
+        static constexpr bool Tail  = PD_T::Tail;
+        static constexpr bool Head  = PD_T::Head;
+        static constexpr bool Left  = PD_T::Left;
+        static constexpr bool Right = PD_T::Right;
+        static constexpr bool Out   = PD_T::Out;
+        static constexpr bool In    = PD_T::In;
         
         Seifert()
         :   sparsity_threshold ( 64 )
@@ -107,12 +113,12 @@ namespace KnotTools
                 {
                     A_flag[a] = 1;
                     
-                    const Int c = A_cross[a][1];
+                    const Int c = A_cross[a][Head];
                     
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                     
-                    const bool rightQ = (C[1][1] == a);
+                    const bool rightQ = (C[In][Right] == a);
                     
                     s_ci.Push(c);
                     s_val.Push(rightQ ? -1 : 1);

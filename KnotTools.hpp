@@ -65,6 +65,8 @@ namespace KnotTools
         const CrossingState & s_0, const CrossingState & s_1
     )
     {
+        // TODO: Careful, this evaluates to true if both are `Inactive`.
+        
         return ( Sign(ToUnderlying(s_0)) == -Sign(ToUnderlying(s_1)) );
     }
     
@@ -72,6 +74,8 @@ namespace KnotTools
         const CrossingState & s_0, const CrossingState & s_1
     )
     {
+        // TODO: Careful, this evaluates to true if both are `Inactive`.
+        
         return ( Sign(ToUnderlying(s_0)) == Sign(ToUnderlying(s_1)) );
     }
     
@@ -124,6 +128,7 @@ namespace KnotTools
 
 #include "src/PlanarDiagram.hpp"
 #include "src/ArcSimplifier.hpp"
+#include "src/StrandSimplifier.hpp"
 
 //#include "src/Alexander.hpp"
 //

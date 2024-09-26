@@ -212,7 +212,7 @@ namespace KnotTools
 #endif
         }
         
-        std::string ArcString( const Int a_ )
+        std::string ArcString( const Int a_ ) const
         {
             return pd.ArcString(a_);
         }
@@ -222,13 +222,13 @@ namespace KnotTools
             return pd.CrossingActiveQ(c_);
         }
         
-        void DeactivateCrossing( const Int c_ ) const
+        void DeactivateCrossing( const Int c_ )
         {
-            return pd.DeactivateCrossing(c_);
+            pd.DeactivateCrossing(c_);
         }
         
         template<bool should_be_activeQ>
-        void AssertCrossing( const Int c_ )
+        void AssertCrossing( const Int c_ ) const
         {
 #ifdef DEBUG
             if constexpr( should_be_activeQ )
@@ -251,7 +251,7 @@ namespace KnotTools
 #endif
         }
         
-        std::string CrossingString( const Int c_ )
+        std::string CrossingString( const Int c_ ) const
         {
             return pd.CrossingString(c_);
         }

@@ -79,8 +79,8 @@ namespace KnotTools
 //
 //            valprint( "sparse matrix", ArrayToString( A, {n,n} ) );
             
-            // TODO: Replace this by pd.CrossingOverArcs() and measure!
-            const auto over_arc_idx = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverStrands() and measure!
+            const auto arc_strands = pd.ArcOverStrand();
             
             const auto & C_arcs  = pd.Crossings();
             
@@ -102,9 +102,9 @@ namespace KnotTools
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                 
-                    const Int i = over_arc_idx[C[1][0]];
-                    const Int j = over_arc_idx[C[1][1]];
-                    const Int k = over_arc_idx[C[0][0]];
+                    const Int i = arc_strands[C[1][0]];
+                    const Int j = arc_strands[C[1][1]];
+                    const Int k = arc_strands[C[0][0]];
                     
                     mptr<Scal> row = &A[ n * counter ];
                     
@@ -132,9 +132,9 @@ namespace KnotTools
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                 
-                    const Int i = over_arc_idx[C[1][1]];
-                    const Int j = over_arc_idx[C[1][0]];
-                    const Int k = over_arc_idx[C[0][1]];
+                    const Int i = arc_strands[C[1][1]];
+                    const Int j = arc_strands[C[1][0]];
+                    const Int k = arc_strands[C[0][1]];
                     
                     mptr<Scal> row = &A[ n * counter ];
                     
@@ -178,8 +178,8 @@ namespace KnotTools
             
             mref<Aggregator_T> agg = Agg[0];
             
-            // TODO: Replace this by pd.CrossingOverArcs() and measure!
-            const auto over_arc_idx = pd.OverArcIndices();
+            // TODO: Replace this by pd.CrossingOverStrands() and measure!
+            const auto arc_strands = pd.ArcOverStrands();
             
             const auto & C_arcs  = pd.Crossings();
             
@@ -196,14 +196,16 @@ namespace KnotTools
                     break;
                 }
                 
+                pd.AssertCrossing(c);
+                
                 if( LeftHandedQ( C_state[c] ) )
                 {
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                 
-                    const Int i = over_arc_idx[C[1][0]];
-                    const Int j = over_arc_idx[C[1][1]];
-                    const Int k = over_arc_idx[C[0][0]];
+                    const Int i = arc_strands[C[1][0]];
+                    const Int j = arc_strands[C[1][1]];
+                    const Int k = arc_strands[C[0][0]];
                     
                     if( i < n )
                     {
@@ -227,9 +229,9 @@ namespace KnotTools
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
                 
-                    const Int i = over_arc_idx[C[1][1]];
-                    const Int j = over_arc_idx[C[1][0]];
-                    const Int k = over_arc_idx[C[0][1]];
+                    const Int i = arc_strands[C[1][1]];
+                    const Int j = arc_strands[C[1][0]];
+                    const Int k = arc_strands[C[0][1]];
                     
                     
                     if( i < n )
@@ -272,7 +274,7 @@ namespace KnotTools
             auto AT = A.ConjugateTranspose();
             
             auto B = AT.Dot(A);
-            
+
             Factorization_Ptr S;
             
             if( !pd.InCacheQ(tag) )
