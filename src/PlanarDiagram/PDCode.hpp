@@ -32,11 +32,6 @@ Tensor2<Int,Int> PDCode() const
     Int a_ptr     = 0;
     Int a         = 0;
     
-//            logdump( C_arcs  );
-//            logdump( C_state );
-//            logdump( A_cross );
-//            logdump( A_state );
-    
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
@@ -52,9 +47,7 @@ Tensor2<Int,Int> PDCode() const
         
         a = a_ptr;
         
-        
         C_labels[A_cross(a,Tail)] = c_counter++;
-        
         
         // Cycle along all arcs in the link component, until we return where we started.
         do
@@ -74,19 +67,17 @@ Tensor2<Int,Int> PDCode() const
                 const CrossingState state = C_state[c_prev];
                 const Int           c     = C_labels[c_prev];
 
-//                const bool side = (C_arcs(c_prev,Out,Right) == a) ? Right : Left;
-                
                 const bool side = (C_arcs(c_prev,Out,Right) == a);
 
+                mptr<Int> pd = pdcode.data(c);
+                
                 if( RightHandedQ(state) )
                 {
-                    pdcode( c, 4 ) = 1;
+                    pd[4] = 1;
                     
                     if( side == Left )
                     {
-                        /*
-                         *
-                         * a_counter
+                        /* a_counter
                          *     =
                          *    X[2]           X[1]
                          *          ^     ^
@@ -97,16 +88,13 @@ Tensor2<Int,Int> PDCode() const
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
-                         *
                          */
                         
-                        pdcode( c, 2 ) = a_counter;
+                        pd[2] = a_counter;
                     }
                     else // if( side == Right )
                     {
-                        /*
-                         *
-                         *                a_counter
+                        /*                a_counter
                          *                    =
                          *    X[2]           X[1]
                          *          ^     ^
@@ -117,21 +105,18 @@ Tensor2<Int,Int> PDCode() const
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
-                         *
                          */
                         
-                        pdcode( c, 1 ) = a_counter;
+                        pd[1] = a_counter;
                     }
                 }
                 else if( LeftHandedQ(state) )
                 {
-                    pdcode( c, 4 ) = -1;
+                    pd[4] = -1;
                     
                     if( side == Left )
                     {
-                        /*
-                         *
-                         * a_counter
+                        /* a_counter
                          *     =
                          *    X[3]           X[2]
                          *          ^     ^
@@ -142,16 +127,13 @@ Tensor2<Int,Int> PDCode() const
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
-                         *
                          */
                         
-                        pdcode( c, 3 ) = a_counter;
+                        pd[3] = a_counter;
                     }
                     else // if( side == Right )
                     {
-                        /*
-                         *
-                         *                a_counter
+                        /*                a_counter
                          *                    =
                          *    X[3]           X[2]
                          *          ^     ^
@@ -162,32 +144,29 @@ Tensor2<Int,Int> PDCode() const
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
-                         *
                          */
                         
-                        pdcode( c, 2 ) = a_counter;
+                        pd[2] = a_counter;
                     }
                 }
-                
             }
             
             // Tell c_next that arc a_counter goes into it.
             {
                 const CrossingState state = C_state[c_next];
                 const Int           c     = C_labels[c_next];
-                
-//                const bool side  = (C_arcs(c_next,In,Right)) == a ? Right : Left;
+
                 const bool side  = (C_arcs(c_next,In,Right)) == a;
+                
+                mptr<Int> pd = pdcode.data(c);
                 
                 if( RightHandedQ(state) )
                 {
-                    pdcode( c, 4 ) = 1;
+                    pd[4] = 1;
                     
                     if( side == Left )
                     {
-                        /*
-                         *
-                         *    X[2]           X[1]
+                        /*    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
@@ -198,16 +177,13 @@ Tensor2<Int,Int> PDCode() const
                          *    X[3]           X[0]
                          *     =
                          * a_counter
-                         *
                          */
                         
-                        pdcode( c, 3 ) = a_counter;
+                        pd[3] = a_counter;
                     }
                     else // if( side == Right )
                     {
-                        /*
-                         *
-                         *    X[2]           X[1]
+                        /*    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
@@ -218,21 +194,18 @@ Tensor2<Int,Int> PDCode() const
                          *    X[3]           X[0]
                          *                    =
                          *                a_counter
-                         *
                          */
                         
-                        pdcode( c, 0 ) = a_counter;
+                        pd[0] = a_counter;
                     }
                 }
                 else if( LeftHandedQ(state) )
                 {
-                    pdcode( c, 4 ) = -1;
+                    pd[4] = -1;
                     
                     if( side == Left )
                     {
-                        /*
-                         *
-                         *    X[3]           X[2]
+                        /*    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
@@ -243,16 +216,13 @@ Tensor2<Int,Int> PDCode() const
                          *    X[0]           X[1]
                          *     =
                          * a_counter
-                         *
                          */
                         
-                        pdcode( c, 0 ) = a_counter;
+                        pd[0] = a_counter;
                     }
                     else // if( lr == Right )
                     {
-                        /*
-                         *
-                         *    X[3]           X[2]
+                        /*    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
@@ -263,10 +233,9 @@ Tensor2<Int,Int> PDCode() const
                          *    X[0]           X[1]
                          *                    =
                          *                a_counter
-                         *
                          */
                         
-                        pdcode( c, 1 ) = a_counter;
+                        pd[1] = a_counter;
                     }
                 }
             }

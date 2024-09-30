@@ -113,6 +113,7 @@ void Simplify()
     if( counter > 0 )
     {
         faces_initialized = false;
+        comp_initialized  = false;
         
         this->ClearCache();
     }

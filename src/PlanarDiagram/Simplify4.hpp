@@ -1,6 +1,6 @@
 public:
 
-void Simplify4()
+bool Simplify4()
 {
     ptic(ClassName()+"::Simplify4");
 
@@ -10,7 +10,8 @@ void Simplify4()
 
     Int old_test_count = 0;
     
-    StrandSimplifier<Int> S(*this);
+    // TODO: Toggle this for multi-component links.
+    StrandSimplifier<Int,false> S(*this);
 
     while( counter != old_counter )
     {
@@ -31,8 +32,8 @@ void Simplify4()
 //        toc("Simplify4 loop");
         
 //        tic("RemoveStrandLoops");
-        counter += S.template RemoveStrandLoops<true >();
-        counter += S.template RemoveStrandLoops<false>();
+        counter += S.SimplifyStrands(true);
+        counter += S.SimplifyStrands(false);
 //        toc("RemoveStrandLoops");
 
 //
@@ -47,9 +48,14 @@ void Simplify4()
     if( counter > 0 )
     {
         faces_initialized = false;
+        comp_initialized  = false;
 
         this->ClearCache();
     }
+    
+    PD_ASSERT(CheckAll());
 
     ptoc(ClassName()+"::Simplify4");
+    
+    return (counter > 0);
 }

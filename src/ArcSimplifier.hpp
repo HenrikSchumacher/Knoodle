@@ -417,7 +417,7 @@ namespace KnotTools
             /*              n_0           n_1
              *               O             O
              *               |      a      |
-             *       w_0 O---X-->O-----O-->X-->O e_1
+             *       w_0 O---X---O---->O---X-->O e_1
              *               |c_0          |c_1
              *               O             O
              *              s_0           s_1

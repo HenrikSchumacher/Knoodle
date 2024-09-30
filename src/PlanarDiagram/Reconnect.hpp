@@ -1,3 +1,4 @@
+template<bool assertQ = true>
 void Reconnect( const Int a, const bool tiptail, const Int b )
 {
     // Read:
@@ -7,7 +8,8 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
     
-    const bool io = (tiptail==Head) ? In : Out;
+//    const bool io = (tiptail==Head) ? In : Out;
+    const bool io = tiptail;
     
     PD_ASSERT( a != b );
     
@@ -16,20 +18,27 @@ void Reconnect( const Int a, const bool tiptail, const Int b )
     
     const Int c = A_cross(b, tiptail);
     
-    PD_ASSERT( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
-    
-    PD_ASSERT(CheckArc(b));
-    PD_ASSERT(CheckCrossing(c));
-    
-    PD_ASSERT( CrossingActiveQ(c) );
-    PD_ASSERT( CrossingActiveQ(A_cross(a, tiptail)) );
-    PD_ASSERT( CrossingActiveQ(A_cross(a,!tiptail)) );
+    // This is a hack to suppress warnings in situations where we cannot guarantee that c is intact (but where we can guarantee that it will finally be deactivated.
+    if constexpr ( assertQ )
+    {
+        AssertCrossing(c);
+        
+        PD_ASSERT(CheckArc(b));
+        
+        PD_ASSERT( CrossingActiveQ(A_cross(a, tiptail)) );
+        PD_ASSERT( CrossingActiveQ(A_cross(a,!tiptail)) );
+    }
+
     
     A_cross(a,tiptail) = c;
 
-    const bool lr = (C_arcs(c,io,Left) == b) ? Left : Right;
+    PD_ASSERT( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
+
+//    const bool side = (C_arcs(c,io,Left) == b) ? Left : Right;
+//    const bool side = (C_arcs(c,io,Left) != b);
+    const bool side = (C_arcs(c,io,Right) == b);
     
-    C_arcs(c,io,lr) = a;
+    C_arcs(c,io,side) = a;
     
     DeactivateArc(b);
 }

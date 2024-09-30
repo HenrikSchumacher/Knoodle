@@ -59,7 +59,7 @@ namespace KnotTools
 //    }; // struct Arc
     
     template<typename Int_, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
-    template<typename Int_> class StrandSimplifier;
+    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
@@ -82,7 +82,8 @@ namespace KnotTools
         
         friend class ArcSimplifier<Int,false,true>;
         friend class ArcSimplifier<Int,true ,true>;
-        friend class StrandSimplifier<Int>;
+        friend class StrandSimplifier<Int,true>;
+        friend class StrandSimplifier<Int,false>;
         
         using ArcSimplifier_T = ArcSimplifier<Int,false,true>;
         
@@ -139,17 +140,19 @@ namespace KnotTools
         
         Tensor2<Int,Int> A_faces; // Convention: Left face first.
         
-        Tensor1<Int,Int> face_arcs    {0};
-        Tensor1<Int,Int> face_arc_ptr {2,0};
+        Tensor1<Int,Int> F_arc_idx {0};
+        Tensor1<Int,Int> F_arc_ptr {2,0};
         
-        Tensor1<Int,Int> comp_arcs    {0};
+        Tensor1<Int,Int> comp_arc_idx {0};
         Tensor1<Int,Int> comp_arc_ptr {2,0};
         
-        Tensor1<Int,Int> arc_comp     {0};
+        Tensor1<Int,Int> A_comp {0};
+        Tensor1<Int,Int> A_pos  {0};
         
         bool faces_initialized = false;
+        bool comp_initialized  = false;
         
-        Int connected_sum_counter = 0;
+//        Int connected_sum_counter = 0;
         
     private:
         
@@ -359,9 +362,9 @@ namespace KnotTools
          */
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   C_arcs                  ( crossing_count_, Int(2), Int(2)               )
+        :   C_arcs                  ( crossing_count_, Int(2), Int(2), -1               )
         ,   C_state                 ( crossing_count_, CrossingState::Inactive      )
-        ,   A_cross                 ( Int(2)*crossing_count_, Int(2)                )
+        ,   A_cross                 ( Int(2)*crossing_count_, Int(2), -1                )
         ,   A_state                 ( Int(2)*crossing_count_, ArcState::Inactive    )
         ,   initial_crossing_count  ( crossing_count_                               )
         ,   initial_arc_count       ( Int(2)*crossing_count_                        )
@@ -420,17 +423,18 @@ namespace KnotTools
     
             swap( A.A_faces                , B.A_faces                 );
             
-            swap( A.face_arcs              , B.face_arcs               );
-            swap( A.face_arc_ptr           , B.face_arc_ptr            );
+            swap( A.F_arc_idx              , B.F_arc_idx               );
+            swap( A.F_arc_ptr              , B.F_arc_ptr               );
             
-            swap( A.comp_arcs              , B.comp_arcs               );
+            swap( A.comp_arc_idx           , B.comp_arc_idx            );
             swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
             
-            swap( A.arc_comp               , B.arc_comp                );
+            swap( A.A_comp                 , B.A_comp                  );
+            swap( A.A_pos                  , B.A_pos                  );
             
             swap( A.faces_initialized      , B.faces_initialized       );
             
-            swap( A.connected_sum_counter  , B.connected_sum_counter   );
+//            swap( A.connected_sum_counter  , B.connected_sum_counter   );
             
 //            swap( A.arc_simplifier         , B.arc_simplifier          );
         }
@@ -1254,11 +1258,11 @@ namespace KnotTools
          * leaving trough the
          */
         
-        Int NextCrossing( const Int c, bool io, bool lr ) const
+        Int NextCrossing( const Int c, bool io, bool side ) const
         {
             AssertCrossing(c);
 
-            const Int a = C_arcs(c,io,lr);
+            const Int a = C_arcs(c,io,side);
 
             AssertArc(a);
             
@@ -1277,6 +1281,7 @@ namespace KnotTools
          * @brief Deactivates crossing `c`. Only for internal use.
          */
         
+        template<bool assertsQ = true>
         void DeactivateCrossing( const Int c )
         {
             if( CrossingActiveQ(c) )
@@ -1287,21 +1292,29 @@ namespace KnotTools
             }
             else
             {
+                
 #ifdef PD_DEBUG
-                wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
+                if constexpr ( assertsQ )
+                {
+                    wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
+                }
 #endif
             }
             
+            
 #ifdef PD_DEBUG
-            for( bool io : { In, Out } )
+            if constexpr ( assertsQ )
             {
-                for( bool lr : { Left, Right } )
+                for( bool io : { In, Out } )
                 {
-                    const Int a  = C_arcs(c,io,lr);
-                    
-                    if( ArcActiveQ(a) && (A_cross(a,io) == c) )
+                    for( bool side : { Left, Right } )
                     {
-                        eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                        const Int a  = C_arcs(c,io,side);
+                        
+                        if( ArcActiveQ(a) && (A_cross(a,io) == c) )
+                        {
+                            eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                        }
                     }
                 }
             }
@@ -1329,9 +1342,9 @@ namespace KnotTools
 #ifdef PD_DEBUG
             for( bool io : { In, Out } )
             {
-                for( bool lr : { Left, Right } )
+                for( bool side : { Left, Right } )
                 {
-                    const Int a  = C(io,lr);
+                    const Int a  = C(io,side);
                     
                     if( ArcActiveQ(a) && (A_cross(a,io) == C.Idx()) )
                     {
@@ -1405,7 +1418,10 @@ namespace KnotTools
 //#include "PlanarDiagram/Switch.hpp"
         
 #include "PlanarDiagram/Faces.hpp"
-//#include "PlanarDiagram/ConnectedSum.hpp"
+#include "PlanarDiagram/Components.hpp"
+#include "PlanarDiagram/ConnectedSum.hpp"
+        
+    public:
         
         void PushAllCrossings()
         {
@@ -1439,7 +1455,7 @@ namespace KnotTools
          * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
          */
         
-        Arrow_T NextLeftArc( const Int a, const bool headtail )
+        Arrow_T NextLeftArc( const Int a, const bool headtail ) const
         {
             // TODO: Signed indexing does not work because of 0!
             
@@ -1449,35 +1465,72 @@ namespace KnotTools
             
             AssertCrossing(c);
             
-//            const bool io = (headtail == Head) ? In : Out;
+            // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
             
-            const bool io = headtail;
-
-//            const bool lr = (C_arcs(c,io,Right) == a) ? Right : Left;
-            
-            const bool lr = (C_arcs(c,io,Right) == a);
-
-            
-            if( io == In )
+            if( headtail == Head )
             {
-                if( lr == Left )
+                // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
+
+                const Int b = C_arcs(c,In,Left);
+
+                if( b != a )
                 {
-                    return Arrow_T(C_arcs(c,Out,Left ),Head);
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    //   b     a
+
+                    return Arrow_T(b,Tail);
                 }
-                else
+                else // if( b == a )
                 {
-                    return Arrow_T(C_arcs(c,In ,Left ),Tail);
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    // a == b
+
+                    return Arrow_T(C_arcs(c,Out,Left),Head);
                 }
             }
-            else
+            else // if( headtail == Tail )
             {
-                if( lr == Left )
+                // Also here we can make it so that we have to read for a second time only in 50% of the cases.
+
+                const Int b = C_arcs(c,Out,Right);
+
+                if( b != a )
                 {
-                    return Arrow_T(C_arcs(c,Out,Right),Head);
+                    //   a     b
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(b,Head);
                 }
-                else
+                else // if( b == a )
                 {
-                    return Arrow_T(C_arcs(c, In,Right),Tail);
+                    //      a == b
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(C_arcs(c,In,Right),Tail);
                 }
             }
         }
@@ -1544,13 +1597,13 @@ namespace KnotTools
             AssertCrossing(c);
             
             // Find out whether arc a is connected to a <Left> or <Right> port of c.
-//            const bool lr = (C_arcs(c,Out,Right) == a) ? Right : Left;
-            const bool lr = (C_arcs(c,Out,Right) == a);
+//            const bool side = (C_arcs(c,Out,Right) == a) ? Right : Left;
+            const bool side = (C_arcs(c,Out,Right) == a);
             
             // We leave through the arc at the opposite port.
             //If everything is set up correctly, the ourgoing arc points into the same direction as a.
             
-            const Int a_prev = C_arcs(c,In,!lr);
+            const Int a_prev = C_arcs(c,In,!side);
             
             AssertArc(a_prev);
             
@@ -1649,18 +1702,18 @@ namespace KnotTools
                     
                     {
                         const Int  c  = C_labels[c_prev];
-                        const bool lr = C_arcs(c_prev,Out,Right) == a;
+                        const bool side = (C_arcs(c_prev,Out,Right) == a);
                         
-                        C_arcs_new(c,Out,lr) = a_counter;
+                        C_arcs_new(c,Out,side) = a_counter;
                         
                         A_cross_new(a_counter,Tail) = c;
                     }
                     
                     {
                         const Int  c  = C_labels[c_next];
-                        const bool lr = C_arcs(c_next,In,Right) == a;
+                        const bool side = (C_arcs(c_next,In,Right) == a);
                         
-                        C_arcs_new(c,In,lr) = a_counter;
+                        C_arcs_new(c,In,side) = a_counter;
                         
                         A_cross_new(a_counter,Head) = c;
                     }
