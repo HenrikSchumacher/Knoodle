@@ -71,6 +71,8 @@ namespace KnotTools
         using Int  = Int_;
         using Sint = int;
         
+        using UInt = Scalar::Unsigned<Int>;
+        
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
         
