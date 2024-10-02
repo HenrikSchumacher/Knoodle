@@ -82,14 +82,19 @@ bool SimplifySplit( std::vector<PlanarDiagram<Int>> & PD_list )
         
         changed = changed || (splits > 0);
         
+        if( changed )
+        {
+            *this = this->CreateCompressed();
+        }
+        
         globally_changed = globally_changed || changed;
     }
     while( changed );
     
-    if( globally_changed )
-    {
-        *this = this->CreateCompressed();
-    }
+//    if( globally_changed )
+//    {
+//        *this = this->CreateCompressed();
+//    }
     
     ptoc(ClassName()+"::SimplifySplit");
     

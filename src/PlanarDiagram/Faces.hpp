@@ -64,34 +64,24 @@ const Tensor2<Int,Int> ArcFacesData()
 
 
 
-Tensor3<UInt,Int> ArcWings() const
+Tensor3<Int,Int> ArcWings() const
 {
-    Tensor3<UInt,Int> A_wings ( initial_arc_count, 2, 2 );
+    Tensor3<Int,Int> A_wings ( initial_arc_count, 2, 2 );
     
     
     for( Int c = 0; c < initial_crossing_count; ++c )
     {
         if( CrossingActiveQ(c) )
         {
-            UInt A [2][2];
+            Int A [2][2];
             
             copy_buffer<4>( C_arcs.data(c), &A[0][0] );
             
-            // A[Out][Left ]         A[Out][Right]
-            //               O     O
-            //                ^   ^
-            //                 \ /
-            //                  X c
-            //                 ^ ^
-            //                /   \
-            //               O     O
-            // A[In ][Left ]         A[In ][Right]
             
+            constexpr Int tail_mask = 0;
+            constexpr Int head_mask = 1;
             
-            constexpr UInt tail_mask = 0;
-            constexpr UInt head_mask = 1;
-            
-            const UInt arrow [2][2] =
+            const Int arrows [2][2] =
             {
                 {
                     (A[Out][Left ] << 1) | head_mask,
@@ -102,55 +92,88 @@ Tensor3<UInt,Int> ArcWings() const
                 }
             };
             
-            A_wings(A[Out][Left ],Tail,Left ) = arrow[In ][Left ];
-            A_wings(A[Out][Left ],Tail,Right) = arrow[Out][Right];
             
-            A_wings(A[Out][Right],Tail,Left ) = arrow[Out][Left ];
-            A_wings(A[Out][Right],Tail,Right) = arrow[In ][Right];
+            // A[Out][Left ]         A[Out][Right]
+            //               O     O
+            //                ^   ^
+            //                 \ /
+            //                  X c
+            //                 ^ ^
+            //                /   \
+            //               O     O
+            // A[In ][Left ]         A[In ][Right]
             
-            A_wings(A[In ][Left ],Head,Left ) = arrow[Out][Left ];
-            A_wings(A[In ][Left ],Head,Right) = arrow[In ][Right];
+            A_wings(A[Out][Left ],Tail,Left ) = arrows[In ][Left ];
+            A_wings(A[Out][Left ],Tail,Right) = arrows[Out][Right];
             
-            A_wings(A[In ][Right],Head,Left ) = arrow[In ][Left ];
-            A_wings(A[In ][Right],Head,Right) = arrow[Out][Right];
+            A_wings(A[Out][Right],Tail,Left ) = arrows[Out][Left ];
+            A_wings(A[Out][Right],Tail,Right) = arrows[In ][Right];
             
+            A_wings(A[In ][Left ],Head,Left ) = arrows[Out][Left ];
+            A_wings(A[In ][Left ],Head,Right) = arrows[In ][Right];
             
-            PD_ASSERT( (A_wings(A[In ][Left ],Head,Left ) >> 1)
-                !=
+            A_wings(A[In ][Right],Head,Left ) = arrows[In ][Left ];
+            A_wings(A[In ][Right],Head,Right) = arrows[Out][Right];
+            
+//#ifdef PD_DEBUG
+//            
+//            if( (A_wings(A[In ][Left ],Head,Left ) >> 1)
+//               !=
+//               NextLeftArc(A[In ][Left ],Head).first
+//            )
+//            {
+//                dump(A[In ][Left ]);
+//                
+//                dump((A_wings(A[In ][Left ],Head,Left ) >> 1));
+//                
+//                dump(NextLeftArc(A[In ][Left ],Head).first);
+//            }
+//#endif
+            
+            PD_ASSERT(
+                (A_wings(A[In ][Left ],Head,Left ) >> 1)
+                ==
                 NextLeftArc(A[In ][Left ],Head).first
             );
             
-            PD_ASSERT( (A_wings(A[In ][Left ],Head,Left ) & UInt(1))
-                !=
+            PD_ASSERT(
+                (A_wings(A[In ][Left ],Head,Left ) & Int(1))
+                ==
                 NextLeftArc(A[In ][Left ],Head).second
             );
             
-            PD_ASSERT( (A_wings(A[In ][Right],Head,Left ) >> 1)
-                !=
+            PD_ASSERT(
+                (A_wings(A[In ][Right],Head,Left ) >> 1)
+                ==
                 NextLeftArc(A[In ][Right],Head).first
             );
             
-            PD_ASSERT( (A_wings(A[In ][Right],Head,Left ) & UInt(1))
-                !=
+            PD_ASSERT(
+                (A_wings(A[In ][Right],Head,Left ) & Int(1))
+                ==
                 NextLeftArc(A[In ][Right],Head).second
             );
             
-            PD_ASSERT( (A_wings(A[Out][Left ],Tail,Right) >> 1)
-                !=
+            PD_ASSERT(
+                (A_wings(A[Out][Left ],Tail,Right) >> 1)
+                ==
                 NextLeftArc(A[Out][Left ],Tail).first
             );
             
-            PD_ASSERT( (A_wings(A[Out][Left ],Tail,Right) & UInt(1))
-                !=
+            PD_ASSERT(
+                (A_wings(A[Out][Left ],Tail,Right) & Int(1))
+                ==
                 NextLeftArc(A[Out][Left ],Tail).second
             );
             
-            PD_ASSERT(  (A_wings(A[Out][Right],Tail,Right) >> 1)
-                !=
+            PD_ASSERT(
+                (A_wings(A[Out][Right],Tail,Right) >> 1)
+                ==
                 NextLeftArc(A[Out][Right],Tail).first
             );
             
-            PD_ASSERT( (A_wings(A[Out][Right],Tail,Right) & UInt(1))
+            PD_ASSERT(
+                (A_wings(A[Out][Right],Tail,Right) & Int(1))
                 ==
                 NextLeftArc(A[Out][Right],Tail).second
             );
@@ -160,15 +183,15 @@ Tensor3<UInt,Int> ArcWings() const
     return A_wings;
 }
 
-Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
+Tiny::MatrixList<2,2,Int,Int> ArcWings2() const
 {
-    Tiny::MatrixList<2,2,UInt,Int> A_wings ( initial_arc_count );
+    Tiny::MatrixList<2,2,Int,Int> A_wings ( initial_arc_count );
     
     for( Int c = 0; c < initial_crossing_count; ++c )
     {
         if( CrossingActiveQ(c) )
         {
-            UInt A [2][2];
+            Int A [2][2];
             
             copy_buffer<4>( C_arcs.data(c), &A[0][0] );
             
@@ -183,10 +206,10 @@ Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
             // A[In ][Left ]         A[In ][Right]
             
             
-            constexpr UInt tail_mask = 0;
-            constexpr UInt head_mask = 1;
+            constexpr Int tail_mask = 0;
+            constexpr Int head_mask = 1;
             
-            const UInt arrow [2][2] =
+            const Int arrow [2][2] =
             {
                 {
                     (A[Out][Left ] << 1) | head_mask,
@@ -215,7 +238,7 @@ Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
                 NextLeftArc(A[In ][Left ],Head).first
             );
             
-            PD_ASSERT( (A_wings(Head,Left ,A[In ][Left ]) & UInt(1))
+            PD_ASSERT( (A_wings(Head,Left ,A[In ][Left ]) & Int(1))
                 !=
                 NextLeftArc(A[In ][Left ],Head).second
             );
@@ -225,7 +248,7 @@ Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
                 NextLeftArc(A[In ][Right],Head).first
             );
             
-            PD_ASSERT( (A_wings(Head,Left ,A[In ][Right]) & UInt(1))
+            PD_ASSERT( (A_wings(Head,Left ,A[In ][Right]) & Int(1))
                 !=
                 NextLeftArc(A[In ][Right],Head).second
             );
@@ -235,7 +258,7 @@ Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
                 NextLeftArc(A[Out][Left ],Tail).first
             );
             
-            PD_ASSERT( (A_wings(Tail,Right,A[Out][Left ]) & UInt(1))
+            PD_ASSERT( (A_wings(Tail,Right,A[Out][Left ]) & Int(1))
                 !=
                 NextLeftArc(A[Out][Left ],Tail).second
             );
@@ -245,7 +268,7 @@ Tiny::MatrixList<2,2,UInt,Int> ArcWings2() const
                 NextLeftArc(A[Out][Right],Tail).first
             );
             
-            PD_ASSERT( (A_wings(Tail,Right,A[Out][Right]) & UInt(1))
+            PD_ASSERT( (A_wings(Tail,Right,A[Out][Right]) & Int(1))
                 ==
                 NextLeftArc(A[Out][Right],Tail).second
             );
@@ -374,13 +397,13 @@ void RequireFaces()
                 
 //                // Move to next arc.
                 
-//                std::tie(a,dir) = NextLeftArc( a, dir );
+                std::tie(a,dir) = NextLeftArc( a, dir );
                 
-                // Using the precomputed A_wings instead of NextLeftArc seems to be faster.
-                const UInt bits = A_wings(a,dir,!dir);
-                
-                a   = static_cast<Int>(bits >> 1);
-                dir = static_cast<Int>(bits & UInt(1));
+//                // Using the precomputed A_wings instead of NextLeftArc seems to be faster.
+//                const Int bits = A_wings(a,dir,!dir);
+//                
+//                a   = static_cast<Int>(bits >> 1);
+//                dir = static_cast<Int>(bits & Int(1));
                 
                 ++arc_counter;
             }
@@ -397,4 +420,6 @@ exit:
     F_arc_ptr.template Resize<true>(F_counter+1);
     
     faces_initialized = true;
+    
+    ptoc(ClassName()+"::RequireFaces");
 }

@@ -43,6 +43,8 @@ namespace KnotTools
         Tensor2<Int,Int> C_data;
         Tensor1<Int,Int> A_colors;
         
+        Tensor2<Int,Int> A_prev;
+        
         Int color = 0;
         Int a_ptr = 0;
 
@@ -52,6 +54,9 @@ namespace KnotTools
         
         bool overQ;
         bool resetQ;
+                
+        Stack<Int,Int> next_front;
+        Stack<Int,Int> prev_front;
         
 //        Tensor1<Int,Int> A_time;
 //        
@@ -92,13 +97,16 @@ namespace KnotTools
         StrandSimplifier() = delete;
         
         StrandSimplifier( PD_T & pd_ )
-        :   pd      { pd_        }
-        ,   C_arcs  { pd.C_arcs  }
-        ,   C_state { pd.C_state }
-        ,   A_cross { pd.A_cross }
-        ,   A_state { pd.A_state }
-        ,   C_data  { C_arcs.Dimension(0), 3, -1 }
-        ,   A_colors{ A_cross.Dimension(0), -1 }
+        :   pd         { pd_        }
+        ,   C_arcs     { pd.C_arcs  }
+        ,   C_state    { pd.C_state }
+        ,   A_cross    { pd.A_cross }
+        ,   A_state    { pd.A_state }
+        ,   C_data     { C_arcs.Dimension(0), 2, -1 }
+        ,   A_colors   { A_cross.Dimension(0), -1 }
+        ,   A_prev     { A_cross.Dimension(0), 2, -1 }
+        ,   next_front { A_cross.Dimension(0) }
+        ,   prev_front { A_cross.Dimension(0) }
 //        ,   A_time  { A_cross.Dimension(0), -1 }
 //        ,   S_buffer{ A_cross.Dimension(0), -1 }
         {}
@@ -219,49 +227,24 @@ namespace KnotTools
         {
             return C_data(c,0);
         }
+
         
-        mref<Int> C_arrow( const Int c )
+        mref<Int> C_len( const Int c )
         {
             return C_data(c,1);
         }
         
-        mref<Int> C_len( const Int c )
-        {
-            return C_data(c,2);
-        }
-        
+        //
+        //        mref<Int> C_arrow( const Int c )
+        //        {
+        //            return C_data(c,2);
+        //        }
         
 
         void MarkCrossing( const int c )
         {
-//            print("MarkCrossing: " + CrossingString(c) + "." );
             C_color(c) = color;
-            // This indicates that c itself has been visited.
-            C_arrow(c) = -2;
             C_len  (c) = strand_length;
-        }
-        
-        void MarkNeighbor(
-            const int c, const int c_next, const bool io, const bool side
-        )
-        {
-//            print("MarkNeighbor(" + CrossingString(c) + "," + CrossingString(c_next) + "," + (io ? "In" : "Out") +"," + (side ? "Right" : "Left" ) + ")" );
-//            const Int c_1 = pd.NextCrossing(c,io,side);
-            
-            const Int a_1 = C_arcs(c,io,side);
-            const Int c_1 = A_cross(a_1,!io);
-
-            if( c_1 != c_next )
-            {
-                // We need to avoid that a one written arrow is overwritten.
-                if( C_color(c_1) != color )
-                {
-                    C_color(c_1) = color;
-                    // This indicates that the crossing on the other side of a_1 has been visited.
-                    C_arrow(c_1) = a_1;
-                    C_len  (c_1) = strand_length;
-                }
-            }
         }
         
     public:
@@ -276,8 +259,6 @@ namespace KnotTools
 //            const Int n = C_arcs.Dimension(0);
             const Int m = A_cross.Dimension(0);
 //
-//            Tensor1<char,Int> A_visisted ( m, false );
-            
             C_data.Fill(-1);
             A_colors.Fill(-1);
             
@@ -292,7 +273,9 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( (A_colors[a_ptr] >= 0 )  || (!ArcActiveQ(a_ptr)) ) )
+                while(
+                      ( a_ptr < m ) && ( (A_colors[a_ptr] >= 0 )  || (!ArcActiveQ(a_ptr)) )
+                )
                 {
                     ++a_ptr;
                 }
@@ -315,26 +298,12 @@ namespace KnotTools
                 
                 strand_length = 0;
                 
-                {
-                    const Int c = A_cross(a,Tail);
-                    
-//                    print("Starting new strand " + ToString(color) + " at " + CrossingString(c) + "." );
-                    
-                    MarkCrossing(c);
-                    
-                    const bool side = (C_arcs(c,Out,Right) == a);
-
-                    const Int c_next = A_cross(a,Head);
-                    
-                    MarkNeighbor(c,c_next,Out,!side);
-                    MarkNeighbor(c,c_next,In , side);
-                    // c is a start vertex, so we have to mark also the vertex at the back.
-                    MarkNeighbor(c,c_next,In ,!side);
-                }
+                MarkCrossing( A_cross(a,Tail) );
                 
                 // Traverse forward through all arcs in the link component, until we return where we started.
                 do
                 {
+//                    logdump(a);
                     ++strand_length;
                     
                     if( color == std::numeric_limits<Int>::max() )
@@ -359,57 +328,32 @@ namespace KnotTools
                     {
                         // Vertex c has been visted before.
                         
-                        if( C_arrow(c) == -2 )
-                        {
-                            RemoveLoop(a);
-                            
-                            strand_length = 0;
-                            
-                            ++color;
-                            
-                            break;
-                        }
+                        RemoveLoop(a);
                         
-                        // One of the 1-neighbors of c has been visisted before.
+                        strand_length = 0;
                         
-//                        if( strand_length - C_len(c) > 2 )
-//                        {
-//                            const bool changedQ = Simplify_1_Strand(a,c);
-//
-//                            if( changedQ )
-//                            {
-//                                strand_length = 0;
-//                                
-//                                ++color;
-//                                
-//                                break;
-//                            }
-//                        }
+                        ++color;
+                        
+                        break;
                     }
-
                     
-                    // Create a new strand if necessary.
-                    strand_length = resetQ ? 0 : strand_length;
-                    color += resetQ;
-
-//                    if( resetQ )
-//                    {
-//                        print("Starting new strand " + ToString(color) + " at " + CrossingString(c) + "." );
-//                    }
+                    if( resetQ )
+                    {
+//                        if( strand_length > 2 )
+//                        {
+//                            FindShortestPath(a_0,a,strand_length+1,color);
+//                        }
+                        
+                        // Create a new strand.
+                        strand_length = 0;
+                        
+                        ++color;
+                    }
                     
                     // Head of arc gets new color.
                     MarkCrossing(c);
                     
                     const Int a_next = C_arcs(c,Out,!side);
-                    const Int c_next = A_cross(a_next,Head);
-
-                    MarkNeighbor(c,c_next,Out, side);
-                    MarkNeighbor(c,c_next,In ,!side);
-                    // If we reset, then c is a start vertex, so we have to mark also the vertex at the back.
-                    if( resetQ )
-                    {
-                        MarkNeighbor(c,c_next,In , side);
-                    }
 
                     a = a_next;
                     
@@ -614,88 +558,108 @@ namespace KnotTools
             
             return;
         }
-
         
-        bool Simplify_1_Strand( const Int b, const Int c )
+        
+    public:
+        
+        /*!
+         * Run Dijkstra's algprithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
+         *
+         * @param a_begin  starting arc
+         *
+         * @param a_end    final arc to which we want to find a path
+         *
+         * @param max_dist maximal distance we want to travel
+         *
+         * @param color    indicator that is written to first column of `A_prev`; this avoid have to erase the whole matrix `A_prev` for each new search. When we call this, we assume that `A_prev` contains only values different from `color`.
+         *
+         */
+        
+        Int FindShortestPath(
+            const Int a_begin, const Int a_end, const Int max_dist, const Int color
+        )
         {
-            AssertCrossing<1>(c);
+            ptic(ClassName()+"::FindShortestPath");
             
-            // This is the arc that connects c to the visited crossing.
-            const Int a = C_arrow(c);
+            next_front.Reset();
             
-            AssertArc<1>(c);
+            // Push the arc `a_begin` twice onto the stack: once with forward orientation, once with backward orientation.
             
-            print("Strand-1-Loop detected at " + ArcString(a));
+            next_front.Push( (a_begin << 1) | Int(1) );
+            next_front.Push( (a_begin << 1) | Int(0) );
             
-            // We may choose c_0 and c_1 so that a points from c_0 to c_1.
-            // This removes a couple of case distinctions.
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
+            A_prev(a_begin,0) = color;
+            A_prev(a_begin,1) = a_begin;
             
-            AssertCrossing<1>(c_0);
-            AssertCrossing<1>(c_1);
+            Int d = 0; // Distance of the elements of `next_front` to the origin `a_begin`.
             
-            // Copy of code from ArcSimplifier::load_c_0
-            
-            // Whether the vertical strand at c_0 points upwards.
-            const bool u_0 = (C_arcs(c_0,Out,Right) == a);
-            
-            const Int n_0 = C_arcs( c_0, !u_0,  Left  );
-            const Int s_0 = C_arcs( c_0,  u_0,  Right );
-            const Int w_0 = C_arcs( c_0,  In , !u_0   );
-            
-            AssertArc<1>(n_0);
-            AssertArc<1>(s_0);
-            AssertArc<1>(w_0);
-            
-            // Copy of code from ArcSimplifier::load_c_1
-            
-            // Whether the vertical strand at c_1 points upwards.
-            const bool u_1 = (C_arcs(c_1,In ,Left ) == a);
-            
-            const Int n_1 = C_arcs(c_1,!u_1, Left );
-            const Int e_1 = C_arcs(c_1, Out, u_1  );
-            const Int s_1 = C_arcs(c_1, u_1, Right);
-            
-            AssertArc<1>(n_1);
-            AssertArc<1>(e_1);
-            AssertArc<1>(s_1);
+            while( (d <= max_dist) && (!next_front.EmptyQ()) )
+            {
+                swap( prev_front, next_front );
+                
+                next_front.Reset();
 
-            /*              n_0           n_1
-             *               O             O
-             *               |      a      |
-             *       w_0 O---X-->O---->O---X-->O e_1
-             *               |c_0          |c_1
-             *               O             O
-             *              s_0           s_1
-             */
+                ++d;
+                while( !prev_front.EmptyQ() )
+                {
+                    const Int A_0 = prev_front.Pop();
+                    
+                    const Int a_0 = (A_0 >> 1);
+                    
+                    Int a = a_0;
+                    
+                    bool dir = (A_0 & Int(1));
+
+                    
+                    // arc a_0 itself does not have to be processed because that's we are coming from.
+                    std::tie(a,dir) = pd.NextLeftArc( a, dir );
+
+                    do
+                    {
+                        PD_ASSERT( (0 <= a) && (a < pd.initial_arc_count) );
+                        
+                        if( A_prev(a,0) != color ) // check whether `a` has been visited already.
+                        {
+                            A_prev(a,0) = color; // mark as visited
+                            A_prev(a,1) = a_0;   // remember where we came from
+                            
+                            if( a == a_end )
+                            {
+                                goto exit;
+                            }
+                            
+                            next_front.Push( (a << 1) | !dir );
+                        }
+                        
+                        std::tie(a,dir) = pd.NextLeftArc(a,dir);
+                    }
+                    while( a != a_0 );
+                }
+            }
             
-//            Int count_strands = 0;
-//            
-//            count_strands += (A_colors[n_1] == color);
-//            count_strands += (A_colors[e_1] == color);
-//            count_strands += (A_colors[s_1] == color);
-//            count_strands += (A_colors[s_0] == color);
-//            count_strands += (A_colors[w_0] == color);
-//            count_strands += (A_colors[n_0] == color);
-//            
-//            if( count_strands != 2 )
-//            {
-//                dump( A_colors[n_1] == color );
-//                dump( A_colors[e_1] == color );
-//                dump( A_colors[s_1] == color );
-//                dump( A_colors[s_0] == color );
-//                dump( A_colors[w_0] == color );
-//                dump( A_colors[n_0] == color );
-//            }
+        exit:
             
+            if( d <= max_dist )
+            {
+                Int a = a_end;
+                
+                std::vector<Int> path;
+                
+                path.push_back(a);
+                
+                for( Int i = 0; i < d; ++i )
+                {
+                    a = A_prev(a,1);
+                    
+                    path.push_back(a);
+                }
+                
+                dump(path);
+            }
             
-            // TODO: Figure out in which basic case we are.
+            ptoc(ClassName()+"::FindShortestPath");
             
-//            ++strand_1_counter;
-//            return true;
-            
-            return false;
+            return d;
         }
         
         
@@ -705,229 +669,10 @@ namespace KnotTools
         {
             return std::string("StrandSimplifier")
                 + "<" + TypeName<Int>
+                + "," + ToString(mult_compQ)
                 + ">";
         }
 
     }; // class StrandSimplifier
-            
+    
 } // namespace KnotTools
-
-
-
-
-
-
-
-
-//        bool operator()()
-//        {
-//
-//            ptic(ClassName()+"::operator()");
-//
-//            const Int n = C_arcs.Dimension(0);
-//            const Int m = A_cross.Dimension(0);
-////
-////            Tensor3<Int ,Int> C_strands  ( n, 2, 2, -1 );
-////            Tensor1<char,Int> A_visisted ( m, false );
-//
-//            Int color = 0;
-//            Int a_ptr = 0;
-//
-//            while( a_ptr < m )
-//            {
-//                // Search for next arc that is active.
-//                while( ( a_ptr < m ) && (!ArcActiveQ(a_ptr)) )
-//                {
-//                    ++a_ptr;
-//                }
-//
-//                if( a_ptr >= m )
-//                {
-//                    break;
-//                }
-//
-//                Int a = a_ptr;
-//                // Find the beginning of first overstrand.
-//                // For this, we go back along a until ArcUnderQ(a,Tail)
-//                while( ArcUnderQ(a,Tail) != overQ )
-//                {
-//                    a = PrevArc(a);
-//                }
-//
-//                S_ptr = 0;
-//
-//                S_[S_ptr] = a;
-//
-//                const Int a_0 = a;
-//
-//                c_0 = A_cross(a,Head);
-//                n_0 =
-//                w_0 =
-//                s_0 =
-//
-//                C_color[c_0] = color;
-//                A_color[n_0] = color;
-//                A_color[s_0] = color;
-//                A_color[w_0] = color;
-//
-//                c_1 = A_cross(a,Head);
-//                n_1 =
-//                e_1 =
-//                s_1 =
-//
-//
-//                C_color[a  ] = color;
-//                A_color[n_1] = color;
-//                A_color[e_1] = color;
-//                A_color[s_1] = color;
-//
-//                // Traverse forward through all arcs in the link component, until we return where we started.
-//                do
-//                {
-//
-//                    const bool overQ = (ArcUnderQ(a,Head) != overQ);
-//
-//                    if( overQ )
-//                    {
-//                        n_0 = n_1;
-//                        w_0 = a  ;
-//                        s_0 = s_1;
-//                          a = e_1;
-//
-//                        S_buffer[S_ptr++] = a;
-//
-//                        c_1 = A_cross(a,Head);
-//                        n_1 =
-//                        e_1 =
-//                        s_1 =
-//
-//                        if( C_color[c_1] == color )
-//                        {
-//                            // loop
-//                            //                          # s
-//                            //                          #
-//                            //                          #
-//                            //        O n_0             O n_1
-//                            //        |                 ^
-//                            // s      |        a        |
-//                            // ###O-------O-------->O-------O e_1
-//                            //        |c_0              |c_1
-//                            //        |                 |
-//                            //        O s_0             O s_1
-//                            //
-//                            // Check s_1 == e_1 !
-//                            //
-//                            // or
-//                            //
-//                            //        O n_0             O n_1
-//                            //        |                 ^
-//                            // s      |        a        |
-//                            // ###O-------O-------->O-------O#####
-//                            //        |c_0              |c_1
-//                            //        |                 |
-//                            //        O s_0             O s_1
-//                            //
-//                        }
-//
-//                        if( A_color[n_1] == color )
-//                        {
-//
-//
-//                        }
-//
-//                        if( A_color[e_1] == color )
-//                        {
-//
-////                                    O n_0             O n_1
-////                                    |                 ^
-////                             s      |        a        |     e_1
-////                             ###O-------O-------->O-------O####
-////                                    |c_0              |c_1
-////                                    |                 |
-////                                    O s_0             O s_1
-////
-////                             ==> ++i = unlink_count
-//                        }
-//
-//                        if( A_color[s_1] == color )
-//                        {
-//                            //        O n_0             O n_1
-//                            //        |                 ^
-//                            // s      |        a        |
-//                            // ###O-------O-------->O-------O e_1
-//                            //        |c_0              |c_1
-//                            //        |                 v
-//                            //        O s_0             O
-//                            //                          | s_1
-//                            //                          |
-//                            //                          O
-//                            //                          |
-//                            //                          |
-//                            //                  ####O---X---O
-//                            //                          |c_2
-//                            //                          |
-//                            //                          O
-//                            //
-//                            //
-//                            // or
-//                            //
-//                            //        O n_0             O n_1
-//                            //        |                 ^
-//                            // s      |        a        |
-//                            // ###O-------O-------->O-------O e_1
-//                            //        |c_0              |c_1
-//                            //        |                 v
-//                            //        O s_0             O
-//                            //                          | s_1
-//                            //                          |
-//                            //                          O
-//                            //                          |
-//                            //                          |
-//                            //                      O---X---O###
-//                            //                          |c_2
-//                            //                          |
-//                            //                          O
-//                            //
-//                            //
-//                            // or
-//                            //
-//                            //        O n_0             O n_1
-//                            //        |                 ^
-//                            // s      |        a        |
-//                            // ###O-------O-------->O-------O e_1
-//                            //        |c_0              |c_1
-//                            //        |                 v
-//                            //        O s_0             O
-//                            //                          | s_1
-//                            //                          |
-//                            //                          O
-//                            //                          |
-//                            //                          |
-//                            //                      O---X---O
-//                            //                          |c_2
-//                            //                          |
-//                            //                          O
-//                            //                          #
-//                            //                          #
-//
-//                        }
-//
-//                        C_color[a  ] = color;
-//                        A_color[n_1] = color;
-//                        A_color[e_1] = color;
-//                        A_color[s_1] = color;
-//                    }
-//                    else if( !overQ )
-//                    {
-//                        color++;
-//                    }
-//                }
-//                while( a != a_0 );
-//
-//                ++a_ptr;
-//            }
-//
-//            ptoc(ClassName()+"::operator()");
-//
-//            return false;
-//        }
