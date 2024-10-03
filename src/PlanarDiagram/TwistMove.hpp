@@ -1,18 +1,17 @@
-public:
+private:
 
 bool TwistMove( const Int c_0, const Int c_1, const bool side )
 {
-    // TODO: Actually, this is an indicator for a connect sum compontent.
+    // TODO: Actually, this is an indicator for a connect sum.
     // TODO: Can we detect this, instead?
     
-    PD_print("\tTwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
+    PD_PRINT("\tTwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
         
-    // We can resolve boths crossings in any case of sign distribution.
+    // We can resolve both crossings in any case of sign distribution.
     // See the commented-out code below for an explanation
     
-    PD_assert( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,!side) );
-    PD_assert( C_arcs(c_0,In ,side) == C_arcs(c_1,Out,!side) );
-    
+    PD_ASSERT( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,!side) );
+    PD_ASSERT( C_arcs(c_0,In ,side) == C_arcs(c_1,Out,!side) );
     
     const Int a   = C_arcs(c_0,In , side);
     const Int b   = C_arcs(c_0,Out, side);
@@ -22,25 +21,21 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     const Int e_1 = C_arcs(c_1,In , side);
     const Int e_2 = C_arcs(c_1,Out, side);
 
-    Reconnect(a,Tip ,e_3);
+    Reconnect(a,Head,e_3);
     Reconnect(a,Tail,e_1);
-    Reconnect(b,Tip ,e_2);
+    Reconnect(b,Head,e_2);
     Reconnect(b,Tail,e_0);
 
-//    DeactivateArc(e_0); // Done by Reconnect.
-//    DeactivateArc(e_1); // Done by Reconnect.
-//    DeactivateArc(e_2); // Done by Reconnect.
-//    DeactivateArc(e_3); // Done by Reconnect.
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
 
-    ++twist_move_counter;
+    ++twist_counter;
 
     return true;
     
-//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeCrossingSignsQ(c_0,c_1):
+//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeHandednessQ(c_0,c_1):
 //
-//                if( OppositeCrossingSignsQ(c_0,c_1) )
+//                if( OppositeHandednessQ(c_0,c_1) )
 //                {
 //// This horizontal alignment in the case of side == Right and positive crossing c_0
 //// Cases side == Left and sign = -1 are analogous.

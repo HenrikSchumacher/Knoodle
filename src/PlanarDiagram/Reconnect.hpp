@@ -1,39 +1,90 @@
+template<bool assertQ = true>
 void Reconnect( const Int a, const bool tiptail, const Int b )
 {
-    // Read: 
+    // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.
     // Then deactivates b.
     //
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
     
-    const bool io = (tiptail==Tip) ? In : Out;
+//    const bool io = (tiptail==Head) ? In : Out;
+    const bool io = tiptail;
     
-    PD_assert( a != b );
+    PD_ASSERT( a != b );
     
-    PD_assert( ArcActiveQ(a) );
+    PD_ASSERT( ArcActiveQ(a) );
 //    PD_assert( ArcActiveQ(b) ); // Could have been deactivated already.
     
     const Int c = A_cross(b, tiptail);
     
-    PD_assert( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
-    
-    PD_assert(CheckArc(b));
-    PD_assert(CheckCrossing(c));
-    
-    PD_assert( CrossingActiveQ(c) );
-    PD_assert( CrossingActiveQ(A_cross(a, tiptail)) );
-    PD_assert( CrossingActiveQ(A_cross(a,!tiptail)) );
+    // This is a hack to suppress warnings in situations where we cannot guarantee that c is intact (but where we can guarantee that it will finally be deactivated.
+    if constexpr ( assertQ )
+    {
+        AssertCrossing(c);
+        
+        PD_ASSERT(CheckArc(b));
+        
+        PD_ASSERT( CrossingActiveQ(A_cross(a, tiptail)) );
+        PD_ASSERT( CrossingActiveQ(A_cross(a,!tiptail)) );
+    }
+
     
     A_cross(a,tiptail) = c;
 
-    const bool lr = (C_arcs(c,io,Left) == b) ? Left : Right;
+    PD_ASSERT( (C_arcs(c,io,Left) == b) || (C_arcs(c,io,Right) == b) );
+
+//    const bool side = (C_arcs(c,io,Left) == b) ? Left : Right;
+//    const bool side = (C_arcs(c,io,Left) != b);
+    const bool side = (C_arcs(c,io,Right) == b);
     
-    C_arcs(c,io,lr) = a;
+    C_arcs(c,io,side) = a;
     
-//    touched_crossings.push_back(c);
-        
-    // TODO: Is this a good idea?
     DeactivateArc(b);
 }
+
+ 
+void Reconnect( ArcView & A, const bool headtail, ArcView & B )
+{
+    // Read:
+    // Reconnect arc A with its tip/tail to where B pointed/started.
+    // Then deactivates B.
+    //
+    // Also keeps track of crossings that got touched and that might thus
+    // be interesting for further simplification.
+    
+    const bool io = (headtail==Head) ? In : Out;
+    
+    PD_ASSERT( A.Idx() != B.Idx() );
+    
+    PD_ASSERT( A.ActiveQ() );
+//    PD_ASSERT( B.ActiveQ() ); // Could have been deactivated already.
+    
+    auto C = GetCrossing( B(headtail) );
+    
+    
+    PD_ASSERT( (C(io,Left) == B.Idx()) || (C(io,Right) == B.Idx()) );
+    
+    PD_ASSERT(CheckArc(B.Idx()));
+    PD_ASSERT(CheckCrossing(C.Idx()));
+    
+    PD_ASSERT(C.ActiveQ());
+    PD_ASSERT(CrossingActiveQ(A( headtail)));
+    PD_ASSERT(CrossingActiveQ(A(!headtail)));
+    
+    
+    A(headtail) = C.Idx();
+
+    const bool lr = (C(io,Left) == B.Idx()) ? Left : Right;
+    
+    C(io,lr) = A.Idx();
+    
+#ifdef PD_USE_TOUCHING
+    //touched_crossings.push_back(a);
+    touched_crossings.push_back(C.Idx());
+#endif
+    
+    DeactivateArc(B.Idx());
+}
+
 

@@ -531,12 +531,15 @@ namespace KnotTools
         {
             return edges;
         }
-                
+        
+        
+    public:
+        
         /*! @brief Returns the name of the class, including template parameters.
          *
          *  Used for logging, profiling, and error handling.
          */
-        
+
         static std::string ClassName()
         {
             return std::string("Link")+"<"+TypeName<Int>+">";

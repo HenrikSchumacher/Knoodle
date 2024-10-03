@@ -33,6 +33,13 @@ namespace KnotTools
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
+        static constexpr bool Tail  = PD_T::Tail;
+        static constexpr bool Head  = PD_T::Head;
+        static constexpr bool Left  = PD_T::Left;
+        static constexpr bool Right = PD_T::Right;
+        static constexpr bool Out   = PD_T::Out;
+        static constexpr bool In    = PD_T::In;
+        
         Alexander()
         :   sparsity_threshold ( 256 )
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
@@ -77,113 +84,8 @@ namespace KnotTools
             return sparsity_threshold;
         }
     
-        void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
-        {
-            // Writes the dense Alexander matrix to the provided buffer A.
-            // User is responsible for making sure that the buffer is large enough.
-            ptic(ClassName()+"::DenseAlexanderMatrix");
-            
-            // Assemble dense Alexander matrix, skipping last row and last column.
-
-            
-            const Int n = pd.CrossingCount() - 1;
-            
-            // TODO: Replace this by pd.CrossingOverArcs() and measure!
-            const auto over_arc_idx = pd.OverArcIndices();
-            
-            const auto & C_arcs  = pd.Crossings();
-            
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
-            
-            const Scal v [3] = { Scal(1) - t, Scal(-1), t};
-            
-            Int counter = 0;
-            
-            for( Int c = 0; c < C_arcs.Size(); ++c )
-            {
-                if( counter >= n )
-                {
-                    break;
-                }
-                
-                switch( C_state[c] )
-                {
-                    case CrossingState::LeftHanded:
-                    {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-                        
-                        const Int i = over_arc_idx[C[1][0]];
-                        const Int j = over_arc_idx[C[1][1]];
-                        const Int k = over_arc_idx[C[0][0]];
-                        
-                        mptr<Scal> row = &A[ n * counter ];
-                        
-                        zerofy_buffer( row, n );
-                        
-                        if( i < n )
-                        {
-                            row[i] += v[0]; // = 1 - t
-                        }
-                        
-                        if( j < n )
-                        {
-                            row[j] += v[1]; // -1
-                        }
-                        
-                        if( k < n )
-                        {
-                            row[k] += v[2]; // t
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    case CrossingState::RightHanded:
-                    {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-                    
-                        const Int i = over_arc_idx[C[1][1]];
-                        const Int j = over_arc_idx[C[1][0]];
-                        const Int k = over_arc_idx[C[0][1]];
-                        
-                        mptr<Scal> row = &A[ n * counter ];
-                        
-                        zerofy_buffer( row, n );
-                        
-                        if( i < n )
-                        {
-                            row[i] += v[0]; // = 1-t
-                        }
-                        
-                        if( j < n )
-                        {
-                            row[j] += v[2]; // = t
-                        }
-                        
-                        if( k < n )
-                        {
-                            row[k] += v[1]; // = -1
-                        }
-                        
-                        ++counter;
-                        
-                        break;
-                    }
-                    default:
-                    {
-                        break;
-                    }
-                }
-            }
-            
-//            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
-            
-            ptoc(ClassName()+"::DenseAlexanderMatrix");
-        }
-        
+        // This is the reference implementation.
+        // All other routines have to copy code from here.
         template<bool fullQ = false>
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
         {
@@ -213,18 +115,17 @@ namespace KnotTools
 
             mref<Aggregator_T> agg = Agg[0];
 
-            // TODO: Replace this by pd.CrossingOverArcs() and measure!
-            const auto over_arc_idx = pd.OverArcIndices();
+            const auto arc_strands = pd.ArcOverStrands();
 
-            const auto & C_arcs  = pd.Crossings();
+            const auto & C_arcs = pd.Crossings();
 
             cptr<CrossingState> C_state = pd.CrossingStates().data();
 
-//            const Scal v [3] = { Scal(1) - t, Scal(-1), t};
+            // const Scal v [3] = { Scal(1) - t, -1, t };
             const Scal v [3] = {
-                (degree == 0) ? Scal( 1) : Scal(-1),
-                (degree == 0) ? Scal(-1) : Scal( 0),
-                (degree == 0) ? Scal( 0) : Scal( 1)
+                (degree == 0) ? Scal( 1) : Scal(-1), // 1 - t
+                (degree == 0) ? Scal(-1) : Scal( 0), // - 1
+                (degree == 0) ? Scal( 0) : Scal( 1)  // t
             };
 
             Int counter = 0;
@@ -235,66 +136,84 @@ namespace KnotTools
                 {
                     break;
                 }
+                
+                const CrossingState s = C_state[c];
 
-                switch( C_state[c] )
+                // Convention:
+                // i is incoming over-strand that goes over.
+                // j is incoming over-strand that goes under.
+                // k is outgoing over-strand that goes under.
+                
+                if( RightHandedQ(s) )
                 {
-                    case CrossingState::LeftHanded:
+                    pd.AssertCrossing(c);
+                    
+                    // Reading in order of appearance in C_arcs.
+                    const Int k = arc_strands[C_arcs(c,Out,Left )];
+                    const Int i = arc_strands[C_arcs(c,In ,Left )];
+                    const Int j = arc_strands[C_arcs(c,In ,Right)];
+                    
+                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                    //
+                    //    k -> t O     O
+                    //            ^   ^
+                    //             \ /
+                    //              /
+                    //             / \
+                    //            /   \
+                    //  i -> 1-t O     O j -> -1
+                    
+                    if( fullQ || (i < n) )
                     {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-                      
-                        const Int i = over_arc_idx[C[1][0]];
-                        const Int j = over_arc_idx[C[1][1]];
-                        const Int k = over_arc_idx[C[0][0]];
-                        
-                        if( fullQ || (i < n) )
-                        {
-                            agg.Push( counter, i, v[0] );
-                        }
-
-                        if( fullQ || (j < n) )
-                        {
-                            agg.Push( counter, j, v[1] );
-                        }
-
-                        if( fullQ || (k < n) )
-                        {
-                            agg.Push( counter, k, v[2] );
-                        }
-                        ++counter;
-                        break;
+                        agg.Push(counter, i, v[0] ); // 1 - t
                     }
-                    case CrossingState::RightHanded:
+
+                    if( fullQ || (j < n) )
                     {
-                        Int C [2][2];
-                        copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-                        
-                        const Int i = over_arc_idx[C[1][1]];
-                        const Int j = over_arc_idx[C[1][0]];
-                        const Int k = over_arc_idx[C[0][1]];
-       
-                        if( fullQ || (i < n) )
-                        {
-                            agg.Push(counter, i, v[0] );
-                        }
-
-                        if( fullQ || (j < n) )
-                        {
-                            agg.Push(counter, j, v[2] );
-                        }
-
-                        if( fullQ || (k < n) )
-                        {
-                            agg.Push(counter, k, v[1] );
-                        }
-
-                        ++counter;
-                        break;
+                        agg.Push(counter, j, v[1] ); // -1
                     }
-                    default:
+
+                    if( fullQ || (k < n) )
                     {
-                        break;
+                        agg.Push(counter, k, v[2] ); // t
                     }
+
+                    ++counter;
+                }
+                else if( LeftHandedQ(s) )
+                {
+                    pd.AssertCrossing(c);
+                    
+                    // Reading in order of appearance in C_arcs.
+                    const Int k = arc_strands[C_arcs(c,Out,Right)];
+                    const Int j = arc_strands[C_arcs(c,In ,Left )];
+                    const Int i = arc_strands[C_arcs(c,In ,Right)];
+                    
+                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                    //           O     O  k -> -1
+                    //            ^   ^
+                    //             \ /
+                    //              \
+                    //             / \
+                    //            /   \
+                    //   j  -> t O     O i -> 1-t
+                    
+                    if( fullQ || (i < n) )
+                    {
+                        agg.Push( counter, i, v[0] ); // 1 - t
+                    }
+
+                    if( fullQ || (j < n) )
+                    {
+                        agg.Push( counter, j, v[2] ); // t
+                    }
+
+                    if( fullQ || (k < n) )
+                    {
+                        agg.Push( counter, k, v[1] ); // -1
+                    }
+                    
+                    ++counter;
                 }
             }
 
@@ -305,6 +224,122 @@ namespace KnotTools
             ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
             return A;
+        }
+        
+        void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
+        {
+            // Writes the dense Alexander matrix to the provided buffer A.
+            // User is responsible for making sure that the buffer is large enough.
+            ptic(ClassName()+"::DenseAlexanderMatrix");
+            
+            // Assemble dense Alexander matrix, skipping last row and last column.
+
+            const Int n = pd.CrossingCount() - 1;
+            
+            const auto arc_strands = pd.ArcOverStrands();
+            
+            const auto & C_arcs = pd.Crossings();
+            
+            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            
+             const Scal v [3] = { Scal(1) - t, Scal(-1), t };
+            
+            Int counter = 0;
+            
+            for( Int c = 0; c < C_arcs.Size(); ++c )
+            {
+                if( counter >= n )
+                {
+                    break;
+                }
+                
+                const CrossingState s = C_state[c];
+
+                mptr<Scal> row = &A[ n * counter ];
+
+                zerofy_buffer( row, n );
+                
+                // Convention:
+                // i is incoming over-strand that goes over.
+                // j is incoming over-strand that goes under.
+                // k is outgoing over-strand that goes under.
+                
+                if( RightHandedQ(s) )
+                {
+                    pd.AssertCrossing(c);
+                    
+                    // Reading in order of appearance in C_arcs.
+                    const Int k = arc_strands[C_arcs(c,Out,Left )];
+                    const Int i = arc_strands[C_arcs(c,In ,Left )];
+                    const Int j = arc_strands[C_arcs(c,In ,Right)];
+                    
+                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                    //
+                    //    k -> t O     O
+                    //            ^   ^
+                    //             \ /
+                    //              /
+                    //             / \
+                    //            /   \
+                    //  i -> 1-t O     O j -> -1
+                    
+                    if( i < n )
+                    {
+                        row[i] += v[0]; // = 1 - t
+                    }
+
+                    if( j < n )
+                    {
+                        row[j] += v[1]; // -1
+                    }
+
+                    if( k < n )
+                    {
+                        row[k] += v[2]; // t
+                    }
+
+                    ++counter;
+                }
+                else if( LeftHandedQ(s) )
+                {
+                    pd.AssertCrossing(c);
+                    
+                    // Reading in order of appearance in C_arcs.
+                    const Int k = arc_strands[C_arcs(c,Out,Right)];
+                    const Int j = arc_strands[C_arcs(c,In ,Left )];
+                    const Int i = arc_strands[C_arcs(c,In ,Right)];
+                    
+                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                    //           O     O  k -> -1
+                    //            ^   ^
+                    //             \ /
+                    //              \
+                    //             / \
+                    //            /   \
+                    //   j  -> t O     O i -> 1-t
+                    
+                    if( i < n )
+                    {
+                        row[i] += v[0]; // = 1 - t
+                    }
+
+                    if( j < n )
+                    {
+                        row[j] += v[2]; // t
+                    }
+
+                    if( k < n )
+                    {
+                        row[k] += v[1]; // -1
+                    }
+                    
+                    ++counter;
+                }
+            }
+            
+//            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
+            
+            ptoc(ClassName()+"::DenseAlexanderMatrix");
         }
 
         
@@ -328,17 +363,11 @@ namespace KnotTools
                 mref<Aggregator_T> agg_0 = Agg_0[0];
                 mref<Aggregator_T> agg_1 = Agg_1[0];
                 
-                // TODO: Replace this by pd.CrossingOverArcs() and measure!
-//                const auto C_over_arcs = pd.CrossingOverArcs();
-                
-                const auto over_arc_idx = pd.OverArcIndices();
+                const auto arc_strands = pd.ArcOverStrands();
                 
                 const auto & C_arcs = pd.Crossings();
                 
                 cptr<CrossingState> C_state = pd.CrossingStates().data();
-                
-                const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
-                const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
                 
                 Int counter = 0;
                 
@@ -349,74 +378,94 @@ namespace KnotTools
                         break;
                     }
                     
-                    switch( C_state[c] )
+                    const CrossingState s = C_state[c];
+                    
+                    // Convention:
+                    // i is incoming over-strand that goes over.
+                    // j is incoming over-strand that goes under.
+                    // k is outgoing over-strand that goes under.
+                    
+                    if( RightHandedQ(s) )
                     {
-                        case CrossingState::LeftHanded:
-                        {
-                            Int C [2][2];
-                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                        pd.AssertCrossing(c);
                         
-                            const Int i = over_arc_idx[C[1][0]];
-                            const Int j = over_arc_idx[C[1][1]];
-                            const Int k = over_arc_idx[C[0][0]];
-                            
-                            if( i < n )
-                            {
-                                agg_0.Push( counter, i, v_0[0] );
-                                agg_1.Push( counter, i, v_1[0] );
-                            }
-                            
-                            if( j < n )
-                            {
-                                agg_0.Push( counter, j, v_0[1] );
-                                agg_1.Push( counter, j, v_1[1] );
-                            }
-                            
-                            if( k < n )
-                            {
-                                agg_0.Push( counter, k, v_0[2] );
-                                agg_1.Push( counter, k, v_1[2] );
-                            }
-                            
-                            ++counter;
-                            
-                            break;
-                        }
-                        case CrossingState::RightHanded:
-                        {
-                            Int C [2][2];
-                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                        // Reading in order of appearance in C_arcs.
+                        const Int k = arc_strands[C_arcs(c,Out,Left )];
+                        const Int i = arc_strands[C_arcs(c,In ,Left )];
+                        const Int j = arc_strands[C_arcs(c,In ,Right)];
                         
-                            const Int i = over_arc_idx[C[1][1]];
-                            const Int j = over_arc_idx[C[1][0]];
-                            const Int k = over_arc_idx[C[0][1]];
-                            
-                            if( i < n )
-                            {
-                                agg_0.Push(counter, i, v_0[0] );
-                                agg_1.Push(counter, i, v_1[0] );
-                            }
-                            
-                            if( j < n )
-                            {
-                                agg_0.Push(counter, j, v_0[2] );
-                                agg_1.Push(counter, j, v_1[2] );
-                            }
-                            
-                            if( k < n )
-                            {
-                                agg_0.Push(counter, k, v_0[1] );
-                                agg_1.Push(counter, k, v_1[1] );
-                            }
-                            
-                            ++counter;
-                            
-                            break;
-                        }
-                        default:
+                        // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                        //
+                        //    k -> t O     O
+                        //            ^   ^
+                        //             \ /
+                        //              /
+                        //             / \
+                        //            /   \
+                        //  i -> 1-t O     O j -> -1
+
+
+                        if( i < n )
                         {
-                            break;
+                            // 1 - t
+                            agg_0.Push( counter, i,  1 );
+                            agg_1.Push( counter, i, -1 );
                         }
+
+                        if( j < n )
+                        {
+                            // -1
+                            agg_0.Push( counter, j, -1 );
+                            agg_1.Push( counter, j,  0 );
+                        }
+
+                        if( k < n )
+                        {
+                            // t
+                            agg_0.Push( counter, k,  0 );
+                            agg_1.Push( counter, k,  1 );
+                        }
+                        
+                        ++counter;
+                    }
+                    else if( LeftHandedQ(s) )
+                    {
+                        pd.AssertCrossing(c);
+                        
+                        const Int k = arc_strands[C_arcs(c,Out,Right)];
+                        const Int j = arc_strands[C_arcs(c,In ,Left )];
+                        const Int i = arc_strands[C_arcs(c,In ,Right)];
+                        
+                        // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                        //           O     O  k -> -1
+                        //            ^   ^
+                        //             \ /
+                        //              \
+                        //             / \
+                        //            /   \
+                        //   j  -> t O     O i -> 1-t
+        
+                        // Reading in order of appearance in C_arcs.
+                        
+                        if( i < n )
+                        {
+                            agg_0.Push( counter, i,  1 ); // 1 - t
+                            agg_1.Push( counter, i, -1 ); // 1 - t
+                        }
+
+                        if( j < n )
+                        {
+                            agg_0.Push( counter, j,  0 ); // t
+                            agg_1.Push( counter, j,  1 );
+                        }
+
+                        if( k < n )
+                        {
+                            agg_0.Push( counter, k, -1 ); // -1
+                            agg_1.Push( counter, k,  0 );
+                        }
+                        
+                        ++counter;
                     }
                 }
                 
@@ -449,8 +498,6 @@ namespace KnotTools
                 S->SymbolicFactorization();
                 
                 pd.SetCache( tag_fact, std::move(S) );
-                
-                // TODO: We could reorder AHA here to (marginally) speed up the numeric factorization.
                 
                 // TODO: Do we really have to compute 2 sparse transposes and 4 sparse dots?
                 Tensor2<Scal,LInt> herm_alex_help ( 4, AHA.NonzeroCount() );
@@ -473,182 +520,6 @@ namespace KnotTools
             }
 
             ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
-        }
-        
-        void RequireSparseHermitianAlexanderMatrix2( cref<PD_T> pd ) const
-        {
-            ptic(ClassName()+"::RequireSparseHermitianAlexanderMatrix2");
-            
-            std::string tag_help ( std::string( "SparseHermitianAlexanderHelpers_" ) + TypeName<Scal>);
-            std::string tag_fact ( std::string( "SparseHermitianAlexanderFactorization_" ) + TypeName<Scal> );
-
-            if( (!pd.InCacheQ(tag_fact)) || (!pd.InCacheQ(tag_help)) )
-            {
-                const Int n = pd.CrossingCount()-1;
-                
-                std::vector<Aggregator_T> Agg_0;
-                std::vector<Aggregator_T> Agg_1;
-                
-                Agg_0.emplace_back(3 * n);
-                Agg_1.emplace_back(3 * n);
-                
-                mref<Aggregator_T> agg_0 = Agg_0[0];
-                mref<Aggregator_T> agg_1 = Agg_1[0];
-                
-                // TODO: Replace this by pd.CrossingOverArcs() and measure!
-                const auto C_over_arcs = pd.CrossingOverArcs();
-                
-//                const auto over_arc_idx = pd.OverArcIndices();
-                
-                const auto & C_arcs = pd.Crossings();
-                
-                cptr<CrossingState> C_state = pd.CrossingStates().data();
-                
-                const Scal v_0 [3] = { Scal( 1), Scal(-1), Scal( 0) };
-                const Scal v_1 [3] = { Scal(-1), Scal( 0), Scal( 1) };
-                
-                Int counter = 0;
-                
-                for( Int c = 0; c < C_arcs.Size(); ++c )
-                {
-                    if( counter >= n )
-                    {
-                        break;
-                    }
-                    
-                    switch( C_state[c] )
-                    {
-                        case CrossingState::LeftHanded:
-                        {
-//                            Int C [2][2];
-//                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-//
-//                            const Int i = over_arc_idx[C[1][0]];
-//                            const Int j = over_arc_idx[C[1][1]];
-//                            const Int k = over_arc_idx[C[0][0]];
-                            
-                            const Int i = C_over_arcs(c,1,0);
-                            const Int j = C_over_arcs(c,1,1);
-                            const Int k = C_over_arcs(c,0,0);
-                            
-                            if( i < n )
-                            {
-                                agg_0.Push( counter, i, v_0[0] );
-                                agg_1.Push( counter, i, v_1[0] );
-                            }
-                            
-                            if( j < n )
-                            {
-                                agg_0.Push( counter, j, v_0[1] );
-                                agg_1.Push( counter, j, v_1[1] );
-                            }
-                            
-                            if( k < n )
-                            {
-                                agg_0.Push( counter, k, v_0[2] );
-                                agg_1.Push( counter, k, v_1[2] );
-                            }
-                            
-                            ++counter;
-                            
-                            break;
-                        }
-                        case CrossingState::RightHanded:
-                        {
-//                            Int C [2][2];
-//                            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-//
-//                            const Int i = over_arc_idx[C[1][1]];
-//                            const Int j = over_arc_idx[C[1][0]];
-//                            const Int k = over_arc_idx[C[0][1]];
-                            
-                            const Int i = C_over_arcs(c,1,1);
-                            const Int j = C_over_arcs(c,1,0);
-                            const Int k = C_over_arcs(c,0,1);
-                            
-                            
-                            if( i < n )
-                            {
-                                agg_0.Push(counter, i, v_0[0] );
-                                agg_1.Push(counter, i, v_1[0] );
-                            }
-                            
-                            if( j < n )
-                            {
-                                agg_0.Push(counter, j, v_0[2] );
-                                agg_1.Push(counter, j, v_1[2] );
-                            }
-                            
-                            if( k < n )
-                            {
-                                agg_0.Push(counter, k, v_0[1] );
-                                agg_1.Push(counter, k, v_1[1] );
-                            }
-                            
-                            ++counter;
-                            
-                            break;
-                        }
-                        default:
-                        {
-                            break;
-                        }
-                    }
-                }
-                
-                agg_0.Finalize();
-                agg_1.Finalize();
-                
-                SparseMatrix_T A_0 ( Agg_0, n, n, Int(1), true, false );
-                SparseMatrix_T A_1 ( Agg_1, n, n, Int(1), true, false );
-                
-                SparseMatrix_T AH_0 = A_0.ConjugateTranspose();
-                SparseMatrix_T AH_1 = A_1.ConjugateTranspose();
-                
-                SparseMatrix_T AHA = AH_0.Dot( A_0 );
-                
-                
-                Sparse::ApproximateMinimumDegree<Int> reorderer;
-                
-    //                Sparse::Metis<Int> reorderer;
-
-                Permutation<Int> perm = reorderer(
-                    AHA.Outer().data(), AHA.Inner().data(), AHA.RowCount(), Int(1)
-                );
-                
-                // Create Cholesky factorization.
-                
-                Factorization_Ptr S = std::make_shared<Factorization_T>(
-                    AHA.Outer().data(), AHA.Inner().data(), std::move(perm)
-                );
-                
-                S->SymbolicFactorization();
-                
-                pd.SetCache( tag_fact, std::move(S) );
-                
-                // TODO: We could reorder AHA here to (marginally) speed up the numeric factorization.
-                
-                // TODO: Do we really have to compute 2 sparse transposes and 4 sparse dots?
-                Tensor2<Scal,LInt> herm_alex_help ( 4, AHA.NonzeroCount() );
-                
-                AHA.Values().Write( herm_alex_help.data(0) );
-                AHA = SparseMatrix_T(); // Release memory.
-                
-                AHA = AH_0.Dot( A_1 );
-                AHA.Values().Write( herm_alex_help.data(1) );
-                AHA = SparseMatrix_T(); // Release memory.
-                
-                AHA = AH_1.Dot( A_0 );
-                AHA.Values().Write( herm_alex_help.data(2) );
-                AHA = SparseMatrix_T(); // Release memory.
-                
-                AHA = AH_1.Dot( A_1 );
-                AHA.Values().Write( herm_alex_help.data(3) );
-                
-                pd.SetCache( tag_help, std::move(herm_alex_help) );
-            }
-
-            ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix2");
         }
         
         void LogAlexanderModuli_Sparse(
@@ -687,15 +558,15 @@ namespace KnotTools
                     
                     const Scal t   = args[idx];
                     const Scal tc  = Conj(t);
-                    const Scal tt  = t * tc;
+                    const Scal ttc = t * tc;
 
                     for( LInt i = 0; i < nnz; ++i )
                     {
                         herm_alex_vals[i]
-                        =          herm_alex_help[0][i]
-                            + t  * herm_alex_help[1][i]
-                            + tc * herm_alex_help[2][i]
-                            + tt * herm_alex_help[3][i];
+                        =           herm_alex_help[0][i]
+                            + t   * herm_alex_help[1][i]
+                            + tc  * herm_alex_help[2][i]
+                            + ttc * herm_alex_help[3][i];
                     }
                     
                     S->NumericFactorization( herm_alex_vals.data() );
