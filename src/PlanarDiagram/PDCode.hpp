@@ -40,12 +40,8 @@ PlanarDiagram(
     
     for( Int c = 0; c < crossing_count; ++c )
     {
-        dump(c);
-        
         Int X [5];
         copy_buffer<5>( &pd_codes_[5*c], &X[0] );
-        
-        print( ArrayToString( &X[0], {5} ) );
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
@@ -54,8 +50,6 @@ PlanarDiagram(
         }
         
         bool righthandedQ = (X[4] > 0);
-        
-        Int C [2][2];
         
         if( righthandedQ )
         {
@@ -73,15 +67,20 @@ PlanarDiagram(
              *    X[3]           X[0]
              */
             
+            // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[1] = X[3] + 1.
+            // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
+            // each other as will A_cross(X[3],Head) and A_cross(X[1],Tail).
+            // So this odd-appearing way of accessing A_cross is optimal.
+            
             A_cross(X[0],Head) = c;
-            A_cross(X[1],Tail) = c;
             A_cross(X[2],Tail) = c;
             A_cross(X[3],Head) = c;
+            A_cross(X[1],Tail) = c;
 
-            C[Out][Left ] = X[2];
-            C[Out][Right] = X[1];
-            C[In ][Left ] = X[3];
-            C[In ][Right] = X[0];
+            C_arcs(c,Out,Left ) = X[2];
+            C_arcs(c,Out,Right) = X[1];
+            C_arcs(c,In ,Left ) = X[3];
+            C_arcs(c,In ,Right) = X[0];
         }
         else // left-handed
         {
@@ -99,18 +98,21 @@ PlanarDiagram(
              *    X[0]           X[1]
              */
             
+            // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[3] = X[1] + 1.
+            // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
+            // each other as will A_cross(X[1],Head) and A_cross(X[3],Tail).
+            // So this odd-appearing way of accessing A_cross is optimal.
+            
             A_cross(X[0],Head) = c;
-            A_cross(X[1],Head) = c;
             A_cross(X[2],Tail) = c;
+            A_cross(X[1],Head) = c;
             A_cross(X[3],Tail) = c;
             
-            C[Out][Left ] = X[3];
-            C[Out][Right] = X[2];
-            C[In ][Left ] = X[0];
-            C[In ][Right] = X[1];
+            C_arcs(c,Out,Left ) = X[3];
+            C_arcs(c,Out,Right) = X[2];
+            C_arcs(c,In ,Left ) = X[0];
+            C_arcs(c,In ,Right) = X[1];
         }
-        
-        copy_buffer<4>( &C[0][0], C_arcs.data(c) );
     }
     
     fill_buffer( A_state.data(), ArcState::Active, arc_count );
@@ -368,92 +370,4 @@ Tensor2<Int,Int> PDCode() const
     ptoc( ClassName()+"::PDCode");
     
     return pdcode;
-}
-
-
-
-private:
-
-CrossingState PDHandedness( mptr<Int> X )
-{
-    const Int i = X[0];
-    const Int j = X[1];
-    const Int k = X[2];
-    const Int l = X[3];
-    
-    // This is what we know so far:
-    //
-    //      l \     ^ k
-    //         \   /
-    //          \ /
-    //           \
-    //          / \
-    //         /   \
-    //      i /     \ j
-    //
-
-    // Generically, we should have l = j + 1 or j = l + 1.
-    // But of course, we also have to treat the edge case where
-    // j and l differ by more than one due to the wrap-around at the end
-    // of a connected component.
-    
-    // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dor Bar-Natan.
-    
-    if( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
-    {
-        // These are right-handed:
-        //
-        //       O       O            O-------O
-        //      l \     ^ k          l \     ^ k
-        //         \   /                \   /
-        //          \ /                  \ /
-        //           \                    \
-        //          / \                  / \
-        //         /   \                /   \
-        //      i /     v j          i /     v j
-        //       O---<---O            O       O
-        //
-        //       O       O            O       O
-        //      l \     ^ k     j + x  \     ^ k
-        //         \   /                \   /
-        //          \ /                  \ /
-        //           \                    \
-        //          / \                  / \
-        //         /   \                /   \
-        //      i /     v l + 1     i  /     v j
-        //       O       O            O       O
-        
-        return CrossingState::RightHanded;
-    }
-    else if( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
-    {
-        // These are left-handed:
-        //
-        //       O       O            O       O
-        //      l|^     ^ k          l ^     ^|k
-        //       | \   /                \   / |
-        //       |  \ /                  \ /  |
-        //       |   \                    \   |
-        //       |  / \                  / \  |
-        //       | /   \                /   \ |
-        //      i|/     \ j          i /     \|j
-        //       O       O            O       O
-        //
-        //       O       O            O       O
-        //    j+1 ^     ^ k         l  ^     ^ k
-        //         \   /                \   /
-        //          \ /                  \ /
-        //           \                    \
-        //          / \                  / \
-        //         /   \                /   \
-        //      i /     \ j         i  /     \ l + x
-        //       O       O            O       O
-        //
-        return CrossingState::LeftHanded;
-    }
-    else
-    {
-        eprint(ClassName() +"::PDHandedness: Handedness of {" + ToString(i) + "," + ToString(i) + "," + ToString(j) + "," + ToString(k) + "," + ToString(l) + "} could not be determined. Make sure that consecutive arcs on each component have consecutive labels (except the wrap-around, of course).");
-        return CrossingState::Inactive;
-    }
 }

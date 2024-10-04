@@ -581,6 +581,8 @@ namespace KnotTools
         }
         
         
+        
+        
         /*!
          * @brief Returns the number of trivial unlinks in the diagram, i.e., unknots that do not share any crossings with other link components.
          */
@@ -1186,7 +1188,7 @@ namespace KnotTools
 #ifdef PD_DEBUG
                 if constexpr ( assertsQ )
                 {
-                    wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
+                    wprint("Attempted to deactivate already inactive " + CrossingString(c) + ".");
                 }
 #endif
             }
@@ -1225,7 +1227,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive crossing " + C.String() + ".");
+                wprint("Attempted to deactivate already inactive " + C.String() + ".");
 #endif
             }
             
@@ -1261,7 +1263,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + ArcString(a) + ".");
+                wprint("Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
             }
         }
@@ -1280,7 +1282,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + A.String() + ".");
+                wprint("Attempted to deactivate already inactive " + A.String() + ".");
 #endif
             }
         }
@@ -1421,6 +1423,90 @@ namespace KnotTools
                     //   O     O
 
                     return Arrow_T(C_arcs(c,In,Right),Tail);
+                }
+            }
+        }
+        
+        /*!
+         * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning right.
+         */
+        
+        Arrow_T NextRightArc( const Int a, const bool headtail ) const
+        {
+            // TODO: Signed indexing does not work because of 0!
+            
+            AssertArc(a);
+            
+            const Int c = A_cross(a,headtail);
+            
+            AssertCrossing(c);
+            
+            // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
+            
+            if( headtail == Head )
+            {
+                // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
+
+                const Int b = C_arcs(c,In,Right);
+
+                if( b != a )
+                {
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    //   a     b
+
+                    return Arrow_T(b,Tail);
+                }
+                else // if( b == a )
+                {
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    //       a == b
+
+                    return Arrow_T(C_arcs(c,Out,Right),Head);
+                }
+            }
+            else // if( headtail == Tail )
+            {
+                // Also here we can make it so that we have to read for a second time only in 50% of the cases.
+
+                const Int b = C_arcs(c,Out,Left);
+
+                if( b != a )
+                {
+                    //   b     a
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(b,Head);
+                }
+                else // if( b == a )
+                {
+                    // a == b
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(C_arcs(c,In,Left),Tail);
                 }
             }
         }
