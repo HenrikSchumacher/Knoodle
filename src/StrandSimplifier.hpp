@@ -244,7 +244,7 @@ namespace KnotTools
 
         std::string StrandString( const Int a_begin, const Int a_end) const
         {
-            std::string s;
+            std::stringstream s;
 
             Int a = a_begin;
             Int i = 0;
@@ -263,7 +263,7 @@ namespace KnotTools
             }
             while( a != a_end );
             
-            return s;
+            return s.str();
         }
         
         template<bool assertQ = true>
