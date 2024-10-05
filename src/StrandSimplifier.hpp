@@ -242,6 +242,30 @@ namespace KnotTools
         }
         
 
+        std::string StrandString( const Int a_begin, const Int a_end) const
+        {
+            std::string s;
+
+            Int a = a_begin;
+            Int i = 0;
+            
+            s << ToString(0) << " : " <<  CrossingString(A_cross(a,Tail)) << "\n";
+            s << ToString(0) << " : " <<  ArcString(a)                    << "\n";
+            s << ToString(1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
+
+            do
+            {
+                ++i;
+                a = pd.NextArc(a);
+                s << ToString(i  ) << " : " <<  ArcString(a)                    << "\n";
+                s << ToString(1+1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
+
+            }
+            while( a != a_end );
+            
+            return s;
+        }
+        
         template<bool assertQ = true>
         void Reconnect( const Int a_, const bool headtail, const Int b_ )
         {
@@ -388,8 +412,8 @@ namespace KnotTools
                     // TODO: We must make sure that there cannot be any Reidemeister II moves involving this strand.
                     
 
-                    // DEBUGGING
-                    Reidemeister_II_Test(a);
+//                    // DEBUGGING
+//                    Reidemeister_II_Test(a);
                     
                     // Arc gets old color.
                     A_color(a) = color;
@@ -413,7 +437,7 @@ namespace KnotTools
                     {
                         bool changedQ = false;
                         
-                        if( strand_length > 2 )
+                        if( strand_length > 1 )
                         {
                             PD_ASSERT( a != a_begin );
                             
@@ -510,9 +534,9 @@ namespace KnotTools
         {
             PD_DPRINT( ClassName() + "::CollapseArcRange" );
             
-            logvalprint( "a_begin", ArcString(a_begin) );
-            logvalprint( "a_end",   ArcString(a_end  ) );
-            logvalprint( "arc_count",   arc_count );
+//            logvalprint( "a_begin", ArcString(a_begin) );
+//            logvalprint( "a_end",   ArcString(a_end  ) );
+//            logvalprint( "arc_count",   arc_count );
             
             // This shall collapse the arcs `a_begin, pd.NextArc(a_begin),...,a_end` to a single arc.
             // All crossings from the head of `a_begin` up to the tail of `a_end` have to be reconnected and deactivated.
@@ -527,34 +551,35 @@ namespace KnotTools
                 return;
             }
             
-            logprint("Arc before collapse:");
-            {
-                logdump(color);
-                
-                Int a_counter = 1;
-                Int a = a_begin;
-                
-                logprint(CrossingString(A_cross(a,Tail)));
-                logprint(ArcString(a));
-                logprint(CrossingString(A_cross(a,Head)));
-                
-                Reidemeister_II_Test(a);
-                
-                while( a != a_end)
-                {
-                    ++ a_counter;
-                    a = pd.NextArc(a);
-                    logprint(ArcString(a));
-                    logprint(CrossingString(A_cross(a,Head)));
-                    
-                    Reidemeister_II_Test(a);
-                }
-                
-                logdump(arc_count);
-                logdump(a_counter);
-            }
-            
-            logprint("Starting the collapse:");
+//            logprint("Arc before collapse:");
+//            {
+//                logdump(color);
+//                
+//                Int a_counter = 1;
+//                Int a = a_begin;
+//                
+//                logprint(CrossingString(A_cross(a,Tail)));
+//                logprint(ArcString(a));
+//                logprint(CrossingString(A_cross(a,Head)));
+//                
+////                // DEBUGGING
+////                Reidemeister_II_Test(a);
+//                
+//                while( a != a_end)
+//                {
+//                    ++ a_counter;
+//                    a = pd.NextArc(a);
+//                    logprint(ArcString(a));
+//                    logprint(CrossingString(A_cross(a,Head)));
+//                    
+//                    Reidemeister_II_Test(a);
+//                }
+//                
+//                logdump(arc_count);
+//                logdump(a_counter);
+//            }
+//            
+//            logprint("Starting the collapse:");
             
             Int a = a_end;
             
@@ -569,8 +594,8 @@ namespace KnotTools
                 const Int a_prev = C_arcs(c,In,!side);
 
                 
-                logvalprint( "a", ArcString(a) );
-                logvalprint( "c", CrossingString(c) );
+//                logvalprint( "a", ArcString(a) );
+//                logvalprint( "c", CrossingString(c) );
                 
                 // side == Left         side == Right
                 //
@@ -916,9 +941,7 @@ namespace KnotTools
         )
         {
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-         
-//            dump(d);
-            
+
             if( d <= max_dist )
             {
                 Tensor1<Int,Int> path_out (path_length);
@@ -939,50 +962,34 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            ptic(ClassName()+"::RerouteToShortestPath");
+//            ptic(ClassName()+"::RerouteToShortestPath");
             
-            logdump(max_dist);
-            
-            logdump(color);
-            logdump(color_);
-            
-            logvalprint( "a_begin", ArcString(a_begin) );
-            logvalprint( "a_end  ", ArcString(a_end  ) );
+//            logdump(max_dist);
+//            
+//            logdump(color);
+//            logdump(color_);
+//            
+//            logvalprint( "a_begin", ArcString(a_begin) );
+//            logvalprint( "a_end  ", ArcString(a_end  ) );
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
             
-            logdump(d);
+//            logdump(d);
             
             
-            if( d >= max_dist )
+            if( d > max_dist )
             {
-                logprint("No improvement detected. d >= max_dist");
-                ptoc(ClassName()+"::RerouteToShortestPath");
+                PD_DPRINT("No improvement detected. d >= max_dist");
+//                ptoc(ClassName()+"::RerouteToShortestPath");
                 
                 return false;
             }
             
-            logprint("The old strand:");
+//            logprint("The old strand:");
+//            logprint( StrandString(a_begin, a_end) );
 
             
-            {
-                Int a = a_begin;
-                Int i = 0;
-                logvalprint( ToString(0), CrossingString(A_cross(a,Tail)) );
-                logvalprint( ToString(0), ArcString(a) );
-                logvalprint( ToString(1), CrossingString(A_cross(a,Head)) );
-                
-                do
-                {
-                    ++i;
-                    a = pd.NextArc(a);
-                    logvalprint( ToString(i), ArcString(a) );
-                    logvalprint( ToString(i+1), CrossingString(A_cross(a,Head)) );
-                }
-                while( a != a_end );
-            }
-            
-            logvalprint( "path", ArrayToString( path.data(), {path_length} ) );
+//            logvalprint( "path", ArrayToString( path.data(), {path_length} ) );
             
             // path[0] == a_begin. This is not to be crossed.
             
@@ -1052,20 +1059,17 @@ namespace KnotTools
             // Now e is the last arc to be rerouted.
             
             
-            logprint("========== Rerouting ==========");
-            
-            logdump(p);
-            logdump(q);
+            PD_DPRINT("========== Rerouting ==========");
             
             // Handle the rerouted arcs.
             while( p < q )
             {
                 // TODO: Optimize away the calls to NextArc, NextLeftArc and NextRightArc.
                 
-                logprint("==============================");
-                
-                logdump(p);
-                logvalprint( "a", ArcString(a)  );
+//                logprint("==============================");
+//                
+//                logdump(p);
+//                logvalprint( "a", ArcString(a)  );
                 
                 const Int c_0    = A_cross(a,Head);
                 const Int a_next = pd.NextArc(a);
@@ -1073,22 +1077,20 @@ namespace KnotTools
                 AssertCrossing<1>(c_0);
                 AssertArc<1>(a_next);
                 
-                logvalprint("c_0",CrossingString(c_0));
+//                logvalprint("c_0",CrossingString(c_0));
                 
                 const Int b = path[p];
                 
                 AssertArc<1>(b);
                 
-                logvalprint("b",ArcString(b));
-                
+//                logvalprint("b",ArcString(b));
+//                
                 const bool dir = (A_prev(b,0) > 0);
-                
-                logdump(dir);
                 
                 const Int c_1 = A_cross(b,Head);
                 
                 AssertCrossing<1>(c_1);
-                logvalprint("c_1",CrossingString(c_1));
+//                logvalprint("c_1",CrossingString(c_1));
                 
                 const bool u = (overQ == RightHandedQ(C_state[c_0]));
                 
@@ -1123,22 +1125,21 @@ namespace KnotTools
                     a = a_next;
                     ++p;
                     
-                    logprint("(b == a_0) || (b == a_1) -- doing nothing.");
+//                    logprint("(b == a_0) || (b == a_1) -- doing nothing.");
                     
                     continue;
                 }
                 
-                PD_ASSERT( b != a_next );
-                PD_ASSERT( b != a_0 );
-                PD_ASSERT( b != a_1 );
-                
+//                PD_ASSERT( b != a_next );
+//                PD_ASSERT( b != a_0 );
+//                PD_ASSERT( b != a_1 );
                 
                 AssertArc<1>(a_0);
                 AssertArc<1>(a_1);
                 
-                logvalprint("a_0",ArcString(a_0));
-                logvalprint("a_1",ArcString(a_1));
-                logvalprint("a_next",ArcString(a_next));
+//                logvalprint("a_0",ArcString(a_0));
+//                logvalprint("a_1",ArcString(a_1));
+//                logvalprint("a_next",ArcString(a_next));
                 
                 // The case dir == true.
                 // We cross arc `b` from left to right.
@@ -1187,7 +1188,7 @@ namespace KnotTools
                 //             |
                 //             X
 
-                logprint("------------------------------");
+//                logprint("------------------------------");
                 
                 Reconnect(a_0,Head,a_1);
                 A_state[a_1] = ArcState::Active;
@@ -1279,33 +1280,33 @@ namespace KnotTools
                 AssertArc<1>(b);
                 
                 
-                logvalprint("a",ArcString(a));
-                logvalprint("b",ArcString(b));
-                
-                logvalprint("a_0",ArcString(a_0));
-                logvalprint("a_1",ArcString(a_1));
-                logvalprint("a_next",ArcString(a_next));
-                
-                logvalprint("c_0",CrossingString(c_0));
-                logvalprint("c_1",CrossingString(c_1));
-                
+//                logvalprint("a",ArcString(a));
+//                logvalprint("b",ArcString(b));
+//                
+//                logvalprint("a_0",ArcString(a_0));
+//                logvalprint("a_1",ArcString(a_1));
+//                logvalprint("a_next",ArcString(a_next));
+//                
+//                logvalprint("c_0",CrossingString(c_0));
+//                logvalprint("c_1",CrossingString(c_1));
+//                
                 // Go to next of arc.
                 a = a_next;
                 ++p;
             
-                logprint("==============================");
+//                logprint("==============================");
             }
             
-            logprint("========== Rerouting done. ==========");
+//            logprint("========== Rerouting done. ==========");
+//            
+//            logdump(p);
+//            logdump(q);
+//            
+//            PD_ASSERT( p == q );
+//            PD_ASSERT( path[p] == e );
             
-            logdump(p);
-            logdump(q);
-            
-            PD_ASSERT( p == q );
-            PD_ASSERT( path[p] == e );
-            
-            logvalprint("a",ArcString(a));
-            logvalprint("e",ArcString(e));
+//            logvalprint("a",ArcString(a));
+//            logvalprint("e",ArcString(e));
             
             // max_dist+1 is just an upper bound.
             CollapseArcRange(a,e,max_dist+1);
@@ -1314,30 +1315,17 @@ namespace KnotTools
             AssertArc<0>(e);
             
             
-            logvalprint("a",ArcString(a));
-            logvalprint("e",ArcString(e));
+//            logvalprint("a",ArcString(a));
+//            logvalprint("e",ArcString(e));
             
-            logprint("The new strand:");
-            {
-                Int a = a_begin;
-                logvalprint( ToString(0), CrossingString(A_cross(a,Tail)) );
-                logvalprint( ToString(0), ArcString(a) );
-                logvalprint( ToString(1), CrossingString(A_cross(a,Head)) );
-                
-                for( Int i = 1; i < path_length; ++i )
-                {
-                    a = pd.NextArc(a);
-                    logvalprint( ToString(i), ArcString(a) );
-                    logvalprint( ToString(i+1), CrossingString(A_cross(a,Head)) );
-                }
-                
-            }
+//            logprint("The new strand:");
+//            logprint( StrandString(a,e) );
             
-            PD_ASSERT( pd.CheckAll() );
+//            PD_ASSERT( pd.CheckAll() );
             
-            logprint("Reconnect done. Number of crossings reduced = " + ToString(strand_length - path_length) + "." );
+//            logprint("Reconnect done. Number of crossings reduced = " + ToString(strand_length - path_length) + "." );
             
-            ptoc(ClassName()+"::RerouteToShortestPath");
+//            ptoc(ClassName()+"::RerouteToShortestPath");
             
             return true;
         }

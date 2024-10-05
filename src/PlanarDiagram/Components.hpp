@@ -52,6 +52,7 @@ Int ArcDistance( const Int a_0, const Int a_1 )
     {
         const Int d = Abs(A_pos[a_0] - A_pos[a_1]);
         
+        // TODO: Got an error at this point. How is this possible?
         PD_ASSERT( ComponentSize(comp) >= d );
         
         return Min( d, ComponentSize(comp) - d);
