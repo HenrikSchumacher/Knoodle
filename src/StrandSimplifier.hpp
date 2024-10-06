@@ -1,34 +1,6 @@
 #pragma once
 
-
-// TODO: Suppose this situation for an overstrand:
-//
-//        | a_begin
-//     ---|---+
-//        |   |
-//     ---|---|---
-//        |   |
-//     ---|---|---
-//        |   |
-//     ---|---+
-//        | e_end
-//
-// Then we should check also the shortest path from pd.PrevArc(a_begin) to pd.NextArc(end)!
-// Rerouting will be a bit different, though.
-
-// Problem: We need to know that the full vertical line is an overstrand, too.
-// So we probably have to build all overstrands first?
-//
-//        | a_begin
-//     ---|---+
-//        |   |
-//     ---|---|---
-//        |   |
-//     -------|---
-//        |   |
-//     ---|---+
-//        | e_end
-//
+// TODO: Speed this up by reducing the redirecting in NextArc, NextLeftArc, and NextRightArc with simple array lookups.
 
 namespace KnotTools
 {
@@ -88,43 +60,8 @@ namespace KnotTools
         Stack<Int,Int> next_front;
         Stack<Int,Int> prev_front;
         
-        
         Tensor1<Int,Int> path;
         Int path_length = 0;
-        
-//        Tensor1<Int,Int> A_time;
-//        
-//        Tensor1<Int,Int> S_buffer;
-//        
-//        Int S_ptr = 0;
-//        
-//        Int a;
-//        Int c_0;
-//        Int c_1;
-//        Int c_2;
-//        Int c_3;
-//        
-//        // For crossing c_0
-//        Int n_0;
-//        //        Int e_0; // always = a.
-//        Int s_0;
-//        Int w_0;
-//        
-//        // For crossing c_1
-//        Int n_1;
-//        Int e_1;
-//        Int s_1;
-//        //        Int w_1; // always = a.
-//        
-//        // Whether the vertical strand at corresponding crossing goes over.
-//        bool o_0;
-//        bool o_1;
-//        
-//        // Whether the vertical strand at corresponding crossing goes up.
-//        bool u_0;
-//        bool u_1;
-//        
-//        Int test_count = 0;
         
     public:
         
@@ -240,7 +177,6 @@ namespace KnotTools
         {
             return pd.CrossingString(c_) + " has color " + ToString(C_color(c_)) + ".";
         }
-        
 
         std::string StrandString( const Int a_begin, const Int a_end) const
         {
@@ -269,17 +205,7 @@ namespace KnotTools
         template<bool assertQ = true>
         void Reconnect( const Int a_, const bool headtail, const Int b_ )
         {
-            
-//            print( std::string("Reconnecting ") + (headtail ? "Head" : "Tail") + " of " + ArcString(a_) + " to " + (headtail ? "Head" : "Tail") + " of " + ArcString(b_) + "." );
-            
             pd.template Reconnect<assertQ>(a_,headtail,b_);
-            
-//            // TODO: Two crossings are touched multiply.
-//            if constexpr ( use_flagsQ )
-//            {
-//                TouchCrossing(A_cross(a,Tail));
-//                TouchCrossing(A_cross(a,Head));
-//            }
         }
         
     private:
@@ -309,13 +235,6 @@ namespace KnotTools
         {
             return C_data(c,1);
         }
-        
-        //
-        //        mref<Int> C_arrow( const Int c )
-        //        {
-        //            return C_data(c,2);
-        //        }
-        
 
         void MarkCrossing( const int c )
         {
@@ -331,10 +250,7 @@ namespace KnotTools
             
 //            print(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             ptic(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
-            
-            
-//            PD_ASSERT( pd.CheckAll() );
-            
+
 //            const Int n = C_arcs.Dimension(0);
             const Int m = A_cross.Dimension(0);
 //
@@ -389,7 +305,6 @@ namespace KnotTools
                 // Traverse forward through all arcs in the link component, until we return where we started.
                 do
                 {
-//                    logdump(a);
                     ++strand_length;
                     
                     if( color == std::numeric_limits<Int>::max() )
@@ -409,12 +324,6 @@ namespace KnotTools
                     
                     strand_completeQ = ((side == pd.CrossingRightHandedQ(c)) == overQ);
                     
-                    // TODO: We must make sure that there cannot be any Reidemeister II moves involving this strand.
-                    
-
-//                    // DEBUGGING
-//                    Reidemeister_II_Test(a);
-                    
                     // Arc gets old color.
                     A_color(a) = color;
                     
@@ -425,8 +334,6 @@ namespace KnotTools
                         // Vertex c has been visted before.
                         
                         RemoveLoop(a);
-//                        
-//                        strand_length = 0;
                         
                         // TODO: We might not have to break here;
                         // TODO: Instead we could move on to the next arc.
@@ -481,54 +388,7 @@ namespace KnotTools
         }
         
         
-        Int StrandStep( const Int a )
-        {
-        }
-        
-        
     private:
-        
-        void RemoveStrand( const Int a_begin, const Int a_end )
-        {
-            // Remove the strand _backwards_ because of how Reconnect uses PD_ASSERT.
-            // (It is legal that the head is inactive, but the tail must be active!)
-            // Also, this might be a bit cache friendlier.
-            
-            // This removes all the arcs from `a_begin` (excluded!) to `a_end` (included!).
-            // This also deactivates the _tails_ of the deactivated arcs.
-            
-            Int a = a_end;
-            
-            do
-            {
-                const Int c = A_cross(a,Tail);
-                const bool side  = (C_arcs(c,Out,Right) == a);
-                const Int a_prev = C_arcs(c,In,!side);
-                
-                // side == Left         side == Right
-                //
-                //         |                    ^
-                //         |                    |
-                // a_prev  |   a        a_next  |
-                //    ---->X---->          ---->X---->
-                //         |c                   |c
-                //         |                    |
-                //         v                    |
-                
-                PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
-                
-                // Sometimes we cannot guarantee that the crossing at the intersection of a_begin and a_end is still intact. But that crossing will be deleted anyways. Thus we suppress some asserts here.
-                Reconnect<false>( C_arcs(c,In,side), Head, C_arcs(c,Out,!side) );
-                
-                DeactivateArc(a);
-                
-                // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus we suppress some asserts here.
-                DeactivateCrossing<false>(c);
-                
-                a = a_prev;
-            }
-            while( a != a_begin );
-        }
         
         void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count )
         {
@@ -552,33 +412,7 @@ namespace KnotTools
             }
             
 //            logprint("Arc before collapse:");
-//            {
-//                logdump(color);
-//                
-//                Int a_counter = 1;
-//                Int a = a_begin;
-//                
-//                logprint(CrossingString(A_cross(a,Tail)));
-//                logprint(ArcString(a));
-//                logprint(CrossingString(A_cross(a,Head)));
-//                
-////                // DEBUGGING
-////                Reidemeister_II_Test(a);
-//                
-//                while( a != a_end)
-//                {
-//                    ++ a_counter;
-//                    a = pd.NextArc(a);
-//                    logprint(ArcString(a));
-//                    logprint(CrossingString(A_cross(a,Head)));
-//                    
-//                    Reidemeister_II_Test(a);
-//                }
-//                
-//                logdump(arc_count);
-//                logdump(a_counter);
-//            }
-//            
+//            logprint( StrandString(a_begin, a_end) );
 //            logprint("Starting the collapse:");
             
             Int a = a_end;
@@ -643,13 +477,11 @@ namespace KnotTools
         {
             PD_DPRINT( ClassName() + "::RemoveLoop at " + ArcString(e) );
             
-            logdump(strand_length);
-            
             const Int c_0 = A_cross(e,Head);
             
             if( A_cross(e,Tail) == c_0 )
             {
-                Reidemeister_I(c_0,e);
+                pd.Reidemeister_I(e);
                 
                 return;
             }
@@ -759,57 +591,15 @@ namespace KnotTools
             Reconnect( C_arcs(c_0,In,!side), Head, C_arcs(c_0,Out,!side) );
             DeactivateArc(b);
             DeactivateCrossing(c_0);
-
-//            
-//            RemoveStrand(b,e);
-//            Reconnect( C_arcs(c_0,In,!side), Head, C_arcs(c_0,Out,!side) );
-//            DeactivateArc(b);
-//            DeactivateCrossing<false>(c_0);
             
             ++strand_0_counter;
-        }
-        
-        void Reidemeister_I( const Int c, const Int a )
-        {
-            PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
-            
-            const Int a_prev = pd.PrevArc(a);
-            const Int a_next = pd.NextArc(a);
-            
-            if( a_prev == a_next )
-            {
-                ++pd.unlink_count;
-                DeactivateArc(a);
-                DeactivateArc(a_prev);
-                DeactivateCrossing(c);
-                pd.R_I_counter += 2;
-                
-                AssertArc<0>(a  );
-                AssertArc<0>(a_prev);
-                AssertArc<0>(a_next);
-                AssertCrossing<0>(c);
-                
-                return;
-            }
-            
-            Reconnect(a_prev,Head,a_next);
-            DeactivateArc(a);
-            DeactivateCrossing(c);
-            ++pd.R_I_counter;
-            
-            AssertArc<0>(a  );
-            AssertArc<1>(a_prev);
-            AssertArc<0>(a_next);
-            AssertCrossing<0>(c);
-            
-            return;
         }
         
         
     public:
         
         /*!
-         * Run Dijkstra's algprithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
+         * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
          *
          * @param a_begin  starting arc
          *
@@ -904,7 +694,6 @@ namespace KnotTools
                             }
                         }
 
-                        
                         std::tie(a,dir) = pd.NextLeftArc(a, part_of_strandQ ? !dir : dir);
                     }
                     while( a != a_0 );
@@ -913,7 +702,6 @@ namespace KnotTools
             
         exit:
             
-
             if( d <= max_dist )
             {
                 path_length = d+1;
@@ -1017,7 +805,7 @@ namespace KnotTools
             // TODO: Optimize away the calls to NextLeftArc and NextRightArc.
             while(
                 (pd.NextLeftArc (a,Head).first == path[p])
-                ||
+                or
                 (pd.NextRightArc(a,Head).first == path[p])
             )
             {
@@ -1042,9 +830,11 @@ namespace KnotTools
 //            
 //            logprint("Finding last branching arc.");
             
+            // TODO: Optimize away the calls to NextLeftArc and NextRightArc.
+            
             while(
                 (pd.NextLeftArc (e,Tail).first == path[q])
-                ||
+                or
                 (pd.NextRightArc(e,Tail).first == path[q])
             )
             {
@@ -1195,7 +985,7 @@ namespace KnotTools
 
                 A_cross(b,  Head) = c_0;
                 
-                // Caution: This might mean that a_1 is turned around!?
+                // Caution: This might turn around a_1!
                 A_cross(a_1,Tail) = c_0;
                 A_cross(a_1,Head) = c_1;
 
@@ -1313,130 +1103,17 @@ namespace KnotTools
             
             AssertArc<1>(a);
             AssertArc<0>(e);
-            
-            
-//            logvalprint("a",ArcString(a));
-//            logvalprint("e",ArcString(e));
-            
+
 //            logprint("The new strand:");
 //            logprint( StrandString(a,e) );
-            
-//            PD_ASSERT( pd.CheckAll() );
-            
-//            logprint("Reconnect done. Number of crossings reduced = " + ToString(strand_length - path_length) + "." );
-            
+    
 //            ptoc(ClassName()+"::RerouteToShortestPath");
             
             return true;
         }
         
     public:
-        
-        void Reidemeister_II_Test( const Int a )
-        {
-            
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-            
-            const Int side_0 = (C_arcs(c_0,Out,Right) == a);
-
-            const Int l_0 = side_0
-                          ? C_arcs(c_0,Out,Left )
-                          : C_arcs(c_0,In ,Left );
-            
-            const Int r_0 = side_0
-                          ? C_arcs(c_0,In ,Right)
-                          : C_arcs(c_0,Out,Right);
-            
-            const Int side_1 = (C_arcs(c_1,In,Right) == a);
-
-            const Int l_1 = side_1
-                          ? C_arcs(c_1,In ,Left )
-                          : C_arcs(c_1,Out,Left );
-            
-            const Int r_1 = side_1
-                          ? C_arcs(c_1,Out,Right)
-                          : C_arcs(c_1,In ,Right);
-            
-            
-            
-            if( pd.NextLeftArc(a,Head).first != l_1 )
-            {
-                eprint("A");
-            }
-
-            if( pd.NextRightArc(a,Head).first != r_1 )
-            {
-                eprint("B");
-            }
-            
-            if( pd.NextLeftArc(a,Tail).first != r_0 )
-            {
-                eprint("C");
-            }
-            if( pd.NextRightArc(a,Tail).first != l_0 )
-            {
-                eprint("D");
-            }
-            
-            {
-                auto [a_0,dir_0] = pd.NextRightArc(a,Head);
-                
-                auto [a_1,dir_1] = pd.NextLeftArc(a_0,!dir_0);
-                
-                if( (a != a_1) || dir_1 == Head )
-                {
-                    eprint("!!!!1");
-                    
-                    logprint( CrossingString(A_cross(a,Tail)) );
-                    logprint( ArcString(a) );
-                    logprint( CrossingString(A_cross(a,Head)) );
-                    
-                    logprint( ArcString(a_1) );
-                    
-                    logdump(dir_1);
-                }
-            }
-            
-            {
-                auto [a_0,dir_0] = pd.NextRightArc(a,Tail);
-                
-                auto [a_1,dir_1] = pd.NextLeftArc(a_0,!dir_0);
-                
-                if( (a != a_1) || dir_1 == Tail )
-                {
-                    eprint("!!!!2");
-                    
-                    logprint( CrossingString(A_cross(a,Tail)) );
-                    logprint( ArcString(a) );
-                    logprint( CrossingString(A_cross(a,Head)) );
-                    
-                    logprint( ArcString(a_1) );
-                    
-                    logdump(dir_1);
-                }
-            }
-            
-            if( pd.NextLeftArc(a,Head) == pd.NextRightArc(a,Tail) )
-            {
-                eprint("Reidemeister II possible on left side at " + ArcString(a) + ".");
-            }
-            
-            if( pd.NextRightArc(a,Head) == pd.NextLeftArc(a,Tail) )
-            {
-                eprint("Reidemeister II possible on right side" + ArcString(a) + ".");
-            }
-            
-            if( pd.NextRightArc(a,Head) == pd.NextLeftArc(a,Head) )
-            {
-                eprint("Illegal loop found" + ArcString(a) + ".");
-            }
-            
-            if( pd.NextRightArc(a,Tail) == pd.NextLeftArc(a,Tail) )
-            {
-                eprint("Illegal loop found" + ArcString(a) + ".");
-            }
-        }
+    
         
         template<typename Int_0, typename Int_1, typename Int_2>
         void ColorArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 color_ )

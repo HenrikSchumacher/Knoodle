@@ -1,7 +1,7 @@
 template<bool assertQ = true>
 void Reconnect( const Int a, const bool tiptail, const Int b )
 {
-    logprint("Reconnect ( " + ArcString(a) + ", " + (tiptail ? "Head" : "Tail") + ", " +ArcString(b) + " )" );
+    PD_DPRINT("Reconnect ( " + ArcString(a) + ", " + (tiptail ? "Head" : "Tail") + ", " +ArcString(b) + " )" );
     
     // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.

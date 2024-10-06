@@ -1308,7 +1308,8 @@ namespace KnotTools
 
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
-        
+
+#include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Components.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"

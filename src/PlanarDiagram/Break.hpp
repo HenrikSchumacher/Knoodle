@@ -30,7 +30,7 @@ bool Break( const Int c )
 
         // Make sure that Reidemeister_I is not applicable;
 
-        const bool R_I = Reidemeister_I(c);
+        const bool R_I = Reidemeister_I_at_Crossing(c);
 
         if( R_I )
         {
