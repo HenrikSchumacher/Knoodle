@@ -31,10 +31,8 @@ bool Simplify4()
         }
 //        toc("Simplify4 loop");
         
-//        tic("RemoveStrandLoops");
         counter += S.SimplifyStrands(true);
         counter += S.SimplifyStrands(false);
-//        toc("RemoveStrandLoops");
 
 //
 //        const Int changes = counter-old_counter;

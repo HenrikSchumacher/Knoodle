@@ -38,7 +38,7 @@ bool Reidemeister_II( const Int c_0 )
     // We better test whether we can perform a Reidemeister_I move (and do it). That rules out a couple of nasty cases in the remainder.
     // TODO: Test might be redundant if called when Reidemeister_I failed.
     {
-        const bool R_I = Reidemeister_I(c_0);
+        const bool R_I = Reidemeister_I_at_Crossing(c_0);
         if( R_I )
         {
             PD_WPRINT("Called Reidemeister_II on crossing "+ToString(c_0)+", but Reidemeister_I was performed instead.");
@@ -124,7 +124,7 @@ bool Reidemeister_II( const Int c_0 )
             PD_ASSERT( CrossingActiveQ(c_1) );
             
             // For the horizontal cases, it is better to make sure that no Reidemeister_I move can be applied to c_1.
-            const bool R_I = Reidemeister_I(c_1);
+            const bool R_I = Reidemeister_I_at_Crossing(c_1);
             
             if( R_I )
             {

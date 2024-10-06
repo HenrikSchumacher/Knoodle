@@ -36,7 +36,7 @@ void Simplify()
             
             AssertCrossing(c);
             
-            const bool R_I = Reidemeister_I(c);
+            const bool R_I = Reidemeister_I_at_Crossing(c);
             
             counter += R_I;
             
@@ -68,7 +68,7 @@ void Simplify()
              
                 AssertCrossing(c);
                 
-                bool changed = Reidemeister_I(c);
+                bool changed = Reidemeister_I_at_Crossing(c);
                 
                 counter += changed;
                 

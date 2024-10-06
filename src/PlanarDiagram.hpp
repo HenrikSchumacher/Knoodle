@@ -580,117 +580,7 @@ namespace KnotTools
             PD_PRINT("");
         }
         
-        /*! @brief Construction from PD codes and handedness of crossings.
-         *
-         *  @param pd_codes_ Integer array of length `5 * crossing_count_`.
-         *  There is one 5-tuple for each crossing.
-         *  The first 4 entries in each 5-tuple store the actual PD code.
-         *  The last entry gives the handedness of the crossing:
-         *    >  0 for a right-handed crossing
-         *    <= 0 for a left-handed crossing
-         *
-         *  @param crossing_count_ Number of crossings in the diagram.
-         *
-         *  @param unlink_count_ Number of unlinks in the diagram. (This is necessary as PD codes cannot track trivial unlinks.
-         *
-         */
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
-        PlanarDiagram(
-            cptr<ExtInt> pd_codes_,
-            const ExtInt2 crossing_count_,
-            const ExtInt3 unlink_count_
-        )
-        :   PlanarDiagram(
-                int_cast<Int>(crossing_count_),
-                int_cast<Int>(unlink_count_)
-            )
-        {
-            static_assert( IntQ<ExtInt>, "" );
-            
-            if( crossing_count_ <= 0 )
-            {
-                return ;
-            }
-            
-            A_cross.Fill(-1);
-
-            // The maximally allowed arc index.
-            const Int max_a = 2 * crossing_count_ - 1;
-            
-            for( Int c = 0; c < crossing_count; ++c )
-            {
-                Int X [5];
-                copy_buffer<5>( &pd_codes_[5*c], &X[0] );
-                
-                if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
-                {
-                    eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1." );
-                    return;
-                }
-                
-                bool righthandedQ = (X[4] > 0);
-                
-                Int C [2][2];
-                
-                if( righthandedQ )
-                {
-                    C_state[c] = CrossingState::RightHanded;
-                    
-                    /*
-                     *    X[2]           X[1]
-                     *          ^     ^
-                     *           \   /
-                     *            \ /
-                     *             / <--- c
-                     *            ^ ^
-                     *           /   \
-                     *          /     \
-                     *    X[3]           X[0]
-                     */
-                    
-                    A_cross(X[0],Head) = c;
-                    A_cross(X[1],Tail) = c;
-                    A_cross(X[2],Tail) = c;
-                    A_cross(X[3],Head) = c;
-
-                    C[Out][Left ] = X[2];
-                    C[Out][Right] = X[1];
-                    C[In ][Left ] = X[3];
-                    C[In ][Right] = X[0];
-                }
-                else // left-handed
-                {
-                    C_state[c] = CrossingState::LeftHanded;
-                    
-                    /*
-                     *    X[3]           X[2]
-                     *          ^     ^
-                     *           \   /
-                     *            \ /
-                     *             \ <--- c
-                     *            ^ ^
-                     *           /   \
-                     *          /     \
-                     *    X[0]           X[1]
-                     */
-                    
-                    A_cross(X[0],Head) = c;
-                    A_cross(X[1],Head) = c;
-                    A_cross(X[2],Tail) = c;
-                    A_cross(X[3],Tail) = c;
-                    
-                    C[Out][Left ] = X[3];
-                    C[Out][Right] = X[2];
-                    C[In ][Left ] = X[0];
-                    C[In ][Right] = X[1];
-                }
-                
-                copy_buffer<4>( &C[0][0], C_arcs.data(c) );
-            }
-            
-            fill_buffer( A_state.data(), ArcState::Active, arc_count );
-        }
         
         
         /*!
@@ -1298,7 +1188,7 @@ namespace KnotTools
 #ifdef PD_DEBUG
                 if constexpr ( assertsQ )
                 {
-                    wprint("Attempted to deactivate already inactive crossing " + CrossingString(c) + ".");
+                    wprint("Attempted to deactivate already inactive " + CrossingString(c) + ".");
                 }
 #endif
             }
@@ -1337,7 +1227,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive crossing " + C.String() + ".");
+                wprint("Attempted to deactivate already inactive " + C.String() + ".");
 #endif
             }
             
@@ -1373,7 +1263,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + ArcString(a) + ".");
+                wprint("Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
             }
         }
@@ -1392,7 +1282,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive arc " + A.String() + ".");
+                wprint("Attempted to deactivate already inactive " + A.String() + ".");
 #endif
             }
         }
@@ -1418,7 +1308,8 @@ namespace KnotTools
 
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
-        
+
+#include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Components.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"
@@ -1533,6 +1424,90 @@ namespace KnotTools
                     //   O     O
 
                     return Arrow_T(C_arcs(c,In,Right),Tail);
+                }
+            }
+        }
+        
+        /*!
+         * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning right.
+         */
+        
+        Arrow_T NextRightArc( const Int a, const bool headtail ) const
+        {
+            // TODO: Signed indexing does not work because of 0!
+            
+            AssertArc(a);
+            
+            const Int c = A_cross(a,headtail);
+            
+            AssertCrossing(c);
+            
+            // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
+            
+            if( headtail == Head )
+            {
+                // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
+
+                const Int b = C_arcs(c,In,Right);
+
+                if( b != a )
+                {
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    //   a     b
+
+                    return Arrow_T(b,Tail);
+                }
+                else // if( b == a )
+                {
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+                    //       a == b
+
+                    return Arrow_T(C_arcs(c,Out,Right),Head);
+                }
+            }
+            else // if( headtail == Tail )
+            {
+                // Also here we can make it so that we have to read for a second time only in 50% of the cases.
+
+                const Int b = C_arcs(c,Out,Left);
+
+                if( b != a )
+                {
+                    //   b     a
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(b,Head);
+                }
+                else // if( b == a )
+                {
+                    // a == b
+                    //   O     O
+                    //    ^   ^
+                    //     \ /
+                    //      X c
+                    //     / \
+                    //    /   \
+                    //   O     O
+
+                    return Arrow_T(C_arcs(c,In,Left),Tail);
                 }
             }
         }
@@ -2055,8 +2030,7 @@ namespace KnotTools
             }
             
             return writhe;
-        }
-
+        }        
         
     public:
         
