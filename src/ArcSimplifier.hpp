@@ -14,7 +14,6 @@ namespace KnotTools
         static_assert(SignedIntQ<Int_>,"");
         
         using Int  = Int_;
-//        using Sint = int;
         
         using PD_T = PlanarDiagram<Int>;
         
@@ -35,17 +34,15 @@ namespace KnotTools
         static constexpr bool In    = PD_T::In;
         static constexpr bool Out   = PD_T::Out;
         
-        
-        
     private:
         
-        PD_T & pd;
+        PD_T & restrict pd;
         
-        CrossingContainer_T      & C_arcs;
-        CrossingStateContainer_T & C_state;
+        CrossingContainer_T      & restrict C_arcs;
+        CrossingStateContainer_T & restrict C_state;
         
-        ArcContainer_T           & A_cross;
-        ArcStateContainer_T      & A_state;
+        ArcContainer_T           & restrict A_cross;
+        ArcStateContainer_T      & restrict A_state;
         
     private:
         
@@ -345,7 +342,20 @@ namespace KnotTools
         {
             pd.Reconnect(a_,headtail,b_);
             
-            // TODO: Two crossings are touched multiply.
+            // TODO: Two crossings are touched multiple times.
+            if constexpr ( use_flagsQ )
+            {
+                TouchCrossing(A_cross(a,Tail));
+                TouchCrossing(A_cross(a,Head));
+            }
+        }
+        
+        template<bool headtail>
+        void Reconnect( const Int a_, const Int b_ )
+        {
+            pd.template Reconnect<headtail>(a_,b_);
+            
+            // TODO: Two crossings are touched multiple times.
             if constexpr ( use_flagsQ )
             {
                 TouchCrossing(A_cross(a,Tail));
@@ -400,6 +410,7 @@ namespace KnotTools
              *              s_0
              */
             
+            // Check for Reidemeister I move
             if( R_I_center() )
             {
                 PD_VALPRINT( "a  ", ArcString(n_0) );
@@ -480,12 +491,12 @@ namespace KnotTools
             }
             
             // Neglecting asserts, this is the only time we access C_state[c_0].
-            // Whether the vertical strand at c_0 goes over.
+            // Find out whether the vertical strand at c_0 goes over.
             o_0 = ( u_0 == LeftHandedQ(C_state[c_0]));
             PD_VALPRINT( "o_0", o_0 );
             
             // Neglecting asserts, this is the only time we access C_state[c_1].
-            // Whether the vertical strand at c_1 goes over.
+            // Find out whether the vertical strand at c_1 goes over.
             o_1 = ( u_1 == LeftHandedQ(C_state[c_1]));
             PD_VALPRINT( "o_1", o_1 );
 
@@ -493,7 +504,7 @@ namespace KnotTools
             // This can only occur if  the diagram has a more than one component.
             if constexpr( mult_compQ )
             {
-                // Caution: This requires o_0 and o_1 to be defined already.
+                // This requires o_0 and o_1 to be defined already.
                 if( a_is_2loop() )
                 {
                     PD_VALPRINT( "a  ", ArcString(n_0) );
@@ -519,6 +530,7 @@ namespace KnotTools
                  *       |c_0        |c_1          |c_0        |c_1
                  */
                 
+                // Attempt the moves that rely on the vertical strands being both on top or both below the horizontal strand.
                 if( strands_same_o() )
                 {
                     PD_VALPRINT( "a  ", ArcString(a) );
@@ -553,6 +565,7 @@ namespace KnotTools
                  *       |c_0        |c_1          |c_0        |c_1
                  */
         
+                // Attempt the moves that rely on the vertical strands being separated by the horizontal strand.
                 if( strands_diff_o() )
                 {
                     PD_VALPRINT( "a  ", ArcString(a) );

@@ -23,7 +23,7 @@ bool R_I_right()
              *                s_0
              */
             
-            Reconnect(a,Head,n_1);
+            Reconnect<Head>(a,n_1);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
             ++pd.R_I_counter;
@@ -60,7 +60,7 @@ bool R_I_right()
              *                s_0
              */
             
-            Reconnect(w_0,Head,s_0);
+            Reconnect<Head>(w_0,s_0);
             DeactivateArc(n_1);
             DeactivateArc(e_1);
             DeactivateArc(a);
@@ -135,7 +135,7 @@ bool R_I_right()
              *                 s_0
              */
              
-            Reconnect(s_1,Tail,a);
+            Reconnect<Tail>(s_1,a);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
             ++pd.R_I_counter;
@@ -171,7 +171,7 @@ bool R_I_right()
              *                    s_0
              */
             
-            Reconnect(w_0,Head,n_0);
+            Reconnect<Head>(w_0,n_0);
             DeactivateArc(a  );
             DeactivateArc(e_1);
             DeactivateArc(s_0);

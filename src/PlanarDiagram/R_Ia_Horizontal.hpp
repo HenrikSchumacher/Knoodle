@@ -540,8 +540,21 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_ASSERT( F_0( io == Out ? Tail : Head ) == C_2 );
             PD_ASSERT( F_1( io == Out ? Head : Tail ) == C_2 );
 
-            Reconnect( F_0, io == Out ? Tail : Head, E_0 );
-            Reconnect( F_1, io == Out ? Head : Tail, E_1 );
+
+//            Reconnect( F_0, io == Out ? Tail : Head, E_0 );
+//            Reconnect( F_1, io == Out ? Head : Tail, E_1 );
+            
+            if( io )
+            {
+                Reconnect<Head>(F_0,E_0);
+                Reconnect<Tail>(F_1,E_1);
+            }
+            else
+            {
+                Reconnect<Tail>(F_0,E_0);
+                Reconnect<Head>(F_1,E_1);
+            }
+            
             DeactivateCrossing(C_2.Idx());
             
 #ifdef PD_COUNTERS

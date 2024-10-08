@@ -56,6 +56,18 @@ bool CheckCrossing( const Int c  ) const
 bool CheckAllCrossings() const
 {
     bool passedQ = true;
+
+    if( initial_crossing_count < 0 )
+    {
+        eprint(ClassName() + "::CheckAllCrossings: initial_crossing_count < 0.");
+        passedQ = false;
+    }
+    
+    if( crossing_count < 0 )
+    {
+        eprint(ClassName() + "::CheckAllCrossings: crossing_count < 0.");
+        passedQ = false;
+    }
     
     for( Int c = 0; c < initial_crossing_count; ++c )
     {
@@ -131,14 +143,26 @@ bool CheckArc( const Int a ) const
 
 bool CheckAllArcs() const
 {
-    bool passed = true;
+    bool passedQ = true;
+    
+    if( initial_arc_count < 0 )
+    {
+        eprint(ClassName() + "::CheckAllArcs: initial_arc_count < 0.");
+        passedQ = false;
+    }
+    
+    if( arc_count < 0 )
+    {
+        eprint(ClassName() + "::CheckAllArcs: arc_count < 0.");
+        passedQ = false;
+    }
     
     for( Int a = 0; a < initial_arc_count; ++a )
     {
-        passed = passed && CheckArc(a);
+        passedQ = passedQ && CheckArc(a);
     }
     
-    if( passed )
+    if( passedQ )
     {
         logprint(ClassName()+"::CheckAllArcs: passed.");
     }
@@ -147,7 +171,7 @@ bool CheckAllArcs() const
         eprint(ClassName()+"::CheckAllArcs: failed.");
     }
     
-    return passed;
+    return passedQ;
 }
 
 bool CheckVertexDegrees() const

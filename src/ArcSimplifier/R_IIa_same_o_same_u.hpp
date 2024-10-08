@@ -132,7 +132,7 @@ bool R_IIa_same_o_same_u()
             *           w_2
             */
             
-            Reconnect(e_1,Tail,n_3);
+            Reconnect<Tail>(e_1,n_3);
             DeactivateArc(a);
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -201,7 +201,7 @@ bool R_IIa_same_o_same_u()
             *           w_2
             */
             
-            Reconnect(w_0,Head,w_2);
+            Reconnect<Head>(w_0,w_2);
             DeactivateArc(a);
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -265,8 +265,8 @@ bool R_IIa_same_o_same_u()
         *           w_2
         */
         
-        Reconnect(w_0,Head,e_1);
-        Reconnect(n_3,Head,w_2);
+        Reconnect<Head>(w_0,e_1);
+        Reconnect<Head>(n_3,w_2);
         DeactivateArc(a  );
         DeactivateArc(n_0);
         DeactivateArc(n_1);
@@ -433,7 +433,7 @@ bool R_IIa_same_o_same_u()
              *              +----------+
              */
             
-            Reconnect(e_1,Tail,s_2);
+            Reconnect<Tail>(e_1,s_2);
             DeactivateArc(a  );
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -500,7 +500,7 @@ bool R_IIa_same_o_same_u()
              *              +----------+
              */
             
-            Reconnect(w_0,Head,w_3);
+            Reconnect<Head>(w_0,w_3);
             DeactivateArc(a  );
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -563,8 +563,8 @@ bool R_IIa_same_o_same_u()
         *              +----------+
         */
         
-        Reconnect(w_0,Head,e_1);
-        Reconnect(s_2,Head,w_3);
+        Reconnect<Head>(w_0,e_1);
+        Reconnect<Head>(s_2,w_3);
         DeactivateArc(a  );
         DeactivateArc(n_0);
         DeactivateArc(n_1);

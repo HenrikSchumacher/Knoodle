@@ -131,11 +131,11 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
         PD_VALPRINT("B_2",B_2);
         PD_VALPRINT("B_3",B_3);
         
-        Reconnect(A_0,Head,B_1);
-        Reconnect(B_0,Head,A_1);
+        Reconnect<Head>(A_0,B_1);
+        Reconnect<Head>(B_0,A_1);
         
-        Reconnect(A_3,Tail,B_2);
-        Reconnect(B_3,Tail,A_2);
+        Reconnect<Tail>(A_3,B_2);
+        Reconnect<Tail>(B_3,A_2);
         
         DeactivateCrossing(C_0.Idx());
         DeactivateCrossing(C_2.Idx());

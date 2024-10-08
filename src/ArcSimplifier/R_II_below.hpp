@@ -57,7 +57,7 @@ bool R_II_below()
                     PD_ASSERT( w_0 != e_1 );
                     
                     ++pd.unlink_count;
-                    Reconnect(w_0,Head,e_1); //... so this is safe.
+                    Reconnect<Head>(w_0,e_1); //... so this is safe.
                     DeactivateArc(a);
                     DeactivateArc(n_0);
                     DeactivateArc(s_0);
@@ -183,7 +183,7 @@ bool R_II_below()
                  *               +---------+
                  */
                 
-                Reconnect(e_1,Tail,n_3);
+                Reconnect<Tail>(e_1,n_3);
                 DeactivateArc(a);
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -236,7 +236,7 @@ bool R_II_below()
                  *               +---------+
                  */
                 
-                Reconnect(w_0,Head,w_3);
+                Reconnect<Head>(w_0,w_3);
                 DeactivateArc(a);
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -288,7 +288,7 @@ bool R_II_below()
             // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
             PD_ASSERT( w_0 != e_1 );
             
-            Reconnect(w_0,Head,e_1); // ... so this is safe.
+            Reconnect<Head>(w_0,e_1); // ... so this is safe.
             
             // The ifs above make this safe..
             Reconnect(w_3,u_0,n_3);
@@ -336,7 +336,7 @@ bool R_II_below()
     PD_ASSERT( e_1 != n_1 );
     
     // .. so this is safe:
-    Reconnect(w_0,Head,e_1);
+    Reconnect<Head>(w_0,e_1);
     
     // We have already checked this in R_II_above.
     PD_ASSERT( n_0 != n_1 );

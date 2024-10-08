@@ -29,7 +29,7 @@ void Reidemeister_I( const Int a )
         return;
     }
     
-    Reconnect(a_prev,Head,a_next);
+    Reconnect<Head>(a_prev,a_next);
     DeactivateArc(a);
     DeactivateCrossing(c);
     ++R_I_counter;
@@ -120,7 +120,7 @@ bool Reidemeister_I_at_Crossing( const Int c )
 //
         
         // Make arc a point to where arc b pointed before.
-        Reconnect(a,Head,b);
+        Reconnect<Head>(a,b);
         
         DeactivateArc(d);
         

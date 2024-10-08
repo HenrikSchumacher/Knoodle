@@ -64,10 +64,10 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //                        E_0    /     \    E_1
 //                    O---->----O       O----<----O
             
-            Reconnect(A,Tail,E_0);
-            Reconnect(A,Head,E_3);
-            Reconnect(B,Tail,E_1);
-            Reconnect(B,Head,E_2);
+            Reconnect<Tail>(A,E_0);
+            Reconnect<Head>(A,E_3);
+            Reconnect<Tail>(B,E_1);
+            Reconnect<Head>(B,E_2);
             
             goto exit;
         }
@@ -99,8 +99,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //            O---->----O       O----<----+
         }
         
-        Reconnect(B,Tail,E_0);
-        Reconnect(B,Head,E_3);
+        Reconnect<Tail>(B,E_0);
+        Reconnect<Head>(B,E_3);
         
         ++unlink_count;
         
@@ -136,8 +136,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //           \           /     \    E_1
 //            +---->----O       O----<----O
         
-        Reconnect(A,Tail,E_1);
-        Reconnect(A,Head,E_2);
+        Reconnect<Tail>(A,E_1);
+        Reconnect<Head>(A,E_2);
         
         ++unlink_count;
         

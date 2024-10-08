@@ -7,6 +7,8 @@ public:
  *  well as a move we call "twist move". See the ASCII-art in
  *  TwistMove.hpp for more details.
  *
+ *  This is a very dated simplification routine and only persists for benchmarking reasons. Better use `Simplify3` or `Simplify4` instead.
+ *
  */
 
 template<bool allow_R_IaQ = true, bool allow_R_IIaQ = true>

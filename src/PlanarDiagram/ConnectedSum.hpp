@@ -1,5 +1,8 @@
 public:
 
+/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `SplitConnectedSummands`.
+ */
+
 bool SplitSimplify( std::vector<PlanarDiagram<Int>> & PD_list )
 {
     ptic(ClassName()+"::SplitSimplify");
@@ -14,7 +17,7 @@ bool SplitSimplify( std::vector<PlanarDiagram<Int>> & PD_list )
         if( changed )
         {
             // TODO: Can/should we skip this compression step?
-            *this = this->CreateCompressed();
+            (*this) = this->CreateCompressed();
         }
 
         changed = changed || SplitConnectedSummands(PD_list);
@@ -36,8 +39,17 @@ bool SplitSimplify( std::vector<PlanarDiagram<Int>> & PD_list )
 
 public:
 
+
+
+/*! @brief This just splits off connected summands and appends them to the supplied `PD_list`.
+ *
+ * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
+ */
+
 bool SplitConnectedSummands( std::vector<PlanarDiagram<Int>> & PD_list )
 {
+    // TODO: Introduce some tracking of from where the components are split off.
+    
     RequireFaces();
     
     TwoArraySort<Int,Int,Int> S ( initial_arc_count );
@@ -67,7 +79,11 @@ bool SplitConnectedSummands( std::vector<PlanarDiagram<Int>> & PD_list )
 
 private:
 
-/*! @brief Checks whether face `f` has a double face neighbor. If yes, it attempts to do a split into two connected summands. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot.
+/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `PD_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
+ *
+ * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `PD_list`, and then tries to simplify it further with `SplitSimplify` (which may push further connected summands to `PD_list`).
+ *
+ * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
 bool SplitConnectedSummand(
@@ -77,6 +93,8 @@ bool SplitConnectedSummand(
     std::vector<Int> & f_faces
 )
 {
+    // TODO: Introduce some tracking of from where the components are split off.
+    
     const Int i_begin = F_arc_ptr[f  ];
     const Int i_end   = F_arc_ptr[f+1];
 
@@ -174,12 +192,12 @@ bool SplitConnectedSummand(
                 
                 if( a_prev != b_next )
                 {
-                    Reconnect(a_prev,Head,b_next);
+                    Reconnect<Head>(a_prev,b_next);
                 }
                 
                 if( b_prev != a_next )
                 {
-                    Reconnect(a_next,Tail,b_prev);
+                    Reconnect<Tail>(a_next,b_prev);
                 }
                 
                 DeactivateArc(a);
@@ -230,8 +248,8 @@ bool SplitConnectedSummand(
                 AssertArc(a_prev);
                 AssertArc(b_next);
                 
-                Reconnect(a_prev,Head,b_next);
-                Reconnect(a,Tail,b);
+                Reconnect<Head>(a_prev,b_next);
+                Reconnect<Tail>(a,b);
                 DeactivateCrossing(c);
 
                 ExportSmallerComponent(a_prev,a,PD_list);
@@ -269,8 +287,8 @@ bool SplitConnectedSummand(
             AssertArc(a_next);
             AssertArc(b_prev);
             
-            Reconnect(a,Head,b);
-            Reconnect(a_next,Tail,b_prev);
+            Reconnect<Head>(a,b);
+            Reconnect<Tail>(a_next,b_prev);
             DeactivateCrossing(c);
             
             ExportSmallerComponent(a,a_next,PD_list);
@@ -310,23 +328,25 @@ bool SplitConnectedSummand(
 }
 
 
+/*! @brief Compute the length of the connected component of arc `a_0` by fully traversing the component. This is hence a rather costly operation.
+ */
 
 Int ConnectedComponentLength( const Int a_0 ) const
 {
     Int a = a_0;
     
-    Int arc_count = 0;
+    Int arc_count_ = 0;
     
     do{
-        ++arc_count;
+        ++arc_count_;
         a = NextArc(a);
     }
     while( a != a_0 );
     
-    return arc_count;
+    return arc_count_;
 }
 
-/*! @brief Removes the connected component of arc `a`, creates a new diagram from it, and pushes it onto `PD_list`.
+/*! @brief Removes the smaller of the connected components of arc `a` and `b`, creates a new diagram from it, and pushes it onto `PD_list`.
  */
 
 void ExportSmallerComponent(
@@ -349,6 +369,16 @@ void ExportSmallerComponent(
     
 //    ptoc(ClassName()+"::ExportSmallerComponent");
 }
+
+/*! @brief Removes the connected component of arc `a_0`, creates a new diagram from it, and pushes it onto `PD_list`.
+ *
+ * @param a_0 The index of the arc
+ *
+ * @param arc_count The number of arcs to remove. It is needed for creating the new `PlanarDiagram` instance with a sufficient number of arcs.
+ *
+ * @param PD_list As list to which we append the newly created `PlanarDiagram
+ *
+ */
 
 void ExportComponent(
     const Int a_0, const Int arc_count, std::vector<PlanarDiagram<Int>> & PD_list

@@ -25,7 +25,7 @@ bool R_I_center()
                  *               O<---+  a
                  */
                 
-                Reconnect(w_0,Head,n_0);
+                Reconnect<Head>(w_0,n_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;
@@ -88,7 +88,7 @@ bool R_I_center()
                  *              s_0
                  */
             
-                Reconnect(w_0,Head,s_0);
+                Reconnect<Head>(w_0,s_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;

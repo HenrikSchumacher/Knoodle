@@ -99,8 +99,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //            
 //            PD_PRINT("\tUnlink detectd.");
 //            
-//            Reconnect(A,Tail,E_2);
-//            Reconnect(A,Head,E_3);
+//            Reconnect<Tail>(A,E_2);
+//            Reconnect<Head>(A,E_3);
 //
 //            DeactivateArc(B.Idx());
 //            DeactivateArc(E_0.Idx());
@@ -169,8 +169,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        
 //        PD_PRINT("\tUnlink detectd.");
 //        
-//        Reconnect(B,Tail,E_0);
-//        Reconnect(B,Head,E_1);
+//        Reconnect<Tail>(B,E_0);
+//        Reconnect<Head>(B,E_1);
 //
 //        DeactivateArc(A.Idx());
 //        DeactivateArc(E_2.Idx());
@@ -204,8 +204,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //            
 //            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0.");
 //            
-//            Reconnect(E_0,Tail,E_2);
-//            Reconnect(E_0,Head,E_1);
+//            Reconnect<Tail>(E_0,E_2);
+//            Reconnect<Head>(E_0,E_1);
 //
 //            DeactivateArc(A);
 //            DeactivateArc(B);
@@ -266,8 +266,8 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (3)");
 //
 //        
-//        Reconnect(E_1,Tail,E_0);
-//        Reconnect(E_1,Head,E_3);
+//        Reconnect<Tail>(E_1,E_0);
+//        Reconnect<Head>(E_1,E_3);
 //
 //        DeactivateArc(A.Idx());
 //        DeactivateArc(B.Idx());
@@ -313,10 +313,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                     +---->--------------->--------------->----+
         
         PD_PRINT(std::string("\t\tGeneric case (") + ((side==Left) ? "left)" : "right)") );
-        Reconnect(A,Tail,E_2);
-        Reconnect(A,Head,E_3);
-        Reconnect(B,Tail,E_0);
-        Reconnect(B,Head,E_1);
+        Reconnect<Tail>(A,E_2);
+        Reconnect<Head>(A,E_3);
+        Reconnect<Tail>(B,E_0);
+        Reconnect<Head>(B,E_1);
     
         goto exit;
     }

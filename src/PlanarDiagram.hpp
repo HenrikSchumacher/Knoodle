@@ -102,10 +102,16 @@ namespace KnotTools
         
     protected:
         
+        // Class data members
+        
+        // Exposed to user via Crossings().
         CrossingContainer_T      C_arcs;
+        // Exposed to user via CrossingStates().
         CrossingStateContainer_T C_state;
         
+        // Exposed to user via Arcs().
         ArcContainer_T           A_cross;
+        // Exposed to user via ArcStates().
         ArcStateContainer_T      A_state;
         
         Int initial_crossing_count  = 0;
@@ -154,21 +160,11 @@ namespace KnotTools
         bool faces_initialized = false;
         bool comp_initialized  = false;
         
-//        Int connected_sum_counter = 0;
-        
-    private:
-        
-        ArcSimplifier_T arc_simplifier;
-//        ArcSimplifier<Int,true,true> arc_simplifier4;
-        
         std::vector<Int> stack;
         
     public:
         
-        PlanarDiagram()
-        :   arc_simplifier  { *this }
-//        ,   arc_simplifier4 { *this }
-        {}
+        PlanarDiagram() = default;
         
         virtual ~PlanarDiagram() override = default;
         
@@ -364,25 +360,57 @@ namespace KnotTools
          */
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   C_arcs                  ( crossing_count_, Int(2), Int(2), -1               )
+        :   C_arcs                  ( crossing_count_, Int(2), Int(2), -1           )
         ,   C_state                 ( crossing_count_, CrossingState::Inactive      )
-        ,   A_cross                 ( Int(2)*crossing_count_, Int(2), -1                )
+        ,   A_cross                 ( Int(2)*crossing_count_, Int(2), -1            )
         ,   A_state                 ( Int(2)*crossing_count_, ArcState::Inactive    )
         ,   initial_crossing_count  ( crossing_count_                               )
         ,   initial_arc_count       ( Int(2)*crossing_count_                        )
         ,   crossing_count          ( crossing_count_                               )
         ,   arc_count               ( Int(2)*crossing_count_                        )
         ,   unlink_count            ( unlink_count_                                 )
-        ,   arc_simplifier          ( *this )
-//        ,   arc_simplifier4         ( *this )
         {
             PushAllCrossings();
         }
         
     public:
   
+//        // Copy constructor
+//        PlanarDiagram( const PlanarDiagram & other ) = default;
+        
         // Copy constructor
-        PlanarDiagram( const PlanarDiagram & other ) = default;
+        PlanarDiagram( const PlanarDiagram & other )
+        :   C_arcs                  { other.C_arcs                  }
+        ,   C_state                 { other.C_state                 }
+        ,   A_cross                 { other.A_cross                 }
+        ,   A_state                 { other.A_state                 }
+        ,   initial_crossing_count  { other.initial_crossing_count  }
+        ,   initial_arc_count       { other.initial_arc_count       }
+        ,   crossing_count          { other.crossing_count          }
+        ,   arc_count               { other.arc_count               }
+        ,   unlink_count            { other.unlink_count            }
+        ,   R_I_counter             { other.R_I_counter             }
+        ,   R_Ia_counter            { other.R_Ia_counter            }
+        ,   R_II_counter            { other.R_II_counter            }
+        ,   R_IIa_counter           { other.R_IIa_counter           }
+        ,   twist_counter           { other.twist_counter           }
+        ,   four_counter            { other.four_counter            }
+        
+#ifdef PD_USE_TOUCHING
+        ,   touched_crossings       { other.touched_crossings       }
+#endif
+        ,   A_faces                 { other.A_faces                 }
+        ,   F_arc_idx               { other.F_arc_idx               }
+        ,   F_arc_ptr               { other.F_arc_ptr               }
+        ,   comp_arc_idx            { other.comp_arc_idx            }
+        ,   comp_arc_ptr            { other.comp_arc_ptr            }
+        ,   A_comp                  { other.A_comp                  }
+        ,   A_pos                   { other.A_pos                   }
+        ,   faces_initialized       { other.faces_initialized       }
+        ,   comp_initialized        { other.comp_initialized        }
+        ,   stack                   { other.stack                   }
+        {}
+            
         
         friend void swap(PlanarDiagram & A, PlanarDiagram & B ) noexcept
         {
@@ -401,44 +429,30 @@ namespace KnotTools
             swap( A.crossing_count         , B.crossing_count          );
             swap( A.arc_count              , B.arc_count               );
             swap( A.unlink_count           , B.unlink_count            );
+            
             swap( A.R_I_counter            , B.R_I_counter             );
-
             swap( A.R_Ia_counter           , B.R_Ia_counter            );
             swap( A.R_II_counter           , B.R_II_counter            );
             swap( A.R_IIa_counter          , B.R_IIa_counter           );
             swap( A.twist_counter          , B.twist_counter           );
-            swap( A.four_counter           , B.four_counter           );
-#ifdef PD_COUNTERS
-            swap( A.R_I_check_counter      , B.R_I_check_counter       );
-            swap( A.R_Ia_check_counter     , B.R_Ia_check_counter      );
-            swap( A.R_Ia_horizontal_counter, B.R_Ia_horizontal_counter );
-            swap( A.R_Ia_vertical_counter  , B.R_Ia_vertical_counter   );
-            swap( A.R_II_check_counter     , B.R_II_check_counter      );
-            swap( A.R_II_horizontal_counter, B.R_II_horizontal_counter );
-            swap( A.R_II_vertical_counter  , B.R_II_vertical_counter   );
-            swap( A.R_IIa_check_counter    , B.R_IIa_check_counter     );
-#endif
+            swap( A.four_counter           , B.four_counter            );
             
 #ifdef PD_USE_TOUCHING
             swap( A.touched_crossings      , B.touched_crossings       );
 #endif
     
             swap( A.A_faces                , B.A_faces                 );
-            
             swap( A.F_arc_idx              , B.F_arc_idx               );
             swap( A.F_arc_ptr              , B.F_arc_ptr               );
-            
             swap( A.comp_arc_idx           , B.comp_arc_idx            );
             swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
-            
             swap( A.A_comp                 , B.A_comp                  );
-            swap( A.A_pos                  , B.A_pos                  );
+            swap( A.A_pos                  , B.A_pos                   );
             
             swap( A.faces_initialized      , B.faces_initialized       );
+            swap( A.comp_initialized       , B.comp_initialized        );
             
-//            swap( A.connected_sum_counter  , B.connected_sum_counter   );
-            
-//            swap( A.arc_simplifier         , B.arc_simplifier          );
+            swap( A.stack                  , B.stack                   );
         }
         
         // Move constructor
@@ -721,32 +735,11 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns the list of crossings as a reference to a Tensor3 object.
+         * @brief Returns the list of crossings in the internally used storage format as a reference to a `Tensor3` object, which is basically a heap-allocated array of dimension 3.
          *
-         * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows:
+         * The reference is constant because things can go wild  (segfaults, infinite loops) if we allow the user to mess with this data.
          *
-         *    Crossings()(c,0,0)                   Crossings()(c,0,1)
-         *            =              O       O             =
-         * Crossings()(c,Out,Left)    ^     ^   Crossings()(c,Out,Right)
-         *                             \   /
-         *                              \ /
-         *                               X
-         *                              / \
-         *                             /   \
-         *    Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
-         *            =              O       O             =
-         *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
-         */
-        
-        mref<CrossingContainer_T> Crossings()
-        {
-            return C_arcs;
-        }
-        
-        /*!
-         * @brief Returns the list of crossings as a reference to a Tensor3 object.
-         *
-         * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows:
+         * The `c`-th crossing is stored in `Crossings()(c,i,j)`, `i = 0,1`, `j = 0,1` as follows; note that we defined Booleans `Out = 0`, `In = 0`, `Left = 0`, `Right = 0` for easing the indexing:
          *
          *    Crossings()(c,0,0)                   Crossings()(c,0,1)
          *            =              O       O             =
@@ -759,6 +752,8 @@ namespace KnotTools
          *    Crossings()(c,1,0)      /     \      Crossings()(c,1,1)
          *            =              O       O             =
          *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
+         *
+         *  Beware that a crossing can have various states, such as `CrossingState::LeftHanded`, `CrossingState::RightHanded`, or `CrossingState::Deactivated`. This information is stored in the corresponding entry of `CrossingStates()`.
          */
         
         cref<CrossingContainer_T> Crossings() const
@@ -824,9 +819,11 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
+         * @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
          *
-         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
+         * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
+         *
+         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
          *
          *                          a
          *    Arcs()(a,0) X -------------> X Arcs()(a,0)
@@ -834,9 +831,11 @@ namespace KnotTools
          *    Arcs()(a,Tail)                Arcs()(a,Head)
          *
          * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
+         *
+         * Beware that an arc can have various states such as `CrossingState::Active` or `CrossingState::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
          */
         
-        mref<ArcContainer_T> Arcs()
+        cref<ArcContainer_T> Arcs()
         {
             return A_cross;
         }
@@ -1193,6 +1192,8 @@ namespace KnotTools
 #endif
             }
             
+            PD_ASSERT( crossing_count >= 0 );
+            
             
 #ifdef PD_DEBUG
             if constexpr ( assertsQ )
@@ -1231,6 +1232,8 @@ namespace KnotTools
 #endif
             }
             
+            PD_ASSERT( crossing_count >= 0 );
+            
 #ifdef PD_DEBUG
             for( bool io : { In, Out } )
             {
@@ -1266,6 +1269,8 @@ namespace KnotTools
                 wprint("Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
             }
+            
+            PD_ASSERT( arc_count >= 0 );
         }
         
         /*!
@@ -1285,6 +1290,8 @@ namespace KnotTools
                 wprint("Attempted to deactivate already inactive " + A.String() + ".");
 #endif
             }
+            
+            PD_ASSERT( arc_count >= 0 );
         }
         
     public:
@@ -1585,6 +1592,30 @@ namespace KnotTools
             AssertArc(a_prev);
             
             return a_prev;
+        }
+        
+        Int CountActiveCrossings() const
+        {
+            Int counter = 0;
+            
+            for( Int c = 0; c < initial_crossing_count; ++c )
+            {
+                counter += CrossingActiveQ(c);
+            }
+            
+            return counter;
+        }
+        
+        Int CountActiveArcs() const
+        {
+            Int counter = 0;
+            
+            for( Int a = 0; a < initial_arc_count; ++a )
+            {
+                counter += ArcActiveQ(a);
+            }
+            
+            return counter;
         }
         
         /*!

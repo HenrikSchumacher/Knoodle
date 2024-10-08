@@ -289,8 +289,8 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
             auto F_0 = GetArc( C_2(In ,side ) );
             auto F_1 = GetArc( C_2(Out,side ) );
             
-            Reconnect(F_0,Tail,E_1);
-            Reconnect(F_1,Head,E_0);
+            Reconnect<Tail>(F_0,E_1);
+            Reconnect<Head>(F_1,E_0);
             DeactivateCrossing(C_2.Idx());
             
 #ifdef PD_COUNTERS

@@ -61,8 +61,8 @@ bool Break( const Int c )
         PD_ASSERT(e_0!=e_3);
         PD_ASSERT(e_1!=e_3);
 
-        Reconnect(e_0,Head,e_3);
-        Reconnect(e_1,Head,e_2);
+        Reconnect<Head>(e_0,e_3);
+        Reconnect<Head>(e_1,e_2);
 
         DeactivateCrossing(c);
 
