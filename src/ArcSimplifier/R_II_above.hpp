@@ -364,7 +364,7 @@ bool R_II_above()
     
     // .. so this is safe:
     Reconnect<Head>(w_0,e_1);
-    Reconnect(s_0,u_0 ,s_1);
+    Reconnect(s_0,u_0,s_1);
     DeactivateArc(n_0);
     DeactivateArc(a);
     DeactivateCrossing(c_0);

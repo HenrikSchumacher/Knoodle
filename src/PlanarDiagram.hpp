@@ -157,6 +157,9 @@ namespace KnotTools
         Tensor1<Int,Int> A_comp {0};
         Tensor1<Int,Int> A_pos  {0};
         
+        Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
+        Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
+        
         bool faces_initialized = false;
         bool comp_initialized  = false;
         
@@ -369,6 +372,8 @@ namespace KnotTools
         ,   crossing_count          ( crossing_count_                               )
         ,   arc_count               ( Int(2)*crossing_count_                        )
         ,   unlink_count            ( unlink_count_                                 )
+        ,   C_scratch               ( crossing_count_                               )
+        ,   A_scratch               ( Int(2)*crossing_count_                        )
         {
             PushAllCrossings();
         }
@@ -408,7 +413,8 @@ namespace KnotTools
         ,   A_pos                   { other.A_pos                   }
         ,   faces_initialized       { other.faces_initialized       }
         ,   comp_initialized        { other.comp_initialized        }
-        ,   stack                   { other.stack                   }
+        ,   C_scratch               { other.C_scratch               }
+        ,   A_scratch               { other.A_scratch               }
         {}
             
         
@@ -452,7 +458,8 @@ namespace KnotTools
             swap( A.faces_initialized      , B.faces_initialized       );
             swap( A.comp_initialized       , B.comp_initialized        );
             
-            swap( A.stack                  , B.stack                   );
+            swap( A.C_scratch              , B.C_scratch               );
+            swap( A.A_scratch              , B.A_scratch               );
         }
         
         // Move constructor
@@ -1134,16 +1141,6 @@ namespace KnotTools
             return KnotTools::ChangedQ(A_state[a]);
         }
         
-        void TouchArc( const Int a )
-        {
-            if( ArcActiveQ(a) )
-            {
-                A_state[a] = ArcState::Active;
-                
-                stack.push_back(a);
-            }
-        }
-        
         /*!
          * @brief Returns the crossing you would get to by starting at crossing `c` and
          * leaving trough the
@@ -1518,80 +1515,57 @@ namespace KnotTools
                 }
             }
         }
-        
+
         /*!
-         * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head of `a`.
+         * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
          */
         
+        template<bool headtail>
         Int NextArc( const Int a ) const
         {
-            AssertArc(a);
-            
-            const Int c = A_cross(a,Head);
-            
-            AssertCrossing(c);
-
-            // Find out whether arc a is connected to a <Left> or <Right> port of c.
-
-//            const bool side = (C_arcs(c,In,Right) == a) ? Right : Left;
-            const bool side = (C_arcs(c,In,Right) == a);
-            
-            // We leave through the arc at the opposite port.
-            //If everything is set up correctly, the outgoing arc points into the same direction as a.
+            return NextArc<headtail>(a,A_cross(a,headtail));
+        }
         
-            const Int a_next = C_arcs(c,Out,!side);
+        /*!
+         * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. This function exploits that `c` is already known; so it saves one memory lookup.
+         */
+        
+        template<bool headtail>
+        Int NextArc( const Int a, const Int c ) const
+        {
+            AssertArc(a);
+            AssertCrossing(c);
+            
+            PD_ASSERT( A_cross(a,headtail) == c );
+
+            // We leave through the arc at the port opposite to where a arrives.
+            const bool side = (C_arcs(c, headtail,Right) != a);
+            
+            const Int a_next = C_arcs(c,!headtail,side );
             
             AssertArc(a_next);
             
             return a_next;
         }
         
+        
         /*!
-         * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head of `A`.
+         * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
          */
         
+        template<bool headtail>
         ArcView NextArc( const ArcView & A )
         {
             AssertArc(A.Idx());
             
-            const Int c = A(Head);
+            const Int c = A(headtail);
 
             AssertCrossing(c);
 
-            // Find out whether arc a is connected to a <Left> or <Right> port of c.
-//            const bool side = (C_arcs(c,In,Right) == A.Idx()) ? Right : Left;
-            const bool side = (C_arcs(c,In,Right) == A.Idx());
-            
-            // We leave through the arc at the opposite port.
-            //If everything is set up correctly, the outgoing arc points into the same direction as a.
-            
-            return GetArc( C_arcs(c,Out,!side) );
-        }
-        
-        /*!
-         * @brief Returns the arc preceding arc `a`, i.e., the arc reached by going straight through the crossing at the tail of `a`.
-         */
-        
-        Int PrevArc( const Int a ) const
-        {
-            AssertArc(a);
-            
-            const Int c = A_cross(a,Tail);
+            // We leave through the arc at the port opposite to where a arrives.
+            const bool side = (C_arcs(c,headtail,Right) != A.Idx());
 
-            AssertCrossing(c);
-            
-            // Find out whether arc a is connected to a <Left> or <Right> port of c.
-//            const bool side = (C_arcs(c,Out,Right) == a) ? Right : Left;
-            const bool side = (C_arcs(c,Out,Right) == a);
-            
-            // We leave through the arc at the opposite port.
-            //If everything is set up correctly, the ourgoing arc points into the same direction as a.
-            
-            const Int a_prev = C_arcs(c,In,!side);
-            
-            AssertArc(a_prev);
-            
-            return a_prev;
+            return GetArc( C_arcs(c,!headtail,side) );
         }
         
         Int CountActiveCrossings() const
@@ -1624,7 +1598,7 @@ namespace KnotTools
          * Relabeling is done as follows:
          * First active arc becomes first arc in new planar diagram.
          * The _tail_ of this arc becomes the new first crossing.
-         * Then we follow all arcs in the component with `NextArc(a)`.
+         * Then we follow all arcs in the component with `NextArc<Head>(a)`.
          * The new labels increase by one for each invisited arc.
          * Same for the crossings.
          */
@@ -1635,16 +1609,18 @@ namespace KnotTools
             
             PlanarDiagram pd ( crossing_count, unlink_count );
             
+            const Int m = A_cross.Dimension(0);
+            
             mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
             mptr<CrossingState>       C_state_new = pd.C_state.data();
             
             mref<ArcContainer_T>      A_cross_new = pd.A_cross;
             mptr<ArcState>            A_state_new = pd.A_state.data();
             
-            Tensor1<Int,Int>  C_labels   ( C_arcs.Size(),  -1 );
-            Tensor1<char,Int> A_visisted ( A_cross.Size(), false );
+            C_scratch.Fill(-1);
             
-            const Int m = A_cross.Dimension(0);
+            mptr<Int8> A_visited = reinterpret_cast<Int8 *>(A_scratch.data());
+            fill_buffer(A_visited,Int8(0),m);
             
             Int a_counter = 0;
             Int c_counter = 0;
@@ -1656,7 +1632,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visisted[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
+                while( ( a_ptr < m ) && ( A_visited[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }
@@ -1677,7 +1653,7 @@ namespace KnotTools
                     
                     AssertCrossing(c_prev);
                     
-                    const Int c = C_labels[c_prev] = c_counter;
+                    const Int c = C_scratch[c_prev] = c_counter;
                     
                     C_state_new[c] = C_state[c_prev];
                     
@@ -1693,15 +1669,15 @@ namespace KnotTools
                     AssertCrossing(c_prev);
                     AssertCrossing(c_next);
                     
-                    if( !A_visisted[a] )
+                    if( !A_visited[a] )
                     {
                         A_state_new[a_counter] = ArcState::Active;
-                        A_visisted[a] = true;
+                        A_visited[a] = true;
                     }
                     
-                    if( C_labels[c_next] < 0 )
+                    if( C_scratch[c_next] < 0 )
                     {
-                        const Int c = C_labels[c_next] = c_counter;
+                        const Int c = C_scratch[c_next] = c_counter;
                         
                         C_state_new[c] = C_state[c_next];
                         
@@ -1709,7 +1685,7 @@ namespace KnotTools
                     }
                     
                     {
-                        const Int  c  = C_labels[c_prev];
+                        const Int  c  = C_scratch[c_prev];
                         const bool side = (C_arcs(c_prev,Out,Right) == a);
                         
                         C_arcs_new(c,Out,side) = a_counter;
@@ -1718,7 +1694,7 @@ namespace KnotTools
                     }
                     
                     {
-                        const Int  c  = C_labels[c_next];
+                        const Int  c  = C_scratch[c_next];
                         const bool side = (C_arcs(c_next,In,Right) == a);
                         
                         C_arcs_new(c,In,side) = a_counter;
@@ -1726,7 +1702,7 @@ namespace KnotTools
                         A_cross_new(a_counter,Head) = c;
                     }
                     
-                    a = NextArc(a);
+                    a = NextArc<Head>(a);
                     
                     ++a_counter;
                 }
@@ -1894,7 +1870,7 @@ namespace KnotTools
             const Int m = A_cross.Dimension(0);
             
             Tensor1<Int ,Int> A_colors    ( m, -1 );
-            Tensor1<char,Int> A_visisted ( m, false );
+            Tensor1<char,Int> A_visited ( m, false );
             
             Int color = 0;
             Int a_ptr = 0;
@@ -1902,7 +1878,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }
@@ -1918,7 +1894,7 @@ namespace KnotTools
                 // For this, we move backwards along arcs until ArcUnderQ(a,Tail)/ArcOverQ(a,Tail)
                 while( ArcUnderQ(a,Tail) != overQ )
                 {
-                    a = PrevArc(a);
+                    a = NextArc<Tail>(a);
                 }
                 
                 const Int a_0 = a;
@@ -1926,7 +1902,7 @@ namespace KnotTools
                 // Traverse forward through all arcs in the link component, until we return where we started.
                 do
                 {
-                    A_visisted[a] = true;
+                    A_visited[a] = true;
                     
                     A_colors[a] = color;
 
@@ -1934,7 +1910,7 @@ namespace KnotTools
                     
                     color += (ArcUnderQ(a,Head) == overQ);
                     
-                    a = NextArc(a);
+                    a = NextArc<Head>(a);
                 }
                 while( a != a_0 );
                 
@@ -1987,7 +1963,7 @@ namespace KnotTools
             const Int m = A_cross.Dimension(0);
             
             Tensor3<Int ,Int> C_strands  ( n, 2, 2, -1 );
-            Tensor1<char,Int> A_visisted ( m, false );
+            Tensor1<char,Int> A_visited ( m, false );
             
             Int counter = 0;
             Int a_ptr   = 0;
@@ -1995,7 +1971,7 @@ namespace KnotTools
             while( a_ptr < m )
             {
                 // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visisted[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+                while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
                 {
                     ++a_ptr;
                 }
@@ -2010,7 +1986,7 @@ namespace KnotTools
                 // For this, we go back along a until ArcUnderQ(a,Tail)
                 while( ArcUnderQ(a,Tail) != overQ )
                 {
-                    a = PrevArc(a);
+                    a = NextArc<Tail>(a);
                 }
                 
                 const Int a_0 = a;
@@ -2018,7 +1994,7 @@ namespace KnotTools
                 // Traverse forward trhough all arcs in the link component, until we return where we started.
                 do
                 {
-                    A_visisted[a] = true;
+                    A_visited[a] = true;
                     
                     const Int c_0 = A_cross(a,Tail);
                     const Int c_1 = A_cross(a,Head);
@@ -2028,7 +2004,7 @@ namespace KnotTools
                     
                     counter += (ArcUnderQ(a,Head) == overQ);
                     
-                    a = NextArc(a);
+                    a = NextArc<Head>(a);
                 }
                 while( a != a_0 );
                 

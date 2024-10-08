@@ -22,13 +22,11 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     
     auto A   = GetArc( C_0(Out,Left ) );
     auto B   = GetArc( C_0(Out,Right) );
-    
-    auto E_3 = GetArc( C_1(Out,Left ) );
-    auto E_2 = GetArc( C_1(Out,Right) );
     auto E_0 = GetArc( C_0(In ,Left ) );
     auto E_1 = GetArc( C_0(In ,Right) );
     
-    
+    auto E_3 = GetArc( C_1(Out,Left ) );
+    auto E_2 = GetArc( C_1(Out,Right) );
     
     PD_ASSERT( E_0 != E_2 ); // Should be impossible because of topology.
     PD_ASSERT( E_1 != E_3 ); // Should be impossible because of topology.

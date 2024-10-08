@@ -16,7 +16,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     auto B_2 = GetArc( C_0(In ,Left ) );
     auto A_0 = GetArc( C_0(In ,Right) );
     auto C_1 = GetCrossing( A_1(Head) );
-    auto A_2 = NextArc(A_1);
+    auto A_2 = NextArc<Head>(A_1);
     auto C_2 = GetCrossing( A_2(Head) );
     
     if( SameHandednessQ(C_0,C_2) )
