@@ -11,17 +11,16 @@ public:
  *
  */
 
-template<bool exhaustiveQ = true>
-Int Simplify3()
+Int Simplify3( bool exhaustiveQ = true )
 {
-    ptic(ClassName()+"::Simplify3");
+    ptic(ClassName()+"::Simplify3(" + ToString(exhaustiveQ) + ")");
     
     Int old_counter = -1;
     Int counter = 0;
     
     ArcSimplifier_T arc_simplifier (*this);
 
-    if constexpr ( exhaustiveQ )
+    if ( exhaustiveQ )
     {
         do
         {
@@ -50,7 +49,7 @@ Int Simplify3()
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::Simplify3");
+    ptoc(ClassName()+"::Simplify3(" + ToString(exhaustiveQ) + ")");
     
     return counter;
 }

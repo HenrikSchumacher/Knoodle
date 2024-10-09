@@ -1,6 +1,10 @@
 #pragma once
 
-// TODO: Speed this up by reducing the redirecting in NextArc, NextLeftArc, and NextRightArc with simple array lookups.
+// TODO: Speed this up by reducing the redirecting in NextLeftArc by using and maintaining ArcLeftArc.
+
+// TODO: It seems to be faster to interleave the over-/understrand passed with recompression. This begs the question whether we should exploit the recompression step to compute some interesting information, e.g. all the over-/understrands.
+
+// TODO: It might also be worthwhile to do the overstrand and the understrand pass in the same loop. (But I doubt it.)
 
 namespace KnotTools
 {
@@ -79,7 +83,7 @@ namespace KnotTools
         ,   A_prev     { A_cross.Dimension(0), 2, 0 }
         ,   next_front { A_cross.Dimension(0) }
         ,   prev_front { A_cross.Dimension(0) }
-        ,   path       { A_cross.Dimension(0) }
+        ,   path       { A_cross.Dimension(0), -1 }
         ,   path_length{ 0 }
 //        ,   S_buffer{ A_cross.Dimension(0), -1 }
         {}
@@ -238,7 +242,9 @@ namespace KnotTools
         
     public:
 
-        Int SimplifyStrands( bool overQ_ )
+        Int SimplifyStrands(
+            bool overQ_, const Int max_dist = std::numeric_limits<Int>::max()
+        )
         {
             overQ = overQ_;
             
@@ -280,6 +286,8 @@ namespace KnotTools
                 AssertArc<1>(a);
                 
                 // For this, we move backwards along arcs until ArcUnderQ(a,Tail)/ArcOverQ(a,Tail)
+                
+                // TODO: We can save some lookups here if we inline ArcUnderQ and NextArc
                 while( pd.ArcUnderQ(a,Tail) != overQ )
                 {
                     a = pd.template NextArc<Tail>(a);
@@ -337,11 +345,13 @@ namespace KnotTools
                     {
                         bool changedQ = false;
                         
-                        if( strand_length > 1 )
+                        if( (strand_length > 1) && (max_dist > 0) )
                         {
                             PD_ASSERT( a != a_begin );
                             
-                            changedQ = RerouteToShortestPath(a_begin,a,strand_length-1,color);
+                            changedQ = RerouteToShortestPath(
+                                a_begin,a, Min(strand_length-1, max_dist),color
+                            );
                             
                             change_counter += changedQ;
                         }
@@ -385,15 +395,11 @@ namespace KnotTools
         
     private:
         
-        void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count )
+        void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count_ )
         {
             PD_DPRINT( ClassName() + "::CollapseArcRange" );
             
-            ptic(ClassName() + "::CollapseArcRange");
-            
-//            logvalprint( "a_begin", ArcString(a_begin) );
-//            logvalprint( "a_end",   ArcString(a_end  ) );
-//            logvalprint( "arc_count",   arc_count );
+//            ptic(ClassName() + "::CollapseArcRange");
             
             // This shall collapse the arcs `a_begin, pd.NextArc<Head>(a_begin),...,a_end` to a single arc.
             // All crossings from the head of `a_begin` up to the tail of `a_end` have to be reconnected and deactivated.
@@ -405,44 +411,55 @@ namespace KnotTools
 
             if( a_begin == a_end )
             {
-                ptoc(ClassName() + "::CollapseArcRange");
+//                ptoc(ClassName() + "::CollapseArcRange");
                 return;
             }
-            
-//            logprint("Arc before collapse:");
-//            logprint( StrandString(a_begin, a_end) );
-//            logprint("Starting the collapse:");
             
             Int a = a_end;
             
             Int iter = 0;
             
-            while( (a != a_begin) && (iter < arc_count) )
+            // arc_count_ is just an upper bound to prevent infinite loops.
+            while( (a != a_begin) && (iter < arc_count_) )
             {
                 ++iter;
                 
                 const Int c = A_cross(a,Tail);
-                const bool side  = (C_arcs(c,Out,Right) == a);
-                const Int a_prev = C_arcs(c,In,!side);
-
                 
-//                logvalprint( "a", ArcString(a) );
-//                logvalprint( "c", CrossingString(c) );
+//                const bool side  = (C_arcs(c,Out,Right) == a);
+//                const Int a_prev = C_arcs(c,In,!side);
+
                 
                 // side == Left         side == Right
                 //
                 //         |                    ^
                 //         |                    |
-                // a_prev  |   a        a_next  |
+                // a_prev  |   a        a_prev  |   a
                 //    ---->X---->          ---->X---->
                 //         |c                   |c
                 //         |                    |
                 //         v                    |
                 
-                PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
+//                PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
+
+//                Reconnect<Head>( C_arcs(c,In,side),C_arcs(c,Out,!side) );
                 
-                // Sometimes we cannot guarantee that the crossing at the intersection of a_begin and a_end is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
-                Reconnect<Head>( C_arcs(c,In,side),C_arcs(c,Out,!side) );
+                Int a_prev;
+                
+                if( C_arcs(c,Out,Right) == a )
+                {
+                    a_prev = C_arcs(c,In,Left);
+                    
+                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
+                    Reconnect<Head>( C_arcs(c,In,Right),C_arcs(c,Out,Left) );
+                }
+                else
+                {
+                    a_prev = C_arcs(c,In,Right);
+                    
+                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
+                    Reconnect<Head>( C_arcs(c,In,Left),C_arcs(c,Out,Right) );
+                }
                 
                 DeactivateArc(a);
                 
@@ -452,21 +469,16 @@ namespace KnotTools
                 a = a_prev;
             }
             
-            
-            if( iter >= arc_count )
-            {
-                eprint(ClassName()+"::CollapseArcRange: iter >= arc_count.");
-            }
-                
             PD_ASSERT( a == a_begin );
             
-            // a_end should already be deactivated.
+            PD_ASSERT( iter <= arc_count_ );
+
+            // a_end is already be deactivated.
+            PD_ASSERT( !ArcActiveQ(a_end) );
             
             Reconnect<Head,false>(a_begin,a_end);
             
-            PD_ASSERT( !ArcActiveQ(a_end) );
-            
-            ptoc(ClassName() + "::CollapseArcRange");
+//            ptoc(ClassName() + "::CollapseArcRange");
         }
         
         void RemoveLoop( const Int e )
@@ -474,6 +486,7 @@ namespace KnotTools
             PD_DPRINT( ClassName() + "::RemoveLoop at " + ArcString(e) );
             
             ptic(ClassName() + "::RemoveLoop");
+            
             const Int c_0 = A_cross(e,Head);
             
             if( A_cross(e,Tail) == c_0 )
@@ -578,8 +591,6 @@ namespace KnotTools
             //               b |
             //                 v
 
-            PD_ASSERT( (C_arcs(c_0,In,Right) == e) || (C_arcs(c_0,In,Left) == e) );
-            
             const bool side = (C_arcs(c_0,In,Right) == e);
                       
             const Int b = C_arcs(c_0,Out,side);
@@ -642,14 +653,18 @@ namespace KnotTools
             
             Int d = 0; // Distance of the elements of `next_front` to the origin `a_begin`.
             
-            while( (d <= max_dist) && (!next_front.EmptyQ()) )
+            while( (d+1 < max_dist) && (!next_front.EmptyQ()) )
             {
                 swap( prev_front, next_front );
                 
                 next_front.Reset();
-
-                ++d;
                 
+                // We don't want paths of length max_dist.
+                // The elements of prev_front have distance d.
+                // So the element we push onto next_front will have distance d+1.
+                
+                ++d;
+
                 while( !prev_front.EmptyQ() )
                 {
                     const Int A_0 = prev_front.Pop();
@@ -660,7 +675,6 @@ namespace KnotTools
                     
                     bool dir = (A_0 & Int(1));
 
-                    
                     // arc a_0 itself does not have to be processed because that's where we are coming from.
                     std::tie(a,dir) = pd.NextLeftArc( a, dir );
 
@@ -707,10 +721,22 @@ namespace KnotTools
                 }
             }
             
+            // If we get here, then d+1 = max_dist.
+            
+            ++d;
+            
+            // Now d = max_dist.
+            
         exit:
             
-            if( d <= max_dist )
+            // Write the actual path to array `path`.
+            
+            if( (0 <= d) && (d < max_dist) )
             {
+                // The only way to get here with `d < max_dist` is the `goto` above.
+                
+                PD_ASSERT( A_prev(a_end,0) == color_ );
+                   
                 path_length = d+1;
                 
                 Int a = a_end;
@@ -737,7 +763,7 @@ namespace KnotTools
         {
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
 
-            if( d <= max_dist )
+            if( d < max_dist )
             {
                 Tensor1<Int,Int> path_out (path_length);
                 
@@ -751,55 +777,30 @@ namespace KnotTools
             }
         }
         
-// private:
+ private:
         
         bool RerouteToShortestPath(
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-//            ptic(ClassName()+"::RerouteToShortestPath");
+            ptic(ClassName()+"::RerouteToShortestPath");
             
-//            logdump(max_dist);
-//            
-//            logdump(color);
-//            logdump(color_);
-//            
-//            logvalprint( "a_begin", ArcString(a_begin) );
-//            logvalprint( "a_end  ", ArcString(a_end  ) );
-            
-            ptic("Find path");
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-            ptoc("Find path");
             
-//            logdump(d);
-            
-            
-            if( (d < 0) || (d > max_dist) )
+            if( (d < 0) || (d >= max_dist) )
             {
-                PD_DPRINT("No improvement detected: (d < 0) || (d > max_dist).");
+                PD_DPRINT("No improvement detected: (d < 0) || (d >= max_dist).");
                 
-//                ptoc(ClassName()+"::RerouteToShortestPath");
+                ptoc(ClassName()+"::RerouteToShortestPath");
                 
                 return false;
             }
             
-//            logprint("The old strand:");
-//            logprint( StrandString(a_begin, a_end) );
-
-            
-//            logvalprint( "path", ArrayToString( path.data(), {path_length} ) );
-            
             // path[0] == a_begin. This is not to be crossed.
             
             
-            ptic("FindStart");
-            
             Int p = 1;
             Int a = a_begin;
-            
-//            logdump(p);
-//            logvalprint("a",ArcString(a));
-//            logvalprint("path[p]",ArcString(path[p]));
             
             // At the beginning of the strand we want to avoid inserting a crossing on
             // arc b if b branches directly off from the current strand.
@@ -812,21 +813,13 @@ namespace KnotTools
             //                b
             //
 
-//            logprint("Finding first branching arc.");
-            
             // Finding first branching arc
             // TODO: Optimize away the call to NextArc by fusing this with ArcBranchesFromArcQ.
-
-            
             while( ArcBranchesFromArcQ<Head>(a,path[p]) )
             {
                 ++p;
                 a = pd.template NextArc<Head>(a);
             }
-            
-//            logdump(p);
-//            logvalprint("a",ArcString(a));
-//            logvalprint("path[p]",ArcString(path[p]));
             
             // Now a is the first arc to be rerouted.
             
@@ -835,68 +828,33 @@ namespace KnotTools
             Int q = path_length-1;
             Int e = a_end;
             
-//            logdump(q);
-//            logvalprint("e",ArcString(e));
-//            logvalprint("path[q]",ArcString(path[q]));
-//            
-//            logprint("Finding last branching arc.");
-            
             // TODO: Optimize away the call to NextArc by fusing this with ArcBranchesFromArcQ.
-            
             while( ArcBranchesFromArcQ<Tail>(e,path[q]) )
             {
                 --q;
                 e = pd.template NextArc<Tail>(e);
             }
-            
-            ptoc("FindStart");
 
-//            logdump(q);
-//            logvalprint("e",ArcString(e));
-//            logvalprint("path[q]",ArcString(path[q]));
-            
+
             // Now e is the last arc to be rerouted.
-            
-            
-            PD_DPRINT("========== Rerouting ==========");
             
             // Handle the rerouted arcs.
             
-            ptic("Reroute");
-
-            
             while( p < q )
             {
-//                logprint("==============================");
-//                
-//                logdump(p);
-//                logvalprint( "a", ArcString(a)  );
-                
                 const Int c_0 = A_cross(a,Head);
                 
-                AssertCrossing<1>(c_0);
-                
-//                const Int a_next = pd.template NextArc<Head>(a);
-                
-                const bool side_0 = (C_arcs(c_0,In,Right) != a);
-                const Int a_next = C_arcs(c_0,Out,side_0);
-
-                AssertArc<1>(a_next);
-                
-//                logvalprint("c_0",CrossingString(c_0));
+                const Int a_next = pd.template NextArc<Head>(a,c_0);
                 
                 const Int b = path[p];
                 
                 AssertArc<1>(b);
-                
-//                logvalprint("b",ArcString(b));
-//                
+//
                 const bool dir = (A_prev(b,0) > 0);
                 
                 const Int c_1 = A_cross(b,Head);
                 
                 AssertCrossing<1>(c_1);
-//                logvalprint("c_1",CrossingString(c_1));
                 
                 const bool u = (overQ == RightHandedQ(C_state[c_0]));
                 
@@ -913,19 +871,11 @@ namespace KnotTools
                 //
                 
                 // a_0 is the vertical incoming arc.
-//                const Int a_0 = u ? C_arcs(c_0,In ,Right) : C_arcs(c_0,In ,Left );
-                
                 const Int a_0 = C_arcs(c_0,In , u);
                 
                 // a_1 is the vertical outgoing arc.
-//                const Int a_1 = u ? C_arcs(c_0,Out,Left ) : C_arcs(c_0,Out,Right);
-                
                 const Int a_1 = C_arcs(c_0,Out,!u);
 
-                
-                PD_ASSERT( A_cross(a_0,Head) == c_0 );
-                PD_ASSERT( A_cross(a_1,Tail) == c_0 );
-                
                 
                 // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
                 
@@ -937,16 +887,8 @@ namespace KnotTools
                     continue;
                 }
                 
-//                PD_ASSERT( b != a_next );
-//                PD_ASSERT( b != a_0 );
-//                PD_ASSERT( b != a_1 );
-                
                 AssertArc<1>(a_0);
                 AssertArc<1>(a_1);
-                
-//                logvalprint("a_0",ArcString(a_0));
-//                logvalprint("a_1",ArcString(a_1));
-//                logvalprint("a_next",ArcString(a_next));
                 
                 // The case dir == true.
                 // We cross arc `b` from left to right.
@@ -994,25 +936,16 @@ namespace KnotTools
                 //             | b
                 //             |
                 //             X
-
-//                logprint("------------------------------");
                 
                 Reconnect<Head,false>(a_0,a_1);
 
-                A_cross(b,  Head) = c_0;
+                A_cross(b,Head) = c_0;
                 
                 // Caution: This might turn around a_1!
                 A_cross(a_1,Tail) = c_0;
                 A_cross(a_1,Head) = c_1;
-
-                if( C_arcs(c_1,In,Right) == b )
-                {
-                    C_arcs(c_1,In,Right) = a_1;
-                }
-                else
-                {
-                    C_arcs(c_1,In,Left ) = a_1;
-                }
+                
+                pd.template SetMatchingPortTo<In>(c_1,b,a_1);
                 
                 // Recompute c_0. We have to be aware that the handedness and the positions of the arcs relative to c_0 can completely change!
                 
@@ -1084,48 +1017,19 @@ namespace KnotTools
                 AssertArc<1>(a_1);
                 AssertArc<1>(a_next);
                 AssertArc<1>(b);
-                
-                
-//                logvalprint("a",ArcString(a));
-//                logvalprint("b",ArcString(b));
-//                
-//                logvalprint("a_0",ArcString(a_0));
-//                logvalprint("a_1",ArcString(a_1));
-//                logvalprint("a_next",ArcString(a_next));
-//                
-//                logvalprint("c_0",CrossingString(c_0));
-//                logvalprint("c_1",CrossingString(c_1));
 //                
                 // Go to next of arc.
                 a = a_next;
                 ++p;
-            
-//                logprint("==============================");
             }
             
-            ptoc("Reroute");
-            
-//            logprint("========== Rerouting done. ==========");
-//            
-//            logdump(p);
-//            logdump(q);
-//            
-//            PD_ASSERT( p == q );
-//            PD_ASSERT( path[p] == e );
-            
-//            logvalprint("a",ArcString(a));
-//            logvalprint("e",ArcString(e));
-            
-            // max_dist+1 is just an upper bound.
-            CollapseArcRange(a,e,max_dist+1);
+            // strand_length is just an upper bound to prevent infinite loops.
+            CollapseArcRange(a,e,strand_length);
             
             AssertArc<1>(a);
             AssertArc<0>(e);
-
-//            logprint("The new strand:");
-//            logprint( StrandString(a,e) );
-    
-//            ptoc(ClassName()+"::RerouteToShortestPath");
+            
+            ptoc(ClassName()+"::RerouteToShortestPath");
             
             return true;
         }

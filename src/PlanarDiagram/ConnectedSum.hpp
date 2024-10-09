@@ -1,10 +1,16 @@
 public:
 
+// TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
+
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `SplitConnectedSummands`.
  */
 
-template<bool compressQ>
-bool SplitSimplify( std::vector<PlanarDiagram<Int>> & PD_list )
+bool SplitSimplify(
+    std::vector<PlanarDiagram<Int>> & PD_list,
+    const Int max_dist_checked = std::numeric_limits<Int>::max(),
+    const bool compressQ = true,
+    bool simplify3_exhaustiveQ = true
+)
 {
     ptic(ClassName()+"::SplitSimplify");
 
@@ -13,15 +19,15 @@ bool SplitSimplify( std::vector<PlanarDiagram<Int>> & PD_list )
 
     do
     {
-        changed = Simplify4<compressQ,true>();
+        changed = Simplify4(max_dist_checked,compressQ,simplify3_exhaustiveQ);
 
         changed = changed || SplitConnectedSummands(PD_list);
         
         globally_changed = globally_changed || changed;
     }
     while( changed );
-
-    if( globally_changed )
+    
+    if( compressQ && globally_changed )
     {
         // TODO: Can/should we skip this compression step?
         *this = this->CreateCompressed();
@@ -41,7 +47,12 @@ public:
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
-bool SplitConnectedSummands( std::vector<PlanarDiagram<Int>> & PD_list )
+bool SplitConnectedSummands(
+    std::vector<PlanarDiagram<Int>> & PD_list,
+    const Int max_dist_checked = std::numeric_limits<Int>::max(),
+    const bool compressQ = true,
+    bool simplify3_exhaustiveQ = true
+)
 {
     ptic(ClassName()+"::SplitConnectedSummands");
     // TODO: Introduce some tracking of from where the components are split off.
@@ -76,6 +87,7 @@ bool SplitConnectedSummands( std::vector<PlanarDiagram<Int>> & PD_list )
     return changed_at_least_onceQ;
 }
 
+
 private:
 
 /*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `PD_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
@@ -89,7 +101,10 @@ bool SplitConnectedSummand(
     const Int f, std::vector<PlanarDiagram<Int>> & PD_list,
     TwoArraySort<Int,Int,Int> & S,
     std::vector<Int> & f_arcs,
-    std::vector<Int> & f_faces
+    std::vector<Int> & f_faces,
+    const Int max_dist_checked = std::numeric_limits<Int>::max(),
+    const bool compressQ = true,
+    bool simplify3_exhaustiveQ = true
 )
 {
     // TODO: Introduce some tracking of from where the components are split off.
@@ -118,12 +133,32 @@ bool SplitConnectedSummand(
     
     if( f_size == 1 )
     {
-//        Reidemeister_I(f_arcs[0]);
+        // TODO: What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
+
+//        
+//        wprint("f_size == 1");
+//        
+//        for( auto a : f_arcs )
+//        {
+//            logprint( ArcString(a) );
+//        }
         
-        return false;
+        
+        Reidemeister_I(f_arcs[0]);
+        
+        return true;
     }
     
     S( &f_faces[0], &f_arcs[0], f_size );
+    
+    auto push = [&]( PlanarDiagram<Int> && pd )
+    {
+        pd.SplitSimplify( PD_list, max_dist_checked, compressQ, simplify3_exhaustiveQ );
+
+        PD_ASSERT( pd.CheckAll() );
+
+        PD_list.push_back( std::move(pd) );
+    };
     
     Int i = 0;
     
@@ -204,7 +239,7 @@ bool SplitConnectedSummand(
                 }
                 else
                 {
-                    ExportSmallerComponent(a_prev,a_next,PD_list);
+                    push( std::move( ExportSmallerComponent(a_prev,a_next) ) );
                     return true;
                 }
             }
@@ -237,7 +272,7 @@ bool SplitConnectedSummand(
                 Reconnect<Tail>(a,b);
                 DeactivateCrossing(c);
 
-                ExportSmallerComponent(a_prev,a,PD_list);
+                push( std::move( ExportSmallerComponent(a_prev,a) ) );
                 
                 return true;
             }
@@ -271,8 +306,8 @@ bool SplitConnectedSummand(
             Reconnect<Tail>(a_next,b_prev);
             DeactivateCrossing(c);
             
-            ExportSmallerComponent(a,a_next,PD_list);
-            
+            push( std::move( ExportSmallerComponent(a,a_next) ) );
+                            
             return true;
         }
         
@@ -296,20 +331,24 @@ bool SplitConnectedSummand(
         SetMatchingPortTo<In>(c_a,a,b);
         SetMatchingPortTo<In>(c_b,b,a);
         
-        ExportSmallerComponent(a,b,PD_list);
+        push( std::move( ExportSmallerComponent(a,b) ) );
         
         return true;
     }
-    
+
     return false;
 }
 
-/*! @brief Removes the smaller of the connected components of arc `a` and `b`, creates a new diagram from it, and pushes it onto `PD_list`.
+
+
+
+
+private:
+
+/*! @brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
  */
 
-void ExportSmallerComponent(
-    const Int a_0, const Int b_0, std::vector<PlanarDiagram<Int>> & PD_list
-)
+PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
 {
     ptic(ClassName()+"::ExportSmallerComponent");
     
@@ -332,14 +371,16 @@ void ExportSmallerComponent(
     }
     while( (a != a_0) && (b != b_0) );
     
-    ExportComponent( (a == a_0) ? a_0 : b_0, length, PD_list );
+    PlanarDiagram<Int> pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
     
     ptoc(ClassName()+"::ExportSmallerComponent");
+    
+    return pd;
 }
 
 private:
 
-/*! @brief Removes the connected component of arc `a_0`, creates a new diagram from it, and pushes it onto `PD_list`.
+/*! @brief Removes the connected component of arc `a_0`, creates a new diagram from it, and returns it.
  *
  *
  * Before this is called, it is essential that at least the positions in `C_scratch` that will be traversed are filled by negative numbers! For example, `ExportSmallerComponent` does this.
@@ -348,19 +389,13 @@ private:
  *
  * @param arc_count The number of arcs to remove. It is needed for creating the new `PlanarDiagram` instance with a sufficient number of arcs.
  *
- * @param PD_list As list to which we append the newly created `PlanarDiagram
- *
  */
 
-void ExportComponent(
-    const Int a_0, const Int arc_count, std::vector<PlanarDiagram<Int>> & PD_list
-)
+PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int arc_count )
 {
     ptic(ClassName()+"::ExportComponent");
     
     PlanarDiagram<Int> pd (arc_count/2,0);
-    
-    // TODO: Might be replaced by one global array (with some appropriate rolling labelling.)
     
     Int a_label = 0;
     Int c_counter = 0;
@@ -422,13 +457,9 @@ void ExportComponent(
     
     PD_ASSERT( pd.CheckAll() );
     
-    pd.SplitSimplify<true>( PD_list );
-
-    PD_ASSERT( pd.CheckAll() );
-    
-    PD_list.push_back( std::move(pd) );
-    
     ptoc(ClassName()+"::ExportComponent");
+    
+    return pd;
 }
 
 //Int ArcRangeLength( const Int a_begin, const Int a_end ) const
@@ -461,3 +492,21 @@ void ExportComponent(
 //    }
 //}
 
+
+private:
+
+
+void PrintFace( const Int a_0, const bool headtail )
+{
+    Int a = a_0;
+    
+    bool dir = headtail;
+    
+    do
+    {
+        logprint( ArcString(a) );
+
+        std::tie(a,dir) = NextLeftArc(a,dir);
+    }
+    while( a != a_0 );
+}

@@ -215,9 +215,9 @@ bool CheckVertexDegrees() const
 
 bool CheckAll() const
 {
-    const bool passed = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees();
+    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees();
 
-    return passed;
+    return passedQ;
 }
 
 

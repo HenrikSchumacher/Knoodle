@@ -110,9 +110,7 @@ void RequireFaces()
     Int F_counter = 0;
 
     // A stack for storing arcs of the current component that have yet to be visited.
-    std::vector<Int> comp_arc_stack;
-    
-    comp_arc_stack.reserve( initial_arc_count );
+    Stack<Int,Int> comp_arc_stack ( initial_arc_count );
     
     Int arc_finder = 0;
     
@@ -131,14 +129,11 @@ void RequireFaces()
             goto exit;
         }
         
-        // Push
-        comp_arc_stack.push_back(arc_finder);
+        comp_arc_stack.Push(arc_finder);
 
-        while( !comp_arc_stack.empty() )
+        while( !comp_arc_stack.EmptyQ() )
         {
-            // Pop
-            Int a = comp_arc_stack.back();
-            comp_arc_stack.pop_back();
+            Int a = comp_arc_stack.Pop();
             
             Int dir;
             
@@ -173,18 +168,17 @@ void RequireFaces()
                 // Remember this arc to find the other face later.
                 if( A_faces(a,dir) == -1 )
                 {
-                    // Push
-                    comp_arc_stack.push_back(a);
+                    comp_arc_stack.Push(a);
                 }
 
                 
                 // Move to next arc.
 
                 // Using the precomputed A_left instead of NextLeftArc seems to be faster.
-                const Int bits = A_left(a,dir);
+                const Int A = A_left(a,dir);
 
-                a   = static_cast<Int>(bits >> 1);
-                dir = static_cast<Int>(bits & Int(1));
+                a   = static_cast<Int>(A >> 1);
+                dir = static_cast<Int>(A & Int(1));
                 
                 ++arc_counter;
             }
@@ -254,9 +248,7 @@ void RequireFaces2()
     Int F_counter = 0;
 
     // A stack for storing arcs of the current component that have yet to be visited.
-    std::vector<Int> comp_arc_stack;
-    
-    comp_arc_stack.reserve( initial_arc_count );
+    Stack<Int,Int> comp_arc_stack ( initial_arc_count );
     
     Int arc_finder = 0;
     
@@ -276,13 +268,11 @@ void RequireFaces2()
         }
         
         // Push
-        comp_arc_stack.push_back(arc_finder);
+        comp_arc_stack.Push(arc_finder);
 
-        while( !comp_arc_stack.empty() )
+        while( !comp_arc_stack.EmptyQ() )
         {
-            // Pop
-            Int a = comp_arc_stack.back();
-            comp_arc_stack.pop_back();
+            Int a = comp_arc_stack.Pop();
             
             Int dir;
             
@@ -317,17 +307,16 @@ void RequireFaces2()
                 // Remember this arc to find the other face later.
                 if( A_faces(a,dir) == -1 )
                 {
-                    // Push
-                    comp_arc_stack.push_back(a);
+                    comp_arc_stack.Push(a);
                 }
 
                 // Move to next arc.
                 
                 // Using the precomputed A_wings instead of NextLeftArc seems to be faster.
-                const Int bits = A_wings(a,dir,!dir);
+                const Int A = A_wings(a,dir,!dir);
 
-                a   = static_cast<Int>(bits >> 1);
-                dir = static_cast<Int>(bits & Int(1));
+                a   = static_cast<Int>(A >> 1);
+                dir = static_cast<Int>(A & Int(1));
                 
                 ++arc_counter;
             }
@@ -395,9 +384,8 @@ void RequireFaces3()
     Int F_counter = 0;
 
     // A stack for storing arcs of the current component that have yet to be visited.
-    std::vector<Int> comp_arc_stack;
     
-    comp_arc_stack.reserve( initial_arc_count );
+    Stack<Int,Int> comp_arc_stack ( initial_arc_count );
     
     Int arc_finder = 0;
     
@@ -416,14 +404,11 @@ void RequireFaces3()
             goto exit;
         }
         
-        // Push
-        comp_arc_stack.push_back(arc_finder);
+        comp_arc_stack.Push(arc_finder);
 
-        while( !comp_arc_stack.empty() )
+        while( !comp_arc_stack.EmptyQ() )
         {
-            // Pop
-            Int a = comp_arc_stack.back();
-            comp_arc_stack.pop_back();
+            Int a = comp_arc_stack.Pop();
             
             Int dir;
             
@@ -459,7 +444,7 @@ void RequireFaces3()
                 if( A_faces(a,dir) == -1 )
                 {
                     // Push
-                    comp_arc_stack.push_back(a);
+                    comp_arc_stack.Push(a);
                 }
 
                 

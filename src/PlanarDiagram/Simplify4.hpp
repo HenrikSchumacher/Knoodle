@@ -7,10 +7,17 @@ public:
  *
  */
 
-template<bool compressQ = true, bool simplify3_exhaustiveQ = true>
-Int Simplify4()
+Int Simplify4(
+    const Int max_dist_checked,
+    const bool compressQ = true,
+    bool simplify3_exhaustiveQ = true
+)
 {
-    ptic(ClassName()+"::Simplify4<" + ToString(compressQ) + "," + ToString(simplify3_exhaustiveQ) + ">");
+    ptic(ClassName()+"::Simplify4"
+         + "(" + ToString(max_dist_checked)
+         + "," + ToString(compressQ)
+         + "," + ToString(simplify3_exhaustiveQ)
+         + ")");
     
     Int old_counter = -1;
     Int counter = 0;
@@ -32,40 +39,31 @@ Int Simplify4()
         
         // Since Simplify3 contains only inexpensive tests, we should call it first.
         
-        const Int simpl3_changes = Simplify3<simplify3_exhaustiveQ>();
+        const Int simpl3_changes = Simplify3(simplify3_exhaustiveQ);
         
         counter += simpl3_changes;
 
-        if constexpr ( compressQ )
+        if( compressQ && (simpl3_changes > 0) )
         {
-            if( simpl3_changes > 0)
-            {
-                (*this) = CreateCompressed();
-            }
+            (*this) = CreateCompressed();
         }
         
-        const Int o_changes = S.SimplifyStrands(true);
+        const Int o_changes = S.SimplifyStrands(true,max_dist_checked);
         
         counter += o_changes;
         
-        if constexpr ( compressQ )
+        if( compressQ && (o_changes > 0) )
         {
-            if( o_changes > 0)
-            {
-                (*this) = CreateCompressed();
-            }
+            (*this) = CreateCompressed();
         }
         
-        const Int u_changes = S.SimplifyStrands(false);
+        const Int u_changes = S.SimplifyStrands(false,max_dist_checked);
         
         counter += u_changes;
         
-        if constexpr ( compressQ )
+        if( compressQ && (u_changes > 0) )
         {
-            if( u_changes > 0)
-            {
-                (*this) = CreateCompressed();
-            }
+            (*this) = CreateCompressed();
         }
     }
     while( counter > old_counter );
@@ -81,6 +79,7 @@ Int Simplify4()
 //        logprint( ClassName()+"::Simplify4 did not find any improvements. Number of crossings = " + ToString(ToString(CrossingCount())) + ".\nTime elapsed = " +ToString(Tools::Duration(start_time,stop_time)) + " s.");
 //    }
     
+
     if( counter > 0 )
     {
         faces_initialized = false;
@@ -91,7 +90,11 @@ Int Simplify4()
     
     PD_ASSERT(CheckAll());
 
-    ptoc(ClassName()+"::Simplify4");
+    ptoc(ClassName()+"::Simplify4"
+         + "(" + ToString(max_dist_checked)
+         + "," + ToString(compressQ)
+         + "," + ToString(simplify3_exhaustiveQ)
+         + ")");
     
     return counter;
 }
