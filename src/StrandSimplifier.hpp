@@ -334,11 +334,14 @@ namespace KnotTools
                     {
                         // Vertex c has been visted before.
                         
-                        RemoveLoop(a);
+                        RemoveLoop(a,c);
                         
-                        // TODO: We might not have to break here;
-                        // TODO: Instead we could move on to the next arc.
+//                        // TODO: We might not have to break here;
+//                        // TODO: Instead we could move on to the next arc.
                         break;
+//                        
+//                        // Continue with current strand.
+//                        strand_length = C_len(c);
                     }
                     
                     if( strand_completeQ )
@@ -356,8 +359,8 @@ namespace KnotTools
                             change_counter += changedQ;
                         }
                         
-                        // TODO: We might not have to break here;
-                        // TODO: Instead we could move on to the next arc.
+//                        // TODO: We might not have to break here;
+//                        // TODO: Instead we could move on to the next arc.
                         if( changedQ )
                         {
                             break;
@@ -481,30 +484,19 @@ namespace KnotTools
 //            ptoc(ClassName() + "::CollapseArcRange");
         }
         
-        void RemoveLoop( const Int e )
+        void RemoveLoop( const Int e, const Int c_0 )
         {
             PD_DPRINT( ClassName() + "::RemoveLoop at " + ArcString(e) );
             
             ptic(ClassName() + "::RemoveLoop");
             
-            const Int c_0 = A_cross(e,Head);
+            // We can save the lookup here.
+//            const Int c_0 = A_cross(e,Head);
             
-            if( A_cross(e,Tail) == c_0 )
-            {
-                pd.Reidemeister_I(e);
-                
-                ++change_counter;
-                
-                ptoc(ClassName() + "::RemoveLoop");
-                return;
-            }
-            
-            
-            // TODO: Implement this!
-            
+            // TODO: If the link has multiple components, it can also happen then the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well.
 //            if constexpr( mult_compQ )
 //            {
-//                const Int a = pd.template NextArc<Head>(e);
+//                const Int a = pd.template NextArc<Head>(e,c_0);
 //
 //                // TODO: Check also the case that the strand is a loop
 //                
@@ -528,6 +520,7 @@ namespace KnotTools
 //                    }
 //                    else
 //                    {
+//                        // TODO: What did I think? This cannot happen, or can it?
 //                        // overQ == true;
 //                        //
 //                        //                 O                  O
@@ -541,67 +534,34 @@ namespace KnotTools
 //                        // TODO: We need to insert a new crossing on the vertical strand.
 //                        
 //                        eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
-//                        
-//                        // The goal should be this:
-//                        //
-//                        // overQ == true, upQ == true
-//                        //
-//                        //                 O
-//                        //                 ^
-//                        //                 |c_1
-//                        //            O<---------O
-//                        //            |    |     ^
-//                        //            |    |     |
-//                        //          e |    O     | a
-//                        //            |    ^     |
-//                        //            v    |     |
-//                        //            O----|---->O
-//                        //                 |c_0
-//                        //                 |
-//                        //                 O
-//                        
-////                        bool upQ = (C_arcs(c_0,In,Left) == e);
-////
-////                        const Int c_1 = A_cross(a,Head);
-//                        
-////                        Reconnect<Tail>(a,??);
 //
 //                        return;
 //                    }
 //                }
 //            }
             
-            // side == Left
+            // side == Left             side == Right
             //
-            //                 ^
-            //                 |b
-            //              e  |
-            //            ---->X---->
-            //                 |c_0
-            //                 |
-            //                 |
-            //
-            // side == Right
-            //
-            //                 |
-            //                 |
-            //              e  |
-            //            ---->X---->
-            //                 |c_0
-            //               b |
-            //                 v
+            //           ^                        |
+            //           |b                       |
+            //        e  |                     e  |
+            //      ---->X---->              ---->X---->
+            //           |c_0                     |c_0
+            //           |                      b |
+            //           |                        v
 
             const bool side = (C_arcs(c_0,In,Right) == e);
                       
             const Int b = C_arcs(c_0,Out,side);
             
-            PD_ASSERT( b != e );
-            PD_ASSERT( C_arcs(c_0,In,!side) != C_arcs(c_0,Out,!side));
+            if( b != e )
+            {
+                CollapseArcRange(b,e,strand_length);
+            }
 
-            CollapseArcRange(b,e,strand_length);
-            Reconnect<Head>( C_arcs(c_0,In,!side), C_arcs(c_0,Out,!side) );
-            DeactivateArc(b);
-            DeactivateCrossing(c_0);
+            // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
+            
+            pd.Reidemeister_I(b);
             
             ++change_counter;
             
