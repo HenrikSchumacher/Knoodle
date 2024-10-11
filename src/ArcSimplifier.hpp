@@ -380,8 +380,8 @@ namespace KnotTools
             ++test_count;
             a = a_;
             
-            PD_DPRINT( "===================================================" );
-            PD_DPRINT( "Simplify a = " + ArcString(a) );
+            PD_PRINT( "===================================================" );
+            PD_PRINT( "Simplify a = " + ArcString(a) );
             
             AssertArc<1>(a);
 

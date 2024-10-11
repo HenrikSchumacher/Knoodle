@@ -2,121 +2,177 @@ public:
 
 /*! @brief Construction from PD codes and handedness of crossings.
  *
- *  @param pd_codes_ Integer array of length `5 * crossing_count_`.
+ *  @param pd_codes Integer array of length `5 * crossing_count_`.
  *  There is one 5-tuple for each crossing.
  *  The first 4 entries in each 5-tuple store the actual PD code.
  *  The last entry gives the handedness of the crossing:
  *    >  0 for a right-handed crossing
  *    <= 0 for a left-handed crossing
  *
- *  @param crossing_count_ Number of crossings in the diagram.
+ *  @param crossing_count Number of crossings in the diagram.
  *
- *  @param unlink_count_ Number of unlinks in the diagram. (This is necessary as PD codes cannot track trivial unlinks.
+ *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
-PlanarDiagram(
+static PlanarDiagram<Int> FromSignedPDCode(
+    cptr<ExtInt> pd_codes,
+    const ExtInt2 crossing_count,
+    const ExtInt3 unlink_count
+)
+{
+    return PlanarDiagram<Int>::FromPDCode<true>(pd_codes,crossing_count,unlink_count);
+}
+
+/*! @brief Construction from PD codes of crossings.
+ *
+ *  The handedness of the crossing will be inferred from the PD codes. This does not always define a uniquely: A simple counterexample for uniqueness are the Hopf-links.
+ *
+ *  @param pd_codes Integer array of length `4 * crossing_count`.
+ *  There has to be one 4-tuple for each crossing.
+ *
+ *  @param crossing_count Number of crossings in the diagram.
+ *
+ *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
+ *
+ */
+
+template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+static PlanarDiagram<Int> FromUnsignedPDCode(
+    cptr<ExtInt> pd_codes,
+    const ExtInt2 crossing_count,
+    const ExtInt3 unlink_count
+)
+{
+    return PlanarDiagram<Int>::FromPDCode<false>(pd_codes,crossing_count,unlink_count);
+}
+
+private:
+
+template<bool PDsignedQ, typename ExtInt, typename ExtInt2, typename ExtInt3>
+static PlanarDiagram<Int> FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_
 )
-:   PlanarDiagram(
-        int_cast<Int>(crossing_count_),
-        int_cast<Int>(unlink_count_)
-    )
 {
+    PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
+    
+    constexpr Int d = PDsignedQ ? 5 : 4;
+    
     static_assert( IntQ<ExtInt>, "" );
     
     if( crossing_count_ <= 0 )
     {
-        return ;
+        return pd;
     }
     
-    A_cross.Fill(-1);
+    pd.A_cross.Fill(-1);
 
     // The maximally allowed arc index.
-    const Int max_a = 2 * crossing_count_ - 1;
+    const Int max_a = 2 * pd.crossing_count - 1;
     
-    for( Int c = 0; c < crossing_count; ++c )
+    for( Int c = 0; c < pd.crossing_count; ++c )
     {
-        Int X [5];
-        copy_buffer<5>( &pd_codes_[5*c], &X[0] );
+        Int X [d];
+        copy_buffer<d>( &pd_codes_[d*c], &X[0] );
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
             eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1." );
-            return;
+            return PlanarDiagram<Int>();
         }
         
-        bool righthandedQ = (X[4] > 0);
-        
-        if( righthandedQ )
+        if constexpr( PDsignedQ )
         {
-            C_state[c] = CrossingState::RightHanded;
-            
-            /*
-             *    X[2]           X[1]
-             *          ^     ^
-             *           \   /
-             *            \ /
-             *             / <--- c
-             *            ^ ^
-             *           /   \
-             *          /     \
-             *    X[3]           X[0]
-             */
-            
-            // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[1] = X[3] + 1.
-            // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
-            // each other as will A_cross(X[3],Head) and A_cross(X[1],Tail).
-            // So this odd-appearing way of accessing A_cross is optimal.
-            
-            A_cross(X[0],Head) = c;
-            A_cross(X[2],Tail) = c;
-            A_cross(X[3],Head) = c;
-            A_cross(X[1],Tail) = c;
+            pd.C_state[c] = (X[4] > 0)
+                          ? CrossingState::RightHanded
+                          : CrossingState::LeftHanded;
+        }
+        else
+        {
+            pd.C_state[c] = PDCodeHandedness<Int>(&X[0]);
+        }
+        
+        switch( pd.C_state[c] )
+        {
+            case CrossingState::RightHanded:
+            {
+                /*
+                 *    X[2]           X[1]
+                 *          ^     ^
+                 *           \   /
+                 *            \ /
+                 *             / <--- c
+                 *            ^ ^
+                 *           /   \
+                 *          /     \
+                 *    X[3]           X[0]
+                 */
+                
+                // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[1] = X[3] + 1.
+                // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
+                // each other as will A_cross(X[3],Head) and A_cross(X[1],Tail).
+                // So this odd-appearing way of accessing A_cross is optimal.
+                
+                pd.A_cross(X[0],Head) = c;
+                pd.A_cross(X[2],Tail) = c;
+                pd.A_cross(X[3],Head) = c;
+                pd.A_cross(X[1],Tail) = c;
 
-            C_arcs(c,Out,Left ) = X[2];
-            C_arcs(c,Out,Right) = X[1];
-            C_arcs(c,In ,Left ) = X[3];
-            C_arcs(c,In ,Right) = X[0];
-        }
-        else // left-handed
-        {
-            C_state[c] = CrossingState::LeftHanded;
-            
-            /*
-             *    X[3]           X[2]
-             *          ^     ^
-             *           \   /
-             *            \ /
-             *             \ <--- c
-             *            ^ ^
-             *           /   \
-             *          /     \
-             *    X[0]           X[1]
-             */
-            
-            // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[3] = X[1] + 1.
-            // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
-            // each other as will A_cross(X[1],Head) and A_cross(X[3],Tail).
-            // So this odd-appearing way of accessing A_cross is optimal.
-            
-            A_cross(X[0],Head) = c;
-            A_cross(X[2],Tail) = c;
-            A_cross(X[1],Head) = c;
-            A_cross(X[3],Tail) = c;
-            
-            C_arcs(c,Out,Left ) = X[3];
-            C_arcs(c,Out,Right) = X[2];
-            C_arcs(c,In ,Left ) = X[0];
-            C_arcs(c,In ,Right) = X[1];
+                pd.C_arcs(c,Out,Left ) = X[2];
+                pd.C_arcs(c,Out,Right) = X[1];
+                pd.C_arcs(c,In ,Left ) = X[3];
+                pd.C_arcs(c,In ,Right) = X[0];
+                
+                break;
+            }
+            case CrossingState::LeftHanded:
+            {
+                /*
+                 *    X[3]           X[2]
+                 *          ^     ^
+                 *           \   /
+                 *            \ /
+                 *             \ <--- c
+                 *            ^ ^
+                 *           /   \
+                 *          /     \
+                 *    X[0]           X[1]
+                 */
+                
+                // Unless there is a wrap-around we have X[2] = X[0] + 1 and X[3] = X[1] + 1.
+                // So A_cross(X[0],Head) and A_cross(X[2],Tail) will lie directly next to
+                // each other as will A_cross(X[1],Head) and A_cross(X[3],Tail).
+                // So this odd-appearing way of accessing A_cross is optimal.
+                
+                pd.A_cross(X[0],Head) = c;
+                pd.A_cross(X[2],Tail) = c;
+                pd.A_cross(X[1],Head) = c;
+                pd.A_cross(X[3],Tail) = c;
+                
+                pd.C_arcs(c,Out,Left ) = X[3];
+                pd.C_arcs(c,Out,Right) = X[2];
+                pd.C_arcs(c,In ,Left ) = X[0];
+                pd.C_arcs(c,In ,Right) = X[1];
+                
+                break;
+            }
+            default:
+            {
+                // Do nothing;
+                break;
+            }
         }
     }
     
-    fill_buffer( A_state.data(), ArcState::Active, arc_count );
+    fill_buffer( pd.A_state.data(), ArcState::Active, pd.arc_count );
+    
+    return pd;
 }
+
+public:
 
 /*!
  * @brief Returns the pd-codes of the crossing as Tensor2 object.
@@ -374,3 +430,26 @@ Tensor2<Int,Int> PDCode()
     
     return pdcode;
 }
+
+
+//
+//CrossingState HandednessFromPDCode( cptr<Int> X )
+//{
+//    const Int i = X[0];
+//    const Int j = X[1];
+//    const Int k = X[2];
+//    const Int l = X[3];
+//    
+//    if( (i == j) || (k == l) || (j - l == 1) || (l - j > 1) )
+//    {
+//        return CrossingState::Righthanded;
+//    }
+//    else if ( (i == l) || (j == k) || (l - j == 1) || (j - l > 1) )
+//    {
+//        return CrossingState::Lefthanded;
+//    }
+//    else
+//    {
+//        return CrossingState::Inactive;
+//    }
+//}

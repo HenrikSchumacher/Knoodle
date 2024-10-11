@@ -1,8 +1,8 @@
 bool R_IIa_diff_o_diff_u()
 {
-    PD_DPRINT( "R_IIa_diff_o_diff_u()" );
+    PD_PRINT( "R_IIa_diff_o_diff_u()" );
     
-    PD_DPRINT( "\t\tu_0 != u_1" );
+    PD_PRINT( "\t\tu_0 != u_1" );
     
     AssertArc<1>(a  );
     AssertArc<1>(n_0);

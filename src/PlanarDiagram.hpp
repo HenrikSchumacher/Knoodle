@@ -1722,10 +1722,11 @@ namespace KnotTools
          *
          *  @param a The index of the arc in equations.
          *
-         *  @param headtail Boolean indicating whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+         *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
          */
         
-        bool ArcUnderQ( const Int a, const bool headtail )  const
+        template<bool headtail>
+        bool ArcUnderQ( const Int a )  const
         {
             AssertArc(a);
 
@@ -1736,7 +1737,7 @@ namespace KnotTools
             // Tail == 0 == Out
             // Head == 1 == In
             // const side = C_arcs(c_0,headtail,Right) == a ? Right : Left;
-            const bool side = (C_arcs(c,headtail,Right) == a);
+//            const bool side = (C_arcs(c,headtail,Right) == a);
             
 //            // Long version of code for documentation and debugging.
 //            if( headtail == Head )
@@ -1818,7 +1819,22 @@ namespace KnotTools
 //            }
             
 //            // Short version of code for performance.
-            return side == ( headtail == CrossingRightHandedQ(c) );
+            return (
+                (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
+            );
+        }
+        
+        bool ArcUnderQ( const Int a, const bool headtail )  const
+        {
+            AssertArc(a);
+
+            const Int c = A_cross(a,headtail);
+
+            AssertCrossing(c);
+            
+            return (
+                (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
+            );
         }
         
         /*!
@@ -1826,10 +1842,16 @@ namespace KnotTools
          *
          *  @param a The index of the arc in equations.
          *
-         *  @param headtail Boolean indicating whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+         *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
          */
         
-        bool ArcOverQ( const Int a, const bool headtail ) const
+        template<bool headtail>
+        bool ArcOverQ( const Int a ) const
+        {
+            return !ArcUnderQ<headtail>(a);
+        }
+        
+        bool ArcOverQ( const Int a, const bool headtail )  const
         {
             return !ArcUnderQ(a,headtail);
         }
@@ -1891,8 +1913,8 @@ namespace KnotTools
                 Int a = a_ptr;
                 // Find the beginning of first strand.
                 
-                // For this, we move backwards along arcs until ArcUnderQ(a,Tail)/ArcOverQ(a,Tail)
-                while( ArcUnderQ(a,Tail) != overQ )
+                // For this, we move backwards along arcs until ArcUnderQ<Tail>(a)/ArcOverQ<Tail>(a)
+                while( ArcUnderQ<Tail>(a) != overQ )
                 {
                     a = NextArc<Tail>(a);
                 }
@@ -1908,7 +1930,7 @@ namespace KnotTools
 
                     // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
                     
-                    color += (ArcUnderQ(a,Head) == overQ);
+                    color += (ArcUnderQ<Head>(a) == overQ);
                     
                     a = NextArc<Head>(a);
                 }
@@ -1983,8 +2005,8 @@ namespace KnotTools
                 
                 Int a = a_ptr;
                 // Find the beginning of first overstrand.
-                // For this, we go back along a until ArcUnderQ(a,Tail)
-                while( ArcUnderQ(a,Tail) != overQ )
+                // For this, we go back along a until ArcUnderQ<Tail>(a)/ ArcOverQ<Tail>(a)
+                while( ArcUnderQ<Tail>(a) != overQ )
                 {
                     a = NextArc<Tail>(a);
                 }
@@ -2002,7 +2024,7 @@ namespace KnotTools
                     C_strands(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = counter;
                     C_strands(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = counter;
                     
-                    counter += (ArcUnderQ(a,Head) == overQ);
+                    counter += (ArcUnderQ<Head>(a) == overQ);
                     
                     a = NextArc<Head>(a);
                 }
@@ -2040,6 +2062,23 @@ namespace KnotTools
         }        
         
     public:
+        
+        
+        void PrintInfo()
+        {
+            logprint(ClassName()+"::PrintInfo");
+            
+            logdump(initial_crossing_count);
+            logdump(Arcs().Max());
+            logdump(Arcs().Min());
+            
+            logdump(initial_arc_count);
+            logdump(Crossings().Max());
+            logdump(Crossings().Min());
+//            
+//            logdump(Crossings());
+//            logdump(Arcs());
+        }
         
         static std::string ClassName()
         {

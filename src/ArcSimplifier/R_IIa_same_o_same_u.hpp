@@ -1,6 +1,6 @@
 bool R_IIa_same_o_same_u()
 {
-    PD_DPRINT( "\t\tR_IIa_same_o_same_u()" );
+    PD_PRINT( "\t\tR_IIa_same_o_same_u()" );
     PD_ASSERT( u_0 == u_1 );
     
     AssertArc<1>(a  );
@@ -24,7 +24,7 @@ bool R_IIa_same_o_same_u()
     // Check for four-crossing move.
     if( s_2 == w_3 )
     {
-        PD_DPRINT( "\t\t\ts_2 == w_3" );
+        PD_PRINT( "\t\t\ts_2 == w_3" );
 /*
  *          +--------------+                                            +--------------+
  *          |              |                                            |              |
@@ -52,11 +52,11 @@ bool R_IIa_same_o_same_u()
  */
         if( w_0 == w_2 )
         {
-            PD_DPRINT( "\t\t\t\tw_0 == w_2" );
+            PD_PRINT( "\t\t\t\tw_0 == w_2" );
 
             if( e_1 == n_3 )
             {
-                PD_DPRINT( "\t\t\t\t\te_1 == n_3" );
+                PD_PRINT( "\t\t\t\t\te_1 == n_3" );
                 
                 /*
                 *            +--------------+
@@ -103,7 +103,7 @@ bool R_IIa_same_o_same_u()
                 return true;
             }
             
-            PD_DPRINT( "\t\t\t\t\te_1 != n_3" );
+            PD_PRINT( "\t\t\t\t\te_1 != n_3" );
             PD_ASSERT( e_1 != n_3 );
             
             /*
@@ -168,12 +168,12 @@ bool R_IIa_same_o_same_u()
             return true;
         }
         
-        PD_DPRINT( "\t\t\t\tw_0 != w_2" );
+        PD_PRINT( "\t\t\t\tw_0 != w_2" );
         PD_ASSERT( w_0 != w_2 );
         
         if( e_1 == n_3 )
         {
-            PD_DPRINT( "\t\t\t\te_1 == n_3" );
+            PD_PRINT( "\t\t\t\te_1 == n_3" );
             
             /*
             *            +--------------+
@@ -237,7 +237,7 @@ bool R_IIa_same_o_same_u()
             return true;
         }
         
-        PD_DPRINT( "\t\t\t\te_1 != n_3" );
+        PD_PRINT( "\t\t\t\te_1 != n_3" );
         
         /*
         *            +--------------+
@@ -306,7 +306,7 @@ bool R_IIa_same_o_same_u()
     // Check for four-crossing move.
     if( w_2 == n_3 )
     {
-        PD_DPRINT( "\t\t\tw_2 == n_3" );
+        PD_PRINT( "\t\t\tw_2 == n_3" );
         
 /*
 *       w_3     n_3                        w_3                            w_3
@@ -336,11 +336,11 @@ bool R_IIa_same_o_same_u()
         
         if( w_0 == w_3 )
         {
-            PD_DPRINT( "\t\t\t\tw_0 == w_3" );
+            PD_PRINT( "\t\t\t\tw_0 == w_3" );
             
             if( e_1 == s_2 )
             {
-                PD_DPRINT( "\t\t\t\t\te_1 == s_2" );
+                PD_PRINT( "\t\t\t\t\te_1 == s_2" );
                 
                 
                 /*
@@ -405,7 +405,7 @@ bool R_IIa_same_o_same_u()
                 return true;
             }
             
-            PD_DPRINT( "\t\t\t\t\te_1 != s_2" );
+            PD_PRINT( "\t\t\t\t\te_1 != s_2" );
             
             /*
              *         w_3
@@ -469,10 +469,10 @@ bool R_IIa_same_o_same_u()
             return true;
         }
         
-        PD_DPRINT( "\t\t\t\tw_0 != w_3" );
+        PD_PRINT( "\t\t\t\tw_0 != w_3" );
         if( e_1 == s_2 )
         {
-            PD_DPRINT( "\t\t\t\t\te_1 == s_2" );
+            PD_PRINT( "\t\t\t\t\te_1 == s_2" );
             
             /*
              *         w_3
@@ -536,7 +536,7 @@ bool R_IIa_same_o_same_u()
         }
         
         
-        PD_DPRINT( "\t\t\t\t\te_1 != s_2" );
+        PD_PRINT( "\t\t\t\t\te_1 != s_2" );
         /*
         *         w_3
         *  ########O--------------+
@@ -599,7 +599,7 @@ bool R_IIa_same_o_same_u()
         
     } // if( w_2 == n_3 )
     
-    PD_DPRINT( "\t\t\t(s_2 != w_3) && (w_2 != n_3)" );
+    PD_PRINT( "\t\t\t(s_2 != w_3) && (w_2 != n_3)" );
     PD_ASSERT( (s_2 != w_3) && (w_2 != n_3) );
     
 

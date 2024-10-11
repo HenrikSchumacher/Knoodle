@@ -1,6 +1,6 @@
 bool strands_diff_o()
 {
-    PD_DPRINT("strands_diff_o()");
+    PD_PRINT("strands_diff_o()");
     
     /*       |     a     |             |     a     |
      *    -->|---------->--->   or  -->----------->|-->

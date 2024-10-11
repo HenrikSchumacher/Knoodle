@@ -1,12 +1,12 @@
 bool R_II_below()
 {
-    PD_DPRINT( "R_II_below()" );
+    PD_PRINT( "R_II_below()" );
     
     if( s_0 != s_1 )
     {
         return false;
     }
-    PD_DPRINT( "\ts_0 == s_1" );
+    PD_PRINT( "\ts_0 == s_1" );
     
     // TODO: If the endpoints of n_0 and n_1 coincide, we can remove even 3 crossings by doing the unlocked Reidemeister I move.
     // TODO: Price: Load 1 additional crossing for test. Since a later R_I would remove the crossing anyways, this does not seem to be overly attractive.
@@ -28,7 +28,7 @@ bool R_II_below()
         
         if( e_3 == n_1 )
         {
-            PD_DPRINT( "\t\te_3 == n_1" );
+            PD_PRINT( "\t\te_3 == n_1" );
             
             // We can make an additional R_I move here.
             
@@ -51,7 +51,7 @@ bool R_II_below()
             {
                 if( w_3 == n_3 )
                 {
-                    PD_DPRINT( "\t\t\tw_3 == n_3" );
+                    PD_PRINT( "\t\t\tw_3 == n_3" );
                     
                     // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
                     PD_ASSERT( w_0 != e_1 );
@@ -88,7 +88,7 @@ bool R_II_below()
             }
             
             
-            PD_DPRINT( "\t\t\tw_3 != n_3" );
+            PD_PRINT( "\t\t\tw_3 != n_3" );
             
             
             /*              w_3 O   O n_3           w_3 O   O n_3
@@ -108,13 +108,13 @@ bool R_II_below()
             
             if( w_0 == w_3 )
             {
-                PD_DPRINT( "\t\t\t\tw_0 == w_3" );
+                PD_PRINT( "\t\t\t\tw_0 == w_3" );
                 
                 if constexpr ( mult_compQ )
                 {
                     if( e_1 == n_3 )
                     {
-                        PD_DPRINT( "\t\t\t\t\te_1 == n_3" );
+                        PD_PRINT( "\t\t\t\t\te_1 == n_3" );
                         
                         /*               w_3     n_3
                          *        +---------O   O---------+
@@ -164,7 +164,7 @@ bool R_II_below()
                     }
                 }
                 
-                PD_DPRINT( "\t\t\t\t\te_1 != n_3" );
+                PD_PRINT( "\t\t\t\t\te_1 != n_3" );
                 PD_ASSERT( e_1 != n_3 );
                 
                 /*               w_3     n_3
@@ -213,12 +213,12 @@ bool R_II_below()
                 return true;
             }
             
-            PD_DPRINT( "\t\t\t\tw_0 != w_3" );
+            PD_PRINT( "\t\t\t\tw_0 != w_3" );
             PD_ASSERT( w_0 != w_3 );
             
             if( e_1 == n_3 )
             {
-                PD_DPRINT( "\t\t\t\t\te_1 == n_3" );
+                PD_PRINT( "\t\t\t\t\te_1 == n_3" );
                 
                 /*               w_3     n_3
                  *                  O   O---------+
@@ -266,7 +266,7 @@ bool R_II_below()
                 return true;
             }
             
-            PD_DPRINT( "\t\t\t\t\te_1 != n_3" );
+            PD_PRINT( "\t\t\t\t\te_1 != n_3" );
             PD_ASSERT( e_1 != n_3 );
             
             /*               w_3     n_3
@@ -322,7 +322,7 @@ bool R_II_below()
         }
         
         
-        PD_DPRINT( "\t\te_3 != n_1" );
+        PD_PRINT( "\t\te_3 != n_1" );
     }
     
     // The actual R_II move.

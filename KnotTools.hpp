@@ -121,7 +121,7 @@ namespace KnotTools
      */
     
     template<typename Int, typename Int_2>
-    Int PDCode_Handedness( mptr<Int_2> X )
+    CrossingState PDCodeHandedness( mptr<Int_2> X )
     {
         static_assert( SignedIntQ<Int>, "" );
         static_assert( IntQ<Int_2>, "" );
@@ -173,7 +173,7 @@ namespace KnotTools
             //      i /     v l + 1     i  /     v j
             //       O       O            O       O
             
-            return +1;
+            return CrossingState::RightHanded;
         }
         else if( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
         {
@@ -199,7 +199,7 @@ namespace KnotTools
             //      i /     \ j         i  /     \ l + x
             //       O       O            O       O
             //
-            return -1;
+            return CrossingState::LeftHanded;
         }
         else
         {

@@ -37,7 +37,7 @@ Int Simplify4(
 
         old_counter = counter;
         
-        // Since Simplify3 contains only inexpensive tests, we should call it first.
+        // Since Simplify3 contains only inexpensive tests, we should call it first.        
         
         const Int simpl3_changes = Simplify3(simplify3_exhaustiveQ);
         

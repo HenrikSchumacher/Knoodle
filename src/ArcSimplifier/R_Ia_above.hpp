@@ -1,6 +1,6 @@
 bool R_Ia_above()
 {
-    PD_DPRINT( "R_Ia_above()" );
+    PD_PRINT( "R_Ia_above()" );
     
  
     //Check for Reidemeister Ia move.
@@ -10,7 +10,7 @@ bool R_Ia_above()
     }
     
     
-    PD_DPRINT( "\ts_0 == s_1" );
+    PD_PRINT( "\ts_0 == s_1" );
     
     /*       |     a     |
      *    -->----------->|-->
@@ -23,15 +23,15 @@ bool R_Ia_above()
     
     if( e_3 == n_1 )
     {
-        PD_DPRINT( "\t\te_3 == n_1" );
+        PD_PRINT( "\t\te_3 == n_1" );
         
         if( o_0 == o_3 )
         {
-            PD_DPRINT( "\t\t\to_0 == o_3" );
+            PD_PRINT( "\t\t\to_0 == o_3" );
             
             if( w_3 == n_3 )
             {
-                PD_DPRINT( "\t\t\t\tw_2 == s_2" );
+                PD_PRINT( "\t\t\t\tw_2 == s_2" );
                 
                 /*  R_I move.
                  *            w_3                       w_3
@@ -72,7 +72,7 @@ bool R_Ia_above()
             }
             
             
-            PD_DPRINT( "\t\t\t\tw_2 != s_2" );
+            PD_PRINT( "\t\t\t\tw_2 != s_2" );
             
             /*  R_Ia move.
              *
@@ -127,7 +127,7 @@ bool R_Ia_above()
         }
         else
         {
-            PD_DPRINT( "\t\t\to_0 != o_3" );
+            PD_PRINT( "\t\t\to_0 != o_3" );
             
             /* Potential trefoil cases:
              *
@@ -148,9 +148,9 @@ bool R_Ia_above()
                 // TODO: trefoil as connect summand detected
                 // TODO: How to store/use this info?
                 
-                PD_DPRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
+                PD_PRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
                 
-                PD_DPRINT( "Detected a trefoil connect component." );
+                PD_PRINT( "Detected a trefoil connect component." );
                 
                 return false;
             }
@@ -163,7 +163,7 @@ bool R_Ia_above()
     {
         if( w_3 == n_1 )
         {
-            PD_DPRINT( "\t\tw_3 == n_1" );
+            PD_PRINT( "\t\tw_3 == n_1" );
             
             /* Two further interesting cases.
              *

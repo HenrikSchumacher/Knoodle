@@ -1,13 +1,13 @@
 bool R_Ia_below()
 {
-    PD_DPRINT( "R_Ia_below()" );
+    PD_PRINT( "R_Ia_below()" );
     
     if( n_0 != n_1 )
     {
         return false;
     }
     
-    PD_DPRINT( "\tn_0 == n_1" );
+    PD_PRINT( "\tn_0 == n_1" );
     
     /*       +-----------+             +-----------+
      *       |     a     |             |     a     |
@@ -20,15 +20,15 @@ bool R_Ia_below()
                         
     if( e_2 == s_1 )
     {
-        PD_DPRINT( "\t\te_2 == s_1" );
+        PD_PRINT( "\t\te_2 == s_1" );
         
         if( o_0 == o_2 )
         {
-            PD_DPRINT( "\t\t\to_0 == o_2" );
+            PD_PRINT( "\t\t\to_0 == o_2" );
             
             if( w_2 == s_2 )
             {
-                PD_DPRINT( "\t\t\t\tw_2 == s_2" );
+                PD_PRINT( "\t\t\t\tw_2 == s_2" );
                 
                 /*  R_I move.
                  *
@@ -54,7 +54,7 @@ bool R_Ia_below()
                 return true;
             }
             
-            PD_DPRINT( "\t\t\t\tw_2 != s_2" );
+            PD_PRINT( "\t\t\t\tw_2 != s_2" );
             
             /*  R_Ia move.
              *
@@ -196,7 +196,7 @@ bool R_Ia_below()
 
         } // if( o_0 == o_2 )
 
-        PD_DPRINT( "\t\t\to_0 != o_2" );
+        PD_PRINT( "\t\t\to_0 != o_2" );
         
         /*
          *           +-----------+             +-----------+
@@ -215,9 +215,9 @@ bool R_Ia_below()
         {
             // TODO: trefoil as connect summand detected
             // TODO: How to store/use this info?
-            PD_DPRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
+            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
             
-            PD_DPRINT( "Detected a trefoil connect component." );
+            PD_PRINT( "Detected a trefoil connect component." );
             
             return false;
         }
@@ -230,7 +230,7 @@ bool R_Ia_below()
     {
         if( w_2 == s_1 )
         {
-            PD_DPRINT( "\t\tw_2 == s_1" );
+            PD_PRINT( "\t\tw_2 == s_1" );
             
             /* Two further interesting cases.
              *

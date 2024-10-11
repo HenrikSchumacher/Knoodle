@@ -5,7 +5,7 @@ private:
 
 void Reidemeister_I( const Int a )
 {
-    PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+    PD_PRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
     
     const Int c = A_cross(a,Head);
     
