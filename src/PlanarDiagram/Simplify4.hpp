@@ -10,6 +10,7 @@ public:
 Int Simplify4(
     const Int max_dist_checked,
     const bool compressQ = true,
+    bool simplify3Q = true,
     bool simplify3_exhaustiveQ = true
 )
 {
@@ -37,15 +38,17 @@ Int Simplify4(
 
         old_counter = counter;
         
-        // Since Simplify3 contains only inexpensive tests, we should call it first.        
-        
-        const Int simpl3_changes = Simplify3(simplify3_exhaustiveQ);
-        
-        counter += simpl3_changes;
-
-        if( compressQ && (simpl3_changes > 0) )
+        if( simplify3Q )
         {
-            (*this) = CreateCompressed();
+            // Since Simplify3 contains only inexpensive tests, we should call it first.
+            const Int simpl3_changes = Simplify3(simplify3_exhaustiveQ);
+            
+            counter += simpl3_changes;
+            
+            if( compressQ && (simpl3_changes > 0) )
+            {
+                (*this) = CreateCompressed();
+            }
         }
         
         const Int o_changes = S.SimplifyStrands(true,max_dist_checked);

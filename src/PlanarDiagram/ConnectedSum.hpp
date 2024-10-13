@@ -3,25 +3,38 @@ public:
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
 
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `SplitConnectedSummands`.
+ *
+ * @param PD_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
+ *
+ * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
+ *
+ * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
+ *
+ * @param simplify3Q Whether a optimization for local patterns with `Simplify3` shall be performed.
+ *
+ * @param simplify3_exhaustiveQ If `simplify3Q` is `true`, then this changes its behavior. If set to `false`, only one optimization pass over the diagram is performed. If set to `true`, then optimization passes will applied
  */
 
-bool SplitSimplify(
+bool Simplify5(
     std::vector<PlanarDiagram<Int>> & PD_list,
-    const Int max_dist_checked = std::numeric_limits<Int>::max(),
+    const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
-    bool simplify3_exhaustiveQ = true
+    const bool simplify3Q = true,
+    const bool simplify3_exhaustiveQ = true
 )
 {
-    ptic(ClassName()+"::SplitSimplify");
+    ptic(ClassName()+"::Simplify5");
 
     bool globally_changed = false;
     bool changed = false;
 
     do
     {
-        changed = Simplify4(max_dist_checked,compressQ,simplify3_exhaustiveQ);
+        changed = Simplify4(max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ);
 
-        changed = changed || SplitConnectedSummands(PD_list);
+        changed = changed || SplitConnectedSummands(PD_list,
+            max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ
+        );
         
         globally_changed = globally_changed || changed;
     }
@@ -33,7 +46,7 @@ bool SplitSimplify(
         *this = this->CreateCompressed();
     }
     
-    ptoc(ClassName()+"::SplitSimplify");
+    ptoc(ClassName()+"::Simplify5");
 
     return globally_changed;
 }
@@ -49,9 +62,10 @@ public:
 
 bool SplitConnectedSummands(
     std::vector<PlanarDiagram<Int>> & PD_list,
-    const Int max_dist_checked = std::numeric_limits<Int>::max(),
+    const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
-    bool simplify3_exhaustiveQ = true
+    const bool simplify3Q = true,
+    const bool simplify3_exhaustiveQ = true
 )
 {
     ptic(ClassName()+"::SplitConnectedSummands");
@@ -75,7 +89,10 @@ bool SplitConnectedSummands(
         
         for( Int f = 0; f < FaceCount(); ++f )
         {
-            changedQ = changedQ || SplitConnectedSummand(f,PD_list,S,f_arcs,f_faces);
+            changedQ = changedQ || SplitConnectedSummand(
+                f,PD_list,S,f_arcs,f_faces,
+                max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ
+            );
         }
         
         changed_at_least_onceQ = changed_at_least_onceQ || changedQ;
@@ -92,7 +109,7 @@ private:
 
 /*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `PD_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
  *
- * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `PD_list`, and then tries to simplify it further with `SplitSimplify` (which may push further connected summands to `PD_list`).
+ * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `PD_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `PD_list`).
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
@@ -102,9 +119,10 @@ bool SplitConnectedSummand(
     TwoArraySort<Int,Int,Int> & S,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
-    const Int max_dist_checked = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
-    bool simplify3_exhaustiveQ = true
+    const Int max_dist,
+    const bool compressQ,
+    const bool simplify3Q,
+    const bool simplify3_exhaustiveQ
 )
 {
     // TODO: Introduce some tracking of from where the components are split off.
@@ -153,7 +171,13 @@ bool SplitConnectedSummand(
     
     auto push = [&]( PlanarDiagram<Int> && pd )
     {
-        pd.SplitSimplify( PD_list, max_dist_checked, compressQ, simplify3_exhaustiveQ );
+        pd.Simplify5(
+            PD_list,
+            max_dist,
+            compressQ,
+            simplify3Q,
+            simplify3_exhaustiveQ
+        );
 
         PD_ASSERT( pd.CheckAll() );
 

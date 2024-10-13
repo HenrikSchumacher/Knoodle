@@ -38,26 +38,6 @@ namespace KnotTools
     // TODO: A_cross(a,Tail) =  c if a == C_arc(a,Out,Right)
     
     
-
-    
-    
-//    template<typename Int>
-//    struct Crossing
-//    {
-//        std::array<std::array<Int,2>,2> arcs;
-//        CrossingState state;
-//
-//    }; // struct Crossing
-//
-//
-//    template<typename Int>
-//    struct Arc
-//    {
-//        std::array<Int,2> cross;
-//        ArcState state;
-//
-//    }; // struct Arc
-    
     template<typename Int_, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
     
@@ -602,6 +582,27 @@ namespace KnotTools
         }
         
         
+        template<typename ExtInt>
+        PlanarDiagram(
+            cptr<ExtInt> crossings, cptr<ExtInt> crossing_states,
+            cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
+            const ExtInt crossing_count_, const ExtInt unlink_count_
+        )
+        :   PlanarDiagram( crossing_count_, unlink_count_ )
+        {
+            C_arcs.Read(crossings);
+            A_cross.Read(arcs);
+            
+            for( Int c = 0; c < initial_crossing_count; ++c )
+            {
+                C_state[c] = static_cast<CrossingState>(crossing_states[c]);
+            }
+            
+            for( Int a = 0; a < initial_arc_count; ++a )
+            {
+                A_state[a] = static_cast<ArcState>(arc_states[a]);
+            }
+        }
         
         
         /*!
@@ -782,25 +783,6 @@ namespace KnotTools
          * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
          */
         
-        mref<CrossingStateContainer_T> CrossingStates()
-        {
-            return C_state;
-        }
-        
-        /*!
-         * @brief Returns the states of the crossings.
-         *
-         *  The states that a crossing can have are:
-         *
-         *  - `CrossingState::RightHanded`
-         *  - `CrossingState::RightHandedUnchanged`
-         *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::LeftHandedUnchanged`
-         *  - `CrossingState::Inactive`
-         *
-         * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
-         */
-        
         cref<CrossingStateContainer_T> CrossingStates() const
         {
             return C_state;
@@ -863,22 +845,6 @@ namespace KnotTools
         cref<ArcContainer_T> Arcs() const
         {
             return A_cross;
-        }
-
-        /*!
-         * @brief Returns the states of the arcs.
-         *
-         *  The states that an arc can have are:
-         *
-         *  - `ArcState::Active`
-         *  - `ArcState::Inactive`
-         *
-         * `CrossingState::Inactive` means that the arc has been deactivated by topological manipulations.
-         */
-        
-        mref<ArcStateContainer_T> ArcStates()
-        {
-            return A_state;
         }
         
         /*!
@@ -1304,11 +1270,7 @@ namespace KnotTools
 #include "PlanarDiagram/Simplify3.hpp"
 #include "PlanarDiagram/Simplify4.hpp"
         
-        
 #include "PlanarDiagram/PDCode.hpp"
-        
-//#include "PlanarDiagram/PassMove.hpp"
-
 
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
@@ -1317,6 +1279,9 @@ namespace KnotTools
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Components.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"
+        
+        
+#include "PlanarDiagram/EwingMillet.hpp"
         
     public:
         

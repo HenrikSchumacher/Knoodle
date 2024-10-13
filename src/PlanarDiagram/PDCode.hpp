@@ -201,8 +201,8 @@ Tensor2<Int,Int> PDCode()
     // We are using C_scratch to keep track of the new crossing's labels.
     C_scratch.Fill(-1);
     
-    mptr<Int8> A_visited = reinterpret_cast<Int8 *>(A_scratch.data());
-    fill_buffer(A_visited,Int8(0),m);
+    // We are using A_scratch to keep track of the new crossing's labels.
+    A_scratch.Fill(-1);
     
     Int a_counter = 0;
     Int c_counter = 0;
@@ -212,7 +212,7 @@ Tensor2<Int,Int> PDCode()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_scratch[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }
@@ -232,12 +232,13 @@ Tensor2<Int,Int> PDCode()
             const Int c_prev = A_cross(a,Tail);
             const Int c_next = A_cross(a,Head);
             
-            A_visited[a] = true;
+            A_scratch[a] = a_counter;
             
             if( C_scratch[c_next] < 0 )
             {
                 C_scratch[c_next] = c_counter++;
             }
+
             
             // Tell c_prev that arc a_counter goes out of it.
             {
@@ -431,25 +432,11 @@ Tensor2<Int,Int> PDCode()
     return pdcode;
 }
 
-
-//
-//CrossingState HandednessFromPDCode( cptr<Int> X )
-//{
-//    const Int i = X[0];
-//    const Int j = X[1];
-//    const Int k = X[2];
-//    const Int l = X[3];
-//    
-//    if( (i == j) || (k == l) || (j - l == 1) || (l - j > 1) )
-//    {
-//        return CrossingState::Righthanded;
-//    }
-//    else if ( (i == l) || (j == k) || (l - j == 1) || (j - l > 1) )
-//    {
-//        return CrossingState::Lefthanded;
-//    }
-//    else
-//    {
-//        return CrossingState::Inactive;
-//    }
-//}
+std::tuple<Tensor2<Int,Int>,Tensor1<Int,Int>,Tensor1<Int,Int>> PDCodeWithLabels()
+{
+    Tensor2<Int,Int> pd_code  = PDCode();
+    Tensor1<Int,Int> C_labels = C_scratch;
+    Tensor1<Int,Int> A_labels = A_scratch;
+    
+    return std::tuple(pd_code,C_labels,A_labels);
+}

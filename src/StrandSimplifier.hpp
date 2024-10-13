@@ -1,8 +1,11 @@
 #pragma once
 
+
+// TODO: Performing possible Reidemeister II moves an a strand might unlock further moves. More importantly, it will reduce the length of the current strand and thus make Dijkstra faster!
+
 // TODO: Speed this up by reducing the redirecting in NextLeftArc by using and maintaining ArcLeftArc.
 
-// TODO: It seems to be faster to interleave the over-/understrand passed with recompression. This begs the question whether we should exploit the recompression step to compute some interesting information, e.g. all the over-/understrands.
+// TODO: It seems to be faster to interleave the over-/understrand passes with recompression. This begs the question whether we should exploit the recompression step to compute some interesting information, e.g. all the over-/understrands.
 
 // TODO: It might also be worthwhile to do the overstrand and the understrand pass in the same loop. (But I doubt it.)
 
@@ -47,10 +50,14 @@ namespace KnotTools
     private:
         
         Tensor2<Int,Int> C_data;
-        Tensor1<Int,Int> A_colors; // TODO: Could use pd.A_scratch instead.
         
-        Tensor2<Int,Int> A_prev;
+        Tensor2<Int,Int> A_data;
+        Tensor1<Int,Int> A_colors;
+        
+        
         Tensor2<Int,Int> A_left;
+        
+        mptr<Int> A_left_ptr;
         
         
         Int color = 1; // We start with 1 so that we can store things in the sign bit of color.
@@ -80,9 +87,9 @@ namespace KnotTools
         ,   A_state    { pd.A_state }
         ,   C_data     { C_arcs.Dimension(0), 2, -1 }
         // We initialize 0 because actual colors will have to be positive to use sign bit.
-        ,   A_colors   { A_cross.Dimension(0), 0 }
+        ,   A_data     { A_cross.Dimension(0), 2, 0 }
         // We initialize 0 because actual colors will have to be positive to use sign bit.
-        ,   A_prev     { A_cross.Dimension(0), 2, 0 }
+        ,   A_colors   { A_cross.Dimension(0), 0 }
         ,   next_front { A_cross.Dimension(0) }
         ,   prev_front { A_cross.Dimension(0) }
         ,   path       { A_cross.Dimension(0), -1 }
@@ -157,22 +164,59 @@ namespace KnotTools
             return pd.CrossingString(c_) + " has color " + ToString(C_color(c_)) + ".";
         }
 
-        std::string StrandString( const Int a_begin, const Int a_end) const
+        bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
+        {
+            bool passedQ = true;
+            
+            Int arc_counter = 0;
+            
+            Int a = a_begin;
+            
+            if( a_begin == a_end )
+            {
+                wprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
+            }
+            
+            while( (a != a_end) && (arc_counter < max_arc_count ) )
+            {
+                ++arc_counter;
+                
+                passedQ = passedQ && (pd.template ArcOverQ<Head>(a) == overQ);
+                
+                a = pd.template NextArc<Head>(a);
+            }
+            
+            if( a != a_end )
+            {
+                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+            }
+            
+            if( !passedQ )
+            {
+                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+            }
+            
+            return passedQ;
+        }
+        
+        std::string StrandString( const Int a_begin, const Int a_end ) const
         {
             std::stringstream s;
 
             Int a = a_begin;
             Int i = 0;
             
-            s << ToString(0) << " : " <<  CrossingString(A_cross(a,Tail)) << "\n";
-            s << ToString(0) << " : " <<  ArcString(a)                    << "\n";
+            s << ToString(0) << " : " <<  CrossingString(A_cross(a,Tail)) << ")\n";
+            s << ToString(0) << " : " <<  ArcString(a)
+              << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
             s << ToString(1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
 
             do
             {
                 ++i;
                 a = pd.template NextArc<Head>(a);
-                s << ToString(i  ) << " : " <<  ArcString(a)                    << "\n";
+                s << ToString(i  ) << " : " <<  ArcString(a)
+                  << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
                 s << ToString(i+1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
 
             }
@@ -225,14 +269,21 @@ namespace KnotTools
         
         void Prepare()
         {
+            if( color >= std::numeric_limits<Int>::max()/2 )
+            {
+                C_data.Fill(-1);
+                A_data.Fill(0);
+                A_colors.Fill(0);
+                
+                color = 0;
+            }
             
-//            A_left = pd.ArcLeftArc();
-            
-            
-            // TODO: Make these fills obsolete or fuse them with a preprocessor step.
+            // DEBUGGING
             C_data.Fill(-1);
+            A_data.Fill(0);
             A_colors.Fill(0);
-            path.Fill(-1);
+
+            color = 0;
         }
         
     public:
@@ -250,8 +301,13 @@ namespace KnotTools
 
             Prepare();
             
-            color = 1;
+            // We increase `color` for each strand. This ensures that all entries of A_data, A_colors, C_data etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
+            // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in once call to `SimplifyStrands`. That should really be enough for all feasible applications.
+            
+            ++color;
             a_ptr = 0;
+            
+            const Int color_0 = color;
 
             strand_length = 0;
             change_counter = 0;
@@ -260,7 +316,9 @@ namespace KnotTools
             {
                 // Search for next arc that is active and has not yet been handled.
                 while(
-                    ( a_ptr < m ) && ( (A_color(a_ptr) != 0 ) || (!pd.ArcActiveQ(a_ptr)) )
+                    ( a_ptr < m )
+                    &&
+                    ( (A_color(a_ptr) >= color_0 ) || (!pd.ArcActiveQ(a_ptr)) )
                 )
                 {
                     ++a_ptr;
@@ -326,13 +384,8 @@ namespace KnotTools
                         // Vertex c has been visted before.
                         
                         RemoveLoop(a,c);
-                        
-//                        // TODO: We might not have to break here;
-//                        // TODO: Instead we could move on to the next arc.
+
                         break;
-//                        
-//                        // Continue with current strand.
-//                        strand_length = C_len(c);
                     }
                     
                     if( strand_completeQ )
@@ -344,14 +397,14 @@ namespace KnotTools
                             PD_ASSERT( a != a_begin );
                             
                             changedQ = RerouteToShortestPath(
-                                a_begin,a, Min(strand_length-1, max_dist),color
+                                a_begin,a, Min(strand_length-1,max_dist),color
                             );
                             
                             change_counter += changedQ;
                         }
                         
-//                        // TODO: We might not have to break here;
-//                        // TODO: Instead we could move on to the next arc.
+                        // TODO: We might not have to break here;
+                        // TODO: Instead we could move on to the next arc.
                         if( changedQ )
                         {
                             break;
@@ -566,13 +619,15 @@ namespace KnotTools
         /*!
          * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
          *
+         * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
+         *
          * @param a_begin  starting arc
          *
          * @param a_end    final arc to which we want to find a path
          *
          * @param max_dist maximal distance we want to travel
          *
-         * @param color_    indicator that is written to first column of `A_prev`; this avoid have to erase the whole matrix `A_prev` for each new search. When we call this, we assume that `A_prev` contains only values different from `color`.
+         * @param color_    indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
          *
          */
         
@@ -581,15 +636,6 @@ namespace KnotTools
         )
         {
 //            ptic(ClassName()+"::FindShortestPath");
-            
-//            if( color_ <= 0 )
-//            {
-//                eprint(ClassName()+"::FindShortestPath: Argument color_ is nonpositive. That is illegal.");
-//                
-//                ptoc(ClassName()+"::FindShortestPath");
-//                
-//                return -1;
-//            }
             
             PD_ASSERT( color_ > 0 );
             
@@ -602,16 +648,19 @@ namespace KnotTools
             next_front.Push( (a_begin << 1) | Int(1) );
             next_front.Push( (a_begin << 1) | Int(0) );
             
-            A_prev(a_begin,0) = color_;
-            A_prev(a_begin,1) = a_begin;
+            A_data(a_begin,0) = color_;
+            A_data(a_begin,1) = a_begin;
             
-            Int d = 0; // Distance of the elements of `next_front` to the origin `a_begin`.
+            Int d = 0;
             
-            while( (d+1 < max_dist) && (!next_front.EmptyQ()) )
+            while( (d < max_dist) && (!next_front.EmptyQ()) )
             {
+                // Actually, next_front must never become empty. Otherwise something is wrong.
+                
                 swap( prev_front, next_front );
                 
                 next_front.Reset();
+
                 
                 // We don't want paths of length max_dist.
                 // The elements of prev_front have distance d.
@@ -635,19 +684,20 @@ namespace KnotTools
                     do
                     {
                         PD_ASSERT( (0 <= a) && (a < pd.initial_arc_count) );
+
                         
                         const bool part_of_strandQ = (A_color(a) == color_);
                         
                         // Check whether `a` has been visited already.
-                        if( Abs(A_prev(a,0)) != color_ )
+                        if( Abs(A_data(a,0)) != color_ )
                         {
                             if( a == a_end )
                             {
                                 // Mark as visited.
-                                A_prev(a,0) = color_;
+                                A_data(a,0) = color_;
                                 
                                 // Remember from which arc we came
-                                A_prev(a,1) = a_0;
+                                A_data(a,1) = a_0;
                                 
                                 goto exit;
                             }
@@ -661,12 +711,12 @@ namespace KnotTools
                             }
                             else
                             {
-                                // We make A_prev(a,0) positive if we cross arc `a` from left to right. Otherwise it is negative.
+                                // We make A_data(a,0) positive if we cross arc `a` from left to right. Otherwise it is negative.
                                 
-                                A_prev(a,0) = dir ? color_ : -color_;
+                                A_data(a,0) = dir ? color_ : -color_;
                                 
                                 // Remember from which arc we came.
-                                A_prev(a,1) = a_0;
+                                A_data(a,1) = a_0;
                                 
                                 next_front.Push( (a << 1) | !dir );
                             }
@@ -680,23 +730,24 @@ namespace KnotTools
             
             // If we get here, then d+1 = max_dist or next_front.EmptyQ().
             
-//            d += !next_front.EmptyQ();
-//            
-//            // Now d = max_dist.
-//            
-//            PD_ASSERT( d == max_dist )
+            // next_front.EmptyQ() should actually never happen because we know that there is a path between the arcs!
             
-            d = max_dist;
+            if( next_front.EmptyQ() )
+            {
+                wprint(ClassName()+"::ShortestPath: next_front is empty, but shortest path is not found, yet.");
+            }
+            
+            d = max_dist + 1;
             
         exit:
             
             // Write the actual path to array `path`.
             
-            if( (0 <= d) && (d < max_dist) )
+            if( (0 <= d) && (d <= max_dist) )
             {
-                // The only way to get here with `d < max_dist` is the `goto` above.
+                // The only way to get here with `d <= max_dist` is the `goto` above.
                 
-                if( Abs(A_prev(a_end,0)) != color_ )
+                if( Abs(A_data(a_end,0)) != color_ )
                 {
                     eprint(ClassName() + "::FindShortestPath");
                     logdump(d);
@@ -704,21 +755,19 @@ namespace KnotTools
                     logdump(a_end);
                     logdump(color_);
                     logdump(color);
-                    logdump(A_prev(a_end,0));
-                    logdump(A_prev(a_end,1));
+                    logdump(A_data(a_end,0));
+                    logdump(A_data(a_end,1));
                 }
-                   
-                path_length = d+1;
                 
                 Int a = a_end;
                 
-                path[d] = a;
+                path_length = d+1;
                 
-                for( Int i = 0; i < d; ++i )
+                for( Int i = 0; i < path_length; ++i )
                 {
-                    a = A_prev(a,1);
+                    path[path_length-1-i] = a;
                     
-                    path[d-1-i] = a;
+                    a = A_data(a,1);
                 }
             }
             
@@ -732,9 +781,9 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
+            const Int d  = FindShortestPath( a_begin, a_end, max_dist, color_ );
 
-            if( d < max_dist )
+            if( d <= max_dist )
             {
                 Tensor1<Int,Int> path_out (path_length);
                 
@@ -757,10 +806,10 @@ namespace KnotTools
             ptic(ClassName()+"::RerouteToShortestPath");
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-            
-            if( (d < 0) || (d >= max_dist) )
+
+            if( (d < 0) || (d > max_dist) )
             {
-                PD_DPRINT("No improvement detected: (d < 0) || (d >= max_dist).");
+                PD_DPRINT("No improvement detected: (d < 0) || (d > max_dist).");
                 
                 ptoc(ClassName()+"::RerouteToShortestPath");
                 
@@ -783,13 +832,7 @@ namespace KnotTools
             //                b
             //
 
-            // Finding first branching arc
-            // TODO: Optimize away the call to NextArc by fusing this with ArcBranchesFromArcQ.
-            while( ArcBranchesFromArcQ<Head>(a,path[p]) )
-            {
-                ++p;
-                a = pd.template NextArc<Head>(a);
-            }
+            MoveWhileBranching<Head>(a,p);
             
             // Now a is the first arc to be rerouted.
             
@@ -797,14 +840,8 @@ namespace KnotTools
             
             Int q = path_length-1;
             Int e = a_end;
-            
-            // TODO: Optimize away the call to NextArc by fusing this with ArcBranchesFromArcQ.
-            while( ArcBranchesFromArcQ<Tail>(e,path[q]) )
-            {
-                --q;
-                e = pd.template NextArc<Tail>(e);
-            }
-
+  
+            MoveWhileBranching<Tail>(e,q);
 
             // Now e is the last arc to be rerouted.
             
@@ -820,7 +857,7 @@ namespace KnotTools
                 
                 AssertArc<1>(b);
 //
-                const bool dir = (A_prev(b,0) > 0);
+                const bool dir = (A_data(b,0) > 0);
                 
                 const Int c_1 = A_cross(b,Head);
                 
@@ -1038,16 +1075,38 @@ namespace KnotTools
         {
             overQ = overQ_;
         }
-        
-        template<bool headtail>
-        bool ArcBranchesFromArcQ( const Int a, const Int b ) const
-        {
-            const Int c = A_cross(a,headtail);
 
-            const Int side = (C_arcs(c,headtail,Right) == a);
+        template<bool headtail>
+        void MoveWhileBranching( mref<Int> a, mref<Int> p ) const
+        {
+            Int c = A_cross(a,headtail);
             
-            return (C_arcs(c,headtail,!side) == b) || (C_arcs(c,!headtail,side) == b);
+            Int side = (C_arcs(c,headtail,Right) == a);
+            
+            Int b = path[p];
+            
+            while( (C_arcs(c,headtail,!side) == b) || (C_arcs(c,!headtail,side) == b) )
+            {
+                if constexpr ( headtail )
+                {
+                    ++p;
+                }
+                else
+                {
+                    --p;
+                }
+                
+                a = C_arcs(c,!headtail,!side);
+                
+                c = A_cross(a,headtail);
+
+                side = (C_arcs(c,headtail,Right) == a);
+                
+                b = path[p];
+            }
         }
+        
+
         
         
     public:
