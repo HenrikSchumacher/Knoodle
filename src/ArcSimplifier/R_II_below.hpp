@@ -22,7 +22,7 @@ bool R_II_below()
      */
 
     
-    if constexpr ( tested_crossing_count >= 3 )
+    if constexpr ( optimization_level >= 3 )
     {
         load_c_3();
         

@@ -19,7 +19,7 @@ bool strands_same_o()
     
     // If no Reidemeister II move is possible, then we test whether the horizontal strand blocks a Reidemeister II move of the vertical strands. We call this a Reidemeister IIa move.
     
-    if constexpr( tested_crossing_count < 4 )
+    if constexpr( optimization_level < 4 )
     {
         return false;
     }

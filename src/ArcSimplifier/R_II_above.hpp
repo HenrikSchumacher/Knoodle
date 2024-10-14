@@ -16,7 +16,7 @@ bool R_II_above()
      *               |c_0        |c_1          |c_0        |c_1
      */
     
-    if constexpr ( tested_crossing_count >= 3 )
+    if constexpr ( optimization_level >= 3 )
     {
         load_c_2();
         

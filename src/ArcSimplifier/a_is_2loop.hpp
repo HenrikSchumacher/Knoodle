@@ -57,7 +57,7 @@ bool a_is_2loop()
             return true;
         }
 
-        if constexpr ( tested_crossing_count < 3 )
+        if constexpr ( optimization_level < 3 )
         {
             return false;
         }

@@ -29,46 +29,50 @@ bool R_Ia_above()
         {
             PD_PRINT( "\t\t\to_0 == o_3" );
             
-            if( w_3 == n_3 )
+            if constexpr ( mult_compQ )
             {
-                PD_PRINT( "\t\t\t\tw_2 == s_2" );
-                
-                /*  R_I move.
-                 *            w_3                       w_3
-                 *               +---+                     +---+
-                 *               |   |                     |   |
-                 *               O   O n_3                 O   O
-                 *                \ /                       \ /
-                 *                 \ c_3                     /  c_3
-                 *                / \                       / \
-                 *           O---O   O---O             O---O   O---O
-                 *           |     a     |             |     a     |
-                 *        -->----------->|-->   or  -->|---------->--->
-                 *           |c_0        |c_1          |c_0        |c_1
-                 *           |           |             |           |
-                 *           +-----------+             +-----------+
-                 */
-                
-                Reconnect(n_0,u_0,n_1);
-                DeactivateArc(w_3);
-                DeactivateCrossing(c_3);
-                ++pd.R_I_counter;
-            
-                AssertArc<1>(a  );
-                AssertArc<1>(n_0);
-                AssertArc<1>(s_0);
-                AssertArc<1>(w_0);
-                AssertArc<0>(n_1);
-                AssertArc<1>(e_1);
-                AssertArc<0>(s_1);
-                AssertArc<0>(n_3);
-                AssertArc<0>(e_3);
-                AssertArc<0>(w_3);
-                AssertCrossing<1>(c_0);
-                AssertCrossing<1>(c_1);
-                AssertCrossing<0>(c_3);
-                
-                return true;
+                // The following can only happen with more than one component.
+                if( w_3 == n_3 )
+                {
+                    PD_PRINT( "\t\t\t\tw_2 == s_2" );
+                    
+                    /*  R_I move.
+                     *            w_3                       w_3
+                     *               +---+                     +---+
+                     *               |   |                     |   |
+                     *               O   O n_3                 O   O
+                     *                \ /                       \ /
+                     *                 \ c_3                     /  c_3
+                     *                / \                       / \
+                     *           O---O   O---O             O---O   O---O
+                     *           |     a     |             |     a     |
+                     *        -->----------->|-->   or  -->|---------->--->
+                     *           |c_0        |c_1          |c_0        |c_1
+                     *           |           |             |           |
+                     *           +-----------+             +-----------+
+                     */
+                    
+                    Reconnect(n_0,u_0,n_1);
+                    DeactivateArc(w_3);
+                    DeactivateCrossing(c_3);
+                    ++pd.R_I_counter;
+                    
+                    AssertArc<1>(a  );
+                    AssertArc<1>(n_0);
+                    AssertArc<1>(s_0);
+                    AssertArc<1>(w_0);
+                    AssertArc<0>(n_1);
+                    AssertArc<1>(e_1);
+                    AssertArc<0>(s_1);
+                    AssertArc<0>(n_3);
+                    AssertArc<0>(e_3);
+                    AssertArc<0>(w_3);
+                    AssertCrossing<1>(c_0);
+                    AssertCrossing<1>(c_1);
+                    AssertCrossing<0>(c_3);
+                    
+                    return true;
+                }
             }
             
             
@@ -88,7 +92,7 @@ bool R_Ia_above()
              *           +-----------+             +-----------+
              */
             
-            // Reconnect manually because we have to invert the vertical strands.
+            // We reconnect manually because we have to invert the vertical strands.
             
             A_cross(w_3,!u_1) = c_0;
             A_cross(n_3,!u_0) = c_1;
@@ -125,7 +129,7 @@ bool R_Ia_above()
             
             return true;
         }
-        else
+        else // if( o_0 != o_3 )
         {
             PD_PRINT( "\t\t\to_0 != o_3" );
             
@@ -143,24 +147,26 @@ bool R_Ia_above()
              *       +-----------+                +-----------+
              */
              
-            if( (w_0 == w_3) || (n_3 == e_1) )
-            {
-                // TODO: trefoil as connect summand detected
-                // TODO: How to store/use this info?
-                
-                PD_PRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
-                
-                PD_PRINT( "Detected a trefoil connect component." );
-                
-                return false;
-            }
+            // TODO: trefoil as connect summand detected
+            // TODO: How to store/use this info?
+
+//            if( (w_0 == w_3) || (n_3 == e_1) )
+//            {
+//                PD_PRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
+//                
+//                PD_PRINT( "Detected a trefoil connect component." );
+//                
+//                return false;
+//            }
+            
+            return false;
         }
         
     } // if( e_3 == n_1 )
     
-    // This can only happen, if the planar diagram has multiple components!
     if constexpr( mult_compQ )
     {
+        // The following can only happen with more than one component.
         if( w_3 == n_1 )
         {
             PD_PRINT( "\t\tw_3 == n_1" );
