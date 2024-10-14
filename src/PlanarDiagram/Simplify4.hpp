@@ -8,16 +8,17 @@ public:
  */
 
 Int Simplify4(
-    const Int max_dist_checked,
+    const Int max_dist,
     const bool compressQ = true,
-    bool simplify3Q = true,
+    const Size_T simplify3_level = 4,
     bool simplify3_exhaustiveQ = true,
     bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::Simplify4"
-         + "(" + ToString(max_dist_checked)
+         + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
+         + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_exhaustiveQ)
          + ")");
     
@@ -25,10 +26,11 @@ Int Simplify4(
     Int counter = 0;
     Int iter = 0;
     
-    // TODO: Toggle this for multi-component links.
+    // TODO: Toggle this Boolean for multi-component links.
     StrandSimplifier<Int,false> S(*this);
+//    StrandSimplifier2<Int,false> S(*this);
     
-    // TODO: Maybe we should recompress only in the first pass of this.
+    // TODO: Maybe we should recompress only in the first pass of this?
     
 //    const Int c_count = CrossingCount();
 //
@@ -39,10 +41,10 @@ Int Simplify4(
 
         old_counter = counter;
         
-        if( simplify3Q )
+        if( simplify3_level > 0 )
         {
             // Since Simplify3 contains only inexpensive tests, we should call it first.
-            const Int simpl3_changes = Simplify3(simplify3_exhaustiveQ);
+            const Int simpl3_changes = Simplify3(simplify3_level,simplify3_exhaustiveQ);
             
             counter += simpl3_changes;
             
@@ -53,8 +55,8 @@ Int Simplify4(
         }
         
         const Int o_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(true,max_dist_checked)
-            : S.template SimplifyStrands<false>(true,max_dist_checked);
+            ? S.template SimplifyStrands<true >(true,max_dist)
+            : S.template SimplifyStrands<false>(true,max_dist);
         
 //        PD_ASSERT(CheckAll());
         
@@ -68,8 +70,8 @@ Int Simplify4(
         }
         
         const Int u_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(false,max_dist_checked)
-            : S.template SimplifyStrands<false>(false,max_dist_checked);
+            ? S.template SimplifyStrands<true >(false,max_dist)
+            : S.template SimplifyStrands<false>(false,max_dist);
         
 //        PD_ASSERT(CheckAll());
         
@@ -109,8 +111,9 @@ Int Simplify4(
     PD_ASSERT(CheckAll());
 
     ptoc(ClassName()+"::Simplify4"
-         + "(" + ToString(max_dist_checked)
+         + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
+         + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_exhaustiveQ)
          + ")");
     

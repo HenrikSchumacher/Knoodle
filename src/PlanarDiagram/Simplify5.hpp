@@ -10,7 +10,7 @@ public:
  *
  * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
  *
- * @param simplify3Q Whether a optimization for local patterns with `Simplify3` shall be performed.
+ * @param simplify3_level Optimization level for `Simplify3`. Level `0` deactivated it entirely, levels greater or equal to `2` check only patterns that involve as many crossings as specified by this variable.
  *
  * @param simplify3_exhaustiveQ If `simplify3Q` is `true`, then this changes its behavior. If set to `false`, only one optimization pass over the diagram is performed. If set to `true`, then optimization passes will applied
  */
@@ -19,35 +19,42 @@ bool Simplify5(
     std::vector<PlanarDiagram<Int>> & PD_list,
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
-    const bool simplify3Q = true,
+    const Size_T simplify3_level = 4,
     const bool simplify3_exhaustiveQ = true,
     bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::Simplify5");
 
-    bool globally_changed = false;
-    bool changed = false;
-
+    bool globally_changedQ = false;
+    bool changedQ = false;
+    
     do
     {
-        changed = Simplify4(max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ,strand_R_II_Q);
+        changedQ = Simplify4(max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q);
 
-        changed = changed || SplitConnectedSummands(PD_list,
-            max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ,strand_R_II_Q
+        changedQ = changedQ || SplitConnectedSummands(PD_list,
+            max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
         );
         
-        globally_changed = globally_changed || changed;
+        globally_changedQ = globally_changedQ || changedQ;
     }
-    while( changed );
+    while( changedQ );
     
-    if( compressQ && globally_changed )
+    if( compressQ && globally_changedQ )
     {
-        // TODO: Can/should we skip this compression step?
         *this = this->CreateCompressed();
+    }
+    
+    if( globally_changedQ )
+    {
+        faces_initialized = false;
+        comp_initialized  = false;
+
+        this->ClearCache();
     }
     
     ptoc(ClassName()+"::Simplify5");
 
-    return globally_changed;
+    return globally_changedQ;
 }
