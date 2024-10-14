@@ -1,9 +1,12 @@
 #pragma once
 
-// TODO: Use the state flag of arcs to mark unchanged arcs.
+// TODO: Use the state flag of arcs to mark changed/unchanged arcs.
+// TODO: In particular after applying this to a connected summand that was recently split-off from another diagram, often only very few positions are to be checked on the first (and often last) run.
+
 namespace KnotTools
 {
     template<typename Int_,
+        Size_T optimization_level_ = 4,
         bool use_flagsQ_ = false,
         bool mult_compQ_ = true
     >
@@ -25,7 +28,7 @@ namespace KnotTools
         static constexpr bool mult_compQ = mult_compQ_;
         static constexpr bool use_flagsQ = use_flagsQ_;
         
-        static constexpr Int tested_crossing_count = 4;
+        static constexpr Int optimization_level = optimization_level_;
         
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Tail  = PD_T::Tail;
@@ -423,6 +426,11 @@ namespace KnotTools
                 return true;
             }
              
+            if constexpr ( optimization_level < 2 )
+            {
+                return false;
+            }
+            
             load_c_1();
             
             /*              n_0           n_1
