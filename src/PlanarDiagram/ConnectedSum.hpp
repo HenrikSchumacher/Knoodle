@@ -369,6 +369,8 @@ PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int arc_count )
     
     // Using C_scratch to keep track of the new labels of crossings.
     
+    mptr<Int> C_color = C_scratch.data();
+    
     Int a = a_0;
     
     do
@@ -379,26 +381,26 @@ PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int arc_count )
         Int t_label;
         Int h_label;
         
-        if( C_scratch[t] < 0 )
+        if( C_color[t] < 0 )
         {
-            C_scratch[t] = t_label = c_counter;
+            C_color[t] = t_label = c_counter;
             pd.C_state[t_label] = C_state[t];
             ++c_counter;
         }
         else
         {
-            t_label = C_scratch[t];
+            t_label = C_color[t];
         }
         
-        if( C_scratch[h] < 0 )
+        if( C_color[h] < 0 )
         {
-            C_scratch[h] = h_label = c_counter;
+            C_color[h] = h_label = c_counter;
             pd.C_state[h_label] = C_state[h];
             ++c_counter;
         }
         else
         {
-            h_label = C_scratch[h];
+            h_label = C_color[h];
         }
         
         const bool t_side = (C_arcs(t,Out,Right) == a);
