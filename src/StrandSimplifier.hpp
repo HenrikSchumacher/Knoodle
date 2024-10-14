@@ -212,17 +212,10 @@ namespace KnotTools
                 s << ToString(i  ) << " : " <<  ArcString(a)
                   << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
                 s << ToString(i+1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
-
             }
             while( a != a_end );
             
             return s.str();
-        }
-        
-        template<bool headtail, bool deactivateQ = true>
-        void Reconnect( const Int a_, const Int b_ )
-        {
-            pd.template Reconnect<headtail,deactivateQ>(a_,b_);
         }
         
     private:
@@ -257,6 +250,14 @@ namespace KnotTools
         {
             C_color(c) = color;
             C_len  (c) = strand_length;
+        }
+        
+    private:
+        
+        template<bool headtail, bool deactivateQ = true>
+        void Reconnect( const Int a_, const Int b_ )
+        {
+            pd.template Reconnect<headtail,deactivateQ>(a_,b_);
         }
         
         void Prepare()
@@ -321,25 +322,16 @@ namespace KnotTools
                 {
                     break;
                 }
-                
-                Int a = a_ptr;
-                // Find the beginning of first strand.
-                
-                AssertArc<1>(a);
-                
-                // For this, we move backwards along arcs until ArcUnderQ<Tail>(a)/ArcOverQ<Tail>(a)
-                
-                // TODO: We can save some lookups here if we inline ArcUnderQ and NextArc
-                while( pd.template ArcUnderQ<Tail>(a) != overQ )
-                {
-                    a = pd.template NextArc<Tail>(a);
-                    AssertArc<1>(a);
-                }
 
-                Int a_0 = a;
                 
-                // The starting arc of the current strand.
-                Int a_begin = a_0;
+                // Find the beginning of first strand.
+                Int a_begin = WalkBackToStrandStart(a_ptr);
+                
+                // If we arrive at this point again, we break the do loop below.
+                Int a_0 = a_begin;
+                
+                // Current arc.
+                Int a = a_0;
                 
                 strand_length = 0;
                 
@@ -633,13 +625,13 @@ namespace KnotTools
          *
          * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
          *
-         * @param a_begin  starting arc
+         * @param a_begin  Starting arc.
          *
-         * @param a_end    final arc to which we want to find a path
+         * @param a_end    Final arc to which we want to find a path.
          *
-         * @param max_dist maximal distance we want to travel
+         * @param max_dist Maximal distance we want to travel.
          *
-         * @param color_    indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
+         * @param color_    Indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
          *
          */
         
@@ -672,7 +664,6 @@ namespace KnotTools
                 swap( prev_front, next_front );
                 
                 next_front.Reset();
-
                 
                 // We don't want paths of length max_dist.
                 // The elements of prev_front have distance d.
@@ -697,7 +688,6 @@ namespace KnotTools
                     {
                         PD_ASSERT( (0 <= a) && (a < pd.initial_arc_count) );
 
-                        
                         const bool part_of_strandQ = (A_color(a) == color_);
                         
                         // Check whether `a` has been visited already.
@@ -821,8 +811,8 @@ namespace KnotTools
          * @param max_dist The maximal distance Dijkstra's algorithm will wander.
          *
          * @param color_ The color of the path.
-         *
          */
+        
         bool RerouteToShortestPath(
             const Int a_begin, mref<Int> a_end, const Int max_dist, const Int color_
         )
@@ -879,7 +869,9 @@ namespace KnotTools
             {
                 const Int c_0 = A_cross(a,Head);
                 
-                const Int a_next = pd.template NextArc<Head>(a,c_0);
+                const bool side = (C_arcs(c_0,Head,Right) != a);
+                
+                const Int a_next = C_arcs(c_0,Out,side);
                 
                 const Int b = path[p];
                 
@@ -891,10 +883,7 @@ namespace KnotTools
                 
                 AssertCrossing<1>(c_1);
                 
-                
-                const bool u = (overQ == RightHandedQ(C_state[c_0]));
-                
-                // This is the situation for `a` before rerouting for u == true;
+                // This is the situation for `a` before rerouting for side == Right;
                 //
                 //
                 //                ^a_1
@@ -907,12 +896,15 @@ namespace KnotTools
                 //
                 
                 // a_0 is the vertical incoming arc.
-                const Int a_0 = C_arcs(c_0,In , u);
+                const Int a_0 = C_arcs(c_0,In , side);
                 
                 // a_1 is the vertical outgoing arc.
-                const Int a_1 = C_arcs(c_0,Out,!u);
-                // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
+                const Int a_1 = C_arcs(c_0,Out,!side);
                 
+                AssertArc<1>(a_0);
+                AssertArc<1>(a_1);
+                
+                // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
                 PD_ASSERT( b != a_next )
                 PD_ASSERT( b != a )
                 
@@ -923,9 +915,6 @@ namespace KnotTools
                     ++p;
                     continue;
                 }
-                
-                AssertArc<1>(a_0);
-                AssertArc<1>(a_1);
                 
                 PD_ASSERT( a_0 != a_1 );
                 
@@ -1111,6 +1100,24 @@ namespace KnotTools
             overQ = overQ_;
         }
 
+    private:
+
+        Int WalkBackToStrandStart( const Int a_0 ) const
+        {
+            Int a = a_0;
+
+            AssertArc<1>(a);
+
+            // We could maybe save some lookups here if we inline ArcUnderQ and NextArc. However, I tried it and it did not improve anything. Probably because this loop is typically not very long or because the compiler is good at optimizing this on his own. So I decided to keep this for better readibility.
+            while( pd.template ArcUnderQ<Tail>(a) != overQ )
+            {
+                a = pd.template NextArc<Tail>(a);
+                AssertArc<1>(a);
+            }
+
+            return a;
+        }
+        
         template<bool headtail>
         void MoveWhileBranching( mref<Int> a, mref<Int> p ) const
         {
@@ -1122,14 +1129,7 @@ namespace KnotTools
             
             while( (C_arcs(c,headtail,!side) == b) || (C_arcs(c,!headtail,side) == b) )
             {
-                if constexpr ( headtail )
-                {
-                    ++p;
-                }
-                else
-                {
-                    --p;
-                }
+                p += headtail ? Int(1) : Int(-1);
                 
                 a = C_arcs(c,!headtail,!side);
                 
@@ -1229,15 +1229,8 @@ namespace KnotTools
                 PD_DPRINT("Detected Reidemeister II at outgoing port of " + CrossingString(c_1) + ".");
                 
                 const Int a_prev = C_arcs(c_0,In,!side_0);
-
-//                // These 4 cannot happen because of direction.
-//                PD_ASSERT( a_0_in  != a_prev );
-//                PD_ASSERT( a_1_in  != a_prev );
-//                PD_ASSERT( a_0_out != a_next );
-//                PD_ASSERT( a_1_out != a_next );
                 
                 // This cannot happen because we called RemoveLoop.
-                
                 PD_ASSERT( a_0_out != a_prev );
                 
                 // A nasty case that is easy to overlook.
@@ -1299,9 +1292,6 @@ namespace KnotTools
 
             return false;
         }
-        
-
-        
         
     public:
         

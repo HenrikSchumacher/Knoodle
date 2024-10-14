@@ -54,7 +54,6 @@ namespace KnotTools
         Tensor2<Int,Int> A_data;
         Tensor1<Int,Int> A_colors;
         
-        
         Tensor2<Int,Int> A_left;
         
         Int * restrict A_left_ptr;
@@ -117,7 +116,7 @@ namespace KnotTools
                     eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckArc(a_));
-                PD_ASSERT(CheckArcLeftArc(a_))
+                PD_ASSERT(CheckArcLeftArc(a_));
             }
             else
             {
@@ -133,7 +132,7 @@ namespace KnotTools
         
         std::string ArcString( const Int a_ )  const
         {
-            return pd.ArcString(a_) + " has color " + ToString(A_color(a_)) + ".";
+            return pd.ArcString(a_) + " (color = " + ToString(A_color(a_)) + ")";
         }
         
         template<bool should_be_activeQ>
@@ -166,7 +165,7 @@ namespace KnotTools
         
         std::string CrossingString( const Int c_ ) const
         {
-            return pd.CrossingString(c_) + " has color " + ToString(C_color(c_)) + ".";
+            return pd.CrossingString(c_) + " (color = " + ToString(C_color(c_)) + ")";
         }
 
         bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
@@ -223,7 +222,6 @@ namespace KnotTools
                 s << ToString(i  ) << " : " <<  ArcString(a)
                   << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
                 s << ToString(i+1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
-
             }
             while( a != a_end );
             
@@ -235,23 +233,30 @@ namespace KnotTools
         {
             bool passedQ = true;
             
-            auto aa = pd.NextLeftArc(a,Head);
-            auto bb = pd.NextLeftArc(a,Tail);
-            
-            if( ( (A_left(a,Head)) != ((aa.first << 1) | aa.second) ) )
             {
-                eprint(ClassName()+"::CheckArcLeftArc: A_left(a,Head) is incorrect." );
-                logdump( A_left(a,Head) );
-                logdump( (aa.first << 1) | aa.second );
-                passedQ = false;
+                constexpr bool ht = Head;
+                auto aa = pd.NextLeftArc(a,ht);
+                const Int A = A_left(a,ht);
+                if( A != ((aa.first << 1) | aa.second) )
+                {
+                    eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
+                    logprint("Head is        {" + ToString(A >> 1)   + "," +  ToString(A&Int(1))  + "}.");
+                    logprint("Head should be {" + ToString(aa.first) + "," +  ToString(aa.second) + "}.");
+                    passedQ = false;
+                }
             }
             
-            if( ( (A_left(a,Tail)) != ((bb.first << 1) | bb.second) ) )
             {
-                eprint(ClassName()+"::CheckArcLeftArc: A_left(a,Head) is incorrect." );
-                logdump( A_left(a,Tail) );
-                logdump( (bb.first << 1) | bb.second );
-                passedQ = false;
+                constexpr bool ht = Tail;
+                auto aa = pd.NextLeftArc(a,ht);
+                const Int A = A_left(a,ht);
+                if( A != ((aa.first << 1) | aa.second) )
+                {
+                    eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
+                    logprint("Tail is        {" + ToString(A >> 1)   + "," +  ToString(A&Int(1))  + "}.");
+                    logprint("Tail should be {" + ToString(aa.first) + "," +  ToString(aa.second) + "}.");
+                    passedQ = false;
+                }
             }
             
             return passedQ;
@@ -277,25 +282,69 @@ namespace KnotTools
             
             return passedQ;
         }
+
+    private:
+        
+        mref<Int> C_color( const Int c )
+        {
+            return C_data(c,0);
+        }
+        
+        cref<Int> C_color( const Int c ) const
+        {
+            return C_data(c,0);
+        }
+        
+        mref<Int> A_color( const Int a )
+        {
+            return A_colors[a];
+        }
+        
+        cref<Int> A_color( const Int a ) const
+        {
+            return A_colors[a];
+        }
+
+        
+        mref<Int> C_len( const Int c )
+        {
+            return C_data(c,1);
+        }
+
+        void MarkCrossing( const int c )
+        {
+            C_color(c) = color;
+            C_len  (c) = strand_length;
+        }
         
     private:
         
         template<bool headtail, bool deactivateQ = true>
         void Reconnect( const Int a, const Int b )
         {
-            PD_DPRINT("Reconnect " + ArcString(a) + "," + (headtail ? "Head" : "Tail") + "," + ArcString(b) );
+            PD_DPRINT(std::string("Reconnect ") + (headtail ? "Head of " : "Tail of ") + ArcString(a) + " to " + (headtail ? "Head of " : "Tail of ") + ArcString(b) + "." );
+            
+            AssertArc<1>(a);
             
             const Int c = A_cross(b,headtail);
 
             const bool side = (C_arcs(c,headtail,Right) == b);
             
+            const Int b_l = A_left(b,headtail);
+            
+            AssertArc<1>(b_l);
+            PD_DPRINT("Touched b_l = " + ArcString(b_l) + ".");
+            
             A_cross(a,headtail) = c;
             C_arcs(c,headtail,side) = a;
             
-            A_left(a,headtail) = A_left(b,headtail);
+            A_left(a,headtail) = b_l;
             
             // Find the port of `c` that is NextRight(b,headtail).
             const Int r = C_arcs(c,!side,headtail);
+            
+            AssertArc<1>(r);
+            PD_DPRINT("Touched r   = " + ArcString(r) + ".");
             
             // We have to turn around `a`.
             A_left(r,!side) = (a << 1) | (!headtail);
@@ -351,39 +400,158 @@ namespace KnotTools
             return;
         }
         
-    private:
-        
-        mref<Int> C_color( const Int c )
+        bool Reidemeister_II(
+            mref<Int> a, const Int c_1, const bool side_1, const Int a_next
+        )
         {
-            return C_data(c,0);
-        }
-        
-        cref<Int> C_color( const Int c ) const
-        {
-            return C_data(c,0);
-        }
-        
-        mref<Int> A_color( const Int a )
-        {
-            return A_colors[a];
-        }
-        
-        cref<Int> A_color( const Int a ) const
-        {
-            return A_colors[a];
-        }
+            const Int c_0 = A_cross(a,Tail);
+            
+            const bool side_0 = (C_arcs(c_0,Out,Right) == a);
+            
+            //             a == C_arcs(c_0,Out, side_0)
+            //        a_prev == C_arcs(c_0,In ,!side_0)
+            const Int a_0_out = C_arcs(c_0,Out,!side_0);
+            const Int a_0_in  = C_arcs(c_0,In , side_0);
+            
+            //             a == C_arcs(c_1,In , side_1)
+            //        a_next == C_arcs(c_1,Out,!side_1)
+            const Int a_1_out = C_arcs(c_1,Out, side_1);
+            const Int a_1_in  = C_arcs(c_1,In ,!side_1);
+            
+            //             O a_0_out         O a_1_in
+            //             ^                 |
+            //             |                 |
+            //  a_prev     |c_0     a        v     a_next
+            //  ----->O-------->O------>O-------->O------>
+            //             ^                 |c_1
+            //             |                 |
+            //             |                 v
+            //             O a_0_in          O a_1_out
+                
+            if( a_0_out == a_1_in )
+            {
+                PD_DPRINT("Detected Reidemeister II at ingoing port of " + CrossingString(c_1) + ".");
+                
+                const Int a_prev = C_arcs(c_0,In,!side_0);
+                
+                PD_ASSERT( a_0_in   != a_next );
+                PD_ASSERT( a_1_in   != a_next );
+                
+                PD_ASSERT( a_0_out != a_prev );
+                PD_ASSERT( a_1_out != a_prev );
+                
+                //              a_0_out == a_1_in
+                //             O---------------->O
+                //             ^                 |
+                //             |                 |
+                //  a_prev     |c_0     a        v     a_next
+                //  ----->O-------->O------>O-------->O------>
+                //             ^                 |c_1
+                //             |                 |
+                //             |                 v
+                //             O a_0_in          O a_1_out
+                
+                Reconnect<Head>(a_prev,a_next);
+                
+                if( a_0_in == a_1_out )
+                {
+                    ++pd.unlink_count;
+                    pd.DeactivateArc(a_0_in);
+                }
+                else
+                {
+                    Reconnect<Tail>(a_1_out,a_0_in);
+                }
+                
+                pd.DeactivateArc(a);
+                pd.DeactivateArc(a_0_out);
+                pd.DeactivateCrossing(c_0);
+                pd.DeactivateCrossing(c_1);
+                ++pd.R_II_counter;
+                
+                AssertArc<1>(a_prev);
+                AssertArc<0>(a_next);
+                
+                ++change_counter;
+                
+                // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
+                strand_length -= 2;
+                a = a_prev;
+                
+                PD_ASSERT(strand_length >= 0 );
+                
+                return true;
+            }
+            
+            if( a_0_in == a_1_out )
+            {
+                PD_DPRINT("Detected Reidemeister II at outgoing port of " + CrossingString(c_1) + ".");
+                
+                const Int a_prev = C_arcs(c_0,In,!side_0);
+                
+                // This cannot happen because we called RemoveLoop.
+                PD_ASSERT( a_0_out != a_prev );
+                
+                // A nasty case that is easy to overlook.
+                if( a_1_in == a_next )
+                {
+                    //             O a_0_out         O<---+ a_1_in == a_next
+                    //             ^                 |    |
+                    //             |                 |    |
+                    //  a_prev     |c_0     a        v    |
+                    //  ----->O-------->O------>O-------->O
+                    //             ^                 |c_1
+                    //             |                 |
+                    //             |                 v
+                    //             O<----------------O
+                    //              a_0_in == a_1_out
+                    //
+                    
+                    Reconnect<Head>(a_prev,a_0_out);
+                    pd.DeactivateArc(a_next);
+                    pd.R_I_counter+=2;
+                }
+                else
+                {
+                    //             O a_0_out         O a_1_in
+                    //             ^                 |
+                    //             |                 |
+                    //  a_prev     |c_0     a        v     a_next
+                    //  ----->O-------->O------>O-------->O------>
+                    //             ^                 |c_1
+                    //             |                 |
+                    //             |                 v
+                    //             O<----------------O
+                    //              a_0_in == a_1_out
+                    //
+                    
+                    Reconnect<Head>(a_prev,a_next);
+                    Reconnect<Tail>(a_0_out,a_1_in);
+                    ++pd.R_II_counter;
+                }
+                
+                pd.DeactivateArc(a);
+                pd.DeactivateArc(a_0_in);
+                pd.DeactivateCrossing(c_0);
+                pd.DeactivateCrossing(c_1);
+                
+                AssertArc<1>(a_prev);
+                AssertArc<0>(a_next);
+                
+                ++change_counter;
+                
+                // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
+                strand_length -= 2;
+                a = a_prev;
+                
+                PD_ASSERT(strand_length >= 0 );
+                
+                return true;
+            }
 
+            return false;
+        }
         
-        mref<Int> C_len( const Int c )
-        {
-            return C_data(c,1);
-        }
-
-        void MarkCrossing( const int c )
-        {
-            C_color(c) = color;
-            C_len  (c) = strand_length;
-        }
         
         void Prepare()
         {
@@ -396,6 +564,10 @@ namespace KnotTools
                 color = 0;
             }
             
+            
+            A_left = pd.ArcLeftArc();
+            A_left_ptr = A_left.data();
+            
 //            // DEBUGGING
 //            C_data.Fill(-1);
 //            A_data.Fill(0);
@@ -406,18 +578,15 @@ namespace KnotTools
         
     public:
         
+        template<bool R_II_Q = true>
         Int SimplifyStrands(
             bool overQ_, const Int max_dist = std::numeric_limits<Int>::max()
         )
         {
             overQ = overQ_;
             
-//            print(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             ptic(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
 
-            A_left = pd.ArcLeftArc();
-            A_left_ptr = A_left.data();
-            
             const Int m = A_cross.Dimension(0);
 
             Prepare();
@@ -449,25 +618,16 @@ namespace KnotTools
                 {
                     break;
                 }
-                
-                Int a = a_ptr;
-                // Find the beginning of first strand.
-                
-                AssertArc<1>(a);
-                
-                // For this, we move backwards along arcs until ArcUnderQ<Tail>(a)/ArcOverQ<Tail>(a)
-                
-                // TODO: We can save some lookups here if we inline ArcUnderQ and NextArc
-                while( pd.template ArcUnderQ<Tail>(a) != overQ )
-                {
-                    a = pd.template NextArc<Tail>(a);
-                    AssertArc<1>(a);
-                }
 
-                Int a_0 = a;
                 
-                // The starting arc of the current strand.
-                Int a_begin = a_0;
+                // Find the beginning of first strand.
+                Int a_begin = WalkBackToStrandStart(a_ptr);
+                
+                // If we arrive at this point again, we break the do loop below.
+                Int a_0 = a_begin;
+                
+                // Current arc.
+                Int a = a_0;
                 
                 strand_length = 0;
                 
@@ -485,28 +645,51 @@ namespace KnotTools
                         return change_counter;
                     }
                     
-                    const Int c = A_cross(a,Head);
+                    Int c_1 = A_cross(a,Head);
 
-                    AssertCrossing<1>(c);
-                    
-                    // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to reset and create a new strand.
-                    // This finds out whether we have to reset.
-                    const bool side = (C_arcs(c,In ,Right) == a);
-                    
-                    strand_completeQ = ((side == pd.CrossingRightHandedQ(c)) == overQ);
+                    AssertCrossing<1>(c_1);
                     
                     // Arc gets old color.
                     A_color(a) = color;
                     
-                    const Int a_next = C_arcs(c,Out,!side);
                     
-                    if( C_color(c) == color )
+                    
+                    // TODO: This may require already the there are not possible Reidemeister II moves along the strand.
+                    // Check for loops.
+                    if( C_color(c_1) == color )
                     {
                         // Vertex c has been visted before.
                         
-                        RemoveLoop(a,c);
+                        RemoveLoop(a,c_1);
 
                         break;
+                    }
+                    
+                    const bool side_1 = (C_arcs(c_1,In,Right) == a);
+                    
+                    // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to reset and create a new strand.
+                    // This finds out whether we have to reset.
+                    strand_completeQ = ((side_1 == pd.CrossingRightHandedQ(c_1)) == overQ);
+                    
+                    Int a_next = C_arcs(c_1,Out,!side_1);
+
+                    if constexpr ( R_II_Q )
+                    {
+                        if( (!strand_completeQ) && (a != a_begin) )
+                        {
+                            if( Reidemeister_II(a,c_1,side_1,a_next) )
+                            {
+                                if( pd.ArcActiveQ(a_0) )
+                                {
+                                    // Reidemeister_II reset `a` to the previous arc.
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        }
                     }
                     
                     if( strand_completeQ )
@@ -515,17 +698,19 @@ namespace KnotTools
                         
                         if( (strand_length > 1) && (max_dist > 0) )
                         {
-                            PD_ASSERT( a != a_begin );
-                            
                             changedQ = RerouteToShortestPath(
-                                a_begin,a, Min(strand_length-1,max_dist),color
+                                a_begin,a,Min(strand_length-1,max_dist),color
                             );
-                            
-                            change_counter += changedQ;
                         }
                         
-                        // TODO: We might not have to break here;
-                        // TODO: Instead we could move on to the next arc.
+//                        if( changedQ && (!pd.ArcActiveQ(a_0)) )
+//                        {
+//                            // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence we rather break the while loop here.
+//                            break;
+//                        }
+                        
+                        
+                        // For some reason I don't know always breaking here is measurably faster.
                         if( changedQ )
                         {
                             break;
@@ -533,16 +718,17 @@ namespace KnotTools
                         
                         // Create a new strand.
                         strand_length = 0;
-                        
                         a_begin = a_next;
 
                         ++color;
                     }
                     
                     // Head of arc gets new color.
-                    MarkCrossing(c);
+                    MarkCrossing(c_1);
 
                     AssertArc<1>(a_next);
+                    AssertArc<1>(a_0);
+                    AssertArc<1>(a);
                     
                     a = a_next;
                     
@@ -653,10 +839,6 @@ namespace KnotTools
         {
             ptic(ClassName() + "::RemoveLoop");
 
-            
-            PD_DPRINT( ArcString(e) );
-            
-
             // We can save the lookup here.
 //            const Int c_0 = A_cross(e,Head);
             
@@ -732,6 +914,8 @@ namespace KnotTools
             
             ++change_counter;
             
+            PD_ASSERT(CheckArcLeftArcs());
+            
             ptoc(ClassName() + "::RemoveLoop");
         }
         
@@ -743,13 +927,13 @@ namespace KnotTools
          *
          * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
          *
-         * @param a_begin  starting arc
+         * @param a_begin  Starting arc.
          *
-         * @param a_end    final arc to which we want to find a path
+         * @param a_end    Final arc to which we want to find a path
          *
-         * @param max_dist maximal distance we want to travel
+         * @param max_dist Maximal distance we want to travel
          *
-         * @param color_    indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
+         * @param color_    Indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
          *
          */
         
@@ -757,7 +941,7 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-//            ptic(ClassName()+"::FindShortestPath");
+            ptic(ClassName()+"::FindShortestPath");
             
             PD_ASSERT( color_ > 0 );
             
@@ -765,10 +949,12 @@ namespace KnotTools
             
             next_front.Reset();
             
+            PD_ASSERT( CheckArcLeftArcs() );
+            
             // Push the arc `a_begin` twice onto the stack: once with forward orientation, once with backward orientation.
             
-            next_front.Push( (a_begin << 1) | Int(1) );
-            next_front.Push( (a_begin << 1) | Int(0) );
+            next_front.Push( (a_begin << 1) | Int(Head) );
+            next_front.Push( (a_begin << 1) | Int(Tail) );
             
             A_data(a_begin,0) = color_;
             A_data(a_begin,1) = a_begin;
@@ -782,7 +968,6 @@ namespace KnotTools
                 swap( prev_front, next_front );
                 
                 next_front.Reset();
-
                 
                 // We don't want paths of length max_dist.
                 // The elements of prev_front have distance d.
@@ -794,23 +979,38 @@ namespace KnotTools
                 {
                     const Int A_0 = prev_front.Pop();
                     
+                    PD_DPRINT( "Popped A_0 = " + ToString(A_0));
+                    
                     const Int a_0 = (A_0 >> 1);
                     
-                    Int a = a_0;
-                    
-                    bool dir = (A_0 & Int(1));
+                    PD_DPRINT( "a_0 = " + ArcString(a_0));
+                    PD_DPRINT( "dir_0 = " + ToString(A_0 & Int(1) ) );
+
+////
+//                    Int a = a_0;
+////                    
+//                    bool dir = (A_0 & Int(1));
 
                     // arc a_0 itself does not have to be processed because that's where we are coming from.
-                    std::tie(a,dir) = pd.NextLeftArc( a, dir );
-
+                    
+//                    std::tie(a,dir) = pd.NextLeftArc( a, dir );
+                    
+                    Int A = A_left_ptr[A_0];
+                    
+                    Int  a   = (A >> 1);
+                    bool dir = (A & Int(1));
+                    
+                    PD_DPRINT("Begin loop ended.");
                     do
                     {
-                        PD_ASSERT( (0 <= a) && (a < pd.initial_arc_count) );
-
+                        AssertArc<1>(a);
+                        
+                        PD_DPRINT(ArcString(a));
+                        PD_DPRINT("dir = " + ToString(dir));
                         
                         const bool part_of_strandQ = (A_color(a) == color_);
                         
-                        // Check whether `a` has been visited already.
+                        // Check whether `a` has not been visited, yet.
                         if( Abs(A_data(a,0)) != color_ )
                         {
                             if( a == a_end )
@@ -840,13 +1040,31 @@ namespace KnotTools
                                 // Remember from which arc we came.
                                 A_data(a,1) = a_0;
                                 
-                                next_front.Push( (a << 1) | !dir );
+                                // TODO: We could store the direction information `dir` also in `A_data(a,1)`.
+                                
+                                next_front.Push( A ^ Int(1) );
                             }
                         }
 
-                        std::tie(a,dir) = pd.NextLeftArc(a, part_of_strandQ ? !dir : dir);
+//                        std::tie(a,dir) = pd.NextLeftArc(a, part_of_strandQ ? !dir : dir);
+                        
+//                        A = A_left_ptr[ (a << 1) | (part_of_strandQ ? !dir : dir) ];
+                        
+                        if( part_of_strandQ )
+                        {
+                            A = A_left_ptr[A ^ Int(1)];
+                        }
+                        else
+                        {
+                            A = A_left_ptr[A];
+                        }
+                        
+                        a   = (A >> 1);
+                        dir = (A & Int(1));
                     }
                     while( a != a_0 );
+                    
+                    PD_DPRINT("While do loop ended.");
                 }
             }
             
@@ -893,7 +1111,7 @@ namespace KnotTools
                 }
             }
             
-//            ptoc(ClassName()+"::FindShortestPath");
+            ptoc(ClassName()+"::FindShortestPath");
             
             return d;
         }
@@ -921,17 +1139,33 @@ namespace KnotTools
         
  private:
         
+        /*!
+         * @brief Attempts to reroute the strand.
+         *
+         * @param a_begin The first arc of the strand on entry as well as as on return.
+         *
+         * @param a_end The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changed!
+         *
+         * @param max_dist The maximal distance Dijkstra's algorithm will wander.
+         *
+         * @param color_ The color of the path.
+         */
+        
         bool RerouteToShortestPath(
-            const Int a_begin, const Int a_end, const Int max_dist, const Int color_
+            const Int a_begin, mref<Int> a_end, const Int max_dist, const Int color_
         )
         {
             ptic(ClassName()+"::RerouteToShortestPath");
+            
+#ifdef PD_DEBUG
+            const Int Cr_0 = pd.CrossingCount();
+#endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
 
             if( (d < 0) || (d > max_dist) )
             {
-                PD_DPRINT("No improvement detected: (d < 0) || (d > max_dist).");
+                PD_DPRINT("No improvement detected.");
                 
                 ptoc(ClassName()+"::RerouteToShortestPath");
                 
@@ -973,7 +1207,9 @@ namespace KnotTools
             {
                 const Int c_0 = A_cross(a,Head);
                 
-                const Int a_2 = pd.template NextArc<Head>(a,c_0);
+                const bool side = (C_arcs(c_0,Head,Right) != a);
+                
+                const Int a_2 = C_arcs(c_0,Out,side);
                 
                 const Int b = path[p];
                 
@@ -985,9 +1221,7 @@ namespace KnotTools
                 
                 AssertCrossing<1>(c_1);
                 
-                const bool u = (overQ == RightHandedQ(C_state[c_0]));
-                
-                // This is the situation for `a` before rerouting for u == true;
+                // This is the situation for `a` before rerouting for side == Right;
                 //
                 //
                 //                ^a_1
@@ -1000,12 +1234,15 @@ namespace KnotTools
                 //
                 
                 // a_0 is the vertical incoming arc.
-                const Int a_0 = C_arcs(c_0,In , u);
+                const Int a_0 = C_arcs(c_0,In , side);
                 
                 // a_1 is the vertical outgoing arc.
-                const Int a_1 = C_arcs(c_0,Out,!u);
-                // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
+                const Int a_1 = C_arcs(c_0,Out,!side);
                 
+                AssertArc<1>(a_0);
+                AssertArc<1>(a_1);
+                
+                // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
                 PD_ASSERT( b != a_2 )
                 PD_ASSERT( b != a )
                 
@@ -1016,9 +1253,6 @@ namespace KnotTools
                     ++p;
                     continue;
                 }
-                
-                AssertArc<1>(a_0);
-                AssertArc<1>(a_1);
                 
                 PD_ASSERT( a_0 != a_1 );
                 
@@ -1086,7 +1320,6 @@ namespace KnotTools
                 
                 if( dir )
                 {
-                    logprint("A");
                     C_state[c_0] = overQ
                                  ? CrossingState::RightHanded
                                  : CrossingState::LeftHanded;
@@ -1122,7 +1355,6 @@ namespace KnotTools
                 }
                 else // if ( !dir )
                 {
-                    logprint("B");
                     C_state[c_0] = overQ
                                  ? CrossingState::LeftHanded
                                  : CrossingState::RightHanded;
@@ -1156,21 +1388,13 @@ namespace KnotTools
                     const Int buffer [4] = { a_2,a_1,b,a };
                     copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
                 }
-                
-                // TODO: Correct A_left for a, a_1, and a_next, and b.
-                logprint("Check c_0.");
+
                 AssertCrossing<1>(c_0);
-                logprint("Check c_1.");
                 AssertCrossing<1>(c_1);
-                logprint("Check a.");
                 AssertArc<1>(a);
-                logprint("Check a_0.");
                 AssertArc<1>(a_0);
-                logprint("Check a_1.");
                 AssertArc<1>(a_1);
-                logprint("Check a_2.");
                 AssertArc<1>(a_2);
-                logprint("Check b.");
                 AssertArc<1>(b);
 //
                 // Go to next of arc.
@@ -1183,6 +1407,18 @@ namespace KnotTools
             
             AssertArc<1>(a);
             AssertArc<0>(e);
+            
+            a_end = a;
+
+#ifdef PD_DEBUG
+            const Int Cr_1 = pd.CrossingCount();
+#endif
+            
+            PD_ASSERT( Cr_1 < Cr_0 );
+            
+            PD_DPRINT( ToString(Cr_0 - Cr_1) + " crossings removed." );
+            
+            PD_ASSERT( CheckArcLeftArcs() );
             
             ptoc(ClassName()+"::RerouteToShortestPath");
             
@@ -1219,6 +1455,24 @@ namespace KnotTools
         {
             overQ = overQ_;
         }
+        
+    private:
+        
+        Int WalkBackToStrandStart( const Int a_0 ) const
+        {
+            Int a = a_0;
+
+            AssertArc<1>(a);
+
+            // We could maybe save some lookups here if we inline ArcUnderQ and NextArc. However, I tried it and it did not improve anything. Probably because this loop is typically not very long or because the compiler is good at optimizing this on his own. So I decided to keep this for better readibility.
+            while( pd.template ArcUnderQ<Tail>(a) != overQ )
+            {
+                a = pd.template NextArc<Tail>(a);
+                AssertArc<1>(a);
+            }
+
+            return a;
+        }
 
         template<bool headtail>
         void MoveWhileBranching( mref<Int> a, mref<Int> p ) const
@@ -1231,20 +1485,13 @@ namespace KnotTools
             
             while( (C_arcs(c,headtail,!side) == b) || (C_arcs(c,!headtail,side) == b) )
             {
-                if constexpr ( headtail )
-                {
-                    ++p;
-                }
-                else
-                {
-                    --p;
-                }
-                
                 a = C_arcs(c,!headtail,!side);
                 
                 c = A_cross(a,headtail);
 
                 side = (C_arcs(c,headtail,Right) == a);
+                
+                p = headtail ? p + Int(1) : p - Int(1);
                 
                 b = path[p];
             }
