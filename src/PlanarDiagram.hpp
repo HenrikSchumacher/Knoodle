@@ -38,7 +38,7 @@ namespace KnotTools
     // TODO: A_cross(a,Tail) =  c if a == C_arc(a,Out,Right)
     
     
-    template<typename Int_, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
+    template<typename Int_, Size_T optimization_level, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
     template<typename Int_, bool mult_compQ_> class StrandSimplifier2;
     
@@ -63,14 +63,13 @@ namespace KnotTools
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
         
-        friend class ArcSimplifier<Int,false,true>;
-        friend class ArcSimplifier<Int,true ,true>;
+
+        template<typename I, Size_T lvl,bool use_flagsQ_, bool mult_compQ_>
+        friend class ArcSimplifier;
         friend class StrandSimplifier<Int,true>;
         friend class StrandSimplifier<Int,false>;
         friend class StrandSimplifier2<Int,true>;
         friend class StrandSimplifier2<Int,false>;
-        
-        using ArcSimplifier_T = ArcSimplifier<Int,false,true>;
         
         
         using Arrow_T = std::pair<Int,bool>;
