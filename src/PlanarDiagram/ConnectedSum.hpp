@@ -1,58 +1,5 @@
 public:
 
-// TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
-
-/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `SplitConnectedSummands`.
- *
- * @param PD_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
- *
- * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
- *
- * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
- *
- * @param simplify3Q Whether a optimization for local patterns with `Simplify3` shall be performed.
- *
- * @param simplify3_exhaustiveQ If `simplify3Q` is `true`, then this changes its behavior. If set to `false`, only one optimization pass over the diagram is performed. If set to `true`, then optimization passes will applied
- */
-
-bool Simplify5(
-    std::vector<PlanarDiagram<Int>> & PD_list,
-    const Int max_dist = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
-    const bool simplify3Q = true,
-    const bool simplify3_exhaustiveQ = true
-)
-{
-    ptic(ClassName()+"::Simplify5");
-
-    bool globally_changed = false;
-    bool changed = false;
-
-    do
-    {
-        changed = Simplify4(max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ);
-
-        changed = changed || SplitConnectedSummands(PD_list,
-            max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ
-        );
-        
-        globally_changed = globally_changed || changed;
-    }
-    while( changed );
-    
-    if( compressQ && globally_changed )
-    {
-        // TODO: Can/should we skip this compression step?
-        *this = this->CreateCompressed();
-    }
-    
-    ptoc(ClassName()+"::Simplify5");
-
-    return globally_changed;
-}
-
-public:
-
 
 
 /*! @brief This just splits off connected summands and appends them to the supplied `PD_list`.
@@ -65,7 +12,8 @@ bool SplitConnectedSummands(
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
     const bool simplify3Q = true,
-    const bool simplify3_exhaustiveQ = true
+    const bool simplify3_exhaustiveQ = true,
+    const bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::SplitConnectedSummands");
@@ -91,7 +39,7 @@ bool SplitConnectedSummands(
         {
             changedQ = changedQ || SplitConnectedSummand(
                 f,PD_list,S,f_arcs,f_faces,
-                max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ
+                max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ,strand_R_II_Q
             );
         }
         
@@ -122,7 +70,8 @@ bool SplitConnectedSummand(
     const Int max_dist,
     const bool compressQ,
     const bool simplify3Q,
-    const bool simplify3_exhaustiveQ
+    const bool simplify3_exhaustiveQ,
+    const bool strand_R_II_Q = true
 )
 {
     // TODO: Introduce some tracking of from where the components are split off.
@@ -153,18 +102,13 @@ bool SplitConnectedSummand(
     {
         // TODO: What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
 
-//        
-//        wprint("f_size == 1");
-//        
-//        for( auto a : f_arcs )
-//        {
-//            logprint( ArcString(a) );
-//        }
+        const Int a = f_arcs[0];
         
-        
-        Reidemeister_I(f_arcs[0]);
-        
-        return true;
+        if( A_cross(a,Head) == A_cross(a,Tail) )
+        {
+            Reidemeister_I(f_arcs[0]);
+            return true;
+        }
     }
     
     S( &f_faces[0], &f_arcs[0], f_size );
@@ -176,10 +120,9 @@ bool SplitConnectedSummand(
             max_dist,
             compressQ,
             simplify3Q,
-            simplify3_exhaustiveQ
+            simplify3_exhaustiveQ,
+            strand_R_II_Q
         );
-
-        PD_ASSERT( pd.CheckAll() );
 
         PD_list.push_back( std::move(pd) );
     };

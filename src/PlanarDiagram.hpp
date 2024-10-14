@@ -40,6 +40,7 @@ namespace KnotTools
     
     template<typename Int_, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
+    template<typename Int_, bool mult_compQ_> class StrandSimplifier2;
     
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
@@ -66,6 +67,8 @@ namespace KnotTools
         friend class ArcSimplifier<Int,true ,true>;
         friend class StrandSimplifier<Int,true>;
         friend class StrandSimplifier<Int,false>;
+        friend class StrandSimplifier2<Int,true>;
+        friend class StrandSimplifier2<Int,false>;
         
         using ArcSimplifier_T = ArcSimplifier<Int,false,true>;
         
@@ -1269,6 +1272,7 @@ namespace KnotTools
 #include "PlanarDiagram/Simplify.hpp"
 #include "PlanarDiagram/Simplify3.hpp"
 #include "PlanarDiagram/Simplify4.hpp"
+#include "PlanarDiagram/Simplify5.hpp"
         
 #include "PlanarDiagram/PDCode.hpp"
 
@@ -1279,9 +1283,6 @@ namespace KnotTools
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Components.hpp"
 #include "PlanarDiagram/ConnectedSum.hpp"
-        
-        
-#include "PlanarDiagram/EwingMillet.hpp"
         
     public:
         

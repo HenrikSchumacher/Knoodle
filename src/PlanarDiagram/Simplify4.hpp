@@ -11,7 +11,8 @@ Int Simplify4(
     const Int max_dist_checked,
     const bool compressQ = true,
     bool simplify3Q = true,
-    bool simplify3_exhaustiveQ = true
+    bool simplify3_exhaustiveQ = true,
+    bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::Simplify4"
@@ -51,7 +52,13 @@ Int Simplify4(
             }
         }
         
-        const Int o_changes = S.SimplifyStrands(true,max_dist_checked);
+        const Int o_changes = strand_R_II_Q
+            ? S.template SimplifyStrands<true >(true,max_dist_checked)
+            : S.template SimplifyStrands<false>(true,max_dist_checked);
+        
+//        PD_ASSERT(CheckAll());
+        
+//        PD_ASSERT(S.CheckArcLeftArcs());
         
         counter += o_changes;
         
@@ -60,7 +67,13 @@ Int Simplify4(
             (*this) = CreateCompressed();
         }
         
-        const Int u_changes = S.SimplifyStrands(false,max_dist_checked);
+        const Int u_changes = strand_R_II_Q
+            ? S.template SimplifyStrands<true >(false,max_dist_checked)
+            : S.template SimplifyStrands<false>(false,max_dist_checked);
+        
+//        PD_ASSERT(CheckAll());
+        
+//        PD_ASSERT(S.CheckArcLeftArcs());
         
         counter += u_changes;
         
@@ -70,6 +83,8 @@ Int Simplify4(
         }
     }
     while( counter > old_counter );
+    
+//    dump(iter);
     
 //    const Time stop_time = Clock::now();
 //    

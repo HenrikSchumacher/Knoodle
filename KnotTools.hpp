@@ -254,6 +254,7 @@ namespace KnotTools
 #include "src/PlanarDiagram.hpp"
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"
+#include "src/StrandSimplifier2.hpp"
 
 //#include "src/Alexander.hpp"
 //
