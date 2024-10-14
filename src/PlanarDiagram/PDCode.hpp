@@ -204,6 +204,9 @@ Tensor2<Int,Int> PDCode()
     // We are using A_scratch to keep track of the new crossing's labels.
     A_scratch.Fill(-1);
     
+    mptr<Int> C_labels = C_scratch.data();
+    mptr<Int> A_labels = A_scratch.data();
+    
     Int a_counter = 0;
     Int c_counter = 0;
     Int a_ptr     = 0;
@@ -212,7 +215,7 @@ Tensor2<Int,Int> PDCode()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_scratch[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }
@@ -224,7 +227,7 @@ Tensor2<Int,Int> PDCode()
         
         a = a_ptr;
         
-        C_scratch[A_cross(a,Tail)] = c_counter++;
+        C_labels[A_cross(a,Tail)] = c_counter++;
         
         // Cycle along all arcs in the link component, until we return where we started.
         do
@@ -232,11 +235,11 @@ Tensor2<Int,Int> PDCode()
             const Int c_prev = A_cross(a,Tail);
             const Int c_next = A_cross(a,Head);
             
-            A_scratch[a] = a_counter;
+            A_labels[a] = a_counter;
             
-            if( C_scratch[c_next] < 0 )
+            if( C_labels[c_next] < 0 )
             {
-                C_scratch[c_next] = c_counter++;
+                C_labels[c_next] = c_counter++;
             }
 
             
@@ -261,7 +264,7 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_scratch[c_prev]
+                         *             / <--- c = C_labels[c_prev]
                          *            ^ ^
                          *           /   \
                          *          /     \
@@ -300,7 +303,7 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_scratch[c_prev]
+                         *             \ <--- c = C_labels[c_prev]
                          *            ^ ^
                          *           /   \
                          *          /     \
@@ -332,7 +335,7 @@ Tensor2<Int,Int> PDCode()
             // Tell c_next that arc a_counter goes into it.
             {
                 const CrossingState state = C_state [c_next];
-                const Int           c     = C_scratch[c_next];
+                const Int           c     = C_labels[c_next];
 
                 const bool side  = (C_arcs(c_next,In,Right)) == a;
                 
@@ -365,7 +368,7 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_scratch[c_next]
+                         *             / <--- c = C_labels[c_next]
                          *            ^ ^
                          *           /   \
                          *          /     \
@@ -404,7 +407,7 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_scratch[c_next]
+                         *             \ <--- c = C_labels[c_next]
                          *            ^ ^
                          *           /   \
                          *          /     \
