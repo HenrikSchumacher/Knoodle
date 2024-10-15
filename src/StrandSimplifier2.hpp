@@ -74,6 +74,8 @@ namespace KnotTools
         Tensor1<Int,Int> path;
         Int path_length = 0;
         
+        std::vector<Int> touched;
+        
     public:
         
         StrandSimplifier2() = delete;
@@ -113,16 +115,16 @@ namespace KnotTools
             {
                 if( !pd.ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
+                    pd_eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckArc(a_));
-                PD_ASSERT(CheckArcLeftArc(a_));
+//                PD_ASSERT(CheckArcLeftArc(a_));
             }
             else
             {
                 if( pd.ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
+                    pd_eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
                 }
             }
 #else
@@ -143,19 +145,19 @@ namespace KnotTools
             {
                 if( !pd.CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
+                    pd_eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
                 }
-                PD_ASSERT(pd.CheckCrossing(c_));
-                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Left )));
-                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Right)));
-                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Left )));
-                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Right)));
+//                PD_ASSERT(pd.CheckCrossing(c_));
+//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Left )));
+//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Right)));
+//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Left )));
+//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Right)));
             }
             else
             {
                 if( pd.CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
+                    pd_eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
                 }
             }
 #else
@@ -192,12 +194,12 @@ namespace KnotTools
             
             if( a != a_end )
             {
-                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+                pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
             }
             
             if( !passedQ )
             {
-                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+                pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
             }
             
             return passedQ;
@@ -228,33 +230,85 @@ namespace KnotTools
             return s.str();
         }
         
+        std::string PathString()
+        {
+            std::stringstream s;
+            
+            if( path_length <= 0 )
+            {
+                return "{}";
+            }
+            
+            for( Int p = 0; p < path_length; ++p )
+            {
+                const Int a = path[p];
+
+                s << ToString(p  ) << " : " <<  ArcString(a)
+                  << " (" << ToString( Sign(A_data(a,0)) ) << ")" << "\n";
+            }
+            
+            return s.str();
+        }
+
+        
         
         bool CheckArcLeftArc( const Int a )
         {
             bool passedQ = true;
             
+            if( !pd.ArcActiveQ(a) )
+            {
+                wprint(ClassName()+"::CheckArcLeftArc: Inactive " + ArcString(a) + ".");
+            }
+            
             {
                 constexpr bool ht = Head;
-                auto aa = pd.NextLeftArc(a,ht);
-                const Int A = A_left(a,ht);
-                if( A != ((aa.first << 1) | aa.second) )
+                
+                const Int A = (a << 1) | Int(ht);
+                const Int A_l_true = pd.NextLeftArc(A);
+                const Int A_l      = A_left_ptr[A];
+                
+                if( !pd.ArcActiveQ(A_l_true >> 1) )
                 {
-                    eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
-                    logprint("Head is        {" + ToString(A >> 1)   + "," +  ToString(A&Int(1))  + "}.");
-                    logprint("Head should be {" + ToString(aa.first) + "," +  ToString(aa.second) + "}.");
+                    wprint(ClassName()+"::CheckArcLeftArc: Inactive true left forward " + ArcString(A_l_true) + ".");
+                }
+                
+                if( !pd.ArcActiveQ(A_l >> 1) )
+                {
+                    wprint(ClassName()+"::CheckArcLeftArc: Inactive left forward " + ArcString(A_l) + ".");
+                }
+                
+                if( A_l != A_l_true )
+                {
+                    pd_eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
+                    logprint("Head is        {" + ToString(A_l >> 1)   + "," +  ToString(A_l & Int(1))  + "}.");
+                    logprint("Head should be {" + ToString(A_l_true >> 1) + "," +  ToString(A_l_true & Int(1)) + "}.");
                     passedQ = false;
                 }
             }
             
             {
                 constexpr bool ht = Tail;
-                auto aa = pd.NextLeftArc(a,ht);
-                const Int A = A_left(a,ht);
-                if( A != ((aa.first << 1) | aa.second) )
+                
+                const Int A = (a << 1 ) | Int(ht);
+                const Int A_l_true = pd.NextLeftArc(A);
+                const Int A_l      = A_left_ptr[A];
+                
+                if( !pd.ArcActiveQ(A_l_true >> 1) )
                 {
-                    eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
-                    logprint("Tail is        {" + ToString(A >> 1)   + "," +  ToString(A&Int(1))  + "}.");
-                    logprint("Tail should be {" + ToString(aa.first) + "," +  ToString(aa.second) + "}.");
+                    wprint(ClassName()+"::CheckArcLeftArc: Inactive true left backward " + ArcString(A_l_true) + ".");
+                }
+                
+                if( !pd.ArcActiveQ(A_l >> 1) )
+                {
+                    wprint(ClassName()+"::CheckArcLeftArc: Inactive left backward " + ArcString(A_l) + ".");
+                }
+                
+                if( A_l != A_l_true )
+                {
+                    pd_eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
+                    logprint("Tail is        {" + ToString(A_l >> 1)   + "," +  ToString(A_l & Int(1))  + "}.");
+                    logprint("Tail should be {" + ToString(A_l_true >> 1) + "," +  ToString(A_l_true & Int(1)) + "}.");
                     passedQ = false;
                 }
             }
@@ -319,46 +373,86 @@ namespace KnotTools
         
     private:
         
-        template<bool headtail, bool deactivateQ = true>
+//        template<bool headtail, bool deactivateQ = true>
+//        void Reconnect( const Int a_, const Int b_ )
+//        {
+//            pd.template Reconnect<headtail,deactivateQ>(a_,b_);
+//        }
+        
+        void RepairArcLeftArc( const Int A )
+        {
+            const Int A_l = pd.NextLeftArc(A);
+            const Int A_r = pd.NextRightArc(A);
+            
+            PD_DPRINT("RepairArcLeftArc touched a   = " + ArcString(A   >> 1) + ".");
+            PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(A_l >> 1) + ".");
+            PD_DPRINT("RepairArcLeftArc touched a_r = " + ArcString(A_r >> 1) + ".");
+            
+            A_left_ptr[A]   = A_l;
+            A_left_ptr[A_r] = A ^ Int(1);
+        }
+        
+        void RepairArcLeftArcs()
+        {
+            A_left.Read( pd.ArcLeftArc().data() );
+            
+//            for( auto A : touched )
+//            {
+//                RepairArcLeftArc(A);
+//            }
+        }
+        
+        
+        template<bool headtail, bool deactivateQ = true, bool repairQ = true>
         void Reconnect( const Int a, const Int b )
         {
-            PD_DPRINT(std::string("Reconnect ") + (headtail ? "Head of " : "Tail of ") + ArcString(a) + " to " + (headtail ? "Head of " : "Tail of ") + ArcString(b) + "." );
+#ifdef PD_DEBUG
+            std::string tag (ClassName() + "::Reconnect " + (headtail ? "Head of " : "Tail of ") + ArcString(a) + " to " + (headtail ? "Head of " : "Tail of ") + ArcString(b) + "." );
             
-            AssertArc<1>(a);
+            ptic(tag);
+#endif
+//            AssertArc<1>(a);
+            
+
+            PD_ASSERT( pd.ArcActiveQ(a) );
             
             const Int c = A_cross(b,headtail);
 
             const bool side = (C_arcs(c,headtail,Right) == b);
             
-            const Int b_l = A_left(b,headtail);
-            
-            AssertArc<1>(b_l);
-            PD_DPRINT("Touched b_l = " + ArcString(b_l) + ".");
-            
+            // headtail == Head
+            //
+            //              O b_l
+            //              |
+            //    b         |
+            //  ----->O-----X-----O
+            //              |c
+            //              |
+            //              O b_r
+
             A_cross(a,headtail) = c;
             C_arcs(c,headtail,side) = a;
             
-            A_left(a,headtail) = b_l;
-            
-            // Find the port of `c` that is NextRight(b,headtail).
-            const Int r = C_arcs(c,!side,headtail);
-            
-            AssertArc<1>(r);
-            PD_DPRINT("Touched r   = " + ArcString(r) + ".");
-            
-            // We have to turn around `a`.
-            A_left(r,!side) = (a << 1) | (!headtail);
-
             if constexpr( deactivateQ )
             {
                 pd.DeactivateArc(b);
             }
-//            
+
+//            if constexpr( repairQ )
+//            {
+//                RepairArcLeftArc( (a << 1) | Int(headtail) );
+//            }
+            
+            touched.push_back( (a << 1) | Int(headtail) );
+//
 //            PD_ASSERT( CheckArcLeftArc(C_arcs(c,Out,Left )) );
 //            PD_ASSERT( CheckArcLeftArc(C_arcs(c,Out,Right)) );
 //            PD_ASSERT( CheckArcLeftArc(C_arcs(c,In ,Left )) );
 //            PD_ASSERT( CheckArcLeftArc(C_arcs(c,In ,Right)) );
 
+#ifdef PD_DEBUG
+            ptoc(tag);
+#endif
         }
         
         /*! @brief Applies a Reidemeister I move to arc `a` _without checking_ that `a` is a loop arc.
@@ -366,7 +460,7 @@ namespace KnotTools
 
         void Reidemeister_I( const Int a )
         {
-            PD_PRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+            PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
             
             const Int c = A_cross(a,Head);
             
@@ -381,18 +475,41 @@ namespace KnotTools
             
             if( a_prev == a_next )
             {
+                //
+                //             O-----+ a
+                //             |     |
+                //             |     |
+                //       O-----+-----O
+                //       |     |c
+                //       |     |
+                //       +-----O
+                //   a_prev = a_next
+                
+                
+                logprint("Reidemeister I A");
                 ++pd.unlink_count;
-                DeactivateArc(a);
-                DeactivateArc(a_prev);
-                DeactivateCrossing(c);
+                pd.DeactivateArc(a);
+                pd.DeactivateArc(a_prev);
+                pd.DeactivateCrossing(c);
                 pd.R_I_counter += 2;
                 
                 return;
             }
             
+            //             O-----+ a
+            //             |     |
+            //             |     |
+            //       O-----+---->O
+            // a_prev      |c
+            //             V
+            //             O
+            //              a_next
+            
+            
+            logprint("Reidemeister I B");
             Reconnect<Head>(a_prev,a_next);
-            DeactivateArc(a);
-            DeactivateCrossing(c);
+            pd.DeactivateArc(a);
+            pd.DeactivateCrossing(c);
             ++pd.R_I_counter;
             
             AssertArc<1>(a_prev);
@@ -404,6 +521,8 @@ namespace KnotTools
             mref<Int> a, const Int c_1, const bool side_1, const Int a_next
         )
         {
+            touched.clear();
+            
             const Int c_0 = A_cross(a,Tail);
             
             const bool side_0 = (C_arcs(c_0,Out,Right) == a);
@@ -480,6 +599,8 @@ namespace KnotTools
                 
                 PD_ASSERT(strand_length >= 0 );
                 
+                RepairArcLeftArcs();
+                
                 return true;
             }
             
@@ -546,6 +667,8 @@ namespace KnotTools
                 
                 PD_ASSERT(strand_length >= 0 );
                 
+                RepairArcLeftArcs();
+                
                 return true;
             }
 
@@ -555,6 +678,9 @@ namespace KnotTools
         
         void Prepare()
         {
+            PD_ASSERT( pd.CheckNextLeftArc() );
+            PD_ASSERT( pd.CheckNextRightArc() );
+            
             if( color >= std::numeric_limits<Int>::max()/2 )
             {
                 C_data.Fill(-1);
@@ -567,6 +693,8 @@ namespace KnotTools
             
             A_left = pd.ArcLeftArc();
             A_left_ptr = A_left.data();
+            
+            PD_ASSERT( CheckArcLeftArcs() );
             
 //            // DEBUGGING
 //            C_data.Fill(-1);
@@ -882,7 +1010,7 @@ namespace KnotTools
 //
 //                        // TODO: We need to insert a new crossing on the vertical strand.
 //
-//                        eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
+//                        pd_eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
 //
 //                        return;
 //                    }
@@ -899,6 +1027,8 @@ namespace KnotTools
             //           |                      b |
             //           |                        v
 
+            touched.clear();
+            
             const bool side = (C_arcs(c_0,In,Right) == e);
                       
             const Int b = C_arcs(c_0,Out,side);
@@ -907,13 +1037,19 @@ namespace KnotTools
             {
                 CollapseArcRange(b,e,strand_length);
             }
+//            
+//            PD_DPRINT("Check before Reidemeister_I");
+//            PD_ASSERT(CheckArcLeftArcs());
 
             // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
             
-            pd.Reidemeister_I(b);
+            Reidemeister_I(b);
+            
+            RepairArcLeftArcs();
             
             ++change_counter;
             
+            PD_DPRINT("Check after Reidemeister_I");
             PD_ASSERT(CheckArcLeftArcs());
             
             ptoc(ClassName() + "::RemoveLoop");
@@ -941,11 +1077,19 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            ptic(ClassName()+"::FindShortestPath");
+            ptic(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
             
             PD_ASSERT( color_ > 0 );
             
             PD_ASSERT( a_begin != a_end );
+            
+            
+            Tensor1<Int,Int> C_state_export (C_state.data(),C_state.Size());
+            Tensor1<Int,Int> A_state_export (A_state.data(),A_state.Size());
+            logdump( C_arcs );
+            logdump( C_state_export );
+            logdump( A_cross );
+            logdump( A_state_export );
             
             next_front.Reset();
             
@@ -995,18 +1139,20 @@ namespace KnotTools
                     
 //                    std::tie(a,dir) = pd.NextLeftArc( a, dir );
                     
-                    Int A = A_left_ptr[A_0];
+                    Int A = pd.NextLeftArc(A_0);
+                    
+//                    Int A = A_left_ptr[A_0];
                     
                     Int  a   = (A >> 1);
                     bool dir = (A & Int(1));
                     
-                    PD_DPRINT("Begin loop ended.");
+                    PD_DPRINT("Begin do loop.");
                     do
                     {
                         AssertArc<1>(a);
                         
-                        PD_DPRINT(ArcString(a));
-                        PD_DPRINT("dir = " + ToString(dir));
+//                        PD_DPRINT(ArcString(a));
+//                        PD_DPRINT("dir = " + ToString(dir));
                         
                         const bool part_of_strandQ = (A_color(a) == color_);
                         
@@ -1048,15 +1194,15 @@ namespace KnotTools
 
 //                        std::tie(a,dir) = pd.NextLeftArc(a, part_of_strandQ ? !dir : dir);
                         
-//                        A = A_left_ptr[ (a << 1) | (part_of_strandQ ? !dir : dir) ];
-                        
                         if( part_of_strandQ )
                         {
-                            A = A_left_ptr[A ^ Int(1)];
+//                            A = A_left_ptr[A ^ Int(1)];
+                            A = pd.NextLeftArc(A ^ Int(1));
                         }
                         else
                         {
-                            A = A_left_ptr[A];
+//                            A = A_left_ptr[A];
+                            A = pd.NextLeftArc(A);
                         }
                         
                         a   = (A >> 1);
@@ -1064,7 +1210,7 @@ namespace KnotTools
                     }
                     while( a != a_0 );
                     
-                    PD_DPRINT("While do loop ended.");
+                    PD_DPRINT("End do loop.");
                 }
             }
             
@@ -1089,7 +1235,7 @@ namespace KnotTools
                 
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
-                    eprint(ClassName() + "::FindShortestPath");
+                    pd_eprint(ClassName() + "::FindShortestPath");
                     logdump(d);
                     logdump(max_dist);
                     logdump(a_end);
@@ -1110,8 +1256,12 @@ namespace KnotTools
                     a = A_data(a,1);
                 }
             }
-            
-            ptoc(ClassName()+"::FindShortestPath");
+            else
+            {
+                path_length = 0;
+            }
+
+            ptoc(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
             
             return d;
         }
@@ -1138,6 +1288,7 @@ namespace KnotTools
         }
         
  private:
+                
         
         /*!
          * @brief Attempts to reroute the strand.
@@ -1157,12 +1308,22 @@ namespace KnotTools
         {
             ptic(ClassName()+"::RerouteToShortestPath");
             
+            PD_ASSERT( CheckArcLeftArcs() );
+            
 #ifdef PD_DEBUG
             const Int Cr_0 = pd.CrossingCount();
+            
+            logdump(Cr_0);
 #endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
 
+            logdump(max_dist);
+            logdump(d);
+            
+            logprint( "strand = \n" + StrandString(a_begin,a_end) );
+            logprint( "path = \n" + PathString() );
+            
             if( (d < 0) || (d > max_dist) )
             {
                 PD_DPRINT("No improvement detected.");
@@ -1203,6 +1364,10 @@ namespace KnotTools
             
             // Handle the rerouted arcs.
             
+            logprint("Begin reroute loop.");
+            
+            touched.clear();
+            
             while( p < q )
             {
                 const Int c_0 = A_cross(a,Head);
@@ -1213,13 +1378,13 @@ namespace KnotTools
                 
                 const Int b = path[p];
                 
-                AssertArc<1>(b);
+//                AssertArc<1>(b);
 //
                 const bool dir = (A_data(b,0) > 0);
                 
                 const Int c_1 = A_cross(b,Head);
                 
-                AssertCrossing<1>(c_1);
+//                AssertCrossing<1>(c_1);
                 
                 // This is the situation for `a` before rerouting for side == Right;
                 //
@@ -1239,8 +1404,8 @@ namespace KnotTools
                 // a_1 is the vertical outgoing arc.
                 const Int a_1 = C_arcs(c_0,Out,!side);
                 
-                AssertArc<1>(a_0);
-                AssertArc<1>(a_1);
+//                AssertArc<1>(a_0);
+//                AssertArc<1>(a_1);
                 
                 // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
                 PD_ASSERT( b != a_2 )
@@ -1248,6 +1413,7 @@ namespace KnotTools
                 
                 if( (b == a_0) || (b == a_1) )
                 {
+                    wprint("(b == a_0) || (b == a_1)");
                     // Go to next arc.
                     a = a_2;
                     ++p;
@@ -1304,14 +1470,14 @@ namespace KnotTools
                 //             |
                 //             X
 
-                Reconnect<Head,false>(a_0,a_1);
+                Reconnect<Head,false,false>(a_0,a_1);
 
                 A_cross(b,Head) = c_0;
                 
                 // Caution: This might turn around a_1!
                 A_cross(a_1,Tail) = c_0;
                 A_cross(a_1,Head) = c_1;
-                A_left (a_1,Head) = A_left(b,Head);
+//                A_left (a_1,Head) = A_left(b,Head);
                 
                 pd.template SetMatchingPortTo<In>(c_1,b,a_1);
 
@@ -1320,6 +1486,8 @@ namespace KnotTools
                 
                 if( dir )
                 {
+                    logprint("case a");
+                    
                     C_state[c_0] = overQ
                                  ? CrossingState::RightHanded
                                  : CrossingState::LeftHanded;
@@ -1342,12 +1510,12 @@ namespace KnotTools
                     //             |
                     //             X
                     
-                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
-                    A_left(a  ,Head) = ((a_1 << 1) | Head);
-                    A_left(a_2,Tail) = ((b   << 1) | Tail);
-                    
-                    A_left(b  ,Head) = ((a   << 1) | Tail);
-                    A_left(a_1,Tail) = ((a_2 << 1) | Head);
+//                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
+//                    A_left(a  ,Head) = ((a_1 << 1) | Head);
+//                    A_left(a_2,Tail) = ((b   << 1) | Tail);
+//                    
+//                    A_left(b  ,Head) = ((a   << 1) | Tail);
+//                    A_left(a_1,Tail) = ((a_2 << 1) | Head);
                     
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_1,a_2,a,b };
@@ -1355,6 +1523,8 @@ namespace KnotTools
                 }
                 else // if ( !dir )
                 {
+                    logprint("case b");
+                    
                     C_state[c_0] = overQ
                                  ? CrossingState::LeftHanded
                                  : CrossingState::RightHanded;
@@ -1377,37 +1547,58 @@ namespace KnotTools
                     //             |
                     //             X
                     
-                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
-                    A_left(a  ,Head) = ((b   << 1) | Tail);
-                    A_left(a_2,Tail) = ((a_1 << 1) | Head);
-                    
-                    A_left(b  ,Head) = ((a_2 << 1) | Head);
-                    A_left(a_1,Tail) = ((a   << 1) | Tail);
+//                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
+//                    A_left(a  ,Head) = ((b   << 1) | Tail);
+//                    A_left(a_2,Tail) = ((a_1 << 1) | Head);
+//                    
+//                    A_left(b  ,Head) = ((a_2 << 1) | Head);
+//                    A_left(a_1,Tail) = ((a   << 1) | Tail);
                     
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_2,a_1,b,a };
                     copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
                 }
+                
+                
+//                // Repair A_left;
+                
+                touched.push_back((a   << 1) | Int(Head));
+                touched.push_back((b   << 1) | Int(Head));
+                touched.push_back((a_0 << 1) | Int(Head));
+                touched.push_back((a_1 << 1) | Int(Tail));
+                touched.push_back((a_2 << 1) | Int(Tail));
+//
+//                // TODO: There is a lot of redundancy here.
+//                RepairArcLeftArc((a   << 1) | Int(Head));
+//                RepairArcLeftArc((b   << 1) | Int(Head));
+//                RepairArcLeftArc((a_0 << 1) | Int(Head));
+//                RepairArcLeftArc((a_1 << 1) | Int(Tail));
+//                RepairArcLeftArc((a_2 << 1) | Int(Tail));
 
-                AssertCrossing<1>(c_0);
-                AssertCrossing<1>(c_1);
-                AssertArc<1>(a);
-                AssertArc<1>(a_0);
-                AssertArc<1>(a_1);
-                AssertArc<1>(a_2);
-                AssertArc<1>(b);
+//                AssertCrossing<1>(c_0);
+//                AssertCrossing<1>(c_1);
+//                AssertArc<1>(a);
+//                AssertArc<1>(a_0);
+//                AssertArc<1>(a_1);
+//                AssertArc<1>(a_2);
+//                AssertArc<1>(b);
 //
                 // Go to next of arc.
                 a = a_2;
                 ++p;
             }
+            logprint("End reroute loop.");
+            
+            dump(touched);
+            
+            RepairArcLeftArcs();
             
             // strand_length is just an upper bound to prevent infinite loops.
             CollapseArcRange(a,e,strand_length);
             
             AssertArc<1>(a);
             AssertArc<0>(e);
-            
+
             a_end = a;
 
 #ifdef PD_DEBUG
@@ -1417,6 +1608,11 @@ namespace KnotTools
             PD_ASSERT( Cr_1 < Cr_0 );
             
             PD_DPRINT( ToString(Cr_0 - Cr_1) + " crossings removed." );
+            
+            PD_ASSERT( pd.CheckAll() );
+            
+            // DEBUGGING
+            A_left.Read( pd.ArcLeftArc().data() );
             
             PD_ASSERT( CheckArcLeftArcs() );
             
@@ -1440,7 +1636,7 @@ namespace KnotTools
             
             if( c <= 0 )
             {
-                eprint("Argument color_ is <= 0. This is an illegal color.");
+                pd_eprint("Argument color_ is <= 0. This is an illegal color.");
                 
                 return;
             }

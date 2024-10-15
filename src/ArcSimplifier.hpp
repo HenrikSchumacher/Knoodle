@@ -196,7 +196,7 @@ namespace KnotTools
             {
                 if( !ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
+                    pd_eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckArc(a_));
             }
@@ -204,7 +204,7 @@ namespace KnotTools
             {
                 if( ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
+                    pd_eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
                 }
             }
 #else
@@ -235,7 +235,7 @@ namespace KnotTools
             {
                 if( !CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
+                    pd_eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckCrossing(c_));
             }
@@ -243,7 +243,7 @@ namespace KnotTools
             {
                 if( CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
+                    pd_eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
                 }
             }
 #else

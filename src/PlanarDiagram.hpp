@@ -4,6 +4,8 @@
 
 namespace KnotTools
 {
+    Size_T PD_max_error_count =  4;
+    Size_T PD_error_counter   =  0;
 
 #ifdef PD_VERBOSE
     #define PD_PRINT( s ) Tools::logprint((s));
@@ -20,13 +22,31 @@ namespace KnotTools
     #define PD_WPRINT( s )
 #endif
     
-    
+    void pd_eprint( const std::string & s )
+    {
+        ++KnotTools::PD_error_counter;
+        
+        Tools::eprint(s);
+        
+        if( KnotTools::PD_error_counter >= KnotTools::PD_max_error_count )
+        {
+            Tools::eprint("Too many errors. Aborting program.");
+            
+            exit(-1);
+        }
+    }
     
 #ifdef PD_DEBUG
-    #define PD_ASSERT( c ) if(!(c)) { Tools::eprint( "PD_ASSERT failed: " + std::string(#c) ); }
+    
+#define PD_ASSERT( c )                                              \
+    if(!(c))                                                        \
+    {                                                               \
+        pd_eprint( "PD_ASSERT failed: " + std::string(#c) );        \
+    }
     
     #define PD_DPRINT( s ) Tools::logprint((s));
 #else
+    
     #define PD_ASSERT( c )
     
     #define PD_DPRINT( s )
@@ -1171,7 +1191,7 @@ namespace KnotTools
                         
                         if( ArcActiveQ(a) && (A_cross(a,io) == c) )
                         {
-                            eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                            pd_eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
                         }
                     }
                 }
@@ -1208,7 +1228,7 @@ namespace KnotTools
                     
                     if( ArcActiveQ(a) && (A_cross(a,io) == C.Idx()) )
                     {
-                        eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
+                        pd_eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
                     }
                 }
             }
@@ -1310,227 +1330,6 @@ namespace KnotTools
                 }
             }
 #endif
-        }
-        
-
-        /*!
-         * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
-         */
-        
-        Arrow_T NextLeftArc( const Int a, const bool headtail ) const
-        {
-            // TODO: Signed indexing does not work because of 0!
-            
-            AssertArc(a);
-            
-            const Int c = A_cross(a,headtail);
-            
-            AssertCrossing(c);
-            
-            // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-            
-            if( headtail == Head )
-            {
-                // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
-
-                const Int b = C_arcs(c,In,Left);
-
-                if( b != a )
-                {
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-                    //   b     a
-
-                    return Arrow_T(b,Tail);
-                }
-                else // if( b == a )
-                {
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-                    // a == b
-
-                    return Arrow_T(C_arcs(c,Out,Left),Head);
-                }
-            }
-            else // if( headtail == Tail )
-            {
-                // Also here we can make it so that we have to read for a second time only in 50% of the cases.
-
-                const Int b = C_arcs(c,Out,Right);
-
-                if( b != a )
-                {
-                    //   a     b
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-
-                    return Arrow_T(b,Head);
-                }
-                else // if( b == a )
-                {
-                    //      a == b
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-
-                    return Arrow_T(C_arcs(c,In,Right),Tail);
-                }
-            }
-        }
-        
-        /*!
-         * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning right.
-         */
-        
-        Arrow_T NextRightArc( const Int a, const bool headtail ) const
-        {
-            // TODO: Signed indexing does not work because of 0!
-            
-            AssertArc(a);
-            
-            const Int c = A_cross(a,headtail);
-            
-            AssertCrossing(c);
-            
-            // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-            
-            if( headtail == Head )
-            {
-                // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
-
-                const Int b = C_arcs(c,In,Right);
-
-                if( b != a )
-                {
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-                    //   a     b
-
-                    return Arrow_T(b,Tail);
-                }
-                else // if( b == a )
-                {
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-                    //       a == b
-
-                    return Arrow_T(C_arcs(c,Out,Right),Head);
-                }
-            }
-            else // if( headtail == Tail )
-            {
-                // Also here we can make it so that we have to read for a second time only in 50% of the cases.
-
-                const Int b = C_arcs(c,Out,Left);
-
-                if( b != a )
-                {
-                    //   b     a
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-
-                    return Arrow_T(b,Head);
-                }
-                else // if( b == a )
-                {
-                    // a == b
-                    //   O     O
-                    //    ^   ^
-                    //     \ /
-                    //      X c
-                    //     / \
-                    //    /   \
-                    //   O     O
-
-                    return Arrow_T(C_arcs(c,In,Left),Tail);
-                }
-            }
-        }
-
-        /*!
-         * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
-         */
-        
-        template<bool headtail>
-        Int NextArc( const Int a ) const
-        {
-            return NextArc<headtail>(a,A_cross(a,headtail));
-        }
-        
-        /*!
-         * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. This function exploits that `c` is already known; so it saves one memory lookup.
-         */
-        
-        template<bool headtail>
-        Int NextArc( const Int a, const Int c ) const
-        {
-            AssertArc(a);
-            AssertCrossing(c);
-            
-            PD_ASSERT( A_cross(a,headtail) == c );
-
-            // We leave through the arc at the port opposite to where a arrives.
-            const bool side = (C_arcs(c, headtail,Right) != a);
-            
-            const Int a_next = C_arcs(c,!headtail,side );
-            
-            AssertArc(a_next);
-            
-            return a_next;
-        }
-        
-        
-        /*!
-         * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
-         */
-        
-        template<bool headtail>
-        ArcView NextArc( const ArcView & A )
-        {
-            AssertArc(A.Idx());
-            
-            const Int c = A(headtail);
-
-            AssertCrossing(c);
-
-            // We leave through the arc at the port opposite to where a arrives.
-            const bool side = (C_arcs(c,headtail,Right) != A.Idx());
-
-            return GetArc( C_arcs(c,!headtail,side) );
         }
         
         Int CountActiveCrossings() const

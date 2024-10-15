@@ -108,7 +108,7 @@ namespace KnotTools
             {
                 if( !pd.ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
+                    pd_eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckArc(a_));
             }
@@ -116,7 +116,7 @@ namespace KnotTools
             {
                 if( pd.ArcActiveQ(a_) )
                 {
-                    eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
+                    pd_eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
                 }
             }
 #else
@@ -137,7 +137,7 @@ namespace KnotTools
             {
                 if( !pd.CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
+                    pd_eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
                 }
                 PD_ASSERT(pd.CheckCrossing(c_));
             }
@@ -145,7 +145,7 @@ namespace KnotTools
             {
                 if( pd.CrossingActiveQ(c_) )
                 {
-                    eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
+                    pd_eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
                 }
             }
 #else
@@ -182,12 +182,12 @@ namespace KnotTools
             
             if( a != a_end )
             {
-                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+                pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
             }
             
             if( !passedQ )
             {
-                eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+                pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
             }
             
             return passedQ;
@@ -518,6 +518,8 @@ namespace KnotTools
                 pd.DeactivateArc(a);
                 
                 // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus we suppress some asserts here.
+                
+                logprint( "Deactivating " + CrossingString(c) + "." );
                 pd.template DeactivateCrossing<false>(c);
                 
                 a = a_prev;
@@ -582,7 +584,7 @@ namespace KnotTools
 //                        
 //                        // TODO: We need to insert a new crossing on the vertical strand.
 //                        
-//                        eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
+//                        pd_eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
 //
 //                        return;
 //                    }
@@ -639,7 +641,7 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-//            ptic(ClassName()+"::FindShortestPath");
+            ptic(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
             
             PD_ASSERT( color_ > 0 );
             
@@ -677,20 +679,24 @@ namespace KnotTools
                     
                     const Int a_0 = (A_0 >> 1);
                     
-                    Int a = a_0;
-                    
-                    bool dir = (A_0 & Int(1));
+//                    logprint("Popped " + ArcString(a_0) + ", dir = " + ( (A_0 & Int(1)) ? "Head" : "Tail" ) );
 
-                    // arc a_0 itself does not have to be processed because that's where we are coming from.
-                    std::tie(a,dir) = pd.NextLeftArc( a, dir );
+                    
+                    // Turn left to start traversing the face.
+                    // Arrow A_0 itself does not have to be processed because that's where we are coming from.
+                    Int A = pd.NextLeftArc(A_0);
 
                     do
                     {
+//                        logprint( "Visited " + ArcString(a) + ", dir = " + (dir ? "Head" : "Tail" ) );
+                        Int  a   = (A >> 1);
+                        bool dir = (A & Int(1));
+                        
                         PD_ASSERT( (0 <= a) && (a < pd.initial_arc_count) );
 
                         const bool part_of_strandQ = (A_color(a) == color_);
                         
-                        // Check whether `a` has been visited already.
+                        // Check whether `a` has not been visited by Dijkstra, yet.
                         if( Abs(A_data(a,0)) != color_ )
                         {
                             if( a == a_end )
@@ -719,14 +725,26 @@ namespace KnotTools
                                 
                                 // Remember from which arc we came.
                                 A_data(a,1) = a_0;
-                                
-                                next_front.Push( (a << 1) | !dir );
+
+                                // We cross arrow `A`, so we have to turn it around so that the face on the other side is traversed.
+                                next_front.Push(A ^ Int(1));
                             }
                         }
 
-                        std::tie(a,dir) = pd.NextLeftArc(a, part_of_strandQ ? !dir : dir);
+                        if( part_of_strandQ )
+                        {
+                            // If arrow `A` is already on the strand, we need to neglect it when traversing the face. That is, we do _not_ turn left, but instead go back and turn left, then. This is as if we had traversed the crossing at the tail of `A` straight through in the first place.
+                            A = pd.NextLeftArc(A ^ Int(1));
+                        }
+                        else
+                        {
+                            // Turn left to continue traversing the face.
+                            A = pd.NextLeftArc(A);
+                        }
                     }
-                    while( a != a_0 );
+                    while( A != A_0 );
+                    
+//                    logprint( "Visited " + ArcString(a) + ", dir = " + (dir ? "Head" : "Tail" ) );
                 }
             }
             
@@ -751,7 +769,7 @@ namespace KnotTools
                 
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
-                    eprint(ClassName() + "::FindShortestPath");
+                    pd_eprint(ClassName() + "::FindShortestPath");
                     logdump(d);
                     logdump(max_dist);
                     logdump(a_end);
@@ -772,8 +790,12 @@ namespace KnotTools
                     a = A_data(a,1);
                 }
             }
+            else
+            {
+                path_length = 0;
+            }
             
-//            ptoc(ClassName()+"::FindShortestPath");
+            ptoc(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
             
             return d;
         }
@@ -824,6 +846,19 @@ namespace KnotTools
 #endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
+            
+//            if( (max_dist == 1) and ( d <= max_dist ) )
+//            {
+//                logprint("Strand of length 2 can be improved.");
+//                logprint(StrandString(a_begin,a_end));
+//                
+//                logdump(path_length);
+//                
+//                for( Int i = 0; i < path_length; ++i )
+//                {
+//                    logprint( ToString(i) + ": " + ArcString(path[i]) );
+//                }
+//            }
 
             if( (d < 0) || (d > max_dist) )
             {
@@ -1056,6 +1091,7 @@ namespace KnotTools
             
             a_end = a;
 
+            
 #ifdef PD_DEBUG
             const Int Cr_1 = pd.CrossingCount();
 #endif
@@ -1063,6 +1099,12 @@ namespace KnotTools
             PD_ASSERT( Cr_1 < Cr_0 );
             
             PD_DPRINT( ToString(Cr_0 - Cr_1) + " crossings removed." );
+            
+//            if( (max_dist == 1) and ( d <= max_dist ) )
+//            {
+//                logprint("Improved strand is:");
+//                logprint(StrandString(a_begin,pd.template NextArc<Head>(a_begin)));
+//            }
             
             ptoc(ClassName()+"::RerouteToShortestPath");
             
@@ -1084,7 +1126,7 @@ namespace KnotTools
             
             if( c <= 0 )
             {
-                eprint("Argument color_ is <= 0. This is an illegal color.");
+                pd_eprint("Argument color_ is <= 0. This is an illegal color.");
                 
                 return;
             }
