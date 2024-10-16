@@ -117,8 +117,6 @@ void RequireFaces()
     while( arc_finder < initial_arc_count )
     {
         // Start a new graph component.
-        
-        
         while( (arc_finder < initial_arc_count) && (A_faces(arc_finder,0) != -1) )
         {
             ++arc_finder;

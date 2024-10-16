@@ -165,6 +165,11 @@ bool CheckNextLeftArc() const
     
     for( Int a = 0; a < initial_arc_count; ++a )
     {
+        if( !ArcActiveQ(a) )
+        {
+            continue;
+        }
+        
         {
             const Int A = (a << 1) | Int(Tail);
             
@@ -489,6 +494,11 @@ bool CheckNextRightArc() const
     
     for( Int a = 0; a < initial_arc_count; ++a )
     {
+        if( !ArcActiveQ(a) )
+        {
+            continue;
+        }
+        
         {
             const Int A = (a << 1) | Int(Tail);
             

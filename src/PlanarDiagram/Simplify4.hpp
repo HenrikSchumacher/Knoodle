@@ -27,8 +27,8 @@ Int Simplify4(
     Int iter = 0;
     
     // TODO: Toggle this Boolean for multi-component links.
-    StrandSimplifier<Int,false> S(*this);
-//    StrandSimplifier2<Int,false> S(*this);
+//    StrandSimplifier<Int,false> S(*this);
+    StrandSimplifier2<Int,false> S(*this);
     
     // TODO: Maybe we should recompress only in the first pass of this?
     
@@ -58,10 +58,6 @@ Int Simplify4(
             ? S.template SimplifyStrands<true >(true,max_dist)
             : S.template SimplifyStrands<false>(true,max_dist);
         
-//        PD_ASSERT(CheckAll());
-        
-//        PD_ASSERT(S.CheckArcLeftArcs());
-        
         counter += o_changes;
         
         if( compressQ && (o_changes > 0) )
@@ -69,13 +65,12 @@ Int Simplify4(
             (*this) = CreateCompressed();
         }
         
+        PD_ASSERT(CheckAll());
+        
         const Int u_changes = strand_R_II_Q
             ? S.template SimplifyStrands<true >(false,max_dist)
             : S.template SimplifyStrands<false>(false,max_dist);
         
-//        PD_ASSERT(CheckAll());
-        
-//        PD_ASSERT(S.CheckArcLeftArcs());
         
         counter += u_changes;
         
@@ -83,6 +78,8 @@ Int Simplify4(
         {
             (*this) = CreateCompressed();
         }
+        
+        PD_ASSERT(CheckAll());
     }
     while( counter > old_counter );
     

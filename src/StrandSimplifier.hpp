@@ -519,7 +519,6 @@ namespace KnotTools
                 
                 // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus we suppress some asserts here.
                 
-                logprint( "Deactivating " + CrossingString(c) + "." );
                 pd.template DeactivateCrossing<false>(c);
                 
                 a = a_prev;
