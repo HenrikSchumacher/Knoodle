@@ -327,10 +327,11 @@ bool R_II_below()
     
     // The actual R_II move.
     
-    PD_ASSERT( n_0 != n_1);
     // This should be guaranteed by calling R_II_above first.
+    PD_ASSERT( n_0 != n_1);
     
     // These case w_0 == e_1, w_0 == n_0, e_1 == n_1 are ruled out already...
+    // TODO: Is this true also for optimization level < 3?
     PD_ASSERT( w_0 != e_1 );
     PD_ASSERT( w_0 != n_0 );
     PD_ASSERT( e_1 != n_1 );

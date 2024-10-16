@@ -67,6 +67,8 @@ Int Simplify4(
         
         PD_ASSERT(CheckAll());
         
+        // TODO: Should we do Simplify3 once more?
+        
         const Int u_changes = strand_R_II_Q
             ? S.template SimplifyStrands<true >(false,max_dist)
             : S.template SimplifyStrands<false>(false,max_dist);

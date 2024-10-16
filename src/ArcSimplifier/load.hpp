@@ -35,7 +35,7 @@ void load_c_1()
 {
     PD_PRINT( "load_c_1()" );
     
-    // Whether the vertical strand at c_1 points upwards.
+//    // Whether the vertical strand at c_1 points upwards.
     u_1 = (C_arcs(c_1,In ,Left ) == a);
     
     n_1 = C_arcs(c_1,!u_1, Left );
@@ -83,7 +83,6 @@ void load_c_2()
     PD_ASSERT( s_0 == C_arcs(c_2,!u_0,b_2) );
     
     s_2 = C_arcs(c_2, u_0,!b_2); // opposite to n_2 == s_0.
-    
     e_2 = C_arcs(c_2, b_2, u_0);
     w_2 = C_arcs(c_2,!b_2,!u_0); // opposite to e_2
     
@@ -180,7 +179,6 @@ void load_c_3()
     PD_ASSERT( n_0 == C_arcs(c_3,u_0,b_3) );
     
     n_3 = C_arcs(c_3,!u_0,!b_3); // opposite to s_3 == n_0.
-    
     e_3 = C_arcs(c_3,!b_3, u_0);
     w_3 = C_arcs(c_3, b_3,!u_0); // opposite to e_3
 

@@ -98,19 +98,11 @@ void Simplify()
                 }
             }
         }
-        
-//        toc("Simplify loop");
-//        
-//        const Int changed = counter - old_counter;
-//        
-//        dump(changed);
     }
     
 #endif
     
 #pragma clang diagnostic pop
-    
-//    dump(test_counter);
     
     if( counter > 0 )
     {
@@ -119,12 +111,6 @@ void Simplify()
         
         this->ClearCache();
     }
-    
-//            dump(R_Ia_horizontal_counter);
-//            dump(R_Ia_vertical_counter);
-//            dump(R_II_horizontal_counter);
-//            dump(R_II_vertical_counter);
-//            dump(R_IIa_counter);
     
     ptoc(ClassName()+"::Simplify"
         + "<" + Tools::ToString(allow_R_IaQ)

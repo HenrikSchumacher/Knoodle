@@ -58,3 +58,20 @@ bool Simplify5(
 
     return globally_changedQ;
 }
+
+
+
+//
+//
+//if( u_0 )
+//{
+//    n_0 = C_arcs(c_0,Out,Left );
+//    w_0 = C_arcs(c_0,In ,Left );
+//    s_0 = C_arcs(c_0,In ,Right);
+//}
+//else
+//{
+//    s_0 = C_arcs(c_0,Out,Right);
+//    n_0 = C_arcs(c_0,In ,Left );
+//    w_0 = C_arcs(c_0,In ,Right);
+//}

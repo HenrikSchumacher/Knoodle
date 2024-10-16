@@ -399,17 +399,14 @@ Tensor2<Int,Int> ArcLeftArc() const
             
             copy_buffer<4>( C_arcs.data(c), &A[0][0] );
             
-            constexpr Int tail_mask = 0;
-            constexpr Int head_mask = 1;
-            
             const Int arrows [2][2] =
             {
                 {
-                    (A[Out][Left ] << 1) | head_mask,
-                    (A[Out][Right] << 1) | head_mask
+                    (A[Out][Left ] << 1) | Int(Head),
+                    (A[Out][Right] << 1) | Int(Head)
                 },{
-                    (A[In ][Left ] << 1) | tail_mask,
-                    (A[In ][Right] << 1) | tail_mask
+                    (A[In ][Left ] << 1) | Int(Tail),
+                    (A[In ][Right] << 1) | Int(Tail)
                 }
             };
             
