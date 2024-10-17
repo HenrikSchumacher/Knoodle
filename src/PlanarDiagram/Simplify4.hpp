@@ -26,6 +26,41 @@ Int Simplify4(
     Int counter = 0;
     Int iter = 0;
     
+    
+    if( CrossingCount() <= 3 )
+    {
+        if( simplify3_level > 0 )
+        {
+            // Since Simplify3 contains only inexpensive tests, we should call it first.
+            const Int simpl3_changes = Simplify3(simplify3_level,simplify3_exhaustiveQ);
+            
+            counter += simpl3_changes;
+            
+            if( compressQ && (simpl3_changes > 0) )
+            {
+                (*this) = CreateCompressed();
+            }
+        }
+        
+        if( counter > 0 )
+        {
+            comp_initialized  = false;
+
+            this->ClearCache();
+        }
+        
+        PD_ASSERT(CheckAll());
+
+        ptoc(ClassName()+"::Simplify4"
+             + "(" + ToString(max_dist)
+             + "," + ToString(compressQ)
+             + "," + ToString(simplify3_level)
+             + "," + ToString(simplify3_exhaustiveQ)
+             + ")");
+        
+        return counter;
+    }
+    
     // TODO: Toggle this Boolean for multi-component links.
     StrandSimplifier<Int,false> S(*this);
     
@@ -61,15 +96,18 @@ Int Simplify4(
 //        logprint("overstrands");
 //        logdump(CrossingCount());
         
-        const Int o_changes = strand_R_II_Q
-        ? S.template SimplifyStrands<true >(true,max_dist)
-        : S.template SimplifyStrands<false>(true,max_dist);
-        
-        counter += o_changes;
-        
-        if( compressQ && (o_changes > 0) )
+        if( CrossingCount() > 3 )
         {
-            (*this) = CreateCompressed();
+            const Int o_changes = strand_R_II_Q
+            ? S.template SimplifyStrands<true >(true,max_dist)
+            : S.template SimplifyStrands<false>(true,max_dist);
+            
+            counter += o_changes;
+            
+            if( compressQ && (o_changes > 0) )
+            {
+                (*this) = CreateCompressed();
+            }
         }
         
         PD_ASSERT(CheckAll());
@@ -81,16 +119,18 @@ Int Simplify4(
 //        logprint("understrands");
 //        logdump(CrossingCount());
         
-        const Int u_changes = strand_R_II_Q
-        ? S.template SimplifyStrands<true >(false,max_dist)
-        : S.template SimplifyStrands<false>(false,max_dist);
-        
-        
-        counter += u_changes;
-        
-        if( compressQ && (u_changes > 0) )
+        if( CrossingCount() > 3 )
         {
-            (*this) = CreateCompressed();
+            const Int u_changes = strand_R_II_Q
+            ? S.template SimplifyStrands<true >(false,max_dist)
+            : S.template SimplifyStrands<false>(false,max_dist);
+            
+            counter += u_changes;
+            
+            if( compressQ && (u_changes > 0) )
+            {
+                (*this) = CreateCompressed();
+            }
         }
         
         PD_ASSERT(CheckAll());

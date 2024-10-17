@@ -11,6 +11,7 @@
 
 namespace KnotTools
 {
+    
     template<typename Int_, bool mult_compQ_>
     class alignas( ObjectAlignment ) StrandSimplifier
     {
@@ -54,9 +55,9 @@ namespace KnotTools
         Tensor2<Int,Int> A_data;
         Tensor1<Int,Int> A_colors;
         
-        Tensor2<Int,Int> A_left;
+        Tensor2<Int,Int> A_left_buffer;
         
-        Int * restrict A_left_ptr;
+        Int * restrict A_left;
         
         
         Int color = 1; // We start with 1 so that we can store things in the sign bit of color.
@@ -76,6 +77,13 @@ namespace KnotTools
         
         std::vector<Int> touched;
         std::vector<Int> duds;
+        
+        double Time_RemoveLoop            = 0;
+        double Time_FindShortestPath      = 0;
+        double Time_RerouteToShortestPath = 0;
+        double Time_RepairArcLeftArcs     = 0;
+        double Time_SimplifyStrands       = 0;
+        double Time_CollapseArcRange      = 0;
         
     public:
         
@@ -98,7 +106,28 @@ namespace KnotTools
 //        ,   S_buffer{ A_cross.Dimension(0), -1 }
         {}
         
-        ~StrandSimplifier() = default;
+        ~StrandSimplifier()
+        {
+#ifdef PD_TIMINGQ
+            logprint("");
+            logprint(ClassName() + " absolute timings:");
+            logvalprint("SimplifyStrands", Time_SimplifyStrands);
+            logvalprint("RemoveLoop", Time_RemoveLoop);
+            logvalprint("FindShortestPath", Time_FindShortestPath);
+            logvalprint("RerouteToShortestPath", Time_RerouteToShortestPath);
+            logvalprint("CollapseArcRange", Time_CollapseArcRange);
+            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs);
+            logprint("");
+            logprint(ClassName() + " relative timings:");
+            logvalprint("SimplifyStrands", Time_SimplifyStrands/Time_SimplifyStrands);
+            logvalprint("RemoveLoop", Time_RemoveLoop/Time_SimplifyStrands);
+            logvalprint("FindShortestPath", Time_FindShortestPath/Time_SimplifyStrands);
+            logvalprint("RerouteToShortestPath", Time_RerouteToShortestPath/Time_SimplifyStrands);
+            logvalprint("CollapseArcRange", Time_CollapseArcRange/Time_SimplifyStrands);
+            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs/Time_SimplifyStrands);
+            logprint("");
+#endif
+        }
         
         StrandSimplifier( const StrandSimplifier & other ) = delete;
         
@@ -275,7 +304,7 @@ namespace KnotTools
 //                
 //                const Int A = (a << 1) | Int(ht);
 //                const Int A_l_true = pd.NextLeftArc(A);
-//                const Int A_l      = A_left_ptr[A];
+//                const Int A_l      = A_left[A];
 //                
 ////                if constexpr( must_be_activeQ )
 ////                {
@@ -307,7 +336,7 @@ namespace KnotTools
 //                
 //                const Int A = (a << 1 ) | Int(ht);
 //                const Int A_l_true = pd.NextLeftArc(A);
-//                const Int A_l      = A_left_ptr[A];
+//                const Int A_l      = A_left[A];
 //                
 ////                if( !pd.ArcActiveQ(A_l_true >> 1) )
 ////                {
@@ -355,7 +384,7 @@ namespace KnotTools
             }
             
             const Int A_l_true = pd.NextLeftArc(A);
-            const Int A_l      = A_left_ptr[A];
+            const Int A_l      = A_left[A];
             
             if( A_l != A_l_true )
             {
@@ -451,8 +480,8 @@ namespace KnotTools
 
         void MarkCrossing( const int c )
         {
-            C_color(c) = color;
-            C_len  (c) = strand_length;
+            C_data(c,0) = color;
+            C_data(c,1) = strand_length;
         }
         
     private:
@@ -469,15 +498,18 @@ namespace KnotTools
 //                PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(A_l >> 1) + ".");
 //                PD_DPRINT("RepairArcLeftArc touched a_r = " + ArcString(A_r >> 1) + ".");
                 
-                A_left_ptr[A]   = A_l;
-                A_left_ptr[A_r] = A ^ Int(1);
+                A_left[A]   = A_l;
+                A_left[A_r] = A ^ Int(1);
             }
         }
         
         void RepairArcLeftArcs()
         {
             PD_TIC(ClassName() + "::RepairArcLeftArcs");
-  
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
 //            for( Int A = 0; A < 2 * pd.initial_arc_count; ++A )
 //            {
 //                RepairArcLeftArc(A);
@@ -492,7 +524,14 @@ namespace KnotTools
             
             touched.clear();
 
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_RepairArcLeftArcs += Tools::Duration(start_time,stop_time);
+#endif
             PD_TOC(ClassName() + "::RepairArcLeftArcs");
+            
+            
         }
 
         template<bool headtail>
@@ -792,18 +831,11 @@ namespace KnotTools
                 color = 0;
             }
             
-            A_left     = pd.ArcLeftArc();
-            A_left_ptr = A_left.data();
+            A_left_buffer = pd.ArcLeftArc();
+            A_left        = A_left_buffer.data();
             
             PD_ASSERT(CheckArcLeftArcs());
-            
-//            // DEBUGGING
-//            C_data.Fill(-1);
-//            A_data.Fill(0);
-//            A_colors.Fill(0);
-//
-//            color = 0;
-            
+
             PD_TOC(ClassName() + "::Prepare");
         }
         
@@ -816,7 +848,11 @@ namespace KnotTools
         {
             overQ = overQ_;
             
-            ptic(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            PD_TIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
 
             const Int m = A_cross.Dimension(0);
 
@@ -871,7 +907,12 @@ namespace KnotTools
                     
                     if( color == std::numeric_limits<Int>::max() )
                     {
-                        ptoc(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+#ifdef PD_TIMINGQ
+                        const Time stop_time = Clock::now();
+                        
+                        Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
+#endif
+                        PD_TOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
                         
                         return change_counter;
                     }
@@ -941,7 +982,7 @@ namespace KnotTools
 //                        logprint("R_I ahead");
 //                    }
                     
-                    // TODO: Why not just calling `ArcSimplifier` on `a_next` and in case of changes, revisit `a`? (And don't forget to repair `A_left`!)
+                    // TODO: Why not just calling `ArcSimplifier` on `a_next` and in case of changes, revisit `a`? (And don't forget to repair `A_left_buffer`!)
                     
                     // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to reset and create a new strand.
                     // This finds out whether we have to reset.
@@ -982,7 +1023,6 @@ namespace KnotTools
                             
                             if( changedQ )
                             {
-                                
                                 RepairArcLeftArcs();
                             }
                         }
@@ -1024,7 +1064,13 @@ namespace KnotTools
                 ++a_ptr;
             }
             
-            ptoc(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
+#endif
+            
+            PD_TOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
         }
@@ -1035,8 +1081,7 @@ namespace KnotTools
         void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count_ )
         {
 //            PD_DPRINT( ClassName() + "::CollapseArcRange" );
-            
-            PD_TIC(ClassName() + "::CollapseArcRange");
+
             
             // This shall collapse the arcs `a_begin, pd.NextArc<Head>(a_begin),...,a_end` to a single arc.
             // All crossings from the head of `a_begin` up to the tail of `a_end` have to be reconnected and deactivated.
@@ -1048,9 +1093,14 @@ namespace KnotTools
 
             if( a_begin == a_end )
             {
-                PD_TOC(ClassName() + "::CollapseArcRange");
                 return;
             }
+            
+            PD_TIC(ClassName() + "::CollapseArcRange");
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
             
             Int a = a_end;
             
@@ -1114,12 +1164,21 @@ namespace KnotTools
             
             Reconnect<Head,false>(a_begin,a_end);
             
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_CollapseArcRange += Tools::Duration(start_time,stop_time);
+#endif
             PD_TOC(ClassName() + "::CollapseArcRange");
         }
         
         void RemoveLoop( const Int e, const Int c_0 )
         {
             PD_TIC(ClassName() + "::RemoveLoop");
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
 
             // We can save the lookup here.
 //            const Int c_0 = A_cross(e,Head);
@@ -1185,16 +1244,19 @@ namespace KnotTools
                       
             const Int b = C_arcs(c_0,Out,side);
             
-            if( b != e )
-            {
-                CollapseArcRange(b,e,strand_length);
-            }
+            CollapseArcRange(b,e,strand_length);
 
             // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
             
             Reidemeister_I(b);
             
             ++change_counter;
+            
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_RemoveLoop += Tools::Duration(start_time,stop_time);
+#endif
             
             PD_TOC(ClassName() + "::RemoveLoop");
         }
@@ -1221,18 +1283,17 @@ namespace KnotTools
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            PD_TIC(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
+            PD_TIC(ClassName()+"::FindShortestPath");
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
             
             PD_ASSERT( color_ > 0 );
             
             PD_ASSERT( a_begin != a_end );
             
-//            Tensor1<Int,Int> C_state_export (C_state.data(),C_state.Size());
-//            Tensor1<Int,Int> A_state_export (A_state.data(),A_state.Size());
-//            logdump(C_arcs);
-//            logdump(C_state_export);
-//            logdump(A_cross);
-//            logdump(A_state_export);
+            // Instead of a queue we use to stacks: One to hold the next front; and for the previous (or current) front.
             
             next_front.Reset();
             
@@ -1249,7 +1310,6 @@ namespace KnotTools
             while( (d < max_dist) && (!next_front.EmptyQ()) )
             {
                 // Actually, next_front must never become empty. Otherwise something is wrong.
-                
                 swap( prev_front, next_front );
                 
                 next_front.Reset();
@@ -1264,17 +1324,11 @@ namespace KnotTools
                 {
                     const Int A_0 = prev_front.Pop();
                     
-                    PD_DPRINT( "Popped A_0 = " + ToString(A_0));
-                    
                     const Int a_0 = (A_0 >> 1);
-                    
-                    PD_DPRINT( "a_0 = " + ArcString(a_0));
-                    PD_DPRINT( "dir_0 = " + ToString(A_0 & Int(1) ) );
 
                     // arc a_0 itself does not have to be processed because that's where we are coming from.
-                    Int A = A_left_ptr[A_0];
-                    
-                    PD_DPRINT("Begin do loop.");
+                    Int A = A_left[A_0];
+
                     do
                     {
                         Int  a   = (A >> 1);
@@ -1298,7 +1352,6 @@ namespace KnotTools
                                 goto exit;
                             }
                             
-                            // Is this true?
                             PD_ASSERT( a != a_begin );
                             
                             if( part_of_strandQ )
@@ -1320,16 +1373,14 @@ namespace KnotTools
 
                         if( part_of_strandQ )
                         {
-                            A = A_left_ptr[A ^ Int(1)];
+                            A = A_left[A ^ Int(1)];
                         }
                         else
                         {
-                            A = A_left_ptr[A];
+                            A = A_left[A];
                         }
                     }
                     while( A != A_0 );
-                    
-                    PD_DPRINT("End do loop.");
                 }
             }
             
@@ -1380,7 +1431,13 @@ namespace KnotTools
                 path_length = 0;
             }
 
-            PD_TOC(ClassName()+"::FindShortestPath(" + ToString(max_dist) + ")");
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_FindShortestPath += Tools::Duration(start_time,stop_time);
+#endif
+            
+            PD_TOC(ClassName()+"::FindShortestPath");
             
             return d;
         }
@@ -1425,8 +1482,6 @@ namespace KnotTools
             const Int a_begin, mref<Int> a_end, const Int max_dist, const Int color_
         )
         {
-            PD_TIC(ClassName()+"::RerouteToShortestPath");
-            
             PD_ASSERT(CheckArcLeftArcs());
             
 #ifdef PD_DEBUG
@@ -1447,10 +1502,18 @@ namespace KnotTools
             {
                 PD_DPRINT("No improvement detected.");
                 
-                PD_TOC(ClassName()+"::RerouteToShortestPath");
-                
                 return false;
             }
+            
+            PD_TIC(ClassName()+"::RerouteToShortestPath");
+            
+#ifdef PD_TIMINGQ
+            const Time start_time = Clock::now();
+#endif
+            
+
+            
+            PD_TIC("Prepare reroute loop");
             
             // path[0] == a_begin. This is not to be crossed.
             
@@ -1482,8 +1545,9 @@ namespace KnotTools
             // Now e is the last arc to be rerouted.
             
             // Handle the rerouted arcs.
+            PD_TOC("Prepare reroute loop");
             
-            PD_DPRINT("Begin reroute loop.");
+            PD_TIC("Reroute loop");
             
             while( p < q )
             {
@@ -1533,12 +1597,6 @@ namespace KnotTools
                     // Go to next arc.
                     a = a_2;
                     ++p;
-                    
-//                    TouchArc<Head>(a );
-//                    TouchArc<Head>(b  );
-//                    TouchArc<Head>(a_0);
-//                    TouchArc<Tail>(a_1);
-//                    TouchArc<Tail>(a_2);
                     
                     continue;
                 }
@@ -1630,12 +1688,12 @@ namespace KnotTools
                     //             |
                     //             X
                     
-//                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
-//                    A_left(a  ,Head) = ((a_1 << 1) | Head);
-//                    A_left(a_2,Tail) = ((b   << 1) | Tail);
+//                    // Very likely, `A_left_buffer(a,Head)` and `A_left_buffer(a_2,Tail)` are next to each other in memory.
+//                    A_left_buffer(a  ,Head) = ((a_1 << 1) | Head);
+//                    A_left_buffer(a_2,Tail) = ((b   << 1) | Tail);
 //                    
-//                    A_left(b  ,Head) = ((a   << 1) | Tail);
-//                    A_left(a_1,Tail) = ((a_2 << 1) | Head);
+//                    A_left_buffer(b  ,Head) = ((a   << 1) | Tail);
+//                    A_left_buffer(a_1,Tail) = ((a_2 << 1) | Head);
                     
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_1,a_2,a,b };
@@ -1665,12 +1723,12 @@ namespace KnotTools
                     //             |
                     //             X
                     
-//                    // Very likely, `A_left(a,Head)` and `A_left(a_2,Tail)` are next to each other in memory.
-//                    A_left(a  ,Head) = ((b   << 1) | Tail);
-//                    A_left(a_2,Tail) = ((a_1 << 1) | Head);
+//                    // Very likely, `A_left_buffer(a,Head)` and `A_left_buffer(a_2,Tail)` are next to each other in memory.
+//                    A_left_buffer(a  ,Head) = ((b   << 1) | Tail);
+//                    A_left_buffer(a_2,Tail) = ((a_1 << 1) | Head);
 //                    
-//                    A_left(b  ,Head) = ((a_2 << 1) | Head);
-//                    A_left(a_1,Tail) = ((a   << 1) | Tail);
+//                    A_left_buffer(b  ,Head) = ((a_2 << 1) | Head);
+//                    A_left_buffer(a_1,Tail) = ((a   << 1) | Tail);
                     
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_2,a_1,b,a };
@@ -1703,7 +1761,8 @@ namespace KnotTools
                 a = a_2;
                 ++p;
             }
-            PD_DPRINT("End reroute loop.");
+            
+            PD_TIC("Reroute loop");
             
             // strand_length is just an upper bound to prevent infinite loops.
             CollapseArcRange(a,e,strand_length);
@@ -1724,6 +1783,12 @@ namespace KnotTools
             PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
 
             PD_ASSERT(pd.CheckAll());
+            
+#ifdef PD_TIMINGQ
+            const Time stop_time = Clock::now();
+            
+            Time_RerouteToShortestPath += Tools::Duration(start_time,stop_time);
+#endif
             
             PD_TOC(ClassName()+"::RerouteToShortestPath");
             

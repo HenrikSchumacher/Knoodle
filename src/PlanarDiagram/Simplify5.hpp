@@ -33,7 +33,7 @@ bool Simplify5(
     {
         changedQ = Simplify4(max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q);
         
-        if( CrossingCount() > 5 )
+        if( CrossingCount() >= 6 )
         {
             changedQ = changedQ || SplitConnectedSummands(PD_list,
                 max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
