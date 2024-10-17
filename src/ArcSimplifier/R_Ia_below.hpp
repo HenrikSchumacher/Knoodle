@@ -1,13 +1,13 @@
 bool R_Ia_below()
 {
-    PD_DPRINT( "R_Ia_below()" );
+    PD_PRINT( "R_Ia_below()" );
     
     if( n_0 != n_1 )
     {
         return false;
     }
     
-    PD_DPRINT( "\tn_0 == n_1" );
+    PD_PRINT( "\tn_0 == n_1" );
     
     /*       +-----------+             +-----------+
      *       |     a     |             |     a     |
@@ -20,41 +20,45 @@ bool R_Ia_below()
                         
     if( e_2 == s_1 )
     {
-        PD_DPRINT( "\t\te_2 == s_1" );
+        PD_PRINT( "\t\te_2 == s_1" );
         
         if( o_0 == o_2 )
         {
-            PD_DPRINT( "\t\t\to_0 == o_2" );
+            PD_PRINT( "\t\t\to_0 == o_2" );
             
-            if( w_2 == s_2 )
+            if constexpr ( mult_compQ )
             {
-                PD_DPRINT( "\t\t\t\tw_2 == s_2" );
-                
-                /*  R_I move.
-                 *
-                 *           +-----------+             +-----------+
-                 *           |           |             |           |
-                 *           |     a     |             |     a     |
-                 *        -->----------->|-->   or  -->|---------->--->
-                 *           |c_0        |c_1          |c_0        |c_1
-                 *           O---O   O---O             O---O   O---O
-                 *                \ /                       \ /
-                 *                 / c_2                     \  c_2
-                 *                / \                       / \
-                 *           w_2 O   O s_2             w_2 O   O s_2
-                 *               |   |                     |   |
-                 *               +---+                     +---+
-                 */
-                
-                Reconnect(s_0,u_1,s_1);
-                DeactivateArc(w_2);
-                DeactivateCrossing(c_2);
-                ++pd.R_I_counter;
-                
-                return true;
+                // The following can only happen with more than one component.
+                if( w_2 == s_2 )
+                {
+                    PD_PRINT( "\t\t\t\tw_2 == s_2" );
+                    
+                    /*  R_I move.
+                     *
+                     *           +-----------+             +-----------+
+                     *           |           |             |           |
+                     *           |     a     |             |     a     |
+                     *        -->----------->|-->   or  -->|---------->--->
+                     *           |c_0        |c_1          |c_0        |c_1
+                     *           O---O   O---O             O---O   O---O
+                     *                \ /                       \ /
+                     *                 / c_2                     \  c_2
+                     *                / \                       / \
+                     *           w_2 O   O s_2             w_2 O   O s_2
+                     *               |   |                     |   |
+                     *               +---+                     +---+
+                     */
+                    
+                    Reconnect(s_0,u_1,s_1);
+                    DeactivateArc(w_2);
+                    DeactivateCrossing(c_2);
+                    ++pd.R_I_counter;
+                    
+                    return true;
+                }
             }
             
-            PD_DPRINT( "\t\t\t\tw_2 != s_2" );
+            PD_PRINT( "\t\t\t\tw_2 != s_2" );
             
             /*  R_Ia move.
              *
@@ -196,7 +200,7 @@ bool R_Ia_below()
 
         } // if( o_0 == o_2 )
 
-        PD_DPRINT( "\t\t\to_0 != o_2" );
+        PD_PRINT( "\t\t\to_0 != o_2" );
         
         /*
          *           +-----------+             +-----------+
@@ -211,16 +215,16 @@ bool R_Ia_below()
          *               O   O s_2                 O   O s_2
          */
         
-        if( (w_0 == w_2) || (e_1 == s_2) )
-        {
-            // TODO: trefoil as connect summand detected
-            // TODO: How to store/use this info?
-            PD_DPRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
-            
-            PD_DPRINT( "Detected a trefoil connect component." );
-            
-            return false;
-        }
+        // TODO: trefoil as connect summand detected
+        // TODO: How to store/use this info?
+//        if( (w_0 == w_2) || (e_1 == s_2) )
+//        {
+//            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
+//            
+//            PD_PRINT( "Detected a trefoil connect component." );
+//            
+//            return false;
+//        }
         
         return false;
     }
@@ -230,7 +234,7 @@ bool R_Ia_below()
     {
         if( w_2 == s_1 )
         {
-            PD_DPRINT( "\t\tw_2 == s_1" );
+            PD_PRINT( "\t\tw_2 == s_1" );
             
             /* Two further interesting cases.
              *

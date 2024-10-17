@@ -21,10 +21,10 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     const Int e_1 = C_arcs(c_1,In , side);
     const Int e_2 = C_arcs(c_1,Out, side);
 
-    Reconnect(a,Head,e_3);
-    Reconnect(a,Tail,e_1);
-    Reconnect(b,Head,e_2);
-    Reconnect(b,Tail,e_0);
+    Reconnect<Head>(a,e_3);
+    Reconnect<Tail>(a,e_1);
+    Reconnect<Head>(b,e_2);
+    Reconnect<Tail>(b,e_0);
 
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
@@ -80,10 +80,10 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
 ////                     v              b               /
 ////                      +------------->--------------+
 //
-//                    Reconnect(a, Tip , e_3);
-//                    Reconnect(a, Tail, e_1);
-//                    Reconnect(b, Tip , e_2);
-//                    Reconnect(b, Tail, e_0);
+//                    Reconnect<Head>(a, e_3);
+//                    Reconnect<Tail>(a, e_1);
+//                    Reconnect<Head>(b, e_2);
+//                    Reconnect<Tail>(b, e_0);
 //
 //                    DeactivateArc(e_0);
 //                    DeactivateArc(e_1);
@@ -137,10 +137,10 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
 ////                     v              b               /
 ////                      +------------->--------------+
 //
-//                    Reconnect(a, Tip , e_3);
-//                    Reconnect(a, Tail, e_1);
-//                    Reconnect(b, Tip , e_2);
-//                    Reconnect(b, Tail, e_0);
+//                    Reconnect<Head>(a, e_3);
+//                    Reconnect<Tail>(a, e_1);
+//                    Reconnect<Head>(b, e_2);
+//                    Reconnect<Tail>(b, e_0);
 //
 //                    DeactivateArc(e_0);
 //                    DeactivateArc(e_1);

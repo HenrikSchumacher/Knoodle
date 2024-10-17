@@ -116,7 +116,7 @@ void RequireComponents()
             
             comp_arc_idx[a_counter] = a;
             
-            a = NextArc(a);
+            a = NextArc<Head>(a);
             
             AssertArc(a);
             

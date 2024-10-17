@@ -1,17 +1,17 @@
 bool R_I_left()
 {
-    PD_DPRINT( "R_I_left()" );
+    PD_PRINT( "R_I_left()" );
     
     AssertArc<1>(a);
     AssertCrossing<1>(c_0);
     
     if( n_0 == w_0 )
     {
-        PD_DPRINT( "\tn_0 == w_0" );
+        PD_PRINT( "\tn_0 == w_0" );
         
         if( s_0 != s_1 )
         {
-            PD_DPRINT( "\t\ts_0 != s_1" );
+            PD_PRINT( "\t\ts_0 != s_1" );
             
             /* Looks like this:
              *
@@ -24,7 +24,7 @@ bool R_I_left()
              *                s_0         s_1
              */
             
-            Reconnect(a,Tail,s_0);
+            Reconnect<Tail>(a,s_0);
             DeactivateArc(w_0);
             DeactivateCrossing(c_0);
             ++pd.R_I_counter;
@@ -42,12 +42,12 @@ bool R_I_left()
             return true;
         }
 
-        PD_DPRINT( "t\ts_0 == s_1" );
+        PD_PRINT( "t\ts_0 == s_1" );
         PD_ASSERT( s_0 == s_1 );
         
         if( e_1 != n_1 )
         {
-            PD_DPRINT( "t\t\te_1 != n_1" );
+            PD_PRINT( "t\t\te_1 != n_1" );
             
             /* A second Reidemeister I move can be performed.
              *
@@ -61,7 +61,7 @@ bool R_I_left()
              8                    s_0
              */
             
-            Reconnect(e_1,Tail,n_1);
+            Reconnect<Tail>(e_1,n_1);
             DeactivateArc(w_0);
             DeactivateArc(s_0);
             DeactivateArc(a  );
@@ -82,7 +82,7 @@ bool R_I_left()
             return true;
         }
 
-        PD_DPRINT( "t\t\te_1 == n_1" );
+        PD_PRINT( "t\t\te_1 == n_1" );
         PD_ASSERT( e_1 == n_1 );
         
         /* A second Reidemeister I move can be performed.
@@ -123,11 +123,11 @@ bool R_I_left()
     
     if( s_0 == w_0 )
     {
-        PD_DPRINT( "\ts_0 == w_0" );
+        PD_PRINT( "\ts_0 == w_0" );
         
         if( n_0 != n_1 )
         {
-            PD_DPRINT( "\t\tn_0 != n_1" );
+            PD_PRINT( "\t\tn_0 != n_1" );
             
             /* A second Reidemeister I move can be performed.
              *
@@ -140,7 +140,7 @@ bool R_I_left()
              *                            s_1
              */
             
-            Reconnect(a,Tail,n_0);
+            Reconnect<Tail>(a,n_0);
             DeactivateArc(w_0);
             DeactivateCrossing(c_0);
             ++pd.R_I_counter;
@@ -158,12 +158,12 @@ bool R_I_left()
             return true;
         }
 
-        PD_DPRINT( "\t\tn_0 == n_1" );
+        PD_PRINT( "\t\tn_0 == n_1" );
         PD_ASSERT( n_0 == n_1 );
         
         if( e_1 != s_1 )
         {
-            PD_DPRINT( "\t\t\te_1 != s_1" );
+            PD_PRINT( "\t\t\te_1 != s_1" );
             
             /* A second Reidemeister I move can be performed.
              *
@@ -177,7 +177,7 @@ bool R_I_left()
              *                            s_1
              */
             
-            Reconnect(e_1,Tail,s_1);
+            Reconnect<Tail>(e_1,s_1);
             DeactivateArc(w_0);
             DeactivateArc(n_0);
             DeactivateArc(a  );
@@ -198,7 +198,7 @@ bool R_I_left()
             return true;
         }
 
-        PD_DPRINT( "\t\t\te_1 == s_1" );
+        PD_PRINT( "\t\t\te_1 == s_1" );
         PD_ASSERT( e_1 == s_1 );
         
         /* A second Reidemeister I move can be performed.

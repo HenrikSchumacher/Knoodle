@@ -1,6 +1,6 @@
 bool R_IIa_diff_o_same_u()
 {
-    PD_DPRINT( "R_IIa_diff_o_same_u()" );
+    PD_PRINT( "R_IIa_diff_o_same_u()" );
     
     // TODO: Debug this!
     
@@ -22,7 +22,7 @@ bool R_IIa_diff_o_same_u()
     AssertCrossing<1>(c_2);
     AssertCrossing<1>(c_3);
     
-    PD_DPRINT( "\t\tu_0 == u_1" );
+    PD_PRINT( "\t\tu_0 == u_1" );
     
     /* Example: o_0, o_2, o_3 are the same; u_0 == u_1; u_1 == 1
      *

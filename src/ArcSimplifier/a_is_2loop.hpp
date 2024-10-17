@@ -1,14 +1,14 @@
 bool a_is_2loop()
 {
-    PD_DPRINT( "a_is_2loop()" );
+    PD_PRINT( "a_is_2loop()" );
     
     if( w_0 == e_1 )
     {
-        PD_DPRINT( "\tw_0 == e_1" );
+        PD_PRINT( "\tw_0 == e_1" );
         
         if( o_0 == o_1 )
         {
-            PD_DPRINT( "\t\to_0 == o_1" );
+            PD_PRINT( "\t\to_0 == o_1" );
             
             /* We have a true over- or underloop
              * Looks like this:
@@ -57,12 +57,12 @@ bool a_is_2loop()
             return true;
         }
 
-        if constexpr ( tested_crossing_count < 3 )
+        if constexpr ( optimization_level < 3 )
         {
             return false;
         }
         
-        PD_DPRINT( "\t\to_0 != o_1" );
+        PD_PRINT( "\t\to_0 != o_1" );
         PD_ASSERT( o_0 != o_1 );
         /* Looks like this:
          *

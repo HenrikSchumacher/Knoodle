@@ -5,7 +5,7 @@ private:
 
 void Reidemeister_I( const Int a )
 {
-    PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+    PD_PRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
     
     const Int c = A_cross(a,Head);
     
@@ -29,7 +29,7 @@ void Reidemeister_I( const Int a )
         return;
     }
     
-    Reconnect(a_prev,Head,a_next);
+    Reconnect<Head>(a_prev,a_next);
     DeactivateArc(a);
     DeactivateCrossing(c);
     ++R_I_counter;
@@ -56,10 +56,6 @@ bool Reidemeister_I_at_Crossing( const Int c )
 
         return false;
     }
-    
-#ifdef PD_COUNTERS
-    ++R_I_check_counter;
-#endif
     
     // This is precisely the case if two consecutive arcs coincide.
     
@@ -120,7 +116,7 @@ bool Reidemeister_I_at_Crossing( const Int c )
 //
         
         // Make arc a point to where arc b pointed before.
-        Reconnect(a,Head,b);
+        Reconnect<Head>(a,b);
         
         DeactivateArc(d);
         

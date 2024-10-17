@@ -1,13 +1,13 @@
 bool strands_diff_o()
 {
-    PD_DPRINT("strands_diff_o()");
+    PD_PRINT("strands_diff_o()");
     
     /*       |     a     |             |     a     |
      *    -->|---------->--->   or  -->----------->|-->
      *       |c_0        |c_1          |c_0        |c_1
      */
 
-    if constexpr( tested_crossing_count < 3 )
+    if constexpr( optimization_level < 3 )
     {
         return false;
     }
@@ -22,7 +22,7 @@ bool strands_diff_o()
         return true;
     }
 
-    if constexpr( tested_crossing_count < 4 )
+    if constexpr( optimization_level < 4 )
     {
         return false;
     }

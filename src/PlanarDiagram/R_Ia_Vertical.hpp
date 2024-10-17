@@ -62,10 +62,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
         + ",\n\t" + ToString(C_0)
         + ",\n\t" + ToString(C_1)
         + ",\n\t" + ((side == Right) ? "Right" : "Left") +")" );
-    
-#ifdef PD_COUNTERS
-    ++R_Ia_check_counter;
-#endif
+
     
     auto E_0 = GetArc( C_0(In ,side) );
     auto E_1 = GetArc( C_1(Out,side) );
@@ -190,10 +187,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
                 PD_ASSERT( CheckArc(F_0.Idx()) );
                 PD_ASSERT( CheckArc(F_1.Idx()) );
                 PD_ASSERT( CheckArc(A.Idx()) );
-                
-#ifdef PD_COUNTERS
-                ++R_Ia_vertical_counter;
-#endif
+
                 return true;
             }
             else
@@ -289,14 +283,10 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
             auto F_0 = GetArc( C_2(In ,side ) );
             auto F_1 = GetArc( C_2(Out,side ) );
             
-            Reconnect(F_0,Tail,E_1);
-            Reconnect(F_1,Head,E_0);
+            Reconnect<Tail>(F_0,E_1);
+            Reconnect<Head>(F_1,E_0);
             DeactivateCrossing(C_2.Idx());
-            
-#ifdef PD_COUNTERS
-            ++R_Ia_vertical_counter;
-#endif
-            
+              
             return true;
         }
     }

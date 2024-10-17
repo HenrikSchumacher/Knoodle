@@ -1,19 +1,19 @@
 bool R_I_center()
 {
-    PD_DPRINT( "R_I_center()" );
+    PD_PRINT( "R_I_center()" );
     
     if( c_0 == c_1 )
     {
-        PD_DPRINT( "\tc_0 == c_1" );
+        PD_PRINT( "\tc_0 == c_1" );
         
         if( s_0 == a )
         {
-            PD_DPRINT( "\t\ts_0 == a" );
+            PD_PRINT( "\t\ts_0 == a" );
            // This implies s_0 == a
 
             if( w_0 != n_0 )
             {
-                PD_DPRINT( "\t\tw_0 != n_0" );
+                PD_PRINT( "\t\tw_0 != n_0" );
                 
                 /*              n_0
                  *               O
@@ -25,7 +25,7 @@ bool R_I_center()
                  *               O<---+  a
                  */
                 
-                Reconnect(w_0,Head,n_0);
+                Reconnect<Head>(w_0,n_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;
@@ -40,7 +40,7 @@ bool R_I_center()
             }
             else // if( w_0 == n_0 )
             {
-                PD_DPRINT( "\t\tw_0 == n_0" );
+                PD_PRINT( "\t\tw_0 == n_0" );
                 
                 /*          +----O
                  *          |    ^
@@ -71,12 +71,12 @@ bool R_I_center()
         {
             // This implies n_0 == a.
             
-            PD_DPRINT( "\t\tn_0 == a" );
+            PD_PRINT( "\t\tn_0 == a" );
             PD_ASSERT( "n_0 == a" );
             
             if( w_0 != s_0 )
             {
-                PD_DPRINT( "\t\t\tw_0 != s_0" );
+                PD_PRINT( "\t\t\tw_0 != s_0" );
                 
                 /*               O----+
                  *               |    |
@@ -88,7 +88,7 @@ bool R_I_center()
                  *              s_0
                  */
             
-                Reconnect(w_0,Head,s_0);
+                Reconnect<Head>(w_0,s_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 ++pd.R_I_counter;
@@ -103,7 +103,7 @@ bool R_I_center()
             }
             else // if( w_0 == s_0 )
             {
-                PD_DPRINT( "\t\t\tw_0 == s_0" );
+                PD_PRINT( "\t\t\tw_0 == s_0" );
                 
                 /*               O----+
                  *               |    |

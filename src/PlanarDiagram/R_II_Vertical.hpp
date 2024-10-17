@@ -7,10 +7,6 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT( c_0 != c_1 );
     
-#ifdef PD_COUNTERS
-    ++R_II_check_counter;
-#endif
-    
     auto C_0 = GetCrossing( c_0 );
     auto C_1 = GetCrossing( c_1 );
     
@@ -22,13 +18,11 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     
     auto A   = GetArc( C_0(Out,Left ) );
     auto B   = GetArc( C_0(Out,Right) );
-    
-    auto E_3 = GetArc( C_1(Out,Left ) );
-    auto E_2 = GetArc( C_1(Out,Right) );
     auto E_0 = GetArc( C_0(In ,Left ) );
     auto E_1 = GetArc( C_0(In ,Right) );
     
-    
+    auto E_3 = GetArc( C_1(Out,Left ) );
+    auto E_2 = GetArc( C_1(Out,Right) );
     
     PD_ASSERT( E_0 != E_2 ); // Should be impossible because of topology.
     PD_ASSERT( E_1 != E_3 ); // Should be impossible because of topology.
@@ -64,10 +58,10 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //                        E_0    /     \    E_1
 //                    O---->----O       O----<----O
             
-            Reconnect(A,Tail,E_0);
-            Reconnect(A,Head,E_3);
-            Reconnect(B,Tail,E_1);
-            Reconnect(B,Head,E_2);
+            Reconnect<Tail>(A,E_0);
+            Reconnect<Head>(A,E_3);
+            Reconnect<Tail>(B,E_1);
+            Reconnect<Head>(B,E_2);
             
             goto exit;
         }
@@ -99,8 +93,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //            O---->----O       O----<----+
         }
         
-        Reconnect(B,Tail,E_0);
-        Reconnect(B,Head,E_3);
+        Reconnect<Tail>(B,E_0);
+        Reconnect<Head>(B,E_3);
         
         ++unlink_count;
         
@@ -136,8 +130,8 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //           \           /     \    E_1
 //            +---->----O       O----<----O
         
-        Reconnect(A,Tail,E_1);
-        Reconnect(A,Head,E_2);
+        Reconnect<Tail>(A,E_1);
+        Reconnect<Head>(A,E_2);
         
         ++unlink_count;
         
@@ -190,8 +184,5 @@ exit:
     DeactivateCrossing(C_1.Idx());
     
     ++R_II_counter;
-    
-#ifdef PD_COUNTERS
-    ++R_II_vertical_counter;
-#endif
+
 } // Reidemeister_II_Vertical
