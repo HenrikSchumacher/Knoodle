@@ -96,41 +96,31 @@ Int Simplify4(
 //        logprint("overstrands");
 //        logdump(CrossingCount());
         
-        if( CrossingCount() > 3 )
+        const Int o_changes = strand_R_II_Q
+        ? S.template SimplifyStrands<true >(true,max_dist)
+        : S.template SimplifyStrands<false>(true,max_dist);
+        
+        counter += o_changes;
+        
+        if( compressQ && (o_changes > 0) )
         {
-            const Int o_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(true,max_dist)
-            : S.template SimplifyStrands<false>(true,max_dist);
-            
-            counter += o_changes;
-            
-            if( compressQ && (o_changes > 0) )
-            {
-                (*this) = CreateCompressed();
-            }
+            (*this) = CreateCompressed();
         }
         
         PD_ASSERT(CheckAll());
-        
-        // TODO: Should we do Simplify3 once more?
-        // I tried it with exhaustive simplifcation and the timings became slightly worse.
-        // Doing only one pass does not seem to harm, but it also does not help.
-        
+
 //        logprint("understrands");
 //        logdump(CrossingCount());
         
-        if( CrossingCount() > 3 )
+        const Int u_changes = strand_R_II_Q
+        ? S.template SimplifyStrands<true >(false,max_dist)
+        : S.template SimplifyStrands<false>(false,max_dist);
+        
+        counter += u_changes;
+        
+        if( compressQ && (u_changes > 0) )
         {
-            const Int u_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(false,max_dist)
-            : S.template SimplifyStrands<false>(false,max_dist);
-            
-            counter += u_changes;
-            
-            if( compressQ && (u_changes > 0) )
-            {
-                (*this) = CreateCompressed();
-            }
+            (*this) = CreateCompressed();
         }
         
         PD_ASSERT(CheckAll());

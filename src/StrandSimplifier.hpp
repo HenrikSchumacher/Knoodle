@@ -636,6 +636,8 @@ namespace KnotTools
                 pd.DeactivateCrossing(c);
                 pd.R_I_counter += 2;
                 
+                ++change_counter;
+                
                 return;
             }
             
@@ -652,6 +654,8 @@ namespace KnotTools
             pd.DeactivateArc(a);
             pd.DeactivateCrossing(c);
             ++pd.R_I_counter;
+            
+            ++change_counter;
             
             AssertArc<1>(a_prev);
             
@@ -1164,6 +1168,8 @@ namespace KnotTools
             
             Reconnect<Head,false>(a_begin,a_end);
             
+            ++change_counter;
+            
 #ifdef PD_TIMINGQ
             const Time stop_time = Clock::now();
             
@@ -1249,8 +1255,6 @@ namespace KnotTools
             // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
             
             Reidemeister_I(b);
-            
-            ++change_counter;
             
 #ifdef PD_TIMINGQ
             const Time stop_time = Clock::now();
@@ -1789,6 +1793,8 @@ namespace KnotTools
             
             Time_RerouteToShortestPath += Tools::Duration(start_time,stop_time);
 #endif
+            
+            ++change_counter;
             
             PD_TOC(ClassName()+"::RerouteToShortestPath");
             
