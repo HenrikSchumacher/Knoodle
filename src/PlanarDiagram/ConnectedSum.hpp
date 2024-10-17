@@ -11,21 +11,24 @@ bool SplitConnectedSummands(
     std::vector<PlanarDiagram<Int>> & PD_list,
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
-    const bool simplify3Q = true,
+    const Int  simplify3_level = 4,
     const bool simplify3_exhaustiveQ = true,
     const bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::SplitConnectedSummands");
-    // TODO: Introduce some tracking of from where the components are split off.
     
-    RequireFaces();
+    // TODO: Introduce some tracking of from where the components are split off.
     
     TwoArraySort<Int,Int,Int> S ( initial_arc_count );
     
     std::vector<Int> f_arcs;
     
     std::vector<Int> f_faces;
+
+    cptr<Int> F_A_ptr  = FaceDirectedArcPointers().data();
+    cptr<Int> F_A_idx  = FaceDirectedArcIndices().data();
+    cptr<Int> A_face   = ArcFaces().data();
     
     bool changedQ = false;
     
@@ -38,8 +41,8 @@ bool SplitConnectedSummands(
         for( Int f = 0; f < FaceCount(); ++f )
         {
             changedQ = changedQ || SplitConnectedSummand(
-                f,PD_list,S,f_arcs,f_faces,
-                max_dist,compressQ,simplify3Q,simplify3_exhaustiveQ,strand_R_II_Q
+                f,PD_list,S,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
+                max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
             );
         }
         
@@ -67,32 +70,38 @@ bool SplitConnectedSummand(
     TwoArraySort<Int,Int,Int> & S,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
+    cptr<Int> F_A_ptr,
+    cptr<Int> F_A_idx,
+    cptr<Int> A_face,
     const Int max_dist,
     const bool compressQ,
-    const bool simplify3Q,
+    const Int  simplify3_level,
     const bool simplify3_exhaustiveQ,
     const bool strand_R_II_Q = true
 )
 {
     // TODO: Introduce some tracking of from where the components are split off.
     
-    const Int i_begin = F_arc_ptr[f  ];
-    const Int i_end   = F_arc_ptr[f+1];
+    const Int i_begin = F_A_ptr[f  ];
+    const Int i_end   = F_A_ptr[f+1];
 
     f_arcs.clear();
     f_faces.clear();
     
     for( Int i = i_begin; i < i_end; ++i )
     {
-        const Int a = F_arc_idx[i];
+        const Int A = F_A_idx[i];
+        
+        const Int a = (A >> 1);
+        
+        PD_ASSERT( f == A_face[A] );
         
         if( ArcActiveQ(a) )
         {
-            f_arcs.push_back(a);
+            f_arcs.push_back(A);
             
-            const Int g = A_faces(a,0);
-            
-            f_faces.push_back( (g == f) ? A_faces(a,1) : g );
+            // Tell `f` that it is neighbor of the face that belongs to the twin of `A`.
+            f_faces.push_back( A_face[A ^ Int(1)] );
         }
     }
         
@@ -102,11 +111,11 @@ bool SplitConnectedSummand(
     {
         // TODO: What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
 
-        const Int a = f_arcs[0];
+        const Int a = (f_arcs[0] >> 1);
         
-        if( A_cross(a,Head) == A_cross(a,Tail) )
+        if( A_cross(a,Tail) == A_cross(a,Head) )
         {
-            Reidemeister_I(f_arcs[0]);
+            Reidemeister_I(a);
             return true;
         }
     }
@@ -119,7 +128,7 @@ bool SplitConnectedSummand(
             PD_list,
             max_dist,
             compressQ,
-            simplify3Q,
+            simplify3_level,
             simplify3_exhaustiveQ,
             strand_R_II_Q
         );
@@ -137,8 +146,8 @@ bool SplitConnectedSummand(
             continue;
         }
         
-        const Int a = f_arcs[i  ];
-        const Int b = f_arcs[i+1];
+        const Int a = (f_arcs[i  ] >> 1);
+        const Int b = (f_arcs[i+1] >> 1);
         
         AssertArc(a);
         AssertArc(b);
@@ -244,7 +253,7 @@ bool SplitConnectedSummand(
                 return true;
             }
         }
-        else if( A_cross(a,Head) == A_cross(b,Tail) )
+        else if( A_cross(b,Tail) == A_cross(a,Head) )
         {
             //  #################
             //  #               #
@@ -289,8 +298,8 @@ bool SplitConnectedSummand(
         //    #####################
         //
 
-        const Int c_a = A_cross(a, Head);
-        const Int c_b = A_cross(b, Head);
+        const Int c_a = A_cross(a,Head);
+        const Int c_b = A_cross(b,Head);
         
         A_cross(b,Head) = c_a;
         A_cross(a,Head) = c_b;
@@ -349,20 +358,19 @@ private:
 
 /*! @brief Removes the connected component of arc `a_0`, creates a new diagram from it, and returns it.
  *
- *
  * Before this is called, it is essential that at least the positions in `C_scratch` that will be traversed are filled by negative numbers! For example, `ExportSmallerComponent` does this.
  *
  * @param a_0 The index of the arc
  *
- * @param arc_count The number of arcs to remove. It is needed for creating the new `PlanarDiagram` instance with a sufficient number of arcs.
+ * @param comp_size The number of arcs to remove. It is needed for creating the new `PlanarDiagram` instance with a sufficient number of arcs.
  *
  */
 
-PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int arc_count )
+PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int comp_size )
 {
     ptic(ClassName()+"::ExportComponent");
     
-    PlanarDiagram<Int> pd (arc_count/2,0);
+    PlanarDiagram<Int> pd (comp_size/2,0);
     
     Int a_label = 0;
     Int c_counter = 0;

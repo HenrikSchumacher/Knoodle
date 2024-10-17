@@ -169,7 +169,9 @@ static PlanarDiagram<Int> FromPDCode(
     
     fill_buffer( pd.A_state.data(), ArcState::Active, pd.arc_count );
     
-    return pd;
+    // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
+    
+    return pd.CreateCompressed();
 }
 
 public:

@@ -8,7 +8,6 @@ public:
  *  TwistMove.hpp for more details.
  *
  *  This is a very dated simplification routine and only persists for benchmarking reasons. Better use `Simplify3` or `Simplify4` instead.
- *
  */
 
 template<bool allow_R_IaQ = true, bool allow_R_IIaQ = true>
@@ -21,35 +20,6 @@ void Simplify()
     
     Int test_counter = 0;
     Int counter = 0;
-    
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-    
-#ifdef PD_USE_TOUCHING
-    
-    while( !touched_crossings.empty() )
-    {
-        const Int c = touched_crossings.back();
-        touched_crossings.pop_back();
-        
-        if( CrossingActiveQ(c) )
-        {
-            ++test_counter;
-            
-            AssertCrossing(c);
-            
-            const bool R_I = Reidemeister_I_at_Crossing(c);
-            
-            counter += R_I;
-            
-            if( !R_I )
-            {
-                counter += Reidemeister_II<allow_R_IaQ>(c);
-            }
-        }
-    }
-    
-#else
     
     Int old_counter = -1;
     Int iter = 0;
@@ -100,13 +70,8 @@ void Simplify()
         }
     }
     
-#endif
-    
-#pragma clang diagnostic pop
-    
     if( counter > 0 )
     {
-        faces_initialized = false;
         comp_initialized  = false;
         
         this->ClearCache();

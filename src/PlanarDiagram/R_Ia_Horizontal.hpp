@@ -64,11 +64,6 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
     PD_ASSERT( C_0(Out,side) == C_1(In ,side) );
     PD_ASSERT( C_0(In ,side) == C_1(Out,side) );
     
-    
-#ifdef PD_COUNTERS
-    ++R_Ia_check_counter;
-#endif
-    
     auto E_0 = GetArc( C_0( io,!side) );
     auto E_1 = GetArc( C_1(!io,!side) );
     
@@ -263,10 +258,6 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                PD_ASSERT(A_cross(a  ,Tail) == c_0); // Only for io == Out and side == Right.
                 
                 PD_PRINT("Reidemeister_Ia_Horizontal_impl normal move done.");
-                
-#ifdef PD_COUNTERS
-                ++R_Ia_horizontal_counter;
-#endif
                 
                 return true;
             }
@@ -556,10 +547,6 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             }
             
             DeactivateCrossing(C_2.Idx());
-            
-#ifdef PD_COUNTERS
-            ++R_Ia_horizontal_counter;
-#endif
             
 // We we want to change it into this in the case of io = Out and side == Left.
 // All crossing's handedness can also be switched (at the same time!).

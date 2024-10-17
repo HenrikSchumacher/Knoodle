@@ -85,7 +85,7 @@ private:
 template<Int optimization_level, bool multi_compQ>
 Int simplify3( bool exhaustiveQ = true )
 {
-    ptic(ClassName()+"::Simplify3<" + ToString(optimization_level) + "," + ToString(multi_compQ) + ">(" + ToString(exhaustiveQ) + ")");
+    ptic(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(exhaustiveQ) + "," + ToString(multi_compQ) + ")");
     
     Int old_counter = -1;
     Int counter = 0;
@@ -115,13 +115,12 @@ Int simplify3( bool exhaustiveQ = true )
 
     if( counter > 0 )
     {
-        faces_initialized = false;
         comp_initialized  = false;
         
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::Simplify3<" + ToString(optimization_level) + "," + ToString(multi_compQ) + ">(" + ToString(exhaustiveQ) + ")");
+    ptoc(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(exhaustiveQ) + "," + ToString(multi_compQ) + ")");
     
     return counter;
 }

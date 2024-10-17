@@ -328,8 +328,5 @@ exit:
     DeactivateCrossing(C_1.Idx());
     
     ++R_II_counter;
-    
-#ifdef PD_COUNTERS
-    ++R_II_horizontal_counter;
-#endif
+
 } // Reidemeister_II_Horizontal

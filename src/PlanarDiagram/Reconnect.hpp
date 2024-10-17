@@ -42,21 +42,6 @@ void Reconnect( const Int a, const Int b )
     }
 }
 
-
-
-//template<bool assertQ = true>
-//void Reconnect( const Int a, const bool headtail, const Int b )
-//{
-//    if( headtail )
-//    {
-//        Reconnect<Head>(a,b);
-//    }
-//    else
-//    {
-//        Reconnect<Tail>(a,b);
-//    }
-//}
-
 template<bool assertQ = true>
 void Reconnect( const Int a, const bool headtail, const Int b )
 {
@@ -100,11 +85,6 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     DeactivateArc(b);
 }
 
-
-
-
-
- 
 void Reconnect( ArcView & A, const bool headtail, ArcView & B )
 {
     // Read:
@@ -121,7 +101,6 @@ void Reconnect( ArcView & A, const bool headtail, ArcView & B )
     
     auto C = GetCrossing( B(headtail) );
     
-    
     PD_ASSERT( (C(headtail,Left) == B.Idx()) || (C(headtail,Right) == B.Idx()) );
     
     PD_ASSERT(CheckArc(B.Idx()));
@@ -137,11 +116,6 @@ void Reconnect( ArcView & A, const bool headtail, ArcView & B )
     const bool side = (C(headtail,Right) == B.Idx());
     
     C(headtail,side) = A.Idx();
-    
-#ifdef PD_USE_TOUCHING
-    //touched_crossings.push_back(a);
-    touched_crossings.push_back(C.Idx());
-#endif
     
     DeactivateArc(B.Idx());
 }
@@ -180,11 +154,6 @@ void Reconnect( ArcView & A, ArcView & B )
     const bool side = (C(headtail,Right) == B.Idx());
     
     C(headtail,side) = A.Idx();
-    
-#ifdef PD_USE_TOUCHING
-    //touched_crossings.push_back(a);
-    touched_crossings.push_back(C.Idx());
-#endif
     
     DeactivateArc(B.Idx());
 }

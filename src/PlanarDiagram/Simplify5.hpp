@@ -12,7 +12,7 @@ public:
  *
  * @param simplify3_level Optimization level for `Simplify3`. Level `0` deactivated it entirely, levels greater or equal to `2` check only patterns that involve as many crossings as specified by this variable.
  *
- * @param simplify3_exhaustiveQ If `simplify3Q` is `true`, then this changes its behavior. If set to `false`, only one optimization pass over the diagram is performed. If set to `true`, then optimization passes will applied
+ * @param simplify3_exhaustiveQ If `simplify3_level > 0`, then this changes its behavior. If set to `false`, only one optimization pass over the diagram is performed. If set to `true`, then optimization passes will applied
  */
 
 bool Simplify5(
@@ -32,10 +32,13 @@ bool Simplify5(
     do
     {
         changedQ = Simplify4(max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q);
-
-        changedQ = changedQ || SplitConnectedSummands(PD_list,
-            max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
-        );
+        
+        if( CrossingCount() > 5 )
+        {
+            changedQ = changedQ || SplitConnectedSummands(PD_list,
+                max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
+            );
+        }
         
         globally_changedQ = globally_changedQ || changedQ;
     }
@@ -48,7 +51,6 @@ bool Simplify5(
     
     if( globally_changedQ )
     {
-        faces_initialized = false;
         comp_initialized  = false;
 
         this->ClearCache();
@@ -58,20 +60,3 @@ bool Simplify5(
 
     return globally_changedQ;
 }
-
-
-
-//
-//
-//if( u_0 )
-//{
-//    n_0 = C_arcs(c_0,Out,Left );
-//    w_0 = C_arcs(c_0,In ,Left );
-//    s_0 = C_arcs(c_0,In ,Right);
-//}
-//else
-//{
-//    s_0 = C_arcs(c_0,Out,Right);
-//    n_0 = C_arcs(c_0,In ,Left );
-//    w_0 = C_arcs(c_0,In ,Right);
-//}

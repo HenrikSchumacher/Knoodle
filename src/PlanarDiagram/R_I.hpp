@@ -57,10 +57,6 @@ bool Reidemeister_I_at_Crossing( const Int c )
         return false;
     }
     
-#ifdef PD_COUNTERS
-    ++R_I_check_counter;
-#endif
-    
     // This is precisely the case if two consecutive arcs coincide.
     
     auto C = GetCrossing( c );

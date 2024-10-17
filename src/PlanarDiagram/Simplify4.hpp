@@ -27,8 +27,7 @@ Int Simplify4(
     Int iter = 0;
     
     // TODO: Toggle this Boolean for multi-component links.
-//    StrandSimplifier<Int,false> S(*this);
-    StrandSimplifier2<Int,false> S(*this);
+    StrandSimplifier<Int,false> S(*this);
     
     // TODO: Maybe we should recompress only in the first pass of this?
     
@@ -38,8 +37,13 @@ Int Simplify4(
     do
     {
         ++iter;
+        
+//        logdump(iter);
 
         old_counter = counter;
+        
+//        logprint("Simplify3");
+//        logdump(CrossingCount());
         
         if( simplify3_level > 0 )
         {
@@ -54,9 +58,12 @@ Int Simplify4(
             }
         }
         
+//        logprint("overstrands");
+//        logdump(CrossingCount());
+        
         const Int o_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(true,max_dist)
-            : S.template SimplifyStrands<false>(true,max_dist);
+        ? S.template SimplifyStrands<true >(true,max_dist)
+        : S.template SimplifyStrands<false>(true,max_dist);
         
         counter += o_changes;
         
@@ -68,10 +75,15 @@ Int Simplify4(
         PD_ASSERT(CheckAll());
         
         // TODO: Should we do Simplify3 once more?
+        // I tried it with exhaustive simplifcation and the timings became slightly worse.
+        // Doing only one pass does not seem to harm, but it also does not help.
+        
+//        logprint("understrands");
+//        logdump(CrossingCount());
         
         const Int u_changes = strand_R_II_Q
-            ? S.template SimplifyStrands<true >(false,max_dist)
-            : S.template SimplifyStrands<false>(false,max_dist);
+        ? S.template SimplifyStrands<true >(false,max_dist)
+        : S.template SimplifyStrands<false>(false,max_dist);
         
         
         counter += u_changes;
@@ -101,7 +113,6 @@ Int Simplify4(
 
     if( counter > 0 )
     {
-        faces_initialized = false;
         comp_initialized  = false;
 
         this->ClearCache();

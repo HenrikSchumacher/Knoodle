@@ -8,10 +8,6 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
     }
     
     PD_PRINT("Reidemeister_IIa_Vertical");
-
-#ifdef PD_COUNTERS
-    ++R_IIa_check_counter;
-#endif
     
     auto C_0 = GetCrossing( c_0 );
     

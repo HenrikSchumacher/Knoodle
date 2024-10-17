@@ -7,10 +7,6 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT( c_0 != c_1 );
     
-#ifdef PD_COUNTERS
-    ++R_II_check_counter;
-#endif
-    
     auto C_0 = GetCrossing( c_0 );
     auto C_1 = GetCrossing( c_1 );
     
@@ -188,8 +184,5 @@ exit:
     DeactivateCrossing(C_1.Idx());
     
     ++R_II_counter;
-    
-#ifdef PD_COUNTERS
-    ++R_II_vertical_counter;
-#endif
+
 } // Reidemeister_II_Vertical
