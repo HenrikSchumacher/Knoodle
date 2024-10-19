@@ -246,12 +246,13 @@ namespace KnotTools
 
 #include "src/AABBTree.hpp"
 
-
 #include "src/Intersection.hpp"
 
 #include "src/Link_2D.hpp"
 
+#include "src/Debugging.hpp"
 #include "src/PlanarDiagram.hpp"
+#include "src/CrossingSimplifier.hpp"
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"
 

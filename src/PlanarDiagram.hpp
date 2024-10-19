@@ -1,74 +1,17 @@
 #pragma  once
 
-#include <cassert>
-
 namespace KnotTools
 {
-    Size_T PD_max_error_count =  4;
-    Size_T PD_error_counter   =  0;
-
-#ifdef PD_VERBOSE
-    #define PD_PRINT( s ) Tools::logprint((s));
-    
-    #define PD_VALPRINT( key, val ) Tools::logvalprint( (key), (val) )
-    
-    #define PD_WPRINT( s ) Tools::wprint((s));
-    
-#else
-    #define PD_PRINT( s )
-    
-    #define PD_VALPRINT( key, val )
-    
-    #define PD_WPRINT( s )
-#endif
-    
-    void pd_eprint( const std::string & s )
-    {
-        ++KnotTools::PD_error_counter;
-        
-        Tools::eprint(s);
-        
-        if( KnotTools::PD_error_counter >= KnotTools::PD_max_error_count )
-        {
-            Tools::eprint("Too many errors. Aborting program.");
-            
-            exit(-1);
-        }
-    }
-    
-#ifdef PD_DEBUG
-    
-    #define PD_ASSERT(c)                                                \
-        if(!(c))                                                        \
-        {                                                               \
-            pd_eprint( "PD_ASSERT failed: " + std::string(#c) );        \
-        }
-    
-    #define PD_DPRINT( s ) Tools::logprint((s));
-    
-    #define PD_TIC(s) ptic((s))
-
-    #define PD_TOC(s) ptoc((s))
-    
-#else
-    
-    #define PD_ASSERT(c)
-    
-    #define PD_DPRINT(s)
-    
-    #define PD_TIC(s)
-
-    #define PD_TOC(s)
-    
-#endif
-    
-    
     // TODO: Use signs in A_cross entries to indicate whether the arc enters/leaves the corresponding crossing through left or right port, i.e.,
     // TODO: A_cross(a,Tail) = -c if a == C_arc(a,Out,Left )
     // TODO: A_cross(a,Tail) =  c if a == C_arc(a,Out,Right)
     
     
-    template<typename Int_, Size_T optimization_level, bool use_flagsQ_, bool mult_compQ_> class ArcSimplifier;
+    template<typename Int_, Size_T optimization_level, bool use_flagsQ_, bool mult_compQ_>
+    class ArcSimplifier;
+    
+    template<typename Int_, bool mult_compQ_> class CrossingSimplifier;
+    
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
     
     template<typename Int_>
@@ -95,8 +38,12 @@ namespace KnotTools
 
         template<typename I, Size_T lvl,bool use_flagsQ_, bool mult_compQ_>
         friend class ArcSimplifier;
-        friend class StrandSimplifier<Int,true>;
-        friend class StrandSimplifier<Int,false>;
+        
+        template<typename I, bool mult_compQ_>
+        friend class CrossingSimplifier;
+        
+        template<typename I, bool mult_compQ_>
+        friend class StrandSimplifier;
         
         
         using Arrow_T = std::pair<Int,bool>;
@@ -156,190 +103,6 @@ namespace KnotTools
         
         virtual ~PlanarDiagram() override = default;
         
-    protected:
-        
-        class CrossingView
-        {
-            Int c;
-            mptr<Int> C;
-            CrossingState & S;
-            
-        public:
-            
-            CrossingView( const Int c_, mptr<Int> C_, CrossingState & S_ )
-            : c { c_ }
-            , C { C_ }
-            , S { S_ }
-            {}
-
-            ~CrossingView() = default;
-            
-            // TODO: Value semantics.
-            
-            Int Idx() const
-            {
-                return c;
-            }
-            
-            CrossingState & State()
-            {
-                return S;
-            }
-            
-            const CrossingState & State() const
-            {
-                return S;
-            }
-            
-            Int & operator()( const bool io, const bool side )
-            {
-                return C[2 * io + side];
-            }
-            
-            const Int & operator()( const bool io, const bool side ) const
-            {
-                return C[2 * io + side];
-            }
-            
-            bool ActiveQ() const
-            {
-                return (ToUnderlying(S) % 2);
-            }
-            
-            friend bool operator==( const CrossingView & C_0, const CrossingView & C_1 )
-            {
-                return C_0.c == C_1.c;
-            }
-            
-            friend bool operator==( const CrossingView & C_0, const Int c_1 )
-            {
-                return C_0.c == c_1;
-            }
-            
-            friend bool operator==( const Int c_0, const CrossingView & C_1 )
-            {
-                return c_0 == C_1.c;
-            }
-            
-            std::string String() const
-            {
-                return "crossing " + Tools::ToString(c) +" = { { "
-                + Tools::ToString(C[0]) + ", "
-                + Tools::ToString(C[1]) + " }, { "
-                + Tools::ToString(C[2]) + ", "
-                + Tools::ToString(C[3]) + " } } ("
-                + KnotTools::ToString(S) +")";
-            }
-            
-            friend std::string ToString( const CrossingView & C )
-            {
-                return C.String();
-            }
-            
-        }; // class CrossingView
-        
-        CrossingView GetCrossing( const Int c )
-        {
-            AssertCrossing(c);
-
-            return CrossingView( c, C_arcs.data(c), C_state[c] );
-        }
-        
-        class ArcView
-        {
-            Int a;
-            mptr<Int> A;
-            ArcState & S;
-            
-        public:
-            
-            ArcView( const Int a_, mptr<Int> A_, ArcState & S_ )
-            : a { a_ }
-            , A { A_ }
-            , S { S_ }
-            {}
-            
-            ~ArcView() = default;
-
-            // TODO: Value semantics.
-            
-            Int Idx() const
-            {
-                return a;
-            }
-            
-            ArcState & State()
-            {
-                return S;
-            }
-            
-            const ArcState & State() const
-            {
-                return S;
-            }
-            
-            Int & operator()( const bool headtail )
-            {
-                return A[headtail];
-            }
-            
-            const Int & operator()( const bool headtail ) const
-            {
-                return A[headtail];
-            }
-            
-            bool ActiveQ() const
-            {
-                return (ToUnderlying(S) > 0);
-            }
-            
-            friend bool operator==( const ArcView & A_0, const ArcView & A_1 )
-            {
-                return A_0.a == A_1.a;
-            }
-            
-            friend bool operator==( const ArcView & A_0, const Int a_1 )
-            {
-                return A_0.a == a_1;
-            }
-            
-            friend bool operator==( const Int a_0, const ArcView & A_1 )
-            {
-                return a_0 == A_1.a;
-            }
-            
-            std::string String() const
-            {
-                return "arc " +Tools::ToString(a) +" = { " +
-                Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + KnotTools::ToString(S) +")";
-            }
-            
-            friend std::string ToString( const ArcView & A )
-            {
-                return A.String();
-            }
-            
-        }; // class ArcView
-        
-        
-        
-        ArcView GetArc( const Int a )
-        {
-            AssertArc(a);
-            
-            return ArcView( a, A_cross.data(a), A_state[a] );
-        }
-        
-        bool HeadQ( const ArcView & A, const CrossingView & C )
-        {
-            return A(Head) == C;
-        }
-        
-        bool TailQ( const ArcView & A, const CrossingView & C )
-        {
-            return A(Tail) == C;
-        }
-        
         
     protected:
         
@@ -348,17 +111,17 @@ namespace KnotTools
          */
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   crossing_count          ( crossing_count_                    )
-        ,   arc_count               ( Int(2)*crossing_count              )
-        ,   unlink_count            ( unlink_count_                      )
-        ,   initial_crossing_count  ( crossing_count                     )
-        ,   initial_arc_count       ( arc_count                          )
-        ,   C_arcs                  ( arc_count, Int(2), Int(2), -1      )
-        ,   C_state                 ( arc_count, CrossingState::Inactive )
-        ,   A_cross                 ( arc_count, Int(2), -1              )
-        ,   A_state                 ( arc_count, ArcState::Inactive      )
-        ,   C_scratch               ( arc_count                          )
-        ,   A_scratch               ( arc_count                          )
+        :   crossing_count          ( crossing_count_                         )
+        ,   arc_count               ( Int(2)*crossing_count                   )
+        ,   unlink_count            ( unlink_count_                           )
+        ,   initial_crossing_count  ( crossing_count                          )
+        ,   initial_arc_count       ( arc_count                               )
+        ,   C_arcs                  ( crossing_count, Int(2), Int(2), -1      )
+        ,   C_state                 ( crossing_count, CrossingState::Inactive )
+        ,   A_cross                 ( arc_count,      Int(2), -1              )
+        ,   A_state                 ( arc_count,      ArcState::Inactive      )
+        ,   C_scratch               ( crossing_count                          )
+        ,   A_scratch               ( arc_count                               )
         {}
         
     public:
@@ -780,7 +543,18 @@ namespace KnotTools
             return A_state;
         }
         
-        //Modifiers
+        
+        void SanitizeArcStates()
+        {
+            for( Int a = 0; a < initial_arc_count; ++a )
+            {
+                if( ArcActiveQ(a) )
+                {
+                    A_state[a] = ArcState::Active;
+                }
+            }
+        }
+
         
     public:
         
@@ -828,21 +602,10 @@ namespace KnotTools
             return KnotTools::OppositeHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
-        bool OppositeHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
-        {
-            return KnotTools::OppositeHandednessQ(C_0.State(),C_1.State());
-        }
-        
         bool SameHandednessQ( const Int c_0, const Int c_1 ) const
         {
             return KnotTools::SameHandednessQ(C_state[c_0],C_state[c_1]);
         }
-        
-        bool SameHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
-        {
-            return KnotTools::SameHandednessQ(C_0.State(),C_1.State());
-        }
-        
         
         void FlipHandedness( const Int c_0 )
         {
@@ -936,64 +699,6 @@ namespace KnotTools
                 C_arcs(c,In ,Left ) = C_arcs(c,In ,Right);
                 C_arcs(c,In ,Right) = C_arcs(c,Out,Right);
                 C_arcs(c,Out,Right) = buffer;
-            }
-        }
-        
-        void RotateCrossing( CrossingView & C, const bool dir )
-        {
-        // Before:
-        //
-        //    C(Out,Left ) O       O C(Out,Right)
-        //                  ^     ^
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  /     \
-        //    C(In ,Left ) O       O C(In ,Right)
-            
-            if( dir == Right )
-            {
-        // After:
-        //
-        //    C(Out,Left ) O       O C(Out,Right)
-        //                  \     ^
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  /     v
-        //    C(In ,Left ) O       O C(In ,Right)
-                
-                const Int buffer = C(Out,Left );
-                
-                C(Out,Left ) = C(Out,Right);
-                C(Out,Right) = C(In ,Right);
-                C(In ,Right) = C(In ,Left );
-                C(In ,Left ) = buffer;
-            }
-            else
-            {
-        // After:
-        //
-        //    C(Out,Left ) O       O C(Out,Right)
-        //                  ^     /
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  v     \
-        //    C(In ,Left ) O       O C(In ,Right)
-                
-                const Int buffer = C(Out,Left );
-
-                C(Out,Left ) = C(In ,Left );
-                C(In ,Left ) = C(In ,Right);
-                C(In ,Right) = C(Out,Right);
-                C(Out,Right) = buffer;
             }
         }
         
@@ -1095,42 +800,6 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Deactivates crossing represented by `CrossingView` object `C`. Only for internal use.
-         */
-        
-        void Deactivate( mref<CrossingView> C )
-        {
-            if( C.ActiveQ() )
-            {
-                --crossing_count;
-                C.State() = CrossingState::Inactive;
-            }
-            else
-            {
-#if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive " + C.String() + ".");
-#endif
-            }
-            
-            PD_ASSERT( crossing_count >= 0 );
-            
-#ifdef PD_DEBUG
-            for( bool io : { In, Out } )
-            {
-                for( bool side : { Left, Right } )
-                {
-                    const Int a  = C(io,side);
-                    
-                    if( ArcActiveQ(a) && (A_cross(a,io) == C.Idx()) )
-                    {
-                        pd_eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
-                    }
-                }
-            }
-#endif
-        }
-        
-        /*!
          * @brief Deactivates arc `a`. Only for internal use.
          */
         
@@ -1153,28 +822,10 @@ namespace KnotTools
             PD_ASSERT( arc_count >= 0 );
         }
         
-        /*!
-         * @brief Deactivates arc represented by `ArcView` object `A`. Only for internal use.
-         */
-        
-        void Deactivate( mref<ArcView> A )
-        {
-            if( A.ArcActiveQ() )
-            {
-                --arc_count;
-                A.State() = ArcState::Inactive;
-            }
-            else
-            {
-#if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive " + A.String() + ".");
-#endif
-            }
-            
-            PD_ASSERT( arc_count >= 0 );
-        }
-        
     public:
+
+#include "PlanarDiagram/CrossingView.hpp"
+#include "PlanarDiagram/ArcView.hpp"
         
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
@@ -1183,7 +834,16 @@ namespace KnotTools
 #include "PlanarDiagram/R_IIa_Vertical.hpp"
 #include "PlanarDiagram/R_IIa_Horizontal.hpp"
         
-#include "PlanarDiagram/Simplify.hpp"
+#include "PlanarDiagram/Arcs.hpp"
+#include "PlanarDiagram/Faces.hpp"
+#include "PlanarDiagram/Components.hpp"
+#include "PlanarDiagram/Strands.hpp"
+#include "PlanarDiagram/ConnectedSum.hpp"
+        
+#include "PlanarDiagram/Simplify1.hpp"
+#include "PlanarDiagram/Simplify1a.hpp"
+#include "PlanarDiagram/Simplify2.hpp"
+#include "PlanarDiagram/Simplify2a.hpp"
 #include "PlanarDiagram/Simplify3.hpp"
 #include "PlanarDiagram/Simplify4.hpp"
 #include "PlanarDiagram/Simplify5.hpp"
@@ -1193,10 +853,6 @@ namespace KnotTools
 //#include "PlanarDiagram/Break.hpp"
 //#include "PlanarDiagram/Switch.hpp"
 
-#include "PlanarDiagram/Arcs.hpp"
-#include "PlanarDiagram/Faces.hpp"
-#include "PlanarDiagram/Components.hpp"
-#include "PlanarDiagram/ConnectedSum.hpp"
         
     public:
         
@@ -1346,328 +1002,6 @@ namespace KnotTools
             ptoc( ClassName()+"::CreateCompressed");
             
             return pd;
-        }
-        
-        
-        /*!
-         * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
-         *
-         *  @param a The index of the arc in equations.
-         *
-         *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
-         */
-        
-        template<bool headtail>
-        bool ArcUnderQ( const Int a )  const
-        {
-            AssertArc(a);
-
-            const Int c = A_cross(a,headtail);
-
-            AssertCrossing(c);
-            
-            // Tail == 0 == Out
-            // Head == 1 == In
-            // const side = C_arcs(c_0,headtail,Right) == a ? Right : Left;
-//            const bool side = (C_arcs(c,headtail,Right) == a);
-            
-//            // Long version of code for documentation and debugging.
-//            if( headtail == Head )
-//            {
-//
-//                PD_ASSERT( A_cross(a,Head) == c );
-//                PD_ASSERT( C_arcs(c,In,side) == a );
-//
-//                return (side == CrossingRightHandedQ(c));
-//
-//                // (side == Right) && CrossingRightHandedQ(c)
-//                //
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            / c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //                ^
-//                //                 \
-//                //                  \ a
-//                //                   \
-//                //                    X
-//                //
-//                //  (side == Left) && CrossingLeftHandedQ(c)
-//                //
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            \ c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //        ^
-//                //       /
-//                //      / a
-//                //     /
-//                //    X
-//            }
-//            else // if( headtail == Tail )
-//            {
-//                PD_ASSERT( A_cross(a,Tail) == c );
-//                PD_ASSERT( C_arcs(c,Out,side) == a );
-//
-//                return (side == CrossingLeftHandedQ(c));
-//
-//                // Positive cases:
-//                //
-//                // (side == Right) && CrossingLeftHandedQ(c)
-//                //
-//                //
-//                //                   ^
-//                //                  /
-//                //                 / a
-//                //                /
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            \ c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //
-//                // (side == Left) && CrossingRightHandedQ(c)
-//                //
-//                //     ^
-//                //      \
-//                //       \ a
-//                //        \
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            / c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //
-//            }
-            
-//            // Short version of code for performance.
-            return (
-                (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-            );
-        }
-        
-        bool ArcUnderQ( const Int a, const bool headtail )  const
-        {
-            AssertArc(a);
-
-            const Int c = A_cross(a,headtail);
-
-            AssertCrossing(c);
-            
-            return (
-                (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-            );
-        }
-        
-        /*!
-         * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
-         *
-         *  @param a The index of the arc in equations.
-         *
-         *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
-         */
-        
-        template<bool headtail>
-        bool ArcOverQ( const Int a ) const
-        {
-            return !ArcUnderQ<headtail>(a);
-        }
-        
-        bool ArcOverQ( const Int a, const bool headtail )  const
-        {
-            return !ArcUnderQ(a,headtail);
-        }
-        
-        /*!
-         * @brief Returns an array that tells every arc to which over-strand it belongs.
-         *
-         *  More precisely, arc `a` belongs to over-strand number `ArcOverStrands()[a]`.
-         *
-         *  (An over-strand is a maximal consecutive sequence of arcs that pass over.)
-         */
-        
-        Tensor1<Int,Int> ArcOverStrands() const
-        {
-            return ArcStrands<true>();
-        }
-        
-        /*!
-         * @brief Returns an array that tells every arc to which under-strand it belongs.
-         *
-         *  More precisely, arc `a` belongs to under-strand number `ArcUnderStrands()[a]`.
-         *
-         *  (An under-strand is a maximal consecutive sequence of arcs that pass under.)
-         */
-        
-        Tensor1<Int,Int> ArcUnderStrands() const
-        {
-            return ArcStrands<false>();
-        }
-        
-    private:
-        
-        template<bool overQ>
-        Tensor1<Int,Int> ArcStrands() const
-        {
-            ptic(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
-            
-            const Int m = A_cross.Dimension(0);
-            
-            Tensor1<Int ,Int> A_colors    ( m, -1 );
-            Tensor1<char,Int> A_visited ( m, false );
-            
-            Int color = 0;
-            Int a_ptr = 0;
-            
-            while( a_ptr < m )
-            {
-                // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
-                {
-                    ++a_ptr;
-                }
-                
-                if( a_ptr >= m )
-                {
-                    break;
-                }
-                
-                Int a = a_ptr;
-                // Find the beginning of first strand.
-                
-                // For this, we move backwards along arcs until ArcUnderQ<Tail>(a)/ArcOverQ<Tail>(a)
-                while( ArcUnderQ<Tail>(a) != overQ )
-                {
-                    a = NextArc<Tail>(a);
-                }
-                
-                const Int a_0 = a;
-                
-                // Traverse forward through all arcs in the link component, until we return where we started.
-                do
-                {
-                    A_visited[a] = true;
-                    
-                    A_colors[a] = color;
-
-                    // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
-                    
-                    color += (ArcUnderQ<Head>(a) == overQ);
-                    
-                    a = NextArc<Head>(a);
-                }
-                while( a != a_0 );
-                
-                ++a_ptr;
-            }
-            
-            ptoc(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
-            
-            return A_colors;
-        }
-        
-    public:
-        
-        
-        /*!
-         * @brief Returns an array of that tells every crossing which over-strand end or start in is.
-         *
-         *  More precisely, crossing `c` has the outgoing over-strands `CrossingOverStrands()(c,0,0)` and `CrossingOverStrands()(c,0,1)`
-         *  and the incoming over-strands `CrossingOverStrands()(c,1,0)` and `CrossingOverStrands()(c,1,1)`.
-         *
-         *  (An over-strand is a maximal consecutive sequence of arcs that pass over.)
-         */
-        
-        
-        Tensor3<Int,Int> CrossingOverStrands() const
-        {
-            return CrossingStrands<true>();
-        }
-        
-        /*!
-         * @brief Returns an array of that tells every crossing which under-strand end or start in is.
-         *
-         *  More precisely, crossing `c` has the outgoing under-strands `CrossingUnderStrands()(c,0,0)` and `CrossingUnderStrands()(c,0,1)`
-         *  and the incoming under-strands `CrossingUnderStrands()(c,1,0)` and `CrossingUnderStrands()(c,1,1)`.
-         *
-         *  (An under-strand is a maximal consecutive sequence of arcs that pass under.)
-         */
-        
-        Tensor3<Int,Int> CrossingUnderStrands() const
-        {
-            return CrossingStrands<false>();
-        }
-        
-        template<bool overQ>
-        Tensor3<Int,Int> CrossingStrands() const
-        {
-            ptic(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
-            
-            const Int n = C_arcs.Dimension(0);
-            const Int m = A_cross.Dimension(0);
-            
-            Tensor3<Int ,Int> C_strands  ( n, 2, 2, -1 );
-            Tensor1<char,Int> A_visited ( m, false );
-            
-            Int counter = 0;
-            Int a_ptr   = 0;
-            
-            while( a_ptr < m )
-            {
-                // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
-                {
-                    ++a_ptr;
-                }
-                
-                if( a_ptr >= m )
-                {
-                    break;
-                }
-                
-                Int a = a_ptr;
-                // Find the beginning of first overstrand.
-                // For this, we go back along a until ArcUnderQ<Tail>(a)/ ArcOverQ<Tail>(a)
-                while( ArcUnderQ<Tail>(a) != overQ )
-                {
-                    a = NextArc<Tail>(a);
-                }
-                
-                const Int a_0 = a;
-                
-                // Traverse forward trhough all arcs in the link component, until we return where we started.
-                do
-                {
-                    A_visited[a] = true;
-                    
-                    const Int c_0 = A_cross(a,Tail);
-                    const Int c_1 = A_cross(a,Head);
-
-                    C_strands(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = counter;
-                    C_strands(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = counter;
-                    
-                    counter += (ArcUnderQ<Head>(a) == overQ);
-                    
-                    a = NextArc<Head>(a);
-                }
-                while( a != a_0 );
-                
-                ++a_ptr;
-            }
-            
-            ptoc(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
-            
-            return C_strands;
         }
         
         /*!

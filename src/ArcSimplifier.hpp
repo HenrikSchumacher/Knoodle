@@ -1,6 +1,6 @@
 #pragma once
 
-// TODO: Use the state flag of arcs to mark changed/unchanged arcs.
+// TODO: Use the state flag of arcs to mark changedQ/unchanged arcs.
 // TODO: In particular after applying this to a connected summand that was recently split-off from another diagram, often only very few positions are to be checked on the first (and often last) run.
 
 namespace KnotTools
@@ -188,11 +188,11 @@ namespace KnotTools
             return pd.DeactivateArc(a_);
         }
         
-        template<bool should_be_activeQ>
+        template<bool must_be_activeQ>
         void AssertArc( const Int a_ )
         {
 #ifdef DEBUG
-            if constexpr( should_be_activeQ )
+            if constexpr( must_be_activeQ )
             {
                 if( !ArcActiveQ(a_) )
                 {
@@ -227,11 +227,11 @@ namespace KnotTools
             pd.DeactivateCrossing(c_);
         }
         
-        template<bool should_be_activeQ>
+        template<bool must_be_activeQ>
         void AssertCrossing( const Int c_ ) const
         {
 #ifdef DEBUG
-            if constexpr( should_be_activeQ )
+            if constexpr( must_be_activeQ )
             {
                 if( !CrossingActiveQ(c_) )
                 {

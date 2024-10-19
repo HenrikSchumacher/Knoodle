@@ -1,6 +1,146 @@
 public:
 
 /*!
+ * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in equations.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+template<bool headtail>
+bool ArcUnderQ( const Int a )  const
+{
+    AssertArc(a);
+
+    const Int c = A_cross(a,headtail);
+
+    AssertCrossing(c);
+    
+    // Tail == 0 == Out
+    // Head == 1 == In
+    // const side = C_arcs(c_0,headtail,Right) == a ? Right : Left;
+//            const bool side = (C_arcs(c,headtail,Right) == a);
+    
+//            // Long version of code for documentation and debugging.
+//            if( headtail == Head )
+//            {
+//
+//                PD_ASSERT( A_cross(a,Head) == c );
+//                PD_ASSERT( C_arcs(c,In,side) == a );
+//
+//                return (side == CrossingRightHandedQ(c));
+//
+//                // (side == Right) && CrossingRightHandedQ(c)
+//                //
+//                //         O     O
+//                //          ^   ^
+//                //           \ /
+//                //            / c
+//                //           / \
+//                //          /   \
+//                //         O     O
+//                //                ^
+//                //                 \
+//                //                  \ a
+//                //                   \
+//                //                    X
+//                //
+//                //  (side == Left) && CrossingLeftHandedQ(c)
+//                //
+//                //         O     O
+//                //          ^   ^
+//                //           \ /
+//                //            \ c
+//                //           / \
+//                //          /   \
+//                //         O     O
+//                //        ^
+//                //       /
+//                //      / a
+//                //     /
+//                //    X
+//            }
+//            else // if( headtail == Tail )
+//            {
+//                PD_ASSERT( A_cross(a,Tail) == c );
+//                PD_ASSERT( C_arcs(c,Out,side) == a );
+//
+//                return (side == CrossingLeftHandedQ(c));
+//
+//                // Positive cases:
+//                //
+//                // (side == Right) && CrossingLeftHandedQ(c)
+//                //
+//                //
+//                //                   ^
+//                //                  /
+//                //                 / a
+//                //                /
+//                //         O     O
+//                //          ^   ^
+//                //           \ /
+//                //            \ c
+//                //           / \
+//                //          /   \
+//                //         O     O
+//                //
+//                // (side == Left) && CrossingRightHandedQ(c)
+//                //
+//                //     ^
+//                //      \
+//                //       \ a
+//                //        \
+//                //         O     O
+//                //          ^   ^
+//                //           \ /
+//                //            / c
+//                //           / \
+//                //          /   \
+//                //         O     O
+//                //
+//            }
+    
+//            // Short version of code for performance.
+    return (
+        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
+    );
+}
+
+bool ArcUnderQ( const Int a, const bool headtail )  const
+{
+    AssertArc(a);
+
+    const Int c = A_cross(a,headtail);
+
+    AssertCrossing(c);
+    
+    return (
+        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
+    );
+}
+
+/*!
+ * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in equations.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+template<bool headtail>
+bool ArcOverQ( const Int a ) const
+{
+    return !ArcUnderQ<headtail>(a);
+}
+
+bool ArcOverQ( const Int a, const bool headtail )  const
+{
+    return !ArcUnderQ(a,headtail);
+}
+
+
+/*!
  * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
  */
 
@@ -401,13 +541,9 @@ Tensor2<Int,Int> ArcLeftArc() const
             
             const Int arrows [2][2] =
             {
-                {
-                    (A[Out][Left ] << 1) | Int(Head),
-                    (A[Out][Right] << 1) | Int(Head)
-                },{
-                    (A[In ][Left ] << 1) | Int(Tail),
-                    (A[In ][Right] << 1) | Int(Tail)
-                }
+                { (A[Out][Left ] << 1) | Int(Head), (A[Out][Right] << 1) | Int(Head) }
+                ,
+                { (A[In ][Left ] << 1) | Int(Tail), (A[In ][Right] << 1) | Int(Tail) }
             };
             
             
@@ -482,6 +618,8 @@ Tensor2<Int,Int> ArcLeftArc() const
     
     return A_left;
 }
+
+
 
 
 
@@ -600,7 +738,7 @@ ArcView NextArc( const ArcView & A )
     // We leave through the arc at the port opposite to where a arrives.
     const bool side = (C_arcs(c,headtail,Right) != A.Idx());
 
-    return GetArc( C_arcs(c,!headtail,side) );
+    return GetArc(C_arcs(c,!headtail,side) );
 }
 
 

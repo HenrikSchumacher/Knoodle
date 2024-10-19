@@ -26,6 +26,7 @@
 /* Begin PBXFileReference section */
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
+		AFEC36B92CC40D9E0010A789 /* CrossingSimplifier_b */ = {isa = PBXFileReference; lastKnownFileType = folder; path = CrossingSimplifier_b; sourceTree = "<group>"; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* KnotTools.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KnotTools.hpp; sourceTree = "<group>"; };
 		AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_Link_2D; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -55,6 +56,7 @@
 		AF5BC0AA29D1AF1C008CA8B7 = {
 			isa = PBXGroup;
 			children = (
+				AFEC36B92CC40D9E0010A789 /* CrossingSimplifier_b */,
 				AFF305442B7ACE3B009ABC74 /* submodules */,
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305482B7AF300009ABC74 /* KnotTools.hpp */,
@@ -107,7 +109,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1540;
+				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					AFF3054C2B7AF4E2009ABC74 = {
 						CreatedOnToolsVersion = 15.2;

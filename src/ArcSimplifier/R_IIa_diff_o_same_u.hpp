@@ -47,8 +47,6 @@ bool R_IIa_diff_o_same_u()
      *          w_2 O   O s_2
      */
     
-    // TODO: Check for four-crossing moves.
-    
     PD_ASSERT(w_2 != s_2);
     PD_ASSERT(w_3 != n_3);
 

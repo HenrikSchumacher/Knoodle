@@ -278,90 +278,6 @@ namespace KnotTools
             
             return s.str();
         }
-
-        
-        
-//        template<bool must_be_activeQ = true, bool silentQ = false>
-//        bool CheckArcLeftArc( const Int a )
-//        {
-//            bool passedQ = true;
-//            
-//            if( !pd.ArcActiveQ(a) )
-//            {
-//                if constexpr( must_be_activeQ )
-//                {
-//                    eprint(ClassName()+"::CheckArcLeftArc: Inactive " + ArcString(a) + ".");
-//                    return false;
-//                }
-//                else
-//                {
-//                    return true;
-//                }
-//            }
-//            
-//            {
-//                constexpr bool ht = Head;
-//                
-//                const Int A = (a << 1) | Int(ht);
-//                const Int A_l_true = pd.NextLeftArc(A);
-//                const Int A_l      = A_left[A];
-//                
-////                if constexpr( must_be_activeQ )
-////                {
-////                    if( !pd.ArcActiveQ(A_l_true >> 1) )
-////                    {
-////                        wprint(ClassName()+"::CheckArcLeftArc: Inactive true left forward " + ArcString(A_l_true) + ".");
-////                    }
-////                    
-////                    if( !pd.ArcActiveQ(A_l >> 1) )
-////                    {
-////                        wprint(ClassName()+"::CheckArcLeftArc: Inactive left forward " + ArcString(A_l) + ".");
-////                    }
-////                }
-//                
-//                if( A_l != A_l_true )
-//                {
-//                    if constexpr (!silentQ)
-//                    {
-//                        pd_eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
-//                        logprint("Head is        {" + ToString(A_l >> 1)   + "," +  ToString(A_l & Int(1))  + "}.");
-//                        logprint("Head should be {" + ToString(A_l_true >> 1) + "," +  ToString(A_l_true & Int(1)) + "}.");
-//                    }
-//                    passedQ = false;
-//                }
-//            }
-//            
-//            {
-//                constexpr bool ht = Tail;
-//                
-//                const Int A = (a << 1 ) | Int(ht);
-//                const Int A_l_true = pd.NextLeftArc(A);
-//                const Int A_l      = A_left[A];
-//                
-////                if( !pd.ArcActiveQ(A_l_true >> 1) )
-////                {
-////                    wprint(ClassName()+"::CheckArcLeftArc: Inactive true left backward " + ArcString(A_l_true) + ".");
-////                }
-////                
-////                if( !pd.ArcActiveQ(A_l >> 1) )
-////                {
-////                    wprint(ClassName()+"::CheckArcLeftArc: Inactive left backward " + ArcString(A_l) + ".");
-////                }
-//                
-//                if( A_l != A_l_true )
-//                {
-//                    if constexpr (!silentQ)
-//                    {
-//                        pd_eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
-//                        logprint("Tail is        {" + ToString(A_l >> 1)   + "," +  ToString(A_l & Int(1))  + "}.");
-//                        logprint("Tail should be {" + ToString(A_l_true >> 1) + "," +  ToString(A_l_true & Int(1)) + "}.");
-//                    }
-//                    passedQ = false;
-//                }
-//            }
-//            
-//            return passedQ;
-//        }
         
         template<bool must_be_activeQ = true, bool silentQ = false>
         bool CheckArcLeftArc( const Int A )
@@ -599,21 +515,34 @@ namespace KnotTools
 
             PD_TOC(tag);
         }
+
         
-        /*! @brief Applies a Reidemeister I move to arc `a` _without checking_ that `a` is a loop arc.
+        /*! @brief Attempts to perform a Reidemeister I move to arc `a` and returns `true` if an actual move has been performed. If called as `Reidemeister_I<false>`, the check for being a loop arc will be skipped and the surgery is performed right away. This may cause errors, though. If `Reidemeister_I<true>`, then the move is performed only if the check was successful.
          */
 
-        void Reidemeister_I( const Int a )
+        template<bool checkQ>
+        bool Reidemeister_I( const Int a )
         {
             PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
             
             const Int c = A_cross(a,Head);
             
+            if constexpr( checkQ )
+            {
+                if( A_cross(a,Tail) != c )
+                {
+                    return false;
+                }
+            }
+            
             // We assume here that we already know that a is a loop arc.
             
             PD_ASSERT( A_cross(a,Tail) == c );
             
-            const bool side = (C_arcs(c,In,Right) == a);
+            // const bool side = (C_arcs(c,In,Right) == a);
+            
+            // The allows a 50% chance that we do not have to load `C_arcs(c,In,Left)` again.
+            const bool side = (C_arcs(c,In,Left) != a);
             
             const Int a_next = C_arcs(c,Out,!side);
             const Int a_prev = C_arcs(c,In ,!side);
@@ -636,9 +565,7 @@ namespace KnotTools
                 pd.DeactivateCrossing(c);
                 pd.R_I_counter += 2;
                 
-                ++change_counter;
-                
-                return;
+                return true;
             }
             
             //             O-----+ a
@@ -655,14 +582,12 @@ namespace KnotTools
             pd.DeactivateCrossing(c);
             ++pd.R_I_counter;
             
-            ++change_counter;
-            
             AssertArc<1>(a_prev);
             
-            return;
+            return true;
         }
         
-        bool Reidemeister_II(
+        bool Reidemeister_II_Backward(
             mref<Int> a, const Int c_1, const bool side_1, const Int a_next
         )
         {
@@ -698,8 +623,8 @@ namespace KnotTools
                 
                 const Int a_prev = C_arcs(c_0,In,!side_0);
                 
-                PD_ASSERT( a_0_in   != a_next );
-                PD_ASSERT( a_1_in   != a_next );
+                PD_ASSERT( a_0_in  != a_next );
+                PD_ASSERT( a_1_in  != a_next );
                 
                 PD_ASSERT( a_0_out != a_prev );
                 PD_ASSERT( a_1_out != a_prev );
@@ -756,6 +681,7 @@ namespace KnotTools
                 // This cannot happen because we called RemoveLoop.
                 PD_ASSERT( a_0_out != a_prev );
                 
+                // TODO: Might be impossible if we call Reidemeister_I on a_next.
                 // A nasty case that is easy to overlook.
                 if( a_1_in == a_next )
                 {
@@ -889,13 +815,22 @@ namespace KnotTools
                 {
                     break;
                 }
-
                 
                 // Find the beginning of first strand.
                 Int a_begin = WalkBackToStrandStart(a_ptr);
                 
                 // If we arrive at this point again, we break the do loop below.
-                Int a_0 = a_begin;
+                const Int a_0 = a_begin;
+                
+                // We should make sure that a_0 is not a loop.
+                if( Reidemeister_I<true>(a_0) )
+                {
+                    RepairArcLeftArcs();
+                    ++change_counter;
+                    continue;
+                }
+                
+                ArcState & a_0_state = A_state[a_0];
                 
                 // Current arc.
                 Int a = a_0;
@@ -907,6 +842,7 @@ namespace KnotTools
                 // Traverse forward through all arcs in the link component, until we return where we started.
                 do
                 {
+                    // TODO: I think we should increment this at the same place where we set a = a_next.
                     ++strand_length;
                     
                     if( color == std::numeric_limits<Int>::max() )
@@ -918,18 +854,71 @@ namespace KnotTools
 #endif
                         PD_TOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
                         
-                        return change_counter;
+                        // Return a positive number to encourage that this function is called again upstream.
+                        return change_counter+1;
                     }
                     
                     Int c_1 = A_cross(a,Head);
 
                     AssertCrossing<1>(c_1);
                     
+                    const bool side_1 = (C_arcs(c_1,In,Right) == a);
+                    
+                    Int a_next = C_arcs(c_1,Out,!side_1);
+                    AssertArc<1>(a_next);
+                    
+                    Int c_next = A_cross(a_next,Head);
+                    AssertCrossing<1>(c_next);
+                    
+                    // TODO: Not sure whether this adds something it. RemoveLoop is also able to remove Reidemeister I loops. It just does it in a slightly different ways.
+                    if( c_next == c_1 )
+                    {
+                        // overQ == true
+                        //
+                        //                  +-----+
+                        //      |     |     |     | a_next
+                        //      |     |  a  |     |
+                        // ---------------->|-----+
+                        //      |     |     |c_1
+                        //      |     |     |
+
+                        // overQ == true
+                        //
+                        //                  +-----+
+                        //      |     |     |     | a_next
+                        //      |     |  a  |     |
+                        // ---------------->------+
+                        //      |     |     |c_1
+                        //      |     |     |
+                        
+                        // In any case, the loop would prevent the strand from going further.
+                        
+                        // TODO: We could pass `a` as `a_prev` to `Reidemeister_I`.
+                        (void)Reidemeister_I<false>(a_next);
+                        
+                        PD_ASSERT(a_next != a);
+                        
+                        ++change_counter;
+                        --strand_length;
+                        RepairArcLeftArcs();
+                        
+                        // TODO: I think it would be safe to continue without checking that `a_0` is still active. We should first complete the current strand.
+                        
+                        if( ActiveQ(a_0_state) )
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    
                     // Arc gets old color.
                     A_color(a) = color;
                     
                     
-                    // TODO: This might require already the there are not possible Reidemeister II moves along the strand.
+                    // TODO: This might require already that there are not possible Reidemeister II moves along the strand.
                     // Check for loops.
                     if( C_color(c_1) == color )
                     {
@@ -939,37 +928,13 @@ namespace KnotTools
                         
                         RepairArcLeftArcs();
                         
-                        // TODO: If we called RemoveLoop just because of this configuration, then we could easily move on with the strand.
-                        //
-                        //                  +-----+
-                        //                  |     | a
-                        //                  |     |
-                        // -----------X---->------+
-                        //                  |
-                        //                  |
-                        //                  V
-                        //             c_1  X
-                        //                  | a_next
-                        
                         break;
                     }
                     
-                    const bool side_1 = (C_arcs(c_1,In,Right) == a);
                     
-                    Int a_next = C_arcs(c_1,Out,!side_1);
-                    
-                    // TODO: Maybe it is worth to check whether the strand ends due to an easily removable Reidemeister I or II pattern:
 
                     
-                    // overQ == true
-                    //
-                    //                  +-----+
-                    //      |     |     |     | a_next
-                    //      |     |  a  |     |
-                    // ---------------->|-----+
-                    //      |     |     |c_1
-                    //      |     |     |
-                    
+
                     // overQ == true
                     //
                     //                  +--------+
@@ -996,15 +961,15 @@ namespace KnotTools
                     {
                         if( (!strand_completeQ) && (a != a_begin) )
                         {
-                            const bool changedQ = Reidemeister_II(a,c_1,side_1,a_next);
+                            const bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
                             
                             if( changedQ )
                             {
                                 RepairArcLeftArcs();
                                 
-                                if( pd.ArcActiveQ(a_0) )
+                                if( ActiveQ(a_0_state) )
                                 {
-                                    // Reidemeister_II reset `a` to the previous arc.
+                                    // Reidemeister_II_Backward reset `a` to the previous arc.
                                     continue;
                                 }
                                 else
@@ -1031,17 +996,13 @@ namespace KnotTools
                             }
                         }
                         
-                        if( changedQ && (!pd.ArcActiveQ(a_0)) )
+                        // TODO: Check this.
+//                        if( changedQ && (!ActiveQ(a_0_state)) )
+                        if( changedQ || (!ActiveQ(a_0_state)) )
                         {
                             // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence we rather break the while loop here.
                             break;
                         }
-//                        
-//                        // For some reason I don't know always breaking here is measurably faster.
-//                        if( changedQ )
-//                        {
-//                            break;
-//                        }
                         
                         // Create a new strand.
                         strand_length = 0;
@@ -1058,6 +1019,7 @@ namespace KnotTools
                     AssertArc<1>(a);
                     
                     a = a_next;
+                    // TODO: c_1 = c_next?
                     
                 }
                 while( a != a_0 );
@@ -1254,7 +1216,9 @@ namespace KnotTools
 
             // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
             
-            Reidemeister_I(b);
+            (void)Reidemeister_I<false>(b);
+            
+            ++change_counter;
             
 #ifdef PD_TIMINGQ
             const Time stop_time = Clock::now();
@@ -1475,7 +1439,7 @@ namespace KnotTools
          *
          * @param a_begin The first arc of the strand on entry as well as as on return.
          *
-         * @param a_end The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changed!
+         * @param a_end The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
          *
          * @param max_dist The maximal distance Dijkstra's algorithm will wander.
          *

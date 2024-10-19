@@ -2,14 +2,14 @@ private:
 
 void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 {
-    PD_PRINT("\nReidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
+    PD_PRINT("\n" + ClassName() + "::Reidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT(c_0 != c_1);
     
-    auto C_0 = GetCrossing(c_0 );
-    auto C_1 = GetCrossing(c_1 );
-    PD_ASSERT(OppositeHandednessQ(C_0,C_1));
+    auto C_0 = GetCrossing(c_0);
+    auto C_1 = GetCrossing(c_1);
+    PD_ASSERT(pd.OppositeHandednessQ(C_0,C_1));
 
     
 #ifdef PD_DEBUG
@@ -90,15 +90,15 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 ////                              \                       /
 ////                               \      E_0 = E_1      /
 ////                                +---------<---------+
-//            
+//
 //            // We should not arrive here because this is a vertical case.
 ////            PD_ASSERT(false);
 //            wprint("We should not arrive here because this is a vertical case. (1)");
-//            
+//
 //            unlink_count++;
-//            
+//
 //            PD_PRINT("\tUnlink detectd.");
-//            
+//
 //            Reconnect<Tail>(A,E_2);
 //            Reconnect<Head>(A,E_3);
 //
@@ -126,15 +126,15 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 ////                              \                       /
 ////                               \      E_0 = E_1      /
 ////                                +---------<---------+
-//            
+//
 //            // We should not arrive here because this is a vertical case.
 ////            PD_ASSERT(false);
 //            wprint("We should not arrive here because this is a vertical case. (2)");
-//            
+//
 //            PD_PRINT("\tTwo unlinks detectd.");
-//            
+//
 //            unlink_count += 2;
-//            
+//
 //            DeactivateArc(A.Idx());
 //            DeactivateArc(B.Idx());
 //            DeactivateArc(E_0.Idx());
@@ -159,16 +159,16 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 ////                               /   \             /   \
 ////                       E_0    /     \     A     v     v    E_1
 ////               v_0 O---->----O       O----<----O       O---->----O v_1
-//    
+//
 //        // We should not arrive here because this is a vertical case.
 ////        PD_ASSERT(false);
-//        
+//
 //        wprint("We should not arrive here because this is a vertical case. (3)");
-//        
+//
 //        unlink_count++;
-//        
+//
 //        PD_PRINT("\tUnlink detectd.");
-//        
+//
 //        Reconnect<Tail>(B,E_0);
 //        Reconnect<Head>(B,E_1);
 //
@@ -201,9 +201,9 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
 //            // We should not arrive here because we first check for a Reidemeister_I at c_0.
 ////            PD_ASSERT( false );
-//            
+//
 //            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0.");
-//            
+//
 //            Reconnect<Tail>(E_0,E_2);
 //            Reconnect<Head>(E_0,E_1);
 //
@@ -211,7 +211,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //            DeactivateArc(B);
 //
 //            PD_PRINT("\t\tModified move 1.");
-//            
+//
 //            goto exit;
 //        }
 //        else
@@ -232,10 +232,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 ////            PD_ASSERT( false );
 //            wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (2)");
 //
-//            ++unlink_count;
-//            
+//            ++pd.unlink_count;
+//
 //            PD_PRINT("\t\tUnlink detected.");
-//            
+//
 //            DeactivateArc(A.Idx());
 //            DeactivateArc(B.Idx());
 //            DeactivateArc(E_0.Idx());
@@ -260,12 +260,12 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 ////               v_0 O---->----O       O----<----O       O---->----O
 ////
 //
-//        
+//
 //        //  We should not arrive here because we first check for a Reidemeister_I at C_1.
 ////        PD_ASSERT( false );
 //        wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (3)");
 //
-//        
+//
 //        Reconnect<Tail>(E_1,E_0);
 //        Reconnect<Head>(E_1,E_3);
 //
@@ -273,7 +273,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        DeactivateArc(B.Idx());
 //
 //        PD_PRINT("\t\tModified move 2.");
-//        
+//
 //        goto exit;
 //    }
 
@@ -327,6 +327,6 @@ exit:
     DeactivateCrossing(C_0.Idx());
     DeactivateCrossing(C_1.Idx());
     
-    ++R_II_counter;
+    ++pd.R_II_counter;
 
 } // Reidemeister_II_Horizontal
