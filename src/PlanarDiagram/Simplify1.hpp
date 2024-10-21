@@ -14,31 +14,36 @@ void Simplify1()
 {
     ptic(ClassName()+"::Simplify1");
     
+    Int test_counter = 0;
     Int counter = 0;
     
     Int old_counter = -1;
     Int iter = 0;
+    
+    CrossingSimplifier<Int,true> S(*this);
     
     while( counter != old_counter )
     {
         ++iter;
         
         old_counter = counter;
-        
+
         for( Int c = 0; c < initial_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
+                ++test_counter;
+             
                 AssertCrossing(c);
                 
-                bool changedQ = Reidemeister_I_at_Crossing(c);
+                bool changedQ = S.Reidemeister_I(c);
                 
                 counter += changedQ;
                 
                 // If Reidemeister_I was successful, then c is inactive now.
                 if( !changedQ )
                 {
-                    bool changedQ = Reidemeister_II<false>(c);
+                    bool changedQ = S.template Reidemeister_II<false>(c);
                     
                     counter += changedQ;
                 }

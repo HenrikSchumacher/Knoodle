@@ -21,9 +21,6 @@ namespace KnotTools
         using CrossingStateContainer_T  = PD_T::CrossingStateContainer_T;
         using ArcStateContainer_T       = PD_T::ArcStateContainer_T;
         
-        using CrossingView = PD_T::CrossingView;
-        using ArcView      = PD_T::ArcView;
-        
         static constexpr bool mult_compQ = mult_compQ_;
         
         static constexpr bool Head  = PD_T::Head;
@@ -62,6 +59,11 @@ namespace KnotTools
         CrossingSimplifier( CrossingSimplifier && other ) = delete;
         
 
+    public:
+        
+#include "CrossingSimplifier/CrossingView.hpp"
+#include "CrossingSimplifier/ArcView.hpp"
+        
     private:
         
         bool ArcActiveQ( const Int a_ ) const
@@ -153,26 +155,26 @@ namespace KnotTools
             pd.template Reconnect<headtail>(a,b);
         }
         
-        void Reconnect( ArcView & A, const bool headtail, ArcView & B )
-        {
-            pd.Reconnect(A,headtail,B);
-        }
+//        void Reconnect( ArcView & A, const bool headtail, ArcView & B )
+//        {
+//            pd.Reconnect(A,headtail,B);
+//        }
         
-        template<bool headtail>
-        void Reconnect( ArcView & A, ArcView & B )
-        {
-            pd.template Reconnect<headtail>(A,B);
-        }
+//        template<bool headtail>
+//        void Reconnect( ArcView & A, ArcView & B )
+//        {
+//            pd.template Reconnect<headtail>(A,B);
+//        }
         
-        CrossingView GetCrossing(const Int c )
-        {
-            return pd.GetCrossing(c);
-        }
-        
-        ArcView GetArc(const Int a )
-        {
-            return pd.GetArc(a);
-        }
+//        CrossingView GetCrossing(const Int c )
+//        {
+//            return pd.GetCrossing(c);
+//        }
+//        
+//        ArcView GetArc(const Int a )
+//        {
+//            return pd.GetArc(a);
+//        }
         
     public:
         

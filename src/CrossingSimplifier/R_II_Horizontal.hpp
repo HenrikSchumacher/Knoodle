@@ -9,7 +9,7 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     
     auto C_0 = GetCrossing(c_0);
     auto C_1 = GetCrossing(c_1);
-    PD_ASSERT(pd.OppositeHandednessQ(C_0,C_1));
+    PD_ASSERT(OppositeHandednessQ(C_0,C_1));
 
     
 #ifdef PD_DEBUG

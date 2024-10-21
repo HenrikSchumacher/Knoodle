@@ -14,7 +14,7 @@ bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
     auto C_1 = GetCrossing(c_1);
     
     // This are some central assumption here. (C_0 is the bottom crossing.)
-    PD_ASSERT(pd.SameHandednessQ(C_0,C_1));
+    PD_ASSERT(SameHandednessQ(C_0,C_1));
     PD_ASSERT(C_0(Out,side) == C_1(In ,side));
     PD_ASSERT(C_0(In ,side) == C_1(Out,side));
     
@@ -80,7 +80,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
         
         if( C_2(!io, side) == E_0 )
         {
-            if( pd.SameHandednessQ(C_0,C_2) )
+            if( SameHandednessQ(C_0,C_2) )
             {
                 PD_PRINT("Reidemeister_Ia_Horizontal_impl normal move.");
                 
@@ -144,9 +144,9 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 PD_ASSERT(C_0 != C_1);
                 PD_ASSERT(C_0 != C_2);
                 PD_ASSERT(C_1 != C_2);
-                PD_ASSERT(pd.SameHandednessQ(C_0,C_1));
-                PD_ASSERT(pd.SameHandednessQ(C_0,C_2));
-                PD_ASSERT(pd.SameHandednessQ(C_1,C_2));
+                PD_ASSERT(SameHandednessQ(C_0,C_1));
+                PD_ASSERT(SameHandednessQ(C_0,C_2));
+                PD_ASSERT(SameHandednessQ(C_1,C_2));
                 
                 PD_ASSERT(E_0 != E_1);
                 PD_ASSERT(F_0 != F_1);
@@ -219,11 +219,11 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 
                 // Modify crossing C_0.
                 C_0( io,!side) = F_0.Idx();
-                pd.RotateCrossing(C_0,io == Out ? side : !side); // ??
+                RotateCrossing(C_0,io == Out ? side : !side); // ??
                 
                 // Modify crossing C_1.
                 C_1(!io,!side) = F_1.Idx();
-                pd.RotateCrossing(C_1,io == Out ? !side : side); // ??
+                RotateCrossing(C_1,io == Out ? !side : side); // ??
                 
                 // Finally, we can remove the crossing.
                 DeactivateCrossing(C_2.Idx());

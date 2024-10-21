@@ -16,10 +16,10 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     auto B_2 = GetArc(C_0(In ,Left ));
     auto A_0 = GetArc(C_0(In ,Right));
     auto C_1 = GetCrossing(A_1(Head));
-    auto A_2 = pd.template NextArc<Head>(A_1);
+    auto A_2 = NextArc<Head>(A_1);
     auto C_2 = GetCrossing(A_2(Head));
     
-    if(pd.SameHandednessQ(C_0,C_2))
+    if(SameHandednessQ(C_0,C_2))
     {
         // Not what we are looking for.
         return false;
@@ -42,7 +42,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
         return false;
     }
     
-    if(pd.SameHandednessQ(C_1,C_3))
+    if(SameHandednessQ(C_1,C_3))
     {
         return false;
     }
@@ -79,7 +79,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
 //                             O
     
     
-    PD_ASSERT(pd.OppositeHandednessQ(C_0,C_2));
+    PD_ASSERT(OppositeHandednessQ(C_0,C_2));
     
     PD_ASSERT(C_0(Out,Left ) == A_1);
     PD_ASSERT(C_0(Out,Right) == B_3);
@@ -104,7 +104,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     PD_ASSERT(TailQ(A_3,C_2));
     PD_ASSERT(TailQ(B_3,C_0));
     
-    PD_ASSERT(pd.OppositeHandednessQ(C_1,C_3));
+    PD_ASSERT(OppositeHandednessQ(C_1,C_3));
     
     PD_PRINT("Incoming data");
     
@@ -211,7 +211,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     PD_ASSERT(CheckArc(A_3.Idx()));
     PD_ASSERT(CheckArc(B_3.Idx()));
     
-    PD_ASSERT(pd.OppositeHandednessQ(C_1,C_3));
+    PD_ASSERT(OppositeHandednessQ(C_1,C_3));
     
     PD_ASSERT(A_0(Head) == C_3);
     PD_ASSERT(B_0(Head) == C_1);

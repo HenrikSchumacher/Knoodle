@@ -70,13 +70,13 @@ void RequireFaces()
     
     mptr<Int> A_face = A_faces_buffer.data();
     
-    // Convention: Left face first:
+    // Convention: Right face first:
     //
-    //            A_faces_buffer(a,1)
+    //            A_faces_buffer(a,0)
     //
     //            <------------|  a
     //
-    //            A_faces_buffer(a,0)
+    //            A_faces_buffer(a,1)
     //
     // Entry -1 means "unvisited but to be visited".
     // Entry -2 means "do not visit".

@@ -13,42 +13,44 @@ public:
 void Simplify2()
 {
     ptic(ClassName()+"::Simplify2");
-    
+
     Int counter = 0;
     
     Int old_counter = -1;
     Int iter = 0;
+    
+    CrossingSimplifier<Int,true> S(*this);
     
     while( counter != old_counter )
     {
         ++iter;
         
         old_counter = counter;
-        
+
         for( Int c = 0; c < initial_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
                 AssertCrossing(c);
                 
-                bool changedQ = Reidemeister_I_at_Crossing(c);
+                bool changedQ = S.Reidemeister_I(c);
                 
                 counter += changedQ;
                 
                 // If Reidemeister_I was successful, then c is inactive now.
                 if( !changedQ )
                 {
-                    bool changedQ = Reidemeister_II<true>(c);
+                    bool changedQ = S.template Reidemeister_II<true>(c);
                     
                     // If Reidemeister_II was successful, then c is _probably_ inactive now.
                     if( !changedQ )
                     {
-                        changedQ = Reidemeister_IIa_Vertical(c);
+                        changedQ = S.Reidemeister_IIa_Vertical(c);
                         
                         // If Reidemeister_IIa_Vertical was successful, then c is _probably_ inactive now.
                         if( !changedQ )
                         {
-                            changedQ = Reidemeister_IIa_Horizontal(c);
+                            changedQ = S.Reidemeister_IIa_Horizontal(c);
                         }
                     }
                     

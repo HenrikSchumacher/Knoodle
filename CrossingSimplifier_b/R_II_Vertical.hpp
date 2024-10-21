@@ -10,7 +10,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     auto C_0 = GetCrossing(c_0);
     auto C_1 = GetCrossing(c_1);
     
-    PD_ASSERT(pd.OppositeHandednessQ(C_0,C_1));
+    PD_ASSERT(OppositeHandednessQ(C_0,C_1));
     
     // This is the central assumption here. (C_0 is the bottom crossing.)
     PD_ASSERT(C_0(Out,Left ) == C_1(In,Left ));

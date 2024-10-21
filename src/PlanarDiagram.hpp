@@ -824,15 +824,13 @@ namespace KnotTools
         
     public:
 
-#include "PlanarDiagram/CrossingView.hpp"
-#include "PlanarDiagram/ArcView.hpp"
         
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/R_I.hpp"
-#include "PlanarDiagram/R_II.hpp"
-#include "PlanarDiagram/R_IIa_Vertical.hpp"
-#include "PlanarDiagram/R_IIa_Horizontal.hpp"
+//#include "PlanarDiagram/R_II.hpp"
+//#include "PlanarDiagram/R_IIa_Vertical.hpp"
+//#include "PlanarDiagram/R_IIa_Horizontal.hpp"
         
 #include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
@@ -841,9 +839,7 @@ namespace KnotTools
 #include "PlanarDiagram/ConnectedSum.hpp"
         
 #include "PlanarDiagram/Simplify1.hpp"
-#include "PlanarDiagram/Simplify1a.hpp"
 #include "PlanarDiagram/Simplify2.hpp"
-#include "PlanarDiagram/Simplify2a.hpp"
 #include "PlanarDiagram/Simplify3.hpp"
 #include "PlanarDiagram/Simplify4.hpp"
 #include "PlanarDiagram/Simplify5.hpp"

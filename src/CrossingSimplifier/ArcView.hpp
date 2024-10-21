@@ -80,7 +80,7 @@ public:
 
 ArcView GetArc(const Int a )
 {
-    AssertArc(a);
+    AssertArc<0>(a);
     
     return ArcView( a, A_cross.data(a), A_state[a] );
 }
@@ -104,7 +104,7 @@ void Deactivate( mref<ArcView> A )
 {
     if( A.ArcActiveQ() )
     {
-        --arc_count;
+        --pd.arc_count;
         A.State() = ArcState::Inactive;
     }
     else
@@ -114,7 +114,7 @@ void Deactivate( mref<ArcView> A )
 #endif
     }
     
-    PD_ASSERT( arc_count >= 0 );
+    PD_ASSERT( pd.arc_count >= 0 );
 }
 
 void Reconnect( ArcView & A, const bool headtail, ArcView & B )
@@ -188,4 +188,24 @@ void Reconnect( ArcView & A, ArcView & B )
     C(headtail,side) = A.Idx();
     
     DeactivateArc(B.Idx());
+}
+
+
+/*!
+ * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
+ */
+
+template<bool headtail>
+ArcView NextArc( const ArcView & A )
+{
+    AssertArc<0>(A.Idx());
+    
+    const Int c = A(headtail);
+
+    AssertCrossing<0>(c);
+
+    // We leave through the arc at the port opposite to where a arrives.
+    const bool side = (C_arcs(c,headtail,Right) != A.Idx());
+
+    return GetArc(C_arcs(c,!headtail,side) );
 }

@@ -721,27 +721,6 @@ Int NextArc( const Int a, const Int c ) const
     return a_next;
 }
 
-
-/*!
- * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
- */
-
-template<bool headtail>
-ArcView NextArc( const ArcView & A )
-{
-    AssertArc(A.Idx());
-    
-    const Int c = A(headtail);
-
-    AssertCrossing(c);
-
-    // We leave through the arc at the port opposite to where a arrives.
-    const bool side = (C_arcs(c,headtail,Right) != A.Idx());
-
-    return GetArc(C_arcs(c,!headtail,side) );
-}
-
-
 Tensor3<Int,Int> ArcWings() const
 {
     Tensor3<Int,Int> A_wings ( initial_arc_count, 2, 2 );
@@ -858,4 +837,37 @@ Tensor3<Int,Int> ArcWings() const
     }
     
     return A_wings;
+}
+
+
+Tensor1<Int,Int> ArcNextArc() const
+{
+    Tensor1<Int,Int> A_next ( initial_arc_count, -1 );
+    
+    for( Int c = 0; c < initial_crossing_count; ++c )
+    {
+        if( CrossingActiveQ(c) )
+        {
+            A_next(C_arcs(c,In,Left )) = C_arcs(c,Out,Right);
+            A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
+        }
+    }
+    
+    return A_next;
+}
+
+Tensor1<Int,Int> ArcPrevArc() const
+{
+    Tensor1<Int,Int> A_prev ( initial_arc_count, -1 );
+    
+    for( Int c = 0; c < initial_crossing_count; ++c )
+    {
+        if( CrossingActiveQ(c) )
+        {
+            A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In,Left );
+            A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In,Right);
+        }
+    }
+    
+    return A_prev;
 }

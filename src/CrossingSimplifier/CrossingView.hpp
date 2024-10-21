@@ -83,7 +83,7 @@ public:
 
 CrossingView GetCrossing(const Int c )
 {
-    AssertCrossing(c);
+    AssertCrossing<0>(c);
 
     return CrossingView( c, C_arcs.data(c), C_state[c] );
 }
@@ -164,7 +164,7 @@ void Deactivate( mref<CrossingView> C )
 {
     if( C.ActiveQ() )
     {
-        --crossing_count;
+        --pd.crossing_count;
         C.State() = CrossingState::Inactive;
     }
     else
@@ -174,7 +174,7 @@ void Deactivate( mref<CrossingView> C )
 #endif
     }
     
-    PD_ASSERT( crossing_count >= 0 );
+    PD_ASSERT( pd.crossing_count >= 0 );
     
 #ifdef PD_DEBUG
     for( bool io : { In, Out } )

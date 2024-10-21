@@ -33,9 +33,9 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
 
     return true;
     
-//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeHandednessQ(c_0,c_1):
+//                This alternative code with explanation shows why we do not have to distinguish the two cases of pd.OppositeHandednessQ(c_0,c_1):
 //
-//                if( OppositeHandednessQ(c_0,c_1) )
+//                if( pd.OppositeHandednessQ(c_0,c_1) )
 //                {
 //// This horizontal alignment in the case of side == Right and positive crossing c_0
 //// Cases side == Left and sign = -1 are analogous.

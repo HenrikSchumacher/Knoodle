@@ -14,7 +14,7 @@ bool Reidemeister_Ia_Vertical( const Int c_0, const Int c_1 )
     auto C_1 = GetCrossing(c_1);
     
     // This are some central assumption here. (c_0 is the bottom crossing.)
-    PD_ASSERT(pd.SameHandednessQ(C_0,C_1));
+    PD_ASSERT(SameHandednessQ(C_0,C_1));
     PD_ASSERT(C_0(Out,Left ) == C_1(In ,Left ));
     PD_ASSERT(C_0(Out,Right) == C_1(In ,Right));
     
@@ -79,7 +79,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
         {
             PD_ASSERT(C_2(Out,side) == E_0);
             
-            if(pd.OppositeHandednessQ(C_2,C_0))
+            if(OppositeHandednessQ(C_2,C_0))
             {
 //                logprint("Reidemeister_Ia_Vertical_impl - normal move!");
 //                logvalprint( "side", Right ? "Right" : "Left");
@@ -166,11 +166,11 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
 
                 // Modify crossing C_0.
                 C_0(In ,side) = F_0.Idx();
-                pd.RotateCrossing(C_0,side);
+                RotateCrossing(C_0,side);
                 
                 // Modify crossing C_1.
                 C_1(Out,side) = F_1.Idx();
-                pd.RotateCrossing(C_1,!side);
+                RotateCrossing(C_1,!side);
 
                 // Finally, we can remove the crossing.
                 DeactivateCrossing(C_2.Idx());
