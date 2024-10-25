@@ -1,19 +1,18 @@
 bool R_I_center()
 {
-    PD_PRINT( "R_I_center()" );
+    PD_PRINT("R_I_center()");
     
-    if( c_0 == c_1 )
+    if(c_0 == c_1)
     {
-        PD_PRINT( "\tc_0 == c_1" );
+        PD_PRINT("\tc_0 == c_1");
         
-        if( s_0 == a )
+        if(s_0 == a)
         {
-            PD_PRINT( "\t\ts_0 == a" );
-           // This implies s_0 == a
+            PD_PRINT("\t\ts_0 == a");
 
-            if( w_0 != n_0 )
+            if(w_0 != n_0)
             {
-                PD_PRINT( "\t\tw_0 != n_0" );
+                PD_PRINT("\t\tw_0 != n_0");
                 
                 /*              n_0
                  *               O
@@ -38,9 +37,9 @@ bool R_I_center()
                 
                 return true;
             }
-            else // if( w_0 == n_0 )
+            else // if(w_0 == n_0)
             {
-                PD_PRINT( "\t\tw_0 == n_0" );
+                PD_PRINT("\t\tw_0 == n_0");
                 
                 /*          +----O
                  *          |    ^
@@ -69,14 +68,12 @@ bool R_I_center()
         }
         else
         {
-            // This implies n_0 == a.
+            PD_PRINT("\t\tn_0 == a");
+            PD_ASSERT("n_0 == a");
             
-            PD_PRINT( "\t\tn_0 == a" );
-            PD_ASSERT( "n_0 == a" );
-            
-            if( w_0 != s_0 )
+            if(w_0 != s_0)
             {
-                PD_PRINT( "\t\t\tw_0 != s_0" );
+                PD_PRINT("\t\t\tw_0 != s_0");
                 
                 /*               O----+
                  *               |    |
@@ -101,9 +98,9 @@ bool R_I_center()
                 
                 return true;
             }
-            else // if( w_0 == s_0 )
+            else // if(w_0 == s_0)
             {
-                PD_PRINT( "\t\t\tw_0 == s_0" );
+                PD_PRINT("\t\t\tw_0 == s_0");
                 
                 /*               O----+
                  *               |    |

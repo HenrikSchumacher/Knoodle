@@ -153,7 +153,6 @@ namespace KnotTools
         {
             ptic(ClassName()+"::ReadVertexCoordinates (AoS)");
             
-            // TODO: Translate the data so that everything lies in a box [L,2*L] x [L,2*L] z[L,2*L]. ->Subtraction without precision loss.
             if( preorderedQ )
             {
                 for( Int c = 0; c < component_count; ++c )
@@ -282,7 +281,7 @@ namespace KnotTools
         void ApplySterbenzShift()
         {
             // Add 1% security margin.
-            const Real margin = static_cast<Real>(1.01);
+            constexpr Real margin = static_cast<Real>(1.01);
             
             
             Real lo = edge_coords(0,0,2);
@@ -351,6 +350,7 @@ namespace KnotTools
             
             T.ComputeBoundingBoxes( edge_coords, box_coords );
             
+            // ApplySterbenzShift requires the bounding box, so this is why we compute the bounding boxes first.
             ApplySterbenzShift();
             
             FindIntersectingEdges_DFS();

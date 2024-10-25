@@ -135,8 +135,8 @@ void Reconnect( ArcView & A, const bool headtail, ArcView & B )
     
     PD_ASSERT( (C(headtail,Left) == B.Idx()) || (C(headtail,Right) == B.Idx()) );
     
-    PD_ASSERT(CheckArc(B.Idx()));
-    PD_ASSERT(CheckCrossing(C.Idx()));
+    PD_ASSERT(pd.CheckArc(B.Idx()));
+    PD_ASSERT(pd.CheckCrossing(C.Idx()));
     
     PD_ASSERT(C.ActiveQ());
     PD_ASSERT(CrossingActiveQ(A( headtail)));
@@ -173,8 +173,8 @@ void Reconnect( ArcView & A, ArcView & B )
     
     PD_ASSERT( (C(headtail,Left) == B.Idx()) || (C(headtail,Right) == B.Idx()) );
     
-    PD_ASSERT(CheckArc(B.Idx()));
-    PD_ASSERT(CheckCrossing(C.Idx()));
+    PD_ASSERT(pd.CheckArc(B.Idx()));
+    PD_ASSERT(pd.CheckCrossing(C.Idx()));
     
     PD_ASSERT(C.ActiveQ());
     PD_ASSERT(CrossingActiveQ(A( headtail)));

@@ -155,7 +155,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     C_1(In , side_1) = C_1(In ,!side_1);
     C_1(Out, side_1) = B_3.Idx();
     C_1(In ,!side_1) = B_0.Idx();
-    pd.FlipHandedness(C_1.Idx());
+    pd.SwitchCrossing(C_1.Idx());
     A_0(Head) = C_3.Idx();
     A_3(Tail) = C_3.Idx();
 
@@ -166,7 +166,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     C_3(In , side_3) = C_3(In ,!side_3);
     C_3(Out, side_3) = A_3.Idx();
     C_3(In ,!side_3) = A_0.Idx();
-    pd.FlipHandedness(C_3.Idx());
+    pd.SwitchCrossing(C_3.Idx());
     B_0(Head) = C_1.Idx();
     B_3(Tail) = C_1.Idx();
     

@@ -8,11 +8,11 @@ public:
  */
 
 bool SplitConnectedSummands(
-    std::vector<PlanarDiagram<Int>> & PD_list,
+    mref<std::vector<PlanarDiagram<Int>>> PD_list,
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
     const Int  simplify3_level = 4,
-    const bool simplify3_exhaustiveQ = true,
+    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q = true
 )
 {
@@ -42,7 +42,7 @@ bool SplitConnectedSummands(
         {
             changedQ = changedQ || SplitConnectedSummand(
                 f,PD_list,S,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
+                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -66,7 +66,8 @@ private:
  */
 
 bool SplitConnectedSummand(
-    const Int f, std::vector<PlanarDiagram<Int>> & PD_list,
+    const Int f,
+    mref<std::vector<PlanarDiagram<Int>>> PD_list,
     TwoArraySort<Int,Int,Int> & S,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
@@ -76,7 +77,7 @@ bool SplitConnectedSummand(
     const Int max_dist,
     const bool compressQ,
     const Int  simplify3_level,
-    const bool simplify3_exhaustiveQ,
+    const Int  simplify3_max_iter,
     const bool strand_R_II_Q = true
 )
 {
@@ -129,7 +130,7 @@ bool SplitConnectedSummand(
             max_dist,
             compressQ,
             simplify3_level,
-            simplify3_exhaustiveQ,
+            simplify3_max_iter,
             strand_R_II_Q
         );
 
@@ -366,7 +367,7 @@ private:
  *
  */
 
-PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int comp_size )
+PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 {
     ptic(ClassName()+"::ExportComponent");
     

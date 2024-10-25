@@ -1,6 +1,6 @@
 void load_c_0()
 {
-    PD_PRINT( "load_c_0()" );
+    PD_DPRINT( "load_c_0()" );
     
     /*              n_0
      *               O
@@ -33,7 +33,7 @@ void load_c_0()
 
 void load_c_1()
 {
-    PD_PRINT( "load_c_1()" );
+    PD_DPRINT( "load_c_1()" );
     
 //    // Whether the vertical strand at c_1 points upwards.
     u_1 = (C_arcs(c_1,In ,Left ) == a);
@@ -57,7 +57,7 @@ void load_c_1()
 
 void load_c_2()
 {
-    PD_PRINT( "load_c_2()" );
+    PD_DPRINT( "load_c_2()" );
     
     /*          n_0       n_1
      *           O         O
@@ -153,7 +153,7 @@ void load_c_2()
 
 void load_c_3()
 {
-    PD_PRINT( "load_c_3()" );
+    PD_DPRINT( "load_c_3()" );
     
     /*           O n_3
      *           |
@@ -173,6 +173,8 @@ void load_c_3()
     c_3 = A_cross(n_0,u_0);
     
     AssertCrossing<1>(c_3);
+    
+    PD_ASSERT( (n_0 == C_arcs(c_3,u_0,Right)) || (n_0 == C_arcs(c_3,u_0,Left)) );
     
     const bool b_3 = (n_0 == C_arcs(c_3,u_0,Right));
     

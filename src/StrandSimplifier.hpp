@@ -1019,10 +1019,16 @@ namespace KnotTools
                     AssertArc<1>(a);
                     
                     a = a_next;
-                    // TODO: c_1 = c_next?
                     
                 }
                 while( a != a_0 );
+                
+                // TODO: If the link has multiple components, it can happen that we cycled around a full unlink lying on top (or below) the remaining diagram.
+                
+//                if( a == a_begin )
+//                {
+//                    wprint(ClassName()+"::SimplifyStrands: Split unlink detected. We have yet to remove it." );
+//                }
                 
                 ++color;
                 strand_length = 0;
@@ -1151,52 +1157,66 @@ namespace KnotTools
             // We can save the lookup here.
 //            const Int c_0 = A_cross(e,Head);
             
-            // TODO: If the link has multiple components, it can also happen then the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well.
-//            if constexpr( mult_compQ )
-//            {
-//                const Int a = pd.template NextArc<Head>(e,c_0);
-//
-//                // TODO: Check also the case that the strand is a loop
-//
-//                if( A_color(a) == color )
-//                {
-//                    if( (!strand_completeQ) )
-//                    {
-//                        // overQ == true;
-//                        //
-//                        //                 O
-//                        //                 |
-//                        //        e        |        a
-//                        // ####O----->O--------->O----->O######
-//                        //                 |c_0
-//                        //                 |
-//                        //                 O
-//
-//                        ++pd.unlink_count;
-//                        //RemoveStrand(e,e);
-//                        return;
-//                    }
-//                    else
-//                    {
-//                        // TODO: What did I think? This cannot happen, or can it?
-//                        // overQ == true;
-//                        //
-//                        //                 O                  O
-//                        //                 |                  |
-//                        //        e        |        a         |
-//                        // ####O----->O----|---->O----->O---->X---->O######
-//                        //                 |c_0               |c_1
-//                        //                 |                  |
-//                        //                 O                  O
-//
-//                        // TODO: We need to insert a new crossing on the vertical strand.
-//
-//                        pd_eprint(ClassName()+"::RemoveLoop: Case A_color(a_next) == color and resetQ == true not implemented");
-//
-//                        return;
-//                    }
-//                }
-//            }
+            // TODO: If the link has multiple components, it can also happen that the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well.
+            if constexpr( mult_compQ )
+            {
+                const Int a = pd.template NextArc<Head>(e,c_0);
+
+                // TODO: Can this ever happen?
+                // TODO: -> Yes!!!
+                
+                if( A_color(a) == color )
+                {
+                    const bool u_0 = (C_arcs(c_0,Out,Right) == a);
+                    
+                    ++pd.unlink_count;
+                    CollapseArcRange(a,e,strand_length);
+                    
+                    pd.DeactivateArc(a);
+                    
+                    // overQ == true;
+                    //                   n_0
+                    //                 O
+                    //                 |
+                    //        e        |        a
+                    // ####O----->O--------->O----->O######
+                    //                 |c_0
+                    //                 |
+                    //                 O
+                    //                  s_0
+                    
+                    // We read out n_0 and s_0 only now because CollapseArcRange might change the north and south port of c_0.
+                    
+                    const Int n_0 = C_arcs(c_0,!u_0,Left );
+                    const Int s_0 = C_arcs(c_0, u_0,Right);
+
+                    if( s_0 == n_0 )
+                    {
+                        ++pd.unlink_count;
+                        pd.DeactivateArc(s_0);
+                        
+                    }
+                    else
+                    {
+                        if( u_0 )
+                        {
+                            Reconnect<Head,true>(s_0,n_0);
+                        }
+                        else
+                        {
+                            Reconnect<Tail,true>(s_0,n_0);
+                        }
+                    }
+                    
+                    pd.DeactivateCrossing(c_0);
+                    
+                    ++change_counter;
+                    
+                    PD_TOC(ClassName() + "::RemoveLoop");
+                    
+                    return;
+                }
+            }
             
             // side == Left             side == Right
             //
@@ -1459,12 +1479,6 @@ namespace KnotTools
 #endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-
-//            logdump(max_dist);
-//            logdump(d);
-//            
-//            logprint("strand = \n" + StrandString(a_begin,a_end));
-//            logprint("path = \n" + PathString());
             
             if( (d < 0) || (d > max_dist) )
             {
@@ -1478,8 +1492,6 @@ namespace KnotTools
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
-            
-
             
             PD_TIC("Prepare reroute loop");
             
@@ -1527,13 +1539,9 @@ namespace KnotTools
                 
                 const Int b = path[p];
                 
-//                AssertArc<1>(b);
-//
                 const bool dir = (A_data(b,0) > 0);
                 
                 const Int c_1 = A_cross(b,Head);
-                
-//                AssertCrossing<1>(c_1);
                 
                 // This is the situation for `a` before rerouting for side == Right;
                 //
@@ -1552,9 +1560,6 @@ namespace KnotTools
                 
                 // a_1 is the vertical outgoing arc.
                 const Int a_1 = C_arcs(c_0,Out,!side);
-                
-//                AssertArc<1>(a_0);
-//                AssertArc<1>(a_1);
                 
                 // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
                 PD_ASSERT( b != a_2 )
@@ -1730,7 +1735,7 @@ namespace KnotTools
                 ++p;
             }
             
-            PD_TIC("Reroute loop");
+            PD_TOC("Reroute loop");
             
             // strand_length is just an upper bound to prevent infinite loops.
             CollapseArcRange(a,e,strand_length);
@@ -1797,6 +1802,7 @@ namespace KnotTools
         }
         
     private:
+
         
         Int WalkBackToStrandStart( const Int a_0 ) const
         {
@@ -1805,12 +1811,25 @@ namespace KnotTools
             AssertArc<1>(a);
 
             // TODO: We could maybe save some lookups here if we inline ArcUnderQ and NextArc. However, I tried it and it did not improve anything. Probably because this loop is typically not very long or because the compiler is good at optimizing this on his own. So I decided to keep this for better readibility.
-            while( pd.template ArcUnderQ<Tail>(a) != overQ )
+            
+            // Take a first step in any case.
+            if( pd.template ArcUnderQ<Tail>(a) != overQ  )
+            {
+                a = pd.template NextArc<Tail>(a);
+                AssertArc<1>(a);
+            }
+            
+            // If the link has multiple components, it can also happen that the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well. So we need a guard against cycling around this unlink forever! ----------------+
+            //                                                      |
+            //                                                      V
+            while( (pd.template ArcUnderQ<Tail>(a) != overQ) && (a != a_0) )
             {
                 a = pd.template NextArc<Tail>(a);
                 AssertArc<1>(a);
             }
 
+            // We could catch the unlink already here, but that would need some change of communication here. Instead, we dealy this to the do-loop in StrandSimplifier. This will be double work, but only in very rare cases.
+            
             return a;
         }
 

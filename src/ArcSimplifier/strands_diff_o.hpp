@@ -1,6 +1,6 @@
 bool strands_diff_o()
 {
-    PD_PRINT("strands_diff_o()");
+    PD_DPRINT("strands_diff_o()");
     
     /*       |     a     |             |     a     |
      *    -->|---------->--->   or  -->----------->|-->
@@ -58,7 +58,7 @@ bool strands_diff_o()
          *          w_2 O   O s_2
          */
         
-        if( u_0 == u_1 )
+        if(u_0 == u_1)
         {
             return R_IIa_diff_o_same_u();
         }

@@ -194,9 +194,14 @@ public:
 
 Tensor2<Int,Int> PDCode()
 {
-    ptic( ClassName()+"::PDCode" );
+    ptic(ClassName()+"::PDCode" );
     
     const Int m = A_cross.Dimension(0);
+    
+//    dump(C_arcs.Dimension(0));
+//    dump(A_cross.Dimension(0));
+//    dump(crossing_count);
+//    dump(arc_count);
     
     Tensor2<Int,Int> pdcode ( crossing_count, 5 );
     
@@ -206,13 +211,24 @@ Tensor2<Int,Int> PDCode()
     // We are using A_scratch to keep track of the new crossing's labels.
     A_scratch.Fill(-1);
     
+    
+//    dump(C_scratch.Size());
+//    dump(A_scratch.Size());
+    
     mptr<Int> C_labels = C_scratch.data();
     mptr<Int> A_labels = A_scratch.data();
     
     Int a_counter = 0;
     Int c_counter = 0;
     Int a_ptr     = 0;
-    Int a         = 0;
+    
+    logdump(crossing_count);
+    logdump(arc_count);
+    
+    logdump(C_arcs);
+    logdump(C_state);
+    logdump(A_cross);
+    logdump(A_state);
     
     while( a_ptr < m )
     {
@@ -227,31 +243,59 @@ Tensor2<Int,Int> PDCode()
             break;
         }
         
-        a = a_ptr;
+        Int a = a_ptr;
         
-        C_labels[A_cross(a,Tail)] = c_counter++;
+        logvalprint("a_ptr",ArcString(a_ptr));
+        
+        {
+            A_labels[a] = a_counter;
+            
+            const Int c_prev = A_cross(a,Tail);
+            
+            AssertCrossing(c_prev);
+            
+            if( C_labels[c_prev] < 0 )
+            {
+                C_labels[c_prev] = c_counter++;
+            }
+        }
         
         // Cycle along all arcs in the link component, until we return where we started.
         do
         {
-            const Int c_prev = A_cross(a,Tail);
-            const Int c_next = A_cross(a,Head);
+            logvalprint("a",ArcString(a));
+            logdump(a_counter);
+            logdump(c_counter);
             
             A_labels[a] = a_counter;
+
+            const Int c_prev = A_cross(a,Tail);
+            const Int c_next = A_cross(a,Head);
+
+            AssertCrossing(c_prev);
+            AssertCrossing(c_next);
             
             if( C_labels[c_next] < 0 )
             {
                 C_labels[c_next] = c_counter++;
             }
-
             
+            
+            //            dump(a);
+            //            dump(a_counter);
+            //            dump(c_counter);
+            //            dump(c_prev);
+            //            dump(c_next);
+
             // Tell c_prev that arc a_counter goes out of it.
             {
-                const CrossingState state = C_state [c_prev];
+                const CrossingState state = C_state  [c_prev];
                 const Int           c     = C_scratch[c_prev];
 
                 const bool side = (C_arcs(c_prev,Out,Right) == a);
 
+//                dump(c);
+                
                 mptr<Int> pd = pdcode.data(c);
                 
                 if( RightHandedQ(state) )
@@ -339,6 +383,8 @@ Tensor2<Int,Int> PDCode()
                 const CrossingState state = C_state [c_next];
                 const Int           c     = C_labels[c_next];
 
+//                dump(c);
+                
                 const bool side  = (C_arcs(c_next,In,Right)) == a;
                 
                 mptr<Int> pd = pdcode.data(c);
@@ -425,6 +471,8 @@ Tensor2<Int,Int> PDCode()
             
             a = NextArc<Head>(a,c_next);
             
+            AssertArc(a);
+            
             ++a_counter;
         }
         while( a != a_ptr );
@@ -432,7 +480,7 @@ Tensor2<Int,Int> PDCode()
         ++a_ptr;
     }
     
-    ptoc( ClassName()+"::PDCode");
+    ptoc(ClassName()+"::PDCode");
     
     return pdcode;
 }

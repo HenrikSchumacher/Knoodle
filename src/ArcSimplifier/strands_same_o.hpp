@@ -1,6 +1,6 @@
 bool strands_same_o()
 {
-    PD_PRINT( "strands_same_o()" );
+    PD_DPRINT("strands_same_o()");
     
     /*        |     a     |             |     a     |
      *     -->|---------->|-->   or  -->----------->--->
@@ -9,11 +9,19 @@ bool strands_same_o()
     
     if( R_II_above() )
     {
+        //DEBUGGING
+        
+        PD_ASSERT(pd.CheckAll());
+        
         return true;
     }
     
     if( R_II_below() )
     {
+        //DEBUGGING
+        
+        PD_ASSERT(pd.CheckAll());
+        
         return true;
     }
     
@@ -55,14 +63,14 @@ bool strands_same_o()
      */
     
     
-    PD_PRINT( "R_IIa_same_o()" );
+    PD_PRINT("R_IIa_same_o()");
     
     if( ! ((e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)) )
     {
         return false;
     }
     
-    PD_PRINT( "\t(e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)" );
+    PD_PRINT("\t(e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)");
     
     /*       w_3     n_3             w_3     n_3
      *          O   O                   O   O
@@ -113,7 +121,7 @@ bool strands_same_o()
     
     // One of these will definitely work:
     
-    if( u_0 == u_1 )
+    if(u_0 == u_1)
     {
         return R_IIa_same_o_same_u();
     }

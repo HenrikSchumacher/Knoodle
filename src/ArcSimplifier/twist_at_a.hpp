@@ -1,6 +1,6 @@
 bool twist_at_a()
 {
-    PD_PRINT( "twist_at_a()" );
+    PD_DPRINT( "twist_at_a()" );
     
     AssertArc<1>(a  );
     AssertArc<1>(n_0);

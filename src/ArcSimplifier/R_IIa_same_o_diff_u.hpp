@@ -1,9 +1,9 @@
 bool R_IIa_same_o_diff_u()
 {
-    PD_PRINT( "\tR_IIa_same_o_diff_u()" );
+    PD_DPRINT("\tR_IIa_same_o_diff_u()");
     
-    PD_PRINT( "\t\tu_0 != u_1" );
-    PD_ASSERT( u_0 != u_1 );
+    PD_PRINT("\t\tu_0 != u_1");
+    PD_ASSERT(u_0 != u_1);
     
     AssertArc<1>(a  );
     AssertArc<1>(n_0);
@@ -34,11 +34,11 @@ bool R_IIa_same_o_diff_u()
     
 
     // This are think we checked before by a_is_2loop.
-    PD_ASSERT( w_0 != e_1 );
+    PD_ASSERT(w_0 != e_1);
     
     // This cannot happen because one vertical strand goes up and the other goes down.
-    PD_ASSERT( w_2 != n_3 );
-    PD_ASSERT( s_2 != w_3 );
+    PD_ASSERT(w_2 != n_3);
+    PD_ASSERT(s_2 != w_3);
     
     // Cannot use Reconnect here because we have to change directions of vertical strands.
     
@@ -64,11 +64,7 @@ bool R_IIa_same_o_diff_u()
      *          O   O                         O   O
      *       w_2     s_2                   w_2     s_2
      */
-    
-    A_cross(w_3,!u_1) = c_0;
-    A_cross(w_2, u_1) = c_0;
-    A_cross(n_3,!u_0) = c_1;
-    A_cross(s_2, u_0) = c_1;
+
     
     /* By example u_0 = 0
      *
@@ -83,12 +79,6 @@ bool R_IIa_same_o_diff_u()
      *          O                   O
      */
     
-    C_arcs(c_0, u_0,Right) = C_arcs(c_0, u_0,Left );
-    C_arcs(c_0, u_0,Left ) = w_3;
-    C_arcs(c_0,!u_0,Left ) = C_arcs(c_0,!u_0,Right);
-    C_arcs(c_0,!u_0,Right) = w_2;
-    pd.FlipHandedness(c_0);
-    
     /* By example u_1 = 1
      *
      *          O                   O
@@ -102,11 +92,23 @@ bool R_IIa_same_o_diff_u()
      *          O                   O
      */
     
+    A_cross(w_3,!u_1) = c_0;
+    A_cross(w_2, u_1) = c_0;
+    A_cross(n_3,!u_0) = c_1;
+    A_cross(s_2, u_0) = c_1;
+    
+    C_arcs(c_0, u_0,Right) = C_arcs(c_0, u_0,Left );
+    C_arcs(c_0, u_0,Left ) = w_3;
+    C_arcs(c_0,!u_0,Left ) = C_arcs(c_0,!u_0,Right);
+    C_arcs(c_0,!u_0,Right) = w_2;
+
     C_arcs(c_1, u_1,Right) = C_arcs(c_1, u_1,Left );
     C_arcs(c_1, u_1,Left ) = n_3;
     C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
     C_arcs(c_1,!u_1,Right) = s_2;
-    pd.FlipHandedness(c_1);
+    
+    pd.SwitchCrossing(c_0);
+    pd.SwitchCrossing(c_1);
     
     if constexpr ( use_flagsQ )
     {

@@ -3,23 +3,23 @@ public:
 /*!
  * @brief Attempts to simplify the planar diagram by applying the local moves implemented in the `ArcSimplifier` class as well as some global pass moves implemented in `StrandSimplifier`. Returns an estimate on the number of changes that have been made.
  *
- *  The pass moves attempt to simplify the diagram by detecting overstrands and understrands by rerouting them using shortest paths in the dual graph. Loop overstrands and loop understrands are also eliminated. 
- *
+ *  The pass moves attempt to simplify the diagram by detecting overstrands and understrands by rerouting them using shortest paths in the dual graph. Loop overstrands and loop understrands are also eliminated.
  */
 
 Int Simplify4(
-    const Int max_dist,
+    const Int  max_dist,
     const bool compressQ = true,
-    const Size_T simplify3_level = 4,
-    bool simplify3_exhaustiveQ = true,
-    bool strand_R_II_Q = true
+    const Int  simplify3_level = 4,
+    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
+    const bool strand_R_II_Q = true
 )
 {
     ptic(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
-         + "," + ToString(simplify3_exhaustiveQ)
+         + "," + ToString(simplify3_max_iter)
+         + "," + ToString(strand_R_II_Q)
          + ")");
     
     Int old_counter = -1;
@@ -32,7 +32,9 @@ Int Simplify4(
         if( simplify3_level > 0 )
         {
             // Since Simplify3 contains only inexpensive tests, we should call it first.
-            const Int simpl3_changes = Simplify3(simplify3_level,simplify3_exhaustiveQ);
+            const Int simpl3_changes = Simplify3(
+                simplify3_level,simplify3_max_iter,true
+            );
             
             counter += simpl3_changes;
             
@@ -44,8 +46,6 @@ Int Simplify4(
         
         if( counter > 0 )
         {
-            comp_initialized  = false;
-
             this->ClearCache();
         }
         
@@ -55,14 +55,15 @@ Int Simplify4(
              + "(" + ToString(max_dist)
              + "," + ToString(compressQ)
              + "," + ToString(simplify3_level)
-             + "," + ToString(simplify3_exhaustiveQ)
+             + "," + ToString(simplify3_max_iter)
+             + "," + ToString(strand_R_II_Q)
              + ")");
         
         return counter;
     }
     
     // TODO: Toggle this Boolean for multi-component links.
-    StrandSimplifier<Int,false> S(*this);
+    StrandSimplifier<Int,true> S(*this);
     
     // TODO: Maybe we should recompress only in the first pass of this?
     
@@ -83,7 +84,9 @@ Int Simplify4(
         if( simplify3_level > 0 )
         {
             // Since Simplify3 contains only inexpensive tests, we should call it first.
-            const Int simpl3_changes = Simplify3(simplify3_level,simplify3_exhaustiveQ);
+            const Int simpl3_changes = Simplify3(
+                simplify3_level,simplify3_max_iter,true
+            );
             
             counter += simpl3_changes;
             
@@ -143,8 +146,6 @@ Int Simplify4(
 
     if( counter > 0 )
     {
-        comp_initialized  = false;
-
         this->ClearCache();
     }
     
@@ -154,7 +155,8 @@ Int Simplify4(
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
-         + "," + ToString(simplify3_exhaustiveQ)
+         + "," + ToString(simplify3_max_iter)
+         + "," + ToString(strand_R_II_Q)
          + ")");
     
     return counter;

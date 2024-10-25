@@ -245,11 +245,11 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 PD_ASSERT( F_1.ActiveQ());
                 PD_ASSERT( A.ActiveQ());
                 
-                PD_ASSERT(CheckCrossing(C_0.Idx()));
-                PD_ASSERT(CheckCrossing(C_1.Idx()));
-                PD_ASSERT(CheckArc(F_0.Idx()));
-                PD_ASSERT(CheckArc(F_1.Idx()));
-                PD_ASSERT(CheckArc(A.Idx()));
+                PD_ASSERT(pd.CheckCrossing(C_0.Idx()));
+                PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
+                PD_ASSERT(pd.CheckArc(F_0.Idx()));
+                PD_ASSERT(pd.CheckArc(F_1.Idx()));
+                PD_ASSERT(pd.CheckArc(A.Idx()));
                 
 
 //                PD_ASSERT(A_cross(f_0,Head) == c_0); // Only for io == Out and side == Right.
@@ -591,15 +591,15 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_ASSERT( C_1.ActiveQ());
             PD_ASSERT(!C_2.ActiveQ());
             
-            PD_ASSERT(CheckCrossing(C_0.Idx()));
-            PD_ASSERT(CheckCrossing(C_1.Idx()));
+            PD_ASSERT(pd.CheckCrossing(C_0.Idx()));
+            PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
 
             PD_ASSERT(!E_0.ActiveQ());
             PD_ASSERT(!E_1.ActiveQ());
             PD_ASSERT( F_0.ActiveQ());
             PD_ASSERT( F_1.ActiveQ());
-            PD_ASSERT(CheckArc(F_0.Idx()));
-            PD_ASSERT(CheckArc(F_1.Idx()));
+            PD_ASSERT(pd.CheckArc(F_0.Idx()));
+            PD_ASSERT(pd.CheckArc(F_1.Idx()));
             
             
             PD_ASSERT(F_0(Tail) == C_0); // Only for io == Out, side == Left.

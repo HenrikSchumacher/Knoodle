@@ -1,5 +1,7 @@
 #pragma  once
 
+#include <unordered_set>
+
 namespace KnotTools
 {
     // TODO: Use signs in A_cross entries to indicate whether the arc enters/leaves the corresponding crossing through left or right port, i.e.,
@@ -84,17 +86,17 @@ namespace KnotTools
         Int twist_counter           = 0;
         Int four_counter            = 0;
         
-        Tensor1<Int,Int> comp_arc_idx {0};
-        Tensor1<Int,Int> comp_arc_ptr {2,0};
+//        Tensor1<Int,Int> comp_arc_idx {0};
+//        Tensor1<Int,Int> comp_arc_ptr {2,0};
+//        
+//        Tensor1<Int,Int> A_comp {0};
+//        Tensor1<Int,Int> A_pos  {0};
         
-        Tensor1<Int,Int> A_comp {0};
-        Tensor1<Int,Int> A_pos  {0};
+//        bool comp_initialized  = false;
         
         Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
         Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
 
-        bool comp_initialized  = false;
-        
         Stack<Int,Int> stack;
         
     public:
@@ -147,11 +149,11 @@ namespace KnotTools
         ,   twist_counter           { other.twist_counter           }
         ,   four_counter            { other.four_counter            }
 
-        ,   comp_arc_idx            { other.comp_arc_idx            }
-        ,   comp_arc_ptr            { other.comp_arc_ptr            }
-        ,   A_comp                  { other.A_comp                  }
-        ,   A_pos                   { other.A_pos                   }
-        ,   comp_initialized        { other.comp_initialized        }
+//        ,   comp_arc_idx            { other.comp_arc_idx            }
+//        ,   comp_arc_ptr            { other.comp_arc_ptr            }
+//        ,   A_comp                  { other.A_comp                  }
+//        ,   A_pos                   { other.A_pos                   }
+//        ,   comp_initialized        { other.comp_initialized        }
         ,   C_scratch               { other.C_scratch               }
         ,   A_scratch               { other.A_scratch               }
         {}
@@ -182,12 +184,12 @@ namespace KnotTools
             swap( A.twist_counter          , B.twist_counter           );
             swap( A.four_counter           , B.four_counter            );
 
-            swap( A.comp_arc_idx           , B.comp_arc_idx            );
-            swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
-            swap( A.A_comp                 , B.A_comp                  );
-            swap( A.A_pos                  , B.A_pos                   );
-            
-            swap( A.comp_initialized       , B.comp_initialized        );
+//            swap( A.comp_arc_idx           , B.comp_arc_idx            );
+//            swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
+//            swap( A.A_comp                 , B.A_comp                  );
+//            swap( A.A_pos                  , B.A_pos                   );
+//            
+//            swap( A.comp_initialized       , B.comp_initialized        );
             
             swap( A.C_scratch              , B.C_scratch               );
             swap( A.A_scratch              , B.A_scratch               );
@@ -607,40 +609,6 @@ namespace KnotTools
             return KnotTools::SameHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
-        void FlipHandedness( const Int c_0 )
-        {
-            // We intentionally remove the "Unchanged" attribute.
-            
-            switch( C_state[c_0] )
-            {
-                case CrossingState::RightHanded:
-                {
-                    C_state[c_0] = CrossingState::LeftHanded;
-                    return;
-                }
-                case CrossingState::RightHandedUnchanged:
-                {
-                    C_state[c_0] = CrossingState::LeftHanded;
-                    return;
-                }
-                case CrossingState::LeftHanded:
-                {
-                    C_state[c_0] = CrossingState::RightHanded;
-                    return;
-                }
-                case CrossingState::LeftHandedUnchanged:
-                {
-                    C_state[c_0] = CrossingState::RightHanded;
-                    return;
-                }
-                case CrossingState::Inactive:
-                {
-                    return;
-                }
-            }
-        }
-        
-        
         void RotateCrossing( const Int c, const bool dir )
         {
 //            Int C [2][2];
@@ -823,34 +791,6 @@ namespace KnotTools
         }
         
     public:
-
-        
-#include "PlanarDiagram/Reconnect.hpp"
-#include "PlanarDiagram/Checks.hpp"
-#include "PlanarDiagram/R_I.hpp"
-//#include "PlanarDiagram/R_II.hpp"
-//#include "PlanarDiagram/R_IIa_Vertical.hpp"
-//#include "PlanarDiagram/R_IIa_Horizontal.hpp"
-        
-#include "PlanarDiagram/Arcs.hpp"
-#include "PlanarDiagram/Faces.hpp"
-#include "PlanarDiagram/Components.hpp"
-#include "PlanarDiagram/Strands.hpp"
-#include "PlanarDiagram/ConnectedSum.hpp"
-        
-#include "PlanarDiagram/Simplify1.hpp"
-#include "PlanarDiagram/Simplify2.hpp"
-#include "PlanarDiagram/Simplify3.hpp"
-#include "PlanarDiagram/Simplify4.hpp"
-#include "PlanarDiagram/Simplify5.hpp"
-        
-#include "PlanarDiagram/PDCode.hpp"
-
-//#include "PlanarDiagram/Break.hpp"
-//#include "PlanarDiagram/Switch.hpp"
-
-        
-    public:
         
         Int CountActiveCrossings() const
         {
@@ -902,14 +842,14 @@ namespace KnotTools
             mptr<ArcState>            A_state_new = pd.A_state.data();
             
             C_scratch.Fill(-1);
+            mptr<Int> C_labels = C_scratch.data();
             
-            mptr<Int8> A_visited = reinterpret_cast<Int8 *>(A_scratch.data());
-            fill_buffer(A_visited,Int8(0),m);
+            mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
+            fill_buffer(A_visited,false,m);
             
             Int a_counter = 0;
             Int c_counter = 0;
             Int a_ptr     = 0;
-            Int a         = 0;
             
             Int comp_counter = 0;
             
@@ -928,7 +868,7 @@ namespace KnotTools
                 
                 ++comp_counter;
                 
-                a = a_ptr;
+                Int a = a_ptr;
                 
                 AssertArc(a);
                 
@@ -937,14 +877,17 @@ namespace KnotTools
                     
                     AssertCrossing(c_prev);
                     
-                    const Int c = C_scratch[c_prev] = c_counter;
-                    
-                    C_state_new[c] = C_state[c_prev];
-                    
-                    ++c_counter;
+                    if( C_labels[c_prev] < 0 )
+                    {
+                        const Int c = C_labels[c_prev] = c_counter;
+                        
+                        C_state_new[c] = C_state[c_prev];
+                        
+                        ++c_counter;
+                    }
                 }
                 
-                // Traverse trough all arcs in the link component, until we return where we started.
+                // Cycle along all arcs in the link component, until we return where we started.
                 do
                 {
                     const Int c_prev = A_cross(a,Tail);
@@ -953,15 +896,17 @@ namespace KnotTools
                     AssertCrossing(c_prev);
                     AssertCrossing(c_next);
                     
-                    if( !A_visited[a] )
+                    if( A_visited[a] )
                     {
-                        A_state_new[a_counter] = ArcState::Active;
-                        A_visited[a] = true;
+                        eprint(ClassName()+"::CreateCompressed: A_visited[a].");
                     }
                     
-                    if( C_scratch[c_next] < 0 )
+                    A_state_new[a_counter] = ArcState::Active;
+                    A_visited[a] = true;
+                    
+                    if( C_labels[c_next] < 0 )
                     {
-                        const Int c = C_scratch[c_next] = c_counter;
+                        const Int c = C_labels[c_next] = c_counter;
                         
                         C_state_new[c] = C_state[c_next];
                         
@@ -969,7 +914,7 @@ namespace KnotTools
                     }
                     
                     {
-                        const Int  c  = C_scratch[c_prev];
+                        const Int  c  = C_labels[c_prev];
                         const bool side = (C_arcs(c_prev,Out,Right) == a);
                         
                         C_arcs_new(c,Out,side) = a_counter;
@@ -978,7 +923,7 @@ namespace KnotTools
                     }
                     
                     {
-                        const Int  c  = C_scratch[c_next];
+                        const Int  c  = C_labels[c_next];
                         const bool side = (C_arcs(c_next,In,Right) == a);
                         
                         C_arcs_new(c,In,side) = a_counter;
@@ -987,6 +932,8 @@ namespace KnotTools
                     }
                     
                     a = NextArc<Head>(a);
+                    
+                    AssertArc(a);
                     
                     ++a_counter;
                 }
@@ -1021,7 +968,37 @@ namespace KnotTools
             }
             
             return writhe;
-        }        
+        }
+        
+        
+        
+    public:
+
+        
+#include "PlanarDiagram/Reconnect.hpp"
+#include "PlanarDiagram/Checks.hpp"
+#include "PlanarDiagram/R_I.hpp"
+//#include "PlanarDiagram/R_II.hpp"
+//#include "PlanarDiagram/R_IIa_Vertical.hpp"
+//#include "PlanarDiagram/R_IIa_Horizontal.hpp"
+        
+#include "PlanarDiagram/Arcs.hpp"
+#include "PlanarDiagram/Faces.hpp"
+#include "PlanarDiagram/Components.hpp"
+#include "PlanarDiagram/Strands.hpp"
+#include "PlanarDiagram/ConnectedSum.hpp"
+        
+#include "PlanarDiagram/Simplify1.hpp"
+#include "PlanarDiagram/Simplify2.hpp"
+#include "PlanarDiagram/Simplify3.hpp"
+#include "PlanarDiagram/Simplify4.hpp"
+#include "PlanarDiagram/Simplify5.hpp"
+        
+#include "PlanarDiagram/PDCode.hpp"
+
+#include "PlanarDiagram/Resolve.hpp"
+#include "PlanarDiagram/Switch.hpp"
+#include "PlanarDiagram/Split.hpp"
         
     public:
         

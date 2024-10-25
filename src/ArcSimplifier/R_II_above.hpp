@@ -1,13 +1,16 @@
 bool R_II_above()
 {
-    PD_PRINT( "R_II_above()" );
+    PD_PRINT("R_II_above()");
     
     // Check for Reidemeister II move.
     if( n_0 != n_1 )
     {
+        PD_PRINT("\tn_0 != n_1");
+        
         return false;
     }
-    PD_PRINT( "\tn_0 == n_1" );
+    
+    PD_PRINT("\tn_0 == n_1");
     
     /*               +-----------+             +-----------+
      *               |           |             |           |
@@ -20,9 +23,9 @@ bool R_II_above()
     {
         load_c_2();
         
-        if( e_2 == s_1 )
+        if(e_2 == s_1)
         {
-            PD_PRINT( "\t\te_2 == s_1" );
+            PD_PRINT("\t\te_2 == s_1");
             
             // We can make an additional R_I move here.
             
@@ -44,12 +47,12 @@ bool R_II_above()
             
             if constexpr ( mult_compQ )
             {
-                if( w_2 == s_2 )
+                if(w_2 == s_2)
                 {
-                    PD_PRINT( "\t\t\tw_2 == s_2" );
+                    PD_PRINT("\t\t\tw_2 == s_2");
                     
                     // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
-                    PD_ASSERT( w_0 != e_1 );
+                    PD_ASSERT(w_0 != e_1);
                     
                     ++pd.unlink_count;
                     Reconnect<Head>(w_0,e_1); //... so this is safe.
@@ -82,17 +85,17 @@ bool R_II_above()
                 }
             }
             
-            PD_PRINT( "\t\t\tw_2 != s_2" );
+            PD_PRINT("\t\t\tw_2 != s_2");
             
-            if( w_0 == w_2  )
+            if(w_0 == w_2)
             {
-                PD_PRINT( "\t\t\t\tw_0 == w_2" );
+                PD_PRINT("\t\t\t\tw_0 == w_2");
                 
                 if constexpr ( mult_compQ )
                 {
-                    if( e_1 == s_2  )
+                    if(e_1 == s_2)
                     {
-                        PD_PRINT( "\t\t\t\t\te_1 == s_2" );
+                        PD_PRINT("\t\t\t\t\te_1 == s_2");
                         
                         /* Example for o_1 == 1;
                          *
@@ -143,7 +146,7 @@ bool R_II_above()
                     }
                 }
                 
-                PD_PRINT( "\t\t\t\t\te_1 != s_2" );
+                PD_PRINT("\t\t\t\t\te_1 != s_2");
                 
                 /* Example for o_1 == 1;
                  *
@@ -193,12 +196,12 @@ bool R_II_above()
                 return true;
             }
             
-            PD_PRINT( "\t\t\t\tw_0 != w_2" );
-            PD_ASSERT( w_0 != w_2 );
+            PD_PRINT("\t\t\t\tw_0 != w_2");
+            PD_ASSERT(w_0 != w_2);
             
-            if( e_1 == s_2  )
+            if(e_1 == s_2)
             {
-                PD_PRINT( "\t\t\t\t\te_1 == s_2" );
+                PD_PRINT("\t\t\t\t\te_1 == s_2");
                 
                 /* Example for o_1 == 1;
                  *
@@ -247,8 +250,8 @@ bool R_II_above()
                 return true;
             }
             
-            PD_PRINT( "\t\t\t\t\te_1 != s_2" );
-            PD_ASSERT( e_1 != s_2 );
+            PD_PRINT("\t\t\t\t\te_1 != s_2");
+            PD_ASSERT(e_1 != s_2);
             
             /* Example for o_1 == 1;
              *
@@ -269,7 +272,7 @@ bool R_II_above()
              */
             
             // These case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
-            PD_ASSERT( w_0 != e_1 );
+            PD_ASSERT(w_0 != e_1);
             
             Reconnect<Head>(w_0,e_1); // ... so this is safe.
             
@@ -307,9 +310,9 @@ bool R_II_above()
     
     if constexpr ( mult_compQ )
     {
-        if( s_0 == s_1 )
+        if(s_0 == s_1)
         {
-            PD_PRINT( "\t\ts_0 == s_1" );
+            PD_PRINT("\t\ts_0 == s_1");
             
             /*               n_0                               n_0
              *          +-----------+                     +-----------+
@@ -321,6 +324,9 @@ bool R_II_above()
              *          +-----------+                     +-----------+
              *               s_0                               s_0
              */
+            
+            // This is guaranteed by calling a_is_2loop first.
+            PD_ASSERT(w_0 != e_1)
             
             ++pd.unlink_count;
             Reconnect<Head>(w_0,e_1);
@@ -345,7 +351,7 @@ bool R_II_above()
         }
     }
     
-    PD_PRINT( "\t\ts_0 != s_1" );
+    PD_PRINT("\t\ts_0 != s_1");
     
     /*          +-----------+                     +-----------+
      *          |           |                     |           |
@@ -357,10 +363,10 @@ bool R_II_above()
      */
     
     // The case w_0 == e_1, w_0 == s_0, e_1 == s_1 are ruled out already...
-    PD_ASSERT( s_0 != s_1 );
-    PD_ASSERT( w_0 != e_1 );
-    PD_ASSERT( w_0 != s_0 );
-    PD_ASSERT( e_1 != s_1 );
+    PD_ASSERT(s_0 != s_1);
+    PD_ASSERT(w_0 != e_1);
+    PD_ASSERT(w_0 != s_0);
+    PD_ASSERT(e_1 != s_1);
     
     // .. so this is safe:
     Reconnect<Head>(w_0,e_1);

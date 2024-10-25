@@ -53,8 +53,6 @@ void Simplify1()
     
     if( counter > 0 )
     {
-        comp_initialized  = false;
-        
         this->ClearCache();
     }
     

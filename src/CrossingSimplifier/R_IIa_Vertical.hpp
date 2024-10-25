@@ -175,8 +175,8 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
         PD_ASSERT( C_1.ActiveQ());
         PD_ASSERT( C_3.ActiveQ());
         
-        PD_ASSERT(CheckCrossing(C_1.Idx()));
-        PD_ASSERT(CheckCrossing(C_3.Idx()));
+        PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
+        PD_ASSERT(pd.CheckCrossing(C_3.Idx()));
         
         PD_ASSERT(!A_1.ActiveQ());
         PD_ASSERT(!B_1.ActiveQ());
@@ -187,10 +187,10 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
         PD_ASSERT( A_3.ActiveQ());
         PD_ASSERT( B_3.ActiveQ());
         
-        PD_ASSERT(CheckArc(A_0.Idx()));
-        PD_ASSERT(CheckArc(B_0.Idx()));
-        PD_ASSERT(CheckArc(A_3.Idx()));
-        PD_ASSERT(CheckArc(B_3.Idx()));
+        PD_ASSERT(pd.CheckArc(A_0.Idx()));
+        PD_ASSERT(pd.CheckArc(B_0.Idx()));
+        PD_ASSERT(pd.CheckArc(A_3.Idx()));
+        PD_ASSERT(pd.CheckArc(B_3.Idx()));
         
         PD_ASSERT(SameHandednessQ(C_1,C_3));
         

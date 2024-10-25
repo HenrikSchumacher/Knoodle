@@ -155,7 +155,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     C_1(In , side_1) = C_1(In ,!side_1);
     C_1(Out, side_1) = B_3.Idx();
     C_1(In ,!side_1) = B_0.Idx();
-    pd.FlipHandedness(C_1.Idx());
+    pd.SwitchCrossing(C_1.Idx());
     A_0(Head) = C_3.Idx();
     A_3(Tail) = C_3.Idx();
 
@@ -166,7 +166,7 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     C_3(In , side_3) = C_3(In ,!side_3);
     C_3(Out, side_3) = A_3.Idx();
     C_3(In ,!side_3) = A_0.Idx();
-    pd.FlipHandedness(C_3.Idx());
+    pd.SwitchCrossing(C_3.Idx());
     B_0(Head) = C_1.Idx();
     B_3(Tail) = C_1.Idx();
     
@@ -194,8 +194,8 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     PD_ASSERT( C_1.ActiveQ());
     PD_ASSERT( C_3.ActiveQ());
     
-    PD_ASSERT(CheckCrossing(C_1.Idx()));
-    PD_ASSERT(CheckCrossing(C_3.Idx()));
+    PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
+    PD_ASSERT(pd.CheckCrossing(C_3.Idx()));
     
     PD_ASSERT(!A_1.ActiveQ());
     PD_ASSERT(!B_1.ActiveQ());
@@ -206,10 +206,10 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     PD_ASSERT( A_3.ActiveQ());
     PD_ASSERT( B_3.ActiveQ());
     
-    PD_ASSERT(CheckArc(A_0.Idx()));
-    PD_ASSERT(CheckArc(B_0.Idx()));
-    PD_ASSERT(CheckArc(A_3.Idx()));
-    PD_ASSERT(CheckArc(B_3.Idx()));
+    PD_ASSERT(pd.CheckArc(A_0.Idx()));
+    PD_ASSERT(pd.CheckArc(B_0.Idx()));
+    PD_ASSERT(pd.CheckArc(A_3.Idx()));
+    PD_ASSERT(pd.CheckArc(B_3.Idx()));
     
     PD_ASSERT(OppositeHandednessQ(C_1,C_3));
     
@@ -219,27 +219,27 @@ bool Reidemeister_IIa_Horizontal( const Int c_0 )
     PD_ASSERT(A_3(Tail) == C_3);
     PD_ASSERT(B_3(Tail) == C_1);
     
-    PD_ASSERT(CheckArc(C_1(Out,Left )));
-    PD_ASSERT(CheckArc(C_1(Out,Right)));
-    PD_ASSERT(CheckArc(C_1(In ,Left )));
-    PD_ASSERT(CheckArc(C_1(In ,Right)));
+    PD_ASSERT(pd.CheckArc(C_1(Out,Left )));
+    PD_ASSERT(pd.CheckArc(C_1(Out,Right)));
+    PD_ASSERT(pd.CheckArc(C_1(In ,Left )));
+    PD_ASSERT(pd.CheckArc(C_1(In ,Right)));
     
-    PD_ASSERT(CheckArc(C_3(Out,Left )));
-    PD_ASSERT(CheckArc(C_3(Out,Right)));
-    PD_ASSERT(CheckArc(C_3(In ,Left )));
-    PD_ASSERT(CheckArc(C_3(In ,Right)));
+    PD_ASSERT(pd.CheckArc(C_3(Out,Left )));
+    PD_ASSERT(pd.CheckArc(C_3(Out,Right)));
+    PD_ASSERT(pd.CheckArc(C_3(In ,Left )));
+    PD_ASSERT(pd.CheckArc(C_3(In ,Right)));
     
-    PD_ASSERT(CheckCrossing(A_0(Head)));
-    PD_ASSERT(CheckCrossing(A_0(Tail)));
+    PD_ASSERT(pd.CheckCrossing(A_0(Head)));
+    PD_ASSERT(pd.CheckCrossing(A_0(Tail)));
     
-    PD_ASSERT(CheckCrossing(B_0(Head)));
-    PD_ASSERT(CheckCrossing(B_0(Tail)));
+    PD_ASSERT(pd.CheckCrossing(B_0(Head)));
+    PD_ASSERT(pd.CheckCrossing(B_0(Tail)));
     
-    PD_ASSERT(CheckCrossing(A_3(Head)));
-    PD_ASSERT(CheckCrossing(A_3(Tail)));
+    PD_ASSERT(pd.CheckCrossing(A_3(Head)));
+    PD_ASSERT(pd.CheckCrossing(A_3(Tail)));
     
-    PD_ASSERT(CheckCrossing(B_3(Head)));
-    PD_ASSERT(CheckCrossing(B_3(Tail)));
+    PD_ASSERT(pd.CheckCrossing(B_3(Head)));
+    PD_ASSERT(pd.CheckCrossing(B_3(Tail)));
     
     ++pd.R_IIa_counter;
     

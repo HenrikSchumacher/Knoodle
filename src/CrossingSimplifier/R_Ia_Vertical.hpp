@@ -182,11 +182,11 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
                 PD_VALPRINT("F_1",F_1);
                 PD_VALPRINT("A",A);
                 
-                PD_ASSERT(CheckCrossing(C_0.Idx()));
-                PD_ASSERT(CheckCrossing(C_1.Idx()));
-                PD_ASSERT(CheckArc(F_0.Idx()));
-                PD_ASSERT(CheckArc(F_1.Idx()));
-                PD_ASSERT(CheckArc(A.Idx()));
+                PD_ASSERT(pd.CheckCrossing(C_0.Idx()));
+                PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
+                PD_ASSERT(pd.CheckArc(F_0.Idx()));
+                PD_ASSERT(pd.CheckArc(F_1.Idx()));
+                PD_ASSERT(pd.CheckArc(A.Idx()));
 
                 return true;
             }

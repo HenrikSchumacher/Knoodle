@@ -249,6 +249,7 @@ namespace KnotTools
 #include "src/Intersection.hpp"
 
 #include "src/Link_2D.hpp"
+#include "src/Multigraph.hpp"
 
 #include "src/Debugging.hpp"
 #include "src/PlanarDiagram.hpp"

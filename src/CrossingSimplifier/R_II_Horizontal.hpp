@@ -19,10 +19,10 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     auto B_0 = GetArc(C_0(Out,side) );
     auto B_1 = GetArc(C_1(In ,side) );
     
-    PD_ASSERT(CheckArc(A_0.Idx()));
-    PD_ASSERT(CheckArc(A_1.Idx()));
-    PD_ASSERT(CheckArc(B_0.Idx()));
-    PD_ASSERT(CheckArc(B_1.Idx()));
+    PD_ASSERT(pd.CheckArc(A_0.Idx()));
+    PD_ASSERT(pd.CheckArc(A_1.Idx()));
+    PD_ASSERT(pd.CheckArc(B_0.Idx()));
+    PD_ASSERT(pd.CheckArc(B_1.Idx()));
         
     
     PD_ASSERT( A_0 == A_1 );

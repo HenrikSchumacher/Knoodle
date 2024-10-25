@@ -2,49 +2,69 @@ public:
 
 Int ComponentCount()
 {
-    RequireComponents();
-    
-    return comp_arc_ptr.Size()-1;
+    return ComponentArcPointers().Size()-1;
 }
 
 Int ComponentSize( const Int comp )
 {
-    RequireComponents();
+    const auto & comp_arc_ptr = ComponentArcPointers();
     
-    return (comp_arc_ptr[comp+1] - comp_arc_ptr[0]);
+    return (comp_arc_ptr[comp+1] - comp_arc_ptr[comp]);
 }
 
 const Tensor1<Int,Int> & ComponentArcIndices()
 {
-    RequireComponents();
+    const std::string tag = "ComponentArcIndices";
     
-    return comp_arc_idx;
+    if( !this->InCacheQ(tag) )
+    {
+        RequireComponents();
+    }
+    
+    return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 const Tensor1<Int,Int> & ComponentArcPointers()
 {
-    RequireComponents();
+    const std::string tag = "ComponentArcPointers";
     
-    return comp_arc_ptr;
+    if( !this->InCacheQ(tag) )
+    {
+        RequireComponents();
+    }
+    
+    return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 const Tensor1<Int,Int> & ArcComponents()
 {
-    RequireComponents();
+    const std::string tag = "ArcComponents";
     
-    return A_comp;
+    if( !this->InCacheQ(tag) )
+    {
+        RequireComponents();
+    }
+    
+    return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 const Tensor1<Int,Int> & ArcComponentPositions()
 {
-    RequireComponents();
+    const std::string tag = "ArcComponentPositions";
     
-    return A_pos;
+    if( !this->InCacheQ(tag) )
+    {
+        RequireComponents();
+    }
+    
+    return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
+// TODO: Test this.
 Int ArcDistance( const Int a_0, const Int a_1 )
 {
-    RequireComponents();
+    cptr<Int> A_comp = ArcComponents().data();
+    cptr<Int> A_pos  = ArcComponentPositions().data();
     
     const Int comp = A_comp[a_0];
     
@@ -66,26 +86,22 @@ Int ArcDistance( const Int a_0, const Int a_1 )
 // TODO: Test this.
 void RequireComponents()
 {
-    if( comp_initialized )
-    {
-        return;
-    }
-    
     ptic(ClassName()+"::RequireComponents");
     
+    const Int m = A_cross.Dimension(0);
+    
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    A_comp = Tensor1<Int,Int>( initial_arc_count, -1 );
+    Tensor1<Int,Int> A_comp ( m, -1 );
     
     // Also, each arc should know its position within the component.
-    A_pos  = Tensor1<Int,Int>( initial_arc_count, -1 );
+    Tensor1<Int,Int> A_pos  ( m, -1 );
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
-    comp_arc_idx     = Tensor1<Int,Int> ( arc_count );
-    comp_arc_ptr     = Tensor1<Int,Int> ( arc_count );   // TODO: Refine this upper bound.
+    Tensor1<Int,Int> comp_arc_idx ( arc_count );
+    Tensor1<Int,Int> comp_arc_ptr ( crossing_count + 1 );
     comp_arc_ptr[0]  = 0;
     
-    const Int m = A_cross.Dimension(0);
     Int comp_counter = 0;
     Int a_counter = 0;
     Int length = 0;
@@ -132,7 +148,10 @@ void RequireComponents()
     
     comp_arc_ptr.template Resize<true>(comp_counter+1);
     
-    ptoc(ClassName()+"::RequireComponents");
+    this->SetCache( "ComponentArcIndices",   std::move(comp_arc_idx) );
+    this->SetCache( "ComponentArcPointers",  std::move(comp_arc_ptr) );
+    this->SetCache( "ArcComponents",         std::move(A_comp)       );
+    this->SetCache( "ArcComponentPositions", std::move(A_pos)        );
     
-    comp_initialized = true;
+    ptoc(ClassName()+"::RequireComponents");
 }
