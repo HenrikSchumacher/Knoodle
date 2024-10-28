@@ -7,16 +7,16 @@ public:
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
-bool SplitConnectedSummands(
-    std::vector<PlanarDiagram<Int>> & PD_list,
+bool DisconnectSummands(
+    mref<std::vector<PlanarDiagram<Int>>> PD_list,
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
     const Int  simplify3_level = 4,
-    const bool simplify3_exhaustiveQ = true,
+    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q = true
 )
 {
-    ptic(ClassName()+"::SplitConnectedSummands");
+    ptic(ClassName()+"::DisconnectSummands");
     
     // TODO: Introduce some tracking of from where the components are split off.
     
@@ -40,9 +40,9 @@ bool SplitConnectedSummands(
         
         for( Int f = 0; f < FaceCount(); ++f )
         {
-            changedQ = changedQ || SplitConnectedSummand(
+            changedQ = changedQ || DisconnectSummand(
                 f,PD_list,S,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,compressQ,simplify3_level,simplify3_exhaustiveQ,strand_R_II_Q
+                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -50,7 +50,7 @@ bool SplitConnectedSummands(
     }
     while( changedQ );
     
-    ptoc(ClassName()+"::SplitConnectedSummands");
+    ptoc(ClassName()+"::DisconnectSummands");
     
     return changed_at_least_onceQ;
 }
@@ -65,8 +65,9 @@ private:
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
-bool SplitConnectedSummand(
-    const Int f, std::vector<PlanarDiagram<Int>> & PD_list,
+bool DisconnectSummand(
+    const Int f,
+    mref<std::vector<PlanarDiagram<Int>>> PD_list,
     TwoArraySort<Int,Int,Int> & S,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
@@ -76,7 +77,7 @@ bool SplitConnectedSummand(
     const Int max_dist,
     const bool compressQ,
     const Int  simplify3_level,
-    const bool simplify3_exhaustiveQ,
+    const Int  simplify3_max_iter,
     const bool strand_R_II_Q = true
 )
 {
@@ -129,7 +130,7 @@ bool SplitConnectedSummand(
             max_dist,
             compressQ,
             simplify3_level,
-            simplify3_exhaustiveQ,
+            simplify3_max_iter,
             strand_R_II_Q
         );
 
@@ -250,6 +251,8 @@ bool SplitConnectedSummand(
 
                 push( std::move( ExportSmallerComponent(a_prev,a) ) );
                 
+//                push( std::move( SplitSmallerDiagramComponent(a_prev,a) ) );
+                
                 return true;
             }
         }
@@ -283,6 +286,8 @@ bool SplitConnectedSummand(
             DeactivateCrossing(c);
             
             push( std::move( ExportSmallerComponent(a,a_next) ) );
+            
+            // push( std::move( SplitSmallerDiagramComponent(a,a_next) ) );
                             
             return true;
         }
@@ -308,6 +313,8 @@ bool SplitConnectedSummand(
         SetMatchingPortTo<In>(c_b,b,a);
         
         push( std::move( ExportSmallerComponent(a,b) ) );
+        
+//        push( std::move( SplitSmallerDiagramComponent(a,b) ) );
         
         return true;
     }
@@ -366,9 +373,12 @@ private:
  *
  */
 
-PlanarDiagram<Int> ExportComponent( const Int  a_0, const Int comp_size )
+PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 {
     ptic(ClassName()+"::ExportComponent");
+    
+    // DEBUGGING
+    PrintInfo();
     
     PlanarDiagram<Int> pd (comp_size/2,0);
     

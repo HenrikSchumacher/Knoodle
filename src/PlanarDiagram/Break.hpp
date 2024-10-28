@@ -1,20 +1,20 @@
-Class_T BreakChild( const Int c )
-{
-    print("BreakChild");
-    // Make sure that Reidemeister_I is not applicable;
-    
-    Class_T pd = CreateCompressed();
-    
-    PD_VALPRINT("c",c);
-    
-    PD_PRINT( "labels = " + pd.CrossingLabels().ToString() );
-    
-    PD_VALPRINT("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
-        
-    PD_ASSERT( pd.Break( pd.CrossingLabelLookUp(c) ) );
-    
-    return pd;
-}
+//Class_T BreakChild( const Int c )
+//{
+//    print("BreakChild");
+//    // Make sure that Reidemeister_I is not applicable;
+//    
+//    Class_T pd = CreateCompressed();
+//    
+//    PD_VALPRINT("c",c);
+//    
+//    PD_PRINT( "labels = " + pd.CrossingLabels().ToString() );
+//    
+//    PD_VALPRINT("pd.CrossingLabelLookUp(c)",pd.CrossingLabelLookUp(c));
+//        
+//    PD_ASSERT( pd.Break( pd.CrossingLabelLookUp(c) ) );
+//    
+//    return pd;
+//}
 
 
 bool Break( const Int c )

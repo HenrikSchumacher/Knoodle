@@ -2,21 +2,21 @@ private:
 
 bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
 {
-    PD_PRINT(std::string("Reidemeister_Ia_Horizontal(")
+    PD_PRINT(ClassName() + "::Reidemeister_Ia_Horizontal("
         + ",\n\t" + CrossingString(c_0)
         + ",\n\t" + CrossingString(c_1)
-        + ",\n\t" + ((side == Right) ? "Right" : "Left") +")" );
+        + ",\n\t" + ((side == Right) ? "Right" : "Left") +")");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
-    PD_ASSERT( c_0 != c_1 );
+    PD_ASSERT(c_0 != c_1);
     
-    auto C_0 = GetCrossing( c_0 );
-    auto C_1 = GetCrossing( c_1 );
+    auto C_0 = GetCrossing(c_0);
+    auto C_1 = GetCrossing(c_1);
     
     // This are some central assumption here. (C_0 is the bottom crossing.)
-    PD_ASSERT( SameHandednessQ(C_0,C_1) );
-    PD_ASSERT( C_0(Out,side) == C_1(In ,side) );
-    PD_ASSERT( C_0(In ,side) == C_1(Out,side) );
+    PD_ASSERT(SameHandednessQ(C_0,C_1));
+    PD_ASSERT(C_0(Out,side) == C_1(In ,side));
+    PD_ASSERT(C_0(In ,side) == C_1(Out,side));
     
 // We assume this horizontal alignment in the case of side==Right.
 // Both crossing's handedness can also be opposite (at the same time!).
@@ -39,18 +39,18 @@ bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
     
     
     // Since the two-crossing configuration of c_0 and c_1 is not destroyed, we can test both sides.
-    bool changed = Reidemeister_Ia_Horizontal_impl(C_0,C_1,Out,side);
+    bool changedQ = Reidemeister_Ia_Horizontal_impl(C_0,C_1,Out,side);
     
-    R_Ia_counter += changed;
+    pd.R_Ia_counter += changedQ;
     
-    if( !changed )
+    if( !changedQ )
     {
-        changed  = Reidemeister_Ia_Horizontal_impl(C_0,C_1,In ,side);
+        changedQ = Reidemeister_Ia_Horizontal_impl(C_0,C_1,In ,side);
         
-        R_Ia_counter += changed;
+        pd.R_Ia_counter += changedQ;
     }
     
-    return changed;
+    return changedQ;
     
 } // Reidemeister_Ia_Horizontal
 
@@ -60,23 +60,23 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
     PD_PRINT(std::string("Reidemeister_Ia_Horizontal_impl(")
         + ",\n\t" + ToString(C_0)
         + ",\n\t" + ToString(C_1)
-        + ",\n\t" + ((io == Out) ? "Out" : "In") + "," + ((side == Right) ? "Right" : "Left") +")" );
-    PD_ASSERT( C_0(Out,side) == C_1(In ,side) );
-    PD_ASSERT( C_0(In ,side) == C_1(Out,side) );
+        + ",\n\t" + ((io == Out) ? "Out" : "In") + "," + ((side == Right) ? "Right" : "Left") +")");
+    PD_ASSERT(C_0(Out,side) == C_1(In ,side));
+    PD_ASSERT(C_0(In ,side) == C_1(Out,side));
     
-    auto E_0 = GetArc( C_0( io,!side) );
-    auto E_1 = GetArc( C_1(!io,!side) );
+    auto E_0 = GetArc(C_0( io,!side));
+    auto E_1 = GetArc(C_1(!io,!side));
     
-    PD_ASSERT( E_0( io == Out ? Tail : Head ) == C_0 );
-    PD_ASSERT( E_1( io == Out ? Head : Tail ) == C_1 );
+    PD_ASSERT(E_0( (io == Out) ? Tail : Head ) == C_0);
+    PD_ASSERT(E_1( (io == Out) ? Head : Tail ) == C_1);
 
-    auto C_2 = GetCrossing( E_0( io == Out ? Head : Tail ) );
-    auto C_3 = GetCrossing( E_1( io == Out ? Tail : Head ) );
+    auto C_2 = GetCrossing(E_0( (io == Out) ? Head : Tail ));
+    auto C_3 = GetCrossing(E_1( (io == Out) ? Tail : Head ));
     
     if( C_2 == C_3 )
     {
-        PD_ASSERT( C_0 != C_2 );
-        PD_ASSERT( C_1 != C_2 );
+        PD_ASSERT(C_0 != C_2);
+        PD_ASSERT(C_1 != C_2);
         
         if( C_2(!io, side) == E_0 )
         {
@@ -84,8 +84,8 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             {
                 PD_PRINT("Reidemeister_Ia_Horizontal_impl normal move.");
                 
-                PD_VALPRINT( "io", io == In ? "In" : "Out" );
-                PD_VALPRINT( "side", side == Left ? "Left" : "Right" );
+                PD_VALPRINT("io", io == In ? "In" : "Out");
+                PD_VALPRINT("side", side == Left ? "Left" : "Right");
 
                 
 // We have this horizontal alignment in the case of io = Out and side == Right.
@@ -120,12 +120,12 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //           O---->----O       O----<----O       O---->----O
 //
                 
-//                PD_ASSERT( io   == Out   );
-//                PD_ASSERT( side == Right );
+//                PD_ASSERT(io   == Out  );
+//                PD_ASSERT(side == Right);
                 
-                auto A   = GetArc( C_0(!io, side) );
-                auto F_0 = GetArc( C_2(!io,!side) );
-                auto F_1 = GetArc( C_2( io,!side) );
+                auto A   = GetArc(C_0(!io, side));
+                auto F_0 = GetArc(C_2(!io,!side));
+                auto F_1 = GetArc(C_2( io,!side));
                 
                 
                 PD_PRINT("incoming data");
@@ -141,19 +141,19 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 
                 PD_VALPRINT("A",A);
                 
-                PD_ASSERT( C_0 != C_1 );
-                PD_ASSERT( C_0 != C_2 );
-                PD_ASSERT( C_1 != C_2 );
-                PD_ASSERT( SameHandednessQ(C_0,C_1) );
-                PD_ASSERT( SameHandednessQ(C_0,C_2) );
-                PD_ASSERT( SameHandednessQ(C_1,C_2) );
+                PD_ASSERT(C_0 != C_1);
+                PD_ASSERT(C_0 != C_2);
+                PD_ASSERT(C_1 != C_2);
+                PD_ASSERT(SameHandednessQ(C_0,C_1));
+                PD_ASSERT(SameHandednessQ(C_0,C_2));
+                PD_ASSERT(SameHandednessQ(C_1,C_2));
                 
-                PD_ASSERT( E_0 != E_1 );
-                PD_ASSERT( F_0 != F_1 );
-                PD_ASSERT( F_0 != E_0 );
-                PD_ASSERT( F_0 != E_1 );
-                PD_ASSERT( F_1 != E_0 );
-                PD_ASSERT( F_1 != E_1 );
+                PD_ASSERT(E_0 != E_1);
+                PD_ASSERT(F_0 != F_1);
+                PD_ASSERT(F_0 != E_0);
+                PD_ASSERT(F_0 != E_1);
+                PD_ASSERT(F_1 != E_0);
+                PD_ASSERT(F_1 != E_1);
 
                 
 //                PD_ASSERT(A_cross(e_0,Head) == c_2); // Only for io == Out and side == Right.
@@ -162,14 +162,14 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                PD_ASSERT(A_cross(e_1,Tail) == c_2); // Only for io == Out and side == Right.
 //                PD_ASSERT(A_cross(f_0,Head) == c_2); // Only for io == Out and side == Right.
 //                PD_ASSERT(A_cross(f_1,Tail) == c_2); // Only for io == Out and side == Right.
-//                
+//
 //                PD_ASSERT(A_cross(a  ,Head) == c_0); // Only for io == Out and side == Right.
 //                PD_ASSERT(A_cross(a  ,Tail) == c_1); // Only for io == Out and side == Right.
 //
-//                PD_ASSERT(C_arcs(c_2,In ,Right) == e_0 ); // Only for io == Out and side == Right.
-//                PD_ASSERT(C_arcs(c_2,Out,Right) == e_1 ); // Only for io == Out and side == Right.
-//                PD_ASSERT(C_arcs(c_2,In ,Left ) == f_0 ); // Only for io == Out and side == Right.
-//                PD_ASSERT(C_arcs(c_2,Out,Left ) == f_1 ); // Only for io == Out and side == Right.
+//                PD_ASSERT(C_arcs(c_2,In ,Right) == e_0); // Only for io == Out and side == Right.
+//                PD_ASSERT(C_arcs(c_2,Out,Right) == e_1); // Only for io == Out and side == Right.
+//                PD_ASSERT(C_arcs(c_2,In ,Left ) == f_0); // Only for io == Out and side == Right.
+//                PD_ASSERT(C_arcs(c_2,Out,Left ) == f_1); // Only for io == Out and side == Right.
 
 //
 // In the case side == Left or io == In, we just have to reflect everything accordingly.
@@ -205,15 +205,15 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 
                 
                 // Reverse a.
-                std::swap( A(Tail), A(Head) );
+                std::swap( A(Tail), A(Head));
                 
                 // Reconnect arc f_0 (the Reconnect routine does not work!)
-                PD_ASSERT( F_0( io == Out ? Head : Tail ) == C_2 );
+                PD_ASSERT(F_0( io == Out ? Head : Tail ) == C_2);
                 F_0(io == Out ? Head : Tail) = C_0.Idx();
                 DeactivateArc(E_0.Idx());
                 
                 // Reconnect arc F_1 (the Reconnect routine does not work!)
-                PD_ASSERT( F_1( io == Out ? Tail : Head) == C_2 );
+                PD_ASSERT(F_1( io == Out ? Tail : Head) == C_2);
                 F_1( io == Out ? Tail : Head ) = C_1.Idx();
                 DeactivateArc(E_1.Idx());
                 
@@ -228,28 +228,28 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 // Finally, we can remove the crossing.
                 DeactivateCrossing(C_2.Idx());
                 
-                PD_PRINT("changed data");
+                PD_PRINT("changedQ data");
                 PD_VALPRINT("C_0",C_0);
                 PD_VALPRINT("C_1",C_1);
                 PD_VALPRINT("F_0",F_0);
                 PD_VALPRINT("F_1",F_1);
-                PD_VALPRINT("A  ",A  );
+                PD_VALPRINT("A  ",A );
                 
-                PD_ASSERT( C_0.ActiveQ() );
-                PD_ASSERT( C_1.ActiveQ() );
-                PD_ASSERT(!C_2.ActiveQ() );
+                PD_ASSERT( C_0.ActiveQ());
+                PD_ASSERT( C_1.ActiveQ());
+                PD_ASSERT(!C_2.ActiveQ());
                 
-                PD_ASSERT(!E_0.ActiveQ() );
-                PD_ASSERT(!E_1.ActiveQ() );
-                PD_ASSERT( F_0.ActiveQ() );
-                PD_ASSERT( F_1.ActiveQ() );
-                PD_ASSERT( A.ActiveQ() );
+                PD_ASSERT(!E_0.ActiveQ());
+                PD_ASSERT(!E_1.ActiveQ());
+                PD_ASSERT( F_0.ActiveQ());
+                PD_ASSERT( F_1.ActiveQ());
+                PD_ASSERT( A.ActiveQ());
                 
-                PD_ASSERT( CheckCrossing(C_0.Idx()) );
-                PD_ASSERT( CheckCrossing(C_1.Idx()) );
-                PD_ASSERT( CheckArc(F_0.Idx()) );
-                PD_ASSERT( CheckArc(F_1.Idx()) );
-                PD_ASSERT( CheckArc(A.Idx()) );
+                PD_ASSERT(pd.CheckCrossing(C_0.Idx()));
+                PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
+                PD_ASSERT(pd.CheckArc(F_0.Idx()));
+                PD_ASSERT(pd.CheckArc(F_1.Idx()));
+                PD_ASSERT(pd.CheckArc(A.Idx()));
                 
 
 //                PD_ASSERT(A_cross(f_0,Head) == c_0); // Only for io == Out and side == Right.
@@ -307,11 +307,11 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_PRINT("Reidemeister_Ia_Horizontal_impl - twist move");
 
             
-            PD_ASSERT( C_0(Out,side) == C_1(In ,side) );
-            PD_ASSERT( C_0(In ,side) == C_1(Out,side) );
+            PD_ASSERT(C_0(Out,side) == C_1(In ,side));
+            PD_ASSERT(C_0(In ,side) == C_1(Out,side));
             
-            PD_VALPRINT( "io", io == In ? "In" : "Out" );
-            PD_VALPRINT( "side", side == Left ? "Left" : "Right" );
+            PD_VALPRINT( "io", io == In ? "In" : "Out");
+            PD_VALPRINT( "side", side == Left ? "Left" : "Right");
             
             
 //            ArcView F_0;
@@ -349,8 +349,8 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 ////                      v     v           /     \
 ////           O----<----O       O---->----O       O----<----O
 ////
-//                    F_0 = GetArc( C_2( Out, Left ) );
-//                    F_1 = GetArc( C_2( In , Left ) );
+//                    F_0 = GetArc(C_2( Out, Left ));
+//                    F_1 = GetArc(C_2( In , Left ));
 //                }
 //                else // if( side == Right )
 //                {
@@ -384,8 +384,8 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 ////           O---->----O       O----<----O       O---->----O
 ////
 ////
-//                    F_0 = GetArc( C_2( Out, Right) );
-//                    F_1 = GetArc( C_2( In , Right) );
+//                    F_0 = GetArc(C_2( Out, Right));
+//                    F_1 = GetArc(C_2( In , Right));
 //                }
 //            }
 //            else // if( io == In )
@@ -419,9 +419,9 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 ////                            \   /   \   /
 ////                             v /     v /
 ////                              O       O
-//                    
-//                    F_0 = GetArc( C_2( In , Left ) );
-//                    F_1 = GetArc( C_2( Out, Left ) );
+//
+//                    F_0 = GetArc(C_2( In , Left ));
+//                    F_1 = GetArc(C_2( Out, Left ));
 //                }
 //                else // if( side == Right )
 //                {
@@ -452,19 +452,19 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 ////                            \   /   \   /
 ////                             \ v     \ v
 ////                              O       O
-//                    
-//                    F_0 = GetArc( C_2( In , Right) );
-//                    F_1 = GetArc( C_2( Out, Right) );
+//
+//                    F_0 = GetArc(C_2( In , Right));
+//                    F_1 = GetArc(C_2( Out, Right));
 //                }
 //            }
             
-            auto F_0 = GetArc( C_2( io, side ) );
-            auto F_1 = GetArc( C_2(!io, side ) );
+            auto F_0 = GetArc(C_2( io, side ));
+            auto F_1 = GetArc(C_2(!io, side ));
 
-            PD_ASSERT( E_0 != F_1 );
-            PD_ASSERT( E_0 != F_0 );
-            PD_ASSERT( E_1 != F_1 );
-            PD_ASSERT( E_1 != F_0 );
+            PD_ASSERT(E_0 != F_1);
+            PD_ASSERT(E_0 != F_0);
+            PD_ASSERT(E_1 != F_1);
+            PD_ASSERT(E_1 != F_0);
 
             PD_PRINT("Incoming data.");
             
@@ -477,8 +477,8 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_VALPRINT("F_0",F_0.String());
             PD_VALPRINT("F_0",F_0.String());
             
-            PD_ASSERT( C_0(Out,side) == C_1(In ,side) );
-            PD_ASSERT( C_0(In ,side) == C_1(Out,side) );
+            PD_ASSERT(C_0(Out,side) == C_1(In ,side));
+            PD_ASSERT(C_0(In ,side) == C_1(Out,side));
             
             if( io != Out || side !=Left )
             {
@@ -486,14 +486,14 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 return false;
             }
             
-            PD_ASSERT( E_0(Head) == C_2 ); // Only for io == Out, side == Left.
-            PD_ASSERT( E_0(Tail) == C_0 ); // Only for io == Out, side == Left.
+            PD_ASSERT(E_0(Head) == C_2); // Only for io == Out, side == Left.
+            PD_ASSERT(E_0(Tail) == C_0); // Only for io == Out, side == Left.
             
-            PD_ASSERT( E_1(Head) == C_1 ); // Only for io == Out, side == Left.
-            PD_ASSERT( E_1(Tail) == C_2 ); // Only for io == Out, side == Left.
+            PD_ASSERT(E_1(Head) == C_1); // Only for io == Out, side == Left.
+            PD_ASSERT(E_1(Tail) == C_2); // Only for io == Out, side == Left.
             
-            PD_ASSERT( F_1(Head) == C_2 ); // Only for io == Out, side == Left.
-            PD_ASSERT( F_0(Tail) == C_2 ); // Only for io == Out, side == Left.
+            PD_ASSERT(F_1(Head) == C_2); // Only for io == Out, side == Left.
+            PD_ASSERT(F_0(Tail) == C_2); // Only for io == Out, side == Left.
 
             
 // We have this horizontal alignment in the case of io = Out and side == Left.
@@ -528,12 +528,12 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             wprint(ClassName()+"::Reidemeister_Ia_Horizontal_impl - twist move!");
             //TODO: Test this.
                 
-            PD_ASSERT( F_0( io == Out ? Tail : Head ) == C_2 );
-            PD_ASSERT( F_1( io == Out ? Head : Tail ) == C_2 );
+            PD_ASSERT(F_0( io == Out ? Tail : Head ) == C_2);
+            PD_ASSERT(F_1( io == Out ? Head : Tail ) == C_2);
 
 
-//            Reconnect( F_0, io == Out ? Tail : Head, E_0 );
-//            Reconnect( F_1, io == Out ? Head : Tail, E_1 );
+//            Reconnect( F_0, io == Out ? Tail : Head, E_0);
+//            Reconnect( F_1, io == Out ? Head : Tail, E_1);
             
             if( io )
             {
@@ -587,23 +587,23 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 
             PD_PRINT("Horizontal reroute checks.");
             
-            PD_ASSERT( C_0.ActiveQ() );
-            PD_ASSERT( C_1.ActiveQ() );
-            PD_ASSERT(!C_2.ActiveQ() );
+            PD_ASSERT( C_0.ActiveQ());
+            PD_ASSERT( C_1.ActiveQ());
+            PD_ASSERT(!C_2.ActiveQ());
             
-            PD_ASSERT( CheckCrossing(C_0.Idx()) );
-            PD_ASSERT( CheckCrossing(C_1.Idx()) );
+            PD_ASSERT(pd.CheckCrossing(C_0.Idx()));
+            PD_ASSERT(pd.CheckCrossing(C_1.Idx()));
 
-            PD_ASSERT(!E_0.ActiveQ() );
-            PD_ASSERT(!E_1.ActiveQ() );
-            PD_ASSERT( F_0.ActiveQ() );
-            PD_ASSERT( F_1.ActiveQ() );
-            PD_ASSERT( CheckArc(F_0.Idx()) );
-            PD_ASSERT( CheckArc(F_1.Idx()) );
+            PD_ASSERT(!E_0.ActiveQ());
+            PD_ASSERT(!E_1.ActiveQ());
+            PD_ASSERT( F_0.ActiveQ());
+            PD_ASSERT( F_1.ActiveQ());
+            PD_ASSERT(pd.CheckArc(F_0.Idx()));
+            PD_ASSERT(pd.CheckArc(F_1.Idx()));
             
             
-            PD_ASSERT( F_0(Tail) == C_0 ); // Only for io == Out, side == Left.
-            PD_ASSERT( F_1(Head) == C_1 ); // Only for io == Out, side == Left.
+            PD_ASSERT(F_0(Tail) == C_0); // Only for io == Out, side == Left.
+            PD_ASSERT(F_1(Head) == C_1); // Only for io == Out, side == Left.
             
 
             PD_PRINT("Horizontal reroute checks done.");

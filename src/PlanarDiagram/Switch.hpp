@@ -1,21 +1,34 @@
 public:
 
-bool Switch( const Int c )
+bool SwitchCrossing( const Int c )
 {
-    if( RightHandedQ(c) )
+    // We intentionally remove the "Unchanged" attribute.
+    
+    switch( C_state[c] )
     {
-        C_state[c] = CrossingState::LeftHanded;
-        touched_crossings.push_back(c);
-        return true;
-    }
-    else if( LeftHandedQ(c) )
-    {
-        C_state[c] = CrossingState::RightHanded;
-        touched_crossings.push_back(c);
-        return true;
-    }
-    else
-    {
-        return false;
+        case CrossingState::RightHanded:
+        {
+            C_state[c] = CrossingState::LeftHanded;
+            return true;
+        }
+        case CrossingState::RightHandedUnchanged:
+        {
+            C_state[c] = CrossingState::LeftHanded;
+            return true;
+        }
+        case CrossingState::LeftHanded:
+        {
+            C_state[c] = CrossingState::RightHanded;
+            return true;
+        }
+        case CrossingState::LeftHandedUnchanged:
+        {
+            C_state[c] = CrossingState::RightHanded;
+            return true;
+        }
+        case CrossingState::Inactive:
+        {
+            return false;
+        }
     }
 }

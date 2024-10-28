@@ -11,14 +11,14 @@ public:
  *
  *  @param optimization_level Specifies what kind of patterns are analyzed. More precisely, only patterns involving `<= optimization_level` crossings are considered for the simplifications. `optimization_level <= 0` deactivates this entirely. The maximum level is `4`.
  *
- *   @param exhaustiveQ If set to `true`, then multiple passes of this will be run over the diagram until no further patterns are found.
+ *   @param max_iter The maximal number of times you want to cycle over the list of all arcs.
  *
  *   @param multi_compQ If set to `false`, then the algorithm may assume that the diagram belongs to a connected link and thus skip a couple of checks.
  */
 
 Int Simplify3(
     const Int optimization_level,
-    const bool exhaustiveQ = true,
+    const Int max_iter = std::numeric_limits<Int>::max(),
     const bool multi_compQ = true
 )
 {
@@ -34,19 +34,19 @@ Int Simplify3(
             }
             case 1:
             {
-                return simplify3<1,true>(exhaustiveQ);
+                return simplify3<1,true>(max_iter);
             }
             case 2:
             {
-                return simplify3<2,true>(exhaustiveQ);
+                return simplify3<2,true>(max_iter);
             }
             case 3:
             {
-                return simplify3<3,true>(exhaustiveQ);
+                return simplify3<3,true>(max_iter);
             }
             case 4:
             {
-                return simplify3<4,true>(exhaustiveQ);
+                return simplify3<4,true>(max_iter);
             }
         }
     }
@@ -60,19 +60,19 @@ Int Simplify3(
             }
             case 1:
             {
-                return simplify3<1,false>(exhaustiveQ);
+                return simplify3<1,false>(max_iter);
             }
             case 2:
             {
-                return simplify3<2,false>(exhaustiveQ);
+                return simplify3<2,false>(max_iter);
             }
             case 3:
             {
-                return simplify3<3,false>(exhaustiveQ);
+                return simplify3<3,false>(max_iter);
             }
             case 4:
             {
-                return simplify3<4,false>(exhaustiveQ);
+                return simplify3<4,false>(max_iter);
             }
         }
     }
@@ -83,30 +83,22 @@ Int Simplify3(
 private:
 
 template<Int optimization_level, bool multi_compQ>
-Int simplify3( bool exhaustiveQ = true )
+Int simplify3( Int max_iter )
 {
-    ptic(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(exhaustiveQ) + "," + ToString(multi_compQ) + ")");
+    ptic(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     Int old_counter = -1;
     Int counter = 0;
+    Int iter = 0;
     
     ArcSimplifier<Int,optimization_level,false,multi_compQ> arc_simplifier (*this);
 
-    if ( exhaustiveQ )
+    while( (counter != old_counter) && (iter < max_iter) )
     {
-        do
-        {
-            old_counter = counter;
-            
-            for( Int a = 0; a < initial_arc_count; ++a )
-            {
-                counter += arc_simplifier(a);
-            }
-        }
-        while( counter != old_counter );
-    }
-    else
-    {
+        ++iter;
+        
+        old_counter = counter;
+        
         for( Int a = 0; a < initial_arc_count; ++a )
         {
             counter += arc_simplifier(a);
@@ -115,12 +107,10 @@ Int simplify3( bool exhaustiveQ = true )
 
     if( counter > 0 )
     {
-        comp_initialized  = false;
-        
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(exhaustiveQ) + "," + ToString(multi_compQ) + ")");
+    ptoc(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     return counter;
 }

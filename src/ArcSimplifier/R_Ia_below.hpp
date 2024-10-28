@@ -1,13 +1,13 @@
 bool R_Ia_below()
 {
-    PD_PRINT( "R_Ia_below()" );
+    PD_DPRINT("R_Ia_below()");
     
-    if( n_0 != n_1 )
+    if(n_0 != n_1)
     {
         return false;
     }
     
-    PD_PRINT( "\tn_0 == n_1" );
+    PD_DPRINT("\tn_0 == n_1");
     
     /*       +-----------+             +-----------+
      *       |     a     |             |     a     |
@@ -20,18 +20,18 @@ bool R_Ia_below()
                         
     if( e_2 == s_1 )
     {
-        PD_PRINT( "\t\te_2 == s_1" );
+        PD_DPRINT("\t\te_2 == s_1");
         
-        if( o_0 == o_2 )
+        if(o_0 == o_2)
         {
-            PD_PRINT( "\t\t\to_0 == o_2" );
+            PD_DPRINT("\t\t\to_0 == o_2");
             
             if constexpr ( mult_compQ )
             {
                 // The following can only happen with more than one component.
-                if( w_2 == s_2 )
+                if(w_2 == s_2)
                 {
-                    PD_PRINT( "\t\t\t\tw_2 == s_2" );
+                    PD_DPRINT("\t\t\t\tw_2 == s_2");
                     
                     /*  R_I move.
                      *
@@ -58,7 +58,7 @@ bool R_Ia_below()
                 }
             }
             
-            PD_PRINT( "\t\t\t\tw_2 != s_2" );
+            PD_DPRINT("\t\t\t\tw_2 != s_2");
             
             /*  R_Ia move.
              *
@@ -96,8 +96,8 @@ bool R_Ia_below()
 //                 *          O                   O
 //                 */
 //                
-//                C_arcs(c_0,In ,Right) = C_arcs(c_0,In ,Left );
 //                C_arcs(c_0,In ,Left ) = n_0;
+//                C_arcs(c_0,In ,Right) = C_arcs(c_0,In ,Left );
 //                C_arcs(c_0,Out,Left ) = C_arcs(c_0,Out,Right);
 //                C_arcs(c_0,Out,Right) = w_2;
 //            }
@@ -117,12 +117,14 @@ bool R_Ia_below()
 //                 *          O                   O
 //                 */
 //                
+//                // Careful, we have to do this in a specified order.
 //                C_arcs(c_0,Out,Right) = C_arcs(c_0,Out,Left );
 //                C_arcs(c_0,Out,Left ) = n_0;
 //                C_arcs(c_0,In ,Left ) = C_arcs(c_0,In ,Right);
 //                C_arcs(c_0,In ,Right) = w_2;
 //            }
             
+            // Careful, we have to do this in a specified order.
             C_arcs(c_0, u_0,Right) = C_arcs(c_0, u_0,Left );
             C_arcs(c_0, u_0,Left ) = n_0;
             C_arcs(c_0,!u_0,Left ) = C_arcs(c_0,!u_0,Right);
@@ -165,13 +167,15 @@ bool R_Ia_below()
 //                 *          v                   |
 //                 *          O                   O
 //                 */
-//                
+//
+//                // Careful, we have to do this in a specified order.
 //                C_arcs(c_1,Out,Right) = C_arcs(c_1,Out,Left );
 //                C_arcs(c_1,Out,Left ) = n_1;
 //                C_arcs(c_1,In ,Left ) = C_arcs(c_1,In ,Right);
 //                C_arcs(c_1,In ,Right) = s_2;
 //            }
             
+            // Careful, we have to do this in a specified order.
             C_arcs(c_1, u_1,Right) = C_arcs(c_1, u_1,Left );
             C_arcs(c_1, u_1,Left ) = n_1;
             C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
@@ -200,7 +204,7 @@ bool R_Ia_below()
 
         } // if( o_0 == o_2 )
 
-        PD_PRINT( "\t\t\to_0 != o_2" );
+        PD_PRINT("\t\t\to_0 != o_2");
         
         /*
          *           +-----------+             +-----------+
@@ -221,8 +225,8 @@ bool R_Ia_below()
 //        {
 //            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
 //            
-//            PD_PRINT( "Detected a trefoil connect component." );
-//            
+//            PD_PRINT( "Detected a trefoil connected summand." );
+//
 //            return false;
 //        }
         
@@ -232,9 +236,35 @@ bool R_Ia_below()
     // This can only happen, if the planar diagram has multiple components!
     if constexpr( mult_compQ )
     {
-        if( w_2 == s_1 )
+        if(w_2 == s_1)
         {
-            PD_PRINT( "\t\tw_2 == s_1" );
+            PD_PRINT("\t\tw_2 == s_1");
+             
+            
+            if(e_2 == s_2)
+            {
+                PD_PRINT("\t\t\t\e_2 == s_2");
+                
+                /*           +-----------+             +-----------+
+                 *           |           |             |           |
+                 *        c_0|     a     |c_1       c_0|     a     |c_1
+                 *        -->----------->|-->       -->|---------->--->
+                 *           O   O---O   O             O   O---O   O
+                 *           | e_2\ /s_2 |             | e_2\ /s_2 |
+                 *       s_0 |     X c_2 | s_1         |     X c_2 | s_1
+                 *           |    / \    |             |    / \    |
+                 *           +---O   O---+             +---O   O---+
+                 */
+                
+                Reconnect(s_0,u_1,s_1);
+                DeactivateArc(e_2);
+                DeactivateCrossing(c_2);
+                ++pd.R_I_counter;
+                
+                return true;
+            }
+            
+            PD_DPRINT("\t\t\t\e_2 != s_2");
             
             /* Two further interesting cases.
              *
@@ -243,9 +273,9 @@ bool R_Ia_below()
              *        c_0|     a     |c_1       c_0|     a     |c_1
              *        -->----------->|-->       -->|---------->--->
              *           O   O###O   O             O   O###O   O
-             *           |    \ /    |             |    \ /    |
+             *           | e_2\ /s_2 |             |    \ /    |
              *       s_0 |     X c_2 | s_1         |     X c_2 | s_1
-             *           |    / \    |             |    / \    |
+             *           |    / \    | w_2         |    / \    |
              *           +---O   O---+             +---O   O---+
              *
              *      These can be rerouted to the following two situations:

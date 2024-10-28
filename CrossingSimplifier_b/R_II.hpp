@@ -1,10 +1,3 @@
-#include "R_II_Horizontal.hpp"
-#include "R_II_Vertical.hpp"
-#include "TwistMove.hpp"
-
-#include "R_Ia_Vertical.hpp"
-#include "R_Ia_Horizontal.hpp"
-
 public:
 
 /*! @brief Checks whether a Reidemeister II move can be made at crossing `c`,
@@ -17,7 +10,7 @@ public:
 template<bool allow_R_IaQ = true>
 bool Reidemeister_II( const Int c_0 )
 {
-    PD_PRINT("\nReidemeister_II( c = "+CrossingString(c_0)+" )");
+    PD_PRINT("\n" + ClassName() + "::Reidemeister_II( c = "+CrossingString(c_0)+" )");
     
     // TODO: Test might be redundant.
     if( !CrossingActiveQ(c_0) )
@@ -29,8 +22,8 @@ bool Reidemeister_II( const Int c_0 )
     //    bool is_switch_candidate = false;
     
     const Int C [2][2] = {
-        { NextCrossing(c_0,Out,Left), NextCrossing(c_0,Out,Right) },
-        { NextCrossing(c_0,In ,Left), NextCrossing(c_0,In ,Right) }
+        { pd.NextCrossing(c_0,Out,Left), pd.NextCrossing(c_0,Out,Right) },
+        { pd.NextCrossing(c_0,In ,Left), pd.NextCrossing(c_0,In ,Right) }
     };
     
     PD_PRINT( "\n\tC = {  {"  + ToString(C[0][0]) + ", " + ToString(C[0][1]) + " }, { " + ToString(C[1][0]) + ", " + ToString(C[1][1]) + " } }\n" );
@@ -38,7 +31,7 @@ bool Reidemeister_II( const Int c_0 )
     // We better test whether we can perform a Reidemeister_I move (and do it). That rules out a couple of nasty cases in the remainder.
     // TODO: Test might be redundant if called when Reidemeister_I failed.
     {
-        const bool R_I = Reidemeister_I_at_Crossing(c_0);
+        const bool R_I = Reidemeister_I(c_0);
         if( R_I )
         {
             PD_WPRINT("Called Reidemeister_II on crossing "+ToString(c_0)+", but Reidemeister_I was performed instead.");
@@ -58,16 +51,16 @@ bool Reidemeister_II( const Int c_0 )
         
         if( c_1 == c_2 )
         {
-            if( OppositeHandednessQ(c_0,c_1) )
+            if( pd.OppositeHandednessQ(c_0,c_1) )
             {
                 // Find out which one is above the other.
-                if( io == Out )
+                if( io )
                 {
-                    Reidemeister_II_Vertical(c_0,c_1);
+                    Reidemeister_II_Vertical(c_1,c_0);
                 }
                 else
                 {
-                    Reidemeister_II_Vertical(c_1,c_0);
+                    Reidemeister_II_Vertical(c_0,c_1);
                 }
                 return true;
             }
@@ -76,9 +69,9 @@ bool Reidemeister_II( const Int c_0 )
                 if constexpr ( allow_R_IaQ )
                 {
                     // Find out which one is above the other.
-                    if( io == Out )
+                    if( io )
                     {
-                        const bool R_Ia = Reidemeister_Ia_Vertical(c_0,c_1);
+                        const bool R_Ia = Reidemeister_Ia_Vertical(c_1,c_0);
                         
                         if( R_Ia )
                         {
@@ -87,7 +80,7 @@ bool Reidemeister_II( const Int c_0 )
                     }
                     else
                     {
-                        const bool R_Ia = Reidemeister_Ia_Vertical(c_1,c_0);
+                        const bool R_Ia = Reidemeister_Ia_Vertical(c_0,c_1);
                         
                         if( R_Ia )
                         {
@@ -116,7 +109,7 @@ bool Reidemeister_II( const Int c_0 )
             PD_ASSERT( CrossingActiveQ(c_1) );
             
             // For the horizontal cases, it is better to make sure that no Reidemeister_I move can be applied to c_1.
-            const bool R_I = Reidemeister_I_at_Crossing(c_1);
+            const bool R_I = Reidemeister_I(c_1);
             
             if( R_I )
             {
@@ -152,7 +145,7 @@ bool Reidemeister_II( const Int c_0 )
 //               Because of the previous Reidemeister I tests we now know
 //               e_0 != e_3 and e_1 != e_2.
                 
-                if( OppositeHandednessQ(c_0,c_1) )
+                if( pd.OppositeHandednessQ(c_0,c_1) )
                 {
                     Reidemeister_II_Horizontal(c_0,c_1,side);
                     return true;

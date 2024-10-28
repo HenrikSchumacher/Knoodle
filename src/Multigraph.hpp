@@ -211,6 +211,7 @@ namespace KnotTools
         
 //    private:
         
+        // TODO: This function is not correct, I think. It does not account for single-vertex components!
         
         void RequireTopology() const
         {
@@ -229,13 +230,13 @@ namespace KnotTools
             // v_parent[v] == -2 means that vertex v does not exist.
             // v_parent[v] == -1 means that vertex v is a root vertex.
             // v_parent[v] >=  0 means that vertex v_parent[v] is v's parent.
-            Tensor1< Int,Int> v_parents ( vertex_count, -2 );
+            Tensor1<Int,Int> v_parents ( vertex_count, -2 );
             
             
             // Stores the graph's components.
             // c_ptr contains a counter for the number of components.
-            Aggregator<Int,Int> c_ptr ( edge_count );
-            Aggregator<Int,Int> c_idx ( edge_count );
+            Aggregator<Int,Int> c_ptr ( edge_count + 1 );
+            Aggregator<Int,Int> c_idx ( edge_count     );
             
             c_ptr.Push(0);
             
@@ -321,9 +322,6 @@ namespace KnotTools
                     // Top
                     const Int e = e_stack[stack_ptr];
                     
-//                    logdump(e);
-//                    logdump(e_flags[e]);
-                    
                     if( e_flags[e] == 1 )
                     {
 //                        logprint("Edge " + ToString(e) + " is explored.");
@@ -367,8 +365,6 @@ namespace KnotTools
                     
                     const Int d = (E[0] == w) ? 1 : -1;
                     const Int v = E[d>0];
-                    
-
                     
                     // Mark edge e as explored and put it onto the path.
                     e_flags[e] = 1;
@@ -473,7 +469,7 @@ namespace KnotTools
 
             C.SortInner();
             
-            this->SetCache( std::string("ComponentMatrix"), std::move(C) );
+            this->SetCache( std::string("ComponentEdgeMatrix"), std::move(C) );
             
             
             ptoc( ClassName()+ "::RequireTopology" );
@@ -493,9 +489,9 @@ namespace KnotTools
             return this->template GetCache<CycleMatrix_T>(tag);
         }
         
-        cref<ComponentMatrix_T> ComponentMatrix() const
+        cref<ComponentMatrix_T> ComponentEdgeMatrix() const
         {
-            std::string tag ("ComponentMatrix");
+            std::string tag ("ComponentEdgeMatrix");
             
             if( !this->InCacheQ( tag ) )
             {
@@ -517,6 +513,123 @@ namespace KnotTools
             return this->template GetCache<Tensor1<Int,Int>>(tag);
         }
         
+        cref<ComponentMatrix_T> ComponentVertexMatrix() const
+        {
+            // Instead of merging this with the spanning tree and the cycle code, we prefer a simpler algorithm here.
+            
+            std::string tag ("ComponentVertexMatrix");
+            
+            if( !this->InCacheQ( tag ) )
+            {
+                ptic( ClassName()+ "::ComponentVertexMatrix" );
+                
+                const Int edge_count = edges.Dimension(0);
+                
+                // Stores the graph's components.
+                // c_v_ptr contains a counter for the number of components.
+                Aggregator<Int,Int> c_v_ptr ( edge_count + 1 );
+                Aggregator<Int,Int> c_v_idx ( edge_count     );
+
+                Tensor1<bool,Int> v_visitedQ ( vertex_count, false );
+                Tensor1<bool,Int> e_visitedQ ( edge_count,   false );
+                
+                // TODO: I can keep e_stack, path, and d_stack uninitialized.
+                // Keeps track of the edges we have to process.
+                // Every edge can be only explored in two ways: from its two vertices.
+                // Thus, the stack does not have to be bigger than 2 * edge_count.
+                Stack<Int,Int> e_stack ( edge_count );
+
+                cref<IncidenceMatrix_T> B = IncidenceMatrix();
+                
+                cptr<Int> B_outer = B.Outer().data();
+                cptr<Int> B_inner = B.Inner().data();
+                
+                Int v_ptr = 0; // Guarantees that every component will be visited.
+
+                while( v_ptr < vertex_count )
+                {
+                    while( (v_ptr < vertex_count) && (v_visitedQ[v_ptr]) )
+                    {
+                        ++v_ptr;
+                    }
+                    
+                    if( v_ptr == vertex_count )
+                    {
+                        break;
+                    }
+                    
+                    // If we arrive here, then `v_ptr` is an unvisited vertex.
+                    // We can start a new component.
+                    {
+                        const Int v = v_ptr;
+                        
+                        c_v_ptr.Push(c_v_idx.Size());
+                        c_v_idx.Push(v);
+                        
+                        // Tell vertex v that it is visited.
+                        v_visitedQ[v] = true;
+                        
+                        const Int k_begin = B_outer[v    ];
+                        const Int k_end   = B_outer[v + 1];
+                        
+                        // Push all edges incident to `v` onto the stack.
+                        // (They must be unvisited because we have not visited this component, yet.)
+                        for( Int k = k_end; k --> k_begin; )
+                        {
+                            const Int n_e = B_inner[k]; // new edge
+                            
+                            e_stack.Push(n_e);
+                        }
+                    }
+                    
+                    while( !e_stack.EmptyQ() )
+                    {
+                        const Int e = e_stack.Pop();
+                        
+                        e_visitedQ[e] = true;
+                        
+                        const Int v = v_visitedQ[edges(e,0)] ? edges(e,1) : edges(e,0);
+                        
+                        v_visitedQ[v] = true;
+                        
+                        c_v_idx.Push(v);
+
+                        const Int k_begin = B_outer[v    ];
+                        const Int k_end   = B_outer[v + 1];
+                        
+                        // Push all invistited edges incident to v onto the stack.
+                        for( Int k = k_end; k --> k_begin; )
+                        {
+                            const Int n_e = B_inner[k]; // new edge
+                            
+                            if( !e_visitedQ[n_e] )
+                            {
+                                e_stack.Push(n_e);
+                            }
+                        }
+                        
+                    }
+                    
+                } // while( v_ptr < vertex_count )
+
+                c_v_ptr.Push(c_v_idx.Size());
+                
+                ComponentMatrix_T C (
+                    std::move(c_v_ptr.Get()),
+                    std::move(c_v_idx.Get()),
+                    c_v_ptr.Size()-1, vertex_count, Int(1)
+                );
+
+                C.SortInner();
+                
+                this->SetCache( std::string(tag), std::move(C) );
+                
+                ptoc( ClassName()+ "::ComponentVertexMatrix" );
+            }
+
+            return this->template GetCache<ComponentMatrix_T>(tag);
+        }
+
     public:
                 
         static std::string ClassName()

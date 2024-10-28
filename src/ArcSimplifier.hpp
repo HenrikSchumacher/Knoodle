@@ -1,6 +1,6 @@
 #pragma once
 
-// TODO: Use the state flag of arcs to mark changed/unchanged arcs.
+// TODO: Use the state flag of arcs to mark changedQ/unchanged arcs.
 // TODO: In particular after applying this to a connected summand that was recently split-off from another diagram, often only very few positions are to be checked on the first (and often last) run.
 
 namespace KnotTools
@@ -188,11 +188,11 @@ namespace KnotTools
             return pd.DeactivateArc(a_);
         }
         
-        template<bool should_be_activeQ>
+        template<bool must_be_activeQ>
         void AssertArc( const Int a_ )
         {
 #ifdef DEBUG
-            if constexpr( should_be_activeQ )
+            if constexpr( must_be_activeQ )
             {
                 if( !ArcActiveQ(a_) )
                 {
@@ -227,11 +227,11 @@ namespace KnotTools
             pd.DeactivateCrossing(c_);
         }
         
-        template<bool should_be_activeQ>
+        template<bool must_be_activeQ>
         void AssertCrossing( const Int c_ ) const
         {
 #ifdef DEBUG
-            if constexpr( should_be_activeQ )
+            if constexpr( must_be_activeQ )
             {
                 if( !CrossingActiveQ(c_) )
                 {
@@ -501,12 +501,12 @@ namespace KnotTools
             // Neglecting asserts, this is the only time we access C_state[c_0].
             // Find out whether the vertical strand at c_0 goes over.
             o_0 = ( u_0 == LeftHandedQ(C_state[c_0]));
-            PD_VALPRINT( "o_0", o_0 );
+            PD_VALPRINT("o_0", o_0);
             
             // Neglecting asserts, this is the only time we access C_state[c_1].
             // Find out whether the vertical strand at c_1 goes over.
             o_1 = ( u_1 == LeftHandedQ(C_state[c_1]));
-            PD_VALPRINT( "o_1", o_1 );
+            PD_VALPRINT("o_1", o_1);
 
             // Deal with the case that a is part of a loop of length 2.
             // This can only occur if  the diagram has a more than one component.
@@ -531,7 +531,7 @@ namespace KnotTools
                 }
             }
             
-            if( o_0 == o_1 )
+            if(o_0 == o_1)
             {
                 /*       |     a     |             |     a     |
                  *    -->|---------->|-->   or  -->----------->--->
@@ -552,16 +552,22 @@ namespace KnotTools
                     PD_VALPRINT( "n_1", ArcString(n_1) );
                     PD_VALPRINT( "e_1", ArcString(e_1) );
                     PD_VALPRINT( "s_1", ArcString(s_1) );
-                    
-                    PD_VALPRINT( "c_2", CrossingString(c_2) );
-                    PD_VALPRINT( "e_2", ArcString(e_2) );
-                    PD_VALPRINT( "s_2", ArcString(s_2) );
-                    PD_VALPRINT( "w_2", ArcString(w_2) );
-                    
-                    PD_VALPRINT( "c_3", CrossingString(c_3) );
-                    PD_VALPRINT( "n_3", ArcString(n_3) );
-                    PD_VALPRINT( "e_3", ArcString(e_3) );
-                    PD_VALPRINT( "w_3", ArcString(w_3) );
+
+//                    if constexpr ( optimization_level >= 3 )
+//                    {
+//                        PD_VALPRINT( "c_2", CrossingString(c_2) );
+//                        PD_VALPRINT( "e_2", ArcString(e_2) );
+//                        PD_VALPRINT( "s_2", ArcString(s_2) );
+//                        PD_VALPRINT( "w_2", ArcString(w_2) );
+//                    }
+//                    
+//                    if constexpr ( optimization_level >= 4 )
+//                    {
+//                        PD_VALPRINT( "c_3", CrossingString(c_3) );
+//                        PD_VALPRINT( "n_3", ArcString(n_3) );
+//                        PD_VALPRINT( "e_3", ArcString(e_3) );
+//                        PD_VALPRINT( "w_3", ArcString(w_3) );
+//                    }
                     
                     return true;
                 }
@@ -587,16 +593,22 @@ namespace KnotTools
                     PD_VALPRINT( "n_1", ArcString(n_1) );
                     PD_VALPRINT( "e_1", ArcString(e_1) );
                     PD_VALPRINT( "s_1", ArcString(s_1) );
-        
-                    PD_VALPRINT( "c_2", CrossingString(c_2) );
-                    PD_VALPRINT( "e_2", ArcString(e_2) );
-                    PD_VALPRINT( "s_2", ArcString(s_2) );
-                    PD_VALPRINT( "w_2", ArcString(w_2) );
-        
-                    PD_VALPRINT( "c_3", CrossingString(c_3) );
-                    PD_VALPRINT( "n_3", ArcString(n_3) );
-                    PD_VALPRINT( "e_3", ArcString(e_3) );
-                    PD_VALPRINT( "w_3", ArcString(w_3) );
+                    
+//                    if constexpr ( optimization_level >= 3 )
+//                    {
+//                        PD_VALPRINT( "c_2", CrossingString(c_2) );
+//                        PD_VALPRINT( "e_2", ArcString(e_2) );
+//                        PD_VALPRINT( "s_2", ArcString(s_2) );
+//                        PD_VALPRINT( "w_2", ArcString(w_2) );
+//                    }
+//                    
+//                    if constexpr ( optimization_level >= 4 )
+//                    {
+//                        PD_VALPRINT( "c_3", CrossingString(c_3) );
+//                        PD_VALPRINT( "n_3", ArcString(n_3) );
+//                        PD_VALPRINT( "e_3", ArcString(e_3) );
+//                        PD_VALPRINT( "w_3", ArcString(w_3) );
+//                    }
         
                     return true;
                 }

@@ -216,10 +216,50 @@ bool CheckVertexDegrees() const
     return passed;
 }
 
+bool CheckArcDegrees() const
+{
+    bool passed = true;
+    
+    Tensor1<Int,Int> d (initial_arc_count,0);
+    
+    for( Int c = 0; c < initial_crossing_count; ++c )
+    {
+        if( CrossingActiveQ(c) )
+        {
+            ++d[C_arcs(c,Out,Left )];
+            ++d[C_arcs(c,Out,Right)];
+            ++d[C_arcs(c,In ,Left )];
+            ++d[C_arcs(c,In ,Right)];
+        }
+    }
+    
+    for( Int a = 0; a < initial_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) )
+        {
+            if( d[a] != 2 )
+            {
+                passed = false;
+                eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 2.");
+            }
+        }
+        else
+        {
+            if( d[a] != 0 )
+            {
+                passed = false;
+                eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 0.");
+            }
+        }
+    }
+
+    return passed;
+}
+
 
 bool CheckAll() const
 {
-    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees();
+    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees();
 
     return passedQ;
 }

@@ -1,6 +1,6 @@
 bool R_IIa_diff_o_same_u()
 {
-    PD_PRINT( "R_IIa_diff_o_same_u()" );
+    PD_DPRINT( "R_IIa_diff_o_same_u()" );
     
     // TODO: Debug this!
     
@@ -23,6 +23,7 @@ bool R_IIa_diff_o_same_u()
     AssertCrossing<1>(c_3);
     
     PD_PRINT( "\t\tu_0 == u_1" );
+    PD_ASSERT(u_0 == u_1);
     
     /* Example: o_0, o_2, o_3 are the same; u_0 == u_1; u_1 == 1
      *
@@ -47,8 +48,6 @@ bool R_IIa_diff_o_same_u()
      *          w_2 O   O s_2
      */
     
-    // TODO: Check for four-crossing moves.
-    
     PD_ASSERT(w_2 != s_2);
     PD_ASSERT(w_3 != n_3);
 
@@ -56,8 +55,9 @@ bool R_IIa_diff_o_same_u()
     Reconnect(w_2, u_0,s_0);
     Reconnect(n_3,!u_1,n_1);
     Reconnect(s_2, u_1,s_1);
-    pd.FlipHandedness(c_0);
-    pd.FlipHandedness(c_1);
+    
+    pd.SwitchCrossing(c_0);
+    pd.SwitchCrossing(c_1);
     DeactivateCrossing(c_2);
     DeactivateCrossing(c_3);
     ++pd.R_IIa_counter;

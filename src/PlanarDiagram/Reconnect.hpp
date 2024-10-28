@@ -21,7 +21,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 template<bool headtail, bool deactivateQ = true>
 void Reconnect( const Int a, const Int b )
 {
-//    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  ">(" + ArcString(a) + ", " +  ", " +ArcString(b) + " )" );
+    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  ">(" + ArcString(a) + ", " +ArcString(b) + " )" );
 
     // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.
@@ -30,6 +30,9 @@ void Reconnect( const Int a, const Int b )
     // Also keeps track of crossings that got touched and that might thus
     // be interesting for further simplification.
 
+    PD_ASSERT(a != b);
+    PD_ASSERT(ArcActiveQ(a));
+    
     const Int c = A_cross(b,headtail);
 
     A_cross(a,headtail) = c;
@@ -45,7 +48,7 @@ void Reconnect( const Int a, const Int b )
 template<bool assertQ = true>
 void Reconnect( const Int a, const bool headtail, const Int b )
 {
-//    PD_DPRINT("Reconnect ( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") + ", " +ArcString(b) + " )" );
+    PD_DPRINT("Reconnect ( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") + ", " +ArcString(b) + " )" );
     
     // Read:
     // Reconnect arc a with its tip/tail to where b pointed/started.
@@ -74,86 +77,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
 
     A_cross(a,headtail) = c;
     
-//    mptr<Int> C = C_arcs.data(c,headtail);
-//
-//    PD_ASSERT( (C[Left] == b) || (C[Right] == b) );
-//    
-//    C[C[Right] == b] = a;
-    
     SetMatchingPortTo(c,headtail,b,a);
     
     DeactivateArc(b);
-}
-
-void Reconnect( ArcView & A, const bool headtail, ArcView & B )
-{
-    // Read:
-    // Reconnect arc A with its tip/tail to where B pointed/started.
-    // Then deactivates B.
-    //
-    // Also keeps track of crossings that got touched and that might thus
-    // be interesting for further simplification.
-    
-    PD_ASSERT( A.Idx() != B.Idx() );
-    
-    PD_ASSERT( A.ActiveQ() );
-//    PD_ASSERT( B.ActiveQ() ); // Could have been deactivated already.
-    
-    auto C = GetCrossing( B(headtail) );
-    
-    PD_ASSERT( (C(headtail,Left) == B.Idx()) || (C(headtail,Right) == B.Idx()) );
-    
-    PD_ASSERT(CheckArc(B.Idx()));
-    PD_ASSERT(CheckCrossing(C.Idx()));
-    
-    PD_ASSERT(C.ActiveQ());
-    PD_ASSERT(CrossingActiveQ(A( headtail)));
-    PD_ASSERT(CrossingActiveQ(A(!headtail)));
-    
-    
-    A(headtail) = C.Idx();
-
-    const bool side = (C(headtail,Right) == B.Idx());
-    
-    C(headtail,side) = A.Idx();
-    
-    DeactivateArc(B.Idx());
-}
-
-
-template<bool headtail>
-void Reconnect( ArcView & A, ArcView & B )
-{
-    // Read:
-    // Reconnect arc A with its tip/tail to where B pointed/started.
-    // Then deactivates B.
-    //
-    // Also keeps track of crossings that got touched and that might thus
-    // be interesting for further simplification.
-    
-    PD_ASSERT( A.Idx() != B.Idx() );
-    
-    PD_ASSERT( A.ActiveQ() );
-//    PD_ASSERT( B.ActiveQ() ); // Could have been deactivated already.
-    
-    auto C = GetCrossing( B(headtail) );
-    
-    
-    PD_ASSERT( (C(headtail,Left) == B.Idx()) || (C(headtail,Right) == B.Idx()) );
-    
-    PD_ASSERT(CheckArc(B.Idx()));
-    PD_ASSERT(CheckCrossing(C.Idx()));
-    
-    PD_ASSERT(C.ActiveQ());
-    PD_ASSERT(CrossingActiveQ(A( headtail)));
-    PD_ASSERT(CrossingActiveQ(A(!headtail)));
-    
-    
-    A(headtail) = C.Idx();
-
-    const bool side = (C(headtail,Right) == B.Idx());
-    
-    C(headtail,side) = A.Idx();
-    
-    DeactivateArc(B.Idx());
 }

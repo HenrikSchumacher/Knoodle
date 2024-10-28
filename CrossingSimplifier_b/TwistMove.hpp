@@ -5,13 +5,13 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     // TODO: Actually, this is an indicator for a connect sum.
     // TODO: Can we detect this, instead?
     
-    PD_PRINT("\tTwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
+    PD_PRINT("\t" + ClassName() + "::TwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
         
     // We can resolve both crossings in any case of sign distribution.
     // See the commented-out code below for an explanation
     
-    PD_ASSERT( C_arcs(c_0,Out,side) == C_arcs(c_1,In ,!side) );
-    PD_ASSERT( C_arcs(c_0,In ,side) == C_arcs(c_1,Out,!side) );
+    PD_ASSERT(C_arcs(c_0,Out,side) == C_arcs(c_1,In ,!side));
+    PD_ASSERT(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,!side));
     
     const Int a   = C_arcs(c_0,In , side);
     const Int b   = C_arcs(c_0,Out, side);
@@ -29,13 +29,13 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     DeactivateCrossing(c_0);
     DeactivateCrossing(c_1);
 
-    ++twist_counter;
+    ++pd.twist_counter;
 
     return true;
     
-//                This alternative code with explanation shows why we do not have to distinguish the two cases of  OppositeHandednessQ(c_0,c_1):
+//                This alternative code with explanation shows why we do not have to distinguish the two cases of  if( pd.OppositeHandednessQ(c_0,c_1):
 //
-//                if( OppositeHandednessQ(c_0,c_1) )
+//                if( pd.OppositeHandednessQ(c_0,c_1) )
 //                {
 //// This horizontal alignment in the case of side == Right and positive crossing c_0
 //// Cases side == Left and sign = -1 are analogous.

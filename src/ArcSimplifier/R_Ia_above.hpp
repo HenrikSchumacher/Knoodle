@@ -1,16 +1,16 @@
 bool R_Ia_above()
 {
-    PD_PRINT( "R_Ia_above()" );
+    PD_DPRINT("R_Ia_above()");
     
  
     //Check for Reidemeister Ia move.
-    if( s_0 != s_1 )
+    if(s_0 != s_1)
     {
         return false;
     }
     
     
-    PD_PRINT( "\ts_0 == s_1" );
+    PD_PRINT("\ts_0 == s_1");
     
     /*       |     a     |
      *    -->----------->|-->
@@ -21,20 +21,20 @@ bool R_Ia_above()
     
     load_c_3();
     
-    if( e_3 == n_1 )
+    if(e_3 == n_1)
     {
-        PD_PRINT( "\t\te_3 == n_1" );
+        PD_PRINT("\t\te_3 == n_1");
         
-        if( o_0 == o_3 )
+        if(o_0 == o_3)
         {
-            PD_PRINT( "\t\t\to_0 == o_3" );
+            PD_PRINT("\t\t\to_0 == o_3");
             
             if constexpr ( mult_compQ )
             {
                 // The following can only happen with more than one component.
-                if( w_3 == n_3 )
+                if(w_3 == n_3)
                 {
-                    PD_PRINT( "\t\t\t\tw_2 == s_2" );
+                    PD_PRINT("\t\t\t\tw_3 == n_3");
                     
                     /*  R_I move.
                      *            w_3                       w_3
@@ -43,7 +43,7 @@ bool R_Ia_above()
                      *               O   O n_3                 O   O
                      *                \ /                       \ /
                      *                 \ c_3                     /  c_3
-                     *                / \                       / \
+                     *            n_0 / \ n_1               n_0 / \ n_1
                      *           O---O   O---O             O---O   O---O
                      *           |     a     |             |     a     |
                      *        -->----------->|-->   or  -->|---------->--->
@@ -76,7 +76,7 @@ bool R_Ia_above()
             }
             
             
-            PD_PRINT( "\t\t\t\tw_2 != s_2" );
+            PD_PRINT("\t\t\t\tw_3 != n_3");
             
             /*  R_Ia move.
              *
@@ -129,9 +129,9 @@ bool R_Ia_above()
             
             return true;
         }
-        else // if( o_0 != o_3 )
+        else // if(o_0 != o_3)
         {
-            PD_PRINT( "\t\t\to_0 != o_3" );
+            PD_PRINT("\t\t\to_0 != o_3");
             
             /* Potential trefoil cases:
              *
@@ -167,9 +167,50 @@ bool R_Ia_above()
     if constexpr( mult_compQ )
     {
         // The following can only happen with more than one component.
-        if( w_3 == n_1 )
+        if(w_3 == n_1)
         {
-            PD_PRINT( "\t\tw_3 == n_1" );
+            PD_PRINT("\t\tw_3 == n_1");
+            
+            if( e_3 == n_3 )
+            {
+                PD_PRINT("\t\t\te_3 == n_3");
+                
+                /*           +---O   O---+             +---O   O---+
+                 *           |    \ /    |             |    \ /    |
+                 *       n_0 |     X c_3 | n_1     n_0 |     X c_3 | n_1
+                 *           |    / \    |             |    / \    |
+                 *           |   O---O   |             |   O---O   |
+                 *           | e_3 = n_3 |             | e_3 = n_3 |
+                 *           O           O             O           O
+                 *        -->----------->|-->       -->|---------->--->
+                 *        c_0|     a     |c_1       c_0|     a     |c_1
+                 *           |           |             |           |
+                 *           +-----------+             +-----------+
+                 */
+                
+                Reconnect(n_1,u_1,n_0);
+                DeactivateArc(e_3);
+                DeactivateCrossing(c_3);
+                ++pd.R_I_counter;
+                
+                AssertArc<1>(a  );
+                AssertArc<0>(n_0);
+                AssertArc<1>(s_0);
+                AssertArc<1>(w_0);
+                AssertArc<1>(n_1);
+                AssertArc<1>(e_1);
+                AssertArc<1>(s_1);
+                AssertArc<0>(n_3);
+                AssertArc<0>(e_3);
+                AssertArc<0>(w_3);
+                AssertCrossing<1>(c_0);
+                AssertCrossing<1>(c_1);
+                AssertCrossing<0>(c_3);
+                
+                return true;
+            }
+            
+            PD_PRINT("\t\t\te_3 != n_3");
             
             /* Two further interesting cases.
              *
@@ -205,7 +246,7 @@ bool R_Ia_above()
             
             Reconnect(n_0,u_0,n_3);
             Reconnect(n_1,u_1,e_3);
-            DeactivateCrossing(c_2);
+            DeactivateCrossing(c_3);
             ++pd.twist_counter;
             
             AssertArc<1>(a  );

@@ -1,18 +1,18 @@
 bool R_I_right()
 {
-    PD_PRINT( "R_I_right()" );
+    PD_DPRINT("R_I_right()");
     
     AssertArc<1>(a);
     AssertCrossing<1>(c_0);
     AssertCrossing<1>(c_1);
     
-    if( s_1 == e_1 )
+    if(s_1 == e_1)
     {
-        PD_PRINT( "\ts_1 == e_1" );
+        PD_PRINT("\ts_1 == e_1");
         
-        if( n_0 != n_1 )
+        if(n_0 != n_1)
         {
-            PD_PRINT( "\t\tn_0 != n_1" );
+            PD_PRINT("\t\tn_0 != n_1");
             
             /*                n_0         n_1
              *               |           ^
@@ -42,12 +42,12 @@ bool R_I_right()
         }
 
         
-        PD_PRINT( "\t\tn_0 == n_1" );
-        PD_ASSERT( n_0 == n_1 )
+        PD_PRINT("\t\tn_0 == n_1");
+        PD_ASSERT(n_0 == n_1)
         
-        if( w_0 != s_0 )
+        if(w_0 != s_0)
         {
-            PD_PRINT( "\t\t\tw_0 != s_0" );
+            PD_PRINT("\t\t\tw_0 != s_0");
             
             /* A second Reidemeister I move can be performed.
              *
@@ -81,8 +81,8 @@ bool R_I_right()
             return true;
         }
             
-        PD_PRINT( "\t\t\tw_0 == s_0" );
-        PD_ASSERT( w_0 == s_0 );
+        PD_PRINT("\t\t\tw_0 == s_0");
+        PD_ASSERT(w_0 == s_0);
         /* We detected an unlink
          *
          *               +-----<-----+
@@ -116,13 +116,13 @@ bool R_I_right()
         
     }
 
-    if( n_1 == e_1 )
+    if(n_1 == e_1)
     {
-        PD_PRINT( "\tn_1 == e_1" );
+        PD_PRINT("\tn_1 == e_1");
         
-        if( s_0 != s_1 )
+        if(s_0 != s_1)
         {
-            PD_PRINT( "\t\ts_0 != s_1" );
+            PD_PRINT("\t\ts_0 != s_1");
             
             /* A second Reidemeister I move can be performed.
              *
@@ -154,12 +154,12 @@ bool R_I_right()
         }
         
         
-        PD_PRINT( "\t\ts_0 == s_1" );
-        PD_ASSERT( s_0 == s_1 );
+        PD_PRINT("\t\ts_0 == s_1");
+        PD_ASSERT(s_0 == s_1);
         
-        if( w_0 != n_0 )
+        if(w_0 != n_0)
         {
-            PD_PRINT( "\t\t\tw_0 != n_0" );
+            PD_PRINT("\t\t\tw_0 != n_0");
             
             /*                n_0
              *               ^           +---+
@@ -192,8 +192,8 @@ bool R_I_right()
             return true;
         }
         
-        PD_PRINT( "\t\t\tw_0 == n_0" );
-        PD_ASSERT( w_0 == n_0 );
+        PD_PRINT("\t\t\tw_0 == n_0");
+        PD_ASSERT(w_0 == n_0);
         
         /*
          *           +---+           +---+

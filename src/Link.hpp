@@ -416,7 +416,7 @@ namespace KnotTools
         /*! @brief Returns the first vertex _after_ component `c`.
          */
         
-        const Tensor1<Int,Int> & ComponentPointers() const
+        cref<Tensor1<Int,Int>> ComponentPointers() const
         {
             return component_ptr;
         }
@@ -527,7 +527,7 @@ namespace KnotTools
          *  The tip  of the edge `i` is given by `Edges()[1][i]`.
          */
         
-        const Tiny::VectorList<2,Int,Int> & Edges() const
+        cref<Tiny::VectorList<2,Int,Int>> Edges() const
         {
             return edges;
         }
