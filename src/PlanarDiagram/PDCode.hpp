@@ -211,24 +211,12 @@ Tensor2<Int,Int> PDCode()
     // We are using A_scratch to keep track of the new crossing's labels.
     A_scratch.Fill(-1);
     
-    
-//    dump(C_scratch.Size());
-//    dump(A_scratch.Size());
-    
     mptr<Int> C_labels = C_scratch.data();
     mptr<Int> A_labels = A_scratch.data();
     
     Int a_counter = 0;
     Int c_counter = 0;
     Int a_ptr     = 0;
-    
-    logdump(crossing_count);
-    logdump(arc_count);
-    
-    logdump(C_arcs);
-    logdump(C_state);
-    logdump(A_cross);
-    logdump(A_state);
     
     while( a_ptr < m )
     {
@@ -244,8 +232,6 @@ Tensor2<Int,Int> PDCode()
         }
         
         Int a = a_ptr;
-        
-        logvalprint("a_ptr",ArcString(a_ptr));
         
         {
             A_labels[a] = a_counter;
@@ -263,10 +249,6 @@ Tensor2<Int,Int> PDCode()
         // Cycle along all arcs in the link component, until we return where we started.
         do
         {
-            logvalprint("a",ArcString(a));
-            logdump(a_counter);
-            logdump(c_counter);
-            
             A_labels[a] = a_counter;
 
             const Int c_prev = A_cross(a,Tail);
@@ -279,13 +261,6 @@ Tensor2<Int,Int> PDCode()
             {
                 C_labels[c_next] = c_counter++;
             }
-            
-            
-            //            dump(a);
-            //            dump(a_counter);
-            //            dump(c_counter);
-            //            dump(c_prev);
-            //            dump(c_next);
 
             // Tell c_prev that arc a_counter goes out of it.
             {
@@ -293,8 +268,6 @@ Tensor2<Int,Int> PDCode()
                 const Int           c     = C_scratch[c_prev];
 
                 const bool side = (C_arcs(c_prev,Out,Right) == a);
-
-//                dump(c);
                 
                 mptr<Int> pd = pdcode.data(c);
                 
