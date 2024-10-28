@@ -1,6 +1,6 @@
 bool R_I_left()
 {
-    PD_PRINT("R_I_left()");
+    PD_DPRINT("R_I_left()");
     
     AssertArc<1>(a);
     AssertCrossing<1>(c_0);

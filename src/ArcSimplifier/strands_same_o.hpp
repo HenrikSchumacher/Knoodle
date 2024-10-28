@@ -9,19 +9,13 @@ bool strands_same_o()
     
     if( R_II_above() )
     {
-        //DEBUGGING
-        
         PD_ASSERT(pd.CheckAll());
-        
         return true;
     }
     
     if( R_II_below() )
     {
-        //DEBUGGING
-        
         PD_ASSERT(pd.CheckAll());
-        
         return true;
     }
     

@@ -1,6 +1,6 @@
 bool R_I_center()
 {
-    PD_PRINT("R_I_center()");
+    PD_DPRINT("R_I_center()");
     
     if(c_0 == c_1)
     {

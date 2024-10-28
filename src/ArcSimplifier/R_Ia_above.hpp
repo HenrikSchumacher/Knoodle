@@ -1,6 +1,6 @@
 bool R_Ia_above()
 {
-    PD_PRINT("R_Ia_above()");
+    PD_DPRINT("R_Ia_above()");
     
  
     //Check for Reidemeister Ia move.
@@ -188,7 +188,6 @@ bool R_Ia_above()
                  *           +-----------+             +-----------+
                  */
                 
-                ++pd.unlink_count;
                 Reconnect(n_1,u_1,n_0);
                 DeactivateArc(e_3);
                 DeactivateCrossing(c_3);

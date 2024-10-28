@@ -1,6 +1,6 @@
 bool R_IIa_diff_o_diff_u()
 {
-    PD_PRINT("R_IIa_diff_o_diff_u()");
+    PD_DPRINT("R_IIa_diff_o_diff_u()");
     
     PD_PRINT("\t\tu_0 != u_1");
     PD_ASSERT(u_0 != u_1);

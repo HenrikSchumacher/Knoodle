@@ -71,6 +71,17 @@ bool a_is_2loop()
                 {
                     PD_PRINT("\t\t\t\ts_0 != s_1");
                     
+                    /*             w_0 = e_1                          w_0 = e_1
+                     *       +-------------------+              +-------------------+
+                     *       |     n_0 = n_1     |              |     n_0 = n_1     |
+                     *       |   O-----------O   |              |   O-----------O   |
+                     *       |   |           |   |              |   |           |   |
+                     *       +-->|---------->|-->+      or      +-->----------->--->+
+                     *           |c_0  a     |c_1                   |c_0  a     |c_1
+                     *           |           |                      |           |
+                     *       s_0 O           O s_1              s_0 O           O s_1
+                     */
+                    
                     ++pd.unlink_count;
                     Reconnect(s_0,u_0,s_1);
                     DeactivateArc(n_0);
@@ -93,18 +104,32 @@ bool a_is_2loop()
                     return true;
                 }
             }
-            else
+            else // ( n_0 != n_1 )
             {
                 PD_PRINT("\t\t\tn_0 != n_1");
                 
-                if( s_0 == s_1 ) // n_0 != n_1
+                if( s_0 == s_1 )
                 {
                     PD_PRINT("\t\t\t\ts_0 == s_1");
                     
-                    // TODO: Do rather
+                    // n_0 != n_1  and  s_0 -= s_1
+                    
+                    /*
+                     *       n_0 O           O n_1              n_0 O           O n_1
+                     *           |           |                      |           |
+                     *           |     a     |                      |     a     |
+                     *       +-->|---------->|-->+      or      +-->----------->--->+
+                     *       |   |c_0        |c_1|              |   |c_0        |c_1|
+                     *       |   O-----------O   |              |   O-----------O   |
+                     *       |     s_0 = s_1     |              |     s_0 = s_1     |
+                     *       +-------------------+              +-------------------+
+                     *             w_0 = e_1                          w_0 = e_1
+                     */
+                    
                     ++pd.unlink_count;
-                    Reconnect(n_0,!u_0,n_1);
+                    Reconnect(n_0,u_1,n_1);
                     DeactivateArc(w_0);
+                    DeactivateArc(s_0);
                     DeactivateArc(a);
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
@@ -125,6 +150,18 @@ bool a_is_2loop()
                 else // n_0 != n_1  and  s_0 != s_1
                 {
                     PD_PRINT("\t\t\t\ts_0 != s_1");
+                    
+                    /*
+                     *       n_0 O           O n_1              n_0 O           O n_1
+                     *           |           |                      |           |
+                     *           |     a     |                      |     a     |
+                     *       +-->|---------->|-->+      or      +-->----------->--->+
+                     *       |   |c_0        |c_1|              |   |c_0        |c_1|
+                     *       |   O###########O   |              |   O###########O   |
+                     *       |                   |              |                   |
+                     *       +-------------------+              +-------------------+
+                     *             w_0 = e_1                          w_0 = e_1
+                     */
                     
                     ++pd.unlink_count;
                     Reconnect(s_0,u_0,n_0);
