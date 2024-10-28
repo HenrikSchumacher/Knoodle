@@ -104,10 +104,14 @@ void RequireFaces()
     // Each arc will appear in two faces.
     Tensor1<Int,Int> F_A_idx (2 * arc_count );
     // By Euler's polyhedra formula we have crossing_count - arc_count + face_count = 2.
-    // moreover, we have arc_count = 2 * crossing_count, hence
+    // Moreover, we have arc_count = 2 * crossing_count, hence face_count = crossing_count + 2.
     
-    const Int face_count = crossing_count + 2;
-    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
+    // BUT: We are actually interested in face boundary cycles. When we have a disconnected planar diagram, then there may be more than one boundary cycle per face.
+    
+//    const Int face_count = crossing_count + 2;
+//    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
+    
+    Tensor1<Int,Int> F_A_ptr ( arc_count );
     
     F_A_ptr[0]  = 0;
     
@@ -155,7 +159,9 @@ void RequireFaces()
     
 exit:
     
-    PD_ASSERT( F_counter == face_count );
+//    PD_ASSERT( F_counter == face_count );
+    
+    F_A_ptr.template Resize<true>(F_counter);
 
     this->SetCache( "FaceDirectedArcIndices", std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
