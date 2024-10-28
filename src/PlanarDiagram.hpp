@@ -470,6 +470,11 @@ namespace KnotTools
             return C_state;
         }
         
+        CrossingState GetCrossingState( const Int c ) const
+        {
+            return C_state[c];
+        }
+        
         
         /*!
          * @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
@@ -543,6 +548,11 @@ namespace KnotTools
         cref<ArcStateContainer_T> ArcStates() const
         {
             return A_state;
+        }
+        
+        ArcState GetArcState( const Int a ) const
+        {
+            return A_state[a];
         }
         
         
@@ -740,7 +750,7 @@ namespace KnotTools
 #ifdef PD_DEBUG
                 if constexpr ( assertsQ )
                 {
-                    wprint("Attempted to deactivate already inactive " + CrossingString(c) + ".");
+                    wprint(ClassName()+"::Attempted to deactivate already inactive " + CrossingString(c) + ".");
                 }
 #endif
             }
@@ -759,7 +769,7 @@ namespace KnotTools
                         
                         if( ArcActiveQ(a) && (A_cross(a,io) == c) )
                         {
-                            pd_eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
+                            pd_eprint(ClassName()+"::DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
                         }
                     }
                 }
@@ -783,7 +793,7 @@ namespace KnotTools
             else
             {
 #if defined(PD_DEBUG)
-                wprint("Attempted to deactivate already inactive " + ArcString(a) + ".");
+                wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
             }
             
@@ -817,137 +827,6 @@ namespace KnotTools
         }
         
         /*!
-         * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
-         *
-         * Relabeling is done as follows:
-         * First active arc becomes first arc in new planar diagram.
-         * The _tail_ of this arc becomes the new first crossing.
-         * Then we follow all arcs in the component with `NextArc<Head>(a)`.
-         * The new labels increase by one for each invisited arc.
-         * Same for the crossings.
-         */
-        
-        PlanarDiagram CreateCompressed()
-        {
-            ptic( ClassName()+"::CreateCompressed");
-            
-            PlanarDiagram pd ( crossing_count, unlink_count );
-            
-            const Int m = A_cross.Dimension(0);
-            
-            mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-            mptr<CrossingState>       C_state_new = pd.C_state.data();
-            
-            mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-            mptr<ArcState>            A_state_new = pd.A_state.data();
-            
-            C_scratch.Fill(-1);
-            mptr<Int> C_labels = C_scratch.data();
-            
-            mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
-            fill_buffer(A_visited,false,m);
-            
-            Int a_counter = 0;
-            Int c_counter = 0;
-            Int a_ptr     = 0;
-            
-            Int comp_counter = 0;
-            
-            while( a_ptr < m )
-            {
-                // Search for next arc that is active and has not yet been handled.
-                while( ( a_ptr < m ) && ( A_visited[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
-                {
-                    ++a_ptr;
-                }
-                
-                if( a_ptr >= m )
-                {
-                    break;
-                }
-                
-                ++comp_counter;
-                
-                Int a = a_ptr;
-                
-                AssertArc(a);
-                
-                {
-                    const Int c_prev = A_cross(a,Tail);
-                    
-                    AssertCrossing(c_prev);
-                    
-                    if( C_labels[c_prev] < 0 )
-                    {
-                        const Int c = C_labels[c_prev] = c_counter;
-                        
-                        C_state_new[c] = C_state[c_prev];
-                        
-                        ++c_counter;
-                    }
-                }
-                
-                // Cycle along all arcs in the link component, until we return where we started.
-                do
-                {
-                    const Int c_prev = A_cross(a,Tail);
-                    const Int c_next = A_cross(a,Head);
-                    
-                    AssertCrossing(c_prev);
-                    AssertCrossing(c_next);
-                    
-                    if( A_visited[a] )
-                    {
-                        eprint(ClassName()+"::CreateCompressed: A_visited[a].");
-                    }
-                    
-                    A_state_new[a_counter] = ArcState::Active;
-                    A_visited[a] = true;
-                    
-                    if( C_labels[c_next] < 0 )
-                    {
-                        const Int c = C_labels[c_next] = c_counter;
-                        
-                        C_state_new[c] = C_state[c_next];
-                        
-                        ++c_counter;
-                    }
-                    
-                    {
-                        const Int  c  = C_labels[c_prev];
-                        const bool side = (C_arcs(c_prev,Out,Right) == a);
-                        
-                        C_arcs_new(c,Out,side) = a_counter;
-                        
-                        A_cross_new(a_counter,Tail) = c;
-                    }
-                    
-                    {
-                        const Int  c  = C_labels[c_next];
-                        const bool side = (C_arcs(c_next,In,Right) == a);
-                        
-                        C_arcs_new(c,In,side) = a_counter;
-                        
-                        A_cross_new(a_counter,Head) = c;
-                    }
-                    
-                    a = NextArc<Head>(a);
-                    
-                    AssertArc(a);
-                    
-                    ++a_counter;
-                }
-                while( a != a_ptr );
-                
-                ++a_ptr;
-            }
-            
-            ptoc( ClassName()+"::CreateCompressed");
-            
-            return pd;
-        }
-        
-        /*!
          * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
          */
         
@@ -974,7 +853,8 @@ namespace KnotTools
         
     public:
 
-        
+
+#include "PlanarDiagram/Compress.hpp"
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/R_I.hpp"
@@ -984,9 +864,11 @@ namespace KnotTools
         
 #include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
-#include "PlanarDiagram/Components.hpp"
+#include "PlanarDiagram/LinkComponents.hpp"
+#include "PlanarDiagram/DiagramComponents.hpp"
+#include "PlanarDiagram/Split.hpp"
 #include "PlanarDiagram/Strands.hpp"
-#include "PlanarDiagram/ConnectedSum.hpp"
+#include "PlanarDiagram/DisconnectSummands.hpp"
         
 #include "PlanarDiagram/Simplify1.hpp"
 #include "PlanarDiagram/Simplify2.hpp"
@@ -998,7 +880,6 @@ namespace KnotTools
 
 #include "PlanarDiagram/Resolve.hpp"
 #include "PlanarDiagram/Switch.hpp"
-#include "PlanarDiagram/Split.hpp"
         
     public:
         
@@ -1007,16 +888,11 @@ namespace KnotTools
         {
             logprint(ClassName()+"::PrintInfo");
             
-            logdump(initial_crossing_count);
-            logdump(Arcs().Max());
-            logdump(Arcs().Min());
-            
-            logdump(initial_arc_count);
-            logdump(Crossings().Max());
-            logdump(Crossings().Min());
-//            
-//            logdump(Crossings());
-//            logdump(Arcs());
+            logdump( C_arcs );
+            logdump( C_state );
+            logdump( A_cross );
+            logdump( A_state );
+            logdump( unlink_count );
         }
         
         static std::string ClassName()

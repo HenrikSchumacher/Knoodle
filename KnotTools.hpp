@@ -20,7 +20,7 @@ namespace KnotTools
         Inactive             =  0
     };
     
-    inline std::string ToString( const CrossingState & s )
+    inline std::string ToString( cref<CrossingState> s )
     {
         switch( s )
         {
@@ -36,6 +36,12 @@ namespace KnotTools
         }
     }
 
+    inline std::ostream & operator<<( std::ostream & s, cref<CrossingState> state )
+    {
+        s << static_cast<int>(ToUnderlying(state));
+        return s;
+    }
+    
     inline constexpr bool ActiveQ( const CrossingState & s )
     {
         return ToUnderlying(s);
@@ -103,7 +109,7 @@ namespace KnotTools
         return ToUnderlying(s);
     }
     
-    inline std::string ToString( const ArcState & s )
+    inline std::string ToString( cref<ArcState> s )
     {
         switch( s )
         {
@@ -113,6 +119,12 @@ namespace KnotTools
                 
             case ArcState::Unchanged : return "Unchanged";
         }
+    }
+    
+    inline std::ostream & operator<<( std::ostream & s, cref<ArcState> state )
+    {
+        s << static_cast<int>(ToUnderlying(state));
+        return s;
     }
     
     
