@@ -70,6 +70,7 @@ Int Simplify4(
 //    const Int c_count = CrossingCount();
 //
 //    const Time start_time = Clock::now();
+    
     do
     {
         ++iter;
@@ -96,9 +97,6 @@ Int Simplify4(
             }
         }
         
-//        logprint("overstrands");
-//        logdump(CrossingCount());
-        
         const Int o_changes = strand_R_II_Q
         ? S.template SimplifyStrands<true >(true,max_dist)
         : S.template SimplifyStrands<false>(true,max_dist);
@@ -111,9 +109,6 @@ Int Simplify4(
         }
         
         PD_ASSERT(CheckAll());
-
-//        logprint("understrands");
-//        logdump(CrossingCount());
         
         const Int u_changes = strand_R_II_Q
         ? S.template SimplifyStrands<true >(false,max_dist)
@@ -127,6 +122,7 @@ Int Simplify4(
         }
         
         PD_ASSERT(CheckAll());
+
     }
     while( counter > old_counter );
     
