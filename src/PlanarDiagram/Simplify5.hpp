@@ -2,7 +2,7 @@ public:
 
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
 
-/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `SplitConnectedSummands`.
+/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`.
  *
  * @param PD_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
@@ -41,7 +41,7 @@ bool Simplify5(
         
         if( CrossingCount() >= 6 )
         {
-            changedQ = changedQ || SplitConnectedSummands(PD_list,
+            changedQ = changedQ || DisconnectSummands(PD_list,
                 max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
