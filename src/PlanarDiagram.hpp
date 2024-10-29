@@ -866,7 +866,6 @@ namespace KnotTools
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/LinkComponents.hpp"
 #include "PlanarDiagram/DiagramComponents.hpp"
-#include "PlanarDiagram/Split.hpp"
 #include "PlanarDiagram/Strands.hpp"
 #include "PlanarDiagram/DisconnectSummands.hpp"
         
