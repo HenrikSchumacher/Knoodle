@@ -1552,12 +1552,6 @@ namespace KnotTools
             const Int Cr_0 = pd.CrossingCount();
             
             logdump(Cr_0);
-            
-            // DEBUGGING
-            if( Cr_0 == 17 )
-            {
-                pd.PrintInfo();
-            }
 #endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
