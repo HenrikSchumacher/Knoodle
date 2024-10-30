@@ -521,9 +521,27 @@ namespace KnotTools
             
             if( !this->InCacheQ( tag ) )
             {
-                ptic( ClassName()+ "::ComponentVertexMatrix" );
                 
                 const Int edge_count = edges.Dimension(0);
+                
+                if( edge_count <= 0 )
+                {
+                    ComponentMatrix_T C ( vertex_count, vertex_count, vertex_count, Int(1) );
+                    
+                    C.Outer(0) = 0;
+                    
+                    for( Int v = 0; v < vertex_count; ++v )
+                    {
+                        C.Outer(v+1) = v;
+                        C.Inner(v)   = v;
+                    }
+                    
+                    this->SetCache( std::string(tag), std::move(C) );
+
+                    return this->template GetCache<ComponentMatrix_T>(tag);
+                }
+                
+                ptic( ClassName()+ "::ComponentVertexMatrix" );
                 
                 // Stores the graph's components.
                 // c_v_ptr contains a counter for the number of components.

@@ -132,9 +132,14 @@ cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
 void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
 {
     ptic(ClassName()+"::Split");
+
+    if( CrossingCount() <= 0 )
+    {
+        return;
+    }
     
     cref<Multigraph<Int>> G = DiagramComponentLinkComponentGraph();
-    
+
     const auto & A = G.ComponentVertexMatrix();
     
     // dc = diagram component

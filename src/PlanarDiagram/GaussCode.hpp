@@ -1,10 +1,22 @@
-Tensor1<Int,Int> GaussCode()
+template<typename T = Int>
+Tensor1<T,Int> GaussCode()
 {
-    ptic(ClassName()+"::GaussCode");
+    ptic(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
     
+    static_assert( SignedIntQ<T>, "" );
+    
+    if( (Size_T(crossing_count) + 1 ) > Size_T(std::numeric_limits<T>::max())   )
+    {
+        eprint(ClassName() + "::GaussCode: Requested type T cannot store Gauss code for this diagram.");
+        
+        ptoc(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
+        
+        return Tensor1<T,Int>();
+    }
+        
     const Int m = A_cross.Dimension(0);
     
-    Tensor1<Int,Int> gauss_code ( arc_count );
+    Tensor1<T,Int> gauss_code ( arc_count );
     
     // We are using C_scratch to keep track of the new crossing's labels.
     C_scratch.Fill(-1);
@@ -15,7 +27,7 @@ Tensor1<Int,Int> GaussCode()
     mptr<Int> C_labels = C_scratch.data();
     mptr<Int> A_labels = A_scratch.data();
     
-    Int c_counter = 0;
+    T   c_counter = 0;
     Int a_counter = 0;
     Int a_ptr     = 0;
     
@@ -39,7 +51,7 @@ Tensor1<Int,Int> GaussCode()
         {
             A_labels[a] = a_counter;
 
-            const Int c = A_cross(a,Tail);
+            const T c = static_cast<T>(A_cross(a,Tail));
 
             AssertCrossing(c);
             
@@ -48,7 +60,7 @@ Tensor1<Int,Int> GaussCode()
                 C_labels[c] = c_counter++;
             }
 
-            gauss_code[a] = (c+1) * (ArcOverQ<Tail>(a) ? Int(1) : Int(-1));
+            gauss_code[a] = ( ArcOverQ<Tail>(a) ? (c+T(1)) : -(c+T(1)) );
             
             a = NextArc<Head>(a);
             
@@ -61,18 +73,32 @@ Tensor1<Int,Int> GaussCode()
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::GaussCode");
+    ptoc(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
     
     return gauss_code;
 }
 
-Tensor1<Int,Int> OrientedGaussCode()
+template<typename T = Int>
+Tensor1<T,Int> OrientedGaussCode()
 {
-    ptic(ClassName()+"::OrientedGaussCode");
+    ptic(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
+    
+    static_assert( IntQ<T>, "" );
+    
+    if(
+       (4 * Size_T( Ramp(crossing_count - 1) ) + 3 ) > Size_T(std::numeric_limits<T>::max())
+    )
+    {
+        eprint(ClassName() + "::OrientedGaussCode: Requested type T cannot store oriented Gauss code for this diagram.");
+        
+        ptoc(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
+        
+        return Tensor1<T,Int>();
+    }
     
     const Int m = A_cross.Dimension(0);
     
-    Tensor1<Int,Int> gauss_code ( arc_count );
+    Tensor1<T,Int> gauss_code ( arc_count );
     
     // We are using C_scratch to keep track of the new crossing's labels.
     C_scratch.Fill(-1);
@@ -83,7 +109,7 @@ Tensor1<Int,Int> OrientedGaussCode()
     mptr<Int> C_labels = C_scratch.data();
     mptr<Int> A_labels = A_scratch.data();
     
-    Int c_counter = 0;
+    T   c_counter = 0;
     Int a_counter = 0;
     Int a_ptr     = 0;
     
@@ -107,7 +133,7 @@ Tensor1<Int,Int> OrientedGaussCode()
         {
             A_labels[a] = a_counter;
 
-            const Int c = A_cross(a,Tail);
+            const T c = static_cast<T>(A_cross(a,Tail));
 
             AssertCrossing(c);
             
@@ -120,7 +146,7 @@ Tensor1<Int,Int> OrientedGaussCode()
 
             const bool overQ = (side == CrossingRightHandedQ(c) );
             
-            gauss_code[a] = ((c << 2) | (Int(side) << 1) | Int(overQ));
+            gauss_code[a] = (c << 2) | (T(side) << 1) | T(overQ);
             
             a = NextArc<Head>(a);
             
@@ -133,7 +159,7 @@ Tensor1<Int,Int> OrientedGaussCode()
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::OrientedGaussCode");
+    ptoc(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
     
     return gauss_code;
 }
