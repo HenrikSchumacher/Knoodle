@@ -475,7 +475,6 @@ namespace KnotTools
             return C_state[c];
         }
         
-        
         /*!
          * @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
          */
@@ -866,7 +865,6 @@ namespace KnotTools
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/LinkComponents.hpp"
 #include "PlanarDiagram/DiagramComponents.hpp"
-#include "PlanarDiagram/Split.hpp"
 #include "PlanarDiagram/Strands.hpp"
 #include "PlanarDiagram/DisconnectSummands.hpp"
         
@@ -877,6 +875,7 @@ namespace KnotTools
 #include "PlanarDiagram/Simplify5.hpp"
         
 #include "PlanarDiagram/PDCode.hpp"
+#include "PlanarDiagram/GaussCode.hpp"
 
 #include "PlanarDiagram/Resolve.hpp"
 #include "PlanarDiagram/Switch.hpp"

@@ -377,9 +377,6 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 {
     ptic(ClassName()+"::ExportComponent");
     
-    // DEBUGGING
-    PrintInfo();
-    
     PlanarDiagram<Int> pd (comp_size/2,0);
     
     Int a_label = 0;

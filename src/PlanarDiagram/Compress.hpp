@@ -84,7 +84,8 @@ PlanarDiagram CreateCompressed()
             
             AssertCrossing(c_0);
             AssertCrossing(c_1);
-            
+
+#ifdef PD_DEBUG
             if( A_visited[a] )
             {
                 eprint(ClassName()+"::CreateCompressed: A_visited[a].");
@@ -96,6 +97,7 @@ PlanarDiagram CreateCompressed()
                 CheckAll();
 
             }
+#endif
             
             A_state_new[a_counter] = ArcState::Active;
             A_visited[a] = true;
