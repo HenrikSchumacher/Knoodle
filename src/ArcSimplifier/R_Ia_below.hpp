@@ -220,12 +220,12 @@ bool R_Ia_below()
          */
         
         // TODO: trefoil as connect summand detected
-        // TODO: How to store/use this info?
+//        // TODO: How to store/use this info?
 //        if( (w_0 == w_2) || (e_1 == s_2) )
 //        {
-//            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
+////            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
 //            
-//            PD_PRINT( "Detected a trefoil connected summand." );
+//            logprint( "Detected a trefoil connected summand." );
 //
 //            return false;
 //        }
