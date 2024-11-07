@@ -110,33 +110,6 @@ bool R_IIa_same_o_diff_u()
     pd.SwitchCrossing(c_0);
     pd.SwitchCrossing(c_1);
     
-    if constexpr ( use_flagsQ )
-    {
-        TouchCrossing(c_0);
-        TouchCrossing(c_1);
-        
-        TouchCrossing(A_cross(a,Tail));
-        TouchCrossing(A_cross(a,Head));
-        
-        TouchCrossing(A_cross(w_0,Tail));
-        TouchCrossing(A_cross(w_0,Head));
-        
-        TouchCrossing(A_cross(e_1,Tail));
-        TouchCrossing(A_cross(e_1,Head));
-        
-        TouchCrossing(A_cross(s_2,Tail));
-        TouchCrossing(A_cross(s_2,Head));
-        
-        TouchCrossing(A_cross(w_2,Tail));
-        TouchCrossing(A_cross(w_2,Head));
-        
-        TouchCrossing(A_cross(n_3,Tail));
-        TouchCrossing(A_cross(n_3,Head));
-        
-        TouchCrossing(A_cross(w_3,Tail));
-        TouchCrossing(A_cross(w_3,Head));
-    }
-    
     DeactivateArc(s_0);
     DeactivateArc(s_1);
     DeactivateArc(n_0);

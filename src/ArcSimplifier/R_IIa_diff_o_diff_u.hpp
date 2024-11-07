@@ -64,33 +64,6 @@ bool R_IIa_diff_o_diff_u()
     C_arcs(c_1, u_1,Left ) = n_3;
     C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
     C_arcs(c_1,!u_1,Right) = s_2;
-
-    if constexpr ( use_flagsQ )
-    {
-        TouchCrossing(c_0);
-        TouchCrossing(c_1);
-        
-        TouchCrossing(A_cross(a,Tail));
-        TouchCrossing(A_cross(a,Head));
-        
-        TouchCrossing(A_cross(w_0,Tail));
-        TouchCrossing(A_cross(w_0,Head));
-        
-        TouchCrossing(A_cross(e_1,Tail));
-        TouchCrossing(A_cross(e_1,Head));
-        
-        TouchCrossing(A_cross(s_2,Tail));
-        TouchCrossing(A_cross(s_2,Head));
-        
-        TouchCrossing(A_cross(w_2,Tail));
-        TouchCrossing(A_cross(w_2,Head));
-        
-        TouchCrossing(A_cross(n_3,Tail));
-        TouchCrossing(A_cross(n_3,Head));
-        
-        TouchCrossing(A_cross(w_3,Tail));
-        TouchCrossing(A_cross(w_3,Head));
-    }
     
     DeactivateArc(n_0);
     DeactivateArc(n_1);
