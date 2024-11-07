@@ -62,8 +62,10 @@ void RequireFaces()
     
     // TODO: Make ArcLeftArc cached as well?
     
-    const Tensor2<Int,Int> A_left_buffer = ArcLeftArc();
-    cptr<Int> A_left = A_left_buffer.data();
+    cptr<Int> A_left = ArcLeftArc().data();
+    
+//    auto A_left_buffer = ArcLeftArc();
+//    cptr<Int> A_left = A_left_buffer.data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     Tensor2<Int,Int> A_faces_buffer (initial_arc_count,2);

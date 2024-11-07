@@ -139,6 +139,20 @@ bool ArcOverQ( const Int a, const bool headtail )  const
     return !ArcUnderQ(a,headtail);
 }
 
+bool AlternatingQ()
+{
+    bool alternatingQ = true;
+    
+    for( Int a = 0; a < initial_arc_count; ++a )
+    {
+        alternatingQ
+            = alternatingQ && ArcActiveQ(a) && (ArcOverQ<Tail>(a) != ArcOverQ<Head>(a));
+        
+    }
+
+    return alternatingQ;
+}
+
 
 /*!
  * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
@@ -527,100 +541,106 @@ Int NextRightArc( const Int A ) const
 }
 
 
-Tensor2<Int,Int> ArcLeftArc() const
+mref<Tensor2<Int,Int>> ArcLeftArc() const
 {
-    Tensor2<Int,Int> A_left ( initial_arc_count, 2 );
+    // Return value needs to be mutable so that StrandSimplifier can update it.
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    std::string tag ("ArcLeftArc");
+    
+    if( !this->InCacheQ(tag) )
     {
-        if( CrossingActiveQ(c) )
+        Tensor2<Int,Int> A_left ( initial_arc_count, 2 );
+        
+        for( Int c = 0; c < initial_crossing_count; ++c )
         {
-            Int A [2][2];
-            
-            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
-            
-            const Int arrows [2][2] =
+            if( CrossingActiveQ(c) )
             {
-                { (A[Out][Left ] << 1) | Int(Head), (A[Out][Right] << 1) | Int(Head) }
-                ,
-                { (A[In ][Left ] << 1) | Int(Tail), (A[In ][Right] << 1) | Int(Tail) }
-            };
-            
-            
-            // A[Out][Left ]         A[Out][Right]
-            //               O     O
-            //                ^   ^
-            //                 \ /
-            //                  X c
-            //                 ^ ^
-            //                /   \
-            //               O     O
-            // A[In ][Left ]         A[In ][Right]
-            
-            A_left(A[Out][Left ],Tail) = arrows[Out][Right];
-            
-            A_left(A[Out][Right],Tail) = arrows[In ][Right];
-            
-            A_left(A[In ][Left ],Head) = arrows[Out][Left ];
-            
-            A_left(A[In ][Right],Head) = arrows[In ][Left ];
-            
-            
-            PD_ASSERT(
-                (A_left(A[In ][Left ],Head) >> 1)
-                ==
-                NextLeftArc(A[In ][Left ],Head).first
-            );
-            
-            PD_ASSERT(
-                (A_left(A[In ][Left ],Head) & Int(1))
-                ==
-                NextLeftArc(A[In ][Left ],Head).second
-            );
-            
-            PD_ASSERT(
-                (A_left(A[In ][Right],Head) >> 1)
-                ==
-                NextLeftArc(A[In ][Right],Head).first
-            );
-            
-            PD_ASSERT(
-                (A_left(A[In ][Right],Head) & Int(1))
-                ==
-                NextLeftArc(A[In ][Right],Head).second
-            );
-            
-            PD_ASSERT(
-                (A_left(A[Out][Left ],Tail) >> 1)
-                ==
-                NextLeftArc(A[Out][Left ],Tail).first
-            );
-            
-            PD_ASSERT(
-                (A_left(A[Out][Left ],Tail) & Int(1))
-                ==
-                NextLeftArc(A[Out][Left ],Tail).second
-            );
-            
-            PD_ASSERT(
-                (A_left(A[Out][Right],Tail) >> 1)
-                ==
-                NextLeftArc(A[Out][Right],Tail).first
-            );
-            
-            PD_ASSERT(
-                (A_left(A[Out][Right],Tail) & Int(1))
-                ==
-                NextLeftArc(A[Out][Right],Tail).second
-            );
+                Int A [2][2];
+                
+                copy_buffer<4>( C_arcs.data(c), &A[0][0] );
+                
+                const Int arrows [2][2] =
+                {
+                    { (A[Out][Left ] << 1) | Int(Head), (A[Out][Right] << 1) | Int(Head) }
+                    ,
+                    { (A[In ][Left ] << 1) | Int(Tail), (A[In ][Right] << 1) | Int(Tail) }
+                };
+                
+                
+                // A[Out][Left ]         A[Out][Right]
+                //               O     O
+                //                ^   ^
+                //                 \ /
+                //                  X c
+                //                 ^ ^
+                //                /   \
+                //               O     O
+                // A[In ][Left ]         A[In ][Right]
+                
+                A_left(A[Out][Left ],Tail) = arrows[Out][Right];
+                
+                A_left(A[Out][Right],Tail) = arrows[In ][Right];
+                
+                A_left(A[In ][Left ],Head) = arrows[Out][Left ];
+                
+                A_left(A[In ][Right],Head) = arrows[In ][Left ];
+                
+                
+                PD_ASSERT(
+                    (A_left(A[In ][Left ],Head) >> 1)
+                    ==
+                    NextLeftArc(A[In ][Left ],Head).first
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[In ][Left ],Head) & Int(1))
+                    ==
+                    NextLeftArc(A[In ][Left ],Head).second
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[In ][Right],Head) >> 1)
+                    ==
+                    NextLeftArc(A[In ][Right],Head).first
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[In ][Right],Head) & Int(1))
+                    ==
+                    NextLeftArc(A[In ][Right],Head).second
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[Out][Left ],Tail) >> 1)
+                    ==
+                    NextLeftArc(A[Out][Left ],Tail).first
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[Out][Left ],Tail) & Int(1))
+                    ==
+                    NextLeftArc(A[Out][Left ],Tail).second
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[Out][Right],Tail) >> 1)
+                    ==
+                    NextLeftArc(A[Out][Right],Tail).first
+                );
+                
+                PD_ASSERT(
+                    (A_left(A[Out][Right],Tail) & Int(1))
+                    ==
+                    NextLeftArc(A[Out][Right],Tail).second
+                );
+            }
         }
+        
+        this->SetCache(tag,std::move(A_left));
     }
     
-    return A_left;
+    return this->GetCache<Tensor2<Int,Int>>(tag);
 }
-
-
-
 
 
 bool CheckNextRightArc() const
@@ -840,34 +860,48 @@ Tensor3<Int,Int> ArcWings() const
 }
 
 
-Tensor1<Int,Int> ArcNextArc() const
+cref<Tensor1<Int,Int>> ArcNextArc() const
 {
-    Tensor1<Int,Int> A_next ( initial_arc_count, -1 );
+    std::string tag ("ArcNextArc");
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    if( !this->InCacheQ(tag) )
     {
-        if( CrossingActiveQ(c) )
+        Tensor1<Int,Int> A_next ( initial_arc_count, -1 );
+        
+        for( Int c = 0; c < initial_crossing_count; ++c )
         {
-            A_next(C_arcs(c,In,Left )) = C_arcs(c,Out,Right);
-            A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
+            if( CrossingActiveQ(c) )
+            {
+                A_next(C_arcs(c,In,Left )) = C_arcs(c,Out,Right);
+                A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
+            }
         }
+        
+        this->SetCache(tag,std::move(A_next));
     }
     
-    return A_next;
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 Tensor1<Int,Int> ArcPrevArc() const
 {
-    Tensor1<Int,Int> A_prev ( initial_arc_count, -1 );
+    std::string tag ("ArcNextArc");
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    if( !this->InCacheQ(tag) )
     {
-        if( CrossingActiveQ(c) )
+        Tensor1<Int,Int> A_prev ( initial_arc_count, -1 );
+        
+        for( Int c = 0; c < initial_crossing_count; ++c )
         {
-            A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In,Left );
-            A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In,Right);
+            if( CrossingActiveQ(c) )
+            {
+                A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In,Left );
+                A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In,Right);
+            }
         }
+        
+        this->SetCache(tag,std::move(A_prev));
     }
     
-    return A_prev;
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
