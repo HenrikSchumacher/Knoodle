@@ -50,6 +50,11 @@ bool DisconnectSummands(
     }
     while( changedQ );
     
+    if( changed_at_least_onceQ )
+    {
+        this->ClearCache();
+    }
+    
     ptoc(ClassName()+"::DisconnectSummands");
     
     return changed_at_least_onceQ;
