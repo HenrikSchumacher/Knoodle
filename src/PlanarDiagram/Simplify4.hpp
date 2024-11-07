@@ -14,6 +14,11 @@ Int Simplify4(
     const bool strand_R_II_Q = true
 )
 {
+    if( provably_irreducibleQ )
+    {
+        return 0;
+    }
+    
     ptic(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)

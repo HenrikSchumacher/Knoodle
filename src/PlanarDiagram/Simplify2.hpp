@@ -10,8 +10,13 @@ public:
  *  This is a very dated simplification routine and only persists for benchmarking reasons. Better use `Simplify3` or `Simplify4` instead.
  */
 
-void Simplify2()
+Int Simplify2()
 {
+    if( provably_irreducibleQ )
+    {
+        return 0;
+    }
+    
     ptic(ClassName()+"::Simplify2");
 
     Int counter = 0;
@@ -66,4 +71,6 @@ void Simplify2()
     }
     
     ptoc(ClassName()+"::Simplify2");
+    
+    return counter;
 }
