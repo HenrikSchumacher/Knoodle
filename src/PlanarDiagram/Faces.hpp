@@ -163,7 +163,7 @@ exit:
     
 //    PD_ASSERT( F_counter == face_count );
     
-    F_A_ptr.template Resize<true>(F_counter);
+    F_A_ptr.template Resize<true>(F_counter+1);
 
     this->SetCache( "FaceDirectedArcIndices", std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
