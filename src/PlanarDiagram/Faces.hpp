@@ -165,7 +165,7 @@ exit:
     
     F_A_ptr.template Resize<true>(F_counter+1);
 
-    this->SetCache( "FaceDirectedArcIndices", std::move(F_A_idx) );
+    this->SetCache( "FaceDirectedArcIndices" , std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
     this->SetCache( "ArcFaces", std::move(A_faces_buffer) );
     
