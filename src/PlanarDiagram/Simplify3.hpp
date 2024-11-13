@@ -22,6 +22,11 @@ Int Simplify3(
     const bool multi_compQ = true
 )
 {
+    if( provably_irreducibleQ )
+    {
+        return 0;
+    }
+    
     const Int level = Clamp(optimization_level, Int(0), Int(4));
     
     if( multi_compQ )
@@ -91,7 +96,7 @@ Int simplify3( Int max_iter )
     Int counter = 0;
     Int iter = 0;
     
-    ArcSimplifier<Int,optimization_level,false,multi_compQ> arc_simplifier (*this);
+    ArcSimplifier<Int,optimization_level,multi_compQ> arc_simplifier (*this);
 
     while( (counter != old_counter) && (iter < max_iter) )
     {

@@ -9,7 +9,7 @@ namespace KnotTools
     // TODO: A_cross(a,Tail) =  c if a == C_arc(a,Out,Right)
     
     
-    template<typename Int_, Size_T optimization_level, bool use_flagsQ_, bool mult_compQ_>
+    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
     class ArcSimplifier;
     
     template<typename Int_, bool mult_compQ_> class CrossingSimplifier;
@@ -38,7 +38,7 @@ namespace KnotTools
         
         
 
-        template<typename I, Size_T lvl,bool use_flagsQ_, bool mult_compQ_>
+        template<typename I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
         
         template<typename I, bool mult_compQ_>
@@ -99,6 +99,8 @@ namespace KnotTools
 
         Stack<Int,Int> stack;
         
+        bool provably_irreducibleQ = false;
+        
     public:
         
         PlanarDiagram() = default;
@@ -156,6 +158,7 @@ namespace KnotTools
 //        ,   comp_initialized        { other.comp_initialized        }
         ,   C_scratch               { other.C_scratch               }
         ,   A_scratch               { other.A_scratch               }
+        ,   provably_irreducibleQ   { other.provably_irreducibleQ   }
         {}
             
         
@@ -882,6 +885,13 @@ namespace KnotTools
         
     public:
         
+        bool ProvablyIrreducibleQ() const
+        {
+            return provably_irreducibleQ;
+        }
+        
+    public:
+        
         
         void PrintInfo()
         {
@@ -902,3 +912,6 @@ namespace KnotTools
     };
 
 } // namespace KnotTools
+
+
+

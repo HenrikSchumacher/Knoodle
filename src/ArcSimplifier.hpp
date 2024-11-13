@@ -7,7 +7,6 @@ namespace KnotTools
 {
     template<typename Int_,
         Size_T optimization_level_ = 4,
-        bool use_flagsQ_ = false,
         bool mult_compQ_ = true
     >
     class alignas( ObjectAlignment ) ArcSimplifier
@@ -26,7 +25,6 @@ namespace KnotTools
         using ArcStateContainer_T       = PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
-        static constexpr bool use_flagsQ = use_flagsQ_;
         
         static constexpr Int optimization_level = optimization_level_;
         
@@ -255,115 +253,16 @@ namespace KnotTools
         {
             return pd.CrossingString(c_);
         }
-        
-        void SetCrossingUnchanged( const Int c )
-        {
-            if constexpr ( use_flagsQ )
-            {
-                switch( C_state[c] )
-                {
-                    case CrossingState::LeftHanded:
-                    {
-                        C_state[c] = CrossingState::LeftHandedUnchanged;
-                        return;
-                    }
-                    case CrossingState::LeftHandedUnchanged:
-                    {
-                        return;
-                    }
-                    case CrossingState::RightHanded:
-                    {
-                        C_state[c] = CrossingState::RightHandedUnchanged;
-                        return;
-                    }
-                    case CrossingState::RightHandedUnchanged:
-                    {
-                        return;
-                    }
-                    case CrossingState::Inactive:
-                    {
-                        return;
-                    }
-                }
-            }
-        }
-        
-        void SetCrossingChanged( const Int c )
-        {
-            if constexpr ( use_flagsQ )
-            {
-                switch( C_state[c] )
-                {
-                    case CrossingState::LeftHanded:
-                    {
-                        return;
-                    }
-                    case CrossingState::LeftHandedUnchanged:
-                    {
-                        C_state[c] = CrossingState::LeftHanded;
-                        return;
-                    }
-                    case CrossingState::RightHanded:
-                    {
-                        return;
-                    }
-                    case CrossingState::RightHandedUnchanged:
-                    {
-                        C_state[c] = CrossingState::RightHanded;
-                        return;
-                    }
-                    case CrossingState::Inactive:
-                    {
-                        return;
-                    }
-                }
-            }
-        }
-        
-        void TouchCrossing( const Int c )
-        {
-            if constexpr ( use_flagsQ )
-            {
-                PD_ASSERT( CrossingActiveQ(c) );
-                
-                SetCrossingChanged(c);
-                
-                for( bool io : { Out, In } )
-                {
-                    for( bool lr : { Left, Right } )
-                    {
-                        const Int a = C_arcs(c,io,lr);
-                        
-                        SetCrossingChanged(A_cross(a,Tail));
-                        SetCrossingChanged(A_cross(a,Head));
-                    }
-                }
-            }
-        }
 
         void Reconnect( const Int a_, const bool headtail, const Int b_ )
         {
             pd.Reconnect(a_,headtail,b_);
-            
-            // TODO: Two crossings are touched multiple times.
-            if constexpr ( use_flagsQ )
-            {
-                TouchCrossing(A_cross(a,Tail));
-                TouchCrossing(A_cross(a,Head));
-            }
         }
         
         template<bool headtail>
         void Reconnect( const Int a_, const Int b_ )
         {
             pd.template Reconnect<headtail>(a_,b_);
-            
-            // TODO: Two crossings are touched multiple times.
-            if constexpr ( use_flagsQ )
-            {
-                TouchCrossing(A_cross(a,Tail));
-                TouchCrossing(A_cross(a,Head));
-            }
         }
         
     public:
@@ -377,8 +276,6 @@ namespace KnotTools
         bool operator()( const Int a_ )
         {
             if( !ArcActiveQ(a_) ) return false;
-
-//            if( !ArcChangedQ(a_) ) return false;
             
             ++test_count;
             a = a_;
@@ -393,14 +290,6 @@ namespace KnotTools
             
             c_1 = A_cross(a,Head);
             AssertCrossing<1>(c_1);
-
-            if constexpr( use_flagsQ )
-            {
-                if( pd.CrossingUnchangedQ(c_0) && pd.CrossingUnchangedQ(c_1) )
-                {
-                    return false;
-                }
-            }
             
             load_c_0();
             
@@ -552,22 +441,6 @@ namespace KnotTools
                     PD_VALPRINT( "n_1", ArcString(n_1) );
                     PD_VALPRINT( "e_1", ArcString(e_1) );
                     PD_VALPRINT( "s_1", ArcString(s_1) );
-
-//                    if constexpr ( optimization_level >= 3 )
-//                    {
-//                        PD_VALPRINT( "c_2", CrossingString(c_2) );
-//                        PD_VALPRINT( "e_2", ArcString(e_2) );
-//                        PD_VALPRINT( "s_2", ArcString(s_2) );
-//                        PD_VALPRINT( "w_2", ArcString(w_2) );
-//                    }
-//                    
-//                    if constexpr ( optimization_level >= 4 )
-//                    {
-//                        PD_VALPRINT( "c_3", CrossingString(c_3) );
-//                        PD_VALPRINT( "n_3", ArcString(n_3) );
-//                        PD_VALPRINT( "e_3", ArcString(e_3) );
-//                        PD_VALPRINT( "w_3", ArcString(w_3) );
-//                    }
                     
                     return true;
                 }
@@ -593,34 +466,12 @@ namespace KnotTools
                     PD_VALPRINT( "n_1", ArcString(n_1) );
                     PD_VALPRINT( "e_1", ArcString(e_1) );
                     PD_VALPRINT( "s_1", ArcString(s_1) );
-                    
-//                    if constexpr ( optimization_level >= 3 )
-//                    {
-//                        PD_VALPRINT( "c_2", CrossingString(c_2) );
-//                        PD_VALPRINT( "e_2", ArcString(e_2) );
-//                        PD_VALPRINT( "s_2", ArcString(s_2) );
-//                        PD_VALPRINT( "w_2", ArcString(w_2) );
-//                    }
-//                    
-//                    if constexpr ( optimization_level >= 4 )
-//                    {
-//                        PD_VALPRINT( "c_3", CrossingString(c_3) );
-//                        PD_VALPRINT( "n_3", ArcString(n_3) );
-//                        PD_VALPRINT( "e_3", ArcString(e_3) );
-//                        PD_VALPRINT( "w_3", ArcString(w_3) );
-//                    }
         
                     return true;
                 }
             }
             
             AssertArc<1>(a);
-            
-            if constexpr( use_flagsQ )
-            {
-                SetCrossingUnchanged(c_0);
-                SetCrossingUnchanged(c_1);
-            }
             
             return false;
         }
@@ -644,16 +495,12 @@ namespace KnotTools
 #include "ArcSimplifier/R_IIa_diff_o_same_u.hpp"
 #include "ArcSimplifier/R_IIa_diff_o_diff_u.hpp"
         
-
-        
-        
     public:
         
         static std::string ClassName()
         {
             return std::string("ArcSimplifier")
                 + "<" + TypeName<Int>
-                + "," + ToString(use_flagsQ)
                 + "," + ToString(mult_compQ) + ">";
         }
 

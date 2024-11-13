@@ -152,9 +152,9 @@ bool R_Ia_above()
 
 //            if( (w_0 == w_3) || (n_3 == e_1) )
 //            {
-//                PD_PRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
+////                PD_PRINT( "\t\t\t\t(w_0 == w_3) || (n_3 == e_1)" );
 //                
-//                PD_PRINT( "Detected a trefoil connect component." );
+//                logprint( "Detected a trefoil connect component." );
 //                
 //                return false;
 //            }

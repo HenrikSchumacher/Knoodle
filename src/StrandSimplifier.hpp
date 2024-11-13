@@ -57,11 +57,7 @@ namespace KnotTools
         Tensor2<Int,Int> A_data;
         Tensor1<Int,Int> A_colors;
         
-        Tensor2<Int,Int> A_left_buffer;
-
-        
         Int * restrict A_left;
-        
         
         Int color = 1; // We start with 1 so that we can store things in the sign bit of color.
         Int a_ptr = 0;
@@ -408,7 +404,7 @@ namespace KnotTools
         
         void RepairArcLeftArc( const Int A )
         {
-            if( pd.ArcActiveQ( A >> 1) )
+            if( pd.ArcActiveQ(A >> 1) )
             {
                 const Int A_l = pd.NextLeftArc(A);
                 const Int A_r = pd.NextRightArc(A) ^ Int(1);
@@ -764,8 +760,7 @@ namespace KnotTools
                 color = 0;
             }
             
-            A_left_buffer = pd.ArcLeftArc();
-            A_left        = A_left_buffer.data();
+            A_left = pd.ArcLeftArc().data();
             
             PD_ASSERT(CheckArcLeftArcs());
 

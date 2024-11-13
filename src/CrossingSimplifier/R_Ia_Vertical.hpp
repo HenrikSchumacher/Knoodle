@@ -275,9 +275,6 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
  *                       /     \        E_0        v
  *           O---->----O       O--------<--------+
  */
-            
-            // DEBUGGING
-            wprint(ClassName()+"::Reidemeister_Ia_Vertical_impl - twist move!");
             //TODO: Test this.
             
             auto F_0 = GetArc(C_2(In ,side ));

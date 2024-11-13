@@ -1,5 +1,7 @@
 public:
 
+// TODO: A connected summand split off by `Simplify5` should be irreducible if `AlternatingQ` evaluates to `true`. We should set a flag to should such a summand from further simplification attempts.
+
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
 
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`.
@@ -24,6 +26,11 @@ bool Simplify5(
     const bool strand_R_II_Q = true
 )
 {
+    if( provably_irreducibleQ )
+    {
+        return false;
+    }
+    
     ptic(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
@@ -50,13 +57,15 @@ bool Simplify5(
     }
     while( changedQ );
     
-    if( compressQ && globally_changedQ )
-    {
-        *this = this->CreateCompressed();
-    }
+    provably_irreducibleQ = AlternatingQ();
     
     if( globally_changedQ )
     {
+        if( compressQ )
+        {
+            *this = this->CreateCompressed();
+        }
+        
         this->ClearCache();
     }
     

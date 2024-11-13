@@ -269,6 +269,8 @@ namespace KnotTools
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"
 
+#include "src/ReAPr.hpp"
+
 //#include "src/Alexander.hpp"
 //
 //#include "src/Seifert.hpp"

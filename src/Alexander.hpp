@@ -5,6 +5,7 @@
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
 #include "../submodules/Tensors/BLAS_Wrappers.hpp"
+#include "../submodules/Tensors/LAPACK_Wrappers.hpp"
 
 namespace KnotTools
 {
@@ -66,8 +67,6 @@ namespace KnotTools
         mutable Tensor1<Scal,Int> LU_buffer;
         
         mutable Tensor1<LAPACK::Int,Int> LU_perm;
-        
-        mutable Tensor1<Real,Int> diagonal;
         
         
 //        mutable Factorization_Ptr  herm_alex_fact;
@@ -544,11 +543,7 @@ namespace KnotTools
         
                 mref<Factorization_Ptr> S = pd.template GetCache<Factorization_Ptr>(tag_fact);
                 
-                const Int n = pd.CrossingCount() - 1;
-                
                 const LInt nnz = S->NonzeroCount();
-                
-                diagonal.template RequireSize<false>(n);
                 
                 herm_alex_vals.template RequireSize<false>( nnz );
 

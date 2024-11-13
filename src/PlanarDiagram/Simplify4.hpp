@@ -14,6 +14,11 @@ Int Simplify4(
     const bool strand_R_II_Q = true
 )
 {
+    if( provably_irreducibleQ )
+    {
+        return 0;
+    }
+    
     ptic(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
@@ -74,13 +79,8 @@ Int Simplify4(
     do
     {
         ++iter;
-        
-//        logdump(iter);
 
         old_counter = counter;
-        
-//        logprint("Simplify3");
-//        logdump(CrossingCount());
         
         if( simplify3_level > 0 )
         {
@@ -125,20 +125,6 @@ Int Simplify4(
 
     }
     while( counter > old_counter );
-    
-//    dump(iter);
-    
-//    const Time stop_time = Clock::now();
-//    
-//    if( CrossingCount() < c_count)
-//    {
-//        logprint( ClassName()+"::Simplify4 needed " + ToString(iter) + " passes to reduce the number of crossings from " + ToString(c_count) + " to " + ToString(CrossingCount()) +".\nTime elapsed = " +ToString(Tools::Duration(start_time,stop_time)) + " s.");
-//    }
-//    else
-//    {
-//        logprint( ClassName()+"::Simplify4 did not find any improvements. Number of crossings = " + ToString(ToString(CrossingCount())) + ".\nTime elapsed = " +ToString(Tools::Duration(start_time,stop_time)) + " s.");
-//    }
-    
 
     if( counter > 0 )
     {

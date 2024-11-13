@@ -62,33 +62,6 @@ bool R_IIa_diff_o_same_u()
     DeactivateCrossing(c_3);
     ++pd.R_IIa_counter;
     
-    if constexpr ( use_flagsQ )
-    {
-        TouchCrossing(c_0);
-        TouchCrossing(c_1);
-        
-        TouchCrossing(A_cross(a,Tail));
-        TouchCrossing(A_cross(a,Head));
-        
-        TouchCrossing(A_cross(w_0,Tail));
-        TouchCrossing(A_cross(w_0,Head));
-        
-        TouchCrossing(A_cross(e_1,Tail));
-        TouchCrossing(A_cross(e_1,Head));
-        
-        TouchCrossing(A_cross(s_2,Tail));
-        TouchCrossing(A_cross(s_2,Head));
-        
-        TouchCrossing(A_cross(w_2,Tail));
-        TouchCrossing(A_cross(w_2,Head));
-        
-        TouchCrossing(A_cross(n_3,Tail));
-        TouchCrossing(A_cross(n_3,Head));
-        
-        TouchCrossing(A_cross(w_3,Tail));
-        TouchCrossing(A_cross(w_3,Head));
-    }
-    
     AssertArc<1>(a  );
     AssertArc<0>(n_0);
     AssertArc<0>(s_0);
