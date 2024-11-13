@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[   1096292,      20591]
+NotebookDataLength[   1096295,      20591]
 NotebookOptionsPosition[   1035684,      19874]
-NotebookOutlinePosition[   1036108,      19891]
-CellTagsIndexPosition[   1036065,      19888]
+NotebookOutlinePosition[   1036111,      19891]
+CellTagsIndexPosition[   1036068,      19888]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -19873,7 +19873,7 @@ tsunknots/ts-hard-176.tsv\"\>"}], "}"}]], "Output",
 }, Open  ]]
 },
 WindowSize->{1247, 667},
-WindowMargins->{{-10, Automatic}, {Automatic, 0}},
+WindowMargins->{{Automatic, 144}, {Automatic, -165}},
 Magnification:>1.5 Inherited,
 FrontEndVersion->"14.1 for Mac OS X ARM (64-bit) (July 16, 2024)",
 StyleDefinitions->"Default.nb",
@@ -20589,7 +20589,7 @@ Cell[1013323, 19445, 688, 15, 44, "Input",ExpressionUUID->"e6ef4ed2-d0e1-48d1-88
 Cell[1014014, 19462, 965, 23, 197, "Input",ExpressionUUID->"f976a2bd-9ff8-44a1-b6e9-3e577349df5f"],
 Cell[CellGroupData[{
 Cell[1015004, 19489, 963, 21, 105, "Input",ExpressionUUID->"924af45e-2bf0-489d-8eec-10754dc01ec4"],
-Cell[1015970, 19512, 19674, 357, 5424, "Output",ExpressionUUID->"fc413e14-89d4-47da-9310-83bd272d64db"]
+Cell[1015970, 19512, 19674, 357, 5411, "Output",ExpressionUUID->"fc413e14-89d4-47da-9310-83bd272d64db"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]]
