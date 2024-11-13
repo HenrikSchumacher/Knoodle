@@ -130,9 +130,6 @@ namespace KnotTools
         {
 //            ptic(ClassName()+"ComputeBoundingBoxes");
             
-//            dump(C_begin);
-//            dump(int_node_count);
-            
             // Compute bounding boxes of leave nodes (last row of tree).
             for( Int C = last_row_begin; C < node_count; ++C )
             {

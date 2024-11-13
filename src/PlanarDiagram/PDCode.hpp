@@ -350,8 +350,6 @@ Tensor2<Int,Int> PDCode()
             {
                 const CrossingState state = C_state [c_1];
                 const Int           c     = C_labels[c_1];
-
-//                dump(c);
                 
                 const bool side  = (C_arcs(c_1,In,Right)) == a;
                 

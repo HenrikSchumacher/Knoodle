@@ -7,13 +7,11 @@ public:
 
     Vector3_T cross( cref<Vector3_T> u, cref<Vector3_T> v )
     {
-//        return Cross(u,v);
         return Cross_Kahan(u,v);
     }
 
     Real det( cref<Vector3_T> u, cref<Vector3_T> v, cref<Vector3_T> w )
     {
-//        return Dot(Cross(u,v),w);
         return Dot(Cross_Kahan(u,v),w);
     }
 

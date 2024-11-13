@@ -791,21 +791,6 @@ Tensor3<Int,Int> ArcWings() const
             A_wings(A[In ][Right],Head,Left ) = arrows[In ][Left ];
             A_wings(A[In ][Right],Head,Right) = arrows[Out][Right];
             
-//#ifdef PD_DEBUG
-//
-//            if( (A_wings(A[In ][Left ],Head,Left ) >> 1)
-//               !=
-//               NextLeftArc(A[In ][Left ],Head).first
-//            )
-//            {
-//                dump(A[In ][Left ]);
-//
-//                dump((A_wings(A[In ][Left ],Head,Left ) >> 1));
-//
-//                dump(NextLeftArc(A[In ][Left ],Head).first);
-//            }
-//#endif
-            
             PD_ASSERT(
                 (A_wings(A[In ][Left ],Head,Left ) >> 1)
                 ==

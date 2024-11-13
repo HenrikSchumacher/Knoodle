@@ -524,16 +524,11 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                      v     v           /     \
 //           O----<----O       O---->----O       O----<----O
 
-            // DEBUGGING
-            wprint(ClassName()+"::Reidemeister_Ia_Horizontal_impl - twist move!");
+
             //TODO: Test this.
                 
             PD_ASSERT(F_0( io == Out ? Tail : Head ) == C_2);
             PD_ASSERT(F_1( io == Out ? Head : Tail ) == C_2);
-
-
-//            Reconnect( F_0, io == Out ? Tail : Head, E_0);
-//            Reconnect( F_1, io == Out ? Head : Tail, E_1);
             
             if( io )
             {

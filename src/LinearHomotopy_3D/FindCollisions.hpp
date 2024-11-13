@@ -2,8 +2,6 @@ public:
 
         void FindCollisions_AllPairs()
         {
-//            ptic(ClassName()+"::FindCollisions_AllPairs");
-            
             ClearCollisionData();
             
             for( Int k = 0; k < EdgeCount(); ++k )
@@ -13,14 +11,11 @@ public:
                     MovingEdgeCollisions(k,l);
                 }
             }
-            
-//            ptoc(ClassName()+"::FindCollisions_AllPairs");
-            
         } // FindCollisions_AllPairs
         
         void FindCollisions()
         {
-//            ptic(ClassName()+"::FindCollisions");
+            ptic(ClassName()+"::FindCollisions");
             
             ClearCollisionData();
 
@@ -43,20 +38,6 @@ public:
                 const bool boxes_collidingQ = (i==j) ? true : MovingBoxesCollidingQ(
                     B_0.data(i), B_1.data(i), B_0.data(j), B_1.data(j)
                 );
-                
-                
-//                if( i != j )
-//                {
-//                    if( NodesContainEdgesQ(i,j) )
-//                    {
-//                        if( !boxes_collidingQ )
-//                        {
-//                            print("!boxes_collidingQ");
-//                            dump(i);
-//                            dump(j);
-//                        }
-//                    }
-//                }
                 
                 if( boxes_collidingQ )
                 {
@@ -150,6 +131,6 @@ public:
                 }
             }
             
-//            ptoc(ClassName()+"::FindCollisions");
+            ptoc(ClassName()+"::FindCollisions");
             
         } // FindCollisions
