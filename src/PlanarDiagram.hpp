@@ -4,11 +4,6 @@
 
 namespace KnotTools
 {
-    // TODO: Use signs in A_cross entries to indicate whether the arc enters/leaves the corresponding crossing through left or right port, i.e.,
-    // TODO: A_cross(a,Tail) = -c if a == C_arc(a,Out,Left )
-    // TODO: A_cross(a,Tail) =  c if a == C_arc(a,Out,Right)
-    
-    
     template<typename Int_, Size_T optimization_level, bool mult_compQ_>
     class ArcSimplifier;
     
@@ -86,14 +81,6 @@ namespace KnotTools
         Int twist_counter           = 0;
         Int four_counter            = 0;
         
-//        Tensor1<Int,Int> comp_arc_idx {0};
-//        Tensor1<Int,Int> comp_arc_ptr {2,0};
-//        
-//        Tensor1<Int,Int> A_comp {0};
-//        Tensor1<Int,Int> A_pos  {0};
-        
-//        bool comp_initialized  = false;
-        
         Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
         Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
 
@@ -150,12 +137,6 @@ namespace KnotTools
         ,   R_IIa_counter           { other.R_IIa_counter           }
         ,   twist_counter           { other.twist_counter           }
         ,   four_counter            { other.four_counter            }
-
-//        ,   comp_arc_idx            { other.comp_arc_idx            }
-//        ,   comp_arc_ptr            { other.comp_arc_ptr            }
-//        ,   A_comp                  { other.A_comp                  }
-//        ,   A_pos                   { other.A_pos                   }
-//        ,   comp_initialized        { other.comp_initialized        }
         ,   C_scratch               { other.C_scratch               }
         ,   A_scratch               { other.A_scratch               }
         ,   provably_irreducibleQ   { other.provably_irreducibleQ   }
@@ -186,13 +167,6 @@ namespace KnotTools
             swap( A.R_IIa_counter          , B.R_IIa_counter           );
             swap( A.twist_counter          , B.twist_counter           );
             swap( A.four_counter           , B.four_counter            );
-
-//            swap( A.comp_arc_idx           , B.comp_arc_idx            );
-//            swap( A.comp_arc_ptr           , B.comp_arc_ptr            );
-//            swap( A.A_comp                 , B.A_comp                  );
-//            swap( A.A_pos                  , B.A_pos                   );
-//            
-//            swap( A.comp_initialized       , B.comp_initialized        );
             
             swap( A.C_scratch              , B.C_scratch               );
             swap( A.A_scratch              , B.A_scratch               );
@@ -328,17 +302,9 @@ namespace KnotTools
         :   PlanarDiagram( crossing_count_, unlink_count_ )
         {
             C_arcs.Read(crossings);
+            C_state.Read(crossing_states);
             A_cross.Read(arcs);
-            
-            for( Int c = 0; c < initial_crossing_count; ++c )
-            {
-                C_state[c] = static_cast<CrossingState>(crossing_states[c]);
-            }
-            
-            for( Int a = 0; a < initial_arc_count; ++a )
-            {
-                A_state[a] = static_cast<ArcState>(arc_states[a]);
-            }
+            A_state.Read(arc_states);
         }
         
         
@@ -350,8 +316,6 @@ namespace KnotTools
         {
             return unlink_count;
         }
-        
-        // Crossings
 
         /*!
          * @brief Returns how many crossings there were in the original planar diagram, before any simplifications.
@@ -591,15 +555,15 @@ namespace KnotTools
             return KnotTools::ActiveQ(C_state[c]);
         }
         
-        bool CrossingUnchangedQ( const Int c ) const
-        {
-            return KnotTools::UnchangedQ(C_state[c]);
-        }
-        
-        bool CrossingChangedQ( const Int c ) const
-        {
-            return KnotTools::ChangedQ(C_state[c]);
-        }
+//        bool CrossingUnchangedQ( const Int c ) const
+//        {
+//            return KnotTools::UnchangedQ(C_state[c]);
+//        }
+//        
+//        bool CrossingChangedQ( const Int c ) const
+//        {
+//            return KnotTools::ChangedQ(C_state[c]);
+//        }
         
         bool CrossingRightHandedQ( const Int c ) const
         {
@@ -699,15 +663,15 @@ namespace KnotTools
             return KnotTools::ActiveQ(A_state[a]);
         }
         
-        bool ArcUnchangedQ( const Int a ) const
-        {
-            return KnotTools::UnchangedQ(A_state[a]);
-        }
-        
-        bool ArcChangedQ( const Int a ) const
-        {
-            return KnotTools::ChangedQ(A_state[a]);
-        }
+//        bool ArcUnchangedQ( const Int a ) const
+//        {
+//            return KnotTools::UnchangedQ(A_state[a]);
+//        }
+//        
+//        bool ArcChangedQ( const Int a ) const
+//        {
+//            return KnotTools::ChangedQ(A_state[a]);
+//        }
         
         /*!
          * @brief Returns the crossing you would get to by starting at crossing `c` and
@@ -850,8 +814,6 @@ namespace KnotTools
             
             return writhe;
         }
-        
-        
         
     public:
 

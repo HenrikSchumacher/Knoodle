@@ -34,8 +34,8 @@ public:
         Vector3_T t_list;
         
         Tiny::Matrix<2,3,Real,Int> E_0_i ( E_0.data(i) );
-        Tiny::Matrix<2,3,Real,Int> E_0_j ( E_0.data(j) );
         Tiny::Matrix<2,3,Real,Int> E_1_i ( E_1.data(i) );
+        Tiny::Matrix<2,3,Real,Int> E_0_j ( E_0.data(j) );
         Tiny::Matrix<2,3,Real,Int> E_1_j ( E_1.data(j) );
 
         const Vector3_T u_0 {

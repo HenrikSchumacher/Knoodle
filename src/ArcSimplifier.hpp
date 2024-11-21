@@ -121,7 +121,7 @@ namespace KnotTools
 //            swap( A.A_state, B.A_state );
 //
 //            swap( A.a,   B.a   );
-//
+//            
 //            swap( A.c_0, B.c_0 );
 //            swap( A.c_1, B.c_1 );
 //            swap( A.c_2, B.c_2 );
@@ -150,6 +150,8 @@ namespace KnotTools
 //
 //            swap( A.u_0, B.u_0 );
 //            swap( A.o_1, B.u_1 );
+//            
+//            swap( A.test_count, B.test_count );
 //        }
 //
 //        // Move constructor
@@ -167,18 +169,12 @@ namespace KnotTools
 //            swap( *this, other );
 //            return *this;
 //        }
-        
 
     private:
         
         bool ArcActiveQ( const Int a_ ) const
         {
             return pd.ArcActiveQ(a_);
-        }
-        
-        bool ArcChangedQ( const Int a_ ) const
-        {
-            return pd.ArcChangedQ(a_);
         }
         
         void DeactivateArc( const Int a_ ) const

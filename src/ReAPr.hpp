@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../submodules/Tensors/UMFPACK.hpp"
+
 namespace KnotTools
 {
  
@@ -11,8 +13,12 @@ namespace KnotTools
         using LInt = Int64;
         
         using PlanarDiagram_T = PlanarDiagram<Int>;
-        using Aggregator_T    = TripleAggregator<Int,Int,Real,LInt>;
-        using Matrix_T        = Sparse::MatrixCSR<Real,Int,LInt>;
+        using Aggregator_T    = TripleAggregator<LInt,LInt,Real,LInt>;
+        using Matrix_T        = Sparse::MatrixCSR<Real,LInt,LInt>;
+        using I_T             = Matrix_T::Int;
+        using Values_T        = Tensor1<Real,I_T>;
+        using Flag_T          = Scalar::Flag;
+        
         
         static constexpr bool Head  = PlanarDiagram_T::Head;
         static constexpr bool Tail  = PlanarDiagram_T::Tail;
@@ -23,144 +29,139 @@ namespace KnotTools
         
     private:
         
-        Real laplace_reg = 0.01;
+        Real laplace_reg         = 0.01;
+        Real backtracking_factor = Real(0.25);
+        Real armijo_slope        = Real(0.001);
+        Real tolerance           = Real(0.00000001);
+        Int  max_b_iter          = 20;
+        Int  max_iter            = 1000;
+        
+        Real initial_time_step   = Real(1.0) / backtracking_factor;
         
     public:
-
-        void SetLaplaceRegularization( const Real reg )
-        {
-            laplace_reg = reg;
-        }
         
-        Real LaplaceRegularization() const
-        {
-            return laplace_reg;
-        }
-        
-        cref<Matrix_T> HessianMatrix( mref<PlanarDiagram_T> pd )
-        {
-            const std::string tag     = ClassName()+"::HessianMatrix";
-            const std::string reg_tag = ClassName()+"::LaplaceRegularization";
-            
-            if(
-               (!pd.InCacheQ(tag))
-               ||
-               (!pd.InCacheQ(reg_tag))
-               ||
-               (pd.template GetCache<Real>(reg_tag) != laplace_reg)
-            )
-            {
-                pd.ClearCache(tag);
-                pd.ClearCache(reg_tag);
-                
-                const Int m = pd.ArcCount();
-                Aggregator_T agg( 5 * m );
-                
-                const Int comp_count   = pd.LinkComponentCount();
-                cptr<Int> comp_arc_ptr = pd.LinkComponentArcPointers().data();
-                cptr<Int> comp_arc_idx = pd.LinkComponentArcIndices().data();
-                cptr<Int> next_arc     = pd.ArcNextArc().data();
-                
-                const Real val_0 = 2 + (2 + laplace_reg) * (2 + laplace_reg);
-                const Real val_1 = -4 - 2 * laplace_reg;
-                const Real val_2 = 1;
-
-                for( Int comp = 0; comp < comp_count; ++comp )
-                {
-                    const Int k_begin   = comp_arc_ptr[comp    ];
-                    const Int k_end     = comp_arc_ptr[comp + 1];
-                    
-                    Int a   = comp_arc_idx[k_begin];
-                    Int ap1 = next_arc[a  ];
-                    Int ap2 = next_arc[ap1];
-                    
-                    for( Int k = k_begin; k < k_end; ++k )
-                    {
-                        agg.Push(a,a  ,val_0);
-                        agg.Push(a,ap1,val_1);
-                        agg.Push(a,ap2,val_2);
-
-                        a   = ap1;
-                        ap1 = ap2;
-                        ap2 = next_arc[ap1];
-                    }
-                }
-                
-                agg.Finalize();
-                                
-                Matrix_T A (agg,m,m,Int(1),true,true);
-                
-                pd.SetCache(tag,std::move(A));
-                pd.SetCache(reg_tag,laplace_reg);
-            }
-            
-            return pd.template GetCache<Matrix_T>(tag);
-        }
-        
-        cref<Matrix_T> ConstraintMatrix( mref<PlanarDiagram_T> pd )
-        {
-            const std::string tag = ClassName()+"::ConstraintMatrix";
-            
-            if( !pd.InCacheQ(tag) )
-            {
-                const Int n = pd.CrossingCount();
-                const Int m = pd.ArcCount();
-                
-                Aggregator_T agg( 2 * n );
-                
-                cptr<Int>           C_arcs   = pd.Crossings().data();
-                cptr<CrossingState> C_states = pd.CrossingStates().data();
-                
-                for( Int c = 0; c < n; ++c )
-                {
-                    const Int  a_0 = C_arcs[(c << 2)         ];
-                    const Int  a_1 = C_arcs[(c << 2) | Int(1)];
-                    const Real s   = static_cast<Real>(ToUnderlying(C_states[c]));
-                    
-                    agg.Push(c,a_0,-s);
-                    agg.Push(c,a_1, s);
-                }
-                
-                agg.Finalize();
-
-                Matrix_T A (agg,n,m,Int(1),true,false);
-                
-                pd.template SetCache(tag,std::move(A));
-            }
-            
-            return pd.template GetCache<Matrix_T>(tag);
-        }
-        
-//        cref<Sparse::MatrixCSR<Real,Int,LInt>> SystemMatrix(
-//            mref<PlanarDiagram_T> pd
-//        )
-//        {
-//            const std::string tag ("SystemMatrixPattern");
-//            
-//            if( !pd.InCacheQ(tag) )
-//            {
-//                TripleAggregator<Real,Int,LInt> agg ( 5 * pd.ArcCount() + 5 * CrossingCount() );
-//                
-//                ComputeHessianMatrix( pd, agg );
-//                
-//                ComputeConstraintMatrix( pd, agg );
-//                
-//                const Int size = pd.ArcCount() + CrossingCount();
-//                
-//                Sparse::MatrixCSR<Int,Int> A ( agg, size, size, Int(1), true, false );
-//                
-//                pd.SetCache( std::move(L), tag );
-//            }
-//
-//            return pd.GetCache<Sparse::MatrixCSR<Real,Int,Int>>(tag);
-//        }
+#include "ReAPr/Hessian.hpp"
+#include "ReAPr/ConstraintMatrix.hpp"
+#include "ReAPr/SystemMatrix.hpp"
   
-        void Optimize_InteriorPointMethod()
-        {
-        }
-//        void Optimize_SemiSmoothNewton()
+//        void Optimize_InteriorPointMethod()
 //        {
 //        }
+        
+        Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
+        {
+            const I_T n = pd.CrossingCount();
+            const I_T m = pd.ArcCount();
+            
+            // x[0,...,m[ is the levels.
+            // x[m+1,...,m_n[ is the Lagrange multipliers.
+            Tensor1<Real,I_T> x     (m+n,Real(0));
+            Tensor1<Real,I_T> x_tau (m+n);
+            
+            // Stores the result y = L.x.
+            Tensor1<Real,I_T> y     (m+n,Real(0));
+            
+            // Stores the result z = F(x).
+            Tensor1<Real,I_T> z     (m+n,Real(0));
+            fill_buffer(&z[m], Real(2), n );
+            
+            // Update direction.
+            Tensor1<Real,I_T> u     (m+n);
+            
+            cref<Matrix_T> L = SystemMatrixPattern(pd);
+            
+            UMFPACK<Real,I_T> umfpack(
+                L.RowCount(), L.ColCount(), L.Outer().data(), L.Inner().data()
+            );
+
+            // TODO: Is this a good value for the tolerance?
+            const Real threshold = Power(m * tolerance,2);
+            
+            Int  iter          = 0;
+            Real max_step_size = 0;
+
+//            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
+            // In first iteration both x and y are zero at this point.
+            
+            Real phi_0 = Real(4) * n;
+            
+            do
+            {
+                ++iter;
+                
+                umfpack.NumericFactorization( SystemMatrixValues( pd, y.data() ).data() );
+
+                // u = - L^{-1} . z = -DF(x)^{-1} . F(x);
+                umfpack.Solve<Op::Id,Flag_T::Minus,Flag_T::Zero>(
+                    -Scalar::One<Real>, z.data(), Scalar::Zero<Real>, u.data()
+                );
+                
+                Real phi_tau;
+                Real tau    = initial_time_step;
+                Int  b_iter = 0;
+                
+                // Armijo line search.
+                do{
+                    ++b_iter;
+                    
+                    tau = backtracking_factor * tau;
+                    
+                    // x_tau = x + tau * u;
+                    combine_buffers<Flag_T::Plus,Flag_T::Generic>(
+                        Scalar::One<Real>, x.data(), tau, u.data(), x_tau.data(), m + n
+                    );
+                    
+                    // y = L.x_tau
+                    L.Dot( Scalar::One<Real>, x_tau, Scalar::Zero<Real>, y );
+                    
+                    phi_tau = 0;
+
+                    for( I_T i = 0; i < m; ++i )
+                    {
+                        z[i] = y[i];
+                        
+                        phi_tau += z[i] * z[i];
+                    }
+                    
+                    for( I_T i = m; i < m + n; ++i )
+                    {
+                        z[i] = Ramp( y[i] + 2 ) - x_tau[i];
+                        
+                        phi_tau += z[i] * z[i];
+                    }
+                    
+                    // Now z = F(x_tau).
+                }
+                while(
+                    (phi_tau > (Real(1) - armijo_slope * tau) * phi_0)
+                    &&
+                    (b_iter < max_b_iter)
+                );
+                
+                if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (b_iter >= max_b_iter) )
+                {
+                    wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of backtrackings reached.");
+                    
+                    dump( u.FrobeniusNorm() );
+                }
+                
+                phi_0 = phi_tau;
+                
+                max_step_size = Max( tau, max_step_size );
+                
+                swap( x, x_tau );
+            }
+            while(
+                (phi_0 > threshold) && (iter < max_iter)
+            );
+            
+            if( (phi_0 > threshold) && (iter >= max_iter))
+            {
+                wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of iterations reached without reaching the stopping criterion/");
+            }
+            
+            return x;
+        }
         
         
     public:
