@@ -6,7 +6,7 @@ namespace KnotTools
     template<typename Real_ = double, typename Int_ = long long, typename SInt_ = short int>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
     {
-        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and then to generate an object of type PlanarDiagram or some other representation of planar diagrams. Hence this class' main routines are FindIntersections (using a static binary tree) and CreatePlanarDiagram.
+        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence this class' main routine is FindIntersections (using a static binary tree).
         
         
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
@@ -41,7 +41,7 @@ namespace KnotTools
         
         using Intersection_T = Intersection<Real,Int,SInt>;
         
-        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
+//        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
     protected:
 
@@ -94,6 +94,12 @@ namespace KnotTools
         Int intersections_nontransversal = 0;
 
         Vector3_T Sterbenz_shift {0};
+        
+//        using P_T = std::array<Int,2>;
+//        
+//        Stack<P_T,Int> stack { max_depth };
+        
+//        PairStack<max_depth,Int,Int,Int> stack { max_depth };
 
     public:
         
@@ -284,6 +290,9 @@ namespace KnotTools
             constexpr Real margin = static_cast<Real>(1.01);
             
             
+            //TODO: Make this independent of the bounding boxes!
+            //TODO: Shouldn't we do this in ReadVertexCoordinates?
+            
             Real lo = edge_coords(0,0,2);
             Real hi = edge_coords(0,1,2);
             
@@ -300,26 +309,39 @@ namespace KnotTools
             Sterbenz_shift[2] = margin * ( hi                - two * lo                );
 
             
+            Real v [4] = {
+                Sterbenz_shift[0],Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[1]
+            };
+            
             for( Int C = 0; C < T.NodeCount(); ++C )
             {
-                box_coords(C,0,0) += Sterbenz_shift[0];
-                box_coords(C,0,1) += Sterbenz_shift[0];
+//                box_coords(C,0,0) += Sterbenz_shift[0];
+//                box_coords(C,0,1) += Sterbenz_shift[0];
+//                
+//                box_coords(C,1,0) += Sterbenz_shift[1];
+//                box_coords(C,1,1) += Sterbenz_shift[1];
                 
-                box_coords(C,1,0) += Sterbenz_shift[1];
-                box_coords(C,1,1) += Sterbenz_shift[1];
+                add_to_buffer<4>( &v[0], box_coords.data(C) );
             }
             
             const Int edge_count = edge_coords.Dimension(0);
             
+            Real w [2][3] = {
+                { Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[2] },
+                { Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[2] }
+            };
+            
             for( Int e = 0; e < edge_count; ++e )
             {
-                edge_coords(e,0,0) += Sterbenz_shift[0];
-                edge_coords(e,0,1) += Sterbenz_shift[1];
-                edge_coords(e,0,2) += Sterbenz_shift[2];
-                
-                edge_coords(e,1,0) += Sterbenz_shift[0];
-                edge_coords(e,1,1) += Sterbenz_shift[1];
-                edge_coords(e,1,2) += Sterbenz_shift[2];
+//                edge_coords(e,0,0) += Sterbenz_shift[0];
+//                edge_coords(e,0,1) += Sterbenz_shift[1];
+//                edge_coords(e,0,2) += Sterbenz_shift[2];
+//                
+//                edge_coords(e,1,0) += Sterbenz_shift[0];
+//                edge_coords(e,1,1) += Sterbenz_shift[1];
+//                edge_coords(e,1,2) += Sterbenz_shift[2];
+//                
+                add_to_buffer<6>( &w[0][0], edge_coords.data(e) );
             }
         }
         
@@ -338,7 +360,8 @@ namespace KnotTools
         
         void FindIntersections()
         {
-            ptic(ClassName()+"FindIntersections");
+//            ptic(ClassName()+"FindIntersections");
+//            tic(ClassName()+"FindIntersections");
             
             // TODO: Randomly rotate until not degenerate.
             
@@ -347,13 +370,19 @@ namespace KnotTools
             // to a T which is a Tree2_T.
             // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
             // enties only via operator(i,j,k), so this is safe!
-            
-            T.ComputeBoundingBoxes( edge_coords, box_coords );
+
+//            tic("ComputeBoundingBoxes<2,3>");
+            T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
+//            toc("ComputeBoundingBoxes<2,3>");
             
             // ApplySterbenzShift requires the bounding box, so this is why we compute the bounding boxes first.
+//            tic("ApplySterbenzShift");
             ApplySterbenzShift();
+//            toc("ApplySterbenzShift");
             
+//            tic("FindIntersectingEdges_DFS");
             FindIntersectingEdges_DFS();
+//            toc("FindIntersectingEdges_DFS");
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -372,6 +401,7 @@ namespace KnotTools
             
             const Int intersection_count = static_cast<Int>(intersections.size());
             
+//            tic("Counting sort");
             // Counting sort.
             for( Int k = intersection_count-1; k > -1; --k )
             {
@@ -393,7 +423,7 @@ namespace KnotTools
             
             // Sort intersections edgewise w.r.t. edge_times.
             ThreeArraySort<Real,Int,bool,Size_T> S ( intersection_count );
-
+            
             for( Int i = 0; i < edge_count; ++i )
             {
                 // This is the range of data in edge_intersections/edge_times that belongs to edge i.
@@ -407,9 +437,11 @@ namespace KnotTools
                     k_end - k_begin
                 );
             }
+//            toc("Counting sort");
             
             // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
             
+//            toc(ClassName()+"FindIntersections");
             ptoc(ClassName()+"FindIntersections");
         }
         
