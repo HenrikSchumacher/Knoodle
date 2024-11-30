@@ -35,8 +35,8 @@ Tensor1<Int,Int> ArcStrands() const
     
     const Int m = A_cross.Dimension(0);
     
-    Tensor1<Int ,Int> A_colors    ( m, -1 );
-    Tensor1<char,Int> A_visited ( m, false );
+    Tensor1<Int ,Int> A_colors  ( m, -1 );
+    Tensor1<bool,Int> A_visited ( m, false );
     
     Int color = 0;
     Int a_ptr = 0;
@@ -129,7 +129,7 @@ Tensor3<Int,Int> CrossingStrands() const
     const Int m = A_cross.Dimension(0);
     
     Tensor3<Int ,Int> C_strands  ( n, 2, 2, -1 );
-    Tensor1<char,Int> A_visited ( m, false );
+    Tensor1<bool,Int> A_visited ( m, false );
     
     Int counter = 0;
     Int a_ptr   = 0;

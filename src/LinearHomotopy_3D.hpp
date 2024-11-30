@@ -11,7 +11,7 @@ namespace KnotTools
                 
         using Real = Real_;
         using Int  = Int_;
-        using SInt = char;
+        using SInt = Int8;
         
 //        static constexpr Int i_0 = 26 - 1;
 //        static constexpr Int j_0 = 56 - 1;
@@ -98,7 +98,7 @@ namespace KnotTools
         LinearHomotopy_3D() = default;
         
         // Initialization from precomputed edge coodinates and bounding boxes.
-        // This is usedful when handling piecewise-linear homotopies, because this data can be reused.
+        // This is useful when handling piecewise-linear homotopies, because this data can be reused.
         LinearHomotopy_3D(
             mref<Link_T> L_,
             const Real T_0_, cref<EContainer_T> E_0_, cref<BContainer_T> B_0_,
