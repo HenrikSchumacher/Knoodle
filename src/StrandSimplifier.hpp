@@ -475,12 +475,6 @@ namespace KnotTools
             }
         }
         
-//        template<bool headtail, bool deactivateQ = true>
-//        void Reconnect( const Int a_, const Int b_ )
-//        {
-//            pd.template Reconnect<headtail,deactivateQ>(a_,b_);
-//        }
-        
         template<bool headtail, bool deactivateQ = true>
         void Reconnect( const Int a, const Int b )
         {
@@ -828,6 +822,8 @@ namespace KnotTools
                     continue;
                 }
                 
+                // Might be changed by RerouteToShortestPath.
+                // This we indeed a reference, not a copy here.
                 ArcState & a_0_state = A_state[a_0];
                 
                 // Current arc.
@@ -921,7 +917,6 @@ namespace KnotTools
                     strand_completeQ = ((side_1 == pd.CrossingRightHandedQ(c_1)) == overQ);
                     
                     // TODO: This might require already that there are no possible Reidemeister II moves along the strand.
-                    
                     
                     // Check for loops.
                     
@@ -1404,7 +1399,7 @@ namespace KnotTools
                             
                             // The == indicates the current overstrand.
                             //
-                            // If we start at `a_0 = a_begin`, then we turn left and get to the split link component, which happens to be a trefoil. Since we ignore all arcs that are part of the strand, we cannot leave this trefoil! This not too bad because the ideal path would certainly not cross the trefoil. We have just to make sure that we do not cycle indefinitely around the trefoil.
+                            // If we start at `a_0 = a_begin`, then we turn left and get to the split link component, which happens to be a trefoil. Since we ignore all arcs that are part of the strand, we cannot leave this trefoil! This is not too bad because the ideal path would certainly not cross the trefoil. We have just to make sure that we do not cycle indefinitely around the trefoil.
                             //
                             //                      +---+
                             //                      |   |
@@ -1502,6 +1497,7 @@ namespace KnotTools
         }
         
         
+        // Only meant for debugging. Don't do this in production!
         Tensor1<Int,Int> GetShortestPath(
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
@@ -1879,7 +1875,7 @@ namespace KnotTools
 
             AssertArc<1>(a);
 
-            // TODO: We could maybe save some lookups here if we inline ArcUnderQ and NextArc. However, I tried it and it did not improve anything. Probably because this loop is typically not very long or because the compiler is good at optimizing this on his own. So I decided to keep this for better readibility.
+            // TODO: We could maybe save some lookups here if we inline ArcUnderQ and NextArc. However, I tried it and it did not improve anything. Probably because this loop is typically not very long or because the compiler is good at optimizing this on its own. So I decided to keep this for better readibility.
             
             // Take a first step in any case.
             if( pd.template ArcUnderQ<Tail>(a) != overQ  )
