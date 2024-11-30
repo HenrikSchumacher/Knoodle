@@ -204,7 +204,7 @@ public:
                 v_0[2] + t * v_1[2],
             };
             
-            // second edge's vector at time t
+            // connecting vector at time t
             const Vector3_T w_t {
                 w_0[0] + t * w_1[0],
                 w_0[1] + t * w_1[1],
@@ -367,52 +367,50 @@ public:
 //                 inter = x_t + z[0] * u_t;
                 
                 cptr<Real> x_0 = &E_0_i[0][0];
-//                cptr<Real> x_1 = &E_1_i[0][0];
                 
-                // delta_x = x_1 - x_0
-                const Vector3_T delta_x {
+                const Vector3_T x_1 {
                     E_1_i[0][0] - x_0[0],
                     E_1_i[0][1] - x_0[1],
                     E_1_i[0][2] - x_0[2]
                 };
                 
                 const Vector3_T inter {
-                    x_0[0] + t * delta_x[0] + z[0] * u_t[0],
-                    x_0[1] + t * delta_x[1] + z[0] * u_t[1],
-                    x_0[2] + t * delta_x[2] + z[0] * u_t[2],
+                    x_0[0] + t * x_1[0] + z[0] * u_t[0],
+                    x_0[1] + t * x_1[1] + z[0] * u_t[1],
+                    x_0[2] + t * x_1[2] + z[0] * u_t[2],
                 };
                 
-                // The sign of the collision is the sign of the determinant
-                // of the edge vectors u_t, v_t and the velocity vector velo
-                // of the collision point inter.
+                
+                // Define
+                //
+                //          F(r,s,t) = eta(s,t) - gamma(r,t),
+                //
+                // where
+                //          gamma(r,t) = x_0 + t * x_1 + r * (u_0 + t * u_1)
+                // and
+                //          eta  (r,t) = y_0 + t * y_1 + s * (v_0 + t * v_1).
+                //
+                // Hence we have
+                //
+                //  F(r,s,t) = w_0 + t * w_1 + s * (v_0 + t * v_1) - r * (u_0 + t * u_1).
+                //
+                // Note that we have F(z[0],z[1],t) = {0,0,0}.
+                //
+                // We need to compute the sign of det( DF(z[0],z[1],t) ).
+                //
+                // DF/dr = -u_t
+                // DF/ds =  v_t
+                // DF/dt = w_1 + z[1] * v_1 - z[0] * u_1
+                
                 
                 const Vector3_T velo {
-                    delta_x[0] + z[0] * u_1[0],
-                    delta_x[1] + z[0] * u_1[1],
-                    delta_x[2] + z[0] * u_1[2],
+                    w_1[0] + z[1] * v_1[0] - z[0] * u_1[0],
+                    w_1[0] + z[1] * v_1[1] - z[0] * u_1[1],
+                    w_1[0] + z[1] * v_1[2] - z[0] * u_1[2]
                 };
                 
-                
-//                cptr<Real> x_0 = &E_0_i[0][0];
-//                cptr<Real> x_1 = &E_1_i[0][0];
-//                
-//                const Vector3_T inter {
-//                    (one - t) * x_0[0] + t * x_1[0] + z[0] * u_t[0],
-//                    (one - t) * x_0[1] + t * x_1[1] + z[0] * u_t[1],
-//                    (one - t) * x_0[2] + t * x_1[2] + z[0] * u_t[2],
-//                };
-//                
-//                // The sign of the collision is the sign of the determinant
-//                // of the edge vectors u_t, v_t and the velocity vector velo
-//                // of the collision point inter.
-//                
-//                const Vector3_T velo {
-//                    x_1[0] - x_0[0] + z[0] * u_1[0],
-//                    x_1[1] - x_0[1] + z[0] * u_1[1],
-//                    x_1[2] - x_0[2] + z[0] * u_1[2],
-//                };
-
                 Int sign = - Sign( det( u_t, v_t, velo ) );
+
                 
                 if( sign == Int(0) )
                 {

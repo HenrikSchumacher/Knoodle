@@ -21,17 +21,16 @@ public:
 
             const Int int_node_count = T.InteriorNodeCount();
             
-            Int i_stack[max_depth] = {};
-            Int j_stack[max_depth] = {};
-            
+            Int stack[max_depth][2];
             Int stack_ptr = 0;
-            i_stack[0] = 0;
-            j_stack[0] = 0;
+            stack[0][0] = 0;
+            stack[0][1] = 0;
+            
 
             while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
             {
-                const Int i = i_stack[stack_ptr];
-                const Int j = j_stack[stack_ptr];
+                const Int i = stack[stack_ptr][0];
+                const Int j = stack[stack_ptr][1];
                 
                 stack_ptr--;
                 
@@ -62,36 +61,36 @@ public:
                                 //  Creating 3 blockcluster children, since there is one block that is just the mirror of another one.
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = right_j;
+                                stack[stack_ptr][0] = left_i;
+                                stack[stack_ptr][1] = right_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = right_j;
+                                stack[stack_ptr][0] = right_i;
+                                stack[stack_ptr][1] = right_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = left_j;
+                                stack[stack_ptr][0] = left_i;
+                                stack[stack_ptr][1] = left_j;
                             }
                             else
                             {
                                 // split both clusters
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = right_j;
+                                stack[stack_ptr][0] = right_i;
+                                stack[stack_ptr][1] = right_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = right_j;
+                                stack[stack_ptr][0] = left_i;
+                                stack[stack_ptr][1] = right_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = left_j;
+                                stack[stack_ptr][0] = right_i;
+                                stack[stack_ptr][1] = left_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = left_j;
+                                stack[stack_ptr][0] = left_i;
+                                stack[stack_ptr][1] = left_j;
                             }
                         }
                         else
@@ -103,30 +102,30 @@ public:
                                 //split cluster i
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = right_i;
-                                j_stack[stack_ptr] = j;
+                                stack[stack_ptr][0] = right_i;
+                                stack[stack_ptr][1] = j;
 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = left_i;
-                                j_stack[stack_ptr] = j;
+                                stack[stack_ptr][0] = left_i;
+                                stack[stack_ptr][1] = j;
                             }
                             else
                             {
                                 //split cluster j
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = i;
-                                j_stack[stack_ptr] = right_j;
+                                stack[stack_ptr][0] = i;
+                                stack[stack_ptr][1] = right_j;
                                 
                                 ++stack_ptr;
-                                i_stack[stack_ptr] = i;
-                                j_stack[stack_ptr] = left_j;
+                                stack[stack_ptr][0] = i;
+                                stack[stack_ptr][1] = left_j;
                             }
                         }
                     }
                     else
                     {
-                        MovingEdgeCollisions( T.Begin(i), T.Begin(j) );
+                        MovingEdgeCollisions( T.NodeBegin(i), T.NodeBegin(j) );
                     }
                 }
             }
