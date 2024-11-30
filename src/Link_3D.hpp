@@ -169,10 +169,13 @@ namespace KnotTools
             }
             else
             {
+                cptr<Int> tails =  edges[0].data();
+                cptr<Int> heads =  edges[1].data();
+                
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    const Int i = edges[0][e];
-                    const Int j = edges[1][e];
+                    const Int i = tails[e];
+                    const Int j = heads[e];
 
                     copy_buffer<3>( &V[3*i] , E.data(e,0,0) );
                     copy_buffer<3>( &V[3*j] , E.data(e,1,0) );
@@ -191,7 +194,7 @@ namespace KnotTools
         template<bool outputSortedQ = true, typename R>
         void WriteVertexCoordinates( cref<EContainer_T> E, mptr<R> V ) const
         {
-            if constexpr ( outputSortedQ || preorderedQ )
+            if ( outputSortedQ || preorderedQ )
             {
                 for( Int e = 0; e < edge_count; ++e )
                 {
@@ -200,11 +203,13 @@ namespace KnotTools
             }
             else
             {
+                cptr<Int> tails =  edges[0].data();
+                
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    const Int i = this->edge_tails[e];
+                    const Int i = tails[e];
                     
-                    copy_buffer<3>( E.data(e,0,0), &V[3*e] );
+                    copy_buffer<3>( E.data(e,0,0), &V[3*i] );
                 }
             }
         }
