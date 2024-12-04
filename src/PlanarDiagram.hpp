@@ -798,15 +798,15 @@ namespace KnotTools
         
         Int Writhe() const
         {
-            const Int writhe = 0;
+            Int writhe = 0;
             
             for( Int c = 0; c < C_state.Size(); ++c )
             {
-                if( CrossingRightHandedQ(C_state[c]) )
+                if( CrossingRightHandedQ(c) )
                 {
                     ++writhe;
                 }
-                else
+                else if ( CrossingLeftHandedQ(c) )
                 {
                     --writhe;
                 }
