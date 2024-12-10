@@ -1,7 +1,7 @@
 public:
 
 template<typename ExtScal, typename ExtInt>
-void Alexander_Dense(
+void Alexander_Strands_Dense(
     cref<PD_T>    pd,
     cref<ExtScal> arg,
     mref<ExtScal> mantissa,
@@ -19,7 +19,7 @@ void Alexander_Dense(
         
         ProductAccumulator<Scal,Int> det;
         
-        DenseAlexanderMatrix<false>( pd, static_cast<Scal>(arg), LU_buffer.data() );
+        DenseAlexanderStrandMatrix<false>( pd, static_cast<Scal>(arg), LU_buffer.data() );
 
         // Factorize dense Alexander matrix.
         
@@ -52,7 +52,7 @@ void Alexander_Dense(
 }
 
 template<typename ExtScal, typename ExtInt>
-void Alexander_Dense(
+void Alexander_Strands_Dense(
     cref<PD_T>    pd,
     cptr<ExtScal> args,
     ExtInt        arg_count,
@@ -60,7 +60,7 @@ void Alexander_Dense(
     mptr<ExtInt>  exponents
 ) const
 {
-    ptic(ClassName()+"::Alexander_Dense");
+    ptic(ClassName()+"::Alexander_Strands_Dense");
     
     if( pd.CrossingCount() <= 1 )
     {
@@ -71,22 +71,22 @@ void Alexander_Dense(
     {
         for( ExtInt k = 0; k < arg_count; ++k )
         {
-            Alexander_Dense(pd,args[k],mantissas[k],exponents[k]);
+            Alexander_Strands_Dense(pd,args[k],mantissas[k],exponents[k]);
         }
     }
 
-    ptoc(ClassName()+"::Alexander_Dense");
+    ptoc(ClassName()+"::Alexander_Strands_Dense");
 }
 
 template<typename ExtScal, typename ExtReal, typename ExtInt>
-void AlexanderModuli_Dense(
+void AlexanderModuli_Strand_Dense(
     cref<PD_T>    pd,
     cptr<ExtScal> args,
     ExtInt        arg_count,
     mptr<ExtReal> moduli
 ) const
 {
-    ptic(ClassName()+"::AlexanderModuli_Dense");
+    ptic(ClassName()+"::AlexanderModuli_Strand_Dense");
     
     if( pd.CrossingCount() <= 1 )
     {
@@ -102,23 +102,23 @@ void AlexanderModuli_Dense(
         
         for( ExtInt k = 0; k < arg_count; ++k )
         {
-            Alexander_Dense(pd,args[k],m,e);
+            Alexander_Strands_Dense(pd,args[k],m,e);
             
             
             moduli[k] = std::log( Abs(m) ) * e * conversion_factor;
         }
     }
 
-    ptoc(ClassName()+"::AlexanderModuli_Dense");
+    ptoc(ClassName()+"::AlexanderModuli_Strand_Dense");
 }
 
 
 template<bool fullQ = false>
-void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
+void DenseAlexanderStrandMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
 {
     // Writes the dense Alexander matrix to the provided buffer A.
     // User is responsible for making sure that the buffer is large enough.
-    ptic(ClassName()+"::DenseAlexanderMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+    ptic(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
     
     // Assemble dense Alexander matrix, skipping last row and last column if fullQ == false.
 
@@ -223,5 +223,5 @@ void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
         ++row_counter;
     }
     
-    ptoc(ClassName()+"::DenseAlexanderMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+    ptoc(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
 }

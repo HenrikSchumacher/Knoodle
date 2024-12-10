@@ -29,12 +29,15 @@ namespace KnotTools
 
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Helper_T          = Sparse::MatrixCSR<Complex,Int,LInt>;
+        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
         
         using Factorization_T   = UMFPACK<Scal,LInt>;
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
+        
+        using UMFPACK_T         = UMFPACK<Scal,Int>;
+        using UMFPACK_Ptr       = std::shared_ptr<UMFPACK_T>;
         
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -78,8 +81,11 @@ namespace KnotTools
             return sparsity_threshold;
         }
         
-#include "Alexander/Alexander_Dense.hpp"
-#include "Alexander/Alexander_Sparse.hpp"
+#include "Alexander/Alexander_Strands_Dense.hpp"
+#include "Alexander/Alexander_Strands_Sparse.hpp"
+        
+//#include "Alexander/Alexander_Faces_Dense.hpp"
+//#include "Alexander/Alexander_Faces_Sparse.hpp"
 
         
         template<typename ExtScal, typename ExtInt>
@@ -93,11 +99,11 @@ namespace KnotTools
         {
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
-                Alexander_Sparse( pd, args, arg_count, mantissas, exponents );
+                Alexander_Strands_Sparse( pd, args, arg_count, mantissas, exponents );
             }
             else
             {
-                Alexander_Dense ( pd, args, arg_count, mantissas, exponents );
+                Alexander_Strands_Dense ( pd, args, arg_count, mantissas, exponents );
             }
         }
         

@@ -1,6 +1,6 @@
 public:
 
-Int FaceCount()
+Int FaceCount() const
 {
     return FaceDirectedArcPointers().Size()-1;
 }
@@ -18,7 +18,7 @@ std::string FaceString( const Int f ) const
     return "face " + ToString(f) + " = " + ArrayToString( &F_A_idx[i_begin], { f_size } );
 }
 
-cref<Tensor1<Int,Int>> FaceDirectedArcIndices()
+cref<Tensor1<Int,Int>> FaceDirectedArcIndices() const
 {
     const std::string tag = "FaceDirectedArcIndices";
     
@@ -30,7 +30,7 @@ cref<Tensor1<Int,Int>> FaceDirectedArcIndices()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-cref<Tensor1<Int,Int>> FaceDirectedArcPointers()
+cref<Tensor1<Int,Int>> FaceDirectedArcPointers() const
 {
     const std::string tag = "FaceDirectedArcPointers";
     
@@ -43,7 +43,7 @@ cref<Tensor1<Int,Int>> FaceDirectedArcPointers()
     
 }
 
-cref<Tensor2<Int,Int>> ArcFaces()
+cref<Tensor2<Int,Int>> ArcFaces()  const
 {
     const std::string tag = "ArcFaces";
     
@@ -56,7 +56,7 @@ cref<Tensor2<Int,Int>> ArcFaces()
     
 }
 
-void RequireFaces()
+void RequireFaces() const
 {
     ptic(ClassName()+"::RequireFaces");
     
@@ -72,7 +72,9 @@ void RequireFaces()
     
     mptr<Int> A_face = A_faces_buffer.data();
     
-    // Convention: Right face first:
+    // TODO: WHY???!!!
+    
+    // Convention: _Right_ face first:
     //
     //            A_faces_buffer(a,0)
     //

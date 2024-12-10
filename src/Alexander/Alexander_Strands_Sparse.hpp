@@ -1,7 +1,35 @@
 public:
 
 template<typename ExtScal, typename ExtInt>
-void Alexander_Sparse(
+void Alexander_Strands_Sparse(
+    cref<PD_T>    pd,
+    cref<ExtScal> T,
+    mref<ExtScal> mantissa,
+    mref<ExtInt>  exponent
+) const
+{
+    if( pd.CrossingCount() <= 1 )
+    {
+        mantissa = 1;
+        exponent = 0;
+    }
+    else
+    {
+        UMFPACK_Ptr umfpack = SparseAlexanderStrandMatrix_UMFPACK(pd);
+        
+        SparseAlexanderStrandMatrix_Values( pd, T, umfpack->Values().data() );
+        
+        umfpack->NumericFactorization();
+        
+        const auto [z,e] = umfpack->Determinant();
+        
+        mantissa = static_cast<ExtScal>(z);
+        exponent = static_cast<ExtInt>(std::round(e));
+    }
+}
+
+template<typename ExtScal, typename ExtInt>
+void Alexander_Strands_Sparse(
     cref<PD_T>    pd,
     cptr<ExtScal> args,
     ExtInt        arg_count,
@@ -9,7 +37,7 @@ void Alexander_Sparse(
     mptr<ExtInt>  exponents
 ) const
 {
-    ptic(ClassName()+"::Alexander_Sparse");
+    ptic(ClassName()+"::Alexander_Strands_Sparse");
 
     if( pd.CrossingCount() <= 1 )
     {
@@ -18,34 +46,39 @@ void Alexander_Sparse(
     }
     else
     {
-        const Int n = pd.CrossingCount() - 1;
-
-        const auto & A = SparseAlexanderHelper( pd );
-
-        Tensor1<Scal,LInt> vals ( A.NonzeroCount() );
-        
-        UMFPACK<Scal,Int> umfpack ( n, n, A.Outer().data(), A.Inner().data() );
-
-        for( ExtInt idx = 0; idx < arg_count; ++idx )
+        for( ExtInt k = 0; k < arg_count; ++k )
         {
-            WriteSparseAlexanderValues( pd, vals.data(), args[idx] );
-            
-            umfpack.NumericFactorization( vals.data() );
-            
-            const auto [z,e] = umfpack.Determinant();
-            
-            mantissas[idx] = static_cast<ExtScal>(z);
-            exponents[idx] = static_cast<ExtInt>(std::round(e));
+            Alexander_Strands_Sparse( pd, args[k], mantissas[k], exponents[k] );
         }
     }
 
-    ptoc(ClassName()+"::Alexander_Sparse");
+    ptoc(ClassName()+"::Alexander_Strands_Sparse");
+}
+
+UMFPACK_Ptr SparseAlexanderStrandMatrix_UMFPACK( cref<PD_T> pd ) const
+{
+    std::string tag ( ClassName() + "::SparseAlexanderStrandMatrix_UMFPACK" );
+    
+    if( !pd.InCacheQ(tag) )
+    {
+        const Int m = pd.CrossingCount();
+
+        const auto & A = SparseAlexanderStrandMatrix_Pattern( pd );
+
+        UMFPACK_Ptr umfpack = std::make_shared<UMFPACK_T>(
+            m, m, A.Outer().data(), A.Inner().data()
+        );
+        
+        pd.SetCache( tag, umfpack );
+    }
+    
+    return pd.template GetCache<UMFPACK_Ptr>( tag );
 }
 
 template<bool fullQ = false>
-cref<Helper_T> SparseAlexanderHelper( cref<PD_T> pd ) const
+cref<Pattern_T> SparseAlexanderStrandMatrix_Pattern( cref<PD_T> pd ) const
 {
-    std::string tag ( std::string( "SparseAlexanderHelper_" ) + TypeName<Complex> + (fullQ ? "_Full" : "_Truncated" )
+    std::string tag ( ClassName() + "::SparseAlexanderStrandMatrix_Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
     );
     
     if( !pd.InCacheQ(tag) )
@@ -177,20 +210,20 @@ cref<Helper_T> SparseAlexanderHelper( cref<PD_T> pd ) const
             rp[row_counter] = nonzero_counter;
         }
 
-        Helper_T A ( rp.data(), ci.data(), a.data(), n, n, Int(1) );
+        Pattern_T A ( rp.data(), ci.data(), a.data(), n, n, Int(1) );
         A.SortInner();
         A.Compress();
         
         pd.SetCache( tag, std::move(A) );
     }
     
-    return pd.template GetCache<Helper_T>( tag );
+    return pd.template GetCache<Pattern_T>( tag );
 }
 
 template<bool fullQ = false, typename ExtScal>
-void WriteSparseAlexanderValues( cref<PD_T> pd, mptr<Scal> vals, const ExtScal t ) const
+void SparseAlexanderStrandMatrix_Values( cref<PD_T> pd, const ExtScal t, mptr<Scal> vals ) const
 {
-    cref<Helper_T> A = SparseAlexanderHelper<fullQ>(pd);
+    cref<Pattern_T> A = SparseAlexanderStrandMatrix_Pattern<fullQ>(pd);
     
     const LInt nnz = A.NonzeroCount();
     
@@ -204,34 +237,29 @@ void WriteSparseAlexanderValues( cref<PD_T> pd, mptr<Scal> vals, const ExtScal t
     }
 }
 
-template<bool fullQ = false>
-Tensor1<Scal,LInt> SparseAlexanderValues( cref<PD_T> pd, const Scal t ) const
-{
-    cref<Helper_T> A = SparseAlexanderHelper<fullQ>(pd);
-    
-    const LInt nnz = A.NonzeroCount();
-    
-    Tensor1<Scal,LInt> vals( nnz );
-    
-    cptr<Real> a = reinterpret_cast<const Real *>(A.Values().data());
-    
-    for( LInt i = 0; i < nnz; ++i )
-    {
-        vals[i] = a[2 * i] + t * a[2 * i + 1];
-    }
-    
-    return vals;
-}
+//template<bool fullQ = false>
+//Tensor1<Scal,LInt> SparseAlexanderStrandMatrix_Values( cref<PD_T> pd, const Scal t ) const
+//{
+//    Tensor1<Scal,LInt> vals( nnz );
+//    
+//    SparseAlexanderStrandMatrix_Values( pd, t, vals.data() );
+//
+//    return vals;
+//}
 
+
+// This needs to copy the sparsity pattern. So, only meant for haveing look, not for production.
 template<bool fullQ = false>
-SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
+SparseMatrix_T SparseAlexanderStrandMatrix( cref<PD_T> pd, const Scal t ) const
 {
-    cref<Helper_T> H = SparseAlexanderHelper<fullQ>(pd);
+    cref<Pattern_T> H = SparseAlexanderStrandMatrix_Pattern<fullQ>(pd);
     
     SparseMatrix_T A (
-        H.Outer().data(), H.Inner().data(), SparseAlexanderValues(pd,t).data(),
+        H.Outer().data(), H.Inner().data(),
         H.RowCount(), H.ColCount(), Int(1)
     );
+    
+    SparseAlexanderStrandMatrix_Values( pd, t, A.Values().data() );
     
     return A;
 }
