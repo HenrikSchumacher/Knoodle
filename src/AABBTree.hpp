@@ -8,7 +8,7 @@ namespace KnotTools
     // It won't work with more general clouds of primitives.
     
     template<int AmbDim_, typename Real_, typename Int_>
-    class alignas( ObjectAlignment ) AABBTree
+    class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
@@ -18,7 +18,9 @@ namespace KnotTools
         using Real = Real_;
         using Int  = Int_;
         
-        static constexpr Int max_depth = 128;
+        using Tree = CompleteBinaryTree<Int>;
+        using Tree::max_depth;
+
         
         static constexpr Int AmbDim = AmbDim_;
         
@@ -35,111 +37,43 @@ namespace KnotTools
         AABBTree() = default;
         
         explicit AABBTree( const Int prim_count_  )
-        :       prim_count ( prim_count_                                    )
-        ,       node_count ( 2 * prim_count - 1                             )
-        ,   int_node_count ( node_count - prim_count                        ) 
-            // Leaves are precisely the last prim_count nodes.
-        ,   last_row_begin ( (Int(1) << Depth(node_count-1)) - 1            )
-        ,           offset ( node_count - int_node_count - last_row_begin   )
-        ,            N_box ( 2 * prim_count - 1, AmbDim, 2                  )
-        ,          N_begin ( node_count                                     )
-        ,            N_end ( node_count                                     )
-        {
-            
-            // Compute range of leave nodes in last row.
-            for( Int N = last_row_begin; N < node_count; ++N )
-            {
-                N_begin[N] = N - last_row_begin    ;
-                N_end  [N] = N - last_row_begin + 1;
-            }
-            
-            // Compute range of leave nodes in penultimate row.
-            for( Int N = int_node_count; N < last_row_begin; ++N )
-            {
-                N_begin[N] = N + offset;
-                N_end  [N] = N + offset + 1;
-            }
-            
-            for( Int N = int_node_count; N --> 0; )
-            {
-                const Int L = LeftChild (N);
-                const Int R = L + 1;
-                
-                N_begin[N] = Min( N_begin[L], N_begin[R] );
-                N_end  [N] = Max( N_end  [L], N_end  [R] );
-            }
-        }
+        :   Tree  ( prim_count_ )
+        ,   N_box ( 2 * LeafNodeCount() - 1, AmbDim, 2 )
+        {}
         
         ~AABBTree() = default;
         
-        // See https://trstringer.com/complete-binary-tree/
         
-        static constexpr Int LeftChild( const Int i )
-        {
-            return 2 * i + 1;
-        }
+    protected:
         
-        static constexpr Int RightChild( const Int i )
-        {
-            return 2 * i + 2;
-        }
-        
-        static constexpr Int Parent( const Int i )
-        {
-            return (i > 0) ? (i - 1) / 2 : -1;
-        }
-        
-        static constexpr Int Depth( const Int i )
-        {
-            // Depth equals the position of the most significant bit if i+1.
-            constexpr UInt one = 1;
-            
-            return static_cast<Int>( MSB( static_cast<UInt>(i) + one ) - one );
-        }
-        
-        
-        static constexpr Int Column( const Int i )
-        {
-            // The start of each column is the number with all bits < Depth() being set.
-            
-            constexpr UInt one = 1;
-            
-            UInt k = static_cast<UInt>(i) + one;
+        // Integer data for the combinatorics of the tree.
+        // Corners of the bounding boxes.
 
-            return i - (PrevPow(k) - one);
-        }
+        using Tree::leave_count;
+        using Tree::node_count;
+        using Tree::int_node_count;
+        using Tree::last_row_begin;
+        using Tree::offset;
+        using Tree::N_begin;
+        using Tree::N_end;
         
-        Int NodeBegin( const Int i ) const
-        {
-            return N_begin[i];
-        }
+        BContainer_T N_box;
         
-        Int NodeEnd( const Int i ) const
-        {
-            return N_end[i];
-        }
+    public:
         
+        using Tree::MaxDepth;
+        using Tree::NodeCount;
+        using Tree::InteriorNodeCount;
+        using Tree::LeafNodeCount;
         
-        bool NodeContainsPrimitiveQ( const Int node, const Int primitive ) const
-        {
-            return (Begin(node) <= primitive) && (primitive < End(node));
-        }
+        using Tree::RightChild;
+        using Tree::LeftChild;
+        using Tree::Parent;
+        using Tree::Depth;
+        using Tree::Column;
+        using Tree::NodeBegin;
+        using Tree::NodeEnd;
         
-        bool NodesContainPrimitiveQ(
-            const Int node_0,      const Int node_1,
-            const Int primitive_0, const Int primitive_1
-        ) const
-        {
-            return (
-                NodeContainsEdgeQ(node_0,primitive_0)
-                &&
-                NodeContainsEdgeQ(node_1,primitive_1)
-            ) || (
-                NodeContainsEdgeQ(node_0,primitive_1)
-                &&
-                NodeContainsEdgeQ(node_1,primitive_0)
-            );
-        }
         
     private:
         
@@ -294,51 +228,12 @@ namespace KnotTools
             }
         }
         
-    protected:
-        
-        // Integer data for the combinatorics of the tree.
-        // Corners of the bounding boxes.
-
-        const Int prim_count = 0;
-        
-        const Int node_count = 0;
-        
-        const Int int_node_count = 0;
-
-        const Int last_row_begin = 0;
-        
-        const Int offset = 0;
-        
-        BContainer_T N_box;
-        
-        Tensor1<Int,Int> N_begin;
-        Tensor1<Int,Int> N_end;
-        
         
     public:
-
-//###############################################################################
-//##        Get functions
-//###############################################################################
-
+        
         BContainer_T & NodeBoxes()
         {
             return N_box;
-        }
-        
-        Int NodeCount() const
-        {
-            return node_count;
-        }
-        
-        Int InteriorNodeCount() const
-        {
-            return int_node_count;
-        }
-        
-        Int LeafNodeCount() const
-        {
-            return node_count - int_node_count;
         }
         
     public:
