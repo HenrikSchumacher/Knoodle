@@ -173,3 +173,34 @@ exit:
     
     ptoc(ClassName()+"::RequireFaces");
 }
+
+
+Int OutsideFace()
+{
+    const std::string tag = "OutsideFace";
+    
+    if( !this->InCacheQ(tag) )
+    {
+        auto & FA_ptr = FaceDirectedArcPointers();
+        
+        const Int f_count = FaceCount();
+        
+        Int max_f = 0;
+        Int max_a = FA_ptr[max_f+1] - FA_ptr[max_f];
+        
+        for( Int f = 1; f < f_count; ++f )
+        {
+            const Int a_count = FA_ptr[f+1] - FA_ptr[f];
+            
+            if( a_count > max_a )
+            {
+                max_f = f;
+                max_a = a_count;
+            }
+        }
+        
+        this->SetCache(tag, max_f);
+    }
+    
+    return this->template GetCache<Int>(tag);
+}

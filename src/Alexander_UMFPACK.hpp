@@ -6,8 +6,8 @@
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 ////#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 //
-#include "../submodules/Tensors/BLAS_Wrappers.hpp"
-#include "../submodules/Tensors/LAPACK_Wrappers.hpp"
+#include "../submodules/Tensors/src/BLAS_Wrappers.hpp"
+#include "../submodules/Tensors/src/LAPACK_Wrappers.hpp"
 
 
 namespace KnotTools

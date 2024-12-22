@@ -256,6 +256,7 @@ namespace KnotTools
 
 #include "src/Link.hpp"
 
+#include "src/CompleteBinaryTree.hpp"
 #include "src/AABBTree.hpp"
 
 #include "src/Intersection.hpp"
