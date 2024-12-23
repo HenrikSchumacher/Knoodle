@@ -21,7 +21,7 @@ using namespace Tensors;
 using namespace Tools;
 
 using Real = double;
-using Int  = long long;
+using Int  = Int32;
 
 int main(void)
 {

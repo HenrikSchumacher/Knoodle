@@ -1,123 +1,3 @@
-public:
-
-    bool BoxesIntersectQ( const Int i, const Int j ) const
-    {
-        return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
-    }
-
-
-
-    void ComputeEdgeIntersection( const Int k, const Int l )
-    {
-        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-        if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
-        {
-            // Get the edge lengths in order to decide what's a "small" determinant.
-            
-            const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
-            
-            const Tiny::Matrix<2,3,Real,Int> y { edge_coords.data(l) };
-
-            const bool intersectingQ = LineSegmentsIntersectQ_Kahan( x[0], x[1], y[0], y[1] );
-
-
-            if( intersectingQ )
-            {
-                const Vector2_T d { y[0][0] - x[0][0], y[0][1] - x[0][1] };
-                const Vector2_T u { x[1][0] - x[0][0], x[1][1] - x[0][1] };
-                const Vector2_T v { y[1][0] - y[0][0], y[1][1] - y[0][1] };
-
-                // TODO: The following determinants probably have already been computed in LineSegmentsIntersectQ_Kahan.
-                
-                const Real det = Det_Kahan( u, v );
-                
-                if( det == Scalar::Zero<Real> )
-                {
-                    wprint( ClassName()+"ComputeEdgeIntersection : Degenerate intersection detected.");
-                }
-                
-                const Real det_inv = Inv<Real>(det);
-                
-                const Real t[2] { Det_Kahan( d, v ) * det_inv, Det_Kahan( d, u ) * det_inv };
-                
-                // Compute heights at the intersection.
-                const Real h[2] = {
-                    x[0][2] * (one - t[0]) + t[0] * x[1][2],
-                    y[0][2] * (one - t[1]) + t[1] * y[1][2]
-                };
-                
-                // Tell edges k and l that they contain an additional crossing.
-                edge_ptr[k+1]++;
-                edge_ptr[l+1]++;
-
-                if( h[0] < h[1] )
-                {
-                    // edge k goes UNDER edge l
-                    
-                    intersections.push_back( Intersection_T(l,k,t[1],t[0],-Sign(det)) );
-                    
-    //      If det > 0, then this looks like this (left-handed crossing):
-    //
-    //        v       u
-    //         ^     ^
-    //          \   /
-    //           \ /
-    //            \
-    //           / \
-    //          /   \
-    //         /     \
-    //        k       l
-    //
-    //      If det < 0, then this looks like this (right-handed crossing):
-    //
-    //        u       v
-    //         ^     ^
-    //          \   /
-    //           \ /
-    //            /
-    //           / \
-    //          /   \
-    //         /     \
-    //        l       k
-
-                }
-                else if ( h[0] > h[1] )
-                {
-                    intersections.push_back( Intersection_T(k,l,t[0],t[1],Sign(det)) );
-                    // edge k goes OVER l
-                    
-    //      If det > 0, then this looks like this (positive crossing):
-    //
-    //        v       u
-    //         ^     ^
-    //          \   /
-    //           \ /
-    //            /
-    //           / \
-    //          /   \
-    //         /     \
-    //        k       l
-    //
-    //      If det < 0, then this looks like this (positive crossing):
-    //
-    //        u       v
-    //         ^     ^
-    //          \   /
-    //           \ /
-    //            \
-    //           / \
-    //          /   \
-    //         /     \
-    //        l       k
-                }
-                else
-                {
-                    intersections_3D++;
-                }
-            }
-        }
-    }
-
 protected:
     
     
@@ -143,8 +23,9 @@ protected:
         
         intersections.reserve( 2 * edge_coords.Dimension(0) );
         
-        intersections_3D = 0;
-        intersections_nontransversal = 0;
+        S = Intersector_T();
+        
+        intersection_count_3D = 0;
         
         Int stack[max_depth][2];
         Int stack_ptr = 0;
@@ -156,11 +37,7 @@ protected:
         while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
         {
             // Pop from stack.
-            
-//            const Int i = i_stack[stack_ptr];
-//            const Int j = j_stack[stack_ptr];
-//            stack_ptr--;
-            
+
             const Int i = stack[stack_ptr][0];
             const Int j = stack[stack_ptr][1];
             stack_ptr--;
@@ -253,7 +130,7 @@ protected:
                 }
                 else
                 {
-                    ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j ) );
+                    ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
                 }
             }
         }
@@ -261,3 +138,115 @@ protected:
         edge_ptr.Accumulate();
         
     } // FindIntersectingClusters_DFS_impl_1
+
+public:
+
+    bool BoxesIntersectQ( const Int i, const Int j ) const
+    {
+        return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
+    }
+
+protected:
+
+    void ComputeEdgeIntersection( const Int k, const Int l )
+    {
+        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+        if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
+        {
+//            Time start_time = Clock::now();
+            
+            // Get the edge lengths in order to decide what's a "small" determinant.
+            
+            const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
+            const Tiny::Matrix<2,3,Real,Int> y { edge_coords.data(l) };
+            
+            const LineSegmentsIntersectionFlag flag
+                = S.IntersectionType( x[0], x[1], y[0], y[1] );
+            
+//            ++intersection_counts[ ToUnderlying(flag) ];
+            
+            if( IntersectingQ(flag) )
+            {
+                auto [t,sign] = S.IntersectionTimesAndSign();
+                
+                // Compute heights at the intersection.
+                const Real h[2] = {
+                    x[0][2] * (one - t[0]) + t[0] * x[1][2],
+                    y[0][2] * (one - t[1]) + t[1] * y[1][2]
+                };
+                
+                // Tell edges k and l that they contain an additional crossing.
+                edge_ptr[k+1]++;
+                edge_ptr[l+1]++;
+
+                if( h[0] < h[1] )
+                {
+                    // edge k goes UNDER edge l
+                    
+                    intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
+                    
+                    //      If det > 0, then this looks like this (left-handed crossing):
+                    //
+                    //        v       u
+                    //         ^     ^
+                    //          \   /
+                    //           \ /
+                    //            \
+                    //           / \
+                    //          /   \
+                    //         /     \
+                    //        k       l
+                    //
+                    //      If det < 0, then this looks like this (right-handed crossing):
+                    //
+                    //        u       v
+                    //         ^     ^
+                    //          \   /
+                    //           \ /
+                    //            /
+                    //           / \
+                    //          /   \
+                    //         /     \
+                    //        l       k
+
+                }
+                else if ( h[0] > h[1] )
+                {
+                    intersections.push_back( Intersection_T(k,l,t[0],t[1],sign) );
+                    // edge k goes OVER l
+                    
+                    //      If det > 0, then this looks like this (positive crossing):
+                    //
+                    //        v       u
+                    //         ^     ^
+                    //          \   /
+                    //           \ /
+                    //            /
+                    //           / \
+                    //          /   \
+                    //         /     \
+                    //        k       l
+                    //
+                    //      If det < 0, then this looks like this (positive crossing):
+                    //
+                    //        u       v
+                    //         ^     ^
+                    //          \   /
+                    //           \ /
+                    //            \
+                    //           / \
+                    //          /   \
+                    //         /     \
+                    //        l       k
+                }
+                else
+                {
+                    ++intersection_count_3D;
+                }
+            }
+            
+//            Time stop_time = Clock::now();
+//            
+//            line_intersection_time += Tools::Duration(start_time,stop_time);
+        }
+    }

@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     template<typename Int_>
-    class alignas( ObjectAlignment ) CompleteBinaryTree
+    class alignas( ObjectAlignment ) QuadTree
     {
         static_assert(IntQ<Int_>,"");
         
@@ -181,4 +181,3 @@ namespace KnotTools
     }; // CompleteBinaryTree
     
 } // namespace KnotTools
-

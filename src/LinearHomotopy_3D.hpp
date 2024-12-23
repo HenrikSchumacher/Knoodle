@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     
-    template<typename Real_, typename Int_>
+    template<typename Real_, typename Int_, typename SInt_ = Int8>
     class alignas( ObjectAlignment ) LinearHomotopy_3D
     {
         
@@ -11,7 +11,7 @@ namespace KnotTools
                 
         using Real = Real_;
         using Int  = Int_;
-        using SInt = Int8;
+        using SInt = SInt_;
         
 //        static constexpr Int i_0 = 26 - 1;
 //        static constexpr Int j_0 = 56 - 1;
@@ -352,6 +352,7 @@ namespace KnotTools
             return std::string("LinearHomotopy_3D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
+                + "," + TypeName<SInt>
                 + ">";
         }
 

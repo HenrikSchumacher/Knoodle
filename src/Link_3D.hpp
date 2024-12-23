@@ -7,7 +7,7 @@
 
 namespace KnotTools
 {
-    template<typename Real_ = double, typename Int_ = long long>
+    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
         static_assert(FloatQ<Real_>,"");
@@ -17,7 +17,7 @@ namespace KnotTools
         
         using Real = Real_;
         using Int  = Int_;
-        using SInt = char;
+        using SInt = SInt_;
         
         // DEBUGGING
         static constexpr Int i_0 = - 1;
@@ -244,7 +244,7 @@ namespace KnotTools
 
         static std::string ClassName()
         {
-            return std::string("Link_3D") + "<" + TypeName<Real> + "," + TypeName<Int> + ">";
+            return std::string("Link_3D") + "<" + TypeName<Real> + "," + TypeName<Int> + "," + TypeName<SInt> + ">";
         }
     };
     

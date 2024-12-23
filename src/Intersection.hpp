@@ -3,7 +3,7 @@
 namespace KnotTools
 {
 
-    template<typename Real_ = double, typename Int_ = long long, typename SInt_ = int>
+    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8>
     struct Intersection
     {
         using Real = Real_;

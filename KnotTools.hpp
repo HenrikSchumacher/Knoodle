@@ -261,6 +261,7 @@ namespace KnotTools
 
 #include "src/Intersection.hpp"
 
+#include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/Link_2D.hpp"
 #include "src/Multigraph.hpp"
 

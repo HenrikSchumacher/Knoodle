@@ -19,7 +19,7 @@ namespace KnotTools
         static_assert(SignedIntQ<Int_>,"");
 
         using Int  = Int_;
-        using Sint = int;
+//        using Sint = SInt_;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -196,7 +196,7 @@ namespace KnotTools
         PlanarDiagram( cref<Link_2D<Real,Int,SInt>> L )
         :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
         {
-            using Link_T         = Link_2D<Real,Int>;
+            using Link_T         = Link_2D<Real,Int,SInt>;
             using Intersection_T = Link_T::Intersection_T;
 
             const Int component_count     = L.ComponentCount();
@@ -868,7 +868,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("PlanarDiagram") + "<" + TypeName<Int> + ">";
+            return std::string("PlanarDiagram")
+                + "<" + TypeName<Int>
+                + ">";
         }
         
     };

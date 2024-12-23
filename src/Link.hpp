@@ -22,7 +22,7 @@ namespace KnotTools
         return e;
     }
     
-    template<typename Int_ = long long>
+    template<typename Int_ = Int32>
     class alignas( ObjectAlignment ) Link
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.

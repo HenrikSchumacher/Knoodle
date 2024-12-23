@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     
-    template<typename Int_ = Int64>
+    template<typename Int_ = Int64, typename SInt_ = Int8>
     class alignas( ObjectAlignment ) Multigraph : public CachedObject
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
@@ -14,7 +14,7 @@ namespace KnotTools
         
         using Int  = Int_;
         
-        using SInt = int;
+        using SInt = SInt_;
         
         using IncidenceMatrix_T  = Sparse::MatrixCSR<Int,Int,Int>;
         
@@ -652,7 +652,10 @@ namespace KnotTools
                 
         static std::string ClassName()
         {
-            return std::string("Multigraph") + "<" + TypeName<Int> + ">";
+            return std::string("Multigraph")
+                + "<" + TypeName<Int>
+                + "," + TypeName<SInt>
+                + ">";
         }
         
     };

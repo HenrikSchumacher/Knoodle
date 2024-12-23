@@ -3,7 +3,7 @@
 namespace KnotTools
 {
 
-    template<typename Real_ = double, typename Int_ = long long, typename SInt_ = short int>
+    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence this class' main routine is FindIntersections (using a static binary tree).
@@ -27,7 +27,7 @@ namespace KnotTools
         using Int  = Int_;
         using SInt = SInt_;
         
-        using Base_T = Link<Int>;
+        using Base_T         = Link<Int>;
         
         using Tree2_T        = AABBTree<2,Real,Int>;
         using Tree3_T        = AABBTree<3,Real,Int>;
@@ -40,6 +40,8 @@ namespace KnotTools
         using BContainer_T   = Tree2_T::BContainer_T;
         
         using Intersection_T = Intersection<Real,Int,SInt>;
+        
+        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int,SInt>;
         
 //        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
@@ -90,9 +92,6 @@ namespace KnotTools
         Tensor1<Real,Int> edge_times;
         Tensor1<bool,Int> edge_overQ;
                  
-        Int intersections_3D = 0;
-        Int intersections_nontransversal = 0;
-
         Vector3_T Sterbenz_shift {0};
         
 //        using P_T = std::array<Int,2>;
@@ -100,7 +99,11 @@ namespace KnotTools
 //        Stack<P_T,Int> stack { max_depth };
         
 //        PairStack<max_depth,Int,Int,Int> stack { max_depth };
+        
+        Intersector_T S;
 
+        Size_T intersection_count_3D = 0;
+        
     public:
         
         Link_2D() = default;
@@ -273,6 +276,8 @@ namespace KnotTools
                 const Int i = edge_tails[edge];
                 const Int j = edge_tips [edge];
                 
+                // TODO: There is too much copying here. Remove it.
+                
                 const Vector3_T x ( edge_coords.data(edge,0) );
                 const Vector3_T y ( edge_coords.data(edge,1) );
                 
@@ -360,8 +365,7 @@ namespace KnotTools
         
         void FindIntersections()
         {
-//            ptic(ClassName()+"FindIntersections");
-//            tic(ClassName()+"FindIntersections");
+            ptic(ClassName()+"FindIntersections");
             
             // TODO: Randomly rotate until not degenerate.
             
@@ -376,13 +380,13 @@ namespace KnotTools
 //            toc("ComputeBoundingBoxes<2,3>");
             
             // ApplySterbenzShift requires the bounding box, so this is why we compute the bounding boxes first.
-//            tic("ApplySterbenzShift");
+            ptic("ApplySterbenzShift");
             ApplySterbenzShift();
-//            toc("ApplySterbenzShift");
+            ptoc("ApplySterbenzShift");
             
-//            tic("FindIntersectingEdges_DFS");
+            ptic("FindIntersectingEdges_DFS");
             FindIntersectingEdges_DFS();
-//            toc("FindIntersectingEdges_DFS");
+            ptoc("FindIntersectingEdges_DFS");
             
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -401,7 +405,7 @@ namespace KnotTools
             
             const Int intersection_count = static_cast<Int>(intersections.size());
             
-//            tic("Counting sort");
+            ptic("Counting sort");
             // Counting sort.
             for( Int k = intersection_count-1; k > -1; --k )
             {
@@ -437,11 +441,10 @@ namespace KnotTools
                     k_end - k_begin
                 );
             }
-//            toc("Counting sort");
+            ptoc("Counting sort");
             
             // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
             
-//            toc(ClassName()+"FindIntersections");
             ptoc(ClassName()+"FindIntersections");
         }
         
@@ -480,14 +483,9 @@ namespace KnotTools
             return static_cast<Int>( intersections.size() );
         }
         
-        Int DegenerateIntersectionCount() const
-        {
-            return intersections_nontransversal;
-        }
-        
         Int InvalidIntersectionCount() const
         {
-            return intersections_3D;
+            return S.IntersectionCounters()[7];
         }
         
         cref<EContainer_T> EdgeCoordinates() const
@@ -535,11 +533,22 @@ namespace KnotTools
             return Sterbenz_shift;
         }
         
+//        double LineIntersectionTime() const
+//        {
+//            return line_intersection_time;
+//        }
+        
+        cref<std::array<Size_T,8>> IntersectionCounts()
+        {
+            return S.IntersectionCounts();
+        }
+        
         static std::string ClassName()
         {
             return std::string("Link_2D") 
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
+                + "," + TypeName<SInt>
                 + ">";
         }
     };
