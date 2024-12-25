@@ -205,8 +205,6 @@ namespace KnotTools
             e[0] = y_1[0] - x_1[0];
             e[1] = y_1[1] - x_1[1];
             
-            SInt signs [4];
-            
     //        signs[0] = Oriented2D_Kahan<SInt>( x_0, y_0, y_1 );
     //        signs[1] = Oriented2D_Kahan<SInt>( x_1, y_0, y_1 );
     //        signs[2] = Oriented2D_Kahan<SInt>( x_0, x_1, y_0 );
@@ -370,8 +368,10 @@ namespace KnotTools
             
             if( sign == 0 )
             {
-                t[0] = -1.;
-                t[1] = -1.;
+                // TODO: Find a pair of actual intersection times.
+                
+                t[0] = 0.5;
+                t[1] = 0.5;
                 
                 return {t, sign};
             }
