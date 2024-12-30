@@ -1,11 +1,9 @@
 #pragma once
 
 
-// TODO: Performing possible Reidemeister II moves an a strand might unlock further moves. More importantly, it will reduce the length of the current strand and thus make Dijkstra faster!
+// DONE: Performing possible Reidemeister II moves an a strand might unlock further moves. More importantly, it will reduce the length of the current strand and thus make Dijkstra faster!
 
-// TODO: Speed this up by reducing the redirecting in NextLeftArc by using and maintaining ArcLeftArc.
-
-// TODO: It seems to be faster to interleave the over-/understrand passes with recompression. This begs the question whether we should exploit the recompression step to compute some interesting information, e.g. all the over-/understrands.
+// DONE: Speed this up by reducing the redirecting in NextLeftArc by using and maintaining ArcLeftArc.
 
 // TODO: It might also be worthwhile to do the overstrand and the understrand pass in the same loop. (But I doubt it.)
 
@@ -20,7 +18,6 @@ namespace KnotTools
         static_assert(SignedIntQ<Int_>,"");
         
         using Int  = Int_;
-//        using Sint = int;
         
         using PD_T = PlanarDiagram<Int>;
         
@@ -1782,12 +1779,6 @@ namespace KnotTools
                 touched.push_back( (b   << 1) | Int(Head) );
                 touched.push_back( (a_1 << 1) | Int(Tail) );
                 touched.push_back( (a_2 << 1) | Int(Tail) );
-
-//                TouchArc<Head>(a  );
-//                TouchArc<Head>(b  );
-//
-//                TouchArc<Tail>(a_1);
-//                TouchArc<Tail>(a_2);
                 
                 AssertCrossing<1>(c_0);
                 AssertCrossing<1>(c_1);
@@ -1836,7 +1827,6 @@ namespace KnotTools
         }
         
     public:
-    
         
         template<typename Int_0, typename Int_1, typename Int_2>
         void ColorArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 color_ )
@@ -1867,7 +1857,6 @@ namespace KnotTools
         }
         
     private:
-
         
         Int WalkBackToStrandStart( const Int a_0 ) const
         {

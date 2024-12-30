@@ -19,18 +19,19 @@ namespace KnotTools
         static_assert(SignedIntQ<Int_>,"");
 
         using Int  = Int_;
-//        using Sint = SInt_;
         
         using UInt = Scalar::Unsigned<Int>;
         
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
         
-        using CrossingContainer_T       = Tensor3<Int,Int>;
-        using ArcContainer_T            = Tensor2<Int,Int>;
+//        using CrossingContainer_T       = Tensor3<Int,Int>;
+//        using ArcContainer_T            = Tensor2<Int,Int>;
+        using CrossingContainer_T       = CrossingContainer<Int>;
+        using ArcContainer_T            = ArcContainer<Int>;
+        
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
-        
         
 
         template<typename I, Size_T lvl, bool mult_compQ_>
@@ -41,7 +42,7 @@ namespace KnotTools
         
         template<typename I, bool mult_compQ_>
         friend class StrandSimplifier;
-        
+            
         
         using Arrow_T = std::pair<Int,bool>;
         
@@ -107,9 +108,11 @@ namespace KnotTools
         ,   unlink_count            ( unlink_count_                           )
         ,   initial_crossing_count  ( crossing_count                          )
         ,   initial_arc_count       ( arc_count                               )
-        ,   C_arcs                  ( crossing_count, Int(2), Int(2), -1      )
+//        ,   C_arcs                  ( crossing_count, Int(2), Int(2), -1      )
+        ,   C_arcs                  ( crossing_count, -1                      )
         ,   C_state                 ( crossing_count, CrossingState::Inactive )
-        ,   A_cross                 ( arc_count,      Int(2), -1              )
+//        ,   A_cross                 ( arc_count,      Int(2), -1              )
+        ,   A_cross                 ( arc_count,      -1                      )
         ,   A_state                 ( arc_count,      ArcState::Inactive      )
         ,   C_scratch               ( crossing_count                          )
         ,   A_scratch               ( arc_count                               )
@@ -697,26 +700,6 @@ namespace KnotTools
 
         
     private:
-        
-        cref<Int> CA( Int c, bool io, bool lr ) const
-        {
-            return C_arcs.data()[ (c << 2) | (io << 1) | lr  ];
-        }
-        
-        mref<Int> CA( Int c, bool io, bool lr )
-        {
-            return C_arcs.data()[ (c << 2) | (io << 1) | lr ];
-        }
-
-        cref<Int> AC( Int a, bool headtail ) const
-        {
-            return A_cross.data()[ 2 * a + headtail ];
-        }
-        
-        mref<Int> AC( Int a, bool headtail )
-        {
-            return A_cross.data()[ 2 * a + headtail ];
-        }
         
         /*!
          * @brief Deactivates crossing `c`. Only for internal use.
