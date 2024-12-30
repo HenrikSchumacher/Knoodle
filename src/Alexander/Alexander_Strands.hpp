@@ -16,8 +16,11 @@ void Alexander_Strands(
     
     if( pd.CrossingCount() <= 1 )
     {
-        fill_buffer( mantissas, ExtScal(1), arg_count );
-        zerofy_buffer( exponents, arg_count );
+        if( !multiply_toQ )
+        {
+            fill_buffer( mantissas, ExtScal(1), arg_count );
+            zerofy_buffer( exponents, arg_count );
+        }
     }
     else
     {
@@ -44,25 +47,19 @@ void Alexander_Strands(
 {
     const Scal t = scalar_cast<Scal>(arg);
     
-//    dump(t);
-    
     auto [factor,exp] = Alexander_Strands_Normalization<sparseQ>(pd);
     
     Multiplier_T det = Alexander_Strands_Det<sparseQ>(pd,t);
     
     Multiplier_T pow = Multiplier_T::Power(t,exp);
-    
-//    dump(factor);
-//    dump(pow);
-//    dump(det);
 
     Multiplier_T alex = factor * det * pow;
 
-//    dump(alex);
-
     if ( multiply_toQ )
     {
-        alex *= Multiplier_T( static_cast<Scal>(mantissa), static_cast<Int>(exponent) );
+        // TODO: This way of converting factor back and forth is somewhat annoying. Can this be done in a cleaner way?
+        
+        alex *= Multiplier_T( static_cast<Scal>(mantissa) ) * Multiplier_T::Power(Scal(10), static_cast<Int>(exponent) );
     }
     
     auto [m,e] = alex.MantissaExponent10();
