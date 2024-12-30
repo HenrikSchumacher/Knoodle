@@ -86,7 +86,7 @@ namespace KnotTools
 
         Stack<Int,Int> stack;
         
-        bool provably_irreducibleQ = false;
+        bool provably_minimalQ = false;
         
     public:
         
@@ -139,7 +139,7 @@ namespace KnotTools
         ,   four_counter            { other.four_counter            }
         ,   C_scratch               { other.C_scratch               }
         ,   A_scratch               { other.A_scratch               }
-        ,   provably_irreducibleQ   { other.provably_irreducibleQ   }
+        ,   provably_minimalQ       { other.provably_minimalQ       }
         {}
             
         
@@ -170,6 +170,7 @@ namespace KnotTools
             
             swap( A.C_scratch              , B.C_scratch               );
             swap( A.A_scratch              , B.A_scratch               );
+            swap( A.provably_minimalQ      , B.provably_minimalQ       );
         }
         
         // Move constructor
@@ -697,6 +698,26 @@ namespace KnotTools
         
     private:
         
+        cref<Int> CA( Int c, bool io, bool lr ) const
+        {
+            return C_arcs.data()[ (c << 2) | (io << 1) | lr  ];
+        }
+        
+        mref<Int> CA( Int c, bool io, bool lr )
+        {
+            return C_arcs.data()[ (c << 2) | (io << 1) | lr ];
+        }
+
+        cref<Int> AC( Int a, bool headtail ) const
+        {
+            return A_cross.data()[ 2 * a + headtail ];
+        }
+        
+        mref<Int> AC( Int a, bool headtail )
+        {
+            return A_cross.data()[ 2 * a + headtail ];
+        }
+        
         /*!
          * @brief Deactivates crossing `c`. Only for internal use.
          */
@@ -847,9 +868,9 @@ namespace KnotTools
         
     public:
         
-        bool ProvablyIrreducibleQ() const
+        bool ProvablyMinimalQ() const
         {
-            return provably_irreducibleQ;
+            return provably_minimalQ;
         }
         
     public:

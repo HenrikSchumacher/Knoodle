@@ -9,7 +9,7 @@ namespace KnotTools
         
     public:
         
-        using Int  = Int_;
+        using Int = Int_;
         
         static constexpr Int max_depth = 128;
         

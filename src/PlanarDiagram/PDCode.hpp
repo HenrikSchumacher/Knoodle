@@ -13,16 +13,20 @@ public:
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
+ *  @param provably_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
-    const ExtInt3 unlink_count
+    const ExtInt3 unlink_count,
+    const bool    provably_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<true>(pd_codes,crossing_count,unlink_count);
+    return PlanarDiagram<Int>::FromPDCode<true>(
+        pd_codes, crossing_count, unlink_count, provably_minimalQ_
+    );
 }
 
 /*! @brief Construction from PD codes of crossings.
@@ -36,16 +40,20 @@ static PlanarDiagram<Int> FromSignedPDCode(
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
+ *  @param provably_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
-    const ExtInt3 unlink_count
+    const ExtInt3 unlink_count,
+    const bool    provably_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<false>(pd_codes,crossing_count,unlink_count);
+    return PlanarDiagram<Int>::FromPDCode<false>(
+        pd_codes, crossing_count, unlink_count, provably_minimalQ_
+    );
 }
 
 private:
@@ -54,10 +62,13 @@ template<bool PDsignedQ, typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
-    const ExtInt3 unlink_count_
+    const ExtInt3 unlink_count_,
+    const bool    provably_minimalQ_ = false
 )
 {
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
+    
+    pd.provably_minimalQ = provably_minimalQ_;
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     

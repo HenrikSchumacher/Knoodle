@@ -27,6 +27,9 @@ namespace KnotTools
         
         using Complex = Scalar::Complex<Real>;
 
+        using E_T     = Int64; // Integer for storing exponents.
+        
+        using Multiplier_T = ProductAccumulator<Scal,E_T>;
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
         using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
@@ -48,6 +51,7 @@ namespace KnotTools
         
         Alexander_UMFPACK()
         :   sparsity_threshold ( 256 )
+//        :   sparsity_threshold ( 1 )
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
         ,   LU_ipiv   ( sparsity_threshold )
         {}
@@ -72,6 +76,8 @@ namespace KnotTools
         mutable Tensor1<Scal,Int> LU_buffer;
         
         mutable Tensor1<LAPACK::Int,Int> LU_ipiv;
+        
+        AlexanderStrandMatrix<Scal,Int,LInt> A;
 
     public:
         
@@ -83,10 +89,30 @@ namespace KnotTools
         
 #include "Alexander/Alexander_Strands_Dense.hpp"
 #include "Alexander/Alexander_Strands_Sparse.hpp"
+#include "Alexander/Alexander_Strands.hpp"
         
-//#include "Alexander/Alexander_Faces_Dense.hpp"
-//#include "Alexander/Alexander_Faces_Sparse.hpp"
+    public:
 
+        template<typename ExtScal, typename ExtInt>
+        void Alexander(
+            cref<PD_T> pd,
+            ExtScal arg,
+            ExtScal mantissa,
+            ExtInt  exponent,
+            bool multiply_toQ
+        ) const
+        {
+            if( pd.CrossingCount() > sparsity_threshold + 1 )
+            {
+                // Use sparse code path.
+                Alexander_Strands<true >( pd, arg, mantissa, exponent, multiply_toQ );
+            }
+            else
+            {
+                // Use dense code path.
+                Alexander_Strands<false>( pd, arg, mantissa, exponent, multiply_toQ );
+            }
+        }
         
         template<typename ExtScal, typename ExtInt>
         void Alexander(
@@ -94,18 +120,27 @@ namespace KnotTools
             cptr<ExtScal> args,
             ExtInt        arg_count,
             mptr<ExtScal> mantissas,
-            mptr<ExtInt>  exponents
+            mptr<ExtInt>  exponents,
+            bool multiply_toQ
         ) const
         {
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
-                Alexander_Strands_Sparse( pd, args, arg_count, mantissas, exponents );
+                // Use sparse code path.
+                Alexander_Strands<true >(
+                    pd, args, arg_count, mantissas, exponents, multiply_toQ
+                );
             }
             else
             {
-                Alexander_Strands_Dense ( pd, args, arg_count, mantissas, exponents );
+                // Use dense code path.
+                Alexander_Strands<false>(
+                    pd, args, arg_count, mantissas, exponents, multiply_toQ
+                );
             }
         }
+        
+        
         
     public:
         

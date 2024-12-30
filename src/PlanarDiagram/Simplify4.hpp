@@ -14,7 +14,7 @@ Int Simplify4(
     const bool strand_R_II_Q = true
 )
 {
-    if( provably_irreducibleQ )
+    if( provably_minimalQ )
     {
         return 0;
     }
@@ -32,40 +32,42 @@ Int Simplify4(
     Int iter = 0;
     
     
-    if( CrossingCount() <= 3 )
-    {
-        if( simplify3_level > 0 )
-        {
-            // Since Simplify3 contains only inexpensive tests, we should call it first.
-            const Int simpl3_changes = Simplify3(
-                simplify3_level,simplify3_max_iter,true
-            );
-            
-            counter += simpl3_changes;
-            
-            if( compressQ && (simpl3_changes > 0) )
-            {
-                (*this) = CreateCompressed();
-            }
-        }
-        
-        if( counter > 0 )
-        {
-            this->ClearCache();
-        }
-        
-        PD_ASSERT(CheckAll());
-
-        ptoc(ClassName()+"::Simplify4"
-             + "(" + ToString(max_dist)
-             + "," + ToString(compressQ)
-             + "," + ToString(simplify3_level)
-             + "," + ToString(simplify3_max_iter)
-             + "," + ToString(strand_R_II_Q)
-             + ")");
-        
-        return counter;
-    }
+    // Only meaningful for single-component links.
+    
+//    if( CrossingCount() <= 3 )
+//    {
+//        if( simplify3_level > 0 )
+//        {
+//            // Since Simplify3 contains only inexpensive tests, we should call it first.
+//            const Int simpl3_changes = Simplify3(
+//                simplify3_level,simplify3_max_iter,true
+//            );
+//            
+//            counter += simpl3_changes;
+//            
+//            if( compressQ && (simpl3_changes > 0) )
+//            {
+//                (*this) = CreateCompressed();
+//            }
+//        }
+//        
+//        if( counter > 0 )
+//        {
+//            this->ClearCache();
+//        }
+//        
+//        PD_ASSERT(CheckAll());
+//
+//        ptoc(ClassName()+"::Simplify4"
+//             + "(" + ToString(max_dist)
+//             + "," + ToString(compressQ)
+//             + "," + ToString(simplify3_level)
+//             + "," + ToString(simplify3_max_iter)
+//             + "," + ToString(strand_R_II_Q)
+//             + ")");
+//        
+//        return counter;
+//    }
     
     // TODO: Toggle this Boolean for multi-component links.
     StrandSimplifier<Int,true> S(*this);

@@ -1,6 +1,6 @@
 public:
 
-// TODO: A connected summand split off by `Simplify5` should be irreducible if `AlternatingQ` evaluates to `true`. We should set a flag to should such a summand from further simplification attempts.
+// TODO: A connected summand split off by `Simplify5` should be irreducible if `AlternatingQ` evaluates to `true`. We should set a flag to shield such a summand from further simplification attempts.
 
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
 
@@ -26,7 +26,7 @@ bool Simplify5(
     const bool strand_R_II_Q = true
 )
 {
-    if( provably_irreducibleQ )
+    if( provably_minimalQ )
     {
         return false;
     }
@@ -56,8 +56,7 @@ bool Simplify5(
         globally_changedQ = globally_changedQ || changedQ;
     }
     while( changedQ );
-    
-    provably_irreducibleQ = AlternatingQ();
+
     
     if( globally_changedQ )
     {
@@ -68,6 +67,19 @@ bool Simplify5(
         
         this->ClearCache();
     }
+    
+    
+//    print("Checking minimality");
+//    dump(AlternatingQ());
+//    dump(CrossingCount());
+//    dump(DiagramComponentCount());
+//    
+    provably_minimalQ = AlternatingQ() && (DiagramComponentCount() == 1);
+//    
+//    if( provably_minimalQ )
+//    {
+//        print("Found minimal component.");
+//    }
     
     ptoc(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)

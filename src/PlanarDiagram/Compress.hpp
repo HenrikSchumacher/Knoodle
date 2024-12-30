@@ -5,7 +5,7 @@
  * First active arc becomes first arc in new planar diagram.
  * The _tail_ of this arc becomes the new first crossing.
  * Then we follow all arcs in the component with `NextArc<Head>(a)`.
- * The new labels increase by one for each invisited arc.
+ * The new labels increase by one for each visited arc.
  * Same for the crossings.
  */
 
@@ -140,7 +140,31 @@ PlanarDiagram CreateCompressed()
         ++a_ptr;
     }
     
+    pd.provably_minimalQ = provably_minimalQ;
+    
     ptoc( ClassName()+"::CreateCompressed");
     
     return pd;
 }
+
+bool ArcsCanonicallyOrderedQ() const
+{
+    bool orderedQ = true;
+
+    Int a = 0;
+    
+    while( orderedQ && (a+1 < arc_count) )
+    {
+        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == a + 1);
+    }
+    
+    if( arc_count > 0 )
+    {
+        a = arc_count - 1 ;
+        
+        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == 0);
+    }
+    
+    return orderedQ;
+}
+    

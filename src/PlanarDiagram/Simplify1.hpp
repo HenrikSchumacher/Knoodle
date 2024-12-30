@@ -12,7 +12,7 @@ public:
 
 Int Simplify1()
 {
-    if( provably_irreducibleQ )
+    if( provably_minimalQ )
     {
         return 0;
     }

@@ -22,7 +22,7 @@ Int Simplify3(
     const bool multi_compQ = true
 )
 {
-    if( provably_irreducibleQ )
+    if( provably_minimalQ )
     {
         return 0;
     }

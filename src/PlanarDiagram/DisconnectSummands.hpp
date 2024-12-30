@@ -20,7 +20,7 @@ bool DisconnectSummands(
     
     // TODO: Introduce some tracking of from where the components are split off.
     
-    TwoArraySort<Int,Int,Int> S ( initial_arc_count );
+    TwoArraySort<Int,Int,Int> sort ( initial_arc_count );
     
     std::vector<Int> f_arcs;
     
@@ -41,7 +41,7 @@ bool DisconnectSummands(
         for( Int f = 0; f < FaceCount(); ++f )
         {
             changedQ = changedQ || DisconnectSummand(
-                f,PD_list,S,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
+                f,PD_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
                 max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
@@ -73,7 +73,7 @@ private:
 bool DisconnectSummand(
     const Int f,
     mref<std::vector<PlanarDiagram<Int>>> PD_list,
-    TwoArraySort<Int,Int,Int> & S,
+    TwoArraySort<Int,Int,Int> & sort,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
     cptr<Int> F_A_ptr,
@@ -126,7 +126,7 @@ bool DisconnectSummand(
         }
     }
     
-    S( &f_faces[0], &f_arcs[0], f_size );
+    sort( &f_faces[0], &f_arcs[0], f_size );
     
     auto push = [&]( PlanarDiagram<Int> && pd )
     {
@@ -138,7 +138,7 @@ bool DisconnectSummand(
             simplify3_max_iter,
             strand_R_II_Q
         );
-
+        
         PD_list.push_back( std::move(pd) );
     };
     
@@ -255,8 +255,6 @@ bool DisconnectSummand(
                 DeactivateCrossing(c);
 
                 push( std::move( ExportSmallerComponent(a_prev,a) ) );
-                
-//                push( std::move( SplitSmallerDiagramComponent(a_prev,a) ) );
                 
                 return true;
             }

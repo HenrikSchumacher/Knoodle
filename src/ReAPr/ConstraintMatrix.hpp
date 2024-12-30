@@ -17,6 +17,7 @@ void ConstraintMatrix_Triples(
     {
         const Int  a_0 = C_arcs[(c << 2)         ];
         const Int  a_1 = C_arcs[(c << 2) | Int(1)];
+
         const Real s   = static_cast<Real>(ToUnderlying(C_states[c]));
         
         if constexpr ( TransposedQ(op) )
