@@ -31,44 +31,6 @@ Int Simplify4(
     Int counter = 0;
     Int iter = 0;
     
-    
-    // Only meaningful for single-component links.
-    
-//    if( CrossingCount() <= 3 )
-//    {
-//        if( simplify3_level > 0 )
-//        {
-//            // Since Simplify3 contains only inexpensive tests, we should call it first.
-//            const Int simpl3_changes = Simplify3(
-//                simplify3_level,simplify3_max_iter,true
-//            );
-//            
-//            counter += simpl3_changes;
-//            
-//            if( compressQ && (simpl3_changes > 0) )
-//            {
-//                (*this) = CreateCompressed();
-//            }
-//        }
-//        
-//        if( counter > 0 )
-//        {
-//            this->ClearCache();
-//        }
-//        
-//        PD_ASSERT(CheckAll());
-//
-//        ptoc(ClassName()+"::Simplify4"
-//             + "(" + ToString(max_dist)
-//             + "," + ToString(compressQ)
-//             + "," + ToString(simplify3_level)
-//             + "," + ToString(simplify3_max_iter)
-//             + "," + ToString(strand_R_II_Q)
-//             + ")");
-//        
-//        return counter;
-//    }
-    
     // TODO: Toggle this Boolean for multi-component links.
     StrandSimplifier<Int,true> S(*this);
     
@@ -100,8 +62,8 @@ Int Simplify4(
         }
         
         const Int o_changes = strand_R_II_Q
-        ? S.template SimplifyStrands<true >(true,max_dist)
-        : S.template SimplifyStrands<false>(true,max_dist);
+            ? S.template SimplifyStrands<true >(true,max_dist)
+            : S.template SimplifyStrands<false>(true,max_dist);
         
         counter += o_changes;
         
@@ -113,8 +75,8 @@ Int Simplify4(
         PD_ASSERT(CheckAll());
         
         const Int u_changes = strand_R_II_Q
-        ? S.template SimplifyStrands<true >(false,max_dist)
-        : S.template SimplifyStrands<false>(false,max_dist);
+            ? S.template SimplifyStrands<true >(false,max_dist)
+            : S.template SimplifyStrands<false>(false,max_dist);
         
         counter += u_changes;
         
@@ -127,7 +89,7 @@ Int Simplify4(
 
     }
     while( counter > old_counter );
-
+    
     if( counter > 0 )
     {
         this->ClearCache();
