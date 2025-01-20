@@ -258,6 +258,7 @@ namespace KnotTools
 
 #include "src/CompleteBinaryTree.hpp"
 #include "src/AABBTree.hpp"
+#include "src/AABBTree2.hpp"
 
 #include "src/Intersection.hpp"
 
@@ -287,3 +288,6 @@ namespace KnotTools
 
 #include "src/AlexanderStrandMatrix.hpp"
 #include "src/AlexanderFaceMatrix.hpp"
+
+
+#include "src/PolygonFolder.hpp"
