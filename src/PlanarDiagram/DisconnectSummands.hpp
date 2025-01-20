@@ -115,14 +115,19 @@ bool DisconnectSummand(
     
     if( f_size == 1 )
     {
-        // TODO: What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
-
         const Int a = (f_arcs[0] >> 1);
         
         if( A_cross(a,Tail) == A_cross(a,Head) )
         {
             Reidemeister_I(a);
             return true;
+        }
+        else
+        {
+            // TODO: Can we get here? What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
+
+            eprint(ClassName()+"::DisconnectSummand: Face with one arc detected.");
+            return false;
         }
     }
     
