@@ -253,7 +253,7 @@ namespace KnotTools
                 }
             }
             
-            agg.Finalize();
+//            agg.Finalize();
             
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
             

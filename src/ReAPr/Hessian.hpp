@@ -79,7 +79,7 @@ cref<Matrix_T> HessianMatrix( mref<PlanarDiagram_T> pd )
         
         HessianMatrix_Triples( pd, agg, 0, 0 );
         
-        agg.Finalize();
+//        agg.Finalize();
                         
         Matrix_T A ( agg, m, m, I_T(1), true, true );
         

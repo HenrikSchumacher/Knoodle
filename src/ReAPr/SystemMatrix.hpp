@@ -22,7 +22,7 @@ mref<Matrix_T> SystemMatrixPattern( mref<PlanarDiagram_T> pd )
             agg.Push( i, i, Scalar::One<Real> );
         }
         
-        agg.Finalize();
+//        agg.Finalize();
         
         Matrix_T L ( agg, m+n, m+n, I_T(1), true, true );
         
