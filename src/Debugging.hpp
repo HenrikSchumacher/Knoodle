@@ -20,27 +20,27 @@
 
 #ifdef PD_DEBUG
 
-#define PD_ASSERT(c)                                                \
-    if(!(c))                                                        \
-    {                                                               \
-        pd_eprint( "PD_ASSERT failed: " + std::string(#c) );        \
-    }
+    #define PD_ASSERT(c)                                                \
+        if(!(c))                                                        \
+        {                                                               \
+            pd_eprint( "PD_ASSERT failed: " + std::string(#c) );        \
+        }
 
-#define PD_DPRINT( s ) Tools::logprint((s));
+    #define PD_DPRINT( s ) Tools::logprint((s));
 
-#define PD_TIC(s) ptic((s))
+    #define PD_TIC(s) ptic((s))
 
-#define PD_TOC(s) ptoc((s))
+    #define PD_TOC(s) ptoc((s))
 
 #else
 
-#define PD_ASSERT(c)
+    #define PD_ASSERT(c)
 
-#define PD_DPRINT(s)
+    #define PD_DPRINT(s)
 
-#define PD_TIC(s)
+    #define PD_TIC(s)
 
-#define PD_TOC(s)
+    #define PD_TOC(s)
 
 #endif
 
