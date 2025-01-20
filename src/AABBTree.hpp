@@ -38,7 +38,6 @@ namespace KnotTools
         
         explicit AABBTree( const Int prim_count_  )
         :   Tree  ( prim_count_ )
-        ,   N_box ( 2 * LeafNodeCount() - 1, AmbDim, 2 )
         {}
         
         ~AABBTree() = default;
@@ -49,15 +48,11 @@ namespace KnotTools
         // Integer data for the combinatorics of the tree.
         // Corners of the bounding boxes.
 
-        using Tree::leave_count;
+        using Tree::leaf_node_count;
         using Tree::node_count;
         using Tree::int_node_count;
         using Tree::last_row_begin;
         using Tree::offset;
-        using Tree::N_begin;
-        using Tree::N_end;
-        
-        BContainer_T N_box;
         
     public:
         
@@ -77,64 +72,36 @@ namespace KnotTools
         
     private:
         
-        template<Int point_count, Int ldP>
+        /*!
+         * @brief Computes the bounding boxes from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points. Only the leading `AmbDim` entries of each point are used.
+         *
+         * @tparam point_count Number of points in the primitive.
+         *
+         * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
+         *
+         * @param P Array that represent a single primitive. It is assumed to have size `point_count x dimP`.
+         *
+         * @param B Represents a single box. It is assumed to be of dimensions `AmbDim x 2`.
+         */
+        
+        template<Int point_count, Int dimP>
         static constexpr void PrimitiveToBox(
             cptr<Real> P, mptr<Real> B
         )
         {
-            // P is assumed to represent a matrix of size prim_size x ldP,
-            // where ldP >= AmbDim. This sound off, but our main use case is creating planar diagrams; here ldP = 3 and AmbDim = 2.
-            
-            // The geometric primitive is assumed to be the complex hull of the row vectors.
-            // Only the AmbDim leading entries of each row are read in.
-            
             static_assert(point_count > 0, "");
             
-            Real lo [AmbDim];
-            Real up [AmbDim];
-            
             columnwise_minmax<point_count,AmbDim>(
-                P, ldP, &lo[0], Size_T(1), &up[0], Size_T(1)
+                P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
             );
-            
-            for( Int k = 0; k < AmbDim; ++k )
-            {
-                B[2*k+0] = lo[k];
-                B[2*k+1] = up[k];
-            }
-            
-//            if constexpr ( point_count == 1 )
-//            {
-//                for( Int k = 0; k < AmbDim; ++k )
-//                {
-//                    B[2*k+0] = P[k];
-//                    B[2*k+1] = P[k];
-//                }
-//            }
-//            if constexpr ( point_count > 1 )
-//            {
-//                Real lo [AmbDim];
-//                Real up [AmbDim];
-//                
-//                elementwise_minmax<AmbDim>(&P[ldP * 0], &P[ldP * 1], &lo[0], &up[0]);
-//                
-//                for( Int i = 2; i < point_count; ++i )
-//                {
-//                    elementwise_minmax_update<AmbDim>(&P[ldP * i], &lo[0], &up[0]);
-//                }
-//                
-//                for( Int k = 0; k < AmbDim; ++k )
-//                {
-//                    B[2*k+0] = lo[k];
-//                    B[2*k+1] = up[k];
-//                }
-//            }
         }
         
         static constexpr void BoxesToBox(
             cptr<Real> B_L, cptr<Real> B_R, mptr<Real> B_N
         )
         {
+            // TODO: Can this be vectorized?
+            
             for( Int k = 0; k < AmbDim; ++k )
             {
                 B_N[2*k+0] = Min( B_L[2*k+0], B_R[2*k+0] );
@@ -144,25 +111,35 @@ namespace KnotTools
         
     public:
         
-        template<Int point_count, Int ldP>
-        void ComputeBoundingBoxes( cref<PContainer_T> P, mref<BContainer_T> B ) const
+        /*!
+         * @brief Computes the bounding boxes of the whole tree from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points.
+         *
+         * @tparam point_count Number of points in the primitive.
+         *
+         * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
+         *
+         * @param P Array that represents the primitive coordinates. It is assumed to have size `prim_count x point_count x dimP`.
+         *
+         * @param B Represents the container for the boxes. It is assumed to be a `Tensor3` of dimensions `prim_count x AmbDim x 2`.
+         */
+        
+        template<Int point_count, Int dimP>
+        void ComputeBoundingBoxes( cptr<Real> P, mref<BContainer_T> B ) const
         {
-//            ptic(ClassName()+"ComputeBoundingBoxes");
+            ptic(ClassName()+"ComputeBoundingBoxes");
             
-            // P represents the primitive coordinates.
-            // It is assumed to have size prim_count x point_count x ldP;
+            static_assert(dimP >= AmbDim,"");
             
-            // B represents the box coordinates.
-            // It is assumed to have size prim_count x AmbDim x 2;
+            constexpr Int sizeP = point_count * dimP;
             
-            // Here we require that ldP >= AmbDim. This sound off, but our main use case is creating planar diagrams; here ldP = 3 and AmbDim = 2.
-            
+
+            ptic("Compute bounding boxes of leave nodes.");
             // Compute bounding boxes of leave nodes (last row of tree).
             for( Int N = last_row_begin; N < node_count; ++N )
             {
                 const Int i = N - last_row_begin;
                 
-                PrimitiveToBox<point_count,ldP>( P.data(i), B.data(N) );
+                PrimitiveToBox<point_count,dimP>( &P[sizeP * i], B.data(N) );
             }
             
             // Compute bounding boxes of leave nodes (penultimate row of tree).
@@ -170,25 +147,28 @@ namespace KnotTools
             {
                 const Int i = N + offset;
 
-                PrimitiveToBox<point_count,ldP>( P.data(i), B.data(N) );
+                PrimitiveToBox<point_count,dimP>( &P[sizeP * i], B.data(N) );
             }
+            ptoc("Compute bounding boxes of leave nodes.");
             
+            ptic("Compute bounding boxes of interior nodes.");
             // Compute bounding boxes of interior nodes.
             for( Int N = int_node_count; N --> 0;  )
             {
                 const Int L = LeftChild (N);
-                const Int R = RightChild(N);
+                const Int R = L + 1;
                 
                 BoxesToBox( B.data(L), B.data(R), B.data(N) );
             }
+            ptoc("Compute bounding boxes of interior nodes.");
             
-//            ptoc(ClassName()+"ComputeBoundingBoxes");
+            ptoc(ClassName()+"ComputeBoundingBoxes");
         }
         
-        template<Int point_count, Int ldP>
-        void ComputeBoundingBoxes( cref<EContainer_T> E )
+        template<Int point_count, Int dimP>
+        void ComputeBoundingBoxes( cref<EContainer_T> E, mref<BContainer_T> B )
         {
-            ComputeBoundingBoxes<point_count,ldP>( E, N_box );
+            ComputeBoundingBoxes<point_count,dimP>( E.data(), B );
         }
         
         static constexpr bool BoxesIntersectQ( const cptr<Real> B_i, const cptr<Real> B_j )
@@ -228,12 +208,41 @@ namespace KnotTools
             }
         }
         
-        
-    public:
-        
-        BContainer_T & NodeBoxes()
+        static constexpr Real BoxBoxSquaredDistance(
+            const cptr<Real> B_i, const cptr<Real> B_j
+        )
         {
-            return N_box;
+            Real d2 = 0;
+            
+            for( Int k = 0; k < AmbDim; ++k )
+            {
+                const Real x = Ramp(
+                    Max( B_i[2 * k + 0], B_j[2 * k + 0] )
+                    -
+                    Min( B_i[2 * k + 1], B_j[2 * k + 1] )
+                );
+                
+                d2 += x * x;
+            }
+            return d2;
+        }
+        
+        Real BoxBoxSquaredDistance(
+            cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
+        ) const
+        {
+            return BoxBoxSquaredDistance( B_0.data(i), B_1.data(j) );
+        }
+        
+        BContainer_T AllocateBoxes()
+        {
+            ptic(ClassName()+"AllocateBoxes");
+            
+            BContainer_T B (NodeCount(),AmbDim,2);
+            
+            ptoc(ClassName()+"AllocateBoxes");
+            
+            return B;
         }
         
     public:
