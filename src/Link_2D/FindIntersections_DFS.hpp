@@ -6,10 +6,6 @@ protected:
         ptic(ClassName()+"::FindIntersectingEdges_DFS");
         
         FindIntersectingEdges_DFS_impl_0();
-        
-//        FindIntersectingEdges_DFS_impl_1();
-        
-//        FindIntersectingEdges_DFS_impl_2();
 
         ptoc(ClassName()+"::FindIntersectingEdges_DFS");
         
@@ -34,6 +30,12 @@ protected:
         
         edge_ptr.Fill(0);
         
+//        Size_T box_call_count  = 0;
+//        Size_T edge_call_count = 0;
+//        
+//        double box_time  = 0;
+//        double edge_time = 0;
+        
         while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
         {
             // Pop from stack.
@@ -43,14 +45,22 @@ protected:
             stack_ptr--;
             
 
-            if( BoxesIntersectQ(i,j) )
+//            Time box_start_time = Clock::now();
+//            ++box_call_count;
+            
+            const bool boxes_intersectQ = BoxesIntersectQ(i,j);
+            
+//            Time box_end_time = Clock::now();
+//            box_time += Tools::Duration( box_start_time, box_end_time );
+            
+            if( boxes_intersectQ )
             {
-                const bool is_interior_i = (i < int_node_count);
-                const bool is_interior_j = (j < int_node_count);
+                const bool i_interiorQ = (i < int_node_count);
+                const bool j_interiorQ = (j < int_node_count);
                 
                 // Warning: This assumes that both children in a cluster tree are either defined or empty.
                 
-                if( is_interior_i || is_interior_j )
+                if( i_interiorQ || j_interiorQ )
                 {
                     const Int L_i = Tree2_T::LeftChild(i);
                     const Int R_i = L_i+1;
@@ -60,7 +70,7 @@ protected:
                     
                     // T is a balanced bindary tree.
 
-                    if( is_interior_i == is_interior_j )
+                    if( i_interiorQ == j_interiorQ )
                     {
                         if( i == j )
                         {
@@ -102,7 +112,7 @@ protected:
                     else
                     {
                         // split only larger cluster
-                        if( is_interior_i ) // !is_interior_j follows from this.
+                        if( i_interiorQ ) // !j_interiorQ follows from this.
                         {
                             //split cluster i
 
@@ -114,7 +124,7 @@ protected:
                             stack[stack_ptr][0] = L_i;
                             stack[stack_ptr][1] = j;
                         }
-                        else //score_i < score_j
+                        else
                         {
                             //split cluster j
 
@@ -130,12 +140,23 @@ protected:
                 }
                 else
                 {
+//                    Time edge_start_time = Clock::now();
+//                    ++edge_call_count;
+
                     ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
+
+//                    Time edge_end_time = Clock::now();
+//                    edge_time += Tools::Duration( edge_start_time, edge_end_time );
                 }
             }
         }
         
         edge_ptr.Accumulate();
+        
+//        dump(box_call_count);
+//        dump(box_time);
+//        dump(edge_call_count);
+//        dump(edge_time);
         
     } // FindIntersectingClusters_DFS_impl_1
 
@@ -153,8 +174,6 @@ protected:
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
         {
-//            Time start_time = Clock::now();
-            
             // Get the edge lengths in order to decide what's a "small" determinant.
             
             const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
@@ -244,9 +263,5 @@ protected:
                     ++intersection_count_3D;
                 }
             }
-            
-//            Time stop_time = Clock::now();
-//            
-//            line_intersection_time += Tools::Duration(start_time,stop_time);
         }
     }
