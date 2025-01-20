@@ -767,7 +767,7 @@ namespace KnotTools
         {
             overQ = overQ_;
             
-            PD_TIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            ptic(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1063,7 +1063,7 @@ namespace KnotTools
             Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
             
-            PD_TOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            ptoc(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
         }
