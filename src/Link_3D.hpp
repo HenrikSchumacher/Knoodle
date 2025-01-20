@@ -88,9 +88,9 @@ namespace KnotTools
          */
         template<typename I>
         explicit Link_3D( const I edge_count_ )
-        :   Base_T      ( static_cast<Int>(edge_count_) )
-        ,   E_coords { this->EdgeCount(), 2, 3 }
-        ,   T        { this->EdgeCount()       }
+        :   Base_T   { static_cast<Int>(edge_count_) }
+        ,   E_coords { this->EdgeCount(), 2, 3       }
+        ,   T        { this->EdgeCount()             }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -118,7 +118,7 @@ namespace KnotTools
         // This constructor makes the link assume to be a simply cycle and that the vertices are sorted accordingly.
         template< typename I>
         Link_3D( cptr<Real> V_coords_, const I edge_count_ )
-        :   Base_T   { edge_count_     }
+        :   Base_T   { edge_count_             }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
         {
@@ -128,7 +128,7 @@ namespace KnotTools
         }
         
         Link_3D( cref<Base_T> link )
-        :   Base_T   { link }
+        :   Base_T   { link                    }
         ,   E_coords { this->EdgeCount(), 2, 3 }
         ,   T        { this->EdgeCount()       }
         {}
