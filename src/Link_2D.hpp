@@ -36,17 +36,17 @@ namespace KnotTools
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
         
         using EContainer_T   = Tree3_T::EContainer_T;
-
+        
         using BContainer_T   = Tree2_T::BContainer_T;
         
         using Intersection_T = Intersection<Real,Int,SInt>;
         
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int,SInt>;
         
-//        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
+        //        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
     protected:
-
+        
         
         static constexpr Int max_depth = 128;
         
@@ -63,7 +63,7 @@ namespace KnotTools
         using Base_T::component_ptr;
         using Base_T::cyclicQ;
         using Base_T::preorderedQ;
-
+        
         
     public:
         
@@ -81,7 +81,7 @@ namespace KnotTools
         EContainer_T edge_coords;
         
         Tiny::Matrix<3,3,Real,Int> R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
-
+        
         Tree2_T T;
         
         BContainer_T  box_coords;
@@ -91,17 +91,11 @@ namespace KnotTools
         Tensor1<Int,Int>  edge_intersections;
         Tensor1<Real,Int> edge_times;
         Tensor1<bool,Int> edge_overQ;
-                 
+        
         Vector3_T Sterbenz_shift {0};
         
-//        using P_T = std::array<Int,2>;
-//        
-//        Stack<P_T,Int> stack { max_depth };
-        
-//        PairStack<max_depth,Int,Int,Int> stack { max_depth };
-        
         Intersector_T S;
-
+        
         Size_T intersection_count_3D = 0;
         
     public:
@@ -109,24 +103,24 @@ namespace KnotTools
         Link_2D() = default;
         
         virtual ~Link_2D() override = default;
-    
+        
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
         explicit Link_2D( const I edge_count_ )
-        :   Base_T      ( static_cast<Int>(edge_count_)       )
-        ,   edge_coords ( static_cast<Int>(edge_count_), 2, 3 )
-        ,   T           ( static_cast<Int>(edge_count_)       )
-        ,   box_coords  ( T.NodeCount()                , 2, 2 )
+        :   Base_T      { int_cast<Int>(edge_count_) }
+        ,   edge_coords { edge_count, Int(2), Int(3) }
+        ,   T           { edge_count                 }
+        ,   box_coords  { T.AllocateBoxes()          }
         {}
         
         template<typename J, typename K>
         explicit Link_2D( Tensor1<J,K> & component_ptr_ )
-        :   Base_T      ( component_ptr_       )
-        ,   edge_coords ( component_ptr.Last(), 2 ,3 )
-        ,   T           ( component_ptr.Last() )
-        ,   box_coords  ( T.NodeCount(), 2, 2 )
+        :   Base_T      { component_ptr_                       }
+        ,   edge_coords { component_ptr.Last(), Int(2), Int(3) }
+        ,   T           { component_ptr.Last()                 }
+        ,   box_coords  { T.AllocateBoxes()                    }
         {
             static_assert(IntQ<J>,"");
             static_assert(IntQ<K>,"");
@@ -135,10 +129,10 @@ namespace KnotTools
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<typename I_0, typename I_1>
         Link_2D( cptr<I_0> edges_, const I_1 edge_count_ )
-        :   Base_T      ( edges_, edge_count_  )
-        ,   edge_coords ( edge_count_, 2, 3    )
-        ,   T           ( edge_count_          )
-        ,   box_coords  ( T.NodeCount(), 2, 2  )
+        :   Base_T      { edges_, int_cast<Int>(edge_count_) }
+        ,   edge_coords { edge_count, Int(2), Int(3)         }
+        ,   T           { edge_count                         }
+        ,   box_coords  { T.AllocateBoxes()                  }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -147,20 +141,130 @@ namespace KnotTools
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<typename I_0, typename I_1>
         Link_2D( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
-        :   Base_T      ( edge_tails_, edge_tips_, edge_count_ )
-        ,   edge_coords ( edge_count_, 2, 3                    )
-        ,   T           ( edge_count_                          )
-        ,   box_coords  ( T.NodeCount(), 2, 3                  )
+        :   Base_T      { edge_tails_, edge_tips_, edge_count_ }
+        ,   edge_coords { edge_count_, Int(2), Int(3)          }
+        ,   T           { edge_count_                          }
+        ,   box_coords  { T.AllocateBoxes()                    }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
+        }
+        
+        
+    private:
+        
+        void ComputeBoundingBox( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
+        {
+            // We assume that input is a link; thus
+            const Int vertex_count = edge_count;
+            
+            lo.Read( v );
+            hi.Read( v );
+            
+            for( Int i = 1; i < vertex_count; ++i )
+            {
+                lo[0] = Min( lo[0], v[3 * i + 0] );
+                hi[0] = Max( hi[0], v[3 * i + 0] );
+                
+                lo[1] = Min( lo[1], v[3 * i + 1] );
+                hi[1] = Max( hi[1], v[3 * i + 1] );
+                
+                lo[2] = Min( lo[2], v[3 * i + 2] );
+                hi[2] = Max( hi[2], v[3 * i + 2] );
+            }
+        }
+        
+        void ComputeBoundingBox_vec( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
+        {
+            // We assume that input is a link; thus
+            const Int vertex_count = edge_count;
+            
+            if( vertex_count > 4 )
+            {
+                using V_T  = vec_T<4,Real>;
+                
+                const V_T * V = reinterpret_cast<const V_T*>(v);
+                
+                const Int chunk_count = FloorDivide(vertex_count, 4);
+                
+                V_T l [3] = {V[0],V[1],V[2]};
+                V_T h [3] = {V[0],V[1],V[2]};
+                
+                for( Int i = 1; i < chunk_count; ++i )
+                {
+                    // Handling four 3-vectors at once (as three 4-vectors)
+                    const V_T w [3] = { V[3 * i + 0], V[3 * i + 1], V[3 * i  + 2] };
+                    
+                    l[0] = __builtin_elementwise_min( l[0], w[0] );
+                    l[1] = __builtin_elementwise_min( l[1], w[1] );
+                    l[2] = __builtin_elementwise_min( l[2], w[2] );
+                    
+                    h[0] = __builtin_elementwise_max( h[0], w[0] );
+                    h[1] = __builtin_elementwise_max( h[1], w[1] );
+                    h[2] = __builtin_elementwise_max( h[2], w[2] );
+                }
+                
+                const Real * l_ptr = reinterpret_cast<const Real *>(&l);
+                const Real * h_ptr = reinterpret_cast<const Real *>(&h);
+                
+                lo[0] = Min( Min( l_ptr[0], l_ptr[3]), Min( l_ptr[6], l_ptr[ 9]) );
+                lo[1] = Min( Min( l_ptr[1], l_ptr[4]), Min( l_ptr[7], l_ptr[10]) );
+                lo[2] = Min( Min( l_ptr[2], l_ptr[5]), Min( l_ptr[8], l_ptr[11]) );
+                
+                hi[0] = Max( Max( h_ptr[0], h_ptr[3]), Max( h_ptr[6], h_ptr[ 9]) );
+                hi[1] = Max( Max( h_ptr[1], h_ptr[4]), Max( h_ptr[7], h_ptr[10]) );
+                hi[2] = Max( Max( h_ptr[2], h_ptr[5]), Max( h_ptr[8], h_ptr[11]) );
+                
+                for( Int i = chunk_count * 4; i < vertex_count; ++i )
+                {
+                    lo[0] = Min( lo[0], v[3 * i + 0] );
+                    lo[1] = Min( lo[1], v[3 * i + 1] );
+                    lo[2] = Min( lo[2], v[3 * i + 2] );
+                    
+                    hi[0] = Max( hi[0], v[3 * i + 0] );
+                    hi[1] = Max( hi[1], v[3 * i + 1] );
+                    hi[2] = Max( hi[2], v[3 * i + 2] );
+                }
+            }
+            else
+            {
+                ComputeBoundingBox( v, lo, hi );
+            }
         }
         
     public:
         
         void ReadVertexCoordinates( cptr<Real> v, const bool update = false )
         {
-            ptic(ClassName()+"::ReadVertexCoordinates (AoS)");
+            ptic(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            
+            Vector3_T lo;
+            Vector3_T hi;
+            
+            // This could be vectorized, but it is apparently not worth it.
+            
+//            if constexpr ( VectorizableQ<Real> )
+//            {
+//                ComputeBoundingBox_vec( v, lo, hi );
+//            }
+//            else
+//            {
+//                ComputeBoundingBox( v, lo, hi );
+//            }
+
+            ComputeBoundingBox( v, lo, hi );
+            
+//            dump(lo);
+//            dump(hi);
+            
+            constexpr Real margin = static_cast<Real>(1.01);
+            constexpr Real two = 2;
+
+            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
+            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
+            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
+            
+//            dump(Sterbenz_shift);
             
             if( preorderedQ )
             {
@@ -168,21 +272,29 @@ namespace KnotTools
                 {
                     const Int i_begin = component_ptr[c  ];
                     const Int i_end   = component_ptr[c+1];
-
+                    
                     for( Int i = i_begin; i < i_end-1; ++i )
                     {
                         const Int j = i+1;
-                      
-                        copy_buffer<3>( &v[3*i], edge_coords.data(i,0) );
-                        copy_buffer<3>( &v[3*j], edge_coords.data(i,1) );
+                        
+                        mptr<Real> target_0 = edge_coords.data(i,1);
+                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
+                        
+                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
                     }
 
                     {
                         const Int i = i_end-1;
                         const Int j = i_begin;
 
-                        copy_buffer<3>( &v[3*i], edge_coords.data(i,0) );
-                        copy_buffer<3>( &v[3*j], edge_coords.data(i,1) );
+                        mptr<Real> target_0 = edge_coords.data(i,1);
+                        mptr<Real> target_1 = edge_coords.data(j,0);
+                      
+                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
                     }
                 }
             }
@@ -195,75 +307,84 @@ namespace KnotTools
                 {
                     const Int i = edge_tails[edge];
                     const Int j = edge_tips [edge];
+
+                    mptr<Real> target_0 = edge_coords.data(edge,0);
+                    mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(edge,1);
+                  
+                    target_0[0] = v[3 * i + 0] + Sterbenz_shift[0];
+                    target_0[1] = v[3 * i + 1] + Sterbenz_shift[1];
+                    target_0[2] = v[3 * i + 2] + Sterbenz_shift[2];
                     
-                    copy_buffer<3>( &v[3*i], edge_coords.data(edge,0) );
-                    copy_buffer<3>( &v[3*j], edge_coords.data(edge,1) );
+                    target_1[0] = v[3 * j + 0] + Sterbenz_shift[0];
+                    target_1[1] = v[3 * j + 1] + Sterbenz_shift[1];
+                    target_1[2] = v[3 * j + 2] + Sterbenz_shift[2];
                 }
             }
             
-            ptoc(ClassName()+"::ReadVertexCoordinates (AoS)");
+            ptoc(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
         
-        void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
-        {
-            ptic(ClassName()+"::ReadVertexCoordinates (SoA)");
-            
-            if( preorderedQ )
-            {
-                for( Int c = 0; c < component_count; ++c )
-                {
-                    const Int i_begin = component_ptr[c  ];
-                    const Int i_end   = component_ptr[c+1];
-
-                    for( Int i = i_begin; i < i_end-1; ++i )
-                    {
-                        const int j = i+1;
-
-                        edge_coords(i,0,0) = x[i];
-                        edge_coords(i,0,1) = y[i];
-                        edge_coords(i,0,2) = z[i];
-                        
-                        edge_coords(i,1,0) = x[j];
-                        edge_coords(i,1,1) = y[j];
-                        edge_coords(i,1,2) = z[j];
-                    }
-
-                    {
-                        const Int i = i_end-1;
-                        const Int j = i_begin;
-
-                        edge_coords(i,0,0) = x[i];
-                        edge_coords(i,0,1) = y[i];
-                        edge_coords(i,0,2) = z[i];
-                        
-                        edge_coords(i,1,0) = x[j];
-                        edge_coords(i,1,1) = y[j];
-                        edge_coords(i,1,2) = z[j];
-                    }
-                }
-            }
-            else
-            {
-                cptr<Int> edge_tails = edges.data(0);
-                cptr<Int> edge_tips  = edges.data(1);
-                
-                for( Int edge = 0; edge < edge_count; ++edge )
-                {
-                    const Int i = edge_tails[edge];
-                    const Int j = edge_tips [edge];
-                    
-                    edge_coords(edge,0,0) = x[i];
-                    edge_coords(edge,0,1) = y[i];
-                    edge_coords(edge,0,2) = z[i];
-                    
-                    edge_coords(edge,1,0) = x[j];
-                    edge_coords(edge,1,1) = y[j];
-                    edge_coords(edge,1,2) = z[j];
-                }
-            }
-            
-            ptoc(ClassName()+"::ReadVertexCoordinates (SoA)");
-        }
+        // TODO: Apply Sterbenz shift.
+//        void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
+//        {
+//            ptic(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
+//            
+//            if( preorderedQ )
+//            {
+//                for( Int c = 0; c < component_count; ++c )
+//                {
+//                    const Int i_begin = component_ptr[c  ];
+//                    const Int i_end   = component_ptr[c+1];
+//
+//                    for( Int i = i_begin; i < i_end-1; ++i )
+//                    {
+//                        const int j = i+1;
+//
+//                        edge_coords(i,0,0) = x[i];
+//                        edge_coords(i,0,1) = y[i];
+//                        edge_coords(i,0,2) = z[i];
+//                        
+//                        edge_coords(i,1,0) = x[j];
+//                        edge_coords(i,1,1) = y[j];
+//                        edge_coords(i,1,2) = z[j];
+//                    }
+//
+//                    {
+//                        const Int i = i_end-1;
+//                        const Int j = i_begin;
+//
+//                        edge_coords(i,0,0) = x[i];
+//                        edge_coords(i,0,1) = y[i];
+//                        edge_coords(i,0,2) = z[i];
+//                        
+//                        edge_coords(i,1,0) = x[j];
+//                        edge_coords(i,1,1) = y[j];
+//                        edge_coords(i,1,2) = z[j];
+//                    }
+//                }
+//            }
+//            else
+//            {
+//                cptr<Int> edge_tails = edges.data(0);
+//                cptr<Int> edge_tips  = edges.data(1);
+//                
+//                for( Int edge = 0; edge < edge_count; ++edge )
+//                {
+//                    const Int i = edge_tails[edge];
+//                    const Int j = edge_tips [edge];
+//                    
+//                    edge_coords(edge,0,0) = x[i];
+//                    edge_coords(edge,0,1) = y[i];
+//                    edge_coords(edge,0,2) = z[i];
+//                    
+//                    edge_coords(edge,1,0) = x[j];
+//                    edge_coords(edge,1,1) = y[j];
+//                    edge_coords(edge,1,2) = z[j];
+//                }
+//            }
+//            
+//            ptoc(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
+//        }
         
         
         void Rotate()
@@ -286,67 +407,6 @@ namespace KnotTools
                 
                 Rx.Write( edge_coords.data(edge,0) );
                 Ry.Write( edge_coords.data(edge,1) );
-            }
-        }
-        
-        void ApplySterbenzShift()
-        {
-            // Add 1% security margin.
-            constexpr Real margin = static_cast<Real>(1.01);
-            
-            
-            //TODO: Make this independent of the bounding boxes!
-            //TODO: Shouldn't we do this in ReadVertexCoordinates?
-            
-            Real lo = edge_coords(0,0,2);
-            Real hi = edge_coords(0,1,2);
-            
-            for( Int e = 1; e < edge_count; ++e )
-            {
-                lo = Min ( lo, edge_coords(e,0,2) );
-                hi = Max ( hi, edge_coords(e,0,2) );
-            }
-            
-            constexpr Real two = 2;
-
-            Sterbenz_shift[0] = margin * ( box_coords(0,0,1) - two * box_coords(0,0,0) );
-            Sterbenz_shift[1] = margin * ( box_coords(0,1,1) - two * box_coords(0,1,0) );
-            Sterbenz_shift[2] = margin * ( hi                - two * lo                );
-
-            
-            Real v [4] = {
-                Sterbenz_shift[0],Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[1]
-            };
-            
-            for( Int C = 0; C < T.NodeCount(); ++C )
-            {
-//                box_coords(C,0,0) += Sterbenz_shift[0];
-//                box_coords(C,0,1) += Sterbenz_shift[0];
-//                
-//                box_coords(C,1,0) += Sterbenz_shift[1];
-//                box_coords(C,1,1) += Sterbenz_shift[1];
-                
-                add_to_buffer<4>( &v[0], box_coords.data(C) );
-            }
-            
-            const Int edge_count = edge_coords.Dimension(0);
-            
-            Real w [2][3] = {
-                { Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[2] },
-                { Sterbenz_shift[0],Sterbenz_shift[1],Sterbenz_shift[2] }
-            };
-            
-            for( Int e = 0; e < edge_count; ++e )
-            {
-//                edge_coords(e,0,0) += Sterbenz_shift[0];
-//                edge_coords(e,0,1) += Sterbenz_shift[1];
-//                edge_coords(e,0,2) += Sterbenz_shift[2];
-//                
-//                edge_coords(e,1,0) += Sterbenz_shift[0];
-//                edge_coords(e,1,1) += Sterbenz_shift[1];
-//                edge_coords(e,1,2) += Sterbenz_shift[2];
-//                
-                add_to_buffer<6>( &w[0][0], edge_coords.data(e) );
             }
         }
         
@@ -375,14 +435,9 @@ namespace KnotTools
             // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
             // enties only via operator(i,j,k), so this is safe!
 
-//            tic("ComputeBoundingBoxes<2,3>");
+            ptic("ComputeBoundingBoxes<2,3>");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-//            toc("ComputeBoundingBoxes<2,3>");
-            
-            // ApplySterbenzShift requires the bounding box, so this is why we compute the bounding boxes first.
-            ptic("ApplySterbenzShift");
-            ApplySterbenzShift();
-            ptoc("ApplySterbenzShift");
+            ptoc("ComputeBoundingBoxes<2,3>");
             
             ptic("FindIntersectingEdges_DFS");
             FindIntersectingEdges_DFS();
@@ -407,7 +462,9 @@ namespace KnotTools
             
             ptic("Counting sort");
             // Counting sort.
-            for( Int k = intersection_count-1; k > -1; --k )
+            
+//            for( Int k = intersection_count-1; k > -1; --k )
+            for( Int k = intersection_count; k --> 0;  )
             {
                 Intersection_T & inter = intersections[k];
                 
@@ -532,11 +589,6 @@ namespace KnotTools
         {
             return Sterbenz_shift;
         }
-        
-//        double LineIntersectionTime() const
-//        {
-//            return line_intersection_time;
-//        }
         
         cref<std::array<Size_T,8>> IntersectionCounts()
         {
