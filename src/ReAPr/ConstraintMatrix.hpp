@@ -52,7 +52,7 @@ cref<Matrix_T> ConstraintMatrix( mref<PlanarDiagram_T> pd )
         
         ConstraintMatrix_Triples<Op::Id>( pd, agg, 0, 0 );
         
-        agg.Finalize();
+//        agg.Finalize();
          
         Matrix_T A ( agg, n, m, I_T(1), true, false );
         
