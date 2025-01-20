@@ -89,10 +89,10 @@ namespace KnotTools
         
         std::array<Size_T,8> intersection_counts = {};
         
-        Vector2_T times_0;
-        Vector2_T times_1;
-        
-        double line_intersection_time = 0;
+//        Vector2_T times_0;
+//        Vector2_T times_1;
+//        
+//        double line_intersection_time = 0;
 
         
     public:
