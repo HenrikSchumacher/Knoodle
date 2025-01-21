@@ -6,7 +6,7 @@ namespace KnotTools
     class alignas( ObjectAlignment ) PolygonFolder
     {
         static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
+        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -23,6 +23,9 @@ namespace KnotTools
         using PRNG_T        = std::mt19937_64;
         using PRNG_Result_T = PRNG_T::result_type;
         
+        using FlagVec_T     = std::array<Size_T,5>;
+
+        
         PolygonFolder() = default;
         
         template<typename ExtReal, typename ExtInt>
@@ -31,42 +34,33 @@ namespace KnotTools
         ,   r       { static_cast<Real>(radius_)   }
         ,   r2      { r * r                        }
         ,   X       { n, AmbDim                    }
-        ,   P       { n, AmbDim                    }
-        ,   Q       { n, AmbDim                    }
-        ,   P_tree  { n                            }
+        ,   Y       { n, AmbDim                    }
+        ,   P_tree  { n                            } // for allocating P_boxes and Q_boxes.
         ,   P_boxes { P_tree.AllocateBoxes()       }
         ,   Q_boxes { P_tree.AllocateBoxes()       }
         {
             P_tree = Tree_T();
             
-            using RNG_T = std::random_device;
+            InitializePRNG();
             
-            constexpr Size_T state_size = PRNG_T::state_size;
-            constexpr Size_T seed_size = state_size * sizeof(PRNG_T::result_type) / sizeof(RNG_T::result_type);
+            SetToCircle();
             
-            std::array<RNG_T::result_type,seed_size> seed_array;
-            
-            std::generate( seed_array.begin(), seed_array.end(), RNG_T() );
-            
-            std::seed_seq seed ( seed_array.begin(), seed_array.end() );
-            
-            random_engine = PRNG_T( seed );
+            SetTailSize(128);
         }
         
         ~PolygonFolder() = default;
         
     private:
         
-        Int  n  = 0;
-        Real r  = 1;
-        Real r2 = 1;
-        
-        // The whole polygon.
+        Int  n         = 0;
+        Int  tail_size = 0;
+        Real r         = 1;
+        Real r2        = 1;
+         
+        // Buffer for the polygons's coordiantes.
         Tensor2<Real,Int> X;
-        
-        // The whole two arcs; potentially rotated.
-        Tensor2<Real,Int> P;
-        Tensor2<Real,Int> Q;
+        // The working buffer.
+        Tensor2<Real,Int> Y;
         
         Int P_size = 0;
         Int Q_size = 0;
@@ -88,10 +82,15 @@ namespace KnotTools
         Matrix_T A;
         
         // Coordinates of pivot vertices.
-        Vector_T  X_p;
-        Vector_T  X_q;
+        Vector_T X_p;
+        Vector_T X_q;
+        
+        // shift vector
+        Vector_T s;
         
         PRNG_T random_engine;
+        
+        bool tail_checkQ = false;
         
     public:
 
@@ -131,11 +130,330 @@ namespace KnotTools
             return A;
         }
         
+        Int TailSize() const
+        {
+            return tail_size;
+        }
+        
+        void SetTailSize( const Int tail_size_ )
+        {
+            tail_size = Ramp(tail_size_);
+            
+            
+            // Do the tail checks only of polygon is long enough
+            tail_checkQ = (tail_size > 0) && (n > 8 * tail_size);
+        }
+        
+
+        void SetToCircle()
+        {
+            setToCircle( X.data() );
+        }
+        
+        
+    private:
+        
+        void setToCircle( mptr<Real> x )
+        {
+            const double delta = Frac<double>( Scalar::TwoPi<double>, n );
+            const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            
+            for( Int i = 0; i < n; ++i )
+            {
+                const double theta = delta * i;
+                x[3 * i + 0] = r * std::cos( theta );
+                x[3 * i + 1] = r * std::sin( theta );
+                x[3 * i + 2] = 0;
+            }
+        }
+        
+        void InitializePRNG()
+        {
+            using RNG_T = std::random_device;
+            
+            constexpr Size_T state_size = PRNG_T::state_size;
+            constexpr Size_T seed_size = state_size * sizeof(PRNG_T::result_type) / sizeof(RNG_T::result_type);
+            
+            std::array<RNG_T::result_type,seed_size> seed_array;
+            
+            std::generate( seed_array.begin(), seed_array.end(), RNG_T() );
+            
+            std::seed_seq seed ( seed_array.begin(), seed_array.end() );
+            
+            random_engine = PRNG_T( seed );
+            
+        }
+        
+        void ComputeRotationTransform()
+        {
+            // Rotation axis.
+            Vector_T u = X_q - X_p;
+            u.Normalize();
+            
+            const Real cos = std::cos(theta);
+            const Real sin = std::sin(theta);
+            const Real d = Scalar::One<Real> - cos;
+            
+            A[0][0] = u[0] * u[0] * d + cos;
+            A[0][1] = u[0] * u[1] * d - sin * u[2];
+            A[0][2] = u[0] * u[2] * d + sin * u[1];
+            
+            A[1][0] = u[1] * u[0] * d + sin * u[2];
+            A[1][1] = u[1] * u[1] * d + cos;
+            A[1][2] = u[1] * u[2] * d - sin * u[0];
+            
+            A[2][0] = u[2] * u[0] * d - sin * u[1];
+            A[2][1] = u[2] * u[1] * d + sin * u[0];
+            A[2][2] = u[2] * u[2] * d + cos;
+            
+            // Compute shift s = X_p - A.X_p.
+            s = X_p - Dot(A,X_p);
+        }
+
+        void Rotate_Naive( cptr<Real> from, mptr<Real> to, const Int count )
+        {
+            Vector_T v;
+            Vector_T w;
+
+            for( Int i = 0; i < count; ++i )
+            {
+                v.Read( &from[AmbDim * i] );
+                v -= X_p;
+                Dot<Overwrite>(A,v,w);
+                w += X_p;
+                w.Write( &to[AmbDim * i] );
+            }
+        }
+        
+        void Rotate_Naive_Shift( cptr<Real> from, mptr<Real> to, const Int count )
+        {
+            Vector_T v;
+            Vector_T w;
+
+            for( Int i = 0; i < count; ++i )
+            {
+                v.Read( &from[AmbDim * i] );
+                w = s;
+                Dot<AddTo>(A,v,w);
+                w.Write(  &to[AmbDim * i] );
+            }
+        }
+        
+        // Definitely slow.
+        template<Int chunk_step>
+        void Rotate_Shift( cptr<Real> from, mptr<Real> to, const Int count )
+        {
+            constexpr Int chunk_size = chunk_step * AmbDim;
+
+            const Int chunk_count = FloorDivide(count,chunk_step);
+
+            using M_T = Tiny::Matrix<chunk_step,AmbDim,Real,Int>;
+            
+            auto B = A.Transpose();
+
+            M_T S;
+            for( Int i = 0; i < chunk_step; ++i )
+            {
+                for( Int j = 0; j < AmbDim; ++j )
+                {
+                    S(i,j) = s[j];
+                }
+            }
+
+            for( Int chunk = 0; chunk < chunk_count; ++chunk )
+            {
+                S.Write(&to[chunk_size * chunk]);
+
+                Tiny::fixed_dot_mm<chunk_step,AmbDim,AmbDim,AddTo>(
+                    &from[chunk_size * chunk], &B[0][0], &to[chunk_size * chunk]
+                );
+            }
+
+            for( Int i = chunk_count * chunk_step; i < count; ++i )
+            {
+                s.Write(&to[AmbDim * i]);
+
+                Tiny::fixed_dot_mm<1,AmbDim,AmbDim,AddTo>(
+                    &from[AmbDim * i], &B[0][0], &to[AmbDim * i]
+                );
+            }
+        }
+        
+        // Definitely slow.
+//        void Rotate_gemm( cptr<Real> from, mptr<Real> to, const Int count )
+//        {
+//            constexpr Int chunk_step = 64;
+//            
+//            const Int chunk_count = FloorDivide(count,chunk_step);
+//            const Int chunk_size  = chunk_step * AmbDim;
+//            
+//            // Compute shift s = X_p - A.X_p.
+//            Vector_T s = Dot(A,X_p);
+//            s -= X_p;
+//            s *= (-1);
+//            
+//            Tensor2<Real,Int> S ( chunk_step, AmbDim );
+//            
+//            for( Int i = 0; i < chunk_step; ++i )
+//            {
+//                s.Write( S.data(i) );
+//            }
+//            
+//            auto B = A.Transpose();
+//            
+//            for( Int chunk = 0; chunk < chunk_count; ++chunk )
+//            {
+//                S.Write( &to[ chunk_size * chunk ] );
+//                
+//                BLAS::gemm<Layout::RowMajor,Op::Id,Op::Id>(
+//                    chunk_step, AmbDim, AmbDim,
+//                    Scalar::One<Real>, &from[ chunk_size * chunk ], AmbDim,
+//                                       B.data()                   , AmbDim,
+//                    Scalar::One<Real>, &to  [ chunk_size * chunk ], AmbDim
+//                );
+//            }
+//            
+//
+//            Vector_T v;
+//            Vector_T w;
+//
+//            for( Int i = chunk_count * chunk_step; i < count; ++i )
+//            {
+//                v.Read( &from[AmbDim * i] );
+//                w = s;
+//                Dot<AddTo>(A,v,w);
+//                w.Write( &to[AmbDim * i] );
+//            }
+//        }
+        
+        
+        void Rotate_Homogeneous( cptr<Real> from, mptr<Real> to, const Int count )
+        {
+            // Definitely slow.
+            
+            constexpr Int chunk_step = 4;
+            constexpr Int chunk_size = chunk_step * AmbDim;
+
+            const Int chunk_count = FloorDivide(count,chunk_step);
+
+            using T_T = Tiny::Matrix<4,3,Real,Int>;
+            using V_T = Tiny::Matrix<4,4,Real,Int>;
+            using W_T = Tiny::Matrix<4,3,Real,Int>;
+            
+            T_T T;
+            
+            T[0][0] = A[0][0]; T[0][1] = A[1][0]; T[0][2] = A[2][0]; // T[0][3] = 0;
+            T[1][0] = A[0][1]; T[1][1] = A[1][1]; T[1][2] = A[2][1]; // T[1][3] = 0;
+            T[2][0] = A[0][2]; T[2][1] = A[1][2]; T[2][2] = A[2][2]; // T[2][3] = 0;
+            T[3][0] =    s[0]; T[3][1] =    s[1]; T[3][2] =    s[2]; // T[3][3] = 1;
+        
+
+            V_T V;
+            W_T W;
+            
+            V[0][3] = 1;
+            V[1][3] = 1;
+            V[2][3] = 1;
+            V[3][3] = 1;
+            
+            for( Int chunk = 0; chunk < chunk_count; ++chunk )
+            {
+                copy_matrix<4,3,Sequential>(
+                    &from[ chunk_size * chunk ], 3,
+                    &V[0][0],                    4,
+                    4, 3, 1
+                );
+
+                Dot<Overwrite>(V,T,W);
+                
+                copy_buffer<12>( &W[0][0], &to[ chunk_size * chunk ] );
+            }
+
+            Vector_T v;
+            Vector_T w;
+
+            for( Int i = chunk_count * chunk_step; i < count; ++i )
+            {
+                v.Read( &from[AmbDim * i] );
+                w = s;
+                Dot<AddTo>(A,v,w);
+                w.Write( &to[AmbDim * i] );
+            }
+        }
+        
+        template<Int chunk_step>
+        void Rotate_Tiny_Mat( cptr<Real> from, mptr<Real> to, const Int count )
+        {
+            constexpr Int chunk_size = chunk_step * AmbDim;
+
+            const Int chunk_count = FloorDivide(count,chunk_step);
+
+            using M_T = Tiny::Matrix<chunk_step,AmbDim,Real,Int>;
+
+            M_T S;
+
+            for( Int i = 0; i < chunk_step; ++i )
+            {
+                s.Write( &S[i][0]);
+            }
+
+            auto B = A.Transpose();
+            
+            M_T V;
+            M_T W;
+
+            for( Int chunk = 0; chunk < chunk_count; ++chunk )
+            {
+                V.template Read <Op::Id>( &from[chunk_size * chunk] );
+                W = S;
+                Dot<AddTo>(V,B,W);
+                W.template Write<Op::Id>( &to  [chunk_size * chunk] );
+            }
+
+            Vector_T v;
+            Vector_T w;
+
+            for( Int i = chunk_count * chunk_step; i < count; ++i )
+            {
+                v.Read( &from[AmbDim * i] );
+                w = s;
+                Dot<AddTo>(A,v,w);
+                w.Write( &to[AmbDim * i] );
+            }
+        }
+        
+        
+        void LoadArc( cptr<Real> from, mptr<Real> to, const Int count, const bool rotateQ )
+        {
+            if ( rotateQ )
+            {
+//                Rotate_Naive( from, to, count );
+                
+                Rotate_Naive_Shift( from, to, count );
+                
+//                Rotate_Shift<4>( from, to, count );
+
+//                  Rotate_Homogeneous( from, to, count );
+                
+//                Rotate_Homogeneous_Mat( from, to, count );
+                
+//                Rotate_gemm( from, to, count );
+                
+//                Rotate_Tiny_Mat<4>( from, to, count );
+            }
+            else
+            {
+                copy_buffer( from, to, AmbDim * count );
+            }
+        }
+        
     public:
         
-        Int FoldRandom( const Int step_count )
+        
+        
+        FlagVec_T FoldRandom( const Int step_count )
         {
-            Int counter = 0;
+            FlagVec_T counters {0};
             
             using unif_int  = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
@@ -145,22 +463,146 @@ namespace KnotTools
             
             for( Int step = 0; step < step_count; ++step )
             {
-                const Int  i     = u_int (random_engine);
-                const Int  j     = unif_int(i+1,n-1)(random_engine);
-                const Real angle = u_real(random_engine);
+                const Int  i     = u_int            (random_engine);
+                const Int  j     = unif_int(i+2,n-1)(random_engine);
+                const Real angle = u_real           (random_engine);
                 
-                counter += Fold( i, j, angle );
+                int flag = Fold( i, j, angle );
+                
+                ++counters[flag];
             }
             
-            return counter;
+            return counters;
+        }
+        
+        // Returns 0 when an actual change has been made.
+        int Fold( const Int i, const Int j, const Real angle )
+        {
+            ptic(ClassName()+"::Fold");
+            
+            std::tie(p,q) = MinMax(i,j);
+            
+            theta = angle;
+            
+            P_size = q - p - 1;
+            Q_size = n - q + p - 1;
+
+            if( (P_size <= 0) || (Q_size <= 0) )
+            {
+                ptoc(ClassName()+"::Fold");
+                return 1;
+            }
+            
+            int flag = 0;
+            
+            X_p.Read( X.data(p) );
+            X_q.Read( X.data(q) );
+
+            ComputeRotationTransform();
+                        
+            const bool Q_shorterQ  = (P_size > Q_size);
+
+            const Int  P_ts        = Min(tail_size,P_size);
+            const Int  Q_ts        = Min(tail_size,Q_size);
+            
+            const Int P_begin = 1;
+            const Int P_end   = P_begin + P_size;
+            const Int Q_begin = P_end + 1;
+            const Int Q_end   = n;
+            
+            X_p.Write( Y.data(0) );
+            
+            // Load all of P.
+            // P has vertices {p+1,...,q-1}
+            LoadArc( X.data(p+1), Y.data(P_begin), P_size  , !Q_shorterQ );
+            
+            X_q.Write( Y.data(P_end) );
+            
+            // Load all of Q.
+            // Q has vertices {q+1,...,n-1} U {0,...,p-1}
+            LoadArc( X.data(q+1), Y.data(Q_begin), Q_size-p,  Q_shorterQ );
+            LoadArc( X.data(0  ), Y.data(Q_end-p), p       ,  Q_shorterQ );
+            
+//            print(std::string("Check ")
+//                  + ToString(P_end - P_ts) + ", "
+//                  + ToString(P_ts        ) + ", "
+//                  + ToString(Q_begin     ) + ", "
+//                  + ToString(Q_ts        ) + ")" );
+//            
+//            valprint("P", ArrayToString(Y.data(P_end-P_ts),{P_ts,3}));
+//            valprint("Q", ArrayToString(Y.data(Q_begin   ),{Q_ts,3}));
+            
+            // Test end of P against front of Q.
+            if( tail_checkQ && OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
+            {
+                flag = 2;
+                goto exit;
+            }
+            
+//            print(std::string("Check ")
+//                  + ToString(P_begin     ) + ", "
+//                  + ToString(P_ts        ) + ", "
+//                  + ToString(Q_end - Q_ts) + ", "
+//                  + ToString(Q_ts        ) + ")" );
+//            
+//            valprint("P", ArrayToString(Y.data(P_begin   ),{P_ts,3}));
+//            valprint("Q", ArrayToString(Y.data(Q_end-Q_ts),{Q_ts,3}));
+            
+            // Test front of P against end of Q.
+            if( tail_checkQ && OverlapQ( P_begin, P_ts, Q_end - Q_ts, Q_ts ) )
+            {
+                flag = 3;
+                goto exit;
+            }
+
+            // Test P against Q.
+            if( OverlapQ( P_begin, P_size, Q_begin, Q_size ) )
+            {
+                flag = 4;
+                goto exit;
+            }
+            
+            swap(X,Y);
+            
+        exit:
+            
+            ptoc(ClassName()+"::Fold");
+            
+            return flag;
+        }
+        
+        
+        
+        FlagVec_T FoldRandom_Partitioned( const Int step_count )
+        {
+            FlagVec_T counters {0};
+            
+            using unif_int  = std::uniform_int_distribution<Int>;
+            using unif_real = std::uniform_real_distribution<Real>;
+            
+            unif_int  u_int ( Int(0), n-3 );
+            unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+            
+            for( Int step = 0; step < step_count; ++step )
+            {
+                const Int  i     = u_int            (random_engine);
+                const Int  j     = unif_int(i+2,n-1)(random_engine);
+                const Real angle = u_real           (random_engine);
+
+                
+                int flag = Fold_Partitioned( i, j, angle );
+                
+                ++counters[flag];
+            }
+            
+            return counters;
         }
         
         
         // Returns true when an actual change has been made.
-        
-        bool Fold( const Int pivot_0, const Int pivot_1, const Real angle )
+        int Fold_Partitioned( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            ptic(ClassName()+"::OverlapQ");
+            ptic(ClassName()+"::Fold_Partitioned");
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -171,136 +613,111 @@ namespace KnotTools
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                return false;
+                ptoc(ClassName()+"::Fold_Partitioned");
+                return 1;
             }
+            
+            int flag = 0;
             
             X_p.Read( X.data(p) );
             X_q.Read( X.data(q) );
             
-            // Rotation axis.
-            Vector_T u = X_q - X_p;
-            u.Normalize();
+            ComputeRotationTransform();
             
-            const Real c = std::cos(theta);
-            const Real s = std::sin(theta);
-            const Real d = Scalar::One<Real> - c;
+            const Int P_ts = Min(tail_size,P_size);
+            const Int Q_ts = Min(tail_size,Q_size);
             
-            A[0][0] = u[0] * u[0] * d + c;
-            A[0][1] = u[0] * u[1] * d - u[2] * s;
-            A[0][2] = u[0] * u[2] * d + u[1] * s;
+            const bool Q_shorterQ = (P_size > Q_size);
             
-            A[1][0] = u[1] * u[0] * d + u[2] * s;
-            A[1][1] = u[1] * u[1] * d + c;
-            A[1][2] = u[1] * u[2] * d - u[0] * s;
-            
-            A[2][0] = u[2] * u[0] * d - u[1] * s;
-            A[2][1] = u[2] * u[1] * d + u[0] * s;
-            A[2][2] = u[2] * u[2] * d + c;
-            
-            Vector_T v;
-            Vector_T w;
-            
-            if( P_size <= Q_size )
-            {
-                // P has vertices {p+1,...,q-1}
-                for( Int i = p + 1; i < q; ++i )
-                {
-                    v.Read( X.data(i) );
-                    v -= X_p;
-                    Dot<AddTo_T::False>(A,v,w);
-                    w += X_p;
-                    w.Write( P.data(i-p-1) );
-//                    v.Write( P.data(i-p-1) );
-                }
-                
-                // Q has vertices {q+1,...,n-1} U {0,...,p-1}
-                copy_buffer( X.data(q+1), Q.data(0       ), AmbDim * (Q_size-p) );
-                copy_buffer( X.data(0  ), Q.data(Q_size-p), AmbDim * p          );
-            }
-            else
-            {
-                // P has vertices {p+1,...,q-1}
-                copy_buffer( X.data(p+1), P.data(0  ), AmbDim * P_size );
-                
-                
-                // Q has vertices {q+1,...,n-1} U {0,...,p-1}
-                for( Int i = q + 1; i < n; ++i )
-                {
-                    v.Read( X.data(i) );
-                    v -= X_p;
-                    Dot<AddTo_T::False>(A,v,w);
-                    w += X_p;
-                    w.Write( Q.data(i-q-1) );
-//                    v.Write( Q.data(i-q-1) );
-                }
-                
-                for( Int i = 0; i < p; ++i )
-                {
-                    v.Read( X.data(i) );
-                    v -= X_p;
-                    Dot<AddTo_T::False>(A,v,w);
-                    w += X_p;
-                    w.Write( Q.data((Q_size - p) + i) );
-//                    v.Write( Q.data((Q_size - p) + i) );
-                }
-            }
-            
-            constexpr Int test_size = 16;
-            
-            bool overlapQ = false;
-            
-            const Int P_test_size = Min(test_size,P_size);
-            const Int Q_test_size = Min(test_size,Q_size);
+            const Int P_begin = 1;
+            const Int P_end   = P_begin + P_size;
+            const Int Q_begin = P_end + 1;
+            const Int Q_end   = n;
 
-            // Test beginning of P against end of Q.
-            if( !overlapQ )
+            // Test end of P against front of Q.
+            if( tail_checkQ )
             {
-                const Int P_pos = 0;
-                const Int Q_pos = Q_size - Q_test_size;
+                // Load end of P.
+                // P has vertices {p+1,...,q-1}
                 
-                overlapQ = overlapQ || OverlapQ( P_pos, P_test_size, Q_pos, Q_test_size );
+                LoadArc( X.data(q-P_ts), Y.data(P_end - P_ts), P_ts , !Q_shorterQ );
+                
+                // Load front of Q.
+                // Q has vertices {q+1,...,n-1} U {0,...,p-1}
+
+                const Int k = Min( Q_ts, n - q - 1 );
+                
+                LoadArc( X.data(q+1), Y.data(Q_begin  ), k       , Q_shorterQ );
+                LoadArc( X.data(0  ), Y.data(Q_begin+k), Q_ts - k, Q_shorterQ );
+                
+                if( OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
+                {
+                    flag = 2;
+                    goto exit;
+                }
             }
             
-            // Test end of P against beginning of Q.
-            if( !overlapQ )
+            // Test front of P against end of Q.
+            if( tail_checkQ )
             {
-                const Int P_pos = P_size - P_test_size;
-                const Int Q_pos = 0;
+                // Load front of P.
+                // P has vertices {p+1,...,q-1}
+                LoadArc( X.data(p+1     ), Y.data(P_begin     ), P_ts  , !Q_shorterQ );
+                  
+                // Load end of Q.
+                // Q has vertices {q+1,...,n-1} U {0,...,p-1}
                 
-                overlapQ = overlapQ || OverlapQ( P_pos, P_test_size, Q_pos, Q_test_size );
+                const Int l = Max( 0, Q_ts - p );
+                
+                LoadArc( X.data(n-l     ), Y.data(Q_end-Q_ts  ), l     ,  Q_shorterQ );
+                LoadArc( X.data(p-Q_ts+l), Y.data(Q_end-Q_ts+l), Q_ts-l,  Q_shorterQ );
+                
+                if( OverlapQ( P_begin, P_ts, Q_end - Q_ts, Q_ts ) )
+                {
+                    flag = 3;
+                    goto exit;
+                }
             }
             
             // Test P against Q.
-            if( !overlapQ )
+            X_p.Write( Y.data(0) );
+            
+            // Load all of P.
+            // P has vertices {p+1,...,q-1}
+            LoadArc( X.data(p+1), Y.data(P_begin), P_size  , !Q_shorterQ );
+            
+            X_q.Write( Y.data(P_end) );
+            
+            // Load all of Q.
+            // Q has vertices {q+1,...,n-1} U {0,...,p-1}
+            LoadArc( X.data(q+1), Y.data(Q_begin), Q_size-p,  Q_shorterQ );
+            LoadArc( X.data(0  ), Y.data(Q_end-p), p       ,  Q_shorterQ );
+            
+            if( OverlapQ( P_begin, P_size, Q_begin, Q_size) )
             {
-                overlapQ = overlapQ || OverlapQ( 0, P_size, 0, Q_size);
+                flag = 4;
+                goto exit;
             }
             
-            if( !overlapQ )
-            {
-                // P has vertices {p+1,...,q-1}
-                copy_buffer( P.data(0       ), X.data(p+1), AmbDim * P_size     );
-                
-                // Q has vertices {q+1,...,n-1} U {0,...,p-1}
-                copy_buffer( Q.data(0       ), X.data(q+1), AmbDim * (Q_size-p) );
-                copy_buffer( Q.data(Q_size-p), X.data(0  ), AmbDim * p          );
-            }
+            swap(X,Y);
             
-            ptoc(ClassName()+"::OverlapQ");
+        exit:
             
-            return (!overlapQ);
+            ptoc(ClassName()+"::Fold_Partitioned");
+            
+            return flag;
         }
         
         
-        bool OverlapQ( Int P_pos, Int P_n, Int Q_pos, Int Q_n )
+        bool OverlapQ( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
         {
             ptic(ClassName()+"::OverlapQ");
             
             P_tree = Tree_T( P_n );
             Q_tree = Tree_T( Q_n );
             
-            P_tree.template ComputeBoundingBoxes<1,AmbDim>( P.data(P_pos), P_boxes );
-            Q_tree.template ComputeBoundingBoxes<1,AmbDim>( Q.data(Q_pos), Q_boxes );
+            P_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(P_begin), P_boxes );
+            Q_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(Q_begin), Q_boxes );
             
             constexpr Int max_depth = 128;
             
