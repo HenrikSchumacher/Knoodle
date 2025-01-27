@@ -23,10 +23,26 @@ protected:
         
         intersection_count_3D = 0;
         
-        Int stack[max_depth][2];
-        Int stack_ptr = 0;
-        stack[0][0] = 0;
-        stack[0][1] = 0;
+        Int stack[4 * max_depth][2];
+        Int stack_ptr = -1;
+        
+        // Helper routine to manage the pair_stack.
+        auto push = [&stack,&stack_ptr]( const Int i, const Int j )
+        {
+            ++stack_ptr;
+            stack[stack_ptr][0] = i;
+            stack[stack_ptr][1] = j;
+        };
+    
+        // Helper routine to manage the pair_stack.
+        auto pop = [&stack,&stack_ptr]()
+        {
+            const std::pair result ( stack[stack_ptr][0], stack[stack_ptr][1] );
+            stack_ptr--;
+            return result;
+        };
+        
+        push(0,0);
         
         edge_ptr.Fill(0);
         
@@ -36,14 +52,11 @@ protected:
 //        double box_time  = 0;
 //        double edge_time = 0;
         
-        while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
+        while( (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4) )
         {
             // Pop from stack.
 
-            const Int i = stack[stack_ptr][0];
-            const Int j = stack[stack_ptr][1];
-            stack_ptr--;
-            
+            auto [i,j] = pop();
 
 //            Time box_start_time = Clock::now();
 //            ++box_call_count;
@@ -62,11 +75,8 @@ protected:
                 
                 if( i_interiorQ || j_interiorQ )
                 {
-                    const Int L_i = Tree2_T::LeftChild(i);
-                    const Int R_i = L_i+1;
-                    
-                    const Int L_j = Tree2_T::LeftChild(j);
-                    const Int R_j = L_j+1;
+                    auto [L_i,R_i] = Tree2_T::Children(i);
+                    auto [L_j,R_j] = Tree2_T::Children(j);
                     
                     // T is a balanced bindary tree.
 
@@ -75,38 +85,18 @@ protected:
                         if( i == j )
                         {
                             //  Creating 3 blockcluster children, since there is one block that is just the mirror of another one.
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = R_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = R_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = L_j;
+                            
+                            push(L_i,R_j);
+                            push(R_i,R_j);
+                            push(L_i,L_j);
                         }
                         else
                         {
                             // tie breaker: split both clusters
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = R_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = R_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = L_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = L_j;
+                            push(R_i,R_j);
+                            push(L_i,R_j);
+                            push(R_i,L_j);
+                            push(L_i,L_j);
                         }
                     }
                     else
@@ -115,26 +105,14 @@ protected:
                         if( i_interiorQ ) // !j_interiorQ follows from this.
                         {
                             //split cluster i
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = j;
+                            push(R_i,j);
+                            push(L_i,j);
                         }
                         else
                         {
                             //split cluster j
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = i;
-                            stack[stack_ptr][1] = R_j;
-
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = i;
-                            stack[stack_ptr][1] = L_j;
+                            push(i,R_j);
+                            push(i,L_j);
                         }
                     }
                 }

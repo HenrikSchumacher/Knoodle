@@ -1,10 +1,9 @@
 #pragma once
 
-//#define KNOTTOOLS_COMPLETEBINARYTREE_PRECOMPUTE_RANGES
-
 namespace KnotTools
 {
-    template<typename Int_>
+    
+    template<typename Int_, bool precompute_rangesQ_ = false>
     class alignas( ObjectAlignment ) CompleteBinaryTree
     {
         static_assert(IntQ<Int_>,"");
@@ -14,7 +13,7 @@ namespace KnotTools
         using Int  = Int_;
         
         static constexpr Int max_depth = 128;
-        
+        static constexpr bool precompute_rangesQ = precompute_rangesQ_;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -28,10 +27,6 @@ namespace KnotTools
         ,          int_node_count { node_count - leaf_node_count                       }
         ,          last_row_begin { (Int(1) << Depth(node_count-1)) - 1                }
         ,                  offset { node_count - int_node_count - last_row_begin       }
-#ifdef KNOTTOOLS_COMPLETEBINARYTREE_PRECOMPUTE_RANGES
-        ,                 N_begin { node_count                                         }
-        ,                   N_end { node_count                                         }
-#endif
         ,            actual_depth { Depth(node_count-1)                                }
         , regular_leaf_node_count { Int(1) << actual_depth                             }
         ,          last_row_count { Int(2) * leaf_node_count - regular_leaf_node_count }
@@ -45,30 +40,34 @@ namespace KnotTools
 //            dump(regular_leaf_node_count);
 //            dump(last_row_count);
 //
-#ifdef KNOTTOOLS_COMPLETEBINARYTREE_PRECOMPUTE_RANGES
-            // Compute range of leaf nodes in last row.
-            for( Int N = last_row_begin; N < node_count; ++N )
+            if constexpr ( precompute_rangesQ )
             {
-                N_begin[N] = N - last_row_begin    ;
-                N_end  [N] = N - last_row_begin + 1;
-            }
-            
-            // Compute range of leaf nodes in penultimate row.
-            for( Int N = int_node_count; N < last_row_begin; ++N )
-            {
-                N_begin[N] = N + offset;
-                N_end  [N] = N + offset + 1;
-            }
-            
-            for( Int N = int_node_count; N --> 0; )
-            {
-                const Int L = LeftChild (N);
-                const Int R = L + 1;
+                N_ranges = Tensor2<Int,Int>(node_count,2);
                 
-                N_begin[N] = Min( N_begin[L], N_begin[R] );
-                N_end  [N] = Max( N_end  [L], N_end  [R] );
+                mptr<Int> r = N_ranges.data();
+                
+                // Compute range of leaf nodes in last row.
+                for( Int N = last_row_begin; N < node_count; ++N )
+                {
+                    r[2 * N + 0] = N - last_row_begin    ;
+                    r[2 * N + 1] = N - last_row_begin + 1;
+                }
+                
+                // Compute range of leaf nodes in penultimate row.
+                for( Int N = int_node_count; N < last_row_begin; ++N )
+                {
+                    r[2 * N + 0] = N + offset;
+                    r[2 * N + 1] = N + offset + 1;
+                }
+                
+                for( Int N = int_node_count; N --> 0; )
+                {
+                    const auto [L,R] = Children(N);
+                    
+                    r[2 * N + 0] = Min( r[2 * L + 0], r[2 * R + 0] );
+                    r[2 * N + 1] = Max( r[2 * L + 1], r[2 * R + 1] );
+                }
             }
-#endif
         }
         
         ~CompleteBinaryTree() = default;
@@ -89,10 +88,7 @@ namespace KnotTools
 //        
         Int offset = 0;
 
-#ifdef KNOTTOOLS_COMPLETEBINARYTREE_PRECOMPUTE_RANGES
-        Tensor1<Int,Int> N_begin;
-        Tensor1<Int,Int> N_end;
-#endif
+        Tensor2<Int,Int> N_ranges;
         
         Int actual_depth            = 0;
         
@@ -104,6 +100,11 @@ namespace KnotTools
         
         // See https://trstringer.com/complete-binary-tree/
 
+        static constexpr Int Root()
+        {
+            return 0;
+        }
+        
         static constexpr Int MaxDepth()
         {
             return max_depth;
@@ -117,6 +118,11 @@ namespace KnotTools
         static constexpr Int RightChild( const Int i )
         {
             return 2 * i + 2;
+        }
+        
+        static constexpr std::pair<Int,Int> Children( const Int i )
+        {
+            return { 2 * i + 1, 2 * i + 2 };
         }
         
         static constexpr Int Parent( const Int i )
@@ -156,58 +162,81 @@ namespace KnotTools
             return regular_leaf_node_count >> Depth(i);
         }
         
-#ifdef KNOTTOOLS_COMPLETEBINARYTREE_PRECOMPUTE_RANGES
         Int NodeBegin( const Int i ) const
         {
-            return N_begin[i];
+            if constexpr ( precompute_rangesQ )
+            {
+                return N_ranges.data()[2 * i + 0];
+            }
+            else
+            {
+                const Int regular_begin = RegularLeafNodeCount(i) * Column(i);
+                
+                return regular_begin - (Ramp(regular_begin - last_row_count) >> 1);
+            }
         }
         
         Int NodeEnd( const Int i ) const
         {
-            return N_end[i];
-        }
-#else
-        Int NodeBegin( const Int i ) const
-        {
-            const Int regular_begin = RegularLeafNodeCount(i) * Column(i);
-            
-            return regular_begin - (Ramp(regular_begin - last_row_count) >> 1);
+            if constexpr ( precompute_rangesQ )
+            {
+                return N_ranges.data()[2 * i + 1];
+            }
+            else
+            {
+                const Int regular_end   = RegularLeafNodeCount(i) * (Column(i) + 1);
+                
+                return regular_end - (Ramp(regular_end - last_row_count) >> 1);
+            }
         }
         
-        Int NodeEnd( const Int i ) const
+        std::pair<Int,Int> NodeRange( const Int i) const
         {
-            const Int regular_end   = RegularLeafNodeCount(i) * (Column(i) + 1);
             
-            return regular_end - (Ramp(regular_end - last_row_count) >> 1);
+            if constexpr ( precompute_rangesQ )
+            {
+                return { N_ranges.data()[2 * i + 0], N_ranges.data()[2 * i + 1] };
+            }
+            else
+            {
+                const Int reg_leaf_count = RegularLeafNodeCount(i);
+                const Int regular_begin  = reg_leaf_count * Column(i);
+                const Int regular_end    = regular_begin + reg_leaf_count;
+                
+                return {
+                    regular_begin - (Ramp(regular_begin - last_row_count) >> 1),
+                    regular_end   - (Ramp(regular_end   - last_row_count) >> 1)
+                };
+            }
         }
-#endif
-
-        
         
         bool NodeContainsLeafNodeQ( const Int node, const Int leafnode ) const
         {
-            return (Begin(node) <= leafnode) && (leafnode < End(node));
-        }
-        
-        bool NodesContainLeafNodeQ(
-            const Int node_0,      const Int node_1,
-            const Int leafnode_0, const Int leafnode_1
-        ) const
-        {
-            return (
-                NodeContainsLeafNodeQ(node_0,leafnode_0)
-                &&
-                NodeContainsLeafNodeQ(node_1,leafnode_1)
-            ) || (
-                NodeContainsLeafNodeQ(node_0,leafnode_1)
-                &&
-                NodeContainsLeafNodeQ(node_1,leafnode_0)
-            );
+            auto [begin,end] = NodeRange(node);
+            
+            return (begin <= leafnode) && (leafnode < end);
         }
         
         bool InteriorNodeQ( const Int node ) const
         {
             return (node < int_node_count);
+        }
+        
+        bool LeafNodeQ( const Int node ) const
+        {
+            return node >= int_node_count;
+        }
+        
+        Int PrimitiveNode( const Int primitive ) const
+        {
+            if( primitive < last_row_count )
+            {
+                return last_row_begin + primitive;
+            }
+            else
+            {
+                return int_node_count + (primitive - last_row_count);
+            }
         }
         
 //###############################################################################
@@ -229,6 +258,76 @@ namespace KnotTools
         Int LeafNodeCount() const
         {
             return leaf_node_count;
+        }
+        
+        template<
+            class Lambda_IntPreVisit,  class Lambda_IntPostVisit,
+            class Lambda_LeafPreVisit, class Lambda_LeafPostVisit
+        >
+        void DepthFirstSearch(
+            Lambda_IntPreVisit   int_pre_visit,  Lambda_IntPostVisit  int_post_visit,
+            Lambda_LeafPreVisit  leaf_pre_visit, Lambda_LeafPostVisit leaf_post_visit
+        )
+        {
+            ptic(ClassName()+"::DepthFirstSearch");
+            
+            Int stack [2 * max_depth];
+
+            Int stack_ptr = Int(0);
+            stack[stack_ptr] = Int(0);
+            
+            while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
+            {
+                const Int code = stack[stack_ptr];
+                const Int node = (code >> 1);
+                
+                const bool visitedQ = (code & Int(1));
+                
+                if( !visitedQ  )
+                {
+                    auto [L,R] = Children(node);
+                    
+                    // We visit this node for the first time.
+                    if( InteriorNodeQ(node) )
+                    {
+                        int_pre_visit(node);
+
+                        // Mark node as visited.
+                        stack[stack_ptr] = (code | Int(1)) ;
+                        
+                        ++stack_ptr;
+                        stack[stack_ptr] = (R << 1);
+                        
+                        ++stack_ptr;
+                        stack[stack_ptr] = (L << 1);
+                    }
+                    else
+                    {
+                        // Things to be done when node is a leaf.
+                        leaf_pre_visit(node);
+                        
+                        // There are no children to be visited first.
+                        leaf_post_visit(node);
+                        
+                        // Popping current node from the stack.
+                        --stack_ptr;
+                    }
+                }
+                else
+                {
+                    // We visit this node for the second time.
+                    // Thus node cannot be a leave node.
+                    // We are moving in direction towards the root.
+                    // Hence all children have already been visited.
+                    
+                    int_post_visit(node);
+
+                    // Popping current node from the stack.
+                    --stack_ptr;
+                }
+            }
+            
+            ptoc(ClassName()+"::DepthFirstSearch");
         }
         
     public:

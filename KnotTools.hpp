@@ -257,6 +257,7 @@ namespace KnotTools
 #include "src/Link.hpp"
 
 #include "src/CompleteBinaryTree.hpp"
+#include "src/CompleteBinaryTree_Precomp.hpp"
 #include "src/AABBTree.hpp"
 #include "src/AABBTree2.hpp"
 
@@ -291,4 +292,7 @@ namespace KnotTools
 
 
 #include "src/PolygonFolder.hpp"
+
+#include "src/AffineTransform.hpp"
+#include "src/ClisbyTree.hpp"
 

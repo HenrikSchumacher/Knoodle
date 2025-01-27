@@ -451,7 +451,7 @@ namespace KnotTools
         
         
         
-        FlagVec_T FoldRandom( const Int step_count )
+        FlagVec_T FoldRandom_Reference( const Int step_count )
         {
             FlagVec_T counters {0};
             
@@ -459,15 +459,15 @@ namespace KnotTools
             using unif_real = std::uniform_real_distribution<Real>;
             
             unif_int  u_int ( Int(0), n-3 );
-            unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+            unif_real u_real( -Scalar::Pi<Real>,Scalar::Pi<Real> );
             
             for( Int step = 0; step < step_count; ++step )
             {
-                const Int  i     = u_int            (random_engine);
-                const Int  j     = unif_int(i+2,n-1)(random_engine);
-                const Real angle = u_real           (random_engine);
+                const Int  i     = u_int                   (random_engine);
+                const Int  j     = unif_int(i+2,n-1-(i==0))(random_engine);
+                const Real angle = u_real                  (random_engine);
                 
-                int flag = Fold( i, j, angle );
+                int flag = Fold_Reference( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -476,9 +476,9 @@ namespace KnotTools
         }
         
         // Returns 0 when an actual change has been made.
-        int Fold( const Int i, const Int j, const Real angle )
+        int Fold_Reference( const Int i, const Int j, const Real angle )
         {
-            ptic(ClassName()+"::Fold");
+            ptic(ClassName()+"::Fold_Reference");
             
             std::tie(p,q) = MinMax(i,j);
             
@@ -489,7 +489,7 @@ namespace KnotTools
 
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                ptoc(ClassName()+"::Fold");
+                ptoc(ClassName()+"::Fold_Reference");
                 return 1;
             }
             
@@ -523,30 +523,12 @@ namespace KnotTools
             LoadArc( X.data(q+1), Y.data(Q_begin), Q_size-p,  Q_shorterQ );
             LoadArc( X.data(0  ), Y.data(Q_end-p), p       ,  Q_shorterQ );
             
-//            print(std::string("Check ")
-//                  + ToString(P_end - P_ts) + ", "
-//                  + ToString(P_ts        ) + ", "
-//                  + ToString(Q_begin     ) + ", "
-//                  + ToString(Q_ts        ) + ")" );
-//            
-//            valprint("P", ArrayToString(Y.data(P_end-P_ts),{P_ts,3}));
-//            valprint("Q", ArrayToString(Y.data(Q_begin   ),{Q_ts,3}));
-            
             // Test end of P against front of Q.
             if( tail_checkQ && OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
             {
                 flag = 2;
                 goto exit;
             }
-            
-//            print(std::string("Check ")
-//                  + ToString(P_begin     ) + ", "
-//                  + ToString(P_ts        ) + ", "
-//                  + ToString(Q_end - Q_ts) + ", "
-//                  + ToString(Q_ts        ) + ")" );
-//            
-//            valprint("P", ArrayToString(Y.data(P_begin   ),{P_ts,3}));
-//            valprint("Q", ArrayToString(Y.data(Q_end-Q_ts),{Q_ts,3}));
             
             // Test front of P against end of Q.
             if( tail_checkQ && OverlapQ( P_begin, P_ts, Q_end - Q_ts, Q_ts ) )
@@ -566,14 +548,14 @@ namespace KnotTools
             
         exit:
             
-            ptoc(ClassName()+"::Fold");
+            ptoc(ClassName()+"::Fold_Reference");
             
             return flag;
         }
         
         
         
-        FlagVec_T FoldRandom_Partitioned( const Int step_count )
+        FlagVec_T FoldRandom( const Int step_count )
         {
             FlagVec_T counters {0};
             
@@ -585,12 +567,12 @@ namespace KnotTools
             
             for( Int step = 0; step < step_count; ++step )
             {
-                const Int  i     = u_int            (random_engine);
-                const Int  j     = unif_int(i+2,n-1)(random_engine);
-                const Real angle = u_real           (random_engine);
+                const Int  i     = u_int                   (random_engine);
+                const Int  j     = unif_int(i+2,n-1-(i==0))(random_engine);
+                const Real angle = u_real                  (random_engine);
 
                 
-                int flag = Fold_Partitioned( i, j, angle );
+                int flag = Fold( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -599,10 +581,10 @@ namespace KnotTools
         }
         
         
-        // Returns true when an actual change has been made.
-        int Fold_Partitioned( const Int pivot_0, const Int pivot_1, const Real angle )
+        // Returns 0 when an actual change has been made.
+        int Fold( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            ptic(ClassName()+"::Fold_Partitioned");
+            ptic(ClassName()+"::Fold");
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -613,7 +595,7 @@ namespace KnotTools
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                ptoc(ClassName()+"::Fold_Partitioned");
+                ptoc(ClassName()+"::Fold");
                 return 1;
             }
             
@@ -633,22 +615,20 @@ namespace KnotTools
             const Int P_end   = P_begin + P_size;
             const Int Q_begin = P_end + 1;
             const Int Q_end   = n;
-
+            
+            const Int k = Min( Q_ts, n - q - 1 );
+            const Int l = Ramp( Q_ts - p );
+            
             // Test end of P against front of Q.
             if( tail_checkQ )
             {
-                // Load end of P.
+                // Load end of P and load front of Q..
                 // P has vertices {p+1,...,q-1}
-                
-                LoadArc( X.data(q-P_ts), Y.data(P_end - P_ts), P_ts , !Q_shorterQ );
-                
-                // Load front of Q.
                 // Q has vertices {q+1,...,n-1} U {0,...,p-1}
-
-                const Int k = Min( Q_ts, n - q - 1 );
                 
-                LoadArc( X.data(q+1), Y.data(Q_begin  ), k       , Q_shorterQ );
-                LoadArc( X.data(0  ), Y.data(Q_begin+k), Q_ts - k, Q_shorterQ );
+                LoadArc( X.data(q-P_ts), Y.data(P_end-P_ts), P_ts    , !Q_shorterQ );
+                LoadArc( X.data(q+1   ), Y.data(Q_begin   ), k       ,  Q_shorterQ );
+                LoadArc( X.data(Int(0)), Y.data(Q_begin+k ), Q_ts - k,  Q_shorterQ );
                 
                 if( OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
                 {
@@ -660,15 +640,11 @@ namespace KnotTools
             // Test front of P against end of Q.
             if( tail_checkQ )
             {
-                // Load front of P.
+                // Load front of P and end of Q.
                 // P has vertices {p+1,...,q-1}
-                LoadArc( X.data(p+1     ), Y.data(P_begin     ), P_ts  , !Q_shorterQ );
-                  
-                // Load end of Q.
                 // Q has vertices {q+1,...,n-1} U {0,...,p-1}
                 
-                const Int l = Max( 0, Q_ts - p );
-                
+                LoadArc( X.data(p+1     ), Y.data(P_begin     ), P_ts  , !Q_shorterQ );
                 LoadArc( X.data(n-l     ), Y.data(Q_end-Q_ts  ), l     ,  Q_shorterQ );
                 LoadArc( X.data(p-Q_ts+l), Y.data(Q_end-Q_ts+l), Q_ts-l,  Q_shorterQ );
                 
@@ -680,6 +656,7 @@ namespace KnotTools
             }
             
             // Test P against Q.
+            
             X_p.Write( Y.data(0) );
             
             // Load all of P.
@@ -703,9 +680,91 @@ namespace KnotTools
             
         exit:
             
-            ptoc(ClassName()+"::Fold_Partitioned");
+            ptoc(ClassName()+"::Fold");
             
             return flag;
+        }
+        
+        
+        
+        
+        // Only for debugging and performance measurement.
+        FlagVec_T FoldRandom_WithoutChecks( const Int step_count )
+        {
+            FlagVec_T counters {0};
+            
+            using unif_int  = std::uniform_int_distribution<Int>;
+            using unif_real = std::uniform_real_distribution<Real>;
+            
+            unif_int  u_int ( Int(0), n-3 );
+            unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+            
+            for( Int step = 0; step < step_count; ++step )
+            {
+                const Int  i     = u_int                   (random_engine);
+                const Int  j     = unif_int(i+2,n-1-(i==0))(random_engine);
+                const Real angle = u_real                  (random_engine);
+
+                
+                int flag = Fold_WithoutCheck( i, j, angle );
+                
+                ++counters[flag];
+            }
+            
+            return counters;
+        }
+        
+        // Only for debugging and performance measurement.
+        // Returns 0 when an actual change has been made.
+        int Fold_WithoutCheck( const Int pivot_0, const Int pivot_1, const Real angle )
+        {
+            ptic(ClassName()+"::Fold_WithoutCheck");
+            
+            std::tie(p,q) = MinMax(pivot_0,pivot_1);
+            
+            theta = angle;
+            
+            P_size = q - p - 1;
+            Q_size = n - q + p - 1;
+            
+            if( (P_size <= 0) || (Q_size <= 0) )
+            {
+                ptoc(ClassName()+"::Fold_WithoutCheck");
+                return 1;
+            }
+            
+            X_p.Read( X.data(p) );
+            X_q.Read( X.data(q) );
+            
+            ComputeRotationTransform();
+            
+            const bool Q_shorterQ = (P_size > Q_size);
+            
+            const Int P_begin = 1;
+            const Int P_end   = P_begin + P_size;
+            const Int Q_begin = P_end + 1;
+            const Int Q_end   = n;
+            
+            // Test P against Q.
+            
+            X_p.Write( Y.data(0) );
+            
+            // Load all of P.
+            // P has vertices {p+1,...,q-1}
+            LoadArc( X.data(p+1), Y.data(P_begin), P_size  , !Q_shorterQ );
+            
+            X_q.Write( Y.data(P_end) );
+            
+            // Load all of Q.
+            // Q has vertices {q+1,...,n-1} U {0,...,p-1}
+            LoadArc( X.data(q+1), Y.data(Q_begin), Q_size-p,  Q_shorterQ );
+            LoadArc( X.data(0  ), Y.data(Q_end-p), p       ,  Q_shorterQ );
+            
+            swap(X,Y);
+                        
+            ptoc(ClassName()+"::Fold_WithoutCheck");
+            
+            return 0;
         }
         
         
@@ -719,24 +778,42 @@ namespace KnotTools
             P_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(P_begin), P_boxes );
             Q_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(Q_begin), Q_boxes );
             
-            constexpr Int max_depth = 128;
+            constexpr Int max_depth = Tree_T::max_depth;
             
-            Int stack[max_depth][2];
-            Int stack_ptr = 0;
-            // Push the produce of the root node of S and the root node of T onto stack.
-            stack[0][0] = 0;
-            stack[0][1] = 0;
+            Int stack[4 * max_depth][2];
+            Int stack_ptr = -1;
+            
+            // Helper routine to manage the stack.
+            auto push = [&stack,&stack_ptr]( const Int i, const Int j )
+            {
+                ++stack_ptr;
+                stack[stack_ptr][0] = i;
+                stack[stack_ptr][1] = j;
+            };
+            
+            // Helper routine to manage the stack.
+            auto pop = [&stack,&stack_ptr]()
+            {
+                auto result = std::pair( stack[stack_ptr][0], stack[stack_ptr][1] );
+                stack_ptr--;
+                return result;
+            };
+            
+            auto continueQ = [&stack_ptr]()
+            {
+                return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+            };
+            
+            push(0,0);
+            
             
             ptic("Traverse trees");
             
-            while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
+            while( continueQ() )
             {
-                // Pop node i of S and node j of T from stack.
-                const Int i = stack[stack_ptr][0];
-                const Int j = stack[stack_ptr][1];
-                stack_ptr--;
+                auto [i,j] = pop();
                 
-                const Real dist_squared = P_tree.BoxBoxSquaredDistance(P_boxes,i,Q_boxes,j);
+                const Real dist_squared = Tree_T::BoxBoxSquaredDistance(P_boxes,i,Q_boxes,j);
                 
                 const bool overlappingQ = (dist_squared < r2);
                 
@@ -748,34 +825,20 @@ namespace KnotTools
                     
                     if( i_interiorQ || j_interiorQ )
                     {
-                        const Int L_i = Tree_T::LeftChild(i);
-                        const Int R_i = L_i+1;
-                        
-                        const Int L_j = Tree_T::LeftChild(j);
-                        const Int R_j = L_j+1;
-                        
                         if( i_interiorQ == j_interiorQ )
                         {
                             // Split both nodes.
-                            
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = R_j;
-                            
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = L_j;
+                            auto [L_i,R_i] = Tree_T::Children(i);
+                            auto [L_j,R_j] = Tree_T::Children(j);
+
+                            push(R_i,R_j);
+                            push(L_i,L_j);
                             
                             // We push the "off-diagonal" cases last so that they will be popped first.
                             // This is meaningful because the beginning of P is likely to be close to the _end_ of Q and vice versa.
                             
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = L_i;
-                            stack[stack_ptr][1] = R_j;
-                            
-                            ++stack_ptr;
-                            stack[stack_ptr][0] = R_i;
-                            stack[stack_ptr][1] = L_j;
+                            push(L_i,R_j);
+                            push(R_i,L_j);
                         }
                         else
                         {
@@ -784,25 +847,16 @@ namespace KnotTools
                             {
                                 // Split node i.
                                 
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = R_i;
-                                stack[stack_ptr][1] = j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = L_i;
-                                stack[stack_ptr][1] = j;
+                                auto [L_i,R_i] = Tree_T::Children(i);
+                                push(R_i,j);
+                                push(L_i,j);
                             }
                             else
                             {
                                 // Split node j.
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = i;
-                                stack[stack_ptr][1] = R_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = i;
-                                stack[stack_ptr][1] = L_j;
+                                auto [L_j,R_j] = Tree_T::Children(j);
+                                push(i,R_j);
+                                push(i,L_j);
                             }
                         }
                     }

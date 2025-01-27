@@ -21,18 +21,35 @@ public:
 
             const Int int_node_count = T.InteriorNodeCount();
             
-            Int stack[max_depth][2];
-            Int stack_ptr = 0;
-            stack[0][0] = 0;
-            stack[0][1] = 0;
+            Int stack[4 * max_depth][2];
+            Int stack_ptr = -1;
             
-
-            while( (0 <= stack_ptr) && (stack_ptr < max_depth - 4) )
+            // Helper routine to manage the pair_stack.
+            auto push = [&stack,&stack_ptr]( const Int i, const Int j )
             {
-                const Int i = stack[stack_ptr][0];
-                const Int j = stack[stack_ptr][1];
-                
+                ++stack_ptr;
+                stack[stack_ptr][0] = i;
+                stack[stack_ptr][1] = j;
+            };
+        
+            // Helper routine to manage the pair_stack.
+            auto pop = [&stack,&stack_ptr]()
+            {
+                const std::pair result ( stack[stack_ptr][0], stack[stack_ptr][1] );
                 stack_ptr--;
+                return result;
+            };
+            
+            auto continueQ = [&stack_ptr]()
+            {
+                return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+            };
+            
+            push(0,0);
+
+            while( continueQ() )
+            {
+                auto [i,j] = pop();
                 
                 const bool boxes_collidingQ = (i==j) ? true : MovingBoxesCollidingQ(
                     B_0.data(i), B_1.data(i), B_0.data(j), B_1.data(j)
@@ -46,11 +63,8 @@ public:
                     // Warning: This assumes that both children in a cluster tree are either defined or empty.
                     if( is_interior_i || is_interior_j )
                     {
-                        const Int left_i  = Tree_T::LeftChild(i);
-                        const Int right_i = left_i+1;
-                        
-                        const Int left_j  = Tree_T::LeftChild(j);
-                        const Int right_j = left_j+1;
+                        auto [L_i,R_i] = Tree_T::Children(i);
+                        auto [L_j,R_j] = Tree_T::Children(j);
                         
                         // TODO: We probably should only split the larger node (larger by diameter?).
                                                 
@@ -59,38 +73,17 @@ public:
                             if( i == j )
                             {
                                 //  Creating 3 blockcluster children, since there is one block that is just the mirror of another one.
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = left_i;
-                                stack[stack_ptr][1] = right_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = right_i;
-                                stack[stack_ptr][1] = right_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = left_i;
-                                stack[stack_ptr][1] = left_j;
+                                push(L_i,R_j);
+                                push(R_i,R_j);
+                                push(L_i,L_j);
                             }
                             else
                             {
                                 // split both clusters
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = right_i;
-                                stack[stack_ptr][1] = right_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = left_i;
-                                stack[stack_ptr][1] = right_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = right_i;
-                                stack[stack_ptr][1] = left_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = left_i;
-                                stack[stack_ptr][1] = left_j;
+                                push(R_i,R_j);
+                                push(L_i,R_j);
+                                push(R_i,L_j);
+                                push(L_i,L_j);
                             }
                         }
                         else
@@ -100,26 +93,14 @@ public:
                             if( is_interior_i )
                             {
                                 //split cluster i
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = right_i;
-                                stack[stack_ptr][1] = j;
-
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = left_i;
-                                stack[stack_ptr][1] = j;
+                                push(R_i,j);
+                                push(L_i,j);
                             }
                             else
                             {
                                 //split cluster j
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = i;
-                                stack[stack_ptr][1] = right_j;
-                                
-                                ++stack_ptr;
-                                stack[stack_ptr][0] = i;
-                                stack[stack_ptr][1] = left_j;
+                                push(i,R_j);
+                                push(i,L_j);
                             }
                         }
                     }

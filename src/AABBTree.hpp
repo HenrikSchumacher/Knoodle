@@ -18,8 +18,8 @@ namespace KnotTools
         using Real = Real_;
         using Int  = Int_;
         
-        using Tree = CompleteBinaryTree<Int>;
-        using Tree::max_depth;
+        using Tree_T = CompleteBinaryTree<Int>;
+        using Tree_T::max_depth;
 
         
         static constexpr Int AmbDim = AmbDim_;
@@ -37,7 +37,7 @@ namespace KnotTools
         AABBTree() = default;
         
         explicit AABBTree( const Int prim_count_  )
-        :   Tree  ( prim_count_ )
+        :   Tree_T  ( prim_count_ )
         {}
         
         ~AABBTree() = default;
@@ -46,29 +46,28 @@ namespace KnotTools
     protected:
         
         // Integer data for the combinatorics of the tree.
-        // Corners of the bounding boxes.
-
-        using Tree::leaf_node_count;
-        using Tree::node_count;
-        using Tree::int_node_count;
-        using Tree::last_row_begin;
-        using Tree::offset;
+        
+        using Tree_T::leaf_node_count;
+        using Tree_T::node_count;
+        using Tree_T::int_node_count;
+        using Tree_T::last_row_begin;
+        using Tree_T::offset;
         
     public:
         
-        using Tree::MaxDepth;
-        using Tree::NodeCount;
-        using Tree::InteriorNodeCount;
-        using Tree::LeafNodeCount;
+        using Tree_T::MaxDepth;
+        using Tree_T::NodeCount;
+        using Tree_T::InteriorNodeCount;
+        using Tree_T::LeafNodeCount;
         
-        using Tree::RightChild;
-        using Tree::LeftChild;
-        using Tree::Parent;
-        using Tree::Depth;
-        using Tree::Column;
-        using Tree::NodeBegin;
-        using Tree::NodeEnd;
-        
+        using Tree_T::RightChild;
+        using Tree_T::LeftChild;
+        using Tree_T::Children;
+        using Tree_T::Parent;
+        using Tree_T::Depth;
+        using Tree_T::Column;
+        using Tree_T::NodeBegin;
+        using Tree_T::NodeEnd;
         
     private:
         
@@ -126,7 +125,7 @@ namespace KnotTools
         template<Int point_count, Int dimP>
         void ComputeBoundingBoxes( cptr<Real> P, mref<BContainer_T> B ) const
         {
-            ptic(ClassName()+"ComputeBoundingBoxes");
+            ptic(ClassName()+"::ComputeBoundingBoxes");
             
             static_assert(dimP >= AmbDim,"");
             
@@ -155,14 +154,13 @@ namespace KnotTools
             // Compute bounding boxes of interior nodes.
             for( Int N = int_node_count; N --> 0;  )
             {
-                const Int L = LeftChild (N);
-                const Int R = L + 1;
+                const auto [L,R] = Children(N);
                 
                 BoxesToBox( B.data(L), B.data(R), B.data(N) );
             }
             ptoc("Compute bounding boxes of interior nodes.");
             
-            ptoc(ClassName()+"ComputeBoundingBoxes");
+            ptoc(ClassName()+"::ComputeBoundingBoxes");
         }
         
         template<Int point_count, Int dimP>
@@ -227,20 +225,22 @@ namespace KnotTools
             return d2;
         }
         
-        Real BoxBoxSquaredDistance(
+        static constexpr Real BoxBoxSquaredDistance(
             cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
-        ) const
+        )
         {
-            return BoxBoxSquaredDistance( B_0.data(i), B_1.data(j) );
+            return BoxBoxSquaredDistance(
+                &B_0.data()[AmbDim * 2 * i], &B_1.data()[AmbDim * 2 * i]
+            );
         }
         
         BContainer_T AllocateBoxes()
         {
-            ptic(ClassName()+"AllocateBoxes");
+            ptic(ClassName()+"::AllocateBoxes");
             
             BContainer_T B (NodeCount(),AmbDim,2);
             
-            ptoc(ClassName()+"AllocateBoxes");
+            ptoc(ClassName()+"::AllocateBoxes");
             
             return B;
         }
@@ -249,7 +249,11 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("AABBTree")+"<"+ToString(AmbDim)+","+TypeName<Real>+","+TypeName<Int>+">";
+            return std::string("AABBTree")
+                + "<" + ToString(AmbDim)
+                + "," + TypeName<Real>
+                + "," + TypeName<Int>
+                + ">";
         }
 
     }; // AABBTree
