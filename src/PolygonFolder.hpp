@@ -804,7 +804,7 @@ namespace KnotTools
                 return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
             };
             
-            push(0,0);
+            push(P_tree.Root(),Q_tree.Root());
             
             
             ptic("Traverse trees");

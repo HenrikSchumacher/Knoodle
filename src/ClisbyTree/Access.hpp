@@ -89,6 +89,11 @@ mref<Real> NodeRadius( const Int node )
 
 Transform_T NodeTransform( const Int node ) const
 {
+    if constexpr ( perf_countersQ )
+    {
+        ++load_counter;
+    }
+    
     return Transform_T( NodeTransformPtr(node) );
 }
 
@@ -200,4 +205,20 @@ Int Witness( const bool i ) const
     {
         return witness_0;
     }
+}
+
+
+Size_T MatrixMatrixCounter() const
+{
+    return mm_counter;
+}
+
+Size_T MatrixVectorCounter() const
+{
+    return mv_counter;
+}
+
+Size_T TransformLoadCounter() const
+{
+    return load_counter;
 }

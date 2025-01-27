@@ -65,16 +65,17 @@ void ComputePivotTransform()
     transform = Transform_T( std::move(A), std::move(b) );
 }
 
-int Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
+int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
 {
-    theta = angle_theta;
     p = Min(pivot_p,pivot_q);
     q = Max(pivot_p,pivot_q);
+    theta = angle_theta;
     
+    const Int n = VertexCount() ;
     const Int mid_size = q - p - 1;
-    const Int rem_size = VertexCount() - mid_size - 2;
-
-    if( (mid_size <= 0) || (rem_size <= 0) )
+    const Int rem_size = n - mid_size - 2;
+    
+    if( (mid_size <= 0) || (rem_size <= 0) ) [[unlikely]]
     {
         return 1;
     }
@@ -86,6 +87,22 @@ int Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
     X_q = VertexCoordinates(q);
     ComputePivotTransform();
     
+    return 0;
+}
+
+void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
+{
+    int pivot_flag = LoadPivots( pivot_p, pivot_q, angle_theta );
+    
+    if( pivot_flag == 0 ) [[likely]]
+    {
+        Update();
+    }
+}
+
+// Returns 0 if successful.
+void Update()
+{
     Int  stack [max_depth];
     Int  stack_ptr = -1;
     
@@ -94,12 +111,12 @@ int Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
         case UpdateFlag_T::DoNothing:
         {
             // Cannot happen?
-            return 1;
+            return;
         }
         case UpdateFlag_T::Update:
         {
             UpdateNode<true,true>( transform, 0 );
-            return 0;
+            return;
         }
         case UpdateFlag_T::Split:
         {
@@ -174,6 +191,4 @@ int Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
             --stack_ptr;
         }
     }
-    
-    return 0;
 }

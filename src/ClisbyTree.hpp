@@ -23,6 +23,7 @@ namespace KnotTools
         using Vector_T        = Tiny::Vector<AmbDim_,Real,Int>;
         using Matrix_T        = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         using Transform_T     = AffineTransform<AmbDim,Real,Int>;
+//        using Transform_T     = AffineTransform2<AmbDim,Real,Int>;
         
         using NodeContainer_T = Tensor2<Real,Int>;
         
@@ -35,6 +36,9 @@ namespace KnotTools
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
         static constexpr Int NodeDim      = AmbDim + 1 + TransformDim;
+        
+//        static constexpr bool perf_countersQ = true;
+        static constexpr bool perf_countersQ = false;
         
         
         enum class UpdateFlag_T : UInt8
@@ -117,6 +121,10 @@ namespace KnotTools
         
         PRNG_T random_engine;
         
+        mutable Size_T mm_counter   = 0;
+        mutable Size_T mv_counter   = 0;
+        mutable Size_T load_counter = 0;
+        
     private:
         
         void ResetTransform( mptr<Real> f_ptr )
@@ -169,26 +177,34 @@ namespace KnotTools
 
         int Fold( const Int p_, const Int q_, const Real theta_ )
         {
-            int flag = Update(p_,q_,theta_);
+            int pivot_flag = LoadPivots(p_,q_,theta_);
             
-            if( flag != 0 )
+            if( pivot_flag != 0 )
             {
-                // Folding step failed because of silly reason.
-                return 1;
+                // Folding step aborted because of pivots indices are too close.
+                return pivot_flag;
+            }
+            
+//            int joint_flag = CheckJoints();
+//            
+//            if( joint_flag != 0 )
+//            {
+//                // Folding step failed because of neighbors of pivot touch.
+//                return joint_flag;
+//            }
+            
+            Update();
+
+            if( OverlapQ() )
+            {
+                // Folding step failed; undo the modifications.
+                Update(p_,q_,-theta_);
+                return 4;
             }
             else
             {
-                if( OverlapQ() )
-                {
-                    // Folding step failed; undo the modifications.
-                    Update(p_,q_,-theta_);
-                    return 2;
-                }
-                else
-                {
-                    // Folding step succeeded.
-                    return 0;
-                }
+                // Folding step succeeded.
+                return 0;
             }
         }
         
