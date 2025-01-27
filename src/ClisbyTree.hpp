@@ -55,6 +55,22 @@ namespace KnotTools
         };
         
         ClisbyTree() = default;
+
+        template<typename ExtReal, typename ExtInt>
+        ClisbyTree(
+            const ExtInt vertex_count_,
+            const ExtReal radius
+        )
+        :   Tree_T      { static_cast<Int>(vertex_count_)    }
+        ,   N_data      { NodeCount(), NodeDim, 0            }
+        ,   N_state     { NodeCount(), NodeState_T::Id       }
+        ,   r           { static_cast<Real>(radius)          }
+        ,   r2          { r * r                              }
+        {
+            id.SetIdentity();
+            SetToCircle();
+            InitializePRNG();
+        }
         
         template<typename ExtReal, typename ExtInt>
         ClisbyTree(
@@ -69,12 +85,11 @@ namespace KnotTools
         ,   r2          { r * r                              }
         {
             id.SetIdentity();
-            
             ReadVertexCoordinates( vertex_coords_ );
-            
             InitializePRNG();
         }
         
+
         ~ClisbyTree() = default;
         
     public:
@@ -127,6 +142,7 @@ namespace KnotTools
         
     private:
         
+
         void ResetTransform( mptr<Real> f_ptr )
         {
             id.Write(f_ptr);
@@ -140,9 +156,9 @@ namespace KnotTools
             N_state[node] = NodeState_T::Id;
         }
         
-        void InitializeNodeFromVertex( const Int node, cptr<Real> v )
+        void InitializeNodeFromVertex( const Int node, cptr<Real> x )
         {
-            copy_buffer<AmbDim>( v, NodeCenterPtr(node) );
+            copy_buffer<AmbDim>( x, NodeCenterPtr(node) );
             NodeRadius(node) = 0;
             ResetTransform(node);
         }
@@ -165,6 +181,58 @@ namespace KnotTools
         
     public:
         
+        void ReadVertexCoordinates( cptr<Real> x )
+        {
+            ptic(ClassName() + "::ReadVertexCoordinates");
+                
+            this->DepthFirstSearch(
+                []( const Int node )                    // interior node previsit
+                {},
+                [this]( const Int node )                // interior node postvisit
+                {
+                    ComputeBall(node);
+                    ResetTransform(node);
+                },
+                [this,x]( const Int node )              // leaf node previsit
+                {
+                    const Int vertex = NodeBegin(node);
+
+                    InitializeNodeFromVertex( node, &x[AmbDim * vertex] );
+                },
+                []( const Int node )                    // leaf node postvisit
+                {}
+            );
+            
+            ptoc(ClassName() + "::ReadVertexCoordinates");
+        }
+
+        
+        void SetToCircle()
+        {
+            const Int n = VertexCount();
+            
+            Tensor2<Real,Int> X( n, AmbDim );
+            
+            mptr<Real> x = X.data();
+            
+            const double delta = Frac<double>( Scalar::TwoPi<double>, n );
+            const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            
+            Vector_T v ( Real(0) );
+            
+            for( Int vertex = 0; vertex < n; ++vertex )
+            {
+                const double theta = delta * vertex;
+                
+                v[0] = r * std::cos( theta );
+                v[1] = r * std::sin( theta );
+                
+                v.Write( &x[AmbDim * vertex] );
+            }
+            
+            ReadVertexCoordinates(x);
+        }
+
         
 #include "ClisbyTree/Access.hpp"
 #include "ClisbyTree/Transformations.hpp"
