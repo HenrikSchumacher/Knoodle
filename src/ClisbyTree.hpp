@@ -181,17 +181,17 @@ namespace KnotTools
             
             if( pivot_flag != 0 )
             {
-                // Folding step aborted because of pivots indices are too close.
+                // Folding step aborted because pivots indices are too close.
                 return pivot_flag;
             }
             
-//            int joint_flag = CheckJoints();
-//            
-//            if( joint_flag != 0 )
-//            {
-//                // Folding step failed because of neighbors of pivot touch.
-//                return joint_flag;
-//            }
+            int joint_flag = CheckJoints();
+            
+            if( joint_flag != 0 )
+            {
+                // Folding step failed because neighbors of pivot touch.
+                return joint_flag;
+            }
             
             Update();
 

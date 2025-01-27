@@ -165,45 +165,41 @@ int CheckJoints()
     
     const Int p_prev = (p == 0)     ? (n - 1) : (p - 1);
     const Int p_next = (p + 1 == n) ? Int(0)  : (p + 1);
-    
-//    dump(p_prev);
-//    dump(p);
-//    dump(p_next);
-    
-    Vector_T X_p_prev = transform(VertexCoordinates(p_prev));
+
+    Vector_T X_p_prev = VertexCoordinates(p_prev);
     Vector_T X_p_next = VertexCoordinates(p_next);
     
-    const Real r2_p = (X_p_next - X_p_prev).SquaredNorm();
-    
-//    dump(X_p_prev);
-//    dump(X_p);
-//    dump(X_p_next);
-    
-    if( r2_p <= r2 )
+    if( mid_changedQ )
     {
-//        dump(r2_p);
+        X_p_next = transform(X_p_next);
+    }
+    else
+    {
+        X_p_prev = transform(X_p_prev);
+    }
+    
+    if( (X_p_next - X_p_prev).SquaredNorm() <= r2 )
+    {
         return 2;
     }
     
     const Int q_prev = (q == 0)     ? (n - 1) : (q - 1);
     const Int q_next = (q + 1 == n) ? Int(0)  : (q + 1);
     
-//    dump(q_prev);
-//    dump(q);
-//    dump(q_next);
-    
-    Vector_T X_q_prev = transform(VertexCoordinates(q_prev));
+    Vector_T X_q_prev = VertexCoordinates(q_prev);
     Vector_T X_q_next = VertexCoordinates(q_next);
     
-//    dump(X_q_prev);
-//    dump(X_q);
-//    dump(X_q_next);
-    
-    const Real r2_q = (X_q_next - X_q_prev).SquaredNorm();
-    
-    if( r2_q <= r2 )
+    if( mid_changedQ )
     {
-//        dump(r2_q);
+        X_q_prev = transform(X_q_prev);
+    }
+    else
+    {
+        X_q_next = transform(X_q_next);
+    }
+    
+    if( (X_q_next - X_q_prev).SquaredNorm() <= r2 )
+    {
         return 3;
     }
     
