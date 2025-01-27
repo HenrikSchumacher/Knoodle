@@ -159,6 +159,53 @@ std::pair<bool,bool> NodeSplitFlags( const Int node )
     }
 }
                    
+int CheckJoints()
+{
+    const Int n = VertexCount();
+    
+    const Int p_prev = (p == 0)     ? (n - 1) : (p - 1);
+    const Int p_next = (p + 1 == n) ? Int(0)  : (p + 1);
+
+    Vector_T X_p_prev = VertexCoordinates(p_prev);
+    Vector_T X_p_next = VertexCoordinates(p_next);
+    
+    if( mid_changedQ )
+    {
+        X_p_next = transform(X_p_next);
+    }
+    else
+    {
+        X_p_prev = transform(X_p_prev);
+    }
+    
+    if( (X_p_next - X_p_prev).SquaredNorm() <= r2 )
+    {
+        return 2;
+    }
+    
+    const Int q_prev = (q == 0)     ? (n - 1) : (q - 1);
+    const Int q_next = (q + 1 == n) ? Int(0)  : (q + 1);
+    
+    Vector_T X_q_prev = VertexCoordinates(q_prev);
+    Vector_T X_q_next = VertexCoordinates(q_next);
+    
+    if( mid_changedQ )
+    {
+        X_q_prev = transform(X_q_prev);
+    }
+    else
+    {
+        X_q_next = transform(X_q_next);
+    }
+    
+    if( (X_q_next - X_q_prev).SquaredNorm() <= r2 )
+    {
+        return 3;
+    }
+    
+    return 0;
+}
+
 
 bool OverlapQ()
 {
@@ -188,16 +235,29 @@ bool OverlapQ()
         return result;
     };
     
-    auto continueQ = [&stack_ptr]()
+    auto continueQ = [&stack_ptr,this]()
     {
-        return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+        const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+        
+        if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+        {
+            return true;
+        }
+        else
+        {
+            if ( overflowQ ) [[unlikely]]
+            {
+                eprint(this->ClassName()+"::OverlapQ: Stack overflow.");
+            }
+            return false;
+        }
     };
     
     auto [b_root_0,b_root_1] = NodeSplitFlags(0);
     
     if( b_root_0 && b_root_1 )
     {
-        push(0,0);
+        push(Root(),Root());
     }
     
     ptic("Traverse product tree");
@@ -205,8 +265,6 @@ bool OverlapQ()
     while( continueQ() )
     {
         auto [i,j] = pop();
-        
-//        dump( std::pair(i,j) );
         
         const bool overlappingQ = ( (i==j) || NodesOverlapQ(i,j,r) );
         
@@ -216,9 +274,9 @@ bool OverlapQ()
             const bool i_interiorQ = InteriorNodeQ(i);
             const bool j_interiorQ = InteriorNodeQ(j);
             
-            if( i_interiorQ || j_interiorQ )
+            if( i_interiorQ || j_interiorQ ) [[likely]]
             {
-                if( i_interiorQ == j_interiorQ )
+                if( i_interiorQ && j_interiorQ ) [[likely]]
                 {
                     // Split both nodes.
                     
@@ -254,7 +312,7 @@ bool OverlapQ()
                         push(R_i,L_j);
                     }
                 }
-                else
+                else [[unlikely]]
                 {
                     // split only the interior node
                     if ( i_interiorQ ) // !j_interiorQ follows from this.
@@ -304,7 +362,7 @@ bool OverlapQ()
                     }
                 }
             }
-            else
+            else [[unlikely]]
             {
                 // Nodes i and j are overlapping leaf nodes.
                 
@@ -313,11 +371,6 @@ bool OverlapQ()
                 const Int l = NodeBegin(j);
                 
                 const Int delta = Abs(k-l);
-                
-//                dump(std::pair(i,j));
-//                dump(std::pair(k,l));
-//                
-//                dump(std::pair(delta, n - delta));
                 
                 if( Min( delta, n - delta ) > 1 )
                 {

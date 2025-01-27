@@ -23,6 +23,7 @@ namespace KnotTools
         using Vector_T        = Tiny::Vector<AmbDim_,Real,Int>;
         using Matrix_T        = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         using Transform_T     = AffineTransform<AmbDim,Real,Int>;
+//        using Transform_T     = AffineTransform2<AmbDim,Real,Int>;
         
         using NodeContainer_T = Tensor2<Real,Int>;
         
@@ -35,6 +36,9 @@ namespace KnotTools
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
         static constexpr Int NodeDim      = AmbDim + 1 + TransformDim;
+        
+//        static constexpr bool perf_countersQ = true;
+        static constexpr bool perf_countersQ = false;
         
         
         enum class UpdateFlag_T : UInt8
@@ -51,6 +55,22 @@ namespace KnotTools
         };
         
         ClisbyTree() = default;
+
+        template<typename ExtReal, typename ExtInt>
+        ClisbyTree(
+            const ExtInt vertex_count_,
+            const ExtReal radius
+        )
+        :   Tree_T      { static_cast<Int>(vertex_count_)    }
+        ,   N_data      { NodeCount(), NodeDim, 0            }
+        ,   N_state     { NodeCount(), NodeState_T::Id       }
+        ,   r           { static_cast<Real>(radius)          }
+        ,   r2          { r * r                              }
+        {
+            id.SetIdentity();
+            SetToCircle();
+            InitializePRNG();
+        }
         
         template<typename ExtReal, typename ExtInt>
         ClisbyTree(
@@ -65,12 +85,11 @@ namespace KnotTools
         ,   r2          { r * r                              }
         {
             id.SetIdentity();
-            
             ReadVertexCoordinates( vertex_coords_ );
-            
             InitializePRNG();
         }
         
+
         ~ClisbyTree() = default;
         
     public:
@@ -117,8 +136,13 @@ namespace KnotTools
         
         PRNG_T random_engine;
         
+        mutable Size_T mm_counter   = 0;
+        mutable Size_T mv_counter   = 0;
+        mutable Size_T load_counter = 0;
+        
     private:
         
+
         void ResetTransform( mptr<Real> f_ptr )
         {
             id.Write(f_ptr);
@@ -132,9 +156,9 @@ namespace KnotTools
             N_state[node] = NodeState_T::Id;
         }
         
-        void InitializeNodeFromVertex( const Int node, cptr<Real> v )
+        void InitializeNodeFromVertex( const Int node, cptr<Real> x )
         {
-            copy_buffer<AmbDim>( v, NodeCenterPtr(node) );
+            copy_buffer<AmbDim>( x, NodeCenterPtr(node) );
             NodeRadius(node) = 0;
             ResetTransform(node);
         }
@@ -157,6 +181,58 @@ namespace KnotTools
         
     public:
         
+        void ReadVertexCoordinates( cptr<Real> x )
+        {
+            ptic(ClassName() + "::ReadVertexCoordinates");
+                
+            this->DepthFirstSearch(
+                []( const Int node )                    // interior node previsit
+                {},
+                [this]( const Int node )                // interior node postvisit
+                {
+                    ComputeBall(node);
+                    ResetTransform(node);
+                },
+                [this,x]( const Int node )              // leaf node previsit
+                {
+                    const Int vertex = NodeBegin(node);
+
+                    InitializeNodeFromVertex( node, &x[AmbDim * vertex] );
+                },
+                []( const Int node )                    // leaf node postvisit
+                {}
+            );
+            
+            ptoc(ClassName() + "::ReadVertexCoordinates");
+        }
+
+        
+        void SetToCircle()
+        {
+            const Int n = VertexCount();
+            
+            Tensor2<Real,Int> X( n, AmbDim );
+            
+            mptr<Real> x = X.data();
+            
+            const double delta = Frac<double>( Scalar::TwoPi<double>, n );
+            const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            
+            Vector_T v ( Real(0) );
+            
+            for( Int vertex = 0; vertex < n; ++vertex )
+            {
+                const double theta = delta * vertex;
+                
+                v[0] = r * std::cos( theta );
+                v[1] = r * std::sin( theta );
+                
+                v.Write( &x[AmbDim * vertex] );
+            }
+            
+            ReadVertexCoordinates(x);
+        }
+
         
 #include "ClisbyTree/Access.hpp"
 #include "ClisbyTree/Transformations.hpp"
@@ -169,26 +245,34 @@ namespace KnotTools
 
         int Fold( const Int p_, const Int q_, const Real theta_ )
         {
-            int flag = Update(p_,q_,theta_);
+            int pivot_flag = LoadPivots(p_,q_,theta_);
             
-            if( flag != 0 )
+            if( pivot_flag != 0 )
             {
-                // Folding step failed because of silly reason.
-                return 1;
+                // Folding step aborted because pivots indices are too close.
+                return pivot_flag;
+            }
+            
+            int joint_flag = CheckJoints();
+            
+            if( joint_flag != 0 )
+            {
+                // Folding step failed because neighbors of pivot touch.
+                return joint_flag;
+            }
+            
+            Update();
+
+            if( OverlapQ() )
+            {
+                // Folding step failed; undo the modifications.
+                Update(p_,q_,-theta_);
+                return 4;
             }
             else
             {
-                if( OverlapQ() )
-                {
-                    // Folding step failed; undo the modifications.
-                    Update(p_,q_,-theta_);
-                    return 2;
-                }
-                else
-                {
-                    // Folding step succeeded.
-                    return 0;
-                }
+                // Folding step succeeded.
+                return 0;
             }
         }
         

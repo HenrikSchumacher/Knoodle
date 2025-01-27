@@ -276,7 +276,8 @@ namespace KnotTools
         >
         void DepthFirstSearch(
             Lambda_IntPreVisit   int_pre_visit,  Lambda_IntPostVisit  int_post_visit,
-            Lambda_LeafPreVisit  leaf_pre_visit, Lambda_LeafPostVisit leaf_post_visit
+            Lambda_LeafPreVisit  leaf_pre_visit, Lambda_LeafPostVisit leaf_post_visit,
+            const Int start_node = -1
         )
         {
             ptic(ClassName()+"::DepthFirstSearch");
@@ -284,7 +285,7 @@ namespace KnotTools
             Int stack [2 * max_depth];
 
             Int stack_ptr = Int(0);
-            stack[stack_ptr] = Int(0);
+            stack[stack_ptr] = (start_node < 0) ? Root() : start_node;
             
             while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
             {
@@ -305,11 +306,8 @@ namespace KnotTools
                         // Mark node as visited.
                         stack[stack_ptr] = (code | Int(1)) ;
                         
-                        ++stack_ptr;
-                        stack[stack_ptr] = (R << 1);
-                        
-                        ++stack_ptr;
-                        stack[stack_ptr] = (L << 1);
+                        stack[++stack_ptr] = (R << 1);
+                        stack[++stack_ptr] = (L << 1);
                     }
                     else
                     {
@@ -335,6 +333,11 @@ namespace KnotTools
                     // Popping current node from the stack.
                     --stack_ptr;
                 }
+            }
+            
+            if( stack_ptr >= Int(2) * max_depth - Int(2) )
+            {
+                eprint(ClassName() + "::DepthFirstSearch: Stack overflow.");
             }
             
             ptoc(ClassName()+"::DepthFirstSearch");

@@ -89,6 +89,11 @@ mref<Real> NodeRadius( const Int node )
 
 Transform_T NodeTransform( const Int node ) const
 {
+    if constexpr ( perf_countersQ )
+    {
+        ++load_counter;
+    }
+    
     return Transform_T( NodeTransformPtr(node) );
 }
 
@@ -96,47 +101,6 @@ Vector_T NodeCenter( const Int node ) const
 {
     return Vector_T( NodeCenterPtr(node) );
 }
-
-void ReadVertexCoordinates( cptr<Real> V )
-{
-    ptic(ClassName() + "::ReadVertexCoordinates");
-        
-    this->DepthFirstSearch(
-        []( const Int node )                    // interior node previsit
-        {},
-        [this]( const Int node )                // interior node postvisit
-        {
-            ComputeBall(node);
-            ResetTransform(node);
-        },
-        [this,V]( const Int node )              // leaf node previsit
-        {
-            const Int vertex = NodeBegin(node);
-
-            InitializeNodeFromVertex( node, &V[AmbDim * vertex] );
-        },
-        []( const Int node )                    // leaf node postvisit
-        {}
-    );
-    
-//    // Compute leave nodes.
-//    for( Int vertex = 0; vertex < LeafNodeCount(); ++vertex )
-//    {
-//        const Int node = PrimitiveNode(vertex);
-//
-//        InitializeNodeFromVertex( node, &V[AmbDim * vertex] );
-//    }
-    
-//    // Compute interior nodes.
-//    for( Int node = InteriorNodeCount(); node --> 0;  )
-//    {
-//        ComputeBall(node);
-//        ResetTransform(node);
-//    }
-    
-    ptoc(ClassName() + "::ReadVertexCoordinates");
-}
-
 
 Vector_T VertexCoordinates( const Int vertex ) const
 {
@@ -200,4 +164,20 @@ Int Witness( const bool i ) const
     {
         return witness_0;
     }
+}
+
+
+Size_T MatrixMatrixCounter() const
+{
+    return mm_counter;
+}
+
+Size_T MatrixVectorCounter() const
+{
+    return mv_counter;
+}
+
+Size_T TransformLoadCounter() const
+{
+    return load_counter;
 }
