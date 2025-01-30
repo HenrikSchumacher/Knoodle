@@ -1,28 +1,86 @@
 //#########################################################################################
 //##    Transformations
 //#########################################################################################
+
+
+void ComputePivotTransform()
+{
+    // Rotation axis.
+    Vector_T u = (X_q - X_p);
+
+    u.Normalize();
+    
+    const Real cos = std::cos(theta);
+    const Real sin = std::sin(theta);
+    const Real d = Scalar::One<Real> - cos;
+
+    Matrix_T & A = transform.Matrix();
+    
+    
+    if constexpr ( use_clang_matrixQ )
+    {
+        A.Set( 0, 0, u[0] * u[0] * d + cos        );
+        A.Set( 0, 1, u[0] * u[1] * d - sin * u[2] );
+        A.Set( 0, 2, u[0] * u[2] * d + sin * u[1] );
         
+        A.Set( 1, 0, u[1] * u[0] * d + sin * u[2] );
+        A.Set( 1, 1, u[1] * u[1] * d + cos        );
+        A.Set( 1, 2, u[1] * u[2] * d - sin * u[0] );
+        
+        A.Set( 2, 0, u[2] * u[0] * d - sin * u[1] );
+        A.Set( 2, 1, u[2] * u[1] * d + sin * u[0] );
+        A.Set( 2, 2, u[2] * u[2] * d + cos        );
+    }
+    else
+    {
+        A(0,0) = u[0] * u[0] * d + cos;
+        A(0,1) = u[0] * u[1] * d - sin * u[2];
+        A(0,2) = u[0] * u[2] * d + sin * u[1];
+        
+        A(1,0) = u[1] * u[0] * d + sin * u[2];
+        A(1,1) = u[1] * u[1] * d + cos;
+        A(1,2) = u[1] * u[2] * d - sin * u[0];
+        
+        A(2,0) = u[2] * u[0] * d - sin * u[1];
+        A(2,1) = u[2] * u[1] * d + sin * u[0];
+        A(2,2) = u[2] * u[2] * d + cos;
+    }
+
+    
+    // Compute shift b = X_p - A.X_p.
+    transform.Vector() = X_p - A * X_p;
+    
+//    transform = Transform_T( std::move(A), std::move(b) );
+}
+
+Transform_T NodeTransform( const Int node ) const
+{
+    if constexpr ( perf_countersQ )
+    {
+        ++load_counter;
+    }
+    
+    return Transform_T( NodeTransformPtr(node) );
+}
+
+Vector_T NodeCenter( const Int node ) const
+{
+    return Vector_T( NodeCenterPtr(node) );
+}
+
 void ApplyToVectorPtr( cref<Transform_T> f, mptr<Real> x_ptr )
 {
-    Vector_T x (x_ptr);
-    
-    Vector_T y = f(x);
+    f.TransformVector(x_ptr);
     
     if constexpr ( perf_countersQ )
     {
         ++mv_counter;
     }
-    
-    y.Write( x_ptr );
 }
 
 void ApplyToTransformPtr( cref<Transform_T> f, mptr<Real> g_ptr )
 {
-    Transform_T g ( g_ptr );
-    
-    Transform_T h = f(g);
-
-    h.Write( g_ptr );
+    f.TransformTransform(g_ptr);
     
     if constexpr ( perf_countersQ )
     {
@@ -30,28 +88,6 @@ void ApplyToTransformPtr( cref<Transform_T> f, mptr<Real> g_ptr )
         ++mv_counter;
         ++mm_counter;
     }
-    
-//    Tiny::fixed_dot_mm<AmbDim,AmbDim+1,AmbDim,Overwrite>(
-//        &f.Matrix()[0][0], g_ptr, g_ptr
-//    );
-//    
-//    for( Int k = 0; k < AmbDim; ++k )
-//    {
-//        g_ptr[(AmbDim+1) * k + AmbDim] += f.Vector()[k];
-//    }
-    
-//    using M_T = Tiny::Matrix<AmbDim,AmbDim+1,Real,Int>;
-//    
-//    M_T B ( g_ptr );
-//    
-//    M_T C = Dot( f.Matrix(), B );
-//    
-//    for( Int k = 0; k < AmbDim; ++k )
-//    {
-//        C[k][AmbDim] += f.Vector()[k];
-//    }
-//    
-//    C.Write( g_ptr );
 }
 
 template<bool update_centerQ, bool update_transformQ>
@@ -124,16 +160,16 @@ void PushAllTransforms( const Int start_node = -1 )
 //    }
 }
 
-void PullAllTransforms( const Int start_node = -1 )
+// TODO: Test this. And try whether it improves the computation of the pivots.
+void PullTransforms( const Int from, const Int to )
 {
     Int stack [max_depth];
-
-    const Int root = Root();
-    Int node = (start_node < 0) ? root : start_node;
+    
+    Int node = to;
     
     Int stack_ptr = -1;
     
-    while( (node != root) && (stack_ptr < max_depth) )
+    while( (node != from) && (stack_ptr < max_depth) )
     {
         node = Parent(node);
         stack[++stack_ptr] = node;

@@ -7,11 +7,11 @@ public:
  */
 
 Int Simplify4(
-    const Int  max_dist,
-    const bool compressQ = true,
-    const Int  simplify3_level = 4,
+    const Int  max_dist           = std::numeric_limits<Int>::max(),
+    const bool compressQ          = true,
+    const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q = true
+    const bool strand_R_II_Q      = true
 )
 {
     if( provably_minimalQ )

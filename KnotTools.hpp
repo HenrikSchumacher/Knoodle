@@ -294,6 +294,7 @@ namespace KnotTools
 #include "src/PolygonFolder.hpp"
 
 #include "src/AffineTransform.hpp"
-#include "src/AffineTransform2.hpp"
+#include "src/ClangMatrix.hpp"
+#include "src/ClangAffineTransform.hpp"
 #include "src/ClisbyTree.hpp"
 

@@ -8,6 +8,7 @@ namespace KnotTools
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
+        static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
         
     public:
         
@@ -19,11 +20,19 @@ namespace KnotTools
         using Tree_T::max_depth;
         
         static constexpr Int AmbDim  = AmbDim_;
+    
+        static constexpr bool use_clang_matrixQ = true && VectorizableQ<Real>;
         
-        using Vector_T        = Tiny::Vector<AmbDim_,Real,Int>;
-        using Matrix_T        = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
-        using Transform_T     = AffineTransform<AmbDim,Real,Int>;
-//        using Transform_T     = AffineTransform2<AmbDim,Real,Int>;
+        
+//        using Transform_T     = AffineTransform<AmbDim,Real,Int>;
+        using Transform_T    = typename std::conditional_t<
+                                   use_clang_matrixQ,
+                                   ClangAffineTransform<AmbDim,Real,Int>,
+                                   AffineTransform<AmbDim,Real,Int>
+                               >;
+            
+        using Vector_T       = typename Transform_T::Vector_T;
+        using Matrix_T       = typename Transform_T::Matrix_T;
         
         using NodeContainer_T = Tensor2<Real,Int>;
         
@@ -129,8 +138,8 @@ namespace KnotTools
     
         bool mid_changedQ = false;
         Real theta;                     // Rotation angle
-        Vector_T    X_p;                // Pivot location.
-        Vector_T    X_q;                // Pivot location.
+        Vector_T   X_p;                // Pivot location.
+        Vector_T   X_q;                // Pivot location.
         Transform_T id;
         Transform_T transform;          // Pivot transformation.
         
@@ -218,7 +227,7 @@ namespace KnotTools
             const double delta = Frac<double>( Scalar::TwoPi<double>, n );
             const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
             
-            Vector_T v ( Real(0) );
+            Real v [AmbDim] = { Real(0) };
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
@@ -227,7 +236,7 @@ namespace KnotTools
                 v[0] = r * std::cos( theta );
                 v[1] = r * std::sin( theta );
                 
-                v.Write( &x[AmbDim * vertex] );
+                copy_buffer<AmbDim>( &v[0], &x[AmbDim * vertex] );
             }
             
             ReadVertexCoordinates(x);

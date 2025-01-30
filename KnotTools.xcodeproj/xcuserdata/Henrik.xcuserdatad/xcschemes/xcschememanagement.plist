@@ -9,6 +9,11 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>Test_ClisbyTree.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
 		<key>Test_Link_2D.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -17,6 +22,11 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>AFC2F3F02D4AC2E900FF8621</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>AFF3054C2B7AF4E2009ABC74</key>
 		<dict>
 			<key>primary</key>

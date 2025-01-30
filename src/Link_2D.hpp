@@ -442,7 +442,7 @@ namespace KnotTools
             ptic("FindIntersectingEdges_DFS");
             FindIntersectingEdges_DFS();
             ptoc("FindIntersectingEdges_DFS");
-            
+           
             // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
             edge_ctr.template RequireSize<false>( edge_ptr.Size() );
             edge_ctr.Read( edge_ptr.data() );

@@ -390,7 +390,7 @@ namespace KnotTools
             return C_data(c,1);
         }
 
-        void MarkCrossing( const int c )
+        void MarkCrossing( const Int c )
         {
             C_data(c,0) = color;
             C_data(c,1) = strand_length;

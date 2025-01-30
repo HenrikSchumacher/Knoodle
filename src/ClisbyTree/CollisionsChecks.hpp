@@ -4,16 +4,24 @@
 
 static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
 {
-    Real d2 = 0;
+//    Real d2 = 0;
+//    
+//    for( Int k = 0; k < AmbDim; ++k )
+//    {
+//        const Real delta = N_R[k] - N_L[k];
+//        
+//        d2 += delta * delta;
+//    }
+//
+//    const Real d   = Sqrt(d2);
     
-    for( Int k = 0; k < AmbDim; ++k )
-    {
-        const Real delta = N_R[k] - N_L[k];
-        
-        d2 += delta * delta;
-    }
     
-    const Real d   = Sqrt(d2);
+    const Vector_T c_L ( N_L );
+    const Vector_T c_R ( N_R );
+    
+    const Real d = (c_R - c_L).Norm();
+    
+    
     const Real r_L = N_L[AmbDim];
     const Real r_R = N_R[AmbDim];
     
@@ -21,7 +29,9 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     {
         N[AmbDim] = r_L;
         
-        copy_buffer<AmbDim>(N_L,N);
+//        copy_buffer<AmbDim>(N_L,N);
+        
+        c_L.Write(N);
         
         return;
     }
@@ -30,7 +40,8 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     {
         N[AmbDim] = r_R;
         
-        copy_buffer<AmbDim>(N_R,N);
+//        copy_buffer<AmbDim>(N_R,N);
+        c_R.Write(N);
         
         return;
     }
@@ -40,10 +51,13 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     const Real alpha_L = Scalar::Half<Real> - s;
     const Real alpha_R = Scalar::Half<Real> + s;
     
-    for( Int k = 0; k < AmbDim; ++k )
-    {
-        N[k] = alpha_L *  N_L[k] + alpha_R * N_R[k];
-    }
+//    for( Int k = 0; k < AmbDim; ++k )
+//    {
+//        N[k] = alpha_L * N_L[k] + alpha_R * N_R[k];
+//    }
+    
+    const Vector_T c = alpha_L * c_L + alpha_R * c_R;
+    c.Write(N);
 
     N[AmbDim] = Scalar::Half<Real> * ( d + r_L + r_R );
 }
@@ -59,14 +73,10 @@ static constexpr Real NodeCenterSquaredDistance(
     const cptr<Real> N_0, const cptr<Real> N_1
 )
 {
-    Real d2 = 0;
+    const Vector_T c_L ( N_0 );
+    const Vector_T c_R ( N_1 );
     
-    for( Int k = 0; k < AmbDim; ++k )
-    {
-        const Real delta = N_1[k] - N_0[k];
-        
-        d2 += delta * delta;
-    }
+    const Real d2 = (c_R - c_L).SquaredNorm();
     
     return d2;
 }

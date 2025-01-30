@@ -35,36 +35,6 @@ UpdateFlag_T NodeNeedsUpdateQ(
     }
 }
 
-void ComputePivotTransform()
-{
-    // Rotation axis.
-    Vector_T u = (X_q - X_p);
-    u.Normalize();
-    
-    const Real cos = std::cos(theta);
-    const Real sin = std::sin(theta);
-    const Real d = Scalar::One<Real> - cos;
-    
-    Matrix_T A;
-    
-    A[0][0] = u[0] * u[0] * d + cos;
-    A[0][1] = u[0] * u[1] * d - sin * u[2];
-    A[0][2] = u[0] * u[2] * d + sin * u[1];
-    
-    A[1][0] = u[1] * u[0] * d + sin * u[2];
-    A[1][1] = u[1] * u[1] * d + cos;
-    A[1][2] = u[1] * u[2] * d - sin * u[0];
-    
-    A[2][0] = u[2] * u[0] * d - sin * u[1];
-    A[2][1] = u[2] * u[1] * d + sin * u[0];
-    A[2][2] = u[2] * u[2] * d + cos;
-    
-    // Compute shift b = X_p - A.X_p.
-    Vector_T b = X_p - Dot(A,X_p);
-    
-    transform = Transform_T( std::move(A), std::move(b) );
-}
-
 int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
 {
     p = Min(pivot_p,pivot_q);

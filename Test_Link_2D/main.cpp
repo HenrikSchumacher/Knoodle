@@ -1,10 +1,3 @@
-//
-//  main.cpp
-//  Test_Link_2D
-//
-//  Created by Henrik on 12.02.24.
-//
-
 #include <iostream>
 
 #define LAPACK_DISABLE_NAN_CHECK

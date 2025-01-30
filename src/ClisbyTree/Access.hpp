@@ -87,21 +87,6 @@ mref<Real> NodeRadius( const Int node )
     return N_data.data()[NodeDim * node + AmbDim];
 }
 
-Transform_T NodeTransform( const Int node ) const
-{
-    if constexpr ( perf_countersQ )
-    {
-        ++load_counter;
-    }
-    
-    return Transform_T( NodeTransformPtr(node) );
-}
-
-Vector_T NodeCenter( const Int node ) const
-{
-    return Vector_T( NodeCenterPtr(node) );
-}
-
 Vector_T VertexCoordinates( const Int vertex ) const
 {
     Int node = VertexNode(vertex);
@@ -121,6 +106,28 @@ Vector_T VertexCoordinates( const Int vertex ) const
     return x;
 }
 
+//Vector_T VertexCoordinates( const Int vertex )
+//{
+//    Int node = VertexNode(vertex);
+//    
+//    PullTransforms( Root(), node );
+//    
+//    return NodeCenter(node);
+//}
+
+void WriteVertexCoordinates( mptr<Real> X )
+{
+    PushAllTransforms();
+    
+    // Copy leave nodes.
+    for( Int vertex = 0; vertex < VertexCount(); ++vertex )
+    {
+        const Int node = PrimitiveNode(vertex);
+
+        copy_buffer<AmbDim>( NodeCenterPtr(node), &X[AmbDim*vertex] );
+    }
+}
+
 Tensor2<Real,Int> VertexCoordinates()
 {
     PushAllTransforms();
@@ -129,13 +136,7 @@ Tensor2<Real,Int> VertexCoordinates()
     
     Tensor2<Real,Int> X ( n, AmbDim );
     
-    // Copy leave nodes.
-    for( Int vertex = 0; vertex < LeafNodeCount(); ++vertex )
-    {
-        const Int node = PrimitiveNode(vertex);
-
-        copy_buffer<AmbDim>( NodeCenterPtr(node), &X.data()[AmbDim*vertex] );
-    }
+    WriteVertexCoordinates( X.data() );
     
     return X;
 }

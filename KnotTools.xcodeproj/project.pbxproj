@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AFC2F3EF2D4AC2E900FF8621 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AFF3054B2B7AF4E2009ABC74 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -26,13 +35,25 @@
 /* Begin PBXFileReference section */
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
+		AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* KnotTools.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KnotTools.hpp; sourceTree = "<group>"; };
 		AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_Link_2D; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFF3054F2B7AF4E2009ABC74 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Test_ClisbyTree; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		AFC2F3EE2D4AC2E900FF8621 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFF3054A2B7AF4E2009ABC74 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -59,6 +80,7 @@
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305482B7AF300009ABC74 /* KnotTools.hpp */,
 				AFF3054E2B7AF4E2009ABC74 /* Test_Link_2D */,
+				AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -68,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */,
+				AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +106,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AFC2F3F02D4AC2E900FF8621 /* Test_ClisbyTree */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AFC2F3F72D4AC2E900FF8621 /* Build configuration list for PBXNativeTarget "Test_ClisbyTree" */;
+			buildPhases = (
+				AFC2F3ED2D4AC2E900FF8621 /* Sources */,
+				AFC2F3EE2D4AC2E900FF8621 /* Frameworks */,
+				AFC2F3EF2D4AC2E900FF8621 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */,
+			);
+			name = Test_ClisbyTree;
+			packageProductDependencies = (
+			);
+			productName = Test_ClisbyTree;
+			productReference = AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */;
+			productType = "com.apple.product-type.tool";
+		};
 		AFF3054C2B7AF4E2009ABC74 /* Test_Link_2D */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AFF305512B7AF4E2009ABC74 /* Build configuration list for PBXNativeTarget "Test_Link_2D" */;
@@ -107,8 +152,11 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1610;
+				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					AFC2F3F02D4AC2E900FF8621 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					AFF3054C2B7AF4E2009ABC74 = {
 						CreatedOnToolsVersion = 15.2;
 					};
@@ -128,11 +176,19 @@
 			projectRoot = "";
 			targets = (
 				AFF3054C2B7AF4E2009ABC74 /* Test_Link_2D */,
+				AFC2F3F02D4AC2E900FF8621 /* Test_ClisbyTree */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AFC2F3ED2D4AC2E900FF8621 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFF305492B7AF4E2009ABC74 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -210,6 +266,14 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+				);
 				OTHER_LDFLAGS = "-lamd";
 				SDKROOT = macosx;
 			};
@@ -257,6 +321,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = fast;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -274,8 +339,46 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+				);
 				OTHER_LDFLAGS = "-lamd";
 				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		AFC2F3F52D4AC2E900FF8621 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AFC2F3F62D4AC2E900FF8621 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
 		};
@@ -288,11 +391,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				OTHER_CPLUSPLUSFLAGS = (
-					"$(OTHER_CFLAGS)",
-					"-pthread",
-					"-fenable-matrix",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -306,11 +404,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				OTHER_CPLUSPLUSFLAGS = (
-					"$(OTHER_CFLAGS)",
-					"-pthread",
-					"-fenable-matrix",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -323,6 +416,15 @@
 			buildConfigurations = (
 				AF5BC0B829D1AF1C008CA8B7 /* Debug */,
 				AF5BC0B929D1AF1C008CA8B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AFC2F3F72D4AC2E900FF8621 /* Build configuration list for PBXNativeTarget "Test_ClisbyTree" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AFC2F3F52D4AC2E900FF8621 /* Debug */,
+				AFC2F3F62D4AC2E900FF8621 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
