@@ -176,6 +176,9 @@ int main( int argc, char** argv )
         return 1;
     }
     
+    // Use this path for profiles and general log files.
+    Profiler::Clear(path);
+    
     ParallelDo(
         [&]( const Int job )
         {
