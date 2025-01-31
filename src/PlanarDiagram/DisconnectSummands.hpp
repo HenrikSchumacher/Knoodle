@@ -169,7 +169,7 @@ bool DisconnectSummand(
             {
                 // We split a bigon.
                 
-                //   #  #  # #  #  #
+                /*   #  #  # #  #  #
                 //   ## # ## ## # ##
                 //    ##X##   ##X##
                 //       \     ^
@@ -192,7 +192,7 @@ bool DisconnectSummand(
                 // b_next /   \ a_prev
                 //       v     \
                 //      X       X
-                //
+                */
                 
                 const Int c_0 = A_cross(a,Tail);
                 const Int c_1 = A_cross(a,Head);
@@ -232,7 +232,7 @@ bool DisconnectSummand(
             }
             else
             {
-                //  #################
+                /*  #################
                 //  #               #
                 //  #               #
                 //  #################
@@ -249,6 +249,7 @@ bool DisconnectSummand(
                 //     v         \
                 //
                 // Beware of Reidemeister I move here!
+                */
                 
                 const Int c = A_cross(a,Tail);
                 
@@ -266,7 +267,7 @@ bool DisconnectSummand(
         }
         else if( A_cross(b,Tail) == A_cross(a,Head) )
         {
-            //  #################
+            /*  #################
             //  #               #
             //  #               #
             //  #################
@@ -283,6 +284,7 @@ bool DisconnectSummand(
             //     /         v
             //
             // Beware of Reidemeister I move here!
+            */
             
             const Int c = A_cross(a,Head);
 
@@ -300,7 +302,7 @@ bool DisconnectSummand(
             return true;
         }
         
-        // `a` and `b` do not have any crossing in common.
+        /* `a` and `b` do not have any crossing in common.
         //
         //    #####################
         //       ^             |
@@ -309,7 +311,7 @@ bool DisconnectSummand(
         //       |             |
         //       |             v
         //    #####################
-        //
+        */
 
         const Int c_a = A_cross(a,Head);
         const Int c_b = A_cross(b,Head);

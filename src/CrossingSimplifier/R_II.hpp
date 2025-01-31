@@ -126,7 +126,7 @@ bool Reidemeister_II( const Int c_0 )
                 PD_ASSERT(C_arcs(c_0,Out,side) == C_arcs(c_1,In ,side));
                 PD_ASSERT(C_arcs(c_0,In ,side) == C_arcs(c_1,Out,side));
                 
-//              This horizontal alignment in the case of side==Right.
+/*              This horizontal alignment in the case of side==Right.
 //
 //                   C_arcs(c_0,Out,side) = b = C_arcs(c_1,In ,side)
 //
@@ -144,7 +144,7 @@ bool Reidemeister_II( const Int c_0 )
 //
 //               Because of the previous Reidemeister I tests we now know
 //               e_0 != e_3 and e_1 != e_2.
-                
+*/ 
                 if( pd.OppositeHandednessQ(c_0,c_1) )
                 {
                     Reidemeister_II_Horizontal(c_0,c_1,side);

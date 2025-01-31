@@ -18,7 +18,7 @@ bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
     PD_ASSERT(C_0(Out,side) == C_1(In ,side));
     PD_ASSERT(C_0(In ,side) == C_1(Out,side));
     
-// We assume this horizontal alignment in the case of side==Right.
+/* We assume this horizontal alignment in the case of side==Right.
 // Both crossing's handedness can also be opposite (at the same time!).
 //
 //                  C_0(Out,side) = B = C_1(In ,side)
@@ -36,7 +36,7 @@ bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
 //                  C_0(In ,side) = A = C_0(Out,side)
 //
 // In the case side == Left, we just flip everything around.
-    
+*/
     
     // Since the two-crossing configuration of c_0 and c_1 is not destroyed, we can test both sides.
     bool changedQ = Reidemeister_Ia_Horizontal_impl(C_0,C_1,Out,side);
@@ -88,7 +88,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
                 PD_VALPRINT("side", side == Left ? "Left" : "Right");
 
                 
-// We have this horizontal alignment in the case of io = Out and side == Right.
+/* We have this horizontal alignment in the case of io = Out and side == Right.
 // (In the case side == Left or io == In, we just have to reflect everything accordingly.)
 // All crossing's handedness can also be switched (at the same time!).
 //
@@ -118,7 +118,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                       /   \             /   \
 //                      /     \     A     v     v
 //           O---->----O       O----<----O       O---->----O
-//
+*/
                 
 //                PD_ASSERT(io   == Out  );
 //                PD_ASSERT(side == Right);
@@ -171,7 +171,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                PD_ASSERT(C_arcs(c_2,In ,Left ) == f_0); // Only for io == Out and side == Right.
 //                PD_ASSERT(C_arcs(c_2,Out,Left ) == f_1); // Only for io == Out and side == Right.
 
-//
+/*
 // In the case side == Left or io == In, we just have to reflect everything accordingly.
 //
 //
@@ -202,7 +202,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                       /   \             /   \
 //                      /     v     A     /     v
 //           O---->----O       O---->----O       O---->----O
-                
+*/
                 
                 // Reverse a.
                 std::swap( A(Tail), A(Head));
@@ -264,7 +264,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             else
             {
 
-// We have this horizontal alignment in the case of io = Out and side == Right.
+/* We have this horizontal alignment in the case of io = Out and side == Right.
 // (In the case side == Left or io == In, we just have to reflect everything accordingly.)
 // All crossing's handedness can also be switched (at the same time!).
 //
@@ -294,7 +294,8 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                       /   \             /   \
 //                      /     \     A     v     v
 //           O---->----O       O----<----O       O---->----O
-
+*/
+                
 // So we cannot do anything meaningful.
                 return false;
             }
@@ -321,69 +322,73 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //            {
 //                if( side == Left )
 //                {
-//// We have this horizontal alignment in the case of io = Out and side == Left.
-//// All crossing's handedness can also be switched (at the same time!).
-////
-////                              O       O
-////                             / ^     / ^
-////                            /   \   /   \
-////                           /     \ /     \
-////                          /       X C_2   \
-////                    E_1  /       / \       \  E_0
-////                        /       /   \       \
-////                       /       v     \       \
-////                      v       O       O       \
-////                     +        |       ^        +
-////                     |    F_0 v       | F_1    ^
-////                     |      +-----------+      |
-////                     |      |  Tangle   |      |
-////                     |      +-----------+      |
-////                     v                         |
-////                     O       O----<----O       O
-////                      \     /           ^     ^
-////                       \   /             \   /
-////                        \ /               \ /
-////                     C_1 /                 / C_0
-////                        / \               / \
-////                       /   \             /   \
-////                      v     v           /     \
-////           O----<----O       O---->----O       O----<----O
-////
+            
+/* We have this horizontal alignment in the case of io = Out and side == Left.
+// All crossing's handedness can also be switched (at the same time!).
+//
+//                              O       O
+//                             / ^     / ^
+//                            /   \   /   \
+//                           /     \ /     \
+//                          /       X C_2   \
+//                    E_1  /       / \       \  E_0
+//                        /       /   \       \
+//                       /       v     \       \
+//                      v       O       O       \
+//                     +        |       ^        +
+//                     |    F_0 v       | F_1    ^
+//                     |      +-----------+      |
+//                     |      |  Tangle   |      |
+//                     |      +-----------+      |
+//                     v                         |
+//                     O       O----<----O       O
+//                      \     /           ^     ^
+//                       \   /             \   /
+//                        \ /               \ /
+//                     C_1 /                 / C_0
+//                        / \               / \
+//                       /   \             /   \
+//                      v     v           /     \
+//           O----<----O       O---->----O       O----<----O
+*/
+            
 //                    F_0 = GetArc(C_2( Out, Left ));
 //                    F_1 = GetArc(C_2( In , Left ));
 //                }
 //                else // if( side == Right )
 //                {
-//// We have this horizontal alignment in the case of io = Out and side == Right.
-//// (In the case side == Left or io == In, we just have to reflect everything accordingly.)
-//// All crossing's handedness can also be switched (at the same time!).
-////
-////                              O       O
-////                             ^ \     ^ \
-////                            /   \   /   \
-////                           /     \ /     \
-////                          /       X C_2   \
-////                    E_0  /       / \       \  E_1
-////                        /       /   \       \
-////                       /       /     v       \
-////                      /       O       O       v
-////                     +        ^       |        +
-////                     ^    F_1 |       v F_0    |
-////                     |      +-----------+      |
-////                     |      |  Tangle   |      |
-////                     |      +-----------+      |
-////                     |                         v
-////                     O       O---->----O       O
-////                      ^     ^           \     /
-////                       \   /             \   /
-////                        \ /               \ /
-////                     C_0 /                 / C_1
-////                        / \               / \
-////                       /   \             /   \
-////                      /     \           v     v
-////           O---->----O       O----<----O       O---->----O
-////
-////
+            
+/* We have this horizontal alignment in the case of io = Out and side == Right.
+// (In the case side == Left or io == In, we just have to reflect everything accordingly.)
+// All crossing's handedness can also be switched (at the same time!).
+//
+//                              O       O
+//                             ^ \     ^ \
+//                            /   \   /   \
+//                           /     \ /     \
+//                          /       X C_2   \
+//                    E_0  /       / \       \  E_1
+//                        /       /   \       \
+//                       /       /     v       \
+//                      /       O       O       v
+//                     +        ^       |        +
+//                     ^    F_1 |       v F_0    |
+//                     |      +-----------+      |
+//                     |      |  Tangle   |      |
+//                     |      +-----------+      |
+//                     |                         v
+//                     O       O---->----O       O
+//                      ^     ^           \     /
+//                       \   /             \   /
+//                        \ /               \ /
+//                     C_0 /                 / C_1
+//                        / \               / \
+//                       /   \             /   \
+//                      /     \           v     v
+//           O---->----O       O----<----O       O---->----O
+//
+*/
+            
 //                    F_0 = GetArc(C_2( Out, Right));
 //                    F_1 = GetArc(C_2( In , Right));
 //                }
@@ -392,66 +397,72 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //            {
 //                if( side == Left )
 //                {
-//// We have this horizontal alignment in the case of io = In and side == Left.
-//// All crossing's handedness can also be switched (at the same time!).
-////
-////           O---->----O       O----<----O       O---->----O
-////                      \     /           ^     ^
-////                       \   /             \   /
-////                        \ /               \ /
-////                     C_1 /                 / C_0
-////                        / \               / \
-////                       /   \             /   \
-////                      v     v           /     \
-////                     O       O---->----O       O
-////                     |                         ^
-////                     |      +-----------+      |
-////                     |      |  Tangle   |      |
-////                     |      +-----------+      |
-////                     v    F_0 |       ^ F_1    |
-////                     +        v       |        +
-////                      \       O       O       ^
-////                       \       \     ^       /
-////                        \       \   /       /
-////                    E_1  \       \ /       /  E_0
-////                          \       X C_2   /
-////                           \     / \     /
-////                            \   /   \   /
-////                             v /     v /
-////                              O       O
+
+/*  We have this horizontal alignment in the case of io = In and side == Left.
+// All crossing's handedness can also be switched (at the same time!).
+//
+//           O---->----O       O----<----O       O---->----O
+//                      \     /           ^     ^
+//                       \   /             \   /
+//                        \ /               \ /
+//                     C_1 /                 / C_0
+//                        / \               / \
+//                       /   \             /   \
+//                      v     v           /     \
+//                     O       O---->----O       O
+//                     |                         ^
+//                     |      +-----------+      |
+//                     |      |  Tangle   |      |
+//                     |      +-----------+      |
+//                     v    F_0 |       ^ F_1    |
+//                     +        v       |        +
+//                      \       O       O       ^
+//                       \       \     ^       /
+//                        \       \   /       /
+//                    E_1  \       \ /       /  E_0
+//                          \       X C_2   /
+//                           \     / \     /
+//                            \   /   \   /
+//                             v /     v /
+//                              O       O
+*/
+            
 //
 //                    F_0 = GetArc(C_2( In , Left ));
 //                    F_1 = GetArc(C_2( Out, Left ));
 //                }
 //                else // if( side == Right )
 //                {
-//// We have this horizontal alignment in the case of io = In and side == Right.
-//// All crossing's handedness can also be switched (at the same time!).
-////
-////           O---->----O       O---->----O       O---->----O
-////                      ^     ^           \     /
-////                       \   /             \   /
-////                        \ /               \ /
-////                     C_0 /                 / C_1
-////                        / \               / \
-////                       /   \             /   \
-////                      /     \           v     v
-////                     O       O----<----O       O
-////                     ^                         |
-////                     |      +-----------+      |
-////                     |      |  Tangle   |      |
-////                     |      +-----------+      |
-////                     |    F_1 ^       | F_0    v
-////                     +        |       v        +
-////                      ^       O       O       /
-////                       \       ^     /       /
-////                        \       \   /       /
-////                    E_0  \       \ /       /  E_1
-////                          \       X C_2   /
-////                           \     / \     /
-////                            \   /   \   /
-////                             \ v     \ v
-////                              O       O
+            
+/* We have this horizontal alignment in the case of io = In and side == Right.
+// All crossing's handedness can also be switched (at the same time!).
+//
+//           O---->----O       O---->----O       O---->----O
+//                      ^     ^           \     /
+//                       \   /             \   /
+//                        \ /               \ /
+//                     C_0 /                 / C_1
+//                        / \               / \
+//                       /   \             /   \
+//                      /     \           v     v
+//                     O       O----<----O       O
+//                     ^                         |
+//                     |      +-----------+      |
+//                     |      |  Tangle   |      |
+//                     |      +-----------+      |
+//                     |    F_1 ^       | F_0    v
+//                     +        |       v        +
+//                      ^       O       O       /
+//                       \       ^     /       /
+//                        \       \   /       /
+//                    E_0  \       \ /       /  E_1
+//                          \       X C_2   /
+//                           \     / \     /
+//                            \   /   \   /
+//                             \ v     \ v
+//                              O       O
+*/
+            
 //
 //                    F_0 = GetArc(C_2( In , Right));
 //                    F_1 = GetArc(C_2( Out, Right));
@@ -496,7 +507,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             PD_ASSERT(F_0(Tail) == C_2); // Only for io == Out, side == Left.
 
             
-// We have this horizontal alignment in the case of io = Out and side == Left.
+/* We have this horizontal alignment in the case of io = Out and side == Left.
 // All crossing's handedness can also be switched (at the same time!).
 //
 //                              O       O
@@ -523,7 +534,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                       /   \             /   \
 //                      v     v           /     \
 //           O----<----O       O---->----O       O----<----O
-
+*/
 
             //TODO: Test this.
                 
@@ -543,7 +554,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
             
             DeactivateCrossing(C_2.Idx());
             
-// We we want to change it into this in the case of io = Out and side == Left.
+/* We we want to change it into this in the case of io = Out and side == Left.
 // All crossing's handedness can also be switched (at the same time!).
 //
 //                                      +
@@ -570,7 +581,7 @@ bool Reidemeister_Ia_Horizontal_impl( CrossingView & C_0, CrossingView & C_1, co
 //                       /   \             /   \
 //                      v     v           /     \
 //           O----<----O       O---->----O       O----<----O
-
+*/
             
             
             PD_PRINT("Changed data.");

@@ -48,40 +48,40 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
             return false;
         }
 
-// Now C_1 and C_3 should share an arc and the situation should look like this.
-// (The handedness of crossings c_0 and c_1 might be flipped.)
-//
-//          A_3 O       O B_3
-//               ^     ^
-//                \   /
-//                 \ /
-//                  \ C_2
-//                 / \
-//                /   \
-//               /     \
-//              O       O
-//         B_2 ^         ^ A_2
-//            /           \
-//           O             O
-//           ^             ^
-//           |C_3          |C_1
-//    ---O---X---O-----O---X---O---
-//           |             |
-//           |             |
-//           O             O
-//        B_1 ^           ^ A_1
-//             \         /
-//              O       O
-//               ^     ^
-//                \   /
-//                 \ /
-//                  / C_0
-//                 / \
-//                /   \
-//               /     \
-//          A_0 O       O B_0
-//
-//
+/* Now C_1 and C_3 should share an arc and the situation should look like this.
+ * (The handedness of crossings c_0 and c_1 might be flipped.)
+ *
+ *          A_3 O       O B_3
+ *               ^     ^
+ *                \   /
+ *                 \ /
+ *                  \ C_2
+ *                 / \
+ *                /   \
+ *               /     \
+ *              O       O
+ *         B_2 ^         ^ A_2
+ *            /           \
+ *           O             O
+ *           ^             ^
+ *           |C_3          |C_1
+ *    ---O---X---O-----O---X---O---
+ *           |             |
+ *           |             |
+ *           O             O
+ *        B_1 ^           ^ A_1
+ *             \         /
+ *              O       O
+ *               ^     ^
+ *                \   /
+ *                 \ /
+ *                  / C_0
+ *                 / \
+ *                /   \
+ *               /     \
+ *          A_0 O       O B_0
+ *
+ */
         
         
         PD_ASSERT(C_0(In ,Left ) == A_0);
@@ -136,28 +136,28 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
         DeactivateCrossing(C_0.Idx());
         DeactivateCrossing(C_2.Idx());
         
-        // Now c_1 and c_3 should share an arc and the situation should look like this.
-        // (The handedness of crossings c_0 and c_1 might be flipped.)
-        //
-        //           ^             ^
-        //           |             |
-        //       E_3 |             | B_3
-        //           |             |
-        //           |             |
-        //           O             O
-        //           ^             ^
-        //           |C_3          |C_1
-        //    ---O---X---O-----O---X---O---
-        //           |             |
-        //           |             |
-        //           O             O
-        //           ^             ^
-        //           |             |
-        //           |             |
-        //       E_0 |             | B_0
-        //           |             |
-        //
-        //
+        /* Now c_1 and c_3 should share an arc and the situation should look like this.
+         * (The handedness of crossings c_0 and c_1 might be flipped.)
+         *
+         *           ^             ^
+         *           |             |
+         *       E_3 |             | B_3
+         *           |             |
+         *           |             |
+         *           O             O
+         *           ^             ^
+         *           |C_3          |C_1
+         *    ---O---X---O-----O---X---O---
+         *           |             |
+         *           |             |
+         *           O             O
+         *           ^             ^
+         *           |             |
+         *           |             |
+         *       E_0 |             | B_0
+         *           |             |
+         *
+         */
         
         
         PD_PRINT("Changed data");

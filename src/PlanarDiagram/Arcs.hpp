@@ -31,35 +31,38 @@ bool ArcUnderQ( const Int a )  const
 //
 //                return (side == CrossingRightHandedQ(c));
 //
-//                // (side == Right) && CrossingRightHandedQ(c)
-//                //
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            / c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //                ^
-//                //                 \
-//                //                  \ a
-//                //                   \
-//                //                    X
-//                //
-//                //  (side == Left) && CrossingLeftHandedQ(c)
-//                //
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            \ c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //        ^
-//                //       /
-//                //      / a
-//                //     /
-//                //    X
+    
+                /* (side == Right) && CrossingRightHandedQ(c)
+                 *
+                 *         O     O
+                 *          ^   ^
+                 *           \ /
+                 *            / c
+                 *           / \
+                 *          /   \
+                 *         O     O
+                 *                ^
+                 *                 \
+                 *                  \ a
+                 *                   \
+                 *                    X
+                 *
+                 *  (side == Left) && CrossingLeftHandedQ(c)
+                 *
+                 *         O     O
+                 *          ^   ^
+                 *           \ /
+                 *            \ c
+                 *           / \
+                 *          /   \
+                 *         O     O
+                 *        ^
+                 *       /
+                 *      / a
+                 *     /
+                 *    X
+                 */
+    
 //            }
 //            else // if( headtail == Tail )
 //            {
@@ -68,37 +71,39 @@ bool ArcUnderQ( const Int a )  const
 //
 //                return (side == CrossingLeftHandedQ(c));
 //
-//                // Positive cases:
-//                //
-//                // (side == Right) && CrossingLeftHandedQ(c)
-//                //
-//                //
-//                //                   ^
-//                //                  /
-//                //                 / a
-//                //                /
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            \ c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //
-//                // (side == Left) && CrossingRightHandedQ(c)
-//                //
-//                //     ^
-//                //      \
-//                //       \ a
-//                //        \
-//                //         O     O
-//                //          ^   ^
-//                //           \ /
-//                //            / c
-//                //           / \
-//                //          /   \
-//                //         O     O
-//                //
+    
+                /* Positive cases:
+                 *
+                 * (side == Right) && CrossingLeftHandedQ(c)
+                 *
+                 *
+                 *                   ^
+                 *                  /
+                 *                 / a
+                 *                /
+                 *         O     O
+                 *          ^   ^
+                 *           \ /
+                 *            \ c
+                 *           / \
+                 *          /   \
+                 *         O     O
+                 *
+                 * (side == Left) && CrossingRightHandedQ(c)
+                 *
+                 *     ^
+                 *      \
+                 *       \ a
+                 *        \
+                 *         O     O
+                 *          ^   ^
+                 *           \ /
+                 *            / c
+                 *           / \
+                 *          /   \
+                 *         O     O
+                 */
+    
 //            }
     
 //            // Short version of code for performance.
@@ -178,27 +183,29 @@ Arrow_T NextLeftArc( const Int a, const bool headtail ) const
         
         if( b != a )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //   b     a
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *   b     a
+             */
 
             return Arrow_T(b,Tail);
         }
         else // if( b == a )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            // a == b
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             * a == b
+             */
 
             return Arrow_T(C_arcs(c,Out,Left),Head);
         }
@@ -211,27 +218,29 @@ Arrow_T NextLeftArc( const Int a, const bool headtail ) const
         
         if( b != a )
         {
-            //   a     b
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*   a     b
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return Arrow_T(b,Head);
         }
         else // if( b == a )
         {
-            //      a == b
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*      a == b
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return Arrow_T(C_arcs(c,In,Right),Tail);
         }
@@ -252,27 +261,29 @@ Int NextLeftArc( const Int A ) const
         
         if( B != A )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //   B     A
-
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *   B     A
+             */
+             
             return B ^ Int(1);
         }
         else // if( B == A )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            // A == B
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             * A == B
+             */
 
             return (C_arcs(c,Out,Left) << 1) | Int(Head);
         }
@@ -285,27 +296,29 @@ Int NextLeftArc( const Int A ) const
         
         if( B != A )
         {
-            //   A     B
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*   A     B
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return B ^ Int(1);
         }
         else // if( B == A )
         {
-            //      A == B
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*      A == B
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return (C_arcs(c,In,Right) << 1) | Int(Tail);
         }
@@ -406,27 +419,29 @@ Arrow_T NextRightArc( const Int a, const bool headtail ) const
 
         if( b != a )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //   a     b
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *   a     b
+             */
 
             return Arrow_T(b,Tail);
         }
         else // if( b == a )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //       a == b
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *       a == b
+             */
 
             return Arrow_T(C_arcs(c,Out,Right),Head);
         }
@@ -439,27 +454,29 @@ Arrow_T NextRightArc( const Int a, const bool headtail ) const
 
         if( b != a )
         {
-            //   b     a
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*   b     a
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return Arrow_T(b,Head);
         }
         else // if( b == a )
         {
-            // a == b
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /* a == b
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return Arrow_T(C_arcs(c,In,Left),Tail);
         }
@@ -480,27 +497,29 @@ Int NextRightArc( const Int A ) const
 
         if( B != A )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //   A     B
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *   A     B
+             */
 
             return B ^ Int(1);
         }
         else // if( A == B )
         {
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
-            //       A == B
+            /*   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             *       A == B
+             */
 
             return (C_arcs(c,Out,Right) << 1) | Int(Head);
         }
@@ -513,27 +532,29 @@ Int NextRightArc( const Int A ) const
 
         if( B != A )
         {
-            //   B     A
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /*   B     A
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return B ^ Int(1);
         }
         else // if( B == A )
         {
-            // A == B
-            //   O     O
-            //    ^   ^
-            //     \ /
-            //      X c
-            //     / \
-            //    /   \
-            //   O     O
+            /* A == B
+             *   O     O
+             *    ^   ^
+             *     \ /
+             *      X c
+             *     / \
+             *    /   \
+             *   O     O
+             */
 
             return (C_arcs(c,In,Left) << 1) | Int(Tail);
         }
@@ -567,15 +588,16 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
                 };
                 
                 
-                // A[Out][Left ]         A[Out][Right]
-                //               O     O
-                //                ^   ^
-                //                 \ /
-                //                  X c
-                //                 ^ ^
-                //                /   \
-                //               O     O
-                // A[In ][Left ]         A[In ][Right]
+                /* A[Out][Left ]         A[Out][Right]
+                 *               O     O
+                 *                ^   ^
+                 *                 \ /
+                 *                  X c
+                 *                 ^ ^
+                 *                /   \
+                 *               O     O
+                 * A[In ][Left ]         A[In ][Right]
+                 */
                 
                 A_left(A[Out][Left ],Tail) = arrows[Out][Right];
                 
@@ -769,16 +791,17 @@ Tensor3<Int,Int> ArcWings() const
             };
             
             
-            // A[Out][Left ]         A[Out][Right]
-            //               O     O
-            //                ^   ^
-            //                 \ /
-            //                  X c
-            //                 ^ ^
-            //                /   \
-            //               O     O
-            // A[In ][Left ]         A[In ][Right]
-            
+            /* A[Out][Left ]         A[Out][Right]
+             *               O     O
+             *                ^   ^
+             *                 \ /
+             *                  X c
+             *                 ^ ^
+             *                /   \
+             *               O     O
+             * A[In ][Left ]         A[In ][Right]
+             */
+             
             A_wings(A[Out][Left ],Tail,Left ) = arrows[In ][Left ];
             A_wings(A[Out][Left ],Tail,Right) = arrows[Out][Right];
             

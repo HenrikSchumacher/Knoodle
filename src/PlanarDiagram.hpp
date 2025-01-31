@@ -594,31 +594,33 @@ namespace KnotTools
 //            Int C [2][2];
 //            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
             
-        // Before:
-        //
-        //   C[Out][Left ] O       O C[Out][Right]
-        //                  ^     ^
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  /     \
-        //   C[In ][Left ] O       O C[In ][Right]
+        /* Before:
+         *
+         *   C[Out][Left ] O       O C[Out][Right]
+         *                  ^     ^
+         *                   \   /
+         *                    \ /
+         *                     X
+         *                    / \
+         *                   /   \
+         *                  /     \
+         *   C[In ][Left ] O       O C[In ][Right]
+         */
             
             if( dir == Right )
             {
-        // After:
-        //
-        //   C[Out][Left ] O       O C[Out][Right]
-        //                  \     ^
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  /     v
-        //   C[In ][Left ] O       O C[In ][Right]
+        /* After:
+         *
+         *   C[Out][Left ] O       O C[Out][Right]
+         *                  \     ^
+         *                   \   /
+         *                    \ /
+         *                     X
+         *                    / \
+         *                   /   \
+         *                  /     v
+         *   C[In ][Left ] O       O C[In ][Right]
+         */
 
                 const Int buffer = C_arcs(c,Out,Left );
                 
@@ -629,17 +631,18 @@ namespace KnotTools
             }
             else
             {
-        // After:
-        //
-        //   C[Out][Left ] O       O C[Out][Right]
-        //                  ^     /
-        //                   \   /
-        //                    \ /
-        //                     X
-        //                    / \
-        //                   /   \
-        //                  v     \
-        //   C[In ][Left ] O       O C[In ][Right]
+        /* After:
+         *
+         *   C[Out][Left ] O       O C[Out][Right]
+         *                  ^     /
+         *                   \   /
+         *                    \ /
+         *                     X
+         *                    / \
+         *                   /   \
+         *                  v     \
+         *   C[In ][Left ] O       O C[In ][Right]
+         */
                 
                 const Int buffer = C_arcs(c,Out,Left );
                 

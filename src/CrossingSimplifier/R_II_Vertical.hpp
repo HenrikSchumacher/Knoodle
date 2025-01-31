@@ -33,7 +33,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         {
 // The generic case.
 
-//  E_0 != E_3 && E_1 != E_2
+/*  E_0 != E_3 && E_1 != E_2
 //
 //
 //                    O----<----O       O---->----O
@@ -57,7 +57,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //                                /   \
 //                        E_0    /     \    E_1
 //                    O---->----O       O----<----O
-            
+*/
             Reconnect<Tail>(A,E_0);
             Reconnect<Head>(A,E_3);
             Reconnect<Tail>(B,E_1);
@@ -67,7 +67,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         }
         else
         {
-//  E_0 != E_3 && E_1 == E_2
+/*  E_0 != E_3 && E_1 == E_2
 //
 //
 //            O----<----O       O---->----+
@@ -91,6 +91,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //                        /   \             /
 //                E_0    /     \           /
 //            O---->----O       O----<----+
+*/
         }
         
         Reconnect<Tail>(B,E_0);
@@ -105,7 +106,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     }
     else if (E_1 != E_2)
     {
-//  E_0 == E_3 && E_1 != E_2
+/*  E_0 == E_3 && E_1 != E_2
 //
 //
 //            +----<----O       O---->----O
@@ -129,7 +130,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //          \             /   \
 //           \           /     \    E_1
 //            +---->----O       O----<----O
-        
+*/
         Reconnect<Tail>(A,E_1);
         Reconnect<Head>(A,E_2);
         
@@ -141,7 +142,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
     }
     else
     {
-//  E_0 == E_3 && E_1 == E_2
+/*  E_0 == E_3 && E_1 == E_2
 //
 //
 //            +----<----O       O---->----+
@@ -165,7 +166,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 //          \             /   \             /
 //           \           /     \           /
 //            +---->----O       O----<----+
-        
+*/
         pd.unlink_count += Int(2);
         
         DeactivateArc(A.Idx());

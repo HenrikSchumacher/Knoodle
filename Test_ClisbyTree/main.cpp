@@ -224,7 +224,7 @@ int main( int argc, char** argv )
                 
                 const double timing = Tools::Duration( b_start_time, b_stop_time );
                 
-                log << "Time elapsed =" << timing << " s.\n" ;
+                log << "Time elapsed = " << timing << " s.\n" ;
                 log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
                 log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second. \n";
                 log << "Success rate = " << Frac<Real>(100 * counts[0],attempt_count) << " %.\n";
@@ -258,7 +258,7 @@ int main( int argc, char** argv )
                 
                 // Open file as stream.
                 std::ofstream p_file (
-                    local_path / (std::string("Polygon_") + ToString(i) + ".tsv")
+                    local_path / (std::string("Polygon_") + StringWithLeadingZeroes(i,6) + ".tsv")
                 );
                 
                 // Write the polygon coordinates to file.

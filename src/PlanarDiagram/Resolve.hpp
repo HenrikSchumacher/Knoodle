@@ -10,7 +10,7 @@ bool ResolveCrossing( const Int c )
     if( CrossingActiveQ(c) )
     {
 
-//           O----<----O       O---->----O
+/*           O----<----O       O---->----O
 //               e_0    ^     ^    e_1
 //                       \   /
 //                        \ /
@@ -19,7 +19,7 @@ bool ResolveCrossing( const Int c )
 //                       /   \
 //               e_2    /     \    e_3
 //           O---->----O       O----<----O
-
+*/
         const Int e_0 = C_arcs(c,Out,Left );
         const Int e_1 = C_arcs(c,Out,Right);
         const Int e_2 = C_arcs(c,In ,Left );

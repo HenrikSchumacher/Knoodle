@@ -100,7 +100,7 @@ bool SameHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
 
 void RotateCrossing( CrossingView & C, const bool dir )
 {
-// Before:
+/* Before:
 //
 //    C(Out,Left ) O       O C(Out,Right)
 //                  ^     ^
@@ -111,10 +111,10 @@ void RotateCrossing( CrossingView & C, const bool dir )
 //                   /   \
 //                  /     \
 //    C(In ,Left ) O       O C(In ,Right)
-    
+*/
     if( dir == Right )
     {
-// After:
+/* After:
 //
 //    C(Out,Left ) O       O C(Out,Right)
 //                  \     ^
@@ -125,7 +125,7 @@ void RotateCrossing( CrossingView & C, const bool dir )
 //                   /   \
 //                  /     v
 //    C(In ,Left ) O       O C(In ,Right)
-        
+*/
         const Int buffer = C(Out,Left );
         
         C(Out,Left ) = C(Out,Right);
@@ -135,7 +135,7 @@ void RotateCrossing( CrossingView & C, const bool dir )
     }
     else
     {
-// After:
+/* After:
 //
 //    C(Out,Left ) O       O C(Out,Right)
 //                  ^     /
@@ -146,7 +146,7 @@ void RotateCrossing( CrossingView & C, const bool dir )
 //                   /   \
 //                  v     \
 //    C(In ,Left ) O       O C(In ,Right)
-        
+*/
         const Int buffer = C(Out,Left );
 
         C(Out,Left ) = C(In ,Left );

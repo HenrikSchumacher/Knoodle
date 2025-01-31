@@ -182,59 +182,60 @@ protected:
                     
                     intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
                     
-                    //      If det > 0, then this looks like this (left-handed crossing):
-                    //
-                    //        v       u
-                    //         ^     ^
-                    //          \   /
-                    //           \ /
-                    //            \
-                    //           / \
-                    //          /   \
-                    //         /     \
-                    //        k       l
-                    //
-                    //      If det < 0, then this looks like this (right-handed crossing):
-                    //
-                    //        u       v
-                    //         ^     ^
-                    //          \   /
-                    //           \ /
-                    //            /
-                    //           / \
-                    //          /   \
-                    //         /     \
-                    //        l       k
-
+                    /*      If det > 0, then this looks like this (left-handed crossing):
+                     *
+                     *        v       u
+                     *         ^     ^
+                     *          \   /
+                     *           \ /
+                     *            \
+                     *           / \
+                     *          /   \
+                     *         /     \
+                     *        k       l
+                     *
+                     *      If det < 0, then this looks like this (right-handed crossing):
+                     *
+                     *        u       v
+                     *         ^     ^
+                     *          \   /
+                     *           \ /
+                     *            /
+                     *           / \
+                     *          /   \
+                     *         /     \
+                     *        l       k
+                     */
                 }
                 else if ( h[0] > h[1] )
                 {
                     intersections.push_back( Intersection_T(k,l,t[0],t[1],sign) );
                     // edge k goes OVER l
                     
-                    //      If det > 0, then this looks like this (positive crossing):
-                    //
-                    //        v       u
-                    //         ^     ^
-                    //          \   /
-                    //           \ /
-                    //            /
-                    //           / \
-                    //          /   \
-                    //         /     \
-                    //        k       l
-                    //
-                    //      If det < 0, then this looks like this (positive crossing):
-                    //
-                    //        u       v
-                    //         ^     ^
-                    //          \   /
-                    //           \ /
-                    //            \
-                    //           / \
-                    //          /   \
-                    //         /     \
-                    //        l       k
+                    /*      If det > 0, then this looks like this (positive crossing):
+                     *
+                     *        v       u
+                     *         ^     ^
+                     *          \   /
+                     *           \ /
+                     *            /
+                     *           / \
+                     *          /   \
+                     *         /     \
+                     *        k       l
+                     *
+                     *      If det < 0, then this looks like this (positive crossing):
+                     *
+                     *        u       v
+                     *         ^     ^
+                     *          \   /
+                     *           \ /
+                     *            \
+                     *           / \
+                     *          /   \
+                     *         /     \
+                     *        l       k
+                     */
                 }
                 else
                 {

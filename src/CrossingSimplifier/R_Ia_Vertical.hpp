@@ -18,7 +18,8 @@ bool Reidemeister_Ia_Vertical( const Int c_0, const Int c_1 )
     PD_ASSERT(C_0(Out,Left ) == C_1(In ,Left ));
     PD_ASSERT(C_0(Out,Right) == C_1(In ,Right));
     
-    
+ 
+/*
 //                      O       O
 //                       ^     ^
 //                        \   /
@@ -40,7 +41,7 @@ bool Reidemeister_Ia_Vertical( const Int c_0, const Int c_1 )
 //                        /   \
 //                       /     \
 //                      O       O
-    
+*/
     // Since the two-crossing configuration of c_0 and c_1 is not destroyed, we can test both sides.
     const bool leftQ  = Reidemeister_Ia_Vertical_impl(C_0,C_1,Left);
     
@@ -84,7 +85,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
 //                logprint("Reidemeister_Ia_Vertical_impl - normal move!");
 //                logvalprint( "side", Right ? "Right" : "Left");
                 
-// This situation for side == Right (or all crossings flipped to other handedness):
+/* This situation for side == Right (or all crossings flipped to other handedness):
 //
 //
 //            O----<----O       O---->----+
@@ -132,6 +133,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
 //                        /   \                     /
 //                       /     v        F_0        /
 //            O---->----O       O-------->--------+
+*/
                 
                 PD_PRINT("Incoming data.");
                 
@@ -192,7 +194,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
             }
             else
             {
-// This situation:
+/* This situation:
 //
 //
 //            O----<----O       O---->----+
@@ -216,7 +218,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
 //                        /   \             /
 //                       /     \    E_0    v
 //            O---->----O       O----<----+
-                    
+*/
                 return false;
             }
 
@@ -226,7 +228,7 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
             PD_ASSERT(C_2(In ,!side) == E_1);
             PD_ASSERT(C_2(Out,!side) == E_0);
             
-// This situation:
+/* This situation:
 //
 //            O----<----O       O-------->--------+
 //                       ^     ^        E_1        \
@@ -249,32 +251,32 @@ bool Reidemeister_Ia_Vertical_impl( CrossingView & C_0, CrossingView & C_1, cons
 //                        /   \                     /
 //                       /     \        E_0        v
 //            O---->----O       O--------<--------+
-            
+*/
             
 /* Changed to this:
- *
- *            O----<----O       O
- *                       ^     ^ \
- *                        \   /   \
- *                         \ /     v
- *                      C_1 \       +
- *                         / \      | +------+ F_1
- *                        /   \     | |      |->O
- *                       /     \    | |      |   \
- *                      O       O   | |      |    \
- *                      ^       ^   | |      |     \
- *                    A |       | B | |      |      \
- *                      |       |   | |      |       \
- *                      O       O   | |      |        \
- *                       ^     ^    | |      |         v
- *                        \   /     | |      |<-O       +
- *                         \ /      v +------+  |F_0   /
- *                      C_0 \       +-----------+     /
- *                         / \                       /
- *                        /   \                     /
- *                       /     \        E_0        v
- *           O---->----O       O--------<--------+
- */
+//
+//            O----<----O       O
+//                       ^     ^ \
+//                        \   /   \
+//                         \ /     v
+//                      C_1 \       +
+//                         / \      | +------+ F_1
+//                        /   \     | |      |->O
+//                       /     \    | |      |   \
+//                      O       O   | |      |    \
+//                      ^       ^   | |      |     \
+//                    A |       | B | |      |      \
+//                      |       |   | |      |       \
+//                      O       O   | |      |        \
+//                       ^     ^    | |      |         v
+//                        \   /     | |      |<-O       +
+//                         \ /      v +------+  |F_0   /
+//                      C_0 \       +-----------+     /
+//                         / \                       /
+//                        /   \                     /
+//                       /     \        E_0        v
+//           O---->----O       O--------<--------+
+*/
             //TODO: Test this.
             
             auto F_0 = GetArc(C_2(In ,side ));

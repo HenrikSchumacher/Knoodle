@@ -33,6 +33,12 @@ namespace KnotTools
             case CrossingState::LeftHanded           : return "LeftHanded";
                 
             case CrossingState::LeftHandedUnchanged  : return "LeftHandedUnchanged";
+                
+            default:
+            {
+                eprint( "ToOpString: Argument s = " + ToString(s) + " is invalid." );
+                return "Inactive";
+            }
         }
     }
 
@@ -143,16 +149,16 @@ namespace KnotTools
         const Int k = static_cast<Int>(X[2]);
         const Int l = static_cast<Int>(X[3]);
         
-        // This is what we know so far:
-        //
-        //      l \     ^ k
-        //         \   /
-        //          \ /
-        //           \
-        //          / \
-        //         /   \
-        //      i /     \ j
-        //
+        /* This is what we know so far:
+         *
+         *      l \     ^ k
+         *         \   /
+         *          \ /
+         *           \
+         *          / \
+         *         /   \
+         *      i /     \ j
+         */
 
         // Generically, we should have l = j + 1 or j = l + 1.
         // But of course, we also have to treat the edge case where
@@ -163,54 +169,55 @@ namespace KnotTools
         
         if( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
         {
-            // These are right-handed:
-            //
-            //       O       O            O-------O
-            //      l \     ^ k          l \     ^ k
-            //         \   /                \   /
-            //          \ /                  \ /
-            //           \                    \
-            //          / \                  / \
-            //         /   \                /   \
-            //      i /     v j          i /     v j
-            //       O---<---O            O       O
-            //
-            //       O       O            O       O
-            //      l \     ^ k     j + x  \     ^ k
-            //         \   /                \   /
-            //          \ /                  \ /
-            //           \                    \
-            //          / \                  / \
-            //         /   \                /   \
-            //      i /     v l + 1     i  /     v j
-            //       O       O            O       O
+            /* These are right-handed:
+             *
+             *       O       O            O-------O
+             *      l \     ^ k          l \     ^ k
+             *         \   /                \   /
+             *          \ /                  \ /
+             *           \                    \
+             *          / \                  / \
+             *         /   \                /   \
+             *      i /     v j          i /     v j
+             *       O---<---O            O       O
+             *
+             *       O       O            O       O
+             *      l \     ^ k     j + x  \     ^ k
+             *         \   /                \   /
+             *          \ /                  \ /
+             *           \                    \
+             *          / \                  / \
+             *         /   \                /   \
+             *      i /     v l + 1     i  /     v j
+             *       O       O            O       O
+             */
             
             return CrossingState::RightHanded;
         }
         else if( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
         {
-            // These are left-handed:
-            //
-            //       O       O            O       O
-            //      l|^     ^ k          l ^     ^|k
-            //       | \   /                \   / |
-            //       |  \ /                  \ /  |
-            //       |   \                    \   |
-            //       |  / \                  / \  |
-            //       | /   \                /   \ |
-            //      i|/     \ j          i /     \|j
-            //       O       O            O       O
-            //
-            //       O       O            O       O
-            //    j+1 ^     ^ k         l  ^     ^ k
-            //         \   /                \   /
-            //          \ /                  \ /
-            //           \                    \
-            //          / \                  / \
-            //         /   \                /   \
-            //      i /     \ j         i  /     \ l + x
-            //       O       O            O       O
-            //
+            /* These are left-handed:
+             *
+             *       O       O            O       O
+             *      l|^     ^ k          l ^     ^|k
+             *       | \   /                \   / |
+             *       |  \ /                  \ /  |
+             *       |   \                    \   |
+             *       |  / \                  / \  |
+             *       | /   \                /   \ |
+             *      i|/     \ j          i /     \|j
+             *       O       O            O       O
+             *
+             *       O       O            O       O
+             *    j+1 ^     ^ k         l  ^     ^ k
+             *         \   /                \   /
+             *          \ /                  \ /
+             *           \                    \
+             *          / \                  / \
+             *         /   \                /   \
+             *      i /     \ j         i  /     \ l + x
+             *       O       O            O       O
+             */
             return CrossingState::LeftHanded;
         }
         else

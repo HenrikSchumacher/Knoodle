@@ -30,5 +30,10 @@ bool SwitchCrossing( const Int c )
         {
             return false;
         }
+        default:
+        {
+            eprint( ClassName()+"::SwitchCrossing: Value " + ToString(C_state[c]) + " is invalid" );
+            return true;
+        }
     }
 }

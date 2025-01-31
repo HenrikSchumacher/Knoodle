@@ -45,7 +45,7 @@ bool Reidemeister_I( const Int c )
     
     if( a != b )
     {
-// Changing this (case side == Left )
+/* Changing this (case side == Left )
 //                                        b = C(Out,Right)
 //                            +-<---O       O------->---O...
 //                           /       ^     ^             w
@@ -70,7 +70,7 @@ bool Reidemeister_I( const Int c )
 //                          \         /   \             |
 //                           \       /     \            |
 //                            +--->-O       O         v O...
-//
+*/
         
         // Make arc a point to where arc b pointed before.
         Reconnect<Head>(a,b);
@@ -83,7 +83,7 @@ bool Reidemeister_I( const Int c )
     }
     else
     {
-// Otherwise we have this case of an unlink.
+/* Otherwise we have this case of an unlink.
 //
 //                            +-<---O       O--->-+
 //                           /       ^     ^   b   \
@@ -94,6 +94,7 @@ bool Reidemeister_I( const Int c )
 //                          \         /   \         /
 //                           \       /     \   a   /
 //                            +--->-O       O-<---+
+*/
         ++pd.unlink_count;
         
         DeactivateArc(a);

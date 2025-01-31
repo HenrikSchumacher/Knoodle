@@ -38,8 +38,8 @@ namespace KnotTools
             cref<Tiny::Matrix<AmbDim,AmbDim,ExtReal,ExtInt>> A_,
             cref<Tiny::Vector<AmbDim,ExtReal,ExtInt>> & b_
         )
-        :   A  { A_ }
-        ,   b  { b_ }
+        :   A  ( A_ )
+        ,   b  ( b_ )
         {}
         
         AffineTransform( Matrix_T && A_, Vector_T && b_ )

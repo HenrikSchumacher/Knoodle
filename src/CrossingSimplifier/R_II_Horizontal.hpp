@@ -42,23 +42,24 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
     
     
     
-// We assume this horizontal alignment in the case of side==Right.
-//
-//              C_0(Out,side) = B = C_1(In ,side)
-//
-//       O----<----O       O---->----O       O----<----O
-//           E_3    ^     ^     B     \     /    E_2
-//                   \   /             \   /
-//                    \ /               \ /
-//                 C_0 X                 X C_1
-//                    / \               / \
-//                   /   \             /   \
-//           E_0    /     \     A     v     v    E_1
-//       O---->----O       O----<----O       O---->----O
-//
-//              C_0(In ,side) = A = C_0(Out,side)
-//
-// In the case side == Left, we just flip everything around.
+/* We assume this horizontal alignment in the case of side==Right.
+ *
+ *              C_0(Out,side) = B = C_1(In ,side)
+ *
+ *       O----<----O       O---->----O       O----<----O
+ *           E_3    ^     ^     B     \     /    E_2
+ *                   \   /             \   /
+ *                    \ /               \ /
+ *                 C_0 X                 X C_1
+ *                    / \               / \
+ *                   /   \             /   \
+ *           E_0    /     \     A     v     v    E_1
+ *       O---->----O       O----<----O       O---->----O
+ *
+ *              C_0(In ,side) = A = C_0(Out,side)
+ *
+ * In the case side == Left, we just flip everything around.
+ */
     
     auto A   = GetArc(C_0(In , side) );
     auto B   = GetArc(C_0(Out, side) );
@@ -76,23 +77,26 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //    {
 //        if( E_2 != E_3 )
 //        {
-//// This special situation with a loop over or under a strand (in the case of side==Right):
-////
-////               v_3 O----<----O       O---->----O       O----<----O v_2
-////                       E_3    ^     ^     B     \     /    E_2
-////                               \   /             \   /
-////                                \ /               \ /
-////           v_2 != v_3        C_0 X                 X C_1
-////                                / \               / \
-////                               /   \             /   \
-////                              /     \     A     v     v
-////                             O       O----<----O       O
-////                              \                       /
-////                               \      E_0 = E_1      /
-////                                +---------<---------+
+    
+/* This special situation with a loop over or under a strand (in the case of side==Right):
+//
+//               v_3 O----<----O       O---->----O       O----<----O v_2
+//                       E_3    ^     ^     B     \     /    E_2
+//                               \   /             \   /
+//                                \ /               \ /
+//           v_2 != v_3        C_0 X                 X C_1
+//                                / \               / \
+//                               /   \             /   \
+//                              /     \     A     v     v
+//                             O       O----<----O       O
+//                              \                       /
+//                               \      E_0 = E_1      /
+//                                +---------<---------+
+*/
+
 //
 //            // We should not arrive here because this is a vertical case.
-////            PD_ASSERT(false);
+//            PD_ASSERT(false);
 //            wprint("We should not arrive here because this is a vertical case. (1)");
 //
 //            unlink_count++;
@@ -109,26 +113,29 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        }
 //        else
 //        {
-//// This very,very special situation with two noninterlinked loops (in the case of side==Right):
-////
-////                                +--------->---------+
-////                               /     E_3 = E_2       \
-////                              /                       \
-////                             O       O---->----O       O
-////                              ^     ^     B     \     /
-////                               \   /             \   /
-////                                \ /               \ /
-////                             C_0 X                 X C_1
-////                                / \               / \
-////                               /   \             /   \
-////                              /     \     A     v     v
-////                             O       O----<----O       O
-////                              \                       /
-////                               \      E_0 = E_1      /
-////                                +---------<---------+
+    
+/* This very,very special situation with two noninterlinked loops (in the case of side==Right):
 //
+//                                +--------->---------+
+//                               /     E_3 = E_2       \
+//                              /                       \
+//                             O       O---->----O       O
+//                              ^     ^     B     \     /
+//                               \   /             \   /
+//                                \ /               \ /
+//                             C_0 X                 X C_1
+//                                / \               / \
+//                               /   \             /   \
+//                              /     \     A     v     v
+//                             O       O----<----O       O
+//                              \                       /
+//                               \      E_0 = E_1      /
+//                                +---------<---------+
+*/
+    
+
 //            // We should not arrive here because this is a vertical case.
-////            PD_ASSERT(false);
+//            PD_ASSERT(false);
 //            wprint("We should not arrive here because this is a vertical case. (2)");
 //
 //            PD_PRINT("\tTwo unlinks detectd.");
@@ -147,21 +154,24 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //    {
 //        // We don't have to check the case E_0 = E_1 here.
 //
-////                                +--------->---------+
-////                               /      E_3 = E_2      \
-////                              /                       \
-////                             O       O---->----O       O
-////                       E_3    ^     ^     B     \     /    E_2
-////                               \   /             \   /
-////                                \ /               \ /
-////         v_0 != v_1          C_0 X                 X c_1
-////                                / \               / \
-////                               /   \             /   \
-////                       E_0    /     \     A     v     v    E_1
-////               v_0 O---->----O       O----<----O       O---->----O v_1
+    
+/*                                +--------->---------+
+//                               /      E_3 = E_2      \
+//                              /                       \
+//                             O       O---->----O       O
+//                       E_3    ^     ^     B     \     /    E_2
+//                               \   /             \   /
+//                                \ /               \ /
+//         v_0 != v_1          C_0 X                 X c_1
+//                                / \               / \
+//                               /   \             /   \
+//                       E_0    /     \     A     v     v    E_1
+//               v_0 O---->----O       O----<----O       O---->----O v_1
+*/
+    
 //
 //        // We should not arrive here because this is a vertical case.
-////        PD_ASSERT(false);
+//        PD_ASSERT(false);
 //
 //        wprint("We should not arrive here because this is a vertical case. (3)");
 //
@@ -187,20 +197,22 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //    {
 //        if( E_1 != E_2 )
 //        {
-//// This special case:
-////                   +----<----O       O---->----O       O----<----O v_2
-////                  /    E_3    ^     ^     B     \     /    E_2
-////                 /             \   /             \   /
-////         E_3    /               \ /               \ /
-////          =    |             C_0 X                 X C_1        v_1 != v_2
-////         E_0    \               / \               / \
-////                 \             /   \             /   \
-////                  \    E_0    /     \     A     v     v    E_1
-////                   +---->----O       O----<----O       O---->----O v_1
-////
+    
+/* This special case:
+//                   +----<----O       O---->----O       O----<----O v_2
+//                  /    E_3    ^     ^     B     \     /    E_2
+//                 /             \   /             \   /
+//         E_3    /               \ /               \ /
+//          =    |             C_0 X                 X C_1        v_1 != v_2
+//         E_0    \               / \               / \
+//                 \             /   \             /   \
+//                  \    E_0    /     \     A     v     v    E_1
+//                   +---->----O       O----<----O       O---->----O v_1
+*/
+
 //
 //            // We should not arrive here because we first check for a Reidemeister_I at c_0.
-////            PD_ASSERT( false );
+//            PD_ASSERT( false );
 //
 //            wprint("We should not arrive here because we first check for a Reidemeister_I at c_0.");
 //
@@ -216,20 +228,22 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        }
 //        else
 //        {
-//// This is a very, very special case:
-////                   +----<----O       O---->----O       O----<----+
-////                  /    E_3    ^     ^     B     \     /           \
-////                 /             \   /             \   /             \
-////         E_3    /               \ /               \ /               \    E_2
-////          =    |             C_0 X                 X C_1             |    =
-////         E_0    \               / \               / \               /    E_1
-////                 \             /   \             /   \             /
-////                  \    E_0    /     \     A     v     v           /
-////                   +---->----O       O----<----O       O---->----+
-////
+    
+/* This is a very, very special case:
+//                   +----<----O       O---->----O       O----<----+
+//                  /    E_3    ^     ^     B     \     /           \
+//                 /             \   /             \   /             \
+//         E_3    /               \ /               \ /               \    E_2
+//          =    |             C_0 X                 X C_1             |    =
+//         E_0    \               / \               / \               /    E_1
+//                 \             /   \             /   \             /
+//                  \    E_0    /     \     A     v     v           /
+//                   +---->----O       O----<----O       O---->----+
+*/
+
 //
 //            //  We should not arrive here because we first check for a Reidemeister_I at C_0.
-////            PD_ASSERT( false );
+//            PD_ASSERT( false );
 //            wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (2)");
 //
 //            ++pd.unlink_count;
@@ -248,21 +262,23 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //    {
 //        // We do not have to check for E_0 == E_3 anymore.
 //
-//// This special case:
-////               v_3 O----<----O       O---->----O       O----<----+
-////                       E_3    ^     ^     B     \     /    E_2    \
-////                               \   /             \   /             \
-////                                \ /               \ /               \    E_2
-////         v_3 != v_0          C_0 X                 X C_1             |    =
-////                                / \               / \               /    E_1
-////                               /   \             /   \             /
-////                       E_0    /     \     A     v     v    E_1    /
-////               v_0 O---->----O       O----<----O       O---->----O
-////
+    
+/* This special case:
+//               v_3 O----<----O       O---->----O       O----<----+
+//                       E_3    ^     ^     B     \     /    E_2    \
+//                               \   /             \   /             \
+//                                \ /               \ /               \    E_2
+//         v_3 != v_0          C_0 X                 X C_1             |    =
+//                                / \               / \               /    E_1
+//                               /   \             /   \             /
+//                       E_0    /     \     A     v     v    E_1    /
+//               v_0 O---->----O       O----<----O       O---->----O
+*/
+
 //
 //
 //        //  We should not arrive here because we first check for a Reidemeister_I at C_1.
-////        PD_ASSERT( false );
+//        PD_ASSERT( false );
 //        wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (3)");
 //
 //
@@ -278,40 +294,41 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //    }
 
     {
-// Finally, the most common case/
-// This is for side == Right. In the other case (side == Left), we just flip everything around.
-//
-//                         C_0(Out,Right) = B = C_1(In ,Right)
-//
-//               v_3 O----<----O       O---->----O       O----<----O v_2
-//                       E_3    ^     ^     B     \     /    E_2
-//                               \   /             \   /
-//                                \ /               \ /
-//                             C_0 X                 X C_1
-//                                / \               / \
-//                               /   \             /   \
-//                       E_0    /     \     A     v     v    E_1
-//               v_0 O---->----O       O----<----O       O---->----O v_1
-//
-//                         C_0(In ,Right) = A = C_1(Out,Right)
-//
-//
-// State after the move:
-//
-//                     +----<---------------<---------------<----+
-//                    /                     A                     \
-//                   O         O       O         O       O         O
-//                              ^     ^           \     /
-//                               \   /             \   /
-//                                \ /               \ /
-//                             C_0 X                 X C_1
-//                                / \               / \
-//                               /   \             /   \
-//                              /     \           v     v
-//                   O         O       O         O       O         O
-//                    \                     B                     /
-//                     +---->--------------->--------------->----+
-        
+/* Finally, the most common case/
+ * This is for side == Right. In the other case (side == Left), we just flip everything around.
+ *
+ *                         C_0(Out,Right) = B = C_1(In ,Right)
+ *
+ *               v_3 O----<----O       O---->----O       O----<----O v_2
+ *                       E_3    ^     ^     B     \     /    E_2
+ *                               \   /             \   /
+ *                                \ /               \ /
+ *                             C_0 X                 X C_1
+ *                                / \               / \
+ *                               /   \             /   \
+ *                       E_0    /     \     A     v     v    E_1
+ *               v_0 O---->----O       O----<----O       O---->----O v_1
+ *
+ *                         C_0(In ,Right) = A = C_1(Out,Right)
+ *
+ *
+ * State after the move:
+ *
+ *                     +----<---------------<---------------<----+
+ *                    /                     A                     \
+ *                   O         O       O         O       O         O
+ *                              ^     ^           \     /
+ *                               \   /             \   /
+ *                                \ /               \ /
+ *                             C_0 X                 X C_1
+ *                                / \               / \
+ *                               /   \             /   \
+ *                              /     \           v     v
+ *                   O         O       O         O       O         O
+ *                    \                     B                     /
+ *                     +---->--------------->--------------->----+
+ */
+ 
         PD_PRINT(std::string("\t\tGeneric case (") + ((side==Left) ? "left)" : "right)") );
         Reconnect<Tail>(A,E_2);
         Reconnect<Head>(A,E_3);
