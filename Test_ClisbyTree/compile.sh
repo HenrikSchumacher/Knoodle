@@ -1,0 +1,1 @@
+clang++ -Wall -Wextra -std=c++20 -Ofast -flto -fenable-matrix -pthread main.cpp -o polyfold -lboost_program_options -I /opt/homebrew/include -L /opt/homebrew/lib

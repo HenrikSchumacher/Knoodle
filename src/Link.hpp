@@ -73,7 +73,9 @@ namespace KnotTools
         ,   component_count { 1              }
         ,   component_ptr   { 2              }
         ,   component_lookup{ edge_count     }
-        {}
+        {
+            (void)dummy;
+        }
         
     public:
         

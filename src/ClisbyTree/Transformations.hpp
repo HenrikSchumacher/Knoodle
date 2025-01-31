@@ -142,11 +142,17 @@ void PushAllTransforms( const Int start_node = -1 )
             PushTransform( node, L, R );
         },
         []( const Int node )                        // interior node postvisit
-        {},
+        {
+            (void)node;
+        },
         []( const Int node )                        // leaf node previsit
-        {},
+        {
+            (void)node;
+        },
         []( const Int node )                        // leaf node postvisit
-        {},
+        {
+            (void)node;
+        },
         start_node
     );
     

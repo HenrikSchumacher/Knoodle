@@ -234,7 +234,7 @@ namespace KnotTools
         
     public:
         
-        void ReadVertexCoordinates( cptr<Real> v, const bool update = false )
+        void ReadVertexCoordinates( cptr<Real> v )
         {
             ptic(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             

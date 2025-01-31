@@ -58,7 +58,9 @@ namespace KnotTools
                     ++counter;
                 },
                 []( const Int node )                            // interior node postvisit
-                {},
+                {
+                    (void)node;
+                },
                 [p,q,&counter]( const Int node ) // leaf node previsit
                 {
                     p[counter] = node;
@@ -66,7 +68,9 @@ namespace KnotTools
                     ++counter;
                 },
                 []( const Int node )                            // leaf node postvisit
-                {}
+                {
+                    (void)node;
+                }
             );
             
 //            // Compute preordering.
@@ -118,13 +122,17 @@ namespace KnotTools
             counter = 0;
             this->DepthFirstSearch(
                 []( const Int node )                            // interior node previsit
-                {},
+                {
+                    (void)node;
+                },
                 [post,&counter]( const Int node )               // interior node postvisit
                 {
                     post[counter++] = node;
                 },
                 []( const Int node )                            // leaf node previsit
-                {},
+                {
+                    (void)node;
+                },
                 [post,&counter]( const Int node )               // leaf node postvisit
                 {
                     post[counter++] = node;

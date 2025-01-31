@@ -36,6 +36,7 @@
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFC2F3FD2D4D00A400FF8621 /* ReAPr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ReAPr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* KnotTools.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KnotTools.hpp; sourceTree = "<group>"; };
 		AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_Link_2D; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -79,6 +80,7 @@
 				AFF305442B7ACE3B009ABC74 /* submodules */,
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305482B7AF300009ABC74 /* KnotTools.hpp */,
+				AFC2F3FD2D4D00A400FF8621 /* ReAPr.hpp */,
 				AFF3054E2B7AF4E2009ABC74 /* Test_Link_2D */,
 				AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
@@ -156,6 +158,7 @@
 				TargetAttributes = {
 					AFC2F3F02D4AC2E900FF8621 = {
 						CreatedOnToolsVersion = 16.2;
+						LastSwiftMigration = 1620;
 					};
 					AFF3054C2B7AF4E2009ABC74 = {
 						CreatedOnToolsVersion = 15.2;
@@ -356,14 +359,17 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "-lboost_program_options";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -371,14 +377,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "-lboost_program_options";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

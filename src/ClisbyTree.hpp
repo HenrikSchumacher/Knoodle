@@ -39,7 +39,9 @@ namespace KnotTools
         using PRNG_T          = std::mt19937_64;
         using PRNG_Result_T   = PRNG_T::result_type;
         
-        using FlagVec_T       = std::array<Size_T,5>;
+//        using FlagVec_T       = std::array<Size_T,5>;
+    
+        using FlagVec_T       = Tiny::Vector<5,Size_T,Int>;
         
         
         // For center, radius, rotation, and translation.
@@ -196,7 +198,9 @@ namespace KnotTools
                 
             this->DepthFirstSearch(
                 []( const Int node )                    // interior node previsit
-                {},
+                {
+                    (void)node;
+                },
                 [this]( const Int node )                // interior node postvisit
                 {
                     ComputeBall(node);
@@ -209,7 +213,9 @@ namespace KnotTools
                     InitializeNodeFromVertex( node, &x[AmbDim * vertex] );
                 },
                 []( const Int node )                    // leaf node postvisit
-                {}
+                {
+                    (void)node;
+                }
             );
             
             ptoc(ClassName() + "::ReadVertexCoordinates");
@@ -285,9 +291,11 @@ namespace KnotTools
             }
         }
         
-        FlagVec_T FoldRandom( const Int step_count )
+        FlagVec_T FoldRandom( const Size_T success_count )
         {
-            FlagVec_T counters {0};
+            FlagVec_T counters;
+            
+            counters.SetZero();
             
             using unif_int  = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
@@ -297,7 +305,7 @@ namespace KnotTools
             unif_int  u_int ( Int(0), n-3 );
             unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
             
-            for( Int step = 0; step < step_count; ++step )
+            while( counters[0] < success_count )
             {
                 const Int  i     = u_int                        (random_engine);
                 const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);

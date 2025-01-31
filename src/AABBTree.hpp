@@ -230,7 +230,7 @@ namespace KnotTools
         )
         {
             return BoxBoxSquaredDistance(
-                &B_0.data()[AmbDim * 2 * i], &B_1.data()[AmbDim * 2 * i]
+                &B_0.data()[AmbDim * 2 * i], &B_1.data()[AmbDim * 2 * j]
             );
         }
         
