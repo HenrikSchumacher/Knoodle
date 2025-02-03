@@ -8,17 +8,17 @@ g++-14                                              \
     -Ofast                                          \
     -flto                                           \
     -pthread                                        \
+    -mcpu=apple-m1                                  \
     -mtune=native                                   \
     -flax-vector-conversions                        \
     -Wno-psabi                                      \
     -opolyfold_gcc                                  \
-    -I'"/opt/homebrew/Cellar/boost/1.87.0/include"'   \
-    -L'"/opt/homebrew/Cellar/boost/1.87.0/lib"'       \
+    -I/opt/homebrew/Cellar/boost/1.87.0/include     \
+    -I/opt/homebrew/include                         \
+    -L/opt/homebrew/Cellar/boost/1.87.0/lib         \
+    -L/opt/homebrew/lib                             \
     main.cpp                                        \
-    -dynamic                                         \
-    -lboost_system                                \
-    -lboost_filesystem                            \
-    -lboost_program_options                       \
+    -lboost_program_options                         \
 
 
 #    -lboost_system                              \

@@ -1,11 +1,13 @@
 #include <iostream>
 
-#define LAPACK_DISABLE_NAN_CHECK
-#define ACCELERATE_NEW_LAPACK
-#include <Accelerate/Accelerate.h>
-
 #define PD_DEBUG
 //#define PD_VERBOSE
+
+#ifdef __APPLE__
+    #include "../submodules/Tensors/Accelerate.hpp"
+#else
+    #include "../submodules/Tensors/OpenBLAS.hpp"
+#endif
 
 #include "../KnotTools.hpp"
 
@@ -28,7 +30,6 @@ int main(void)
     L.ReadVertexCoordinates( &coords[0][0] );
     
     dump( L.AmbientDimension() );
-    
 
     PlanarDiagram<Int> PD(L);
     return 0;
