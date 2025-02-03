@@ -256,17 +256,17 @@ int main( int argc, char** argv )
         
                 T.WriteVertexCoordinates( x.data() );
                 
-                // Open file as stream.
-                std::ofstream p_file (
-                    local_path / (std::string("Polygon_") + StringWithLeadingZeroes(i,6) + ".tsv")
-                );
-                
-                // Write the polygon coordinates to file.
-                p_file << MatrixStringTSV(
-                    x.Dimension(0), x.Dimension(1), x.data(), x.Dimension(1)
-                );
-                
-                // The file stream will automatically be closed by the desctructor of the class `std::ofstream` once the symbol `p_file` goes out of scope -- one of the pleasantries of C++.
+//                // Open file as stream.
+//                std::ofstream p_file (
+//                    local_path / (std::string("Polygon_") + StringWithLeadingZeroes(i,6) + ".tsv")
+//                );
+//                
+//                // Write the polygon coordinates to file.
+//                p_file << MatrixStringTSV(
+//                    x.Dimension(0), x.Dimension(1), x.data(), x.Dimension(1)
+//                );
+//                
+//                // The file stream will automatically be closed by the desctructor of the class `std::ofstream` once the symbol `p_file` goes out of scope -- one of the pleasantries of C++.
         
                 // Read coordinates into `Link_T` object `L`...
                 L.ReadVertexCoordinates ( x.data() );

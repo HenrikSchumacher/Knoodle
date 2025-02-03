@@ -173,22 +173,22 @@ namespace KnotTools
         {
             // B_i and B_j are assumed to have size AmbDim x 2.
             
-            if constexpr ( VectorizableQ<Real> )
-            {
-                vec_T<2*AmbDim,Real> a;
-                vec_T<2*AmbDim,Real> b;
-                
-                for( Int k = 0; k < AmbDim; ++k )
-                {
-                    a[2 * k + 0] = B_i[2 * k + 0];
-                    a[2 * k + 1] = B_j[2 * k + 0];
-                    b[2 * k + 0] = B_j[2 * k + 1];
-                    b[2 * k + 1] = B_i[2 * k + 1];
-                }
-                
-                return __builtin_reduce_and( a <= b );
-            }
-            else
+//            if constexpr ( VectorizableQ<Real> )
+//            {
+//                vec_T<2*AmbDim,Real> a;
+//                vec_T<2*AmbDim,Real> b;
+//                
+//                for( Int k = 0; k < AmbDim; ++k )
+//                {
+//                    a[2 * k + 0] = B_i[2 * k + 0];
+//                    a[2 * k + 1] = B_j[2 * k + 0];
+//                    b[2 * k + 0] = B_j[2 * k + 1];
+//                    b[2 * k + 1] = B_i[2 * k + 1];
+//                }
+//                
+//                return __builtin_reduce_and( a <= b );
+//            }
+//            else
             {
                 for( Int k = 0; k < AmbDim; ++k )
                 {
