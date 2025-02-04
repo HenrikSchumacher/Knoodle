@@ -26,6 +26,7 @@ namespace KnotTools
         using Real = Real_;
         using Int  = Int_;
         using SInt = SInt_;
+        using LInt = Int64;
         
         using Base_T         = Link<Int>;
         
@@ -35,9 +36,9 @@ namespace KnotTools
         using Vector2_T      = Tiny::Vector<2,Real,Int>;
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
         
-        using EContainer_T   = Tree3_T::EContainer_T;
+        using EContainer_T   = typename Tree3_T::EContainer_T;
         
-        using BContainer_T   = Tree2_T::BContainer_T;
+        using BContainer_T   = typename Tree2_T::BContainer_T;
         
         using Intersection_T = Intersection<Real,Int,SInt>;
         
@@ -96,7 +97,7 @@ namespace KnotTools
         
         Intersector_T S;
         
-        Size_T intersection_count_3D = 0;
+        LInt intersection_count_3D = 0;
         
     public:
         
@@ -397,7 +398,7 @@ namespace KnotTools
 //            for( Int k = intersection_count-1; k > -1; --k )
             for( Int k = intersection_count; k --> 0;  )
             {
-                Intersection_T & inter = intersections[k];
+                Intersection_T & inter = intersections[static_cast<Size_T>(k)];
                 
                 // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
 
@@ -414,7 +415,7 @@ namespace KnotTools
             }
             
             // Sort intersections edgewise w.r.t. edge_times.
-            ThreeArraySort<Real,Int,bool,Size_T> S ( intersection_count );
+            ThreeArraySort<Real,Int,bool,LInt> sort ( intersection_count );
             
             for( Int i = 0; i < edge_count; ++i )
             {
@@ -422,7 +423,7 @@ namespace KnotTools
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
                      
-                S(
+                sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
                     &edge_overQ[k_begin],
@@ -461,7 +462,7 @@ namespace KnotTools
         
     public:
         
-        static inline SInt Sign( const Real x )
+        static SInt Sign( const Real x )
         {
             return Tools::Sign<SInt>(x);
         }

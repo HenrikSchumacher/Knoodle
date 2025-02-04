@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     template<int AmbDim_, typename Real_, typename Int_>
-    class alignas( ObjectAlignment ) ClangAffineTransform
+    class ClangAffineTransform
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");

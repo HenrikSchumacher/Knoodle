@@ -16,6 +16,7 @@ namespace KnotTools
 //        static constexpr Int i_0 = 26 - 1;
 //        static constexpr Int j_0 = 56 - 1;
         
+        // For debugging only.
         static constexpr Int i_0 = - 1;
         static constexpr Int j_0 = - 1;
         
@@ -294,16 +295,16 @@ namespace KnotTools
         
         Real CollisionTime() const
         {
-            Real T = Scalar::Infty<Real>;
+            Real time = Scalar::Infty<Real>;
             
             for( Int k = 0; k < CollisionCount(); ++k )
             {
                 cref<Collision_T> C = collisions[k];
                 
-                T = Min( T, C.time );
+                time = Min( time, C.time );
             }
             
-            return T;
+            return time;
         }
         
         

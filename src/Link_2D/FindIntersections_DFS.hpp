@@ -17,7 +17,7 @@ protected:
         
         intersections.clear();
         
-        intersections.reserve( 2 * edge_coords.Dimension(0) );
+        intersections.reserve( ToSize_T(2 * edge_coords.Dimension(0)) );
         
         S = Intersector_T();
         

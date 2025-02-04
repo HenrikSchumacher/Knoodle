@@ -111,7 +111,7 @@ bool DisconnectSummand(
         }
     }
         
-    const Int f_size = static_cast<Int>( f_arcs.size() );
+    const Size_T f_size = f_arcs.size();
     
     if( f_size == 1 )
     {
@@ -131,7 +131,7 @@ bool DisconnectSummand(
         }
     }
     
-    sort( &f_faces[0], &f_arcs[0], f_size );
+    sort( &f_faces[0], &f_arcs[0], static_cast<Int>(f_size) );
     
     auto push = [&]( PlanarDiagram<Int> && pd )
     {
@@ -147,7 +147,7 @@ bool DisconnectSummand(
         PD_list.push_back( std::move(pd) );
     };
     
-    Int i = 0;
+    Size_T i = 0;
     
     while( i+1 < f_size )
     {

@@ -41,16 +41,16 @@ Int Simplify1()
              
                 AssertCrossing(c);
                 
-                bool changedQ = S.Reidemeister_I(c);
+                bool changed_I_Q = S.Reidemeister_I(c);
                 
-                counter += changedQ;
+                counter += changed_I_Q;
                 
                 // If Reidemeister_I was successful, then c is inactive now.
-                if( !changedQ )
+                if( !changed_I_Q )
                 {
-                    bool changedQ = S.template Reidemeister_II<false>(c);
+                    bool changed_II_Q = S.template Reidemeister_II<false>(c);
                     
-                    counter += changedQ;
+                    counter += changed_II_Q;
                 }
             }
         }

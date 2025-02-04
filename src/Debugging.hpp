@@ -46,11 +46,11 @@
 
 namespace KnotTools
 {
-    Size_T PD_max_error_count =  4;
-    Size_T PD_error_counter   =  0;
+    static constexpr Size_T PD_max_error_count =  4;
+    static           Size_T PD_error_counter   =  0;
 
     
-    void pd_eprint( const std::string & s )
+    static void pd_eprint( const std::string & s )
     {
         ++KnotTools::PD_error_counter;
         

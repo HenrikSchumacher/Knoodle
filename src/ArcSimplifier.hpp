@@ -19,10 +19,10 @@ namespace KnotTools
         
         using PD_T = PlanarDiagram<Int>;
         
-        using CrossingContainer_T       = PD_T::CrossingContainer_T;
-        using ArcContainer_T            = PD_T::ArcContainer_T;
-        using CrossingStateContainer_T  = PD_T::CrossingStateContainer_T;
-        using ArcStateContainer_T       = PD_T::ArcStateContainer_T;
+        using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
+        using ArcContainer_T            = typename PD_T::ArcContainer_T;
+        using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
+        using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
         
@@ -77,6 +77,8 @@ namespace KnotTools
         //        Int s_3; // always = n_0.
         Int w_3;
         
+        Int test_count = 0;
+        
         // Whether the vertical strand at corresponding crossing goes over.
         bool o_0;
         bool o_1;
@@ -86,8 +88,6 @@ namespace KnotTools
         // Whether the vertical strand at corresponding crossing goes up.
         bool u_0;
         bool u_1;
-        
-        Int test_count = 0;
         
     public:
         

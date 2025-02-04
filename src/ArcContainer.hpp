@@ -20,12 +20,12 @@ namespace KnotTools
         :   Tensor_T()
         {}
         
-        explicit ArcContainer( const Int n )
-        :   Tensor_T(n, 2)
+        explicit ArcContainer( const Int n_ )
+        :   Tensor_T(n_, 2)
         {}
         
-        ArcContainer( const Int n, const Int init )
-        :   Tensor_T(n, 2, init)
+        ArcContainer( const Int n_, const Int init )
+        :   Tensor_T(n_, 2, init)
         {}
         
         ~ArcContainer() = default;

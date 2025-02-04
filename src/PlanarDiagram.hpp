@@ -201,7 +201,7 @@ namespace KnotTools
         :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
         {
             using Link_T         = Link_2D<Real,Int,SInt>;
-            using Intersection_T = Link_T::Intersection_T;
+            using Intersection_T = typename Link_T::Intersection_T;
 
             const Int component_count     = L.ComponentCount();
             
@@ -237,7 +237,7 @@ namespace KnotTools
                     
                     const bool overQ = edge_overQ[b];
                     
-                    cref<Intersection_T> inter = intersections[c];
+                    cref<Intersection_T> inter = intersections[static_cast<Size_T>(c)];
                     
                     A_cross(a,Head) = c; // c is head of a
                     A_cross(b,Tail) = c; // c is tail of b

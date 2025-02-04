@@ -94,9 +94,9 @@ static constexpr bool NodesOverlapQ(
     return overlapQ;
 }
 
-bool NodesOverlapQ( const Int node_0, const Int node_1, const Real r ) const
+bool NodesOverlapQ( const Int node_0, const Int node_1, const Real radius ) const
 {
-    return NodesOverlapQ( NodeData(node_0), NodeData(node_1), r );
+    return NodesOverlapQ( NodeData(node_0), NodeData(node_1), radius );
 }
 
 //bool NodeContainsOnlyUnchangedVerticesQ( const Int node )

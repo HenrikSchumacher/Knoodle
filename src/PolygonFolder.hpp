@@ -22,8 +22,9 @@ namespace KnotTools
         using Vector_T      = Tiny::Vector<AmbDim,Real,Int>;
         using PRNG_T        = std::mt19937_64;
         using PRNG_Result_T = PRNG_T::result_type;
-        
-        using FlagVec_T     = std::array<Size_T,5>;
+
+        using Flag_T        = UInt32;
+        using FlagVec_T     = Tiny::Vector<5,Flag_T,Int>;
 
         
         PolygonFolder() = default;
@@ -155,14 +156,14 @@ namespace KnotTools
         
         void setToCircle( mptr<Real> x )
         {
-            const double delta = Frac<double>( Scalar::TwoPi<double>, n );
-            const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            const double delta  = Frac<double>( Scalar::TwoPi<double>, n );
+            const double radius = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
             
             for( Int i = 0; i < n; ++i )
             {
-                const double theta = delta * i;
-                x[3 * i + 0] = r * std::cos( theta );
-                x[3 * i + 1] = r * std::sin( theta );
+                const double angle = delta * i;
+                x[3 * i + 0] = radius * std::cos( angle );
+                x[3 * i + 1] = radius * std::sin( angle );
                 x[3 * i + 2] = 0;
             }
         }
@@ -467,7 +468,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==0))(random_engine);
                 const Real angle = u_real                  (random_engine);
                 
-                int flag = Fold_Reference( i, j, angle );
+                Flag_T flag = Fold_Reference( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -476,7 +477,7 @@ namespace KnotTools
         }
         
         // Returns 0 when an actual change has been made.
-        int Fold_Reference( const Int i, const Int j, const Real angle )
+        Flag_T Fold_Reference( const Int i, const Int j, const Real angle )
         {
             ptic(ClassName()+"::Fold_Reference");
             
@@ -493,7 +494,7 @@ namespace KnotTools
                 return 1;
             }
             
-            int flag = 0;
+            Flag_T flag = 0;
             
             X_p.Read( X.data(p) );
             X_q.Read( X.data(q) );
@@ -572,7 +573,7 @@ namespace KnotTools
                 const Real angle = u_real                  (random_engine);
 
                 
-                int flag = Fold( i, j, angle );
+                UInt32 flag = Fold( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -582,7 +583,7 @@ namespace KnotTools
         
         
         // Returns 0 when an actual change has been made.
-        int Fold( const Int pivot_0, const Int pivot_1, const Real angle )
+        UInt32 Fold( const Int pivot_0, const Int pivot_1, const Real angle )
         {
             ptic(ClassName()+"::Fold");
             
@@ -599,7 +600,7 @@ namespace KnotTools
                 return 1;
             }
             
-            int flag = 0;
+            UInt32 flag = 0;
             
             X_p.Read( X.data(p) );
             X_q.Read( X.data(q) );
@@ -706,7 +707,7 @@ namespace KnotTools
                 const Real angle = u_real                  (random_engine);
 
                 
-                int flag = Fold_WithoutCheck( i, j, angle );
+                UInt32 flag = Fold_WithoutCheck( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -716,7 +717,7 @@ namespace KnotTools
         
         // Only for debugging and performance measurement.
         // Returns 0 when an actual change has been made.
-        int Fold_WithoutCheck( const Int pivot_0, const Int pivot_1, const Real angle )
+        UInt32 Fold_WithoutCheck( const Int pivot_0, const Int pivot_1, const Real angle )
         {
             ptic(ClassName()+"::Fold_WithoutCheck");
             
