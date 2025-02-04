@@ -38,28 +38,28 @@ Int Simplify2()
             {
                 AssertCrossing(c);
                 
-                bool changedQ = S.Reidemeister_I(c);
+                bool changed_I_Q = S.Reidemeister_I(c);
                 
-                counter += changedQ;
+                counter += changed_I_Q;
                 
                 // If Reidemeister_I was successful, then c is inactive now.
-                if( !changedQ )
+                if( !changed_I_Q )
                 {
-                    bool changedQ = S.template Reidemeister_II<true>(c);
+                    bool changed_II_Q = S.template Reidemeister_II<true>(c);
                     
                     // If Reidemeister_II was successful, then c is _probably_ inactive now.
-                    if( !changedQ )
+                    if( !changed_II_Q )
                     {
-                        changedQ = S.Reidemeister_IIa_Vertical(c);
+                        changed_II_Q = S.Reidemeister_IIa_Vertical(c);
                         
                         // If Reidemeister_IIa_Vertical was successful, then c is _probably_ inactive now.
-                        if( !changedQ )
+                        if( !changed_II_Q )
                         {
-                            changedQ = S.Reidemeister_IIa_Horizontal(c);
+                            changed_II_Q = S.Reidemeister_IIa_Horizontal(c);
                         }
                     }
                     
-                    counter += changedQ;
+                    counter += changed_II_Q;
                 }
             }
         }

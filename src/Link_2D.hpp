@@ -26,6 +26,7 @@ namespace KnotTools
         using Real = Real_;
         using Int  = Int_;
         using SInt = SInt_;
+        using LInt = Int64;
         
         using Base_T         = Link<Int>;
         
@@ -35,9 +36,9 @@ namespace KnotTools
         using Vector2_T      = Tiny::Vector<2,Real,Int>;
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
         
-        using EContainer_T   = Tree3_T::EContainer_T;
+        using EContainer_T   = typename Tree3_T::EContainer_T;
         
-        using BContainer_T   = Tree2_T::BContainer_T;
+        using BContainer_T   = typename Tree2_T::BContainer_T;
         
         using Intersection_T = Intersection<Real,Int,SInt>;
         
@@ -96,7 +97,7 @@ namespace KnotTools
         
         Intersector_T S;
         
-        Size_T intersection_count_3D = 0;
+        LInt intersection_count_3D = 0;
         
     public:
         
@@ -174,64 +175,6 @@ namespace KnotTools
             }
         }
         
-        void ComputeBoundingBox_vec( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
-        {
-            // We assume that input is a link; thus
-            const Int vertex_count = edge_count;
-            
-            if( vertex_count > 4 )
-            {
-                using V_T  = vec_T<4,Real>;
-                
-                const V_T * V = reinterpret_cast<const V_T*>(v);
-                
-                const Int chunk_count = FloorDivide(vertex_count, 4);
-                
-                V_T l [3] = {V[0],V[1],V[2]};
-                V_T h [3] = {V[0],V[1],V[2]};
-                
-                for( Int i = 1; i < chunk_count; ++i )
-                {
-                    // Handling four 3-vectors at once (as three 4-vectors)
-                    const V_T w [3] = { V[3 * i + 0], V[3 * i + 1], V[3 * i  + 2] };
-                    
-                    l[0] = __builtin_elementwise_min( l[0], w[0] );
-                    l[1] = __builtin_elementwise_min( l[1], w[1] );
-                    l[2] = __builtin_elementwise_min( l[2], w[2] );
-                    
-                    h[0] = __builtin_elementwise_max( h[0], w[0] );
-                    h[1] = __builtin_elementwise_max( h[1], w[1] );
-                    h[2] = __builtin_elementwise_max( h[2], w[2] );
-                }
-                
-                const Real * l_ptr = reinterpret_cast<const Real *>(&l);
-                const Real * h_ptr = reinterpret_cast<const Real *>(&h);
-                
-                lo[0] = Min( Min( l_ptr[0], l_ptr[3]), Min( l_ptr[6], l_ptr[ 9]) );
-                lo[1] = Min( Min( l_ptr[1], l_ptr[4]), Min( l_ptr[7], l_ptr[10]) );
-                lo[2] = Min( Min( l_ptr[2], l_ptr[5]), Min( l_ptr[8], l_ptr[11]) );
-                
-                hi[0] = Max( Max( h_ptr[0], h_ptr[3]), Max( h_ptr[6], h_ptr[ 9]) );
-                hi[1] = Max( Max( h_ptr[1], h_ptr[4]), Max( h_ptr[7], h_ptr[10]) );
-                hi[2] = Max( Max( h_ptr[2], h_ptr[5]), Max( h_ptr[8], h_ptr[11]) );
-                
-                for( Int i = chunk_count * 4; i < vertex_count; ++i )
-                {
-                    lo[0] = Min( lo[0], v[3 * i + 0] );
-                    lo[1] = Min( lo[1], v[3 * i + 1] );
-                    lo[2] = Min( lo[2], v[3 * i + 2] );
-                    
-                    hi[0] = Max( hi[0], v[3 * i + 0] );
-                    hi[1] = Max( hi[1], v[3 * i + 1] );
-                    hi[2] = Max( hi[2], v[3 * i + 2] );
-                }
-            }
-            else
-            {
-                ComputeBoundingBox( v, lo, hi );
-            }
-        }
-        
     public:
         
         void ReadVertexCoordinates( cptr<Real> v )
@@ -240,17 +183,6 @@ namespace KnotTools
             
             Vector3_T lo;
             Vector3_T hi;
-            
-            // This could be vectorized, but it is apparently not worth it.
-            
-//            if constexpr ( VectorizableQ<Real> )
-//            {
-//                ComputeBoundingBox_vec( v, lo, hi );
-//            }
-//            else
-//            {
-//                ComputeBoundingBox( v, lo, hi );
-//            }
 
             ComputeBoundingBox( v, lo, hi );
             
@@ -466,7 +398,7 @@ namespace KnotTools
 //            for( Int k = intersection_count-1; k > -1; --k )
             for( Int k = intersection_count; k --> 0;  )
             {
-                Intersection_T & inter = intersections[k];
+                Intersection_T & inter = intersections[static_cast<Size_T>(k)];
                 
                 // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
 
@@ -483,7 +415,7 @@ namespace KnotTools
             }
             
             // Sort intersections edgewise w.r.t. edge_times.
-            ThreeArraySort<Real,Int,bool,Size_T> S ( intersection_count );
+            ThreeArraySort<Real,Int,bool,LInt> sort ( intersection_count );
             
             for( Int i = 0; i < edge_count; ++i )
             {
@@ -491,7 +423,7 @@ namespace KnotTools
                 const Int k_begin = edge_ptr[i  ];
                 const Int k_end   = edge_ptr[i+1];
                      
-                S(
+                sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
                     &edge_overQ[k_begin],
@@ -530,7 +462,7 @@ namespace KnotTools
         
     public:
         
-        static inline SInt Sign( const Real x )
+        static SInt Sign( const Real x )
         {
             return Tools::Sign<SInt>(x);
         }

@@ -74,9 +74,9 @@ public:
         + KnotTools::ToString(S) +")";
     }
     
-    friend std::string ToString( const CrossingView & C )
+    friend std::string ToString( const CrossingView & C_ )
     {
-        return C.String();
+        return C_.String();
     }
     
 }; // class CrossingView

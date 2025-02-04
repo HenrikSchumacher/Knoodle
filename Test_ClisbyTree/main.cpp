@@ -3,6 +3,9 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
+//#define TOOLS_DEACTIVATE_VECTOR_EXTENSIONS
+//#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
+
 //#ifdef __APPLE__
 //    #include "../submodules/Tensors/Accelerate.hpp"
 //#else
@@ -17,6 +20,7 @@ using namespace Tools;
 
 using Real = double;
 using Int  = Int64;
+using LInt = Int64;
 
 constexpr Int AmbDim = 3;
 
@@ -27,14 +31,43 @@ namespace po = boost::program_options;
 
 int main( int argc, char** argv )
 {
+    dump( sizeof(Tensor1<Real,Int>) );
+    dump( sizeof(Tensor2<Real,Int>) );
+    dump( sizeof(Tensor3<Real,Int>) );
+    
+    
+    print("Welcome to polyfold.");
+    print("");
+    
+    if( vec_enabledQ )
+    {
+        print("Vector extensions enabled.");
+    }
+    else
+    {
+        print("Vector extensions disabled.");
+    }
+    
+    if( mat_enabledQ )
+    {
+        print("Matrix extensions enabled.");
+    }
+    else
+    {
+        print("Matrix extensions disabled.");
+    }
+    
+    print("");
+    
+    
     Int thread_count = 1;
     Int job_count    = thread_count;
     
     Int  n = 100000;
     Int  N = 100;
 
-    Size_T  burn_in = 1000000;
-    Size_T  skip    = 100000;
+    LInt  burn_in = 1000000;
+    LInt  skip    = 100000;
     
     std::filesystem::path path;
     
@@ -48,9 +81,9 @@ int main( int argc, char** argv )
         ("threads,t", po::value<Int>(), "set number of threads")
         ("jobs,j", po::value<Int>(), "set number of jobs (time series)")
         ("edge-count,n", po::value<Int>(), "set number of edges")
-        ("burn-in,b", po::value<Size_T>(), "set number of burn-in steps")
-        ("skip,s", po::value<Size_T>(), "set number of steps skipped between samples")
-        ("sample-count,N", po::value<Size_T>(), "set number of samples")
+        ("burn-in,b", po::value<LInt>(), "set number of burn-in steps")
+        ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
+        ("sample-count,N", po::value<Int>(), "set number of samples")
         ("output,o", po::value<std::string>(), "set output directory")
         ;
         
@@ -123,7 +156,7 @@ int main( int argc, char** argv )
         
         if( vm.count("sample-count") )
         {
-            N = vm["sample-count"].as<Size_T>();
+            N = vm["sample-count"].as<Int>();
             
             std::cout << "Number of samples set to "
             << N << ".\n";
@@ -135,7 +168,7 @@ int main( int argc, char** argv )
         
         if( vm.count("burn-in") )
         {
-            burn_in = vm["burn-in"].as<Size_T>();
+            burn_in = vm["burn-in"].as<LInt>();
             
             std::cout << "Number of burn-in steps set to "
             << burn_in << ".\n";
@@ -147,7 +180,7 @@ int main( int argc, char** argv )
         
         if( vm.count("skip") )
         {
-            skip = vm["skip"].as<Size_T>();
+            skip = vm["skip"].as<LInt>();
             
             std::cout << "Number of skip steps set to "
             << skip << ".\n";
@@ -183,6 +216,8 @@ int main( int argc, char** argv )
     // Use this path for profiles and general log files.
     Profiler::Clear(path);
     
+    print("Start sampling.");
+    
     ParallelDo(
         [&]( const Int job )
         {
@@ -208,9 +243,9 @@ int main( int argc, char** argv )
             log << "\n " << std::endl;
             
             
-            ClisbyTree<AmbDim,Real,Int> T ( n, Real(1) );
+            ClisbyTree<AmbDim,Real,Int,LInt> T ( n, Real(1) );
         
-            Size_T steps_taken = 0;
+            LInt steps_taken = 0;
         
             // Burn-in.
             {
@@ -220,7 +255,7 @@ int main( int argc, char** argv )
                 
                 auto counts = T.FoldRandom(burn_in);
                 
-                const Size_T attempt_count = counts.Total();
+                const LInt attempt_count = counts.Total();
                 
                 steps_taken += attempt_count;
                 
@@ -237,7 +272,7 @@ int main( int argc, char** argv )
             }
         
             // Buffer for the polygon coordinates.
-            Tensor2<Real,Size_T> x ( n, AmbDim, Real(0) );
+            Tensor2<Real,Int> x ( n, AmbDim, Real(0) );
             
             // The Link_T object does the actual projection into the plane and the calculation of intersections. We can resuse it and load new vertex coordinates into it.
             Link_T L ( n );
@@ -252,7 +287,7 @@ int main( int argc, char** argv )
                 // Do polygon folds until we have at least `skip` successes.
                 auto counts = T.FoldRandom(skip);
 
-                const Size_T attempt_count = counts.Total();
+                const LInt attempt_count = counts.Total();
                 
                 steps_taken += attempt_count;
                 
@@ -287,7 +322,7 @@ int main( int argc, char** argv )
         
                 // Writing the PD codes to file.
                 std::ofstream pd_file (
-                    local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".tsv")
+                    local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".m")
                 );
                 
                 pd_file << "{" << std::endl;
@@ -300,9 +335,9 @@ int main( int argc, char** argv )
                 {
                     pd_file << "," << std::endl;
                     
-                    for( Size_T i = 0; i + 1 < PD_list.size(); ++i )
+                    for( Size_T j = 0; j + 1 < PD_list.size(); ++j )
                     {
-                        pd_file << ToString(PD_list[i].PDCode(),17,"\t") << "," << std::endl;
+                        pd_file << ToString(PD_list[j].PDCode(),17,"\t") << "," << std::endl;
                     }
                     
                     {

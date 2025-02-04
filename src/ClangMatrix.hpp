@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     template<Size_T M_, Size_T N_, typename Real_, typename Int_>
-    class alignas( ObjectAlignment ) ClangMatrix
+    class ClangMatrix
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
@@ -28,14 +28,14 @@ namespace KnotTools
 
         ClangMatrix( const Real init )
         {
-            fill_buffer<M*N>( reinterpret_cast<Real *>( &A ), init );
+            fill_buffer<M*N>( get_ptr(A), init );
         }
         
         ClangMatrix( cref<M_T> B )
         :   A ( B )
         {}
         
-        ~ClangMatrix() = default;
+//        ~ClangMatrix() = default;
 
     private:
         
@@ -61,17 +61,17 @@ namespace KnotTools
         
         Real operator()( const Int i, const Int j ) const
         {
-            return A[i][j];
+            return A[ToSize_T(i)][ToSize_T(j)];
         }
         
         Real operator[]( const Int i ) const
         {
-            return A[i][0];
+            return A[ToSize_T(i)][0];
         }
         
         void Set( const Int i, const Int j, const Real val )
         {
-            A[i][j] = val;
+            A[ToSize_T(i)][ToSize_T(j)] = val;
         }
         
         void Read( cptr<Real> A_ptr )
@@ -115,9 +115,9 @@ namespace KnotTools
         
         void SetIdentity()
         {
-            for( Int j = 0; j < N; ++ j )
+            for( Size_T j = 0; j < ToSize_T(N); ++ j )
             {
-                for( Int i = 0; i < M; ++ i )
+                for( Size_T i = 0; i < ToSize_T(M); ++ i )
                 {
                     A[i][j] = KroneckerDelta<Real>(i,j);
                 }
@@ -135,7 +135,7 @@ namespace KnotTools
         
         Real SquaredNorm() const
         {
-            return norm_2_squared<M*N>( reinterpret_cast<const Real *>( &A ) );
+            return norm_2_squared<M*N>( get_ptr(A) );
         }
         
         Real Norm() const
@@ -150,46 +150,46 @@ namespace KnotTools
         
         
         friend ClangMatrix operator+(
-            cref<ClangMatrix> A, const Real lambda
+            cref<ClangMatrix> A_, const Real lambda
         )
         {
-            return ClangMatrix( A.Matrix() + lambda );
+            return ClangMatrix( A_.Matrix() + lambda );
         }
         
         friend ClangMatrix operator+(
-            const Real lambda, cref<ClangMatrix> A
+            const Real lambda, cref<ClangMatrix>A_
         )
         {
-            return ClangMatrix( lambda + A.Matrix() );
+            return ClangMatrix( lambda + A_.Matrix() );
         }
         
         
         friend ClangMatrix operator-(
-            cref<ClangMatrix> A, const Real lambda
+            cref<ClangMatrix> A_, const Real lambda
         )
         {
-            return ClangMatrix( A.Matrix() - lambda );
+            return ClangMatrix( A_.Matrix() - lambda );
         }
         
         friend ClangMatrix operator-(
-            const Real lambda, cref<ClangMatrix> A
+            const Real lambda, cref<ClangMatrix> A_
         )
         {
-            return ClangMatrix( lambda - A.Matrix() );
+            return ClangMatrix( lambda - A_.Matrix() );
         }
 
         friend ClangMatrix operator*(
-            cref<ClangMatrix> A, const Real lambda
+            cref<ClangMatrix> A_, const Real lambda
         )
         {
-            return ClangMatrix( A.Matrix() * lambda );
+            return ClangMatrix( A_.Matrix() * lambda );
         }
         
         friend ClangMatrix operator*(
-            const Real lambda, cref<ClangMatrix> A
+            const Real lambda, cref<ClangMatrix> A_
         )
         {
-            return ClangMatrix( lambda * A.Matrix() );
+            return ClangMatrix( lambda * A_.Matrix() );
         }
 
 
@@ -216,7 +216,7 @@ namespace KnotTools
         
         [[nodiscard]] friend std::string ToString( cref<ClangMatrix> A_ )
         {
-            return ArrayToString( reinterpret_cast<const Real *>(&A_), {N,M} );
+            return ArrayToString( get_ptr(A_.Matrix()), {N,M} );
         }
         
     public:

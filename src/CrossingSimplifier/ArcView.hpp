@@ -69,9 +69,9 @@ public:
         Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + KnotTools::ToString(S) +")";
     }
     
-    friend std::string ToString( const ArcView & A )
+    friend std::string ToString( const ArcView & A_ )
     {
-        return A.String();
+        return A_.String();
     }
     
 }; // class ArcView

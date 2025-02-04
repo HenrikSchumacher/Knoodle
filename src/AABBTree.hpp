@@ -90,9 +90,7 @@ namespace KnotTools
         {
             static_assert(point_count > 0, "");
             
-            columnwise_minmax<point_count,AmbDim>(
-                P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
-            );
+            columnwise_minmax<point_count,AmbDim>( P, dimP, &B[0], Size_T(2), &B[1], Size_T(2) );
         }
         
         static constexpr void BoxesToBox(
@@ -130,7 +128,6 @@ namespace KnotTools
             static_assert(dimP >= AmbDim,"");
             
             constexpr Int sizeP = point_count * dimP;
-            
 
             ptic("Compute bounding boxes of leave nodes.");
             // Compute bounding boxes of leave nodes (last row of tree).

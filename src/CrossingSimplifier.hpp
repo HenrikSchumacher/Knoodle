@@ -16,10 +16,10 @@ namespace KnotTools
         
         using PD_T = PlanarDiagram<Int>;
         
-        using CrossingContainer_T       = PD_T::CrossingContainer_T;
-        using ArcContainer_T            = PD_T::ArcContainer_T;
-        using CrossingStateContainer_T  = PD_T::CrossingStateContainer_T;
-        using ArcStateContainer_T       = PD_T::ArcStateContainer_T;
+        using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
+        using ArcContainer_T            = typename PD_T::ArcContainer_T;
+        using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
+        using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
         

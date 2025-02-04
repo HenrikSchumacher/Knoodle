@@ -20,12 +20,12 @@ namespace KnotTools
         :   Tensor_T()
         {}
         
-        CrossingContainer( const Int n )
-        :   Tensor_T(n, 2, 2)
+        CrossingContainer( const Int n_ )
+        :   Tensor_T(n_, 2, 2)
         {}
         
-        CrossingContainer( const Int n, const Int init )
-        :   Tensor_T(n, 2, 2, init)
+        CrossingContainer( const Int n_, const Int init )
+        :   Tensor_T(n_, 2, 2, init)
         {}
 
         ~CrossingContainer() = default;

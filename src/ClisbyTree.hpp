@@ -2,18 +2,20 @@
 
 namespace KnotTools
 {
-    template<int AmbDim_, typename Real_, typename Int_>
+    template<int AmbDim_, typename Real_, typename Int_, typename LInt_>
     class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
+        static_assert(IntQ<LInt_>,"");
         static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
         
     public:
         
         using Real = Real_;
         using Int  = Int_;
+        using LInt = LInt_;
         
         using Tree_T = CompleteBinaryTree<Int,true>;
 //        using Tree_T = CompleteBinaryTree_Precomp<Int>;
@@ -21,27 +23,24 @@ namespace KnotTools
         
         static constexpr Int AmbDim  = AmbDim_;
     
-        static constexpr bool use_clang_matrixQ = true && VectorizableQ<Real>;
-        
-        
-//        using Transform_T     = AffineTransform<AmbDim,Real,Int>;
-        using Transform_T    = typename std::conditional_t<
-                                   use_clang_matrixQ,
-                                   ClangAffineTransform<AmbDim,Real,Int>,
-                                   AffineTransform<AmbDim,Real,Int>
-                               >;
+        static constexpr bool use_clang_matrixQ = true && MatrixizableQ<Real>;
+
+        using Transform_T     = typename std::conditional_t<
+                                    use_clang_matrixQ,
+                                    ClangAffineTransform<AmbDim,Real,Int>,
+                                    AffineTransform<AmbDim,Real,Int>
+                                >;
             
-        using Vector_T       = typename Transform_T::Vector_T;
-        using Matrix_T       = typename Transform_T::Matrix_T;
+        using Vector_T        = typename Transform_T::Vector_T;
+        using Matrix_T        = typename Transform_T::Matrix_T;
         
         using NodeContainer_T = Tensor2<Real,Int>;
         
         using PRNG_T          = std::mt19937_64;
         using PRNG_Result_T   = PRNG_T::result_type;
-        
-//        using FlagVec_T       = std::array<Size_T,5>;
     
-        using FlagVec_T       = Tiny::Vector<5,Size_T,Int>;
+        using Flag_T          = Int32;
+        using FlagVec_T       = Tiny::Vector<5,Flag_T,Int>;
         
         
         // For center, radius, rotation, and translation.
@@ -147,9 +146,9 @@ namespace KnotTools
         
         PRNG_T random_engine;
         
-        mutable Size_T mm_counter   = 0;
-        mutable Size_T mv_counter   = 0;
-        mutable Size_T load_counter = 0;
+        mutable LInt mm_counter   = 0;
+        mutable LInt mv_counter   = 0;
+        mutable LInt load_counter = 0;
         
     private:
         
@@ -230,17 +229,17 @@ namespace KnotTools
             
             mptr<Real> x = X.data();
             
-            const double delta = Frac<double>( Scalar::TwoPi<double>, n );
-            const double r     = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            const double delta  = Frac<double>( Scalar::TwoPi<double>, n );
+            const double radius = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
             
             Real v [AmbDim] = { Real(0) };
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
-                const double theta = delta * vertex;
+                const double angle = delta * vertex;
                 
-                v[0] = r * std::cos( theta );
-                v[1] = r * std::sin( theta );
+                v[0] = radius * std::cos( angle );
+                v[1] = radius * std::sin( angle );
                 
                 copy_buffer<AmbDim>( &v[0], &x[AmbDim * vertex] );
             }
@@ -258,7 +257,7 @@ namespace KnotTools
 //##    Folding
 //#########################################################################################
 
-        int Fold( const Int p_, const Int q_, const Real theta_ )
+        Flag_T Fold( const Int p_, const Int q_, const Real theta_ )
         {
             int pivot_flag = LoadPivots(p_,q_,theta_);
             
@@ -291,7 +290,7 @@ namespace KnotTools
             }
         }
         
-        FlagVec_T FoldRandom( const Size_T success_count )
+        FlagVec_T FoldRandom( const LInt success_count )
         {
             FlagVec_T counters;
             

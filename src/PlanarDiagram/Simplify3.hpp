@@ -53,6 +53,10 @@ Int Simplify3(
             {
                 return simplify3<4,true>(max_iter);
             }
+            default:
+            {
+                eprint( ClassName()+"::Simplify3: Value " + ToString(level) + " is invalid" );
+            }
         }
     }
     else
@@ -78,6 +82,10 @@ Int Simplify3(
             case 4:
             {
                 return simplify3<4,false>(max_iter);
+            }
+            default:
+            {
+                eprint( ClassName()+"::Simplify3: Value " + ToString(level) + " is invalid" );
             }
         }
     }

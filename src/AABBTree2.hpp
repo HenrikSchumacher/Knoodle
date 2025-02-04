@@ -92,9 +92,7 @@ namespace KnotTools
         {
             static_assert(point_count > 0, "");
             
-            columnwise_minmax<point_count,AmbDim>(
-                P, dimP, lo, Size_T(1), hi, Size_T(1)
-            );
+            columnwise_minmax<point_count,AmbDim>( P, dimP, lo, Size_T(1), hi, Size_T(1) );
         }
         
         static constexpr void BoxesToBox(

@@ -6,7 +6,7 @@ namespace KnotTools
     template<typename Int_, bool precompute_rangesQ_ = false>
     class alignas( ObjectAlignment ) CompleteBinaryTree
     {
-        static_assert(IntQ<Int_>,"");
+        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -133,9 +133,7 @@ namespace KnotTools
         static constexpr Int Depth( const Int i )
         {
             // Depth equals the position of the most significant bit if i+1.
-            constexpr UInt one = 1;
-            
-            return static_cast<Int>( MSB( static_cast<UInt>(i) + one ) - one );
+            return static_cast<Int>( MSB( static_cast<UInt>(i) + UInt(1) ) ) - Int(1);
         }
         
         
@@ -147,7 +145,7 @@ namespace KnotTools
             
             UInt k = static_cast<UInt>(i) + one;
 
-            return i - (PrevPow(k) - one);
+            return i - static_cast<Int>(PrevPow(k) - one);
         }
         
         

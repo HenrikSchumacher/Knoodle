@@ -28,7 +28,7 @@ namespace KnotTools
         ,   handedness  { handedness_                       }
         {}
         
-        ~Intersection() = default;
+//        ~Intersection() = default;
     };
 
 }

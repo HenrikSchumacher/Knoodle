@@ -2,7 +2,7 @@
 
 namespace KnotTools
 {
-    enum class LineSegmentsIntersectionFlag : Int32
+    enum class LineSegmentsIntersectionFlag : UInt32
     {
         Empty              = 0, // Empty intersection.
         Point_Transversal  = 1, // Exactly one intersec. point X and X != x_1 and X != y_1.
@@ -12,12 +12,12 @@ namespace KnotTools
         Interval           = 5   // The intersection between the two lines consists of more than two points.
     };
     
-    bool IntersectingQ( LineSegmentsIntersectionFlag f )
+    inline bool IntersectingQ( LineSegmentsIntersectionFlag f )
     {
         return ToUnderlying(f) >= 1;
     }
     
-    bool DegenerateQ( LineSegmentsIntersectionFlag f )
+    inline bool DegenerateQ( LineSegmentsIntersectionFlag f )
     {
         return ToUnderlying(f) >= 2;
     }
@@ -69,12 +69,54 @@ namespace KnotTools
             }
         }
         
+        // Copy constructor
+        PlanarLineSegmentIntersector( const PlanarLineSegmentIntersector & other )
+        :   u                   ( other.u                   )
+        ,   v                   ( other.v                   )
+        ,   p                   ( other.p                   )
+        ,   q                   ( other.q                   )
+        ,   d                   ( other.d                   )
+        ,   e                   ( other.e                   )
+        ,   signs               ( other.signs               )
+        ,   intersection_counts ( other.intersection_counts )
+        ,   flag                ( other.flag                )
+        {}
+        
+        friend void swap (PlanarLineSegmentIntersector &A, PlanarLineSegmentIntersector &B ) noexcept
+        {
+            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+            using std::swap;
+            
+            swap( A.u,                      B.u                     );
+            swap( A.v,                      B.v                     );
+            swap( A.p,                      B.p                     );
+            swap( A.q,                      B.q                     );
+            swap( A.d,                      B.d                     );
+            swap( A.e,                      B.e                     );
+            swap( A.signs,                  B.signs                 );
+            swap( A.intersection_counts,    B.intersection_counts   );
+            swap( A.flag,                   B.flag                  );
+        }
+        
+        //(Copy-)assignment operator
+        PlanarLineSegmentIntersector & operator=( PlanarLineSegmentIntersector other ) // Passing by value is okay, because of copy elision.
+        {
+            // copy-and-swap idiom
+            // see https://stackoverflow.com/a/3279550/8248900 for details
+            
+            swap(*this, other);
+            
+            return *this;
+        }
+        
+        // Move constructor
+        PlanarLineSegmentIntersector( PlanarLineSegmentIntersector && other ) noexcept
+        : PlanarLineSegmentIntersector()
+        {
+            swap(*this, other);
+        }
         
     protected:
-        
-//        std::pair<Real,Real> uv_det;
-//        std::pair<Real,Real> du_det;
-//        std::pair<Real,Real> dv_det;
         
         Vector2_T u;
         Vector2_T v;
@@ -83,17 +125,12 @@ namespace KnotTools
         Vector2_T d;
         Vector2_T e;
         
-        SInt signs [4];
-        
-        F_T flag;
+        std::array<SInt,4> signs;
         
         std::array<Size_T,8> intersection_counts = {};
         
-//        Vector2_T times_0;
-//        Vector2_T times_1;
-//        
-//        double line_intersection_time = 0;
-
+        F_T flag;
+        
         
     public:
         

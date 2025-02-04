@@ -101,16 +101,16 @@ public:
         //
         // Let's compute its coefficients.
         
-        Vector3_T uv [2][2] = {
+        Vector3_T uxv [2][2] = {
             { cross(u_0,v_0), cross(u_0,v_1) },
             { cross(u_1,v_0), cross(u_1,v_1) }
         };
         
         Tiny::Vector<4,Real,Int> coeff = {
-            dot(uv[0][0],w_0),
-            dot(uv[0][0],w_1) + dot(uv[0][1],w_0) + dot(uv[1][0],w_0),
-            dot(uv[0][1],w_1) + dot(uv[1][0],w_1) + dot(uv[1][1],w_0),
-            dot(uv[1][1],w_1)
+            dot(uxv[0][0],w_0),
+            dot(uxv[0][0],w_1) + dot(uxv[0][1],w_0) + dot(uxv[1][0],w_0),
+            dot(uxv[0][1],w_1) + dot(uxv[1][0],w_1) + dot(uxv[1][1],w_0),
+            dot(uxv[1][1],w_1)
         };
         
     //            auto f = [&coeff]( const Real t )
