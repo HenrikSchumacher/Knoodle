@@ -3,6 +3,9 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
+//#define TOOLS_DEACTIVATE_VECTOR_EXTENSIONS
+//#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
+
 //#ifdef __APPLE__
 //    #include "../submodules/Tensors/Accelerate.hpp"
 //#else
@@ -27,6 +30,30 @@ namespace po = boost::program_options;
 
 int main( int argc, char** argv )
 {
+    print("Welcome to polyfold.");
+    print("");
+    
+    if( vec_enabledQ )
+    {
+        print("Vector extensions enabled.");
+    }
+    else
+    {
+        print("Vector extensions disabled.");
+    }
+    
+    if( mat_enabledQ )
+    {
+        print("Matrix extensions enabled.");
+    }
+    else
+    {
+        print("Matrix extensions disabled.");
+    }
+    
+    print("");
+    
+    
     Int thread_count = 1;
     Int job_count    = thread_count;
     
@@ -287,7 +314,7 @@ int main( int argc, char** argv )
         
                 // Writing the PD codes to file.
                 std::ofstream pd_file (
-                    local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".tsv")
+                    local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".m")
                 );
                 
                 pd_file << "{" << std::endl;

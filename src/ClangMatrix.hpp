@@ -28,7 +28,7 @@ namespace KnotTools
 
         ClangMatrix( const Real init )
         {
-            fill_buffer<M*N>( reinterpret_cast<Real *>( &A ), init );
+            fill_buffer<M*N>( get_ptr(A), init );
         }
         
         ClangMatrix( cref<M_T> B )
@@ -135,7 +135,7 @@ namespace KnotTools
         
         Real SquaredNorm() const
         {
-            return norm_2_squared<M*N>( reinterpret_cast<const Real *>( &A ) );
+            return norm_2_squared<M*N>( get_ptr(A) );
         }
         
         Real Norm() const
@@ -216,7 +216,7 @@ namespace KnotTools
         
         [[nodiscard]] friend std::string ToString( cref<ClangMatrix> A_ )
         {
-            return ArrayToString( reinterpret_cast<const Real *>(&A_), {N,M} );
+            return ArrayToString( get_ptr(A_.Matrix()), {N,M} );
         }
         
     public:

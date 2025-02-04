@@ -21,25 +21,21 @@ namespace KnotTools
         
         static constexpr Int AmbDim  = AmbDim_;
     
-        static constexpr bool use_clang_matrixQ = true && VectorizableQ<Real>;
-        
-        
-//        using Transform_T     = AffineTransform<AmbDim,Real,Int>;
-        using Transform_T    = typename std::conditional_t<
-                                   use_clang_matrixQ,
-                                   ClangAffineTransform<AmbDim,Real,Int>,
-                                   AffineTransform<AmbDim,Real,Int>
-                               >;
+        static constexpr bool use_clang_matrixQ = true && MatrixizableQ<Real>;
+
+        using Transform_T     = typename std::conditional_t<
+                                    use_clang_matrixQ,
+                                    ClangAffineTransform<AmbDim,Real,Int>,
+                                    AffineTransform<AmbDim,Real,Int>
+                                >;
             
-        using Vector_T       = typename Transform_T::Vector_T;
-        using Matrix_T       = typename Transform_T::Matrix_T;
+        using Vector_T        = typename Transform_T::Vector_T;
+        using Matrix_T        = typename Transform_T::Matrix_T;
         
         using NodeContainer_T = Tensor2<Real,Int>;
         
         using PRNG_T          = std::mt19937_64;
         using PRNG_Result_T   = PRNG_T::result_type;
-        
-//        using FlagVec_T       = std::array<Size_T,5>;
     
         using FlagVec_T       = Tiny::Vector<5,Size_T,Int>;
         
