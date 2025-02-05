@@ -31,11 +31,6 @@ namespace po = boost::program_options;
 
 int main( int argc, char** argv )
 {
-    dump( sizeof(Tensor1<Real,Int>) );
-    dump( sizeof(Tensor2<Real,Int>) );
-    dump( sizeof(Tensor3<Real,Int>) );
-    
-    
     print("Welcome to polyfold.");
     print("");
     
