@@ -9,6 +9,11 @@
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
+		<key>PolyFold_Kyoto.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
 		<key>Test_ClisbyTree.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -22,6 +27,16 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>AF482C192D580BAA007CDB27</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>AF643CE02D57F4D000030126</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>AFC2F3F02D4AC2E900FF8621</key>
 		<dict>
 			<key>primary</key>

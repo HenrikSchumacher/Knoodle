@@ -12,6 +12,15 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AF482C182D580BAA007CDB27 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AFC2F3EF2D4AC2E900FF8621 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -33,6 +42,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AF482C1A2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold_Kyoto; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -44,10 +54,18 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Test_ClisbyTree; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AF482C172D580BAA007CDB27 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFC2F3EE2D4AC2E900FF8621 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -83,6 +101,7 @@
 				AFC2F3FD2D4D00A400FF8621 /* ReAPr.hpp */,
 				AFF3054E2B7AF4E2009ABC74 /* Test_Link_2D */,
 				AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */,
+				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -93,6 +112,7 @@
 			children = (
 				AFF3054D2B7AF4E2009ABC74 /* Test_Link_2D */,
 				AFC2F3F12D4AC2E900FF8621 /* Test_ClisbyTree */,
+				AF482C1A2D580BAA007CDB27 /* PolyFold_Kyoto */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,6 +128,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AF482C192D580BAA007CDB27 /* PolyFold_Kyoto */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF482C1E2D580BAA007CDB27 /* Build configuration list for PBXNativeTarget "PolyFold_Kyoto" */;
+			buildPhases = (
+				AF482C162D580BAA007CDB27 /* Sources */,
+				AF482C172D580BAA007CDB27 /* Frameworks */,
+				AF482C182D580BAA007CDB27 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
+			);
+			name = PolyFold_Kyoto;
+			packageProductDependencies = (
+			);
+			productName = PolyFold_Kyoto;
+			productReference = AF482C1A2D580BAA007CDB27 /* PolyFold_Kyoto */;
+			productType = "com.apple.product-type.tool";
+		};
 		AFC2F3F02D4AC2E900FF8621 /* Test_ClisbyTree */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AFC2F3F72D4AC2E900FF8621 /* Build configuration list for PBXNativeTarget "Test_ClisbyTree" */;
@@ -156,6 +198,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					AF482C192D580BAA007CDB27 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					AFC2F3F02D4AC2E900FF8621 = {
 						CreatedOnToolsVersion = 16.2;
 						LastSwiftMigration = 1620;
@@ -180,11 +225,19 @@
 			targets = (
 				AFF3054C2B7AF4E2009ABC74 /* Test_Link_2D */,
 				AFC2F3F02D4AC2E900FF8621 /* Test_ClisbyTree */,
+				AF482C192D580BAA007CDB27 /* PolyFold_Kyoto */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AF482C162D580BAA007CDB27 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFC2F3ED2D4AC2E900FF8621 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -203,6 +256,34 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		AF482C1F2D580BAA007CDB27 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = "-lboost_program_options";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AF482C202D580BAA007CDB27 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = "-lboost_program_options";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AF5BC0B829D1AF1C008CA8B7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -368,7 +449,6 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
@@ -386,7 +466,6 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
-				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
@@ -425,6 +504,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AF482C1E2D580BAA007CDB27 /* Build configuration list for PBXNativeTarget "PolyFold_Kyoto" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF482C1F2D580BAA007CDB27 /* Debug */,
+				AF482C202D580BAA007CDB27 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AF5BC0AE29D1AF1C008CA8B7 /* Build configuration list for PBXProject "KnotTools" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
