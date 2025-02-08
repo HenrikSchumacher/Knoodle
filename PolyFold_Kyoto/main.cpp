@@ -40,7 +40,7 @@ void write_pd_code( mref<std::ofstream> pds, mref<PD_T> PD )
     
     cptr<Int> a = pdcode.data();
     
-    pds << "s " << PD.ProvablyMinimalQ();
+    pds << "\ns " << PD.ProvablyMinimalQ();
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
