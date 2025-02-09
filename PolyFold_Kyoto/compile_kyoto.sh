@@ -5,6 +5,7 @@ clang++                                     \
     -O3                                     \
     -ffast-math                             \
     -flto                                   \
+    -pthread                                \
     -fenable-matrix                         \
     -march=native                           \
     -mtune=native                           \
