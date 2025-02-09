@@ -87,8 +87,8 @@ int main( int argc, char** argv )
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
         ("sample-count,N", po::value<Int>(), "set number of samples")
         ("output,o", po::value<std::string>(), "set output directory")
-        ("verbose,v", po::value<std::string>(), "gather statistics for each sample")
-        ("append,a", po::value<std::string>(), "append to existent file")
+        ("verbose,v", "gather statistics for each sample")
+        ("append,a", "append to existent file")
         ;
         
         // Declare that arguments without option prefixe are reinterpreted as if they were assigned to -o [--output].
