@@ -107,7 +107,7 @@ namespace KnotTools
                     tau = backtracking_factor * tau;
                     
                     // x_tau = x + tau * u;
-                    combine_buffers<Flag_T::Plus,Flag_T::Generic>(
+                    combine_buffers3<Flag_T::Plus,Flag_T::Generic>(
                         Scalar::One<Real>, x.data(), tau, u.data(), x_tau.data(), m + n
                     );
                     

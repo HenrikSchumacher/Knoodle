@@ -154,19 +154,26 @@ std::pair<bool,bool> NodeSplitFlags( const Int node )
     const Int p_ = p + a;
     const Int q_ = q + b;
 
-    const bool only_midQ = (begin >= p_) && (end <= q_);
-    const bool no_midQ   = (end <= p_) || (begin >= q_);
+    const bool not_only_midQ = (begin < p_) || (end   > q_);
+    const bool not_no_midQ   = (end   > p_) && (begin < q_);
     
-    if( mid_changedQ )
-    {
-        // Vertices [p+1,...,q-2,q-1] are changed.
-        return { !only_midQ, !no_midQ };
-    }
-    else
-    {
-        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
-        return { !no_midQ, !only_midQ };
-    }
+    return mid_changedQ
+            ? std::pair( not_only_midQ, not_no_midQ    )
+            : std::pair( not_no_midQ  , not_only_midQ );
+    
+//    const bool only_midQ = (begin >= p_) && (end   <= q_);
+//    const bool no_midQ   = (end   <= p_) || (begin >= q_);
+//    
+//    if( mid_changedQ )
+//    {
+//        // Vertices [p+1,...,q-2,q-1] are changed.
+//        return { !only_midQ, !no_midQ };
+//    }
+//    else
+//    {
+//        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
+//        return { !no_midQ, !only_midQ };
+//    }
 }
                    
 int CheckJoints()
@@ -242,10 +249,10 @@ bool OverlapQ_implementation_1()
     witness_0 = -1;
     witness_1 = -1;
     
-    Int stack[4 * max_depth][2];
+    Int stack [4 * max_depth][2];
     Int stack_ptr = -1;
 
-    // Helper routine to manage the pair_stack.
+    // Helper routine to manage stack.
     auto push = [&stack,&stack_ptr]( const Int i, const Int j )
     {
         ++stack_ptr;
@@ -253,7 +260,7 @@ bool OverlapQ_implementation_1()
         stack[stack_ptr][1] = j;
     };
     
-    // Helper routine to manage the pair_stack.
+    // Helper routine to manage stack.
     auto check_push = [&stack,&stack_ptr,this]( const Int i, const Int j )
     {
         const bool overlappingQ = ( (i==j) || this->NodesOverlapQ(i,j,this->r) );
@@ -266,7 +273,7 @@ bool OverlapQ_implementation_1()
         }
     };
     
-    // Helper routine to manage the pair_stack.
+    // Helper routine to manage stack.
     auto pop = [&stack,&stack_ptr]()
     {
         auto result = MinMax( stack[stack_ptr][0], stack[stack_ptr][1] );
@@ -427,7 +434,9 @@ bool OverlapQ_implementation_0()
     witness_0 = -1;
     witness_1 = -1;
     
-    Int stack[4 * max_depth][2];
+    constexpr Int stack_size = 4 * max_depth;
+    
+    Int stack [stack_size][2];
     Int stack_ptr = -1;
 
     // Helper routine to manage the pair_stack.
@@ -448,9 +457,9 @@ bool OverlapQ_implementation_0()
     
     auto continueQ = [&stack_ptr,this]()
     {
-        const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+        const bool overflowQ = (stack_ptr >= stack_size - 4);
         
-        if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+        if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
         {
             return true;
         }
@@ -464,7 +473,7 @@ bool OverlapQ_implementation_0()
         }
     };
     
-    auto [b_root_0,b_root_1] = NodeSplitFlags(0);
+    auto [b_root_0,b_root_1] = NodeSplitFlags(Int(0));
     
     if( b_root_0 && b_root_1 )
     {

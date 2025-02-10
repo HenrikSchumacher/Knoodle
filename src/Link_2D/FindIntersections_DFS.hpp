@@ -25,7 +25,7 @@ protected:
         
         intersection_count_3D = 0;
         
-        Int stack[4 * max_depth][2];
+        Int stack [4 * max_depth][2];
         Int stack_ptr = -1;
         
         // Helper routine to manage the pair_stack.
@@ -154,7 +154,7 @@ protected:
         
         intersection_count_3D = 0;
         
-        Int stack[4 * max_depth][2];
+        Int stack [4 * max_depth][2];
         Int stack_ptr = -1;
 
         // Helper routine to manage the pair_stack.

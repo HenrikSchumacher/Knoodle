@@ -794,7 +794,7 @@ namespace KnotTools
             
             constexpr Int max_depth = Tree_T::max_depth;
             
-            Int stack[4 * max_depth][2];
+            Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             
             // Helper routine to manage the stack.
@@ -828,9 +828,22 @@ namespace KnotTools
                 return result;
             };
             
-            auto continueQ = [&stack_ptr]()
+            auto continueQ = [&stack_ptr,this]()
             {
-                return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+                const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+                
+                if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+                {
+                    return true;
+                }
+                else
+                {
+                    if ( overflowQ ) [[unlikely]]
+                    {
+                        eprint(this->ClassName()+"::OverlapQ_implementation_1: Stack overflow.");
+                    }
+                    return false;
+                }
             };
             
             push(P_tree.Root(),Q_tree.Root());
@@ -902,7 +915,7 @@ namespace KnotTools
             
             constexpr Int max_depth = Tree_T::max_depth;
             
-            Int stack[4 * max_depth][2];
+            Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             
             // Helper routine to manage the stack.
@@ -921,9 +934,23 @@ namespace KnotTools
                 return result;
             };
             
-            auto continueQ = [&stack_ptr]()
+            
+            auto continueQ = [&stack_ptr,this]()
             {
-                return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+                const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+                
+                if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+                {
+                    return true;
+                }
+                else
+                {
+                    if ( overflowQ ) [[unlikely]]
+                    {
+                        eprint(this->ClassName()+"::OverlapQ_implementation_0: Stack overflow.");
+                    }
+                    return false;
+                }
             };
             
             push(P_tree.Root(),Q_tree.Root());

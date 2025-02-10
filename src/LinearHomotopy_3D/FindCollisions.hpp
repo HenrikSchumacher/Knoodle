@@ -28,7 +28,7 @@ public:
 
             const Int int_node_count = T.InteriorNodeCount();
             
-            Int stack[4 * max_depth][2];
+            Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             
             // Helper routine to manage the pair_stack.
@@ -128,7 +128,7 @@ public:
 
             const Int int_node_count = T.InteriorNodeCount();
             
-            Int stack[4 * max_depth][2];
+            Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             
             // Helper routine to manage the pair_stack.
