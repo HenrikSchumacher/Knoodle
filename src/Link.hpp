@@ -293,7 +293,7 @@ namespace KnotTools
 
             Int visited_edge_counter = 0;
 
-            std::vector<bool> edge_visited( edge_count, false );
+            Tensor1<bool,Int> edge_visited( edge_count, false );
             
             for( Int e = 0; e < edge_count; ++e )
             {

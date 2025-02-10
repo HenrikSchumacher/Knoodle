@@ -6,6 +6,9 @@
 //#define TOOLS_DEACTIVATE_VECTOR_EXTENSIONS
 //#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
 
+//#define TOOLS_AGGRESSIVE_INLINING
+//#define TOOLS_HOT_CODE
+
 //#ifdef __APPLE__
 //    #include "../submodules/Tensors/Accelerate.hpp"
 //#else

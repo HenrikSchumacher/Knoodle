@@ -50,7 +50,7 @@ namespace KnotTools
     static           Size_T PD_error_counter   =  0;
 
     
-    static void pd_eprint( const std::string & s )
+    static inline void pd_eprint( const std::string & s )
     {
         ++KnotTools::PD_error_counter;
         

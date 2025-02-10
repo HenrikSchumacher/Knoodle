@@ -257,6 +257,8 @@ namespace KnotTools
 //##    Folding
 //#########################################################################################
 
+    public:
+    
         Flag_T Fold( const Int p_, const Int q_, const Real theta_ )
         {
             int pivot_flag = LoadPivots(p_,q_,theta_);
