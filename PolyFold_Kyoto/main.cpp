@@ -432,7 +432,7 @@ int main( int argc, char** argv )
     
     log << "Sampling time = "
         << sample_timing
-        << ".\n";
+        << " s.\n";
     
     log << "Achieved "
         << Frac<Real>(sample_attempt_count,sample_timing)
@@ -454,7 +454,7 @@ int main( int argc, char** argv )
     
     log << "Time elapsed overall = "
         << overall_timing
-        << ".\n";
+        << " s.\n";
     
     log << "Achieved "
         << Frac<Real>(total_attempt_count,overall_timing)
@@ -478,7 +478,7 @@ int main( int argc, char** argv )
     }
     
     
-    std::cout << "Done. Time elapsed = " << overall_timing << "." << std::endl;
+    std::cout << "Done. Time elapsed = " << overall_timing << " s." << std::endl;
     
     return 0;
 }
