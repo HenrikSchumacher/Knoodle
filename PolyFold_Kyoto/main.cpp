@@ -396,14 +396,14 @@ int main( int argc, char** argv )
             log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second.\n";
             log << "Success rate = " << Frac<Real>(Int(100) * counts[0],attempt_count) << " %.\n";
             
-            log << "Minimal edge length deviation = " << ToString(min_dev) << ".\n";
-            log << "Maximal edge length deviation = " << ToString(max_dev) << ".\n";
-            
             
             log << "Overall number of attempts = " << total_attempt_count << ".\n";
             log << "Overall success rate (without burnin) = "
                 << Frac<Real>( Int(100) * (skip * (i+1)), total_attempt_count - burn_in_attempt_count)
                 << " %.\n";
+            
+            log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
+            log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
             
             log << std::endl;
         }
@@ -473,8 +473,8 @@ int main( int argc, char** argv )
     {
         auto [min_dev,max_dev] = T.MinMaxEdgeLengthDeviation( x.data() );
         
-        log << "Minimal edge length deviation = " << ToString(min_dev) << ".\n";
-        log << "Maximal edge length deviation = " << ToString(max_dev) << ".\n";
+        log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
+        log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
     }
     
     

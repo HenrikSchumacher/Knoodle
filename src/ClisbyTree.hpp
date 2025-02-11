@@ -336,11 +336,13 @@ namespace KnotTools
             Real min;
             Real max;
             
+            const Real r_inv = Inv(r);
+            
             {
                 const V_T u ( &vertex_coordinates[0]              );
                 const V_T v ( &vertex_coordinates[AmbDim * (n-1)] );
                 
-                const Real deviation = Distance(u,v) -  Real(1);
+                const Real deviation = Distance(u,v) * r_inv - Real(1);
                 
                 min = deviation;
                 max = deviation;
@@ -351,7 +353,7 @@ namespace KnotTools
                 const V_T u ( &vertex_coordinates[AmbDim * (i-1)] );
                 const V_T v ( &vertex_coordinates[AmbDim * i    ] );
                 
-                const Real deviation = Distance(u,v) -  Real(1);
+                const Real deviation = Distance(u,v) * r_inv - Real(1);
                 
                 min = Min(min,deviation);
                 max = Max(max,deviation);
