@@ -341,6 +341,10 @@ bool OverlapQ_implementation_1()
                     check_push(L_i,L_j);
                 }
                 
+                
+                // TODO: Optimize the order of the following two calls to check_push.
+                // TODO: We should encourage to first visit the neighborhood of the pivots.
+                
                 if( (b_L_i_0 && b_R_j_1) || (b_L_i_1 && b_R_j_0) )
                 {
                     check_push(L_i,R_j);

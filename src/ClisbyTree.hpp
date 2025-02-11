@@ -74,6 +74,7 @@ namespace KnotTools
         :   Tree_T      { static_cast<Int>(vertex_count_)    }
         ,   N_data      { NodeCount(), NodeDim, 0            }
         ,   N_state     { NodeCount(), NodeState_T::Id       }
+        ,   E_lengths   { LeafNodeCount()                    }
         ,   r           { static_cast<Real>(radius)          }
         ,   r2          { r * r                              }
         {
@@ -91,6 +92,7 @@ namespace KnotTools
         :   Tree_T      { static_cast<Int>(vertex_count_)    }
         ,   N_data      { NodeCount(), NodeDim, 0            }
         ,   N_state     { NodeCount(), NodeState_T::Id       }
+        ,   E_lengths   { LeafNodeCount()                    }
         ,   r           { static_cast<Real>(radius)          }
         ,   r2          { r * r                              }
         {
@@ -101,6 +103,8 @@ namespace KnotTools
         
 
         ~ClisbyTree() = default;
+    
+        // TODO: Copy + move semantics.
         
     public:
         
@@ -127,6 +131,7 @@ namespace KnotTools
         
         NodeContainer_T N_data;
         Tensor1<NodeState_T,Int> N_state;
+        Tensor1<Real,Int> E_lengths;
         
         Real r  = 0;                    // Hard sphere radius.
         Real r2 = 0;                    // Squared hard sphere radius.
@@ -137,21 +142,22 @@ namespace KnotTools
         Int witness_0 = -1;
         Int witness_1 = -1;
     
-        bool mid_changedQ = false;
         Real theta;                     // Rotation angle
-        Vector_T   X_p;                // Pivot location.
-        Vector_T   X_q;                // Pivot location.
+        Vector_T   X_p;                 // Pivot location.
+        Vector_T   X_q;                 // Pivot location.
         Transform_T id;
         Transform_T transform;          // Pivot transformation.
         
         PRNG_T random_engine;
-        
+    
         mutable LInt mm_counter   = 0;
         mutable LInt mv_counter   = 0;
         mutable LInt load_counter = 0;
+    
+        bool mid_changedQ = false;
+        bool transforms_pushedQ = false;
         
     private:
-        
 
         void ResetTransform( mptr<Real> f_ptr )
         {
@@ -318,6 +324,40 @@ namespace KnotTools
             }
             
             return counters;
+        }
+    
+
+        std::pair<Real,Real> MinMaxEdgeLengthDeviation( cptr<Real> vertex_coordinates )
+        {
+            const Int n = VertexCount();
+
+            using V_T = Tiny::Vector<AmbDim,Real,Int>;
+            
+            Real min;
+            Real max;
+            
+            {
+                const V_T u ( &vertex_coordinates[0]              );
+                const V_T v ( &vertex_coordinates[AmbDim * (n-1)] );
+                
+                const Real deviation = Distance(u,v) -  Real(1);
+                
+                min = deviation;
+                max = deviation;
+            }
+            
+            for( Int i = 1; i < n; ++i )
+            {
+                const V_T u ( &vertex_coordinates[AmbDim * (i-1)] );
+                const V_T v ( &vertex_coordinates[AmbDim * i    ] );
+                
+                const Real deviation = Distance(u,v) -  Real(1);
+                
+                min = Min(min,deviation);
+                max = Max(max,deviation);
+            }
+            
+            return std::pair(min,max);
         }
         
 //#########################################################################################
