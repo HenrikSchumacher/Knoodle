@@ -144,10 +144,7 @@ namespace KnotTools
         
         [[nodiscard]] friend std::string ToString( cref<AffineTransform> f )
         {
-            std::stringstream sout;
-            sout << "A = " << ToString(f.A) << "\n" ;
-            sout << "b = " << ToString(f.b);
-            return sout.str();
+            return std::string("A = ") + ToString(f.A) + "\n" + "b = " + ToString(f.b);
         }
         
     public:

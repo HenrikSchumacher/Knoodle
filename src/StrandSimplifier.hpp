@@ -232,47 +232,47 @@ namespace KnotTools
         
         std::string ArcRangeString( const Int a_begin, const Int a_end ) const
         {
-            std::stringstream s;
+            std::string s;
 
             Int a = a_begin;
             Int i = 0;
             
-            s << ToString(0) << " : " <<  CrossingString(A_cross(a,Tail)) << ")\n";
-            s << ToString(0) << " : " <<  ArcString(a)
-              << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
-            s << ToString(1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
+            s += ToString(0) + " : " + CrossingString(A_cross(a,Tail)) + ")\n"
+               + ToString(0) + " : " + ArcString(a)
+               + " (" + (pd.template ArcOverQ<Head>(a) ? "over" : "under") + ")\n"
+            + ToString(1) + " : " + CrossingString(A_cross(a,Head)) + "\n";
 
             do
             {
                 ++i;
                 a = pd.template NextArc<Head>(a);
-                s << ToString(i  ) << " : " <<  ArcString(a)
-                  << " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") << ")" << "\n";
-                s << ToString(i+1) << " : " <<  CrossingString(A_cross(a,Head)) << "\n";
+                s += ToString(i  ) + " : " +  ArcString(a)
+                   + " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") + ")\n";
+                    +ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
             }
             while( a != a_end );
             
-            return s.str();
+            return s;
         }
         
         std::string PathString()
         {
-            std::stringstream s;
-            
             if( path_length <= 0 )
             {
                 return "{}";
             }
             
+            std::string s;
+            
             for( Int p = 0; p < path_length; ++p )
             {
                 const Int a = path[p];
 
-                s << ToString(p  ) << " : " <<  ArcString(a)
-                  << " (" << ToString( Sign(A_data(a,0)) ) << ")" << "\n";
+                s += ToString(p  ) + " : " +  ArcString(a)
+                   + " (" + ToString( Sign(A_data(a,0)) ) + ")\n";
             }
             
-            return s.str();
+            return s;
         }
         
         template<bool must_be_activeQ = true, bool silentQ = false>

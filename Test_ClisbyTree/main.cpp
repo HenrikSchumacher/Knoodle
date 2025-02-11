@@ -32,6 +32,30 @@ using PD_T   = PlanarDiagram<Int>;
 
 namespace po = boost::program_options;
 
+std::string pd_code_string( mref<PD_T> PD )
+{
+    if( PD.CrossingCount() <= 0 )
+    {
+        return std::string();
+    }
+    
+    auto pdcode = PD.PDCode();
+    
+    cptr<Int> a = pdcode.data();
+    
+    std::string s;
+    
+    s += "\ns ";
+    s += PD.ProvablyMinimalQ();
+    
+    for( Int i = 0; i < pdcode.Dimension(0); ++i )
+    {
+        s += VectorString<5>(&a[5 * i + 0], "\n", "\t", "" );
+    }
+    
+    return s;
+}
+
 int main( int argc, char** argv )
 {
     print("Welcome to PolyFold.");
@@ -319,26 +343,22 @@ int main( int argc, char** argv )
                 PD.Simplify5( PD_list );
         
                 // Writing the PD codes to file.
-                std::ofstream pd_file (
+                std::ofstream pds (
                     local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".m")
                 );
                 
-                pd_file << "{\n";
-        
+                // Writing the PD codes to file.
+                
+                pds << "k";
+                
+                pds << pd_code_string(PD);
+                
+                for( auto & P : PD_list )
                 {
-                    auto A = PD.PDCode();
-                    pd_file << ArrayToString( A.data(), A.Dimensions(), A.Rank(), "\t" ) << "\n";
+                    pds << pd_code_string(P);
                 }
                 
-                for( Size_T j = 0; j < PD_list.size(); ++j )
-                {
-                    pd_file << ",\n";
-                    
-                    auto A = PD.PDCode();
-                    pd_file << ArrayToString( A.data(), A.Dimensions(), A.Rank(), "\t" ) << "\n";
-                }
-                
-                pd_file << "}\n";
+                pds << "\n";
         
                 const Time stop_time = Clock::now();
                 

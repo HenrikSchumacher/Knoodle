@@ -3,15 +3,6 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
-//#define TOOLS_DEACTIVATE_VECTOR_EXTENSIONS
-//#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
-
-//#ifdef __APPLE__
-//    #include "../submodules/Tensors/Accelerate.hpp"
-//#else
-//    #include "../submodules/Tensors/OpenBLAS.hpp"
-//#endif
-
 #include "../KnotTools.hpp"
 
 using namespace KnotTools;
@@ -29,11 +20,11 @@ using PD_T   = PlanarDiagram<Int>;
 
 namespace po = boost::program_options;
 
-void write_pd_code( mref<std::ofstream> pds, mref<PD_T> PD )
+std::string pd_code_string( mref<PD_T> PD )
 {
     if( PD.CrossingCount() <= 0 )
     {
-        return;
+        return std::string();
     }
     
     auto pdcode = PD.PDCode();
@@ -47,28 +38,16 @@ void write_pd_code( mref<std::ofstream> pds, mref<PD_T> PD )
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
-//        s += "\n";
-//        s += ToString(a[5 * i + 0]);
-//        s += "\t";
-//        s += ToString(a[5 * i + 1]);
-//        s += "\t";
-//        s += ToString(a[5 * i + 2]);
-//        s += "\t";
-//        s += ToString(a[5 * i + 3]);
-//        s += "\t";
-//        s += ToString(a[5 * i + 4]);
-        
         s += VectorString<5>(&a[5 * i + 0], "\n", "\t", "" );
     }
     
-    pds << std::move(s);
+    return s;
 }
 
 int main( int argc, char** argv )
 {
     std::cout << "Welcome to PolyFold.\n\n";
-    
-    
+
     std::cout << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
     std::cout << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n";
     std::cout << "\n";
@@ -383,11 +362,11 @@ int main( int argc, char** argv )
         
         pds << "k";
         
-        write_pd_code(pds,PD);
+        pds << pd_code_string(PD);
         
         for( auto & P : PD_list )
         {
-            write_pd_code(pds,P);
+            pds << pd_code_string(P);
         }
         
         pds << "\n";
