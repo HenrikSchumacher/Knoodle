@@ -40,16 +40,28 @@ void write_pd_code( mref<std::ofstream> pds, mref<PD_T> PD )
     
     cptr<Int> a = pdcode.data();
     
-    pds << "\ns " << PD.ProvablyMinimalQ();
+    std::string s;
+    
+    s += "\ns ";
+    s += PD.ProvablyMinimalQ();
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
-        pds << "\n" << a[5 * i + 0]
-            << "\t" << a[5 * i + 1]
-            << "\t" << a[5 * i + 2]
-            << "\t" << a[5 * i + 3]
-            << "\t" << a[5 * i + 4];
+//        s += "\n";
+//        s += ToString(a[5 * i + 0]);
+//        s += "\t";
+//        s += ToString(a[5 * i + 1]);
+//        s += "\t";
+//        s += ToString(a[5 * i + 2]);
+//        s += "\t";
+//        s += ToString(a[5 * i + 3]);
+//        s += "\t";
+//        s += ToString(a[5 * i + 4]);
+        
+        s += VectorString<5>(&a[5 * i + 0], "\n", "\t", "" );
     }
+    
+    pds << std::move(s);
 }
 
 int main( int argc, char** argv )
@@ -66,8 +78,8 @@ int main( int argc, char** argv )
     Int  n = 1;
     Int  N = 1;
 
-    LInt  burn_in = 1;
-    LInt  skip    = 1;
+    LInt burn_in = 1;
+    LInt skip    = 1;
     
     bool verboseQ = false;
     bool appendQ  = false;

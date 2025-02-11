@@ -14,6 +14,3 @@ clang++                                     \
     -o PolyFold                             \
     main.cpp                                \
     -lboost_program_options                 \
-
-
-

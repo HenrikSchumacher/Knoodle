@@ -34,7 +34,7 @@ namespace po = boost::program_options;
 
 int main( int argc, char** argv )
 {
-    print("Welcome to polyfold.");
+    print("Welcome to PolyFold.");
     print("");
     
     if( vec_enabledQ )
@@ -323,28 +323,22 @@ int main( int argc, char** argv )
                     local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".m")
                 );
                 
-                pd_file << "{" << std::endl;
+                pd_file << "{\n";
         
                 {
-                    pd_file << ToString(PD.PDCode(),17,"\t")  << std::endl;
+                    auto A = PD.PDCode();
+                    pd_file << ArrayToString( A.data(), A.Dimensions(), A.Rank(), "\t" ) << "\n";
                 }
                 
-                if( PD_list.size() > 0 )
+                for( Size_T j = 0; j < PD_list.size(); ++j )
                 {
-                    pd_file << "," << std::endl;
+                    pd_file << ",\n";
                     
-                    for( Size_T j = 0; j + 1 < PD_list.size(); ++j )
-                    {
-                        pd_file << ToString(PD_list[j].PDCode(),17,"\t") << "," << std::endl;
-                    }
-                    
-                    {
-                        pd_file << ToString(PD_list.back().PDCode(),17,"\t")  << std::endl;
-                    }
-                        
+                    auto A = PD.PDCode();
+                    pd_file << ArrayToString( A.data(), A.Dimensions(), A.Rank(), "\t" ) << "\n";
                 }
                 
-                pd_file << "}" << std::endl;
+                pd_file << "}\n";
         
                 const Time stop_time = Clock::now();
                 
