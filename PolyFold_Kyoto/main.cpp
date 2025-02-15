@@ -81,7 +81,8 @@ int main( int argc, char** argv )
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
         ("sample-count,N", po::value<Int>(), "set number of samples")
         ("output,o", po::value<std::string>(), "set output directory")
-        ("extend,e", po::value<std::string>()->default_value(""), "extend name of output directory by information about the experiment, then append optional tag")
+        ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
+        ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
         ("verbose,v", "gather statistics for each sample")
         ("append,a", "append to existent file(s)")
         ;
@@ -201,12 +202,14 @@ int main( int argc, char** argv )
                      + "__b_" + ToString(burn_in_success_count)
                      + "__s_" + ToString(skip)
                      + "__N_" + ToString(N)
-                     + "__"   + vm["extend"].as<std::string>()
+                     + "__"   + (vm.count("tag") ? vm["tag"].as<std::string>() : "")
                 );
             }
             else
             {
-                path = std::filesystem::path( vm["output"].as<std::string>() );
+                path = std::filesystem::path( vm["output"].as<std::string>()
+                     + "__"   + (vm.count("tag")  ? vm["tag"].as<std::string>() : "")
+                );
             }
             
             
