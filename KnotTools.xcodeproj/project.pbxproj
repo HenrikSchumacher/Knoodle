@@ -53,9 +53,19 @@
 		AFF3054F2B7AF4E2009ABC74 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AF6D57A82D5FFAF300F6880C /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				main_Kopie.cpp,
+			);
+			target = AFC2F3F02D4AC2E900FF8621 /* Test_ClisbyTree */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
-		AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Test_ClisbyTree; sourceTree = "<group>"; };
+		AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF6D57A82D5FFAF300F6880C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Test_ClisbyTree; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */

@@ -49,7 +49,7 @@ namespace KnotTools
     protected:
         
         
-        static constexpr Int max_depth = 128;
+        static constexpr Int max_depth = 64;
         
         static constexpr Real one     = 1;
         static constexpr Real eps     = std::numeric_limits<Real>::epsilon();

@@ -773,9 +773,7 @@ namespace KnotTools
         {
             ptic(ClassName()+"::OverlapQ");
             
-//            bool result = OverlapQ_implementation_0(P_begin, P_n, Q_begin, Q_n);
-            
-            bool result = OverlapQ_implementation_1(P_begin, P_n, Q_begin, Q_n);
+            bool result = OverlapQ_implementation(P_begin, P_n, Q_begin, Q_n);
             
             ptoc(ClassName()+"::OverlapQ");
             
@@ -784,7 +782,7 @@ namespace KnotTools
         
     private:
         
-        bool OverlapQ_implementation_1( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
+        bool OverlapQ_implementation( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
         {
             P_tree = Tree_T( P_n );
             Q_tree = Tree_T( Q_n );
@@ -806,7 +804,7 @@ namespace KnotTools
             };
             
             // Helper routine to manage the stack.
-            auto check_push = [&stack,&stack_ptr,this]( const Int i, const Int j )
+            auto conditional_push = [this, push]( const Int i, const Int j )
             {
                 const Real dist_squared = Tree_T::BoxBoxSquaredDistance(this->P_boxes,i,this->Q_boxes,j);
                 
@@ -814,9 +812,7 @@ namespace KnotTools
                 
                 if( overlappingQ )
                 {
-                    ++stack_ptr;
-                    stack[stack_ptr][0] = i;
-                    stack[stack_ptr][1] = j;
+                    push(i,j);
                 }
             };
             
@@ -840,7 +836,7 @@ namespace KnotTools
                 {
                     if ( overflowQ ) [[unlikely]]
                     {
-                        eprint(this->ClassName()+"::OverlapQ_implementation_1: Stack overflow.");
+                        eprint(this->ClassName()+"::OverlapQ_implementation: Stack overflow.");
                     }
                     return false;
                 }
@@ -865,14 +861,14 @@ namespace KnotTools
                         auto [L_i,R_i] = Tree_T::Children(i);
                         auto [L_j,R_j] = Tree_T::Children(j);
 
-                        check_push(R_i,R_j);
-                        check_push(L_i,L_j);
+                        conditional_push(R_i,R_j);
+                        conditional_push(L_i,L_j);
                         
                         // We push the "off-diagonal" cases last so that they will be popped first.
                         // This is meaningful because the beginning of P is likely to be close to the _end_ of Q and vice versa.
                         
-                        check_push(L_i,R_j);
-                        check_push(R_i,L_j);
+                        conditional_push(L_i,R_j);
+                        conditional_push(R_i,L_j);
                     }
                     else
                     {
@@ -882,15 +878,15 @@ namespace KnotTools
                             // Split node i.
                             
                             auto [L_i,R_i] = Tree_T::Children(i);
-                            check_push(R_i,j);
-                            check_push(L_i,j);
+                            conditional_push(R_i,j);
+                            conditional_push(L_i,j);
                         }
                         else
                         {
                             // Split node j.
                             auto [L_j,R_j] = Tree_T::Children(j);
-                            check_push(i,R_j);
-                            check_push(i,L_j);
+                            conditional_push(i,R_j);
+                            conditional_push(i,L_j);
                         }
                     }
                 }
@@ -898,120 +894,6 @@ namespace KnotTools
                 {
                     // Nodes i and j are overlapping leaf nodes in P_tree and Q_tree, respectively.
                     return true;
-                }
-            }
-            return false;
-        }
-        
-        
-        
-        bool OverlapQ_implementation_0( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
-        {
-            P_tree = Tree_T( P_n );
-            Q_tree = Tree_T( Q_n );
-            
-            P_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(P_begin), P_boxes );
-            Q_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(Q_begin), Q_boxes );
-            
-            constexpr Int max_depth = Tree_T::max_depth;
-            
-            Int stack [4 * max_depth][2];
-            Int stack_ptr = -1;
-            
-            // Helper routine to manage the stack.
-            auto push = [&stack,&stack_ptr]( const Int i, const Int j )
-            {
-                ++stack_ptr;
-                stack[stack_ptr][0] = i;
-                stack[stack_ptr][1] = j;
-            };
-            
-            // Helper routine to manage the stack.
-            auto pop = [&stack,&stack_ptr]()
-            {
-                auto result = std::pair( stack[stack_ptr][0], stack[stack_ptr][1] );
-                stack_ptr--;
-                return result;
-            };
-            
-            
-            auto continueQ = [&stack_ptr,this]()
-            {
-                const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
-                
-                if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
-                {
-                    return true;
-                }
-                else
-                {
-                    if ( overflowQ ) [[unlikely]]
-                    {
-                        eprint(this->ClassName()+"::OverlapQ_implementation_0: Stack overflow.");
-                    }
-                    return false;
-                }
-            };
-            
-            push(P_tree.Root(),Q_tree.Root());
-            
-            
-            while( continueQ() )
-            {
-                auto [i,j] = pop();
-                
-                const Real dist_squared = Tree_T::BoxBoxSquaredDistance(P_boxes,i,Q_boxes,j);
-                
-                const bool overlappingQ = (dist_squared < r2);
-                
-                if( overlappingQ )
-                {
-                    // "Interior node" means "not a leaf node".
-                    const bool i_interiorQ = P_tree.InteriorNodeQ(i);
-                    const bool j_interiorQ = Q_tree.InteriorNodeQ(j);
-                    
-                    if( i_interiorQ || j_interiorQ )
-                    {
-                        if( i_interiorQ == j_interiorQ )
-                        {
-                            // Split both nodes.
-                            auto [L_i,R_i] = Tree_T::Children(i);
-                            auto [L_j,R_j] = Tree_T::Children(j);
-
-                            push(R_i,R_j);
-                            push(L_i,L_j);
-                            
-                            // We push the "off-diagonal" cases last so that they will be popped first.
-                            // This is meaningful because the beginning of P is likely to be close to the _end_ of Q and vice versa.
-                            
-                            push(L_i,R_j);
-                            push(R_i,L_j);
-                        }
-                        else
-                        {
-                            // split only larger cluster
-                            if ( i_interiorQ ) // !j_interiorQ follows from this.
-                            {
-                                // Split node i.
-                                
-                                auto [L_i,R_i] = Tree_T::Children(i);
-                                push(R_i,j);
-                                push(L_i,j);
-                            }
-                            else
-                            {
-                                // Split node j.
-                                auto [L_j,R_j] = Tree_T::Children(j);
-                                push(i,R_j);
-                                push(i,L_j);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Nodes i and j are overlapping leaf nodes in P_tree and Q_tree, respectively.
-                        return true;
-                    }
                 }
             }
             return false;

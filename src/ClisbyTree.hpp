@@ -2,7 +2,12 @@
 
 namespace KnotTools
 {
-    template<int AmbDim_, typename Real_, typename Int_, typename LInt_>
+    template<
+        int AmbDim_,
+        typename Real_, typename Int_, typename LInt_,
+//        bool use_manual_stackQ_ = true
+        bool use_manual_stackQ_ = false
+    >
     class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
@@ -13,24 +18,29 @@ namespace KnotTools
         
     public:
         
-        using Real = Real_;
-        using Int  = Int_;
-        using LInt = LInt_;
+        using Real   = Real_;
+        using Int    = Int_;
+        using LInt   = LInt_;
         
+    
         using Tree_T = CompleteBinaryTree<Int,true>;
+    
+        using SInt = typename Tree_T::SInt;
+        
 //        using Tree_T = CompleteBinaryTree_Precomp<Int>;
         using Tree_T::max_depth;
         
         static constexpr Int AmbDim  = AmbDim_;
     
         static constexpr bool use_clang_matrixQ = true && MatrixizableQ<Real>;
-
+        static constexpr bool use_manual_stackQ = use_manual_stackQ_;
+    
         using Transform_T     = typename std::conditional_t<
                                     use_clang_matrixQ,
                                     ClangAffineTransform<AmbDim,Real,Int>,
                                     AffineTransform<AmbDim,Real,Int>
                                 >;
-            
+    
         using Vector_T        = typename Transform_T::Vector_T;
         using Matrix_T        = typename Transform_T::Matrix_T;
         
@@ -41,6 +51,12 @@ namespace KnotTools
     
         using Flag_T          = Int32;
         using FlagVec_T       = Tiny::Vector<5,Flag_T,Int>;
+    
+        using NodeSplitFlagVector_T = Tiny::Vector<2,bool,Int>;
+        using NodeSplitFlagMatrix_T = Tiny::Matrix<2,2,bool,Int>;
+    
+//        using NodeSplitFlagVector_T = std::array<bool,2>;
+//        using NodeSplitFlagMatrix_T = std::array<NodeSplitFlagVector_T,2>;
         
         
         // For center, radius, rotation, and translation.
@@ -49,7 +65,7 @@ namespace KnotTools
         
 //        static constexpr bool perf_countersQ = true;
         static constexpr bool perf_countersQ = false;
-        
+    
         
         enum class UpdateFlag_T : UInt8
         {
@@ -71,12 +87,14 @@ namespace KnotTools
             const ExtInt vertex_count_,
             const ExtReal radius
         )
-        :   Tree_T      { static_cast<Int>(vertex_count_)    }
-        ,   N_data      { NodeCount(), NodeDim, 0            }
-        ,   N_state     { NodeCount(), NodeState_T::Id       }
-        ,   E_lengths   { LeafNodeCount()                    }
-        ,   r           { static_cast<Real>(radius)          }
-        ,   r2          { r * r                              }
+        :   Tree_T      { static_cast<Int>(vertex_count_)       }
+        ,   N_data      { NodeCount(), NodeDim, 0               }
+//        ,   N_data      { InteriorNodeCount(), NodeDim, 0       }
+        ,   N_state     { NodeCount(), NodeState_T::Id          }
+//        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
+        ,   E_lengths   { LeafNodeCount()                       }
+        ,   r           { static_cast<Real>(radius)             }
+        ,   r2          { r * r                                 }
         {
             id.SetIdentity();
             SetToCircle();
@@ -91,7 +109,9 @@ namespace KnotTools
         )
         :   Tree_T      { static_cast<Int>(vertex_count_)    }
         ,   N_data      { NodeCount(), NodeDim, 0            }
+//        ,   N_data      { InteriorNodeCount(), NodeDim, 0       }
         ,   N_state     { NodeCount(), NodeState_T::Id       }
+//        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
         ,   E_lengths   { LeafNodeCount()                    }
         ,   r           { static_cast<Real>(radius)          }
         ,   r2          { r * r                              }
@@ -374,6 +394,7 @@ namespace KnotTools
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
+                + "," + ToString(use_manual_stackQ)
                 + ">";
         }
 

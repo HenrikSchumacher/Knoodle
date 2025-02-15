@@ -68,38 +68,45 @@ Vector_T NodeCenter( const Int node ) const
     return Vector_T( NodeCenterPtr(node) );
 }
 
-void ApplyToVectorPtr( cref<Transform_T> f, mptr<Real> x_ptr )
-{
-    f.TransformVector(x_ptr);
-    
-    if constexpr ( perf_countersQ )
-    {
-        ++mv_counter;
-    }
-}
-
-void ApplyToTransformPtr( cref<Transform_T> f, mptr<Real> g_ptr )
-{
-    f.TransformTransform(g_ptr);
-    
-    if constexpr ( perf_countersQ )
-    {
-        ++load_counter;
-        ++mv_counter;
-        ++mm_counter;
-    }
-}
+//void ApplyToVectorPtr( cref<Transform_T> f, mptr<Real> x_ptr )
+//{
+//    f.TransformVector(NodeCenterPtr(node));
+//
+//    if constexpr ( perf_countersQ )
+//    {
+//        ++mv_counter;
+//    }
+//}
+//
+//void ApplyToTransformPtr( cref<Transform_T> f, mptr<Real> g_ptr )
+//{
+//    f.TransformTransform(g_ptr);
+//    
+//    if constexpr ( perf_countersQ )
+//    {
+//        ++load_counter;
+//        ++mv_counter;
+//        ++mm_counter;
+//    }
+//}
 
 template<bool update_centerQ, bool update_transformQ>
 void UpdateNode( cref<Transform_T> f, const Int node )
 {
     if constexpr ( update_centerQ )
     {
-        ApplyToVectorPtr( f, NodeCenterPtr(node) );
+//        ApplyToVectorPtr( f, NodeCenterPtr(node) );
+        f.TransformVector(NodeCenterPtr(node));
+        
+        if constexpr ( perf_countersQ )
+        {
+            ++mv_counter;
+        }
     }
     
     if constexpr ( update_transformQ )
     {
+        // Transformation of a leaf node never needs a change.
         if( LeafNodeQ( node ) )
         {
             return;
@@ -111,7 +118,15 @@ void UpdateNode( cref<Transform_T> f, const Int node )
         }
         else
         {
-            ApplyToTransformPtr( f, NodeTransformPtr(node) );
+//            ApplyToTransformPtr( f, NodeTransformPtr(node) );
+            f.TransformTransform(NodeTransformPtr(node));
+            
+            if constexpr ( perf_countersQ )
+            {
+                ++load_counter;
+                ++mv_counter;
+                ++mm_counter;
+            }
         }
         
         N_state[node] = NodeState_T::NonId;
@@ -133,7 +148,38 @@ void PushTransform( const Int node, const Int L, const Int R )
     ResetTransform(node);
 }
 
-void PushAllTransforms( const Int start_node = -1 )
+//void PushAllTransforms()
+//{
+//    
+//    // Exploiting here that we have breadth-first ordering.
+//    // However, this is quite precisely as fast as calling PushAllTransforms(Root()).
+//    for( Int node = 0; node < InteriorNodeCount(); ++node )
+//    {
+//        auto [L,R] = Children( node );
+//        
+//        PushTransform( node, L, R );
+//    }
+//}
+
+// Pushes down all the transformations in the subtree starting at `start_node`.
+void PushAllTransforms()
+{
+    PushTransformsSubtree(Root());
+}
+
+void PushTransformsSubtree( const Int start_node )
+{
+    if constexpr ( use_manual_stackQ )
+    {
+        PushTransformsSubtree_ManualStack(start_node);
+    }
+    else
+    {
+        PushTransformsSubtree_Recursive(start_node);
+    }
+}
+
+void PushTransformsSubtree_ManualStack( const Int start_node )
 {
     this->DepthFirstSearch(
         [this]( const Int node )                    // interior node previsit
@@ -141,39 +187,67 @@ void PushAllTransforms( const Int start_node = -1 )
             const auto [L,R] = Children( node );
             PushTransform( node, L, R );
         },
-        []( const Int node )                        // interior node postvisit
-        {
-            (void)node;
-        },
-        []( const Int node )                        // leaf node previsit
-        {
-            (void)node;
-        },
-        []( const Int node )                        // leaf node postvisit
-        {
-            (void)node;
-        },
+        []( const Int node ) { (void)node; },       // interior node postvisit
+        []( const Int node ) { (void)node; },       // leaf node previsit
+        []( const Int node ) { (void)node; },       // leaf node postvisit
         start_node
     );
+}
+
+
+
+void PushTransformsSubtree_Recursive( const Int node )
+{
+    const auto [L,R] = Children( node );
+    PushTransform( node, L, R );
     
-//    // Exploiting here that we have breadth-first ordering.
-//    for( Int node = 0; node < InteriorNodeCount(); ++node )
-//    {
-//        const Int L = LeftChild (node);
-//        const Int R = RightChild(node);
-//        
-//        PushTransform( node, L, R );
-//    }
+    if( InteriorNodeQ(L) )
+    {
+        PushTransformsSubtree_Recursive( L );
+    }
+    if( InteriorNodeQ(R) )
+    {
+        PushTransformsSubtree_Recursive( R );
+    }
+}
+
+
+
+
+
+void PullTransforms( const Int from, const Int to )
+{
+    if constexpr ( use_manual_stackQ )
+    {
+        PullTransforms_ManualStack(from,to);
+    }
+    else
+    {
+        PullTransforms_Recurssive(from,to);
+    }
 }
 
 // TODO: Test this. And try whether it improves the computation of the pivots.
-void PullTransforms( const Int from, const Int to )
+void PullTransforms_Recursive( const Int from, const Int node )
+{
+    if( node != from )
+    {
+        PullTransforms_Recursive( from, Parent(node) );
+        
+        const auto [L,R] = Children( node );
+        
+        PushTransform( node, L, R );
+    }
+}
+
+// TODO: Test this. And try whether it improves the computation of the pivots.
+void PullTransforms_ManualStack( const Int from, const Int to )
 {
     Int stack [max_depth];
     
     Int node = to;
     
-    Int stack_ptr = -1;
+    SInt stack_ptr = -1;
     
     while( (node != from) && (stack_ptr < max_depth) )
     {
@@ -183,7 +257,7 @@ void PullTransforms( const Int from, const Int to )
     
     if( stack_ptr >= max_depth )
     {
-        eprint(ClassName() + "::PullAllTransforms: Stack overflow.");
+        eprint(ClassName() + "::PullTransforms_ManualStack: Stack overflow.");
         return;
     }
     
@@ -193,5 +267,4 @@ void PullTransforms( const Int from, const Int to )
         const auto [L,R] = Children( node );
         PushTransform( node, L, R );
     }
-
 }
