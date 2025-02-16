@@ -2,6 +2,50 @@
 //##    Collision checks
 //#########################################################################################
 
+#include "OverlapQ_Reference.hpp"
+#include "OverlapQ_ManualStack.hpp"
+
+#include "SubtreesOverlapQ_Recursive.hpp"
+
+
+public:
+
+bool OverlapQ()
+{
+    ptic(ClassName()+"::OverlapQ");
+    
+    witness_0 = -1;
+    witness_1 = -1;
+        
+    bool result;
+    
+    if constexpr ( use_manual_stackQ )
+    {
+        result = OverlapQ_ManualStack(); // 32.9882 s
+    }
+    else
+    {
+        result = SubtreesOverlapQ_Recursive( Root() ); // 29.9892 s / ?? s.
+    }
+    
+////     DEBUGGING
+//    {
+//        bool resultReference = OverlapQ_Reference();
+//        
+//        if( result != resultReference )
+//        {
+//            eprint("!!!");
+//            exit(-1);
+//        }
+//    }
+
+    ptoc(ClassName()+"::OverlapQ");
+    
+    return result;
+    
+}
+
+
 static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
 {
 //    Real d2 = 0;
@@ -28,9 +72,6 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     if( d + r_R <= r_L ) [[unlikely]]
     {
         N[AmbDim] = r_L;
-        
-//        copy_buffer<AmbDim>(N_L,N);
-        
         c_L.Write(N);
         
         return;
@@ -39,8 +80,6 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     if( d + r_L <= r_R ) [[unlikely]]
     {
         N[AmbDim] = r_R;
-        
-//        copy_buffer<AmbDim>(N_R,N);
         c_R.Write(N);
         
         return;
@@ -50,11 +89,6 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     
     const Real alpha_L = Scalar::Half<Real> - s;
     const Real alpha_R = Scalar::Half<Real> + s;
-    
-//    for( Int k = 0; k < AmbDim; ++k )
-//    {
-//        N[k] = alpha_L * N_L[k] + alpha_R * N_R[k];
-//    }
     
     const Vector_T c = alpha_L * c_L + alpha_R * c_R;
     c.Write(N);
@@ -99,84 +133,7 @@ bool NodesOverlapQ( const Int node_0, const Int node_1, const Real radius ) cons
     return NodesOverlapQ( NodeData(node_0), NodeData(node_1), radius );
 }
 
-//bool NodeContainsOnlyUnchangedVerticesQ( const Int node )
-//{
-//    auto [begin,end] = NodeRange(node);
-//    
-//  
-//    if( mid_changedQ )
-//    {
-//        // Vertices [0,1,..,p-1,p] U [q,q+1,..,n-1] are unchanged.
-//        return (end <= p+1) || (begin >= q);
-//    }
-//    else
-//    {
-//        // Vertices [p,p+1,...,q-1,q] are unchanged.
-//        return (begin >= p) && (end <= q+1);
-//    }
-//}
-//
-//bool NodeContainsChangedVerticesQ( const Int node )
-//{
-//    return !NodeContainsOnlyUnchangedVerticesQ(node);
-//}
-//
-//bool NodeContainsOnlyChangedVerticesQ( const Int node )
-//{
-//    auto [begin,end] = NodeRange(node);
-//
-//    if( mid_changedQ )
-//    {
-//        // Vertices [p+1,...,q-2,q-1] are changed.
-//        return (begin >= p+1) && (end <= q);
-//    }
-//    else
-//    {
-//        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
-//        return (end <= p) || (begin >= q+1);
-//    }
-//}
-//
-//bool NodeContainsUnchangedVerticesQ( const Int node )
-//{
-//    return !NodeContainsOnlyChangedVerticesQ(node);
-//}
-
-// First Boolean: whether node contains unchanged vertices.
-// Second Boolean: whether node contains changed vertices.
-std::pair<bool,bool> NodeSplitFlags( const Int node )
-{
-    auto [begin,end] = NodeRange(node);
-    
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    const bool not_only_midQ = (begin < p_) || (end   > q_);
-    const bool not_no_midQ   = (end   > p_) && (begin < q_);
-    
-    return mid_changedQ
-            ? std::pair( not_only_midQ, not_no_midQ    )
-            : std::pair( not_no_midQ  , not_only_midQ );
-    
-//    const bool only_midQ = (begin >= p_) && (end   <= q_);
-//    const bool no_midQ   = (end   <= p_) || (begin >= q_);
-//    
-//    if( mid_changedQ )
-//    {
-//        // Vertices [p+1,...,q-2,q-1] are changed.
-//        return { !only_midQ, !no_midQ };
-//    }
-//    else
-//    {
-//        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
-//        return { !no_midQ, !only_midQ };
-//    }
-}
-                   
-int CheckJoints()
+int CheckJoints() const
 {
     const Int n = VertexCount();
     
@@ -224,387 +181,233 @@ int CheckJoints()
 }
 
 
-bool OverlapQ()
+// First Boolean: whether node contains unchanged vertices.
+// Second Boolean: whether node contains changed vertices.
+__attribute__((hot)) std::pair<bool,bool> NodeSplitFlags( const Int node ) const
 {
-    ptic(ClassName()+"::OverlapQ");
+    auto [begin,end] = NodeRange(node);
     
-//    const bool result = OverlapQ_implementation_0();
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
     
-    const bool result = OverlapQ_implementation_1();
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    const bool not_only_midQ = (begin < p_) || (end   > q_);
+    const bool not_no_midQ   = (end   > p_) && (begin < q_);
     
-    ptoc(ClassName()+"::OverlapQ");
+    return mid_changedQ
+            ? std::pair( not_only_midQ, not_no_midQ    )
+            : std::pair( not_no_midQ  , not_only_midQ );
     
-    return result;
+//    const bool only_midQ = (begin >= p_) && (end   <= q_);
+//    const bool no_midQ   = (end   <= p_) || (begin >= q_);
+//
+//    if( mid_changedQ )
+//    {
+//        // Vertices [p+1,...,q-2,q-1] are changed.
+//        return { !only_midQ, !no_midQ };
+//    }
+//    else
+//    {
+//        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
+//        return { !no_midQ, !only_midQ };
+//    }
+}
+
+__attribute__((hot)) NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
+{
+    auto [begin,end] = NodeRange(node);
     
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    const bool not_only_midQ = (begin < p_) || (end   > q_);
+    const bool not_no_midQ   = (end   > p_) && (begin < q_);
+
+    if( mid_changedQ )
+    {
+        return NodeSplitFlagVector_T({not_only_midQ,not_no_midQ});
+    }
+    else
+    {
+        return NodeSplitFlagVector_T({not_no_midQ,not_only_midQ});
+    }
+}
+
+__attribute__((hot)) void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
+{
+    auto [begin,end] = NodeRange(node);
+    
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    const bool not_only_midQ = (begin < p_) || (end   > q_);
+    const bool not_no_midQ   = (end   > p_) && (begin < q_);
+
+    if( mid_changedQ )
+    {
+        f[0] = not_only_midQ;
+        f[1] = not_no_midQ;
+    }
+    else
+    {
+        f[0] = not_no_midQ;
+        f[1] = not_only_midQ;
+    }
+}
+
+__attribute__((hot)) NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
+{
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    auto [begin_i,end_i] = NodeRange(i);
+    auto [begin_j,end_j] = NodeRange(j);
+    
+    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
+    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
+    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
+    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
+    
+    if( mid_changedQ )
+    {
+        return NodeSplitFlagMatrix_T({
+            {i_not_only_midQ,i_not_no_midQ},
+            {j_not_only_midQ,j_not_no_midQ},
+        });
+    }
+    else
+    {
+        return NodeSplitFlagMatrix_T({
+            {i_not_no_midQ,i_not_only_midQ},
+            {j_not_no_midQ,j_not_only_midQ},
+        });
+    }
+}
+
+__attribute__((hot)) force_inline void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
+{
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    auto [begin_i,end_i] = NodeRange(i);
+    auto [begin_j,end_j] = NodeRange(j);
+    
+    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
+    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
+    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
+    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
+    
+    if( mid_changedQ )
+    {
+        F[0] = i_not_only_midQ;
+        F[1] = i_not_no_midQ;
+        F[2] = j_not_only_midQ;
+        F[3] = j_not_no_midQ;
+    }
+    else
+    {
+        F[0] = i_not_no_midQ;
+        F[1] = i_not_only_midQ;
+        F[2] = j_not_no_midQ;
+        F[3] = j_not_only_midQ;
+    }
 }
 
 
-private:
-
-// Improved version of OverlapQ_implementation_1; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
-bool OverlapQ_implementation_1()
+template<Int N>
+__attribute__((hot)) force_inline void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
 {
-    const Int n = VertexCount();
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
     
-    witness_0 = -1;
-    witness_1 = -1;
+    const Int p_ = p + a;
+    const Int q_ = q + b;
     
-    Int stack [4 * max_depth][2];
-    Int stack_ptr = -1;
-
-    // Helper routine to manage stack.
-    auto push = [&stack,&stack_ptr]( const Int i, const Int j )
+    for( Int i = 0; i < N; ++i )
     {
-        ++stack_ptr;
-        stack[stack_ptr][0] = i;
-        stack[stack_ptr][1] = j;
-    };
-    
-    // Helper routine to manage stack.
-    auto check_push = [&stack,&stack_ptr,this]( const Int i, const Int j )
-    {
-        const bool overlappingQ = ( (i==j) || this->NodesOverlapQ(i,j,this->r) );
+        auto [begin,end] = NodeRange(nodes[i]);
         
-        if( overlappingQ)
-        {
-            ++stack_ptr;
-            stack[stack_ptr][0] = i;
-            stack[stack_ptr][1] = j;
-        }
-    };
-    
-    // Helper routine to manage stack.
-    auto pop = [&stack,&stack_ptr]()
-    {
-        auto result = MinMax( stack[stack_ptr][0], stack[stack_ptr][1] );
-        stack_ptr--;
-        return result;
-    };
-    
-    auto continueQ = [&stack_ptr,this]()
-    {
-        const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+        const bool not_only_midQ = (begin < p_) || (end   > q_);
+        const bool not_no_midQ   = (end   > p_) && (begin < q_);
         
-        if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
-        {
-            return true;
-        }
-        else
-        {
-            if ( overflowQ ) [[unlikely]]
-            {
-                eprint(this->ClassName()+"::OverlapQ_implementation_1: Stack overflow.");
-            }
-            return false;
-        }
-    };
-    
-    auto [b_root_0,b_root_1] = NodeSplitFlags(0);
-    
-    if( b_root_0 && b_root_1 )
-    {
-        push(Root(),Root());
+//        F[2*i+0] = mid_changedQ ? not_only_midQ : not_no_midQ  ;
+//        F[2*i+1] = mid_changedQ ? not_no_midQ   : not_only_midQ;
+        
+        F[2*i+ mid_changedQ] = not_no_midQ  ;
+        F[2*i+!mid_changedQ] = not_only_midQ;
     }
-    
-    while( continueQ() )
-    {
-        auto [i,j] = pop();
-        
-        // "Interior node" means "not a leaf node".
-        const bool i_interiorQ = InteriorNodeQ(i);
-        const bool j_interiorQ = InteriorNodeQ(j);
-        
-        if( i_interiorQ || j_interiorQ )
-        {
-            if( i_interiorQ && j_interiorQ )
-            {
-                // Split both nodes.
-                
-                auto [L_i,R_i] = Children(i);
-                auto [L_j,R_j] = Children(j);
-
-                PushTransform( i, L_i, R_i );
-                PushTransform( j, L_j, R_j );
-                
-                auto [b_L_i_0,b_L_i_1] = NodeSplitFlags(L_i);
-                auto [b_R_i_0,b_R_i_1] = NodeSplitFlags(R_i);
-                auto [b_L_j_0,b_L_j_1] = NodeSplitFlags(L_j);
-                auto [b_R_j_0,b_R_j_1] = NodeSplitFlags(R_j);
-                
-                if( (b_R_i_0 && b_R_j_1) || (b_R_i_1 && b_R_j_0) )
-                {
-                    check_push(R_i,R_j);
-                }
-                
-                if( (b_L_i_0 && b_L_j_1) || (b_L_i_1 && b_L_j_0) )
-                {
-                    check_push(L_i,L_j);
-                }
-                
-                
-                // TODO: Optimize the order of the following two calls to check_push.
-                // TODO: We should encourage to first visit the neighborhood of the pivots.
-                
-                if( (b_L_i_0 && b_R_j_1) || (b_L_i_1 && b_R_j_0) )
-                {
-                    check_push(L_i,R_j);
-                }
-                
-                // If i == j, we can skip (R_i,L_j) as (R_j,L_i) above is identical.
-                if( (i != j) && ((b_R_i_0 && b_L_j_1) || (b_R_i_1 && b_L_j_0)) )
-                {
-                    check_push(R_i,L_j);
-                }
-            }
-            else
-            {
-                // split only the interior node
-                if ( i_interiorQ ) // !j_interiorQ follows from this.
-                {
-                    // Split node i.
-                    
-                    auto [L_i,R_i] = Children(i);
-                    
-                    PushTransform( i, L_i, R_i );
-                    
-                    auto [b_j_0  ,b_j_1  ] = NodeSplitFlags(j  );
-                    auto [b_R_i_0,b_R_i_1] = NodeSplitFlags(R_i);
-                    auto [b_L_i_0,b_L_i_1] = NodeSplitFlags(L_i);
-                    
-                    if( (b_R_i_0 && b_j_1) || (b_R_i_1 && b_j_0) )
-                    {
-                        check_push(R_i,j);
-                    }
-                    
-                    if( (b_L_i_0 && b_j_1) || (b_L_i_1 && b_j_0) )
-                    {
-                        check_push(L_i,j);
-                    }
-                }
-                else
-                {
-                    // Split node j.
-                    
-                    auto [L_j,R_j] = Children(j);
-                    
-                    PushTransform( j, L_j, R_j );
-
-                    auto [b_i_0  ,b_i_1  ] = NodeSplitFlags(i  );
-                    auto [b_R_j_0,b_R_j_1] = NodeSplitFlags(R_j);
-                    auto [b_L_j_0,b_L_j_1] = NodeSplitFlags(L_j);
-                    
-                    if( (b_i_0 && b_R_j_1) || (b_i_1 && b_R_j_0) )
-                    {
-                        check_push(i,R_j);
-                    }
-                    
-                    if( (b_i_0 && b_L_j_1) || (b_i_1 && b_L_j_0) )
-                    {
-                        check_push(i,L_j);
-                    }
-                }
-            }
-        }
-        else // [[unlikely]]
-        {
-            // Nodes i and j are overlapping leaf nodes.
-            
-            // Rule out that tiny distance errors of neighboring vertices cause problems.
-            const Int k = NodeBegin(i);
-            const Int l = NodeBegin(j);
-            
-            const Int delta = Abs(k-l);
-            
-            if( Min( delta, n - delta ) > 1 )
-            {
-                witness_0 = k;
-                witness_1 = l;
-                
-                return true;
-            }
-        }
-    }
-    
-    return false;
-    
-} // OverlapQ_implementation_1
+}
 
 
-
-bool OverlapQ_implementation_0()
+__attribute__((hot)) force_inline void NodeSplitFlags_3( cptr<Int> nodes, mptr<bool> F ) const
 {
-    const Int n = VertexCount();
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
     
-    witness_0 = -1;
-    witness_1 = -1;
+    const Int p_ = p + a;
+    const Int q_ = q + b;
     
-    constexpr Int stack_size = 4 * max_depth;
+    auto [begin_0,end_0] = NodeRange(nodes[0]);
+    auto [begin_1,end_1] = NodeRange(nodes[1]);
+    auto [begin_2,end_2] = NodeRange(nodes[2]);
     
-    Int stack [stack_size][2];
-    Int stack_ptr = -1;
+    const bool not_only_midQ_0 = (begin_0 < p_) || (end_0   > q_);
+    const bool not_no_midQ_0   = (end_0   > p_) && (begin_0 < q_);
+    const bool not_only_midQ_1 = (begin_1 < p_) || (end_1   > q_);
+    const bool not_no_midQ_1   = (end_1   > p_) && (begin_1 < q_);
+    const bool not_only_midQ_2 = (begin_2 < p_) || (end_2   > q_);
+    const bool not_no_midQ_2   = (end_2   > p_) && (begin_2 < q_);
+    
+    F[0+ mid_changedQ] = not_no_midQ_0  ;
+    F[0+!mid_changedQ] = not_only_midQ_0;
+    F[2+ mid_changedQ] = not_no_midQ_1  ;
+    F[2+!mid_changedQ] = not_only_midQ_1;
+    F[4+ mid_changedQ] = not_no_midQ_2  ;
+    F[4+!mid_changedQ] = not_only_midQ_2;
+}
 
-    // Helper routine to manage the pair_stack.
-    auto push = [&stack,&stack_ptr]( const Int i, const Int j )
-    {
-        ++stack_ptr;
-        stack[stack_ptr][0] = i;
-        stack[stack_ptr][1] = j;
-    };
+__attribute__((hot)) force_inline void NodeSplitFlags_4( cptr<Int> nodes, mptr<bool> F ) const
+{
+    const bool a =  mid_changedQ;
+    const bool b = !mid_changedQ;
     
-    // Helper routine to manage the pair_stack.
-    auto pop = [&stack,&stack_ptr]()
-    {
-        auto result = MinMax( stack[stack_ptr][0], stack[stack_ptr][1] );
-        stack_ptr--;
-        return result;
-    };
+    const Int p_ = p + a;
+    const Int q_ = q + b;
     
-    auto continueQ = [&stack_ptr,this]()
-    {
-        const bool overflowQ = (stack_ptr >= stack_size - 4);
-        
-        if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
-        {
-            return true;
-        }
-        else
-        {
-            if ( overflowQ ) [[unlikely]]
-            {
-                eprint(this->ClassName()+"::OverlapQ_implementation_0: Stack overflow.");
-            }
-            return false;
-        }
-    };
+    auto [begin_0,end_0] = NodeRange(nodes[0]);
+    auto [begin_1,end_1] = NodeRange(nodes[1]);
+    auto [begin_2,end_2] = NodeRange(nodes[2]);
+    auto [begin_3,end_3] = NodeRange(nodes[3]);
     
-    auto [b_root_0,b_root_1] = NodeSplitFlags(Int(0));
+    const bool not_only_midQ_0 = (begin_0 < p_) || (end_0   > q_);
+    const bool not_no_midQ_0   = (end_0   > p_) && (begin_0 < q_);
+    const bool not_only_midQ_1 = (begin_1 < p_) || (end_1   > q_);
+    const bool not_no_midQ_1   = (end_1   > p_) && (begin_1 < q_);
+    const bool not_only_midQ_2 = (begin_2 < p_) || (end_2   > q_);
+    const bool not_no_midQ_2   = (end_2   > p_) && (begin_2 < q_);
+    const bool not_only_midQ_3 = (begin_3 < p_) || (end_3   > q_);
+    const bool not_no_midQ_3   = (end_3   > p_) && (begin_3 < q_);
     
-    if( b_root_0 && b_root_1 )
-    {
-        push(Root(),Root());
-    }
-    
-    while( continueQ() ) 
-    {
-        auto [i,j] = pop();
-        
-        const bool overlappingQ = ( (i==j) || NodesOverlapQ(i,j,r) );
-        
-        if( overlappingQ )
-        {
-            // "Interior node" means "not a leaf node".
-            const bool i_interiorQ = InteriorNodeQ(i);
-            const bool j_interiorQ = InteriorNodeQ(j);
-            
-            if( i_interiorQ || j_interiorQ )
-            {
-                if( i_interiorQ && j_interiorQ )
-                {
-                    // Split both nodes.
-                    
-                    auto [L_i,R_i] = Children(i);
-                    auto [L_j,R_j] = Children(j);
-
-                    PushTransform( i, L_i, R_i );
-                    PushTransform( j, L_j, R_j );
-                    
-                    auto [b_L_i_0,b_L_i_1] = NodeSplitFlags(L_i);
-                    auto [b_R_i_0,b_R_i_1] = NodeSplitFlags(R_i);
-                    auto [b_L_j_0,b_L_j_1] = NodeSplitFlags(L_j);
-                    auto [b_R_j_0,b_R_j_1] = NodeSplitFlags(R_j);
-                    
-                    if( (b_R_i_0 && b_R_j_1) || (b_R_i_1 && b_R_j_0) )
-                    {
-                        push(R_i,R_j);
-                    }
-                    
-                    if( (b_L_i_0 && b_L_j_1) || (b_L_i_1 && b_L_j_0) )
-                    {
-                        push(L_i,L_j);
-                    }
-                    
-                    if( (b_L_i_0 && b_R_j_1) || (b_L_i_1 && b_R_j_0) )
-                    {
-                        push(L_i,R_j);
-                    }
-                    
-                    // If i == j, we can skip (R_i,L_j) as (R_j,L_i) above is identical.
-                    if( (i != j) && ((b_R_i_0 && b_L_j_1) || (b_R_i_1 && b_L_j_0)) )
-                    {
-                        push(R_i,L_j);
-                    }
-                }
-                else
-                {
-                    // split only the interior node
-                    if ( i_interiorQ ) // !j_interiorQ follows from this.
-                    {
-                        // Split node i.
-                        
-                        auto [L_i,R_i] = Children(i);
-                        
-                        PushTransform( i, L_i, R_i );
-                        
-                        auto [b_j_0  ,b_j_1  ] = NodeSplitFlags(j  );
-                        auto [b_R_i_0,b_R_i_1] = NodeSplitFlags(R_i);
-                        auto [b_L_i_0,b_L_i_1] = NodeSplitFlags(L_i);
-                        
-                        if( (b_R_i_0 && b_j_1) || (b_R_i_1 && b_j_0) )
-                        {
-                            push(R_i,j);
-                        }
-                        
-                        if( (b_L_i_0 && b_j_1) || (b_L_i_1 && b_j_0) )
-                        {
-                            push(L_i,j);
-                        }
-                    }
-                    else
-                    {
-                        // Split node j.
-                        
-                        auto [L_j,R_j] = Children(j);
-                        
-                        PushTransform( j, L_j, R_j );
-
-                        auto [b_i_0  ,b_i_1  ] = NodeSplitFlags(i  );
-
-                        auto [b_R_j_0,b_R_j_1] = NodeSplitFlags(R_j);
-                        auto [b_L_j_0,b_L_j_1] = NodeSplitFlags(L_j);
-                        
-                        if( (b_i_0 && b_R_j_1) || (b_i_1 && b_R_j_0) )
-                        {
-                            push(i,R_j);
-                        }
-                        
-                        if( (b_i_0 && b_L_j_1) || (b_i_1 && b_L_j_0) )
-                        {
-                            push(i,L_j);
-                        }
-                    }
-                }
-            }
-            else // [[unlikely]]
-            {
-                // Nodes i and j are overlapping leaf nodes.
-                
-                // Rule out that tiny distance errors of neighboring vertices cause problems.
-                const Int k = NodeBegin(i);
-                const Int l = NodeBegin(j);
-                
-                const Int delta = Abs(k-l);
-                
-                if( Min( delta, n - delta ) > 1 )
-                {
-                    witness_0 = k;
-                    witness_1 = l;
-                    
-                    return true;
-                }
-            }
-        }
-    }
-    
-    return false;
-    
-} // OverlapQ_implementation_0
+    F[0+ mid_changedQ] = not_no_midQ_0  ;
+    F[0+!mid_changedQ] = not_only_midQ_0;
+    F[2+ mid_changedQ] = not_no_midQ_1  ;
+    F[2+!mid_changedQ] = not_only_midQ_1;
+    F[4+ mid_changedQ] = not_no_midQ_2  ;
+    F[4+!mid_changedQ] = not_only_midQ_2;
+    F[6+ mid_changedQ] = not_no_midQ_3  ;
+    F[6+!mid_changedQ] = not_only_midQ_3;
+}

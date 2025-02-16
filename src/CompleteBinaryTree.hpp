@@ -10,9 +10,10 @@ namespace KnotTools
         
     public:
         
-        using Int  = Int_;
+        using Int    = Int_;
+        using SInt = Int32;
         
-        static constexpr Int max_depth = 128;
+        static constexpr Int max_depth = 64;
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;
         
         using UInt = Scalar::Unsigned<Int>;
@@ -110,34 +111,34 @@ namespace KnotTools
             return max_depth;
         }
         
-        static constexpr Int LeftChild( const Int i )
+        inline static constexpr Int LeftChild( const Int i )
         {
             return 2 * i + 1;
         }
         
-        static constexpr Int RightChild( const Int i )
+        inline static constexpr Int RightChild( const Int i )
         {
             return 2 * i + 2;
         }
         
-        static constexpr std::pair<Int,Int> Children( const Int i )
+        inline static constexpr std::pair<Int,Int> Children( const Int i )
         {
             return { 2 * i + 1, 2 * i + 2 };
         }
         
-        static constexpr Int Parent( const Int i )
+        inline static constexpr Int Parent( const Int i )
         {
             return (i > 0) ? (i - 1) / 2 : -1;
         }
         
-        static constexpr Int Depth( const Int i )
+        inline static constexpr Int Depth( const Int i )
         {
             // Depth equals the position of the most significant bit if i+1.
             return static_cast<Int>( MSB( static_cast<UInt>(i) + UInt(1) ) ) - Int(1);
         }
         
         
-        static constexpr Int Column( const Int i )
+        inline static constexpr Int Column( const Int i )
         {
             // The start of each column is the number with all bits < Depth() being set.
             
@@ -149,18 +150,18 @@ namespace KnotTools
         }
         
         
-        Int ActualDepth() const
+        inline Int ActualDepth() const
         {
             return actual_depth;
         }
         
-        Int RegularLeafNodeCount( const Int i ) const
+        inline  Int RegularLeafNodeCount( const Int i ) const
         {
             // I a full binary tree this node would contain this many leaf nodes.
             return regular_leaf_node_count >> Depth(i);
         }
         
-        Int NodeBegin( const Int i ) const
+        inline Int NodeBegin( const Int i ) const
         {
             if constexpr ( precompute_rangesQ )
             {
@@ -174,7 +175,7 @@ namespace KnotTools
             }
         }
         
-        Int NodeEnd( const Int i ) const
+        inline Int NodeEnd( const Int i ) const
         {
             if constexpr ( precompute_rangesQ )
             {
@@ -188,7 +189,7 @@ namespace KnotTools
             }
         }
         
-        std::pair<Int,Int> NodeRange( const Int i) const
+        inline std::pair<Int,Int> NodeRange( const Int i) const
         {
             
             if constexpr ( precompute_rangesQ )
@@ -215,17 +216,17 @@ namespace KnotTools
             return (begin <= leafnode) && (leafnode < end);
         }
         
-        bool InteriorNodeQ( const Int node ) const
+        inline bool InteriorNodeQ( const Int node ) const
         {
             return (node < int_node_count);
         }
         
-        bool LeafNodeQ( const Int node ) const
+        inline bool LeafNodeQ( const Int node ) const
         {
             return node >= int_node_count;
         }
         
-        Int PrimitiveNode( const Int primitive ) const
+        inline Int PrimitiveNode( const Int primitive ) const
         {
             if( primitive < last_row_count )
             {
@@ -272,10 +273,10 @@ namespace KnotTools
             
             Int stack [2 * max_depth];
 
-            Int stack_ptr = Int(0);
+            SInt stack_ptr = 0;
             stack[stack_ptr] = (start_node < 0) ? Root() : start_node;
             
-            while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
+            while( (SInt(0) <= stack_ptr) && (stack_ptr < SInt(2) * max_depth - SInt(2) ) )
             {
                 const Int code = stack[stack_ptr];
                 const Int node = (code >> 1);

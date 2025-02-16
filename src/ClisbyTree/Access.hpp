@@ -106,6 +106,7 @@ Vector_T VertexCoordinates( const Int vertex ) const
     return x;
 }
 
+// This version is measurably slower than the previous one.
 //Vector_T VertexCoordinates( const Int vertex )
 //{
 //    Int node = VertexNode(vertex);
@@ -144,27 +145,13 @@ Tensor2<Real,Int> VertexCoordinates()
 
 Int Pivot( const bool i ) const 
 {
-    if( i )
-    {
-        return q;
-    }
-    else
-    {
-        return p;
-    }
+    return i ? q : p;
 }
 
 
 Int Witness( const bool i ) const
 {
-    if( i )
-    {
-        return witness_1;
-    }
-    else
-    {
-        return witness_0;
-    }
+    return i ? witness_1 : witness_0;
 }
 
 

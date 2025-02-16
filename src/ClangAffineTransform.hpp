@@ -96,7 +96,7 @@ namespace KnotTools
             y.Write(x_ptr);
         }
         
-        Vector_T operator()( mref<Vector_T> x ) const
+        Vector_T operator()( cref<Vector_T> x ) const
         {
             return A * x + b;
         }

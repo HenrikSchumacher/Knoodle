@@ -66,7 +66,41 @@ void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
     
     if( pivot_flag == 0 ) [[likely]]
     {
-        Update();
+        if constexpr ( use_manual_stackQ )
+        {
+            Update();
+        }
+        else
+        {
+            UpdateSubtree(Root());
+        }
+    }
+}
+
+
+void UpdateSubtree( const Int node = Root() )
+{
+    auto [L,R] = Children(node);
+    
+    PushTransform(node,L,R);
+    
+    switch( NodeNeedsUpdateQ(node) )
+    {
+        case UpdateFlag_T::DoNothing:
+        {
+            break;
+        }
+        case UpdateFlag_T::Update:
+        {
+            UpdateNode<true,true>( transform, node );
+            break;
+        }
+        case UpdateFlag_T::Split:
+        {
+            UpdateSubtree(L);
+            UpdateSubtree(R);
+            ComputeBall(node);
+        }
     }
 }
 
@@ -74,7 +108,7 @@ void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
 void Update()
 {
     Int  stack [max_depth];
-    Int  stack_ptr = -1;
+    SInt stack_ptr = -1;
     
     switch( NodeNeedsUpdateQ( 0 ) )
     {
@@ -108,6 +142,9 @@ void Update()
         {
             // Remember that we have been here.
             stack[stack_ptr] |= 1;
+            
+            // If node is on the stack, then it contains changed and unchanged vertices.
+            // So, in particular, it cannot contain any leaf nodes.
             
             auto [L,R] = Children(node);
             

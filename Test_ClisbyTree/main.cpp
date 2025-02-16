@@ -3,18 +3,6 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
-//#define TOOLS_DEACTIVATE_VECTOR_EXTENSIONS
-//#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
-
-//#define TOOLS_AGGRESSIVE_INLINING
-//#define TOOLS_HOT_CODE
-
-//#ifdef __APPLE__
-//    #include "../submodules/Tensors/Accelerate.hpp"
-//#else
-//    #include "../submodules/Tensors/OpenBLAS.hpp"
-//#endif
-
 #include "../KnotTools.hpp"
 
 using namespace KnotTools;
@@ -27,8 +15,9 @@ using LInt = Int64;
 
 constexpr Int AmbDim = 3;
 
-using Link_T = Link_2D<Real,Int,Int8>;
-using PD_T   = PlanarDiagram<Int>;
+using Link_T   = Link_2D<Real,Int,Int8>;
+using PD_T     = PlanarDiagram<Int>;
+using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt>;
 
 namespace po = boost::program_options;
 
@@ -58,38 +47,23 @@ std::string pd_code_string( mref<PD_T> PD )
 
 int main( int argc, char** argv )
 {
-    print("Welcome to PolyFold.");
-    print("");
+    std::cout << "Welcome to PolyFold.\n\n";
     
-    if( vec_enabledQ )
-    {
-        print("Vector extensions enabled.");
-    }
-    else
-    {
-        print("Vector extensions disabled.");
-    }
-    
-    if( mat_enabledQ )
-    {
-        print("Matrix extensions enabled.");
-    }
-    else
-    {
-        print("Matrix extensions disabled.");
-    }
-    
-    print("");
-    
+    std::cout << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
+    std::cout << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n";
+    std::cout << "\n";
     
     Int thread_count = 1;
     Int job_count    = thread_count;
     
-    Int  n = 100000;
-    Int  N = 100;
-
-    LInt  burn_in = 1000000;
-    LInt  skip    = 100000;
+    Int  n = 1;
+    Int  N = 1;
+    
+    LInt burn_in_success_count = 1;
+    LInt skip    = 1;
+    
+    bool verboseQ = false;
+    bool appendQ  = false;
     
     std::filesystem::path path;
     
@@ -100,13 +74,17 @@ int main( int argc, char** argv )
         po::options_description desc("Allowed options");
         desc.add_options()
         ("help,h", "produce help message")
-        ("threads,t", po::value<Int>(), "set number of threads")
+        ("threads,t", po::value<Int>()->default_value(1), "set number of threads")
         ("jobs,j", po::value<Int>(), "set number of jobs (time series)")
         ("edge-count,n", po::value<Int>(), "set number of edges")
         ("burn-in,b", po::value<LInt>(), "set number of burn-in steps")
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
         ("sample-count,N", po::value<Int>(), "set number of samples")
         ("output,o", po::value<std::string>(), "set output directory")
+        ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
+        ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
+        ("verbose,v", "gather statistics for each sample")
+        ("append,a", "append to existent file(s)")
         ;
         
         // Declare that arguments without option prefixe are reinterpreted as if they were assigned to -o [--output].
@@ -116,27 +94,15 @@ int main( int argc, char** argv )
         // Parse the arguments.
         po::variables_map vm;
         po::store(
-            po::command_line_parser(argc, argv).options(desc).positional(p).run(),
-            vm
-        );
+                  po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+                  vm
+                  );
         po::notify(vm);
         
         if( vm.count("help") )
         {
             std::cout << desc << "\n";
             return 0;
-        }
-        
-        if( vm.count("output") )
-        {
-            path = std::filesystem::path( vm["output"].as<std::string>() );
-            
-            std::cout << "Output path set to "
-            << path << ".\n";
-        }
-        else
-        {
-            throw std::invalid_argument( "Output path unspecified. Use the option -o to set it." );
         }
         
         if( vm.count("threads") )
@@ -155,13 +121,12 @@ int main( int argc, char** argv )
         {
             job_count = vm["jobs"].as<Int>();
             
-            std::cout << "Number of jobs set to "
-            << job_count << ".\n";
+            std::cout << "Number of jobs set to " << job_count << ".\n";
         }
         else
         {
             job_count = thread_count;
-            std::cout << "Using default number of jobs (" << ToString(thread_count) + ").\n";
+            std::cout << "Using default number of jobs (" << job_count << ").\n";
         }
         
         if( vm.count("edge-count") )
@@ -190,10 +155,10 @@ int main( int argc, char** argv )
         
         if( vm.count("burn-in") )
         {
-            burn_in = vm["burn-in"].as<LInt>();
+            burn_in_success_count = vm["burn-in"].as<LInt>();
             
             std::cout << "Number of burn-in steps set to "
-            << burn_in << ".\n";
+            << burn_in_success_count << ".\n";
         }
         else
         {
@@ -211,10 +176,55 @@ int main( int argc, char** argv )
         {
             throw std::invalid_argument( "Number of skip unspecified. Use the option -s to set it." );
         }
+        
+        
+        if( vm.count("verbose") )
+        {
+            verboseQ = true;
+        }
+        
+        std::cout << "Report mode set to " << (verboseQ ? "verbose" : "muted" ) << ".\n";
+        
+        if( vm.count("append") )
+        {
+            appendQ = true;
+        }
+        
+        std::cout << "Write mode set to " << (appendQ ? "append" : "overwrite" ) << ".\n";
+        
+        if( vm.count("output") )
+        {
+            
+            if( vm.count("extend") )
+            {
+                path = std::filesystem::path( vm["output"].as<std::string>()
+                     + "__n_" + ToString(n)
+                     + "__b_" + ToString(burn_in_success_count)
+                     + "__s_" + ToString(skip)
+                     + "__N_" + ToString(N)
+                     + "__"   + (vm.count("tag") ? vm["tag"].as<std::string>() : "")
+                );
+            }
+            else
+            {
+                path = std::filesystem::path( vm["output"].as<std::string>()
+                     + "__"   + (vm.count("tag")  ? vm["tag"].as<std::string>() : "")
+                );
+            }
+            
+            
+            std::cout << "Output path set to "
+            << path << ".\n";
+        }
+        else
+        {
+            throw std::invalid_argument( "Output path unspecified. Use the option -o to set it." );
+        }
+        
     }
     catch( std::exception & e )
     {
-        std::cerr << "error: " << e.what() << "\n";
+        std::cerr << "ERROR: " << e.what() << "\n";
         return 1;
     }
     catch(...)
@@ -223,129 +233,185 @@ int main( int argc, char** argv )
         return 1;
     }
     
-    std::cout << "" << std::endl;
     
     // Make sure that the working directory exists.
     try{
-        std::filesystem::create_directory( path );
+        std::filesystem::create_directories(path);
+    }
+    catch( std::exception & e )
+    {
+        std::cerr << "ERROR: " << e.what() << "\n";
+        return 1;
     }
     catch(...)
     {
-        std::cerr << "Failed to create directory " << path << std::endl;
+        std::cerr << "Exception of unknown type!\n";
         return 1;
     }
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path);
+        
+    std::cout << "\n";
+    std::cout << "Using sampler of class " << Clisby_T::ClassName() << "\n";
+    std::cout << "\n";
+    std::cout << "Start sampling." << std::endl;
     
-    print("Start sampling.");
+    const Time program_start_time = Clock::now();
     
     ParallelDo(
         [&]( const Int job )
         {
-            const Time job_start_time = Clock::now();
+            std::string job_name = (job_count == 1) ? "" : std::string("Job_") + StringWithLeadingZeroes(job,6) + "_";
+            std::filesystem::path log_file = path / (job_name + "Log.txt");
+            std::filesystem::path pds_file = path / (job_name + "PDCodes.tsv");
             
-            std::filesystem::path local_path = path / ("Job_" + StringWithLeadingZeroes(job,6));
+            std::ofstream log;
+            std::ofstream pds;
             
-            // Make sure that the working directory for current job exists.
-            std::filesystem::create_directory( local_path );
-            
-            std::filesystem::path log_file = local_path / "Log.txt";
+//            Tensor1<char,Int> log_buffer ( 32 * 1024 );
+//            Tensor1<char,Int> pds_buffer ( 32 * 1024 );
+//
+//            log.rdbuf()->pubsetbuf(log_buffer.data(),log_buffer.Size());
+//            pds.rdbuf()->pubsetbuf(pds_buffer.data(),pds_buffer.Size());
+
             
             // Open file as stream.
-            std::ofstream log ( log_file );
+            try {
+                if( appendQ )
+                {
+                    log.open( log_file, std::ios_base::app );
+                }
+                else
+                {
+                    log.open( log_file );
+                }
+            }
+            catch( std::exception & e )
+            {
+                std::cerr << "ERROR: " << e.what() << "\n";
+                return;
+            }
+            catch(...)
+            {
+                std::cerr << "Exception of unknown type!\n";
+                return;
+            }
+            
+            // Open file as stream.
+            try {
+                if( appendQ )
+                {
+                    pds.open( pds_file, std::ios_base::app );
+                }
+                else
+                {
+                    pds.open( pds_file );
+                }
+            }
+            catch( std::exception & e )
+            {
+                std::cerr << "ERROR: " << e.what() << "\n";
+                return;
+            }
+            catch(...)
+            {
+                std::cerr << "Exception of unknown type!\n";
+                return;
+            }
+            
+            Clisby_T T ( n, Real(1) );
+            
+            log << "Using class " << T.ClassName() << std::endl;
             
             // Stream data to the file.
             log << "n = " << n << "\n";
             log << "N = " << N << "\n";
-            log << "burn-in = " << burn_in << "\n";
+            log << "burn-in = " << burn_in_success_count << "\n";
             log << "skip = " << skip << "\n";
             
             // std::endl adds a "\n" and flushes the string buffer so that the string is actually written to file.
             log << "\n " << std::endl;
+
+            const Time job_start_time = Clock::now();
             
+            LInt total_attempt_count = 0;
+            LInt burn_in_attempt_count = 0;
             
-            ClisbyTree<AmbDim,Real,Int,LInt> T ( n, Real(1) );
-        
-            LInt steps_taken = 0;
-        
             // Burn-in.
             {
-                log << "Burn-in for " << burn_in << " successful steps..." << std::endl;
+                log << "Burn-in for " << burn_in_success_count << " successful steps..." << std::endl;
                 
                 const Time b_start_time = Clock::now();
                 
-                auto counts = T.FoldRandom(burn_in);
+                auto counts = T.FoldRandom(burn_in_success_count);
                 
                 const LInt attempt_count = counts.Total();
                 
-                steps_taken += attempt_count;
+                total_attempt_count += attempt_count;
+                
+                burn_in_attempt_count = attempt_count;
                 
                 const Time b_stop_time = Clock::now();
                 
                 const double timing = Tools::Duration( b_start_time, b_stop_time );
                 
-                log << "Time elapsed = " << timing << " s.\n" ;
+                log << "Burn-in time     = " << timing << " s.\n" ;
+                log << "Attempts made during burn-in = " << burn_in_attempt_count << ".\n";
+                log << "Successes made during burn-in = " << burn_in_success_count << ".\n";
                 log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
                 log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second. \n";
                 log << "Success rate = " << Frac<Real>(100 * counts[0],attempt_count) << " %.\n";
                 
                 log << std::endl;
             }
-        
+            
             // Buffer for the polygon coordinates.
             Tensor2<Real,Int> x ( n, AmbDim, Real(0) );
             
             // The Link_T object does the actual projection into the plane and the calculation of intersections. We can resuse it and load new vertex coordinates into it.
             Link_T L ( n );
             
+            const Time sample_start_time = Clock::now();
+            
             for( Int i = 0; i < N; ++i )
             {
-                log << "Sample " + StringWithLeadingZeroes(i,6) << std::endl;
+                Time start_time;
                 
-                const Time start_time = Clock::now();
-        
+                if( verboseQ )
+                {
+                    log << "Sample " << i << "\n";
+                    
+                    start_time = Clock::now();
+                }
+                
                 
                 // Do polygon folds until we have at least `skip` successes.
                 auto counts = T.FoldRandom(skip);
-
+                
                 const LInt attempt_count = counts.Total();
                 
-                steps_taken += attempt_count;
+                total_attempt_count += attempt_count;
                 
-                log << "counts = " + ToString(counts) << std::endl;
-        
+                if( verboseQ )
+                {
+                    log << "counts = " + ToString(counts) << "\n";
+                }
+                
                 T.WriteVertexCoordinates( x.data() );
                 
-//                // Open file as stream.
-//                std::ofstream p_file (
-//                    local_path / (std::string("Polygon_") + StringWithLeadingZeroes(i,6) + ".tsv")
-//                );
-//                
-//                // Write the polygon coordinates to file.
-//                p_file << MatrixStringTSV(
-//                    x.Dimension(0), x.Dimension(1), x.data(), x.Dimension(1)
-//                );
-//                
-//                // The file stream will automatically be closed by the desctructor of the class `std::ofstream` once the symbol `p_file` goes out of scope -- one of the pleasantries of C++.
-        
                 // Read coordinates into `Link_T` object `L`...
                 L.ReadVertexCoordinates ( x.data() );
-        
+                
                 L.FindIntersections();
-        
+                
                 // ... and use it to initialize the planar diagram
                 PD_T PD ( L );
-        
+                
                 // And empty list of planar diagram to where Simplify5 can push the connected summands.
                 std::vector<PD_T> PD_list;
-        
+                
                 PD.Simplify5( PD_list );
-        
-                // Writing the PD codes to file.
-                std::ofstream pds (
-                    local_path / (std::string("PDCodes_") + StringWithLeadingZeroes(i,6) + ".m")
-                );
                 
                 // Writing the PD codes to file.
                 
@@ -359,33 +425,114 @@ int main( int argc, char** argv )
                 }
                 
                 pds << "\n";
-        
-                const Time stop_time = Clock::now();
                 
-                const double timing = Tools::Duration( start_time, stop_time );
-                
-                // Writing a few statistics to log file.
-                log << "Time elapsed = " << timing << " s.\n";
-                
-                log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
-                log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second. \n";
-                log << "Success rate = " << Frac<Real>(100 * counts[0],attempt_count) << " %.\n";
-                
-                log << std::endl;
+                if( verboseQ )
+                {
+                    const Time stop_time = Clock::now();
+                    
+                    const double timing = Tools::Duration( start_time, stop_time );
+                    
+                    auto [min_dev,max_dev] = T.MinMaxEdgeLengthDeviation( x.data() );
+                    
+                    // Writing a few statistics to log file.
+                    log << "Time elapsed = " << timing << " s.\n";
+                    
+                    log << "Needed " << attempt_count << " attempts for " << skip << " successes.\n";
+                    
+                    log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
+                    log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second.\n";
+                    log << "Success rate = " << Frac<Real>(Int(100) * counts[0],attempt_count) << " %.\n";
+                    
+                    
+                    log << "Overall number of attempts = " << total_attempt_count << ".\n";
+                    log << "Overall success rate (without burnin) = "
+                        << Frac<Real>( Int(100) * (skip * (i+1)), total_attempt_count - burn_in_attempt_count)
+                        << " %.\n";
+                    
+                    log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
+                    log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
+                    
+                    log << "\n";
+                }
             }
+            
+            const Time sample_stop_time = Clock::now();
             
             const Time job_stop_time = Clock::now();
             
+            const double sample_timing  = Tools::Duration( sample_start_time, sample_stop_time );
+            const double job_timing = Tools::Duration( job_start_time,job_stop_time    );
+            
+            const LInt sample_attempt_count = total_attempt_count - burn_in_attempt_count;
+            const LInt sample_success_count = skip * N;
+            
+            const LInt total_success_count = burn_in_success_count + sample_success_count;
+            
             // Writing some more statistics to log file.
             log << "Job done.\n";
-            log << "Steps taken = " << ToString(steps_taken) << ".\n";
-            log << "Time elapsed = " << Tools::Duration( job_start_time, job_stop_time ) << "." << std::endl;
             
-            print( std::string("Done with job ") + ToString(job) + ". Time elapsed = " + ToString(Tools::Duration( job_start_time, job_stop_time )) + "." );
+            log << "\n";
+            
+            log << "Attempts made during sampling = "
+                << sample_attempt_count
+                << ".\n";
+            
+            log << "Sampling time = "
+                << sample_timing
+                << " s.\n";
+            
+            log << "Achieved "
+                << Frac<Real>(sample_attempt_count,sample_timing)
+                << " attempts per second during sampling.\n";
+            
+            log << "Achieved "
+                << Frac<Real>(sample_success_count,sample_timing)
+                << " successes per second during sampling.\n";
+            
+            log << "Success rate (without burnin) = "
+                << Frac<Real>(Int(100) * sample_success_count,sample_attempt_count)
+                << " %.\n";
+            
+            log << "\n";
+            
+            log << "Overall attempts made = "
+                << total_attempt_count
+                << ".\n";
+            
+            log << "Overall time elapsed = "
+                << job_timing
+                << " s.\n";
+            
+            log << "Overall achieved "
+                << Frac<Real>(total_attempt_count,job_timing)
+                << " attempts per second.\n";
+            
+            log << "Overall achieved "
+                << Frac<Real>(total_success_count,job_timing)
+                << " successes per second.\n";
+            
+            log << "Overall success rate = "
+                << Frac<Real>(Int(100) * total_success_count, total_attempt_count)
+                << " %.\n";
+            
+            T.WriteVertexCoordinates( x.data() );
+            
+            {
+                auto [min_dev,max_dev] = T.MinMaxEdgeLengthDeviation( x.data() );
+                
+                log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
+                log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
+            }
         },
-        job_count,
-        thread_count
-    );
+        thread_count,
+        job_count
+   );
+    
+    
+    const Time program_stop_time = Clock::now();
+    
+    std::cout << "Done. Time elapsed = " << Tools::Duration(program_start_time,program_stop_time) << " s." << std::endl;
     
     return 0;
 }
+

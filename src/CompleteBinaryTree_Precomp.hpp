@@ -11,6 +11,7 @@ namespace KnotTools
     public:
         
         using Int  = Int_;
+        using SInt = Int32;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -290,12 +291,12 @@ namespace KnotTools
         {
             ptic(ClassName()+"::DepthFirstSearch");
             
-            Int stack [2 * max_depth];
+            Int stack [SInt(2) * max_depth];
 
-            Int stack_ptr = Int(0);
+            SInt stack_ptr = Int(0);
             stack[stack_ptr] = (start_node < 0) ? Root() : start_node;
             
-            while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
+            while( (SInt(0) <= stack_ptr) && (stack_ptr < SInt(2) * max_depth - SInt(2) ) )
             {
                 const Int code = stack[stack_ptr];
                 const Int node = (code >> 1);
