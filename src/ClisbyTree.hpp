@@ -50,7 +50,7 @@ namespace KnotTools
         using PRNG_Result_T   = PRNG_T::result_type;
     
         using Flag_T          = Int32;
-        using FlagVec_T       = Tiny::Vector<5,Flag_T,Int>;
+        using FlagCountVec_T  = Tiny::Vector<5,LInt,Flag_T>;
     
         using NodeSplitFlagVector_T = Tiny::Vector<2,bool,Int>;
         using NodeSplitFlagMatrix_T = Tiny::Matrix<2,2,bool,Int>;
@@ -318,9 +318,9 @@ namespace KnotTools
             }
         }
         
-        FlagVec_T FoldRandom( const LInt success_count )
+        FlagCountVec_T FoldRandom( const LInt success_count )
         {
-            FlagVec_T counters;
+            FlagCountVec_T counters;
             
             counters.SetZero();
             
@@ -338,7 +338,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
                 const Real angle = u_real                       (random_engine);
                 
-                int flag = Fold( i, j, angle );
+                Flag_T flag = Fold( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -394,6 +394,7 @@ namespace KnotTools
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
+                + "," + TypeName<LInt>
                 + "," + ToString(use_manual_stackQ)
                 + ">";
         }

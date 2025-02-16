@@ -66,51 +66,94 @@ void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
     
     if( pivot_flag == 0 ) [[likely]]
     {
-        if constexpr ( use_manual_stackQ )
-        {
-            Update();
-        }
-        else
-        {
-            UpdateSubtree(Root());
-        }
+        Update();
     }
 }
 
-
-void UpdateSubtree( const Int node = Root() )
+void Update()
 {
-    auto [L,R] = Children(node);
-    
-    PushTransform(node,L,R);
-    
-    switch( NodeNeedsUpdateQ(node) )
+    if constexpr ( use_manual_stackQ )
     {
-        case UpdateFlag_T::DoNothing:
-        {
-            break;
-        }
-        case UpdateFlag_T::Update:
-        {
-            UpdateNode<true,true>( transform, node );
-            break;
-        }
-        case UpdateFlag_T::Split:
-        {
-            UpdateSubtree(L);
-            UpdateSubtree(R);
-            ComputeBall(node);
-        }
+        UpdateSubtree_ManualStack(Root());
+    }
+    else
+    {
+        UpdateSubtree_Recursive(Root());
     }
 }
+
+void UpdateSubtree_Recursive( const Int start_node = Root() )
+{
+    if( InteriorNodeQ(start_node))
+    {
+        updateSubtree_Recursive(start_node);
+    }
+}
+
+private:
+    
+    // Caution: Works correctly only if `node` is an interior node or if called by itself!
+//    void updateSubtree_Recursive( const Int node )
+//    {
+//        auto [L,R] = Children(node);
+//        
+//        PushTransform(node,L,R);
+//        
+//        switch( NodeNeedsUpdateQ(node) )
+//        {
+//            case UpdateFlag_T::DoNothing:
+//            {
+//                break;
+//            }
+//            case UpdateFlag_T::Update:
+//            {
+//                UpdateNode<true,true>( transform, node );
+//                break;
+//            }
+//            case UpdateFlag_T::Split:
+//            {
+//                // If we land here, then `node` is an interior node.
+//                updateSubtree_Recursive(L);
+//                updateSubtree_Recursive(R);
+//                ComputeBall(node);
+//            }
+//        }
+//    }
+
+    void updateSubtree_Recursive( const Int node )
+    {
+        switch( NodeNeedsUpdateQ(node) )
+        {
+            case UpdateFlag_T::DoNothing:
+            {
+                break;
+            }
+            case UpdateFlag_T::Update:
+            {
+                UpdateNode<true,true>( transform, node );
+                break;
+            }
+            case UpdateFlag_T::Split:
+            {
+                // If we land here, then `node` is an interior node.
+                auto [L,R] = Children(node);
+                PushTransform(node,L,R);
+                updateSubtree_Recursive(L);
+                updateSubtree_Recursive(R);
+                ComputeBall(node);
+            }
+        }
+    }
+
+public:
 
 // Returns 0 if successful.
-void Update()
+void UpdateSubtree_ManualStack( const Int start_node )
 {
     Int  stack [max_depth];
     SInt stack_ptr = -1;
     
-    switch( NodeNeedsUpdateQ( 0 ) )
+    switch( NodeNeedsUpdateQ( start_node ) )
     {
         case UpdateFlag_T::DoNothing:
         {
@@ -119,13 +162,13 @@ void Update()
         }
         case UpdateFlag_T::Update:
         {
-            UpdateNode<true,true>( transform, 0 );
+            UpdateNode<true,true>( transform, start_node );
             return;
         }
         case UpdateFlag_T::Split:
         {
             // Push this node as unvisited; it will be split.
-            stack[++stack_ptr] = ( 0 << 1 );
+            stack[++stack_ptr] = ( start_node << 1 );
         }
     }
     

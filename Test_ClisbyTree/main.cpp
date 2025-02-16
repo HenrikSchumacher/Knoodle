@@ -57,8 +57,8 @@ int main( int argc, char** argv )
     Int job_count    = thread_count;
     
     Int  n = 1;
-    Int  N = 1;
     
+    LInt N = 1;
     LInt burn_in_success_count = 1;
     LInt skip    = 1;
     
@@ -94,9 +94,9 @@ int main( int argc, char** argv )
         // Parse the arguments.
         po::variables_map vm;
         po::store(
-                  po::command_line_parser(argc, argv).options(desc).positional(p).run(),
-                  vm
-                  );
+            po::command_line_parser(argc, argv).options(desc).positional(p).run(),
+            vm
+        );
         po::notify(vm);
         
         if( vm.count("help") )
@@ -194,7 +194,6 @@ int main( int argc, char** argv )
         
         if( vm.count("output") )
         {
-            
             if( vm.count("extend") )
             {
                 path = std::filesystem::path( vm["output"].as<std::string>()
@@ -202,16 +201,15 @@ int main( int argc, char** argv )
                      + "__b_" + ToString(burn_in_success_count)
                      + "__s_" + ToString(skip)
                      + "__N_" + ToString(N)
-                     + "__"   + (vm.count("tag") ? vm["tag"].as<std::string>() : "")
+                     + (vm.count("tag") ? ("__" + vm["tag"].as<std::string>()) : "")
                 );
             }
             else
             {
                 path = std::filesystem::path( vm["output"].as<std::string>()
-                     + "__"   + (vm.count("tag")  ? vm["tag"].as<std::string>() : "")
+                     + (vm.count("tag") ? ("__" + vm["tag"].as<std::string>()) : "")
                 );
             }
-            
             
             std::cout << "Output path set to "
             << path << ".\n";
@@ -269,13 +267,6 @@ int main( int argc, char** argv )
             std::ofstream log;
             std::ofstream pds;
             
-//            Tensor1<char,Int> log_buffer ( 32 * 1024 );
-//            Tensor1<char,Int> pds_buffer ( 32 * 1024 );
-//
-//            log.rdbuf()->pubsetbuf(log_buffer.data(),log_buffer.Size());
-//            pds.rdbuf()->pubsetbuf(pds_buffer.data(),pds_buffer.Size());
-
-            
             // Open file as stream.
             try {
                 if( appendQ )
@@ -323,6 +314,10 @@ int main( int argc, char** argv )
             Clisby_T T ( n, Real(1) );
             
             log << "Using class " << T.ClassName() << std::endl;
+            log << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
+            log << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n";
+            
+            log << "\n";
             
             // Stream data to the file.
             log << "n = " << n << "\n";
@@ -337,6 +332,9 @@ int main( int argc, char** argv )
             
             LInt total_attempt_count = 0;
             LInt burn_in_attempt_count = 0;
+            
+            // Buffer for the polygon coordinates.
+            Tensor2<Real,Int> x ( n, AmbDim, Real(0) );
             
             // Burn-in.
             {
@@ -356,25 +354,38 @@ int main( int argc, char** argv )
                 
                 const double timing = Tools::Duration( b_start_time, b_stop_time );
                 
-                log << "Burn-in time     = " << timing << " s.\n" ;
-                log << "Attempts made during burn-in = " << burn_in_attempt_count << ".\n";
-                log << "Successes made during burn-in = " << burn_in_success_count << ".\n";
-                log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
-                log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second. \n";
-                log << "Success rate = " << Frac<Real>(100 * counts[0],attempt_count) << " %.\n";
+                log << "Burn-in done.\n";
+                log << "\n";
+                log << "Time elapsed   = " << timing << " s.\n" ;
+                log << "Attempts made  = " << burn_in_attempt_count << ".\n";
+                log << "Attempt speed  = " << Frac<Real>(attempt_count,timing) << "/s.\n";
+                log << "Successes made = " << burn_in_success_count << ".\n";
+                log << "Success speed  = " << Frac<Real>(counts[0],timing) << "/s. \n";
+                log << "Success rate   = " << Percentage<Real>(counts[0],attempt_count) << " %.\n";
                 
+                log << "\n";
+                
+                {
+                    T.WriteVertexCoordinates( x.data() );
+                    
+                    auto [min_dev,max_dev] = T.MinMaxEdgeLengthDeviation( x.data() );
+                    
+                    log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
+                    log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
+                }
+                
+                log << "\n";
                 log << std::endl;
             }
-            
-            // Buffer for the polygon coordinates.
-            Tensor2<Real,Int> x ( n, AmbDim, Real(0) );
             
             // The Link_T object does the actual projection into the plane and the calculation of intersections. We can resuse it and load new vertex coordinates into it.
             Link_T L ( n );
             
+            log << "Sampling for " << (N * skip) << " successful steps...\n" << std::endl;
+            
             const Time sample_start_time = Clock::now();
             
-            for( Int i = 0; i < N; ++i )
+            for( LInt i = 0; i < N; ++i )
             {
                 Time start_time;
                 
@@ -384,7 +395,6 @@ int main( int argc, char** argv )
                     
                     start_time = Clock::now();
                 }
-                
                 
                 // Do polygon folds until we have at least `skip` successes.
                 auto counts = T.FoldRandom(skip);
@@ -435,23 +445,26 @@ int main( int argc, char** argv )
                     auto [min_dev,max_dev] = T.MinMaxEdgeLengthDeviation( x.data() );
                     
                     // Writing a few statistics to log file.
-                    log << "Time elapsed = " << timing << " s.\n";
+                    log << "Time elapsed   = " << timing << " s.\n";
+                    log << "Attempts made  = " << attempt_count << ".\n";
+                    log << "Attempt speed  = " << Frac<Real>(attempt_count,timing) << "/s.\n";
+                    log << "Successes made = " << skip << ".\n";
+                    log << "Success speed  = " << Frac<Real>(counts[0],timing) << "/s. \n";
+                    log << "Success rate   = " << Percentage<Real>(counts[0],attempt_count) << " %.\n";
                     
-                    log << "Needed " << attempt_count << " attempts for " << skip << " successes.\n";
-                    
-                    log << "Achieved " << Frac<Real>(attempt_count,timing) << " attempts per second.\n";
-                    log << "Achieved " << Frac<Real>(counts[0],timing) << " successes per second.\n";
-                    log << "Success rate = " << Frac<Real>(Int(100) * counts[0],attempt_count) << " %.\n";
-                    
+                    log << "\n";
                     
                     log << "Overall number of attempts = " << total_attempt_count << ".\n";
                     log << "Overall success rate (without burnin) = "
-                        << Frac<Real>( Int(100) * (skip * (i+1)), total_attempt_count - burn_in_attempt_count)
+                        << Percentage<Real>( skip * (i+1), total_attempt_count - burn_in_attempt_count)
                         << " %.\n";
+                    
+                    log << "\n";
                     
                     log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
                     log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
                     
+                    log << "\n";
                     log << "\n";
                 }
             }
@@ -468,52 +481,65 @@ int main( int argc, char** argv )
             
             const LInt total_success_count = burn_in_success_count + sample_success_count;
             
-            // Writing some more statistics to log file.
-            log << "Job done.\n";
+            log << "Sampling done.\n";
             
             log << "\n";
             
-            log << "Attempts made during sampling = "
-                << sample_attempt_count
-                << ".\n";
+            log << "Sampling statistics\n";
             
-            log << "Sampling time = "
+            log << "Time elapsed   = "
                 << sample_timing
                 << " s.\n";
             
-            log << "Achieved "
+            log << "Attempts made  = "
+                << sample_attempt_count
+                << ".\n";
+            
+            log << "Attempt speed  = "
                 << Frac<Real>(sample_attempt_count,sample_timing)
-                << " attempts per second during sampling.\n";
+                << "/s.\n";
             
-            log << "Achieved "
+            log << "Successes made = "
+                << sample_success_count
+                << ".\n";
+            
+            log << "Success speed  = "
                 << Frac<Real>(sample_success_count,sample_timing)
-                << " successes per second during sampling.\n";
+                << "/s. \n";
             
-            log << "Success rate (without burnin) = "
-                << Frac<Real>(Int(100) * sample_success_count,sample_attempt_count)
+            log << "Success rate   = "
+                << Percentage<Real>(sample_success_count,sample_attempt_count)
                 << " %.\n";
             
             log << "\n";
             
-            log << "Overall attempts made = "
+            log << "Overall statistics\n";
+            
+            log << "Time elapsed   = "
+                << job_timing
+                << " s.\n";
+
+            log << "Attempts made  = "
                 << total_attempt_count
                 << ".\n";
             
-            log << "Overall time elapsed = "
-                << job_timing
-                << " s.\n";
-            
-            log << "Overall achieved "
+            log << "Attempt speed  = "
                 << Frac<Real>(total_attempt_count,job_timing)
-                << " attempts per second.\n";
+                << "s.\n";
             
-            log << "Overall achieved "
+            log << "Successes made = "
+                << total_success_count
+                << ".\n";
+            
+            log << "Success speed  = "
                 << Frac<Real>(total_success_count,job_timing)
-                << " successes per second.\n";
+                << "s.\n";
             
-            log << "Overall success rate = "
-                << Frac<Real>(Int(100) * total_success_count, total_attempt_count)
+            log << "Success rate   = "
+                << Percentage<Real>(total_success_count,total_attempt_count)
                 << " %.\n";
+            
+            log << "\n";
             
             T.WriteVertexCoordinates( x.data() );
             
@@ -535,4 +561,3 @@ int main( int argc, char** argv )
     
     return 0;
 }
-

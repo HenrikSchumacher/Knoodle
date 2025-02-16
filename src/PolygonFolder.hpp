@@ -2,7 +2,7 @@
 
 namespace KnotTools
 {
-    template<typename Real_, typename Int_>
+    template<typename Real_, typename Int_, typename LInt_>
     class alignas( ObjectAlignment ) PolygonFolder
     {
         static_assert(FloatQ<Real_>,"");
@@ -12,19 +12,20 @@ namespace KnotTools
         
         using Real = Real_;
         using Int  = Int_;
+        using LInt = LInt_;
 
         
         static constexpr Int AmbDim = 3;
         
-        using Tree_T        = AABBTree<AmbDim,Real,Int>;
-        using BContainer_T  = typename Tree_T::BContainer_T;
-        using Matrix_T      = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
-        using Vector_T      = Tiny::Vector<AmbDim,Real,Int>;
-        using PRNG_T        = std::mt19937_64;
-        using PRNG_Result_T = PRNG_T::result_type;
+        using Tree_T         = AABBTree<AmbDim,Real,Int>;
+        using BContainer_T   = typename Tree_T::BContainer_T;
+        using Matrix_T       = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
+        using Vector_T       = Tiny::Vector<AmbDim,Real,Int>;
+        using PRNG_T         = std::mt19937_64;
+        using PRNG_Result_T  = PRNG_T::result_type;
 
-        using Flag_T        = UInt32;
-        using FlagVec_T     = Tiny::Vector<5,Flag_T,Int>;
+        using Flag_T         = UInt32;
+        using FlagCountVec_T = Tiny::Vector<5,LInt,Flag_T>;
 
         
         PolygonFolder() = default;
@@ -452,9 +453,9 @@ namespace KnotTools
         
         
         
-        FlagVec_T FoldRandom_Reference( const Int step_count )
+        FlagCountVec_T FoldRandom_Reference( const LInt step_count )
         {
-            FlagVec_T counters {0};
+            FlagCountVec_T counters {0};
             
             using unif_int  = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
@@ -556,9 +557,9 @@ namespace KnotTools
         
         
         
-        FlagVec_T FoldRandom( const Int step_count )
+        FlagCountVec_T FoldRandom( const LInt step_count )
         {
-            FlagVec_T counters {0};
+            FlagCountVec_T counters {0};
             
             using unif_int  = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
@@ -572,8 +573,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==0))(random_engine);
                 const Real angle = u_real                  (random_engine);
 
-                
-                UInt32 flag = Fold( i, j, angle );
+                Flag_T flag = Fold( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -690,9 +690,9 @@ namespace KnotTools
         
         
         // Only for debugging and performance measurement.
-        FlagVec_T FoldRandom_WithoutChecks( const Int step_count )
+        FlagCountVec_T FoldRandom_WithoutChecks( const LInt step_count )
         {
-            FlagVec_T counters {0};
+            FlagCountVec_T counters {0};
             
             using unif_int  = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
@@ -707,7 +707,7 @@ namespace KnotTools
                 const Real angle = u_real                  (random_engine);
 
                 
-                UInt32 flag = Fold_WithoutCheck( i, j, angle );
+                Flag_T flag = Fold_WithoutCheck( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -904,7 +904,12 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("PolygonFolder")+"<"+ToString(AmbDim)+","+TypeName<Real>+","+TypeName<Int>+">";
+            return std::string("PolygonFolder")
+                + "<" + ToString(AmbDim)
+                + "," + TypeName<Real>
+                + "," + TypeName<Int>
+                + "," + TypeName<LInt>
+                + ">";
         }
 
     }; // PolygonFolder

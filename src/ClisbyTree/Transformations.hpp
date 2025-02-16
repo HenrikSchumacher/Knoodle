@@ -1,6 +1,6 @@
-//#########################################################################################
+//####################################################################################
 //##    Transformations
-//#########################################################################################
+//####################################################################################
 
 
 void ComputePivotTransform()
@@ -68,34 +68,11 @@ Vector_T NodeCenter( const Int node ) const
     return Vector_T( NodeCenterPtr(node) );
 }
 
-//void ApplyToVectorPtr( cref<Transform_T> f, mptr<Real> x_ptr )
-//{
-//    f.TransformVector(NodeCenterPtr(node));
-//
-//    if constexpr ( perf_countersQ )
-//    {
-//        ++mv_counter;
-//    }
-//}
-//
-//void ApplyToTransformPtr( cref<Transform_T> f, mptr<Real> g_ptr )
-//{
-//    f.TransformTransform(g_ptr);
-//    
-//    if constexpr ( perf_countersQ )
-//    {
-//        ++load_counter;
-//        ++mv_counter;
-//        ++mm_counter;
-//    }
-//}
-
 template<bool update_centerQ, bool update_transformQ>
 void UpdateNode( cref<Transform_T> f, const Int node )
 {
     if constexpr ( update_centerQ )
     {
-//        ApplyToVectorPtr( f, NodeCenterPtr(node) );
         f.TransformVector(NodeCenterPtr(node));
         
         if constexpr ( perf_countersQ )
@@ -118,7 +95,6 @@ void UpdateNode( cref<Transform_T> f, const Int node )
         }
         else
         {
-//            ApplyToTransformPtr( f, NodeTransformPtr(node) );
             f.TransformTransform(NodeTransformPtr(node));
             
             if constexpr ( perf_countersQ )
@@ -147,19 +123,6 @@ void PushTransform( const Int node, const Int L, const Int R )
     
     ResetTransform(node);
 }
-
-//void PushAllTransforms()
-//{
-//    
-//    // Exploiting here that we have breadth-first ordering.
-//    // However, this is quite precisely as fast as calling PushAllTransforms(Root()).
-//    for( Int node = 0; node < InteriorNodeCount(); ++node )
-//    {
-//        auto [L,R] = Children( node );
-//        
-//        PushTransform( node, L, R );
-//    }
-//}
 
 // Pushes down all the transformations in the subtree starting at `start_node`.
 void PushAllTransforms()
@@ -194,26 +157,16 @@ void PushTransformsSubtree_ManualStack( const Int start_node )
     );
 }
 
-
-
 void PushTransformsSubtree_Recursive( const Int node )
 {
-    const auto [L,R] = Children( node );
-    PushTransform( node, L, R );
-    
-    if( InteriorNodeQ(L) )
+    if( InteriorNodeQ(node) )
     {
+        const auto [L,R] = Children( node );
+        PushTransform( node, L, R );
         PushTransformsSubtree_Recursive( L );
-    }
-    if( InteriorNodeQ(R) )
-    {
         PushTransformsSubtree_Recursive( R );
     }
 }
-
-
-
-
 
 void PullTransforms( const Int from, const Int to )
 {

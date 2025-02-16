@@ -22,7 +22,7 @@ bool SubtreesOverlapQ_Recursive( const Int i )
             return true;
         }
         
-        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && NodesOverlapQ(L,R,r) &&SubtreesOverlapQ_Recursive(L,R) )
+        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsOverlapQ(L,R,r) &&SubtreesOverlapQ_Recursive(L,R) )
         {
             return true;
         }
@@ -54,7 +54,7 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
             return
             ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) )
             &&
-            this->NodesOverlapQ(c_i[k],c_j[l],this->r);
+            this->BallsOverlapQ(c_i[k],c_j[l],this->r);
         };
         
         const bool subdivideQ [2][2] = {
@@ -96,7 +96,7 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
             return
                 ( (f_i[0] && F_j[l][1]) || (f_i[1] && F_j[l][0]) )
                 &&
-                this->NodesOverlapQ(i,c_j[l],this->r);
+                this->BallsOverlapQ(i,c_j[l],this->r);
         };
         
         const bool subdivideQ [2] = { subdQ(0), subdQ(1) };
@@ -125,7 +125,7 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
             return
                 ( (F_i[k][0] && f_j[1]) || (F_i[k][1] && f_j[0]) )
                 &&
-                this->NodesOverlapQ(c_i[k],j,this->r);
+                this->BallsOverlapQ(c_i[k],j,this->r);
         };
         
         const bool subdivideQ [2] = { subdQ(0), subdQ(1) };

@@ -115,7 +115,7 @@ static constexpr Real NodeCenterSquaredDistance(
     return d2;
 }
                 
-static constexpr bool NodesOverlapQ(
+static constexpr bool BallsOverlapQ(
     const cptr<Real> N_0, const cptr<Real> N_1, const Real r
 )
 {
@@ -128,9 +128,9 @@ static constexpr bool NodesOverlapQ(
     return overlapQ;
 }
 
-bool NodesOverlapQ( const Int node_0, const Int node_1, const Real radius ) const
+bool BallsOverlapQ( const Int node_0, const Int node_1, const Real radius ) const
 {
-    return NodesOverlapQ( NodeData(node_0), NodeData(node_1), radius );
+    return BallsOverlapQ( NodeData(node_0), NodeData(node_1), radius );
 }
 
 int CheckJoints() const
@@ -183,7 +183,7 @@ int CheckJoints() const
 
 // First Boolean: whether node contains unchanged vertices.
 // Second Boolean: whether node contains changed vertices.
-__attribute__((hot)) std::pair<bool,bool> NodeSplitFlags( const Int node ) const
+std::pair<bool,bool> NodeSplitFlags( const Int node ) const
 {
     auto [begin,end] = NodeRange(node);
     
@@ -215,7 +215,7 @@ __attribute__((hot)) std::pair<bool,bool> NodeSplitFlags( const Int node ) const
 //    }
 }
 
-__attribute__((hot)) NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
+NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
 {
     auto [begin,end] = NodeRange(node);
     
@@ -238,7 +238,7 @@ __attribute__((hot)) NodeSplitFlagVector_T NodeSplitFlagVector( const Int node )
     }
 }
 
-__attribute__((hot)) void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
+void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
 {
     auto [begin,end] = NodeRange(node);
     
@@ -263,7 +263,7 @@ __attribute__((hot)) void NodeSplitFlagVector( const Int node, mptr<bool> f ) co
     }
 }
 
-__attribute__((hot)) NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
+NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
@@ -295,7 +295,7 @@ __attribute__((hot)) NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, con
     }
 }
 
-__attribute__((hot)) force_inline void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
+void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
@@ -329,7 +329,7 @@ __attribute__((hot)) force_inline void NodeSplitFlagMatrix( const Int i, const I
 
 
 template<Int N>
-__attribute__((hot)) force_inline void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
+void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
@@ -353,7 +353,7 @@ __attribute__((hot)) force_inline void NodeSplitFlags( cptr<Int> nodes, mptr<boo
 }
 
 
-__attribute__((hot)) force_inline void NodeSplitFlags_3( cptr<Int> nodes, mptr<bool> F ) const
+void NodeSplitFlags_3( cptr<Int> nodes, mptr<bool> F ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
@@ -380,7 +380,7 @@ __attribute__((hot)) force_inline void NodeSplitFlags_3( cptr<Int> nodes, mptr<b
     F[4+!mid_changedQ] = not_only_midQ_2;
 }
 
-__attribute__((hot)) force_inline void NodeSplitFlags_4( cptr<Int> nodes, mptr<bool> F ) const
+void NodeSplitFlags_4( cptr<Int> nodes, mptr<bool> F ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
