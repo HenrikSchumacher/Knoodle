@@ -85,7 +85,7 @@ namespace KnotTools
         Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
         Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
 
-        Stack<Int,Int> stack;
+//        Stack<Int,Int> stack;
         
         bool provably_minimalQ = false;
         
@@ -871,6 +871,22 @@ namespace KnotTools
             logdump( A_cross );
             logdump( A_state );
             logdump( unlink_count );
+        }
+
+        Size_T AllocationByteCount() const
+        {
+            return
+                  C_arcs.AllocatedByteCount()
+                + C_state.AllocatedByteCount()
+                + A_cross.AllocatedByteCount()
+                + C_scratch.AllocatedByteCount()
+                + A_state.AllocatedByteCount()
+                + A_scratch.AllocatedByteCount();
+        }
+        
+        Size_T ByteCount() const
+        {
+            return sizeof(PlanarDiagram) + AllocationByteCount();
         }
         
         static std::string ClassName()

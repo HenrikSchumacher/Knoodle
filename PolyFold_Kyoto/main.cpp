@@ -9,7 +9,7 @@ using namespace KnotTools;
 using namespace Tensors;
 using namespace Tools;
 
-using Real = double;
+using Real = Real64;
 using Int  = Int64;
 using LInt = Int64;
 

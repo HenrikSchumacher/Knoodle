@@ -36,7 +36,7 @@ namespace KnotTools
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
 
         const Int edge_count = 0;
-        
+
         Tiny::VectorList<2,Int,Int> edges;
         Tensor1<Int,Int> next_edge;
         Tensor1<Int,Int> edge_ptr;

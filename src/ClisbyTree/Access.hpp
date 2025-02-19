@@ -22,25 +22,36 @@ Int VertexNode( const Int vertex ) const
     return PrimitiveNode( vertex );
 }
 
-cref<NodeContainer_T> NodeData() const
+//cptr<Real> NodeData( const Int node ) const
+//{
+//    return &N_data.data()[NodeDim * node];
+//}
+//
+//mptr<Real> NodeData( const Int node )
+//{
+//    return &N_data.data()[NodeDim * node];
+//}
+
+cref<NodeContainer_T> NodeTransforms() const
 {
-    return N_data;
+    return N_transform;
 }
 
-mref<NodeContainer_T> NodeData()
+mref<NodeContainer_T> NodeTransforms()
 {
-    return N_data;
+    return N_transform;
 }
 
-cptr<Real> NodeData( const Int node ) const
+cref<NodeContainer_T> NodeBalls() const
 {
-    return &N_data.data()[NodeDim * node];
+    return N_ball;
 }
 
-mptr<Real> NodeData( const Int node )
+mref<NodeContainer_T> NodeBalls()
 {
-    return &N_data.data()[NodeDim * node];
+    return N_ball;
 }
+
 
 cref<Tensor1<NodeState_T,Int>> NodeStates() const
 {
@@ -59,32 +70,73 @@ NodeState_T NodeState( const Int node ) const
 
 cptr<Real> NodeTransformPtr( const Int node ) const
 {
-    return &N_data.data()[NodeDim * node + AmbDim + 1];
+    return &N_transform.data()[TransformDim * node];
 }
 
 mptr<Real> NodeTransformPtr( const Int node )
 {
-    return &N_data.data()[NodeDim * node + AmbDim + 1];
+    return &N_transform.data()[TransformDim * node];
 }
 
 cptr<Real> NodeCenterPtr( const Int node ) const
 {
-    return &N_data.data()[NodeDim * node];
+    return &N_ball.data()[BallDim * node];
 }
 
 mptr<Real> NodeCenterPtr( const Int node )
 {
-    return &N_data.data()[NodeDim * node];
+    return &N_ball.data()[BallDim * node];
 }
+
+//cptr<Real> NodeTransformPtr( const Int node ) const
+//{
+//    return &N_data.data()[NodeDim * node + AmbDim + 1];
+//}
+//
+//mptr<Real> NodeTransformPtr( const Int node )
+//{
+//    return &N_data.data()[NodeDim * node + AmbDim + 1];
+//}
+
+
+//cptr<Real> NodeCenterPtr( const Int node ) const
+//{
+//    return &N_data.data()[NodeDim * node];
+//}
+//
+//mptr<Real> NodeCenterPtr( const Int node )
+//{
+//    return &N_data.data()[NodeDim * node];
+//}
+
+cptr<Real> NodeBallPtr( const Int node ) const
+{
+    return &N_ball.data()[(AmbDim+1) * node];
+}
+
+mptr<Real> NodeBallPtr( const Int node )
+{
+    return &N_ball.data()[(AmbDim+1) * node];
+}
+
+//Real NodeRadius( const Int node ) const
+//{
+//    return N_data.data()[NodeDim * node + AmbDim];
+//}
+//
+//mref<Real> NodeRadius( const Int node )
+//{
+//    return N_data.data()[NodeDim * node + AmbDim];
+//}
 
 Real NodeRadius( const Int node ) const
 {
-    return N_data.data()[NodeDim * node + AmbDim];
+    return N_ball.data()[(AmbDim + 1) * node + AmbDim];
 }
 
 mref<Real> NodeRadius( const Int node )
 {
-    return N_data.data()[NodeDim * node + AmbDim];
+    return N_ball.data()[(AmbDim + 1) * node + AmbDim];
 }
 
 Vector_T VertexCoordinates( const Int vertex ) const

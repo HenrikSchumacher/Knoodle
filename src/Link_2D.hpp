@@ -48,13 +48,11 @@ namespace KnotTools
         
     protected:
         
-        
         static constexpr Int max_depth = 64;
         
         static constexpr Real one     = 1;
         static constexpr Real eps     = std::numeric_limits<Real>::epsilon();
         static constexpr Real big_one = 1 + eps;
-        
         
         using Base_T::edges;
         using Base_T::next_edge;
@@ -64,7 +62,6 @@ namespace KnotTools
         using Base_T::component_ptr;
         using Base_T::cyclicQ;
         using Base_T::preorderedQ;
-        
         
     public:
         
@@ -525,6 +522,28 @@ namespace KnotTools
         cref<std::array<Size_T,8>> IntersectionCounts()
         {
             return S.IntersectionCounts();
+        }
+        
+        Size_T AllocatedByteCount() const
+        {
+            return
+                  edge_ctr.AllocatedByteCount()
+                + edge_coords.AllocatedByteCount()
+                + T.AllocatedByteCount()
+                + box_coords.AllocatedByteCount()
+                + edge_intersections.AllocatedByteCount()
+                + edge_times.AllocatedByteCount()
+                + edge_overQ.AllocatedByteCount()
+                + Base_T::edges.AllocatedByteCount()
+                + Base_T::next_edge.AllocatedByteCount()
+                + Base_T::edge_ptr.AllocatedByteCount()
+                + Base_T::component_ptr.AllocatedByteCount()
+                + Base_T::component_lookup.AllocatedByteCount();
+        }
+        
+        Size_T ByteCount() const
+        {
+            return sizeof(Link_2D) + AllocatedByteCount();
         }
         
         static std::string ClassName()

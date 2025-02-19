@@ -244,6 +244,16 @@ namespace KnotTools
         
     public:
         
+        Size_T AllocatedByteCount() const
+        {
+            return Tree_T::N_ranges.AllocatedByteCount();
+        }
+        
+        Size_T ByteCount() const
+        {
+            return sizeof(AABBTree) + AllocatedByteCount();
+        }
+        
         static std::string ClassName()
         {
             return std::string("AABBTree")

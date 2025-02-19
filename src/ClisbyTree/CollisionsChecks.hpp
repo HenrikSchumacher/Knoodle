@@ -100,7 +100,7 @@ void ComputeBall( const Int node )
 {
     auto [L,R] = Children(node);
     
-    MergeBalls( NodeData(L), NodeData(R), NodeData(node) );
+    MergeBalls( NodeBallPtr(L), NodeBallPtr(R), NodeBallPtr(node) );
 }
 
 static constexpr Real NodeCenterSquaredDistance(
@@ -130,7 +130,7 @@ static constexpr bool BallsOverlapQ(
 
 bool BallsOverlapQ( const Int node_0, const Int node_1, const Real radius ) const
 {
-    return BallsOverlapQ( NodeData(node_0), NodeData(node_1), radius );
+    return BallsOverlapQ( NodeBallPtr(node_0), NodeBallPtr(node_1), radius );
 }
 
 int CheckJoints() const

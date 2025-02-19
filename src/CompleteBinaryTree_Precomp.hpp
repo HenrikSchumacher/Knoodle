@@ -11,7 +11,7 @@ namespace KnotTools
     public:
         
         using Int  = Int_;
-        using SInt = Int32;
+        using SInt = std::int_fast32_t;
         
         using UInt = Scalar::Unsigned<Int>;
         

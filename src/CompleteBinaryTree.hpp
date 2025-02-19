@@ -10,8 +10,8 @@ namespace KnotTools
         
     public:
         
-        using Int    = Int_;
-        using SInt = Int32;
+        using Int  = Int_;
+        using SInt = std::int_fast32_t;
         
         static constexpr Int max_depth = 64;
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;
@@ -333,6 +333,16 @@ namespace KnotTools
         }
         
     public:
+        
+        Size_T AllocatedByteCount() const
+        {
+            return N_ranges.AllocatedByteCount();
+        }
+        
+        Size_T ByteCount() const
+        {
+            return sizeof(CompleteBinaryTree) + AllocatedByteCount();
+        }
         
         static std::string ClassName()
         {
