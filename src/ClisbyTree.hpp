@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../deps/pcg-cpp/include/pcg_random.hpp"
+
 namespace KnotTools
 {
     template<
@@ -21,13 +23,12 @@ namespace KnotTools
         using Real   = Real_;
         using Int    = Int_;
         using LInt   = LInt_;
-        
     
         using Tree_T = CompleteBinaryTree<Int,true>;
+    //        using Tree_T = CompleteBinaryTree_Precomp<Int>;
     
         using SInt = typename Tree_T::SInt;
         
-//        using Tree_T = CompleteBinaryTree_Precomp<Int>;
         using Tree_T::max_depth;
         
         static constexpr Int AmbDim  = AmbDim_;
@@ -43,38 +44,46 @@ namespace KnotTools
     
         using Vector_T        = typename Transform_T::Vector_T;
         using Matrix_T        = typename Transform_T::Matrix_T;
-        
-        using NodeContainer_T = Tensor2<Real,Int>;
-        
-        using PRNG_T          = std::mt19937_64;
-        using PRNG_Result_T   = PRNG_T::result_type;
-    
         using Flag_T          = Int32;
         using FlagCountVec_T  = Tiny::Vector<5,LInt,Flag_T>;
+
+        using NodeContainer_T = Tensor2<Real,Int>;
     
         using NodeSplitFlagVector_T = Tiny::Vector<2,bool,Int>;
         using NodeSplitFlagMatrix_T = Tiny::Matrix<2,2,bool,Int>;
+
+    //        using NodeSplitFlagVector_T = std::array<bool,2>;
+    //        using NodeSplitFlagMatrix_T = std::array<NodeSplitFlagVector_T,2>;
     
-//        using NodeSplitFlagVector_T = std::array<bool,2>;
-//        using NodeSplitFlagMatrix_T = std::array<NodeSplitFlagVector_T,2>;
-        
+        using RNG_T  = std::random_device;
+    
+//        using PRNG_T = std::mt19937_64;
+//        static constexpr Size_T PRNG_T_state_size = PRNG_T::state_size;
+    
+        using PRNG_T = pcg64;
+        static constexpr Size_T PRNG_T_state_size = 2;
+    
+        static constexpr Size_T seed_size  = (PRNG_T_state_size * sizeof(PRNG_T::result_type)) / sizeof(RNG_T::result_type);
+    
+        using Seed_T = std::array<RNG_T::result_type,seed_size>;
         
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
-        static constexpr Int NodeDim      = AmbDim + 1 + TransformDim;
+        static constexpr Int BallDim      = AmbDim + 1;
+        static constexpr Int NodeDim      = BallDim + TransformDim;
         
 //        static constexpr bool perf_countersQ = true;
         static constexpr bool perf_countersQ = false;
     
         
-        enum class UpdateFlag_T : UInt8
+        enum class UpdateFlag_T : std::int_fast8_t
         {
             DoNothing = 0,
             Update    = 1,
             Split     = 2
         };
         
-        enum class NodeState_T : UInt8
+        enum class NodeState_T : std::int_fast8_t
         {
             Id    = 0,
             NonId = 1
@@ -88,8 +97,9 @@ namespace KnotTools
             const ExtReal radius
         )
         :   Tree_T      { static_cast<Int>(vertex_count_)       }
-        ,   N_data      { NodeCount(), NodeDim, 0               }
-//        ,   N_data      { InteriorNodeCount(), NodeDim, 0       }
+//        ,   N_data      { NodeCount(), NodeDim, 0               }
+        ,   N_transform { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_ball      { NodeCount(), BallDim, 0               }
         ,   N_state     { NodeCount(), NodeState_T::Id          }
 //        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
         ,   E_lengths   { LeafNodeCount()                       }
@@ -108,8 +118,9 @@ namespace KnotTools
             const ExtReal radius
         )
         :   Tree_T      { static_cast<Int>(vertex_count_)    }
-        ,   N_data      { NodeCount(), NodeDim, 0            }
-//        ,   N_data      { InteriorNodeCount(), NodeDim, 0       }
+//        ,   N_data      { NodeCount(), NodeDim, 0            }
+        ,   N_transform { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_ball      { NodeCount(), BallDim, 0            }
         ,   N_state     { NodeCount(), NodeState_T::Id       }
 //        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
         ,   E_lengths   { LeafNodeCount()                    }
@@ -149,7 +160,9 @@ namespace KnotTools
         
     private:
         
-        NodeContainer_T N_data;
+//        NodeContainer_T N_data;
+        NodeContainer_T N_transform;
+        NodeContainer_T N_ball;
         Tensor1<NodeState_T,Int> N_state;
         Tensor1<Real,Int> E_lengths;
         
@@ -168,6 +181,7 @@ namespace KnotTools
         Transform_T id;
         Transform_T transform;          // Pivot transformation.
         
+        Seed_T seed;
         PRNG_T random_engine;
     
         mutable LInt mm_counter   = 0;
@@ -201,18 +215,35 @@ namespace KnotTools
         
         void InitializePRNG()
         {
-            using RNG_T = std::random_device;
+            std::generate( seed.begin(), seed.end(), RNG_T() );
+
+//            valprint(" RNG_T::result_type",std::string(TypeName< RNG_T::result_type>));
+//            valprint("PRNG_T::result_type",std::string(TypeName<PRNG_T::result_type>));
+//            
+//            dump(PRNG_T_state_size);
+//            dump(seed.size());
+//            dump(sizeof(PRNG_T::result_type));
+//            dump(sizeof(RNG_T::result_type));
+//            
+            SeedBy( seed );
+        }
+    
+    public:
+    
+        void SeedBy( Seed_T & seed_ )
+        {
+            seed = seed_;
             
-            constexpr Size_T state_size = PRNG_T::state_size;
-            constexpr Size_T seed_size = state_size * sizeof(PRNG_T::result_type) / sizeof(RNG_T::result_type);
+            std::seed_seq seed_sequence ( seed.begin(), seed.end() );
             
-            std::array<RNG_T::result_type,seed_size> seed_array;
+            random_engine = PRNG_T( seed_sequence );
             
-            std::generate( seed_array.begin(), seed_array.end(), RNG_T() );
-            
-            std::seed_seq seed ( seed_array.begin(), seed_array.end() );
-            
-            random_engine = PRNG_T( seed );   
+//            random_engine = PRNG_T( pcg_extras::seed_seq_from<std::random_device>() );
+        }
+    
+        cref<Seed_T> Seed() const
+        {
+            return seed;
         }
         
     public:
@@ -258,7 +289,7 @@ namespace KnotTools
             const double delta  = Frac<double>( Scalar::TwoPi<double>, n );
             const double radius = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
             
-            Real v [AmbDim] = { Real(0) };
+            double v [AmbDim] = { double(0) };
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
@@ -381,12 +412,23 @@ namespace KnotTools
             
             return std::pair(min,max);
         }
+    
         
 //#########################################################################################
 //##    Standard interface
 //#########################################################################################
         
     public:
+    
+        Size_T AllocatedByteCount() const
+        {
+            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + E_lengths.AllocatedByteCount();
+        }
+        
+        Size_T ByteCount() const
+        {
+            return sizeof(ClisbyTree) + AllocatedByteCount();
+        }
         
         static std::string ClassName()
         {

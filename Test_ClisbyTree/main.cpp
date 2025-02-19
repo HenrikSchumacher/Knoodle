@@ -9,9 +9,9 @@ using namespace KnotTools;
 using namespace Tensors;
 using namespace Tools;
 
-using Real = double;
-using Int  = Int64;
-using LInt = Int64;
+using Real = Real64;
+using Int  = std::int_fast64_t;
+using LInt = std::int_fast64_t;
 
 constexpr Int AmbDim = 3;
 
@@ -33,9 +33,8 @@ std::string pd_code_string( mref<PD_T> PD )
     cptr<Int> a = pdcode.data();
     
     std::string s;
-    
     s += "\ns ";
-    s += PD.ProvablyMinimalQ();
+    s += ToString(PD.ProvablyMinimalQ());
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
@@ -47,11 +46,11 @@ std::string pd_code_string( mref<PD_T> PD )
 
 int main( int argc, char** argv )
 {
-    std::cout << "Welcome to PolyFold.\n\n";
+    print("Welcome to PolyFold.\n\n");
     
-    std::cout << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
-    std::cout << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n";
-    std::cout << "\n";
+    print(std::string("Vector extensions ") + ( vec_enabledQ ? "enabled" : "disabled" ) + ".");
+    print(std::string("Matrix extensions ") + ( mat_enabledQ ? "enabled" : "disabled" ) + ".");
+    print("");
     
     Int thread_count = 1;
     Int job_count    = thread_count;
@@ -60,7 +59,7 @@ int main( int argc, char** argv )
     
     LInt N = 1;
     LInt burn_in_success_count = 1;
-    LInt skip    = 1;
+    LInt skip = 1;
     
     bool verboseQ = false;
     bool appendQ  = false;
@@ -109,32 +108,30 @@ int main( int argc, char** argv )
         {
             thread_count = vm["threads"].as<Int>();
             
-            std::cout << "Number of threads set to "
-            << thread_count << ".\n";
+            print("Number of threads set to " + ToString(thread_count) + ".");
         }
         else
         {
-            std::cout << "Using default number of threads (" << ToString(thread_count) + ").\n";
+            print("Using default number of threads (" + ToString(thread_count) + ").");
         }
         
         if( vm.count("jobs") )
         {
             job_count = vm["jobs"].as<Int>();
             
-            std::cout << "Number of jobs set to " << job_count << ".\n";
+            print("Number of jobs set to " + ToString(job_count) + ".");
         }
         else
         {
             job_count = thread_count;
-            std::cout << "Using default number of jobs (" << job_count << ").\n";
+            print("Using default number of jobs (" + ToString(job_count) + ").");
         }
         
         if( vm.count("edge-count") )
         {
             n = vm["edge-count"].as<Int>();
             
-            std::cout << "Number of edges set to "
-            << n << ".\n";
+            print("Number of edges set to " + ToString(n) + ".");
         }
         else
         {
@@ -145,8 +142,7 @@ int main( int argc, char** argv )
         {
             N = vm["sample-count"].as<Int>();
             
-            std::cout << "Number of samples set to "
-            << N << ".\n";
+            print("Number of samples set to " + ToString(N) + ".");
         }
         else
         {
@@ -157,8 +153,7 @@ int main( int argc, char** argv )
         {
             burn_in_success_count = vm["burn-in"].as<LInt>();
             
-            std::cout << "Number of burn-in steps set to "
-            << burn_in_success_count << ".\n";
+            print("Number of burn-in steps set to " + ToString(burn_in_success_count) + ".");
         }
         else
         {
@@ -169,8 +164,7 @@ int main( int argc, char** argv )
         {
             skip = vm["skip"].as<LInt>();
             
-            std::cout << "Number of skip steps set to "
-            << skip << ".\n";
+            print("Number of skip steps set to " + ToString(skip) + ".");
         }
         else
         {
@@ -183,14 +177,14 @@ int main( int argc, char** argv )
             verboseQ = true;
         }
         
-        std::cout << "Report mode set to " << (verboseQ ? "verbose" : "muted" ) << ".\n";
+        print(std::string("Report mode set to ") + (verboseQ ? "verbose" : "muted" ) + ".");
         
         if( vm.count("append") )
         {
             appendQ = true;
         }
         
-        std::cout << "Write mode set to " << (appendQ ? "append" : "overwrite" ) << ".\n";
+        print(std::string("Write mode set to ") + (appendQ ? "append" : "overwrite" ) + ".");
         
         if( vm.count("output") )
         {
@@ -211,8 +205,8 @@ int main( int argc, char** argv )
                 );
             }
             
-            std::cout << "Output path set to "
-            << path << ".\n";
+            
+            print( std::string("Output path set to ") + path.string() + "." );
         }
         else
         {
@@ -222,12 +216,12 @@ int main( int argc, char** argv )
     }
     catch( std::exception & e )
     {
-        std::cerr << "ERROR: " << e.what() << "\n";
+        eprint(e.what());
         return 1;
     }
     catch(...)
     {
-        std::cerr << "Exception of unknown type!\n";
+        eprint("Exception of unknown type!");
         return 1;
     }
     
@@ -238,27 +232,25 @@ int main( int argc, char** argv )
     }
     catch( std::exception & e )
     {
-        std::cerr << "ERROR: " << e.what() << "\n";
+        eprint(e.what());
         return 1;
     }
     catch(...)
     {
-        std::cerr << "Exception of unknown type!\n";
+        eprint("Exception of unknown type!");
         return 1;
     }
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path);
         
-    std::cout << "\n";
-    std::cout << "Using sampler of class " << Clisby_T::ClassName() << "\n";
-    std::cout << "\n";
-    std::cout << "Start sampling." << std::endl;
+    print(std::string("\nUsing sampler of class ") + Clisby_T::ClassName() + "\n\nStart sampling.");
     
-    const Time program_start_time = Clock::now();
+    
+    const Time prog_start_time = Clock::now();
     
     ParallelDo(
-        [&]( const Int job )
+        [job_count,path,appendQ,verboseQ,n,N,skip,burn_in_success_count]( const Int job )
         {
             std::string job_name = (job_count == 1) ? "" : std::string("Job_") + StringWithLeadingZeroes(job,6) + "_";
             std::filesystem::path log_file = path / (job_name + "Log.txt");
@@ -280,12 +272,13 @@ int main( int argc, char** argv )
             }
             catch( std::exception & e )
             {
-                std::cerr << "ERROR: " << e.what() << "\n";
+                
+                eprint(e.what());
                 return;
             }
             catch(...)
             {
-                std::cerr << "Exception of unknown type!\n";
+                eprint("Exception of unknown type!");
                 return;
             }
             
@@ -302,32 +295,41 @@ int main( int argc, char** argv )
             }
             catch( std::exception & e )
             {
-                std::cerr << "ERROR: " << e.what() << "\n";
+                eprint(e.what());
                 return;
             }
             catch(...)
             {
-                std::cerr << "Exception of unknown type!\n";
+                eprint("Exception of unknown type!");
                 return;
             }
-            
-            Clisby_T T ( n, Real(1) );
-            
-            log << "Using class " << T.ClassName() << std::endl;
-            log << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
-            log << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n";
-            
-            log << "\n";
-            
+
             // Stream data to the file.
             log << "n = " << n << "\n";
             log << "N = " << N << "\n";
             log << "burn-in = " << burn_in_success_count << "\n";
             log << "skip = " << skip << "\n";
+            log << "\n";
+            log << std::flush;
             
-            // std::endl adds a "\n" and flushes the string buffer so that the string is actually written to file.
-            log << "\n " << std::endl;
-
+            
+            
+            Clisby_T T ( n, Real(1) );
+            
+            log << "Using Clisby tree class " << T.ClassName() << "\n";
+            log << "Byte count = " << ToString(T.ByteCount()) << "\n";
+            log << "Seed = " << ToString(T.Seed()) << "\n\n";
+            
+            
+            log << "Vector extensions " << ( vec_enabledQ ? "enabled" : "disabled" ) << ".\n";
+            log << "Matrix extensions " << ( mat_enabledQ ? "enabled" : "disabled" ) << ".\n\n";
+            
+            // The Link_T object does the actual projection into the plane and the calculation of intersections. We can resuse it and load new vertex coordinates into it.
+            Link_T L ( n );
+            
+            log << "Using Link class " << L.ClassName() << "\n";
+            log << "Byte count = " << ToString(L.ByteCount()) << "\n";
+            
             const Time job_start_time = Clock::now();
             
             LInt total_attempt_count = 0;
@@ -336,9 +338,12 @@ int main( int argc, char** argv )
             // Buffer for the polygon coordinates.
             Tensor2<Real,Int> x ( n, AmbDim, Real(0) );
             
+            log << "Byte count of coordinate buffer = " << ToString(x.ByteCount()) << "\n";
+            
             // Burn-in.
             {
-                log << "Burn-in for " << burn_in_success_count << " successful steps..." << std::endl;
+                log << "Burn-in for " << burn_in_success_count << " successful steps...\n";
+                log << std::flush;
                 
                 const Time b_start_time = Clock::now();
                 
@@ -373,15 +378,17 @@ int main( int argc, char** argv )
                     log << "Lower relative edge length deviation = " << ToString(min_dev) << ".\n";
                     log << "Upper relative edge length deviation = " << ToString(max_dev) << ".\n";
                 }
-                
-                log << "\n";
-                log << std::endl;
+                log << "\n\n";
+                log << std::flush;
             }
             
-            // The Link_T object does the actual projection into the plane and the calculation of intersections. We can resuse it and load new vertex coordinates into it.
-            Link_T L ( n );
+            log << "Sampling for " << (N * skip) << " successful steps...\n\n";
+            log << std::flush;
             
-            log << "Sampling for " << (N * skip) << " successful steps...\n" << std::endl;
+            
+            // TODO: Allocated PD_list just once.
+            // And empty list of planar diagram to where Simplify5 can push the connected summands.
+            std::vector<PD_T> PD_list;
             
             const Time sample_start_time = Clock::now();
             
@@ -417,11 +424,28 @@ int main( int argc, char** argv )
                 
                 // ... and use it to initialize the planar diagram
                 PD_T PD ( L );
-                
+
                 // And empty list of planar diagram to where Simplify5 can push the connected summands.
-                std::vector<PD_T> PD_list;
+//                std::vector<PD_T> PD_list;
+                
+                // TODO: Instead, clear PD_list to avoid reallocation.
+                 PD_list.clear();
+                
+                if( verboseQ )
+                {
+                    log << "Byte count of PlanarDiagram (before simplification) = " << PD.ByteCount() << ".\n";
+                    
+                    log << "Crossing count of PlanarDiagram (before simplification) = " << PD.CrossingCount() << ".\n";
+                }
                 
                 PD.Simplify5( PD_list );
+                
+                if( verboseQ )
+                {
+                    log << "Byte count of PlanarDiagram (after simplification) = " << PD.ByteCount() << ".\n";
+                    
+                    log << "Crossing count of PlanarDiagram (after simplification) = " << PD.CrossingCount() << ".\n";
+                }
                 
                 // Writing the PD codes to file.
                 
@@ -435,6 +459,7 @@ int main( int argc, char** argv )
                 }
                 
                 pds << "\n";
+                pds << std::flush;
                 
                 if( verboseQ )
                 {
@@ -466,6 +491,8 @@ int main( int argc, char** argv )
                     
                     log << "\n";
                     log << "\n";
+                    log << std::flush;
+                    
                 }
             }
             
@@ -533,7 +560,7 @@ int main( int argc, char** argv )
             
             log << "Success speed  = "
                 << Frac<Real>(total_success_count,job_timing)
-                << "s.\n";
+                << "/s.\n";
             
             log << "Success rate   = "
                 << Percentage<Real>(total_success_count,total_attempt_count)
@@ -555,9 +582,9 @@ int main( int argc, char** argv )
    );
     
     
-    const Time program_stop_time = Clock::now();
+    const Time prog_stop_time = Clock::now();
     
-    std::cout << "Done. Time elapsed = " << Tools::Duration(program_start_time,program_stop_time) << " s." << std::endl;
+    print("Done. Time elapsed = " + ToStringFPGeneral(Tools::Duration(prog_start_time,prog_stop_time)) + " s.");
     
     return 0;
 }

@@ -2,6 +2,7 @@ clang++                                         \
     -Wall                                       \
     -Wextra                                     \
     -std=c++20                                  \
+    -g                                          \
     -O3                                         \
     -ffast-math                                 \
     -flto                                       \
@@ -11,15 +12,15 @@ clang++                                         \
     -mtune=native                               \
     -I/opt/homebrew/include                     \
     -L/opt/homebrew/lib                         \
+    -fverbose-asm                               \
     -o PolyFold                                 \
     main.cpp                                    \
     -lboost_program_options                     \
+ 
+#objdump --reloc --line-numbers --demangle --non-verbose --syms PolyFold > PolyFold.asm
     
     
     
-#    -lc++                                       \
-#    -lstdc++                                    \
-
 #
 #                                                \
 #    -Weverything                                \
