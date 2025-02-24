@@ -10,11 +10,11 @@ namespace KnotTools
         using Int  = Int_;
         using SInt = SInt_;
         
-        const Int  edges [2] = {-2}; // First edge goes over, second edge goes under.
-        const Real times [2] = {-2};
+        Int  edges [2] = {-2}; // First edge goes over, second edge goes under.
+        Real times [2] = {-2};
         
         // +1 means right-handed, -1 means left-handed, 0 means degenerate.
-        const SInt handedness;
+        SInt handedness;
         
         Intersection(
             const Int over_edge_,

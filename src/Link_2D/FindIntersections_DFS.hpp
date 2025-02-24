@@ -5,7 +5,6 @@ protected:
     {
         ptic(ClassName()+"::FindIntersectingEdges_DFS");
         
-        
         intersections.clear();
         
         intersections.reserve( ToSize_T(2 * edge_coords.Dimension(0)) );
@@ -287,10 +286,8 @@ protected:
             const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
             const Tiny::Matrix<2,3,Real,Int> y { edge_coords.data(l) };
             
-            const LineSegmentsIntersectionFlag flag
+            LineSegmentsIntersectionFlag flag
                 = S.IntersectionType( x[0], x[1], y[0], y[1] );
-            
-//            ++intersection_counts[ ToUnderlying(flag) ];
             
             if( IntersectingQ(flag) )
             {
@@ -369,7 +366,43 @@ protected:
                 }
                 else
                 {
-                    ++intersection_count_3D;
+                    flag = LineSegmentsIntersectionFlag::Spatial;
+                }
+                
+            } // if( IntersectingQ(flag) )
+            
+            ++intersection_flag_counts[ ToUnderlying(flag) ];
+            
+            switch(flag)
+            {
+                case LineSegmentsIntersectionFlag::AtCorner0:
+                {
+                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
+                    break;
+                }
+                case LineSegmentsIntersectionFlag::AtCorner1:
+                {
+                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
+                    break;
+                }
+                case LineSegmentsIntersectionFlag::CornerCorner:
+                {
+                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
+                    break;
+                }
+                case LineSegmentsIntersectionFlag::Interval:
+                {
+                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
+                    break;
+                }
+                case LineSegmentsIntersectionFlag::Spatial:
+                {
+                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                    break;
+                }
+                default:
+                {
+                    break;
                 }
             }
         }

@@ -193,24 +193,127 @@ namespace KnotTools
         }
         
         
+        
+        template<typename ExtInt>
+        PlanarDiagram(
+            cptr<ExtInt> crossings, cptr<ExtInt> crossing_states,
+            cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
+            const ExtInt crossing_count_, const ExtInt unlink_count_
+        )
+        :   PlanarDiagram( crossing_count_, unlink_count_ )
+        {
+            C_arcs.Read(crossings);
+            C_state.Read(crossing_states);
+            A_cross.Read(arcs);
+            A_state.Read(arc_states);
+        }
+        
+        
         /*! @brief Construction from `Link_2D` object.
          */
         
-        template<typename Real, typename SInt>
-        PlanarDiagram( cref<Link_2D<Real,Int,SInt>> L )
+        template<typename Real, typename SInt, typename BReal>
+        PlanarDiagram( cref<Link_2D<Real,Int,SInt,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
         {
-            using Link_T         = Link_2D<Real,Int,SInt>;
-            using Intersection_T = typename Link_T::Intersection_T;
+            ReadFromLink<Real,SInt,BReal>(
+                L.ComponentCount(),
+                L.ComponentPointers().data(),
+                L.EdgePointers().data(),
+                L.EdgeIntersections().data(),
+                L.EdgeOverQ().data(),
+                L.Intersections()
+            );
+        }
+        
+//        template<typename Real, typename SInt, typename BReal>
+//        PlanarDiagram( Link_2D<Real,Int,SInt,BReal> && L )
+//        {
+//            L.DeleteTree();
+//            
+//            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
+//            
+//            ReadFromLink<Real,SInt,BReal>(
+//                L.ComponentCount(),
+//                L.ComponentPointers().data(),
+//                L.EdgePointers().data(),
+//                L.EdgeIntersections().data(),
+//                L.EdgeOverQ().data(),
+//                L.Intersections()
+//            );
+//            
+//            L = Link_2D<Real,Int,SInt,BReal>();
+//        }
+        
+    
+        
+        /*! @brief Construction from coordinates.
+         */
+        template<typename Real, typename SInt, typename BReal>
+        static PlanarDiagram FromCoordinates( cptr<Real> x, const Int n )
+        {
+            Link_2D<Real,Int,SInt,BReal> L ( n );
+            
+//            dump(L.ClassName())
 
-            const Int component_count     = L.ComponentCount();
+            // Read coordinates into `Link_T` object `L`...
+            L.ReadVertexCoordinates ( x );
             
-            cptr<Int>  component_ptr      = L.ComponentPointers().data();
-            cptr<Int>  edge_ptr           = L.EdgePointers().data();
-            cptr<Int>  edge_intersections = L.EdgeIntersections().data();
-            cptr<bool> edge_overQ         = L.EdgeOverQ().data();
+//            print("Before FindIntersections");
+//            dump(L.AllocatedByteCount());
+//            print(L.AllocatedByteCountString());
             
-            cref<std::vector<Intersection_T>> intersections = L.Intersections();
+            int err = L.template FindIntersections<true>();
+            
+            if( err != 0 )
+            {
+                eprint(ClassName() + "::FromCoordinates: FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
+                return PlanarDiagram();
+            }
+            
+//            print("After FindIntersections");
+//            dump(L.AllocatedByteCount());
+//            print(L.AllocatedByteCountString());
+            
+            // Deallocate tree-related data in L to make room for the PlanarDiagram.
+            L.DeleteTree();
+            
+//            print("After DeleteTree");
+//            dump(L.AllocatedByteCount());
+//            print(L.AllocatedByteCountString());
+            
+            // We delay the allocation until substantial parts of L have been deallocated.
+            PlanarDiagram PD( L.CrossingCount(), L.UnlinkCount() );
+            
+//            dump(PD.AllocatedByteCount());
+            
+            PD.ReadFromLink<Real,SInt,BReal>(
+                L.ComponentCount(),
+                L.ComponentPointers().data(),
+                L.EdgePointers().data(),
+                L.EdgeIntersections().data(),
+                L.EdgeOverQ().data(),
+                L.Intersections()
+            );
+            
+//            dump(PD.AllocatedByteCount());
+        
+            return PD;
+        }
+        
+    private:
+        
+        template<typename Real, typename SInt, typename BReal>
+        void ReadFromLink(
+            const Int  component_count,
+            cptr<Int>  component_ptr,
+            cptr<Int>  edge_ptr,
+            cptr<Int>  edge_intersections,
+            cptr<bool> edge_overQ,
+            cref<std::vector<typename Link_2D<Real,Int,SInt,BReal>::Intersection_T>> intersections
+        )
+        {
+            using Intersection_T = Link_2D<Real,Int,SInt,BReal>::Intersection_T;
             
             // Now we go through all components
             //      then through all edges of the component
@@ -296,20 +399,7 @@ namespace KnotTools
             }
         }
         
-        
-        template<typename ExtInt>
-        PlanarDiagram(
-            cptr<ExtInt> crossings, cptr<ExtInt> crossing_states,
-            cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
-            const ExtInt crossing_count_, const ExtInt unlink_count_
-        )
-        :   PlanarDiagram( crossing_count_, unlink_count_ )
-        {
-            C_arcs.Read(crossings);
-            C_state.Read(crossing_states);
-            A_cross.Read(arcs);
-            A_state.Read(arc_states);
-        }
+    public:
         
         
         /*!
@@ -873,20 +963,36 @@ namespace KnotTools
             logdump( unlink_count );
         }
 
-        Size_T AllocationByteCount() const
+        Size_T AllocatedByteCount()
         {
-            return
+            Size_T byte_count =
                   C_arcs.AllocatedByteCount()
                 + C_state.AllocatedByteCount()
                 + A_cross.AllocatedByteCount()
                 + C_scratch.AllocatedByteCount()
                 + A_state.AllocatedByteCount()
                 + A_scratch.AllocatedByteCount();
+            
+            // TODO: This does not account for Cache and PersistentCache.
+            
+            return byte_count;
         }
         
-        Size_T ByteCount() const
+        std::string AllocatedByteCountString() const
         {
-            return sizeof(PlanarDiagram) + AllocationByteCount();
+            return
+                ClassName() + " allocations \n"
+                + "\t" + mem_dump_string(C_arcs)
+                + "\t" + mem_dump_string(C_state)
+                + "\t" + mem_dump_string(A_cross)
+                + "\t" + mem_dump_string(C_scratch)
+                + "\t" + mem_dump_string(A_state)
+                + "\t" + mem_dump_string(A_scratch);
+        }
+        
+        Size_T ByteCount()
+        {
+            return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
         static std::string ClassName()

@@ -35,7 +35,7 @@ namespace KnotTools
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
 
-        const Int edge_count = 0;
+        Int edge_count = 0;
 
         Tiny::VectorList<2,Int,Int> edges;
         Tensor1<Int,Int> next_edge;
@@ -44,8 +44,6 @@ namespace KnotTools
         Int component_count = 0;
         
         Tensor1<Int,Int> component_ptr;
-        
-        
         Tensor1<Int,Int> component_lookup;
         
         bool cyclicQ      = false;
@@ -86,15 +84,15 @@ namespace KnotTools
         template<typename I_0 >
         explicit Link( const I_0 edge_count_ )
         :   edge_count      { static_cast<Int>(edge_count_) }
-        ,   edges           { edge_count     }
-        ,   next_edge       { edge_count     }
-        ,   edge_ptr        { edge_count + 1 }
+        ,   edges           { edge_count            }
+        ,   next_edge       { edge_count            }
+        ,   edge_ptr        { edge_count + Int(1)   }
         
-        ,   component_count { 1              }
-        ,   component_ptr   { 2              }
-        ,   component_lookup{ edge_count, 0  }
-        ,   cyclicQ         { true           }
-        ,   preorderedQ     { true           }
+        ,   component_count { Int(1)                }
+        ,   component_ptr   { Int(2)                }
+        ,   component_lookup{ edge_count, Int(0)    }
+        ,   cyclicQ         { true                  }
+        ,   preorderedQ     { true                  }
         {
 //            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             

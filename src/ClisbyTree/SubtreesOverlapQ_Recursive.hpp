@@ -150,7 +150,7 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
         
         const Int delta = Abs(k-l);
         
-        if( Min( delta, VertexCount() - delta ) > 1 )
+        if( Min( delta, VertexCount() - delta ) > Int(1) )
         {
             witness_0 = k;
             witness_1 = l;

@@ -7,17 +7,19 @@
 
 namespace KnotTools
 {
-    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8>
+    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8, typename BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
+        static_assert(SignedIntQ<SInt_>,"");
     
     public:
         
-        using Real = Real_;
-        using Int  = Int_;
-        using SInt = SInt_;
+        using Real  = Real_;
+        using Int   = Int_;
+        using SInt  = SInt_;
+        using BReal = BReal_;
         
         // DEBUGGING
         static constexpr Int i_0 = - 1;
@@ -27,23 +29,18 @@ namespace KnotTools
         static constexpr Scalar::Flag Minus   = Scalar::Flag::Minus;
         static constexpr Scalar::Flag Generic = Scalar::Flag::Generic;
         static constexpr Scalar::Flag Zero    = Scalar::Flag::Zero;
-        
-        
-        using Base_T = Link<Int>;
-        using Tree_T = AABBTree<3,Real,Int>;
-
-        
-//        using Vector3_T = Tiny::Vector<3,Real,Int>;
+    
+        using Base_T         = Link<Int>;
+        using Tree_T         = AABBTree<3,Real,Int,BReal,false>;
+        using Vector3_T      = Tiny::Vector<3,Real,Int>;
       
-        using Vector3_T      = typename Tree_T::Vector_T;
+//        using Vector3_T      = typename Tree_T::Vector_T;
         using EContainer_T   = typename Tree_T::EContainer_T;
         using BContainer_T   = typename Tree_T::BContainer_T;
         
 //        using EContainer_T = std::vector<std::array<Vector3_T,2>>;
-//        using BContainer_T = typename Tree_T::BContainer_T;
         
         using BinaryMatrix_T   = Sparse::BinaryMatrixCSR<Int,Size_T>;
-        
         
     protected:
         
@@ -51,7 +48,6 @@ namespace KnotTools
         static constexpr Real one     = 1;
         static constexpr Real two     = 2;
         static constexpr Real three   = 3;
-        
         
         using Base_T::edges;
         using Base_T::next_edge;
@@ -240,7 +236,6 @@ namespace KnotTools
         }
         
     public:
-        
 
         static std::string ClassName()
         {

@@ -9,13 +9,14 @@ using namespace KnotTools;
 using namespace Tensors;
 using namespace Tools;
 
-using Real = Real64;
-using Int  = Int64;
-using LInt = Int64;
+using Real  = Real64;
+using BReal = Real64;
+using Int   = Int64;
+using LInt  = Int64;
 
 constexpr Int AmbDim = 3;
 
-using Link_T   = Link_2D<Real,Int,Int8>;
+using Link_T   = Link_2D<Real,Int,Int8,BReal>;
 using PD_T     = PlanarDiagram<Int>;
 using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt>;
 

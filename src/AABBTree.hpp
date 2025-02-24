@@ -7,18 +7,24 @@ namespace KnotTools
     // This is specifically written for edge and triangle primitives for curves.
     // It won't work with more general clouds of primitives.
     
-    template<int AmbDim_, typename Real_, typename Int_>
-    class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_>
+    template<
+        int AmbDim_, typename Real_, typename Int_, typename BReal_ = Real_,
+        bool precompute_rangesQ_ = false
+    >
+    class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
         
     public:
         
-        using Real = Real_;
-        using Int  = Int_;
+        using Real  = Real_;
+        using BReal = BReal_;
+        using Int   = Int_;
         
-        using Tree_T = CompleteBinaryTree<Int>;
+        static constexpr bool precompute_rangesQ = precompute_rangesQ_;
+        
+        using Tree_T = CompleteBinaryTree<Int,precompute_rangesQ>;
         using Tree_T::max_depth;
 
         
@@ -26,7 +32,7 @@ namespace KnotTools
         
         using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
-        using BContainer_T = Tensor3<Real,Int>;
+        using BContainer_T = Tensor3<BReal,Int>;
         
         using EContainer_T = Tensor3<Real,Int>;
         
@@ -85,7 +91,7 @@ namespace KnotTools
         
         template<Int point_count, Int dimP>
         static constexpr void PrimitiveToBox(
-            cptr<Real> P, mptr<Real> B
+            cptr<Real> P, mptr<BReal> B
         )
         {
             static_assert(point_count > 0, "");
@@ -94,7 +100,7 @@ namespace KnotTools
         }
         
         static constexpr void BoxesToBox(
-            cptr<Real> B_L, cptr<Real> B_R, mptr<Real> B_N
+            cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
         )
         {
             // TODO: Can this be vectorized?
@@ -166,14 +172,14 @@ namespace KnotTools
             ComputeBoundingBoxes<point_count,dimP>( E.data(), B );
         }
         
-        static constexpr bool BoxesIntersectQ( const cptr<Real> B_i, const cptr<Real> B_j )
+        static constexpr bool BoxesIntersectQ( const cptr<BReal> B_i, const cptr<BReal> B_j )
         {
             // B_i and B_j are assumed to have size AmbDim x 2.
             
-//            if constexpr ( VectorizableQ<Real> )
+//            if constexpr ( VectorizableQ<BReal> )
 //            {
-//                vec_T<2*AmbDim,Real> a;
-//                vec_T<2*AmbDim,Real> b;
+//                vec_T<2*AmbDim,BReal> a;
+//                vec_T<2*AmbDim,BReal> b;
 //                
 //                for( Int k = 0; k < AmbDim; ++k )
 //                {
@@ -260,6 +266,8 @@ namespace KnotTools
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
+                + "," + TypeName<BReal>
+                + "," + ToString(precompute_rangesQ);
                 + ">";
         }
 

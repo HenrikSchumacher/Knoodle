@@ -2,7 +2,6 @@ clang++                                         \
     -Wall                                       \
     -Wextra                                     \
     -std=c++20                                  \
-    -g                                          \
     -O3                                         \
     -ffast-math                                 \
     -flto                                       \
@@ -19,7 +18,7 @@ clang++                                         \
  
 #objdump --reloc --line-numbers --demangle --non-verbose --syms PolyFold > PolyFold.asm
     
-    
+#        -g                                          \
     
 #
 #                                                \

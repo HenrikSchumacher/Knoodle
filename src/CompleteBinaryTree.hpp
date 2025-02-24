@@ -3,7 +3,7 @@
 namespace KnotTools
 {
     
-    template<typename Int_, bool precompute_rangesQ_ = false>
+    template<typename Int_, bool precompute_rangesQ_ = true>
     class alignas( ObjectAlignment ) CompleteBinaryTree
     {
         static_assert(SignedIntQ<Int_>,"");
@@ -23,13 +23,13 @@ namespace KnotTools
         // TODO: What to do if leaf_node_count_ == 0?
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
-        :         leaf_node_count { leaf_node_count_                                   }
-        ,              node_count { 2 * leaf_node_count - 1                            }
+        :         leaf_node_count ( leaf_node_count_                                   )
+        ,              node_count ( Int(2) * leaf_node_count - Int(1)                  )
         ,          int_node_count { node_count - leaf_node_count                       }
-        ,          last_row_begin { (Int(1) << Depth(node_count-1)) - 1                }
+        ,          last_row_begin { (Int(1) << Depth(node_count-Int(1))) - Int(1)      }
         ,                  offset { node_count - int_node_count - last_row_begin       }
-        ,            actual_depth { Depth(node_count-1)                                }
-        , regular_leaf_node_count { Int(1) << actual_depth                             }
+        ,            actual_depth { Depth(node_count-Int(1))                           }
+        , regular_leaf_node_count { static_cast<Int>(Int(1) << actual_depth)           }
         ,          last_row_count { Int(2) * leaf_node_count - regular_leaf_node_count }
         {
             if( leaf_node_count <= Int(0) )
@@ -346,7 +346,10 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CompleteBinaryTree")+"<"+TypeName<Int>+">";
+            return std::string("CompleteBinaryTree")
+                + "<" + TypeName<Int>
+                + "," + ToString(precompute_rangesQ)
+                + ">";
         }
 
     }; // CompleteBinaryTree

@@ -64,6 +64,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AFC2F3F22D4AC2E900FF8621 /* Test_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AF6D57A82D5FFAF300F6880C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Test_ClisbyTree; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -105,6 +106,7 @@
 		AF5BC0AA29D1AF1C008CA8B7 = {
 			isa = PBXGroup;
 			children = (
+				AF05A27E2D6B573E0065E75A /* deps */,
 				AFF305442B7ACE3B009ABC74 /* submodules */,
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305482B7AF300009ABC74 /* KnotTools.hpp */,

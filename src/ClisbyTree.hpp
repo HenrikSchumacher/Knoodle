@@ -23,7 +23,7 @@ namespace KnotTools
         using Real   = Real_;
         using Int    = Int_;
         using LInt   = LInt_;
-    
+        
         using Tree_T = CompleteBinaryTree<Int,true>;
     //        using Tree_T = CompleteBinaryTree_Precomp<Int>;
     
@@ -61,11 +61,20 @@ namespace KnotTools
 //        static constexpr Size_T PRNG_T_state_size = PRNG_T::state_size;
     
         using PRNG_T = pcg64;
-        static constexpr Size_T PRNG_T_state_size = 2;
+        static constexpr Size_T PRNG_T_state_size = 4;
     
         static constexpr Size_T seed_size  = (PRNG_T_state_size * sizeof(PRNG_T::result_type)) / sizeof(RNG_T::result_type);
     
         using Seed_T = std::array<RNG_T::result_type,seed_size>;
+        
+//        using PRNG_FullState_T = std::array<std::string,3>;
+        
+        struct PRNG_FullState_T
+        {
+            std::string multiplier;
+            std::string increment;
+            std::string state;
+        };
         
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
@@ -102,7 +111,6 @@ namespace KnotTools
         ,   N_ball      { NodeCount(), BallDim, 0               }
         ,   N_state     { NodeCount(), NodeState_T::Id          }
 //        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   E_lengths   { LeafNodeCount()                       }
         ,   r           { static_cast<Real>(radius)             }
         ,   r2          { r * r                                 }
         {
@@ -123,7 +131,6 @@ namespace KnotTools
         ,   N_ball      { NodeCount(), BallDim, 0            }
         ,   N_state     { NodeCount(), NodeState_T::Id       }
 //        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   E_lengths   { LeafNodeCount()                    }
         ,   r           { static_cast<Real>(radius)          }
         ,   r2          { r * r                              }
         {
@@ -131,11 +138,32 @@ namespace KnotTools
             ReadVertexCoordinates( vertex_coords_ );
             InitializePRNG();
         }
+    
+        template<typename ExtReal, typename ExtInt>
+        ClisbyTree(
+            cptr<ExtReal> vertex_coords_,
+            const ExtInt vertex_count_,
+            const ExtReal radius,
+            PRNG_T prng
+        )
+        :   Tree_T          { static_cast<Int>(vertex_count_)       }
+        ,   N_transform     { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_ball          { NodeCount(), BallDim, 0               }
+        ,   N_state         { NodeCount(), NodeState_T::Id          }
+        ,   r               { static_cast<Real>(radius)             }
+        ,   r2              { r * r                                 }
+        ,   random_engine   { prng                                  }
+        {
+            id.SetIdentity();
+            ReadVertexCoordinates( vertex_coords_ );
+        }
         
 
         ~ClisbyTree() = default;
     
         // TODO: Copy + move semantics.
+    
+        
         
     public:
         
@@ -164,7 +192,6 @@ namespace KnotTools
         NodeContainer_T N_transform;
         NodeContainer_T N_ball;
         Tensor1<NodeState_T,Int> N_state;
-        Tensor1<Real,Int> E_lengths;
         
         Real r  = 0;                    // Hard sphere radius.
         Real r2 = 0;                    // Squared hard sphere radius.
@@ -216,19 +243,89 @@ namespace KnotTools
         void InitializePRNG()
         {
             std::generate( seed.begin(), seed.end(), RNG_T() );
-
-//            valprint(" RNG_T::result_type",std::string(TypeName< RNG_T::result_type>));
-//            valprint("PRNG_T::result_type",std::string(TypeName<PRNG_T::result_type>));
-//            
-//            dump(PRNG_T_state_size);
-//            dump(seed.size());
-//            dump(sizeof(PRNG_T::result_type));
-//            dump(sizeof(RNG_T::result_type));
-//            
             SeedBy( seed );
         }
     
     public:
+        
+        PRNG_T GetRandomEngine()
+        {
+            return random_engine;
+        }
+        
+        void SetRandomEngine( cref<PRNG_T> prng )
+        {
+            random_engine = prng;
+        }
+        
+        
+        int SetRandomEngine( cref<PRNG_FullState_T> full_state )
+        {
+            std::string state = full_state.multiplier + " " + full_state.increment + " " + full_state.state;
+            
+            std::stringstream s (state);
+            
+            s >> random_engine;
+            
+            std::string actual_state = RandomEngineFullString();
+            
+            if( s.fail() )
+            {
+                return 1;
+            }
+            
+//            if( actual_state != state )
+//            {
+//                eprint( ClassName() + "::SetRandomState: Failed.");
+//                logprint(state);
+//                logprint(actual_state);
+//            }
+            
+            return 0;
+        }
+        
+        std::string RandomEngineFullString() const
+        {
+            std::stringstream s;
+            
+            s << random_engine;
+            
+            return s.str();
+        }
+        
+        
+        PRNG_FullState_T RandomEngineFullState() const
+        {
+            std::stringstream s;
+            
+            s << random_engine;
+            
+            PRNG_FullState_T full_state;
+            
+            s >> full_state.multiplier;
+            s >> full_state.increment;
+            s >> full_state.state;
+            
+            return full_state;
+        }
+
+        std::string RandomEngineMultiplier() const
+        {
+            return RandomEngineFullState()[0];
+        }
+        
+        std::string RandomEngineIncrement() const
+        {
+            return RandomEngineFullState()[1];
+        }
+        
+        std::string RandomEngineState() const
+        {
+            return RandomEngineFullState()[2];
+        }
+    
+//    multiplier_string + " " + increment_string + " " + state_string;
+    
     
         void SeedBy( Seed_T & seed_ )
         {
@@ -241,10 +338,71 @@ namespace KnotTools
 //            random_engine = PRNG_T( pcg_extras::seed_seq_from<std::random_device>() );
         }
     
-        cref<Seed_T> Seed() const
-        {
-            return seed;
-        }
+//        cref<Seed_T> Seed() const
+//        {
+//            return seed;
+//        }
+//    
+//        std::string SeedToString()
+//        {
+//            std::string seed_string;
+//            
+//            for( auto s : seed )
+//            {
+//                std::string str = std::format("{0:08X}",s);
+////                dump(str);    
+//                
+//                seed_string += str;
+//            }
+//            
+//            return seed_string;
+//        }
+//    
+//        static bool SeedStringOkayQ( cref<std::string> seed_string )
+//        {
+//            if( seed_string.size()  != 2 * sizeof(Seed_T) )
+//            {
+//                return false;
+//            }
+//            
+//            bool b = true;
+//            
+//            for( char c : seed_string )
+//            {
+//                b = b && (
+//                      ( ('0' <= c) && (c <= '9') ) || ( ('A' <= c) && (c <= 'F') )
+//                );
+//            }
+//            
+//            return b;
+//        }
+//    
+//        static Seed_T StringToSeed( cref<std::string> seed_string )
+//        {
+//            Seed_T seed = {};
+//            
+//            if( !SeedStringOkayQ(seed_string) )
+//            {
+//                eprint(ClassName()+"::StringToSeed: Seed string " + seed_string + " is invalid.");
+//                return seed;
+//            }
+//            
+//            Size_T chuck_size = 2 * sizeof(RNG_T::result_type);
+//
+//            for( Size_T i = 0; i < seed.size(); ++i )
+//            {
+//                std::string chunk (
+//                    &seed_string[chuck_size * i],
+//                    &seed_string[chuck_size * (i+1)]
+//                );
+//
+//                seed[i] = static_cast<RNG_T::result_type>(
+//                    std::stoul(chunk, nullptr, 16)
+//                );
+//            }
+//            
+//            return seed;
+//        }
         
     public:
         
@@ -422,12 +580,21 @@ namespace KnotTools
     
         Size_T AllocatedByteCount() const
         {
-            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + E_lengths.AllocatedByteCount();
+            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
         {
             return sizeof(ClisbyTree) + AllocatedByteCount();
+        }
+        
+        std::string AllocatedByteCountString() const
+        {
+            return
+                ClassName() + " allocations \n"
+                + "\t" + mem_dump_string(N_transform)
+                + "\t" + mem_dump_string(N_ball)
+                + "\t" + mem_dump_string(N_state);
         }
         
         static std::string ClassName()

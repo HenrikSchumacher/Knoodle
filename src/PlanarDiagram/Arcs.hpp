@@ -582,9 +582,14 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
                 
                 const Int arrows [2][2] =
                 {
-                    { (A[Out][Left ] << 1) | Int(Head), (A[Out][Right] << 1) | Int(Head) }
+                    {
+                        static_cast<Int>((A[Out][Left ] << Int(1)) | Int(Head)),
+                        static_cast<Int>((A[Out][Right] << Int(1)) | Int(Head)) }
                     ,
-                    { (A[In ][Left ] << 1) | Int(Tail), (A[In ][Right] << 1) | Int(Tail) }
+                    {
+                        static_cast<Int>((A[In ][Left ] << Int(1)) | Int(Tail)),
+                        static_cast<Int>((A[In ][Right] << Int(1)) | Int(Tail))
+                    }
                 };
                 
                 
