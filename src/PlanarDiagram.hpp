@@ -249,45 +249,31 @@ namespace KnotTools
         
         /*! @brief Construction from coordinates.
          */
-        template<typename Real, typename SInt, typename BReal>
-        static PlanarDiagram FromCoordinates( cptr<Real> x, const Int n )
+        template<typename Real, typename ExtInt>
+        PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
-            Link_2D<Real,Int,SInt,BReal> L ( n );
+            using SInt = int;
             
-//            dump(L.ClassName())
+            Link_2D<Real,Int,SInt,Real> L ( n );
 
             // Read coordinates into `Link_T` object `L`...
             L.ReadVertexCoordinates ( x );
-            
-//            print("Before FindIntersections");
-//            dump(L.AllocatedByteCount());
-//            print(L.AllocatedByteCountString());
             
             int err = L.template FindIntersections<true>();
             
             if( err != 0 )
             {
-                eprint(ClassName() + "::FromCoordinates: FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
-                return PlanarDiagram();
+                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
+                return;
             }
-            
-//            print("After FindIntersections");
-//            dump(L.AllocatedByteCount());
-//            print(L.AllocatedByteCountString());
             
             // Deallocate tree-related data in L to make room for the PlanarDiagram.
             L.DeleteTree();
             
-//            print("After DeleteTree");
-//            dump(L.AllocatedByteCount());
-//            print(L.AllocatedByteCountString());
-            
             // We delay the allocation until substantial parts of L have been deallocated.
-            PlanarDiagram PD( L.CrossingCount(), L.UnlinkCount() );
+            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
             
-//            dump(PD.AllocatedByteCount());
-            
-            PD.ReadFromLink<Real,SInt,BReal>(
+            ReadFromLink<Real,SInt,Real>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
                 L.EdgePointers().data(),
@@ -295,10 +281,40 @@ namespace KnotTools
                 L.EdgeOverQ().data(),
                 L.Intersections()
             );
-            
-//            dump(PD.AllocatedByteCount());
+        }
         
-            return PD;
+        template<typename Real, typename ExtInt>
+        PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
+        {
+            using SInt = int;
+            
+            Link_2D<Real,Int,SInt,Real> L ( edges, n );
+
+            // Read coordinates into `Link_T` object `L`...
+            L.ReadVertexCoordinates ( x );
+            
+            int err = L.template FindIntersections<true>();
+            
+            if( err != 0 )
+            {
+                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
+                return;
+            }
+            
+            // Deallocate tree-related data in L to make room for the PlanarDiagram.
+            L.DeleteTree();
+            
+            // We delay the allocation until substantial parts of L have been deallocated.
+            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
+            
+            ReadFromLink<Real,SInt,Real>(
+                L.ComponentCount(),
+                L.ComponentPointers().data(),
+                L.EdgePointers().data(),
+                L.EdgeIntersections().data(),
+                L.EdgeOverQ().data(),
+                L.Intersections()
+            );
         }
         
     private:
