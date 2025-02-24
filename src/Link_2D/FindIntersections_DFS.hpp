@@ -3,7 +3,7 @@ protected:
     
     void FindIntersectingEdges_DFS()
     {
-        ptic(ClassName()+"::FindIntersectingEdges_DFS");
+        TOOLS_PTIC(ClassName()+"::FindIntersectingEdges_DFS");
         
         intersections.clear();
         
@@ -21,7 +21,7 @@ protected:
         
         edge_ptr.Accumulate();
 
-        ptoc(ClassName()+"::FindIntersectingEdges_DFS");
+        TOOLS_PTOC(ClassName()+"::FindIntersectingEdges_DFS");
         
     } // FindIntersectingClusters_DFS
 
@@ -160,10 +160,10 @@ protected:
             }
         }
         
-    //        dump(box_call_count);
-    //        dump(box_time);
-    //        dump(edge_call_count);
-    //        dump(edge_time);
+    //        TOOLS_DUMP(box_call_count);
+    //        TOOLS_DUMP(box_time);
+    //        TOOLS_DUMP(edge_call_count);
+    //        TOOLS_DUMP(edge_time);
         
     } // FindIntersectingEdges_DFS_Reference
 

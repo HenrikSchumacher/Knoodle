@@ -52,7 +52,7 @@ Multiplier_T Alexander_Strands_Det_Dense(
             det *= Scal(0);
         }
         
-//        dump(det);
+//        TOOLS_DUMP(det);
         
 //        toc(ClassName()+"Alexander_Strands_Det_Dense");
         return det;
@@ -68,7 +68,7 @@ Multiplier_T Alexander_Strands_Det_Dense(
 //    mptr<ExtReal> moduli
 //) const
 //{
-//    ptic(ClassName()+"::AlexanderModuli_Strand_Dense");
+//    TOOLS_PTIC(ClassName()+"::AlexanderModuli_Strand_Dense");
 //    
 //    if( pd.CrossingCount() <= 1 )
 //    {
@@ -91,7 +91,7 @@ Multiplier_T Alexander_Strands_Det_Dense(
 //        }
 //    }
 //
-//    ptoc(ClassName()+"::AlexanderModuli_Strand_Dense");
+//    TOOLS_PTOC(ClassName()+"::AlexanderModuli_Strand_Dense");
 //}
 
 
@@ -100,7 +100,7 @@ Multiplier_T Alexander_Strands_Det_Dense(
 //{
 //    // Writes the dense Alexander matrix to the provided buffer A.
 //    // User is responsible for making sure that the buffer is large enough.
-//    ptic(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+//    TOOLS_PTIC(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
 //    
 //    // Assemble dense Alexander matrix, skipping last row and last column if fullQ == false.
 //
@@ -205,5 +205,5 @@ Multiplier_T Alexander_Strands_Det_Dense(
 //        ++row_counter;
 //    }
 //    
-//    ptoc(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+//    TOOLS_PTOC(ClassName()+"::DenseAlexanderStrandMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
 //}

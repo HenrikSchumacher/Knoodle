@@ -98,7 +98,7 @@ private:
 template<Int optimization_level, bool multi_compQ>
 Int simplify3( Int max_iter )
 {
-    ptic(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
+    TOOLS_PTIC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     Int old_counter = -1;
     Int counter = 0;
@@ -123,7 +123,7 @@ Int simplify3( Int max_iter )
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
+    TOOLS_PTOC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     return counter;
 }

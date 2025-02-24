@@ -86,7 +86,7 @@ Int ArcDistance( const Int a_0, const Int a_1 )
 // TODO: Test this.
 void RequireLinkComponents()
 {
-    ptic(ClassName()+"::RequireLinkComponents");
+    TOOLS_PTIC(ClassName()+"::RequireLinkComponents");
     
     const Int m = A_cross.Dimension(0);
     
@@ -153,5 +153,5 @@ void RequireLinkComponents()
     this->SetCache( "ArcLinkComponents",         std::move(A_lc)       );
     this->SetCache( "ArcLinkComponentPositions", std::move(A_pos)        );
     
-    ptoc(ClassName()+"::RequireLinkComponents");
+    TOOLS_PTOC(ClassName()+"::RequireLinkComponents");
 }

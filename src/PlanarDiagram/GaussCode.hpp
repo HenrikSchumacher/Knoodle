@@ -1,7 +1,7 @@
 template<typename T = Int>
 Tensor1<T,Int> GaussCode()
 {
-    ptic(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
+    TOOLS_PTIC(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
     
     static_assert( SignedIntQ<T>, "" );
     
@@ -9,7 +9,7 @@ Tensor1<T,Int> GaussCode()
     {
         eprint(ClassName() + "::GaussCode: Requested type T cannot store Gauss code for this diagram.");
         
-        ptoc(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
+        TOOLS_PTOC(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
         
         return Tensor1<T,Int>();
     }
@@ -73,7 +73,7 @@ Tensor1<T,Int> GaussCode()
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
+    TOOLS_PTOC(ClassName()+"::GaussCode<" + TypeName<T> + ">" );
     
     return gauss_code;
 }
@@ -81,7 +81,7 @@ Tensor1<T,Int> GaussCode()
 template<typename T = Int>
 Tensor1<T,Int> OrientedGaussCode()
 {
-    ptic(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
+    TOOLS_PTIC(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
     
     static_assert( IntQ<T>, "" );
     
@@ -91,7 +91,7 @@ Tensor1<T,Int> OrientedGaussCode()
     {
         eprint(ClassName() + "::OrientedGaussCode: Requested type T cannot store oriented Gauss code for this diagram.");
         
-        ptoc(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
+        TOOLS_PTOC(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
         
         return Tensor1<T,Int>();
     }
@@ -159,7 +159,7 @@ Tensor1<T,Int> OrientedGaussCode()
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
+    TOOLS_PTOC(ClassName()+"::OrientedGaussCode<" + TypeName<T> + ">" );
     
     return gauss_code;
 }

@@ -972,11 +972,11 @@ namespace KnotTools
         {
             logprint(ClassName()+"::PrintInfo");
             
-            logdump( C_arcs );
-            logdump( C_state );
-            logdump( A_cross );
-            logdump( A_state );
-            logdump( unlink_count );
+            TOOLS_LOGDUMP( C_arcs );
+            TOOLS_LOGDUMP( C_state );
+            TOOLS_LOGDUMP( A_cross );
+            TOOLS_LOGDUMP( A_state );
+            TOOLS_LOGDUMP( unlink_count );
         }
 
         Size_T AllocatedByteCount()
@@ -998,12 +998,12 @@ namespace KnotTools
         {
             return
                 ClassName() + " allocations \n"
-                + "\t" + mem_dump_string(C_arcs)
-                + "\t" + mem_dump_string(C_state)
-                + "\t" + mem_dump_string(A_cross)
-                + "\t" + mem_dump_string(C_scratch)
-                + "\t" + mem_dump_string(A_state)
-                + "\t" + mem_dump_string(A_scratch);
+                + "\t" + TOOLS_MEM_DUMP_STRING(C_arcs)
+                + "\t" + TOOLS_MEM_DUMP_STRING(C_state)
+                + "\t" + TOOLS_MEM_DUMP_STRING(A_cross)
+                + "\t" + TOOLS_MEM_DUMP_STRING(C_scratch)
+                + "\t" + TOOLS_MEM_DUMP_STRING(A_state)
+                + "\t" + TOOLS_MEM_DUMP_STRING(A_scratch);
         }
         
         Size_T ByteCount()

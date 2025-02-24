@@ -58,7 +58,7 @@ cref<Tensor2<Int,Int>> ArcFaces()  const
 
 void RequireFaces() const
 {
-    ptic(ClassName()+"::RequireFaces");
+    TOOLS_PTIC(ClassName()+"::RequireFaces");
     
     // TODO: Make ArcLeftArc cached as well?
     
@@ -171,7 +171,7 @@ exit:
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
     this->SetCache( "ArcFaces", std::move(A_faces_buffer) );
     
-    ptoc(ClassName()+"::RequireFaces");
+    TOOLS_PTOC(ClassName()+"::RequireFaces");
 }
 
 

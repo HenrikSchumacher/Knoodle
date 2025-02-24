@@ -42,7 +42,7 @@ namespace KnotTools
         {
 //            Size_T k = intersection_counts[2] + intersection_counts[3];
 //
-////            logdump(intersection_counts);
+////            TOOLS_LOGDUMP(intersection_counts);
 //
 //            if( k > 0 )
 //            {

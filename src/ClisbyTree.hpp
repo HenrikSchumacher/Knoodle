@@ -350,7 +350,7 @@ namespace KnotTools
 //            for( auto s : seed )
 //            {
 //                std::string str = std::format("{0:08X}",s);
-////                dump(str);    
+////                TOOLS_DUMP(str);    
 //                
 //                seed_string += str;
 //            }
@@ -408,7 +408,7 @@ namespace KnotTools
         
         void ReadVertexCoordinates( cptr<Real> x )
         {
-            ptic(ClassName() + "::ReadVertexCoordinates");
+            TOOLS_PTIC(ClassName() + "::ReadVertexCoordinates");
                 
             this->DepthFirstSearch(
                 []( const Int node )                    // interior node previsit
@@ -432,7 +432,7 @@ namespace KnotTools
                 }
             );
             
-            ptoc(ClassName() + "::ReadVertexCoordinates");
+            TOOLS_PTOC(ClassName() + "::ReadVertexCoordinates");
         }
 
         
@@ -580,7 +580,7 @@ namespace KnotTools
     
         Size_T AllocatedByteCount() const
         {
-            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount();
+            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + Tree_T::N_ranges.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -592,9 +592,10 @@ namespace KnotTools
         {
             return
                 ClassName() + " allocations \n"
-                + "\t" + mem_dump_string(N_transform)
-                + "\t" + mem_dump_string(N_ball)
-                + "\t" + mem_dump_string(N_state);
+                + "\t" + TOOLS_MEM_DUMP_STRING(N_transform)
+                + "\t" + TOOLS_MEM_DUMP_STRING(N_ball)
+                + "\t" + TOOLS_MEM_DUMP_STRING(N_state)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Tree_T::N_ranges.AllocatedByteCount());
         }
         
         static std::string ClassName()

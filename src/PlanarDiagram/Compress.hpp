@@ -11,7 +11,7 @@
 
 PlanarDiagram CreateCompressed()
 {
-    ptic( ClassName()+"::CreateCompressed");
+    TOOLS_PTIC( ClassName()+"::CreateCompressed");
     
     PD_ASSERT(CheckAll());
     
@@ -142,7 +142,7 @@ PlanarDiagram CreateCompressed()
     
     pd.provably_minimalQ = provably_minimalQ;
     
-    ptoc( ClassName()+"::CreateCompressed");
+    TOOLS_PTOC( ClassName()+"::CreateCompressed");
     
     return pd;
 }

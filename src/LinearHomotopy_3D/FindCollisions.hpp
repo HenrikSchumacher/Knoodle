@@ -15,11 +15,11 @@ public:
 
         void FindCollisions()
         {
-            ptic(ClassName()+"::FindCollisions");
+            TOOLS_PTIC(ClassName()+"::FindCollisions");
             
             FindCollisions_implementation()
             
-            ptoc(ClassName()+"::FindCollisions");
+            TOOLS_PTOC(ClassName()+"::FindCollisions");
         }
 
         void FindCollisions_implementation()

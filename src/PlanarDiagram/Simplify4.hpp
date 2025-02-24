@@ -19,7 +19,7 @@ Int Simplify4(
         return 0;
     }
     
-    ptic(ClassName()+"::Simplify4"
+    TOOLS_PTIC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
@@ -97,7 +97,7 @@ Int Simplify4(
     
     PD_ASSERT(CheckAll());
 
-    ptoc(ClassName()+"::Simplify4"
+    TOOLS_PTOC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)

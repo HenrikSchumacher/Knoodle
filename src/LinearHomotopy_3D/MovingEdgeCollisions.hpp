@@ -77,14 +77,14 @@ public:
         {
             if( i == i_0 && j == j_0 )
             {
-                dump(u_0);
-                dump(u_1);
+                TOOLS_DUMP(u_0);
+                TOOLS_DUMP(u_1);
                 
-                dump(v_0);
-                dump(v_1);
+                TOOLS_DUMP(v_0);
+                TOOLS_DUMP(v_1);
                 
-                dump(w_0);
-                dump(w_1);
+                TOOLS_DUMP(w_0);
+                TOOLS_DUMP(w_1);
             }
         }
         
@@ -142,8 +142,8 @@ public:
         {
             if( i == i_0 && j == j_0 )
             {
-                dump(coeff);
-                dump(t_list);
+                TOOLS_DUMP(coeff);
+                TOOLS_DUMP(t_list);
             }
         }
         
@@ -167,9 +167,9 @@ public:
                     {
                         print("first_collision_tolerance");
                         
-                        dump(t);
+                        TOOLS_DUMP(t);
                         
-                        dump(t_abs);
+                        TOOLS_DUMP(t_abs);
                     }
                 }
                 
@@ -215,9 +215,9 @@ public:
             {
                 if( i == i_0 && j == j_0 )
                 {
-                    dump(u_t);
-                    dump(v_t);
-                    dump(w_t);
+                    TOOLS_DUMP(u_t);
+                    TOOLS_DUMP(v_t);
+                    TOOLS_DUMP(w_t);
                 }
             }
             
@@ -349,12 +349,12 @@ public:
                     const Tiny::Vector<2,Real,Int> b { uw, vw };
                     
                     print("MovingEdgeCollisions");
-                    dump(t);
-                    dump(i);
-                    dump(j);
-                    dump(A);
-                    dump(b);
-                    dump(z);
+                    TOOLS_DUMP(t);
+                    TOOLS_DUMP(i);
+                    TOOLS_DUMP(j);
+                    TOOLS_DUMP(A);
+                    TOOLS_DUMP(b);
+                    TOOLS_DUMP(z);
                 }
             }
             
@@ -424,9 +424,9 @@ public:
                     if( i == i_0 && j == j_0 )
                     {
                         print("Collision found");
-                        dump(t);
-                        dump(sign);
-                        dump(collisions.size());
+                        TOOLS_DUMP(t);
+                        TOOLS_DUMP(sign);
+                        TOOLS_DUMP(collisions.size());
                     }
                 }
             }

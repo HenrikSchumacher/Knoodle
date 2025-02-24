@@ -17,7 +17,7 @@ Int Simplify2()
         return 0;
     }
     
-    ptic(ClassName()+"::Simplify2");
+    TOOLS_PTIC(ClassName()+"::Simplify2");
 
     Int counter = 0;
     
@@ -70,7 +70,7 @@ Int Simplify2()
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::Simplify2");
+    TOOLS_PTOC(ClassName()+"::Simplify2");
     
     return counter;
 }

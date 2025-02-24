@@ -31,7 +31,7 @@ bool Simplify5(
         return false;
     }
     
-    ptic(ClassName()+"::Simplify5"
+    TOOLS_PTIC(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
@@ -70,9 +70,9 @@ bool Simplify5(
     
     
 //    print("Checking minimality");
-//    dump(AlternatingQ());
-//    dump(CrossingCount());
-//    dump(DiagramComponentCount());
+//    TOOLS_DUMP(AlternatingQ());
+//    TOOLS_DUMP(CrossingCount());
+//    TOOLS_DUMP(DiagramComponentCount());
 //    
     provably_minimalQ = AlternatingQ() && (DiagramComponentCount() == 1);
 //    
@@ -81,7 +81,7 @@ bool Simplify5(
 //        print("Found minimal component.");
 //    }
     
-    ptoc(ClassName()+"::Simplify5"
+    TOOLS_PTOC(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)

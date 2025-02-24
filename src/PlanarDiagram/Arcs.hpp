@@ -350,13 +350,13 @@ bool CheckNextLeftArc() const
             {
                 eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Tail).");
                 
-                dump(a);
-                dump(A);
-                dump(B);
-                dump(B >> 1);
-                dump(B & Int(1));
-                dump(b);
-                dump(dir);
+                TOOLS_DUMP(a);
+                TOOLS_DUMP(A);
+                TOOLS_DUMP(B);
+                TOOLS_DUMP(B >> 1);
+                TOOLS_DUMP(B & Int(1));
+                TOOLS_DUMP(b);
+                TOOLS_DUMP(dir);
                 return false;
             }
         }
@@ -374,13 +374,13 @@ bool CheckNextLeftArc() const
             {
                 eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Head).");
                 
-                dump(a);
-                dump(A);
-                dump(B);
-                dump(B >> 1);
-                dump(B & Int(1));
-                dump(b);
-                dump(dir);
+                TOOLS_DUMP(a);
+                TOOLS_DUMP(A);
+                TOOLS_DUMP(B);
+                TOOLS_DUMP(B >> 1);
+                TOOLS_DUMP(B & Int(1));
+                TOOLS_DUMP(b);
+                TOOLS_DUMP(dir);
                 return false;
             }
         }
@@ -694,9 +694,9 @@ bool CheckNextRightArc() const
             {
                 eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Tail).");
                 
-                dump(B);
-                dump(b);
-                dump(dir);
+                TOOLS_DUMP(B);
+                TOOLS_DUMP(b);
+                TOOLS_DUMP(dir);
                 return false;
             }
         }
@@ -714,9 +714,9 @@ bool CheckNextRightArc() const
             {
                 eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Head).");
                 
-                dump(B);
-                dump(b);
-                dump(dir);
+                TOOLS_DUMP(B);
+                TOOLS_DUMP(b);
+                TOOLS_DUMP(dir);
                 return false;
             }
         }

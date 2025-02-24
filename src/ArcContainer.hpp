@@ -68,42 +68,42 @@ namespace KnotTools
 
     public:
 
-        force_inline mptr<Int> data()
+        TOOLS_FORCE_INLINE mptr<Int> data()
         {
             return a;
         }
         
-        force_inline cptr<Int> data() const
+        TOOLS_FORCE_INLINE cptr<Int> data() const
         {
             return a;
         }
         
-        force_inline mptr<Int> data( const Int i )
+        TOOLS_FORCE_INLINE mptr<Int> data( const Int i )
         {
             return &a[2 * i];
         }
         
-        force_inline cptr<Int> data( const Int i ) const
+        TOOLS_FORCE_INLINE cptr<Int> data( const Int i ) const
         {
             return &a[2 * i];
         }
 
-        force_inline mptr<Int> data( const Int i, const bool j )
+        TOOLS_FORCE_INLINE mptr<Int> data( const Int i, const bool j )
         {
             return &a[2 * i + j];
         }
         
-        force_inline cptr<Int> data( const Int i, const bool j ) const
+        TOOLS_FORCE_INLINE cptr<Int> data( const Int i, const bool j ) const
         {
             return &a[2 * i + j];
         }
         
-        force_inline mref<Int> operator()( const Int i, const bool j)
+        TOOLS_FORCE_INLINE mref<Int> operator()( const Int i, const bool j)
         {
             return a[2 * i + j];
         }
             
-        force_inline cref<Int> operator()( const Int i, const bool j) const
+        TOOLS_FORCE_INLINE cref<Int> operator()( const Int i, const bool j) const
         {
             return a[2 * i + j];
         }

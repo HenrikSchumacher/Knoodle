@@ -215,7 +215,7 @@ namespace KnotTools
         
         void RequireTopology() const
         {
-            ptic( ClassName()+ "::RequireTopology" );
+            TOOLS_PTIC( ClassName()+ "::RequireTopology" );
             // v stands for "vertex"
             // e stands for "edge"
             // d stands for "direction"
@@ -472,7 +472,7 @@ namespace KnotTools
             this->SetCache( std::string("ComponentEdgeMatrix"), std::move(C) );
             
             
-            ptoc( ClassName()+ "::RequireTopology" );
+            TOOLS_PTOC( ClassName()+ "::RequireTopology" );
         }
         
     public:
@@ -541,7 +541,7 @@ namespace KnotTools
                     return this->template GetCache<ComponentMatrix_T>(tag);
                 }
                 
-                ptic( ClassName()+ "::ComponentVertexMatrix" );
+                TOOLS_PTIC( ClassName()+ "::ComponentVertexMatrix" );
                 
                 // Stores the graph's components.
                 // c_v_ptr contains a counter for the number of components.
@@ -642,7 +642,7 @@ namespace KnotTools
                 
                 this->SetCache( std::string(tag), std::move(C) );
                 
-                ptoc( ClassName()+ "::ComponentVertexMatrix" );
+                TOOLS_PTOC( ClassName()+ "::ComponentVertexMatrix" );
             }
 
             return this->template GetCache<ComponentMatrix_T>(tag);

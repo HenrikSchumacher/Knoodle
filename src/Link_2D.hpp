@@ -195,15 +195,15 @@ namespace KnotTools
         
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            ptic(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             
             Vector3_T lo;
             Vector3_T hi;
 
             ComputeBoundingBox( v, lo, hi );
             
-//            dump(lo);
-//            dump(hi);
+//            TOOLS_DUMP(lo);
+//            TOOLS_DUMP(hi);
             
             constexpr Real margin = static_cast<Real>(1.01);
             constexpr Real two = 2;
@@ -212,7 +212,7 @@ namespace KnotTools
             Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
             Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
             
-//            dump(Sterbenz_shift);
+//            TOOLS_DUMP(Sterbenz_shift);
             
             if( preorderedQ )
             {
@@ -269,13 +269,13 @@ namespace KnotTools
                 }
             }
             
-            ptoc(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
         
         // TODO: Apply Sterbenz shift.
 //        void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
 //        {
-//            ptic(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
+//            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
 //            
 //            if( preorderedQ )
 //            {
@@ -331,7 +331,7 @@ namespace KnotTools
 //                }
 //            }
 //            
-//            ptoc(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
+//            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
 //        }
         
         
@@ -397,7 +397,7 @@ namespace KnotTools
         template<bool printQ = true> // whether to print errors and warnings
         [[nodiscard]] int FindIntersections()
         {
-            ptic(ClassName()+"FindIntersections");
+            TOOLS_PTIC(ClassName()+"FindIntersections");
             
             // TODO: Randomly rotate until not degenerate.
             
@@ -407,9 +407,9 @@ namespace KnotTools
             // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
             // enties only via operator(i,j,k), so this is safe!
 
-            ptic("ComputeBoundingBoxes<2,3>");
+            TOOLS_PTIC("ComputeBoundingBoxes<2,3>");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            ptoc("ComputeBoundingBoxes<2,3>");
+            TOOLS_PTOC("ComputeBoundingBoxes<2,3>");
             
             CountDegenerateEdges();
             
@@ -422,9 +422,9 @@ namespace KnotTools
                 return 7;
             }
               
-            ptic("FindIntersectingEdges_DFS");
+            TOOLS_PTIC("FindIntersectingEdges_DFS");
             FindIntersectingEdges_DFS();
-            ptoc("FindIntersectingEdges_DFS");
+            TOOLS_PTOC("FindIntersectingEdges_DFS");
             
             // Check for bad intersections.
 
@@ -490,7 +490,7 @@ namespace KnotTools
             // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
             // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
             
-            ptic("Counting sort");
+            TOOLS_PTIC("Counting sort");
             // Counting sort.
             
 //            for( Int k = intersection_count-1; k > -1; --k )
@@ -528,11 +528,11 @@ namespace KnotTools
                     k_end - k_begin
                 );
             }
-            ptoc("Counting sort");
+            TOOLS_PTOC("Counting sort");
             
             // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
             
-            ptoc(ClassName()+"FindIntersections");
+            TOOLS_PTOC(ClassName()+"FindIntersections");
             
             return 0;
         }
@@ -644,18 +644,18 @@ namespace KnotTools
         {
             return
                 ClassName() + " allocations \n"
-                + "\t" + mem_dump_string(T)
-                + "\t" + mem_dump_string(Base_T::edges)
-                + "\t" + mem_dump_string(Base_T::next_edge)
-                + "\t" + mem_dump_string(Base_T::edge_ptr)
-                + "\t" + mem_dump_string(Base_T::component_ptr)
-                + "\t" + mem_dump_string(Base_T::component_lookup)
-                + "\t" + mem_dump_string(edge_ctr)
-                + "\t" + mem_dump_string(edge_coords)
-                + "\t" + mem_dump_string(box_coords)
-                + "\t" + mem_dump_string(edge_intersections)
-                + "\t" + mem_dump_string(edge_times)
-                + "\t" + mem_dump_string(edge_overQ);
+                + "\t" + TOOLS_MEM_DUMP_STRING(T)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::edges)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
+                + "\t" + TOOLS_MEM_DUMP_STRING(edge_ctr)
+                + "\t" + TOOLS_MEM_DUMP_STRING(edge_coords)
+                + "\t" + TOOLS_MEM_DUMP_STRING(box_coords)
+                + "\t" + TOOLS_MEM_DUMP_STRING(edge_intersections)
+                + "\t" + TOOLS_MEM_DUMP_STRING(edge_times)
+                + "\t" + TOOLS_MEM_DUMP_STRING(edge_overQ);
         }
         
         static std::string ClassName()

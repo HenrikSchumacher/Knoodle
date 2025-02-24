@@ -28,9 +28,9 @@
 
     #define PD_DPRINT( s ) Tools::logprint((s));
 
-    #define PD_TIC(s) ptic((s))
+    #define PD_TIC(s) TOOLS_PTIC((s))
 
-    #define PD_TOC(s) ptoc((s))
+    #define PD_TOC(s) TOOLS_PTOC((s))
 
 #else
 

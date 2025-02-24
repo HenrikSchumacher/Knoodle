@@ -31,7 +31,7 @@ private:
 template<bool overQ>
 Tensor1<Int,Int> ArcStrands() const
 {
-    ptic(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
+    TOOLS_PTIC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
     const Int m = A_cross.Dimension(0);
     
@@ -83,7 +83,7 @@ Tensor1<Int,Int> ArcStrands() const
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
+    TOOLS_PTOC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
     return A_colors;
 }
@@ -123,7 +123,7 @@ Tensor3<Int,Int> CrossingUnderStrands() const
 template<bool overQ>
 Tensor3<Int,Int> CrossingStrands() const
 {
-    ptic(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
+    TOOLS_PTIC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
     const Int n = C_arcs.Dimension(0);
     const Int m = A_cross.Dimension(0);
@@ -177,7 +177,7 @@ Tensor3<Int,Int> CrossingStrands() const
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
+    TOOLS_PTOC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
     return C_strands;
 }

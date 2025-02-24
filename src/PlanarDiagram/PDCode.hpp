@@ -205,7 +205,7 @@ public:
 
 Tensor2<Int,Int> PDCode()
 {
-    ptic(ClassName()+"::PDCode" );
+    TOOLS_PTIC(ClassName()+"::PDCode" );
     
     const Int m = A_cross.Dimension(0);
     
@@ -457,7 +457,7 @@ Tensor2<Int,Int> PDCode()
         ++a_ptr;
     }
     
-    ptoc(ClassName()+"::PDCode");
+    TOOLS_PTOC(ClassName()+"::PDCode");
     
     return pdcode;
 }

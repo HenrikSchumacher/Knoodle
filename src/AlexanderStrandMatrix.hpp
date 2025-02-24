@@ -239,7 +239,7 @@ namespace KnotTools
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            ptic(ClassName()+"::WriteDenseMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+            TOOLS_PTIC(ClassName()+"::WriteDenseMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
             
             // Assemble dense Alexander matrix, skipping last row and last column if fullQ == false.
 
@@ -346,7 +346,7 @@ namespace KnotTools
                 ++row_counter;
             }
             
-            ptoc(ClassName()+"::WriteDenseMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+            TOOLS_PTOC(ClassName()+"::WriteDenseMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
         }
         
     public:

@@ -37,9 +37,9 @@ namespace KnotTools
                 eprint(ClassName()+" initialized with 0 leaf nodes.");
             }
             
-//            dump(actual_depth);
-//            dump(regular_leaf_node_count);
-//            dump(last_row_count);
+//            TOOLS_DUMP(actual_depth);
+//            TOOLS_DUMP(regular_leaf_node_count);
+//            TOOLS_DUMP(last_row_count);
 //
             if constexpr ( precompute_rangesQ )
             {
@@ -269,7 +269,7 @@ namespace KnotTools
             const Int start_node = -1
         )
         {
-            ptic(ClassName()+"::DepthFirstSearch");
+            TOOLS_PTIC(ClassName()+"::DepthFirstSearch");
             
             Int stack [2 * max_depth];
 
@@ -329,7 +329,7 @@ namespace KnotTools
                 eprint(ClassName() + "::DepthFirstSearch: Stack overflow.");
             }
             
-            ptoc(ClassName()+"::DepthFirstSearch");
+            TOOLS_PTOC(ClassName()+"::DepthFirstSearch");
         }
         
     public:

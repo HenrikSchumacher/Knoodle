@@ -52,7 +52,7 @@ Int DiagramComponentCount()
 
 void RequireDiagramComponents()
 {
-    ptic(ClassName()+"::RequireDiagramComponents");
+    TOOLS_PTIC(ClassName()+"::RequireDiagramComponents");
     
     cref<Multigraph<Int>> G = DiagramComponentLinkComponentGraph();
     
@@ -101,7 +101,7 @@ void RequireDiagramComponents()
     this->SetCache( "DiagramComponentArcPointers", std::move(dc_arc_ptr) );
     this->SetCache( "DiagramComponentArcIndices" , std::move(dc_arc_idx) );
     
-    ptoc(ClassName()+"::RequireDiagramComponents");
+    TOOLS_PTOC(ClassName()+"::RequireDiagramComponents");
 }
 
 cref<Tensor1<Int,Int>> DiagramComponentArcPointers()
@@ -131,7 +131,7 @@ cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
 
 void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
 {
-    ptic(ClassName()+"::Split");
+    TOOLS_PTIC(ClassName()+"::Split");
 
     if( CrossingCount() <= 0 )
     {
@@ -256,5 +256,5 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
     
     (*this) = this->CreateCompressed();
     
-    ptoc(ClassName()+"::Split");
+    TOOLS_PTOC(ClassName()+"::Split");
 }

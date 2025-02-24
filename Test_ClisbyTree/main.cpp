@@ -16,8 +16,8 @@ using namespace Tools;
 
 //using Real  = Real32; // Never use this unless for producing edge cases.
 using Real  = Real64;
-using BReal = Real;
-//using BReal = Real32;
+//using BReal = Real;
+using BReal = Real32;
 //using Int   = Int64;
 using Int   = Int32;
 using LInt  = Int64;

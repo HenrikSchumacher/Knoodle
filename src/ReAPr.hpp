@@ -142,7 +142,7 @@ namespace KnotTools
                 {
                     wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of backtrackings reached.");
                     
-                    dump( u.FrobeniusNorm() );
+                    TOOLS_DUMP( u.FrobeniusNorm() );
                 }
                 
                 phi_0 = phi_tau;

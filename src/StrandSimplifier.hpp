@@ -342,11 +342,11 @@ namespace KnotTools
             {
                 std::sort(duds.begin(),duds.end());
                 
-                logdump(duds);
+                TOOLS_LOGDUMP(duds);
                 
                 std::sort(touched.begin(),touched.end());
                 
-                logdump(touched);
+                TOOLS_LOGDUMP(touched);
                 
                 logprint(ClassName()+"::CheckArcLeftArcs failed.");
                 
@@ -354,7 +354,7 @@ namespace KnotTools
             }
             else
             {
-//                logdump(duds);
+//                TOOLS_LOGDUMP(duds);
                 
 //                logprint(ClassName()+"::CheckArcLeftArcs passed.");
                 
@@ -767,7 +767,7 @@ namespace KnotTools
         {
             overQ = overQ_;
             
-            ptic(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            TOOLS_PTIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1064,7 +1064,7 @@ namespace KnotTools
             Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
             
-            ptoc(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            TOOLS_PTOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
         }
@@ -1458,13 +1458,13 @@ namespace KnotTools
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
                     pd_eprint(ClassName() + "::FindShortestPath");
-                    logdump(d);
-                    logdump(max_dist);
-                    logdump(a_end);
-                    logdump(color_);
-                    logdump(color);
-                    logdump(A_data(a_end,0));
-                    logdump(A_data(a_end,1));
+                    TOOLS_LOGDUMP(d);
+                    TOOLS_LOGDUMP(max_dist);
+                    TOOLS_LOGDUMP(a_end);
+                    TOOLS_LOGDUMP(color_);
+                    TOOLS_LOGDUMP(color);
+                    TOOLS_LOGDUMP(A_data(a_end,0));
+                    TOOLS_LOGDUMP(A_data(a_end,1));
                 }
                 
                 Int a = a_end;
@@ -1540,7 +1540,7 @@ namespace KnotTools
 #ifdef PD_DEBUG
             const Int Cr_0 = pd.CrossingCount();
             
-            logdump(Cr_0);
+            TOOLS_LOGDUMP(Cr_0);
 #endif
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );

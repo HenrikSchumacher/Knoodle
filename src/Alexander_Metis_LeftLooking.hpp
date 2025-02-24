@@ -67,7 +67,7 @@ namespace KnotTools
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            ptic(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTIC(ClassName()+"::DenseAlexanderMatrix");
             
             // Assemble dense Alexander matrix, skipping last row and last column.
 
@@ -161,12 +161,12 @@ namespace KnotTools
             
 //            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
             
-            ptoc(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTOC(ClassName()+"::DenseAlexanderMatrix");
         }
         
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
         {
-            ptic(ClassName()+"::SparseAlexanderMatrix");
+            TOOLS_PTIC(ClassName()+"::SparseAlexanderMatrix");
             
             // TODO: Insert shortcut for crossing_count <= 1.
             
@@ -257,7 +257,7 @@ namespace KnotTools
             
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
             
-            ptoc(ClassName()+"::SparseAlexanderMatrix");
+            TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix");
             
             return A;
         }
@@ -267,7 +267,7 @@ namespace KnotTools
             std::string tag ( "AlexanderFactorization" );
             tag += TypeName<Scal>;
             
-            ptic(ClassName()+"::AlexanderFactorization");
+            TOOLS_PTIC(ClassName()+"::AlexanderFactorization");
             
             auto A = SparseAlexanderMatrix( pd, t ) ;
             
@@ -310,7 +310,7 @@ namespace KnotTools
                 S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
             }
             
-            ptoc(ClassName()+"::AlexanderFactorization");
+            TOOLS_PTOC(ClassName()+"::AlexanderFactorization");
             
             return S;
         }
@@ -336,7 +336,7 @@ namespace KnotTools
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Dense");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -376,7 +376,7 @@ namespace KnotTools
                 }
             }
         
-            ptoc(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Dense");
         }
         
         
@@ -384,7 +384,7 @@ namespace KnotTools
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Sparse");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -417,7 +417,7 @@ namespace KnotTools
                 }
             }
 
-            ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Sparse");
         }
         
 //    public:

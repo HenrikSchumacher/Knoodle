@@ -289,7 +289,7 @@ namespace KnotTools
             const Int start_node = -1
         )
         {
-            ptic(ClassName()+"::DepthFirstSearch");
+            TOOLS_PTIC(ClassName()+"::DepthFirstSearch");
             
             Int stack [SInt(2) * max_depth];
 
@@ -349,7 +349,7 @@ namespace KnotTools
                 eprint(ClassName() + "::DepthFirstSearch: Stack overflow.");
             }
             
-            ptoc(ClassName()+"::DepthFirstSearch");
+            TOOLS_PTOC(ClassName()+"::DepthFirstSearch");
         }
         
     public:

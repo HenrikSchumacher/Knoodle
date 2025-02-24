@@ -129,13 +129,13 @@ namespace KnotTools
         template<Int point_count, Int dimP>
         void ComputeBoundingBoxes( cptr<Real> P, mref<BContainer_T> B ) const
         {
-            ptic(ClassName()+"::ComputeBoundingBoxes");
+            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             
             static_assert(dimP >= AmbDim,"");
             
             constexpr Int sizeP = point_count * dimP;
 
-            ptic("Compute bounding boxes of leave nodes.");
+            TOOLS_PTIC("Compute bounding boxes of leave nodes.");
             // Compute bounding boxes of leave nodes (last row of tree).
             for( Int N = last_row_begin; N < node_count; ++N )
             {
@@ -151,9 +151,9 @@ namespace KnotTools
 
                 PrimitiveToBox<point_count,dimP>( &P[sizeP * i], B.data(N) );
             }
-            ptoc("Compute bounding boxes of leave nodes.");
+            TOOLS_PTOC("Compute bounding boxes of leave nodes.");
             
-            ptic("Compute bounding boxes of interior nodes.");
+            TOOLS_PTIC("Compute bounding boxes of interior nodes.");
             // Compute bounding boxes of interior nodes.
             for( Int N = int_node_count; N --> 0;  )
             {
@@ -161,9 +161,9 @@ namespace KnotTools
                 
                 BoxesToBox( B.data(L), B.data(R), B.data(N) );
             }
-            ptoc("Compute bounding boxes of interior nodes.");
+            TOOLS_PTOC("Compute bounding boxes of interior nodes.");
             
-            ptoc(ClassName()+"::ComputeBoundingBoxes");
+            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
         template<Int point_count, Int dimP>
@@ -239,11 +239,11 @@ namespace KnotTools
         
         BContainer_T AllocateBoxes()
         {
-            ptic(ClassName()+"::AllocateBoxes");
+            TOOLS_PTIC(ClassName()+"::AllocateBoxes");
             
             BContainer_T B (NodeCount(),AmbDim,2);
             
-            ptoc(ClassName()+"::AllocateBoxes");
+            TOOLS_PTOC(ClassName()+"::AllocateBoxes");
             
             return B;
         }

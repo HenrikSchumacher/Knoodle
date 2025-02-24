@@ -150,7 +150,7 @@ namespace KnotTools
         template<bool inputSortedQ, typename R>
         void ReadVertexCoordinates( cptr<R> V, mref<EContainer_T> E ) const
         {
-//            ptic(ClassName()+"::ReadVertexCoordinates (AoS)");
+//            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (AoS)");
 
             if( inputSortedQ || preorderedQ )
             {
@@ -178,7 +178,7 @@ namespace KnotTools
                 }
             }
 
-//            ptoc(ClassName()+"::ReadVertexCoordinates (AoS)");
+//            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS)");
         }
         
         template<bool inputSortedQ, typename R>

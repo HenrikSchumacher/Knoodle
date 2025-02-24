@@ -29,7 +29,7 @@ int main(void)
     
     L.ReadVertexCoordinates( &coords[0][0] );
     
-    dump( L.AmbientDimension() );
+    TOOLS_DUMP( L.AmbientDimension() );
 
     PlanarDiagram<Int> PD(L);
     return 0;

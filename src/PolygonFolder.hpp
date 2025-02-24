@@ -480,7 +480,7 @@ namespace KnotTools
         // Returns 0 when an actual change has been made.
         Flag_T Fold_Reference( const Int i, const Int j, const Real angle )
         {
-            ptic(ClassName()+"::Fold_Reference");
+            TOOLS_PTIC(ClassName()+"::Fold_Reference");
             
             std::tie(p,q) = MinMax(i,j);
             
@@ -491,7 +491,7 @@ namespace KnotTools
 
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                ptoc(ClassName()+"::Fold_Reference");
+                TOOLS_PTOC(ClassName()+"::Fold_Reference");
                 return 1;
             }
             
@@ -550,7 +550,7 @@ namespace KnotTools
             
         exit:
             
-            ptoc(ClassName()+"::Fold_Reference");
+            TOOLS_PTOC(ClassName()+"::Fold_Reference");
             
             return flag;
         }
@@ -585,7 +585,7 @@ namespace KnotTools
         // Returns 0 when an actual change has been made.
         UInt32 Fold( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            ptic(ClassName()+"::Fold");
+            TOOLS_PTIC(ClassName()+"::Fold");
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -596,7 +596,7 @@ namespace KnotTools
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                ptoc(ClassName()+"::Fold");
+                TOOLS_PTOC(ClassName()+"::Fold");
                 return 1;
             }
             
@@ -681,7 +681,7 @@ namespace KnotTools
             
         exit:
             
-            ptoc(ClassName()+"::Fold");
+            TOOLS_PTOC(ClassName()+"::Fold");
             
             return flag;
         }
@@ -719,7 +719,7 @@ namespace KnotTools
         // Returns 0 when an actual change has been made.
         UInt32 Fold_WithoutCheck( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            ptic(ClassName()+"::Fold_WithoutCheck");
+            TOOLS_PTIC(ClassName()+"::Fold_WithoutCheck");
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -730,7 +730,7 @@ namespace KnotTools
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                ptoc(ClassName()+"::Fold_WithoutCheck");
+                TOOLS_PTOC(ClassName()+"::Fold_WithoutCheck");
                 return 1;
             }
             
@@ -763,7 +763,7 @@ namespace KnotTools
             
             swap(X,Y);
                         
-            ptoc(ClassName()+"::Fold_WithoutCheck");
+            TOOLS_PTOC(ClassName()+"::Fold_WithoutCheck");
             
             return 0;
         }
@@ -771,11 +771,11 @@ namespace KnotTools
         
         bool OverlapQ( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
         {
-            ptic(ClassName()+"::OverlapQ");
+            TOOLS_PTIC(ClassName()+"::OverlapQ");
             
             bool result = OverlapQ_implementation(P_begin, P_n, Q_begin, Q_n);
             
-            ptoc(ClassName()+"::OverlapQ");
+            TOOLS_PTOC(ClassName()+"::OverlapQ");
             
             return result;
         }

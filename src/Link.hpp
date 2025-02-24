@@ -94,7 +94,7 @@ namespace KnotTools
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {
-//            ptic(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
+//            TOOLS_PTIC(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             
             static_assert(IntQ<I_0>,"");
             
@@ -116,7 +116,7 @@ namespace KnotTools
             
             next_edge [n-1] = 0;
             
-//            ptoc(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
+//            TOOLS_PTOC(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
         }
         
 //        template<typename J, typename K>
@@ -130,12 +130,12 @@ namespace KnotTools
 //            static_assert(IntQ<K>,"");
         
 //            // AoS = array of structures, i.e., loading data in interleaved form
-////            ptic(ClassName()+"() (preordered)");
+////            TOOLS_PTIC(ClassName()+"() (preordered)");
 //            
 //            cyclicQ     = (component_count == static_cast<Int>(1));
 //            preorderedQ = true;
 //            
-////            ptoc(ClassName()+"() (preordered)");
+////            TOOLS_PTOC(ClassName()+"() (preordered)");
 //        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.

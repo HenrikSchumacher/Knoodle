@@ -88,13 +88,13 @@ namespace KnotTools
         template<bool fullQ = false>
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
         {
-            ptic(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+            TOOLS_PTIC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
             if( (degree != 0) && (degree!= 1) )
             {
                 eprint(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+"): degree "+ToString(degree)+" is not a valid degree. Only 0 and 1 are allowed.");
                 
-                ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+                TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
                 
                 return SparseMatrix_T();
             }
@@ -103,7 +103,7 @@ namespace KnotTools
             
             if( n <= 0 )
             {
-                ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+                TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
                 
                 return SparseMatrix_T();
             }
@@ -220,7 +220,7 @@ namespace KnotTools
 
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
 
-            ptoc(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+            TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
             return A;
         }
@@ -229,7 +229,7 @@ namespace KnotTools
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            ptic(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTIC(ClassName()+"::DenseAlexanderMatrix");
             
             // Assemble dense Alexander matrix, skipping last row and last column.
 
@@ -338,13 +338,13 @@ namespace KnotTools
             
 //            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
             
-            ptoc(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTOC(ClassName()+"::DenseAlexanderMatrix");
         }
 
         
         void RequireSparseHermitianAlexanderMatrix( cref<PD_T> pd ) const
         {
-            ptic(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
+            TOOLS_PTIC(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
             
             std::string tag_help ( std::string( "SparseHermitianAlexanderHelpers_" ) + TypeName<Scal>);
             std::string tag_fact ( std::string( "SparseHermitianAlexanderFactorization_" ) + TypeName<Scal> );
@@ -518,14 +518,14 @@ namespace KnotTools
                 pd.SetCache( tag_help, std::move(herm_alex_help) );
             }
 
-            ptoc(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
+            TOOLS_PTOC(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
         }
         
         void LogAlexanderModuli_Sparse(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Sparse");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -580,7 +580,7 @@ namespace KnotTools
                 }
             }
 
-            ptoc(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Sparse");
         }
 
         void LogAlexanderModuli(
@@ -603,7 +603,7 @@ namespace KnotTools
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            ptic(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Dense");
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -643,7 +643,7 @@ namespace KnotTools
                 }
             }
         
-            ptoc(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Dense");
         }
         
         

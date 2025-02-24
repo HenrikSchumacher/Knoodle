@@ -16,7 +16,7 @@ bool DisconnectSummands(
     const bool strand_R_II_Q = true
 )
 {
-    ptic(ClassName()+"::DisconnectSummands");
+    TOOLS_PTIC(ClassName()+"::DisconnectSummands");
     
     // TODO: Introduce some tracking of from where the components are split off.
     
@@ -55,7 +55,7 @@ bool DisconnectSummands(
         this->ClearCache();
     }
     
-    ptoc(ClassName()+"::DisconnectSummands");
+    TOOLS_PTOC(ClassName()+"::DisconnectSummands");
     
     return changed_at_least_onceQ;
 }
@@ -343,7 +343,7 @@ private:
 
 PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
 {
-    ptic(ClassName()+"::ExportSmallerComponent");
+    TOOLS_PTIC(ClassName()+"::ExportSmallerComponent");
     
     Int length = 0;
     Int a = a_0;
@@ -366,7 +366,7 @@ PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
     
     PlanarDiagram<Int> pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
     
-    ptoc(ClassName()+"::ExportSmallerComponent");
+    TOOLS_PTOC(ClassName()+"::ExportSmallerComponent");
     
     return pd;
 }
@@ -385,7 +385,7 @@ private:
 
 PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 {
-    ptic(ClassName()+"::ExportComponent");
+    TOOLS_PTIC(ClassName()+"::ExportComponent");
     
     PlanarDiagram<Int> pd (comp_size/2,0);
     
@@ -451,7 +451,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     
     PD_ASSERT( pd.CheckAll() );
     
-    ptoc(ClassName()+"::ExportComponent");
+    TOOLS_PTOC(ClassName()+"::ExportComponent");
     
     return pd;
 }
@@ -476,7 +476,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 //    {
 //        wprint(ClassName()+"::ArcRangeLength: " + ArcString(a_begin) + " and  " + ArcString(a_end) + " do not belong to the same connected component. Returning -1.");
 //        
-//        dump(d);
+//        TOOLS_DUMP(d);
 //        
 //        return -1;
 //    }

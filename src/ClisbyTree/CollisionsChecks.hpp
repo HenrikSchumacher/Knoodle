@@ -12,7 +12,7 @@ public:
 
 bool OverlapQ()
 {
-    ptic(ClassName()+"::OverlapQ");
+    TOOLS_PTIC(ClassName()+"::OverlapQ");
     
     witness_0 = -1;
     witness_1 = -1;
@@ -39,7 +39,7 @@ bool OverlapQ()
 //        }
 //    }
 
-    ptoc(ClassName()+"::OverlapQ");
+    TOOLS_PTOC(ClassName()+"::OverlapQ");
     
     return result;
     
