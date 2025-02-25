@@ -10,47 +10,42 @@ void ComputePivotTransform()
 
     u.Normalize();
     
-    const Real cos = std::cos(theta);
-    const Real sin = std::sin(theta);
-    const Real d = Scalar::One<Real> - cos;
-
-    Matrix_T & A = transform.Matrix();
-    
-    
-    if constexpr ( use_clang_matrixQ )
+    if constexpr ( use_quaternionsQ )
     {
-        A.Set( 0, 0, u[0] * u[0] * d + cos        );
-        A.Set( 0, 1, u[0] * u[1] * d - sin * u[2] );
-        A.Set( 0, 2, u[0] * u[2] * d + sin * u[1] );
+        const Real theta_half = Scalar::Half<Real> * theta;
+        const Real cos = std::cos(theta_half);
+        const Real sin = std::sin(theta_half);
         
-        A.Set( 1, 0, u[1] * u[0] * d + sin * u[2] );
-        A.Set( 1, 1, u[1] * u[1] * d + cos        );
-        A.Set( 1, 2, u[1] * u[2] * d - sin * u[0] );
+        Tiny::Vector<4,Real,Int> Q {{ cos, sin * u[0], sin * u[1], sin * u[2] }};
         
-        A.Set( 2, 0, u[2] * u[0] * d - sin * u[1] );
-        A.Set( 2, 1, u[2] * u[1] * d + sin * u[0] );
-        A.Set( 2, 2, u[2] * u[2] * d + cos        );
+        transform.Read_q_from_vector4(&Q[0]);
+        transform.Read_A_from_vector4(&Q[0]);
     }
     else
     {
+        const Real cos = std::cos(theta);
+        const Real sin = std::sin(theta);
+        const Real d = Scalar::One<Real> - cos;
+        
+        Tiny::Matrix<AmbDim,AmbDim,Real,Int> A;
+        
         A(0,0) = u[0] * u[0] * d + cos;
         A(0,1) = u[0] * u[1] * d - sin * u[2];
         A(0,2) = u[0] * u[2] * d + sin * u[1];
-        
+
         A(1,0) = u[1] * u[0] * d + sin * u[2];
         A(1,1) = u[1] * u[1] * d + cos;
         A(1,2) = u[1] * u[2] * d - sin * u[0];
-        
+
         A(2,0) = u[2] * u[0] * d - sin * u[1];
         A(2,1) = u[2] * u[1] * d + sin * u[0];
         A(2,2) = u[2] * u[2] * d + cos;
+        
+        transform.ReadMatrix( &A[0][0] );
     }
 
-    
     // Compute shift b = X_p - A.X_p.
-    transform.Vector() = X_p - A * X_p;
-    
-//    transform = Transform_T( std::move(A), std::move(b) );
+    transform.Vector() = X_p - transform.Matrix() * X_p;
 }
 
 Transform_T NodeTransform( const Int node ) const

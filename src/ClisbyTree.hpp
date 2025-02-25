@@ -31,16 +31,22 @@ namespace KnotTools
         
         using Tree_T::max_depth;
         
-        static constexpr Int AmbDim  = AmbDim_;
+        static constexpr Int AmbDim = AmbDim_;
     
         static constexpr bool use_clang_matrixQ = true && MatrixizableQ<Real>;
+        static constexpr bool use_quaternionsQ  = true;
         static constexpr bool use_manual_stackQ = use_manual_stackQ_;
     
-        using Transform_T     = typename std::conditional_t<
-                                    use_clang_matrixQ,
-                                    ClangAffineTransform<AmbDim,Real,Int>,
-                                    AffineTransform<AmbDim,Real,Int>
-                                >;
+        using Transform_T
+            = typename std::conditional_t<
+                  use_clang_matrixQ,
+                  typename std::conditional_t<
+                      use_quaternionsQ,
+                      ClangQuaternionTransform<Real,Int>,
+                      ClangAffineTransform<AmbDim,Real,Int>
+                  >,
+                  AffineTransform<AmbDim,Real,Int>
+              >;
     
         using Vector_T        = typename Transform_T::Vector_T;
         using Matrix_T        = typename Transform_T::Matrix_T;
@@ -79,7 +85,7 @@ namespace KnotTools
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
         static constexpr Int BallDim      = AmbDim + 1;
-        static constexpr Int NodeDim      = BallDim + TransformDim;
+//        static constexpr Int NodeDim      = BallDim + TransformDim;
         
 //        static constexpr bool perf_countersQ = true;
         static constexpr bool perf_countersQ = false;

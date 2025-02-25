@@ -4,7 +4,11 @@ template<Size_T t0>
 void Initialize()
 {
     constexpr Size_T t1 = t0 + 1;
-    constexpr Size_T t2 = t1 + 1;
+    constexpr Size_T t2 = t0 + 2;
+    constexpr Size_T t3 = t0 + 3;
+    constexpr Size_T t4 = t0 + 4;
+    
+    TimeInterval T_init(0);
     
     log_file = path / "Info.m";
     pds_file = path / "PDCodes.tsv";
@@ -15,29 +19,39 @@ void Initialize()
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
     
-    log << Tabs<t0> + "<|";
+    log << ct_tabs<t0> + "<|";
     
-    log << kv<t1,0>("n",n);
-    log << kv<t1>  ("N",N);
-    log << kv<t1>  ("Burn-In",burn_in_accept_count);
-    log << kv<t1>  ("Skip",skip);
-    log << kv<t1>  ("Radius",radius);
-    log << kv<t1>  ("Prescribed Edge Length",Real(1));
+    kv<t1,0>("Edge Count",n);
+    kv<t1>  ("Sample Count",N);
+    kv<t1>  ("Burn-in Count",burn_in_accept_count);
+    kv<t1>  ("Skip Count",skip);
+    kv<t1>  ("Radius",radius);
+    kv<t1>  ("Prescribed Edge Length",Real(1));
+    kv<t1>  ("Verbosity",verbosity);
     
-    log << ",\n" + Tabs<t1> + "\"Initialization\" -> <|";
+    log << ",\n" + ct_tabs<t1> + "\"Initialization\" -> <|";
     
-    log << kv<t1,0>("PolyFold Class",ClassName());
+    log << "\n" << ct_tabs<t2> << "\"PolyFold\" -> <|";
+        kv<t3,0>("Class",ClassName());
+        kv<t3>("Vector Extensions Enabled",vec_enabledQ);
+        kv<t3>("Matrix Extensions Enabled",mat_enabledQ);
+        kv<t3>("Forced Deallocation Enabled",force_deallocQ);
+    log << "\n" << ct_tabs<t2> << "|>";
     
-    log << kv<t2>  ("Vector Extensions Enabled",vec_enabledQ);
-    log << kv<t2>  ("Matrix Extensions Enabled",mat_enabledQ);
-    log << kv<t2>  ("Forced Deallocation Enabled",force_deallocQ);
+    log << ",\n" << ct_tabs<t2> << "\"Coordinate Buffer\" -> <|";
     
     x = Tensor2<Real,Int>( n, AmbDim );
     
-    log << kv<t2>("Creation of Coordinate Buffer Succeeded",true) << std::flush;
+        kv<t3,0>("Byte Count",x.ByteCount());
+    log << "\n" << ct_tabs<t2> << "|>";
+    
+    log << std::flush;
 
     {
-        log << kv<t2>("Clisby Tree Class",Clisby_T::ClassName()) << std::flush;
+        log << ",\n" << ct_tabs<t2> << "\"Clisby Tree\" -> <|";
+        
+        kv<t3,0>("Class",Clisby_T::ClassName());
+        log << std::flush;
         
         Clisby_T T ( n, radius );
         
@@ -72,11 +86,17 @@ void Initialize()
                exit(1);
            }
         }
-                
-        log << kv<t2>("Clisby Tree Byte Count",T.ByteCount());
-        log << kv<t2>("PCG64 Multiplier",random_engine_state.multiplier);
-        log << kv<t2>("PCG64 Increment",random_engine_state.increment);
-        log << kv<t2>("PCG64 State",random_engine_state.state) << std::flush;
+        
+        kv<t3>("Byte Count",T.ByteCount());
+        kv<t3>("Euclidean Transformation Class",Clisby_T::Transform_T::ClassName());
+        log << ",\n" << ct_tabs<t3> << "\"PCG64\" -> <|";
+            kv<t4,0>("Multiplier", full_state.multiplier);
+            kv<t4>("Increment" , full_state.increment );
+            kv<t4>("State"     , full_state.state     );
+        log << "\n" << ct_tabs<t3> << "|>";
+        log << "\n" << ct_tabs<t2> << "|>";
+        
+        log << std::flush;
         
         T.WriteVertexCoordinates( x.data() );
         
@@ -88,7 +108,6 @@ void Initialize()
             T = Clisby_T();
         }
     }
-    log << kv<t2>("Creation of Clisby Tree Succeeded",true) << std::flush;
     
     {
         Link_T L ( n );
@@ -96,11 +115,17 @@ void Initialize()
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
         
-        log << kv<t2>("Link Class",L.ClassName()) << std::flush;
+        log << ",\n" << ct_tabs<t2> << "\"Link\" -> <|";
+            kv<t3,0>("Class", L.ClassName());
+        
+//        kv<t2>("Link Class",L.ClassName());
+        log << std::flush;
         
         (void)L.FindIntersections();
         
-        log << kv<t2>("Link Byte Count",L.ByteCount()) << std::flush;
+            kv<t3>("Byte Count",L.ByteCount());
+        log << "\n" << ct_tabs<t2> << "|>";
+        log << std::flush;
         
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
         if( force_deallocQ )
@@ -108,20 +133,19 @@ void Initialize()
             L.DeleteTree();
         }
         
+        log << ",\n" << ct_tabs<t2> << "\"Planar Diagram\" -> <|";
+            kv<t3,0>("Class", PD_T::ClassName());
+        
         // We delay the allocation until substantial parts of L have been deallocated.
-        PlanarDiagram PD( L );
+        PD_T PD( L );
         
         if( force_deallocQ )
         {
             L = Link_T();
         }
-        
-        log << kv<t2>("PlanarDiagram Class",PD.ClassName());
-        
-        log << kv<t2>(
-            "PlanarDiagram Byte Count (Before Simplification)",
-            PD.ByteCount()
-        );
+            kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
+        log << "\n" << ct_tabs<t2> << "|>";
+        log << std::flush;
         
         if( force_deallocQ )
         {
@@ -129,7 +153,5 @@ void Initialize()
         }
     }
     
-    log << kv<t2>("Creation of PlanarDiagram Succeeded",true)  << std::flush;
-    
-    log << "\n" + Tabs<t1> + "|>"  << std::flush;
+    log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
 }

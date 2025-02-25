@@ -1,11 +1,12 @@
 #include <iostream>
 #include <iterator>
 
-//#include <boost/json.hpp>
-//#include <boost/json/src.hpp>
-
 // see https://www.jviotti.com/2022/02/21/emitting-signposts-to-instruments-on-macos-using-cpp.html
 #include <os/signpost.h>
+
+
+#define dump(x) TOOLS_DUMP(x);
+#define mem_dump(x) TOOLS_MEM_DUMP(x);
 
 #include "../KnotTools.hpp"
 #include "../src/PolyFold.hpp"
@@ -22,13 +23,15 @@ using BReal = Real32;
 using Int   = Int32;
 using LInt  = Int64;
 
+using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
+
 int main( int argc, char** argv )
 {
     const Time prog_start_time = Clock::now();
 
-    PolyFold<Real,Int,LInt,BReal> polyfold ( argc, argv );
+    PolyFold_T polyfold ( argc, argv );
+
     
-    polyfold.Run();
     
     const Time prog_stop_time = Clock::now();
     

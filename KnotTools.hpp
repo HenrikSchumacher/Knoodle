@@ -302,5 +302,6 @@ namespace KnotTools
 #include "src/AffineTransform.hpp"
 #include "src/ClangMatrix.hpp"
 #include "src/ClangAffineTransform.hpp"
+#include "src/ClangQuaternionTransform.hpp"
 #include "src/ClisbyTree.hpp"
 

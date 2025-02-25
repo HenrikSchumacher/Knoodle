@@ -21,8 +21,6 @@ int main( int argc, char** argv )
 
     PolyFold<Real,Int,LInt,BReal> polyfold ( argc, argv );
     
-    polyfold.Run();
-    
     const Time prog_stop_time = Clock::now();
     
     print("Done. Time elapsed = " + ToStringFPGeneral(

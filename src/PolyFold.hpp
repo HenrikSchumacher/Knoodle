@@ -3,9 +3,8 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
-//TODO: Debug mode -> seeds.
-
-//TODO: Seeds - 32 hex digits.
+// TODO: Write polygon to file every xxx steps.
+// TODO: Removed 0-initialization in Clisby tree.
 
 namespace KnotTools
 {
@@ -27,6 +26,7 @@ namespace KnotTools
         
         static constexpr Int  AmbDim = 3;
 
+        using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
         using Clisby_T                  = ClisbyTree<AmbDim,Real,Int,LInt>;
         using Link_T                    = Link_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
@@ -63,13 +63,12 @@ namespace KnotTools
         
         std::vector<PD_T> PD_list;
         
-        Time run_start_time;
-        Time run_stop_time;
+        TimeInterval T_run;
         
         double total_timing  = 0;
         double burn_in_time  = 0;
-        double sampling_time = 0;
-        double analysis_time = 0;
+        double total_sampling_time = 0;
+        double total_analysis_time = 0;
         
         
         PRNG_T random_engine;
@@ -84,6 +83,9 @@ namespace KnotTools
         bool random_engine_incrementQ  = false;
         bool random_engine_stateQ      = false;
         bool force_deallocQ            = false;
+        bool squared_gyradiusQ         = false;
+        bool pdQ                       = false;
+
         
     public:
         
@@ -96,29 +98,33 @@ namespace KnotTools
             HandleOptions( argc, argv );
 
             Initialize<0>();
+
+            Run();
         }
                  
-        PolyFold(
-            Real radius_,
-            Int n_,
-            LInt N_,
-            LInt burn_in_accept_count_,
-            LInt skip_,
-            std::filesystem::path & path_,
-            int verbosity_
-        )
-        :   radius                  ( radius_                   )
-        ,   n                       ( n_                        )
-        ,   N                       ( N_                        )
-        ,   burn_in_accept_count    ( burn_in_accept_count_     )
-        ,   skip                    ( skip_                     )
-        ,   verbosity               ( verbosity_                )
-        ,   path                    ( path_                     )
-        {
-            print("\n\nWelcome to PolyFold.\n");
-            
-            Initialize<0>();
-        }
+//        PolyFold(
+//            Real radius_,
+//            Int n_,
+//            LInt N_,
+//            LInt burn_in_accept_count_,
+//            LInt skip_,
+//            std::filesystem::path & path_,
+//            int verbosity_
+//        )
+//        :   radius                  ( radius_                   )
+//        ,   n                       ( n_                        )
+//        ,   N                       ( N_                        )
+//        ,   burn_in_accept_count    ( burn_in_accept_count_     )
+//        ,   skip                    ( skip_                     )
+//        ,   verbosity               ( verbosity_                )
+//        ,   path                    ( path_                     )
+//        {
+//            print("\n\nWelcome to PolyFold.\n");
+//            
+//            Initialize<0>();
+//            
+//            Run();
+//        }
         
         ~PolyFold()
         {
@@ -137,24 +143,33 @@ namespace KnotTools
 #include "PolyFold/FinalReport.hpp"
     
     public:
+
+#include "PolyFold/Barycenter.hpp"
+#include "PolyFold/SquaredGyradius.hpp"
         
         template<Size_T tab_count = 0>
         int Run()
         {
-            run_start_time = Clock::now();
+            T_run.Tic();
             
-            log << ",\n" + Tabs<tab_count+1> + "\"Burn-in\" -> " << std::flush;
-            
-            BurnIn<tab_count+1>();
-            
-            log << ",\n" + Tabs<tab_count+1> + "\"Samples\" -> {";
-            
-            if( verbosity >= 1 )
+            switch( verbosity )
             {
-                log << "\n" + Tabs<tab_count+2>;
+                case 1:
+                {
+                    BurnIn<tab_count+1,1>();
+                    break;
+                }
+                case 2:
+                {
+                    BurnIn<tab_count+1,2>();
+                    break;
+                }
+                default:
+                {
+                    BurnIn<tab_count+1,0>();
+                    break;
+                }
             }
-            
-            log << std::flush;
             
             int err;
             
@@ -162,71 +177,24 @@ namespace KnotTools
             {
                 case 1:
                 {
-                    err = Sample<tab_count+2,1>(0);
-                    
-                    if( err == 0 )
-                    {
-                        for( LInt i = 1; i < N; ++ i )
-                        {
-                            log << ",\n" + Tabs<tab_count+2>;
-                            err = Sample<tab_count+2,1>(i);
-                            
-                            if( err != 0 )
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    err = Sample<tab_count+1,1>();
                     break;
                 }
                 case 2:
                 {
-                    err = Sample<tab_count+2,2>(0);
-                    
-                    if( err == 0 )
-                    {
-                        for( LInt i = 1; i < N; ++ i )
-                        {
-                            log << ",\n" + Tabs<tab_count+2>;
-                            err = Sample<tab_count+2,2>(i);
-                            
-                            if( err != 0 )
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    err = Sample<tab_count+1,2>();
                     break;
                 }
                 default:
                 {
-                    err = Sample<tab_count+2,0>(0);
-                    
-                    if( err == 0 )
-                    {
-                        for( LInt i = 1; i < N; ++ i )
-                        {
-                            log << ",\n" + Tabs<tab_count+2>;
-                            err = Sample<tab_count+2,0>(i);
-                            
-                            if( err != 0 )
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    err = Sample<tab_count+1,0>();
                     break;
                 }
             }
             
-            log << "\n" + Tabs<tab_count+1> + "}" << std::flush;
+            T_run.Toc();
             
-            run_stop_time = Clock::now();
-            
-            
-            total_timing = Tools::Duration(run_start_time,run_stop_time);
-            
-            log << ",\n" + Tabs<tab_count+1> + "\"Final Report\" -> ";
+            total_timing = T_run.Duration();
             
             FinalReport<tab_count+1>();
             

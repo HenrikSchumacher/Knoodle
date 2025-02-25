@@ -63,17 +63,42 @@ namespace KnotTools
         }
         
         template<typename ExtReal>
-        void Read( cptr<ExtReal> f )
+        void ReadMatrix( cptr<ExtReal> A_ptr )
         {
-            A.Read( f );
-            b.Read( &f[AmbDim * AmbDim] );
+            A.Read(A_ptr);
         }
         
         template<typename ExtReal>
-        void Write( mptr<ExtReal> f ) const
+        void ReadVector( cptr<ExtReal> b_ptr )
         {
-            A.Write( f );
-            b.Write( &f[AmbDim * AmbDim] );
+            b.Read(b_ptr);
+        }
+        
+        template<typename ExtReal>
+        void Read( cptr<ExtReal> f_ptr )
+        {
+            ReadMatrix( f_ptr );
+            ReadVector( &f_ptr[AmbDim * AmbDim] );
+        }
+        
+        
+        template<typename ExtReal>
+        void WriteMatrix( mptr<ExtReal> A_ptr ) const
+        {
+            A.Write(A_ptr);
+        }
+        
+        template<typename ExtReal>
+        void WriteVector( mptr<ExtReal> b_ptr ) const
+        {
+            b.Write(b_ptr);
+        }
+        
+        template<typename ExtReal>
+        void Write( mptr<ExtReal> f_ptr ) const
+        {
+            A.Write( f_ptr );
+            b.Write( &f_ptr[AmbDim * AmbDim] );
         }
         
         cref<Matrix_T> Matrix() const

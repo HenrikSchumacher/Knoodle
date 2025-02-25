@@ -216,7 +216,7 @@ namespace KnotTools
         
         [[nodiscard]] friend std::string ToString( cref<ClangMatrix> A_ )
         {
-            return MatrixString<N,M>( get_ptr(A_.Matrix()), M, "{\n", "\t{ ",", "," }", "\n", "\n}" );
+            return MatrixString<N,M>( get_ptr(A_.Matrix()), M, "{\n", "\t{ ",", "," }", ",\n", "\n}" );
         }
         
     public:
