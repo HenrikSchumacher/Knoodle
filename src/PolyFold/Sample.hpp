@@ -99,12 +99,21 @@ int Sample( const LInt i )
         
         bytes = T.AllocatedByteCount();
         
+        dump(T.MatrixMatrixCounter());
+        dump(T.MatrixVectorCounter());
+        
+
         if( force_deallocQ )
         {
             T_dealloc.Tic<V1Q>();
             T = Clisby_T();
             T_dealloc.Toc<V1Q>();
         }
+        
+        dump(T.MatrixMatrixCounter());
+        dump(T.MatrixVectorCounter());
+        
+
     }
     
     if constexpr ( V1Q )

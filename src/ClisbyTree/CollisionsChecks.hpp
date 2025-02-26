@@ -130,6 +130,11 @@ static constexpr bool BallsOverlapQ(
 
 bool BallsOverlapQ( const Int node_0, const Int node_1) const
 {
+    if constexpr ( countersQ )
+    {
+        ++call_counters.overlap;
+    }
+    
     return BallsOverlapQ(
         NodeBallPtr(node_0), NodeBallPtr(node_1), hard_sphere_diam
     );

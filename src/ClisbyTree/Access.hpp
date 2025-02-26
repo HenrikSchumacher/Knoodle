@@ -63,11 +63,6 @@ mref<Tensor1<NodeState_T,Int>> NodeStates()
     return N_state;
 }
 
-NodeState_T NodeState( const Int node ) const
-{
-    return N_state[node];
-}
-
 cptr<Real> NodeTransformPtr( const Int node ) const
 {
     return &N_transform.data()[TransformDim * node];
@@ -88,27 +83,6 @@ mptr<Real> NodeCenterPtr( const Int node )
     return &N_ball.data()[BallDim * node];
 }
 
-//cptr<Real> NodeTransformPtr( const Int node ) const
-//{
-//    return &N_data.data()[NodeDim * node + AmbDim + 1];
-//}
-//
-//mptr<Real> NodeTransformPtr( const Int node )
-//{
-//    return &N_data.data()[NodeDim * node + AmbDim + 1];
-//}
-
-
-//cptr<Real> NodeCenterPtr( const Int node ) const
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
-//
-//mptr<Real> NodeCenterPtr( const Int node )
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
-
 cptr<Real> NodeBallPtr( const Int node ) const
 {
     return &N_ball.data()[(AmbDim+1) * node];
@@ -118,16 +92,6 @@ mptr<Real> NodeBallPtr( const Int node )
 {
     return &N_ball.data()[(AmbDim+1) * node];
 }
-
-//Real NodeRadius( const Int node ) const
-//{
-//    return N_data.data()[NodeDim * node + AmbDim];
-//}
-//
-//mref<Real> NodeRadius( const Int node )
-//{
-//    return N_data.data()[NodeDim * node + AmbDim];
-//}
 
 Real NodeRadius( const Int node ) const
 {
@@ -209,15 +173,15 @@ Int Witness( const bool i ) const
 
 Size_T MatrixMatrixCounter() const
 {
-    return mm_counter;
+    return call_counters.mm;
 }
 
 Size_T MatrixVectorCounter() const
 {
-    return mv_counter;
+    return call_counters.mv;
 }
 
 Size_T TransformLoadCounter() const
 {
-    return load_counter;
+    return call_counters.load_transform;
 }

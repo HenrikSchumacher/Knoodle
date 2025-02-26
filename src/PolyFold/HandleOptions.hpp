@@ -167,6 +167,7 @@ void HandleOptions( int argc, char** argv )
     //                    + (vm.count("tag") ? ("__" + vm["tag"].as<std::string>()) : "")
     //                );
                     path = std::filesystem::path( vm["output"].as<std::string>()
+                        + "-d" + ToStringFPGeneral(hard_sphere_diam)
                         + "-n" + ToString(n)
                         + "-b" + ToString(burn_in_accept_count)
                         + "-s" + ToString(skip)

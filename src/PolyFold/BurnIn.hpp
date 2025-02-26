@@ -57,7 +57,6 @@ void BurnIn()
         
         bytes = T.AllocatedByteCount();
         
-        
         if( force_deallocQ )
         {
             T_dealloc.Tic<V2Q>();

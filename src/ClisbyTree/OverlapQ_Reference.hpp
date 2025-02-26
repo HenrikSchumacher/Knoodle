@@ -16,7 +16,7 @@ bool OverlapQ_Reference()
     // Helper routine to manage stack.
     auto conditional_push = [this,push]( const Int i, const Int j )
     {
-        const bool overlappingQ = ( (i==j) || this->BallsOverlapQ(i,j,this->r) );
+        const bool overlappingQ = ( (i==j) || this->BallsOverlapQ(i,j) );
         
         if( overlappingQ)
         {
