@@ -13,6 +13,7 @@ void HandleOptions( int argc, char** argv )
         po::options_description desc("Allowed options");
         desc.add_options()
         ("help,h", "produce help message")
+        ("diam,d", po::value<Real>(), "set hard sphere diameter")
         ("edge-count,n", po::value<Int>(), "set number of edges")
         ("burn-in,b", po::value<LInt>(), "set number of burn-in steps")
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
@@ -29,6 +30,8 @@ void HandleOptions( int argc, char** argv )
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
 //        ("print-polygon,p", po::value<LInt>(), "write polygon to file roughly every [arg] steps")
         ;
+        
+        
         
         // Declare that arguments without option prefixe are reinterpreted as if they were assigned to -o [--output].
         po::positional_options_description p;
@@ -49,6 +52,14 @@ void HandleOptions( int argc, char** argv )
             print(s.str());
             exit(0);
         }
+        
+        
+        if( vm.count("diam") )
+        {
+            hard_sphere_diam = vm["diam"].as<Real>();
+        }
+
+        valprint<a>("Hard Sphere Diameter d", hard_sphere_diam);
         
         if( vm.count("edge-count") )
         {

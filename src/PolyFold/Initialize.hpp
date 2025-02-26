@@ -21,11 +21,12 @@ void Initialize()
     
     log << ct_tabs<t0> + "<|";
     
-    kv<t1,0>("Edge Count",n);
+    kv<t1,0>("Prescibed Edge Length",prescribed_edge_length);
+    kv<t1>  ("Hard Sphere Diameter",hard_sphere_diam);
+    kv<t1>  ("Edge Count",n);
     kv<t1>  ("Sample Count",N);
     kv<t1>  ("Burn-in Count",burn_in_accept_count);
     kv<t1>  ("Skip Count",skip);
-    kv<t1>  ("Radius",radius);
     kv<t1>  ("Prescribed Edge Length",Real(1));
     kv<t1>  ("Verbosity",verbosity);
     
@@ -53,7 +54,7 @@ void Initialize()
         kv<t3,0>("Class",Clisby_T::ClassName());
         log << std::flush;
         
-        Clisby_T T ( n, radius );
+        Clisby_T T ( n, hard_sphere_diam );
         
         PRNG_FullState_T full_state = T.RandomEngineFullState();
 

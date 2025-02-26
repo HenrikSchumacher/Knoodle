@@ -36,7 +36,10 @@ namespace KnotTools
         
     private:
         
-        Real radius = 1;
+        Real hard_sphere_diam         = 1;
+        Real hard_sphere_squared_diam = 1;
+        Real prescribed_edge_length   = 1;
+        
         Int  n = 1;
         LInt N = 1;
         LInt burn_in_accept_count = 1;
@@ -227,3 +230,4 @@ namespace KnotTools
 
     
 } // KnotTools
+

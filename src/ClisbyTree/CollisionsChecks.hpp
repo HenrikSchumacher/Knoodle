@@ -116,21 +116,23 @@ static constexpr Real NodeCenterSquaredDistance(
 }
                 
 static constexpr bool BallsOverlapQ(
-    const cptr<Real> N_0, const cptr<Real> N_1, const Real r
+    const cptr<Real> N_0, const cptr<Real> N_1, const Real diam
 )
 {
     const Real d2 = NodeCenterSquaredDistance(N_0,N_1);
     
-    const Real R  = r + N_0[AmbDim] + N_1[AmbDim];
+    const Real threshold = diam + N_0[AmbDim] + N_1[AmbDim];
     
-    const bool overlapQ = d2 < R * R;
+    const bool overlapQ = d2 < threshold * threshold;
     
     return overlapQ;
 }
 
-bool BallsOverlapQ( const Int node_0, const Int node_1, const Real radius ) const
+bool BallsOverlapQ( const Int node_0, const Int node_1) const
 {
-    return BallsOverlapQ( NodeBallPtr(node_0), NodeBallPtr(node_1), radius );
+    return BallsOverlapQ(
+        NodeBallPtr(node_0), NodeBallPtr(node_1), hard_sphere_diam
+    );
 }
 
 int CheckJoints() const
@@ -152,7 +154,7 @@ int CheckJoints() const
         X_p_prev = transform(X_p_prev);
     }
     
-    if( (X_p_next - X_p_prev).SquaredNorm() <= r2 )
+    if( (X_p_next - X_p_prev).SquaredNorm() <= hard_sphere_squared_diam )
     {
         return 2;
     }
@@ -172,7 +174,7 @@ int CheckJoints() const
         X_q_next = transform(X_q_next);
     }
     
-    if( (X_q_next - X_q_prev).SquaredNorm() <= r2 )
+    if( (X_q_next - X_q_prev).SquaredNorm() <= hard_sphere_squared_diam )
     {
         return 3;
     }

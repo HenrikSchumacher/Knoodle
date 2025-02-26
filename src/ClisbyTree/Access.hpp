@@ -1,20 +1,20 @@
-//#########################################################################################
+//####################################################################################
 //##    Access methods
-//#########################################################################################
+//####################################################################################
 
 Int VertexCount() const
 {
     return LeafNodeCount();
 }
 
-Real Radius() const
+Real HardSphereDiameter() const
 {
-    return r;
+    return hard_sphere_diam;
 }
 
-Real SquaredRadius() const
+Real PrescibedEdgeLength() const
 {
-    return r2;
+    return prescribed_edge_length;
 }
 
 Int VertexNode( const Int vertex ) const

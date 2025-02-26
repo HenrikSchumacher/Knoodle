@@ -50,7 +50,7 @@ void ComputePivotTransform()
 
 Transform_T NodeTransform( const Int node ) const
 {
-    if constexpr ( perf_countersQ )
+    if constexpr ( countersQ )
     {
         ++load_counter;
     }
@@ -70,7 +70,7 @@ void UpdateNode( cref<Transform_T> f, const Int node )
     {
         f.TransformVector(NodeCenterPtr(node));
         
-        if constexpr ( perf_countersQ )
+        if constexpr ( countersQ )
         {
             ++mv_counter;
         }
@@ -92,7 +92,7 @@ void UpdateNode( cref<Transform_T> f, const Int node )
         {
             f.TransformTransform(NodeTransformPtr(node));
             
-            if constexpr ( perf_countersQ )
+            if constexpr ( countersQ )
             {
                 ++load_counter;
                 ++mv_counter;

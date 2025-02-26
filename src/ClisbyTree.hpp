@@ -2,6 +2,8 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
+//TODO: shorten N_state
+
 namespace KnotTools
 {
     template<
@@ -87,8 +89,8 @@ namespace KnotTools
         static constexpr Int BallDim      = AmbDim + 1;
 //        static constexpr Int NodeDim      = BallDim + TransformDim;
         
-//        static constexpr bool perf_countersQ = true;
-        static constexpr bool perf_countersQ = false;
+//        static constexpr bool countersQ = true;
+        static constexpr bool countersQ = false;
     
         
         enum class UpdateFlag_T : std::int_fast8_t
@@ -109,16 +111,14 @@ namespace KnotTools
         template<typename ExtReal, typename ExtInt>
         ClisbyTree(
             const ExtInt vertex_count_,
-            const ExtReal radius
+            const ExtReal hard_sphere_diam_
         )
-        :   Tree_T      { static_cast<Int>(vertex_count_)       }
-//        ,   N_data      { NodeCount(), NodeDim, 0               }
-        ,   N_transform { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_ball      { NodeCount(), BallDim, 0               }
-        ,   N_state     { NodeCount(), NodeState_T::Id          }
-//        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   r           { static_cast<Real>(radius)             }
-        ,   r2          { r * r                                 }
+        :   Tree_T                      { static_cast<Int>(vertex_count_)           }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0      }
+        ,   N_state                     { NodeCount(), NodeState_T::Id              }
+        ,   N_ball                      { NodeCount(), BallDim, 0                   }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
         {
             id.SetIdentity();
             SetToCircle();
@@ -129,16 +129,14 @@ namespace KnotTools
         ClisbyTree(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,
-            const ExtReal radius
+            const ExtReal hard_sphere_diam_
         )
-        :   Tree_T      { static_cast<Int>(vertex_count_)    }
-//        ,   N_data      { NodeCount(), NodeDim, 0            }
-        ,   N_transform { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_ball      { NodeCount(), BallDim, 0            }
-        ,   N_state     { NodeCount(), NodeState_T::Id       }
-//        ,   N_state     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   r           { static_cast<Real>(radius)          }
-        ,   r2          { r * r                              }
+        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_state                     { NodeCount(), NodeState_T::Id          }
+        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
         {
             id.SetIdentity();
             ReadVertexCoordinates( vertex_coords_ );
@@ -149,16 +147,16 @@ namespace KnotTools
         ClisbyTree(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,
-            const ExtReal radius,
+            const ExtReal hard_sphere_diam_,
             PRNG_T prng
         )
-        :   Tree_T          { static_cast<Int>(vertex_count_)       }
-        ,   N_transform     { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_ball          { NodeCount(), BallDim, 0               }
-        ,   N_state         { NodeCount(), NodeState_T::Id          }
-        ,   r               { static_cast<Real>(radius)             }
-        ,   r2              { r * r                                 }
-        ,   random_engine   { prng                                  }
+        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_state                     { NodeCount(), NodeState_T::Id          }
+        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
+        ,   random_engine               { prng                                  }
         {
             id.SetIdentity();
             ReadVertexCoordinates( vertex_coords_ );
@@ -194,13 +192,13 @@ namespace KnotTools
         
     private:
         
-//        NodeContainer_T N_data;
         NodeContainer_T N_transform;
-        NodeContainer_T N_ball;
         Tensor1<NodeState_T,Int> N_state;
+        NodeContainer_T N_ball;
         
-        Real r  = 0;                    // Hard sphere radius.
-        Real r2 = 0;                    // Squared hard sphere radius.
+        Real hard_sphere_diam           = 0;
+        Real hard_sphere_squared_diam   = 0;
+        Real prescribed_edge_length     = 1;
         
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
@@ -233,9 +231,6 @@ namespace KnotTools
         
         void ResetTransform( const Int node )
         {
-//            // Debugging
-//            ResetTransform( NodeTransformPtr(node) );
-            
             N_state[node] = NodeState_T::Id;
         }
         
@@ -551,13 +546,13 @@ namespace KnotTools
             Real min;
             Real max;
             
-            const Real r_inv = Inv(r);
+            const Real ell_inv = Inv(prescribed_edge_length);
             
             {
                 const V_T u ( &vertex_coordinates[0]              );
                 const V_T v ( &vertex_coordinates[AmbDim * (n-1)] );
                 
-                const Real deviation = Distance(u,v) * r_inv - Real(1);
+                const Real deviation = Distance(u,v) * ell_inv - Real(1);
                 
                 min = deviation;
                 max = deviation;
@@ -568,7 +563,7 @@ namespace KnotTools
                 const V_T u ( &vertex_coordinates[AmbDim * (i-1)] );
                 const V_T v ( &vertex_coordinates[AmbDim * i    ] );
                 
-                const Real deviation = Distance(u,v) * r_inv - Real(1);
+                const Real deviation = Distance(u,v) * ell_inv - Real(1);
                 
                 min = Min(min,deviation);
                 max = Max(max,deviation);

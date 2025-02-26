@@ -28,7 +28,7 @@ void BurnIn()
     
     {
         T_clisby.Tic<V2Q>();
-        Clisby_T T ( x.data(), n, radius, random_engine );
+        Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
         T_clisby.Toc<V2Q>();
         
         full_state = T.RandomEngineFullState();
