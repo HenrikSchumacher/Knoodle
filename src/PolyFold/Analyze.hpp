@@ -1,20 +1,20 @@
 private:
 
 
-std::string PDCodeString( mref<PD_T> PD ) const
+std::string PDCodeString( mref<PD_T> P ) const
 {
-    if( PD.CrossingCount() <= 0 )
+    if( P.CrossingCount() <= 0 )
     {
         return std::string();
     }
     
-    auto pdcode = PD.PDCode();
+    auto pdcode = P.PDCode();
     
     cptr<Int> a = pdcode.data();
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(PD.ProvablyMinimalQ());
+    s+= ToString(P.ProvablyMinimalQ());
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
@@ -27,7 +27,7 @@ std::string PDCodeString( mref<PD_T> PD ) const
 template<Size_T t0, int my_verbosity>
 int Analyze( const LInt i )
 {
-    (void)i;
+    analyze_begin(ToString(i));
     
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
@@ -52,12 +52,14 @@ int Analyze( const LInt i )
     if( pdQ )
     {
         T_link.Tic<V2Q>();
-        
-        Link_T L ( n );
+        if( force_deallocQ )
+        {
+            link_begin( ToString(i) );
+            L = Link_T( n );
+        }
         
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
-        
         T_link.Toc<V2Q>();
         
         T_intersection.Tic<V2Q>();
@@ -103,10 +105,8 @@ int Analyze( const LInt i )
         }
         
         T_pd.Tic<V2Q>();
-        
         // We delay the allocation until substantial parts of L have been deallocated.
-        PlanarDiagram PD( L );
-        
+        PD = PD_T( L );
         T_pd.Toc<V2Q>();
         
         // Delete remainder of L to make room for the simplification.
@@ -115,6 +115,7 @@ int Analyze( const LInt i )
             T_link_dealloc.Tic<V2Q>();
             L = Link_T();
             T_link_dealloc.Toc<V2Q>();
+            link_end( ToString(i) );
         }
         
         if constexpr ( V1Q )
@@ -125,7 +126,12 @@ int Analyze( const LInt i )
             log << std::flush;
         }
         
-        PD_list.clear();
+        std::vector<PD_T> PD_list;
+        
+        if( force_deallocQ )
+        {
+            pd_begin(ToString(i));
+        }
         
         T_simplify.Tic<V2Q>();
         PD.Simplify5( PD_list );
@@ -170,6 +176,7 @@ int Analyze( const LInt i )
             T_pd_dealloc.Tic<V2Q>();
             PD = PD_T();
             T_pd_dealloc.Toc<V2Q>();
+            pd_end(ToString(i));
         }
     }
     
@@ -227,5 +234,7 @@ int Analyze( const LInt i )
         log << "\n" + ct_tabs<t1> + "|>";
     }
 
+    analyze_end(ToString(i));
+    
     return 0;
 } // Analyze

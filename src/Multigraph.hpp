@@ -63,35 +63,35 @@ namespace KnotTools
         }
         
         
-//        // Copy constructor
-//        Multigraph( const Multigraph & other ) = default;
-//        
-//        friend void swap( Multigraph & A, Multigraph & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
-//            
-//            swap( A.vertex_count, B.vertex_count );
-//            swap( A.edges       , B.edges        );
-//        }
-//        
-//        // Move constructor
-//        Multigraph( Multigraph && other ) noexcept
-//        :   Multigraph()
-//        {
-//            swap(*this, other);
-//        }
-//
-//        /* Copy assignment operator */
-//        Multigraph & operator=( Multigraph other ) noexcept
-//        {   //                                     ^
-//            //                                     |
-//            // Use the copy constructor     -------+
-//            swap( *this, other );
-//            return *this;
-//        }
+        // Copy constructor
+        Multigraph( const Multigraph & other ) = default;
+        
+        friend void swap( Multigraph & A, Multigraph & B ) noexcept
+        {
+            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+            using std::swap;
+            
+            swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
+            
+            swap( A.vertex_count, B.vertex_count );
+            swap( A.edges       , B.edges        );
+        }
+        
+        // Move constructor
+        Multigraph( Multigraph && other ) noexcept
+        :   Multigraph()
+        {
+            swap(*this, other);
+        }
+
+        /* Copy assignment operator */
+        Multigraph & operator=( Multigraph other ) noexcept
+        {   //                                     ^
+            //                                     |
+            // Use the copy constructor     -------+
+            swap( *this, other );
+            return *this;
+        }
         
     private:
         

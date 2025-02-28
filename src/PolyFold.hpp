@@ -3,6 +3,11 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
+#ifdef POLYFOLD_SIGNPOSTS
+    #include <os/signpost.h>
+#endif
+
+
 // TODO: Write polygon to file every xxx steps.
 // TODO: Removed 0-initialization in Clisby tree.
 
@@ -70,15 +75,12 @@ namespace KnotTools
 
         IntersectionFlagCounts_T acc_intersection_flag_counts;
         
-        std::vector<PD_T> PD_list;
-        
         TimeInterval T_run;
         
         double total_timing  = 0;
         double burn_in_time  = 0;
         double total_sampling_time = 0;
         double total_analysis_time = 0;
-        
         
         PRNG_T random_engine;
         
@@ -96,6 +98,143 @@ namespace KnotTools
         bool squared_gyradiusQ         = false;
         bool pdQ                       = false;
 
+        Clisby_T T;
+        Link_T   L;
+        PD_T    PD;
+        
+    private:
+
+#ifdef POLYFOLD_SIGNPOSTS
+        
+        os_log_t log_handle = os_log_create("PolyFols", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
+        
+        os_signpost_id_t clisby_signpost  = os_signpost_id_generate(log_handle);
+        os_signpost_id_t link_signpost    = os_signpost_id_generate(log_handle);
+        os_signpost_id_t pd_signpost      = os_signpost_id_generate(log_handle);
+        
+        os_signpost_id_t sample_signpost  = os_signpost_id_generate(log_handle);
+        os_signpost_id_t analyze_signpost = os_signpost_id_generate(log_handle);
+        
+        void clisby_begin( const std::string & s = "" )
+        {
+            os_signpost_interval_begin(log_handle, clisby_signpost, "Clisby_T", "%s", s.c_str() );
+        }
+        
+        void clisby_end( const std::string & s = "" )
+        {
+            os_signpost_interval_end(
+                log_handle, clisby_signpost, "Clisby_T", "%s", s.c_str()
+            );
+        }
+        
+        void link_begin( const std::string & s = "" )
+        {
+            os_signpost_interval_begin(
+                log_handle, link_signpost, "Link_T", "%s", s.c_str()
+            );
+        }
+        
+        void link_end( const std::string & s = "" )
+        {
+            os_signpost_interval_end(
+                log_handle, link_signpost, "Link_T", "%s", s.c_str()
+            );
+        }
+        
+        void pd_begin( const std::string & s = "" )
+        {
+            os_signpost_interval_begin(
+                log_handle, pd_signpost, "PD_T", "%s", s.c_str()
+            );
+        }
+        
+        void pd_end( const std::string & s = "" )
+        {
+            os_signpost_interval_end(
+                log_handle, pd_signpost, "PD_T", "%s", s.c_str()
+            );
+        }
+        
+        void sample_begin( const std::string & s = "" )
+        {
+            os_signpost_interval_begin(
+                log_handle, sample_signpost, "Sample", "%s", s.c_str()
+            );
+        }
+        
+        void sample_end( const std::string & s = "" )
+        {
+            os_signpost_interval_end(
+                log_handle, sample_signpost, "Sample", "%s", s.c_str()
+            );
+        }
+        
+        void analyze_begin( const std::string & s = "" )
+        {
+            os_signpost_interval_begin(
+                log_handle, analyze_signpost, "Analyze", "%s", s.c_str()
+            );
+        }
+        
+        void analyze_end( const std::string & s = "" )
+        {
+            os_signpost_interval_end(
+                log_handle, analyze_signpost, "Analyze", "%s", s.c_str()
+            );
+        }
+
+#else
+        
+        void clisby_begin( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void clisby_end( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void link_begin( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void link_end( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void pd_begin( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void pd_end( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void sample_begin( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void sample_end( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void analyze_begin( const std::string & s = "" )
+        {
+            (void)s;
+        }
+        
+        void analyze_end( const std::string & s = "" )
+        {
+            (void)s;
+        }
+#endif
         
     public:
         

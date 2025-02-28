@@ -175,6 +175,102 @@ namespace KnotTools
         }
 
         ~ClisbyTree() = default;
+    
+//        // Copy constructor
+        ClisbyTree( const ClisbyTree & other )
+        :   Tree_T                      { other                             }
+        ,   N_transform                 { other.N_transform                 }
+        ,   N_state                     { other.N_state                     }
+        ,   N_ball                      { other.N_ball                      }
+        ,   hard_sphere_diam            { other.hard_sphere_diam            }
+        ,   hard_sphere_squared_diam    { other.hard_sphere_squared_diam    }
+        ,   prescribed_edge_length      { other.prescribed_edge_length      }
+        ,   p                           { other.p                           }
+        ,   q                           { other.q                           }
+        ,   witness_0                   { other.witness_0                   }
+        ,   witness_1                   { other.witness_1                   }
+        ,   theta                       { other.theta                       }
+        ,   X_p                         { other.X_p                         }
+        ,   X_q                         { other.X_q                         }
+        ,   id                          { other.id                          }
+        ,   transform                   { other.transform                   }
+        ,   seed                        { other.seed                        }
+        ,   random_engine               { other.random_engine               }
+        ,   call_counters               { other.call_counters               }
+        ,   mid_changedQ                { other.mid_changedQ                }
+        ,   transforms_pushedQ          { other.transforms_pushedQ          }
+        {}
+
+        inline friend void swap( ClisbyTree & A, ClisbyTree & B) noexcept
+        {
+            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+            using std::swap;
+            
+            if( &A == &B )
+            {
+                wprint( std::string("An object of type ") + ClassName() + " has been swapped to itself.");
+            }
+            else
+            {
+                swap( static_cast<Tree_T &>(A), static_cast<Tree_T &>(B) );
+                
+                swap( A.N_transform,                B.N_transform );
+                swap( A.N_state,                    B.N_state );
+                swap( A.N_ball,                     B.N_ball );
+                
+                swap( A.hard_sphere_diam,           B.hard_sphere_diam );
+                swap( A.hard_sphere_squared_diam,   B.hard_sphere_squared_diam );
+                swap( A.prescribed_edge_length,     B.prescribed_edge_length );
+                
+                swap( A.p,                          B.p );
+                swap( A.q,                          B.q );
+                
+                swap( A.witness_0,                  B.witness_0 );
+                swap( A.witness_1,                  B.witness_1 );
+                
+                swap( A.theta,                      B.theta );
+                swap( A.X_p,                        B.X_p );
+                swap( A.X_q,                        B.X_q );
+                swap( A.id,                         B.id );
+                swap( A.transform,                  B.transform );
+                
+                swap( A.seed,                       B.seed );
+                swap( A.random_engine,              B.random_engine );
+                swap( A.call_counters,              B.call_counters );
+                
+                swap( A.mid_changedQ,               B.mid_changedQ );
+                swap( A.transforms_pushedQ,         B.transforms_pushedQ );
+            }
+        }
+    
+//        /* Copy assignment operator */
+//        ClisbyTree & operator=( ClisbyTree other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+
+        // Move constructor
+        ClisbyTree( ClisbyTree && other ) noexcept
+        :   ClisbyTree()
+        {
+            swap(*this, other);
+        }
+
+
+        /* Move-assignment operator */
+        mref<ClisbyTree> operator=( ClisbyTree && other ) noexcept
+        {
+            if( this == &other )
+            {
+                wprint("An object of type " + ClassName() + " has been move-assigned to itself.");
+            }
+            else
+            {
+                swap( *this, other );
+            }
+            return *this;
+        }
        
     public:
         

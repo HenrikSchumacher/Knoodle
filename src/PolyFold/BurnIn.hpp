@@ -28,48 +28,51 @@ void BurnIn()
     
     typename Clisby_T::CallCounters_T call_counters;
     
+    if ( force_deallocQ )
     {
+        clisby_begin( "BurnI-n" );
         T_clisby.Tic<V2Q>();
-        Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
+        T = Clisby_T ( x.data(), n, hard_sphere_diam, random_engine );
         T_clisby.Toc<V2Q>();
-        
-        full_state = T.RandomEngineFullState();
-        
-        T_fold.Tic<V2Q>();
-        auto counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
-        T_fold.Toc<V2Q>();
-        
-        attempt_count = counts.Total();
-        accept_count = counts[0];
-        
-        total_attempt_count += attempt_count;
-        total_accept_count += accept_count;
-        
-        burn_in_attempt_count = attempt_count;
-        
-        burn_in_accept_count = accept_count;
-        
-        T_write.Tic<V2Q>();
-        T.WriteVertexCoordinates( x.data() );
-        T_write.Toc<V2Q>();
-        
-        random_engine = T.GetRandomEngine();
-        
-        e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
-        
-        bytes = T.AllocatedByteCount();
-        
-        if constexpr ( V2Q && Clisby_T::countersQ )
-        {
-            call_counters = T.CallCounters();
-        }
-        
-        if( force_deallocQ )
-        {
-            T_dealloc.Tic<V2Q>();
-            T = Clisby_T();
-            T_dealloc.Toc<V2Q>();
-        }
+    }
+    
+    full_state = T.RandomEngineFullState();
+    
+    T_fold.Tic<V2Q>();
+    auto counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
+    T_fold.Toc<V2Q>();
+    
+    attempt_count = counts.Total();
+    accept_count = counts[0];
+    
+    total_attempt_count += attempt_count;
+    total_accept_count += accept_count;
+    
+    burn_in_attempt_count = attempt_count;
+    
+    burn_in_accept_count = accept_count;
+    
+    T_write.Tic<V2Q>();
+    T.WriteVertexCoordinates( x.data() );
+    T_write.Toc<V2Q>();
+    
+    random_engine = T.GetRandomEngine();
+    
+    e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
+    
+    bytes = T.AllocatedByteCount();
+    
+    if constexpr ( V2Q && Clisby_T::countersQ )
+    {
+        call_counters = T.CallCounters();
+    }
+    
+    if( force_deallocQ )
+    {
+        T_dealloc.Tic<V2Q>();
+        T = Clisby_T();
+        T_dealloc.Toc<V2Q>();
+        clisby_end( "BurnI-n" );
     }
     
     T_burn_in.Toc();

@@ -2,7 +2,9 @@
 #include <iterator>
 
 // see https://www.jviotti.com/2022/02/21/emitting-signposts-to-instruments-on-macos-using-cpp.html
-#include <os/signpost.h>
+
+
+#define POLYFOLD_SIGNPOSTS
 
 //#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
 

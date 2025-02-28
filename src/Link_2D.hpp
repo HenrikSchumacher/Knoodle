@@ -111,6 +111,8 @@ namespace KnotTools
         
         Link_2D() = default;
         
+        Link_2D( const Link_2D & other) = default;
+        
         virtual ~Link_2D() override = default;
         
         

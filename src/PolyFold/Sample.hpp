@@ -35,6 +35,7 @@ exit:
 template<Size_T t0, int my_verbosity, bool checksQ>
 int Sample( const LInt i )
 {
+    sample_begin(ToString(i));
     
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
@@ -65,55 +66,57 @@ int Sample( const LInt i )
     
     TimeInterval T_sample (0);
 
+    T_clisby.Tic<V2Q>();
+    if ( force_deallocQ )
     {
-        T_clisby.Tic<V2Q>();
-        Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
-        T_clisby.Toc<V2Q>();
-        
-        full_state = T.RandomEngineFullState();
-        
-        T_fold.Tic<V2Q>();
-        // Do polygon folds until we have done at least `skip` accepted steps.
-        counts = T.template FoldRandom<checksQ>(skip);
-        T_fold.Toc<V2Q>();
-        
-        attempt_count = counts.Total();
-        accept_count = counts[0];
-        
-        total_attempt_count += attempt_count;
-        total_accept_count += accept_count;
-        
-        T_write.Tic<V2Q>();
-        T.WriteVertexCoordinates( x.data() );
-        T_write.Toc<V2Q>();
-        
-        random_engine = T.GetRandomEngine();
-        
-        if( V2Q || (i + 1 == N) )
-        {
-            e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
-        }
-        
-        T_sample.Toc();
-        
-        sampling_time = T_sample.Duration();
-        
-        total_sampling_time += sampling_time;
-        
-        bytes = T.AllocatedByteCount();
-        
-
-        if constexpr ( V2Q && Clisby_T::countersQ )
-        {
-            call_counters = T.CallCounters();
-        }
-        
-        if( force_deallocQ )
-        {
-            T_dealloc.Tic<V1Q>();
-            T = Clisby_T();
-            T_dealloc.Toc<V1Q>();
-        }
+        clisby_begin( ToString(i) );
+        T = Clisby_T( x.data(), n, hard_sphere_diam, random_engine );
+    }
+    T_clisby.Toc<V2Q>();
+    
+    full_state = T.RandomEngineFullState();
+    
+    T_fold.Tic<V2Q>();
+    // Do polygon folds until we have done at least `skip` accepted steps.
+    counts = T.template FoldRandom<checksQ>(skip);
+    T_fold.Toc<V2Q>();
+    
+    attempt_count = counts.Total();
+    accept_count = counts[0];
+    
+    total_attempt_count += attempt_count;
+    total_accept_count += accept_count;
+    
+    T_write.Tic<V2Q>();
+    T.WriteVertexCoordinates( x.data() );
+    T_write.Toc<V2Q>();
+    
+    random_engine = T.GetRandomEngine();
+    
+    if( V2Q || (i + 1 == N) )
+    {
+        e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
+    }
+    
+    T_sample.Toc();
+    
+    sampling_time = T_sample.Duration();
+    
+    total_sampling_time += sampling_time;
+    
+    bytes = T.AllocatedByteCount();
+    
+    if constexpr ( V2Q && Clisby_T::countersQ )
+    {
+        call_counters = T.CallCounters();
+    }
+    
+    if( force_deallocQ )
+    {
+        T_dealloc.Tic<V1Q>();
+        T = Clisby_T();
+        T_dealloc.Toc<V1Q>();
+        clisby_end( ToString(i) );
     }
     
     if constexpr ( V1Q )
@@ -191,9 +194,12 @@ int Sample( const LInt i )
         log << std::flush;
     }
         
+    sample_end(ToString(i));
+    
     int err = Analyze<t0,my_verbosity>(i);
         
     log << "\n" + ct_tabs<t0> + "|>" << std::flush;
+    
     
     return err;
     
