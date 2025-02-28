@@ -29,8 +29,7 @@ namespace KnotTools
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
         
-        AlexanderStrandMatrix()
-        {}
+        AlexanderStrandMatrix() = default;
       
         ~AlexanderStrandMatrix() = default;
     

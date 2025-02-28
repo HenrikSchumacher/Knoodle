@@ -2,7 +2,8 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
-//TODO: shorten N_state
+//TODO: Replace Link_T by Knot_T. (Saves mem.)
+//TODO: _Compute_ NodeRange more efficiently.
 
 namespace KnotTools
 {
@@ -174,11 +175,7 @@ namespace KnotTools
         }
 
         ~ClisbyTree() = default;
-    
-        // TODO: Copy + move semantics.
-    
-//        ClisbyTree( const ClisbyTree & other ) = default;
-        
+       
     public:
         
         using Tree_T::MaxDepth;

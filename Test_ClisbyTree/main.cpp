@@ -4,6 +4,8 @@
 // see https://www.jviotti.com/2022/02/21/emitting-signposts-to-instruments-on-macos-using-cpp.html
 #include <os/signpost.h>
 
+//#define TOOLS_DEACTIVATE_MATRIX_EXTENSIONS
+
 
 #define dump(x) TOOLS_DUMP(x);
 #define mem_dump(x) TOOLS_MEM_DUMP(x);
@@ -27,11 +29,11 @@ using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
+//    float = 
+    
     const Time prog_start_time = Clock::now();
 
     PolyFold_T polyfold ( argc, argv );
-
-    
     
     const Time prog_stop_time = Clock::now();
     

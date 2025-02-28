@@ -17,7 +17,7 @@ public:
         {
             TOOLS_PTIC(ClassName()+"::FindCollisions");
             
-            FindCollisions_implementation()
+            FindCollisions_implementation();
             
             TOOLS_PTOC(ClassName()+"::FindCollisions");
         }

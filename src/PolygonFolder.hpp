@@ -31,10 +31,10 @@ namespace KnotTools
         PolygonFolder() = default;
         
         template<typename ExtReal, typename ExtInt>
-        PolygonFolder( const ExtInt vertex_count_, const ExtReal radius_  )
+        PolygonFolder( const ExtInt vertex_count_, const ExtReal hard_sphere_diam_  )
         :   n       { int_cast<Int>(vertex_count_) }
-        ,   r       { static_cast<Real>(radius_)   }
-        ,   r2      { r * r                        }
+        ,   hard_sphere_diam { static_cast<Real>(hard_sphere_diam_) }
+        ,   hard_sphere_squared_diam { hard_sphere_diam * hard_sphere_diam }
         ,   X       { n, AmbDim                    }
         ,   Y       { n, AmbDim                    }
         ,   P_tree  { n                            } // for allocating P_boxes and Q_boxes.
@@ -56,8 +56,8 @@ namespace KnotTools
         
         Int  n         = 0;
         Int  tail_size = 0;
-        Real r         = 1;
-        Real r2        = 1;
+        Real hard_sphere_diam         = 1;
+        Real hard_sphere_squared_diam = 1;
          
         // Buffer for the polygons's coordiantes.
         Tensor2<Real,Int> X;
@@ -101,9 +101,9 @@ namespace KnotTools
             return X.Dimension(0);
         }
         
-        Real Radius() const
+        Real HardSphereDiameter() const
         {
-            return r;
+            return hard_sphere_diam;
         }
         
         template<typename ExtReal>
@@ -808,7 +808,7 @@ namespace KnotTools
             {
                 const Real dist_squared = Tree_T::BoxBoxSquaredDistance(this->P_boxes,i,this->Q_boxes,j);
                 
-                const bool overlappingQ = (dist_squared < r2);
+                const bool overlappingQ = (dist_squared < hard_sphere_squared_diam);
                 
                 if( overlappingQ )
                 {

@@ -172,7 +172,7 @@ void PullTransforms( const Int from, const Int to )
     }
     else
     {
-        PullTransforms_Recurssive(from,to);
+        PullTransforms_Recursive(from,to);
     }
 }
 

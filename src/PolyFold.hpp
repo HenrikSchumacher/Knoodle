@@ -26,8 +26,14 @@ namespace KnotTools
         
         static constexpr Int AmbDim = 3;
 
+        using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt,
+            1, // use_clang_matrixQ
+            1, // use_quaternionsQ
+            0, // countersQ
+            0  // use_manual_stackQ
+        >;
+        
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-        using Clisby_T                  = ClisbyTree<AmbDim,Real,Int,LInt,1,1,0,0>;
         using Link_T                    = Link_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using PRNG_T                    = typename Clisby_T::PRNG_T;

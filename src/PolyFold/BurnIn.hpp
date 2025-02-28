@@ -26,6 +26,8 @@ void BurnIn()
     
     TimeInterval T_burn_in (0);
     
+    typename Clisby_T::CallCounters_T call_counters;
+    
     {
         T_clisby.Tic<V2Q>();
         Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
@@ -57,6 +59,11 @@ void BurnIn()
         
         bytes = T.AllocatedByteCount();
         
+        if constexpr ( V2Q && Clisby_T::countersQ )
+        {
+            call_counters = T.CallCounters();
+        }
+        
         if( force_deallocQ )
         {
             T_dealloc.Tic<V2Q>();
@@ -82,6 +89,15 @@ void BurnIn()
         kv<t2,0>("Byte Count", bytes );
     if constexpr ( V2Q )
     {
+        if constexpr ( Clisby_T::countersQ )
+        {
+            log << ",\n" << ct_tabs<t2> << "\"Call Counts\" -> <|";
+                kv<t3,0>("Transformation Loads", call_counters.load_transform);
+                kv<t3>("Matrix-Matrix Multiplications", call_counters.mm);
+                kv<t3>("Matrix-Vector Multiplications", call_counters.mv);
+                kv<t3>("Ball Overlap Checks", call_counters.overlap);
+            log << "\n" << ct_tabs<t2> << "|>";
+        }
         log << ",\n" << ct_tabs<t2> << "\"PCG64\" -> <|";
             kv<t3,0>("Multiplier", full_state.multiplier);
             kv<t3>("Increment" , full_state.increment );

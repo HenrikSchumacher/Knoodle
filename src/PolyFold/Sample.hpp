@@ -60,6 +60,9 @@ int Sample( const LInt i )
     FlagCountVec_T counts;
     PRNG_FullState_T full_state;
     
+    typename Clisby_T::CallCounters_T call_counters;
+    
+    
     TimeInterval T_sample (0);
     
     {
@@ -99,21 +102,18 @@ int Sample( const LInt i )
         
         bytes = T.AllocatedByteCount();
         
-        dump(T.MatrixMatrixCounter());
-        dump(T.MatrixVectorCounter());
-        
 
+        if constexpr ( V2Q && Clisby_T::countersQ )
+        {
+            call_counters = T.CallCounters();
+        }
+        
         if( force_deallocQ )
         {
             T_dealloc.Tic<V1Q>();
             T = Clisby_T();
             T_dealloc.Toc<V1Q>();
         }
-        
-        dump(T.MatrixMatrixCounter());
-        dump(T.MatrixVectorCounter());
-        
-
     }
     
     if constexpr ( V1Q )
@@ -131,6 +131,15 @@ int Sample( const LInt i )
             kv<t2,0>("Byte Count", bytes );
         if constexpr ( V2Q )
         {
+            if constexpr ( Clisby_T::countersQ )
+            {
+                log << ",\n" << ct_tabs<t1> << "\"Call Counts\" -> <|";
+                    kv<t2,0>("Transformation Loads", call_counters.load_transform);
+                    kv<t2>("Matrix-Matrix Multiplications", call_counters.mm);
+                    kv<t2>("Matrix-Vector Multiplications", call_counters.mv);
+                    kv<t2>("Ball Overlap Checks", call_counters.overlap);
+                log << "\n" << ct_tabs<t1> << "|>";
+            }
             kv<t2>("Clisby Flag Counts", counts );
         }
         log << "\n" << ct_tabs<t1> << "|>";
@@ -146,7 +155,6 @@ int Sample( const LInt i )
                 kv<t2>("Deallocate Clisby Tree", T_dealloc.Duration());
             }
             log << "\n" << ct_tabs<t1> << "|>";
-
             log << ",\n" << ct_tabs<t1> << "\"PCG64\" -> <|";
                 kv<t2,0>("Multiplier", full_state.multiplier);
                 kv<t2>("Increment" , full_state.increment );

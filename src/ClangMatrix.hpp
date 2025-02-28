@@ -35,7 +35,7 @@ namespace KnotTools
         :   A ( B )
         {}
         
-//        ~ClangMatrix() = default;
+        ~ClangMatrix() = default;
 
     private:
         

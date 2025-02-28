@@ -17,6 +17,23 @@ namespace KnotTools
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;
         
         using UInt = Scalar::Unsigned<Int>;
+
+        struct Node
+        {
+            Int idx    = 0;
+            Int depth  = 0;
+            Int column = 0;
+            Int begin  = 0;
+            Int end    = 0;
+            
+            Node( Int idx_, Int depth_, Int column_, Int begin_, Int end_ )
+            : idx       { idx_      }
+            , depth     { depth_    }
+            , column    { column_   }
+            , begin     { begin_    }
+            , end       { end_      }
+            {}
+        };
         
         CompleteBinaryTree() = default;
         
@@ -96,6 +113,76 @@ namespace KnotTools
         // A full binary tree with depth = actual_depth has this many leaf nodes.
         Int regular_leaf_node_count = 0;
         Int last_row_count          = 0;
+
+
+
+
+        Node Left( const Node node) const
+        {
+            
+            Int m = node.begin; // TODO: Correct this!
+            
+            return Node(
+                2 * node.idx + 1,
+                node.depth + 1,
+                2 * node.column,
+                node.begin,
+                m
+            );
+        }
+
+        Node Right( const Node node) const
+        {
+            Int m = node.end; // TODO: Correct this!
+            
+            return Node(
+                2 * node.idx + 2,
+                node.depth + 1,
+                2 * node.column + 1,
+                m,
+                node.end
+            );
+        }
+        
+        std::pair<Node,Node> Children( const Node node) const
+        {
+            Int m = node.end; // TODO: Correct this!
+            
+            return std::pair<Node,Node>(
+                Node(
+                    2 * node.idx + 1,
+                    node.depth + 1,
+                    2 * node.column,
+                    node.begin,
+                    m
+                    )
+                ,
+                Node(
+                    2 * node.idx + 2,
+                    node.depth + 1,
+                    2 * node.column + 1,
+                    m,
+                    node.end
+                )
+            );
+        }
+        
+//        Node Parent( const Node node) const
+//        {
+//            // TODO: Correct this!
+//            
+//            const bool evenQ = node.idx | Int(1);
+//            
+//            Int m = evenQ ? node.end : node.begin;
+//
+//            return Node(
+//                ( node.idx - 1 )/2,
+//                node.depth - 1,
+//                node.column / 2,
+//                evenQ ? node.begin : m,
+//                evenQ ? m          : node.end
+//            );
+//        }
         
     public:
         
@@ -183,29 +270,45 @@ namespace KnotTools
             }
             else
             {
-                const Int regular_end   = RegularLeafNodeCount(i) * (Column(i) + 1);
+                const Int regular_end = RegularLeafNodeCount(i) * (Column(i) + 1);
                 
                 return regular_end - (Ramp(regular_end - last_row_count) >> 1);
             }
         }
-        
-        inline std::pair<Int,Int> NodeRange( const Int i) const
+
+        inline std::pair<Int,Int> ComputeNodeRange( const Int i ) const
         {
+            const Int reg_leaf_count = RegularLeafNodeCount(i);
+            const Int regular_begin  = reg_leaf_count * Column(i);
+            const Int regular_end    = regular_begin + reg_leaf_count;
             
+            return {
+                regular_begin - (Ramp(regular_begin - last_row_count) >> 1),
+                regular_end   - (Ramp(regular_end   - last_row_count) >> 1)
+            };
+        }
+        
+        inline std::pair<Int,Int> ComputeNodeRange( const Int depth, const Int column ) const
+        {
+            const Int reg_leaf_count = regular_leaf_node_count >> depth;
+            const Int reg_begin      = reg_leaf_count * (column + 0);
+            const Int reg_end        = reg_leaf_count * (column + 1);
+            
+            return {
+                reg_begin - (Ramp(reg_begin - last_row_count) >> 1),
+                reg_end   - (Ramp(reg_end   - last_row_count) >> 1)
+            };
+        }
+        
+        inline std::pair<Int,Int> NodeRange( const Int i ) const
+        {
             if constexpr ( precompute_rangesQ )
             {
                 return { N_ranges.data()[2 * i + 0], N_ranges.data()[2 * i + 1] };
             }
             else
             {
-                const Int reg_leaf_count = RegularLeafNodeCount(i);
-                const Int regular_begin  = reg_leaf_count * Column(i);
-                const Int regular_end    = regular_begin + reg_leaf_count;
-                
-                return {
-                    regular_begin - (Ramp(regular_begin - last_row_count) >> 1),
-                    regular_end   - (Ramp(regular_end   - last_row_count) >> 1)
-                };
+                return ComputeNodeRange(i);
             }
         }
         

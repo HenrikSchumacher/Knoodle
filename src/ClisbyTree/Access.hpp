@@ -63,6 +63,16 @@ mref<Tensor1<NodeState_T,Int>> NodeStates()
     return N_state;
 }
 
+cref<NodeState_T> NodeState( const Int node ) const
+{
+    return N_state[node];
+}
+
+mref<NodeState_T> NodeState( const Int node )
+{
+    return N_state[node];
+}
+
 cptr<Real> NodeTransformPtr( const Int node ) const
 {
     return &N_transform.data()[TransformDim * node];
@@ -171,17 +181,22 @@ Int Witness( const bool i ) const
 }
 
 
-Size_T MatrixMatrixCounter() const
-{
-    return call_counters.mm;
-}
+//Size_T MatrixMatrixCounter() const
+//{
+//    return call_counters.mm;
+//}
+//
+//Size_T MatrixVectorCounter() const
+//{
+//    return call_counters.mv;
+//}
+//
+//Size_T TransformLoadCounter() const
+//{
+//    return call_counters.load_transform;
+//}
 
-Size_T MatrixVectorCounter() const
+CallCounters_T CallCounters()
 {
-    return call_counters.mv;
-}
-
-Size_T TransformLoadCounter() const
-{
-    return call_counters.load_transform;
+    return call_counters;
 }
