@@ -542,7 +542,7 @@ namespace KnotTools
 
         static std::string ClassName()
         {
-            return std::string("Link")+"<"+TypeName<Int>+">";
+            return ct_string("Link") + "<" + TypeName<Int> + ">";
         }
     };
     

@@ -33,7 +33,7 @@ namespace KnotTools
         using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
         using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
-//        using Vector2_T      = Tiny::Vector<2,Real,Int>;
+        using Vector2_T      = Tiny::Vector<2,Real,Int>;
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
         
         using EContainer_T   = typename Tree3_T::EContainer_T;
@@ -46,6 +46,8 @@ namespace KnotTools
         using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
         
         //        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
+        
+        static constexpr Int AmbDim = 3;
         
         template<typename Int>
         friend class PlanarDiagram;
@@ -334,49 +336,29 @@ namespace KnotTools
 //            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
 //        }
         
-        
-        void Rotate()
-        {
-            cptr<Int> edge_tails = edges.data(0);
-            cptr<Int> edge_tips  = edges.data(1);
-            
-            for( Int edge = 0; edge < edge_count; ++edge )
-            {
-                const Int i = edge_tails[edge];
-                const Int j = edge_tips [edge];
-                
-                // TODO: There is too much copying here. Remove it.
-                
-                const Vector3_T x ( edge_coords.data(edge,0) );
-                const Vector3_T y ( edge_coords.data(edge,1) );
-                
-                const Vector3_T Rx = Dot( R, x );
-                const Vector3_T Ry = Dot( R, y );
-                
-                Rx.Write( edge_coords.data(edge,0) );
-                Ry.Write( edge_coords.data(edge,1) );
-            }
-        }
-        
-    private:
-        
-        void CountDegenerateEdges()
-        {
-            degenerate_edge_count = 0;
-            
-            Vector3_T x;
-            Vector3_T y;
-            
-            for( Int edge = 0; edge < edge_count; ++edge )
-            {
-                x.Read( edge_coords.data(edge,0) );
-                y.Read( edge_coords.data(edge,1) );
-                
-                const Real d2 = SquaredDistance(x,y);
-                
-                degenerate_edge_count += (d2 <= Real(0));
-            }
-        }
+//        
+//        void Rotate()
+//        {
+//            cptr<Int> edge_tails = edges.data(0);
+//            cptr<Int> edge_tips  = edges.data(1);
+//            
+//            for( Int edge = 0; edge < edge_count; ++edge )
+//            {
+//                const Int i = edge_tails[edge];
+//                const Int j = edge_tips [edge];
+//                
+//                // TODO: There is too much copying here. Remove it.
+//                
+//                const Vector3_T x ( edge_coords.data(edge,0) );
+//                const Vector3_T y ( edge_coords.data(edge,1) );
+//                
+//                const Vector3_T Rx = Dot( R, x );
+//                const Vector3_T Ry = Dot( R, y );
+//                
+//                Rx.Write( edge_coords.data(edge,0) );
+//                Ry.Write( edge_coords.data(edge,1) );
+//            }
+//        }
         
     public:
         
@@ -391,8 +373,16 @@ namespace KnotTools
         }
         
 #include "Link_2D/FindIntersections_DFS.hpp"
+#include "Link_2D/CountDegenerateEdges.hpp"
         
     public:
+        
+        void ComputeBoundingBoxes()
+        {
+            TOOLS_PTIC(ClassName() + "ComputeBoundingBoxes<2,3>");
+            T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
+            TOOLS_PTOC(ClassName() + "ComputeBoundingBoxes<2,3>");
+        }
         
         template<bool printQ = true> // whether to print errors and warnings
         [[nodiscard]] int FindIntersections()
@@ -407,9 +397,8 @@ namespace KnotTools
             // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
             // enties only via operator(i,j,k), so this is safe!
 
-            TOOLS_PTIC("ComputeBoundingBoxes<2,3>");
-            T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            TOOLS_PTOC("ComputeBoundingBoxes<2,3>");
+            ComputeBoundingBoxes();
+            
             
             CountDegenerateEdges();
             
@@ -572,6 +561,16 @@ namespace KnotTools
             return edge_coords;
         }
         
+        Vector2_T EdgeVector2( const Int edge, const bool k ) const
+        {
+            return Vector2_T( &edge_coords.data()[2 * AmbDim * edge + AmbDim * k] );
+        }
+        
+        Vector3_T EdgeVector3( const Int edge, const bool k ) const
+        {
+            return Vector2_T( &edge_coords.data()[2 * AmbDim * edge + AmbDim * k] );
+        }
+                             
         cref<BContainer_T> BoundingBoxes() const
         {
             return box_coords;
@@ -640,27 +639,30 @@ namespace KnotTools
             return sizeof(Link_2D) + AllocatedByteCount();
         }
         
-        std::string AllocatedByteCountString() const
+        template<int t0>
+        std::string AllocatedByteCountDetails() const
         {
+            constexpr int t1 = t0 + 1;
             return
-                ClassName() + " allocations \n"
-                + "\t" + TOOLS_MEM_DUMP_STRING(T)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::edges)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
-                + "\t" + TOOLS_MEM_DUMP_STRING(edge_ctr)
-                + "\t" + TOOLS_MEM_DUMP_STRING(edge_coords)
-                + "\t" + TOOLS_MEM_DUMP_STRING(box_coords)
-                + "\t" + TOOLS_MEM_DUMP_STRING(edge_intersections)
-                + "\t" + TOOLS_MEM_DUMP_STRING(edge_times)
-                + "\t" + TOOLS_MEM_DUMP_STRING(edge_overQ);
+                ct_string("<|")
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_overQ)
+                + ( "\n" + ct_tabs<t0> + "|>");
         }
         
         static std::string ClassName()
         {
-            return std::string("Link_2D") 
+            return ct_string("Link_2D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<SInt>

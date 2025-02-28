@@ -223,9 +223,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClangMatrix")
-                + "<" + ToString(M)
-                + "," + ToString(N)
+            return ct_string("ClangMatrix")
+                + "<" + to_ct_string(M)
+                + "," + to_ct_string(N)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

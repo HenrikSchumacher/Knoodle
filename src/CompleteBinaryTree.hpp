@@ -449,9 +449,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CompleteBinaryTree")
+            return ct_string("CompleteBinaryTree")
                 + "<" + TypeName<Int>
-                + "," + ToString(precompute_rangesQ)
+                + "," + to_ct_string(precompute_rangesQ)
                 + ">";
         }
 

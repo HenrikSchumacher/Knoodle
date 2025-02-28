@@ -432,9 +432,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ArcSimplifier")
+            return ct_string("ArcSimplifier")
                 + "<" + TypeName<Int>
-                + "," + ToString(mult_compQ) + ">";
+                + "," + to_ct_string(mult_compQ) + ">";
         }
 
     }; // class ArcSimplifier

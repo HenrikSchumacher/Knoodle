@@ -180,7 +180,7 @@ namespace KnotTools
         template<Int point_count, Int dimP>
         void ComputeBoundingBoxes( cref<EContainer_T> E, mref<BContainer_T> B )
         {
-            ComputeBoundingBoxes<point_count,dimP>( E.data(), B.data() );
+            ComputeBoundingBoxes<point_count,dimP,point_count*dimP>( E.data(), B.data() );
         }
         
         static constexpr bool BoxesIntersectQ( const cptr<BReal> B_i, const cptr<BReal> B_j )
@@ -271,15 +271,17 @@ namespace KnotTools
             return sizeof(AABBTree) + AllocatedByteCount();
         }
         
+    public:
+        
         static std::string ClassName()
         {
-            return std::string("AABBTree")
-                + "<" + ToString(AmbDim)
-                + "," + TypeName<Real>
-                + "," + TypeName<Int>
-                + "," + TypeName<BReal>
-                + "," + ToString(precompute_rangesQ);
-                + ">";
+            return ct_string("AABBTree")
+            + "<" + to_ct_string(AmbDim)
+            + "," + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<BReal>
+            + "," + to_ct_string(precompute_rangesQ)
+            + ">";
         }
 
     }; // AABBTree

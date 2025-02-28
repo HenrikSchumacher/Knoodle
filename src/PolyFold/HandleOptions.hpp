@@ -28,6 +28,7 @@ void HandleOptions( int argc, char** argv )
         ("low-mem,m", "force deallocation of large data structures; this will be a bit slower but peak memory will be less")
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
+        ("no-checks", "perform folding without checks for overlap of hard spheres")
 //        ("print-polygon,p", po::value<LInt>(), "write polygon to file roughly every [arg] steps")
         ;
         
@@ -117,6 +118,9 @@ void HandleOptions( int argc, char** argv )
         
         force_deallocQ = (vm.count("low-mem") != 0);
         valprint<a>("Forced Deallocation", force_deallocQ ? "True" : "False" );
+        
+        do_checksQ = (vm.count("no-checks") == 0);
+        valprint<a>("Hard Sphere Checks Activated", do_checksQ ? "True" : "False" );
 
         if( vm.count("pcg-multiplier") )
         {

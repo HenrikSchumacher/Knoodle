@@ -652,7 +652,7 @@ namespace KnotTools
                 
         static std::string ClassName()
         {
-            return std::string("Multigraph")
+            return ct_string("Multigraph")
                 + "<" + TypeName<Int>
                 + "," + TypeName<SInt>
                 + ">";

@@ -14,11 +14,11 @@ void FinalReport()
     const LInt sample_accept_count = skip * N;
 
     kv<t1,0>("Total Seconds Elapsed", total_timing );
-    log << ",\n" << ct_tabs<t1> << "\"Total Time Details\" -> <|";
+    log << ",\n" + ct_tabs<t1> + "\"Total Time Details\" -> <|";
         kv<t2,0>("Burn-in", burn_in_time );
         kv<t2>("Sampling", total_sampling_time );
         kv<t2>("Analysis", total_analysis_time );
-    log << "\n" << ct_tabs<t1> << "|>";
+    log << "\n" + ct_tabs<t1> + "|>";
     
     kv<t1>("Attempted Steps", sample_attempt_count );
     kv<t1>(
@@ -36,7 +36,10 @@ void FinalReport()
         Frac<Real>(sample_accept_count,sample_attempt_count)
     );
 
-    kv<t1>("Accumulated Intersection Flag Counts", acc_intersection_flag_counts );
+    if ( do_checksQ )
+    {
+        kv<t1>("Accumulated Intersection Flag Counts", acc_intersection_flag_counts );
+    }
     
     kv<t1>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
     kv<t1>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );

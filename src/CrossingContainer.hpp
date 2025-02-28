@@ -123,7 +123,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CrossingContainer") + "<" + TypeName<Int> + ">";
+            return ct_string("CrossingContainer") + "<" + TypeName<Int> + ">";
         }
         
     }; // class CrossingContainer

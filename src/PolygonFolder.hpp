@@ -904,8 +904,8 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("PolygonFolder")
-                + "<" + ToString(AmbDim)
+            return ct_string("PolygonFolder")
+                + "<" + to_ct_string(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

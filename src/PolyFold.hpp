@@ -92,6 +92,7 @@ namespace KnotTools
         bool random_engine_incrementQ  = false;
         bool random_engine_stateQ      = false;
         bool force_deallocQ            = false;
+        bool do_checksQ                = true;
         bool squared_gyradiusQ         = false;
         bool pdQ                       = false;
 
@@ -156,50 +157,59 @@ namespace KnotTools
 #include "PolyFold/Barycenter.hpp"
 #include "PolyFold/SquaredGyradius.hpp"
         
-        template<Size_T tab_count = 0>
         int Run()
+        {
+            switch( verbosity )
+            {
+                case 1:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,1,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,1,false>();
+                    }
+                    break;
+                }
+                case 2:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,2,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,2,false>();
+                    }
+                    break;
+                }
+                default:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,0,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,0,false>();
+                    }
+                    break;
+                }
+            }
+        } // Run
+        
+    private:
+        
+        template<Size_T tab_count = 0, int my_verbosity, bool checksQ>
+        int Run_impl()
         {
             T_run.Tic();
             
-            switch( verbosity )
-            {
-                case 1:
-                {
-                    BurnIn<tab_count+1,1>();
-                    break;
-                }
-                case 2:
-                {
-                    BurnIn<tab_count+1,2>();
-                    break;
-                }
-                default:
-                {
-                    BurnIn<tab_count+1,0>();
-                    break;
-                }
-            }
+            BurnIn<tab_count+1,my_verbosity,checksQ>();
             
-            int err;
-            
-            switch( verbosity )
-            {
-                case 1:
-                {
-                    err = Sample<tab_count+1,1>();
-                    break;
-                }
-                case 2:
-                {
-                    err = Sample<tab_count+1,2>();
-                    break;
-                }
-                default:
-                {
-                    err = Sample<tab_count+1,0>();
-                    break;
-                }
-            }
+            int err = Sample<tab_count+1,my_verbosity,checksQ>();
             
             T_run.Toc();
             
@@ -218,13 +228,13 @@ namespace KnotTools
             
             return err;
             
-        } // Run
+        } // Run_impl
             
     public:
         
         static std::string ClassName()
         {
-            return std::string("PolyFold")
+            return ct_string("PolyFold")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

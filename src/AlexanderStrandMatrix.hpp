@@ -352,7 +352,10 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("AlexanderStrandMatrix")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return std::string("AlexanderStrandMatrix")
+                + "<" + TypeName<Scal>
+                + "," + TypeName<Int>
+                + "," + TypeName<LInt> + ">";
         }
         
     }; // class AlexanderStrandMatrix

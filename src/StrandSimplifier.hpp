@@ -1915,9 +1915,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("StrandSimplifier")
+            return ct_string("StrandSimplifier")
                 + "<" + TypeName<Int>
-                + "," + ToString(mult_compQ)
+                + "," + to_ct_string(mult_compQ)
                 + ">";
         }
 

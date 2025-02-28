@@ -239,7 +239,11 @@ namespace KnotTools
 
         static std::string ClassName()
         {
-            return std::string("Link_3D") + "<" + TypeName<Real> + "," + TypeName<Int> + "," + TypeName<SInt> + ">";
+            return ct_string("Link_3D")
+                + "<" + TypeName<Real>
+                + "," + TypeName<Int>
+                + "," + TypeName<SInt>
+                + ">";
         }
     };
     

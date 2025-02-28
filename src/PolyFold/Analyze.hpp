@@ -72,14 +72,18 @@ int Analyze( const LInt i )
         
         if ( (err != 0) || V1Q )
         {
-            log << ",\n" << ct_tabs<t1> << "\"Link\" -> <|";
+            log << ",\n" + ct_tabs<t1> + "\"Link\" -> <|";
                 kv<t2,0>("Byte Count", L.ByteCount() );
             if constexpr ( V2Q )
             {
+//                log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
+//                log << L.template AllocatedByteCountDetails<t2>();
+//                log << "\n" + ct_tabs<t2> + "|>";
+                kv<t2>("Byte Count Details", L.template AllocatedByteCountDetails<t2>() );
                 kv<t2>("Flag Counts", intersection_flag_counts);
                 kv<t2>("Accumulated Flag Counts", acc_intersection_flag_counts);
             }
-            log << "\n" << ct_tabs<t1> << "|>";
+            log << "\n" + ct_tabs<t1> + "|>";
         }
         
         if( err != 0 )
@@ -115,9 +119,9 @@ int Analyze( const LInt i )
         
         if constexpr ( V1Q )
         {
-            log << ",\n" << ct_tabs<t1> << "\"PlanarDiagram\" -> <|";
-            kv<t2,0>("Byte Count (Before Simplification)", PD.ByteCount());
-            kv<t2>("Crossing Count (Before Simplification)", PD.CrossingCount());
+            log << ",\n" + ct_tabs<t1> + "\"PlanarDiagram\" -> <|";
+            kv<t2,0>("Byte Count (Before Simplification)", PD.ByteCount() );
+            kv<t2>("Crossing Count (Before Simplification)", PD.CrossingCount() );
             log << std::flush;
         }
         
@@ -129,9 +133,9 @@ int Analyze( const LInt i )
         
         if constexpr ( V2Q )
         {
-            kv<t2>("Byte Count (After Simplification)", PD.ByteCount());
+            kv<t2>("Byte Count (After Simplification)", PD.ByteCount() );
             kv<t2>("Crossing Count (After Simplification)", PD.CrossingCount() );
-            log << "\n" << ct_tabs<t1> << "|>";
+            log << "\n" + ct_tabs<t1> + "|>";
             log << std::flush;
         }
         
@@ -189,7 +193,7 @@ int Analyze( const LInt i )
     
     if constexpr ( V2Q )
     {
-        log << ",\n" << ct_tabs<t1> << "\"Analysis Time Details\" -> <|";
+        log << ",\n" + ct_tabs<t1> + "\"Analysis Time Details\" -> <|";
         
         if( pdQ )
         {
@@ -220,7 +224,7 @@ int Analyze( const LInt i )
             }
         }
         
-        log << "\n" << ct_tabs<t1> << "|>";
+        log << "\n" + ct_tabs<t1> + "|>";
     }
 
     return 0;

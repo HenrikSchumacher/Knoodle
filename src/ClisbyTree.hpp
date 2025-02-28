@@ -403,6 +403,7 @@ namespace KnotTools
 
     public:
     
+        template<bool check_overlapsQ = true>
         Flag_T Fold( const Int p_, const Int q_, const Real theta_ )
         {
             int pivot_flag = LoadPivots(p_,q_,theta_);
@@ -413,29 +414,40 @@ namespace KnotTools
                 return pivot_flag;
             }
             
-            int joint_flag = CheckJoints();
-            
-            if( joint_flag != 0 )
+            if constexpr ( check_overlapsQ )
             {
-                // Folding step failed because neighbors of pivot touch.
-                return joint_flag;
+                int joint_flag = CheckJoints();
+                
+                if( joint_flag != 0 )
+                {
+                    // Folding step failed because neighbors of pivot touch.
+                    return joint_flag;
+                }
             }
             
             Update();
 
-            if( OverlapQ() )
+            if constexpr ( check_overlapsQ )
             {
-                // Folding step failed; undo the modifications.
-                Update(p_,q_,-theta_);
-                return 4;
+                if( OverlapQ() )
+                {
+                    // Folding step failed; undo the modifications.
+                    Update(p_,q_,-theta_);
+                    return 4;
+                }
+                else
+                {
+                    // Folding step succeeded.
+                    return 0;
+                }
             }
             else
             {
-                // Folding step succeeded.
                 return 0;
             }
         }
         
+    template<bool check_overlapsQ = true>
         FlagCountVec_T FoldRandom( const LInt success_count )
         {
             FlagCountVec_T counters;
@@ -456,7 +468,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
                 const Real angle = u_real                       (random_engine);
                 
-                Flag_T flag = Fold( i, j, angle );
+                Flag_T flag = Fold<check_overlapsQ>( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -529,15 +541,15 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClisbyTree")
-                + "<" + ToString(AmbDim)
+            return ct_string("ClisbyTree")
+                + "<" + to_ct_string(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
-                + "," + ToString(use_clang_matrixQ)
-                + "," + ToString(use_quaternionsQ)
-                + "," + ToString(countersQ)
-                + "," + ToString(use_manual_stackQ)
+                + "," + to_ct_string(use_clang_matrixQ)
+                + "," + to_ct_string(use_quaternionsQ)
+                + "," + to_ct_string(countersQ)
+                + "," + to_ct_string(use_manual_stackQ)
                 + ">";
         }
         

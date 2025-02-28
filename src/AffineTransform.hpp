@@ -176,7 +176,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("AffineTransform")
+            return ct_string("AffineTransform")
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

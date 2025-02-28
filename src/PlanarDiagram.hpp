@@ -1013,7 +1013,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("PlanarDiagram")
+            return ct_string("PlanarDiagram")
                 + "<" + TypeName<Int>
                 + ">";
         }

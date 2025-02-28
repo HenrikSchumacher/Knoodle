@@ -81,7 +81,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ArcContainer") + "<" + TypeName<Int> + ">";
+            return ct_string("ArcContainer") + "<" + TypeName<Int> + ">";
         }
         
     }; // class ArcContainer

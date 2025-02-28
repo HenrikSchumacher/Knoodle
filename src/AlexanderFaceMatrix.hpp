@@ -412,7 +412,11 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("AlexanderFaceMatrix")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return ct_string("AlexanderFaceMatrix")
+                + "<" + TypeName<Scal>
+                + "," + TypeName<Int>
+                + "," + TypeName<LInt>
+                + ">";
         }
         
     }; // class AlexanderFaceMatrix

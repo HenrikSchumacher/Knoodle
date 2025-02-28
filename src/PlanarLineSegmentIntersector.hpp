@@ -464,7 +464,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("PlanarLineSegmentIntersector")
+            return ct_string("PlanarLineSegmentIntersector")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

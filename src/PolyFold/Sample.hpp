@@ -1,6 +1,6 @@
 private:
 
-template<Size_T t0, int my_verbosity>
+template<Size_T t0, int my_verbosity, bool checksQ>
 int Sample()
 {
     int err;
@@ -9,7 +9,7 @@ int Sample()
 
     log << "\n" + ct_tabs<t0+1>;
     
-    err = Sample<t0+1,my_verbosity>(LInt(0));
+    err = Sample<t0+1,my_verbosity,checksQ>(LInt(0));
     
     if( err == 0 )
     {
@@ -17,7 +17,7 @@ int Sample()
         {
             log << ",\n" + ct_tabs<t0+1>;
             
-            err = Sample<t0+1,my_verbosity>(i);
+            err = Sample<t0+1,my_verbosity,checksQ>(i);
             
             if( err != 0 )
             {
@@ -32,7 +32,7 @@ exit:
     return err;
 }
     
-template<Size_T t0, int my_verbosity>
+template<Size_T t0, int my_verbosity, bool checksQ>
 int Sample( const LInt i )
 {
     
@@ -64,7 +64,7 @@ int Sample( const LInt i )
     
     
     TimeInterval T_sample (0);
-    
+
     {
         T_clisby.Tic<V2Q>();
         Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
@@ -74,7 +74,7 @@ int Sample( const LInt i )
         
         T_fold.Tic<V2Q>();
         // Do polygon folds until we have done at least `skip` accepted steps.
-        counts = T.FoldRandom(skip);
+        counts = T.template FoldRandom<checksQ>(skip);
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();
@@ -127,26 +127,26 @@ int Sample( const LInt i )
         kv<t1>("Accepted Steps/Second", Frac<Real>(accept_count,sampling_time) );
         kv<t1>("Acceptance Probability", Frac<Real>(accept_count,attempt_count) );
 
-        log << ",\n" << ct_tabs<t1> << "\"Clisby Tree\" -> <|";
+        log << ",\n" + ct_tabs<t1> + "\"Clisby Tree\" -> <|";
             kv<t2,0>("Byte Count", bytes );
         if constexpr ( V2Q )
         {
             if constexpr ( Clisby_T::countersQ )
             {
-                log << ",\n" << ct_tabs<t1> << "\"Call Counts\" -> <|";
+                log << ",\n" + ct_tabs<t1> + "\"Call Counts\" -> <|";
                     kv<t2,0>("Transformation Loads", call_counters.load_transform);
                     kv<t2>("Matrix-Matrix Multiplications", call_counters.mm);
                     kv<t2>("Matrix-Vector Multiplications", call_counters.mv);
                     kv<t2>("Ball Overlap Checks", call_counters.overlap);
-                log << "\n" << ct_tabs<t1> << "|>";
+                log << "\n" + ct_tabs<t1> + "|>";
             }
             kv<t2>("Clisby Flag Counts", counts );
         }
-        log << "\n" << ct_tabs<t1> << "|>";
+        log << "\n" + ct_tabs<t1> + "|>";
         
         if constexpr ( V2Q )
         {
-            log << ",\n" << ct_tabs<t1> << "\"Sample Time Details\" -> <|";
+            log << ",\n" + ct_tabs<t1> + "\"Sample Time Details\" -> <|";
                 kv<t2,0>("Create Clisby Tree", T_clisby.Duration());
                 kv<t2>("Fold", T_fold.Duration());
                 kv<t2>("Write Vertex Coordinates", T_write.Duration());
@@ -154,12 +154,12 @@ int Sample( const LInt i )
             {
                 kv<t2>("Deallocate Clisby Tree", T_dealloc.Duration());
             }
-            log << "\n" << ct_tabs<t1> << "|>";
-            log << ",\n" << ct_tabs<t1> << "\"PCG64\" -> <|";
+            log << "\n" + ct_tabs<t1> + "|>";
+            log << ",\n" + ct_tabs<t1> + "\"PCG64\" -> <|";
                 kv<t2,0>("Multiplier", full_state.multiplier);
                 kv<t2>("Increment" , full_state.increment );
                 kv<t2>("State"     , full_state.state     );
-            log << "\n" << ct_tabs<t1> << "|>";
+            log << "\n" + ct_tabs<t1> + "|>";
         }
         
         kv<t1>("Total Seconds Elapsed", total_timing );

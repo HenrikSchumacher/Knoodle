@@ -32,24 +32,24 @@ void Initialize()
     
     log << ",\n" + ct_tabs<t1> + "\"Initialization\" -> <|";
     
-    log << "\n" << ct_tabs<t2> << "\"PolyFold\" -> <|";
+    log << "\n" + ct_tabs<t2> + "\"PolyFold\" -> <|";
         kv<t3,0>("Class",ClassName());
         kv<t3>("Vector Extensions Enabled",vec_enabledQ);
         kv<t3>("Matrix Extensions Enabled",mat_enabledQ);
         kv<t3>("Forced Deallocation Enabled",force_deallocQ);
-    log << "\n" << ct_tabs<t2> << "|>";
+    log << "\n" + ct_tabs<t2> + "|>";
     
-    log << ",\n" << ct_tabs<t2> << "\"Coordinate Buffer\" -> <|";
+    log << ",\n" + ct_tabs<t2> + "\"Coordinate Buffer\" -> <|";
     
     x = Tensor2<Real,Int>( n, AmbDim );
     
-        kv<t3,0>("Byte Count",x.ByteCount());
-    log << "\n" << ct_tabs<t2> << "|>";
+        kv<t3,0>("Byte Count", x.ByteCount() );
+    log << "\n" + ct_tabs<t2> + "|>";
     
     log << std::flush;
 
     {
-        log << ",\n" << ct_tabs<t2> << "\"Clisby Tree\" -> <|";
+        log << ",\n" + ct_tabs<t2> + "\"Clisby Tree\" -> <|";
         
         kv<t3,0>("Class",Clisby_T::ClassName());
         log << std::flush;
@@ -88,14 +88,14 @@ void Initialize()
            }
         }
         
-        kv<t3>("Byte Count",T.ByteCount());
+        kv<t3>("Byte Count", T.ByteCount() );
         kv<t3>("Euclidean Transformation Class",Clisby_T::Transform_T::ClassName());
-        log << ",\n" << ct_tabs<t3> << "\"PCG64\" -> <|";
+        log << ",\n" + ct_tabs<t3> + "\"PCG64\" -> <|";
             kv<t4,0>("Multiplier", full_state.multiplier);
             kv<t4>("Increment" , full_state.increment );
             kv<t4>("State"     , full_state.state     );
-        log << "\n" << ct_tabs<t3> << "|>";
-        log << "\n" << ct_tabs<t2> << "|>";
+        log << "\n" + ct_tabs<t3> + "|>";
+        log << "\n" + ct_tabs<t2> + "|>";
         
         log << std::flush;
         
@@ -116,7 +116,7 @@ void Initialize()
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
         
-        log << ",\n" << ct_tabs<t2> << "\"Link\" -> <|";
+        log << ",\n" + ct_tabs<t2> + "\"Link\" -> <|";
             kv<t3,0>("Class", L.ClassName());
         
 //        kv<t2>("Link Class",L.ClassName());
@@ -124,8 +124,12 @@ void Initialize()
         
         (void)L.FindIntersections();
         
-            kv<t3>("Byte Count",L.ByteCount());
-        log << "\n" << ct_tabs<t2> << "|>";
+            kv<t3>("Byte Count", L.ByteCount() );
+//            log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
+//            log << L.template AllocatedByteCountDetails<t3>();
+//            log << "\n" + ct_tabs<t3> + "|>";
+            kv<t3>("Byte Count Details", L.template AllocatedByteCountDetails<t3>() );
+        log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
         
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
@@ -134,7 +138,7 @@ void Initialize()
             L.DeleteTree();
         }
         
-        log << ",\n" << ct_tabs<t2> << "\"Planar Diagram\" -> <|";
+        log << ",\n" + ct_tabs<t2> + "\"Planar Diagram\" -> <|";
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
@@ -145,7 +149,7 @@ void Initialize()
             L = Link_T();
         }
             kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
-        log << "\n" << ct_tabs<t2> << "|>";
+        log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
         
         if( force_deallocQ )
