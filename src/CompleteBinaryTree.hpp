@@ -451,7 +451,7 @@ namespace KnotTools
         {
             return ct_string("CompleteBinaryTree")
                 + "<" + TypeName<Int>
-                + "," + to_ct_string(precompute_rangesQ)
+                + "," + ToString(precompute_rangesQ)
                 + ">";
         }
 

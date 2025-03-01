@@ -276,11 +276,11 @@ namespace KnotTools
         static std::string ClassName()
         {
             return ct_string("AABBTree")
-            + "<" + to_ct_string(AmbDim)
+            + "<" + ToString(AmbDim)
             + "," + TypeName<Real>
             + "," + TypeName<Int>
             + "," + TypeName<BReal>
-            + "," + to_ct_string(precompute_rangesQ)
+            + "," + ToString(precompute_rangesQ)
             + ">";
         }
 

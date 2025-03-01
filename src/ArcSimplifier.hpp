@@ -434,7 +434,7 @@ namespace KnotTools
         {
             return ct_string("ArcSimplifier")
                 + "<" + TypeName<Int>
-                + "," + to_ct_string(mult_compQ) + ">";
+                + "," + ToString(mult_compQ) + ">";
         }
 
     }; // class ArcSimplifier

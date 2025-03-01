@@ -542,14 +542,14 @@ namespace KnotTools
         static std::string ClassName()
         {
             return ct_string("ClisbyTree")
-                + "<" + to_ct_string(AmbDim)
+                + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
-                + "," + to_ct_string(use_clang_matrixQ)
-                + "," + to_ct_string(use_quaternionsQ)
-                + "," + to_ct_string(countersQ)
-                + "," + to_ct_string(use_manual_stackQ)
+                + "," + ToString(use_clang_matrixQ)
+                + "," + ToString(use_quaternionsQ)
+                + "," + ToString(countersQ)
+                + "," + ToString(use_manual_stackQ)
                 + ">";
         }
         
