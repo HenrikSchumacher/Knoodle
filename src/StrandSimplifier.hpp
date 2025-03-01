@@ -1917,7 +1917,7 @@ namespace KnotTools
         {
             return ct_string("StrandSimplifier")
                 + "<" + TypeName<Int>
-                + "," + to_ct_string(mult_compQ)
+                + "," + ToString(mult_compQ)
                 + ">";
         }
 

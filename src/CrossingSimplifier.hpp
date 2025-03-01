@@ -196,7 +196,7 @@ namespace KnotTools
         {
             return ct_string("CrossingSimplifier")
                 + "<" + TypeName<Int>
-                + "," + to_ct_string(mult_compQ) + ">";
+                + "," + ToString(mult_compQ) + ">";
         }
 
     }; // class CrossingSimplifier
