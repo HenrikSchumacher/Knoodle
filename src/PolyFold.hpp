@@ -30,6 +30,9 @@ namespace KnotTools
         using BReal  = BReal_;
         
         static constexpr Int AmbDim = 3;
+        
+        static constexpr Size_T a = 24; // Alignment for command line output.
+
 
         using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt,
             1, // use_clang_matrixQ
@@ -39,8 +42,8 @@ namespace KnotTools
         >;
         
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
-//        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
+//        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
+        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using PRNG_T                    = typename Clisby_T::PRNG_T;
         using PRNG_FullState_T          = typename Clisby_T::PRNG_FullState_T;
@@ -190,15 +193,23 @@ namespace KnotTools
         
         PolyFold( int argc, char** argv )
         {
-            print("\n\nWelcome to PolyFold.\n");
+            print("\nWelcome to PolyFold.\n");
             
             HandleOptions( argc, argv );
-
+            
             Initialize<0>();
-
+            
             Run();
+            
+            print("Done.");
+            valprint<28>("Time elapsed during burn-in",burn_in_time);
+            valprint<28>("Time elapsed during sampling",total_sampling_time);
+            valprint<28>("Time elapsed during analysis",total_analysis_time);
+            print(std::string(24 + 24,'-'));
+            valprint<28>("Time elapsed all together",total_timing);
+            
         }
-                 
+        
 //        PolyFold(
 //            Real radius_,
 //            Int n_,

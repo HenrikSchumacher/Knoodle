@@ -4,8 +4,6 @@ void HandleOptions( int argc, char** argv )
 {
     namespace po = boost::program_options;
     
-    constexpr Size_T a = 24;
-    
     // `try` executes some code; `catch` catches exceptions and handles them.
     try
     {

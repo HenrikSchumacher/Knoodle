@@ -10,7 +10,7 @@ std::string PDCodeString( mref<PD_T> P ) const
     
     auto pdcode = P.PDCode();
     
-    cptr<Int> a = pdcode.data();
+    cptr<Int> c = pdcode.data();
     
     std::string s;
     s+= "\ns ";
@@ -18,7 +18,7 @@ std::string PDCodeString( mref<PD_T> P ) const
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
-        s+= VectorString<5>(&a[5 * i + 0], "\n", "\t", "" );
+        s+= VectorString<5>(&c[5 * i + 0], "\n", "\t", "" );
     }
     
     return s;
