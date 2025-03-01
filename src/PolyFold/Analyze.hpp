@@ -92,11 +92,6 @@ int Analyze( const LInt i )
             return err;
         }
         
-//        {
-//            std::ofstream L_stream ("/Users/Henrik/L_coords.txt");
-//            L_stream << ToString(L.EdgeCoordinates());
-//        }
-        
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
         if( force_deallocQ )
         {
@@ -109,26 +104,6 @@ int Analyze( const LInt i )
         // We delay the allocation until substantial parts of L have been deallocated.
         PD_T PD ( L );
         T_pd.Toc<V2Q>();
-        
-//        if( PD.CrossingCount() > 0 )
-//        {
-//            Knot_T K ( n );
-//            K.ReadVertexCoordinates ( x.data() );
-//            int err_K = K.FindIntersections();
-//            
-//            dump(err);
-//            dump(err_K);
-//            
-//            dump(PD.CrossingCount());
-//            dump(K.CrossingCount());
-//            
-//            {
-//                std::ofstream K_stream ("/Users/Henrik/K_coords.txt");
-//                K_stream << ToString(K.VertexCoordinates());
-//            }
-//            
-//            exit(10);
-//        }
     
         // Delete remainder of L to make room for the simplification.
         if( force_deallocQ )
