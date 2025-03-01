@@ -27,7 +27,9 @@ std::string PDCodeString( mref<PD_T> P ) const
 template<Size_T t0, int my_verbosity>
 int Analyze( const LInt i )
 {
-    analyze_begin(ToString(i));
+    (void)i;
+    
+    analyze_begin();
     
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
@@ -52,7 +54,7 @@ int Analyze( const LInt i )
     if( pdQ )
     {
         T_link.Tic<V2Q>();
-        link_begin( ToString(i) );
+        link_begin();
         Link_T L ( n );
 
         // Read coordinates into `Link_T` object `L`...
@@ -112,7 +114,7 @@ int Analyze( const LInt i )
             L = Link_T();
             T_link_dealloc.Toc<V2Q>();
         }
-        link_end( ToString(i) );
+        link_end();
     
         if constexpr ( V1Q )
         {
@@ -126,7 +128,7 @@ int Analyze( const LInt i )
         
         if( force_deallocQ )
         {
-            pd_begin(ToString(i));
+            pd_begin();
         }
         
         T_simplify.Tic<V2Q>();
@@ -173,7 +175,7 @@ int Analyze( const LInt i )
             PD = PD_T();
             T_pd_dealloc.Toc<V2Q>();
         }
-        pd_end(ToString(i));
+        pd_end();
     }
     
     if( squared_gyradiusQ )
@@ -181,7 +183,7 @@ int Analyze( const LInt i )
         T_gyradius.Tic<V2Q>();
         Real g = SquaredGyradius(x.data());
         T_gyradius.Toc<V2Q>();
-        kv<t1>("Squared Gyradius", g);
+        kv<t1>("Squared Gyradius",g);
     }
     
     T_analysis.Toc();
@@ -229,7 +231,7 @@ int Analyze( const LInt i )
         log << "\n" + ct_tabs<t1> + "|>";
     }
 
-    analyze_end(ToString(i));
+    analyze_end();
     
     return 0;
 } // Analyze

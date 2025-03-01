@@ -187,12 +187,12 @@ namespace KnotTools
         
         Vector2_T EdgeVector2( const Int edge, const bool k ) const
         {
-            return Vector2_T( &edge_coords.data()[2 * AmbDim * edge + AmbDim * k] );
+            return Vector2_T( &edge_coords.data()[AmbDim * ( 2 * edge + k)] );
         }
         
         Vector3_T EdgeVector3( const Int edge, const bool k ) const
         {
-            return Vector2_T( &edge_coords.data()[2 * AmbDim * edge + AmbDim * k] );
+            return Vector2_T( &edge_coords.data()[AmbDim * ( 2 * edge + k)] );
         }
         
         void ReadVertexCoordinates( cptr<Real> v )

@@ -31,8 +31,6 @@ using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
-//    float = 
-    
     const Time prog_start_time = Clock::now();
 
     PolyFold_T polyfold ( argc, argv );

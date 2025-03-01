@@ -53,7 +53,7 @@ void Initialize()
     kv<t3,0>("Class",Clisby_T::ClassName());
     log << std::flush;
     
-    clisby_begin( "Initialize" );
+    clisby_begin();
     {
         Clisby_T T ( n, hard_sphere_diam );
         
@@ -110,9 +110,9 @@ void Initialize()
             T = Clisby_T();
         }
     }
-    clisby_end( "Initialize" );
+    clisby_end();
 
-    link_begin( "Initialize" );
+    link_begin();
     {
         Link_T L ( n );
 
@@ -145,13 +145,13 @@ void Initialize()
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
-        pd_begin( "Initialize" );
+        pd_begin();
         PD_T PD ( L );
 
         if( force_deallocQ )
         {
             L = Link_T();
-            link_end( "Initialize" );
+            link_end();
         }
         
         sleep(1);
@@ -163,7 +163,7 @@ void Initialize()
         {
             PD = PD_T();
         }
-        pd_end( "Initialize" );
+        pd_end();
     }
             
     

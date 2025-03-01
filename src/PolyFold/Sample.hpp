@@ -35,7 +35,7 @@ exit:
 template<Size_T t0, int my_verbosity, bool checksQ>
 int Sample( const LInt i )
 {
-    sample_begin(ToString(i));
+    sample_begin();
     
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
@@ -66,7 +66,7 @@ int Sample( const LInt i )
     
     TimeInterval T_sample (0);
 
-    clisby_begin( ToString(i) );
+    clisby_begin();
     {
         T_clisby.Tic<V2Q>();
         Clisby_T T( x.data(), n, hard_sphere_diam, random_engine );
@@ -116,7 +116,7 @@ int Sample( const LInt i )
             T_dealloc.Toc<V1Q>();
         }
     }
-    clisby_end( ToString(i) );
+    clisby_end();
     
     if constexpr ( V1Q )
     {
@@ -193,7 +193,7 @@ int Sample( const LInt i )
         log << std::flush;
     }
         
-    sample_end(ToString(i));
+    sample_end();
     
     int err = Analyze<t0,my_verbosity>(i);
         
