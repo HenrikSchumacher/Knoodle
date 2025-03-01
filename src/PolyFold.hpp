@@ -99,10 +99,6 @@ namespace KnotTools
         bool squared_gyradiusQ         = false;
         bool pdQ                       = false;
 
-//        Clisby_T T;
-//        Link_T   L;
-//        PD_T    PD;
-        
     private:
 
 #ifdef POLYFOLD_SIGNPOSTS
