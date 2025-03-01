@@ -3,6 +3,10 @@
 #include <boost/program_options.hpp>
 #include <exception>
 
+#ifdef POLYFOLD_SIGNPOSTS
+#include <os/signpost.h>
+#endif
+
 // TODO: Write polygon to file every xxx steps.
 // TODO: Removed 0-initialization in Clisby tree.
 
@@ -134,6 +138,90 @@ namespace KnotTools
             log << "\n|>";
         }
         
+    private:
+
+#ifdef POLYFOLD_SIGNPOSTS
+        
+        os_log_t log_handle = os_log_create("PolyFols", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
+        
+        os_signpost_id_t clisby_signpost  = os_signpost_id_generate(log_handle);
+        os_signpost_id_t link_signpost    = os_signpost_id_generate(log_handle);
+        os_signpost_id_t pd_signpost      = os_signpost_id_generate(log_handle);
+        
+        os_signpost_id_t sample_signpost  = os_signpost_id_generate(log_handle);
+        os_signpost_id_t analyze_signpost = os_signpost_id_generate(log_handle);
+        
+        void clisby_begin()
+        {
+            os_signpost_interval_begin(log_handle, clisby_signpost, "Clisby_T" );
+        }
+        
+        void clisby_end()
+        {
+            os_signpost_interval_end( log_handle, clisby_signpost, "Clisby_T" );
+        }
+        
+        void link_begin()
+        {
+            os_signpost_interval_begin( log_handle, link_signpost, "Link_T" );
+        }
+        
+        void link_end()
+        {
+            os_signpost_interval_end( log_handle, link_signpost, "Link_T" );
+        }
+        
+        void pd_begin()
+        {
+            os_signpost_interval_begin( log_handle, pd_signpost, "PD_T" );
+        }
+        
+        void pd_end()
+        {
+            os_signpost_interval_end( log_handle, pd_signpost, "PD_T" );
+        }
+        
+        void sample_begin()
+        {
+            os_signpost_interval_begin( log_handle, sample_signpost, "Sample" );
+        }
+        
+        void sample_end()
+        {
+            os_signpost_interval_end( log_handle, sample_signpost, "Sample" );
+        }
+        
+        void analyze_begin()
+        {
+            os_signpost_interval_begin( log_handle, analyze_signpost, "Analyze" );
+        }
+        
+        void analyze_end()
+        {
+            os_signpost_interval_end( log_handle, analyze_signpost, "Analyze" );
+        }
+
+#else
+        void clisby_begin() {}
+        
+        void clisby_end() {}
+        
+        void link_begin() {}
+        
+        void link_end() {}
+        
+        void pd_begin() {}
+        
+        void pd_end() {}
+        
+        void sample_begin() {}
+        
+        void sample_end() {}
+        
+        void analyze_begin() {}
+        
+        void analyze_end() {}
+#endif
         
     private:
 
