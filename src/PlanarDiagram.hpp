@@ -209,6 +209,23 @@ namespace KnotTools
         }
         
         
+        /*! @brief Construction from `Knot_2D` object.
+         */
+        
+        template<typename Real, typename SInt, typename BReal>
+        PlanarDiagram( cref<Knot_2D<Real,Int,SInt,BReal>> L )
+        :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
+        {
+            ReadFromLink<Real,SInt,BReal>(
+                L.ComponentCount(),
+                L.ComponentPointers().data(),
+                L.EdgePointers().data(),
+                L.EdgeIntersections().data(),
+                L.EdgeOverQ().data(),
+                L.Intersections()
+            );
+        }
+        
         /*! @brief Construction from `Link_2D` object.
          */
         

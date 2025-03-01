@@ -40,6 +40,7 @@ namespace KnotTools
         
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
         using Link_T                    = Link_2D<Real,Int,Int,BReal>;
+        using Knot_T                    = Knot_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using PRNG_T                    = typename Clisby_T::PRNG_T;
         using PRNG_FullState_T          = typename Clisby_T::PRNG_FullState_T;
@@ -98,9 +99,9 @@ namespace KnotTools
         bool squared_gyradiusQ         = false;
         bool pdQ                       = false;
 
-        Clisby_T T;
-        Link_T   L;
-        PD_T    PD;
+//        Clisby_T T;
+//        Link_T   L;
+//        PD_T    PD;
         
     private:
 

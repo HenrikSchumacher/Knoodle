@@ -52,11 +52,10 @@ int Analyze( const LInt i )
     if( pdQ )
     {
         T_link.Tic<V2Q>();
-        if( force_deallocQ )
-        {
-            link_begin( ToString(i) );
-            L = Link_T( n );
-        }
+        link_begin( ToString(i) );
+        Link_T L ( n );
+        
+        
         
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
@@ -67,6 +66,7 @@ int Analyze( const LInt i )
         int err = L.FindIntersections();
         
         T_intersection.Toc<V2Q>();
+        
         
         const IntersectionFlagCounts_T intersection_flag_counts = L.IntersectionFlagCounts();
         
@@ -106,18 +106,49 @@ int Analyze( const LInt i )
         
         T_pd.Tic<V2Q>();
         // We delay the allocation until substantial parts of L have been deallocated.
-        PD = PD_T( L );
+        PD_T PD ( L );
         T_pd.Toc<V2Q>();
         
+        if( PD.CrossingCount() > 0 )
+        {
+            Knot_T K ( n );
+            K.ReadVertexCoordinates ( x.data() );
+            int err_K = K.FindIntersections();
+            
+            dump(err);
+            dump(err_K);
+            
+            dump(L.CrossingCount());
+            dump(K.CrossingCount());
+            
+            {
+                std::ofstream L_stream ("/Users/Henrik/L_coords.txt");
+                std::ofstream K_stream ("/Users/Henrik/K_coords.txt");
+                
+                L_stream << ToString(L.EdgeCoordinates());
+                K_stream << ToString(K.VertexCoordinates());
+            }
+            
+            {
+                std::ofstream L_stream ("/Users/Henrik/L.txt");
+                std::ofstream K_stream ("/Users/Henrik/K.txt");
+                
+                L_stream << ToString(L.BoundingBoxes());
+                K_stream << ToString(K.BoundingBoxes());
+            }
+            
+            exit(10);
+        }
+    
         // Delete remainder of L to make room for the simplification.
         if( force_deallocQ )
         {
             T_link_dealloc.Tic<V2Q>();
             L = Link_T();
             T_link_dealloc.Toc<V2Q>();
-            link_end( ToString(i) );
         }
-        
+        link_end( ToString(i) );
+    
         if constexpr ( V1Q )
         {
             log << ",\n" + ct_tabs<t1> + "\"PlanarDiagram\" -> <|";
@@ -176,8 +207,10 @@ int Analyze( const LInt i )
             T_pd_dealloc.Tic<V2Q>();
             PD = PD_T();
             T_pd_dealloc.Toc<V2Q>();
-            pd_end(ToString(i));
         }
+        pd_end(ToString(i));
+            
+        
     }
     
     if( squared_gyradiusQ )

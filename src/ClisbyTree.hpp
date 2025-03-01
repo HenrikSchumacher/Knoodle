@@ -2,7 +2,6 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
-//TODO: Replace Link_T by Knot_T. (Saves mem.)
 //TODO: _Compute_ NodeRange more efficiently.
 
 namespace KnotTools

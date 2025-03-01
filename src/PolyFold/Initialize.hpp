@@ -53,123 +53,120 @@ void Initialize()
     kv<t3,0>("Class",Clisby_T::ClassName());
     log << std::flush;
     
-    if( force_deallocQ )
+    clisby_begin( "Initialize" );
     {
-        clisby_begin( "Initialize" );
-    }
-    
-    T = Clisby_T ( n, hard_sphere_diam );
-    
-    PRNG_FullState_T full_state = T.RandomEngineFullState();
+        Clisby_T T ( n, hard_sphere_diam );
+        
+        PRNG_FullState_T full_state = T.RandomEngineFullState();
 
-    if( random_engine_multiplierQ )
-    {
-        full_state.multiplier = random_engine_state.multiplier;
+        if( random_engine_multiplierQ )
+        {
+            full_state.multiplier = random_engine_state.multiplier;
+        }
+        
+        if( random_engine_incrementQ )
+        {
+            full_state.increment = random_engine_state.increment;
+        }
+        
+        if( random_engine_stateQ )
+        {
+            full_state.state = random_engine_state.state;
+        }
+        
+        random_engine_state = full_state;
+        
+        if( random_engine_multiplierQ || random_engine_incrementQ || random_engine_stateQ)
+        {
+           if( T.SetRandomEngine(random_engine_state) )
+           {
+               eprint( ClassName() + "::Initialize: Failed to initialize random engine with "
+                      + "multiplier = " + full_state.multiplier + ", "
+                      + "increment = " + full_state.increment + ", "
+                      + "state = " + full_state.state + ". Aborting."
+                );
+               exit(1);
+           }
+        }
+        
+        kv<t3>("Byte Count", T.ByteCount() );
+        kv<t3>("Euclidean Transformation Class",Clisby_T::Transform_T::ClassName());
+        log << ",\n" + ct_tabs<t3> + "\"PCG64\" -> <|";
+            kv<t4,0>("Multiplier", full_state.multiplier);
+            kv<t4>("Increment" , full_state.increment );
+            kv<t4>("State"     , full_state.state     );
+        log << "\n" + ct_tabs<t3> + "|>";
+        log << "\n" + ct_tabs<t2> + "|>";
+        
+        log << std::flush;
+        
+        T.WriteVertexCoordinates( x.data() );
+        
+        // Remember random engine for later use.
+        random_engine = T.GetRandomEngine();
+        
+        if( force_deallocQ )
+        {
+            T = Clisby_T();
+        }
     }
-    
-    if( random_engine_incrementQ )
-    {
-        full_state.increment = random_engine_state.increment;
-    }
-    
-    if( random_engine_stateQ )
-    {
-        full_state.state = random_engine_state.state;
-    }
-    
-    random_engine_state = full_state;
-    
-    if( random_engine_multiplierQ || random_engine_incrementQ || random_engine_stateQ)
-    {
-       if( T.SetRandomEngine(random_engine_state) )
-       {
-           eprint( ClassName() + "::Initialize: Failed to initialize random engine with "
-                  + "multiplier = " + full_state.multiplier + ", "
-                  + "increment = " + full_state.increment + ", "
-                  + "state = " + full_state.state + ". Aborting."
-            );
-           exit(1);
-       }
-    }
-    
-    kv<t3>("Byte Count", T.ByteCount() );
-    kv<t3>("Euclidean Transformation Class",Clisby_T::Transform_T::ClassName());
-    log << ",\n" + ct_tabs<t3> + "\"PCG64\" -> <|";
-        kv<t4,0>("Multiplier", full_state.multiplier);
-        kv<t4>("Increment" , full_state.increment );
-        kv<t4>("State"     , full_state.state     );
-    log << "\n" + ct_tabs<t3> + "|>";
-    log << "\n" + ct_tabs<t2> + "|>";
-    
-    log << std::flush;
-    
-    T.WriteVertexCoordinates( x.data() );
-    
-    // Remember random engine for later use.
-    random_engine = T.GetRandomEngine();
-    
-    if( force_deallocQ )
-    {
-        T = Clisby_T();
-        clisby_end( "Initialize" );
-    }
-    
-    if( force_deallocQ )
-    {
-        link_begin( "Initialize" );
-    }
-    L = Link_T( n );
+    clisby_end( "Initialize" );
 
-    // Read coordinates into `Link_T` object `L`...
-    L.ReadVertexCoordinates ( x.data() );
-
-    log << ",\n" + ct_tabs<t2> + "\"Link\" -> <|";
-        kv<t3,0>("Class", L.ClassName());
-    
-//        kv<t2>("Link Class",L.ClassName());
-    log << std::flush;
-    
-    (void)L.FindIntersections();
-    
-        kv<t3>("Byte Count", L.ByteCount() );
-//            log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
-//            log << L.template AllocatedByteCountDetails<t3>();
-//            log << "\n" + ct_tabs<t3> + "|>";
-        kv<t3>("Byte Count Details", L.template AllocatedByteCountDetails<t3>() );
-    log << "\n" + ct_tabs<t2> + "|>";
-    log << std::flush;
-
-    // Deallocate tree-related data in L to make room for the PlanarDiagram.
-    if( force_deallocQ )
+    link_begin( "Initialize" );
     {
-        L.DeleteTree();
-    }
+        Link_T L ( n );
 
-    log << ",\n" + ct_tabs<t2> + "\"Planar Diagram\" -> <|";
-        kv<t3,0>("Class", PD_T::ClassName());
-    
-    // We delay the allocation until substantial parts of L have been deallocated.
-    if( force_deallocQ )
-    {
+        // Read coordinates into `Link_T` object `L`...
+        L.ReadVertexCoordinates ( x.data() );
+
+        log << ",\n" + ct_tabs<t2> + "\"Link\" -> <|";
+            kv<t3,0>("Class", L.ClassName());
+        
+    //        kv<t2>("Link Class",L.ClassName());
+        log << std::flush;
+        
+        (void)L.FindIntersections();
+        
+            kv<t3>("Byte Count", L.ByteCount() );
+    //            log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
+    //            log << L.template AllocatedByteCountDetails<t3>();
+    //            log << "\n" + ct_tabs<t3> + "|>";
+            kv<t3>("Byte Count Details", L.template AllocatedByteCountDetails<t3>() );
+        log << "\n" + ct_tabs<t2> + "|>";
+        log << std::flush;
+
+        // Deallocate tree-related data in L to make room for the PlanarDiagram.
+        if( force_deallocQ )
+        {
+            L.DeleteTree();
+        }
+
+        log << ",\n" + ct_tabs<t2> + "\"Planar Diagram\" -> <|";
+            kv<t3,0>("Class", PD_T::ClassName());
+        
+        // We delay the allocation until substantial parts of L have been deallocated.
         pd_begin( "Initialize" );
-    }
-    PD = PD_T ( L );
+        PD_T PD ( L );
 
-    if( force_deallocQ )
-    {
-        L = Link_T();
-        link_end( "Initialize" );
-    }
-    sleep(1);
-        kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
-    log << "\n" + ct_tabs<t2> + "|>";
-    log << std::flush;
+        if( force_deallocQ )
+        {
+            L = Link_T();
+            link_end( "Initialize" );
+        }
+        
+        sleep(1);
+            kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
+        log << "\n" + ct_tabs<t2> + "|>";
+        log << std::flush;
 
-    if( force_deallocQ )
-    {
-        PD = PD_T();
+        if( force_deallocQ )
+        {
+            PD = PD_T();
+        }
         pd_end( "Initialize" );
     }
+            
+    
 
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
 }
