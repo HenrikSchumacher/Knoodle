@@ -1,8 +1,3 @@
-//####################################################################################
-//##    Transformations
-//####################################################################################
-
-
 void ComputePivotTransform()
 {
     // Rotation axis.
@@ -18,8 +13,7 @@ void ComputePivotTransform()
         
         Tiny::Vector<4,Real,Int> Q {{ cos, sin * u[0], sin * u[1], sin * u[2] }};
         
-        transform.Read_q_from_vector4(&Q[0]);
-        transform.Read_A_from_vector4(&Q[0]);
+        transform.ReadQuaternion(&Q[0]);
     }
     else
     {
@@ -52,7 +46,7 @@ Transform_T NodeTransform( const Int node ) const
 {
     if constexpr ( countersQ )
     {
-        ++load_counter;
+        ++call_counters.load_transform;
     }
     
     return Transform_T( NodeTransformPtr(node) );
@@ -66,13 +60,14 @@ Vector_T NodeCenter( const Int node ) const
 template<bool update_centerQ, bool update_transformQ>
 void UpdateNode( cref<Transform_T> f, const Int node )
 {
+
     if constexpr ( update_centerQ )
     {
         f.TransformVector(NodeCenterPtr(node));
         
         if constexpr ( countersQ )
         {
-            ++mv_counter;
+            ++call_counters.mv;
         }
     }
     
@@ -94,9 +89,9 @@ void UpdateNode( cref<Transform_T> f, const Int node )
             
             if constexpr ( countersQ )
             {
-                ++load_counter;
-                ++mv_counter;
-                ++mm_counter;
+                ++call_counters.load_transform;
+                ++call_counters.mv;
+                ++call_counters.mm;
             }
         }
         
@@ -171,7 +166,7 @@ void PullTransforms( const Int from, const Int to )
     }
     else
     {
-        PullTransforms_Recurssive(from,to);
+        PullTransforms_Recursive(from,to);
     }
 }
 

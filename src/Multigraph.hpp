@@ -51,7 +51,7 @@ namespace KnotTools
         // Provide a list of edges in interleaved form.
         template<typename I_0>
         Multigraph( const I_0 vertex_count_, Tensor2<Int,Int> && edges_ )
-        :   vertex_count ( vertex_count_          )
+        :   vertex_count ( vertex_count_     )
         ,   edges        ( std::move(edges_) )
         {
             if( edges.Dimension(1) != 2 )
@@ -652,7 +652,7 @@ namespace KnotTools
                 
         static std::string ClassName()
         {
-            return std::string("Multigraph")
+            return ct_string("Multigraph")
                 + "<" + TypeName<Int>
                 + "," + TypeName<SInt>
                 + ">";

@@ -413,9 +413,6 @@ namespace KnotTools
             return component_ptr[c+1];
         }
         
-        /*! @brief Returns the first vertex _after_ component `c`.
-         */
-        
         cref<Tensor1<Int,Int>> ComponentPointers() const
         {
             return component_ptr;
@@ -542,7 +539,7 @@ namespace KnotTools
 
         static std::string ClassName()
         {
-            return std::string("Link")+"<"+TypeName<Int>+">";
+            return ct_string("Link") + "<" + TypeName<Int> + ">";
         }
     };
     

@@ -356,7 +356,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CompleteBinaryTree_Precomp")+"<"+TypeName<Int>+">";
+            return ct_string("CompleteBinaryTree_Precomp") + "<" + TypeName<Int> + ">";
         }
 
     }; // CompleteBinaryTree_Precomp

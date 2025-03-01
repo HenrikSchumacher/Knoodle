@@ -1,24 +1,24 @@
 private:
 
 
-std::string PDCodeString( mref<PD_T> PD ) const
+std::string PDCodeString( mref<PD_T> P ) const
 {
-    if( PD.CrossingCount() <= 0 )
+    if( P.CrossingCount() <= 0 )
     {
         return std::string();
     }
     
-    auto pdcode = PD.PDCode();
+    auto pdcode = P.PDCode();
     
-    cptr<Int> a = pdcode.data();
+    cptr<Int> code = pdcode.data();
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(PD.ProvablyMinimalQ());
+    s+= ToString(P.ProvablyMinimalQ());
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
-        s+= VectorString<5>(&a[5 * i + 0], "\n", "\t", "" );
+        s+= VectorString<5>(&code[5 * i + 0], "\n", "\t", "" );
     }
     
     return s;
@@ -28,6 +28,8 @@ template<Size_T t0, int my_verbosity>
 int Analyze( const LInt i )
 {
     (void)i;
+    
+    analyze_begin();
     
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
@@ -52,13 +54,13 @@ int Analyze( const LInt i )
     if( pdQ )
     {
         T_link.Tic<V2Q>();
-        
+        link_begin();
         Link_T L ( n );
-        
+
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
-        
         T_link.Toc<V2Q>();
+        allocation_time += T_link.Duration();
         
         T_intersection.Tic<V2Q>();
         
@@ -72,14 +74,18 @@ int Analyze( const LInt i )
         
         if ( (err != 0) || V1Q )
         {
-            log << ",\n" << ct_tabs<t1> << "\"Link\" -> <|";
+            log << ",\n" + ct_tabs<t1> + "\"Link\" -> <|";
                 kv<t2,0>("Byte Count", L.ByteCount() );
             if constexpr ( V2Q )
             {
+//                log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
+//                log << L.template AllocatedByteCountDetails<t2>();
+//                log << "\n" + ct_tabs<t2> + "|>";
+                kv<t2>("Byte Count Details", L.template AllocatedByteCountDetails<t2>() );
                 kv<t2>("Flag Counts", intersection_flag_counts);
                 kv<t2>("Accumulated Flag Counts", acc_intersection_flag_counts);
             }
-            log << "\n" << ct_tabs<t1> << "|>";
+            log << "\n" + ct_tabs<t1> + "|>";
         }
         
         if( err != 0 )
@@ -89,39 +95,44 @@ int Analyze( const LInt i )
             return err;
         }
         
-        
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
         if( force_deallocQ )
         {
             T_delete.Tic<V2Q>();
             L.DeleteTree();
             T_delete.Toc<V2Q>();
+            deallocation_time += T_delete.Duration();
         }
         
         T_pd.Tic<V2Q>();
-        
         // We delay the allocation until substantial parts of L have been deallocated.
-        PlanarDiagram PD( L );
-        
+        PD_T PD ( L );
         T_pd.Toc<V2Q>();
-        
+    
         // Delete remainder of L to make room for the simplification.
         if( force_deallocQ )
         {
             T_link_dealloc.Tic<V2Q>();
             L = Link_T();
             T_link_dealloc.Toc<V2Q>();
+            deallocation_time += T_link_dealloc.Duration();
         }
-        
+        link_end();
+    
         if constexpr ( V1Q )
         {
-            log << ",\n" << ct_tabs<t1> << "\"PlanarDiagram\" -> <|";
-            kv<t2,0>("Byte Count (Before Simplification)", PD.ByteCount());
-            kv<t2>("Crossing Count (Before Simplification)", PD.CrossingCount());
+            log << ",\n" + ct_tabs<t1> + "\"PlanarDiagram\" -> <|";
+            kv<t2,0>("Byte Count (Before Simplification)", PD.ByteCount() );
+            kv<t2>("Crossing Count (Before Simplification)", PD.CrossingCount() );
             log << std::flush;
         }
         
-        PD_list.clear();
+        std::vector<PD_T> PD_list;
+        
+        if( force_deallocQ )
+        {
+            pd_begin();
+        }
         
         T_simplify.Tic<V2Q>();
         PD.Simplify5( PD_list );
@@ -129,9 +140,9 @@ int Analyze( const LInt i )
         
         if constexpr ( V2Q )
         {
-            kv<t2>("Byte Count (After Simplification)", PD.ByteCount());
+            kv<t2>("Byte Count (After Simplification)", PD.ByteCount() );
             kv<t2>("Crossing Count (After Simplification)", PD.CrossingCount() );
-            log << "\n" << ct_tabs<t1> << "|>";
+            log << "\n" + ct_tabs<t1> + "|>";
             log << std::flush;
         }
         
@@ -166,7 +177,9 @@ int Analyze( const LInt i )
             T_pd_dealloc.Tic<V2Q>();
             PD = PD_T();
             T_pd_dealloc.Toc<V2Q>();
+            deallocation_time += T_pd_dealloc.Duration();
         }
+        pd_end();
     }
     
     if( squared_gyradiusQ )
@@ -174,13 +187,12 @@ int Analyze( const LInt i )
         T_gyradius.Tic<V2Q>();
         Real g = SquaredGyradius(x.data());
         T_gyradius.Toc<V2Q>();
-        kv<t1>("Squared Gyradius", g);
+        kv<t1>("Squared Gyradius",g);
     }
     
     T_analysis.Toc();
     
     total_analysis_time += T_analysis.Duration();
-
     
     if constexpr ( V1Q )
     {
@@ -189,7 +201,7 @@ int Analyze( const LInt i )
     
     if constexpr ( V2Q )
     {
-        log << ",\n" << ct_tabs<t1> << "\"Analysis Time Details\" -> <|";
+        log << ",\n" + ct_tabs<t1> + "\"Analysis Time Details\" -> <|";
         
         if( pdQ )
         {
@@ -220,8 +232,10 @@ int Analyze( const LInt i )
             }
         }
         
-        log << "\n" << ct_tabs<t1> << "|>";
+        log << "\n" + ct_tabs<t1> + "|>";
     }
 
+    analyze_end();
+    
     return 0;
 } // Analyze

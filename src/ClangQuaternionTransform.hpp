@@ -31,8 +31,7 @@ namespace KnotTools
         template<typename ExtReal>
         ClangQuaternionTransform( cptr<ExtReal> q_ptr, cptr<ExtReal> b_ptr )
         {
-            q.Read_q_from_vector4(q_ptr);
-            A.Read_A_from_vector4(q_ptr);
+            ReadQuaternion(q_ptr);
             b.Read(b_ptr);
         }
         
@@ -52,7 +51,7 @@ namespace KnotTools
         }
         
         template<typename ExtReal>
-        void Read_A_from_vector4( cptr<ExtReal> f )
+        void ReadQuaternion( cptr<ExtReal> f )
         {
             const Real x0 = Scalar::Two<Real> * f[0];
             const Real x1 = Scalar::Two<Real> * f[1];
@@ -80,11 +79,7 @@ namespace KnotTools
             A.Set( 2, 0, q13 - q02 );
             A.Set( 2, 1, q23 + q01 );
             A.Set( 2, 2, q00 + q33 - (q11 + q22) );
-        }
-        
-        template<typename ExtReal>
-        void Read_q_from_vector4( cptr<ExtReal> f )
-        {
+            
             q.Set(0,0, f[0]); q.Set(0,1,-f[1]); q.Set(0,2,-f[2]); q.Set(0,3,-f[3]);
             q.Set(1,0, f[1]); q.Set(1,1, f[0]); q.Set(1,2,-f[3]); q.Set(1,3, f[2]);
             q.Set(2,0, f[2]); q.Set(2,1, f[3]); q.Set(2,2, f[0]); q.Set(2,3,-f[1]);
@@ -94,8 +89,7 @@ namespace KnotTools
         template<typename ExtReal>
         void Read( cptr<ExtReal> f )
         {
-            Read_q_from_vector4(f);
-            Read_A_from_vector4(f);
+            ReadQuaternion(f);
             b.Read(&f[4]);
         }
         
@@ -204,7 +198,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClangQuaternionTransform")
+            return ct_string("ClangQuaternionTransform")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

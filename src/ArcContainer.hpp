@@ -30,38 +30,6 @@ namespace KnotTools
         
         ~ArcContainer() = default;
         
-        
-        // Copy constructor
-        ArcContainer(const ArcContainer & other ) = default;
-
-        // Copy assignment
-        ArcContainer & operator=(ArcContainer other) noexcept
-        {
-            swap(*this, other);
-            return *this;
-        }
-        
-        // Move constructor
-        ArcContainer( ArcContainer && other) noexcept
-        :   ArcContainer()
-        {
-            swap(*this, other);
-        }
-        
-        // Move assignment
-        ArcContainer & operator=(ArcContainer && other) noexcept
-        {
-            swap(*this, other);
-            return *this;
-        }
-        
-        friend void swap(ArcContainer & A, ArcContainer & B ) noexcept
-        {
-            using std::swap;
-            
-            swap(static_cast<Tensor_T &>(A), static_cast<Tensor_T &>(B));
-        }
-        
     protected:
         
         using Tensor_T::a;
@@ -113,7 +81,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ArcContainer") + "<" + TypeName<Int> + ">";
+            return ct_string("ArcContainer") + "<" + TypeName<Int> + ">";
         }
         
     }; // class ArcContainer

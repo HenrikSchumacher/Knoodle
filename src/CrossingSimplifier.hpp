@@ -194,7 +194,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CrossingSimplifier")
+            return ct_string("CrossingSimplifier")
                 + "<" + TypeName<Int>
                 + "," + ToString(mult_compQ) + ">";
         }

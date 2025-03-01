@@ -106,69 +106,6 @@ namespace KnotTools
         ArcSimplifier( const ArcSimplifier & other ) = delete;
         
         ArcSimplifier( ArcSimplifier && other ) = delete;
-        
-//        // Copy constructor
-//        ArcSimplifier( const ArcSimplifier & other ) = default;
-//
-//        friend void swap(ArcSimplifier & A, ArcSimplifier & B ) noexcept
-//        {
-//            using std::swap;
-//
-//            swap( A.pd,      B.pd      );
-//            swap( A.C_arcs,  B.C_arcs  );
-//            swap( A.C_state, B.C_state );
-//            swap( A.A_cross, B.A_cross );
-//            swap( A.A_state, B.A_state );
-//
-//            swap( A.a,   B.a   );
-//            
-//            swap( A.c_0, B.c_0 );
-//            swap( A.c_1, B.c_1 );
-//            swap( A.c_2, B.c_2 );
-//            swap( A.c_3, B.c_3 );
-//
-//            swap( A.n_0, B.n_0 );
-//            swap( A.s_0, B.s_0 );
-//            swap( A.w_0, B.w_0 );
-//
-//            swap( A.n_1, B.n_1 );
-//            swap( A.e_1, B.e_1 );
-//            swap( A.s_1, B.s_1 );
-//
-//            swap( A.e_2, B.e_2 );
-//            swap( A.s_2, B.s_2 );
-//            swap( A.w_2, B.w_2 );
-//
-//            swap( A.n_3, B.n_3 );
-//            swap( A.e_3, B.e_3 );
-//            swap( A.w_3, B.w_3 );
-//
-//            swap( A.o_0, B.o_0 );
-//            swap( A.o_1, B.o_1 );
-//            swap( A.o_2, B.o_2 );
-//            swap( A.o_3, B.o_3 );
-//
-//            swap( A.u_0, B.u_0 );
-//            swap( A.o_1, B.u_1 );
-//            
-//            swap( A.test_count, B.test_count );
-//        }
-//
-//        // Move constructor
-//        ArcSimplifier( ArcSimplifier && other ) noexcept
-//        :   ArcSimplifier()
-//        {
-//            swap(*this, other);
-//        }
-//
-//        /* Copy assignment operator */
-//        ArcSimplifier & operator=( ArcSimplifier other ) noexcept
-//        {   //                                     ^
-//            //                                     |
-//            // Use the copy constructor     -------+
-//            swap( *this, other );
-//            return *this;
-//        }
 
     private:
         
@@ -495,7 +432,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ArcSimplifier")
+            return ct_string("ArcSimplifier")
                 + "<" + TypeName<Int>
                 + "," + ToString(mult_compQ) + ">";
         }

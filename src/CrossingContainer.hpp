@@ -31,36 +31,36 @@ namespace KnotTools
         ~CrossingContainer() = default;
 
         
-        // Copy constructor
-        CrossingContainer(const CrossingContainer & other ) = default;
-
-        // Copy assignment
-        CrossingContainer & operator=(CrossingContainer other) noexcept
-        {
-            swap(*this, other);
-            return *this;
-        }
-        
-        // Move constructor
-        CrossingContainer( CrossingContainer && other) noexcept
-        :   CrossingContainer()
-        {
-            swap(*this, other);
-        }
-        
-        // Move assignment
-        CrossingContainer & operator=(CrossingContainer && other) noexcept
-        {
-            swap(*this, other);
-            return *this;
-        }
-        
-        friend void swap(CrossingContainer & A, CrossingContainer & B ) noexcept
-        {
-            using std::swap;
-            
-            swap(static_cast<Tensor_T & >(A), static_cast<Tensor_T &>(B));
-        }
+//        // Copy constructor
+//        CrossingContainer(const CrossingContainer & other ) = default;
+//
+//        // Copy assignment
+//        CrossingContainer & operator=(CrossingContainer other) noexcept
+//        {
+//            swap(*this, other);
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        CrossingContainer( CrossingContainer && other) noexcept
+//        :   CrossingContainer()
+//        {
+//            swap(*this, other);
+//        }
+//        
+//        // Move assignment
+//        CrossingContainer & operator=(CrossingContainer && other) noexcept
+//        {
+//            swap(*this, other);
+//            return *this;
+//        }
+//        
+//        friend void swap(CrossingContainer & A, CrossingContainer & B ) noexcept
+//        {
+//            using std::swap;
+//            
+//            swap(static_cast<Tensor_T & >(A), static_cast<Tensor_T &>(B));
+//        }
         
     private:
         
@@ -123,7 +123,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("CrossingContainer") + "<" + TypeName<Int> + ">";
+            return ct_string("CrossingContainer") + "<" + TypeName<Int> + ">";
         }
         
     }; // class CrossingContainer

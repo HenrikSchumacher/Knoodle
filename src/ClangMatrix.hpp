@@ -35,7 +35,7 @@ namespace KnotTools
         :   A ( B )
         {}
         
-//        ~ClangMatrix() = default;
+        ~ClangMatrix() = default;
 
     private:
         
@@ -223,7 +223,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClangMatrix")
+            return ct_string("ClangMatrix")
                 + "<" + ToString(M)
                 + "," + ToString(N)
                 + "," + TypeName<Real>

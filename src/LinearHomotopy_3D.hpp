@@ -352,7 +352,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("LinearHomotopy_3D")
+            return ct_string("LinearHomotopy_3D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<SInt>

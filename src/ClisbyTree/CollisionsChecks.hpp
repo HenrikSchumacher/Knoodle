@@ -1,7 +1,3 @@
-//#########################################################################################
-//##    Collision checks
-//#########################################################################################
-
 #include "OverlapQ_Reference.hpp"
 #include "OverlapQ_ManualStack.hpp"
 
@@ -130,6 +126,11 @@ static constexpr bool BallsOverlapQ(
 
 bool BallsOverlapQ( const Int node_0, const Int node_1) const
 {
+    if constexpr ( countersQ )
+    {
+        ++call_counters.overlap;
+    }
+    
     return BallsOverlapQ(
         NodeBallPtr(node_0), NodeBallPtr(node_1), hard_sphere_diam
     );
@@ -352,64 +353,4 @@ void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
         F[2*i+ mid_changedQ] = not_no_midQ  ;
         F[2*i+!mid_changedQ] = not_only_midQ;
     }
-}
-
-
-void NodeSplitFlags_3( cptr<Int> nodes, mptr<bool> F ) const
-{
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-    
-    auto [begin_0,end_0] = NodeRange(nodes[0]);
-    auto [begin_1,end_1] = NodeRange(nodes[1]);
-    auto [begin_2,end_2] = NodeRange(nodes[2]);
-    
-    const bool not_only_midQ_0 = (begin_0 < p_) || (end_0   > q_);
-    const bool not_no_midQ_0   = (end_0   > p_) && (begin_0 < q_);
-    const bool not_only_midQ_1 = (begin_1 < p_) || (end_1   > q_);
-    const bool not_no_midQ_1   = (end_1   > p_) && (begin_1 < q_);
-    const bool not_only_midQ_2 = (begin_2 < p_) || (end_2   > q_);
-    const bool not_no_midQ_2   = (end_2   > p_) && (begin_2 < q_);
-    
-    F[0+ mid_changedQ] = not_no_midQ_0  ;
-    F[0+!mid_changedQ] = not_only_midQ_0;
-    F[2+ mid_changedQ] = not_no_midQ_1  ;
-    F[2+!mid_changedQ] = not_only_midQ_1;
-    F[4+ mid_changedQ] = not_no_midQ_2  ;
-    F[4+!mid_changedQ] = not_only_midQ_2;
-}
-
-void NodeSplitFlags_4( cptr<Int> nodes, mptr<bool> F ) const
-{
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-    
-    auto [begin_0,end_0] = NodeRange(nodes[0]);
-    auto [begin_1,end_1] = NodeRange(nodes[1]);
-    auto [begin_2,end_2] = NodeRange(nodes[2]);
-    auto [begin_3,end_3] = NodeRange(nodes[3]);
-    
-    const bool not_only_midQ_0 = (begin_0 < p_) || (end_0   > q_);
-    const bool not_no_midQ_0   = (end_0   > p_) && (begin_0 < q_);
-    const bool not_only_midQ_1 = (begin_1 < p_) || (end_1   > q_);
-    const bool not_no_midQ_1   = (end_1   > p_) && (begin_1 < q_);
-    const bool not_only_midQ_2 = (begin_2 < p_) || (end_2   > q_);
-    const bool not_no_midQ_2   = (end_2   > p_) && (begin_2 < q_);
-    const bool not_only_midQ_3 = (begin_3 < p_) || (end_3   > q_);
-    const bool not_no_midQ_3   = (end_3   > p_) && (begin_3 < q_);
-    
-    F[0+ mid_changedQ] = not_no_midQ_0  ;
-    F[0+!mid_changedQ] = not_only_midQ_0;
-    F[2+ mid_changedQ] = not_no_midQ_1  ;
-    F[2+!mid_changedQ] = not_only_midQ_1;
-    F[4+ mid_changedQ] = not_no_midQ_2  ;
-    F[4+!mid_changedQ] = not_only_midQ_2;
-    F[6+ mid_changedQ] = not_no_midQ_3  ;
-    F[6+!mid_changedQ] = not_only_midQ_3;
 }

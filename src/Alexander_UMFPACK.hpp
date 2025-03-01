@@ -146,7 +146,11 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("Alexander_UMFPACK")+ "<" + TypeName<Scal> + "," + TypeName<Int> + "," + TypeName<LInt> + ">";
+            return ct_string("Alexander_UMFPACK")
+                + "<" + TypeName<Scal>
+                + "," + TypeName<Int>
+                + "," + TypeName<LInt>
+                + ">";
         }
         
     }; // class Alexander_UMFPACK

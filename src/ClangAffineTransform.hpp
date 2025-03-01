@@ -174,7 +174,7 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClangAffineTransform")
+            return ct_string("ClangAffineTransform")
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

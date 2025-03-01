@@ -1,13 +1,154 @@
 protected:
     
-    
+    template<bool printQ = true> // whether to print errors and warnings
+    [[nodiscard]] int FindIntersections()
+    {
+        TOOLS_PTIC(ClassName()+"FindIntersections");
+        
+        // TODO: Randomly rotate until not degenerate.
+        
+        // Here we do something strange:
+        // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
+        // to a T which is a Tree2_T.
+        // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
+        // enties only via operator(i,j,k), so this is safe!
+
+        ComputeBoundingBoxes();
+        
+        CountDegenerateEdges();
+        
+        if( degenerate_edge_count > 0 )
+        {
+            if constexpr ( printQ )
+            {
+                eprint(ClassName() + "::CountDegenerateEdges: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+            }
+            return 7;
+        }
+          
+        TOOLS_PTIC("FindIntersectingEdges_DFS");
+        FindIntersectingEdges_DFS();
+        TOOLS_PTOC("FindIntersectingEdges_DFS");
+        
+        // Check for bad intersections.
+
+        {
+            const Size_T count = intersection_flag_counts[6];
+            if( count > 0 )
+            {
+                if constexpr ( printQ )
+                {
+                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where line segments intersected in 3D.");
+                }
+                return 6;
+            }
+        }
+        
+        {
+            const Size_T count = intersection_flag_counts[5];
+            if( count > 0 )
+            {
+                if constexpr ( printQ )
+                {
+                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval).");
+                }
+                return 5;
+            }
+        }
+        
+        {
+            const Size_T count =
+                  intersection_flag_counts[2]
+                + intersection_flag_counts[3]
+                + intersection_flag_counts[4];
+            
+            if( count > 0 )
+            {
+                if constexpr ( printQ )
+                {
+                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment.");
+                }
+                return 4;
+            }
+        }
+        
+        // Check for integer overflow.
+        if( Size_T(4) * intersections.size() > static_cast<Size_T>(std::numeric_limits<Int>::max()) )
+        {
+            eprint(ClassName() + "::FindIntersections: More intersections found than can be handled with integer type " + TypeName<Int> + "." );
+        }
+        
+        const Int intersection_count = static_cast<Int>(intersections.size());
+        
+        // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
+        edge_ctr.template RequireSize<false>( edge_ptr.Size() );
+        edge_ctr.Read( edge_ptr.data() );
+        
+        if( edge_intersections.Size() != edge_ptr.Last() )
+        {
+            edge_intersections = Tensor1<Int, Int>( edge_ptr.Last() );
+            edge_times         = Tensor1<Real,Int>( edge_ptr.Last() );
+            edge_overQ         = Tensor1<bool,Int>( edge_ptr.Last() );
+        }
+
+        // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
+        // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
+        
+        TOOLS_PTIC("Counting sort");
+        // Counting sort.
+        
+    //            for( Int k = intersection_count-1; k > -1; --k )
+        for( Int k = intersection_count; k --> 0;  )
+        {
+            Intersection_T & inter = intersections[static_cast<Size_T>(k)];
+            
+            // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
+
+            const Int pos_0 = --edge_ctr[inter.edges[0]+1];
+            const Int pos_1 = --edge_ctr[inter.edges[1]+1];
+
+            edge_intersections[pos_0] = k;
+            edge_times        [pos_0] = inter.times[0];
+            edge_overQ        [pos_0] = true;
+            
+            edge_intersections[pos_1] = k;
+            edge_times        [pos_1] = inter.times[1];
+            edge_overQ        [pos_1] = false;
+        }
+        
+        // Sort intersections edgewise w.r.t. edge_times.
+        ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
+        
+        for( Int i = 0; i < edge_count; ++i )
+        {
+            // This is the range of data in edge_intersections/edge_times that belongs to edge i.
+            const Int k_begin = edge_ptr[i  ];
+            const Int k_end   = edge_ptr[i+1];
+                 
+            sort(
+                &edge_times[k_begin],
+                &edge_intersections[k_begin],
+                &edge_overQ[k_begin],
+                k_end - k_begin
+            );
+        }
+        TOOLS_PTOC("Counting sort");
+        
+        // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
+        
+        TOOLS_PTOC(ClassName()+"FindIntersections");
+        
+        return 0;
+    }
+
+
     void FindIntersectingEdges_DFS()
     {
         TOOLS_PTIC(ClassName()+"::FindIntersectingEdges_DFS");
         
         intersections.clear();
         
-        intersections.reserve( ToSize_T(2 * edge_coords.Dimension(0)) );
+        intersections.reserve( ToSize_T(2 * EdgeCount()) );
         
         S = Intersector_T();
         
@@ -17,7 +158,7 @@ protected:
         
         FindIntersectingEdges_DFS_Reference();
 
-//        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
+    //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
         edge_ptr.Accumulate();
 
@@ -150,13 +291,13 @@ protected:
             }
             else
             {
-//                    Time edge_start_time = Clock::now();
-//                    ++edge_call_count;
+    //                    Time edge_start_time = Clock::now();
+    //                    ++edge_call_count;
 
                 ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
 
-//                    Time edge_end_time = Clock::now();
-//                    edge_time += Tools::Duration( edge_start_time, edge_end_time );
+    //                    Time edge_end_time = Clock::now();
+    //                    edge_time += Tools::Duration( edge_start_time, edge_end_time );
             }
         }
         
@@ -279,12 +420,13 @@ protected:
     void ComputeEdgeIntersection( const Int k, const Int l )
     {
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-        if( (l != k) && (l != next_edge[k]) && (k != next_edge[l]) )
+        if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
-            // Get the edge lengths in order to decide what's a "small" determinant.
             
-            const Tiny::Matrix<2,3,Real,Int> x { edge_coords.data(k) };
-            const Tiny::Matrix<2,3,Real,Int> y { edge_coords.data(l) };
+            // Get the edge lengths in order to decide what's a "small" determinant.
+
+            const E_T x = EdgeData(k);
+            const E_T y = EdgeData(l);
             
             LineSegmentsIntersectionFlag flag
                 = S.IntersectionType( x[0], x[1], y[0], y[1] );
@@ -407,3 +549,5 @@ protected:
             }
         }
     }
+
+

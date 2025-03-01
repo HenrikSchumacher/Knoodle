@@ -1,7 +1,3 @@
-//####################################################################################
-//##    Access methods
-//####################################################################################
-
 Int VertexCount() const
 {
     return LeafNodeCount();
@@ -21,16 +17,6 @@ Int VertexNode( const Int vertex ) const
 {
     return PrimitiveNode( vertex );
 }
-
-//cptr<Real> NodeData( const Int node ) const
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
-//
-//mptr<Real> NodeData( const Int node )
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
 
 cref<NodeContainer_T> NodeTransforms() const
 {
@@ -63,7 +49,12 @@ mref<Tensor1<NodeState_T,Int>> NodeStates()
     return N_state;
 }
 
-NodeState_T NodeState( const Int node ) const
+cref<NodeState_T> NodeState( const Int node ) const
+{
+    return N_state[node];
+}
+
+mref<NodeState_T> NodeState( const Int node )
 {
     return N_state[node];
 }
@@ -88,27 +79,6 @@ mptr<Real> NodeCenterPtr( const Int node )
     return &N_ball.data()[BallDim * node];
 }
 
-//cptr<Real> NodeTransformPtr( const Int node ) const
-//{
-//    return &N_data.data()[NodeDim * node + AmbDim + 1];
-//}
-//
-//mptr<Real> NodeTransformPtr( const Int node )
-//{
-//    return &N_data.data()[NodeDim * node + AmbDim + 1];
-//}
-
-
-//cptr<Real> NodeCenterPtr( const Int node ) const
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
-//
-//mptr<Real> NodeCenterPtr( const Int node )
-//{
-//    return &N_data.data()[NodeDim * node];
-//}
-
 cptr<Real> NodeBallPtr( const Int node ) const
 {
     return &N_ball.data()[(AmbDim+1) * node];
@@ -118,16 +88,6 @@ mptr<Real> NodeBallPtr( const Int node )
 {
     return &N_ball.data()[(AmbDim+1) * node];
 }
-
-//Real NodeRadius( const Int node ) const
-//{
-//    return N_data.data()[NodeDim * node + AmbDim];
-//}
-//
-//mref<Real> NodeRadius( const Int node )
-//{
-//    return N_data.data()[NodeDim * node + AmbDim];
-//}
 
 Real NodeRadius( const Int node ) const
 {
@@ -207,17 +167,22 @@ Int Witness( const bool i ) const
 }
 
 
-Size_T MatrixMatrixCounter() const
-{
-    return mm_counter;
-}
+//Size_T MatrixMatrixCounter() const
+//{
+//    return call_counters.mm;
+//}
+//
+//Size_T MatrixVectorCounter() const
+//{
+//    return call_counters.mv;
+//}
+//
+//Size_T TransformLoadCounter() const
+//{
+//    return call_counters.load_transform;
+//}
 
-Size_T MatrixVectorCounter() const
+CallCounters_T CallCounters()
 {
-    return mv_counter;
-}
-
-Size_T TransformLoadCounter() const
-{
-    return load_counter;
+    return call_counters;
 }

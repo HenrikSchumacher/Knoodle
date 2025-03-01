@@ -69,7 +69,7 @@ bool OverlapQ_ManualStack()
                     if(
                         (( F[k][0] && F[l][1] ) || ( F[k][1] && F[l][0] ))
                         &&
-                        (this->BallsOverlapQ(c[k],c[l],this->r))
+                        (this->BallsOverlapQ(c[k],c[l]))
                     )
                     {
                         push(c[k],c[l]);
@@ -97,7 +97,7 @@ bool OverlapQ_ManualStack()
                     if(
                         ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) )
                         &&
-                        (this->BallsOverlapQ(c_i[k],c_j[l],this->r))
+                        (this->BallsOverlapQ(c_i[k],c_j[l]))
                     )
                     {
                         push(c_i[k],c_j[l]);
@@ -124,7 +124,7 @@ bool OverlapQ_ManualStack()
             {
                 if( ( (f_i[0] && F_j[l][1]) || (f_i[1] && F_j[l][0]) )
                     &&
-                   ( this->BallsOverlapQ(i,c_j[l],this->r) )
+                   (this->BallsOverlapQ(i,c_j[l]) )
                 )
                 {
                     push(i,c_j[l]);
@@ -149,7 +149,7 @@ bool OverlapQ_ManualStack()
                 if(
                     ( (F_i[k][0] && f_j[1]) || (F_i[k][1] && f_j[0]) )
                     &&
-                   (this->BallsOverlapQ(c_i[k],j,this->r))
+                   (this->BallsOverlapQ(c_i[k],j))
                 )
                 {
                     push(c_i[k],j);

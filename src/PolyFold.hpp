@@ -8,7 +8,6 @@
 #endif
 
 // TODO: Write polygon to file every xxx steps.
-// TODO: Removed 0-initialization in Clisby tree.
 
 namespace KnotTools
 {
@@ -28,11 +27,21 @@ namespace KnotTools
         using LInt   = LInt_;
         using BReal  = BReal_;
         
-        static constexpr Int  AmbDim = 3;
+        static constexpr Int AmbDim = 3;
+        
+        static constexpr Size_T a = 24; // Alignment for command line output.
 
+
+        using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt,
+            1, // use_clang_matrixQ
+            1, // use_quaternionsQ
+            0, // countersQ
+            0  // use_manual_stackQ
+        >;
+        
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-        using Clisby_T                  = ClisbyTree<AmbDim,Real,Int,LInt>;
-        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
+//        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
+        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using PRNG_T                    = typename Clisby_T::PRNG_T;
         using PRNG_FullState_T          = typename Clisby_T::PRNG_FullState_T;
@@ -68,8 +77,6 @@ namespace KnotTools
 
         IntersectionFlagCounts_T acc_intersection_flag_counts;
         
-        std::vector<PD_T> PD_list;
-        
         TimeInterval T_run;
         
         double total_timing  = 0;
@@ -77,6 +84,8 @@ namespace KnotTools
         double total_sampling_time = 0;
         double total_analysis_time = 0;
         
+        double allocation_time = 0;
+        double deallocation_time = 0;
         
         PRNG_T random_engine;
         
@@ -90,9 +99,9 @@ namespace KnotTools
         bool random_engine_incrementQ  = false;
         bool random_engine_stateQ      = false;
         bool force_deallocQ            = false;
+        bool do_checksQ                = true;
         bool squared_gyradiusQ         = false;
         bool pdQ                       = false;
-
         
     public:
         
@@ -100,15 +109,23 @@ namespace KnotTools
         
         PolyFold( int argc, char** argv )
         {
-            print("\n\nWelcome to PolyFold.\n");
+            print("\nWelcome to PolyFold.\n");
             
             HandleOptions( argc, argv );
-
+            
             Initialize<0>();
-
+            
             Run();
+            
+            print("Done.");
+            valprint<28>("Time elapsed during burn-in",burn_in_time);
+            valprint<28>("Time elapsed during sampling",total_sampling_time);
+            valprint<28>("Time elapsed during analysis",total_analysis_time);
+            print(std::string(24 + 24,'-'));
+            valprint<28>("Time elapsed all together",total_timing);
+            
         }
-                 
+        
 //        PolyFold(
 //            Real radius_,
 //            Int n_,
@@ -238,50 +255,59 @@ namespace KnotTools
 #include "PolyFold/Barycenter.hpp"
 #include "PolyFold/SquaredGyradius.hpp"
         
-        template<Size_T tab_count = 0>
         int Run()
+        {
+            switch( verbosity )
+            {
+                case 1:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,1,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,1,false>();
+                    }
+                    break;
+                }
+                case 2:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,2,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,2,false>();
+                    }
+                    break;
+                }
+                default:
+                {
+                    if( do_checksQ )
+                    {
+                        return Run_impl<0,0,true>();
+                    }
+                    else
+                    {
+                        return Run_impl<0,0,false>();
+                    }
+                    break;
+                }
+            }
+        } // Run
+        
+    private:
+        
+        template<Size_T tab_count = 0, int my_verbosity, bool checksQ>
+        int Run_impl()
         {
             T_run.Tic();
             
-            switch( verbosity )
-            {
-                case 1:
-                {
-                    BurnIn<tab_count+1,1>();
-                    break;
-                }
-                case 2:
-                {
-                    BurnIn<tab_count+1,2>();
-                    break;
-                }
-                default:
-                {
-                    BurnIn<tab_count+1,0>();
-                    break;
-                }
-            }
+            BurnIn<tab_count+1,my_verbosity,checksQ>();
             
-            int err;
-            
-            switch( verbosity )
-            {
-                case 1:
-                {
-                    err = Sample<tab_count+1,1>();
-                    break;
-                }
-                case 2:
-                {
-                    err = Sample<tab_count+1,2>();
-                    break;
-                }
-                default:
-                {
-                    err = Sample<tab_count+1,0>();
-                    break;
-                }
-            }
+            int err = Sample<tab_count+1,my_verbosity,checksQ>();
             
             T_run.Toc();
             
@@ -300,13 +326,13 @@ namespace KnotTools
             
             return err;
             
-        } // Run
+        } // Run_impl
             
     public:
         
         static std::string ClassName()
         {
-            return std::string("PolyFold")
+            return ct_string("PolyFold")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

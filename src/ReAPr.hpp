@@ -168,7 +168,9 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ReAPr") + "<" + TypeName<Int> + ">";
+            return ct_string("ReAPr")
+                + "<" + TypeName<Int>
+                + ">";
         }
         
         

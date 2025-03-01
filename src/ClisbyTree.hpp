@@ -2,14 +2,30 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
-//TODO: shorten N_state
+// TODO: Use a structure ClisbyNode and hold it in stack memory.
+
+// TODO: Check neighborhood about pivots more thoroughly.
+
+// TODO: _Compute_ NodeRange more efficiently.
+
+// TODO: Shave off one double form ClangQuaternionTransform at the cost of a sqrt.
+
+// TODO: Update(p,q) -- Could thise be faster?
+// TODO:    1. Start at the pivots, walp up to the root and track all the touched nodes;
+// TODO:       We can also learn this way which nodes need an update.
+// TODO:    2. Go down again and push the transforms out of the visited nodes.
+// TODO:    3. Grab the pivot vertex positions and compute the transform.
+// TODO:    4. Walk once again top down through the visited nodes and update their transforms.
+// TODO:    5. Walk from the pivots upwards and update the balls.
 
 namespace KnotTools
 {
     template<
         int AmbDim_,
         typename Real_, typename Int_, typename LInt_,
-//        bool use_manual_stackQ_ = true
+        bool use_clang_matrixQ_ = true,
+        bool use_quaternionsQ_  = false,
+        bool countersQ_         = false,
         bool use_manual_stackQ_ = false
     >
     class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
@@ -35,10 +51,11 @@ namespace KnotTools
         
         static constexpr Int AmbDim = AmbDim_;
     
-        static constexpr bool use_clang_matrixQ = true && MatrixizableQ<Real>;
-        static constexpr bool use_quaternionsQ  = true;
+        static constexpr bool use_clang_matrixQ = use_clang_matrixQ_ && MatrixizableQ<Real>;
+        static constexpr bool use_quaternionsQ  = use_clang_matrixQ && use_quaternionsQ_;
         static constexpr bool use_manual_stackQ = use_manual_stackQ_;
     
+        
         using Transform_T
             = typename std::conditional_t<
                   use_clang_matrixQ,
@@ -89,8 +106,16 @@ namespace KnotTools
         static constexpr Int BallDim      = AmbDim + 1;
 //        static constexpr Int NodeDim      = BallDim + TransformDim;
         
-//        static constexpr bool countersQ = true;
-        static constexpr bool countersQ = false;
+        static constexpr bool countersQ = countersQ_;
+        
+        struct CallCounters_T
+        {
+            Size_T overlap        = 0;
+            
+            Size_T mm             = 0;
+            Size_T mv             = 0;
+            Size_T load_transform = 0;
+        };
     
         
         enum class UpdateFlag_T : std::int_fast8_t
@@ -113,12 +138,12 @@ namespace KnotTools
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
         )
-        :   Tree_T                      { static_cast<Int>(vertex_count_)           }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0      }
-        ,   N_state                     { NodeCount(), NodeState_T::Id              }
-        ,   N_ball                      { NodeCount(), BallDim, 0                   }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
+        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
+        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
+        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         {
             id.SetIdentity();
             SetToCircle();
@@ -133,10 +158,10 @@ namespace KnotTools
         )
         :   Tree_T                      { static_cast<Int>(vertex_count_)       }
         ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_state                     { NodeCount(), NodeState_T::Id          }
+        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim, 0               }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         {
             id.SetIdentity();
             ReadVertexCoordinates( vertex_coords_ );
@@ -152,23 +177,114 @@ namespace KnotTools
         )
         :   Tree_T                      { static_cast<Int>(vertex_count_)       }
         ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_state                     { NodeCount(), NodeState_T::Id          }
+        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim, 0               }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)      }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam       }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         ,   random_engine               { prng                                  }
         {
             id.SetIdentity();
             ReadVertexCoordinates( vertex_coords_ );
         }
-        
 
         ~ClisbyTree() = default;
     
-        // TODO: Copy + move semantics.
+//        // Copy constructor
+        ClisbyTree( const ClisbyTree & other )
+        :   Tree_T                      { other                             }
+        ,   N_transform                 { other.N_transform                 }
+        ,   N_state                     { other.N_state                     }
+        ,   N_ball                      { other.N_ball                      }
+        ,   hard_sphere_diam            { other.hard_sphere_diam            }
+        ,   hard_sphere_squared_diam    { other.hard_sphere_squared_diam    }
+        ,   prescribed_edge_length      { other.prescribed_edge_length      }
+        ,   p                           { other.p                           }
+        ,   q                           { other.q                           }
+        ,   witness_0                   { other.witness_0                   }
+        ,   witness_1                   { other.witness_1                   }
+        ,   theta                       { other.theta                       }
+        ,   X_p                         { other.X_p                         }
+        ,   X_q                         { other.X_q                         }
+        ,   id                          { other.id                          }
+        ,   transform                   { other.transform                   }
+        ,   seed                        { other.seed                        }
+        ,   random_engine               { other.random_engine               }
+        ,   call_counters               { other.call_counters               }
+        ,   mid_changedQ                { other.mid_changedQ                }
+        ,   transforms_pushedQ          { other.transforms_pushedQ          }
+        {}
+
+        inline friend void swap( ClisbyTree & A, ClisbyTree & B) noexcept
+        {
+            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+            using std::swap;
+            
+            if( &A == &B )
+            {
+                wprint( std::string("An object of type ") + ClassName() + " has been swapped to itself.");
+            }
+            else
+            {
+                swap( static_cast<Tree_T &>(A), static_cast<Tree_T &>(B) );
+                
+                swap( A.N_transform,                B.N_transform );
+                swap( A.N_state,                    B.N_state );
+                swap( A.N_ball,                     B.N_ball );
+                
+                swap( A.hard_sphere_diam,           B.hard_sphere_diam );
+                swap( A.hard_sphere_squared_diam,   B.hard_sphere_squared_diam );
+                swap( A.prescribed_edge_length,     B.prescribed_edge_length );
+                
+                swap( A.p,                          B.p );
+                swap( A.q,                          B.q );
+                
+                swap( A.witness_0,                  B.witness_0 );
+                swap( A.witness_1,                  B.witness_1 );
+                
+                swap( A.theta,                      B.theta );
+                swap( A.X_p,                        B.X_p );
+                swap( A.X_q,                        B.X_q );
+                swap( A.id,                         B.id );
+                swap( A.transform,                  B.transform );
+                
+                swap( A.seed,                       B.seed );
+                swap( A.random_engine,              B.random_engine );
+                swap( A.call_counters,              B.call_counters );
+                
+                swap( A.mid_changedQ,               B.mid_changedQ );
+                swap( A.transforms_pushedQ,         B.transforms_pushedQ );
+            }
+        }
     
-        
-        
+//        /* Copy assignment operator */
+//        ClisbyTree & operator=( ClisbyTree other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+
+        // Move constructor
+        ClisbyTree( ClisbyTree && other ) noexcept
+        :   ClisbyTree()
+        {
+            swap(*this, other);
+        }
+
+
+        /* Move-assignment operator */
+        mref<ClisbyTree> operator=( ClisbyTree && other ) noexcept
+        {
+            if( this == &other )
+            {
+                wprint("An object of type " + ClassName() + " has been move-assigned to itself.");
+            }
+            else
+            {
+                swap( *this, other );
+            }
+            return *this;
+        }
+       
     public:
         
         using Tree_T::MaxDepth;
@@ -214,20 +330,13 @@ namespace KnotTools
         
         Seed_T seed;
         PRNG_T random_engine;
-    
-        mutable LInt mm_counter   = 0;
-        mutable LInt mv_counter   = 0;
-        mutable LInt load_counter = 0;
+        
+        mutable CallCounters_T call_counters;
     
         bool mid_changedQ = false;
         bool transforms_pushedQ = false;
         
     private:
-
-        void ResetTransform( mptr<Real> f_ptr )
-        {
-            id.Write(f_ptr);
-        }
         
         void ResetTransform( const Int node )
         {
@@ -238,7 +347,6 @@ namespace KnotTools
         {
             copy_buffer<AmbDim>( x, NodeCenterPtr(node) );
             NodeRadius(node) = 0;
-            ResetTransform(node);
         }
         
         void InitializePRNG()
@@ -325,9 +433,6 @@ namespace KnotTools
             return RandomEngineFullState()[2];
         }
     
-//    multiplier_string + " " + increment_string + " " + state_string;
-    
-    
         void SeedBy( Seed_T & seed_ )
         {
             seed = seed_;
@@ -335,75 +440,7 @@ namespace KnotTools
             std::seed_seq seed_sequence ( seed.begin(), seed.end() );
             
             random_engine = PRNG_T( seed_sequence );
-            
-//            random_engine = PRNG_T( pcg_extras::seed_seq_from<std::random_device>() );
         }
-    
-//        cref<Seed_T> Seed() const
-//        {
-//            return seed;
-//        }
-//    
-//        std::string SeedToString()
-//        {
-//            std::string seed_string;
-//            
-//            for( auto s : seed )
-//            {
-//                std::string str = std::format("{0:08X}",s);
-////                TOOLS_DUMP(str);    
-//                
-//                seed_string += str;
-//            }
-//            
-//            return seed_string;
-//        }
-//    
-//        static bool SeedStringOkayQ( cref<std::string> seed_string )
-//        {
-//            if( seed_string.size()  != 2 * sizeof(Seed_T) )
-//            {
-//                return false;
-//            }
-//            
-//            bool b = true;
-//            
-//            for( char c : seed_string )
-//            {
-//                b = b && (
-//                      ( ('0' <= c) && (c <= '9') ) || ( ('A' <= c) && (c <= 'F') )
-//                );
-//            }
-//            
-//            return b;
-//        }
-//    
-//        static Seed_T StringToSeed( cref<std::string> seed_string )
-//        {
-//            Seed_T seed = {};
-//            
-//            if( !SeedStringOkayQ(seed_string) )
-//            {
-//                eprint(ClassName()+"::StringToSeed: Seed string " + seed_string + " is invalid.");
-//                return seed;
-//            }
-//            
-//            Size_T chuck_size = 2 * sizeof(RNG_T::result_type);
-//
-//            for( Size_T i = 0; i < seed.size(); ++i )
-//            {
-//                std::string chunk (
-//                    &seed_string[chuck_size * i],
-//                    &seed_string[chuck_size * (i+1)]
-//                );
-//
-//                seed[i] = static_cast<RNG_T::result_type>(
-//                    std::stoul(chunk, nullptr, 16)
-//                );
-//            }
-//            
-//            return seed;
-//        }
         
     public:
         
@@ -469,12 +506,13 @@ namespace KnotTools
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionsChecks.hpp"
         
-//#########################################################################################
+//###################################################################################
 //##    Folding
-//#########################################################################################
+//###################################################################################
 
     public:
     
+        template<bool check_overlapsQ = true>
         Flag_T Fold( const Int p_, const Int q_, const Real theta_ )
         {
             int pivot_flag = LoadPivots(p_,q_,theta_);
@@ -485,29 +523,40 @@ namespace KnotTools
                 return pivot_flag;
             }
             
-            int joint_flag = CheckJoints();
-            
-            if( joint_flag != 0 )
+            if constexpr ( check_overlapsQ )
             {
-                // Folding step failed because neighbors of pivot touch.
-                return joint_flag;
+                int joint_flag = CheckJoints();
+                
+                if( joint_flag != 0 )
+                {
+                    // Folding step failed because neighbors of pivot touch.
+                    return joint_flag;
+                }
             }
             
             Update();
 
-            if( OverlapQ() )
+            if constexpr ( check_overlapsQ )
             {
-                // Folding step failed; undo the modifications.
-                Update(p_,q_,-theta_);
-                return 4;
+                if( OverlapQ() )
+                {
+                    // Folding step failed; undo the modifications.
+                    Update(p_,q_,-theta_);
+                    return 4;
+                }
+                else
+                {
+                    // Folding step succeeded.
+                    return 0;
+                }
             }
             else
             {
-                // Folding step succeeded.
                 return 0;
             }
         }
         
+    template<bool check_overlapsQ = true>
         FlagCountVec_T FoldRandom( const LInt success_count )
         {
             FlagCountVec_T counters;
@@ -528,7 +577,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
                 const Real angle = u_real                       (random_engine);
                 
-                Flag_T flag = Fold( i, j, angle );
+                Flag_T flag = Fold<check_overlapsQ>( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -573,9 +622,9 @@ namespace KnotTools
         }
     
         
-//#########################################################################################
+//###################################################################################
 //##    Standard interface
-//#########################################################################################
+//###################################################################################
         
     public:
     
@@ -601,15 +650,18 @@ namespace KnotTools
         
         static std::string ClassName()
         {
-            return std::string("ClisbyTree")
+            return ct_string("ClisbyTree")
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
+                + "," + ToString(use_clang_matrixQ)
+                + "," + ToString(use_quaternionsQ)
+                + "," + ToString(countersQ)
                 + "," + ToString(use_manual_stackQ)
                 + ">";
         }
-
+        
     }; // ClisbyTree
     
 } // namespace KnotTools

@@ -27,8 +27,7 @@ namespace KnotTools
         ,   times       { over_edge_time_, under_edge_time_ }
         ,   handedness  { handedness_                       }
         {}
-        
-//        ~Intersection() = default;
+
     };
 
 }

@@ -29,14 +29,13 @@ namespace KnotTools
 
         
         static constexpr Int AmbDim = AmbDim_;
+        static constexpr Int BoxDim = 2 * AmbDim;
         
         using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
         using BContainer_T = Tensor3<BReal,Int>;
         
         using EContainer_T = Tensor3<Real,Int>;
-        
-        using PContainer_T = Tensor3<Real,Int>;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -80,6 +79,8 @@ namespace KnotTools
         /*!
          * @brief Computes the bounding boxes from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points. Only the leading `AmbDim` entries of each point are used.
          *
+         *If the precision of `Breal`, the type for storing the bounding boxes, is lower than `Real`, then the boxes will be correctly enlarged to guarantee that they contain the boxes as if compute with `BReal = Real`.
+         *
          * @tparam point_count Number of points in the primitive.
          *
          * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
@@ -96,12 +97,22 @@ namespace KnotTools
         {
             static_assert(point_count > 0, "");
             
-            columnwise_minmax<point_count,AmbDim>( P, dimP, &B[0], Size_T(2), &B[1], Size_T(2) );
+            columnwise_minmax<point_count,AmbDim>(
+                P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
+            );
+            
+            // If we have round, make sure that the boxes become a little bit bigger, so that it still contains all primitives.
+            if constexpr ( Scalar::Prec<BReal> < Scalar::Prec<Real> )
+            {
+                for( Int k = 0; k < AmbDim; ++k )
+                {
+                    B[2 * 0 + k] = PrevFloat(B[2 * 0 + k]);
+                    B[2 * 1 + k] = NextFloat(B[2 * 1 + k]);
+                }
+            }
         }
         
-        static constexpr void BoxesToBox(
-            cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
-        )
+        static constexpr void BoxesToBox(cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N)
         {
             // TODO: Can this be vectorized?
             
@@ -121,27 +132,27 @@ namespace KnotTools
          *
          * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
          *
+         * @tparam inc Normally, `inc` should not be changed. However, if one wants to handle edges of a polygon whose vertex coordinates are stored consecutively in `P` (with a dupplicate of the first vertex coordinate at the end of `P`, then one can set `inc` to `dimP` to to compute the bounding boxes without first makeing copies of the vertices in to a `EContainer_T`.
+         *
          * @param P Array that represents the primitive coordinates. It is assumed to have size `prim_count x point_count x dimP`.
          *
          * @param B Represents the container for the boxes. It is assumed to be a `Tensor3` of dimensions `prim_count x AmbDim x 2`.
          */
         
-        template<Int point_count, Int dimP>
-        void ComputeBoundingBoxes( cptr<Real> P, mref<BContainer_T> B ) const
+        template<Int point_count, Int dimP, Int inc = point_count * dimP>
+        void ComputeBoundingBoxes( cptr<Real> P, mptr<BReal> B ) const
         {
             TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             
             static_assert(dimP >= AmbDim,"");
             
-            constexpr Int sizeP = point_count * dimP;
-
             TOOLS_PTIC("Compute bounding boxes of leave nodes.");
             // Compute bounding boxes of leave nodes (last row of tree).
             for( Int N = last_row_begin; N < node_count; ++N )
             {
                 const Int i = N - last_row_begin;
                 
-                PrimitiveToBox<point_count,dimP>( &P[sizeP * i], B.data(N) );
+                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
             }
             
             // Compute bounding boxes of leave nodes (penultimate row of tree).
@@ -149,7 +160,7 @@ namespace KnotTools
             {
                 const Int i = N + offset;
 
-                PrimitiveToBox<point_count,dimP>( &P[sizeP * i], B.data(N) );
+                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
             }
             TOOLS_PTOC("Compute bounding boxes of leave nodes.");
             
@@ -159,7 +170,7 @@ namespace KnotTools
             {
                 const auto [L,R] = Children(N);
                 
-                BoxesToBox( B.data(L), B.data(R), B.data(N) );
+                BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
             }
             TOOLS_PTOC("Compute bounding boxes of interior nodes.");
             
@@ -169,7 +180,7 @@ namespace KnotTools
         template<Int point_count, Int dimP>
         void ComputeBoundingBoxes( cref<EContainer_T> E, mref<BContainer_T> B )
         {
-            ComputeBoundingBoxes<point_count,dimP>( E.data(), B );
+            ComputeBoundingBoxes<point_count,dimP,point_count*dimP>( E.data(), B.data() );
         }
         
         static constexpr bool BoxesIntersectQ( const cptr<BReal> B_i, const cptr<BReal> B_j )
@@ -233,7 +244,7 @@ namespace KnotTools
         )
         {
             return BoxBoxSquaredDistance(
-                &B_0.data()[AmbDim * 2 * i], &B_1.data()[AmbDim * 2 * j]
+                &B_0.data()[BoxDim * i], &B_1.data()[BoxDim * j]
             );
         }
         
@@ -260,15 +271,17 @@ namespace KnotTools
             return sizeof(AABBTree) + AllocatedByteCount();
         }
         
+    public:
+        
         static std::string ClassName()
         {
-            return std::string("AABBTree")
-                + "<" + ToString(AmbDim)
-                + "," + TypeName<Real>
-                + "," + TypeName<Int>
-                + "," + TypeName<BReal>
-                + "," + ToString(precompute_rangesQ);
-                + ">";
+            return ct_string("AABBTree")
+            + "<" + ToString(AmbDim)
+            + "," + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<BReal>
+            + "," + ToString(precompute_rangesQ)
+            + ">";
         }
 
     }; // AABBTree
