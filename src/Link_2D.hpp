@@ -182,7 +182,7 @@ namespace KnotTools
         
         E_T EdgeData( const Int edge) const
         {
-            return E_T( edge_coords.data()[2 * AmbDim * edge] );
+            return E_T( &edge_coords.data()[2 * AmbDim * edge] );
         }
         
         Vector2_T EdgeVector2( const Int edge, const bool k ) const

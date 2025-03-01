@@ -54,9 +54,7 @@ int Analyze( const LInt i )
         T_link.Tic<V2Q>();
         link_begin( ToString(i) );
         Link_T L ( n );
-        
-        
-        
+
         // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
         T_link.Toc<V2Q>();
@@ -66,7 +64,6 @@ int Analyze( const LInt i )
         int err = L.FindIntersections();
         
         T_intersection.Toc<V2Q>();
-        
         
         const IntersectionFlagCounts_T intersection_flag_counts = L.IntersectionFlagCounts();
         
@@ -95,6 +92,10 @@ int Analyze( const LInt i )
             return err;
         }
         
+//        {
+//            std::ofstream L_stream ("/Users/Henrik/L_coords.txt");
+//            L_stream << ToString(L.EdgeCoordinates());
+//        }
         
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
         if( force_deallocQ )
@@ -109,36 +110,25 @@ int Analyze( const LInt i )
         PD_T PD ( L );
         T_pd.Toc<V2Q>();
         
-        if( PD.CrossingCount() > 0 )
-        {
-            Knot_T K ( n );
-            K.ReadVertexCoordinates ( x.data() );
-            int err_K = K.FindIntersections();
-            
-            dump(err);
-            dump(err_K);
-            
-            dump(L.CrossingCount());
-            dump(K.CrossingCount());
-            
-            {
-                std::ofstream L_stream ("/Users/Henrik/L_coords.txt");
-                std::ofstream K_stream ("/Users/Henrik/K_coords.txt");
-                
-                L_stream << ToString(L.EdgeCoordinates());
-                K_stream << ToString(K.VertexCoordinates());
-            }
-            
-            {
-                std::ofstream L_stream ("/Users/Henrik/L.txt");
-                std::ofstream K_stream ("/Users/Henrik/K.txt");
-                
-                L_stream << ToString(L.BoundingBoxes());
-                K_stream << ToString(K.BoundingBoxes());
-            }
-            
-            exit(10);
-        }
+//        if( PD.CrossingCount() > 0 )
+//        {
+//            Knot_T K ( n );
+//            K.ReadVertexCoordinates ( x.data() );
+//            int err_K = K.FindIntersections();
+//            
+//            dump(err);
+//            dump(err_K);
+//            
+//            dump(PD.CrossingCount());
+//            dump(K.CrossingCount());
+//            
+//            {
+//                std::ofstream K_stream ("/Users/Henrik/K_coords.txt");
+//                K_stream << ToString(K.VertexCoordinates());
+//            }
+//            
+//            exit(10);
+//        }
     
         // Delete remainder of L to make room for the simplification.
         if( force_deallocQ )
@@ -209,8 +199,6 @@ int Analyze( const LInt i )
             T_pd_dealloc.Toc<V2Q>();
         }
         pd_end(ToString(i));
-            
-        
     }
     
     if( squared_gyradiusQ )
@@ -224,7 +212,6 @@ int Analyze( const LInt i )
     T_analysis.Toc();
     
     total_analysis_time += T_analysis.Duration();
-
     
     if constexpr ( V1Q )
     {
