@@ -120,7 +120,7 @@ void HandleOptions( int argc, char** argv )
         valprint<a>("Forced Deallocation", force_deallocQ ? "True" : "False" );
         
         do_checksQ = (vm.count("no-checks") == 0);
-        valprint<a>("Hard Sphere Checks Activated", do_checksQ ? "True" : "False" );
+        valprint<a>("Hard Sphere Checks", do_checksQ ? "True" : "False" );
 
         if( vm.count("pcg-multiplier") )
         {
