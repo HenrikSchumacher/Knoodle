@@ -43,8 +43,6 @@ int Sample( const LInt i )
     constexpr bool V1Q = my_verbosity >= 1;
     constexpr bool V2Q = my_verbosity >= 2;
     
-    using FlagCountVec_T = Clisby_T::FlagCountVec_T;
-    
     log << "<|";
     kv<t1,0>("Sample", i );
 
@@ -58,6 +56,7 @@ int Sample( const LInt i )
     
     LInt attempt_count;
     LInt accept_count;
+    Int active_node_count;
     FlagCountVec_T counts;
     PRNG_FullState_T full_state;
     
@@ -85,6 +84,7 @@ int Sample( const LInt i )
         
         total_attempt_count += attempt_count;
         total_accept_count += accept_count;
+        active_node_count = T.ActiveNodeCount();
         
         T_write.Tic<V2Q>();
         T.WriteVertexCoordinates( x.data() );
@@ -145,6 +145,7 @@ int Sample( const LInt i )
                 log << "\n" + ct_tabs<t1> + "|>";
             }
             kv<t2>("Clisby Flag Counts", counts );
+            kv<t2>("Active Node Count", active_node_count );
         }
         log << "\n" + ct_tabs<t1> + "|>";
         

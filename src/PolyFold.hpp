@@ -46,6 +46,8 @@ namespace KnotTools
         using PRNG_T                    = typename Clisby_T::PRNG_T;
         using PRNG_FullState_T          = typename Clisby_T::PRNG_FullState_T;
         using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
+        using FlagCountVec_T            = Clisby_T::FlagCountVec_T;
+
         
     private:
         

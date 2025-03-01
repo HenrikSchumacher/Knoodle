@@ -18,11 +18,13 @@ void BurnIn()
     TimeInterval T_write;
     TimeInterval T_dealloc;
     
-    PRNG_FullState_T full_state;
     Size_T bytes;
     
     LInt attempt_count;
     LInt accept_count;
+    Int active_node_count;
+    FlagCountVec_T counts;
+    PRNG_FullState_T full_state;
     
     TimeInterval T_burn_in (0);
     
@@ -37,7 +39,7 @@ void BurnIn()
         full_state = T.RandomEngineFullState();
         
         T_fold.Tic<V2Q>();
-        auto counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
+        counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();
@@ -47,8 +49,9 @@ void BurnIn()
         total_accept_count += accept_count;
         
         burn_in_attempt_count = attempt_count;
-        
         burn_in_accept_count = accept_count;
+        
+        active_node_count = T.ActiveNodeCount();
         
         T_write.Tic<V2Q>();
         T.WriteVertexCoordinates( x.data() );
@@ -100,6 +103,10 @@ void BurnIn()
                 kv<t3>("Ball Overlap Checks", call_counters.overlap);
             log << "\n" + ct_tabs<t2> + "|>";
         }
+        
+        kv<t2>("Clisby Flag Counts", counts );
+        kv<t2>("Active Node Count", active_node_count );
+        
         log << ",\n" + ct_tabs<t2> + "\"PCG64\" -> <|";
             kv<t3,0>("Multiplier", full_state.multiplier);
             kv<t3>("Increment" , full_state.increment );
