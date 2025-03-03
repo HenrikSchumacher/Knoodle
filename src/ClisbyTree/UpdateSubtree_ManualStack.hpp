@@ -14,7 +14,7 @@ void UpdateSubtree_ManualStack( const Int start_node )
         }
         case UpdateFlag_T::Update:
         {
-            UpdateNode<true,true>( transform, start_node );
+            UpdateNode( transform, start_node );
             return;
         }
         case UpdateFlag_T::Split:
@@ -55,7 +55,7 @@ void UpdateSubtree_ManualStack( const Int start_node )
                 }
                 case UpdateFlag_T::Update:
                 {
-                    UpdateNode<true,true>( transform, R );
+                    UpdateNode( transform, R );
                     break;
                 }
                 case UpdateFlag_T::Split:
@@ -74,7 +74,7 @@ void UpdateSubtree_ManualStack( const Int start_node )
                 }
                 case UpdateFlag_T::Update:
                 {
-                    UpdateNode<true,true>( transform, L );
+                    UpdateNode( transform, L );
                     break;
                 }
                 case UpdateFlag_T::Split:

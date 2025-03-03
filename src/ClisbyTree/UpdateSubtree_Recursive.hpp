@@ -18,7 +18,7 @@ void updateSubtree_Recursive( const Int node )
         }
         case UpdateFlag_T::Update:
         {
-            UpdateNode<true,true>( transform, node );
+            UpdateNode( transform, node );
             break;
         }
         case UpdateFlag_T::Split:

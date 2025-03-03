@@ -1,6 +1,6 @@
 private:
 
-bool OverlapQ_Reference()
+bool CollidingQ_Reference()
 {
     Int stack [4 * max_depth][2];
     SInt stack_ptr = -1;
@@ -183,4 +183,4 @@ bool OverlapQ_Reference()
     
     return false;
     
-} // OverlapQ_Reference
+} // CollidingQ_Reference

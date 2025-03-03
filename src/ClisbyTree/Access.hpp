@@ -18,45 +18,49 @@ Int VertexNode( const Int vertex ) const
     return PrimitiveNode( vertex );
 }
 
-cref<NodeContainer_T> NodeTransforms() const
+cref<NodeTransformContainer_T> NodeTransforms() const
 {
     return N_transform;
 }
 
-mref<NodeContainer_T> NodeTransforms()
+mref<NodeTransformContainer_T> NodeTransforms()
 {
     return N_transform;
 }
 
-cref<NodeContainer_T> NodeBalls() const
+cref<NodeBallContainer_T> NodeBalls() const
 {
     return N_ball;
 }
 
-mref<NodeContainer_T> NodeBalls()
+mref<NodeBallContainer_T> NodeBalls()
 {
     return N_ball;
 }
 
-
-cref<Tensor1<NodeState_T,Int>> NodeStates() const
+cref<NodeFlagContainer_T> NodeFlags() const
 {
     return N_state;
 }
 
-mref<Tensor1<NodeState_T,Int>> NodeStates()
+mref<NodeFlagContainer_T> NodeFlags()
 {
     return N_state;
 }
 
-cref<NodeState_T> NodeState( const Int node ) const
+cref<NodeFlag_T> NodeFlag( const Int node ) const
 {
     return N_state[node];
 }
 
-mref<NodeState_T> NodeState( const Int node )
+mref<NodeFlag_T> NodeFlag( const Int node )
 {
     return N_state[node];
+}
+
+bool NodeActiveQ( const Int node ) const
+{
+    return N_state[node] == NodeFlag_T::NonId;
 }
 
 cptr<Real> NodeTransformPtr( const Int node ) const
@@ -99,34 +103,7 @@ mref<Real> NodeRadius( const Int node )
     return N_ball.data()[(AmbDim + 1) * node + AmbDim];
 }
 
-Vector_T VertexCoordinates( const Int vertex ) const
-{
-    Int node = VertexNode(vertex);
-    
-    Vector_T x = NodeCenter(node);
-    
-    while( node != Root() )
-    {
-        node = Parent(node);
-        
-        if( N_state[node] == NodeState_T::NonId )
-        {
-            x = NodeTransform(node)(x);
-        }
-    }
-    
-    return x;
-}
 
-// This version is measurably slower than the previous one.
-//Vector_T VertexCoordinates( const Int vertex )
-//{
-//    Int node = VertexNode(vertex);
-//    
-//    PullTransforms( Root(), node );
-//    
-//    return NodeCenter(node);
-//}
 
 void WriteVertexCoordinates( mptr<Real> X )
 {

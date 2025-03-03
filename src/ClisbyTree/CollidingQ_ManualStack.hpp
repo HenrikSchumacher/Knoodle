@@ -1,6 +1,6 @@
 private:
 
-bool OverlapQ_ManualStack()
+bool CollidingQ_ManualStack()
 {
     Int stack [4 * max_depth][2];
     SInt stack_ptr = -1;
@@ -183,4 +183,4 @@ bool OverlapQ_ManualStack()
     
     return false;
     
-} // OverlapQ_ManualStack
+} // CollidingQ_ManualStack

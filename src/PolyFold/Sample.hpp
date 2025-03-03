@@ -8,17 +8,19 @@ int Sample()
     log << ",\n" + ct_tabs<t0> + "\"Samples\" -> {" << std::flush;;
 
     log << "\n" + ct_tabs<t0+1>;
+
+    print_ctr = printQ ? 0 : -1;
     
-    err = Sample<t0+1,my_verbosity,checksQ>(LInt(0));
-    
+    err = Sample<t0+1,my_verbosity,checksQ>(LInt(1));
+
     if( err == 0 )
     {
-        for( LInt i = 1; i < N; ++ i )
+        for( LInt i = 2; i <= N; ++ i )
         {
             log << ",\n" + ct_tabs<t0+1>;
             
             err = Sample<t0+1,my_verbosity,checksQ>(i);
-            
+
             if( err != 0 )
             {
                 goto exit;
@@ -29,6 +31,7 @@ int Sample()
 exit:
     
     log << "\n" + ct_tabs<t0> + "}" << std::flush;
+    
     return err;
 }
     
@@ -42,6 +45,8 @@ int Sample( const LInt i )
     
     constexpr bool V1Q = my_verbosity >= 1;
     constexpr bool V2Q = my_verbosity >= 2;
+    
+    print_ctr += printQ;
     
     log << "<|";
     kv<t1,0>("Sample", i );
@@ -57,8 +62,9 @@ int Sample( const LInt i )
     LInt attempt_count;
     LInt accept_count;
     Int active_node_count;
-    FlagCountVec_T counts;
-    PRNG_FullState_T full_state;
+    FoldFlagCounts_T counts;
+//    PRNG_T prng_state;
+
     
     typename Clisby_T::CallCounters_T call_counters;
     
@@ -68,11 +74,11 @@ int Sample( const LInt i )
     clisby_begin();
     {
         T_clisby.Tic<V2Q>();
-        Clisby_T T( x.data(), n, hard_sphere_diam, random_engine );
+        Clisby_T T( x.data(), n, hard_sphere_diam, prng );
         T_clisby.Toc<V2Q>();
         allocation_time += T_clisby.Duration();
     
-        full_state = T.RandomEngineFullState();
+//        full_state = T.RandomEngineFullState();
         
         T_fold.Tic<V2Q>();
         // Do polygon folds until we have done at least `skip` accepted steps.
@@ -90,18 +96,12 @@ int Sample( const LInt i )
         T.WriteVertexCoordinates( x.data() );
         T_write.Toc<V2Q>();
         
-        random_engine = T.GetRandomEngine();
+        prng = T.RandomEngine();
         
         if( V2Q || (i + 1 == N) )
         {
             e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
         }
-        
-        T_sample.Toc();
-        
-        sampling_time = T_sample.Duration();
-        
-        total_sampling_time += sampling_time;
         
         bytes = T.AllocatedByteCount();
         
@@ -119,6 +119,14 @@ int Sample( const LInt i )
         }
     }
     clisby_end();
+    
+    T_sample.Toc();
+    
+    sampling_time = T_sample.Duration();
+    
+    total_sampling_time += sampling_time;
+    
+    sample_end();
     
     if constexpr ( V1Q )
     {
@@ -160,11 +168,11 @@ int Sample( const LInt i )
                 kv<t2>("Deallocate Clisby Tree", T_dealloc.Duration());
             }
             log << "\n" + ct_tabs<t1> + "|>";
-            log << ",\n" + ct_tabs<t1> + "\"PCG64\" -> <|";
-                kv<t2,0>("Multiplier", full_state.multiplier);
-                kv<t2>("Increment" , full_state.increment );
-                kv<t2>("State"     , full_state.state     );
-            log << "\n" + ct_tabs<t1> + "|>";
+//            log << ",\n" + ct_tabs<t1> + "\"PCG64\" -> <|";
+//                kv<t2,0>("Multiplier", full_state.multiplier);
+//                kv<t2>("Increment" , full_state.increment );
+//                kv<t2>("State"     , full_state.state     );
+//            log << "\n" + ct_tabs<t1> + "|>";
         }
         
         kv<t1>("Total Seconds Elapsed", total_timing );
@@ -193,15 +201,24 @@ int Sample( const LInt i )
             kv<t1>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second);
 
         }
+        
         log << std::flush;
     }
+
+    
+    if( (print_ctr >= steps_between_print) || (i == N) )
+    {
+        TimeInterval T_snapshot(0);
+        PolygonSnapshot<t1>(i);
         
-    sample_end();
+        T_snapshot.Toc();
+        
+        kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
+    }
     
     int err = Analyze<t0,my_verbosity>(i);
         
     log << "\n" + ct_tabs<t0> + "|>" << std::flush;
-    
     
     return err;
     

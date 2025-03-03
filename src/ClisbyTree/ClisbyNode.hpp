@@ -4,49 +4,52 @@ class ClisbyNode
 {
     cref<ClisbyTree> T;
     Int id;
-    Int depth;
-    Int column;
+    Int local_id;
+//    Int depth;
+//    Int column;
     Int begin;
     Int end;
-    Transform_T f;
     Vector_T    center;
     Real        radius;
+    Transform_T f;
+    NodeFlag_T state;
+    bool        interior_Q;
+    bool        contains_moved_Q;
+    bool        contains_unmoved_Q;
     
-    NodeState_T state;
-    
-    ClisbyNode( Int node, cref<ClisbyTree> T_ )
-    :   T      ( T_                     )
-    ,   id     (node                    )
-    ,   depth  ( T.Depth(node)          )
-    ,   column ( T.Column(node)         )
-    ,   begin  ( T.NodeBegin(node)      )
-    ,   end    ( T.NodeEnd(node)        )
-    ,   f      ( T.NodeTransform(node)  )
-    ,   center ( T.NodeBallPtr(node)    )
-    ,   radius ( T.NodeRadius(node)     )
-    ,   state  ( T.NodeState(node)      )
+    ClisbyNode( const Int id_, const Int local_id_, cref<ClisbyTree> T )
+    ,   id          ( id_                  )
+    ,   local_id    ( local_id_            )
+//    ,   depth       ( T.Depth(id)          )
+//    ,   column      ( T.Column(id)         )
+    ,   begin       ( T.NodeBegin(id)      )
+    ,   end         ( T.NodeEnd(id)        )
+    ,   center      ( T.NodeBallPtr(id)    )
+    ,   radius      ( T.NodeRadius(id)     )
+    ,   interior_Q  ( T.InteriorNodeQ(id)  )
     {
         // TODO: Maybe compute the split flags etc.
-    }
-    
-    // Get the child nods updated by current node's transformation.
-    std::pair<ClisbyNode,ClisbyNode> Children() const
-    {
-        ClisbyNode L( 2 * id + 1, T );
-        ClisbyNode R( 2 * id + 2, T );
         
-        if( state == NodeState_T::Nonid )
+        if( interior_Q )
         {
-            L.center = f(L.center);
-            L.f = (L.state == NodeState_T::Nonid) ? f(L.f) : f;
-            L.state  = NodeState_T::Nonid;
-            
-            R.center = f(R.center);
-            R.f = (R.state == NodeState_T::Nonid) ? f(R.f) : f;
-            R.state  = NodeState_T::Nonid;
+            f     = T.NodeTransform(id);
+            state = T.NodeFlag(id);
         }
         
-        return std::pair(L,R);
+        const Int p_ = T.p + midQ;
+        const Int q_ = T.q + !midQ;
+        
+        if( midQ )
+        {
+            contains_no_moved_Q   = (end <= p_   ) || (q_  <= begin);
+            contains_no_unmoved_Q = (p_  <= begin) && (end <= q_   );
+        }
+        else
+        {
+            contains_no_moved_Q   = (p_  <= begin) && (end <= q_   );
+            contains_no_unmoved_Q = (end <= p_   ) || (q_  <= begin);
+        }
+        
     }
     
 }; // ClisbyNode

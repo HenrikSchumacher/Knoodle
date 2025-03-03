@@ -1,6 +1,7 @@
 #include "UpdateSubtree_Recursive.hpp"
 #include "UpdateSubtree_ManualStack.hpp"
 
+public:
 
 void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
 {
@@ -22,31 +23,6 @@ void Update()
     {
         UpdateSubtree_Recursive(Root());
     }
-}
-
-int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
-{
-    p = Min(pivot_p,pivot_q);
-    q = Max(pivot_p,pivot_q);
-    theta = angle_theta;
-    
-    const Int n = VertexCount() ;
-    const Int mid_size = q - p - 1;
-    const Int rem_size = n - mid_size - 2;
-    
-    if( (mid_size <= 0) || (rem_size <= 0) ) [[unlikely]]
-    {
-        return 1;
-    }
-    
-    mid_changedQ = (mid_size <= rem_size);
-    
-    // TODO: There is maybe a more efficient way to compute the pivot vectors.
-    X_p = VertexCoordinates(p);
-    X_q = VertexCoordinates(q);
-    ComputePivotTransform();
-    
-    return 0;
 }
 
 UpdateFlag_T NodeNeedsUpdateQ( const Int node ) const
@@ -80,4 +56,31 @@ UpdateFlag_T NodeNeedsUpdateQ(
     {
         return UpdateFlag_T::Split;
     }
+}
+
+private:
+
+int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
+{
+    p = Min(pivot_p,pivot_q);
+    q = Max(pivot_p,pivot_q);
+    theta = angle_theta;
+    
+    const Int n = VertexCount() ;
+    const Int mid_size = q - p - 1;
+    const Int rem_size = n - mid_size - 2;
+    
+    if( (mid_size <= 0) || (rem_size <= 0) ) [[unlikely]]
+    {
+        return 1;
+    }
+    
+    mid_changedQ = (mid_size <= rem_size);
+    
+    // TODO: There is maybe a more efficient way to compute the pivot vectors.
+    X_p = VertexCoordinates(p);
+    X_q = VertexCoordinates(q);
+    ComputePivotTransform();
+    
+    return 0;
 }

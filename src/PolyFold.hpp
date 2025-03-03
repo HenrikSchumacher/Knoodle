@@ -15,8 +15,8 @@ namespace KnotTools
     class PolyFold
     {
         static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
+        static_assert(SignedIntQ<Int_>,"");
+        static_assert(SignedIntQ<LInt_>,"");
         static_assert(FloatQ<BReal_>,"");
         
     public:
@@ -39,15 +39,21 @@ namespace KnotTools
             0  // use_manual_stackQ
         >;
         
+        using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
 //        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
         using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
-        using PRNG_T                    = typename Clisby_T::PRNG_T;
-        using PRNG_FullState_T          = typename Clisby_T::PRNG_FullState_T;
         using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
-        using FlagCountVec_T            = Clisby_T::FlagCountVec_T;
-
+        using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
+        using PRNG_T                    = typename Clisby_T::PRNG_T;
+        
+        struct PRNG_State_T
+        {
+            std::string multiplier;
+            std::string increment;
+            std::string state;
+        };
         
     private:
         
@@ -69,11 +75,13 @@ namespace KnotTools
         std::ofstream log;
         std::ofstream pds;
         
-        Tensor2<Real,Int> x;
+        PolygonContainer_T x;
         
         LInt total_attempt_count = 0;
         LInt total_accept_count = 0;
         LInt burn_in_attempt_count = 0;
+        LInt steps_between_print = 0;
+        LInt print_ctr = 0;
 
         std::pair<Real,Real> e_dev;
 
@@ -89,21 +97,17 @@ namespace KnotTools
         double allocation_time = 0;
         double deallocation_time = 0;
         
-        PRNG_T random_engine;
-        
-        PRNG_FullState_T random_engine_state {
-            "47026247687942121848144207491837523525",
-            "332379478798780862241265428819319690027",
-            "91245575879834525841473801137169063431"
-        };
+        PRNG_T prng;
+        PRNG_State_T prng_init { "", "", "" };
 
-        bool random_engine_multiplierQ = false;
-        bool random_engine_incrementQ  = false;
-        bool random_engine_stateQ      = false;
-        bool force_deallocQ            = false;
-        bool do_checksQ                = true;
-        bool squared_gyradiusQ         = false;
-        bool pdQ                       = false;
+        bool prng_multiplierQ   = false;
+        bool prng_incrementQ    = false;
+        bool prng_stateQ        = false;
+        bool force_deallocQ     = false;
+        bool do_checksQ         = true;
+        bool squared_gyradiusQ  = false;
+        bool pdQ                = false;
+        bool printQ             = false;
         
     public:
         
@@ -245,8 +249,10 @@ namespace KnotTools
     private:
 
 #include "PolyFold/HandleOptions.hpp"
+#include "PolyFold/RandomEngine.hpp"
 #include "PolyFold/Initialize.hpp"
 #include "PolyFold/Helpers.hpp"
+#include "PolyFold/Polygon.hpp"
 #include "PolyFold/BurnIn.hpp"
 #include "PolyFold/Sample.hpp"
 #include "PolyFold/Analyze.hpp"
@@ -259,6 +265,11 @@ namespace KnotTools
         
         int Run()
         {
+            burn_in_time = 0;
+            total_sampling_time = 0;
+            total_analysis_time = 0;
+            total_timing = 0;
+            
             switch( verbosity )
             {
                 case 1:
@@ -323,7 +334,7 @@ namespace KnotTools
                 
                 std::ofstream file ( path / "Aborted_Polygon.txt" );
                 
-                file << x;
+                file << PolygonString(x);
             }
             
             return err;

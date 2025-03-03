@@ -23,8 +23,7 @@ void BurnIn()
     LInt attempt_count;
     LInt accept_count;
     Int active_node_count;
-    FlagCountVec_T counts;
-    PRNG_FullState_T full_state;
+    FoldFlagCounts_T counts;
     
     TimeInterval T_burn_in (0);
     
@@ -33,10 +32,10 @@ void BurnIn()
     clisby_begin();
     {
         T_clisby.Tic<V2Q>();
-        Clisby_T T ( x.data(), n, hard_sphere_diam, random_engine );
+        Clisby_T T ( x.data(), n, hard_sphere_diam, prng );
         T_clisby.Toc<V2Q>();
     
-        full_state = T.RandomEngineFullState();
+//        pre_state = FullState( T.RandomEngine() );
         
         T_fold.Tic<V2Q>();
         counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
@@ -57,7 +56,7 @@ void BurnIn()
         T.WriteVertexCoordinates( x.data() );
         T_write.Toc<V2Q>();
         
-        random_engine = T.GetRandomEngine();
+        prng = T.RandomEngine();
         
         e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
         
@@ -83,7 +82,9 @@ void BurnIn()
     
     burn_in_time = timing ;
     
-    kv<t1,0>("Time Elapsed", burn_in_time );
+    total_timing = Duration( T_run[0], T_burn_in[1] );
+    
+    kv<t1,0>("Burn-In Seconds Elapsed", burn_in_time );
     kv<t1>("Attempted Steps", attempt_count );
     kv<t1>("Attempted Steps/Second", Frac<Real>(attempt_count,timing) );
     kv<t1>("Accepted Steps", accept_count );
@@ -106,12 +107,6 @@ void BurnIn()
         
         kv<t2>("Clisby Flag Counts", counts );
         kv<t2>("Active Node Count", active_node_count );
-        
-        log << ",\n" + ct_tabs<t2> + "\"PCG64\" -> <|";
-            kv<t3,0>("Multiplier", full_state.multiplier);
-            kv<t3>("Increment" , full_state.increment );
-            kv<t3>("State"     , full_state.state     );
-        log << "\n" + ct_tabs<t2> + "|>";
     }
     log << "\n" + ct_tabs<t1> + "|>";
     
@@ -127,11 +122,20 @@ void BurnIn()
             }
         log << "\n" + ct_tabs<t1> + "|>";
     }
+    kv<t1>("Total Seconds Elapsed", total_timing );
+    kv<t1>("Total Attempted Steps (w/ Burn-in)", total_attempt_count );
     
     kv<t1>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
     kv<t1>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
+
+    TimeInterval T_snapshot(0);
+    PolygonSnapshot<t1>(LInt(0));
+    T_snapshot.Toc();
+    
+    kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
     
     log << "\n" + ct_tabs<t0> + "|>";
+
     
 } // BurnIn
 

@@ -78,10 +78,8 @@ int Analyze( const LInt i )
                 kv<t2,0>("Byte Count", L.ByteCount() );
             if constexpr ( V2Q )
             {
-//                log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
-//                log << L.template AllocatedByteCountDetails<t2>();
-//                log << "\n" + ct_tabs<t2> + "|>";
-                kv<t2>("Byte Count Details", L.template AllocatedByteCountDetails<t2>() );
+                log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
+                log << L.template AllocatedByteCountDetails<t2>();
                 kv<t2>("Flag Counts", intersection_flag_counts);
                 kv<t2>("Accumulated Flag Counts", acc_intersection_flag_counts);
             }
@@ -142,6 +140,10 @@ int Analyze( const LInt i )
         {
             kv<t2>("Byte Count (After Simplification)", PD.ByteCount() );
             kv<t2>("Crossing Count (After Simplification)", PD.CrossingCount() );
+        }
+        
+        if constexpr ( V1Q )
+        {
             log << "\n" + ct_tabs<t1> + "|>";
             log << std::flush;
         }

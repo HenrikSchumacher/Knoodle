@@ -11,9 +11,13 @@ void ComputePivotTransform()
         const Real cos = std::cos(theta_half);
         const Real sin = std::sin(theta_half);
         
-        Tiny::Vector<4,Real,Int> Q {{ cos, sin * u[0], sin * u[1], sin * u[2] }};
+        Real Q [7] {cos, sin * u[0], sin * u[1], sin * u[2], 0, 0, 0 };
+            
+        transform.Read( &Q[0], NodeFlag_T::NonId );
         
-        transform.ReadQuaternion(&Q[0]);
+        Vector_T b = X_p - transform.Matrix() * X_p;
+        
+        transform.ForceReadVector(b);
     }
     else
     {
@@ -21,35 +25,109 @@ void ComputePivotTransform()
         const Real sin = std::sin(theta);
         const Real d = Scalar::One<Real> - cos;
         
-        Tiny::Matrix<AmbDim,AmbDim,Real,Int> A;
         
-        A(0,0) = u[0] * u[0] * d + cos;
-        A(0,1) = u[0] * u[1] * d - sin * u[2];
-        A(0,2) = u[0] * u[2] * d + sin * u[1];
-
-        A(1,0) = u[1] * u[0] * d + sin * u[2];
-        A(1,1) = u[1] * u[1] * d + cos;
-        A(1,2) = u[1] * u[2] * d - sin * u[0];
-
-        A(2,0) = u[2] * u[0] * d - sin * u[1];
-        A(2,1) = u[2] * u[1] * d + sin * u[0];
-        A(2,2) = u[2] * u[2] * d + cos;
+        const Real a [3][3] = {
+            {
+                u[0] * u[0] * d + cos       ,
+                u[0] * u[1] * d - sin * u[2],
+                u[0] * u[2] * d + sin * u[1]
+            },
+            {
+                u[1] * u[0] * d + sin * u[2],
+                u[1] * u[1] * d + cos       ,
+                u[1] * u[2] * d - sin * u[0]
+            },
+            {
+                u[2] * u[0] * d - sin * u[1],
+                u[2] * u[1] * d + sin * u[0],
+                u[2] * u[2] * d + cos
+            }
+        };
         
-        transform.ReadMatrix( &A[0][0] );
+        Matrix_T A;
+        
+        A.Read( &a[0][0] );
+        
+        Vector_T b = X_p - A * X_p;
+        
+        transform.Read( A, b, NodeFlag_T::NonId );
     }
+    
+//    // Check correctness.
+//    
+//    constexpr Real TOL = 0.000000001;
+//    
+//    const Real error_p = (transform(X_p) - X_p).Norm();
+//    const Real error_q = (transform(X_q) - X_q).Norm();
+//    
+//    if( error_p > TOL )
+//    {
+//        wprint( ClassName() + "::ComputePivotTransform: First pivot vertex is modified by pivot transform; error = " + ToString(error_p) + "." );
+//    }
+//    
+//    if( error_q > TOL )
+//    {
+//        wprint( ClassName() + "::ComputePivotTransform: Second pivot vertex is modified by pivot transform; error = " + ToString(error_q) + "." );
+//    }
 
-    // Compute shift b = X_p - A.X_p.
-    transform.Vector() = X_p - transform.Matrix() * X_p;
 }
+
+
+Vector_T NodeCenterAbsoluteCoordinates( const Int node_ ) const
+{
+    Int node = node_;
+    
+    Vector_T x = NodeCenter(node);
+    
+    const Int root = Root();
+    
+    while( node != root )
+    {
+        node = Parent(node);
+        
+        if constexpr ( use_quaternionsQ )
+        {
+            // If we use quaternions, then we need to construct only the 3x3 matrix, not the 4x4 matrix. That saves a little time.
+            
+            x = Transform_T::Transform( NodeTransformPtr(node), NodeFlag(node), x );
+        }
+        else
+        {
+            x = NodeTransform(node)(x);
+        }
+    }
+    
+    return x;
+}
+
+Vector_T VertexCoordinates( const Int vertex ) const
+{
+    return NodeCenterAbsoluteCoordinates( VertexNode(vertex) );
+}
+
+// This version is measurably slower than the previous one.
+//Vector_T VertexCoordinates( const Int vertex )
+//{
+//    Int node = VertexNode(vertex);
+//
+//    PullTransforms( Root(), node );
+//
+//    return NodeCenter(node);
+//}
+
+/*!
+ * @brief Loads the transformation stored in node `node` into a `Transform_T` object.
+ *
+ */
 
 Transform_T NodeTransform( const Int node ) const
 {
     if constexpr ( countersQ )
     {
-        ++call_counters.load_transform;
+        call_counters.load_transform += (NodeFlag(node) == NodeFlag_T::NonId);
     }
     
-    return Transform_T( NodeTransformPtr(node) );
+    return Transform_T( NodeTransformPtr(node), NodeFlag(node) );
 }
 
 Vector_T NodeCenter( const Int node ) const
@@ -57,59 +135,48 @@ Vector_T NodeCenter( const Int node ) const
     return Vector_T( NodeCenterPtr(node) );
 }
 
-template<bool update_centerQ, bool update_transformQ>
 void UpdateNode( cref<Transform_T> f, const Int node )
 {
-
-    if constexpr ( update_centerQ )
+    if constexpr ( countersQ )
     {
-        f.TransformVector(NodeCenterPtr(node));
-        
-        if constexpr ( countersQ )
-        {
-            ++call_counters.mv;
-        }
+        call_counters.mv += f.TransformVector( NodeCenterPtr(node) );
+    }
+    else
+    {
+        (void)f.TransformVector( NodeCenterPtr(node) );
     }
     
-    if constexpr ( update_transformQ )
+    // Transformation of a leaf node never needs a change.
+    if( LeafNodeQ( node ) )
     {
-        // Transformation of a leaf node never needs a change.
-        if( LeafNodeQ( node ) )
-        {
-            return;
-        }
+        return;
+    }
+    
+    if constexpr ( countersQ )
+    {
+        bool info = f.TransformTransform( NodeTransformPtr(node), NodeFlag(node) );
         
-        if (N_state[node] == NodeState_T::Id )
-        {
-            f.Write( NodeTransformPtr(node) );
-        }
-        else
-        {
-            f.TransformTransform(NodeTransformPtr(node));
-            
-            if constexpr ( countersQ )
-            {
-                ++call_counters.load_transform;
-                ++call_counters.mv;
-                ++call_counters.mm;
-            }
-        }
-        
-        N_state[node] = NodeState_T::NonId;
+        call_counters.load_transform += info;
+        call_counters.mv             += info;
+        call_counters.mm             += info;
+    }
+    else
+    {
+        (void)f.TransformTransform( NodeTransformPtr(node), NodeFlag(node) );
     }
 }
 
 void PushTransform( const Int node, const Int L, const Int R )
 {
-    if( N_state[node] == NodeState_T::Id )
+    if( N_state[node] == NodeFlag_T::Id )
     {
         return;
     }
     
     Transform_T f = NodeTransform(node);
     
-    UpdateNode<true,true>( f, L );
-    UpdateNode<true,true>( f, R );
+    UpdateNode( f, L );
+    UpdateNode( f, R );
     
     ResetTransform(node);
 }

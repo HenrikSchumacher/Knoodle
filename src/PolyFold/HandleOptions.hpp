@@ -27,6 +27,7 @@ void HandleOptions( int argc, char** argv )
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
         ("no-checks", "perform folding without checks for overlap of hard spheres")
+        ("polygons,P", po::value<LInt>(), "print every [arg] sample to file")
 //        ("print-polygon,p", po::value<LInt>(), "write polygon to file roughly every [arg] steps")
         ;
         
@@ -111,6 +112,13 @@ void HandleOptions( int argc, char** argv )
         
         pdQ = (vm.count("pd-code") != 0);
         valprint<a>("Compute PD Codes", pdQ ? "True" : "False" );
+        
+        if( vm.count("polygons") )
+        {
+            steps_between_print = Ramp( vm["polygons"].as<LInt>() );
+            printQ = (steps_between_print > 0);
+        }
+        valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
 
         print("");
         
@@ -119,32 +127,32 @@ void HandleOptions( int argc, char** argv )
         
         do_checksQ = (vm.count("no-checks") == 0);
         valprint<a>("Hard Sphere Checks", do_checksQ ? "True" : "False" );
-
+        
         if( vm.count("pcg-multiplier") )
         {
-            random_engine_multiplierQ = true;
+            prng_multiplierQ = true;
             
-            random_engine_state.multiplier = vm["pcg-multiplier"].as<std::string>();
+            prng_init.multiplier = vm["pcg-multiplier"].as<std::string>();
             
-            valprint("PCG Multiplier", random_engine_state.multiplier);
+            valprint("PCG Multiplier", prng_init.multiplier);
         }
         
         if( vm.count("pcg-increment") )
         {
-            random_engine_incrementQ = true;
+            prng_incrementQ = true;
             
-            random_engine_state.increment = vm["pcg-increment"].as<std::string>();
+            prng_init.increment = vm["pcg-increment"].as<std::string>();
             
-            valprint<a>("PCG Increment", random_engine_state.increment);
+            valprint<a>("PCG Increment", prng_init.increment);
         }
         
         if( vm.count("pcg-state") )
         {
-            random_engine_stateQ = true;
+            prng_stateQ = true;
             
-            random_engine_state.state = vm["pcg-state"].as<std::string>();
+            prng_init.state = vm["pcg-state"].as<std::string>();
             
-            valprint<a>("PCG State", random_engine_state.state);
+            valprint<a>("PCG State", prng_init.state);
         }
         
         print("");
@@ -154,7 +162,7 @@ void HandleOptions( int argc, char** argv )
             verbosity = vm["verbosity"].as<int>();
         }
 
-        valprint<a>("Report Mode", verbosity);
+        valprint<a>("Verbosity", verbosity);
         
         
         if( vm.count("output") )

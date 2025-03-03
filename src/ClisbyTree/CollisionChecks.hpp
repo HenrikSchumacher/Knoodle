@@ -1,7 +1,8 @@
-#include "OverlapQ_Reference.hpp"
-#include "OverlapQ_ManualStack.hpp"
+#include "CollidingQ_Reference.hpp"
+#include "CollidingQ_ManualStack.hpp"
 
-#include "SubtreesOverlapQ_Recursive.hpp"
+#include "SubtreesCollideQ_Recursive.hpp"
+#include "SubtreesCollideQ_Recursive2.hpp"
 
 
 public:
@@ -17,20 +18,32 @@ bool OverlapQ()
     
     if constexpr ( use_manual_stackQ )
     {
-        result = OverlapQ_ManualStack(); // 32.9882 s
+        result = CollidingQ_ManualStack(); // 32.9882 s
     }
     else
     {
-        result = SubtreesOverlapQ_Recursive( Root() ); // 29.9892 s / ?? s.
+        result = SubtreesCollideQ_Recursive( Root() ); // 29.9892 s / ?? s.
+        
+//        result = SubtreesCollideQ_Rec2( Root(), NodeTransform(Root()) );
     }
     
 ////     DEBUGGING
 //    {
-//        bool resultReference = OverlapQ_Reference();
+//        Int w_0 = witness_0;
+//        Int w_1 = witness_1;
 //        
+//        bool resultReference = CollidingQ_Reference();
+//
 //        if( result != resultReference )
 //        {
 //            eprint("!!!");
+//            dump(result)
+//            dump(resultReference)
+//            
+//            dump(w_0);
+//            dump(witness_0);
+//            dump(w_1);
+//            dump(witness_1);
 //            exit(-1);
 //        }
 //    }
@@ -44,22 +57,10 @@ bool OverlapQ()
 
 static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
 {
-//    Real d2 = 0;
-//    
-//    for( Int k = 0; k < AmbDim; ++k )
-//    {
-//        const Real delta = N_R[k] - N_L[k];
-//        
-//        d2 += delta * delta;
-//    }
-//
-//    const Real d   = Sqrt(d2);
-    
-    
     const Vector_T c_L ( N_L );
     const Vector_T c_R ( N_R );
     
-    const Real d = (c_R - c_L).Norm();
+    const Real d = Distance(c_R,c_L);
     
     
     const Real r_L = N_L[AmbDim];
@@ -106,9 +107,19 @@ static constexpr Real NodeCenterSquaredDistance(
     const Vector_T c_L ( N_0 );
     const Vector_T c_R ( N_1 );
     
-    const Real d2 = (c_R - c_L).SquaredNorm();
+    const Vector_T delta = c_R - c_L;
+    
+    const Real d2 = delta.SquaredNorm();
     
     return d2;
+}
+
+
+static constexpr Real SquaredDistance( cref<Vector_T> x, cref<Vector_T> y )
+{
+    Vector_T z = x - y;
+    
+    return z.SquaredNorm();
 }
                 
 static constexpr bool BallsOverlapQ(
@@ -119,9 +130,25 @@ static constexpr bool BallsOverlapQ(
     
     const Real threshold = diam + N_0[AmbDim] + N_1[AmbDim];
     
-    const bool overlapQ = d2 < threshold * threshold;
+    return (d2 < threshold * threshold);
+}
+
+bool BallsOverlapQ(
+    cref<Vector_T> c_0, const Real r_0,
+    cref<Vector_T> c_1, const Real r_1,
+    const Real diam
+)
+{
+    if constexpr ( countersQ )
+    {
+        ++call_counters.overlap;
+    }
     
-    return overlapQ;
+    const Real d2 = SquaredDistance(c_0,c_1);
+    
+    const Real threshold = diam + r_0 + r_1;
+    
+    return (d2 < threshold * threshold);
 }
 
 bool BallsOverlapQ( const Int node_0, const Int node_1) const
@@ -155,7 +182,8 @@ int CheckJoints() const
         X_p_prev = transform(X_p_prev);
     }
     
-    if( (X_p_next - X_p_prev).SquaredNorm() <= hard_sphere_squared_diam )
+    
+    if( SquaredDistance(X_p_next,X_p_prev) <= hard_sphere_squared_diam )
     {
         return 2;
     }
@@ -175,7 +203,7 @@ int CheckJoints() const
         X_q_next = transform(X_q_next);
     }
     
-    if( (X_q_next - X_q_prev).SquaredNorm() <= hard_sphere_squared_diam )
+    if( SquaredDistance(X_q_next,X_q_prev) <= hard_sphere_squared_diam )
     {
         return 3;
     }

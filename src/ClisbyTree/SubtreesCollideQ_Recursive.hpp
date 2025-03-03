@@ -1,6 +1,6 @@
 private:
 
-bool SubtreesOverlapQ_Recursive( const Int i )
+bool SubtreesCollideQ_Recursive( const Int i )
 {
     const bool interiorQ = InteriorNodeQ(i);
     
@@ -12,17 +12,18 @@ bool SubtreesOverlapQ_Recursive( const Int i )
         
         const NodeSplitFlagMatrix_T F = NodeSplitFlagMatrix(L,R);
         
-        if( (F[0][0] && F[0][1]) && SubtreesOverlapQ_Recursive(L) )
+        
+        if( (F[0][0] && F[0][1]) && SubtreesCollideQ_Recursive(L) )
         {
             return true;
         }
         
-        if( (F[1][0] && F[1][1]) && SubtreesOverlapQ_Recursive(R) )
+        if( (F[1][0] && F[1][1]) && SubtreesCollideQ_Recursive(R) )
         {
             return true;
         }
         
-        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsOverlapQ(L,R) &&SubtreesOverlapQ_Recursive(L,R) )
+        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsOverlapQ(L,R) &&SubtreesCollideQ_Recursive(L,R) )
         {
             return true;
         }
@@ -30,9 +31,9 @@ bool SubtreesOverlapQ_Recursive( const Int i )
     
     return false;
     
-} // SubtreesOverlapQ_Recursive
+} // SubtreesCollideQ_Recursive
 
-bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
+bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 {
     const bool i_interiorQ = InteriorNodeQ(i);
     const bool j_interiorQ = InteriorNodeQ(j);
@@ -62,22 +63,22 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
             {subdQ(1,0),subdQ(1,1)}
         };
         
-        if( subdivideQ[0][0] && SubtreesOverlapQ_Recursive(c_i[0],c_j[0]) )
+        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive(c_i[0],c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][1] && SubtreesOverlapQ_Recursive(c_i[1],c_j[1]) )
+        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive(c_i[1],c_j[1]) )
         {
             return true;
         }
         
-        if( subdivideQ[0][1] && SubtreesOverlapQ_Recursive(c_i[0],c_j[1]) )
+        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive(c_i[0],c_j[1]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][0] && SubtreesOverlapQ_Recursive(c_i[1],c_j[0]) )
+        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive(c_i[1],c_j[0]) )
         {
             return true;
         }
@@ -101,12 +102,12 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
         
         const bool subdivideQ [2] = { subdQ(0), subdQ(1) };
         
-        if( subdivideQ[0] && SubtreesOverlapQ_Recursive(i,c_j[0]) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive(i,c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesOverlapQ_Recursive(i,c_j[1]) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive(i,c_j[1]) )
         {
             return true;
         }
@@ -130,12 +131,12 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
         
         const bool subdivideQ [2] = { subdQ(0), subdQ(1) };
 
-        if( subdivideQ[0] && SubtreesOverlapQ_Recursive(c_i[0],j) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive(c_i[0],j) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesOverlapQ_Recursive(c_i[1],j) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive(c_i[1],j) )
         {
             return true;
         }
@@ -161,5 +162,5 @@ bool SubtreesOverlapQ_Recursive( const Int i, const Int j )
     
     return false;
     
-} // SubtreesOverlapQ_Recursive
+} // SubtreesCollideQ_Recursive
 

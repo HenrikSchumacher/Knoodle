@@ -21,13 +21,12 @@ void Initialize()
     
     log << ct_tabs<t0> + "<|";
     
-    kv<t1,0>("Prescibed Edge Length",prescribed_edge_length);
+    kv<t1,0>("Prescribed Edge Length",prescribed_edge_length);
     kv<t1>  ("Hard Sphere Diameter",hard_sphere_diam);
     kv<t1>  ("Edge Count",n);
     kv<t1>  ("Sample Count",N);
     kv<t1>  ("Burn-in Count",burn_in_accept_count);
     kv<t1>  ("Skip Count",skip);
-    kv<t1>  ("Prescribed Edge Length",Real(1));
     kv<t1>  ("Verbosity",verbosity);
     
     log << ",\n" + ct_tabs<t1> + "\"Initialization\" -> <|";
@@ -57,44 +56,47 @@ void Initialize()
     {
         Clisby_T T ( n, hard_sphere_diam );
         
-        PRNG_FullState_T full_state = T.RandomEngineFullState();
+        prng = T.RandomEngine();
+        
+        PRNG_State_T state = State( prng );
 
-        if( random_engine_multiplierQ )
+        if( !prng_multiplierQ )
         {
-            full_state.multiplier = random_engine_state.multiplier;
+            prng_init.multiplier = state.multiplier;
         }
         
-        if( random_engine_incrementQ )
+        if( !prng_incrementQ )
         {
-            full_state.increment = random_engine_state.increment;
+            prng_init.increment = state.increment;
         }
         
-        if( random_engine_stateQ )
+        if( !prng_stateQ )
         {
-            full_state.state = random_engine_state.state;
+            prng_init.state = state.state;
         }
         
-        random_engine_state = full_state;
-        
-        if( random_engine_multiplierQ || random_engine_incrementQ || random_engine_stateQ)
+        if( prng_multiplierQ || prng_incrementQ || prng_stateQ)
         {
-           if( T.SetRandomEngine(random_engine_state) )
+           if( SetState( prng, prng_init ) )
            {
-               eprint( ClassName() + "::Initialize: Failed to initialize random engine with "
-                      + "multiplier = " + full_state.multiplier + ", "
-                      + "increment = " + full_state.increment + ", "
-                      + "state = " + full_state.state + ". Aborting."
+               eprint( ClassName() + "::Initialize: Failed to initialize random engine with <|"
+                      + "Multiplier -> " + prng_init.multiplier + ", "
+                      + "Increment -> "  + prng_init.increment + ", "
+                      + "State -> "      + prng_init.state + "|>. Aborting."
                 );
                exit(1);
            }
         }
         
         kv<t3>("Byte Count", T.ByteCount() );
+        log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
+        log << T.template AllocatedByteCountDetails<t3>();
+        
         kv<t3>("Euclidean Transformation Class",Clisby_T::Transform_T::ClassName());
         log << ",\n" + ct_tabs<t3> + "\"PCG64\" -> <|";
-            kv<t4,0>("Multiplier", full_state.multiplier);
-            kv<t4>("Increment" , full_state.increment );
-            kv<t4>("State"     , full_state.state     );
+            kv<t4,0>("Multiplier", prng_init.multiplier);
+            kv<t4>("Increment"   , prng_init.increment );
+            kv<t4>("State"       , prng_init.state     );
         log << "\n" + ct_tabs<t3> + "|>";
         log << "\n" + ct_tabs<t2> + "|>";
         
@@ -103,7 +105,7 @@ void Initialize()
         T.WriteVertexCoordinates( x.data() );
         
         // Remember random engine for later use.
-        random_engine = T.GetRandomEngine();
+        prng = T.RandomEngine();
         
         if( force_deallocQ )
         {
@@ -116,22 +118,18 @@ void Initialize()
     {
         Link_T L ( n );
 
-        // Read coordinates into `Link_T` object `L`...
         L.ReadVertexCoordinates ( x.data() );
 
         log << ",\n" + ct_tabs<t2> + "\"Link\" -> <|";
             kv<t3,0>("Class", L.ClassName());
-        
-    //        kv<t2>("Link Class",L.ClassName());
         log << std::flush;
         
         (void)L.FindIntersections();
         
             kv<t3>("Byte Count", L.ByteCount() );
-    //            log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
-    //            log << L.template AllocatedByteCountDetails<t3>();
-    //            log << "\n" + ct_tabs<t3> + "|>";
-            kv<t3>("Byte Count Details", L.template AllocatedByteCountDetails<t3>() );
+            log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
+            log << L.template AllocatedByteCountDetails<t3>();
+        
         log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
 
@@ -154,7 +152,6 @@ void Initialize()
             link_end();
         }
         
-        sleep(1);
             kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
         log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
@@ -165,8 +162,10 @@ void Initialize()
         }
         pd_end();
     }
-            
     
+    T_init.Toc();
+            
+    kv<t2>("Initialization Seconds Elapsed", T_init.Duration() );
 
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
 }
