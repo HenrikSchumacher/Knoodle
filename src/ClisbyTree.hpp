@@ -32,8 +32,8 @@ namespace KnotTools
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
         static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
+        static_assert(SignedIntQ<Int_>,"");
+        static_assert(SignedIntQ<LInt_>,"");
         static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
         
     public:
@@ -67,23 +67,23 @@ namespace KnotTools
                   AffineTransform<AmbDim,Real,Int>
               >;
     
-        using Vector_T        = typename Transform_T::Vector_T;
-        using Matrix_T        = typename Transform_T::Matrix_T;
-        using Flag_T          = Int32;
-        using FlagCountVec_T  = Tiny::Vector<5,LInt,Flag_T>;
+        using NodeFlag_T               = AffineTransformFlag_T;
+        using Vector_T                 = typename Transform_T::Vector_T;
+        using Matrix_T                 = typename Transform_T::Matrix_T;
+        using FoldFlag_T               = Int32;
+        using FoldFlagCounts_T         = Tiny::Vector<5,LInt,FoldFlag_T>;
 
-        using NodeContainer_T = Tensor2<Real,Int>;
+        using NodeFlagContainer_T      = Tensor1<NodeFlag_T,Int>;
+        using NodeTransformContainer_T = Tensor2<Real,Int>;
+        using NodeBallContainer_T      = Tensor2<Real,Int>;
     
-        using NodeSplitFlagVector_T = Tiny::Vector<2,bool,Int>;
-        using NodeSplitFlagMatrix_T = Tiny::Matrix<2,2,bool,Int>;
+        using NodeSplitFlagVector_T    = Tiny::Vector<2,bool,Int>;
+        using NodeSplitFlagMatrix_T    = Tiny::Matrix<2,2,bool,Int>;
 
     //        using NodeSplitFlagVector_T = std::array<bool,2>;
     //        using NodeSplitFlagMatrix_T = std::array<NodeSplitFlagVector_T,2>;
     
         using RNG_T  = std::random_device;
-    
-//        using PRNG_T = std::mt19937_64;
-//        static constexpr Size_T PRNG_T_state_size = PRNG_T::state_size;
     
         using PRNG_T = pcg64;
         static constexpr Size_T PRNG_T_state_size = 4;
@@ -92,19 +92,9 @@ namespace KnotTools
     
         using Seed_T = std::array<RNG_T::result_type,seed_size>;
         
-//        using PRNG_FullState_T = std::array<std::string,3>;
-        
-        struct PRNG_FullState_T
-        {
-            std::string multiplier;
-            std::string increment;
-            std::string state;
-        };
-        
         // For center, radius, rotation, and translation.
         static constexpr Int TransformDim = Transform_T::Size();
         static constexpr Int BallDim      = AmbDim + 1;
-//        static constexpr Int NodeDim      = BallDim + TransformDim;
         
         static constexpr bool countersQ = countersQ_;
         
@@ -125,12 +115,6 @@ namespace KnotTools
             Split     = 2
         };
         
-        enum class NodeState_T : std::int_fast8_t
-        {
-            Id    = 0,
-            NonId = 1
-        };
-        
         ClisbyTree() = default;
 
         template<typename ExtReal, typename ExtInt>
@@ -139,13 +123,13 @@ namespace KnotTools
             const ExtReal hard_sphere_diam_
         )
         :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_ball                      { NodeCount(), BallDim                  }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         {
-            id.SetIdentity();
+            InitializeTransforms();
             SetToCircle();
             InitializePRNG();
         }
@@ -157,13 +141,13 @@ namespace KnotTools
             const ExtReal hard_sphere_diam_
         )
         :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_ball                      { NodeCount(), BallDim                  }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         {
-            id.SetIdentity();
+            InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
             InitializePRNG();
         }
@@ -176,14 +160,14 @@ namespace KnotTools
             PRNG_T prng
         )
         :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim, 0  }
-        ,   N_state                     { InteriorNodeCount(), NodeState_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim, 0               }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_ball                      { NodeCount(), BallDim                  }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
         ,   random_engine               { prng                                  }
         {
-            id.SetIdentity();
+            InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
         }
 
@@ -205,7 +189,6 @@ namespace KnotTools
 //        ,   theta                       { other.theta                       }
 //        ,   X_p                         { other.X_p                         }
 //        ,   X_q                         { other.X_q                         }
-//        ,   id                          { other.id                          }
 //        ,   transform                   { other.transform                   }
 //        ,   seed                        { other.seed                        }
 //        ,   random_engine               { other.random_engine               }
@@ -244,7 +227,6 @@ namespace KnotTools
 //                swap( A.theta,                      B.theta );
 //                swap( A.X_p,                        B.X_p );
 //                swap( A.X_q,                        B.X_q );
-//                swap( A.id,                         B.id );
 //                swap( A.transform,                  B.transform );
 //                
 //                swap( A.seed,                       B.seed );
@@ -308,9 +290,9 @@ namespace KnotTools
         
     private:
         
-        NodeContainer_T N_transform;
-        Tensor1<NodeState_T,Int> N_state;
-        NodeContainer_T N_ball;
+        NodeTransformContainer_T N_transform;
+        NodeFlagContainer_T      N_state;
+        NodeBallContainer_T      N_ball;
         
         Real hard_sphere_diam           = 0;
         Real hard_sphere_squared_diam   = 0;
@@ -325,7 +307,6 @@ namespace KnotTools
         Real theta;                     // Rotation angle
         Vector_T   X_p;                 // Pivot location.
         Vector_T   X_q;                 // Pivot location.
-        Transform_T id;
         Transform_T transform;          // Pivot transformation.
         
         Seed_T seed;
@@ -340,13 +321,24 @@ namespace KnotTools
         
         void ResetTransform( const Int node )
         {
-            N_state[node] = NodeState_T::Id;
+            N_state[node] = NodeFlag_T::Id;
         }
         
         void InitializeNodeFromVertex( const Int node, cptr<Real> x )
         {
             copy_buffer<AmbDim>( x, NodeCenterPtr(node) );
             NodeRadius(node) = 0;
+        }
+        
+        void InitializeTransforms()
+        {
+            Transform_T id;
+            id.SetIdentity();
+            
+            for( Int node = 0; node < InteriorNodeCount(); ++node )
+            {
+                id.ForceWrite( NodeTransformPtr(node), NodeFlag(node) );
+            }
         }
         
         void InitializePRNG()
@@ -357,7 +349,7 @@ namespace KnotTools
     
     public:
         
-        PRNG_T GetRandomEngine()
+        PRNG_T RandomEngine()
         {
             return random_engine;
         }
@@ -367,71 +359,64 @@ namespace KnotTools
             random_engine = prng;
         }
         
-        
-        int SetRandomEngine( cref<PRNG_FullState_T> full_state )
-        {
-            std::string state = full_state.multiplier + " " + full_state.increment + " " + full_state.state;
-            
-            std::stringstream s (state);
-            
-            s >> random_engine;
-            
-            std::string actual_state = RandomEngineFullString();
-            
-            if( s.fail() )
-            {
-                return 1;
-            }
-            
-//            if( actual_state != state )
+//        
+//        int SetRandomEngine( cref<PRNG_FullState_T> full_state )
+//        {
+//            std::string state = full_state.multiplier + " " + full_state.increment + " " + full_state.state;
+//            
+//            std::stringstream s (state);
+//            
+//            s >> random_engine;
+//            
+//            std::string actual_state = RandomEngineFullString();
+//            
+//            if( s.fail() )
 //            {
-//                eprint( ClassName() + "::SetRandomState: Failed.");
-//                logprint(state);
-//                logprint(actual_state);
+//                return 1;
 //            }
-            
-            return 0;
-        }
+//            
+//            return 0;
+//        }
         
-        std::string RandomEngineFullString() const
-        {
-            std::stringstream s;
-            
-            s << random_engine;
-            
-            return s.str();
-        }
+//        std::string RandomEngineFullString() const
+//        {
+//            std::stringstream s;
+//            
+//            s << random_engine;
+//            
+//            return s.str();
+//        }
         
         
-        PRNG_FullState_T RandomEngineFullState() const
-        {
-            std::stringstream s;
-            
-            s << random_engine;
-            
-            PRNG_FullState_T full_state;
-            
-            s >> full_state.multiplier;
-            s >> full_state.increment;
-            s >> full_state.state;
-            
-            return full_state;
-        }
-
-        std::string RandomEngineMultiplier() const
-        {
-            return RandomEngineFullState()[0];
-        }
-        
-        std::string RandomEngineIncrement() const
-        {
-            return RandomEngineFullState()[1];
-        }
-        
-        std::string RandomEngineState() const
-        {
-            return RandomEngineFullState()[2];
-        }
+//        PRNG_FullState_T RandomEngineFullState() const
+//        {
+//            std::stringstream s;
+//            
+//            s << random_engine;
+//            
+//            PRNG_FullState_T full_state;
+//            
+//            s >> full_state.multiplier;
+//            s >> full_state.increment;
+//            s >> full_state.state;
+//            
+//            return full_state;
+//        }
+//
+//        std::string RandomEngineMultiplier() const
+//        {
+//            return RandomEngineFullState()[0];
+//        }
+//        
+//        std::string RandomEngineIncrement() const
+//        {
+//            return RandomEngineFullState()[1];
+//        }
+//        
+//        std::string RandomEngineState() const
+//        {
+//            return RandomEngineFullState()[2];
+//        }
     
         void SeedBy( Seed_T & seed_ )
         {
@@ -504,7 +489,7 @@ namespace KnotTools
 #include "ClisbyTree/Access.hpp"
 #include "ClisbyTree/Transformations.hpp"
 #include "ClisbyTree/Update.hpp"
-#include "ClisbyTree/CollisionsChecks.hpp"
+#include "ClisbyTree/CollisionChecks.hpp"
         
 //###################################################################################
 //##    Folding
@@ -513,7 +498,7 @@ namespace KnotTools
     public:
     
         template<bool check_overlapsQ = true>
-        Flag_T Fold( const Int p_, const Int q_, const Real theta_ )
+        FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_ )
         {
             int pivot_flag = LoadPivots(p_,q_,theta_);
             
@@ -557,9 +542,9 @@ namespace KnotTools
         }
         
     template<bool check_overlapsQ = true>
-        FlagCountVec_T FoldRandom( const LInt success_count )
+        FoldFlagCounts_T FoldRandom( const LInt success_count )
         {
-            FlagCountVec_T counters;
+            FoldFlagCounts_T counters;
             
             counters.SetZero();
             
@@ -577,7 +562,7 @@ namespace KnotTools
                 const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
                 const Real angle = u_real                       (random_engine);
                 
-                Flag_T flag = Fold<check_overlapsQ>( i, j, angle );
+                FoldFlag_T flag = Fold<check_overlapsQ>( i, j, angle );
                 
                 ++counters[flag];
             }
@@ -627,7 +612,7 @@ namespace KnotTools
             
             for(Int node = 0; node < InteriorNodeCount(); ++node )
             {
-                counter += (N_state[node] == NodeState_T::NonId);
+                counter += (N_state[node] == NodeFlag_T::NonId);
             }
             
             return counter;
@@ -643,6 +628,19 @@ namespace KnotTools
         Size_T AllocatedByteCount() const
         {
             return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + Tree_T::N_ranges.AllocatedByteCount();
+        }
+        
+        template<int t0>
+        std::string AllocatedByteCountDetails() const
+        {
+            constexpr int t1 = t0 + 1;
+            return
+                std::string("<|")
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_transform)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_ball)
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_state)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Tree_T::N_ranges)
+                + ( "\n" + ct_tabs<t0> + "|>");
         }
         
         Size_T ByteCount() const
