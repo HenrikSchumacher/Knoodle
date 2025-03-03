@@ -198,11 +198,11 @@ namespace KnotTools
 
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName() + "ComputeBoundingBoxes<2,3,3>");
+            TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,3,3>(
                 vertex_coords.data(), box_coords.data()
             );
-            TOOLS_PTOC(ClassName() + "ComputeBoundingBoxes<2,3,3>");
+            TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
         }
         
         Int UnlinkCount() const
@@ -250,8 +250,8 @@ namespace KnotTools
         {
             constexpr int t1 = t0 + 1;
             return
-                ct_string("<|")
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
+                std::string("<|")
+                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)

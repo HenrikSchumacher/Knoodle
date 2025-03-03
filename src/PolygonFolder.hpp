@@ -787,8 +787,12 @@ namespace KnotTools
             P_tree = Tree_T( P_n );
             Q_tree = Tree_T( Q_n );
             
-            P_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(P_begin), P_boxes );
-            Q_tree.template ComputeBoundingBoxes<1,AmbDim>( Y.data(Q_begin), Q_boxes );
+            P_tree.template ComputeBoundingBoxes<1,AmbDim>(
+                Y.data(P_begin), P_boxes.data()
+            );
+            Q_tree.template ComputeBoundingBoxes<1,AmbDim>(
+                Y.data(Q_begin), Q_boxes.data()
+            );
             
             constexpr Int max_depth = Tree_T::max_depth;
             

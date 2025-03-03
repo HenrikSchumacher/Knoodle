@@ -265,14 +265,14 @@ namespace KnotTools
         
         /*! @brief Construction from coordinates.
          */
+        
         template<typename Real, typename ExtInt>
         PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
             using SInt = int;
             
-            Link_2D<Real,Int,SInt,Real> L ( n );
+            Knot_2D<Real,Int,SInt,Real> L ( n );
 
-            // Read coordinates into `Link_T` object `L`...
             L.ReadVertexCoordinates ( x );
             
             int err = L.template FindIntersections<true>();
@@ -306,7 +306,6 @@ namespace KnotTools
             
             Link_2D<Real,Int,SInt,Real> L ( edges, n );
 
-            // Read coordinates into `Link_T` object `L`...
             L.ReadVertexCoordinates ( x );
             
             int err = L.template FindIntersections<true>();

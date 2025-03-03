@@ -300,9 +300,10 @@ namespace KnotTools
 
 #include "src/PolygonFolder.hpp"
 
-#include "src/AffineTransform.hpp"
-#include "src/ClangMatrix.hpp"
-#include "src/ClangAffineTransform.hpp"
-#include "src/ClangQuaternionTransform.hpp"
+#include "src/AffineTransforms/AffineTransformFlag.hpp"
+#include "src/AffineTransforms/AffineTransform.hpp"
+#include "src/AffineTransforms/ClangMatrix.hpp"
+#include "src/AffineTransforms/ClangAffineTransform.hpp"
+#include "src/AffineTransforms/ClangQuaternionTransform.hpp"
 #include "src/ClisbyTree.hpp"
 

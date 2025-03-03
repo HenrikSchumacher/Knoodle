@@ -3,13 +3,13 @@
 namespace KnotTools
 {
     
-    // A simple bounding volume hiearchy with static ordering.
+    // A simple bounding volume hierarchy with static ordering.
     // This is specifically written for edge and triangle primitives for curves.
     // It won't work with more general clouds of primitives.
     
     template<
         int AmbDim_, typename Real_, typename Int_, typename BReal_ = Real_,
-        bool precompute_rangesQ_ = false
+        bool precompute_rangesQ_ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
@@ -285,5 +285,5 @@ namespace KnotTools
         }
 
     }; // AABBTree
-    
+
 } // namespace KnotTools

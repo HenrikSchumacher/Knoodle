@@ -22,9 +22,12 @@ using Int   = Int64;
 //using Int   = Int32;
 using LInt  = Int64;
 
+using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
+
 int main( int argc, char** argv )
 {
-    PolyFold<Real,Int,LInt,BReal> polyfold ( argc, argv );
+    
+    PolyFold_T polyfold ( argc, argv );
 
     return 0;
 }

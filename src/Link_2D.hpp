@@ -362,9 +362,9 @@ namespace KnotTools
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName() + "ComputeBoundingBoxes<2,3>");
+            TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            TOOLS_PTOC(ClassName() + "ComputeBoundingBoxes<2,3>");
+            TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
         }
         
         Int UnlinkCount() const
