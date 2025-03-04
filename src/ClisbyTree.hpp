@@ -23,10 +23,11 @@ namespace KnotTools
     template<
         int AmbDim_,
         typename Real_, typename Int_, typename LInt_,
-        bool use_clang_matrixQ_ = true,
-        bool use_quaternionsQ_  = false,
-        bool countersQ_         = false,
-        bool use_manual_stackQ_ = false
+        bool use_clang_matrixQ_  = true,
+        bool use_quaternionsQ_   = true,
+        bool countersQ_          = false,   // debugging flag
+        bool use_manual_stackQ_  = false,   // debugging flag
+        bool collect_witnessesQ_ = false    // debugging flag
     >
     class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
@@ -51,9 +52,10 @@ namespace KnotTools
         
         static constexpr Int AmbDim = AmbDim_;
     
-        static constexpr bool use_clang_matrixQ = use_clang_matrixQ_ && MatrixizableQ<Real>;
-        static constexpr bool use_quaternionsQ  = use_clang_matrixQ && use_quaternionsQ_;
-        static constexpr bool use_manual_stackQ = use_manual_stackQ_;
+        static constexpr bool use_clang_matrixQ  = use_clang_matrixQ_ && MatrixizableQ<Real>;
+        static constexpr bool use_quaternionsQ   = use_clang_matrixQ && use_quaternionsQ_;
+        static constexpr bool use_manual_stackQ  = use_manual_stackQ_;
+        static constexpr bool collect_witnessesQ = collect_witnessesQ_;
     
         
         using Transform_T
@@ -72,7 +74,12 @@ namespace KnotTools
         using Matrix_T                 = typename Transform_T::Matrix_T;
         using FoldFlag_T               = Int32;
         using FoldFlagCounts_T         = Tiny::Vector<5,LInt,FoldFlag_T>;
-
+        
+        using WitnessVector_T          = Tiny::Vector<2,Int,Int>;
+        using WitnessCollector_T       = std::vector<Tiny::Vector<4,Int,Int>>;
+        using PivotCollector_T         = std::vector<std::tuple<Int,Int,Real>>;
+        
+        
         using NodeFlagContainer_T      = Tensor1<NodeFlag_T,Int>;
         using NodeTransformContainer_T = Tensor2<Real,Int>;
         using NodeBallContainer_T      = Tensor2<Real,Int>;
@@ -184,8 +191,7 @@ namespace KnotTools
 //        ,   prescribed_edge_length      { other.prescribed_edge_length      }
 //        ,   p                           { other.p                           }
 //        ,   q                           { other.q                           }
-//        ,   witness_0                   { other.witness_0                   }
-//        ,   witness_1                   { other.witness_1                   }
+//        ,   witness                     { other.witness                     }
 //        ,   theta                       { other.theta                       }
 //        ,   X_p                         { other.X_p                         }
 //        ,   X_q                         { other.X_q                         }
@@ -221,9 +227,8 @@ namespace KnotTools
 //                swap( A.p,                          B.p );
 //                swap( A.q,                          B.q );
 //                
-//                swap( A.witness_0,                  B.witness_0 );
-//                swap( A.witness_1,                  B.witness_1 );
-//                
+//                swap( A.witness,                    B.witness );
+//
 //                swap( A.theta,                      B.theta );
 //                swap( A.X_p,                        B.X_p );
 //                swap( A.X_q,                        B.X_q );
@@ -288,6 +293,7 @@ namespace KnotTools
         using Tree_T::PrimitiveNode;
         using Tree_T::Root;
         
+        
     private:
         
         NodeTransformContainer_T N_transform;
@@ -301,8 +307,7 @@ namespace KnotTools
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
         
-        Int witness_0 = -1;
-        Int witness_1 = -1;
+        WitnessVector_T witness {{-1,-1}};
     
         Real theta;                     // Rotation angle
         Vector_T   X_p;                 // Pivot location.
@@ -316,6 +321,10 @@ namespace KnotTools
     
         bool mid_changedQ = false;
         bool transforms_pushedQ = false;
+        
+        
+        PivotCollector_T   pivot_collector;
+        WitnessCollector_T witness_collector;
         
     private:
         
@@ -359,65 +368,6 @@ namespace KnotTools
             random_engine = prng;
         }
         
-//        
-//        int SetRandomEngine( cref<PRNG_FullState_T> full_state )
-//        {
-//            std::string state = full_state.multiplier + " " + full_state.increment + " " + full_state.state;
-//            
-//            std::stringstream s (state);
-//            
-//            s >> random_engine;
-//            
-//            std::string actual_state = RandomEngineFullString();
-//            
-//            if( s.fail() )
-//            {
-//                return 1;
-//            }
-//            
-//            return 0;
-//        }
-        
-//        std::string RandomEngineFullString() const
-//        {
-//            std::stringstream s;
-//            
-//            s << random_engine;
-//            
-//            return s.str();
-//        }
-        
-        
-//        PRNG_FullState_T RandomEngineFullState() const
-//        {
-//            std::stringstream s;
-//            
-//            s << random_engine;
-//            
-//            PRNG_FullState_T full_state;
-//            
-//            s >> full_state.multiplier;
-//            s >> full_state.increment;
-//            s >> full_state.state;
-//            
-//            return full_state;
-//        }
-//
-//        std::string RandomEngineMultiplier() const
-//        {
-//            return RandomEngineFullState()[0];
-//        }
-//        
-//        std::string RandomEngineIncrement() const
-//        {
-//            return RandomEngineFullState()[1];
-//        }
-//        
-//        std::string RandomEngineState() const
-//        {
-//            return RandomEngineFullState()[2];
-//        }
-    
         void SeedBy( Seed_T & seed_ )
         {
             seed = seed_;
@@ -491,6 +441,7 @@ namespace KnotTools
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionChecks.hpp"
         
+        
 //###################################################################################
 //##    Folding
 //###################################################################################
@@ -514,6 +465,14 @@ namespace KnotTools
                 
                 if( joint_flag != 0 )
                 {
+                    if constexpr ( collect_witnessesQ )
+                    {
+                        // Witness checking
+                        witness_collector.push_back(
+                            Tiny::Vector<4,Int,Int>({p,q,witness[0],witness[1]})
+                        );
+                    }   
+                    
                     // Folding step failed because neighbors of pivot touch.
                     return joint_flag;
                 }
@@ -527,40 +486,106 @@ namespace KnotTools
                 {
                     // Folding step failed; undo the modifications.
                     Update(p_,q_,-theta_);
+                    
+                    if constexpr ( collect_witnessesQ )
+                    {
+                        // Witness checking
+                        witness_collector.push_back(
+                            Tiny::Vector<4,Int,Int>({p,q,witness[0],witness[1]})
+                        );
+                    }
                     return 4;
                 }
                 else
                 {
+                    if constexpr ( collect_witnessesQ )
+                    {
+                        // Witness checking
+                        pivot_collector.push_back(
+                            std::tuple<Int,Int,Real>({p,q,theta})
+                        );
+                    }
+                    
                     // Folding step succeeded.
                     return 0;
                 }
             }
             else
             {
+                if constexpr ( collect_witnessesQ )
+                {
+                    // Witness checking
+                    pivot_collector.push_back(
+                        std::tuple<Int,Int,Real>({p,q,theta})
+                    );
+                }
+                
                 return 0;
             }
         }
         
-    template<bool check_overlapsQ = true>
+        
+//        // Defect routine!!! Does not sample uniformly!
+//        std::pair<Int,Int> RandomPivots_Legacy()
+//        {
+//            using unif_int  = std::uniform_int_distribution<Int>;
+//
+//            const Int n = VertexCount();
+//
+//            unif_int  u_int ( Int(0), n-3 );
+//            
+//            const Int i = u_int                        (random_engine);
+//            const Int j = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
+//            
+//            return std::pair<Int,Int>(i,j);
+//        }
+        
+        std::pair<Int,Int> RandomPivots()
+        {
+            const Int n = VertexCount();
+            
+            using unif_int = std::uniform_int_distribution<Int>;
+            
+            unif_int u_int ( Int(0), n - Int(1) );
+            
+            
+            Int i = u_int(random_engine);
+            Int j = u_int(random_engine);
+
+            while( ModDistance(n,i,j) < 2 )
+            {
+                i = u_int(random_engine);
+                j = u_int(random_engine);
+            }
+            
+            return MinMax(i,j);
+        }
+
+        
+        template<bool check_overlapsQ = true>
         FoldFlagCounts_T FoldRandom( const LInt success_count )
         {
             FoldFlagCounts_T counters;
             
             counters.SetZero();
             
-            using unif_int  = std::uniform_int_distribution<Int>;
-            using unif_real = std::uniform_real_distribution<Real>;
-            
             const Int n = VertexCount();
             
-            unif_int  u_int ( Int(0), n-3 );
+            using unif_int = std::uniform_int_distribution<Int>;
+            using unif_real = std::uniform_real_distribution<Real>;
+            
             unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+            unif_int u_int ( Int(0), n - Int(1) );
+            
+            // Witness checking
+            witness_collector.clear();
+            
             
             while( counters[0] < success_count )
             {
-                const Int  i     = u_int                        (random_engine);
-                const Int  j     = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
-                const Real angle = u_real                       (random_engine);
+                const Real angle = u_real(random_engine);
+                
+                auto [i,j] = RandomPivots();
                 
                 FoldFlag_T flag = Fold<check_overlapsQ>( i, j, angle );
                 
@@ -618,6 +643,17 @@ namespace KnotTools
             return counter;
         }
     
+        // Witness checking
+        cref<WitnessCollector_T> WitnessCollector() const
+        {
+            return witness_collector;
+        }
+        
+        // Witness checking
+        cref<PivotCollector_T> PivotCollector() const
+        {
+            return pivot_collector;
+        }
         
 //###################################################################################
 //##    Standard interface
@@ -669,6 +705,7 @@ namespace KnotTools
                 + "," + ToString(use_quaternionsQ)
                 + "," + ToString(countersQ)
                 + "," + ToString(use_manual_stackQ)
+                + "," + ToString(collect_witnessesQ)
                 + ">";
         }
         
