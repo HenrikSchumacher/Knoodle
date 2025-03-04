@@ -294,8 +294,8 @@ bool SubtreesCollideQ_Rec2(
         
         if( Min( delta, VertexCount() - delta ) > Int(1) )
         {
-            witness_0 = i_0;
-            witness_1 = i_1;
+            witness[0] = i_0;
+            witness[1] = i_1;
             
             
             dump(i_0);

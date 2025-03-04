@@ -11,8 +11,8 @@ bool OverlapQ()
 {
     TOOLS_PTIC(ClassName()+"::OverlapQ");
     
-    witness_0 = -1;
-    witness_1 = -1;
+    witness[0] = -1;
+    witness[1] = -1;
         
     bool result;
     
@@ -29,9 +29,9 @@ bool OverlapQ()
     
 ////     DEBUGGING
 //    {
-//        Int w_0 = witness_0;
-//        Int w_1 = witness_1;
-//        
+//        Int w_0 = witness[0];
+//        Int w_1 = witness[1];
+//
 //        bool resultReference = CollidingQ_Reference();
 //
 //        if( result != resultReference )
@@ -41,9 +41,9 @@ bool OverlapQ()
 //            dump(resultReference)
 //            
 //            dump(w_0);
-//            dump(witness_0);
+//            dump(witness[0]);
 //            dump(w_1);
-//            dump(witness_1);
+//            dump(witness[1]);
 //            exit(-1);
 //        }
 //    }
@@ -163,7 +163,7 @@ bool BallsOverlapQ( const Int node_0, const Int node_1) const
     );
 }
 
-int CheckJoints() const
+int CheckJoints()
 {
     const Int n = VertexCount();
     
@@ -185,6 +185,8 @@ int CheckJoints() const
     
     if( SquaredDistance(X_p_next,X_p_prev) <= hard_sphere_squared_diam )
     {
+        witness[0] = p_prev;
+        witness[1] = p_next;
         return 2;
     }
     
@@ -205,6 +207,8 @@ int CheckJoints() const
     
     if( SquaredDistance(X_q_next,X_q_prev) <= hard_sphere_squared_diam )
     {
+        witness[0] = q_prev;
+        witness[1] = q_next;
         return 3;
     }
     

@@ -170,8 +170,8 @@ bool CollidingQ_ManualStack()
             
             if( Min( delta, VertexCount() - delta ) > 1 )
             {
-                witness_0 = k;
-                witness_1 = l;
+                witness[0] = k;
+                witness[1] = l;
                 
                 return true;
             }

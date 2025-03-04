@@ -153,8 +153,8 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         if( Min( delta, VertexCount() - delta ) > Int(1) )
         {
-            witness_0 = k;
-            witness_1 = l;
+            witness[0] = k;
+            witness[1] = l;
             
             return true;
         }

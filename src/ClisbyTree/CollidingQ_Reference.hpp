@@ -173,8 +173,8 @@ bool CollidingQ_Reference()
             
             if( Min( delta, VertexCount() - delta ) > 1 )
             {
-                witness_0 = k;
-                witness_1 = l;
+                witness[0] = k;
+                witness[1] = l;
                 
                 return true;
             }

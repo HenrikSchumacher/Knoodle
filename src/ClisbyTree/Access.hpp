@@ -140,7 +140,12 @@ Int Pivot( const bool i ) const
 
 Int Witness( const bool i ) const
 {
-    return i ? witness_1 : witness_0;
+    return witness[i];
+}
+
+cref<WitnessVector_T> Witness() const
+{
+    return witness;
 }
 
 
