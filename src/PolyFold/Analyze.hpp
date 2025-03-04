@@ -48,8 +48,28 @@ int Analyze( const LInt i )
     TimeInterval T_write;
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
-
+    TimeInterval T_snapshot;
+    
     TimeInterval T_analysis (0);
+    
+    bool snapshotQ = (print_ctr >= steps_between_print) || (i == N);
+    
+    if( snapshotQ )
+    {
+        T_snapshot.Tic();
+        PolygonSnapshot<t1>(i);
+        T_snapshot.Toc();
+    }
+    
+    
+    
+    if( squared_gyradiusQ )
+    {
+        T_gyradius.Tic<V2Q>();
+        Real g = SquaredGyradius(x.data());
+        T_gyradius.Toc<V2Q>();
+        kv<t1>("Squared Gyradius",g);
+    }
     
     if( pdQ )
     {
@@ -184,14 +204,6 @@ int Analyze( const LInt i )
         pd_end();
     }
     
-    if( squared_gyradiusQ )
-    {
-        T_gyradius.Tic<V2Q>();
-        Real g = SquaredGyradius(x.data());
-        T_gyradius.Toc<V2Q>();
-        kv<t1>("Squared Gyradius",g);
-    }
-    
     T_analysis.Toc();
     
     total_analysis_time += T_analysis.Duration();
@@ -205,33 +217,45 @@ int Analyze( const LInt i )
     {
         log << ",\n" + ct_tabs<t1> + "\"Analysis Time Details\" -> <|";
         
-        if( pdQ )
+        if( snapshotQ )
         {
-            kv<t2,0>("Create Link", T_link.Duration());
-            kv<t2>("Compute Intersections",T_intersection.Duration());
-            if( force_deallocQ )
-            {
-                kv<t2>("Deallocate Link", T_delete.Duration()+T_link_dealloc.Duration());
-            }
-            kv<t2>("Create PlanarDiagram", T_pd.Duration());
-            kv<t2>("Simplify PlanarDiagram", T_simplify.Duration());
-            if( force_deallocQ )
-            {
-                kv<t2>("Deallocate PlanarDiagram",T_pd_dealloc.Duration());
-            }
-            kv<t2>("Write PD Code", T_write.Duration());
+                kv<t2,0>("Snapshot Time Elapsed", T_snapshot.Duration() );
         }
         
         if( squared_gyradiusQ )
         {
-            if( !pdQ )
-            {   
-                kv<t2,0>("Compute Squared Gyradius", T_gyradius.Duration());
-            }
-            else
+            if( snapshotQ )
             {
                 kv<t2>("Compute Squared Gyradius", T_gyradius.Duration());
             }
+            else
+            {
+                kv<t2,0>("Compute Squared Gyradius", T_gyradius.Duration());
+            }
+        }
+        
+        if( pdQ )
+        {
+            if( snapshotQ || squared_gyradiusQ )
+            {
+                kv<t2>("Create Link", T_link.Duration());
+            }
+            else
+            {
+                kv<t2,0>("Create Link", T_link.Duration());
+            }
+                kv<t2>("Compute Intersections",T_intersection.Duration());
+            if( force_deallocQ )
+            {
+                kv<t2>("Deallocate Link", T_delete.Duration()+T_link_dealloc.Duration());
+            }
+                kv<t2>("Create PlanarDiagram", T_pd.Duration());
+                kv<t2>("Simplify PlanarDiagram", T_simplify.Duration());
+            if( force_deallocQ )
+            {
+                kv<t2>("Deallocate PlanarDiagram",T_pd_dealloc.Duration());
+            }
+                kv<t2>("Write PD Code", T_write.Duration());
         }
         
         log << "\n" + ct_tabs<t1> + "|>";

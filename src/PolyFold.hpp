@@ -31,12 +31,12 @@ namespace KnotTools
         
         static constexpr Size_T a = 24; // Alignment for command line output.
 
-
         using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt,
             1, // use_clang_matrixQ
             1, // use_quaternionsQ
             0, // countersQ
-            0  // use_manual_stackQ
+            0, // use_manual_stackQ
+            0  // collect_witnessesQ
         >;
         
         using PolygonContainer_T        = Tensor2<Real,Int>;
@@ -108,6 +108,10 @@ namespace KnotTools
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
+        
+        // Witness checking
+        std::ofstream witness_stream;
+        std::ofstream pivot_stream;
         
     public:
         

@@ -68,8 +68,8 @@ int Sample( const LInt i )
     
     typename Clisby_T::CallCounters_T call_counters;
     
-    
     TimeInterval T_sample (0);
+
 
     clisby_begin();
     {
@@ -95,6 +95,23 @@ int Sample( const LInt i )
         T_write.Tic<V2Q>();
         T.WriteVertexCoordinates( x.data() );
         T_write.Toc<V2Q>();
+        
+        if constexpr ( Clisby_T::collect_witnessesQ )
+        {
+            auto & witness_collector = T.WitnessCollector();
+            
+            for( auto v : witness_collector )
+            {
+                witness_stream << v[0] << "\t" << v[1] << "\t" << v[2] << "\t" << v[3] << "\n";
+            }
+            
+            auto & pivot_collector = T.PivotCollector();
+            
+            for( auto v : pivot_collector )
+            {
+                pivot_stream << std::get<0>(v) << "\t" << std::get<1>(v) << "\t" << std::get<2>(v) << "\n";
+            }
+        }
         
         prng = T.RandomEngine();
         
@@ -203,17 +220,6 @@ int Sample( const LInt i )
         }
         
         log << std::flush;
-    }
-
-    
-    if( (print_ctr >= steps_between_print) || (i == N) )
-    {
-        TimeInterval T_snapshot(0);
-        PolygonSnapshot<t1>(i);
-        
-        T_snapshot.Toc();
-        
-        kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
     }
     
     int err = Analyze<t0,my_verbosity>(i);

@@ -234,4 +234,5 @@ void HandleOptions( int argc, char** argv )
         eprint("Exception of unknown type!");
         exit(1);
     }
+    
 }

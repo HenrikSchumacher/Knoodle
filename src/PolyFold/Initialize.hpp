@@ -10,11 +10,24 @@ void Initialize()
     
     TimeInterval T_init(0);
     
-    log_file = path / "Info.m";
-    pds_file = path / "PDCodes.tsv";
+//    log_file = path / "Info.m";
+//    pds_file = path / "PDCodes.tsv";
     
-    log.open( log_file, std::ios_base::out );
-    pds.open( pds_file, std::ios_base::out );
+    log.open( path / "Info.m", std::ios_base::out );
+    pds.open( path / "PDCodes.tsv", std::ios_base::out );
+    
+    if constexpr ( Clisby_T::collect_witnessesQ )
+    {
+        witness_stream.open( path / "Witnesses.tsv", std::ios_base::out );
+        
+        witness_stream << "Pivot 0"   << "\t" << "Pivot 1"
+        << "\t" << "Witness 0" << "\t" << "Witness 1\n";
+        
+        pivot_stream.open( path / "AcceptedPivotMoves.tsv", std::ios_base::out );
+        
+        pivot_stream   << "Pivot 0"   << "\t" << "Pivot 1" << "\t" << "Angle\n";
+    }
+    
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
