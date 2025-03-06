@@ -1,4 +1,4 @@
-protected:
+public:
     
     template<bool printQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
@@ -141,6 +141,7 @@ protected:
         return 0;
     }
 
+private:
 
     void FindIntersectingEdges_DFS()
     {
