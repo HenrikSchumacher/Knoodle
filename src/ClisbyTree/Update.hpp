@@ -15,7 +15,7 @@ void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
 
 void Update()
 {
-    if constexpr ( use_manual_stackQ )
+    if constexpr ( manual_stackQ )
     {
         UpdateSubtree_ManualStack(Root());
     }

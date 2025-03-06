@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iterator>
 
-// see https://www.jviotti.com/2022/02/21/emitting-signposts-to-instruments-on-macos-using-cpp.html
+//#define POLYFOLD_SIGNPOSTS
 
 
 #define dump(x) TOOLS_DUMP(x);
@@ -26,8 +26,8 @@ using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
-    
-    PolyFold_T polyfold ( argc, argv );
 
+    PolyFold_T polyfold ( argc, argv );
+    
     return 0;
 }

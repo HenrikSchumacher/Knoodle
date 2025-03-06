@@ -16,7 +16,7 @@ bool OverlapQ()
         
     bool result;
     
-    if constexpr ( use_manual_stackQ )
+    if constexpr ( manual_stackQ )
     {
         result = CollidingQ_ManualStack(); // 32.9882 s
     }

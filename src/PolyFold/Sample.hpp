@@ -96,7 +96,7 @@ int Sample( const LInt i )
         T.WriteVertexCoordinates( x.data() );
         T_write.Toc<V2Q>();
         
-        if constexpr ( Clisby_T::collect_witnessesQ )
+        if constexpr ( Clisby_T::witnessesQ )
         {
             auto & witness_collector = T.WitnessCollector();
             

@@ -16,7 +16,7 @@ void Initialize()
     log.open( path / "Info.m", std::ios_base::out );
     pds.open( path / "PDCodes.tsv", std::ios_base::out );
     
-    if constexpr ( Clisby_T::collect_witnessesQ )
+    if constexpr ( Clisby_T::witnessesQ )
     {
         witness_stream.open( path / "Witnesses.tsv", std::ios_base::out );
         

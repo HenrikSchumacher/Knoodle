@@ -7,6 +7,8 @@ void HandleOptions( int argc, char** argv )
     // `try` executes some code; `catch` catches exceptions and handles them.
     try
     {
+
+            
         // Declare all possible options with type information and a documentation string that will be printed when calling this routine with the -h [--help] option.
         po::options_description desc("Allowed options");
         desc.add_options()
@@ -108,10 +110,10 @@ void HandleOptions( int argc, char** argv )
         print("");
 
         squared_gyradiusQ = (vm.count("squared-gyradius") != 0);
-        valprint<a>("Compute Squared Gyradius", squared_gyradiusQ ? "True" : "False" );
+        valprint<a>("Compute Squared Gyradius", BoolString(squared_gyradiusQ) );
         
         pdQ = (vm.count("pd-code") != 0);
-        valprint<a>("Compute PD Codes", pdQ ? "True" : "False" );
+        valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
         if( vm.count("polygons") )
         {
@@ -123,10 +125,10 @@ void HandleOptions( int argc, char** argv )
         print("");
         
         force_deallocQ = (vm.count("low-mem") != 0);
-        valprint<a>("Forced Deallocation", force_deallocQ ? "True" : "False" );
+        valprint<a>("Forced Deallocation", BoolString(force_deallocQ) );
         
         do_checksQ = (vm.count("no-checks") == 0);
-        valprint<a>("Hard Sphere Checks", do_checksQ ? "True" : "False" );
+        valprint<a>("Hard Sphere Checks", BoolString(do_checksQ) );
         
         if( vm.count("pcg-multiplier") )
         {

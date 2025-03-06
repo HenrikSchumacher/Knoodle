@@ -1,6 +1,10 @@
 #pragma once
 
+// Fix for some warnings because boost uses std::numeric_limits<T>::infinity;  compiler migth throw warnings if we are in -ffast-math mode.
+#pragma float_control(precise, on, push)
 #include <boost/program_options.hpp>
+#pragma float_control(pop)
+
 #include <exception>
 
 #ifdef POLYFOLD_SIGNPOSTS
@@ -30,13 +34,27 @@ namespace KnotTools
         static constexpr Int AmbDim = 3;
         
         static constexpr Size_T a = 24; // Alignment for command line output.
-
+        
         using Clisby_T = ClisbyTree<AmbDim,Real,Int,LInt,
-            1, // use_clang_matrixQ
-            1, // use_quaternionsQ
-            0, // countersQ
-            0, // use_manual_stackQ
-            0  // collect_witnessesQ
+            ClisbyTree_TArgs{
+                .clang_matrixQ = 1, // use_clang_matrixQ
+#ifdef POLYFOLD_NO_QUATERNIONS
+                .quaternionsQ = 0,
+#else
+                .quaternionsQ = 1,
+#endif
+#ifdef POLYFOLD_COUNTERS
+                .countersQ = 1,
+#else
+                .countersQ = 0,
+#endif
+#ifdef POLYFOLD_WITNESSES
+                .witnessesQ = 1,
+#else
+                .witnessesQ = 0,
+#endif
+                .manual_stackQ = 0
+            }
         >;
         
         using PolygonContainer_T        = Tensor2<Real,Int>;
@@ -119,9 +137,42 @@ namespace KnotTools
         
         PolyFold( int argc, char** argv )
         {
-            print("\nWelcome to PolyFold.\n");
+            // https://patorjk.com/software/taag/#p=testall&f=Big%20Money-ne&t=PolyFold
+            
+print(R"(
+ .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--. 
+/ .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
+\ \/\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ \/ /
+ \/ /`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'\/ / 
+ / /\   _  (`-')                                                              _(`-')     / /\ 
+/ /\ \  \-.(OO )     .->      <-.        .->      <-.          .->      <-.  ( (OO ).-> / /\ \
+\ \/ /  _.'    \(`-')----.  ,--. )   ,--.'  ,-.(`-')-----.(`-')----.  ,--. )  \    .'_  \ \/ /
+ \/ /  (_...--''( OO).-.  ' |  (`-')(`-')'.'  /(OO|(_\---'( OO).-.  ' |  (`-')'`'-..__)  \/ / 
+ / /\  |  |_.' |( _) | |  | |  |OO )(OO \    /  / |  '--. ( _) | |  | |  |OO )|  |  ' |  / /\ 
+/ /\ \ |  .___.' \|  |)|  |(|  '__ | |  /   /)  \_)  .--'  \|  |)|  |(|  '__ ||  |  / : / /\ \
+\ \/ / |  |       '  '-'  ' |     |' `-/   /`    `|  |_)    '  '-'  ' |     |'|  '-'  / \ \/ /
+ \/ /  `--'        `-----'  `-----'    `--'       `--'       `-----'  `-----' `------'   \/ / 
+ / /\.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./ /\ 
+/ /\ \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \/\ \
+\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
+ `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--' 
+)");
+
+            valprint<a>("Using Quaternions", BoolString(Clisby_T::quaternionsQ) );
+
+            print("");
             
             HandleOptions( argc, argv );
+            
+            if constexpr ( Clisby_T::countersQ )
+            {
+                wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+            }
+            
+            if constexpr ( Clisby_T::witnessesQ )
+            {
+                wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
+            }
             
             Initialize<0>();
             
@@ -135,30 +186,6 @@ namespace KnotTools
             valprint<28>("Time elapsed all together",total_timing);
             
         }
-        
-//        PolyFold(
-//            Real radius_,
-//            Int n_,
-//            LInt N_,
-//            LInt burn_in_accept_count_,
-//            LInt skip_,
-//            std::filesystem::path & path_,
-//            int verbosity_
-//        )
-//        :   radius                  ( radius_                   )
-//        ,   n                       ( n_                        )
-//        ,   N                       ( N_                        )
-//        ,   burn_in_accept_count    ( burn_in_accept_count_     )
-//        ,   skip                    ( skip_                     )
-//        ,   verbosity               ( verbosity_                )
-//        ,   path                    ( path_                     )
-//        {
-//            print("\n\nWelcome to PolyFold.\n");
-//            
-//            Initialize<0>();
-//            
-//            Run();
-//        }
         
         ~PolyFold()
         {
@@ -261,90 +288,13 @@ namespace KnotTools
 #include "PolyFold/Sample.hpp"
 #include "PolyFold/Analyze.hpp"
 #include "PolyFold/FinalReport.hpp"
-    
+#include "PolyFold/Run.hpp"
+        
     public:
 
 #include "PolyFold/Barycenter.hpp"
 #include "PolyFold/SquaredGyradius.hpp"
-        
-        int Run()
-        {
-            burn_in_time = 0;
-            total_sampling_time = 0;
-            total_analysis_time = 0;
-            total_timing = 0;
-            
-            switch( verbosity )
-            {
-                case 1:
-                {
-                    if( do_checksQ )
-                    {
-                        return Run_impl<0,1,true>();
-                    }
-                    else
-                    {
-                        return Run_impl<0,1,false>();
-                    }
-                    break;
-                }
-                case 2:
-                {
-                    if( do_checksQ )
-                    {
-                        return Run_impl<0,2,true>();
-                    }
-                    else
-                    {
-                        return Run_impl<0,2,false>();
-                    }
-                    break;
-                }
-                default:
-                {
-                    if( do_checksQ )
-                    {
-                        return Run_impl<0,0,true>();
-                    }
-                    else
-                    {
-                        return Run_impl<0,0,false>();
-                    }
-                    break;
-                }
-            }
-        } // Run
-        
-    private:
-        
-        template<Size_T tab_count = 0, int my_verbosity, bool checksQ>
-        int Run_impl()
-        {
-            T_run.Tic();
-            
-            BurnIn<tab_count+1,my_verbosity,checksQ>();
-            
-            int err = Sample<tab_count+1,my_verbosity,checksQ>();
-            
-            T_run.Toc();
-            
-            total_timing = T_run.Duration();
-            
-            FinalReport<tab_count+1>();
-            
-            if( err )
-            {
-                eprint(ClassName() + "::Run: Aborted because of error flag " + ToString(err) + ".");
-                
-                std::ofstream file ( path / "Aborted_Polygon.txt" );
-                
-                file << PolygonString(x);
-            }
-            
-            return err;
-            
-        } // Run_impl
-            
+
     public:
         
         static std::string ClassName()

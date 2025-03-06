@@ -18,7 +18,7 @@ clang++                                         \
  
 #objdump --reloc --line-numbers --demangle --non-verbose --syms PolyFold > PolyFold.asm
     
-#        -g                                          \
+
     
 #
 #                                                \

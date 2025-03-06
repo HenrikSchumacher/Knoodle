@@ -20,14 +20,19 @@
 
 namespace KnotTools
 {
+    struct ClisbyTree_TArgs
+    {
+        bool clang_matrixQ  = true;
+        bool quaternionsQ   = true;
+        bool countersQ      = false;   // debugging flag
+        bool witnessesQ     = false;   // debugging flag
+        bool manual_stackQ  = false;   // debugging flag
+    };
+    
     template<
         int AmbDim_,
         typename Real_, typename Int_, typename LInt_,
-        bool use_clang_matrixQ_  = true,
-        bool use_quaternionsQ_   = true,
-        bool countersQ_          = false,   // debugging flag
-        bool use_manual_stackQ_  = false,   // debugging flag
-        bool collect_witnessesQ_ = false    // debugging flag
+        ClisbyTree_TArgs targs = ClisbyTree_TArgs()
     >
     class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
@@ -52,17 +57,16 @@ namespace KnotTools
         
         static constexpr Int AmbDim = AmbDim_;
     
-        static constexpr bool use_clang_matrixQ  = use_clang_matrixQ_ && MatrixizableQ<Real>;
-        static constexpr bool use_quaternionsQ   = use_clang_matrixQ && use_quaternionsQ_;
-        static constexpr bool use_manual_stackQ  = use_manual_stackQ_;
-        static constexpr bool collect_witnessesQ = collect_witnessesQ_;
-    
+        static constexpr bool clang_matrixQ = targs.clang_matrixQ && MatrixizableQ<Real>;
+        static constexpr bool quaternionsQ  = clang_matrixQ && targs.quaternionsQ;
+        static constexpr bool manual_stackQ = targs.manual_stackQ;
+        static constexpr bool witnessesQ    = targs.witnessesQ;
         
         using Transform_T
             = typename std::conditional_t<
-                  use_clang_matrixQ,
+                  clang_matrixQ,
                   typename std::conditional_t<
-                      use_quaternionsQ,
+                      quaternionsQ,
                       ClangQuaternionTransform<Real,Int>,
                       ClangAffineTransform<AmbDim,Real,Int>
                   >,
@@ -103,7 +107,7 @@ namespace KnotTools
         static constexpr Int TransformDim = Transform_T::Size();
         static constexpr Int BallDim      = AmbDim + 1;
         
-        static constexpr bool countersQ = countersQ_;
+        static constexpr bool countersQ = targs.countersQ;
         
         struct CallCounters_T
         {
@@ -465,7 +469,7 @@ namespace KnotTools
                 
                 if( joint_flag != 0 )
                 {
-                    if constexpr ( collect_witnessesQ )
+                    if constexpr ( witnessesQ )
                     {
                         // Witness checking
                         witness_collector.push_back(
@@ -487,7 +491,7 @@ namespace KnotTools
                     // Folding step failed; undo the modifications.
                     Update(p_,q_,-theta_);
                     
-                    if constexpr ( collect_witnessesQ )
+                    if constexpr ( witnessesQ )
                     {
                         // Witness checking
                         witness_collector.push_back(
@@ -498,7 +502,7 @@ namespace KnotTools
                 }
                 else
                 {
-                    if constexpr ( collect_witnessesQ )
+                    if constexpr ( witnessesQ )
                     {
                         // Witness checking
                         pivot_collector.push_back(
@@ -512,7 +516,7 @@ namespace KnotTools
             }
             else
             {
-                if constexpr ( collect_witnessesQ )
+                if constexpr ( witnessesQ )
                 {
                     // Witness checking
                     pivot_collector.push_back(
@@ -701,11 +705,11 @@ namespace KnotTools
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
-                + "," + ToString(use_clang_matrixQ)
-                + "," + ToString(use_quaternionsQ)
+                + "," + ToString(clang_matrixQ)
+                + "," + ToString(quaternionsQ)
                 + "," + ToString(countersQ)
-                + "," + ToString(use_manual_stackQ)
-                + "," + ToString(collect_witnessesQ)
+                + "," + ToString(manual_stackQ)
+                + "," + ToString(witnessesQ)
                 + ">";
         }
         

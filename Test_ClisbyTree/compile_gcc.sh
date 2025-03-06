@@ -6,13 +6,13 @@ g++-14                                              \
     -Wno-ignored-qualifiers                         \
     -std=c++20                                      \
     -Ofast                                          \
-    -flto                                           \
+    -flto=auto                                      \
     -pthread                                        \
-    -march=native                                   \
+    -mcpu=apple-m1                                  \
     -mtune=native                                   \
     -flax-vector-conversions                        \
     -Wno-psabi                                      \
-    -opolyfold_gcc                                  \
+    -oPolyFold                                      \
     -I/opt/homebrew/Cellar/boost/1.87.0/include     \
     -I/opt/homebrew/include                         \
     -L/opt/homebrew/Cellar/boost/1.87.0/lib         \

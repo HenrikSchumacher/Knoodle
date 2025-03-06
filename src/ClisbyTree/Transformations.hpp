@@ -5,7 +5,7 @@ void ComputePivotTransform()
 
     u.Normalize();
     
-    if constexpr ( use_quaternionsQ )
+    if constexpr ( quaternionsQ )
     {
         const Real theta_half = Scalar::Half<Real> * theta;
         const Real cos = std::cos(theta_half);
@@ -85,7 +85,7 @@ Vector_T NodeCenterAbsoluteCoordinates( const Int node_ ) const
     {
         node = Parent(node);
         
-        if constexpr ( use_quaternionsQ )
+        if constexpr ( quaternionsQ )
         {
             // If we use quaternions, then we need to construct only the 3x3 matrix, not the 4x4 matrix. That saves a little time.
             
@@ -189,7 +189,7 @@ void PushAllTransforms()
 
 void PushTransformsSubtree( const Int start_node )
 {
-    if constexpr ( use_manual_stackQ )
+    if constexpr ( manual_stackQ )
     {
         PushTransformsSubtree_ManualStack(start_node);
     }
@@ -227,7 +227,7 @@ void PushTransformsSubtree_Recursive( const Int node )
 
 void PullTransforms( const Int from, const Int to )
 {
-    if constexpr ( use_manual_stackQ )
+    if constexpr ( manual_stackQ )
     {
         PullTransforms_ManualStack(from,to);
     }

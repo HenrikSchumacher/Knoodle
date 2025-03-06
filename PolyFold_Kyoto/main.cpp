@@ -13,7 +13,7 @@ using Real  = Real64;
 //using BReal = Real;
 using BReal = Real32;
 //using Int   = Int64;
-using Int   = Int32;
+using Int   = Int64;
 using LInt  = Int64;
 
 int main( int argc, char** argv )

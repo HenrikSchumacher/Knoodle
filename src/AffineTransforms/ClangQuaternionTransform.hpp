@@ -299,9 +299,9 @@ namespace KnotTools
      
                     // When the transformation is loaded already, we unload it first because this allows us to reduce this to a 4x4-matrix x 4-vector multiplication.
                     Vector4_T p;
-                    f.WriteQuaternion(p);
+                    f.ForceWriteQuaternion(p);
                     const Vector4_T r = q * p;
-                    f.ReadQuaternion(r);
+                    f.ForceReadQuaternion(r);
                     
                     const Vector_T c = A * f.Vector() + b;
                     f.b = c;
