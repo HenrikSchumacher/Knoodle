@@ -181,4 +181,7 @@ void Initialize()
     kv<t2>("Initialization Seconds Elapsed", T_init.Duration() );
 
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
+    
+    
+    acc_intersection_flag_counts.SetZero();
 }
