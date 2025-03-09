@@ -183,14 +183,14 @@ namespace KnotTools
             
             for( Int edge = 0; edge < edge_count; ++edge )
             {
-                mptr<Real> target = &vertex_coords.data()[3 * edge];
+                mptr<Real> target = &vertex_coords.data()[AmbDim * edge];
                 
-                target[0] = v[3 * edge + 0] + Sterbenz_shift[0];
-                target[1] = v[3 * edge + 1] + Sterbenz_shift[1];
-                target[2] = v[3 * edge + 2] + Sterbenz_shift[2];
+                target[0] = v[AmbDim * edge + 0] + Sterbenz_shift[0];
+                target[1] = v[AmbDim * edge + 1] + Sterbenz_shift[1];
+                target[2] = v[AmbDim * edge + 2] + Sterbenz_shift[2];
             }
 
-            copy_buffer<3>( vertex_coords.data(), &vertex_coords.data()[3 * edge_count]);
+            copy_buffer<AmbDim>( vertex_coords.data(), &vertex_coords.data()[AmbDim * edge_count]);
             
             TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates");
         }
@@ -199,7 +199,7 @@ namespace KnotTools
         void ComputeBoundingBoxes()
         {
             TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
-            T.template ComputeBoundingBoxes<2,3,3>(
+            T.template ComputeBoundingBoxes<2,AmbDim,AmbDim>(
                 vertex_coords.data(), box_coords.data()
             );
             TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");

@@ -13,18 +13,32 @@ int Sample()
     
     err = Sample<t0+1,my_verbosity,checksQ>(LInt(1));
 
-    if( err == 0 )
+    if( err != 0 )
     {
-        for( LInt i = 2; i <= N; ++ i )
-        {
-            log << ",\n" + ct_tabs<t0+1>;
-            
-            err = Sample<t0+1,my_verbosity,checksQ>(i);
+        goto exit;
+    }
+    
+    for( LInt i = 2; i < N; ++ i )
+    {
+        log << ",\n" + ct_tabs<t0+1>;
+        
+        err = Sample<t0+1,my_verbosity,checksQ>(i);
 
-            if( err != 0 )
-            {
-                goto exit;
-            }
+        if( err != 0 )
+        {
+            goto exit;
+        }
+    }
+    
+    {
+        log << ",\n" + ct_tabs<t0+1>;
+        
+        // Run the last sample step with full verbosity, because that is affordable and we very often want this info for performance tuning.
+        err = Sample<t0+1,2,checksQ>(N);
+
+        if( err != 0 )
+        {
+            goto exit;
         }
     }
     

@@ -22,7 +22,16 @@ bool OverlapQ()
     }
     else
     {
-        result = SubtreesCollideQ_Recursive( Root() ); // 29.9892 s / ?? s.
+        result = SubtreesCollideQ_Recursive( Root() );
+        
+//        if( mid_changedQ )
+//        {
+//            result = SubtreesCollideQ_Recursive2<true>( Root() );
+//        }
+//        else
+//        {
+//            result = SubtreesCollideQ_Recursive2<false>( Root() );
+//        }
         
 //        result = SubtreesCollideQ_Rec2( Root(), NodeTransform(Root()) );
     }
@@ -101,11 +110,11 @@ void ComputeBall( const Int node )
 }
 
 static constexpr Real NodeCenterSquaredDistance(
-    const cptr<Real> N_0, const cptr<Real> N_1
+    const cptr<Real> N_ptr_0, const cptr<Real> N_ptr_1
 )
 {
-    const Vector_T c_L ( N_0 );
-    const Vector_T c_R ( N_1 );
+    const Vector_T c_L ( N_ptr_0 );
+    const Vector_T c_R ( N_ptr_1 );
     
     const Vector_T delta = c_R - c_L;
     
@@ -123,12 +132,12 @@ static constexpr Real SquaredDistance( cref<Vector_T> x, cref<Vector_T> y )
 }
                 
 static constexpr bool BallsOverlapQ(
-    const cptr<Real> N_0, const cptr<Real> N_1, const Real diam
+    const cptr<Real> N_ptr_0, const cptr<Real> N_ptr_1, const Real diam
 )
 {
-    const Real d2 = NodeCenterSquaredDistance(N_0,N_1);
+    const Real d2 = NodeCenterSquaredDistance(N_ptr_0,N_ptr_1);
     
-    const Real threshold = diam + N_0[AmbDim] + N_1[AmbDim];
+    const Real threshold = diam + N_ptr_0[AmbDim] + N_ptr_1[AmbDim];
     
     return (d2 < threshold * threshold);
 }
@@ -181,7 +190,6 @@ int CheckJoints()
     {
         X_p_prev = transform(X_p_prev);
     }
-    
     
     if( SquaredDistance(X_p_next,X_p_prev) <= hard_sphere_squared_diam )
     {
@@ -384,5 +392,66 @@ void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
         
         F[2*i+ mid_changedQ] = not_no_midQ  ;
         F[2*i+!mid_changedQ] = not_only_midQ;
+    }
+}
+
+
+
+
+
+template<bool mQ>
+NodeSplitFlagVector_T NodeSplitFlagVector2( const Int node ) const
+{
+    auto [begin,end] = NodeRange(node);
+    
+    constexpr bool a =  mQ;
+    constexpr bool b = !mQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    const bool not_only_midQ = (begin < p_) || (end   > q_);
+    const bool not_no_midQ   = (end   > p_) && (begin < q_);
+
+    if constexpr ( mQ )
+    {
+        return NodeSplitFlagVector_T({not_only_midQ,not_no_midQ});
+    }
+    else
+    {
+        return NodeSplitFlagVector_T({not_no_midQ,not_only_midQ});
+    }
+}
+
+template<bool mQ>
+NodeSplitFlagMatrix_T NodeSplitFlagMatrix2( const Int i, const Int j ) const
+{
+    constexpr bool a =  mQ;
+    constexpr bool b = !mQ;
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
+
+    auto [begin_i,end_i] = NodeRange(i);
+    auto [begin_j,end_j] = NodeRange(j);
+    
+    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
+    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
+    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
+    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
+    
+    if constexpr ( mQ )
+    {
+        return NodeSplitFlagMatrix_T({
+            {i_not_only_midQ,i_not_no_midQ},
+            {j_not_only_midQ,j_not_no_midQ},
+        });
+    }
+    else
+    {
+        return NodeSplitFlagMatrix_T({
+            {i_not_no_midQ,i_not_only_midQ},
+            {j_not_no_midQ,j_not_only_midQ},
+        });
     }
 }
