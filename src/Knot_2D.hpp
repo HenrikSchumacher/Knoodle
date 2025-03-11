@@ -253,7 +253,7 @@ namespace KnotTools
                 std::string("<|")
                 + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(vertex_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
-                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)

@@ -183,5 +183,5 @@ void Initialize()
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
     
     
-    acc_intersection_flag_counts.SetZero();
+    acc_intersec_counts.SetZero();
 }

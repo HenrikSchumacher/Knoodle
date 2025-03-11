@@ -678,7 +678,7 @@ namespace KnotTools
                 std::string("<|")
                 + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_transform)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_ball)
-                + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_state)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_state)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Tree_T::N_ranges)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }

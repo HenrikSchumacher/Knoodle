@@ -59,8 +59,8 @@ namespace KnotTools
         
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
-//        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
+//        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
+        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
@@ -103,7 +103,7 @@ namespace KnotTools
 
         std::pair<Real,Real> e_dev;
 
-        IntersectionFlagCounts_T acc_intersection_flag_counts;
+        IntersectionFlagCounts_T acc_intersec_counts;
         
         TimeInterval T_run;
         

@@ -45,7 +45,42 @@ void FinalReport()
 
     if ( do_checksQ )
     {
-        kv<t1>("Accumulated Intersection Flag Counts", acc_intersection_flag_counts );
+//        kv<t1>("Accumulated Intersection Flag Counts", acc_intersec_counts );
+        
+        using F_T = Link_T::Intersector_T::F_T;
+        
+        auto get = [this]( F_T flag )
+        {
+            return acc_intersec_counts[ToUnderlying(flag)];
+        };
+        
+        log << ",\n" + ct_tabs<t1> + "\"Accumulated Intersection Flag Counts\" -> <|";
+            kv<t2,0>("Empty Intersection", get(F_T::Empty));
+            kv<t2>("Transversal Intersection", get(F_T::Transversal) );
+            kv<t2>("Intersections on Corner of First Edge", get(F_T::AtCorner0) );
+            kv<t2>("Intersections on Corner of Second Edge", get(F_T::AtCorner1) );
+            kv<t2>("Intersections on Corners of Both Edges", get(F_T::CornerCorner) );
+            kv<t2>("Interval-like Intersections", get(F_T::Interval) );
+            kv<t2>("Spatial Intersections", get(F_T::Spatial) );
+        log << "\n" + ct_tabs<t1> + "|>";
+        
+        {
+            Size_T cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
+            if( cnt != 0 )
+            {
+                eprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " spatial intersections.");
+            }
+            cnt = get(F_T::AtCorner0) + get(F_T::AtCorner0) + get(F_T::CornerCorner);
+            if( cnt != 0 )
+            {
+                wprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " corner cases.");
+            }
+            cnt = get(F_T::Interval);
+            if( cnt != 0 )
+            {
+                wprint(ClassName()+"::FinalReport: PlanarLineSegmentIntersector detected " + ToString(cnt) + " interval-like intersections.");
+            }
+        }
     }
     
     kv<t1>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );

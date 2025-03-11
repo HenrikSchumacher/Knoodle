@@ -90,7 +90,7 @@ int Analyze( const LInt i )
         
         const IntersectionFlagCounts_T intersection_flag_counts = L.IntersectionFlagCounts();
         
-        acc_intersection_flag_counts += intersection_flag_counts;
+        acc_intersec_counts += intersection_flag_counts;
         
         if ( (err != 0) || V1Q )
         {
@@ -100,8 +100,8 @@ int Analyze( const LInt i )
             {
                 log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
                 log << L.template AllocatedByteCountDetails<t2>();
-                kv<t2>("Flag Counts", intersection_flag_counts);
-                kv<t2>("Accumulated Flag Counts", acc_intersection_flag_counts);
+                kv<t2,0>("Flag Counts", intersection_flag_counts);
+                kv<t2>("Accumulated Flag Counts", acc_intersec_counts);
             }
             log << "\n" + ct_tabs<t1> + "|>";
         }
