@@ -9,7 +9,7 @@ static std::string PolygonString( cref<PolygonContainer_T> X )
 }
 
 template<Size_T t0>
-void PolygonSnapshot( const Int i )
+void PolygonSnapshot( const LInt i )
 {
     constexpr Size_T t1 = t0 + 1;
     

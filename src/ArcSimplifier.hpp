@@ -161,7 +161,7 @@ namespace Knoodle
         template<bool must_be_activeQ>
         void AssertCrossing( const Int c_ ) const
         {
-#ifdef DEBUG
+#ifdef PD_DEBUG
             if constexpr( must_be_activeQ )
             {
                 if( !CrossingActiveQ(c_) )

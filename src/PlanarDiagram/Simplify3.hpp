@@ -27,7 +27,7 @@ Int Simplify3(
         return 0;
     }
     
-    const Int level = Clip(optimization_level, Int(0), Int(4));
+    const Int level = Clamp(optimization_level, Int(0), Int(4));
     
     if( multi_compQ )
     {

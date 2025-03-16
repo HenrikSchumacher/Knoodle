@@ -24,9 +24,7 @@ namespace Knoodle
         
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
-        
-//        using CrossingContainer_T       = Tensor3<Int,Int>;
-//        using ArcContainer_T            = Tensor2<Int,Int>;
+
         using CrossingContainer_T       = CrossingContainer<Int>;
         using ArcContainer_T            = ArcContainer<Int>;
         

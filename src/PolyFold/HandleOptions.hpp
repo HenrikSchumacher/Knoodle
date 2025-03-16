@@ -57,6 +57,8 @@ void HandleOptions( int argc, char** argv )
         }
         
         
+        valprint<a>("Using Quaternions", BoolString(Clisby_T::quaternionsQ) );
+        
         if( vm.count("diam") )
         {
             hard_sphere_diam = vm["diam"].as<Real>();

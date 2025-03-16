@@ -10,26 +10,35 @@ std::pair<Tensor1<LInt,Int>,Tensor1<LInt,Int>> CurvatureTorsionHistograms(
     Tensor1<LInt,Int> curvature_hist ( bin_count, 0 );
     Tensor1<LInt,Int> torsion_hist ( Int(2) * bin_count, 0 );
     
-    const Real scale = Frac<Real>(bin_count,Scalar::Pi<Real>);
+    const Real curvature_scale = Frac<Real>(bin_count,Scalar::Pi<Real>);
+    const Real torsion_scale = Frac<Real>(bin_count,Scalar::Pi<Real>);
+    
+    Real min_torsion = 0;
+    Real max_torsion = 0;
 
-    auto update = [&curvature_hist,&torsion_hist,X,scale,this](
+    auto update = [&curvature_hist,&torsion_hist,X,curvature_scale,torsion_scale,this,&min_torsion,&max_torsion](
         Int i_A, Int i_B, Int i_C, Int i_D
     )
     {
         auto [curvature,torsion] = CurvatureTorsion(X, i_A, i_B, i_C, i_D );
         
-        const Int curvature_bin = Clip(
-            static_cast<Int>( curvature * scale ),
+        const Int curvature_bin = Clamp(
+            static_cast<Int>( std::floor(curvature * curvature_scale) ),
             Int(0), bin_count - Int(1)
         );
         
         ++curvature_hist[curvature_bin];
         
-        const Int torsion_bin = Clip(
-            bin_count + static_cast<Int>( torsion * scale ),
+//        min_torsion = Min(min_torsion,torsion);
+//        max_torsion = Max(max_torsion,torsion);
+        
+        const Int torsion_bin = Clamp(
+            static_cast<Int>( std::floor( (torsion + Scalar::Pi<Real>) * torsion_scale ) ),
             Int(0), Int(2) * bin_count - Int(1)
         );
-        
+//        
+//        logprint( ToMathematicaString(torsion) + " -> " + ToMathematicaString(torsion * scale) + " -> " + ToString(torsion_bin) );
+//        
         ++torsion_hist[torsion_bin];
     };
     
@@ -41,6 +50,10 @@ std::pair<Tensor1<LInt,Int>,Tensor1<LInt,Int>> CurvatureTorsionHistograms(
     {
         update( i - 3, i - 2, i - 1, i - 0 );
     }
+    
+    
+//    TOOLS_DUMP((min_torsion + Scalar::Pi<Real>) * torsion_scale);
+//    TOOLS_DUMP((max_torsion + Scalar::Pi<Real>) * torsion_scale);
     
     return std::pair( curvature_hist, torsion_hist );
 }
@@ -70,12 +83,9 @@ std::pair<Real,Real> CurvatureTorsion(
     const Vector_T nu = Cross(u,v);
     const Vector_T mu = Cross(w,v);
     
-    const Real norm_nu = nu.Norm();
-    const Real norm_mu = mu.Norm();
-    
-    if( (norm_nu > Real(0)) && (norm_mu > Real(0)) )
+    if( (nu.SquaredNorm() > Real(0)) && (mu.SquaredNorm() > Real(0)) )
     {
-        torsion = std::asin( Det(v,nu,mu) / (norm_nu * norm_mu )  );
+        torsion = std::atan2( Det(v,nu,mu), Dot(nu,mu) );
     }
     
     return { curvature, torsion };

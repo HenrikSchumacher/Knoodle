@@ -169,8 +169,6 @@ print(R"(
  `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´ 
 )");
 
-            valprint<a>("Using Quaternions", BoolString(Clisby_T::quaternionsQ) );
-
             print("");
             
             HandleOptions( argc, argv );

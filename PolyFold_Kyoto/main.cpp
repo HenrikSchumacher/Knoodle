@@ -8,13 +8,10 @@ using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
 
-//using Real  = Real32; // Never use this unless for producing edge cases.
-using Real  = Real64;
-//using BReal = Real;
-using BReal = Real32;
-//using Int   = Int64;
-using Int   = Int64;
-using LInt  = Int64;
+using Real  = Real64;   // scalar type used for positions of polygon
+using BReal = Real32;   // scalar type used for bounding boxes
+using Int   = Int64;    // integer type used, e.g., for indices in PlanarDiagram etc.
+using LInt  = Int64;    // integer type for counting objects
 
 int main( int argc, char** argv )
 {
