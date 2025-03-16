@@ -82,8 +82,8 @@ Switch[
         "CompileOptions" -> {"/EHsc", "/wd4244", "/DNOMINMAX", "/arch:AVX", "/Ot", "/std:c++20"}
         ,"LinkerOptions"->{}
         ,"IncludeDirectories" -> {
-			FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]],"KnotTools"}]
-			(*,FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]],"KnotTools","submodules","Tensors"}]*)
+			FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]],"Knoodle"}]
+			(*,FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]],"Knoodle","submodules","Tensors"}]*)
         }
         ,"LibraryDirectories" -> {FileNameJoin[{$InstallationDirectory,"SystemFiles","Libraries",$SystemID}]}
         ,"ShellOutputFunction" -> Print
