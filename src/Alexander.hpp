@@ -7,7 +7,7 @@
 #include "../submodules/Tensors/src/BLAS_Wrappers.hpp"
 #include "../submodules/Tensors/src/LAPACK_Wrappers.hpp"
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Scal_, typename Int_, typename LInt_>
@@ -662,4 +662,4 @@ namespace KnotTools
     }; // class Alexander
     
     
-} // namespace KnotTools
+} // namespace Knoodle

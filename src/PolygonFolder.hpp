@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Real_, typename Int_, typename LInt_>
     class alignas( ObjectAlignment ) PolygonFolder
@@ -918,4 +918,4 @@ namespace KnotTools
 
     }; // PolygonFolder
     
-} // namespace KnotTools
+} // namespace Knoodle

@@ -176,14 +176,11 @@ int Sample( const LInt i )
         {
             if constexpr ( Clisby_T::countersQ )
             {
-                log << ",\n" + ct_tabs<t1> + "\"Call Counts\" -> <|";
-                    kv<t2,0>("Transformation Loads", call_counters.load_transform);
-                    kv<t2>("Matrix-Matrix Multiplications", call_counters.mm);
-                    kv<t2>("Matrix-Vector Multiplications", call_counters.mv);
-                    kv<t2>("Ball Overlap Checks", call_counters.overlap);
-                log << "\n" + ct_tabs<t1> + "|>";
+                PrintCallCounts<t2>( call_counters );
             }
-            kv<t2>("Clisby Flag Counts", counts );
+            
+            PrintCallCounts<t2>( call_counters );
+            
             kv<t2>("Active Node Count", active_node_count );
         }
         log << "\n" + ct_tabs<t1> + "|>";

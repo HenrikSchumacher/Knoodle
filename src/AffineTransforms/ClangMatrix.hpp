@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<Size_T M_, Size_T N_, typename Real_, typename Int_>
     class ClangMatrix
@@ -296,4 +296,4 @@ namespace KnotTools
 
     }; // ClangMatrix
     
-} // namespace KnotTools
+} // namespace Knoodle

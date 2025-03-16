@@ -5,7 +5,6 @@ void BurnIn()
 {
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
-    constexpr Size_T t3 = t0 + 3;
     
 //    constexpr bool V0Q = true;
 //    constexpr bool V1Q = my_verbosity >= 1;
@@ -97,15 +96,11 @@ void BurnIn()
     {
         if constexpr ( Clisby_T::countersQ )
         {
-            log << ",\n" + ct_tabs<t2> + "\"Call Counts\" -> <|";
-                kv<t3,0>("Transformation Loads", call_counters.load_transform);
-                kv<t3>("Matrix-Matrix Multiplications", call_counters.mm);
-                kv<t3>("Matrix-Vector Multiplications", call_counters.mv);
-                kv<t3>("Ball Overlap Checks", call_counters.overlap);
-            log << "\n" + ct_tabs<t2> + "|>";
+            PrintCallCounts<t2>( call_counters );
         }
         
-        kv<t2>("Clisby Flag Counts", counts );
+        PrintClisbyFlagCounts<t2>( counts );
+        
         kv<t2>("Active Node Count", active_node_count );
     }
     log << "\n" + ct_tabs<t1> + "|>";
@@ -138,4 +133,3 @@ void BurnIn()
 
     
 } // BurnIn
-

@@ -11,9 +11,17 @@
 #include <os/signpost.h>
 #endif
 
-// TODO: Write polygon to file every xxx steps.
+// TODO: Report git version.
 
-namespace KnotTools
+// TODO: Compute total curvature and sum of squared curvatures
+
+// TODO: Compute total torsion (and sum of squared torsions)
+
+// TODO: Histogram for curvature and torsion.
+
+// TODO: Switch for deactivating writing polugons.
+
+namespace Knoodle
 {
     template<typename Real_, typename Int_, typename LInt_, typename BReal_>
     class PolyFold
@@ -100,6 +108,7 @@ namespace KnotTools
         LInt burn_in_attempt_count = 0;
         LInt steps_between_print = 0;
         LInt print_ctr = 0;
+        Int bin_count = 0;
 
         std::pair<Real,Real> e_dev;
 
@@ -126,6 +135,8 @@ namespace KnotTools
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
+        
+
         
         // Witness checking
         std::ofstream witness_stream;
@@ -294,6 +305,7 @@ print(R"(
 
 #include "PolyFold/Barycenter.hpp"
 #include "PolyFold/SquaredGyradius.hpp"
+#include "PolyFold/CurvatureTorsionHistograms.hpp"
 
     public:
         
@@ -310,5 +322,5 @@ print(R"(
     }; // PolyFold
 
     
-} // KnotTools
+} // Knoodle
 

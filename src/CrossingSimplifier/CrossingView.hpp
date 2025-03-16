@@ -71,7 +71,7 @@ public:
         + Tools::ToString(C[1]) + " }, { "
         + Tools::ToString(C[2]) + ", "
         + Tools::ToString(C[3]) + " } } ("
-        + KnotTools::ToString(S) +")";
+        + Knoodle::ToString(S) +")";
     }
     
     friend std::string ToString( const CrossingView & C_ )
@@ -90,12 +90,12 @@ CrossingView GetCrossing(const Int c )
 
 bool OppositeHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
 {
-    return KnotTools::OppositeHandednessQ(C_0.State(),C_1.State());
+    return Knoodle::OppositeHandednessQ(C_0.State(),C_1.State());
 }
 
 bool SameHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
 {
-    return KnotTools::SameHandednessQ(C_0.State(),C_1.State());
+    return Knoodle::SameHandednessQ(C_0.State(),C_1.State());
 }
 
 void RotateCrossing( CrossingView & C, const bool dir )

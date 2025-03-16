@@ -3,7 +3,7 @@
 // TODO: Use the state flag of arcs to mark changedQ/unchanged arcs.
 // TODO: In particular after applying this to a connected summand that was recently split-off from another diagram, often only very few positions are to be checked on the first (and often last) run.
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Int_, bool mult_compQ_ = true>
     class alignas( ObjectAlignment ) CrossingSimplifier
@@ -201,4 +201,4 @@ namespace KnotTools
 
     }; // class CrossingSimplifier
             
-} // namespace KnotTools
+} // namespace Knoodle

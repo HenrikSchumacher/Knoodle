@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Scal_, typename Int_, typename LInt_>
     class AlexanderStrandMatrix
@@ -361,6 +361,6 @@ namespace KnotTools
     }; // class AlexanderStrandMatrix
     
     
-} // namespace KnotTools
+} // namespace Knoodle
 
 

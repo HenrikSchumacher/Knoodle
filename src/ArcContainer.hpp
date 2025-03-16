@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
 
     // This is basically a Tensor2 whose last dimension equals 2. This way we can help the compiler to speed up the indexing operations a little.
@@ -87,4 +87,4 @@ namespace KnotTools
     }; // class ArcContainer
 
         
-} // namespace KnotTools
+} // namespace Knoodle

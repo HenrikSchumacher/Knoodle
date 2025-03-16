@@ -9,9 +9,9 @@
     #include "../submodules/Tensors/OpenBLAS.hpp"
 #endif
 
-#include "../KnotTools.hpp"
+#include "../Knoodle.hpp"
 
-using namespace KnotTools;
+using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
 

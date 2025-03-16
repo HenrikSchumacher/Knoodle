@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Int_>
@@ -361,4 +361,4 @@ namespace KnotTools
 
     }; // CompleteBinaryTree_Precomp
     
-} // namespace KnotTools
+} // namespace Knoodle

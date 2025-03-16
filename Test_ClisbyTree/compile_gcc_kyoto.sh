@@ -12,7 +12,8 @@ g++                                                 \
     -mtune=native                                   \
     -flax-vector-conversions                        \
     -Wno-psabi                                      \
-    -opolyfold_gcc                                  \
+    -oPolyFold_gcc                                  \
+    -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \
     main.cpp                                        \
     -lboost_program_options                         \
 

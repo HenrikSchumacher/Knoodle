@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Int_, Size_T optimization_level, bool mult_compQ_>
     class ArcSimplifier;
@@ -668,7 +668,7 @@ namespace KnotTools
                 + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
                 + Tools::ToString(C_arcs(c,In ,Left )) + ", "
                 + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
-                + KnotTools::ToString(C_state[c])      +")";
+                + Knoodle::ToString(C_state[c])      +")";
         }
         
         /*!
@@ -677,37 +677,37 @@ namespace KnotTools
         
         bool CrossingActiveQ( const Int c ) const
         {
-            return KnotTools::ActiveQ(C_state[c]);
+            return Knoodle::ActiveQ(C_state[c]);
         }
         
 //        bool CrossingUnchangedQ( const Int c ) const
 //        {
-//            return KnotTools::UnchangedQ(C_state[c]);
+//            return Knoodle::UnchangedQ(C_state[c]);
 //        }
 //        
 //        bool CrossingChangedQ( const Int c ) const
 //        {
-//            return KnotTools::ChangedQ(C_state[c]);
+//            return Knoodle::ChangedQ(C_state[c]);
 //        }
         
         bool CrossingRightHandedQ( const Int c ) const
         {
-            return KnotTools::RightHandedQ(C_state[c]);
+            return Knoodle::RightHandedQ(C_state[c]);
         }
         
         bool CrossingLeftHandedQ( const Int c ) const
         {
-            return KnotTools::LeftHandedQ(C_state[c]);
+            return Knoodle::LeftHandedQ(C_state[c]);
         }
 
         bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
         {
-            return KnotTools::OppositeHandednessQ(C_state[c_0],C_state[c_1]);
+            return Knoodle::OppositeHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
         bool SameHandednessQ( const Int c_0, const Int c_1 ) const
         {
-            return KnotTools::SameHandednessQ(C_state[c_0],C_state[c_1]);
+            return Knoodle::SameHandednessQ(C_state[c_0],C_state[c_1]);
         }
         
         void RotateCrossing( const Int c, const bool dir )
@@ -779,7 +779,7 @@ namespace KnotTools
             return "arc " +Tools::ToString(a) +" = { "
                 + Tools::ToString(A_cross(a,Tail)) + ", "
                 + Tools::ToString(A_cross(a,Head)) + " } ("
-                + KnotTools::ToString(A_state[a]) + ")";
+                + Knoodle::ToString(A_state[a]) + ")";
         }
         
         /*!
@@ -788,17 +788,17 @@ namespace KnotTools
         
         bool ArcActiveQ( const Int a ) const
         {
-            return KnotTools::ActiveQ(A_state[a]);
+            return Knoodle::ActiveQ(A_state[a]);
         }
         
 //        bool ArcUnchangedQ( const Int a ) const
 //        {
-//            return KnotTools::UnchangedQ(A_state[a]);
+//            return Knoodle::UnchangedQ(A_state[a]);
 //        }
 //        
 //        bool ArcChangedQ( const Int a ) const
 //        {
-//            return KnotTools::ChangedQ(A_state[a]);
+//            return Knoodle::ChangedQ(A_state[a]);
 //        }
         
         /*!
@@ -1035,7 +1035,7 @@ namespace KnotTools
         
     };
 
-} // namespace KnotTools
+} // namespace Knoodle
 
 
 

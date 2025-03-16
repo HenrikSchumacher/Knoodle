@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Int_, bool precompute_rangesQ_ = true>
@@ -457,5 +457,5 @@ namespace KnotTools
 
     }; // CompleteBinaryTree
     
-} // namespace KnotTools
+} // namespace Knoodle
 

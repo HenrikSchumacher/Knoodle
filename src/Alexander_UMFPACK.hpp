@@ -10,7 +10,7 @@
 #include "../submodules/Tensors/src/LAPACK_Wrappers.hpp"
 
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Scal_, typename Int_>
@@ -156,5 +156,5 @@ namespace KnotTools
     }; // class Alexander_UMFPACK
     
     
-} // namespace KnotTools
+} // namespace Knoodle
 

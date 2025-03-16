@@ -2,7 +2,7 @@
 
 #include "../submodules/Tensors/UMFPACK.hpp"
 
-namespace KnotTools
+namespace Knoodle
 {
  
     template<typename Int_>
@@ -177,4 +177,4 @@ namespace KnotTools
     }; // class ReAPr
     
 
-} // namespace KnotTools
+} // namespace Knoodle

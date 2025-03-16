@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Real_, typename Int_, typename SInt_ = Int8>
@@ -361,4 +361,4 @@ namespace KnotTools
 
     }; // LinearHomotopy_3D
     
-} // namespace KnotTools
+} // namespace Knoodle

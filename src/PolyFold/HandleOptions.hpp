@@ -30,6 +30,7 @@ void HandleOptions( int argc, char** argv )
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
         ("no-checks", "perform folding without checks for overlap of hard spheres")
         ("polygons,P", po::value<LInt>(), "print every [arg] sample to file")
+        ("histograms,H", po::value<Int>(), "create histograms for curvature and torsion with [arg] bins")
 //        ("print-polygon,p", po::value<LInt>(), "write polygon to file roughly every [arg] steps")
         ;
         
@@ -121,6 +122,14 @@ void HandleOptions( int argc, char** argv )
             printQ = (steps_between_print > 0);
         }
         valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
+
+        print("");
+        
+        if( vm.count("histograms") )
+        {
+            bin_count = Ramp( vm["histograms"].as<Int>() );
+        }
+        valprint<a>("Histogram Bin Count", ToString(bin_count) );
 
         print("");
         

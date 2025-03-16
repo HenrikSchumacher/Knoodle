@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<int AmbDim_, typename Real_, typename Int_>
     class AffineTransform
@@ -324,4 +324,4 @@ namespace KnotTools
 
     }; // AffineTransform
     
-} // namespace KnotTools
+} // namespace Knoodle

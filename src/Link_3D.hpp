@@ -5,7 +5,7 @@
 // TODO: Track the number of edges that cross the boundary of a box.
 // TODO: This will allow us to find connected sums.
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8, typename BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
@@ -247,5 +247,5 @@ namespace KnotTools
         }
     };
     
-} // namespace KnotTools
+} // namespace Knoodle
 

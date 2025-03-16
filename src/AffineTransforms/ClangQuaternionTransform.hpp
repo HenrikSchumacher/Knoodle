@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Real_, typename Int_>
     class ClangQuaternionTransform
@@ -409,4 +409,4 @@ namespace KnotTools
 
     }; // ClangQuaternionTransform
     
-} // namespace KnotTools
+} // namespace Knoodle

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Int>
     Tensor2<Int,Int> CircleEdges( const Int n )
@@ -543,5 +543,5 @@ namespace KnotTools
         }
     };
     
-} // namespace KnotTools
+} // namespace Knoodle
 

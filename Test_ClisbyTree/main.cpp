@@ -7,10 +7,10 @@
 #define dump(x) TOOLS_DUMP(x);
 #define mem_dump(x) TOOLS_MEM_DUMP(x);
 
-#include "../KnotTools.hpp"
+#include "../Knoodle.hpp"
 #include "../src/PolyFold.hpp"
 
-using namespace KnotTools;
+using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
 

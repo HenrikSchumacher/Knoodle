@@ -1,6 +1,6 @@
 #pragma  once
 
-namespace KnotTools
+namespace Knoodle
 {
 
     template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8>

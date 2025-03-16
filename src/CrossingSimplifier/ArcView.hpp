@@ -66,7 +66,7 @@ public:
     std::string String() const
     {
         return "arc " +Tools::ToString(a) +" = { " +
-        Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + KnotTools::ToString(S) +")";
+        Tools::ToString(A[0])+", "+Tools::ToString(A[1])+" } (" + Knoodle::ToString(S) +")";
     }
     
     friend std::string ToString( const ArcView & A_ )

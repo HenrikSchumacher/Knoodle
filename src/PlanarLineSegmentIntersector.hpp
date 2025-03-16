@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     enum class LineSegmentsIntersectionFlag : Int32
     {
@@ -472,4 +472,4 @@ namespace KnotTools
         
     }; // class PlanarLineSegmentIntersector
     
-} // namespace KnotTools
+} // namespace Knoodle

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Int_ = Int64, typename SInt_ = Int8>
@@ -660,6 +660,6 @@ namespace KnotTools
         
     };
     
-} // namespace KnotTools
+} // namespace Knoodle
 
 

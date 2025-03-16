@@ -5,7 +5,7 @@
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Scal_, typename Int_>
@@ -191,4 +191,4 @@ namespace KnotTools
     }; // class Alexander
     
     
-} // namespace KnotTools
+} // namespace Knoodle

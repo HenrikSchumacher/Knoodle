@@ -43,8 +43,16 @@ void Initialize()
     kv<t1>  ("Verbosity",verbosity);
     
     log << ",\n" + ct_tabs<t1> + "\"Initialization\" -> <|";
+
+    kv<t2,0>("Git Hash",
+#ifdef GIT_VERSION
+        GIT_VERSION
+#else
+        "unknown"
+#endif
+    );
     
-    log << "\n" + ct_tabs<t2> + "\"PolyFold\" -> <|";
+    log << ",\n" + ct_tabs<t2> + "\"PolyFold\" -> <|";
         kv<t3,0>("Class",ClassName());
         kv<t3>("Vector Extensions Enabled",vec_enabledQ);
         kv<t3>("Matrix Extensions Enabled",mat_enabledQ);

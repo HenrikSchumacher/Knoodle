@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
         
     // This is basically a Tensor3 whose last two dimensions equal 2. This way we can help the compiler to speed up the indexing operations a little.
@@ -129,4 +129,4 @@ namespace KnotTools
     }; // class CrossingContainer
 
         
-} // namespace KnotTools
+} // namespace Knoodle

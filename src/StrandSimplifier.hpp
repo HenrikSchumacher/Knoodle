@@ -7,7 +7,7 @@
 
 // TODO: It might also be worthwhile to do the overstrand and the understrand pass in the same loop. (But I doubt it.)
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Int_, bool mult_compQ_>
@@ -1923,4 +1923,4 @@ namespace KnotTools
 
     }; // class StrandSimplifier
     
-} // namespace KnotTools
+} // namespace Knoodle

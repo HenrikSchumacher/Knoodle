@@ -1,4 +1,4 @@
 #pragma once
 
-#include "KnotTools.hpp"
+#include "Knoodle.hpp"
 #include "src/ReAPr.hpp"

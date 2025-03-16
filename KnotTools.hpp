@@ -3,7 +3,7 @@
 #include "submodules/Tensors/Tensors.hpp"
 #include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
-namespace KnotTools
+namespace Knoodle
 {
     using namespace Tensors;
     using namespace Tools;
@@ -259,7 +259,7 @@ namespace KnotTools
     }
 
     
-} // namespace KnotTools
+} // namespace Knoodle
 
 #include "src/Link.hpp"
 

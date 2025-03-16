@@ -10,7 +10,8 @@ clang++                     \
     -mtune=native           \
     -I/opt/homebrew/include \
     -L/opt/homebrew/lib     \
-    -o polyfold             \
+    -o PolyFold             \
+    -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \
     main.cpp                \
     -lboost_program_options \
     -lstdc++                \

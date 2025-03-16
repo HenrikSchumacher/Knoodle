@@ -44,7 +44,7 @@
 
 #endif
 
-namespace KnotTools
+namespace Knoodle
 {
     static constexpr Size_T PD_max_error_count =  4;
     static           Size_T PD_error_counter   =  0;
@@ -52,11 +52,11 @@ namespace KnotTools
     
     static inline void pd_eprint( const std::string & s )
     {
-        ++KnotTools::PD_error_counter;
+        ++Knoodle::PD_error_counter;
         
         Tools::eprint(s);
         
-        if( KnotTools::PD_error_counter >= KnotTools::PD_max_error_count )
+        if( Knoodle::PD_error_counter >= Knoodle::PD_max_error_count )
         {
             Tools::eprint("Too many errors. Aborting program.");
             
@@ -64,4 +64,4 @@ namespace KnotTools
         }
     }
 
-} // namespace KnotTools
+} // namespace Knoodle

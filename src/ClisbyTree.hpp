@@ -18,7 +18,7 @@
 // TODO:    4. Walk once again top down through the visited nodes and update their transforms.
 // TODO:    5. Walk from the pivots upwards and update the balls.
 
-namespace KnotTools
+namespace Knoodle
 {
     struct ClisbyTree_TArgs
     {
@@ -573,13 +573,13 @@ namespace KnotTools
             
             counters.SetZero();
             
-            const Int n = VertexCount();
+//            const Int n = VertexCount();
             
-            using unif_int = std::uniform_int_distribution<Int>;
+//            using unif_int = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
             
             unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
-            unif_int u_int ( Int(0), n - Int(1) );
+//            unif_int u_int ( Int(0), n - Int(1) );
             
             // Witness checking
             witness_collector.clear();
@@ -715,4 +715,4 @@ namespace KnotTools
         
     }; // ClisbyTree
     
-} // namespace KnotTools
+} // namespace Knoodle

@@ -1,7 +1,7 @@
 
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     template<typename Real, typename Int>
@@ -34,4 +34,4 @@ namespace KnotTools
         {}
     };
 
-} // namespace KnotTools
+} // namespace Knoodle

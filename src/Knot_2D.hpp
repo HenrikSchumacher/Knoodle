@@ -1,6 +1,6 @@
 #pragma  once
 
-namespace KnotTools
+namespace Knoodle
 {
     template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int32, typename BReal_ = Real_>
     class alignas( ObjectAlignment ) Knot_2D
@@ -273,4 +273,4 @@ namespace KnotTools
         }
     };
     
-} // namespace KnotTools
+} // namespace Knoodle

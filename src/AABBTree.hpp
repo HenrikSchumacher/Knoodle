@@ -1,6 +1,6 @@
 #pragma once
 
-namespace KnotTools
+namespace Knoodle
 {
     
     // A simple bounding volume hierarchy with static ordering.
@@ -286,4 +286,4 @@ namespace KnotTools
 
     }; // AABBTree
 
-} // namespace KnotTools
+} // namespace Knoodle

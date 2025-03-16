@@ -48,6 +48,7 @@ int Analyze( const LInt i )
     TimeInterval T_write;
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
+    TimeInterval T_histograms;
     TimeInterval T_snapshot;
     
     TimeInterval T_analysis (0);
@@ -61,14 +62,21 @@ int Analyze( const LInt i )
         T_snapshot.Toc();
     }
     
-    
-    
     if( squared_gyradiusQ )
     {
         T_gyradius.Tic<V2Q>();
         Real g = SquaredGyradius(x.data());
         T_gyradius.Toc<V2Q>();
         kv<t1>("Squared Gyradius",g);
+    }
+    
+    if( bin_count > 0 )
+    {
+        T_histograms.Tic<V2Q>();
+        auto [curvature_hist,torsion_hist] = CurvatureTorsionHistograms( x.data() );
+        T_histograms.Toc<V2Q>();
+        kv<t1>("Curvature Histogram",curvature_hist);
+        kv<t1>("Torsion Histogram",torsion_hist);
     }
     
     if( pdQ )
@@ -100,8 +108,15 @@ int Analyze( const LInt i )
             {
                 log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
                 log << L.template AllocatedByteCountDetails<t2>();
-                kv<t2,0>("Flag Counts", intersection_flag_counts);
-                kv<t2>("Accumulated Flag Counts", acc_intersec_counts);
+                
+                
+                PrintIntersectionFlagCounts<t2>(
+                    "Intersection Flag Counts", intersection_flag_counts
+                );
+                
+                PrintIntersectionFlagCounts<t2>(
+                    "Accumulated Intersection Flag Counts", acc_intersec_counts
+                );
             }
             log << "\n" + ct_tabs<t1> + "|>";
         }
@@ -247,7 +262,7 @@ int Analyze( const LInt i )
                 kv<t2>("Compute Intersections",T_intersection.Duration());
             if( force_deallocQ )
             {
-                kv<t2>("Deallocate Link", T_delete.Duration()+T_link_dealloc.Duration());
+                kv<t2>("Deallocate Link", T_delete.Duration() + T_link_dealloc.Duration());
             }
                 kv<t2>("Create PlanarDiagram", T_pd.Duration());
                 kv<t2>("Simplify PlanarDiagram", T_simplify.Duration());
