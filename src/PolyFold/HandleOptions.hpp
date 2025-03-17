@@ -130,6 +130,8 @@ void HandleOptions( int argc, char** argv )
         if( vm.count("histograms") )
         {
             bin_count = Ramp( vm["histograms"].as<Int>() );
+            curvature_hist = Tensor1<LInt,Int> ( bin_count, 0 );
+            torsion_hist   = Tensor1<LInt,Int> ( Int(2) * bin_count, 0 );
         }
         valprint<a>("Histogram Bin Count", ToString(bin_count) );
 
@@ -227,11 +229,11 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( ! (squared_gyradiusQ || pdQ ) )
-    {
-        eprint("Not computing anything. Aborting.");
-        exit(2);
-    }
+//    if( ! (squared_gyradiusQ || pdQ ) )
+//    {
+//        eprint("Not computing anything. Aborting.");
+//        exit(2);
+//    }
     
     // Make sure that the working directory exists.
     try{

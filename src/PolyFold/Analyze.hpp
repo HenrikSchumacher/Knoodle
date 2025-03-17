@@ -48,19 +48,23 @@ int Analyze( const LInt i )
     TimeInterval T_write;
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
-    TimeInterval T_histograms;
+    TimeInterval T_curvature_torsion;
     TimeInterval T_snapshot;
     
     TimeInterval T_analysis (0);
     
-    bool snapshotQ = (print_ctr >= steps_between_print) || (i == N);
     
-    if( snapshotQ )
+    T_curvature_torsion.Tic<V2Q>();
+    if( bin_count > 0 )
     {
-        T_snapshot.Tic();
-        PolygonSnapshot<t1>(i);
-        T_snapshot.Toc();
+        PrintCurvatureTorsion<t1,true,true>( x.data() );
     }
+    else
+    {
+        PrintCurvatureTorsion<t1,true,false>( x.data() );
+    }
+    T_curvature_torsion.Toc<V2Q>();
+
     
     if( squared_gyradiusQ )
     {
@@ -69,14 +73,14 @@ int Analyze( const LInt i )
         T_gyradius.Toc<V2Q>();
         kv<t1>("Squared Gyradius",g);
     }
+
+    bool snapshotQ = (print_ctr >= steps_between_print) || (i == N);
     
-    if( bin_count > 0 )
+    if( snapshotQ )
     {
-        T_histograms.Tic<V2Q>();
-        auto [curvature_hist,torsion_hist] = CurvatureTorsionHistograms( x.data() );
-        T_histograms.Toc<V2Q>();
-        kv<t1>("Curvature Histogram",curvature_hist);
-        kv<t1>("Torsion Histogram",torsion_hist);
+        T_snapshot.Tic();
+        PolygonSnapshot<t1>(i);
+        T_snapshot.Toc();
     }
     
     if( pdQ )
@@ -232,33 +236,21 @@ int Analyze( const LInt i )
     {
         log << ",\n" + ct_tabs<t1> + "\"Analysis Time Details\" -> <|";
         
-        if( snapshotQ )
-        {
-                kv<t2,0>("Snapshot Time Elapsed", T_snapshot.Duration() );
-        }
+                kv<t2,0>("Curvature/Torsion Time Elapsed", T_curvature_torsion.Duration() );
         
         if( squared_gyradiusQ )
         {
-            if( snapshotQ )
-            {
                 kv<t2>("Compute Squared Gyradius", T_gyradius.Duration());
-            }
-            else
-            {
-                kv<t2,0>("Compute Squared Gyradius", T_gyradius.Duration());
-            }
+        }
+        
+        if( snapshotQ )
+        {
+                kv<t2>("Snapshot Time Elapsed", T_snapshot.Duration() );
         }
         
         if( pdQ )
         {
-            if( snapshotQ || squared_gyradiusQ )
-            {
                 kv<t2>("Create Link", T_link.Duration());
-            }
-            else
-            {
-                kv<t2,0>("Create Link", T_link.Duration());
-            }
                 kv<t2>("Compute Intersections",T_intersection.Duration());
             if( force_deallocQ )
             {

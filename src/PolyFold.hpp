@@ -11,15 +11,7 @@
 #include <os/signpost.h>
 #endif
 
-// TODO: Report git version.
-
-// TODO: Compute total curvature and sum of squared curvatures
-
-// TODO: Compute total torsion (and sum of squared torsions)
-
-// TODO: Histogram for curvature and torsion.
-
-// TODO: Switch for deactivating writing polugons.
+// TODO: Switch for deactivating writing polygons.
 
 namespace Knoodle
 {
@@ -102,6 +94,9 @@ namespace Knoodle
         std::ofstream pds;
         
         PolygonContainer_T x;
+        
+        Tensor1<LInt,Int> curvature_hist;
+        Tensor1<LInt,Int> torsion_hist;
         
         LInt total_attempt_count = 0;
         LInt total_accept_count = 0;
@@ -263,7 +258,6 @@ print(R"(
         {
             os_signpost_interval_end( log_handle, analyze_signpost, "Analyze" );
         }
-
 #else
         void clisby_begin() {}
         
@@ -303,7 +297,7 @@ print(R"(
 
 #include "PolyFold/Barycenter.hpp"
 #include "PolyFold/SquaredGyradius.hpp"
-#include "PolyFold/CurvatureTorsionHistograms.hpp"
+//#include "PolyFold/CurvatureTorsion.hpp"
 
     public:
         
