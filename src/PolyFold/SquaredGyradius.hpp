@@ -4,10 +4,8 @@ Real SquaredGyradius( cptr<Real> X, cref<Vector_T> mu )
     
     for( Int i = 0; i < n; ++i )
     {
-        r2 += SquaredDistance(Vector_T( &X[AmbDim * i] ), mu);
+        r2 += SquaredDistance(Vector_T(X,i), mu);
     }
-    
-//    dump(r2);
     
     r2 *= Frac<Real>(1,n);
     

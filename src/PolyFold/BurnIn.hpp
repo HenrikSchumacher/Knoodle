@@ -123,12 +123,14 @@ void BurnIn()
     kv<t1>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
     kv<t1>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
 
-    TimeInterval T_snapshot(0);
-    PolygonSnapshot<t1>(LInt(0));
-    T_snapshot.Toc();
-    
-    kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
-    
+    if( steps_between_print >= 0 )
+    {
+        TimeInterval T_snapshot(0);
+        PolygonSnapshot<t1>(LInt(0));
+        T_snapshot.Toc();
+        
+        kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
+    }
     log << "\n" + ct_tabs<t0> + "|>";
 
     

@@ -26,12 +26,12 @@ void HandleOptions( int argc, char** argv )
         ("pcg-increment,I", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own)")
         ("pcg-state,S", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding)")
         ("low-mem,m", "force deallocation of large data structures; this will be a bit slower but peak memory will be less")
+        ("angles,a", "compute statistics on curvature and torsion angles and report them in file \"Info.m\"")
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
-        ("no-checks", "perform folding without checks for overlap of hard spheres")
         ("polygons,P", po::value<LInt>(), "print every [arg] sample to file")
-        ("histograms,H", po::value<Int>(), "create histograms for curvature and torsion with [arg] bins")
-//        ("print-polygon,p", po::value<LInt>(), "write polygon to file roughly every [arg] steps")
+        ("histograms,H", po::value<Int>(), "create histograms for curvature and torsion angles with [arg] bins")
+        ("no-checks", "perform folding without checks for overlap of hard spheres")
         ;
         
         
@@ -111,6 +111,9 @@ void HandleOptions( int argc, char** argv )
         }
         
         print("");
+        
+        anglesQ = (vm.count("angles") != 0);
+        valprint<a>("Compute Angle Statistics", BoolString(anglesQ) );
 
         squared_gyradiusQ = (vm.count("squared-gyradius") != 0);
         valprint<a>("Compute Squared Gyradius", BoolString(squared_gyradiusQ) );
@@ -118,14 +121,13 @@ void HandleOptions( int argc, char** argv )
         pdQ = (vm.count("pd-code") != 0);
         valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
+        
         if( vm.count("polygons") )
         {
-            steps_between_print = Ramp( vm["polygons"].as<LInt>() );
+            steps_between_print = vm["polygons"].as<LInt>();
             printQ = (steps_between_print > 0);
         }
         valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
-
-        print("");
         
         if( vm.count("histograms") )
         {
@@ -184,13 +186,6 @@ void HandleOptions( int argc, char** argv )
         {
             if( vm.count("extend") )
             {
-    //                path = std::filesystem::path( vm["output"].as<std::string>()
-    //                    + "__n_" + ToString(n)
-    //                    + "__b_" + ToString(burn_in_accept_count)
-    //                    + "__s_" + ToString(skip)
-    //                    + "__N_" + ToString(N)
-    //                    + (vm.count("tag") ? ("__" + vm["tag"].as<std::string>()) : "")
-    //                );
                     path = std::filesystem::path( vm["output"].as<std::string>()
                         + "-d" + ToStringFPGeneral(hard_sphere_diam)
                         + "-n" + ToString(n)
@@ -229,11 +224,11 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-//    if( ! (squared_gyradiusQ || pdQ ) )
-//    {
-//        eprint("Not computing anything. Aborting.");
-//        exit(2);
-//    }
+    if( ! (squared_gyradiusQ || pdQ || anglesQ || (bin_count > 1) ) )
+    {
+        eprint("Not computing anything. Aborting.");
+        exit(2);
+    }
     
     // Make sure that the working directory exists.
     try{

@@ -198,6 +198,9 @@ void PrintCurvatureTorsion( cptr<Real> X )
     Vector_T w = (Q-P);
     w.Normalize();
     
+    // TODO: The two calls to std::atan2 in AngleBetweenUnitVectors make this quite slow.
+    // TODO: Probably, we could use 2-vectorization here with a hand-made atan2 function here.
+    
     for( Int i = 0; i < n; ++i )
     {
         u = v;
@@ -207,6 +210,7 @@ void PrintCurvatureTorsion( cptr<Real> X )
         w = (Q-P);
         w.Normalize();
         
+        // Hidden std::atan2 here.
         const Real curvature = AngleBetweenUnitVectors(v,w);
         
         Real torsion = 0;

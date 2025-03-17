@@ -127,6 +127,7 @@ namespace Knoodle
         bool prng_stateQ        = false;
         bool force_deallocQ     = false;
         bool do_checksQ         = true;
+        bool anglesQ            = false;
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;

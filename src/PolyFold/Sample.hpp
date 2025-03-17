@@ -9,7 +9,7 @@ int Sample()
 
     log << "\n" + ct_tabs<t0+1>;
 
-    print_ctr = printQ ? 0 : -1;
+    print_ctr = printQ ? LInt(0) : steps_between_print - LInt(1);
     
     err = Sample<t0+1,my_verbosity,checksQ>(LInt(1));
 
@@ -77,9 +77,6 @@ int Sample( const LInt i )
     LInt accept_count;
     Int active_node_count;
     FoldFlagCounts_T counts;
-//    PRNG_T prng_state;
-
-    
     typename Clisby_T::CallCounters_T call_counters;
     
     TimeInterval T_sample (0);
@@ -91,8 +88,6 @@ int Sample( const LInt i )
         Clisby_T T( x.data(), n, hard_sphere_diam, prng );
         T_clisby.Toc<V2Q>();
         allocation_time += T_clisby.Duration();
-    
-//        full_state = T.RandomEngineFullState();
         
         T_fold.Tic<V2Q>();
         // Do polygon folds until we have done at least `skip` accepted steps.
@@ -196,11 +191,6 @@ int Sample( const LInt i )
                 kv<t2>("Deallocate Clisby Tree", T_dealloc.Duration());
             }
             log << "\n" + ct_tabs<t1> + "|>";
-//            log << ",\n" + ct_tabs<t1> + "\"PCG64\" -> <|";
-//                kv<t2,0>("Multiplier", full_state.multiplier);
-//                kv<t2>("Increment" , full_state.increment );
-//                kv<t2>("State"     , full_state.state     );
-//            log << "\n" + ct_tabs<t1> + "|>";
         }
         
         kv<t1>("Total Seconds Elapsed", total_timing );

@@ -2,7 +2,7 @@ clang++                                         \
     -Wall                                       \
     -Wextra                                     \
     -std=c++20                                  \
-    -O3                                         \
+    -Ofast                                      \
     -ffast-math                                 \
     -flto                                       \
     -fenable-matrix                             \

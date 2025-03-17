@@ -6,6 +6,7 @@ g++-14                                              \
     -Wno-ignored-qualifiers                         \
     -std=c++20                                      \
     -Ofast                                          \
+    -ffast-math                                     \
     -flto=auto                                      \
     -pthread                                        \
     -mcpu=apple-m1                                  \

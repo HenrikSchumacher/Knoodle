@@ -61,7 +61,10 @@ int Analyze( const LInt i )
     }
     else
     {
-        PrintCurvatureTorsion<t1,true,false>( x.data() );
+        if( anglesQ )
+        {
+            PrintCurvatureTorsion<t1,true,false>( x.data() );
+        }
     }
     T_curvature_torsion.Toc<V2Q>();
 
@@ -74,7 +77,7 @@ int Analyze( const LInt i )
         kv<t1>("Squared Gyradius",g);
     }
 
-    bool snapshotQ = (print_ctr >= steps_between_print) || (i == N);
+    bool snapshotQ = (print_ctr >= steps_between_print) || ( (steps_between_print >= 0) && (i == N));
     
     if( snapshotQ )
     {

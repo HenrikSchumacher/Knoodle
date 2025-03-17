@@ -3,7 +3,7 @@ clang-19                                        \
     -Wextra                                     \
     -std=c++20                                  \
     -lc++                                       \
-    -O3                                         \
+    -Ofast                                      \
     -ffast-math                                 \
     -flto                                       \
     -fenable-matrix                             \
