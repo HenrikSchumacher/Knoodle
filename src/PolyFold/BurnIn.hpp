@@ -1,6 +1,6 @@
 private:
 
-template<Size_T t0, int my_verbosity, bool checksQ>
+template<Size_T t0, int my_verbosity, bool reflectionsQ, bool checksQ>
 void BurnIn()
 {
     constexpr Size_T t1 = t0 + 1;
@@ -37,7 +37,7 @@ void BurnIn()
 //        pre_state = FullState( T.RandomEngine() );
         
         T_fold.Tic<V2Q>();
-        counts = T.template FoldRandom<checksQ>(burn_in_accept_count);
+        counts = T.template FoldRandom<reflectionsQ,checksQ>(burn_in_accept_count);
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();
@@ -125,11 +125,7 @@ void BurnIn()
 
     if( steps_between_print >= 0 )
     {
-        TimeInterval T_snapshot(0);
         PolygonSnapshot<t1>(LInt(0));
-        T_snapshot.Toc();
-        
-        kv<t1>("Snapshot Time Elapsed", T_snapshot.Duration() );
     }
     log << "\n" + ct_tabs<t0> + "|>";
 

@@ -49,7 +49,14 @@ int Analyze( const LInt i )
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
     TimeInterval T_curvature_torsion;
-    TimeInterval T_snapshot;
+    
+    
+    bool snapshotQ = (print_ctr >= steps_between_print) || ( (steps_between_print >= 0) && (i == N));
+    
+    if( snapshotQ )
+    {
+        PolygonSnapshot<t1>(i);
+    }
     
     TimeInterval T_analysis (0);
     
@@ -75,15 +82,6 @@ int Analyze( const LInt i )
         Real g = SquaredGyradius(x.data());
         T_gyradius.Toc<V2Q>();
         kv<t1>("Squared Gyradius",g);
-    }
-
-    bool snapshotQ = (print_ctr >= steps_between_print) || ( (steps_between_print >= 0) && (i == N));
-    
-    if( snapshotQ )
-    {
-        T_snapshot.Tic();
-        PolygonSnapshot<t1>(i);
-        T_snapshot.Toc();
     }
     
     if( pdQ )
@@ -244,11 +242,6 @@ int Analyze( const LInt i )
         if( squared_gyradiusQ )
         {
                 kv<t2>("Compute Squared Gyradius", T_gyradius.Duration());
-        }
-        
-        if( snapshotQ )
-        {
-                kv<t2>("Snapshot Time Elapsed", T_snapshot.Duration() );
         }
         
         if( pdQ )

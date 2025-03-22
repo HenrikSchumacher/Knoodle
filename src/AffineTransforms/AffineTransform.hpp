@@ -79,6 +79,8 @@ namespace Knoodle
             A.Read(A_ptr);
         }
         
+        
+        
         template<typename ExtReal>
         void ForceReadVector( cptr<ExtReal> b_ptr )
         {
@@ -135,6 +137,11 @@ namespace Knoodle
         void ForceWriteMatrix( mptr<ExtReal> A_ptr ) const
         {
             A.Write(A_ptr);
+        }
+        
+        void ForceWriteMatrix( mref<Matrix_T> A_mat ) const
+        {
+            A_mat = A;
         }
         
         template<typename ExtReal>
@@ -294,6 +301,11 @@ namespace Knoodle
             AffineTransform f;
             f.SetIdentity();
             return f;
+        }
+        
+        Real Det() const
+        {
+            return A.Det();
         }
 
         

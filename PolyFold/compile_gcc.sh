@@ -18,6 +18,7 @@ g++-14                                              \
     -I/opt/homebrew/include                         \
     -L/opt/homebrew/Cellar/boost/1.87.0/lib         \
     -L/opt/homebrew/lib                             \
+    -DPOLYFOLD_NO_QUATERNIONS                       \
     -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \
     main.cpp                                        \
     -lboost_program_options                         \

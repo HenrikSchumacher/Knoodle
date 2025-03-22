@@ -11,11 +11,26 @@ int Run()
         {
             if( do_checksQ )
             {
-                return Run_impl<0,1,true>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,1,true,true>();
+                }
+                else
+                {
+                    return Run_impl<0,1,false,true>();
+                }
             }
             else
             {
-                return Run_impl<0,1,false>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,1,true,false>();
+                }
+                else
+                {
+                    return Run_impl<0,1,false,false>();
+                }
+                    
             }
             break;
         }
@@ -23,11 +38,25 @@ int Run()
         {
             if( do_checksQ )
             {
-                return Run_impl<0,2,true>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,2,true,true>();
+                }
+                else
+                {
+                    return Run_impl<0,2,false,true>();
+                }
             }
             else
             {
-                return Run_impl<0,2,false>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,2,true,false>();
+                }
+                else
+                {
+                    return Run_impl<0,2,false,false>();
+                }
             }
             break;
         }
@@ -35,11 +64,25 @@ int Run()
         {
             if( do_checksQ )
             {
-                return Run_impl<0,0,true>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,0,true,true>();
+                }
+                else
+                {
+                    return Run_impl<0,0,false,true>();
+                }
             }
             else
             {
-                return Run_impl<0,0,false>();
+                if( allow_reflectionsQ )
+                {
+                    return Run_impl<0,0,true,false>();
+                }
+                else
+                {
+                    return Run_impl<0,0,false,false>();
+                }
             }
             break;
         }
@@ -48,14 +91,14 @@ int Run()
 
 private:
 
-template<Size_T tab_count = 0, int my_verbosity, bool checksQ>
+template<Size_T tab_count = 0, int my_verbosity, bool reflectionsQ, bool checksQ>
 int Run_impl()
 {
     T_run.Tic();
     
-    BurnIn<tab_count+1,my_verbosity,checksQ>();
+    BurnIn<tab_count+1,my_verbosity,reflectionsQ,checksQ>();
     
-    int err = Sample<tab_count+1,my_verbosity,checksQ>();
+    int err = Sample<tab_count+1,my_verbosity,reflectionsQ,checksQ>();
     
     T_run.Toc();
     

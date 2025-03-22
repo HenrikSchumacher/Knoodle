@@ -11,8 +11,6 @@
 #include <os/signpost.h>
 #endif
 
-// TODO: Switch for deactivating writing polygons.
-
 namespace Knoodle
 {
     template<typename Real_, typename Int_, typename LInt_, typename BReal_>
@@ -115,6 +113,7 @@ namespace Knoodle
         double burn_in_time  = 0;
         double total_sampling_time = 0;
         double total_analysis_time = 0;
+        double total_snapshot_time = 0;
         
         double allocation_time = 0;
         double deallocation_time = 0;
@@ -131,6 +130,7 @@ namespace Knoodle
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
+        bool allow_reflectionsQ = false;
         
 
         
@@ -184,11 +184,12 @@ print(R"(
             Run();
             
             print("Done.");
-            valprint<28>("Time elapsed during burn-in",burn_in_time);
-            valprint<28>("Time elapsed during sampling",total_sampling_time);
-            valprint<28>("Time elapsed during analysis",total_analysis_time);
-            print(std::string(24 + 24,'-'));
-            valprint<28>("Time elapsed all together",total_timing);
+            valprint<30>("Time elapsed during burn-in",burn_in_time);
+            valprint<30>("Time elapsed during sampling",total_sampling_time);
+            valprint<30>("Time elapsed during analysis",total_analysis_time);
+            valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+            print(std::string(26 + 24,'-'));
+            valprint<30>("Time elapsed all together",total_timing);
             
         }
         

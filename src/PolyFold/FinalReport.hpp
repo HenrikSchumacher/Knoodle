@@ -18,6 +18,7 @@ void FinalReport()
         kv<t2,0>("Burn-in", burn_in_time );
         kv<t2>("Sampling", total_sampling_time );
         kv<t2>("Analysis", total_analysis_time );
+        kv<t2>("Snapshots", total_snapshot_time );
     log << "\n" + ct_tabs<t1> + "|>";
     
     if( force_deallocQ )

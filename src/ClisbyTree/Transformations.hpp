@@ -1,3 +1,4 @@
+template<bool allow_reflectionsQ>
 void ComputePivotTransform()
 {
     // Rotation axis.
@@ -23,53 +24,77 @@ void ComputePivotTransform()
     {
         const Real cos = std::cos(theta);
         const Real sin = std::sin(theta);
+        
+        Tiny::Matrix<3,3,Real,Int> a;
+        
         const Real d = Scalar::One<Real> - cos;
         
+        a[0][0] = u[0] * u[0] * d + cos       ;
+        a[0][1] = u[0] * u[1] * d - sin * u[2];
+        a[0][2] = u[0] * u[2] * d + sin * u[1];
         
-        const Real a [3][3] = {
+        a[1][0] = u[1] * u[0] * d + sin * u[2];
+        a[1][1] = u[1] * u[1] * d + cos       ;
+        a[1][2] = u[1] * u[2] * d - sin * u[0];
+        
+        a[2][0] = u[2] * u[0] * d - sin * u[1];
+        a[2][1] = u[2] * u[1] * d + sin * u[0];
+        a[2][2] = u[2] * u[2] * d + cos       ;
+        
+        
+        if constexpr( allow_reflectionsQ )
+        {
+            if( reflectQ )
             {
-                u[0] * u[0] * d + cos       ,
-                u[0] * u[1] * d - sin * u[2],
-                u[0] * u[2] * d + sin * u[1]
-            },
-            {
-                u[1] * u[0] * d + sin * u[2],
-                u[1] * u[1] * d + cos       ,
-                u[1] * u[2] * d - sin * u[0]
-            },
-            {
-                u[2] * u[0] * d - sin * u[1],
-                u[2] * u[1] * d + sin * u[0],
-                u[2] * u[2] * d + cos
+                Tiny::Vector<3,Real,Int> v;
+                u.Write( v.data() );
+                
+                Tiny::Vector<3,Real,Int> w ( Real(0) );
+                // Take the vector from the standard basis that makes the biggest angle with v.
+                w[v.IAMin()] = Real(1);
+                
+                // Make w orthogonal to v.
+                w -= v * InnerProduct(v,w);
+                w -= v * InnerProduct(v,w);
+                
+                // Reflect in the hyperplane defined by w.
+                a = a * HouseholderReflector(w);
             }
-        };
+        }
         
         Matrix_T A;
         
-        A.Read( &a[0][0] );
+        A.Read(a.data());
         
         Vector_T b = X_p - A * X_p;
         
         transform.Read( A, b, NodeFlag_T::NonId );
     }
-    
-//    // Check correctness.
-//    
-//    constexpr Real TOL = 0.000000001;
-//    
-//    const Real error_p = (transform(X_p) - X_p).Norm();
-//    const Real error_q = (transform(X_q) - X_q).Norm();
-//    
-//    if( error_p > TOL )
-//    {
-//        wprint( ClassName() + "::ComputePivotTransform: First pivot vertex is modified by pivot transform; error = " + ToString(error_p) + "." );
-//    }
-//    
-//    if( error_q > TOL )
-//    {
-//        wprint( ClassName() + "::ComputePivotTransform: Second pivot vertex is modified by pivot transform; error = " + ToString(error_q) + "." );
-//    }
+}
 
+void InvertPivotTransform()
+{
+    if constexpr ( quaternionsQ )
+    {
+        transform.Invert();
+    }
+    else
+    {
+        Matrix_T A;
+        Vector_T b;
+        NodeFlag_T flag;
+        
+        transform.Write( A, b, flag );
+        
+        Tiny::Matrix<3,3,Real,Int> a;
+        A.Write(a.data());
+        a = a.Transpose();
+        A.Read(a.data());
+        
+        Vector_T c = Real(-1) * (A * b);
+        
+        transform.Read( A, c, NodeFlag_T::NonId );
+    }
 }
 
 

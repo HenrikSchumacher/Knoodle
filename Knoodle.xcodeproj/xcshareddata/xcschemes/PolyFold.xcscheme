@@ -53,7 +53,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "-d1.0 -n100000 -b25000 -s10000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgem -v1 -H100"
+            argument = "-d1.0 -n100000 -b25000 -s10000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgem -v1 -H100 -P-1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

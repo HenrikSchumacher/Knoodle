@@ -4,6 +4,8 @@
 //#define PD_DEBUG
 
 //#define POLYFOLD_SIGNPOSTS
+//#define POLYFOLD_NO_QUATERNIONS
+
 
 #define dump(x) TOOLS_DUMP(x);
 #define mem_dump(x) TOOLS_MEM_DUMP(x);
@@ -18,9 +20,10 @@ using namespace Tools;
 
 using Real  = Real64;   // scalar type used for positions of polygon
 //using Real  = Real32;   // Never use this unless for producing edge cases.
-using BReal = Real32;   // scalar type used for bounding boxes
-//using Int   = Int64;    // integer type used, e.g., for indices in PlanarDiagram etc.
-using Int   = Int32;    // integer type used, e.g., for indices in PlanarDiagram etc.
+//using BReal = Real32;   // scalar type used for bounding boxes
+using BReal = Real64;   // scalar type used for bounding boxes
+using Int   = Int64;    // integer type used, e.g., for indices in PlanarDiagram etc.
+//using Int   = Int32;    // integer type used, e.g., for indices in PlanarDiagram etc.
 using LInt  = Int64;    // integer type for counting objects
 
 using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;

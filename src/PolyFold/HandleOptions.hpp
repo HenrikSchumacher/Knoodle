@@ -32,6 +32,7 @@ void HandleOptions( int argc, char** argv )
         ("polygons,P", po::value<LInt>(), "print every [arg] sample to file")
         ("histograms,H", po::value<Int>(), "create histograms for curvature and torsion angles with [arg] bins")
         ("no-checks", "perform folding without checks for overlap of hard spheres")
+        ("reflections,R", "allow pivot moves to be ortientation reversing")
         ;
         
         
@@ -58,6 +59,7 @@ void HandleOptions( int argc, char** argv )
         
         
         valprint<a>("Using Quaternions", BoolString(Clisby_T::quaternionsQ) );
+        print("");
         
         if( vm.count("diam") )
         {
@@ -144,6 +146,18 @@ void HandleOptions( int argc, char** argv )
         
         do_checksQ = (vm.count("no-checks") == 0);
         valprint<a>("Hard Sphere Checks", BoolString(do_checksQ) );
+        
+        allow_reflectionsQ = (vm.count("reflections") != 0);
+        
+        if( Clisby_T::quaternionsQ && allow_reflectionsQ)
+        {
+            wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
+            
+            allow_reflectionsQ = false;
+        }
+        
+        valprint<a>("Allow Reflections", BoolString(allow_reflectionsQ) );
+        
         
         if( vm.count("pcg-multiplier") )
         {

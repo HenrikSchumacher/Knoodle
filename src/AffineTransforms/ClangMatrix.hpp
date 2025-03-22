@@ -252,6 +252,20 @@ namespace Knoodle
             return D;
         }
         
+        Real Det() const
+        {
+            if constexpr ( M == N )
+            {
+                
+                Tiny::Matrix<M,N,Real,int> matrix ( reinterpret_cast<const Real *>( &A ) );
+                
+                return matrix.Det();
+            }
+            else
+            {
+                return 0;
+            }
+        }
         
         [[nodiscard]] friend std::string ToString(
             cref<ClangMatrix> B,

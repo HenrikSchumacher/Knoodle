@@ -137,6 +137,11 @@ namespace Knoodle
             A.Write(A_ptr);
         }
         
+        void ForceWriteMatrix( mref<Matrix_T> A_mat ) const
+        {
+            A_mat = A;
+        }
+        
         template<typename ExtReal>
         void ForceWriteVector( mptr<ExtReal> b_ptr ) const
         {

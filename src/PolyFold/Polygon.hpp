@@ -11,6 +11,8 @@ static std::string PolygonString( cref<PolygonContainer_T> X )
 template<Size_T t0>
 void PolygonSnapshot( const LInt i )
 {
+    TimeInterval T_snapshot (0);
+    
     constexpr Size_T t1 = t0 + 1;
     
     std::string file_name = "Polygon_" + StringWithLeadingZeroes(i,9) + ".tsv";
@@ -31,4 +33,8 @@ void PolygonSnapshot( const LInt i )
     log << "\n" + ct_tabs<t0> + "|>";
     
     log << std::flush;
+
+    T_snapshot.Toc();
+    
+    total_snapshot_time += T_snapshot.Duration();
 }

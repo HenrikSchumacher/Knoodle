@@ -2,16 +2,17 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
-// TODO: Use a structure ClisbyNode and hold it in stack memory.
 
-// TODO: Check neighborhood about pivots more thoroughly.
+// TODO: Check neighborhood around pivots more thoroughly.
 
 // TODO: _Compute_ NodeRange more efficiently.
 
-// TODO: Shave off one double form ClangQuaternionTransform at the cost of a sqrt.
+// TODO: Use a structure ClisbyNode and hold it in stack memory.
 
-// TODO: Update(p,q) -- Could thise be faster?
-// TODO:    1. Start at the pivots, walp up to the root and track all the touched nodes;
+// TODO: Shave off one double from ClangQuaternionTransform at the cost of a sqrt.
+
+// TODO: Update(p,q) -- Could this be faster?
+// TODO:    1. Start at the pivots, walk up to the root and track all the touched nodes;
 // TODO:       We can also learn this way which nodes need an update.
 // TODO:    2. Go down again and push the transforms out of the visited nodes.
 // TODO:    3. Grab the pivot vertex positions and compute the transform.
@@ -22,11 +23,12 @@ namespace Knoodle
 {
     struct ClisbyTree_TArgs
     {
-        bool clang_matrixQ  = true;
-        bool quaternionsQ   = true;
-        bool countersQ      = false;   // debugging flag
-        bool witnessesQ     = false;   // debugging flag
-        bool manual_stackQ  = false;   // debugging flag
+        bool clang_matrixQ            = true;
+        bool quaternionsQ             = true;
+//        bool orientation_preservingQ  = false;
+        bool countersQ                = false;   // debugging flag
+        bool witnessesQ               = false;   // debugging flag
+        bool manual_stackQ            = false;   // debugging flag
     };
     
     template<
@@ -57,10 +59,11 @@ namespace Knoodle
         
         static constexpr Int AmbDim = AmbDim_;
     
-        static constexpr bool clang_matrixQ = targs.clang_matrixQ && MatrixizableQ<Real>;
-        static constexpr bool quaternionsQ  = clang_matrixQ && targs.quaternionsQ;
-        static constexpr bool manual_stackQ = targs.manual_stackQ;
-        static constexpr bool witnessesQ    = targs.witnessesQ;
+        static constexpr bool clang_matrixQ           = targs.clang_matrixQ && MatrixizableQ<Real>;
+        static constexpr bool quaternionsQ            = clang_matrixQ && targs.quaternionsQ;
+        static constexpr bool manual_stackQ           = targs.manual_stackQ;
+        static constexpr bool witnessesQ              = targs.witnessesQ;
+//        static constexpr bool orientation_preservingQ = targs.orientation_preservingQ;
         
         using Transform_T
             = typename std::conditional_t<
@@ -81,7 +84,7 @@ namespace Knoodle
         
         using WitnessVector_T          = Tiny::Vector<2,Int,Int>;
         using WitnessCollector_T       = std::vector<Tiny::Vector<4,Int,Int>>;
-        using PivotCollector_T         = std::vector<std::tuple<Int,Int,Real>>;
+        using PivotCollector_T         = std::vector<std::tuple<Int,Int,Real,bool>>;
         
         
         using NodeFlagContainer_T      = Tensor1<NodeFlag_T,Int>;
@@ -90,9 +93,6 @@ namespace Knoodle
     
         using NodeSplitFlagVector_T    = Tiny::Vector<2,bool,Int>;
         using NodeSplitFlagMatrix_T    = Tiny::Matrix<2,2,bool,Int>;
-
-    //        using NodeSplitFlagVector_T = std::array<bool,2>;
-    //        using NodeSplitFlagMatrix_T = std::array<NodeSplitFlagVector_T,2>;
     
         using RNG_T  = std::random_device;
     
@@ -184,98 +184,6 @@ namespace Knoodle
 
         ~ClisbyTree() = default;
     
-////        // Copy constructor
-//        ClisbyTree( const ClisbyTree & other )
-//        :   Tree_T                      { other                             }
-//        ,   N_transform                 { other.N_transform                 }
-//        ,   N_state                     { other.N_state                     }
-//        ,   N_ball                      { other.N_ball                      }
-//        ,   hard_sphere_diam            { other.hard_sphere_diam            }
-//        ,   hard_sphere_squared_diam    { other.hard_sphere_squared_diam    }
-//        ,   prescribed_edge_length      { other.prescribed_edge_length      }
-//        ,   p                           { other.p                           }
-//        ,   q                           { other.q                           }
-//        ,   witness                     { other.witness                     }
-//        ,   theta                       { other.theta                       }
-//        ,   X_p                         { other.X_p                         }
-//        ,   X_q                         { other.X_q                         }
-//        ,   transform                   { other.transform                   }
-//        ,   seed                        { other.seed                        }
-//        ,   random_engine               { other.random_engine               }
-//        ,   call_counters               { other.call_counters               }
-//        ,   mid_changedQ                { other.mid_changedQ                }
-//        ,   transforms_pushedQ          { other.transforms_pushedQ          }
-//        {}
-//
-//        inline friend void swap( ClisbyTree & A, ClisbyTree & B) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            if( &A == &B )
-//            {
-//                wprint( std::string("An object of type ") + ClassName() + " has been swapped to itself.");
-//            }
-//            else
-//            {
-//                swap( static_cast<Tree_T &>(A), static_cast<Tree_T &>(B) );
-//                
-//                swap( A.N_transform,                B.N_transform );
-//                swap( A.N_state,                    B.N_state );
-//                swap( A.N_ball,                     B.N_ball );
-//                
-//                swap( A.hard_sphere_diam,           B.hard_sphere_diam );
-//                swap( A.hard_sphere_squared_diam,   B.hard_sphere_squared_diam );
-//                swap( A.prescribed_edge_length,     B.prescribed_edge_length );
-//                
-//                swap( A.p,                          B.p );
-//                swap( A.q,                          B.q );
-//                
-//                swap( A.witness,                    B.witness );
-//
-//                swap( A.theta,                      B.theta );
-//                swap( A.X_p,                        B.X_p );
-//                swap( A.X_q,                        B.X_q );
-//                swap( A.transform,                  B.transform );
-//                
-//                swap( A.seed,                       B.seed );
-//                swap( A.random_engine,              B.random_engine );
-//                swap( A.call_counters,              B.call_counters );
-//                
-//                swap( A.mid_changedQ,               B.mid_changedQ );
-//                swap( A.transforms_pushedQ,         B.transforms_pushedQ );
-//            }
-//        }
-//    
-////        /* Copy assignment operator */
-////        ClisbyTree & operator=( ClisbyTree other ) noexcept
-////        {
-////            swap( *this, other );
-////            return *this;
-////        }
-//
-//        // Move constructor
-//        ClisbyTree( ClisbyTree && other ) noexcept
-//        :   ClisbyTree()
-//        {
-//            swap(*this, other);
-//        }
-//
-//
-//        /* Move-assignment operator */
-//        mref<ClisbyTree> operator=( ClisbyTree && other ) noexcept
-//        {
-//            if( this == &other )
-//            {
-//                wprint("An object of type " + ClassName() + " has been move-assigned to itself.");
-//            }
-//            else
-//            {
-//                swap( *this, other );
-//            }
-//            return *this;
-//        }
-       
     public:
         
         using Tree_T::MaxDepth;
@@ -323,8 +231,9 @@ namespace Knoodle
         
         mutable CallCounters_T call_counters;
     
-        bool mid_changedQ = false;
-        bool transforms_pushedQ = false;
+        bool mid_changedQ       = false;
+        bool reflectQ           = false; // Whether we multiply the pivot move with -1.
+//        bool transforms_pushedQ = false;
         
         
         PivotCollector_T   pivot_collector;
@@ -452,10 +361,10 @@ namespace Knoodle
 
     public:
     
-        template<bool check_overlapsQ = true>
-        FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_ )
+        template<bool allow_reflectionsQ, bool check_overlapsQ = true>
+        FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_, const bool reflectQ_ )
         {
-            int pivot_flag = LoadPivots(p_,q_,theta_);
+            int pivot_flag = LoadPivots<allow_reflectionsQ>(p_,q_,theta_,reflectQ_);
             
             if( pivot_flag != 0 )
             {
@@ -489,7 +398,9 @@ namespace Knoodle
                 if( OverlapQ() )
                 {
                     // Folding step failed; undo the modifications.
-                    Update(p_,q_,-theta_);
+//                    Update(p_,q_,-theta_,reflectQ_);
+                    
+                    UndoUpdate();
                     
                     if constexpr ( witnessesQ )
                     {
@@ -506,7 +417,7 @@ namespace Knoodle
                     {
                         // Witness checking
                         pivot_collector.push_back(
-                            std::tuple<Int,Int,Real>({p,q,theta})
+                            std::tuple<Int,Int,Real,bool>({p,q,theta,reflectQ})
                         );
                     }
                     
@@ -520,7 +431,7 @@ namespace Knoodle
                 {
                     // Witness checking
                     pivot_collector.push_back(
-                        std::tuple<Int,Int,Real>({p,q,theta})
+                        std::tuple<Int,Int,Real,bool>({p,q,theta,reflectQ})
                     );
                 }
                 
@@ -566,24 +477,19 @@ namespace Knoodle
         }
 
         
-        template<bool check_overlapsQ = true>
+        template<bool allow_reflectionsQ, bool check_overlapsQ = true>
         FoldFlagCounts_T FoldRandom( const LInt success_count )
         {
             FoldFlagCounts_T counters;
             
             counters.SetZero();
             
-//            const Int n = VertexCount();
-            
-//            using unif_int = std::uniform_int_distribution<Int>;
             using unif_real = std::uniform_real_distribution<Real>;
             
             unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
-//            unif_int u_int ( Int(0), n - Int(1) );
             
             // Witness checking
             witness_collector.clear();
-            
             
             while( counters[0] < success_count )
             {
@@ -591,7 +497,18 @@ namespace Knoodle
                 
                 auto [i,j] = RandomPivots();
                 
-                FoldFlag_T flag = Fold<check_overlapsQ>( i, j, angle );
+                bool mirror_bit = false;
+                
+                if constexpr ( allow_reflectionsQ )
+                {
+                    using unif_bool = std::uniform_int_distribution<int>;
+
+                    mirror_bit = unif_bool(0,1)(random_engine);
+                }
+                
+                FoldFlag_T flag = Fold<allow_reflectionsQ,check_overlapsQ>(
+                    i, j, angle, mirror_bit
+                );
                 
                 ++counters[flag];
             }
@@ -707,6 +624,7 @@ namespace Knoodle
                 + "," + TypeName<LInt>
                 + "," + ToString(clang_matrixQ)
                 + "," + ToString(quaternionsQ)
+//                + "," + ToString(orientation_preservingQ)
                 + "," + ToString(countersQ)
                 + "," + ToString(manual_stackQ)
                 + "," + ToString(witnessesQ)

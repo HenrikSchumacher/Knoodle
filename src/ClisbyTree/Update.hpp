@@ -3,15 +3,17 @@
 
 public:
 
-void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta )
+void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirrorQ )
 {
-    int pivot_flag = LoadPivots( pivot_p, pivot_q, angle_theta );
+    int pivot_flag = LoadPivots( pivot_p, pivot_q, angle_theta, mirrorQ );
     
     if( pivot_flag == 0 ) [[likely]]
     {
         Update();
     }
 }
+
+private:
 
 void Update()
 {
@@ -24,6 +26,17 @@ void Update()
         UpdateSubtree_Recursive(Root());
     }
 }
+
+private:
+
+void UndoUpdate()
+{
+    InvertPivotTransform();
+    
+    Update();
+}
+
+public:
 
 UpdateFlag_T NodeNeedsUpdateQ( const Int node ) const
 {
@@ -60,11 +73,15 @@ UpdateFlag_T NodeNeedsUpdateQ(
 
 private:
 
-int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
+template<bool allow_reflectionsQ>
+int LoadPivots(
+    const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirror_bit
+)
 {
     p = Min(pivot_p,pivot_q);
     q = Max(pivot_p,pivot_q);
     theta = angle_theta;
+    reflectQ = mirror_bit;
     
     const Int n = VertexCount() ;
     const Int mid_size = q - p - 1;
@@ -80,7 +97,7 @@ int LoadPivots( const Int pivot_p, const Int pivot_q, const Real angle_theta )
     // TODO: There is maybe a more efficient way to compute the pivot vectors.
     X_p = VertexCoordinates(p);
     X_q = VertexCoordinates(q);
-    ComputePivotTransform();
+    ComputePivotTransform<allow_reflectionsQ>();
     
     return 0;
 }

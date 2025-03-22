@@ -71,9 +71,7 @@ namespace Knoodle
             return flag == Id;
         }
         
-        
     private:
-        
         
         // Caution: This does not set the flag!
         template<typename ExtReal>
@@ -130,7 +128,7 @@ namespace Knoodle
         // Caution: This does not set the flag!
         void ForceReadQuaternion( cref<Vector4_T> q_vec )
         {
-            ForceReadQuaternion( reinterpret_cast<const Real>(&q_vec) );
+            ForceReadQuaternion( reinterpret_cast<const Real *>(&q_vec) );
         }
         
         template<typename ExtReal>
@@ -178,7 +176,7 @@ namespace Knoodle
         // Caution: This does not store the flag!
         void ForceWriteQuaternion( mref<Vector4_T> q_vec ) const
         {
-            ForceWriteQuaternion( reinterpret_cast<Real>(&q_vec) );
+            ForceWriteQuaternion( reinterpret_cast<Real *>(&q_vec) );
         }
         
         // Caution: This does not store the flag!
@@ -341,6 +339,24 @@ namespace Knoodle
             }
         }
         
+        void Invert()
+        {
+            if( flag == NonId )
+            {
+                Vector4_T q_vec;
+                
+                ForceWriteQuaternion(q_vec);
+                
+                // Conjugate quaternion.
+                for( Int i = 1; i < 4; ++i )
+                {
+                    q_vec.Set(i,0,-q_vec(i,0));
+                }
+                ForceReadQuaternion(q_vec);
+                
+                b = Real(-1) * (A * b);
+            }
+        }
 
 //        static ClangQuaternionTransform Transform(
 //            cptr<Real> f_ptr, Flag_T f_flag, cref<ClangQuaternionTransform> g
