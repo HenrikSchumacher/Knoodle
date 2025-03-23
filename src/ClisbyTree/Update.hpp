@@ -3,15 +3,16 @@
 
 public:
 
-void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirrorQ )
-{
-    int pivot_flag = LoadPivots( pivot_p, pivot_q, angle_theta, mirrorQ );
-    
-    if( pivot_flag == 0 ) [[likely]]
-    {
-        Update();
-    }
-}
+//template<bool allow_reflectionsQ>
+//void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirrorQ )
+//{
+//    int pivot_flag = LoadPivots<allow_reflectionsQ>( pivot_p, pivot_q, angle_theta, mirrorQ );
+//    
+//    if( pivot_flag == 0 ) [[likely]]
+//    {
+//        Update();
+//    }
+//}
 
 private:
 
@@ -31,7 +32,7 @@ private:
 
 void UndoUpdate()
 {
-    InvertPivotTransform();
+    InvertTransform( transform );
     
     Update();
 }
@@ -97,7 +98,7 @@ int LoadPivots(
     // TODO: There is maybe a more efficient way to compute the pivot vectors.
     X_p = VertexCoordinates(p);
     X_q = VertexCoordinates(q);
-    ComputePivotTransform<allow_reflectionsQ>();
+    transform = PivotTransform<allow_reflectionsQ>( X_p, X_q, theta, reflectQ );
     
     return 0;
 }

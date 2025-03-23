@@ -1,29 +1,32 @@
 template<bool allow_reflectionsQ>
-void ComputePivotTransform()
+static Transform_T PivotTransform(
+    cref<Vector_T> X, cref<Vector_T> Y, Real angle, bool mirror_bit
+)
 {
+    Transform_T f;
+    
     // Rotation axis.
-    Vector_T u = (X_q - X_p);
-
+    Vector_T u = (Y - X);
     u.Normalize();
     
     if constexpr ( quaternionsQ )
     {
-        const Real theta_half = Scalar::Half<Real> * theta;
+        const Real theta_half = Scalar::Half<Real> * angle;
         const Real cos = std::cos(theta_half);
         const Real sin = std::sin(theta_half);
         
         Real Q [7] {cos, sin * u[0], sin * u[1], sin * u[2], 0, 0, 0 };
             
-        transform.Read( &Q[0], NodeFlag_T::NonId );
+        f.Read( &Q[0], NodeFlag_T::NonId );
         
-        Vector_T b = X_p - transform.Matrix() * X_p;
+        Vector_T b = X - f.Matrix() * X;
         
-        transform.ForceReadVector(b);
+        f.ForceReadVector(b);
     }
     else
     {
-        const Real cos = std::cos(theta);
-        const Real sin = std::sin(theta);
+        const Real cos = std::cos(angle);
+        const Real sin = std::sin(angle);
         
         Tiny::Matrix<3,3,Real,Int> a;
         
@@ -41,10 +44,9 @@ void ComputePivotTransform()
         a[2][1] = u[2] * u[1] * d + sin * u[0];
         a[2][2] = u[2] * u[2] * d + cos       ;
         
-        
         if constexpr( allow_reflectionsQ )
         {
-            if( reflectQ )
+            if( mirror_bit )
             {
                 Tiny::Vector<3,Real,Int> v;
                 u.Write( v.data() );
@@ -66,17 +68,19 @@ void ComputePivotTransform()
         
         A.Read(a.data());
         
-        Vector_T b = X_p - A * X_p;
+        Vector_T b = X - A * X;
         
-        transform.Read( A, b, NodeFlag_T::NonId );
+        f.Read( A, b, NodeFlag_T::NonId );
     }
+    
+    return f;
 }
 
-void InvertPivotTransform()
+static void InvertTransform( mref<Transform_T> f )
 {
     if constexpr ( quaternionsQ )
     {
-        transform.Invert();
+        f.Invert();
     }
     else
     {
@@ -84,7 +88,7 @@ void InvertPivotTransform()
         Vector_T b;
         NodeFlag_T flag;
         
-        transform.Write( A, b, flag );
+        f.Write( A, b, flag );
         
         Tiny::Matrix<3,3,Real,Int> a;
         A.Write(a.data());
@@ -93,7 +97,7 @@ void InvertPivotTransform()
         
         Vector_T c = Real(-1) * (A * b);
         
-        transform.Read( A, c, NodeFlag_T::NonId );
+        f.Read( A, c, NodeFlag_T::NonId );
     }
 }
 

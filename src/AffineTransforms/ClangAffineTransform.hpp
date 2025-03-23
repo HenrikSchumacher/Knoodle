@@ -272,7 +272,7 @@ namespace Knoodle
             {
                 if( f.flag == NonId )
                 {
-                    return ClangAffineTransform( A * f.A. A * f.b + b, NonId );
+                    return ClangAffineTransform( A * f.A, A * f.b + b, NonId );
                 }
                 else
                 {

@@ -1304,7 +1304,7 @@ namespace Knoodle
             
             PD_ASSERT( a_begin != a_end );
             
-            // Instead of a queue we use to stacks: One to hold the next front; and for the previous (or current) front.
+            // Instead of a queue we use two stacks: One to hold the next front; and one for the previous (or current) front.
             
             next_front.Reset();
             
@@ -1318,7 +1318,7 @@ namespace Knoodle
             
             // This is needed to prevent us from running in circles when cycling around faces.
             // See comments below.
-            A_visited_from[a_begin] =  a_begin;
+            A_visited_from[a_begin] = a_begin;
             
             Int d = 0;
             
@@ -1331,7 +1331,7 @@ namespace Knoodle
                 
                 // We don't want paths of length max_dist.
                 // The elements of prev_front have distance d.
-                // So the element we push onto next_front will have distance d+1.
+                // So the elements we push onto next_front will have distance d+1.
                 
                 ++d;
 
@@ -1341,7 +1341,7 @@ namespace Knoodle
                     
                     const Int a_0 = (A_0 >> 1);
                     
-                    // Now we run though the boundary arcs of the face using `A_left` to turn always left.
+                    // Now we run through the boundary arcs of the face using `A_left` to turn always left.
                     // There is only one exception and that is when the arc we get to is part of the strand (which is when `A_color(a) == color_`).
                     // Then we simply go straight through the crossing.
 
@@ -1360,7 +1360,6 @@ namespace Knoodle
                         // Check whether `a` has not been visited, yet.
                         if( Abs(A_data(a,0)) != color_ )
                         {
-
                             if( a == a_end )
                             {
                                 // Mark as visited.
@@ -1392,7 +1391,7 @@ namespace Knoodle
                         }
                         else if constexpr ( mult_compQ )
                         {
-                            // When the diagram becomes disconnected by removing the strand, then there can be faces whose boundary has two components. Even weirder, it can happen that we start at `a_0` and then go to the component of the face boundary that is _not_ connected to `a_0`. This is difficult to imagine, so here is a picture:
+                            // When the diagram becomes disconnected by removing the strand, then there can be a face whose boundary has two components. Even weirder, it can happen that we start at `a_0` and then go to the component of the face boundary that is _not_ connected to `a_0`. This is difficult to imagine, so here is a picture:
                             
                             
                             // The == indicates the current overstrand.
@@ -1500,7 +1499,7 @@ namespace Knoodle
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            const Int d  = FindShortestPath( a_begin, a_end, max_dist, color_ );
+            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
 
             if( d <= max_dist )
             {

@@ -333,16 +333,16 @@ namespace Knoodle
             const double delta  = Frac<double>( Scalar::TwoPi<double>, n );
             const double radius = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
             
-            double v [AmbDim] = { double(0) };
+            Tiny::Vector<AmbDim,double,Int> v (double(0));
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
                 const double angle = delta * vertex;
                 
-                v[0] = radius * std::cos( angle );
-                v[1] = radius * std::sin( angle );
+                v[0] = radius * std::cos(angle);
+                v[1] = radius * std::sin(angle);
                 
-                copy_buffer<AmbDim>( &v[0], &x[AmbDim * vertex] );
+                v.Write(x,vertex);
             }
             
             ReadVertexCoordinates(x);
@@ -353,6 +353,9 @@ namespace Knoodle
 #include "ClisbyTree/Transformations.hpp"
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionChecks.hpp"
+
+#include "ClisbyTree/ClisbyNode.hpp"
+#include "ClisbyTree/ModifiedClisbyTree.hpp"
         
         
 //###################################################################################

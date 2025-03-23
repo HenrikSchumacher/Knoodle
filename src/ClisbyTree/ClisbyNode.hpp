@@ -1,8 +1,8 @@
 public:
 
-class ClisbyNode
+struct ClisbyNode
 {
-    cref<ClisbyTree> T;
+//    cref<ClisbyTree> T;
     Int id;
     Int local_id;
 //    Int depth;
@@ -12,13 +12,18 @@ class ClisbyNode
     Vector_T    center;
     Real        radius;
     Transform_T f;
-    NodeFlag_T state;
-    bool        interior_Q;
-    bool        contains_moved_Q;
-    bool        contains_unmoved_Q;
+    NodeFlag_T  state;
+    bool        interiorQ;
+    bool        all_movedQ;
+    bool        all_unmovedQ;
     
-    ClisbyNode( const Int id_, const Int local_id_, cref<ClisbyTree> T )
-    ,   id          ( id_                  )
+    ClisbyNode() = default;
+    
+    ClisbyNode(
+        const Int id_, const Int local_id_, cref<ClisbyTree> T,
+        const Int p, const Int q, bool midQ
+    )
+    :   id          ( id_                  )
     ,   local_id    ( local_id_            )
 //    ,   depth       ( T.Depth(id)          )
 //    ,   column      ( T.Column(id)         )
@@ -26,28 +31,28 @@ class ClisbyNode
     ,   end         ( T.NodeEnd(id)        )
     ,   center      ( T.NodeBallPtr(id)    )
     ,   radius      ( T.NodeRadius(id)     )
-    ,   interior_Q  ( T.InteriorNodeQ(id)  )
+    ,   interiorQ   ( T.InteriorNodeQ(id)  )
     {
         // TODO: Maybe compute the split flags etc.
         
-        if( interior_Q )
+        if( interiorQ )
         {
             f     = T.NodeTransform(id);
             state = T.NodeFlag(id);
         }
         
-        const Int p_ = T.p + midQ;
-        const Int q_ = T.q + !midQ;
+        const Int p_ = p + midQ;
+        const Int q_ = q + !midQ;
         
         if( midQ )
         {
-            contains_no_moved_Q   = (end <= p_   ) || (q_  <= begin);
-            contains_no_unmoved_Q = (p_  <= begin) && (end <= q_   );
+            all_unmovedQ = (end <= p_   ) || (q_  <= begin);
+            all_movedQ   = (p_  <= begin) && (end <= q_   );
         }
         else
         {
-            contains_no_moved_Q   = (p_  <= begin) && (end <= q_   );
-            contains_no_unmoved_Q = (end <= p_   ) || (q_  <= begin);
+            all_unmovedQ = (p_  <= begin) && (end <= q_   );
+            all_movedQ   = (end <= p_   ) || (q_  <= begin);
         }
         
     }
