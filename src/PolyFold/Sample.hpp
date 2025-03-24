@@ -178,8 +178,6 @@ int Sample( const LInt i )
                 PrintCallCounts<t2>( call_counters );
             }
             
-            PrintCallCounts<t2>( call_counters );
-            
             kv<t2>("Active Node Count", active_node_count );
             kv<t2>("Active Node Percentage", Percentage<Real>(active_node_count,n-1) );
         }
