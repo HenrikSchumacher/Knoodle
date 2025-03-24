@@ -1,6 +1,3 @@
-#include <iostream>
-#include <iterator>
-
 #include "../Knoodle.hpp"
 #include "../src/PolyFold.hpp"
 

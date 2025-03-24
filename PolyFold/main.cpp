@@ -1,6 +1,3 @@
-#include <iostream>
-#include <iterator>
-
 //#define PD_DEBUG
 
 //#define POLYFOLD_SIGNPOSTS

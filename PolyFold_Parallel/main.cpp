@@ -1,8 +1,5 @@
 // CAUTION: This is highly EXPERIMENTAL. Not ready for production.
 
-#include <iostream>
-#include <iterator>
-
 //#define PD_DEBUG
 
 //#define POLYFOLD_SIGNPOSTS
