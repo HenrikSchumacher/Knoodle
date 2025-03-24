@@ -16,12 +16,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		AFBA75682D90CA82008F2EB1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold_Parallel; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFC2F3FD2D4D00A400FF8621 /* ReAPr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ReAPr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
@@ -31,10 +41,18 @@
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
+		AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Parallel; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		AF7FD1D22D87464900D802C0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AFBA75672D90CA82008F2EB1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -62,6 +80,7 @@
 				AFC2F3FD2D4D00A400FF8621 /* ReAPr.hpp */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
+				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -71,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				AF7FD1D52D87464900D802C0 /* PolyFold */,
+				AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -100,6 +120,28 @@
 			productReference = AF7FD1D52D87464900D802C0 /* PolyFold */;
 			productType = "com.apple.product-type.tool";
 		};
+		AFBA75692D90CA82008F2EB1 /* PolyFold_Parallel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AFBA756E2D90CA82008F2EB1 /* Build configuration list for PBXNativeTarget "PolyFold_Parallel" */;
+			buildPhases = (
+				AFBA75662D90CA82008F2EB1 /* Sources */,
+				AFBA75672D90CA82008F2EB1 /* Frameworks */,
+				AFBA75682D90CA82008F2EB1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
+			);
+			name = PolyFold_Parallel;
+			packageProductDependencies = (
+			);
+			productName = PolyFold_Parallel;
+			productReference = AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -110,6 +152,9 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					AF7FD1D42D87464900D802C0 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					AFBA75692D90CA82008F2EB1 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 				};
@@ -128,12 +173,20 @@
 			projectRoot = "";
 			targets = (
 				AF7FD1D42D87464900D802C0 /* PolyFold */,
+				AFBA75692D90CA82008F2EB1 /* PolyFold_Parallel */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AF7FD1D12D87464900D802C0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AFBA75662D90CA82008F2EB1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -347,6 +400,40 @@
 			};
 			name = Release;
 		};
+		AFBA756F2D90CA82008F2EB1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = (
+					"-lamd",
+					"-lboost_program_options",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AFBA75702D90CA82008F2EB1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_LDFLAGS = (
+					"-lamd",
+					"-lboost_program_options",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -364,6 +451,15 @@
 			buildConfigurations = (
 				AF7FD1DA2D87464900D802C0 /* Debug */,
 				AF7FD1DB2D87464900D802C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AFBA756E2D90CA82008F2EB1 /* Build configuration list for PBXNativeTarget "PolyFold_Parallel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AFBA756F2D90CA82008F2EB1 /* Debug */,
+				AFBA75702D90CA82008F2EB1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

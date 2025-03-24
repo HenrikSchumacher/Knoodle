@@ -146,8 +146,6 @@ namespace Knoodle
             return *this;
         }
         
-        
-        
         Real SquaredNorm() const
         {
             return norm_2_squared<M*N>( get_ptr(A) );

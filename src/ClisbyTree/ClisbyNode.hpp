@@ -12,7 +12,6 @@ struct ClisbyNode
     Vector_T    center;
     Real        radius;
     Transform_T f;
-    NodeFlag_T  state;
     bool        interiorQ;
     bool        all_movedQ;
     bool        all_unmovedQ;
@@ -37,8 +36,7 @@ struct ClisbyNode
         
         if( interiorQ )
         {
-            f     = T.NodeTransform(id);
-            state = T.NodeFlag(id);
+            f = T.NodeTransform(id);
         }
         
         const Int p_ = p + midQ;
@@ -54,7 +52,33 @@ struct ClisbyNode
             all_unmovedQ = (p_  <= begin) && (end <= q_   );
             all_movedQ   = (end <= p_   ) || (q_  <= begin);
         }
-        
     }
+    
+    
+    
+    UpdateFlag_T NeedsUpdateQ( const Int pivot_p, const Int pivot_q, const bool midQ ) const
+    {
+        // Assuming that 0 <= pivot_p < pivot_q < LeafNodeCount();
+        
+        const bool a =  midQ;
+        const bool b = !midQ;
+        
+        const Int p_ = pivot_p + a;
+        const Int q_ = pivot_q + b;
+        
+        if( (p_ <= begin) && (end <= q_) )
+        {
+            return UpdateFlag_T(a);
+        }
+        else if( (end <= p_) || (q_ <= begin) )
+        {
+            return UpdateFlag_T(b);
+        }
+        else
+        {
+            return UpdateFlag_T::Split;
+        }
+    }
+    
     
 }; // ClisbyNode

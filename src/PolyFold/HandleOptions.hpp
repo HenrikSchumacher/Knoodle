@@ -123,7 +123,6 @@ void HandleOptions( int argc, char** argv )
         pdQ = (vm.count("pd-code") != 0);
         valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
-        
         if( vm.count("polygons") )
         {
             steps_between_print = vm["polygons"].as<LInt>();
@@ -146,6 +145,7 @@ void HandleOptions( int argc, char** argv )
         
         do_checksQ = (vm.count("no-checks") == 0);
         valprint<a>("Hard Sphere Checks", BoolString(do_checksQ) );
+
         
         allow_reflectionsQ = (vm.count("reflections") != 0);
         

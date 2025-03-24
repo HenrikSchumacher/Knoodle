@@ -49,7 +49,10 @@ void BurnIn()
         burn_in_attempt_count = attempt_count;
         burn_in_accept_count = accept_count;
         
-        active_node_count = T.ActiveNodeCount();
+        if constexpr ( V2Q )
+        {
+            active_node_count = T.ActiveNodeCount();
+        }
         
         T_write.Tic<V2Q>();
         T.WriteVertexCoordinates( x.data() );
@@ -102,6 +105,7 @@ void BurnIn()
         PrintClisbyFlagCounts<t2>( counts );
         
         kv<t2>("Active Node Count", active_node_count );
+        kv<t2>("Active Node Percentage", Percentage<Real>(active_node_count,n-1) );
     }
     log << "\n" + ct_tabs<t1> + "|>";
     

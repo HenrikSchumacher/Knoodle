@@ -7,8 +7,6 @@
 
 // TODO: _Compute_ NodeRange more efficiently.
 
-// TODO: Use a structure ClisbyNode and hold it in stack memory.
-
 // TODO: Shave off one double from ClangQuaternionTransform at the cost of a sqrt.
 
 // TODO: Update(p,q) -- Could this be faster?
@@ -18,6 +16,10 @@
 // TODO:    3. Grab the pivot vertex positions and compute the transform.
 // TODO:    4. Walk once again top down through the visited nodes and update their transforms.
 // TODO:    5. Walk from the pivots upwards and update the balls.
+
+
+// Done: Use a structure ClisbyNode and hold it in stack memory.
+// ----> Seems to be slowe.
 
 namespace Knoodle
 {
@@ -205,7 +207,6 @@ namespace Knoodle
         using Tree_T::PrimitiveNode;
         using Tree_T::Root;
         
-        
     private:
         
         NodeTransformContainer_T N_transform;
@@ -218,6 +219,9 @@ namespace Knoodle
         
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
+    
+        Int p_shifted = 0;              // Lower pivot index.
+        Int q_shifted = 0;              // Greater pivot index.
         
         WitnessVector_T witness {{-1,-1}};
     
@@ -466,7 +470,6 @@ namespace Knoodle
             
             unif_int u_int ( Int(0), n - Int(1) );
             
-            
             Int i = u_int(random_engine);
             Int j = u_int(random_engine);
 
@@ -491,8 +494,11 @@ namespace Knoodle
             
             unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
             
-            // Witness checking
-            witness_collector.clear();
+            if constexpr ( witnessesQ )
+            {
+                // Witness checking
+                witness_collector.clear();
+            }
             
             while( counters[0] < success_count )
             {

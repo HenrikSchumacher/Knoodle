@@ -260,7 +260,6 @@ int Analyze( const LInt i )
             }
                 kv<t2>("Write PD Code", T_write.Duration());
         }
-        
         log << "\n" + ct_tabs<t1> + "|>";
     }
 

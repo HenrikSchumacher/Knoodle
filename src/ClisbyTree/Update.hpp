@@ -1,18 +1,6 @@
 #include "UpdateSubtree_Recursive.hpp"
 #include "UpdateSubtree_ManualStack.hpp"
 
-public:
-
-//template<bool allow_reflectionsQ>
-//void Update( const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirrorQ )
-//{
-//    int pivot_flag = LoadPivots<allow_reflectionsQ>( pivot_p, pivot_q, angle_theta, mirrorQ );
-//    
-//    if( pivot_flag == 0 ) [[likely]]
-//    {
-//        Update();
-//    }
-//}
 
 private:
 
@@ -94,6 +82,9 @@ int LoadPivots(
     }
     
     mid_changedQ = (mid_size <= rem_size);
+    
+    p_shifted = p + mid_changedQ;
+    q_shifted = q + !mid_changedQ;
     
     // TODO: There is maybe a more efficient way to compute the pivot vectors.
     X_p = VertexCoordinates(p);

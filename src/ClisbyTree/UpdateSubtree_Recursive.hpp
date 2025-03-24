@@ -2,7 +2,7 @@ private:
 
 void UpdateSubtree_Recursive( const Int start_node = Root() )
 {
-    if( InteriorNodeQ(start_node))
+    if( InteriorNodeQ(start_node) )
     {
         updateSubtree_Recursive(start_node);
     }

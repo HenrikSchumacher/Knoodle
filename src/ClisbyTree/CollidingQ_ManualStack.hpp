@@ -1,5 +1,6 @@
 private:
 
+template<bool mQ>
 bool CollidingQ_ManualStack()
 {
     Int stack [4 * max_depth][2];
@@ -62,14 +63,14 @@ bool CollidingQ_ManualStack()
                 
                 PushTransform(i,c[0],c[1]);
                 
-                const NodeSplitFlagMatrix_T F = NodeSplitFlagMatrix(c[0],c[1]);
+                const NodeSplitFlagMatrix_T F = NodeSplitFlagMatrix<mQ>(c[0],c[1]);
                 
                 auto cond_push = [&c,&F,this,push]( bool k, bool l )
                 {
                     if(
                         (( F[k][0] && F[l][1] ) || ( F[k][1] && F[l][0] ))
                         &&
-                        (this->BallsOverlapQ(c[k],c[l]))
+                        ( (k==l) || this->BallsOverlapQ(c[k],c[l]))
                     )
                     {
                         push(c[k],c[l]);
@@ -77,7 +78,7 @@ bool CollidingQ_ManualStack()
                 };
 
                 cond_push(0,1);
-                cond_push(1,1); // Overlaps are likely to be hear...
+                cond_push(1,1); // Overlaps are likely to be here...
                 cond_push(0,0); // ... or here.
             }
             else // (i != j )
@@ -89,8 +90,8 @@ bool CollidingQ_ManualStack()
                 PushTransform(i,c_i[0],c_i[1]);
                 PushTransform(j,c_j[0],c_j[1]);
 
-                const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix(c_i[0],c_i[1]);
-                const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix(c_j[0],c_j[1]);
+                const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
+                const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
   
                 auto cond_push = [&c_i,&c_j,&F_i,&F_j,this,push]( bool k, bool l )
                 {
@@ -117,8 +118,8 @@ bool CollidingQ_ManualStack()
             
             PushTransform(j,c_j[0],c_j[1]);
             
-            const NodeSplitFlagVector_T f_i = NodeSplitFlagVector(i);
-            const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix(c_j[0],c_j[1]);
+            const NodeSplitFlagVector_T f_i = NodeSplitFlagVector<mQ>(i);
+            const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
             
             auto cond_push = [i,&c_j,&f_i,&F_j,this,push]( bool l )
             {
@@ -141,8 +142,8 @@ bool CollidingQ_ManualStack()
             
             PushTransform(i,c_i[0],c_i[1]);
             
-            const NodeSplitFlagVector_T f_j = NodeSplitFlagVector(j);
-            const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix(c_i[0],c_i[1]);
+            const NodeSplitFlagVector_T f_j = NodeSplitFlagVector<mQ>(j);
+            const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
             
             auto cond_push = [j,&c_i,&f_j,&F_i,this,push]( bool k )
             {
@@ -176,11 +177,7 @@ bool CollidingQ_ManualStack()
                 return true;
             }
         }
-        
     }
-    
-
-    
     return false;
     
 } // CollidingQ_ManualStack

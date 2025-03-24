@@ -5,7 +5,7 @@
 
 //#define POLYFOLD_SIGNPOSTS
 //#define POLYFOLD_NO_QUATERNIONS
-
+//#define POLYFOLD_WITNESSES
 
 #define dump(x) TOOLS_DUMP(x);
 #define mem_dump(x) TOOLS_MEM_DUMP(x);

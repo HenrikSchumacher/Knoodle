@@ -218,6 +218,17 @@ namespace Knoodle
             return (i > 0) ? (i - 1) / 2 : -1;
         }
         
+        inline static constexpr Int Ancestor( const Int i, const Int generations )
+        {
+            Int p = i;
+            for( Int gen = 1; gen < generations; ++gen )
+            {
+                p = Parent(i);
+            }
+            
+            return p;
+        }
+        
         inline static constexpr Int Depth( const Int i )
         {
             // Depth equals the position of the most significant bit if i+1.

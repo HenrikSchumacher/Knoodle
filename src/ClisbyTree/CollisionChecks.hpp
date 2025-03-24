@@ -2,7 +2,6 @@
 #include "CollidingQ_ManualStack.hpp"
 
 #include "SubtreesCollideQ_Recursive.hpp"
-#include "SubtreesCollideQ_Recursive2.hpp"
 
 
 public:
@@ -18,25 +17,28 @@ bool OverlapQ()
     
     if constexpr ( manual_stackQ )
     {
-        result = CollidingQ_ManualStack(); // 32.9882 s
+        if( mid_changedQ )
+        {
+            result = CollidingQ_ManualStack<true>();
+        }
+        else
+        {
+            result = CollidingQ_ManualStack<false>();
+        }
     }
     else
     {
-        result = SubtreesCollideQ_Recursive( Root() );
-        
-//        if( mid_changedQ )
-//        {
-//            result = SubtreesCollideQ_Recursive2<true>( Root() );
-//        }
-//        else
-//        {
-//            result = SubtreesCollideQ_Recursive2<false>( Root() );
-//        }
-        
-//        result = SubtreesCollideQ_Rec2( Root(), NodeTransform(Root()) );
+        if( mid_changedQ )
+        {
+            result = SubtreesCollideQ_Recursive<true>( Root() );
+        }
+        else
+        {
+            result = SubtreesCollideQ_Recursive<false>( Root() );
+        }
     }
     
-////     DEBUGGING
+//////     DEBUGGING
 //    {
 //        Int w_0 = witness[0];
 //        Int w_1 = witness[1];
@@ -70,7 +72,6 @@ static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
     const Vector_T c_R ( N_R );
     
     const Real d = Distance(c_R,c_L);
-    
     
     const Real r_L = N_L[AmbDim];
     const Real r_R = N_R[AmbDim];
@@ -258,29 +259,6 @@ std::pair<bool,bool> NodeSplitFlags( const Int node ) const
 //    }
 }
 
-NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
-{
-    auto [begin,end] = NodeRange(node);
-    
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    const bool not_only_midQ = (begin < p_) || (end   > q_);
-    const bool not_no_midQ   = (end   > p_) && (begin < q_);
-
-    if( mid_changedQ )
-    {
-        return NodeSplitFlagVector_T({not_only_midQ,not_no_midQ});
-    }
-    else
-    {
-        return NodeSplitFlagVector_T({not_no_midQ,not_only_midQ});
-    }
-}
-
 void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
 {
     auto [begin,end] = NodeRange(node);
@@ -306,48 +284,16 @@ void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
     }
 }
 
-NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
-{
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    auto [begin_i,end_i] = NodeRange(i);
-    auto [begin_j,end_j] = NodeRange(j);
-    
-    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
-    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
-    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
-    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
-    
-    if( mid_changedQ )
-    {
-        return NodeSplitFlagMatrix_T({
-            {i_not_only_midQ,i_not_no_midQ},
-            {j_not_only_midQ,j_not_no_midQ},
-        });
-    }
-    else
-    {
-        return NodeSplitFlagMatrix_T({
-            {i_not_no_midQ,i_not_only_midQ},
-            {j_not_no_midQ,j_not_only_midQ},
-        });
-    }
-}
-
 void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
 {
     const bool a =  mid_changedQ;
     const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
 
     auto [begin_i,end_i] = NodeRange(i);
     auto [begin_j,end_j] = NodeRange(j);
+    
+    const Int p_ = p + a;
+    const Int q_ = q + b;
     
     const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
     const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
@@ -371,47 +317,13 @@ void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
 }
 
 
-template<Int N>
-void NodeSplitFlags( cptr<Int> nodes, mptr<bool> F ) const
-{
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-    
-    for( Int i = 0; i < N; ++i )
-    {
-        auto [begin,end] = NodeRange(nodes[i]);
-        
-        const bool not_only_midQ = (begin < p_) || (end   > q_);
-        const bool not_no_midQ   = (end   > p_) && (begin < q_);
-        
-//        F[2*i+0] = mid_changedQ ? not_only_midQ : not_no_midQ  ;
-//        F[2*i+1] = mid_changedQ ? not_no_midQ   : not_only_midQ;
-        
-        F[2*i+ mid_changedQ] = not_no_midQ  ;
-        F[2*i+!mid_changedQ] = not_only_midQ;
-    }
-}
-
-
-
-
-
 template<bool mQ>
-NodeSplitFlagVector_T NodeSplitFlagVector2( const Int node ) const
+NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
 {
     auto [begin,end] = NodeRange(node);
     
-    constexpr bool a =  mQ;
-    constexpr bool b = !mQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    const bool not_only_midQ = (begin < p_) || (end   > q_);
-    const bool not_no_midQ   = (end   > p_) && (begin < q_);
+    const bool not_only_midQ = (begin < p_shifted) || (end   > q_shifted);
+    const bool not_no_midQ   = (end   > p_shifted) && (begin < q_shifted);
 
     if constexpr ( mQ )
     {
@@ -424,21 +336,15 @@ NodeSplitFlagVector_T NodeSplitFlagVector2( const Int node ) const
 }
 
 template<bool mQ>
-NodeSplitFlagMatrix_T NodeSplitFlagMatrix2( const Int i, const Int j ) const
+NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
 {
-    constexpr bool a =  mQ;
-    constexpr bool b = !mQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
     auto [begin_i,end_i] = NodeRange(i);
     auto [begin_j,end_j] = NodeRange(j);
     
-    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
-    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
-    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
-    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
+    const bool i_not_only_midQ = (begin_i < p_shifted) || (end_i   > q_shifted);
+    const bool i_not_no_midQ   = (end_i   > p_shifted) && (begin_i < q_shifted);
+    const bool j_not_only_midQ = (begin_j < p_shifted) || (end_j   > q_shifted);
+    const bool j_not_no_midQ   = (end_j   > p_shifted) && (begin_j < q_shifted);
     
     if constexpr ( mQ )
     {
