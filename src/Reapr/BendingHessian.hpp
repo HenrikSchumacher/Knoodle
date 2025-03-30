@@ -1,24 +1,18 @@
 public:
 
-void SetLaplaceRegularization( const Real reg )
-{
-    laplace_reg = reg;
-}
+void SetBendingRegularization( const Real reg ) { bending_reg = reg; }
 
-Real LaplaceRegularization() const
-{
-    return laplace_reg;
-}
+Real BendingRegularization() const { return bending_reg; }
 
 private:
 
 
-void HessianMatrix_Triples(
+void BendingHessian_CollectTriples(
     mref<PlanarDiagram_T> pd,
     mref<Aggregator_T> agg,
     const Int row_offset,
     const Int col_offset
-)
+) const
 {
     // Caution: This creates only the triples for the upper triangle.
     
@@ -27,8 +21,8 @@ void HessianMatrix_Triples(
     cptr<Int> comp_arc_idx = pd.LinkComponentArcIndices().data();
     cptr<Int> next_arc     = pd.ArcNextArc().data();
     
-    const Real val_0 = 2 + (2 + laplace_reg) * (2 + laplace_reg);
-    const Real val_1 = -4 - 2 * laplace_reg;
+    const Real val_0 = 2 + (2 + bending_reg) * (2 + bending_reg);
+    const Real val_1 = -4 - 2 * bending_reg;
     const Real val_2 = 1;
 
     for( Int comp = 0; comp < comp_count; ++comp )
@@ -53,39 +47,19 @@ void HessianMatrix_Triples(
             ap2 = next_arc[ap1];
         }
     }
-}
+    
+} // BendingHessian_CollectTriples
 
 public:
 
-cref<Matrix_T> HessianMatrix( mref<PlanarDiagram_T> pd )
+Matrix_T BendingHessian( mref<PlanarDiagram_T> pd ) const
 {
-    const std::string tag     = ClassName()+"::HessianMatrix";
-    const std::string reg_tag = ClassName()+"::LaplaceRegularization";
+    const I_T m = pd.ArcCount();
     
-    if(
-       (!pd.InCacheQ(tag))
-       ||
-       (!pd.InCacheQ(reg_tag))
-       ||
-       (pd.template GetCache<Real>(reg_tag) != laplace_reg)
-    )
-    {
-        pd.ClearCache(tag);
-        pd.ClearCache(reg_tag);
-        
-        const I_T m = pd.ArcCount();
-        
-        Aggregator_T agg( 3 * m );
-        
-        HessianMatrix_Triples( pd, agg, 0, 0 );
-        
-//        agg.Finalize();
-                        
-        Matrix_T A ( agg, m, m, I_T(1), true, true );
-        
-        pd.SetCache(tag,std::move(A));
-        pd.SetCache(reg_tag,laplace_reg);
-    }
+    Aggregator_T agg( 3 * m );
     
-    return pd.template GetCache<Matrix_T>(tag);
-}
+    BendingHessian_CollectTriples( pd, agg, 0, 0 );
+    
+    return Matrix_T ( agg, m, m, I_T(1), true, true );
+    
+} // BendingHessian

@@ -2,12 +2,9 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
-
-
-
 // TODO: _Compute_ NodeRange more efficiently.
 
-// TODO: Shave off one double from ClangQuaternionTransform at the cost of a sqrt.
+// TODO: Shave off one double from ClangQuaternionTransform at the cost of a sqrt?
 
 // TODO: Update(p,q) -- Could this be faster?
 // TODO:    1. Start at the pivots, walk up to the root and track all the touched nodes;

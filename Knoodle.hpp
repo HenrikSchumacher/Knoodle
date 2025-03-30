@@ -282,7 +282,7 @@ namespace Knoodle
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"
 
-//#include "src/ReAPr.hpp"
+//#include "src/Reapr.hpp"
 
 //#include "src/Alexander.hpp"
 //
