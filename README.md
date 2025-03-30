@@ -40,11 +40,14 @@ The command-line tool _PolyFold_ can be compiled by running "compile.sh" in the 
                                   for the state (use this for seeding)
       -m [ --low-mem ]            force deallocation of large data structures; this
                                   will be a bit slower but peak memory will be less
+      -a [ --angles ]             compute statistics on curvature and torsion 
+                                  angles and report them in file "Info.m"
       -g [ --squared-gyradius ]   compute squared radius of gyration and report in 
                                   file "Info.m"
       -c [ --pd-code ]            compute pd codes and print to file "PDCodes.tsv"
+      -P [ --polygons ] arg       print every [arg] sample to file
+      -H [ --histograms ] arg     create histograms for curvature and torsion 
+                                  angles with [arg] bins
       --no-checks                 perform folding without checks for overlap of 
                                   hard spheres
-      -P [ --polygons ] arg       print every [arg] sample to file
-      -H [ --histograms ] arg     create histograms for curvature and torsion with 
-                                  [arg] bins
+      -R [ --reflections ]        allow pivot moves to be ortientation reversing
