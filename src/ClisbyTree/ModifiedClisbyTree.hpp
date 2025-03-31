@@ -188,12 +188,10 @@ public:
 //    }
 //}
 
-
-template<bool allow_reflectionsQ>
 void LoadModifications( mref<ModifiedClisbyTree> S )
 {
     // TODO: Needs also state of random engine?
     
-    (void)Fold<allow_reflectionsQ,false>( S.p, S.q, S.theta, S.reflectQ );
+    (void)Fold( S.p, S.q, S.theta, S.reflectQ, false );
 }
 

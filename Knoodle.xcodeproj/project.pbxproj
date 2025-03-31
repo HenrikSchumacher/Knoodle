@@ -375,6 +375,17 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+					"-Wall",
+					"-ffast-math",
+					"-DPOLYFOLD_NO_QUATERNIONS",
+				);
 				OTHER_LDFLAGS = (
 					"-lamd",
 					"-lboost_program_options",
@@ -392,6 +403,17 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+					"-Wall",
+					"-ffast-math",
+					"-DPOLYFOLD_NO_QUATERNIONS",
+				);
 				OTHER_LDFLAGS = (
 					"-lamd",
 					"-lboost_program_options",

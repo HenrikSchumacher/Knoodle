@@ -96,12 +96,13 @@ namespace Knoodle
         Tensor1<LInt,Int> curvature_hist;
         Tensor1<LInt,Int> torsion_hist;
         
+        Real reflection_probability = 1;
         LInt total_attempt_count = 0;
         LInt total_accept_count = 0;
         LInt burn_in_attempt_count = 0;
-        LInt steps_between_print = 0;
+        LInt steps_between_print = -1;
         LInt print_ctr = 0;
-        Int bin_count = 0;
+        Int  bin_count = 0;
 
         std::pair<Real,Real> e_dev;
 
@@ -125,14 +126,12 @@ namespace Knoodle
         bool prng_incrementQ    = false;
         bool prng_stateQ        = false;
         bool force_deallocQ     = false;
-        bool do_checksQ         = true;
+        bool checksQ            = true;
         bool anglesQ            = false;
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
-        bool allow_reflectionsQ = false;
-        
-
+    
         
         // Witness checking
         std::ofstream witness_stream;

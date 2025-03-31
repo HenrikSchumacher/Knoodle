@@ -44,7 +44,7 @@ void FinalReport()
         Frac<Real>(sample_accept_count,sample_attempt_count)
     );
 
-    if ( do_checksQ )
+    if ( checksQ )
     {
 //        kv<t1>("Accumulated Intersection Flag Counts", acc_intersec_counts );
         

@@ -1,6 +1,5 @@
-template<bool allow_reflectionsQ>
 static Transform_T PivotTransform(
-    cref<Vector_T> X, cref<Vector_T> Y, Real angle, bool mirror_bit
+    cref<Vector_T> X, cref<Vector_T> Y, Real angle, bool reflectQ_
 )
 {
     Transform_T f;
@@ -44,24 +43,21 @@ static Transform_T PivotTransform(
         a[2][1] = u[2] * u[1] * d + sin * u[0];
         a[2][2] = u[2] * u[2] * d + cos       ;
         
-        if constexpr( allow_reflectionsQ )
+        if( reflectQ_ )
         {
-            if( mirror_bit )
-            {
-                Tiny::Vector<3,Real,Int> v;
-                u.Write( v.data() );
-                
-                Tiny::Vector<3,Real,Int> w ( Real(0) );
-                // Take the vector from the standard basis that makes the biggest angle with v.
-                w[v.IAMin()] = Real(1);
-                
-                // Make w orthogonal to v.
-                w -= v * InnerProduct(v,w);
-                w -= v * InnerProduct(v,w);
-                
-                // Reflect in the hyperplane defined by w.
-                a = a * HouseholderReflector(w);
-            }
+            Tiny::Vector<3,Real,Int> v;
+            u.Write( v.data() );
+            
+            Tiny::Vector<3,Real,Int> w ( Real(0) );
+            // Take the vector from the standard basis that makes the biggest angle with v.
+            w[v.IAMin()] = Real(1);
+            
+            // Make w orthogonal to v.
+            w -= v * InnerProduct(v,w);
+            w -= v * InnerProduct(v,w);
+            
+            // Reflect in the hyperplane defined by w.
+            a = a * HouseholderReflector(w);
         }
         
         Matrix_T A;
@@ -100,7 +96,6 @@ static void InvertTransform( mref<Transform_T> f )
         f.Read( A, c, NodeFlag_T::NonId );
     }
 }
-
 
 Vector_T NodeCenterAbsoluteCoordinates( const Int node_ ) const
 {

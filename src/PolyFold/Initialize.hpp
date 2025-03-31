@@ -39,7 +39,7 @@ void Initialize()
     kv<t1>  ("Edge Count",n);
     kv<t1>  ("Sample Count",N);
     kv<t1>  ("Burn-in Count",burn_in_accept_count);
-    kv<t1>  ("Allow Reflections",allow_reflectionsQ);
+    kv<t1>  ("Reflection Probability",reflection_probability);
     kv<t1>  ("Skip Count",skip);
     kv<t1>  ("Verbosity",verbosity);
     

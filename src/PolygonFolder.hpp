@@ -565,7 +565,7 @@ namespace Knoodle
             using unif_real = std::uniform_real_distribution<Real>;
             
             unif_int  u_int ( Int(0), n-3 );
-            unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+            unif_real u_real( -Scalar::Pi<Real>,Scalar::Pi<Real> );
             
             for( Int step = 0; step < step_count; ++step )
             {

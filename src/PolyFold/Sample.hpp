@@ -1,6 +1,6 @@
 private:
 
-template<Size_T t0, int my_verbosity, bool reflectionsQ, bool checksQ>
+template<Size_T t0, int my_verbosity>
 int Sample()
 {
     int err;
@@ -11,7 +11,7 @@ int Sample()
 
     print_ctr = printQ ? LInt(0) : steps_between_print - LInt(1);
     
-    err = Sample<t0+1,my_verbosity,reflectionsQ,checksQ>(LInt(1));
+    err = Sample<t0+1,my_verbosity>(LInt(1));
 
     if( err != 0 )
     {
@@ -22,7 +22,7 @@ int Sample()
     {
         log << ",\n" + ct_tabs<t0+1>;
         
-        err = Sample<t0+1,my_verbosity,reflectionsQ,checksQ>(i);
+        err = Sample<t0+1,my_verbosity>(i);
 
         if( err != 0 )
         {
@@ -34,7 +34,7 @@ int Sample()
         log << ",\n" + ct_tabs<t0+1>;
         
         // Run the last sample step with full verbosity, because that is affordable and we very often want this info for performance tuning.
-        err = Sample<t0+1,2,reflectionsQ,checksQ>(N);
+        err = Sample<t0+1,2>(N);
 
         if( err != 0 )
         {
@@ -49,7 +49,7 @@ exit:
     return err;
 }
     
-template<Size_T t0, int my_verbosity, bool reflectionsQ, bool checksQ>
+template<Size_T t0, int my_verbosity>
 int Sample( const LInt i )
 {
     sample_begin();
@@ -91,7 +91,7 @@ int Sample( const LInt i )
         
         T_fold.Tic<V2Q>();
         // Do polygon folds until we have done at least `skip` accepted steps.
-        counts = T.template FoldRandom<reflectionsQ,checksQ>(skip);
+        counts = T.FoldRandom( skip, reflection_probability, checksQ );
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();

@@ -1,8 +1,10 @@
 public:
 
 // TODO: This is almost literally copied from ClisbyTree.
-template<bool allow_reflectionsQ, bool check_overlapsQ = true>
-FoldFlag_T FoldRandom()
+FoldFlag_T FoldRandom(
+    const Real reflection_probability,
+    const bool check_overlapsQ = true
+)
 {
     FoldFlagCounts_T counters;
     
@@ -10,42 +12,32 @@ FoldFlag_T FoldRandom()
     
     using unif_real = std::uniform_real_distribution<Real>;
     
-    unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+    unif_real unif_angle(- Scalar::Pi<Real>,Scalar::Pi<Real> );
+    unif_real unif_prob  ( Real(0), Real(1) );
     
-    const Real angle = u_real(random_engine);
+    const Real angle = unif_angle(random_engine);
     
     auto [i,j] = RandomPivots();
     
-    bool mirror_bit = false;
+    bool reflectQ_ = false;
     
-    if constexpr ( allow_reflectionsQ )
+    if ( reflection_probability > 0 )
     {
-        using unif_bool = std::uniform_int_distribution<int>;
-
-        mirror_bit = unif_bool(0,1)(random_engine);
+        reflectQ_ = (unif_prob( random_engine ) <= reflection_probability);
     }
     
-    return Fold<allow_reflectionsQ,check_overlapsQ>( i, j, angle, mirror_bit );
+    return Fold( i, j, angle, reflectQ_, check_overlapsQ );
 }
 
 
 // TODO: This is almost literally copied from ClisbyTree.
-template<bool allow_reflectionsQ, bool check_overlapsQ = true>
-FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_ )
+FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_, bool check_overlapsQ = true )
 {
-//    print("Fold");
-
     Clear();
     
-    int pivot_flag = LoadPivots<allow_reflectionsQ>( p_, q_, theta_, reflectQ_ );
+    int pivot_flag = LoadPivots( p_, q_, theta_, reflectQ_ );
     
-//    TOOLS_DUMP(p);
-//    TOOLS_DUMP(q);
-//    TOOLS_DUMP(theta);
-//    TOOLS_DUMP(reflectQ);
-//    TOOLS_DUMP(mid_changedQ);
-    
-    if constexpr ( check_overlapsQ )
+    if ( check_overlapsQ )
     {
         if( pivot_flag != 0 )
         {
@@ -64,7 +56,7 @@ FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_ )
     
     Update();
 
-    if constexpr ( check_overlapsQ )
+    if ( check_overlapsQ )
     {
         if( OverlapQ() )
         {
@@ -107,18 +99,13 @@ std::pair<Int,Int> RandomPivots()
 private:
 
 // TODO: This is almost literally copied from ClisbyTree.
-template<bool allow_reflectionsQ>
 int LoadPivots( const Int p_, const Int q_, const Real theta_, const bool reflectQ_ )
 {
-//        print("LoadPivots");
     p = Min(p_,q_);
     q = Max(p_,q_);
     theta = theta_;
     reflectQ = reflectQ_;
-    
-//        TOOLS_DUMP(theta);
-//        TOOLS_DUMP(reflectQ);
-    
+
     const Int n = T.VertexCount() ;
     const Int mid_size = q - p - 1;
     const Int rem_size = n - mid_size - 2;
@@ -133,7 +120,7 @@ int LoadPivots( const Int p_, const Int q_, const Real theta_, const bool reflec
     // TODO: There is maybe a more efficient way to compute the pivot vectors.
     X_p = T.VertexCoordinates(p);
     X_q = T.VertexCoordinates(q);
-    transform = PivotTransform<allow_reflectionsQ>( X_p, X_q, theta, reflectQ );
+    transform = PivotTransform( X_p, X_q, theta, reflectQ );
     
     return 0;
 }

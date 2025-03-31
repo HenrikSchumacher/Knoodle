@@ -31,7 +31,7 @@ using Subtree_T = ClisbyTree_T::ModifiedClisbyTree;
 
 using Flag_T = ClisbyTree_T::FoldFlag_T;
 
-constexpr bool reflectionsQ = false;
+constexpr Real reflectP = 0.5;
 
 
 int main( int argc, char** argv )
@@ -58,7 +58,7 @@ int main( int argc, char** argv )
     
     tic("Burn-in");
     {
-        auto counters = T.template FoldRandom<reflectionsQ,true>(burn_in);
+        auto counters = T.FoldRandom(burn_in,reflectP);
         
         valprint("acceptance rate", Real(100)*Frac<Real>(counters[0],counters.Total()));
     }
@@ -66,27 +66,11 @@ int main( int argc, char** argv )
     
     tic("ClisbyTree");
     {
-        auto counters = T.template FoldRandom<reflectionsQ,true>(skip);
+        auto counters = T.FoldRandom(skip,reflectP);
         
         valprint("acceptance rate", Real(100)*Frac<Real>(counters[0],counters.Total()));
     }
     toc("ClisbyTree");
-    
-//    tic("ModifiedClisbyTree");
-//    {
-//        Int accept_count = 0;
-//        while( accept_count < skip )
-//        {
-//            Flag_T flag = S.template FoldRandom<false,true>();
-//            
-//            if( flag == 0 )
-//            {
-//                T.template LoadModifications<false>(S);
-//                ++accept_count;
-//            }
-//        }
-//    }
-//    toc("ModifiedClisbyTree");
     
     tic("ModifiedClisbyTree Parallel");
     {
@@ -99,8 +83,7 @@ int main( int argc, char** argv )
             ParallelDo(
                 [&thread_trees,&thread_flags]( const Size_T thread)
                 {
-                    thread_flags(thread,0)
-                    = thread_trees[thread].template FoldRandom<reflectionsQ,true>();
+                    thread_flags(thread,0) = thread_trees[thread].FoldRandom(reflectP);
                 },
                 thread_count
             );
@@ -109,7 +92,7 @@ int main( int argc, char** argv )
             {
                 if( thread_flags(thread,0) == 0 )
                 {
-                    T.LoadModifications<reflectionsQ>(thread_trees[thread]);
+                    T.LoadModifications(thread_trees[thread]);
                     ++accept_count;
                     break;
                 }
@@ -125,11 +108,11 @@ int main( int argc, char** argv )
         Int accept_count = 0;
         while( accept_count < skip )
         {
-            Flag_T flag = S.template FoldRandom<reflectionsQ,true>();
+            Flag_T flag = S.FoldRandom(reflectP);
             
             if( flag == 0 )
             {
-                T.template LoadModifications<reflectionsQ>(S);
+                T.LoadModifications(S);
                 ++accept_count;
             }
         }
@@ -139,7 +122,7 @@ int main( int argc, char** argv )
 
     tic("ClisbyTree");
     {
-        auto counters = T.template FoldRandom<reflectionsQ,true>(skip);
+        auto counters = T.FoldRandom(skip,reflectP);
         
         valprint("acceptance rate", Real(100)*Frac<Real>(counters[0],counters.Total()));
     }
@@ -151,11 +134,11 @@ int main( int argc, char** argv )
         Int accept_count = 0;
         while( accept_count < skip )
         {
-            Flag_T flag = S.template FoldRandom<reflectionsQ,true>();
+            Flag_T flag = S.FoldRandom(reflectP);
             
             if( flag == 0 )
             {
-                T.template LoadModifications<reflectionsQ>(S);
+                T.LoadModifications(S);
                 ++accept_count;
             }
         }
@@ -165,7 +148,7 @@ int main( int argc, char** argv )
     
     tic("ClisbyTree");
     {
-        auto counters = T.template FoldRandom<reflectionsQ,true>(skip);
+        auto counters = T.FoldRandom(skip,reflectP);
         
         valprint("acceptance rate", Real(100)*Frac<Real>(counters[0],counters.Total()));
     }
@@ -177,11 +160,11 @@ int main( int argc, char** argv )
         Int accept_count = 0;
         while( accept_count < skip )
         {
-            Flag_T flag = S.template FoldRandom<reflectionsQ,true>();
+            Flag_T flag = S.FoldRandom(reflectP);
             
             if( flag == 0 )
             {
-                T.template LoadModifications<reflectionsQ>(S);
+                T.LoadModifications(S);
                 ++accept_count;
             }
         }

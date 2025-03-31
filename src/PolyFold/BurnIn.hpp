@@ -1,6 +1,6 @@
 private:
 
-template<Size_T t0, int my_verbosity, bool reflectionsQ, bool checksQ>
+template<Size_T t0, int my_verbosity>
 void BurnIn()
 {
     constexpr Size_T t1 = t0 + 1;
@@ -37,7 +37,9 @@ void BurnIn()
 //        pre_state = FullState( T.RandomEngine() );
         
         T_fold.Tic<V2Q>();
-        counts = T.template FoldRandom<reflectionsQ,checksQ>(burn_in_accept_count);
+        counts = T.FoldRandom(
+            burn_in_accept_count, reflection_probability, checksQ
+        );
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();

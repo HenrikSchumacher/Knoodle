@@ -13,7 +13,7 @@ void HandleOptions( int argc, char** argv )
         po::options_description desc("Allowed options");
         desc.add_options()
         ("help,h", "produce help message")
-        ("diam,d", po::value<Real>(), "set hard sphere diameter")
+        ("diam,d", po::value<Real>()->default_value(1), "set hard sphere diameter")
         ("edge-count,n", po::value<Int>(), "set number of edges")
         ("burn-in,b", po::value<LInt>(), "set number of burn-in steps")
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
@@ -21,7 +21,7 @@ void HandleOptions( int argc, char** argv )
         ("output,o", po::value<std::string>(), "set output directory")
         ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
         ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
-        ("verbosity,v", po::value<int>(), "how much information should be printed to Log.txt file.")
+        ("verbosity,v", po::value<int>()->default_value(1), "how much information should be printed to Log.txt file.")
         ("pcg-multiplier,M", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"multiplier\" (implementation dependent -- better not touch it unless you really know what you do)")
         ("pcg-increment,I", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own)")
         ("pcg-state,S", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding)")
@@ -29,10 +29,10 @@ void HandleOptions( int argc, char** argv )
         ("angles,a", "compute statistics on curvature and torsion angles and report them in file \"Info.m\"")
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
-        ("polygons,P", po::value<LInt>(), "print every [arg] sample to file")
-        ("histograms,H", po::value<Int>(), "create histograms for curvature and torsion angles with [arg] bins")
-        ("no-checks", "perform folding without checks for overlap of hard spheres")
-        ("reflections,R", "allow pivot moves to be ortientation reversing")
+        ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ")
+        ("histograms,H", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
+        ("checks,C", po::value<bool>()->default_value(true), "whether to perform folding without checks for overlap of hard spheres")
+        ("reflections,R", po::value<Real>()->default_value(0.5), "probability that a pivot move is orientation reversing")
         ;
         
         
@@ -61,11 +61,7 @@ void HandleOptions( int argc, char** argv )
         valprint<a>("Using Quaternions", BoolString(Clisby_T::quaternionsQ) );
         print("");
         
-        if( vm.count("diam") )
-        {
-            hard_sphere_diam = vm["diam"].as<Real>();
-        }
-
+        hard_sphere_diam = vm["diam"].as<Real>();
         valprint<a>("Hard Sphere Diameter d", hard_sphere_diam);
         
         if( vm.count("edge-count") )
@@ -123,19 +119,13 @@ void HandleOptions( int argc, char** argv )
         pdQ = (vm.count("pd-code") != 0);
         valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
-        if( vm.count("polygons") )
-        {
-            steps_between_print = vm["polygons"].as<LInt>();
-            printQ = (steps_between_print > 0);
-        }
+        steps_between_print = vm["polygons"].as<LInt>();
+        printQ = (steps_between_print > 0);
         valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
         
-        if( vm.count("histograms") )
-        {
-            bin_count = Ramp( vm["histograms"].as<Int>() );
-            curvature_hist = Tensor1<LInt,Int> ( bin_count, 0 );
-            torsion_hist   = Tensor1<LInt,Int> ( Int(2) * bin_count, 0 );
-        }
+        bin_count = Ramp( vm["histograms"].as<Int>() );
+        curvature_hist = Tensor1<LInt,Int> ( bin_count, 0 );
+        torsion_hist   = Tensor1<LInt,Int> ( Int(2) * bin_count, 0 );
         valprint<a>("Histogram Bin Count", ToString(bin_count) );
 
         print("");
@@ -143,20 +133,19 @@ void HandleOptions( int argc, char** argv )
         force_deallocQ = (vm.count("low-mem") != 0);
         valprint<a>("Forced Deallocation", BoolString(force_deallocQ) );
         
-        do_checksQ = (vm.count("no-checks") == 0);
-        valprint<a>("Hard Sphere Checks", BoolString(do_checksQ) );
+        checksQ = vm["checks"].as<bool>();
+        valprint<a>("Hard Sphere Checks", BoolString(checksQ) );
 
+        reflection_probability = Clamp(vm["reflections"].as<Real>(),Real(0),Real(1));
         
-        allow_reflectionsQ = (vm.count("reflections") != 0);
-        
-        if( Clisby_T::quaternionsQ && allow_reflectionsQ)
+        if( Clisby_T::quaternionsQ && (reflection_probability > 0) )
         {
             wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
             
-            allow_reflectionsQ = false;
+            reflection_probability = 0;
         }
         
-        valprint<a>("Allow Reflections", BoolString(allow_reflectionsQ) );
+        valprint<a>("Reflection Probability",ToStringFPGeneral(reflection_probability));
         
         
         if( vm.count("pcg-multiplier") )
@@ -188,13 +177,8 @@ void HandleOptions( int argc, char** argv )
         
         print("");
         
-        if( vm.count("verbosity") )
-        {
-            verbosity = vm["verbosity"].as<int>();
-        }
-
+        verbosity = vm["verbosity"].as<int>();
         valprint<a>("Verbosity", verbosity);
-        
         
         if( vm.count("output") )
         {
@@ -238,9 +222,9 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( ! (squared_gyradiusQ || pdQ || anglesQ || (bin_count > 1) ) )
+    if( !(squared_gyradiusQ || pdQ || anglesQ || (bin_count > 1) || (steps_between_print > 0) ) )
     {
-        eprint("Not computing anything. Aborting.");
+        eprint("Not computing anything. Use the command line flags -g, -P, -a, -H, or -P to define outputs.");
         exit(2);
     }
     

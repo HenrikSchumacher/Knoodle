@@ -1,9 +1,14 @@
 public:
 
-template<bool allow_reflectionsQ, bool check_overlapsQ = true>
-FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_, const bool reflectQ_ )
+FoldFlag_T Fold(
+    const Int p_,
+    const Int q_,
+    const Real theta_,
+    const bool reflectQ_,
+    const bool check_overlapsQ
+)
 {
-    int pivot_flag = LoadPivots<allow_reflectionsQ>(p_,q_,theta_,reflectQ_);
+    int pivot_flag = LoadPivots(p_,q_,theta_,reflectQ_);
     
     if( pivot_flag != 0 )
     {
@@ -11,7 +16,7 @@ FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_, const bool refle
         return pivot_flag;
     }
     
-    if constexpr ( check_overlapsQ )
+    if ( check_overlapsQ )
     {
         int joint_flag = CheckJoints();
 
@@ -32,35 +37,19 @@ FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_, const bool refle
     
     Update();
 
-    if constexpr ( check_overlapsQ )
+    if( check_overlapsQ && OverlapQ() )
     {
-        if( OverlapQ() )
+        // Folding step failed; undo the modifications.
+        UndoUpdate();
+        
+        if constexpr ( witnessesQ )
         {
-            // Folding step failed; undo the modifications.
-            UndoUpdate();
-            
-            if constexpr ( witnessesQ )
-            {
-                // Witness checking
-                witness_collector.push_back(
-                    Tiny::Vector<4,Int,Int>({p,q,witness[0],witness[1]})
-                );
-            }
-            return 4;
+            // Witness checking
+            witness_collector.push_back(
+                Tiny::Vector<4,Int,Int>({p,q,witness[0],witness[1]})
+            );
         }
-        else
-        {
-            if constexpr ( witnessesQ )
-            {
-                // Witness checking
-                pivot_collector.push_back(
-                    std::tuple<Int,Int,Real,bool>({p,q,theta,reflectQ})
-                );
-            }
-            
-            // Folding step succeeded.
-            return 0;
-        }
+        return 4;
     }
     else
     {
@@ -72,6 +61,7 @@ FoldFlag_T Fold( const Int p_, const Int q_, const Real theta_, const bool refle
             );
         }
         
+        // Folding step succeeded.
         return 0;
     }
 }
@@ -112,9 +102,11 @@ std::pair<Int,Int> RandomPivots()
     return MinMax(i,j);
 }
 
-
-template<bool allow_reflectionsQ, bool check_overlapsQ = true>
-FoldFlagCounts_T FoldRandom( const LInt success_count )
+FoldFlagCounts_T FoldRandom(
+    const LInt success_count,
+    const Real reflectP,
+    const bool check_overlapsQ = true
+)
 {
     FoldFlagCounts_T counters;
     
@@ -122,7 +114,8 @@ FoldFlagCounts_T FoldRandom( const LInt success_count )
     
     using unif_real = std::uniform_real_distribution<Real>;
     
-    unif_real u_real (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+    unif_real unif_angle (- Scalar::Pi<Real>,Scalar::Pi<Real> );
+    unif_real unif_prob ( Real(0), Real(1) );
     
     if constexpr ( witnessesQ )
     {
@@ -130,22 +123,22 @@ FoldFlagCounts_T FoldRandom( const LInt success_count )
         witness_collector.clear();
     }
     
+    const Real P = Clamp(reflectP,Real(0),Real(1));
+    
     while( counters[0] < success_count )
     {
-        const Real angle = u_real(random_engine);
+        const Real angle = unif_angle(random_engine);
         
         auto [i,j] = RandomPivots();
         
-        bool mirror_bit = false;
+        bool reflectQ_ = false;
         
-        if constexpr ( allow_reflectionsQ )
+        if ( reflectP > Real(0) )
         {
-            using unif_bool = std::uniform_int_distribution<int>;
-
-            mirror_bit = unif_bool(0,1)(random_engine);
+            reflectQ_ = (unif_prob( random_engine ) <= P);
         }
         
-        FoldFlag_T flag = Fold<allow_reflectionsQ,check_overlapsQ>(i,j,angle,mirror_bit);
+        FoldFlag_T flag = Fold(i,j,angle,reflectQ_,check_overlapsQ);
         
         ++counters[flag];
     }

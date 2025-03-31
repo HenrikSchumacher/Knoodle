@@ -62,15 +62,14 @@ UpdateFlag_T NodeNeedsUpdateQ(
 
 private:
 
-template<bool allow_reflectionsQ>
 int LoadPivots(
-    const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool mirror_bit
+    const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool reflectQ_
 )
 {
     p = Min(pivot_p,pivot_q);
     q = Max(pivot_p,pivot_q);
     theta = angle_theta;
-    reflectQ = mirror_bit;
+    reflectQ = reflectQ_;
     
     const Int n = VertexCount() ;
     const Int mid_size = q - p - 1;
@@ -89,7 +88,7 @@ int LoadPivots(
     // TODO: There is maybe a more efficient way to compute the pivot vectors.
     X_p = VertexCoordinates(p);
     X_q = VertexCoordinates(q);
-    transform = PivotTransform<allow_reflectionsQ>( X_p, X_q, theta, reflectQ );
+    transform = PivotTransform( X_p, X_q, theta, reflectQ );
     
     return 0;
 }

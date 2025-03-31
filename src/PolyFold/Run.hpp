@@ -7,98 +7,26 @@ int Run()
     
     switch( verbosity )
     {
-        case 1:
-        {
-            if( do_checksQ )
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,1,true,true>();
-                }
-                else
-                {
-                    return Run_impl<0,1,false,true>();
-                }
-            }
-            else
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,1,true,false>();
-                }
-                else
-                {
-                    return Run_impl<0,1,false,false>();
-                }
-                    
-            }
-            break;
-        }
-        case 2:
-        {
-            if( do_checksQ )
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,2,true,true>();
-                }
-                else
-                {
-                    return Run_impl<0,2,false,true>();
-                }
-            }
-            else
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,2,true,false>();
-                }
-                else
-                {
-                    return Run_impl<0,2,false,false>();
-                }
-            }
-            break;
-        }
-        default:
-        {
-            if( do_checksQ )
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,0,true,true>();
-                }
-                else
-                {
-                    return Run_impl<0,0,false,true>();
-                }
-            }
-            else
-            {
-                if( allow_reflectionsQ )
-                {
-                    return Run_impl<0,0,true,false>();
-                }
-                else
-                {
-                    return Run_impl<0,0,false,false>();
-                }
-            }
-            break;
-        }
+        case 1: return Run_impl<0,1>();
+    
+        case 2: return Run_impl<0,2>();
+            
+        default: return Run_impl<0,0>();
     }
 } // Run
 
 private:
 
-template<Size_T tab_count = 0, int my_verbosity, bool reflectionsQ, bool checksQ>
+template<Size_T tab_count = 0, int my_verbosity>
 int Run_impl()
 {
     T_run.Tic();
     
-    BurnIn<tab_count+1,my_verbosity,reflectionsQ,checksQ>();
+    BurnIn<tab_count+1,my_verbosity>();
     
-    int err = Sample<tab_count+1,my_verbosity,reflectionsQ,checksQ>();
+    int err = 0;
+    
+    err = Sample<tab_count+1,my_verbosity>();
     
     T_run.Toc();
     

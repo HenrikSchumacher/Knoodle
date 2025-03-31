@@ -1,14 +1,13 @@
-clang++                                         \
+ clang++                                        \
     -Wall                                       \
     -Wextra                                     \
     -std=c++20                                  \
     -Ofast                                      \
     -ffast-math                                 \
-    -flto                                       \
-    -fenable-matrix                             \
-    -pthread                                    \
     -march=native                               \
     -mtune=native                               \
+    -fenable-matrix                             \
+    -pthread                                    \
     -I/opt/homebrew/include                     \
     -L/opt/homebrew/lib                         \
     -o PolyFold                                 \
@@ -16,7 +15,8 @@ clang++                                         \
     -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \
     main.cpp                                    \
     -lboost_program_options                     \
-    -fverbose-asm                               \
+    -flto                                       \
+#    -fverbose-asm                               \
  
 #objdump --reloc --line-numbers --demangle --non-verbose --syms PolyFold > PolyFold.asm
     
