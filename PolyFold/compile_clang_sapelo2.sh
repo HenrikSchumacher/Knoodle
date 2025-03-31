@@ -12,7 +12,7 @@ clang++                                         \
     -I/usr/include/                             \
     -L/usr/lib64                                \
     -fverbose-asm                               \
-    -o PolyFold                                 \
+    -o ${SLURM_SUBMIT_DIR}/polyfold-${SLURM_JOB_ID}/PolyFold \
     -DPOLYFOLD_NO_QUATERNIONS                       \
     -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \
     main.cpp                                    \
