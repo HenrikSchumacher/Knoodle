@@ -187,7 +187,7 @@ namespace Knoodle
         {
             if( N != nullptr ) return;
 //
-//            {x_a,y_b}  {x_b,y_b}
+//            {x_a,y_b}     {x_b,y_b}
 //                +-------------+
 //                |             |
 //                |             |
@@ -199,13 +199,12 @@ namespace Knoodle
                (x_a < x_b) && (y_a < y_b)
                &&
                !(
-                    ((y_b <= x_a + d + 1) && (y_a >= x_b - d - 1))
+                    ((y_b <= x_a + d + 1) && (y_a + d + 1 >= x_b))
                     ||
                     (y_a + d + 1 >= x_b + n     )
                     ||
                     (y_b + n     <= x_a + d + 1 )
                )
-//               ( (ModDistance(n,x_a,y_b) > d) || (ModDistance(n,x_b,y_a) > d) )
             )
             {
                 N = new Node( x_a, x_b, y_a, y_b );

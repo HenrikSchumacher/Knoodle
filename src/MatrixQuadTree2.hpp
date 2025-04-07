@@ -195,11 +195,15 @@ namespace Knoodle
 //            {x_a,y_a}   {x_b,y_a}
             
             if(
-               (x_a < x_b)
+               (x_a < x_b) && (y_a < y_b)
                &&
-               (y_a < y_b)
-               &&
-               ( (ModDistance(n,x_a,y_b) > dist) || (ModDistance(n,x_b,y_a) > dist) )
+               !(
+                    ((y_b <= x_a + d + 1) && (y_a + d + 1 >= x_b))
+                    ||
+                    (y_a + d + 1 >= x_b + n     )
+                    ||
+                    (y_b + n     <= x_a + d + 1 )
+               )
             )
             {
                 nodes.push_back( Node( x_a, x_b, y_a, y_b ) );
