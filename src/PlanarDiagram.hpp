@@ -971,6 +971,8 @@ namespace Knoodle
 #include "PlanarDiagram/Resolve.hpp"
 #include "PlanarDiagram/Switch.hpp"
         
+#include "PlanarDiagram/VerticalSummandQ.hpp"
+        
     public:
         
         bool ProvablyMinimalQ() const

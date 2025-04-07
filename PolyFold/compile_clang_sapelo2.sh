@@ -3,7 +3,7 @@ clang++                                         \
     -Wextra                                     \
     -std=c++20                                  \
     -lc++                                       \
-    -Ofast                                      \
+    -O3                                         \
     -ffast-math                                 \
     -fenable-matrix                             \
     -pthread                                    \

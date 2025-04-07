@@ -5,8 +5,8 @@ g++-14                                              \
     -Wno-unknown-pragmas                            \
     -Wno-ignored-qualifiers                         \
     -std=c++20                                      \
-    -Ofast                                          \
-    -ffast-math                                     \
+    -O3                                         \
+    -ffast-math                                 \
     -flto=auto                                      \
     -pthread                                        \
     -mcpu=apple-m1                                  \
