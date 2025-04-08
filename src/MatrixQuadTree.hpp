@@ -163,11 +163,67 @@ namespace Knoodle
             return (I[1] <= J[0]) || (I[0] >= J[1]);
         }
         
+        
+    private:
+
+            void CreateNode( Node * & N, Int x_a, Int x_b, Int y_a, Int y_b )
+            {
+                if( N != nullptr ) return;
+    //
+    //            {x_a,y_b}     {x_b,y_b}
+    //                +-------------+
+    //                |             |
+    //                |             |
+    //                |             |
+    //                +-------------+
+    //            {x_a,y_a}     {x_b,y_a}
+                
+                if(
+                   (x_a < x_b) && (y_a < y_b)
+                   &&
+                   !(
+                        ((y_b <= x_a + d + 1) && (y_a + d + 1 >= x_b))
+                        ||
+                        (y_a + d + 1 >= x_b + n     )
+                        ||
+                        (y_b + n     <= x_a + d + 1 )
+                   )
+                )
+                {
+                    N = new Node( x_a, x_b, y_a, y_b );
+                    ++node_count;
+                }
+                else
+                {
+                    N = nullptr;
+                }
+            }
+            
+            void DeleteNode( Node * & N )
+            {
+                if( N == nullptr ) return;
+                    
+                DeleteNode(N->c[1][1]);
+                DeleteNode(N->c[1][0]);
+                DeleteNode(N->c[0][1]);
+                DeleteNode(N->c[0][0]);
+                
+                delete N;
+                N = nullptr;
+                --node_count;
+            }
+        
     public:
         
         bool DeactivateReactangle( Int x_a, Int x_b, Int y_a, Int y_b )
         {
-            TOOLS_PTIC(ClassName()+"::DeactivateReactangle");
+//            TOOLS_PTIC(ClassName()+"::DeactivateReactangle");
+            
+            // Don't do anything if the input rectangle is trivial.
+            if( (x_b <= x_a) || (y_b <= y_a) )
+            {
+                return (root != nullptr);
+            }
             
             R[0][0] = x_a; R[0][1] = x_b;
             R[1][0] = y_a; R[1][1] = y_b;
@@ -176,80 +232,12 @@ namespace Knoodle
             
             TouchNode(root);
             
-            TOOLS_PTOC(ClassName()+"::DeactivateReactangle");
+//            TOOLS_PTOC(ClassName()+"::DeactivateReactangle");
             
             return (root != nullptr);
         }
         
     private:
-
-        void CreateNode( Node * & N, Int x_a, Int x_b, Int y_a, Int y_b )
-        {
-            if( N != nullptr ) return;
-//
-//            {x_a,y_b}     {x_b,y_b}
-//                +-------------+
-//                |             |
-//                |             |
-//                |             |
-//                +-------------+
-//            {x_a,y_a}     {x_b,y_a}
-            
-            if(
-               (x_a < x_b) && (y_a < y_b)
-               &&
-               !(
-                    ((y_b <= x_a + d + 1) && (y_a + d + 1 >= x_b))
-                    ||
-                    (y_a + d + 1 >= x_b + n     )
-                    ||
-                    (y_b + n     <= x_a + d + 1 )
-               )
-            )
-            {
-                N = new Node( x_a, x_b, y_a, y_b );
-                ++node_count;
-            }
-            else
-            {
-                N = nullptr;
-            }
-        }
-        
-        void DeleteNode( Node * & N )
-        {
-            if( N == nullptr ) return;
-                
-            DeleteNode(N->c[1][1]);
-            DeleteNode(N->c[1][0]);
-            DeleteNode(N->c[0][1]);
-            DeleteNode(N->c[0][0]);
-            
-            delete N;
-            N = nullptr;
-            --node_count;
-        }
-            
-        void RequireChildren( Node * & N )
-        {
-            if( N->touchedQ ) return;
-            
-            const Int x_a = N->box[0][0];
-            const Int x_c = N->box[0][1];
-            const Int x_b = x_a + (x_c - x_a)/2;
-            
-            const Int y_a = N->box[1][0];
-            const Int y_c = N->box[1][1];
-            const Int y_b = y_a + (y_c - y_a)/2;
-            
-            CreateNode( N->c[0][0], x_a, x_b, y_a, y_b );
-            CreateNode( N->c[0][1], x_a, x_b, y_b, y_c );
-            CreateNode( N->c[1][0], x_b, x_c, y_a, y_b );
-            CreateNode( N->c[1][1], x_b, x_c, y_b, y_c );
-            
-            N->touchedQ = true;
-            max_node_count = Max(node_count,max_node_count);
-        }
 
         void TouchNode( Node * & N )
         {
@@ -286,6 +274,27 @@ namespace Knoodle
             {
                 DeleteNode(N);
             }
+        }
+        
+        void RequireChildren( Node * & N )
+        {
+            if( N->touchedQ ) return;
+            
+            const Int x_a = N->box[0][0];
+            const Int x_c = N->box[0][1];
+            const Int x_b = x_a + (x_c - x_a)/2;
+            
+            const Int y_a = N->box[1][0];
+            const Int y_c = N->box[1][1];
+            const Int y_b = y_a + (y_c - y_a)/2;
+            
+            CreateNode( N->c[0][0], x_a, x_b, y_a, y_b );
+            CreateNode( N->c[0][1], x_a, x_b, y_b, y_c );
+            CreateNode( N->c[1][0], x_b, x_c, y_a, y_b );
+            CreateNode( N->c[1][1], x_b, x_c, y_b, y_c );
+            
+            N->touchedQ = true;
+            max_node_count = Max(node_count,max_node_count);
         }
         
     public:
