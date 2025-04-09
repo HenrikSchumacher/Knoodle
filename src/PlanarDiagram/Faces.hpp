@@ -60,8 +60,6 @@ void RequireFaces() const
 {
     TOOLS_PTIC(ClassName()+"::RequireFaces");
     
-    // TODO: Make ArcLeftArc cached as well?
-    
     cptr<Int> A_left = ArcLeftArc().data();
     
 //    auto A_left_buffer = ArcLeftArc();
@@ -106,7 +104,7 @@ void RequireFaces() const
     Int A_counter = 0;
     
     // Each arc will appear in two faces.
-    Tensor1<Int,Int> F_A_idx (2 * arc_count );
+    Tensor1<Int,Int> F_A_idx ( 2 * arc_count );
     // By Euler's polyhedra formula we have crossing_count - arc_count + face_count = 2.
     // Moreover, we have arc_count = 2 * crossing_count, hence face_count = crossing_count + 2.
     //    
@@ -114,25 +112,19 @@ void RequireFaces() const
     //    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
     //
     // BUT: We are actually interested in face boundary cycles.
-    // When we have a disconnected planar diagram, then there may be more than one boundary cycle per face!
-    
-    // Euler's polyhedra formula
+    // When we have a disconnected planar diagram, then there may be more than one boundary cycle per face:
     //
-    // F = V + 2 * (#connected components)
+    // face_count = crossing_count + 2 * #(connected components)
     //
-    // and we have E = 2 * V.
-    
-    //
-    //
-    // Instead we use 2 * arc_count as upper bound for the number of faces.
-    //
-    // A simple loop (one arc, two faces) shows that this upper bound can be achieves.
+    // I don't want to count the number of connected components here, so I use an
+    // expandable std::vector here -- with default lenght that will always do for knots.
 
+    Size_T expected_face_count = static_cast<Size_T>(crossing_count + 2);
     std::vector<Int> F_A_ptr_agg;
-    F_A_ptr_agg.reserve( crossing_count + 3 );
+    F_A_ptr_agg.reserve( expected_face_count + 1 );
     F_A_ptr_agg.push_back(Int(0));
     
-//    Int F_counter = 0;
+    Int F_counter = 0;
     
     Int A_finder = 0;
     
@@ -168,7 +160,7 @@ void RequireFaces() const
         }
         while( A != A_0 );
         
-//        ++F_counter;
+        ++F_counter;
 //        F_A_ptr[F_counter] = A_counter;
         
         F_A_ptr_agg.push_back(A_counter);
@@ -180,8 +172,6 @@ exit:
     Tensor1<Int,Int> F_A_ptr ( F_A_ptr_agg.size() );
     
     F_A_ptr.Read( &F_A_ptr_agg[0] );
-    
-//    F_A_ptr.template Resize<true>(F_counter+1);
     
     this->SetCache( "FaceDirectedArcIndices" , std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
