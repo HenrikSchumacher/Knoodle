@@ -109,13 +109,18 @@ void RequireFaces() const
     Tensor1<Int,Int> F_A_idx (2 * arc_count );
     // By Euler's polyhedra formula we have crossing_count - arc_count + face_count = 2.
     // Moreover, we have arc_count = 2 * crossing_count, hence face_count = crossing_count + 2.
-    
-    // BUT: We are actually interested in face boundary cycles. When we have a disconnected planar diagram, then there may be more than one boundary cycle per face.
-    
-//    const Int face_count = crossing_count + 2;
-//    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
-    
-    // The Hopf link is an example where face_count = arc_count.
+    //    
+    //    const Int face_count = crossing_count + 2;
+    //    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
+    //
+    // BUT: We are actually interested in face boundary cycles.
+    // When we have a disconnected planar diagram, then there may be more than one boundary cycle per face!
+    //
+    //
+    // Instead we use 2 * arc_count as upper bound for the number of faces.
+    //
+    // A simple loop (one arc, two faces) shows that this upper bound can be achieves.
+
     Tensor1<Int,Int> F_A_ptr ( 2 * arc_count + 1 );
     
     F_A_ptr[0]  = 0;
