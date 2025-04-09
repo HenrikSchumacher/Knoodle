@@ -115,17 +115,24 @@ void RequireFaces() const
     //
     // BUT: We are actually interested in face boundary cycles.
     // When we have a disconnected planar diagram, then there may be more than one boundary cycle per face!
+    
+    // Euler's polyhedra formula
+    //
+    // F = V + 2 * (#connected components)
+    //
+    // and we have E = 2 * V.
+    
     //
     //
     // Instead we use 2 * arc_count as upper bound for the number of faces.
     //
     // A simple loop (one arc, two faces) shows that this upper bound can be achieves.
 
-    Tensor1<Int,Int> F_A_ptr ( 2 * arc_count + 1 );
+    std::vector<Int> F_A_ptr_agg;
+    F_A_ptr_agg.reserve( crossing_count + 3 );
+    F_A_ptr_agg.push_back(Int(0));
     
-    F_A_ptr[0]  = 0;
-    
-    Int F_counter = 0;
+//    Int F_counter = 0;
     
     Int A_finder = 0;
     
@@ -151,6 +158,7 @@ void RequireFaces() const
             A_face[A] = F_counter;
             
             // Declare this arc to belong to the current face.
+//            F_A_ptr_agg.push_back(A);
             F_A_idx[A_counter] = A;
             
             // Move to next arc.
@@ -160,14 +168,20 @@ void RequireFaces() const
         }
         while( A != A_0 );
         
-        ++F_counter;
+//        ++F_counter;
+//        F_A_ptr[F_counter] = A_counter;
         
-        F_A_ptr[F_counter] = A_counter;
+        F_A_ptr_agg.push_back(A_counter);
     }
     
 exit:
     
-    F_A_ptr.template Resize<true>(F_counter+1);
+    
+    Tensor1<Int,Int> F_A_ptr ( F_A_ptr_agg.size() );
+    
+    F_A_ptr.Read( &F_A_ptr_agg[0] );
+    
+//    F_A_ptr.template Resize<true>(F_counter+1);
     
     this->SetCache( "FaceDirectedArcIndices" , std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
