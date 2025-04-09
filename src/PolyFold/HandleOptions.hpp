@@ -19,6 +19,7 @@ void HandleOptions( int argc, char** argv )
         ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
         ("sample-count,N", po::value<Int>(), "set number of samples")
         ("output,o", po::value<std::string>(), "set output directory")
+        ("input,i", po::value<std::string>(), "set input file")
         ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
         ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
         ("verbosity,v", po::value<int>()->default_value(1), "how much information should be printed to Log.txt file.")
@@ -207,16 +208,47 @@ void HandleOptions( int argc, char** argv )
             throw std::invalid_argument( "Output path unspecified. Use the option -o to set it." );
         }
         
+        if( vm.count("input") )
+        {
+            input_file = std::filesystem::path ( vm["output"].as<std::string>() );
+            
+            x = PolygonContainer_T( n, AmbDim );
+            int flag = x.template ReadFromFile<false>( input_file );
+            
+            switch( flag )
+            {
+                case 1:
+                {
+                    eprint(ClassName() + "::HandleOptions: End of input file reached before buffer is filled.");
+                    exit(1);
+                }
+                case 2:
+                {
+                    eprint(ClassName() + "::HandleOptions: End of input file not reached after buffer is filled.");
+                    exit(2);
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            
+            input_fileQ = true;
+            
+            valprint<a>("Input file", input_file.string());
+
+        }
+        
     }
     catch( std::exception & e )
     {
         eprint(e.what());
-        exit(1);
+        exit(10);
     }
     catch(...)
     {
         eprint("Exception of unknown type!");
-        exit(1);
+        exit(11);
     }
     
     print("");
@@ -225,7 +257,7 @@ void HandleOptions( int argc, char** argv )
     if( !(squared_gyradiusQ || pdQ || anglesQ || (bin_count > 1) || (steps_between_print > 0) ) )
     {
         eprint("Not computing anything. Use the command line flags -g, -P, -a, -H, or -P to define outputs.");
-        exit(2);
+        exit(13);
     }
     
     // Make sure that the working directory exists.
@@ -235,12 +267,12 @@ void HandleOptions( int argc, char** argv )
     catch( std::exception & e )
     {
         eprint(e.what());
-        exit(1);
+        exit(14);
     }
     catch(...)
     {
         eprint("Exception of unknown type!");
-        exit(1);
+        exit(15);
     }
     
 }

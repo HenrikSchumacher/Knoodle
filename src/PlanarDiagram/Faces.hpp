@@ -115,7 +115,8 @@ void RequireFaces() const
 //    const Int face_count = crossing_count + 2;
 //    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
     
-    Tensor1<Int,Int> F_A_ptr ( arc_count );
+    // The Hopf link is an example where face_count = arc_count.
+    Tensor1<Int,Int> F_A_ptr ( arc_count + 1 );
     
     F_A_ptr[0]  = 0;
     
@@ -123,10 +124,8 @@ void RequireFaces() const
     
     Int A_finder = 0;
     
-    
     while( A_finder < A_count )
     {
-        // Start a new graph component.
         while( (A_finder < A_count) && (A_face[A_finder] != -1) )
         {
             ++A_finder;
@@ -163,10 +162,8 @@ void RequireFaces() const
     
 exit:
     
-//    PD_ASSERT( F_counter == face_count );
-    
     F_A_ptr.template Resize<true>(F_counter+1);
-
+    
     this->SetCache( "FaceDirectedArcIndices" , std::move(F_A_idx) );
     this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
     this->SetCache( "ArcFaces", std::move(A_faces_buffer) );

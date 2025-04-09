@@ -87,6 +87,7 @@ namespace Knoodle
         std::filesystem::path path;
         std::filesystem::path log_file;
         std::filesystem::path pds_file;
+        std::filesystem::path input_file;
         
         std::ofstream log;
         std::ofstream pds;
@@ -131,6 +132,7 @@ namespace Knoodle
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
+        bool input_fileQ        = false;
     
         
         // Witness checking

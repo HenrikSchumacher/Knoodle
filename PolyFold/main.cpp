@@ -27,6 +27,34 @@ using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
+//    std::filesystem::path file ( "/Users/Henrik/a.txt" );
+//    Tensor2<Real,Int> a ( 2, 2 );
+//    
+//    a[0][0] = 1;
+//    a[0][1] = 2;
+//    a[1][0] = 3;
+//    a[1][1] = 4;
+//    
+//    a.WriteToFile( file );
+//    
+//    TOOLS_DUMP(a)
+//    
+//    Tensor2<Real,Int> b ( 1, 2 );
+//    Tensor2<Real,Int> c ( 3, 2 );
+//    Tensor2<Real,Int> d ( 2, 2 );
+//    
+//    TOOLS_DUMP(b.ReadFromFile( file ));
+//    
+//    TOOLS_DUMP(b)
+//    
+//    TOOLS_DUMP(c.ReadFromFile( file ));
+//    
+//    TOOLS_DUMP(c)
+//    
+//    TOOLS_DUMP(d.ReadFromFile( file ));
+//    
+//    TOOLS_DUMP(d)
+    
     PolyFold_T polyfold ( argc, argv );
     
     return 0;

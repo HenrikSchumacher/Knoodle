@@ -79,6 +79,31 @@ void Initialize()
     {
         Clisby_T T ( n, hard_sphere_diam );
         
+        if( input_fileQ )
+        {
+            T.ReadVertexCoordinates(x.data());
+            
+            e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
+            
+            Real error = Max(Abs(e_dev.first),Abs(e_dev.second));
+            
+            kv<t3>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
+            kv<t3>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
+            
+            // TODO: Check that loaded polygon has edgelengths close to 1.
+            if( error > 0.000000000001 * n )
+            {
+                eprint(ClassName() + "::Initialize: Relative edge length deviation " + ToStringFPGeneral(error) + " is too large. Aborting." );
+                exit(3);
+            }
+            
+            
+            if( checksQ )
+            {
+                // TODO: Check that loaded polygon is self-avoiding.
+            }
+        }
+        
         prng = T.RandomEngine();
         
         PRNG_State_T state = State( prng );
@@ -107,7 +132,7 @@ void Initialize()
                       + "Increment -> "  + prng_init.increment + ", "
                       + "State -> "      + prng_init.state + "|>. Aborting."
                 );
-               exit(1);
+               exit(4);
            }
         }
         
