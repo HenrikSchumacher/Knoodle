@@ -15,12 +15,12 @@ namespace Knoodle
     
     inline bool IntersectingQ( LineSegmentsIntersectionFlag f )
     {
-        return ToUnderlying(f) >= 1;
+        return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(1);
     }
     
     inline bool DegenerateQ( LineSegmentsIntersectionFlag f )
     {
-        return ToUnderlying(f) >= 2;
+        return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(2);
     }
     
     template<typename Real_,typename Int_,typename SInt_ = Int32>
@@ -352,15 +352,15 @@ namespace Knoodle
                                
                     // CAUTION: Here we assume that v is a nonzero vector.
                     
-                    if( (dot_vq_sign == 0) || (dot_vp_sign == 0) )
+                    if( (dot_vq_sign == SInt(0)) || (dot_vp_sign == SInt(0)) )
                     {
                         flag = F_T::Empty;
                         
                         return flag;
                     }
                     
-                    const bool x_1_aft_y_0_Q = dot_vq_sign >= 0;
-                    const bool x_1_bef_y_1_Q = dot_ve_sign >  0;
+                    const bool x_1_aft_y_0_Q = dot_vq_sign >= SInt(0);
+                    const bool x_1_bef_y_1_Q = dot_ve_sign >  SInt(0);
                     
                     // The only possible way without intersection is if either both of x_0 and x_1 lie stricly before y_0 or both lie after y_1.
                     flag = (!x_0_aft_y_0_Q && !x_1_aft_y_0_Q) || (!x_0_bef_y_1_Q && !x_1_bef_y_1_Q)
@@ -407,8 +407,8 @@ namespace Knoodle
                     const SInt dot_ud_sign = DotSign_Kahan<SInt>(u,d);
                     const SInt dot_uq_sign = DotSign_Kahan<SInt>(u,q);
                     
-                    const bool y_0_aft_x_0_Q = dot_ud_sign >= 0;
-                    const bool y_0_bef_x_1_Q = dot_uq_sign >  0;
+                    const bool y_0_aft_x_0_Q = dot_ud_sign >= SInt(0);
+                    const bool y_0_bef_x_1_Q = dot_uq_sign >  SInt(0);
                     
                     flag = (y_0_aft_x_0_Q && y_0_bef_x_1_Q)
                         ? F_T::AtCorner1 : F_T::Empty;

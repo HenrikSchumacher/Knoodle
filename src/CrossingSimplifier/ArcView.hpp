@@ -114,7 +114,7 @@ void Deactivate( mref<ArcView> A )
 #endif
     }
     
-    PD_ASSERT( pd.arc_count >= 0 );
+    PD_ASSERT( pd.arc_count >= Int(0) );
 }
 
 void Reconnect( ArcView & A, const bool headtail, ArcView & B )

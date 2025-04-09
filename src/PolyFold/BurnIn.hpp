@@ -129,7 +129,7 @@ void BurnIn()
     kv<t1>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
     kv<t1>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
 
-    if( steps_between_print >= 0 )
+    if( steps_between_print >= LInt(0) )
     {
         PolygonSnapshot<t1>(LInt(0));
     }

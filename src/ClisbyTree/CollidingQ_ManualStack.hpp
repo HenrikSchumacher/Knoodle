@@ -3,8 +3,8 @@ private:
 template<bool mQ>
 bool CollidingQ_ManualStack()
 {
-    Int stack [4 * max_depth][2];
-    SInt stack_ptr = -1;
+    Int stack [Int(4) * max_depth][2];
+    Int stack_ptr = -1;
 
     // Helper routine to manage stack.
     auto push = [&stack,&stack_ptr]( const Int i, const Int j )
@@ -17,9 +17,9 @@ bool CollidingQ_ManualStack()
     
     auto continueQ = [&stack_ptr,this]()
     {
-        const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+        const bool overflowQ = (stack_ptr >= Int(4) * max_depth - Int(4));
         
-        if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+        if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
         {
             return true;
         }
@@ -35,7 +35,7 @@ bool CollidingQ_ManualStack()
     
 //    auto continueQ = [&stack_ptr]()
 //    {
-//        return stack_ptr >= 0;
+//        return stack_ptr >= Int(0);
 //    };
     
     auto [b_root_0,b_root_1] = NodeSplitFlags(0);
@@ -169,7 +169,7 @@ bool CollidingQ_ManualStack()
             
             const Int delta = Abs(k-l);
             
-            if( Min( delta, VertexCount() - delta ) > 1 )
+            if( Min( delta, VertexCount() - delta ) > Int(1) )
             {
                 witness[0] = k;
                 witness[1] = l;

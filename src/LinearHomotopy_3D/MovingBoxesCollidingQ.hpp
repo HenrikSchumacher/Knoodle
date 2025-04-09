@@ -33,7 +33,7 @@ public:
         Real t_1 = one;
         
         
-        for( Int k = 0; k < 3; ++k )
+        for( Int k = Int(0); k < Int(3); ++k )
         {
             // Get the intervals of the four AABBs in the k-th coordinate direction.
             
@@ -174,7 +174,7 @@ public:
                     }
                 }
             }
-        } // for( Int k = 0; k < 3; ++k )
+        } // for( Int k = 0; k < Int(3); ++k )
         
         return (t_0 <= t_1);
         

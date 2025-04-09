@@ -34,7 +34,7 @@ Tensor1<T,Int> GaussCode()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }
@@ -55,7 +55,7 @@ Tensor1<T,Int> GaussCode()
 
             AssertCrossing(c);
             
-            if( C_labels[c] < 0 )
+            if( C_labels[c] < Int(0) )
             {
                 C_labels[c] = c_counter++;
             }
@@ -116,7 +116,7 @@ Tensor1<T,Int> OrientedGaussCode()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }
@@ -137,7 +137,7 @@ Tensor1<T,Int> OrientedGaussCode()
 
             AssertCrossing(c);
             
-            if( C_labels[c] < 0 )
+            if( C_labels[c] < Int(0) )
             {
                 C_labels[c] = c_counter++;
             }

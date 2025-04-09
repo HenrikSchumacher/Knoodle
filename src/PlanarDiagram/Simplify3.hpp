@@ -118,7 +118,7 @@ Int simplify3( Int max_iter )
         }
     }
 
-    if( counter > 0 )
+    if( counter > Int(0) )
     {
         this->ClearCache();
     }

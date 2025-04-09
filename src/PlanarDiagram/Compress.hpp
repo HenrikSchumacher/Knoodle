@@ -66,7 +66,7 @@ PlanarDiagram CreateCompressed()
             
             AssertCrossing(c_0);
             
-            if( C_labels[c_0] < 0 )
+            if( C_labels[c_0] < Int(0) )
             {
                 const Int c = C_labels[c_0] = c_counter;
                 
@@ -102,7 +102,7 @@ PlanarDiagram CreateCompressed()
             A_state_new[a_counter] = ArcState::Active;
             A_visited[a] = true;
             
-            if( C_labels[c_1] < 0 )
+            if( C_labels[c_1] < Int(0) )
             {
                 const Int c = C_labels[c_1] = c_counter;
                 
@@ -153,16 +153,16 @@ bool ArcsCanonicallyOrderedQ() const
 
     Int a = 0;
     
-    while( orderedQ && (a+1 < arc_count) )
+    while( orderedQ && (a + Int(1) < arc_count) )
     {
-        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == a + 1);
+        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == a + Int(1));
     }
     
-    if( arc_count > 0 )
+    if( arc_count > Int(0) )
     {
-        a = arc_count - 1 ;
+        a = arc_count - Int(1) ;
         
-        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == 0);
+        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == Int(0));
     }
     
     return orderedQ;

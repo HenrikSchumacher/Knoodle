@@ -166,7 +166,7 @@ void PrintCurvatureTorsion( cptr<Real> X )
         return;
     }
 
-    if( n < 4 )
+    if( n < Int(4) )
     {
         return;
     }

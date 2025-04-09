@@ -104,15 +104,15 @@ namespace Knoodle
                 const Int P       = T.Parent(i);
                 auto  [begin,end] = T.NodeRange(i);
                 
-                children[2 * node + 0] = (L < node_count) ? q[L] : -1;
-                children[2 * node + 1] = (R < node_count) ? q[R] : -1;
+                children[2 * node + 0] = (L < node_count) ? q[L] : Int(-1);
+                children[2 * node + 1] = (R < node_count) ? q[R] : Int(-1);
                 ranges  [2 * node + 0] = begin;
                 ranges  [2 * node + 1] = end;
-                parent[node] = ( P >= 0 ) ? q[P] : -1;
+                parent[node] = ( P >= Int(0) ) ? q[P] : Int(-1);
                 depth [node] = T.Depth(i);
                 column[node] = T.Column(i);
                 
-                if( begin + 1 == end )
+                if( begin + Int(1) == end )
                 {
                     leaf_node[begin] = node;
                 }
@@ -293,10 +293,10 @@ namespace Knoodle
             
             Int stack [SInt(2) * max_depth];
 
-            SInt stack_ptr = Int(0);
-            stack[stack_ptr] = (start_node < 0) ? Root() : start_node;
+            Int stack_ptr = Int(0);
+            stack[stack_ptr] = (start_node < Int(0)) ? Root() : start_node;
             
-            while( (SInt(0) <= stack_ptr) && (stack_ptr < SInt(2) * max_depth - SInt(2) ) )
+            while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
             {
                 const Int code = stack[stack_ptr];
                 const Int node = (code >> 1);

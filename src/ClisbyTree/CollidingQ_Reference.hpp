@@ -2,8 +2,8 @@ private:
 
 bool CollidingQ_Reference()
 {
-    Int stack [4 * max_depth][2];
-    SInt stack_ptr = -1;
+    Int stack [Int(4) * max_depth][2];
+    Int stack_ptr = -1;
 
     // Helper routine to manage stack.
     auto push = [&stack,&stack_ptr]( const Int i, const Int j )
@@ -34,9 +34,9 @@ bool CollidingQ_Reference()
     
     auto continueQ = [&stack_ptr,this]()
     {
-        const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+        const bool overflowQ = (stack_ptr >= Int(4) * max_depth - Int(4));
         
-        if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+        if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
         {
             return true;
         }
@@ -171,7 +171,7 @@ bool CollidingQ_Reference()
             
             const Int delta = Abs(k-l);
             
-            if( Min( delta, VertexCount() - delta ) > 1 )
+            if( Min( delta, VertexCount() - delta ) > Int(1) )
             {
                 witness[0] = k;
                 witness[1] = l;

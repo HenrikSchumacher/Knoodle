@@ -3,7 +3,7 @@ private:
 void UpdateSubtree_ManualStack( const Int start_node )
 {
     Int  stack [max_depth];
-    SInt stack_ptr = -1;
+    Int stack_ptr = -1;
     
     switch( NodeNeedsUpdateQ( start_node ) )
     {
@@ -24,7 +24,7 @@ void UpdateSubtree_ManualStack( const Int start_node )
         }
     }
     
-    while( (0 <= stack_ptr) && (stack_ptr < max_depth - 2) )
+    while( (Int(0) <= stack_ptr) && (stack_ptr < max_depth - Int(2)) )
     {
         const Int  code     = stack[stack_ptr];
         const Int  node     = (code >> 1);

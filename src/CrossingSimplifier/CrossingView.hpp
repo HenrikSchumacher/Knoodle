@@ -174,7 +174,7 @@ void Deactivate( mref<CrossingView> C )
 #endif
     }
     
-    PD_ASSERT( pd.crossing_count >= 0 );
+    PD_ASSERT( pd.crossing_count >= Int(0) );
     
 #ifdef PD_DEBUG
     for( bool io : { In, Out } )

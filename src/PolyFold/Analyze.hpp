@@ -51,7 +51,7 @@ int Analyze( const LInt i )
     TimeInterval T_curvature_torsion;
     
     
-    bool snapshotQ = (print_ctr >= steps_between_print) || ( (steps_between_print >= 0) && (i == N));
+    bool snapshotQ = (print_ctr >= steps_between_print) || ( (steps_between_print >= LInt(0)) && (i == N));
     
     if( snapshotQ )
     {
@@ -62,7 +62,7 @@ int Analyze( const LInt i )
     
     
     T_curvature_torsion.Tic<V2Q>();
-    if( bin_count > 0 )
+    if( bin_count > Int(0) )
     {
         PrintCurvatureTorsion<t1,true,true>( x.data() );
     }

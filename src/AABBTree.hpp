@@ -95,7 +95,7 @@ namespace Knoodle
             cptr<Real> P, mptr<BReal> B
         )
         {
-            static_assert(point_count > 0, "");
+            static_assert(point_count > Int(0), "");
             
             columnwise_minmax<point_count,AmbDim>(
                 P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
@@ -166,7 +166,7 @@ namespace Knoodle
             
             TOOLS_PTIC("Compute bounding boxes of interior nodes.");
             // Compute bounding boxes of interior nodes.
-            for( Int N = int_node_count; N --> 0;  )
+            for( Int N = int_node_count; N --> Int(0);  )
             {
                 const auto [L,R] = Children(N);
                 

@@ -7,7 +7,7 @@ public:
     
     Int CrossingCount() const
     {
-        return static_cast<Int>( intersections.size() );
+        return int_cast<Int>( intersections.size() );
     }
                          
     cref<BContainer_T> BoundingBoxes() const

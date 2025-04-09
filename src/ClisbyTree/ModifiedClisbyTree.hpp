@@ -62,7 +62,7 @@ public:
         
         Int local_id = node_lookup[id];
 
-        if( local_id < 0 )
+        if( local_id < Int(0) )
         {
             local_id = ModifiedNodeCount();
             
@@ -76,10 +76,10 @@ public:
     
     void Clear()
     {
-        witness[0] = -1;
-        witness[1] = -1;
+        witness[0] = Int(-1);
+        witness[1] = Int(-1);
         
-        if( mod_nodes.Size() > 0 )
+        if( mod_nodes.Size() > Int(0) )
         {
             for( ClisbyNode & N : mod_nodes )
             {

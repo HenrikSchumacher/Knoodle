@@ -84,9 +84,9 @@ namespace Knoodle
          */
         template<typename I>
         explicit Link_3D( const I edge_count_ )
-        :   Base_T   { static_cast<Int>(edge_count_) }
-        ,   E_coords { this->EdgeCount(), 2, 3       }
-        ,   T        { this->EdgeCount()             }
+        :   Base_T   { int_cast<Int>(edge_count_) }
+        ,   E_coords { this->EdgeCount(), 2, 3    }
+        ,   T        { this->EdgeCount()          }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.

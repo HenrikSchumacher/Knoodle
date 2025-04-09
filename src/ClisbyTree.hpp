@@ -135,12 +135,12 @@ namespace Knoodle
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
         )
-        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
         ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                  }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
+        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         {
             InitializeTransforms();
             SetToCircle();
@@ -153,12 +153,12 @@ namespace Knoodle
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
         )
-        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
         ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                  }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
+        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
@@ -172,13 +172,13 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_,
             PRNG_T prng
         )
-        :   Tree_T                      { static_cast<Int>(vertex_count_)       }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim     }
+        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
         ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                  }
-        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_)  }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam   }
-        ,   random_engine               { prng                                  }
+        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
+        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
+        ,   random_engine               { prng                                 }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );

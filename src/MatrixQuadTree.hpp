@@ -305,7 +305,7 @@ namespace Knoodle
          
             valid_entries.clear();
             
-            if( d > 0 )
+            if( d > Int(0) )
             {
                 FindValidEntriesAtDistance(root);
             }

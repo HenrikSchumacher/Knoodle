@@ -66,7 +66,7 @@ public:
 //        }
 //        else
 //        {
-//            if( s < 0 ) return false;
+//            if( s < int(0) ) return false;
 //        }
 //        
 //        ++arc;
@@ -130,7 +130,7 @@ bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
         Int i = C_arcs(c,In,Left);
         Int j = C_arcs(c,In,Right);
         
-        int s = ( overQ ? 1 : -1 ) * ToUnderlying(C_state[c]);
+        int s = ( overQ ? int(1) : -int(1) ) * ToUnderlying(C_state[c]);
         
         // Make sure that i == arc.
         if( i != arc )
@@ -145,7 +145,7 @@ bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
         }
         else
         {
-            goodQ = goodQ && (s > 0);
+            goodQ = goodQ && (s > int(0));
         }
         
         ++arc;
@@ -153,7 +153,7 @@ bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
     
     if constexpr( nontrivialQ )
     {
-        goodQ = goodQ && (selfcrossingcount > 0) && (selfcrossingcount < crossing_count);
+        goodQ = goodQ && (selfcrossingcount > Int(0)) && (selfcrossingcount < crossing_count);
     }
 
     return goodQ;

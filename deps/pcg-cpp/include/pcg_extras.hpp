@@ -174,7 +174,8 @@ operator>>(std::basic_istream<CharT,Traits>& in, pcg128_t& value)
     bool did_nothing = true;
     bool overflow = false;
     for(;;) {
-        CharT wide_ch = in.get();
+        // Henrik added this to silence warning about implicit integer conversion.
+        CharT wide_ch = static_cast<CharT>(in.get());
         if (!in.good()) {
             in.clear(std::ios::eofbit);
             break;

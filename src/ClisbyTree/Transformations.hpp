@@ -281,7 +281,7 @@ void PullTransforms_ManualStack( const Int from, const Int to )
     
     Int node = to;
     
-    SInt stack_ptr = -1;
+    Int stack_ptr = -1;
     
     while( (node != from) && (stack_ptr < max_depth) )
     {

@@ -187,7 +187,7 @@ bool a_is_2loop()
             }
         }
 
-        if constexpr ( optimization_level < 3 )
+        if constexpr ( optimization_level < Int(3) )
         {
             return false;
         }

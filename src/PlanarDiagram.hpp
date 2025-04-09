@@ -363,7 +363,7 @@ namespace Knoodle
                 
                 // If we arrive here, then there is definitely a crossing in the first edge.
 
-                for( Int b = arc_begin, a = arc_end-1; b < arc_end; a = (b++) )
+                for( Int b = arc_begin, a = arc_end-Int(1); b < arc_end; a = (b++) )
                 {
                     const Int c = edge_intersections[b];
                     
@@ -847,7 +847,7 @@ namespace Knoodle
 #endif
             }
             
-            PD_ASSERT( crossing_count >= 0 );
+            PD_ASSERT( crossing_count >= Int(0) );
             
             
 #ifdef PD_DEBUG
@@ -889,7 +889,7 @@ namespace Knoodle
 #endif
             }
             
-            PD_ASSERT( arc_count >= 0 );
+            PD_ASSERT( arc_count >= Int(0) );
         }
         
     public:

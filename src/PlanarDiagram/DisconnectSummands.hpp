@@ -406,7 +406,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         Int t_label;
         Int h_label;
         
-        if( C_color[t] < 0 )
+        if( C_color[t] < Int(0) )
         {
             C_color[t] = t_label = c_counter;
             pd.C_state[t_label] = C_state[t];
@@ -417,7 +417,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
             t_label = C_color[t];
         }
         
-        if( C_color[h] < 0 )
+        if( C_color[h] < Int(0) )
         {
             C_color[h] = h_label = c_counter;
             pd.C_state[h_label] = C_state[h];

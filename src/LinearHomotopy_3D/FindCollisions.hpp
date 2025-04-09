@@ -49,7 +49,7 @@ public:
             
             auto continueQ = [&stack_ptr]()
             {
-                return (0 <= stack_ptr) && (stack_ptr < 4 * max_depth - 4 );
+                return (Int(0) <= stack_ptr) && (stack_ptr < Int(4) * max_depth - Int(4) );
             };
             
             push(0,0);

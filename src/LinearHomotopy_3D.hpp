@@ -170,7 +170,7 @@ namespace Knoodle
         
         Tensor1<Real,Int> ExportCollisionTimes() const
         {
-            const Int n = static_cast<Int>(collisions.size());
+            const Int n = int_cast<Int>(collisions.size());
             
             Tensor1<Real,Int> times ( n );
 
@@ -184,7 +184,7 @@ namespace Knoodle
         
         Tensor2<Real,Int> ExportCollisionParameters() const
         {
-            const Int n = static_cast<Int>(collisions.size());
+            const Int n = int_cast<Int>(collisions.size());
             
             Tensor2<Real,Int> times ( n, 2 );
 
@@ -199,9 +199,9 @@ namespace Knoodle
         
         Tensor2<Real,Int> ExportCollisionPoints() const
         {
-            const Int n = static_cast<Int>(collisions.size());
+            const Int n = int_cast<Int>(collisions.size());
             
-            Tensor2<Real,Int> points ( n, static_cast<Int>(3) );
+            Tensor2<Real,Int> points ( n, Int(3) );
             
             for( Int k = 0; k < n; ++k )
             {
@@ -212,7 +212,7 @@ namespace Knoodle
         
         Tensor1<Int,Int> ExportCollisionFlags() const
         {
-            const Int n = static_cast<Int>(collisions.size());
+            const Int n = int_cast<Int>(collisions.size());
             
             Tensor1<Int,Int> times ( n );
 
@@ -240,14 +240,14 @@ namespace Knoodle
             test_counter = 0;
         }
         
-        Int CollisionCount() const
+        Size_T CollisionCount() const
         {
-            return static_cast<Int>(collisions.size());
+            return collisions.size();
         }
         
-        Int CollisionTestCount() const
+        Size_T CollisionTestCount() const
         {
-            return static_cast<Int>(test_counter);
+            return int_cast<Int>(test_counter);
         }
         
         cref<Collision_T> GetCollision( const Int k ) const
@@ -264,7 +264,7 @@ namespace Knoodle
             const Real Delta_x = Frac<Real>(1,EdgeCount());
             
             
-            for( Int k = 0; k < CollisionCount(); ++k )
+            for( Size_T k = 0; k < CollisionCount(); ++k )
             {
                 cref<Collision_T> C = collisions[k];
                 
@@ -289,7 +289,7 @@ namespace Knoodle
             
             const Int component_size = L.ComponentEnd(c) - L.ComponentBegin(c);
             
-            return Min( d, component_size + static_cast<Int>(1) - d);
+            return Min( d, component_size + Int(1) - d);
         }
         
         
@@ -297,7 +297,7 @@ namespace Knoodle
         {
             Real time = Scalar::Infty<Real>;
             
-            for( Int k = 0; k < CollisionCount(); ++k )
+            for( Size_T k = 0; k < CollisionCount(); ++k )
             {
                 cref<Collision_T> C = collisions[k];
                 
@@ -336,7 +336,7 @@ namespace Knoodle
         
         bool NodesContainEdgesQ( const Int node_0, const Int node_1 ) const
         {
-            if constexpr ( i_0 >= 0 && j_0 >= 0 )
+            if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
             {
                 return T.NodesContainEdgesQ( node_0, node_1, i_0, j_0 );
             }

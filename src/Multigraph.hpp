@@ -103,14 +103,14 @@ namespace Knoodle
             {
                 Edge_T E ( edges.data(e) );
 
-                if( E[0] < 0 )
+                if( E[0] < Int(0) )
                 {
                     eprint("Multigraph:  first entry of edge " + ToString(e) + " is negative.");
 
                     return;
                 }
 
-                if( E[1] < 0 )
+                if( E[1] < Int(0) )
                 {
                     eprint("Multigraph: second entry of edge " + ToString(e) + " is negative.");
                     return;
@@ -259,20 +259,20 @@ namespace Knoodle
             // e_flags[e] == 0 means edge e is unvisited.
             // e_flags[e] == 1 means edge e is explored.
             // e_flags[e] == 2 means edge e is visited (and completed).
-            Tensor1<SInt,Int> e_flags ( edge_count, 0 );
+            Tensor1<SInt,Int> e_flags ( edge_count, SInt(0) );
             
             // TODO: I can keep e_stack, path, and d_stack uninitialized.
             // Keeps track of the edges we have to process.
             // Every edge can be only explored in two ways: from its two vertices.
             // Thus, the stack does not have to be bigger than 2 * edge_count.
-            Tensor1<Int,Int> e_stack ( 2 * edge_count, -2 );
+            Tensor1<Int,Int> e_stack ( Int(2) * edge_count, Int(-2) );
             
             // Keeps track of the edges we travelled through.
-            Tensor1<Int,Int> e_path ( edge_count + 2, -2 );
+            Tensor1<Int,Int> e_path ( edge_count + Int(2), Int(-2) );
             // Keeps track of the vertices we travelled through.
-            Tensor1<Int,Int> v_path ( edge_count + 2, -2 );
+            Tensor1<Int,Int> v_path ( edge_count + Int(2), Int(-2) );
             // Keeps track of the directions we travelled through the edges.
-            Tensor1<Int,Int> d_path ( edge_count + 2, -2 );
+            Tensor1<Int,Int> d_path ( edge_count + Int(2), Int(-2) );
             
             Int e_ptr = 0; // Guarantees that every component will be visited.
             
@@ -280,7 +280,7 @@ namespace Knoodle
             
             while( e_ptr < edge_count )
             {
-                while( (e_ptr < edge_count) && (e_flags[e_ptr] > 0) )
+                while( (e_ptr < edge_count) && (e_flags[e_ptr] > SInt(0)) )
                 {
                     ++e_ptr;
                 }
@@ -317,7 +317,7 @@ namespace Knoodle
                 
                 // Start spanning tree.
                 
-                while( stack_ptr > -1 )
+                while( stack_ptr > Int(-1) )
                 {
                     // Top
                     const Int e = e_stack[stack_ptr];
@@ -363,8 +363,8 @@ namespace Knoodle
                         eprint( "(E[0] != w) && (E[1] != w)" );
                     }
                     
-                    const Int d = (E[0] == w) ? 1 : -1;
-                    const Int v = E[d>0];
+                    const Int d = (E[0] == w) ? Int(1) : Int(-1);
+                    const Int v = E[d > Int(0)];
                     
                     // Mark edge e as explored and put it onto the path.
                     e_flags[e] = 1;
@@ -376,7 +376,7 @@ namespace Knoodle
                     
                     const Int f = v_flags[v];
                     
-                    if( f < 1 )
+                    if( f < Int(1) )
                     {
 //                        logprint("Vertex " + ToString(v) + " is unexplored.");
                         
@@ -409,12 +409,12 @@ namespace Knoodle
                         
                         Int pos = path_ptr;
 
-                        while( (pos >= 0) && (v_path[pos] != v) )
+                        while( (pos >= Int(0)) && (v_path[pos] != v) )
                         {
                             --pos;
                         }
                         
-                        if( pos < 0 )
+                        if( pos < Int(0) )
                         {
                             eprint("pos < 0");
                         }

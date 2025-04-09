@@ -143,7 +143,7 @@ namespace Knoodle
             
             
             // Do the tail checks only of polygon is long enough
-            tail_checkQ = (tail_size > 0) && (n > 8 * tail_size);
+            tail_checkQ = (tail_size > Int(0)) && (n > Int(8) * tail_size);
         }
         
 
@@ -830,9 +830,9 @@ namespace Knoodle
             
             auto continueQ = [&stack_ptr,this]()
             {
-                const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+                const bool overflowQ = (stack_ptr >= Int(4) * max_depth - Int(4));
                 
-                if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+                if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
                 {
                     return true;
                 }

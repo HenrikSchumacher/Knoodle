@@ -65,12 +65,12 @@ namespace Knoodle
     
     inline constexpr bool RightHandedQ( const CrossingState & s )
     {
-        return ToUnderlying(s) > 0;
+        return ToUnderlying(s) > Underlying_T<CrossingState>(0);
     }
     
     inline constexpr bool LeftHandedQ( const CrossingState & s )
     {
-        return ToUnderlying(s) < 0;
+        return ToUnderlying(s) < Underlying_T<CrossingState>(0);
     }
     
     inline constexpr bool OppositeHandednessQ(
@@ -144,10 +144,10 @@ namespace Knoodle
         static_assert( SignedIntQ<Int>, "" );
         static_assert( IntQ<Int_2>, "" );
         
-        const Int i = static_cast<Int>(X[0]);
-        const Int j = static_cast<Int>(X[1]);
-        const Int k = static_cast<Int>(X[2]);
-        const Int l = static_cast<Int>(X[3]);
+        const Int i = int_cast<Int>(X[0]);
+        const Int j = int_cast<Int>(X[1]);
+        const Int k = int_cast<Int>(X[2]);
+        const Int l = int_cast<Int>(X[3]);
         
         /* This is what we know so far:
          *

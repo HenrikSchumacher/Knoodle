@@ -7,7 +7,7 @@ bool strands_diff_o()
      *       |c_0        |c_1          |c_0        |c_1
      */
 
-    if constexpr( optimization_level < 3 )
+    if constexpr( optimization_level < Int(3) )
     {
         return false;
     }
@@ -22,7 +22,7 @@ bool strands_diff_o()
         return true;
     }
 
-    if constexpr( optimization_level < 4 )
+    if constexpr( optimization_level < Int(4) )
     {
         return false;
     }

@@ -338,7 +338,7 @@ namespace Knoodle
                 }
             }
             
-            if( duds.size() > 0 )
+            if( duds.size() > Size_T(0) )
             {
                 std::sort(duds.begin(),duds.end());
                 
@@ -657,7 +657,7 @@ namespace Knoodle
                 strand_length -= 2;
                 a = a_prev;
                 
-                PD_ASSERT(strand_length >= 0 );
+                PD_ASSERT(strand_length >= Int(0) );
                 
                 return true;
             }
@@ -724,7 +724,7 @@ namespace Knoodle
                 strand_length -= 2;
                 a = a_prev;
                 
-                PD_ASSERT(strand_length >= 0 );
+                PD_ASSERT(strand_length >= Int(0) );
                 
                 return true;
             }
@@ -1006,10 +1006,10 @@ namespace Knoodle
                     {
                         bool changedQ = false;
                         
-                        if( (strand_length > 1) && (max_dist > 0) )
+                        if( (strand_length > Int(1)) && (max_dist > Int(0)) )
                         {
                             changedQ = RerouteToShortestPath(
-                                a_begin,a,Min(strand_length-1,max_dist),color
+                                a_begin,a,Min(strand_length-Int(1),max_dist),color
                             );
                             
                             if( changedQ )
@@ -1300,7 +1300,7 @@ namespace Knoodle
             const Time start_time = Clock::now();
 #endif
             
-            PD_ASSERT( color_ > 0 );
+            PD_ASSERT( color_ > Int(0) );
             
             PD_ASSERT( a_begin != a_end );
             
@@ -1450,7 +1450,7 @@ namespace Knoodle
             
             // Write the actual path to array `path`.
             
-            if( (0 <= d) && (d <= max_dist) )
+            if( (Int(0) <= d) && (d <= max_dist) )
             {
                 // The only way to get here with `d <= max_dist` is the `goto` above.
                 
@@ -1544,7 +1544,7 @@ namespace Knoodle
             
             const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
             
-            if( (d < 0) || (d > max_dist) )
+            if( (d < Int(0)) || (d > max_dist) )
             {
                 PD_DPRINT("No improvement detected.");
                 
@@ -1581,7 +1581,7 @@ namespace Knoodle
             
             // Same at the end.
             
-            Int q = path_length-1;
+            Int q = path_length - Int(1);
             Int e = a_end;
   
             MoveWhileBranching<Tail>(e,q);
@@ -1603,7 +1603,7 @@ namespace Knoodle
                 
                 const Int b = path[p];
                 
-                const bool dir = (A_data(b,0) > 0);
+                const bool dir = (A_data(b,0) > Int(0));
                 
                 const Int c_1 = A_cross(b,Head);
                 

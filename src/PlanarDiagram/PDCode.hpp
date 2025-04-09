@@ -97,7 +97,7 @@ static PlanarDiagram<Int> FromPDCode(
         
         if constexpr( PDsignedQ )
         {
-            pd.C_state[c] = (X[4] > 0)
+            pd.C_state[c] = (X[4] > Int(0))
                           ? CrossingState::RightHanded
                           : CrossingState::LeftHanded;
         }
@@ -227,7 +227,7 @@ Tensor2<Int,Int> PDCode()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }
@@ -246,7 +246,7 @@ Tensor2<Int,Int> PDCode()
             
             AssertCrossing(c_0);
             
-            if( C_labels[c_0] < 0 )
+            if( C_labels[c_0] < Int(0) )
             {
                 C_labels[c_0] = c_counter++;
             }
@@ -263,7 +263,7 @@ Tensor2<Int,Int> PDCode()
             AssertCrossing(c_0);
             AssertCrossing(c_1);
             
-            if( C_labels[c_1] < 0 )
+            if( C_labels[c_1] < Int(0) )
             {
                 C_labels[c_1] = c_counter++;
             }

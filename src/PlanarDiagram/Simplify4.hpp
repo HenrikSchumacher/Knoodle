@@ -46,7 +46,7 @@ Int Simplify4(
 
         old_counter = counter;
         
-        if( simplify3_level > 0 )
+        if( simplify3_level > Int(0) )
         {
             // Since Simplify3 contains only inexpensive tests, we should call it first.
             const Int simpl3_changes = Simplify3(
@@ -55,7 +55,7 @@ Int Simplify4(
             
             counter += simpl3_changes;
             
-            if( compressQ && (simpl3_changes > 0) )
+            if( compressQ && (simpl3_changes > Int(0)) )
             {
                 (*this) = CreateCompressed();
             }
@@ -67,7 +67,7 @@ Int Simplify4(
         
         counter += o_changes;
         
-        if( compressQ && (o_changes > 0) )
+        if( compressQ && (o_changes > Int(0)) )
         {
             (*this) = CreateCompressed();
         }
@@ -80,7 +80,7 @@ Int Simplify4(
         
         counter += u_changes;
         
-        if( compressQ && (u_changes > 0) )
+        if( compressQ && (u_changes > Int(0)) )
         {
             (*this) = CreateCompressed();
         }
@@ -90,7 +90,7 @@ Int Simplify4(
     }
     while( counter > old_counter );
     
-    if( counter > 0 )
+    if( counter > Int(0) )
     {
         this->ClearCache();
     }

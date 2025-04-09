@@ -348,7 +348,7 @@ namespace Knoodle
                 ForceWriteQuaternion(q_vec);
                 
                 // Conjugate quaternion.
-                for( Int i = 1; i < 4; ++i )
+                for( Int i = 1; i < Int(4); ++i )
                 {
                     q_vec.Set(i,0,-q_vec(i,0));
                 }

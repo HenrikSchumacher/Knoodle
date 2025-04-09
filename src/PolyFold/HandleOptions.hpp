@@ -121,7 +121,7 @@ void HandleOptions( int argc, char** argv )
         valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
         steps_between_print = vm["polygons"].as<LInt>();
-        printQ = (steps_between_print > 0);
+        printQ = (steps_between_print > LInt(0));
         valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
         
         bin_count = Ramp( vm["histograms"].as<Int>() );
@@ -139,7 +139,7 @@ void HandleOptions( int argc, char** argv )
 
         reflection_probability = Clamp(vm["reflections"].as<Real>(),Real(0),Real(1));
         
-        if( Clisby_T::quaternionsQ && (reflection_probability > 0) )
+        if( Clisby_T::quaternionsQ && (reflection_probability > Real(0)) )
         {
             wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
             
@@ -254,7 +254,7 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( !(squared_gyradiusQ || pdQ || anglesQ || (bin_count > 1) || (steps_between_print > 0) ) )
+    if( !(squared_gyradiusQ || pdQ || anglesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
     {
         eprint("Not computing anything. Use the command line flags -g, -P, -a, -H, or -P to define outputs.");
         exit(13);

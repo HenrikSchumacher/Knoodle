@@ -56,7 +56,7 @@ Int Simplify1()
         }
     }
     
-    if( counter > 0 )
+    if( counter > Int(0) )
     {
         this->ClearCache();
     }

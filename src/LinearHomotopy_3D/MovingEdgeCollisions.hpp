@@ -20,7 +20,7 @@ public:
     {
         if( L.EdgesAreNeighborsQ(i,j) )
         {
-            if constexpr ( i_0 >= 0 && j_0 >= 0 )
+            if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
             {
                 if( i == i_0 && j == j_0 )
                 {
@@ -73,7 +73,7 @@ public:
             E_1_j[0][2] - E_1_i[0][2] - w_0[2]
         };
         
-        if constexpr ( i_0 >= 0 && j_0 >= 0 )
+        if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
         {
             if( i == i_0 && j == j_0 )
             {
@@ -138,7 +138,7 @@ public:
 //            coeff[3], coeff[2], coeff[1], coeff[0], t_list.data()
 //        );
         
-        if constexpr ( i_0 >= 0 && j_0 >= 0 )
+        if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
         {
             if( i == i_0 && j == j_0 )
             {
@@ -161,7 +161,7 @@ public:
             
             if( t_abs <= first_collision_tolerance )
             {
-                if constexpr ( i_0 >= 0 && j_0 >= 0 )
+                if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
                 {
                     if( i == i_0 && j == j_0 )
                     {
@@ -211,7 +211,7 @@ public:
                 w_0[2] + t * w_1[2],
             };
             
-            if constexpr ( i_0 >= 0 && j_0 >= 0 )
+            if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
             {
                 if( i == i_0 && j == j_0 )
                 {
@@ -281,22 +281,22 @@ public:
             const Real vv = dot( v_t, v_t );
             const Real vw = dot( v_t, w_t );
 
-            if( (uw - uu >= 0) && (uw + uv - uu) >= 0 )
+            if( (uw - uu >= Real(0)) && (uw + uv - uu) >= Real(0) )
             {
 //                    print("Edge " + ToString(j) + " is entirely in front of edge " + ToString(i) + ".");
                 continue;
             }
-            else if ( (uw <= 0) && (uw + uv <= 0) )
+            else if ( (uw <= Real(0)) && (uw + uv <= Real(0)) )
             {
 //                    print("Edge " + ToString(j) + " is entirely in back of edge " + ToString(i) + ".");
                 continue;
             }
-            else if ( (- vw - vv >= 0) && (vw + uv - vv >=0) )
+            else if ( (- vw - vv >= Real(0)) && (vw + uv - vv >= Real(0)) )
             {
 //                    print("Edge " + ToString(i) + " is entirely in front of edge " + ToString(j) + ".");
                 continue;
             }
-            else if ( (-vw <= 0) && (-vw + uv <= 0) )
+            else if ( (-vw <= Real(0)) && (-vw + uv <= Real(0)) )
             {
 //                    print("Edge " + ToString(i) + " is entirely in back of edge " + ToString(j) + ".");
                 continue;
@@ -340,7 +340,7 @@ public:
             
             // Finally, an intersection only occurs if 0 <= z[0] <= 1 and 0 <= z[1] <= 1.
             
-            if constexpr ( i_0 >= 0 && j_0 >= 0 )
+            if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
             {
                 if( i == i_0 && j == j_0 )
                 {
@@ -419,7 +419,7 @@ public:
                 
                 collisions.emplace_back( t, std::move(inter), std::move(z), i, j, sign );
                 
-                if constexpr ( i_0 >= 0 && j_0 >= 0 )
+                if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
                 {
                     if( i == i_0 && j == j_0 )
                     {
@@ -477,7 +477,7 @@ public:
     {
         const Int n = static_cast<Int>(collisions.size());
 
-        Tensor2<Int,Int> pairs ( n, static_cast<Int>(2) );
+        Tensor2<Int,Int> pairs ( n, Int(2) );
 
         for( Int k = 0; k < n; ++k )
         {

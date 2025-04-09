@@ -1,6 +1,6 @@
 bool CheckCrossing( const Int c  ) const
 {
-    if( (c < 0) || (c > initial_crossing_count) )
+    if( (c < Int(0)) || (c > initial_crossing_count) )
     {
         eprint(ClassName()+"::CheckCrossing: Crossing index c = " + Tools::ToString(c) + " is out of bounds.");
         TOOLS_LOGDUMP(initial_crossing_count);
@@ -21,7 +21,7 @@ bool CheckCrossing( const Int c  ) const
         {
             const Int a = C_arcs(c,io,lr);
             
-            if( (a < 0) || (a > initial_arc_count) )
+            if( (a < Int(0)) || (a > initial_arc_count) )
             {
                 eprint(ClassName()+"::CheckCrossing: Arc index a = " + Tools::ToString(a) + " in " + CrossingString(c) + " is out of bounds.");
                 TOOLS_LOGDUMP(initial_arc_count);
@@ -59,13 +59,13 @@ bool CheckAllCrossings() const
 {
     bool passedQ = true;
 
-    if( initial_crossing_count < 0 )
+    if( initial_crossing_count < Int(0) )
     {
         eprint(ClassName() + "::CheckAllCrossings: initial_crossing_count < 0.");
         passedQ = false;
     }
     
-    if( crossing_count < 0 )
+    if( crossing_count < Int(0) )
     {
         eprint(ClassName() + "::CheckAllCrossings: crossing_count < 0.");
         passedQ = false;
@@ -90,7 +90,7 @@ bool CheckAllCrossings() const
 
 bool CheckArc( const Int a ) const
 {
-    if( (a < 0) || (a > initial_arc_count) )
+    if( (a < Int(0)) || (a > initial_arc_count) )
     {
         eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " is out of bounds.");
         TOOLS_LOGDUMP(initial_arc_count);
@@ -110,7 +110,7 @@ bool CheckArc( const Int a ) const
     {
         const Int c = A_cross(a,headtail);
         
-        if( (c < 0) || (c > initial_crossing_count) )
+        if( (c < Int(0)) || (c > initial_crossing_count) )
         {
             eprint(ClassName()+"::CheckArc: Crossing index c = " + Tools::ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
             TOOLS_LOGDUMP(initial_crossing_count);
@@ -149,13 +149,13 @@ bool CheckAllArcs() const
 {
     bool passedQ = true;
     
-    if( initial_arc_count < 0 )
+    if( initial_arc_count < Int(0) )
     {
         eprint(ClassName() + "::CheckAllArcs: initial_arc_count < 0.");
         passedQ = false;
     }
     
-    if( arc_count < 0 )
+    if( arc_count < Int(0) )
     {
         eprint(ClassName() + "::CheckAllArcs: arc_count < 0.");
         passedQ = false;
@@ -182,7 +182,7 @@ bool CheckVertexDegrees() const
 {
     bool passed = true;
     
-    Tensor1<Int,Int> d (initial_crossing_count,0);
+    Tensor1<Int,Int> d (initial_crossing_count,Int(0));
     
     for( Int a = 0; a < initial_arc_count; ++a )
     {
@@ -197,7 +197,7 @@ bool CheckVertexDegrees() const
     {
         if( CrossingActiveQ(c) )
         {
-            if( d[c] != 4 )
+            if( d[c] != Int(4) )
             {
                 passed = false;
                 eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 4.");
@@ -205,7 +205,7 @@ bool CheckVertexDegrees() const
         }
         else
         {
-            if( d[c] != 0 )
+            if( d[c] != Int(0) )
             {
                 passed = false;
                 eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 0.");
@@ -220,7 +220,7 @@ bool CheckArcDegrees() const
 {
     bool passed = true;
     
-    Tensor1<Int,Int> d (initial_arc_count,0);
+    Tensor1<Int,Int> d (initial_arc_count,Int(0));
     
     for( Int c = 0; c < initial_crossing_count; ++c )
     {
@@ -237,7 +237,7 @@ bool CheckArcDegrees() const
     {
         if( ArcActiveQ(a) )
         {
-            if( d[a] != 2 )
+            if( d[a] != Int(2) )
             {
                 passed = false;
                 eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 2.");
@@ -245,7 +245,7 @@ bool CheckArcDegrees() const
         }
         else
         {
-            if( d[a] != 0 )
+            if( d[a] != Int(0) )
             {
                 passed = false;
                 eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 0.");

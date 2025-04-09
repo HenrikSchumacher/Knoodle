@@ -209,7 +209,7 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
                 Int c_1_label;
                 
                 // TODO: I think we can get rid of this check.
-                if( C_labels[c_0] < 0 )
+                if( C_labels[c_0] < Int(0) )
                 {
                     c_0_label = C_labels[c_0] = c_counter;
                     
@@ -228,7 +228,7 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
                 pd.C_arcs(c_0_label,Out,side_0) = a_counter;
                 pd.A_cross(a_counter,Tail) = c_0_label;
                 
-                if( C_labels[c_1] < 0 )
+                if( C_labels[c_1] < Int(0) )
                 {
                     c_1_label = C_labels[c_1] = c_counter;
                     

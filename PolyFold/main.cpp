@@ -1,3 +1,5 @@
+//#define TOOLS_DEBUG
+
 //#define PD_DEBUG
 
 //#define POLYFOLD_SIGNPOSTS
@@ -27,6 +29,17 @@ using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
+//    Int32 min_32 = std::numeric_limits<Int32>::lowest();
+//    Int64 min_64 = std::numeric_limits<Int64>::lowest();
+//    TOOLS_DUMP(min_32)
+//    TOOLS_DUMP(min_64)
+//    
+//    TOOLS_DUMP(min_32 > UInt32(0));
+//    TOOLS_DUMP(std::cmp_greater(min_32,UInt32(0)));
+//    TOOLS_DUMP(min_64 > UInt64(0));
+//    TOOLS_DUMP(std::cmp_greater(min_64,UInt64(0)));
+    
+    
 //    std::filesystem::path file ( "/Users/Henrik/a.txt" );
 //    Tensor2<Real,Int> a ( 2, 2 );
 //    

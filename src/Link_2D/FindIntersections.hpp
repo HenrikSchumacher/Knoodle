@@ -17,7 +17,7 @@ public:
         
         CountDegenerateEdges();
         
-        if( degenerate_edge_count > 0 )
+        if( degenerate_edge_count > Int(0) )
         {
             if constexpr ( printQ )
             {
@@ -34,7 +34,7 @@ public:
 
         {
             const Size_T count = intersection_flag_counts[6];
-            if( count > 0 )
+            if( count > Size_T(0) )
             {
                 if constexpr ( printQ )
                 {
@@ -46,7 +46,7 @@ public:
         
         {
             const Size_T count = intersection_flag_counts[5];
-            if( count > 0 )
+            if( count > Size_T(0) )
             {
                 if constexpr ( printQ )
                 {
@@ -62,7 +62,7 @@ public:
                 + intersection_flag_counts[3]
                 + intersection_flag_counts[4];
             
-            if( count > 0 )
+            if( count > Size_T(0) )
             {
                 if constexpr ( printQ )
                 {
@@ -73,7 +73,11 @@ public:
         }
         
         // Check for integer overflow.
-        if( Size_T(4) * intersections.size() > static_cast<Size_T>(std::numeric_limits<Int>::max()) )
+        if( std::cmp_greater(
+                Size_T(4) * intersections.size(),
+                std::numeric_limits<Int>::max()
+            )
+        )
         {
             eprint(ClassName() + "::FindIntersections: More intersections found than can be handled with integer type " + TypeName<Int> + "." );
         }
@@ -94,11 +98,14 @@ public:
         // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
         // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
         
-        TOOLS_PTIC("Counting sort");
-        // Counting sort.
+        if( intersection_count <= Int(0) )
+        {
+            TOOLS_PTOC(ClassName()+"FindIntersections");
+            return 0;
+        }
         
-    //            for( Int k = intersection_count-1; k > -1; --k )
-        for( Int k = intersection_count; k --> 0;  )
+        TOOLS_PTIC("Counting sort");
+        for( Int k = intersection_count; k --> Int(0);  )
         {
             Intersection_T & inter = intersections[static_cast<Size_T>(k)];
             
@@ -125,12 +132,15 @@ public:
             const Int k_begin = edge_ptr[i  ];
             const Int k_end   = edge_ptr[i+1];
                  
-            sort(
-                &edge_times[k_begin],
-                &edge_intersections[k_begin],
-                &edge_overQ[k_begin],
-                k_end - k_begin
-            );
+            if( k_begin < k_end )
+            {
+                sort(
+                     &edge_times[k_begin],
+                     &edge_intersections[k_begin],
+                     &edge_overQ[k_begin],
+                     k_end - k_begin
+                 );
+            }
         }
         TOOLS_PTOC("Counting sort");
         
@@ -203,9 +213,9 @@ private:
         
         auto continueQ = [&stack_ptr,this]()
         {
-            const bool overflowQ = (stack_ptr >= 4 * max_depth - 4);
+            const bool overflowQ = (stack_ptr >= Int(4) * max_depth - Int(4));
             
-            if( (0 <= stack_ptr) && (!overflowQ) ) [[likely]]
+            if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
             {
                 return true;
             }

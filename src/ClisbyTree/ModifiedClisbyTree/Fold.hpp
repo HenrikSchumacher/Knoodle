@@ -21,7 +21,7 @@ FoldFlag_T FoldRandom(
     
     bool reflectQ_ = false;
     
-    if ( reflection_probability > 0 )
+    if ( reflection_probability > Real(0) )
     {
         reflectQ_ = (unif_prob( random_engine ) <= reflection_probability);
     }

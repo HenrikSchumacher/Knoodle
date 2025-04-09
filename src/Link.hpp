@@ -5,9 +5,9 @@ namespace Knoodle
     template<typename Int>
     Tensor2<Int,Int> CircleEdges( const Int n )
     {
-        Tensor2<Int,Int> e ( n, 2 );
+        Tensor2<Int,Int> e ( n, Int(2) );
         
-        if( n >= 1 )
+        if( n >= Int(1) )
         {
             for( Int i = 0; i < n-1; ++i )
             {
@@ -63,7 +63,7 @@ namespace Knoodle
         
         template<typename I_0 >
         explicit Link( const I_0 edge_count_, bool dummy )
-        :   edge_count      { static_cast<Int>(edge_count_) }
+        :   edge_count      { int_cast<Int>(edge_count_) }
         ,   edges           { edge_count     }
         ,   next_edge       { edge_count     }
         ,   edge_ptr        { edge_count + 1 }
@@ -83,7 +83,7 @@ namespace Knoodle
          */
         template<typename I_0 >
         explicit Link( const I_0 edge_count_ )
-        :   edge_count      { static_cast<Int>(edge_count_) }
+        :   edge_count      { int_cast<Int>(edge_count_) }
         ,   edges           { edge_count            }
         ,   next_edge       { edge_count            }
         ,   edge_ptr        { edge_count + Int(1)   }
@@ -132,7 +132,7 @@ namespace Knoodle
 //            // AoS = array of structures, i.e., loading data in interleaved form
 ////            TOOLS_PTIC(ClassName()+"() (preordered)");
 //            
-//            cyclicQ     = (component_count == static_cast<Int>(1));
+//            cyclicQ     = (component_count == Int(1));
 //            preorderedQ = true;
 //            
 ////            TOOLS_PTOC(ClassName()+"() (preordered)");
@@ -150,7 +150,7 @@ namespace Knoodle
         
         template<typename I_0, typename I_1>
         Link( cptr<I_0> edges_, const I_1 edge_count_ )
-        :   Link( static_cast<Int>(edge_count_), true )
+        :   Link( int_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -169,7 +169,7 @@ namespace Knoodle
         
         template<typename I_0, typename I_1>
         Link( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
-        :   Link( static_cast<Int>(edge_count_), true )
+        :   Link( int_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -184,29 +184,38 @@ namespace Knoodle
          *  @param edges_ Integer array of length `2 * EdgeCount()`.
          */
         
-        template<typename I>
-        void ReadEdges( cptr<I> edges_ )
+        template<typename ExtInt>
+        void ReadEdges( cptr<ExtInt> edges_ )
         {
-            static_assert(IntQ<I>,"");
+            static_assert(IntQ<ExtInt>,"");
             
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
+            
+            bool in_rangeQ = true;
             
             // using edges.data(0) temporarily as scratch space.
             mptr<Int> tail_of_edge = edges.data(0);
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tail = static_cast<Int>(edges_[2*e]);
+                const ExtInt tail = edges_[2*e];
+                
+                in_rangeQ = in_rangeQ && std::in_range<Int>(tail);
 
-                tail_of_edge[tail] = e;
+                tail_of_edge[tail] = static_cast<Int>(tail);
+            }
+            
+            if( !in_rangeQ )
+            {
+                eprint(ClassName() + "::ReadEdges: input edges are out of range for type " + TypeName<Int> + "." );
             }
 
             for( Int e = 0; e < edge_count; ++e )
             {
                 const Int tip = edges_[2*e+1];
 
-                next_edge[e] = static_cast<Int>(tail_of_edge[tip]);
+                next_edge[e] = tail_of_edge[tip];
             }
             
             FindComponents();
@@ -219,7 +228,7 @@ namespace Knoodle
             // Reordering edges.
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int from = 2*perm[e];
+                const Int from = Int(2) * perm[e];
 
                 edge_tails[e] = edges_[from  ];
                 edge_tips [e] = edges_[from+1];
@@ -328,8 +337,8 @@ namespace Knoodle
             }
             
             component_count = Max(
-                static_cast<Int>(0),
-                static_cast<Int>(comp_ptr.size()) - static_cast<Int>(1)
+                Int(0),
+                static_cast<Int>(comp_ptr.size()) - Int(1)
             );
             
             component_ptr = Tensor1<Int,Int>( &comp_ptr[0], component_count+1 );
@@ -337,7 +346,7 @@ namespace Knoodle
         
         void FinishPreparations()
         {
-            cyclicQ = (component_count == static_cast<Int>(1));
+            cyclicQ = (component_count == Int(1));
             
             bool b = true;
             
@@ -394,7 +403,7 @@ namespace Knoodle
         
         Int ComponentLookup( const Int i ) const
         {
-            return (cyclicQ) ? static_cast<Int>(0) : component_lookup[i];
+            return (cyclicQ) ? Int(0) : component_lookup[i];
         }
         
         /*! @brief Returns the first vertex in component `c`.

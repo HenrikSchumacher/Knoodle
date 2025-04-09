@@ -93,7 +93,7 @@ std::pair<Int,Int> RandomPivots()
     Int i = u_int(random_engine);
     Int j = u_int(random_engine);
 
-    while( ModDistance(n,i,j) < 2 )
+    while( ModDistance(n,i,j) < Int(2) )
     {
         i = u_int(random_engine);
         j = u_int(random_engine);

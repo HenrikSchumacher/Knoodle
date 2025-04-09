@@ -3,24 +3,24 @@
 template<Int k>
 int CheckPivotNeighborhoods()
 {
-    constexpr Int K = 2 * k + 1;
+    constexpr Int K = Int(2) * k + Int(1);
     
     const Int n = VertexCount();
     
-    if( (p < k) || (p + k + 1 > n) )
+    if( (p < k) || (p + k + Int(1) > n) )
     {
         wprint("Edge case: p too close to boundary.");
         return 0;
     }
     
-    if( (q < k) || (q + k + 1 > n) )
+    if( (q < k) || (q + k + Int(1) > n) )
     {
         wprint("Edge case: q too close to boundary.");
         return 0;
     }
     
     
-    if( ModDistance(n, p, q) < 2 * k )
+    if( ModDistance(n, p, q) < Int(2) * k )
     {
         wprint("Edge case: p and q too close.");
         return 0;
@@ -107,7 +107,7 @@ int CheckPivotNeighborhoods()
     
     for( Int i = 0; i < K; ++i )
     {
-        for( Int j = i+2; j < K; ++j )
+        for( Int j = i + 2; j < K; ++j )
         {
             bool collision_foundQ = (SquaredDistance(Y[i],Y[j]) < hard_sphere_squared_diam);
             

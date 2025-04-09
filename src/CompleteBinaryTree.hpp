@@ -46,7 +46,7 @@ namespace Knoodle
         ,          last_row_begin { (Int(1) << Depth(node_count-Int(1))) - Int(1)      }
         ,                  offset { node_count - int_node_count - last_row_begin       }
         ,            actual_depth { Depth(node_count-Int(1))                           }
-        , regular_leaf_node_count { static_cast<Int>(Int(1) << actual_depth)           }
+        , regular_leaf_node_count { int_cast<Int>(Int(1) << actual_depth) }
         ,          last_row_count { Int(2) * leaf_node_count - regular_leaf_node_count }
         {
             if( leaf_node_count <= Int(0) )
@@ -78,7 +78,7 @@ namespace Knoodle
                     r[2 * N + 1] = N + offset + 1;
                 }
                 
-                for( Int N = int_node_count; N --> 0; )
+                for( Int N = int_node_count; N --> Int(0); )
                 {
                     const auto [L,R] = Children(N);
                     
@@ -200,22 +200,22 @@ namespace Knoodle
         
         inline static constexpr Int LeftChild( const Int i )
         {
-            return 2 * i + 1;
+            return Int(2) * i + Int(1);
         }
         
         inline static constexpr Int RightChild( const Int i )
         {
-            return 2 * i + 2;
+            return Int(2) * i + Int(2);
         }
         
         inline static constexpr std::pair<Int,Int> Children( const Int i )
         {
-            return { 2 * i + 1, 2 * i + 2 };
+            return { Int(2) * i + Int(1), Int(2) * i + Int(2) };
         }
         
         inline static constexpr Int Parent( const Int i )
         {
-            return (i > 0) ? (i - 1) / 2 : -1;
+            return (i > Int(0)) ? (i - Int(1)) / Int(2) : Int(-1);
         }
         
         inline static constexpr Int Ancestor( const Int i, const Int generations )
@@ -263,7 +263,7 @@ namespace Knoodle
         {
             if constexpr ( precompute_rangesQ )
             {
-                return N_ranges.data()[2 * i + 0];
+                return N_ranges.data()[Int(2) * i + Int(0)];
             }
             else
             {
@@ -277,11 +277,11 @@ namespace Knoodle
         {
             if constexpr ( precompute_rangesQ )
             {
-                return N_ranges.data()[2 * i + 1];
+                return N_ranges.data()[Int(2) * i + Int(1)];
             }
             else
             {
-                const Int regular_end = RegularLeafNodeCount(i) * (Column(i) + 1);
+                const Int regular_end = RegularLeafNodeCount(i) * (Column(i) + Int(1));
                 
                 return regular_end - (Ramp(regular_end - last_row_count) >> 1);
             }
@@ -302,8 +302,8 @@ namespace Knoodle
         inline std::pair<Int,Int> ComputeNodeRange( const Int depth, const Int column ) const
         {
             const Int reg_leaf_count = regular_leaf_node_count >> depth;
-            const Int reg_begin      = reg_leaf_count * (column + 0);
-            const Int reg_end        = reg_leaf_count * (column + 1);
+            const Int reg_begin      = reg_leaf_count * (column + Int(0));
+            const Int reg_end        = reg_leaf_count * (column + Int(1));
             
             return {
                 reg_begin - (Ramp(reg_begin - last_row_count) >> 1),
@@ -315,7 +315,10 @@ namespace Knoodle
         {
             if constexpr ( precompute_rangesQ )
             {
-                return { N_ranges.data()[2 * i + 0], N_ranges.data()[2 * i + 1] };
+                return {
+                    N_ranges.data()[Int(2) * i + Int(0)],
+                    N_ranges.data()[Int(2) * i + Int(1)]
+                };
             }
             else
             {
@@ -387,10 +390,10 @@ namespace Knoodle
             
             Int stack [2 * max_depth];
 
-            SInt stack_ptr = 0;
-            stack[stack_ptr] = (start_node < 0) ? Root() : start_node;
+            Int stack_ptr = 0;
+            stack[stack_ptr] = (start_node < Int(0)) ? Root() : start_node;
             
-            while( (SInt(0) <= stack_ptr) && (stack_ptr < SInt(2) * max_depth - SInt(2) ) )
+            while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
             {
                 const Int code = stack[stack_ptr];
                 const Int node = (code >> 1);

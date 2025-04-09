@@ -91,10 +91,10 @@ void RequireLinkComponents()
     const Int m = A_cross.Dimension(0);
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int> A_lc ( m, -1 );
+    Tensor1<Int,Int> A_lc ( m, Int(-1) );
     
     // Also, each arc should know its position within the component.
-    Tensor1<Int,Int> A_pos  ( m, -1 );
+    Tensor1<Int,Int> A_pos  ( m, Int(-1) );
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
@@ -110,7 +110,7 @@ void RequireLinkComponents()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_pos[a_ptr] >= 0)  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( (A_pos[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }

@@ -169,7 +169,11 @@ void RequireFaces() const
 exit:
     
     
-    Tensor1<Int,Int> F_A_ptr ( F_A_ptr_agg.size() );
+    if( !std::in_range<Int>( F_A_ptr_agg.size() ) )
+    {
+        eprint(ClassName()+"::RequireFaces: Integer overflow");
+    }
+    Tensor1<Int,Int> F_A_ptr ( int_cast<Int>(F_A_ptr_agg.size()) );
     
     F_A_ptr.Read( &F_A_ptr_agg[0] );
     
