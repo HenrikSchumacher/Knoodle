@@ -116,7 +116,7 @@ void RequireFaces() const
 //    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
     
     // The Hopf link is an example where face_count = arc_count.
-    Tensor1<Int,Int> F_A_ptr ( arc_count + 1 );
+    Tensor1<Int,Int> F_A_ptr ( 2 * arc_count + 1 );
     
     F_A_ptr[0]  = 0;
     
