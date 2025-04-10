@@ -132,7 +132,7 @@ namespace Knoodle
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
-        bool input_fileQ        = false;
+        bool inputQ        = false;
     
         
         // Witness checking

@@ -79,7 +79,7 @@ void Initialize()
     {
         Clisby_T T ( n, hard_sphere_diam );
         
-        if( input_fileQ )
+        if( inputQ )
         {
             T.ReadVertexCoordinates(x.data());
             
@@ -93,14 +93,23 @@ void Initialize()
             // TODO: Check that loaded polygon has edgelengths close to 1.
             if( error > 0.000000000001 * n )
             {
-                eprint(ClassName() + "::Initialize: Relative edge length deviation " + ToStringFPGeneral(error) + " is too large. Aborting." );
+                eprint(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is too large. Aborting." );
                 exit(3);
             }
             
             
             if( checksQ )
             {
-                // TODO: Check that loaded polygon is self-avoiding.
+                if( T.template CollisionQ<true>() )
+                {
+                    kv<t3>("Hard Sphere Constraint Satisfied", "False" );
+                    eprint(ClassName() + "::Initialize: Loaded polygon does not satisfy the hard sphere constraint with diameter" + ToString(hard_sphere_diam) + ".  Aborting." );
+                    exit(4);
+                }
+                else
+                {
+                    kv<t3>("Hard Sphere Constraint Satisfied", "True" );
+                }
             }
         }
         
@@ -132,7 +141,7 @@ void Initialize()
                       + "Increment -> "  + prng_init.increment + ", "
                       + "State -> "      + prng_init.state + "|>. Aborting."
                 );
-               exit(4);
+               exit(5);
            }
         }
         

@@ -58,7 +58,7 @@ FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_, bool check_overlap
 
     if ( check_overlapsQ )
     {
-        if( OverlapQ() )
+        if( CollideQ() )
         {
             // Folding step failed.
             return 4;

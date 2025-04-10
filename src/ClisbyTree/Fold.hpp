@@ -37,7 +37,7 @@ FoldFlag_T Fold(
     
     Update();
 
-    if( check_overlapsQ && OverlapQ() )
+    if( check_overlapsQ && CollisionQ() )
     {
         // Folding step failed; undo the modifications.
         UndoUpdate();

@@ -1,6 +1,6 @@
 private:
 
-bool CollidingQ_Reference()
+bool CollisionQ_Reference()
 {
     Int stack [Int(4) * max_depth][2];
     Int stack_ptr = -1;
@@ -16,9 +16,9 @@ bool CollidingQ_Reference()
     // Helper routine to manage stack.
     auto conditional_push = [this,push]( const Int i, const Int j )
     {
-        const bool overlappingQ = ( (i==j) || this->BallsOverlapQ(i,j) );
+        const bool collidingQ = ( (i==j) || this->BallsCollideQ(i,j) );
         
-        if( overlappingQ)
+        if( collidingQ )
         {
             push(i,j);
         }
@@ -44,7 +44,7 @@ bool CollidingQ_Reference()
         {
             if ( overflowQ ) [[unlikely]]
             {
-                eprint(this->ClassName()+"::OverlapQ_Reference: Stack overflow.");
+                eprint(this->ClassName()+"::CollisionQ_Reference: Stack overflow.");
             }
             return false;
         }
@@ -183,4 +183,4 @@ bool CollidingQ_Reference()
     
     return false;
     
-} // CollidingQ_Reference
+} // CollisionQ_Reference

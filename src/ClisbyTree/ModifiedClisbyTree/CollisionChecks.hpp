@@ -1,10 +1,10 @@
 public:
 
-bool OverlapQ()
+bool CollideQ()
 {
-    TOOLS_PTIC(ClassName()+"::OverlapQ");
+    TOOLS_PTIC(ClassName()+"::CollideQ");
     bool result = SubtreesCollideQ( Root() );
-    TOOLS_PTOC(ClassName()+"::OverlapQ");
+    TOOLS_PTOC(ClassName()+"::CollideQ");
     
     return result;
 }
@@ -63,14 +63,14 @@ int CheckJoints()
     return 0;
 }
 
-//bool BallsOverlapQ( cref<ClisbyNode> M, cref<ClisbyNode> N ) const
+//bool BallsCollideQ( cref<ClisbyNode> M, cref<ClisbyNode> N ) const
 //{
 //    const Real threshold = hard_sphere_diam + M.radius + N.radius;
 //    
 //    return (SquaredDistance(M.center,N.center) < threshold * threshold);
 //}
 
-bool NodesMightOverlapQ( mref<ClisbyNode> M, mref<ClisbyNode> N ) const
+bool NodesMightCollideQ( mref<ClisbyNode> M, mref<ClisbyNode> N ) const
 {
     if( ( M.all_unmovedQ && N.all_unmovedQ )
         ||
@@ -108,7 +108,7 @@ bool SubtreesCollideQ( mref<ClisbyNode> N )
 
 bool SubtreesCollideQ( mref<ClisbyNode> M, mref<ClisbyNode> N )
 {
-    if( !NodesMightOverlapQ(M,N) )
+    if( !NodesMightCollideQ(M,N) )
     {
         return false;
     }

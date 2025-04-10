@@ -1,6 +1,6 @@
 private:
 
-template<bool mQ>
+template<bool mQ, bool fullcheckQ = false>
 bool SubtreesCollideQ_Recursive( const Int i )
 {
     const bool interiorQ = InteriorNodeQ(i);
@@ -11,7 +11,16 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         PushTransform(i,L,R);
         
-        const NodeSplitFlagMatrix_T F = NodeSplitFlagMatrix<mQ>(L,R);
+        NodeSplitFlagMatrix_T F;
+        
+        if constexpr( fullcheckQ )
+        {
+            F[0][0] = true; F[0][1] = true; F[1][0] = true; F[1][1] = true;
+        }
+        else
+        {
+            F = NodeSplitFlagMatrix<mQ>(L,R);
+        }
         
         // TODO: We should prioritize SubtreesCollideQ_Recursive(i) if NodeBegin(i) is closer to a pivot than NodeEnd(i)-1.
         
@@ -25,7 +34,7 @@ bool SubtreesCollideQ_Recursive( const Int i )
             return true;
         }
         
-        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsOverlapQ(L,R) &&SubtreesCollideQ_Recursive<mQ>(L,R) )
+        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ>(L,R) )
         {
             return true;
         }
@@ -35,7 +44,7 @@ bool SubtreesCollideQ_Recursive( const Int i )
     
 } // SubtreesCollideQ_Recursive
 
-template<bool mQ>
+template<bool mQ, bool fullcheckQ = false>
 bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 {
     const bool i_interiorQ = InteriorNodeQ(i);
@@ -50,15 +59,26 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         PushTransform(i,c_i[0],c_i[1]);
         PushTransform(j,c_j[0],c_j[1]);
         
-        const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
-        const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
+        NodeSplitFlagMatrix_T F_i;
+        NodeSplitFlagMatrix_T F_j;
+        
+        if constexpr( fullcheckQ )
+        {
+            F_i[0][0] = true; F_i[0][1] = true; F_i[1][0] = true; F_i[1][1] = true;
+            F_j[0][0] = true; F_j[0][1] = true; F_j[1][0] = true; F_j[1][1] = true;
+        }
+        else
+        {
+            F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
+            F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
+        }
         
         auto subdQ = [&c_i,&c_j,&F_i,&F_j,this]( const bool k, const bool l )
         {
             return
             ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) )
             &&
-            this->BallsOverlapQ(c_i[k],c_j[l]);
+            this->BallsCollideQ(c_i[k],c_j[l]);
         };
         
         // We want the compiler to generate tail calls with as little data as possible.
@@ -93,27 +113,6 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         {
             return true;
         }
-
-        
-//        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive<mQ>(c_i[0],c_j[0]) )
-//        {
-//            return true;
-//        }
-//        
-//        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive<mQ>(c_i[1],c_j[1]) )
-//        {
-//            return true;
-//        }
-//        
-//        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ>(c_i[0],c_j[1]) )
-//        {
-//            return true;
-//        }
-//        
-//        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive<mQ>(c_i[1],c_j[0]) )
-//        {
-//            return true;
-//        }
     }
     else if( !i_interiorQ && j_interiorQ )
     {
@@ -121,15 +120,26 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         const Int c_j [2] = {LeftChild(j),RightChild(j)};
         PushTransform(j,c_j[0],c_j[1]);
 
-        const NodeSplitFlagVector_T f_i = NodeSplitFlagVector<mQ>(j);
-        const NodeSplitFlagMatrix_T F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
+        NodeSplitFlagVector_T f_i;
+        NodeSplitFlagMatrix_T F_j;
+        
+        if constexpr( fullcheckQ )
+        {
+            f_i[0] = true; f_i[1] = true;
+            F_j[0][0] = true; F_j[0][1] = true; F_j[1][0] = true; F_j[1][1] = true;
+        }
+        else
+        {
+            f_i = NodeSplitFlagVector<mQ>(j);
+            F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
+        }
         
         auto subdQ = [i,&c_j,&f_i,&F_j,this]( const bool l )
         {
             return
                 ( (f_i[0] && F_j[l][1]) || (f_i[1] && F_j[l][0]) )
                 &&
-                this->BallsOverlapQ(i,c_j[l]);
+                this->BallsCollideQ(i,c_j[l]);
         };
         
         // We want the compiler to generate tail calls with as little data as possible.
@@ -155,15 +165,26 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         const Int c_i [2] = {LeftChild(i),RightChild(i)};
         PushTransform( i, c_i[0], c_i[1] );
         
-        const NodeSplitFlagMatrix_T F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
-        const NodeSplitFlagVector_T f_j = NodeSplitFlagVector<mQ>(j);
+        NodeSplitFlagMatrix_T F_i;
+        NodeSplitFlagVector_T f_j;
+        
+        if constexpr( fullcheckQ )
+        {
+            F_i[0][0] = true; F_i[0][1] = true; F_i[1][0] = true; F_i[1][1] = true;
+            f_j[0] = true; f_j[1] = true;
+        }
+        else
+        {
+            F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
+            f_j = NodeSplitFlagVector<mQ>(j);
+        }
         
         auto subdQ = [&c_i,&F_i,j,&f_j,this]( const bool k )
         {
             return
                 ( (F_i[k][0] && f_j[1]) || (F_i[k][1] && f_j[0]) )
                 &&
-                this->BallsOverlapQ(c_i[k],j);
+                this->BallsCollideQ(c_i[k],j);
         };
         
         // We want the compiler to generate tail calls with as little data as possible.

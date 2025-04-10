@@ -233,7 +233,7 @@ void HandleOptions( int argc, char** argv )
                 }
             }
             
-            input_fileQ = true;
+            inputQ = true;
             
             valprint<a>("Input file", input_file.string());
 

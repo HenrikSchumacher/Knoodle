@@ -1,14 +1,15 @@
-#include "CollidingQ_Reference.hpp"
-#include "CollidingQ_ManualStack.hpp"
+#include "CollisionQ_Reference.hpp"
+#include "CollisionQ_ManualStack.hpp"
 
 #include "SubtreesCollideQ_Recursive.hpp"
 
 
 public:
 
-bool OverlapQ()
+template<bool fullcheckQ = false>
+bool CollisionQ()
 {
-    TOOLS_PTIC(ClassName()+"::OverlapQ");
+    TOOLS_PTIC(ClassName()+"::CollisionQ<" + BooleString(fullcheckQ) + ">");
     
     witness[0] = -1;
     witness[1] = -1;
@@ -19,22 +20,22 @@ bool OverlapQ()
     {
         if( mid_changedQ )
         {
-            result = CollidingQ_ManualStack<true>();
+            result = CollisionQ_ManualStack<true,fullcheckQ>();
         }
         else
         {
-            result = CollidingQ_ManualStack<false>();
+            result = CollisionQ_ManualStack<false,fullcheckQ>();
         }
     }
     else
     {
         if( mid_changedQ )
         {
-            result = SubtreesCollideQ_Recursive<true>( Root() );
+            result = SubtreesCollideQ_Recursive<true,fullcheckQ>( Root() );
         }
         else
         {
-            result = SubtreesCollideQ_Recursive<false>( Root() );
+            result = SubtreesCollideQ_Recursive<false,fullcheckQ>( Root() );
         }
     }
     
@@ -59,10 +60,9 @@ bool OverlapQ()
 //        }
 //    }
 
-    TOOLS_PTOC(ClassName()+"::OverlapQ");
+    TOOLS_PTOC(ClassName()+"::CollisionQ<" + BooleString(fullcheckQ) + ">");
     
     return result;
-    
 }
 
 
@@ -132,7 +132,7 @@ static constexpr Real SquaredDistance( cref<Vector_T> x, cref<Vector_T> y )
     return z.SquaredNorm();
 }
                 
-static constexpr bool BallsOverlapQ(
+static constexpr bool BallsCollideQ(
     const cptr<Real> N_ptr_0, const cptr<Real> N_ptr_1, const Real diam
 )
 {
@@ -143,7 +143,7 @@ static constexpr bool BallsOverlapQ(
     return (d2 < threshold * threshold);
 }
 
-bool BallsOverlapQ(
+bool BallsCollideQ(
     cref<Vector_T> c_0, const Real r_0,
     cref<Vector_T> c_1, const Real r_1,
     const Real diam
@@ -161,14 +161,14 @@ bool BallsOverlapQ(
     return (d2 < threshold * threshold);
 }
 
-bool BallsOverlapQ( const Int node_0, const Int node_1) const
+bool BallsCollideQ( const Int node_0, const Int node_1) const
 {
     if constexpr ( countersQ )
     {
         ++call_counters.overlap;
     }
     
-    return BallsOverlapQ(
+    return BallsCollideQ(
         NodeBallPtr(node_0), NodeBallPtr(node_1), hard_sphere_diam
     );
 }
