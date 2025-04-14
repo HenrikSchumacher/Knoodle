@@ -16,6 +16,8 @@ void Initialize()
     log.open( path / "Info.m", std::ios_base::out );
     pds.open( path / "PDCodes.tsv", std::ios_base::out );
     
+    edge_length_tolerance = Real(0.00000000001) * Real(n);
+    
     if constexpr ( Clisby_T::witnessesQ )
     {
         witness_stream.open( path / "Witnesses.tsv", std::ios_base::out );
@@ -63,7 +65,10 @@ void Initialize()
     
     log << ",\n" + ct_tabs<t2> + "\"Coordinate Buffer\" -> <|";
     
-    x = Tensor2<Real,Int>( n, AmbDim );
+    if( !inputQ )
+    {
+        x = Tensor2<Real,Int>( n, AmbDim );
+    }
     
         kv<t3,0>("Byte Count", x.ByteCount() );
     log << "\n" + ct_tabs<t2> + "|>";
@@ -81,22 +86,25 @@ void Initialize()
         
         if( inputQ )
         {
+            
             T.ReadVertexCoordinates(x.data());
             
             e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
             
             Real error = Max(Abs(e_dev.first),Abs(e_dev.second));
             
+            TOOLS_DUMP(error);
+            TOOLS_DUMP(edge_length_tolerance);
+            
             kv<t3>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
             kv<t3>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
             
             // TODO: Check that loaded polygon has edgelengths close to 1.
-            if( error > 0.000000000001 * n )
+            if( error > edge_length_tolerance )
             {
                 eprint(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is too large. Aborting." );
                 exit(3);
             }
-            
             
             if( checksQ )
             {

@@ -3,7 +3,7 @@ public:
 // TODO: This is almost literally copied from ClisbyTree.
 FoldFlag_T FoldRandom(
     const Real reflection_probability,
-    const bool check_overlapsQ = true
+    const bool check_collisionsQ = true
 )
 {
     FoldFlagCounts_T counters;
@@ -26,18 +26,18 @@ FoldFlag_T FoldRandom(
         reflectQ_ = (unif_prob( random_engine ) <= reflection_probability);
     }
     
-    return Fold( i, j, angle, reflectQ_, check_overlapsQ );
+    return Fold( i, j, angle, reflectQ_, check_collisionsQ );
 }
 
 
 // TODO: This is almost literally copied from ClisbyTree.
-FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_, bool check_overlapsQ = true )
+FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_, bool check_collisionsQ = true )
 {
     Clear();
     
     int pivot_flag = LoadPivots( p_, q_, theta_, reflectQ_ );
     
-    if ( check_overlapsQ )
+    if ( check_collisionsQ )
     {
         if( pivot_flag != 0 )
         {
@@ -56,7 +56,7 @@ FoldFlag_T Fold( Int p_, Int q_, Real theta_, bool reflectQ_, bool check_overlap
     
     Update();
 
-    if ( check_overlapsQ )
+    if ( check_collisionsQ )
     {
         if( CollideQ() )
         {

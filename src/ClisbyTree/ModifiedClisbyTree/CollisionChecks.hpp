@@ -94,7 +94,7 @@ bool SubtreesCollideQ( mref<ClisbyNode> N )
         return false;
     }
     
-    if( !N.interiorQ )
+    if( !N.internalQ )
     {
         return false;
     }
@@ -113,7 +113,7 @@ bool SubtreesCollideQ( mref<ClisbyNode> M, mref<ClisbyNode> N )
         return false;
     }
     
-    if( M.interiorQ && N.interiorQ )
+    if( M.internalQ && N.internalQ )
     {
         // Split both nodes.
 
@@ -125,7 +125,7 @@ bool SubtreesCollideQ( mref<ClisbyNode> M, mref<ClisbyNode> N )
             || SubtreesCollideQ(L_M,R_N)
             || SubtreesCollideQ(R_M,L_N);
     }
-    else if( M.interiorQ && !N.interiorQ )
+    else if( M.internalQ && !N.internalQ )
     {
         // Split M only.
         
@@ -133,7 +133,7 @@ bool SubtreesCollideQ( mref<ClisbyNode> M, mref<ClisbyNode> N )
         
         return SubtreesCollideQ(L_M,N) || SubtreesCollideQ(R_M,N);
     }
-    else if( !M.interiorQ && N.interiorQ )
+    else if( !M.internalQ && N.internalQ )
     {
         // Split N only.
         

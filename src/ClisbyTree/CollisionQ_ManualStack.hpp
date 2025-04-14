@@ -1,6 +1,6 @@
 private:
 
-template<bool mQ, bool fullcheckQ = false>
+template<bool mQ, bool full_checkQ = false>
 bool CollisionQ_ManualStack()
 {
     Int stack [Int(4) * max_depth][2];
@@ -50,12 +50,12 @@ bool CollisionQ_ManualStack()
         auto [i,j] = MinMax( stack[stack_ptr][0], stack[stack_ptr][1] );
         stack_ptr--;
         
-        // "Interior node" means "not a leaf node".
+        // "Internal node" means "not a leaf node".
         
-        const bool i_interiorQ = InteriorNodeQ(i);
-        const bool j_interiorQ = InteriorNodeQ(j);
+        const bool i_internalQ = InternalNodeQ(i);
+        const bool j_internalQ = InternalNodeQ(j);
         
-        if ( i_interiorQ && j_interiorQ )
+        if ( i_internalQ && j_internalQ )
         {
             if( i == j )
             {
@@ -65,7 +65,7 @@ bool CollisionQ_ManualStack()
                 
                 NodeSplitFlagMatrix_T F = NodeSplitFlagMatrix<mQ>(c[0],c[1]);
                 
-                if constexpr ( fullcheckQ )
+                if constexpr ( full_checkQ )
                 {
                     F[0][0] = true; F[0][1] = true; F[1][0] = true; F[1][1] = true;
                 }
@@ -102,7 +102,7 @@ bool CollisionQ_ManualStack()
                 NodeSplitFlagMatrix_T F_i;
                 NodeSplitFlagMatrix_T F_j;
   
-                if constexpr ( fullcheckQ )
+                if constexpr ( full_checkQ )
                 {
                     F_i[0][0] = true; F_i[0][1] = true;
                     F_i[1][0] = true; F_i[1][1] = true;
@@ -133,7 +133,7 @@ bool CollisionQ_ManualStack()
                 cond_push(0,1); // i < j, so this is most likely to have a collision.
             }
         }
-        else if ( !i_interiorQ && j_interiorQ )
+        else if ( !i_internalQ && j_internalQ )
         {
             // Split node j
             Int c_j [2] = {LeftChild(j),RightChild(j)};
@@ -143,7 +143,7 @@ bool CollisionQ_ManualStack()
             NodeSplitFlagVector_T f_i;
             NodeSplitFlagMatrix_T F_j;
             
-            if constexpr ( fullcheckQ )
+            if constexpr ( full_checkQ )
             {
                 f_i[0] = true; f_i[1] = true;
                 F_j[0][0] = true; F_j[0][1] = true;
@@ -169,7 +169,7 @@ bool CollisionQ_ManualStack()
             cond_push(0);
             cond_push(1);
         }
-        else if ( i_interiorQ && !j_interiorQ )
+        else if ( i_internalQ && !j_internalQ )
         {
             // Split node i
             Int c_i [3] = {LeftChild(i),RightChild(i)};
@@ -179,7 +179,7 @@ bool CollisionQ_ManualStack()
             NodeSplitFlagVector_T f_j;
             NodeSplitFlagMatrix_T F_i;
             
-            if constexpr ( fullcheckQ )
+            if constexpr ( full_checkQ )
             {
                 f_j[0]    = true; f_j[1]    = true;
                 F_i[0][0] = true; F_i[0][1] = true;

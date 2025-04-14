@@ -2,7 +2,7 @@ private:
 
 void UpdateSubtree_Recursive( const Int start_node = Root() )
 {
-    if( InteriorNodeQ(start_node) )
+    if( InternalNodeQ(start_node) )
     {
         updateSubtree_Recursive(start_node);
     }
@@ -23,7 +23,7 @@ void updateSubtree_Recursive( const Int node )
         }
         case UpdateFlag_T::Split:
         {
-            // If we land here, then `node` is an interior node.
+            // If we land here, then `node` is an internal node.
             auto [L,R] = Children(node);
             PushTransform(node,L,R);
             updateSubtree_Recursive(L);

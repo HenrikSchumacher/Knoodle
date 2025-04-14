@@ -853,13 +853,13 @@ namespace Knoodle
             {
                 auto [i,j] = pop();
                 
-                // "Interior node" means "not a leaf node".
-                const bool i_interiorQ = P_tree.InteriorNodeQ(i);
-                const bool j_interiorQ = Q_tree.InteriorNodeQ(j);
+                // "Internal node" means "not a leaf node".
+                const bool i_internalQ = P_tree.InternalNodeQ(i);
+                const bool j_internalQ = Q_tree.InternalNodeQ(j);
                 
-                if( i_interiorQ || j_interiorQ )
+                if( i_internalQ || j_internalQ )
                 {
-                    if( i_interiorQ == j_interiorQ )
+                    if( i_internalQ == j_internalQ )
                     {
                         // Split both nodes.
                         auto [L_i,R_i] = Tree_T::Children(i);
@@ -877,7 +877,7 @@ namespace Knoodle
                     else
                     {
                         // split only larger cluster
-                        if ( i_interiorQ ) // !j_interiorQ follows from this.
+                        if ( i_internalQ ) // !j_internalQ follows from this.
                         {
                             // Split node i.
                             

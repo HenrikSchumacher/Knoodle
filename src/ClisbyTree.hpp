@@ -27,18 +27,19 @@ namespace Knoodle
     {
         bool clang_matrixQ            = true;
         bool quaternionsQ             = true;
-//        bool orientation_preservingQ  = false;
         bool countersQ                = false;   // debugging flag
         bool witnessesQ               = false;   // debugging flag
         bool manual_stackQ            = false;   // debugging flag
     };
+    
     
     template<
         int AmbDim_,
         typename Real_, typename Int_, typename LInt_,
         ClisbyTree_TArgs targs = ClisbyTree_TArgs()
     >
-    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree<Int_,true>
+    class alignas( ObjectAlignment ) ClisbyTree
+        : public CompleteBinaryTree<Int_,true,true>
 //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
         static_assert(FloatQ<Real_>,"");
@@ -52,31 +53,28 @@ namespace Knoodle
         using Int    = Int_;
         using LInt   = LInt_;
         
-        using Tree_T = CompleteBinaryTree<Int,true>;
-    //        using Tree_T = CompleteBinaryTree_Precomp<Int>;
+        static constexpr Int AmbDim = AmbDim_;
     
+        static constexpr bool clang_matrixQ = targs.clang_matrixQ && MatrixizableQ<Real>;
+        static constexpr bool quaternionsQ  = clang_matrixQ && targs.quaternionsQ;
+        static constexpr bool manual_stackQ = targs.manual_stackQ;
+        static constexpr bool witnessesQ    = targs.witnessesQ;
+        
+        using Tree_T = CompleteBinaryTree<Int,true,true>;
         using SInt = typename Tree_T::SInt;
         
         using Tree_T::max_depth;
         
-        static constexpr Int AmbDim = AmbDim_;
-    
-        static constexpr bool clang_matrixQ           = targs.clang_matrixQ && MatrixizableQ<Real>;
-        static constexpr bool quaternionsQ            = clang_matrixQ && targs.quaternionsQ;
-        static constexpr bool manual_stackQ           = targs.manual_stackQ;
-        static constexpr bool witnessesQ              = targs.witnessesQ;
-//        static constexpr bool orientation_preservingQ = targs.orientation_preservingQ;
-        
-        using Transform_T
-            = typename std::conditional_t<
-                  clang_matrixQ,
-                  typename std::conditional_t<
-                      quaternionsQ,
-                      ClangQuaternionTransform<Real,Int>,
-                      ClangAffineTransform<AmbDim,Real,Int>
-                  >,
-                  AffineTransform<AmbDim,Real,Int>
-              >;
+            using Transform_T
+                = typename std::conditional_t<
+                      clang_matrixQ,
+                      typename std::conditional_t<
+                          quaternionsQ,
+                          ClangQuaternionTransform<Real,Int>,
+                          ClangAffineTransform<AmbDim,Real,Int>
+                      >,
+                      AffineTransform<AmbDim,Real,Int>
+                  >;
     
         using NodeFlag_T               = AffineTransformFlag_T;
         using Vector_T                 = typename Transform_T::Vector_T;
@@ -136,8 +134,8 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_
         )
         :   Tree_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
-        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
@@ -154,8 +152,8 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_
         )
         :   Tree_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
-        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
@@ -173,8 +171,8 @@ namespace Knoodle
             PRNG_T prng
         )
         :   Tree_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InteriorNodeCount(), TransformDim    }
-        ,   N_state                     { InteriorNodeCount(), NodeFlag_T::Id  }
+        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
@@ -190,7 +188,7 @@ namespace Knoodle
         
         using Tree_T::MaxDepth;
         using Tree_T::NodeCount;
-        using Tree_T::InteriorNodeCount;
+        using Tree_T::InternalNodeCount;
         using Tree_T::LeafNodeCount;
         
         using Tree_T::RightChild;
@@ -203,7 +201,7 @@ namespace Knoodle
         using Tree_T::NodeEnd;
         using Tree_T::NodeRange;
         using Tree_T::LeafNodeQ;
-        using Tree_T::InteriorNodeQ;
+        using Tree_T::InternalNodeQ;
         using Tree_T::PrimitiveNode;
         using Tree_T::Root;
         
@@ -261,7 +259,7 @@ namespace Knoodle
             Transform_T id;
             id.SetIdentity();
             
-            for( Int node = 0; node < InteriorNodeCount(); ++node )
+            for( Int node = 0; node < InternalNodeCount(); ++node )
             {
                 id.ForceWrite( NodeTransformPtr(node), NodeFlag(node) );
             }
@@ -299,26 +297,18 @@ namespace Knoodle
         void ReadVertexCoordinates( cptr<Real> x )
         {
             TOOLS_PTIC(ClassName() + "::ReadVertexCoordinates");
-                
-            this->DepthFirstSearch(
-                []( const Int node )                    // interior node previsit
-                {
-                    (void)node;
-                },
-                [this]( const Int node )                // interior node postvisit
+            
+            this->PostOrderScan(
+                [this]( const Int node )                // internal node postvisit
                 {
                     ComputeBall(node);
                     ResetTransform(node);
                 },
-                [this,x]( const Int node )              // leaf node previsit
+                [this,x]( const Int node )              // leaf node visit
                 {
                     const Int vertex = NodeBegin(node);
 
                     InitializeNodeFromVertex( node, &x[AmbDim * vertex] );
-                },
-                []( const Int node )                    // leaf node postvisit
-                {
-                    (void)node;
                 }
             );
             
@@ -401,7 +391,7 @@ namespace Knoodle
         {
             Int counter = 0;
             
-            for(Int node = 0; node < InteriorNodeCount(); ++node )
+            for(Int node = 0; node < InternalNodeCount(); ++node )
             {
                 counter += (N_state[node] == NodeFlag_T::NonId);
             }
@@ -469,7 +459,6 @@ namespace Knoodle
                 + "," + TypeName<LInt>
                 + "," + ToString(clang_matrixQ)
                 + "," + ToString(quaternionsQ)
-//                + "," + ToString(orientation_preservingQ)
                 + "," + ToString(countersQ)
                 + "," + ToString(manual_stackQ)
                 + "," + ToString(witnessesQ)

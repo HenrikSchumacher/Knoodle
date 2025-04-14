@@ -62,7 +62,7 @@ namespace Knoodle
         
         using Tree_T::MaxDepth;
         using Tree_T::NodeCount;
-        using Tree_T::InteriorNodeCount;
+        using Tree_T::InternalNodeCount;
         using Tree_T::LeafNodeCount;
         
         using Tree_T::RightChild;
@@ -164,15 +164,15 @@ namespace Knoodle
             }
             TOOLS_PTOC("Compute bounding boxes of leave nodes.");
             
-            TOOLS_PTIC("Compute bounding boxes of interior nodes.");
-            // Compute bounding boxes of interior nodes.
+            TOOLS_PTIC("Compute bounding boxes of internal nodes.");
+            // Compute bounding boxes of internal nodes.
             for( Int N = int_node_count; N --> Int(0);  )
             {
                 const auto [L,R] = Children(N);
                 
                 BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
             }
-            TOOLS_PTOC("Compute bounding boxes of interior nodes.");
+            TOOLS_PTOC("Compute bounding boxes of internal nodes.");
             
             TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }

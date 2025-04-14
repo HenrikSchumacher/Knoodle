@@ -264,7 +264,6 @@ namespace Knoodle
 #include "src/Link.hpp"
 
 #include "src/CompleteBinaryTree.hpp"
-#include "src/CompleteBinaryTree_Precomp.hpp"
 #include "src/AABBTree.hpp"
 
 #include "src/Intersection.hpp"

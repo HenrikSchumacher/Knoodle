@@ -6,13 +6,32 @@ private:
 
 void Update()
 {
+    Update(Root());
+}
+
+void Update( Int start_node )
+{
     if constexpr ( manual_stackQ )
     {
-        UpdateSubtree_ManualStack(Root());
+        UpdateSubtree_ManualStack(start_node);
     }
     else
     {
-        UpdateSubtree_Recursive(Root());
+        UpdateSubtree_Recursive(start_node);
+    }
+}
+
+void Update( Int root_0, Int root_1 )
+{
+    if( root_0 != root_1 )
+    {
+        Update();
+    }
+    else
+    {
+        // If root_0 == root_1, then we may assume that all moving vertices lie in this one subtree.
+        // Implicitly we assume that the path from root_0 to the global root has cleared already.
+        Update(root_0);
     }
 }
 
@@ -20,9 +39,30 @@ private:
 
 void UndoUpdate()
 {
+    UndoUpdate(Root());
+}
+
+void UndoUpdate( Int start_node )
+{
     InvertTransform( transform );
     
-    Update();
+    Update(start_node);
+}
+
+void UndoUpdate( Int root_0, Int root_1 )
+{
+    InvertTransform( transform );
+    
+    if( root_0 != root_1 )
+    {
+        Update();
+    }
+    else
+    {
+        // If root_0 == root_1, then we may assume that all moving vertices lie in this one subtree.
+        // Implicitly we assume that the path from root_0 to the global root has cleared already.
+        Update(root_0);
+    }
 }
 
 public:

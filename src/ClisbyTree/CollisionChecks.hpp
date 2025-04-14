@@ -6,10 +6,10 @@
 
 public:
 
-template<bool fullcheckQ = false>
+template<bool full_checkQ = false>
 bool CollisionQ()
 {
-    TOOLS_PTIC(ClassName()+"::CollisionQ<" + BooleString(fullcheckQ) + ">");
+    TOOLS_PTIC(ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
     
     witness[0] = -1;
     witness[1] = -1;
@@ -20,22 +20,22 @@ bool CollisionQ()
     {
         if( mid_changedQ )
         {
-            result = CollisionQ_ManualStack<true,fullcheckQ>();
+            result = CollisionQ_ManualStack<true,full_checkQ>();
         }
         else
         {
-            result = CollisionQ_ManualStack<false,fullcheckQ>();
+            result = CollisionQ_ManualStack<false,full_checkQ>();
         }
     }
     else
     {
         if( mid_changedQ )
         {
-            result = SubtreesCollideQ_Recursive<true,fullcheckQ>( Root() );
+            result = SubtreesCollideQ_Recursive<true,full_checkQ>( Root() );
         }
         else
         {
-            result = SubtreesCollideQ_Recursive<false,fullcheckQ>( Root() );
+            result = SubtreesCollideQ_Recursive<false,full_checkQ>( Root() );
         }
     }
     
@@ -60,7 +60,28 @@ bool CollisionQ()
 //        }
 //    }
 
-    TOOLS_PTOC(ClassName()+"::CollisionQ<" + BooleString(fullcheckQ) + ">");
+    TOOLS_PTOC(ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
+    
+    return result;
+}
+
+
+template<bool full_checkQ = false>
+bool SubtreesCollideQ( Int start_node )
+{
+    witness[0] = -1;
+    witness[1] = -1;
+        
+    bool result;
+    
+    if( mid_changedQ )
+    {
+        result = SubtreesCollideQ_Recursive<true,full_checkQ>( start_node );
+    }
+    else
+    {
+        result = SubtreesCollideQ_Recursive<false,full_checkQ>( start_node );
+    }
     
     return result;
 }

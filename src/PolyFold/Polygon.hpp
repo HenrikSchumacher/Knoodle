@@ -18,8 +18,12 @@ void PolygonSnapshot( const LInt i )
     std::string file_name = "Polygon_" + StringWithLeadingZeroes(i,9) + ".tsv";
     
     std::ofstream s ( path / file_name );
-    
     s << PolygonString(x);
+    
+//    x.WriteToFile(file_name);
+    
+//    std::string file_name = "Polygon_" + StringWithLeadingZeroes(i,9) + ".dat";
+//    (void)x.WriteToBinaryFile( path / file_name );
 
     print_ctr = 0;
     

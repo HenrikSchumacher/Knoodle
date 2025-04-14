@@ -181,7 +181,7 @@ private:
     // Improved version of FindIntersectingEdges_DFS_impl_0; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
     void FindIntersectingEdges_DFS_Reference()
     {
-        const Int int_node_count = T.InteriorNodeCount();
+        const Int int_node_count = T.InternalNodeCount();
 
         Int stack [4 * max_depth][2];
         Int stack_ptr = -1;
@@ -252,19 +252,19 @@ private:
     //            box_time += Tools::Duration( box_start_time, box_end_time );
             
             
-            const bool i_interiorQ = (i < int_node_count);
-            const bool j_interiorQ = (j < int_node_count);
+            const bool i_internalQ = (i < int_node_count);
+            const bool j_internalQ = (j < int_node_count);
             
             // Warning: This assumes that both children in a cluster tree are either defined or empty.
             
-            if( i_interiorQ || j_interiorQ ) // [[likely]]
+            if( i_internalQ || j_internalQ ) // [[likely]]
             {
                 auto [L_i,R_i] = Tree2_T::Children(i);
                 auto [L_j,R_j] = Tree2_T::Children(j);
                 
                 // T is a balanced bindary tree.
 
-                if( i_interiorQ == j_interiorQ )
+                if( i_internalQ == j_internalQ )
                 {
                     if( i == j )
                     {
@@ -286,7 +286,7 @@ private:
                 else
                 {
                     // split only larger cluster
-                    if( i_interiorQ ) // !j_interiorQ follows from this.
+                    if( i_internalQ ) // !j_internalQ follows from this.
                     {
                         //split cluster i
                         conditional_push(R_i,j);
@@ -322,19 +322,19 @@ private:
 
     void FindIntersectingEdges_DFS_Recursive( const Int i, const Int j )
     {
-        const bool i_interiorQ = T.InteriorNodeQ(i);
-        const bool j_interiorQ = T.InteriorNodeQ(j);
+        const bool i_internalQ = T.InternalNodeQ(i);
+        const bool j_internalQ = T.InternalNodeQ(j);
         
         // Warning: This assumes that both children in a cluster tree are either defined or empty.
         
-        if( i_interiorQ || j_interiorQ ) // [[likely]]
+        if( i_internalQ || j_internalQ ) // [[likely]]
         {
             auto [L_i,R_i] = Tree2_T::Children(i);
             auto [L_j,R_j] = Tree2_T::Children(j);
             
             // T is a balanced bindary tree.
 
-            if( i_interiorQ == j_interiorQ )
+            if( i_internalQ == j_internalQ )
             {
                 if( i == j )
                 {
@@ -378,7 +378,7 @@ private:
             else
             {
                 // split only larger cluster
-                if( i_interiorQ ) // !j_interiorQ follows from this.
+                if( i_internalQ ) // !j_internalQ follows from this.
                 {
                     //split cluster i
                     

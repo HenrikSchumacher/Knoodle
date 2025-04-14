@@ -66,13 +66,13 @@ bool CollisionQ_Reference()
     {
         auto [i,j] = pop();
         
-        // "Interior node" means "not a leaf node".
-        const bool i_interiorQ = InteriorNodeQ(i);
-        const bool j_interiorQ = InteriorNodeQ(j);
+        // "Internal node" means "not a leaf node".
+        const bool i_internalQ = InternalNodeQ(i);
+        const bool j_internalQ = InternalNodeQ(j);
         
-        if( i_interiorQ || j_interiorQ )
+        if( i_internalQ || j_internalQ )
         {
-            if( i_interiorQ && j_interiorQ )
+            if( i_internalQ && j_internalQ )
             {
                 // Split both nodes.
                 
@@ -114,8 +114,8 @@ bool CollisionQ_Reference()
             }
             else
             {
-                // split only the interior node
-                if ( i_interiorQ ) // !j_interiorQ follows from this.
+                // split only the internal node
+                if ( i_internalQ ) // !j_internalQ follows from this.
                 {
                     // Split node i.
                     

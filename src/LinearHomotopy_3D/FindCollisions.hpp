@@ -26,7 +26,7 @@ public:
         {
             ClearCollisionData();
 
-            const Int int_node_count = T.InteriorNodeCount();
+            const Int int_node_count = T.InternalNodeCount();
             
             Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
@@ -58,24 +58,24 @@ public:
             {
                 auto [i,j] = pop();
                 
-                const bool boxes_collidingQ = (i==j) ? true : MovingBoxesCollidingQ(
+                const bool boxes_collideQ = (i==j) ? true : MovingBoxesCollidingQ(
                     B_0.data(i), B_1.data(i), B_0.data(j), B_1.data(j)
                 );
                 
-                if( boxes_collidingQ )
+                if( boxes_collideQ )
                 {
-                    const bool is_interior_i = (i < int_node_count);
-                    const bool is_interior_j = (j < int_node_count);
+                    const bool internalQ_i = (i < int_node_count);
+                    const bool internalQ_j = (j < int_node_count);
                     
                     // Warning: This assumes that both children in a cluster tree are either defined or empty.
-                    if( is_interior_i || is_interior_j )
+                    if( internalQ_i || internalQ_j )
                     {
                         auto [L_i,R_i] = Tree_T::Children(i);
                         auto [L_j,R_j] = Tree_T::Children(j);
                         
                         // TODO: We probably should only split the larger node (larger by diameter?).
                                                 
-                        if( is_interior_i && is_interior_j )
+                        if( internalQ_i && internalQ_j )
                         {
                             if( i == j )
                             {
@@ -97,7 +97,7 @@ public:
                         {
                             // Only one cluster can be split.
                             
-                            if( is_interior_i )
+                            if( internalQ_i )
                             {
                                 //split cluster i
                                 push(R_i,j);

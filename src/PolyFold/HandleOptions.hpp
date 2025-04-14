@@ -69,6 +69,8 @@ void HandleOptions( int argc, char** argv )
         {
             n = vm["edge-count"].as<Int>();
             
+            edge_length_tolerance = Real(0.00000000001) * Real(n);
+            
             valprint<a>("Edge Count n", n);
         }
         else
@@ -210,27 +212,19 @@ void HandleOptions( int argc, char** argv )
         
         if( vm.count("input") )
         {
-            input_file = std::filesystem::path ( vm["output"].as<std::string>() );
+            input_file = std::filesystem::path ( vm["input"].as<std::string>() );
             
             x = PolygonContainer_T( n, AmbDim );
-            int flag = x.template ReadFromFile<false>( input_file );
             
-            switch( flag )
+            Int flag = x.ReadFromFile( input_file );
+            
+//            int flag = x.ReadFromBinaryFile( input_file );
+
+            if( flag != 0 )
             {
-                case 1:
-                {
-                    eprint(ClassName() + "::HandleOptions: End of input file reached before buffer is filled.");
-                    exit(1);
-                }
-                case 2:
-                {
-                    eprint(ClassName() + "::HandleOptions: End of input file not reached after buffer is filled.");
-                    exit(2);
-                }
-                default:
-                {
-                    break;
-                }
+                eprint(ClassName() + "::HandleOptions: Failed to read input file. Aborting.");
+                
+                exit(1);
             }
             
             inputQ = true;

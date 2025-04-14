@@ -3,8 +3,13 @@
 namespace Knoodle
 {
     
-    template<typename Int_, bool precompute_rangesQ_ = true>
-    class alignas( ObjectAlignment ) CompleteBinaryTree
+    
+    template<
+        typename Int_,
+        bool precompute_rangesQ_ = true,
+        bool use_manual_stackQ_ = false
+    >
+    class alignas( ObjectAlignment ) CompleteBinaryTree : public CachedObject
     {
         static_assert(SignedIntQ<Int_>,"");
         
@@ -15,6 +20,7 @@ namespace Knoodle
         
         static constexpr Int max_depth = 64;
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;
+        static constexpr bool use_manual_stackQ  = use_manual_stackQ_;
         
         using UInt = Scalar::Unsigned<Int>;
 
@@ -333,7 +339,7 @@ namespace Knoodle
             return (begin <= leafnode) && (leafnode < end);
         }
         
-        inline bool InteriorNodeQ( const Int node ) const
+        inline bool InternalNodeQ( const Int node ) const
         {
             return (node < int_node_count);
         }
@@ -366,7 +372,7 @@ namespace Knoodle
             return node_count;
         }
         
-        Int InteriorNodeCount() const
+        Int InternalNodeCount() const
         {
             return int_node_count;
         }
@@ -376,18 +382,279 @@ namespace Knoodle
             return leaf_node_count;
         }
         
-        template<
-            class Lambda_IntPreVisit,  class Lambda_IntPostVisit,
-            class Lambda_LeafPreVisit, class Lambda_LeafPostVisit
-        >
-        void DepthFirstSearch(
-            Lambda_IntPreVisit   int_pre_visit,  Lambda_IntPostVisit  int_post_visit,
-            Lambda_LeafPreVisit  leaf_pre_visit, Lambda_LeafPostVisit leaf_post_visit,
-            const Int start_node = -1
+//###############################################################################
+//##        Breadth first
+//###############################################################################
+        
+        /*! Breadth first scan of the tree. Every node is visited _before_ its children.
+         *
+         * @param int_visit An instance of a functor class (e.g. a lamda). It must have a method `operator()( Int node )` that executes what ought to be done in an internal node.
+         *
+         * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
+         *
+         * @param start_node The root of the subtree to be visited.
+         *
+         */
+        
+        template< class Internal_T, class Leaf_T >
+        void BreadthFirstScan(
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit
         )
         {
-            TOOLS_PTIC(ClassName()+"::DepthFirstSearch");
+            TOOLS_PTIC(ClassName()+"::BreadthFirstScan");
             
+            
+            for( Int node = Int(0); node < int_node_count; ++node )
+            {
+                int_visit(node);
+            }
+            
+            for( Int node = int_node_count; node < leaf_node_count; ++node )
+            {
+                leaf_visit(node);
+            }
+            
+            TOOLS_PTOC(ClassName()+"::BreadthFirstScan");
+        }
+        
+        // Pointless, but useful for debugging and performance estimation.
+        cref<Tensor1<Int,Int>> BreadthFirstOrdering()
+        {
+            std::string tag = "BreadthFirstOrdering";
+            
+            if( !InCacheQ(tag) )
+            {
+                Tensor1<Int,Int> p ( node_count );
+                Int counter = 0;
+                
+                mptr<Int> p_ptr = p.data();
+                
+                BreadthFirstScan(
+                    [p_ptr,&counter]( Int node )  // node visit
+                    {
+                        p_ptr[counter++] = node;
+                    },
+                    [p_ptr,&counter]( Int node )  // leaf visit
+                    {
+                        p_ptr[counter++] = node;
+                    }
+                );
+                
+                SetCache(tag,std::move(p));
+            }
+            
+            return GetCache<Tensor1<Int,Int>>(tag);
+        }
+        
+        /*! Reverse breadth first scan of the tree. Every node is visited _after_ its children.
+         *
+         * @param int_visit An instance of a functor class (e.g. a lamda). It must have a method `operator()( Int node )` that executes what ought to be done in an internal node.
+         *
+         * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
+         *
+         * @param start_node The root of the subtree to be visited.
+         *
+         */
+        
+        
+        template< class Internal_T, class Leaf_T >
+        void ReverseBreadthFirstScan(
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit
+        )
+        {
+            TOOLS_PTIC(ClassName()+"::ReverseBreadthFirstScan");
+
+            for( Int node = leaf_node_count; node --> int_node_count; )
+            {
+                leaf_visit(node);
+            }
+            
+            for( Int node = int_node_count; node --> Int(0);  )
+            {
+                int_visit(node);
+            }
+            
+            TOOLS_PTOC(ClassName()+"::ReverseBreadthFirstScan");
+        }
+        
+        // Pointless, but useful for debugging and performance estimation.
+        cref<Tensor1<Int,Int>> ReverseBreadthFirstOrdering()
+        {
+            std::string tag = "ReverseBreadthFirstOrdering";
+            
+            if( !InCacheQ(tag) )
+            {
+                Tensor1<Int,Int> p ( node_count );
+                Int counter = 0;
+                
+                mptr<Int> p_ptr = p.data();
+                
+                BreadthFirstScan(
+                    [p_ptr,&counter]( Int node )  // node visit
+                    {
+                        p_ptr[counter++] = node;
+                    },
+                    [p_ptr,&counter]( Int node )  // leaf visit
+                    {
+                        p_ptr[counter++] = node;
+                    }
+                );
+                
+                SetCache(tag,std::move(p));
+            }
+            
+            return GetCache<Tensor1<Int,Int>>(tag);
+        }
+        
+//###############################################################################
+//##        Depth first
+//###############################################################################
+        
+    public:
+        
+        enum class DFS : std::int_fast8_t
+        {
+            BreakNever      = 0,
+            PostVisitAlways = 1,
+            BreakEarly      = 2
+        };
+        
+        static std::string ToString( DFS mode )
+        {
+            switch( mode )
+            {
+                case DFS::BreakNever:
+                {
+                    return "BreakNever";
+                }
+                case DFS::PostVisitAlways:
+                {
+                    return "PostVisitAlways";
+                }
+                case DFS::BreakEarly:
+                {
+                    return "BreakEarly";
+                }
+            }
+        }
+        
+        
+       /*! Depth first scan of the tree. Can used to implement pre-order and post-order tree traversal.
+        *
+        * @param int_pre_visit An instance of a functor class (e.g. a lamda). It must have a method `bool operator()( Int node )` that executes what ought to be done in an internal node _before_ the children are visited. The returned `bool` indicates whether the children shall be visited and whether `int_post_visit` shall be executed.
+        *
+        * @param int_post_visit An instance of a functor class that specifies what ought to be done in a node _after_ the children have been visited.
+        *
+        * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
+        *
+        * @param start_node The root of the subtree to be visited.
+        *
+        */
+        
+        template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
+        void DepthFirstScan(
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
+            const Int start_node = Int(-1)
+        )
+        {
+            TOOLS_PTIC(ClassName()+"::DepthFirstScan"
+                + "<" + ToString(mode)
+                + ">" );
+            
+            if constexpr ( use_manual_stackQ )
+            {
+                DepthFirstScan_ManualStack<mode>(
+                    int_pre_visit, int_post_visit, leaf_visit,
+                    (start_node < Int(0)) ? Root() : start_node
+                );
+            }
+            else
+            {
+                DepthFirstScan_Recursive<mode>(
+                    int_pre_visit, int_post_visit, leaf_visit,
+                    (start_node < Int(0)) ? Root() : start_node
+                );
+            }
+            
+            TOOLS_PTOC(ClassName()+"::DepthFirstScan"
+                + "<" + ToString(mode)
+                + ">" );
+        }
+        
+        template< DFS mode, class IntPre_T, class IntPost_T, class Leaf_T >
+        void DepthFirstScan_Recursive(
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
+            const Int node
+        )
+        {
+            // We visit this node for the first time.
+            if( InternalNodeQ(node) )
+            {
+                if constexpr ( mode == DFS::BreakNever )
+                {
+                    (void)int_pre_visit(node);
+                    
+                    auto [L,R] = Children(node);
+                    
+                    DepthFirstScan_Recursive<mode>(
+                        int_pre_visit,int_post_visit,leaf_visit,L
+                    );
+                    DepthFirstScan_Recursive<mode>(
+                        int_pre_visit,int_post_visit,leaf_visit,R
+                    );
+                    
+                    int_post_visit(node);
+                }
+                else
+                {
+                    bool continueQ = int_pre_visit(node);
+                    
+                    if( continueQ )
+                    {
+                        auto [L,R] = Children(node);
+                        
+                        DepthFirstScan_Recursive<mode>(
+                            int_pre_visit,int_post_visit,leaf_visit,L
+                        );
+                        DepthFirstScan_Recursive<mode>(
+                            int_pre_visit,int_post_visit,leaf_visit,R
+                        );
+                    }
+                    
+                    if constexpr ( mode == DFS::PostvisitAlways )
+                    {
+                        int_post_visit(node);
+                    }
+                    else
+                    {
+                        if( continueQ )
+                        {
+                            int_post_visit(node);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Things to be done when node is a leaf.
+                leaf_visit(node);
+            }
+        }
+        
+        template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
+        void DepthFirstScan_ManualStack(
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
+            const Int start_node = Int(-1)
+        )
+        {
             Int stack [2 * max_depth];
 
             Int stack_ptr = 0;
@@ -405,23 +672,41 @@ namespace Knoodle
                     auto [L,R] = Children(node);
                     
                     // We visit this node for the first time.
-                    if( InteriorNodeQ(node) )
+                    if( InternalNodeQ(node) )
                     {
-                        int_pre_visit(node);
-
-                        // Mark node as visited.
-                        stack[stack_ptr] = (code | Int(1)) ;
-                        
-                        stack[++stack_ptr] = (R << 1);
-                        stack[++stack_ptr] = (L << 1);
+                        if constexpr ( mode == DFS::BreakNever )
+                        {
+                            (void)int_pre_visit(node);
+                            // Mark node as visited.
+                            stack[stack_ptr] = (code | Int(1)) ;
+                            
+                            stack[++stack_ptr] = (R << 1);
+                            stack[++stack_ptr] = (L << 1);
+                        }
+                        else
+                        {
+                            if( int_pre_visit(node) )
+                            {
+                                // Mark node as visited.
+                                stack[stack_ptr] = (code | Int(1)) ;
+                                
+                                stack[++stack_ptr] = (R << 1);
+                                stack[++stack_ptr] = (L << 1);
+                            }
+                            else
+                            {
+                                if( mode == DFS::BreakEarly )
+                                {
+                                    // This prevents execution of int_post_visit.
+                                    --stack_ptr;
+                                }
+                            }
+                        }
                     }
                     else
                     {
                         // Things to be done when node is a leaf.
-                        leaf_pre_visit(node);
-                        
-                        // There are no children to be visited first.
-                        leaf_post_visit(node);
+                        leaf_visit(node);
                         
                         // Popping current node from the stack.
                         --stack_ptr;
@@ -430,10 +715,9 @@ namespace Knoodle
                 else
                 {
                     // We visit this node for the second time.
-                    // Thus node cannot be a leave node.
+                    // Thus it cannot be a leave node.
                     // We are moving in direction towards the root.
                     // Hence all children have already been visited.
-                    
                     int_post_visit(node);
 
                     // Popping current node from the stack.
@@ -443,10 +727,121 @@ namespace Knoodle
             
             if( stack_ptr >= Int(2) * max_depth - Int(2) )
             {
-                eprint(ClassName() + "::DepthFirstSearch: Stack overflow.");
+                eprint(ClassName() + "::DepthFirstScan_ManualStack: Stack overflow.");
+            }
+        }
+        
+        
+//###############################################################################
+//##        PreOrdering
+//###############################################################################
+        
+        template< class Internal_T, class Leaf_T >
+        void PreOrderScan(
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit,
+            const Int start_node = Int(-1)
+        )
+        {
+            DepthFirstScan<DFS::BreakNever>(
+               [&int_visit]( Int node )   // pre visit
+               {
+                   int_visit(node);
+               },
+               []( Int node )              // post visit
+               {
+                   (void)node;
+               },
+               [&leaf_visit]( Int node )  // leaf visit
+               {
+                   leaf_visit(node);
+               },
+               start_node
+            );
+        }
+        
+        cref<Tensor1<Int,Int>> PreOrdering()
+        {
+            std::string tag = "PreOrdering";
+            
+            if( !InCacheQ(tag) )
+            {
+                Tensor1<Int,Int> p ( node_count );
+                Int counter = 0;
+                
+                mptr<Int> p_ptr = p.data();
+                
+                PreOrderScan(
+                   [p_ptr,&counter]( Int node )  // pre visit
+                   {
+                       p_ptr[counter++] = node;
+                   },
+                   [p_ptr,&counter]( Int node )  // leaf visit
+                   {
+                       p_ptr[counter++] = node;
+                   }
+                );
+                
+                SetCache(tag,std::move(p));
             }
             
-            TOOLS_PTOC(ClassName()+"::DepthFirstSearch");
+            return GetCache<Tensor1<Int,Int>>(tag);
+        }
+        
+//###############################################################################
+//##        PostOrdering
+//###############################################################################
+        
+        template< class Internal_T, class Leaf_T >
+        void PostOrderScan(
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit,
+            const Int start_node = Int(-1)
+        )
+        {
+            DepthFirstScan<DFS::BreakNever>(
+               []( Int node )             // pre visit
+               {
+                   (void)node;
+               },
+               [&int_visit]( Int node )   // post visit
+               {
+                   int_visit(node);
+               },
+               [&leaf_visit]( Int node )  // leaf visit
+               {
+                   leaf_visit(node);
+               },
+               start_node
+            );
+        }
+        
+        cref<Tensor1<Int,Int>> PostOrdering()
+        {
+            std::string tag = "PostOrdering";
+            
+            if( !InCacheQ(tag) )
+            {
+                Tensor1<Int,Int> p ( node_count );
+                Int counter = 0;
+                
+                mptr<Int> p_ptr = p.data();
+                
+                PostOrderScan(
+                   [p_ptr,&counter]( Int node )          // node visit
+                   {
+                       p_ptr[counter++] = node;
+                   },
+                   [p_ptr,&counter]( Int node )          // leaf visit
+                   {
+                       p_ptr[counter++] = node;
+                   }
+                );
+                
+                SetCache(tag,std::move(p));
+            }
+            
+            return GetCache<Tensor1<Int,Int>>(tag);
         }
         
     public:
@@ -465,7 +860,8 @@ namespace Knoodle
         {
             return ct_string("CompleteBinaryTree")
                 + "<" + TypeName<Int>
-                + "," + ToString(precompute_rangesQ)
+                + "," + Tools::ToString(precompute_rangesQ)
+                + "," + Tools::ToString(use_manual_stackQ)
                 + ">";
         }
 

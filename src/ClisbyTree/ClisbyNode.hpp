@@ -12,7 +12,7 @@ struct ClisbyNode
     Vector_T    center;
     Real        radius;
     Transform_T f;
-    bool        interiorQ;
+    bool        internalQ;
     bool        all_movedQ;
     bool        all_unmovedQ;
     
@@ -30,11 +30,11 @@ struct ClisbyNode
     ,   end         ( T.NodeEnd(id)        )
     ,   center      ( T.NodeBallPtr(id)    )
     ,   radius      ( T.NodeRadius(id)     )
-    ,   interiorQ   ( T.InteriorNodeQ(id)  )
+    ,   internalQ   ( T.InternalNodeQ(id)  )
     {
         // TODO: Maybe compute the split flags etc.
         
-        if( interiorQ )
+        if( internalQ )
         {
             f = T.NodeTransform(id);
         }

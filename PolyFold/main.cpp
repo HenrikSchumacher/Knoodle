@@ -18,11 +18,8 @@ using namespace Tools;
 
 
 using Real  = Real64;   // scalar type used for positions of polygon
-//using Real  = Real32;   // Never use this unless for producing edge cases.
-//using BReal = Real32;   // scalar type used for bounding boxes
 using BReal = Real64;   // scalar type used for bounding boxes
-using Int   = Int64;    // integer type used, e.g., for indices in PlanarDiagram etc.
-//using Int   = Int32;    // integer type used, e.g., for indices in PlanarDiagram etc.
+using Int   = Int64;    // integer type used, e.g., for indices
 using LInt  = Int64;    // integer type for counting objects
 
 using PolyFold_T = PolyFold<Real,Int,LInt,BReal>;
@@ -41,6 +38,9 @@ int main( int argc, char** argv )
     
     
 //    std::filesystem::path file ( "/Users/Henrik/a.txt" );
+//    
+//    TOOLS_DUMP(file)
+//    
 //    Tensor2<Real,Int> a ( 2, 2 );
 //    
 //    a[0][0] = 1;
@@ -48,9 +48,17 @@ int main( int argc, char** argv )
 //    a[1][0] = 3;
 //    a[1][1] = 4;
 //    
+//    TOOLS_DUMP(a[0][0])
+//    TOOLS_DUMP(a[0][1])
+//    TOOLS_DUMP(a[1][0])
+//    TOOLS_DUMP(a[1][1])
+//    
+//    TOOLS_DUMP(ToString(a))
+//    TOOLS_DUMP(a)
+//    
 //    a.WriteToFile( file );
 //    
-//    TOOLS_DUMP(a)
+//    
 //    
 //    Tensor2<Real,Int> b ( 1, 2 );
 //    Tensor2<Real,Int> c ( 3, 2 );
@@ -67,6 +75,129 @@ int main( int argc, char** argv )
 //    TOOLS_DUMP(d.ReadFromFile( file ));
 //    
 //    TOOLS_DUMP(d)
+    
+    
+    
+//    using T_T = CompleteBinaryTree<Int,false,false>;
+//    using S_T = CompleteBinaryTree<Int,false,true>;
+//    
+//    const Int n = 1024 * 1024;
+//    
+//    const Int reps = 512;
+//
+//    
+//    tic("T.PreOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.PreOrdering();
+//    }
+//    toc("T.PreOrdering()");
+//    
+//    tic("T.PostOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.PostOrdering();
+//    }
+//    toc("T.PostOrdering()");
+//    
+//    tic("T.BreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.BreadthFirstOrdering();
+//    }
+//    toc("T.BreadthFirstOrdering()");
+//    
+//    tic("T.ReverseBreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.ReverseBreadthFirstOrdering();
+//    }
+//    toc("T.ReverseBreadthFirstOrdering()");
+//    
+//    print("");
+//    
+//    tic("S.PreOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        S_T S (n);
+//        (void)S.PreOrdering();
+//    }
+//    toc("S.PreOrdering()");
+//    
+//    tic("S.PostOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        S_T S (n);
+//        (void)S.PostOrdering();
+//    }
+//    toc("S.PostOrdering()");
+//    
+//    tic("S.BreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        S_T S (n);
+//        (void)S.BreadthFirstOrdering();
+//    }
+//    toc("S.BreadthFirstOrdering()");
+//    
+//    tic("S.ReverseBreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        S_T S (n);
+//        (void)S.ReverseBreadthFirstOrdering();
+//    }
+//    toc("S.ReverseBreadthFirstOrdering()");
+//    
+//    print("");
+//    
+//    tic("T.PreOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.PreOrdering();
+//    }
+//    toc("T.PreOrdering()");
+//    
+//    tic("T.PostOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.PostOrdering();
+//    }
+//    toc("T.PostOrdering()");
+//    
+//    tic("T.BreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.BreadthFirstOrdering();
+//    }
+//    toc("T.BreadthFirstOrdering()");
+//    
+//    tic("T.ReverseBreadthFirstOrdering()");
+//    for( Int rep = 0; rep < reps; ++rep )
+//    {
+//        T_T T (n);
+//        (void)T.ReverseBreadthFirstOrdering();
+//    }
+//    toc("T.ReverseBreadthFirstOrdering()");
+//    
+//    print("");
+//    
+//    
+//    
+//    T_T T (n);
+//    S_T S (n);
+//    TOOLS_DUMP( S.PreOrdering()  == T.PreOrdering() )
+//    TOOLS_DUMP( S.PostOrdering() == T.PostOrdering() )
+//    
+//    print("");
+    
+    
     
     PolyFold_T polyfold ( argc, argv );
     

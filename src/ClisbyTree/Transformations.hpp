@@ -8,6 +8,9 @@ static Transform_T PivotTransform(
     Vector_T u = (Y - X);
     u.Normalize();
     
+    // Center of rotation
+    Vector_T Z = Scalar::Half<Real> * X + Scalar::Half<Real> * Y;
+    
     if constexpr ( quaternionsQ )
     {
         const Real theta_half = Scalar::Half<Real> * angle;
@@ -18,7 +21,7 @@ static Transform_T PivotTransform(
             
         f.Read( &Q[0], NodeFlag_T::NonId );
         
-        Vector_T b = X - f.Matrix() * X;
+        Vector_T b = Z - f.Matrix() * Z;
         
         f.ForceReadVector(b);
     }
@@ -54,7 +57,7 @@ static Transform_T PivotTransform(
             
             // Make w orthogonal to v.
             w -= v * InnerProduct(v,w);
-            w -= v * InnerProduct(v,w);
+            w -= v * InnerProduct(v,w); // Kahan: Twice is enough.
             
             // Reflect in the hyperplane defined by w.
             a = a * HouseholderReflector(w);
@@ -64,7 +67,7 @@ static Transform_T PivotTransform(
         
         A.Read(a.data());
         
-        Vector_T b = X - A * X;
+        Vector_T b = Z - A * Z;
         
         f.Read( A, b, NodeFlag_T::NonId );
     }
@@ -208,46 +211,65 @@ void PushTransform( const Int node, const Int L, const Int R )
 // Pushes down all the transformations in the subtree starting at `start_node`.
 void PushAllTransforms()
 {
-    PushTransformsSubtree(Root());
-}
-
-void PushTransformsSubtree( const Int start_node )
-{
-    if constexpr ( manual_stackQ )
-    {
-        PushTransformsSubtree_ManualStack(start_node);
-    }
-    else
-    {
-        PushTransformsSubtree_Recursive(start_node);
-    }
-}
-
-void PushTransformsSubtree_ManualStack( const Int start_node )
-{
-    this->DepthFirstSearch(
-        [this]( const Int node )                    // interior node previsit
+//    PushTransformsSubtree(Root());
+    
+    this->BreadthFirstScan(
+        [this]( const Int node )                   // internal node visit
         {
             const auto [L,R] = Children( node );
             PushTransform( node, L, R );
         },
-        []( const Int node ) { (void)node; },       // interior node postvisit
-        []( const Int node ) { (void)node; },       // leaf node previsit
-        []( const Int node ) { (void)node; },       // leaf node postvisit
-        start_node
+        []( const Int node ) { (void)node; }       // leaf node visit
     );
 }
 
-void PushTransformsSubtree_Recursive( const Int node )
+void PushTransformsSubtree( const Int start_node )
 {
-    if( InteriorNodeQ(node) )
-    {
-        const auto [L,R] = Children( node );
-        PushTransform( node, L, R );
-        PushTransformsSubtree_Recursive( L );
-        PushTransformsSubtree_Recursive( R );
-    }
+    this->PreOrderScan(
+        [this]( const Int node )                    // internal node previsit
+        {
+            const auto [L,R] = Children( node );
+            PushTransform( node, L, R );
+        },
+        []( const Int node ) { (void)node; },       // leaf node visit
+        start_node
+    );
+
+    
+//    if constexpr ( manual_stackQ )
+//    {
+//        PushTransformsSubtree_ManualStack(start_node);
+//    }
+//    else
+//    {
+//        PushTransformsSubtree_Recursive(start_node);
+//    }
 }
+
+//void PushTransformsSubtree_ManualStack( const Int start_node )
+//{
+//    this->template DepthFirstScan_ManualStack<Tree_T::DFS::BreakNever>(
+//        [this]( const Int node )                    // internal node previsit
+//        {
+//            const auto [L,R] = Children( node );
+//            PushTransform( node, L, R );
+//        },
+//        []( const Int node ) { (void)node; },       // internal node postvisit
+//        []( const Int node ) { (void)node; },       // leaf node visit
+//        start_node
+//    );
+//}
+//
+//void PushTransformsSubtree_Recursive( const Int node )
+//{
+//    if( InternalNodeQ(node) )
+//    {
+//        const auto [L,R] = Children( node );
+//        PushTransform( node, L, R );
+//        PushTransformsSubtree_Recursive( L );
+//        PushTransformsSubtree_Recursive( R );
+//    }
+//}
 
 void PullTransforms( const Int from, const Int to )
 {
@@ -281,7 +303,7 @@ void PullTransforms_ManualStack( const Int from, const Int to )
     
     Int node = to;
     
-    Int stack_ptr = -1;
+    SInt stack_ptr = -1;
     
     while( (node != from) && (stack_ptr < max_depth) )
     {

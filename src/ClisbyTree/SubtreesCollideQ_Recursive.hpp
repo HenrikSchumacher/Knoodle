@@ -1,11 +1,11 @@
 private:
 
-template<bool mQ, bool fullcheckQ = false>
+template<bool mQ, bool fcQ = false>
 bool SubtreesCollideQ_Recursive( const Int i )
 {
-    const bool interiorQ = InteriorNodeQ(i);
+    const bool internalQ = InternalNodeQ(i);
     
-    if( interiorQ )
+    if( internalQ )
     {
         auto [L,R] = Children(i);
         
@@ -13,7 +13,7 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         NodeSplitFlagMatrix_T F;
         
-        if constexpr( fullcheckQ )
+        if constexpr( fcQ )
         {
             F[0][0] = true; F[0][1] = true; F[1][0] = true; F[1][1] = true;
         }
@@ -24,17 +24,17 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         // TODO: We should prioritize SubtreesCollideQ_Recursive(i) if NodeBegin(i) is closer to a pivot than NodeEnd(i)-1.
         
-        if( (F[0][0] && F[0][1]) && SubtreesCollideQ_Recursive<mQ>(L) )
+        if( (F[0][0] && F[0][1]) && SubtreesCollideQ_Recursive<mQ,fcQ>(L) )
         {
             return true;
         }
         
-        if( (F[1][0] && F[1][1]) && SubtreesCollideQ_Recursive<mQ>(R) )
+        if( (F[1][0] && F[1][1]) && SubtreesCollideQ_Recursive<mQ,fcQ>(R) )
         {
             return true;
         }
         
-        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ>(L,R) )
+        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ,fcQ>(L,R) )
         {
             return true;
         }
@@ -44,13 +44,13 @@ bool SubtreesCollideQ_Recursive( const Int i )
     
 } // SubtreesCollideQ_Recursive
 
-template<bool mQ, bool fullcheckQ = false>
+template<bool mQ, bool fcQ = false>
 bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 {
-    const bool i_interiorQ = InteriorNodeQ(i);
-    const bool j_interiorQ = InteriorNodeQ(j);
+    const bool i_internalQ = InternalNodeQ(i);
+    const bool j_internalQ = InternalNodeQ(j);
     
-    if( i_interiorQ && j_interiorQ )
+    if( i_internalQ && j_internalQ )
     {
         // Split both nodes.
         const Int c_i [2] = {LeftChild(i),RightChild(i)};
@@ -62,10 +62,10 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagMatrix_T F_i;
         NodeSplitFlagMatrix_T F_j;
         
-        if constexpr( fullcheckQ )
+        if constexpr( fcQ )
         {
-            F_i[0][0] = true; F_i[0][1] = true; F_i[1][0] = true; F_i[1][1] = true;
-            F_j[0][0] = true; F_j[0][1] = true; F_j[1][0] = true; F_j[1][1] = true;
+            F_i.Fill(true);
+            F_j.Fill(true);
         }
         else
         {
@@ -94,27 +94,27 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 
         
         // Doing (c_i[0],c_j[1]) and (c_i[1],c_j[0]) should take us closer to the pivots, where many collisions happen.
-        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ>(c_i[0],c_j[1]) )
+        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],c_j[1]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive<mQ>(c_i[1],c_j[0]) )
+        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive<mQ>(c_i[0],c_j[0]) )
+        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive<mQ>(c_i[1],c_j[1]) )
+        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],c_j[1]) )
         {
             return true;
         }
     }
-    else if( !i_interiorQ && j_interiorQ )
+    else if( !i_internalQ && j_internalQ )
     {
         // Split node j.
         const Int c_j [2] = {LeftChild(j),RightChild(j)};
@@ -123,10 +123,10 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagVector_T f_i;
         NodeSplitFlagMatrix_T F_j;
         
-        if constexpr( fullcheckQ )
+        if constexpr( fcQ )
         {
-            f_i[0] = true; f_i[1] = true;
-            F_j[0][0] = true; F_j[0][1] = true; F_j[1][0] = true; F_j[1][1] = true;
+            f_i.Fill(true);
+            F_j.Fill(true);
         }
         else
         {
@@ -149,17 +149,17 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         // TODO: We could exploit here that we now that i, c_j[0], and c_j[1] are all leaf nodes.
         
-        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ>(i,c_j[0]) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,fcQ>(i,c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ>(i,c_j[1]) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,fcQ>(i,c_j[1]) )
         {
             return true;
         }
     }
-    else if( i_interiorQ && !j_interiorQ )
+    else if( i_internalQ && !j_internalQ )
     {
         // Split node i.
         const Int c_i [2] = {LeftChild(i),RightChild(i)};
@@ -168,10 +168,10 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagMatrix_T F_i;
         NodeSplitFlagVector_T f_j;
         
-        if constexpr( fullcheckQ )
+        if constexpr( fcQ )
         {
-            F_i[0][0] = true; F_i[0][1] = true; F_i[1][0] = true; F_i[1][1] = true;
-            f_j[0] = true; f_j[1] = true;
+            F_i.Fill(true);
+            f_j.Fill(true);
         }
         else
         {
@@ -194,12 +194,12 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 
         // TODO: We could exploit here that we now that i, c_j[0], and c_j[1] are all leaf nodes.
         
-        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ>(c_i[0],j) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],j) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ>(c_i[1],j) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],j) )
         {
             return true;
         }

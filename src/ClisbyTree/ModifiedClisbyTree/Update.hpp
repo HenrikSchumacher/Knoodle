@@ -28,7 +28,7 @@ void UpdateNode( cref<Transform_T> f, mref<ClisbyNode> N )
     N.center = f(N.center);
     
     // Transformation of a leaf node never needs a change.
-    if( !N.interiorQ )
+    if( !N.internalQ )
     {
         return;
     }
