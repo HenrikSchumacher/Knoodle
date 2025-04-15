@@ -349,7 +349,8 @@ namespace Knoodle
 #include "ClisbyTree/Fold.hpp"
     
 #include "ClisbyTree/ClisbyNode.hpp"
-#include "ClisbyTree/ModifiedClisbyTree.hpp"
+//#include "ClisbyTree/ModifiedClisbyTree.hpp"
+#include "ClisbyTree/BurnIn.hpp"
     
 
         std::pair<Real,Real> MinMaxEdgeLengthDeviation( cptr<Real> vertex_coordinates )
