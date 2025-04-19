@@ -31,13 +31,13 @@ void HandleOptions( int argc, char** argv )
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
         ("bounding-boxes,B", "compute statistics of bounding boxes and report them in file \"Info.m\"")
-        ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ")
+        ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file")
         ("histograms", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
         ("checks,C", po::value<bool>()->default_value(true), "whether to perform hard sphere collision checks")
         ("reflections,R", po::value<Real>()->default_value(0.5), "probability that a pivot move is orientation reversing")
         ("hierarchical,H", po::value<bool>()->default_value(false), "whether to use hierarchical moves for burn-in and sampling")
-        ("shift,S", "shift vertex indices randomly in each sample")
-        ("recenter,Z", "translate each sample so that its barycenter is the origin")
+        ("shift,S", po::value<bool>()->default_value(true), "shift vertex indices randomly in each sample")
+        ("recenter,Z", po::value<bool>()->default_value(true), "translate each sample so that its barycenter is the origin")
         ;
         
         
@@ -155,10 +155,10 @@ void HandleOptions( int argc, char** argv )
         hierarchicalQ = vm["hierarchical"].as<bool>();
         valprint<a>("Hierarchical Moves", BoolString(hierarchicalQ) );
 
-        shiftQ = (vm.count("shift") != 0);
+        shiftQ = vm["shift"].as<bool>();
         valprint<a>("Shift Indices", BoolString(shiftQ) );
         
-        recenterQ = (vm.count("recenter") != 0);
+        recenterQ = vm["recenter"].as<bool>();
         valprint<a>("Recenter", BoolString(recenterQ) );
 
         checksQ = vm["checks"].as<bool>();
