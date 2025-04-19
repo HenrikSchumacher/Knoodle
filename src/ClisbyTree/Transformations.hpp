@@ -100,27 +100,54 @@ static void InvertTransform( mref<Transform_T> f )
     }
 }
 
-Vector_T NodeCenterAbsoluteCoordinates( const Int node_ ) const
+
+bool TransformsPulledQ( const Int node ) const
 {
-    Int node = node_;
-    
-    Vector_T x = NodeCenter(node);
+    Int ancestor = node;
     
     const Int root = Root();
     
-    while( node != root )
+    bool trivialQ = true;
+    
+    while( trivialQ && (ancestor != root) )
     {
-        node = Parent(node);
+        ancestor = Parent(ancestor);
+        trivialQ = trivialQ && ( N_state[ancestor] == NodeFlag_T::Id );
+    }
+    
+    if( !trivialQ )
+    {
+        eprint(ClassName() + "AllTransformsAboveTrivialQ: node = " + Tools::ToString(node) + " has ancestor = " + Tools::ToString(ancestor) + " with nontrivial transformation.");
+        
+        TOOLS_LOGDUMP( NodeTransform(ancestor));
+        TOOLS_LOGDUMP( NodeCenter(ancestor));
+        TOOLS_LOGDUMP( NodeFlag(ancestor));
+    }
+    
+    return trivialQ;
+}
+
+Vector_T NodeCenterAbsoluteCoordinates( const Int node ) const
+{
+    Int ancestor = node;
+    
+    Vector_T x = NodeCenter(ancestor);
+    
+    const Int root = Root();
+    
+    while( ancestor != root )
+    {
+        ancestor = Parent(ancestor);
         
         if constexpr ( quaternionsQ )
         {
             // If we use quaternions, then we need to construct only the 3x3 matrix, not the 4x4 matrix. That saves a little time.
             
-            x = Transform_T::Transform( NodeTransformPtr(node), NodeFlag(node), x );
+            x = Transform_T::Transform( NodeTransformPtr(ancestor), NodeFlag(ancestor), x );
         }
         else
         {
-            x = NodeTransform(node)(x);
+            x = NodeTransform(ancestor)(x);
         }
     }
     
@@ -211,7 +238,7 @@ void PushTransform( const Int node, const Int L, const Int R )
 // Pushes down all the transformations in the subtree starting at `start_node`.
 void PushAllTransforms()
 {
-//    PushTransformsSubtree(Root());
+//    SubtreePushAllTransforms(Root());
     
     this->BreadthFirstScan(
         [this]( const Int node )                   // internal node visit
@@ -223,7 +250,7 @@ void PushAllTransforms()
     );
 }
 
-void PushTransformsSubtree( const Int start_node )
+void SubtreePushAllTransforms( const Int start_node )
 {
     this->PreOrderScan(
         [this]( const Int node )                    // internal node previsit
@@ -238,15 +265,15 @@ void PushTransformsSubtree( const Int start_node )
     
 //    if constexpr ( manual_stackQ )
 //    {
-//        PushTransformsSubtree_ManualStack(start_node);
+//        SubtreePushAllTransforms_ManualStack(start_node);
 //    }
 //    else
 //    {
-//        PushTransformsSubtree_Recursive(start_node);
+//        SubtreePushAllTransforms_Recursive(start_node);
 //    }
 }
 
-//void PushTransformsSubtree_ManualStack( const Int start_node )
+//void SubtreePushAllTransforms_ManualStack( const Int start_node )
 //{
 //    this->template DepthFirstScan_ManualStack<Tree_T::DFS::BreakNever>(
 //        [this]( const Int node )                    // internal node previsit
@@ -260,14 +287,14 @@ void PushTransformsSubtree( const Int start_node )
 //    );
 //}
 //
-//void PushTransformsSubtree_Recursive( const Int node )
+//void SubtreePushAllTransforms_Recursive( const Int node )
 //{
 //    if( InternalNodeQ(node) )
 //    {
 //        const auto [L,R] = Children( node );
 //        PushTransform( node, L, R );
-//        PushTransformsSubtree_Recursive( L );
-//        PushTransformsSubtree_Recursive( R );
+//        SubtreePushAllTransforms_Recursive( L );
+//        SubtreePushAllTransforms_Recursive( R );
 //    }
 //}
 
@@ -279,7 +306,10 @@ void PullTransforms( const Int from, const Int to )
     }
     else
     {
-        PullTransforms_Recursive(from,to);
+        if( to != from )
+        {
+            PullTransforms_Recursive(from,Parent(to));
+        }
     }
 }
 
@@ -317,7 +347,7 @@ void PullTransforms_ManualStack( const Int from, const Int to )
         return;
     }
     
-    while( Int(0) <= stack_ptr )
+    while( stack_ptr >= Int(0) )
     {
         node = stack[stack_ptr--];
         const auto [L,R] = Children( node );

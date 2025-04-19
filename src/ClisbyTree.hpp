@@ -2,6 +2,12 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
+// TODO: Rotate DOFs on load or write.
+// TODO: Recenter polygon on load or write.
+// TODO: 2:1 Subdivision.
+// TODO: BurnIn routine.
+// TODO: Sample routine.
+
 // TODO: _Compute_ NodeRange more efficiently.
 
 // TODO: Shave off one double from ClangQuaternionTransform at the cost of a sqrt?
@@ -34,13 +40,13 @@ namespace Knoodle
     
     
     template<
-        int AmbDim_,
-        typename Real_, typename Int_, typename LInt_,
-        ClisbyTree_TArgs targs = ClisbyTree_TArgs()
+    int AmbDim_,
+    typename Real_, typename Int_, typename LInt_,
+    ClisbyTree_TArgs targs = ClisbyTree_TArgs()
     >
     class alignas( ObjectAlignment ) ClisbyTree
-        : public CompleteBinaryTree<Int_,true,true>
-//    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
+    : public CompleteBinaryTree<Int_,true,true>
+    //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(SignedIntQ<Int_>,"");
@@ -54,7 +60,7 @@ namespace Knoodle
         using LInt   = LInt_;
         
         static constexpr Int AmbDim = AmbDim_;
-    
+        
         static constexpr bool clang_matrixQ = targs.clang_matrixQ && MatrixizableQ<Real>;
         static constexpr bool quaternionsQ  = clang_matrixQ && targs.quaternionsQ;
         static constexpr bool manual_stackQ = targs.manual_stackQ;
@@ -62,19 +68,20 @@ namespace Knoodle
         
         using Tree_T = CompleteBinaryTree<Int,true,true>;
         using SInt = typename Tree_T::SInt;
+        using DFS = Tree_T::DFS;
         
         using Tree_T::max_depth;
-        
-            using Transform_T
-                = typename std::conditional_t<
-                      clang_matrixQ,
-                      typename std::conditional_t<
-                          quaternionsQ,
-                          ClangQuaternionTransform<Real,Int>,
-                          ClangAffineTransform<AmbDim,Real,Int>
-                      >,
-                      AffineTransform<AmbDim,Real,Int>
-                  >;
+    
+        using Transform_T
+            = typename std::conditional_t<
+                  clang_matrixQ,
+                  typename std::conditional_t<
+                      quaternionsQ,
+                      ClangQuaternionTransform<Real,Int>,
+                      ClangAffineTransform<AmbDim,Real,Int>
+                  >,
+                  AffineTransform<AmbDim,Real,Int>
+              >;
     
         using NodeFlag_T               = AffineTransformFlag_T;
         using Vector_T                 = typename Transform_T::Vector_T;
@@ -139,6 +146,7 @@ namespace Knoodle
         ,   N_ball                      { NodeCount(), BallDim                 }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
+        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             SetToCircle();
@@ -157,6 +165,7 @@ namespace Knoodle
         ,   N_ball                      { NodeCount(), BallDim                 }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
+        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
@@ -177,6 +186,7 @@ namespace Knoodle
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   random_engine               { prng                                 }
+        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
@@ -237,7 +247,7 @@ namespace Knoodle
         bool reflectQ           = false; // Whether we multiply the pivot move with -1.
 //        bool transforms_pushedQ = false;
         
-        
+        Tensor1<LInt,Int>  level_moves_per_node;
         PivotCollector_T   pivot_collector;
         WitnessCollector_T witness_collector;
         
@@ -347,12 +357,15 @@ namespace Knoodle
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionChecks.hpp"
 #include "ClisbyTree/Fold.hpp"
+#include "ClisbyTree/FoldRandomHierarchical.hpp"
+//#include "ClisbyTree/Subdvide.hpp"
     
-#include "ClisbyTree/ClisbyNode.hpp"
+//#include "ClisbyTree/ClisbyNode.hpp"
 //#include "ClisbyTree/ModifiedClisbyTree.hpp"
-#include "ClisbyTree/BurnIn.hpp"
-    
 
+    
+    public:
+    
         std::pair<Real,Real> MinMaxEdgeLengthDeviation( cptr<Real> vertex_coordinates )
         {
             const Int n = VertexCount();
@@ -454,15 +467,15 @@ namespace Knoodle
         static std::string ClassName()
         {
             return ct_string("ClisbyTree")
-                + "<" + ToString(AmbDim)
+                + "<" + Tools::ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>
-                + "," + ToString(clang_matrixQ)
-                + "," + ToString(quaternionsQ)
-                + "," + ToString(countersQ)
-                + "," + ToString(manual_stackQ)
-                + "," + ToString(witnessesQ)
+                + "," + Tools::ToString(clang_matrixQ)
+                + "," + Tools::ToString(quaternionsQ)
+                + "," + Tools::ToString(countersQ)
+                + "," + Tools::ToString(manual_stackQ)
+                + "," + Tools::ToString(witnessesQ)
                 + ">";
         }
         

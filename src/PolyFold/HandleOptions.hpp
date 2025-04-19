@@ -23,17 +23,21 @@ void HandleOptions( int argc, char** argv )
         ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
         ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
         ("verbosity,v", po::value<int>()->default_value(1), "how much information should be printed to Log.txt file.")
-        ("pcg-multiplier,M", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"multiplier\" (implementation dependent -- better not touch it unless you really know what you do)")
-        ("pcg-increment,I", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own)")
-        ("pcg-state,S", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding)")
+        ("pcg-multiplier", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"multiplier\" (implementation dependent -- better not touch it unless you really know what you do)")
+        ("pcg-increment", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own)")
+        ("pcg-state", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding)")
         ("low-mem,m", "force deallocation of large data structures; this will be a bit slower but peak memory will be less")
         ("angles,a", "compute statistics on curvature and torsion angles and report them in file \"Info.m\"")
         ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
         ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
+        ("bounding-boxes,B", "compute statistics of bounding boxes and report them in file \"Info.m\"")
         ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ")
-        ("histograms,H", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
-        ("checks,C", po::value<bool>()->default_value(true), "whether to perform folding without checks for overlap of hard spheres")
+        ("histograms", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
+        ("checks,C", po::value<bool>()->default_value(true), "whether to perform hard sphere collision checks")
         ("reflections,R", po::value<Real>()->default_value(0.5), "probability that a pivot move is orientation reversing")
+        ("hierarchical,H", po::value<bool>()->default_value(false), "whether to use hierarchical moves for burn-in and sampling")
+        ("shift,S", "shift vertex indices randomly in each sample")
+        ("recenter,Z", "translate each sample so that its barycenter is the origin")
         ;
         
         
@@ -119,6 +123,9 @@ void HandleOptions( int argc, char** argv )
         squared_gyradiusQ = (vm.count("squared-gyradius") != 0);
         valprint<a>("Compute Squared Gyradius", BoolString(squared_gyradiusQ) );
         
+        bounding_boxesQ = (vm.count("bounding-boxes") != 0);
+        valprint<a>("Compute Bounding Boxes", BoolString(bounding_boxesQ) );
+        
         pdQ = (vm.count("pd-code") != 0);
         valprint<a>("Compute PD Codes", BoolString(pdQ) );
         
@@ -136,20 +143,26 @@ void HandleOptions( int argc, char** argv )
         force_deallocQ = (vm.count("low-mem") != 0);
         valprint<a>("Forced Deallocation", BoolString(force_deallocQ) );
         
-        checksQ = vm["checks"].as<bool>();
-        valprint<a>("Hard Sphere Checks", BoolString(checksQ) );
-
         reflection_probability = Clamp(vm["reflections"].as<Real>(),Real(0),Real(1));
-        
         if( Clisby_T::quaternionsQ && (reflection_probability > Real(0)) )
         {
             wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
             
             reflection_probability = 0;
         }
-        
         valprint<a>("Reflection Probability",ToStringFPGeneral(reflection_probability));
         
+        hierarchicalQ = vm["hierarchical"].as<bool>();
+        valprint<a>("Hierarchical Moves", BoolString(hierarchicalQ) );
+
+        shiftQ = (vm.count("shift") != 0);
+        valprint<a>("Shift Indices", BoolString(shiftQ) );
+        
+        recenterQ = (vm.count("recenter") != 0);
+        valprint<a>("Recenter", BoolString(recenterQ) );
+
+        checksQ = vm["checks"].as<bool>();
+        valprint<a>("Hard Sphere Checks", BoolString(checksQ) );
         
         if( vm.count("pcg-multiplier") )
         {
@@ -188,6 +201,7 @@ void HandleOptions( int argc, char** argv )
             if( vm.count("extend") )
             {
                     path = std::filesystem::path( vm["output"].as<std::string>()
+                        + "-H" + ToString(hierarchicalQ)
                         + "-d" + ToStringFPGeneral(hard_sphere_diam)
                         + "-n" + ToString(n)
                         + "-b" + ToString(burn_in_accept_count)
@@ -248,9 +262,9 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( !(squared_gyradiusQ || pdQ || anglesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
+    if( !(squared_gyradiusQ || pdQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
     {
-        eprint("Not computing anything. Use the command line flags -g, -P, -a, -H, or -P to define outputs.");
+        eprint("Not computing anything. Use the command line flags -c, -g, -P, -a, -B, or -histograms to define outputs.");
         exit(13);
     }
     

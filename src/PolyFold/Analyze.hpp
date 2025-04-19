@@ -1,5 +1,7 @@
-private:
 
+// TODO: Statistics about bounding boxes.
+
+private:
 
 std::string PDCodeString( mref<PD_T> P ) const
 {
@@ -27,7 +29,7 @@ std::string PDCodeString( mref<PD_T> P ) const
 template<Size_T t0, int my_verbosity>
 int Analyze( const LInt i )
 {
-    (void)i;
+//    (void)i;
     
     analyze_begin();
     
@@ -82,6 +84,23 @@ int Analyze( const LInt i )
         Real g = SquaredGyradius(x.data());
         T_gyradius.Toc<V2Q>();
         kv<t1>("Squared Gyradius",g);
+    }
+    
+    if( bounding_boxesQ )
+    {
+        Tiny::Vector<AmbDim,Real,Int> lower (x,0);
+        Tiny::Vector<AmbDim,Real,Int> upper (x,0);
+        Tiny::Vector<AmbDim,Real,Int> u;
+        
+        for( Int j = 0; j < x.Dimension(0); ++j )
+        {
+            u.Read(x,j);
+            lower.ElementwiseMin(u);
+            upper.ElementwiseMax(u);
+        }
+        
+        kv<t1>("Bounding Box Lower Corner",lower);
+        kv<t1>("Bounding Box Upper Corner",upper);
     }
     
     if( pdQ )

@@ -2,10 +2,7 @@ private:
 
 void UpdateSubtree_Recursive( const Int start_node = Root() )
 {
-    if( InternalNodeQ(start_node) )
-    {
-        updateSubtree_Recursive(start_node);
-    }
+    updateSubtree_Recursive(start_node);
 }
 
 void updateSubtree_Recursive( const Int node )

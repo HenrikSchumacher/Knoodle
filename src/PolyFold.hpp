@@ -133,8 +133,11 @@ namespace Knoodle
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool printQ             = false;
-        bool inputQ        = false;
-    
+        bool inputQ             = false;
+        bool hierarchicalQ      = false;
+        bool bounding_boxesQ    = false;
+        bool shiftQ             = false;
+        bool recenterQ          = false;
         
         // Witness checking
         std::ofstream witness_stream;

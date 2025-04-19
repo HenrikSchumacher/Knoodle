@@ -203,6 +203,10 @@ namespace Knoodle
         {
             return max_depth;
         }
+        static constexpr Int MaxLevel()
+        {
+            return max_depth;
+        }
         
         inline static constexpr Int LeftChild( const Int i )
         {
@@ -235,12 +239,17 @@ namespace Knoodle
             return p;
         }
         
-        inline static constexpr Int Depth( const Int i )
+        
+        inline static constexpr Int Level( const Int i )
         {
-            // Depth equals the position of the most significant bit if i+1.
+            // Level equals the position of the most significant bit of i+1.
             return static_cast<Int>( MSB( static_cast<UInt>(i) + UInt(1) ) ) - Int(1);
         }
         
+        inline static constexpr Int Depth( const Int i )
+        {
+            return Level(i);
+        }
         
         inline static constexpr Int Column( const Int i )
         {
@@ -253,10 +262,35 @@ namespace Knoodle
             return i - static_cast<Int>(PrevPow(k) - one);
         }
         
-        
         inline Int ActualDepth() const
         {
             return actual_depth;
+        }
+        
+        inline Int LevelCount() const
+        {
+            return actual_depth + Int(1);
+        }
+        
+        inline Int LevelPointer( const Int level ) const
+        {
+            return (Int(2) << level) - Int(1);
+        }
+        inline Int LevelBegin( const Int level ) const
+        {
+            return LevelPointer(level);
+        }
+        
+        inline Int LevelEnd( const Int level ) const
+        {
+            return LevelPointer( level + Int(1) );
+        }
+        
+        inline std::pair<Int,Int> LevelRange( const Int level ) const
+        {
+            const Int begin = (Int(2) << level) - Int(1);
+            
+            return { begin, begin << Int(1) };
         }
         
         inline  Int RegularLeafNodeCount( const Int i ) const
@@ -603,10 +637,10 @@ namespace Knoodle
                     auto [L,R] = Children(node);
                     
                     DepthFirstScan_Recursive<mode>(
-                        int_pre_visit,int_post_visit,leaf_visit,L
+                        int_pre_visit, int_post_visit, leaf_visit, L
                     );
                     DepthFirstScan_Recursive<mode>(
-                        int_pre_visit,int_post_visit,leaf_visit,R
+                        int_pre_visit, int_post_visit, leaf_visit, R
                     );
                     
                     int_post_visit(node);
@@ -620,10 +654,10 @@ namespace Knoodle
                         auto [L,R] = Children(node);
                         
                         DepthFirstScan_Recursive<mode>(
-                            int_pre_visit,int_post_visit,leaf_visit,L
+                            int_pre_visit, int_post_visit, leaf_visit, L
                         );
                         DepthFirstScan_Recursive<mode>(
-                            int_pre_visit,int_post_visit,leaf_visit,R
+                            int_pre_visit, int_post_visit, leaf_visit, R
                         );
                     }
                     
@@ -669,17 +703,17 @@ namespace Knoodle
                 
                 if( !visitedQ  )
                 {
-                    auto [L,R] = Children(node);
-                    
                     // We visit this node for the first time.
                     if( InternalNodeQ(node) )
                     {
+                        // Mark node as visited.
+                        stack[stack_ptr] = (code | Int(1)) ;
+
+                        auto [L,R] = Children(node);
+                        
                         if constexpr ( mode == DFS::BreakNever )
                         {
                             (void)int_pre_visit(node);
-                            // Mark node as visited.
-                            stack[stack_ptr] = (code | Int(1)) ;
-                            
                             stack[++stack_ptr] = (R << 1);
                             stack[++stack_ptr] = (L << 1);
                         }
@@ -687,15 +721,12 @@ namespace Knoodle
                         {
                             if( int_pre_visit(node) )
                             {
-                                // Mark node as visited.
-                                stack[stack_ptr] = (code | Int(1)) ;
-                                
                                 stack[++stack_ptr] = (R << 1);
                                 stack[++stack_ptr] = (L << 1);
                             }
                             else
                             {
-                                if( mode == DFS::BreakEarly )
+                                if constexpr ( mode == DFS::BreakEarly )
                                 {
                                     // This prevents execution of int_post_visit.
                                     --stack_ptr;

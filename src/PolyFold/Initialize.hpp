@@ -43,6 +43,9 @@ void Initialize()
     kv<t1>  ("Burn-in Count",burn_in_accept_count);
     kv<t1>  ("Skip Count",skip);
     kv<t1>  ("Reflection Probability",reflection_probability);
+    kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
+    kv<t1>  ("Shift Indices",BoolString(shiftQ));
+    kv<t1>  ("Recenter",BoolString(recenterQ));
     kv<t1>  ("Collision Checks",BoolString(checksQ));
     kv<t1>  ("Verbosity",verbosity);
     

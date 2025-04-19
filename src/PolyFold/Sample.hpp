@@ -91,7 +91,19 @@ int Sample( const LInt i )
         
         T_fold.Tic<V2Q>();
         // Do polygon folds until we have done at least `skip` accepted steps.
-        counts = T.FoldRandom( skip, reflection_probability, checksQ );
+        if( hierarchicalQ )
+        {
+            counts = T.HierarchicalMove(
+                skip, reflection_probability, checksQ
+            );
+        }
+        else
+        {
+            counts = T.FoldRandom(
+                skip, reflection_probability, checksQ
+            );
+        }
+        
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();
@@ -107,6 +119,65 @@ int Sample( const LInt i )
         
         T_write.Tic<V2Q>();
         T.WriteVertexCoordinates( x.data() );
+        
+        prng = T.RandomEngine();
+        
+        // We fuse shifting and recentering so that we have to cycle over the arrays only twice, not four times.
+        
+        Int shift = shiftQ ? Int(0) : std::uniform_int_distribution<Int>(Int(0),n-Int(1))(prng);
+        
+        if( recenterQ )
+        {
+            Tiny::Vector<AmbDim,Real,Int> center ( Real(0) );
+            Real factor = Frac<Real>(1,n);
+            
+            auto pre_scan = [&center,factor]( cptr<Real> from, mptr<Real> to )
+            {
+                for( Int k = 0; k < AmbDim; ++k )
+                {
+                    const Real val = from[k];
+                    to[k] = val;
+                    center[k] += factor * val;
+                }
+            };
+            
+            auto post_scan = [&center]( cptr<Real> from, mptr<Real> to )
+            {
+                for( Int k = 0; k < AmbDim; ++k )
+                {
+                    to[k] = from[k] - center[k];
+                }
+            };
+            
+            row_rotate_matrix<VarSize,AmbDim,Side::Right>(
+                x.data(), AmbDim, shift, n, AmbDim, pre_scan, post_scan
+            );
+        }
+        else
+        {
+            row_rotate_matrix<VarSize,AmbDim,Side::Right>(
+                x.data(), AmbDim, shift, n, AmbDim
+            );
+        }
+        
+        if( V2Q )
+        {
+            kv<t1>("Index Shift", shift );
+        }
+        
+//        if( recenterQ )
+//        {
+//            Tiny::Vector<AmbDim,Real,Int> center = Barycenter(x.data());
+//            
+//            Tiny::Vector<AmbDim,Real,Int> u;
+//            
+//            for( Int j = 0; j < n; ++j )
+//            {
+//                u.Read(x,j);
+//                u -= center;
+//                u.Write(x,j);
+//            }
+//        }
         T_write.Toc<V2Q>();
         
         if constexpr ( Clisby_T::witnessesQ )
@@ -125,8 +196,6 @@ int Sample( const LInt i )
                 pivot_stream << std::get<0>(v) << "\t" << std::get<1>(v) << "\t" << std::get<2>(v) << "\n";
             }
         }
-        
-        prng = T.RandomEngine();
         
         if( V2Q || (i + 1 == N) )
         {

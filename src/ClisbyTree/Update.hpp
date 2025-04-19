@@ -4,13 +4,21 @@
 
 private:
 
-void Update()
-{
-    Update(Root());
-}
-
+template<bool pull_transformsQ = true>
 void Update( Int start_node )
 {
+    if constexpr( pull_transformsQ )
+    {
+        PullTransforms(Root(), start_node);
+    }
+    
+//    // DEBUGGING
+//    
+//    if( !TransformsPulledQ(start_node) )
+//    {
+//        eprint(ClassName()+ "::Update: Path to root is not cleansed, yet.");
+//    }
+    
     if constexpr ( manual_stackQ )
     {
         UpdateSubtree_ManualStack(start_node);
@@ -21,49 +29,45 @@ void Update( Int start_node )
     }
 }
 
-void Update( Int root_0, Int root_1 )
+void Update()
 {
-    if( root_0 != root_1 )
-    {
-        Update();
-    }
-    else
-    {
-        // If root_0 == root_1, then we may assume that all moving vertices lie in this one subtree.
-        // Implicitly we assume that the path from root_0 to the global root has cleared already.
-        Update(root_0);
-    }
+    this->template Update<false>(Root());
 }
+
+//template<bool pull_transformsQ = true>
+//void Update( Int root_0, Int root_1 )
+//{
+//    this->template Update<pull_transformsQ>(root_0);
+//    
+//    if( root_0 != root_1 )
+//    {
+//        this->template Update<pull_transformsQ>(root_1);
+//    }
+//}
 
 private:
 
+// TODO: It would be nice if there were a fast way to set node flags back to NodeFlag::Id, if applicable.
 void UndoUpdate()
 {
-    UndoUpdate(Root());
+    this->template UndoUpdate<false>(Root());
 }
 
+template<bool pull_transformsQ = true>
 void UndoUpdate( Int start_node )
 {
     InvertTransform( transform );
     
-    Update(start_node);
+    this->template Update<pull_transformsQ>(start_node);
 }
 
-void UndoUpdate( Int root_0, Int root_1 )
-{
-    InvertTransform( transform );
-    
-    if( root_0 != root_1 )
-    {
-        Update();
-    }
-    else
-    {
-        // If root_0 == root_1, then we may assume that all moving vertices lie in this one subtree.
-        // Implicitly we assume that the path from root_0 to the global root has cleared already.
-        Update(root_0);
-    }
-}
+//template<bool pull_transformsQ = true>
+//void UndoUpdate( Int start_node_0, Int start_node_1 )
+//{
+//    InvertTransform( transform );
+//    
+//    this->template Update<pull_transformsQ>(start_node_0,start_node_1);
+//}
 
 public:
 

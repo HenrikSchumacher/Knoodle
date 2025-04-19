@@ -37,9 +37,18 @@ void BurnIn()
 //        pre_state = FullState( T.RandomEngine() );
         
         T_fold.Tic<V2Q>();
-        counts = T.FoldRandom(
-            burn_in_accept_count, reflection_probability, checksQ
-        );
+        if( hierarchicalQ )
+        {
+            counts = T.HierarchicalMove(
+                burn_in_accept_count, reflection_probability, checksQ
+            );
+        }
+        else
+        {
+            counts = T.FoldRandom(
+                burn_in_accept_count, reflection_probability, checksQ
+            );
+        }
         T_fold.Toc<V2Q>();
         
         attempt_count = counts.Total();
