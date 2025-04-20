@@ -12,12 +12,12 @@ FoldFlag_T FoldRandom(
     
     using unif_real = std::uniform_real_distribution<Real>;
     
-    unif_real unif_angle(- Scalar::Pi<Real>,Scalar::Pi<Real> );
+//    unif_real unif_angle(- Scalar::Pi<Real>,Scalar::Pi<Real> );
     unif_real unif_prob  ( Real(0), Real(1) );
     
-    const Real angle = unif_angle(random_engine);
+//    const Real angle = unif_angle(random_engine);
     
-    auto [i,j] = RandomPivots();
+//    auto [i,j] = RandomPivots();
     
     bool reflectQ_ = false;
     
@@ -26,7 +26,7 @@ FoldFlag_T FoldRandom(
         reflectQ_ = (unif_prob( random_engine ) <= reflection_probability);
     }
     
-    return Fold( i, j, angle, reflectQ_, check_collisionsQ );
+    return Fold( RandomPivots(), RandomAngle(), reflectQ_, check_collisionsQ );
 }
 
 

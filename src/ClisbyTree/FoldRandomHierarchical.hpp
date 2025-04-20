@@ -70,29 +70,29 @@ FoldFlagCounts_T FoldRandomHierarchical(
     const bool verboseQ = false
 )
 {
-    FoldFlagCounts_T flag_ctrs ( LInt(0) );
+    FoldFlagCounts_T flag_ctr ( LInt(0) );
     
     if( verboseQ )
     {
         FoldRandomHierarchical_impl_1<true>(
-            flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal, dir, splitQ
+            flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal, dir, splitQ
         );
     }
     else
     {
         FoldRandomHierarchical_impl_1<false>(
-            flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal, dir, splitQ
+            flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal, dir, splitQ
         );
     }
     
-    return flag_ctrs;
+    return flag_ctr;
 }
 
 private:
 
 template<bool verboseQ, typename F>
 void FoldRandomHierarchical_impl_1(
-    mref<FoldFlagCounts_T> flag_ctrs,
+    mref<FoldFlagCounts_T> flag_ctr,
     F && f,
     const Int  wave_count,
     const Int  max_level,
@@ -106,20 +106,20 @@ void FoldRandomHierarchical_impl_1(
     if( splitQ )
     {
         FoldRandomHierarchical_impl_2<true,verboseQ>(
-            flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal, dir
+            flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal, dir
         );
     }
     else
     {
         FoldRandomHierarchical_impl_2<false,verboseQ>(
-            flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal, dir
+            flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal, dir
         );
     }
 }
 
 template<bool splitQ, bool verboseQ, typename F>
 void FoldRandomHierarchical_impl_2(
-    mref<FoldFlagCounts_T> flag_ctrs,
+    mref<FoldFlagCounts_T> flag_ctr,
     F && f,
     const Int  wave_count,
     const Int  max_level,
@@ -134,28 +134,28 @@ void FoldRandomHierarchical_impl_2(
         case Direction::Up:
         {
             FoldRandomHierarchical_impl_3<Direction::Up,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal
             );
             return;
         }
         case Direction::Down:
         {
             FoldRandomHierarchical_impl_3<Direction::Down,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal
             );
             return;
         }
         case Direction::VCycle:
         {
             FoldRandomHierarchical_impl_3<Direction::VCycle,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal
             );
             return;
         }
         case Direction::LambdaCycle:
         {
             FoldRandomHierarchical_impl_3<Direction::LambdaCycle,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ, traversal
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ, traversal
             );
             return;
         }
@@ -163,7 +163,7 @@ void FoldRandomHierarchical_impl_2(
 }
 template<Direction dir, bool splitQ, bool verboseQ, typename F>
 void FoldRandomHierarchical_impl_3(
-    mref<FoldFlagCounts_T> flag_ctrs,
+    mref<FoldFlagCounts_T> flag_ctr,
     F && f,
     const Int  wave_count,
     const Int  max_level,
@@ -177,14 +177,14 @@ void FoldRandomHierarchical_impl_3(
         case Traversal::BFS:
         {
             FoldRandomHierarchical<Traversal::BFS,dir,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ
             );
             return;
         }
         case Traversal::DFS:
         {
             FoldRandomHierarchical<Traversal::BFS,dir,splitQ,verboseQ>(
-                flag_ctrs, f, wave_count, max_level, reflectP, checkQ
+                flag_ctr, f, wave_count, max_level, reflectP, checkQ
             );
             return;
         }
@@ -194,7 +194,7 @@ void FoldRandomHierarchical_impl_3(
 
 template<Traversal traversal, Direction dir, bool splitQ, bool verboseQ, typename F>
 void FoldRandomHierarchical(
-    mref<FoldFlagCounts_T> flag_ctrs,
+    mref<FoldFlagCounts_T> flag_ctr,
     F && f,
     const Int  wave_count_,
     const Int  max_level_,
@@ -206,7 +206,7 @@ void FoldRandomHierarchical(
     const Int  wave_count    = Ramp(wave_count_);
     const Int  d             = this->ActualDepth() - Int(3);
     const Int  max_level     = (max_level_ < 0) ? d : Min( max_level_, d );
-    const LInt node_count = (LInt(2) << max_level) - LInt(1);
+    const LInt node_count    = (LInt(2) << max_level) - LInt(1);
     const Real reflectP      = Clamp(reflectP_, Real(0), Real(1) );
     
 //    constexpr bool cycleQ = (dir == Direction::VCycle) || (dir == Direction::LambdaCycle);
@@ -247,7 +247,7 @@ void FoldRandomHierarchical(
     {
 //        TOOLS_LOGDUMP(wave);
         this->template FoldRandomHierarchicalWave<traversal,dir,splitQ>(
-            flag_ctrs, f, max_level, node_count, reflectP, checkQ
+            flag_ctr, f, max_level, node_count, reflectP, checkQ
         );
     }
     
@@ -257,7 +257,7 @@ void FoldRandomHierarchical(
 
 template<Traversal traversal, Direction dir, bool splitQ, typename F>
 void FoldRandomHierarchicalWave(
-    mref<FoldFlagCounts_T> flag_ctrs,
+    mref<FoldFlagCounts_T> flag_ctr,
     F && f, // f(node) specifies number of successes required on this node
     const Int  max_level,
     const Int  node_count,
@@ -277,7 +277,7 @@ void FoldRandomHierarchicalWave(
             for( Int node = Int(0); node < node_count; ++node  )
             {
                 this->template SubtreeFoldRandom<true,splitQ>(
-                    node, flag_ctrs, f(node), reflectP, checkQ
+                    node, flag_ctr, f(node), reflectP, checkQ
                 );
             }
         }
@@ -286,26 +286,26 @@ void FoldRandomHierarchicalWave(
             for( Int node = node_count; node --> Int(0);  )
             {
                 this->template SubtreeFoldRandom<true,splitQ>(
-                    node, flag_ctrs, f(node), reflectP, checkQ
+                    node, flag_ctr, f(node), reflectP, checkQ
                 );
             }
         }
         else if constexpr ( dir == VCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Down,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Up  ,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
         }
         else if constexpr ( dir == LambdaCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Up  ,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Down,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
         }
     }
@@ -316,10 +316,10 @@ void FoldRandomHierarchicalWave(
         if constexpr ( dir == Down )
         {
             this->template DepthFirstScan<DFS::BreakEarly>(
-                [=,this,&flag_ctrs]( Int node )
+                [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctrs, f(node), reflectP, checkQ
+                        node, flag_ctr, f(node), reflectP, checkQ
                     );
                     return (this->Depth(node) < max_level );
                 },
@@ -334,10 +334,10 @@ void FoldRandomHierarchicalWave(
                 {
                     return (this->Depth(node) < max_level );
                 },
-                [=,this,&flag_ctrs]( Int node )
+                [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctrs, f(node), reflectP, checkQ
+                        node, flag_ctr, f(node), reflectP, checkQ
                     );
                 },
                 []( Int node ){ (void)node; }
@@ -346,17 +346,17 @@ void FoldRandomHierarchicalWave(
         else if constexpr ( dir == VCycle )
         {
             this->template DepthFirstScan<DFS::PostVisitAlways>(
-                [=,this,&flag_ctrs]( Int node )
+                [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctrs, f(node), reflectP, checkQ
+                        node, flag_ctr, f(node), reflectP, checkQ
                     );
                     return (this->Depth(node) < max_level );
                 },
-                [=,this,&flag_ctrs]( Int node )
+                [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctrs, f(node), reflectP, checkQ
+                        node, flag_ctr, f(node), reflectP, checkQ
                     );
                 },
                 []( Int node ){ (void)node; }
@@ -365,10 +365,10 @@ void FoldRandomHierarchicalWave(
         else if constexpr ( dir == LambdaCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::DFS,Up  ,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::DFS,Down,splitQ>(
-                flag_ctrs, f, max_level, node_count, reflectP, checkQ
+                flag_ctr, f, max_level, node_count, reflectP, checkQ
             );
         }
     }
@@ -387,12 +387,12 @@ FoldFlagCounts_T HierarchicalMove(
     const Traversal traversal = Traversal::BFS;
     const Direction direction = Direction::Up;
     
-    FoldFlagCounts_T flag_ctrs( LInt(0) );
+    FoldFlagCounts_T flag_ctr( LInt(0) );
     
     for( LInt iter = 0; iter < iter_count; ++iter )
     {
         this->template FoldRandomHierarchical<traversal,direction,true,false>(
-            flag_ctrs,
+            flag_ctr,
             [](Int node)
             {
                 (void)node;
@@ -402,7 +402,7 @@ FoldFlagCounts_T HierarchicalMove(
         );
     }
     
-    return flag_ctrs;
+    return flag_ctr;
 }
 
 
@@ -411,28 +411,114 @@ FoldFlagCounts_T StratifiedMove(
     const Int  level,
     const LInt wave_count,
     const LInt accepts_per_box,
-//    const LInt accepts_per_diagonal_box,
-//    const LInt accepts_per_offdiagonal_box,
     const Real reflectP,
     const bool checkQ
 )
 {
-    FoldFlagCounts_T flag_ctrs( LInt(0) );
+    FoldFlagCounts_T flag_ctr ( LInt(0) );
     
-    auto [begin,end] = LevelRange(level);
+    auto [begin,end] = this->LevelRange(level);
     
     for( LInt wave = 0; wave < wave_count; ++wave )
     {
         for( Int node_0 = begin; node_0 < end; ++node_0 )
         {
-            for( Int node_1 = begin + Int(1); node_1 < end; ++node_1 )
+            for( Int node_1 = begin; node_1 < end; ++node_1 )
             {
-                this->template SubtreeFoldRandom<true>(
-                    node_0, node_1, flag_ctrs, accepts_per_box, reflectP, checkQ
+                RectangleFoldRandom(
+                    node_0, node_1, flag_ctr, accepts_per_box, reflectP, checkQ
                 );
             }
         }
     }
     
-    return flag_ctrs;
+    return flag_ctr;
+}
+
+
+//FoldFlagCounts_T ExperimentalMove(
+//    const Int  level,
+//    const LInt accept_count_per_node,
+//    const Real reflectP,
+//    const bool check_collisionsQ = true
+//)
+//{
+//    FoldFlagCounts_T flag_ctr ( LInt(0) );
+//    
+//    const Int begin = this->LevelBegin(level);
+//    const Int end   = this->LevelEnd  (level);
+//    
+//    for( Int node_0 = begin; node_0 < end; ++node_0 )
+//    {
+//        for( Int node_1 = begin; node_1 < end; ++node_1 )
+//        {
+//            RectangleFoldRandom(
+//                node_0, node_1, flag_ctr, accept_count_per_node,
+//                reflectP, check_collisionsQ
+//            );
+//        }
+//    }
+//    
+//    return flag_ctr;
+//}
+
+
+FoldFlagCounts_T ExperimentalMove(
+    const Int  max_level_,
+    const Int  wave_count_,
+    const Int  accepts_per_node,
+    const Real reflectP_,
+    const bool checkQ
+)
+{
+    const Int  wave_count = Ramp(wave_count_);
+    const Int  d          = this->ActualDepth() - Int(3);
+    const Int  max_level  = (max_level_ < 0) ? d : Min( max_level_, d );
+    const Real reflectP   = Clamp(reflectP_, Real(0), Real(1) );
+    
+    FoldFlagCounts_T flag_ctr ( LInt(0) );
+
+    for( LInt wave = 0; wave < wave_count; ++wave )
+    {
+        for( Int level = max_level; level --> Int(2); )
+        {
+            const Int begin = this->LevelBegin(level);
+            const Int end   = this->LevelEnd  (level);
+            
+            for( Int node = begin; node < end; ++node )
+            {
+                const Int next = (node + Int(1) == end) ? begin : node + Int(1);
+                
+                this->template SubtreeFoldRandom<true,false>(
+                    node, flag_ctr, accepts_per_node, reflectP, checkQ
+                );
+                
+                RectangleFoldRandom(
+                    node, next, flag_ctr, accepts_per_node, reflectP, checkQ
+                );
+            }
+        }
+
+        {
+            const Int node = 1;
+            const Int next = 2;
+            
+            this->template SubtreeFoldRandom<true,false>(
+                node, flag_ctr, accepts_per_node, reflectP, checkQ
+            );
+            
+            RectangleFoldRandom(
+                node, next, flag_ctr, accepts_per_node, reflectP, checkQ
+            );
+        }
+        
+        {
+            const Int node = 0;
+            this->template SubtreeFoldRandom<true,false>(
+                node, flag_ctr, accepts_per_node, reflectP, checkQ
+            );
+        }
+    }
+    
+    return flag_ctr;
 }

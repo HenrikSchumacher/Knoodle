@@ -274,7 +274,7 @@ namespace Knoodle
         
         inline Int LevelPointer( const Int level ) const
         {
-            return (Int(2) << level) - Int(1);
+            return (Int(1) << level) - Int(1);
         }
         inline Int LevelBegin( const Int level ) const
         {
@@ -288,9 +288,9 @@ namespace Knoodle
         
         inline std::pair<Int,Int> LevelRange( const Int level ) const
         {
-            const Int begin = (Int(2) << level) - Int(1);
+            const Int begin = LevelPointer(level);
             
-            return { begin, begin << Int(1) };
+            return { begin, (begin << Int(1)) + Int(1) };
         }
         
         inline  Int RegularLeafNodeCount( const Int i ) const

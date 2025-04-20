@@ -107,11 +107,11 @@ UpdateFlag_T NodeNeedsUpdateQ(
 private:
 
 int LoadPivots(
-    const Int pivot_p, const Int pivot_q, const Real angle_theta, const bool reflectQ_
+    std::pair<Int,Int> && pivots, const Real angle_theta, const bool reflectQ_
 )
 {
-    p = Min(pivot_p,pivot_q);
-    q = Max(pivot_p,pivot_q);
+    p = Min(pivots.first,pivots.second);
+    q = Max(pivots.first,pivots.second);
     theta = angle_theta;
     reflectQ = reflectQ_;
     

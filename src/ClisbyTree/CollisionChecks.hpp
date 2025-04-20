@@ -1,10 +1,10 @@
 #include "CollisionQ_Reference.hpp"
 #include "CollisionQ_ManualStack.hpp"
-
 #include "SubtreesCollideQ_Recursive.hpp"
 
 
 public:
+
 
 template<bool full_checkQ = false>
 bool CollisionQ()
