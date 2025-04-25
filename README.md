@@ -69,18 +69,20 @@ Allowed options:
                                   is the origin
 ```
 
-PolyFold produces a directory containing files named "Tools_Log.txt" (for debugging; it should be empty), "Info.m" (a Mathematica file which holds an Association giving information about the run and the samples), "PDCodes.tsv" (if the -c option is given) and "Polygon_<n>.tsv" (unless the -P-1 option is used). The "Polygon_<n>.tsv" files contain lines in the form ```<x> \t <y> \t <z> \n``` giving the coordinates of each vertex. The "PDCodes.tsv" file gives a collection of simplified planar diagram codes describing the knot types of the samples. While these PD codes are guaranteed to describe the knot type correctly, the number of crossings in these PD codes is orders of magnitude smaller than the number of crossings in planar projections of the polygons. 
+PolyFold produces a directory containing files named "Tools_Log.txt" (for debugging; it should be empty), "Info.m" (a Mathematica file which holds an Association giving information about the run and the samples), "PDCodes.tsv" (if the -c option is given) and "Polygon_<n>.tsv" (unless the `-P-1` option is used). 
 
-A PDCode.tsv file contains lines in one of three forms:
+The `Polygon_<n>.tsv` files contain lines in the form ```<x> \t <y> \t <z> \n``` giving the coordinates of each vertex. 
+
+The `PDCodes.tsv` file gives a collection of **extensively simplified** planar diagram codes describing the knot types of the samples. While these PD codes are guaranteed to describe the knot type correctly, the number of crossings in these PD codes is orders of magnitude smaller than the number of crossings in planar projections of the polygons. The numbering of arcs and crossings in these codes is not canonical. A `PDCodes.tsv` file contains lines in one of three forms:
 
 ```k  ```
 
-stands for "knot". There are --sample-count "k" lines. This is equal to the number of "Polygon_<n>.tsv" files <=> "-P1" is given; otherwise, there are more samples than polygons. A "k" line followed immediately by another "k" line (or the end of the the file) denotes an unknot.
+A `k` line is start of a knot. There should be `--sample-count` `k` lines in the file. This is equal to the number of `Polygon_<n>.tsv` files if and only if `-P1` is given; otherwise, there are more samples than polygons. A `k` line followed immediately by another `k` line (or the end of the the file) denotes an unknot.
 
 ```s <0/1>```
 
-An `s` line is the start of a connected summand of a knot. The digit following the `s` is 1 if the diagram of the summand is proved to be minimal (e.g. it is reduced and alternating) and "0" if the diagram has not been proved to be minimal. (Of course, `s 0` summands for nonalternating knots are very often minimal in practice, but the current version of PolyFold doesn't recognize this automatically.)
+An `s` line is the start of a connected summand of a knot. The digit following the `s` is `1` if the diagram of the summand is proved to be minimal (e.g. it is reduced and alternating) and `0` if the diagram has not been proved to be minimal. (Of course, `s 0` summands for nonalternating knots are very often minimal in practice, but the current version of PolyFold doesn't recognize this automatically.)
 
-```<a1> <a2> <a3> <a4> <+1/-1>```
+```<a> <b> <c> <d> <+1/-1>```
 
-These lines follow an `s` line and precede another `s` or `k` line or the end of the file. `<a1>-<a4>` refer to 0-indexed arcs of the diagram meeting at a crossing. The +1/-1 gives the sign of the crossing. The ordering follows the convention in Regina: "Each 4-tuple represents a single crossing, and lists the four strands that meet at that crossing in counter-clockwise order, beginning with the incoming lower strand." A block of `c` of these lines in a row gives the code for a `c`-crossing summand of the knot. The arc indices 0, 1, ..., 2`c`-1 should each occur twice in the block.
+A line in this form describes a crossing in an oriented diagram of a connected summand of a knot. These lines follow an `s` line and precede another `s` or `k` line or the end of the file. `<a> <b> <c> <d>` are non-negative integers referring to 0-indexed strands of the diagram meeting at a crossing. The `+1/-1` gives the sign of the crossing. The ordering follows the convention in Regina: "Each 4-tuple represents a single crossing, and lists the four arcs that meet at that crossing in counter-clockwise order, beginning with the incoming lower arc." A block of `c` of these lines in a row gives the code for a `c`-crossing summand of the knot. The arc indices `0, 1, ..., 2c-1` should each occur twice in the block, and the arcs are numbered with the orientation of the knot.
