@@ -10,7 +10,7 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       154,          7]
-NotebookDataLength[    171617,       3605]
+NotebookDataLength[    171618,       3605]
 NotebookOptionsPosition[    161423,       3460]
 NotebookOutlinePosition[    161849,       3477]
 CellTagsIndexPosition[    161806,       3474]
@@ -3458,8 +3458,8 @@ Cell[BoxData[
 }, Open  ]]
 }, Open  ]]
 },
-WindowSize->{1460, 962},
-WindowMargins->{{Automatic, 78}, {Automatic, -70}},
+WindowSize->{1231, 667},
+WindowMargins->{{Automatic, -8}, {Automatic, 443}},
 Magnification:>1.5 Inherited,
 FrontEndVersion->"14.2 for Mac OS X ARM (64-bit) (March 16, 2025)",
 StyleDefinitions->"Default.nb",
@@ -3541,7 +3541,7 @@ Cell[116718, 2322, 457, 11, 39, "Message",ExpressionUUID->"8497b84c-63f5-4d91-94
 Cell[117178, 2335, 464, 11, 39, "Message",ExpressionUUID->"02a1880a-478a-4ee6-979c-5426ad615adf"],
 Cell[117645, 2348, 664, 13, 50, "Output",ExpressionUUID->"fb8efd32-6e30-4a1f-b380-51876a11786c"]
 }, Open  ]],
-Cell[118324, 2364, 586, 10, 83, "Text",ExpressionUUID->"eb42703c-6967-4e2f-b65f-35da397057b1"],
+Cell[118324, 2364, 586, 10, 116, "Text",ExpressionUUID->"eb42703c-6967-4e2f-b65f-35da397057b1"],
 Cell[118913, 2376, 439, 7, 44, "Input",ExpressionUUID->"452ef242-94b2-4e3b-8bf0-065231059d88"],
 Cell[119355, 2385, 2647, 59, 411, "Input",ExpressionUUID->"3505353e-68e4-4bc0-8c71-d062a8bdddea"],
 Cell[CellGroupData[{
@@ -3553,7 +3553,7 @@ Cell[124168, 2504, 417, 9, 44, "Input",ExpressionUUID->"15d5a361-78d5-40fc-bc67-
 Cell[124588, 2515, 293, 9, 50, "Output",ExpressionUUID->"f8b6f275-2dd7-4f1f-b248-13450025dd2d"]
 }, Open  ]],
 Cell[124896, 2527, 203, 3, 50, "Text",ExpressionUUID->"dd2adfc4-338b-472b-b273-02c4a10cdf60"],
-Cell[125102, 2532, 931, 15, 116, "Text",ExpressionUUID->"6f07043b-8724-467a-9720-b2769856460d"],
+Cell[125102, 2532, 931, 15, 149, "Text",ExpressionUUID->"6f07043b-8724-467a-9720-b2769856460d"],
 Cell[126036, 2549, 259, 6, 50, "Text",ExpressionUUID->"69a3d9b8-8a93-4b93-948a-f0b763549cd1"],
 Cell[CellGroupData[{
 Cell[126320, 2559, 1979, 42, 571, "Input",ExpressionUUID->"c12bf15c-e842-43e9-9790-7e22591fdea6"],
