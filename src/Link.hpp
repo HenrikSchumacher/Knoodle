@@ -22,7 +22,7 @@ namespace Knoodle
         return e;
     }
     
-    template<typename Int_ = Int32>
+    template<typename Int_ = Int64>
     class alignas( ObjectAlignment ) Link
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.

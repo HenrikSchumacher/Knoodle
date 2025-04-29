@@ -40,9 +40,9 @@ namespace Knoodle
     
     
     template<
-    int AmbDim_,
-    typename Real_, typename Int_, typename LInt_,
-    ClisbyTree_TArgs targs = ClisbyTree_TArgs()
+        Size_T AmbDim_,
+        typename Real_, typename Int_, typename LInt_,
+        ClisbyTree_TArgs targs = ClisbyTree_TArgs()
     >
     class alignas( ObjectAlignment ) ClisbyTree
     : public CompleteBinaryTree<Int_,true,true>
@@ -67,7 +67,6 @@ namespace Knoodle
         static constexpr bool witnessesQ    = targs.witnessesQ;
         
         using Tree_T = CompleteBinaryTree<Int,true,true>;
-        using SInt = typename Tree_T::SInt;
         using DFS = Tree_T::DFS;
         
         using Tree_T::max_depth;

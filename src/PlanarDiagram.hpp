@@ -196,7 +196,9 @@ namespace Knoodle
         PlanarDiagram(
             cptr<ExtInt> crossings, cptr<ExtInt> crossing_states,
             cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
-            const ExtInt crossing_count_, const ExtInt unlink_count_
+            const ExtInt crossing_count_,
+            const ExtInt unlink_count_,
+            const bool provably_minimalQ_ = false
         )
         :   PlanarDiagram( crossing_count_, unlink_count_ )
         {
@@ -204,16 +206,17 @@ namespace Knoodle
             C_state.Read(crossing_states);
             A_cross.Read(arcs);
             A_state.Read(arc_states);
+            provably_minimalQ = provably_minimalQ_;
         }
         
         /*! @brief Construction from `Knot_2D` object.
          */
         
-        template<typename Real, typename SInt, typename BReal>
-        PlanarDiagram( cref<Knot_2D<Real,Int,SInt,BReal>> L )
+        template<typename Real, typename BReal>
+        PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
         {
-            ReadFromLink<Real,SInt,BReal>(
+            ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
                 L.EdgePointers().data(),
@@ -226,11 +229,13 @@ namespace Knoodle
         /*! @brief Construction from `Link_2D` object.
          */
         
-        template<typename Real, typename SInt, typename BReal>
-        PlanarDiagram( cref<Link_2D<Real,Int,SInt,BReal>> L )
+        
+        
+        template<typename Real, typename BReal>
+        PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
         {
-            ReadFromLink<Real,SInt,BReal>(
+            ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
                 L.EdgePointers().data(),
@@ -240,14 +245,14 @@ namespace Knoodle
             );
         }
         
-//        template<typename Real, typename SInt, typename BReal>
-//        PlanarDiagram( Link_2D<Real,Int,SInt,BReal> && L )
+//        template<typename Real, typename BReal>
+//        PlanarDiagram( Link_2D<Real,Int,BReal> && L )
 //        {
 //            L.DeleteTree();
 //            
 //            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
 //            
-//            ReadFromLink<Real,SInt,BReal>(
+//            ReadFromLink<Real,BReal>(
 //                L.ComponentCount(),
 //                L.ComponentPointers().data(),
 //                L.EdgePointers().data(),
@@ -256,7 +261,7 @@ namespace Knoodle
 //                L.Intersections()
 //            );
 //            
-//            L = Link_2D<Real,Int,SInt,BReal>();
+//            L = Link_2D<Real,Int,BReal>();
 //        }
         
     
@@ -267,9 +272,7 @@ namespace Knoodle
         template<typename Real, typename ExtInt>
         PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
-            using SInt = int;
-            
-            Knot_2D<Real,Int,SInt,Real> L ( n );
+            Knot_2D<Real,Int,Real> L ( n );
 
             L.ReadVertexCoordinates ( x );
             
@@ -287,7 +290,7 @@ namespace Knoodle
             // We delay the allocation until substantial parts of L have been deallocated.
             *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
             
-            ReadFromLink<Real,SInt,Real>(
+            ReadFromLink<Real,Real>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
                 L.EdgePointers().data(),
@@ -300,9 +303,9 @@ namespace Knoodle
         template<typename Real, typename ExtInt>
         PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
         {
-            using SInt = int;
+            using Link_T = Link_2D<Real,Int,Real>;
             
-            Link_2D<Real,Int,SInt,Real> L ( edges, n );
+            Link_T L ( edges, n );
 
             L.ReadVertexCoordinates ( x );
             
@@ -320,7 +323,7 @@ namespace Knoodle
             // We delay the allocation until substantial parts of L have been deallocated.
             *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
             
-            ReadFromLink<Real,SInt,Real>(
+            ReadFromLink<Real,Real>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
                 L.EdgePointers().data(),
@@ -332,17 +335,18 @@ namespace Knoodle
         
     private:
         
-        template<typename Real, typename SInt, typename BReal>
+        template<typename Real, typename BReal>
         void ReadFromLink(
             const Int  component_count,
             cptr<Int>  component_ptr,
             cptr<Int>  edge_ptr,
             cptr<Int>  edge_intersections,
             cptr<bool> edge_overQ,
-            cref<std::vector<typename Link_2D<Real,Int,SInt,BReal>::Intersection_T>> intersections
+            cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections
         )
         {
-            using Intersection_T = Link_2D<Real,Int,SInt,BReal>::Intersection_T;
+            using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
+            using Sign_T           = typename Intersection_T::Sign_T;
             
             // Now we go through all components
             //      then through all edges of the component
@@ -374,9 +378,9 @@ namespace Knoodle
                     A_cross(a,Head) = c; // c is head of a
                     A_cross(b,Tail) = c; // c is tail of b
                     
-                    PD_ASSERT( (inter.handedness > SInt(0)) || (inter.handedness < SInt(0)) );
+                    PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
                     
-                    bool righthandedQ = inter.handedness > SInt(0);
+                    bool righthandedQ = inter.handedness > Sign_T(0);
 
                     
                     /*
@@ -939,6 +943,60 @@ namespace Knoodle
             }
             
             return writhe;
+        }
+        
+        
+        PlanarDiagram ChiralityTransform( const bool mirrorQ, const bool reverseQ )
+        {
+            PlanarDiagram PD ( crossing_count, unlink_count );
+            
+            PD.provably_minimalQ = provably_minimalQ;
+
+            auto & PD_C_arcs  = PD.C_arcs;
+            auto & PD_C_state = PD.C_state;
+            auto & PD_A_cross = PD.A_cross;
+            auto & PD_A_state = PD.A_state;
+            
+            
+            const bool i0 = reverseQ;
+            const bool i1 = !reverseQ;
+            
+            const bool j0 = mirrorQ != reverseQ;
+            const bool j1 = mirrorQ == reverseQ;
+
+            for( Int c = 0; c < initial_crossing_count; ++c )
+            {
+                PD_C_arcs(c,0,0) = C_arcs(c,i0,j0);
+                PD_C_arcs(c,0,1) = C_arcs(c,i0,j1);
+                PD_C_arcs(c,1,0) = C_arcs(c,i1,j0);
+                PD_C_arcs(c,1,1) = C_arcs(c,i1,j1);
+            }
+            
+            if( mirrorQ )
+            {
+                for( Int c = 0; c < initial_crossing_count; ++c )
+                {
+                    PD_C_state(c) = Flip(C_state(c));
+                }
+            }
+            else
+            {
+                PD_C_state.Read(C_state.data());
+            }
+            
+            
+            const bool k0 = reverseQ;
+            const bool k1 = !reverseQ;
+            
+            for( Int a = 0; a < initial_arc_count; ++a )
+            {
+                PD_A_cross(a,0) = A_cross(a,k0);
+                PD_A_cross(a,1) = A_cross(a,k1);
+            }
+            
+            PD_A_state.Read(A_state.data());
+            
+            return PD;
         }
         
     public:

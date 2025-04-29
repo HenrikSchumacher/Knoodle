@@ -16,7 +16,6 @@ namespace Knoodle
     public:
         
         using Int  = Int_;
-        using SInt = std::int_fast32_t;
         
         static constexpr Int max_depth = 64;
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;

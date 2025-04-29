@@ -13,7 +13,16 @@
 
 namespace Knoodle
 {
-    template<typename Real_, typename Int_, typename LInt_, typename BReal_>
+    
+    // TODO: try-catch for std::ofstream log when opening
+    // TODO: try-catch for std::ofstream log when writing
+    // TODO: try-catch for std::ofstream pds when opening
+    // TODO: try-catch for std::ofstream pds when writing
+    
+    // TODO: try-catch for also for polygons
+    
+    
+    template<typename Real_, typename Int_, typename LInt_, typename BReal_ = Real_>
     class PolyFold
     {
         static_assert(FloatQ<Real_>,"");
@@ -25,7 +34,6 @@ namespace Knoodle
         
         using Real   = Real_;
         using Int    = Int_;
-        using SInt   = Int8;
         using LInt   = LInt_;
         using BReal  = BReal_;
         
@@ -57,8 +65,8 @@ namespace Knoodle
         
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
-//        using Link_T                    = Link_2D<Real,Int,Int,BReal>;
-        using Link_T                    = Knot_2D<Real,Int,Int,BReal>;
+//        using Link_T                    = Link_2D<Real,Int,BReal>;
+        using Link_T                    = Knot_2D<Real,Int,BReal>;
         using PD_T                      = PlanarDiagram<Int>;
         using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;

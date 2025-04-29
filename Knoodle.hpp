@@ -20,6 +20,11 @@ namespace Knoodle
         Inactive             =  0
     };
     
+    CrossingState Flip( CrossingState s )
+    {
+        return CrossingState(- ToUnderlying(s));
+    }
+    
     inline std::string ToString( cref<CrossingState> s )
     {
         switch( s )

@@ -3,7 +3,7 @@
 namespace Knoodle
 {
 
-    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int32, typename BReal_ = Real_>
+    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence this class' main routine is FindIntersections (using a static binary tree).
@@ -18,13 +18,11 @@ namespace Knoodle
         
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
-        static_assert(SignedIntQ<SInt_>,"");
         
     public:
         
         using Real  = Real_;
         using Int   = Int_;
-        using SInt  = SInt_;
 //        using LInt  = Int64;
         using BReal = BReal_;
         
@@ -41,12 +39,10 @@ namespace Knoodle
         
         using BContainer_T   = typename Tree2_T::BContainer_T;
         
-        using Intersection_T = Intersection<Real,Int,Int>;
+        using Intersection_T = Intersection<Real,Int>;
         
-        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int,Int>;
+        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
-        
-        //        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,std::size_t>;
         
         static constexpr Int AmbDim = 3;
         
@@ -449,7 +445,6 @@ namespace Knoodle
             return ct_string("Link_2D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
-                + "," + TypeName<SInt>
                 + "," + TypeName<BReal>
                 + ">";
         }

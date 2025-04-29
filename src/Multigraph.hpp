@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Int_ = Int64, typename SInt_ = Int8>
+    template<typename Int_ = Int64, typename SInt_ = FastInt8>
     class alignas( ObjectAlignment ) Multigraph : public CachedObject
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.

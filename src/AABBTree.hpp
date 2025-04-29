@@ -15,6 +15,7 @@ namespace Knoodle
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
+        static_assert(FloatQ<BReal_>,"");
         
     public:
         

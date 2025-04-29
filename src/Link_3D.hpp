@@ -7,18 +7,17 @@
 
 namespace Knoodle
 {
-    template<typename Real_ = double, typename Int_ = Int32, typename SInt_ = Int8, typename BReal_ = Real_>
+    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
-        static_assert(SignedIntQ<SInt_>,"");
-    
+        static_assert(FloatQ<BReal_>,"");
+        
     public:
         
         using Real  = Real_;
         using Int   = Int_;
-        using SInt  = SInt_;
         using BReal = BReal_;
         
         // DEBUGGING
@@ -242,7 +241,7 @@ namespace Knoodle
             return ct_string("Link_3D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
-                + "," + TypeName<SInt>
+                + "," + TypeName<BReal>
                 + ">";
         }
     };

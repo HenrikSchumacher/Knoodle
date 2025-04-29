@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    enum class LineSegmentsIntersectionFlag : Int32
+    enum class LineSegmentsIntersectionFlag : FastInt8
     {
         Empty        = 0, // Empty intersection.
         Transversal  = 1, // Exactly one intersec. point X and X != x_1 and X != y_1.
@@ -23,14 +23,15 @@ namespace Knoodle
         return ToUnderlying(f) >= Underlying_T<LineSegmentsIntersectionFlag>(2);
     }
     
-    template<typename Real_,typename Int_,typename SInt_ = Int32>
+    template<typename Real_,typename Int_>
     class PlanarLineSegmentIntersector
     {
     public:
         
         using Real      = Real_;
         using Int       = Int_;
-        using SInt      = SInt_;
+        
+        using Sign_T    = typename Intersection<Real,Int>::Sign_T; // Solely for signs.
         
         using F_T       = LineSegmentsIntersectionFlag;
         
@@ -135,12 +136,12 @@ namespace Knoodle
         Vector2_T d;
         Vector2_T e;
         
-        SInt pxv;
-        SInt vxq;
-        SInt qxu;
-        SInt uxp;
-        SInt pxv_vxq;
-        SInt qxu_uxp;
+        Sign_T pxv;
+        Sign_T vxq;
+        Sign_T qxu;
+        Sign_T uxp;
+        Sign_T pxv_vxq;
+        Sign_T qxu_uxp;
         
 //        IntersectionFlagCounts_T intersection_counts = {};
         
@@ -244,10 +245,10 @@ namespace Knoodle
             e[0] = y_1[0] - x_1[0];
             e[1] = y_1[1] - x_1[1];
             
-            pxv = DetSign_Kahan<SInt>(p,v);
-            vxq = DetSign_Kahan<SInt>(v,q);
-            qxu = DetSign_Kahan<SInt>(q,u);
-            uxp = DetSign_Kahan<SInt>(u,p);
+            pxv = DetSign_Kahan<Sign_T>(p,v);
+            vxq = DetSign_Kahan<Sign_T>(v,q);
+            qxu = DetSign_Kahan<Sign_T>(q,u);
+            uxp = DetSign_Kahan<Sign_T>(u,p);
             
             // pxv == 0    <=>     (y_0 == y_1) or (x_0 in Line(y_0,y_1))
             // vxq == 0    <=>     (y_0 == y_1) or (x_1 in Line(y_0,y_1))
@@ -329,8 +330,8 @@ namespace Knoodle
                 //      X------>X
                 //  x_0     d     y_0
                 
-                const SInt dot_vd_sign = DotSign_Kahan<SInt>(v,d);
-                const SInt dot_vp_sign = DotSign_Kahan<SInt>(v,p);
+                const Sign_T dot_vd_sign = DotSign_Kahan<Sign_T>(v,d);
+                const Sign_T dot_vp_sign = DotSign_Kahan<Sign_T>(v,p);
 
                 const bool x_0_aft_y_0_Q = dot_vd_sign <= 0;
                 const bool x_0_bef_y_1_Q = dot_vp_sign >  0;
@@ -347,20 +348,20 @@ namespace Knoodle
                     
                     // Both x_0, x_1, y_0, and y_1 all lie on the same line.
                     
-                    const SInt dot_vq_sign = DotSign_Kahan<SInt>(v,q);
-                    const SInt dot_ve_sign = DotSign_Kahan<SInt>(v,e);
+                    const Sign_T dot_vq_sign = DotSign_Kahan<Sign_T>(v,q);
+                    const Sign_T dot_ve_sign = DotSign_Kahan<Sign_T>(v,e);
                                
                     // CAUTION: Here we assume that v is a nonzero vector.
                     
-                    if( (dot_vq_sign == SInt(0)) || (dot_vp_sign == SInt(0)) )
+                    if( (dot_vq_sign == Sign_T(0)) || (dot_vp_sign == Sign_T(0)) )
                     {
                         flag = F_T::Empty;
                         
                         return flag;
                     }
                     
-                    const bool x_1_aft_y_0_Q = dot_vq_sign >= SInt(0);
-                    const bool x_1_bef_y_1_Q = dot_ve_sign >  SInt(0);
+                    const bool x_1_aft_y_0_Q = dot_vq_sign >= Sign_T(0);
+                    const bool x_1_bef_y_1_Q = dot_ve_sign >  Sign_T(0);
                     
                     // The only possible way without intersection is if either both of x_0 and x_1 lie stricly before y_0 or both lie after y_1.
                     flag = (!x_0_aft_y_0_Q && !x_1_aft_y_0_Q) || (!x_0_bef_y_1_Q && !x_1_bef_y_1_Q)
@@ -404,11 +405,11 @@ namespace Knoodle
                     
                     // We merely have to check where on Line(x_0,x_1) the point y_0 lies.
                     
-                    const SInt dot_ud_sign = DotSign_Kahan<SInt>(u,d);
-                    const SInt dot_uq_sign = DotSign_Kahan<SInt>(u,q);
+                    const Sign_T dot_ud_sign = DotSign_Kahan<Sign_T>(u,d);
+                    const Sign_T dot_uq_sign = DotSign_Kahan<Sign_T>(u,q);
                     
-                    const bool y_0_aft_x_0_Q = dot_ud_sign >= SInt(0);
-                    const bool y_0_bef_x_1_Q = dot_uq_sign >  SInt(0);
+                    const bool y_0_aft_x_0_Q = dot_ud_sign >= Sign_T(0);
+                    const bool y_0_bef_x_1_Q = dot_uq_sign >  Sign_T(0);
                     
                     flag = (y_0_aft_x_0_Q && y_0_bef_x_1_Q)
                         ? F_T::AtCorner1 : F_T::Empty;
@@ -429,13 +430,13 @@ namespace Knoodle
         
     public:
         
-        std::pair<Tiny::Vector<2,Real,Int>,SInt> IntersectionTimesAndSign()
+        std::pair<Tiny::Vector<2,Real,Int>,Sign_T> IntersectionTimesAndSign()
         {
             Tiny::Vector<2,Real,Int> t;
             
             auto [det_plus,det_minus] = Det_Kahan_DiffPair(u,v);
             
-            const SInt sign = DifferenceSign<Int>(det_plus,det_minus);
+            const Sign_T sign = DifferenceSign<Sign_T>(det_plus,det_minus);
             
             if( sign == 0 )
             {

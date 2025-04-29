@@ -4,6 +4,11 @@
 
 namespace Knoodle
 {
+    
+    // TODO: Allow use of Dirichlet energy as well as bending energy.
+    // TODO: Call COIN-OR for TV regularizer -> implex? interior point?
+    // TODO: Call COIN-OR for height regularizer.
+    
     template<typename Int_>
     class Reapr
     {

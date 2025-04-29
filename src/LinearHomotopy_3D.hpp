@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Real_, typename Int_, typename SInt_ = Int8>
+    template<typename Real_, typename Int_>
     class alignas( ObjectAlignment ) LinearHomotopy_3D
     {
         
@@ -11,7 +11,6 @@ namespace Knoodle
                 
         using Real = Real_;
         using Int  = Int_;
-        using SInt = SInt_;
         
 //        static constexpr Int i_0 = 26 - 1;
 //        static constexpr Int j_0 = 56 - 1;
@@ -355,7 +354,6 @@ namespace Knoodle
             return ct_string("LinearHomotopy_3D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
-                + "," + TypeName<SInt>
                 + ">";
         }
 
