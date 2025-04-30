@@ -1,4 +1,4 @@
-int Run()
+void Run()
 {
     burn_in_time = 0;
     total_sampling_time = 0;
@@ -7,9 +7,9 @@ int Run()
     
     switch( verbosity )
     {
-        case 1: return Run_impl<0,1>();
+        case 1:  return Run_impl<0,1>();
     
-        case 2: return Run_impl<0,2>();
+        case 2:  return Run_impl<0,2>();
             
         default: return Run_impl<0,0>();
     }
@@ -18,32 +18,29 @@ int Run()
 private:
 
 template<Size_T tab_count = 0, int my_verbosity>
-int Run_impl()
+void Run_impl()
 {
-    T_run.Tic();
-    
-    BurnIn<tab_count+1,my_verbosity>();
-    
-    int err = 0;
-    
-    err = Sample<tab_count+1,my_verbosity>();
-    
-    T_run.Toc();
-    
-    total_timing = T_run.Duration();
-    
-    FinalReport<tab_count+1>();
-    
-    if( err )
+    try
     {
-        eprint(ClassName() + "::Run: Aborted because of error flag " + ToString(err) + ".");
+        T_run.Tic();
         
-        std::ofstream file ( path / "Aborted_Polygon.txt" );
+        BurnIn<tab_count+1,my_verbosity>();
         
-        file << PolygonString(x);
+        Sample<tab_count+1,my_verbosity>();
+        
+        T_run.Toc();
+        
+        total_timing = T_run.Duration();
+        
+        FinalReport<tab_count+1>();
+        
     }
-    
-    return err;
+    catch( const std::exception & e )
+    {
+        std::ofstream file ( path / "Aborted_Polygon.txt" );
+        file << PolygonString(x);
+        throw;
+    }
     
 } // Run_impl
    

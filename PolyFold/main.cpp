@@ -198,8 +198,15 @@ int main( int argc, char** argv )
 //    print("");
     
     
+    try
+    {
+        PolyFold_T polyfold ( argc, argv );
+    }
+    catch(...)
+    {
+        return EXIT_FAILURE;
+    }
     
-    PolyFold_T polyfold ( argc, argv );
     
-    return 0;
+    return EXIT_SUCCESS;
 }

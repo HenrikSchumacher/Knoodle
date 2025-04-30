@@ -7,21 +7,8 @@
 
 #include <exception>
 
-#ifdef POLYFOLD_SIGNPOSTS
-#include <os/signpost.h>
-#endif
-
 namespace Knoodle
-{
-    
-    // TODO: try-catch for std::ofstream log when opening
-    // TODO: try-catch for std::ofstream log when writing
-    // TODO: try-catch for std::ofstream pds when opening
-    // TODO: try-catch for std::ofstream pds when writing
-    
-    // TODO: try-catch for also for polygons
-    
-    
+{    
     template<typename Real_, typename Int_, typename LInt_, typename BReal_ = Real_>
     class PolyFold
     {
@@ -96,6 +83,8 @@ namespace Knoodle
         std::filesystem::path log_file;
         std::filesystem::path pds_file;
         std::filesystem::path input_file;
+        std::filesystem::path witness_file;
+        std::filesystem::path pivot_file;
         
         std::ofstream log;
         std::ofstream pds;
@@ -178,122 +167,50 @@ print(R"(
  `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´ 
 )");
 
-            print("");
-            
-            HandleOptions( argc, argv );
-            
-            if constexpr ( Clisby_T::countersQ )
+            try
             {
-                wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                print("");
+                
+                HandleOptions( argc, argv );
+                
+                if constexpr ( Clisby_T::countersQ )
+                {
+                    wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                }
+                
+                if constexpr ( Clisby_T::witnessesQ )
+                {
+                    wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
+                }
+                
+                Initialize<0>();
+                
+                Run();
+                
+                print("Done.");
+                valprint<30>("Time elapsed during burn-in",burn_in_time);
+                valprint<30>("Time elapsed during sampling",total_sampling_time);
+                valprint<30>("Time elapsed during analysis",total_analysis_time);
+                valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                print(std::string(26 + 24,'-'));
+                valprint<30>("Time elapsed all together",total_timing);
             }
-            
-            if constexpr ( Clisby_T::witnessesQ )
+            catch( const std::exception & e )
             {
-                wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
+                eprint(e.what());
+                throw;
             }
-            
-            Initialize<0>();
-            
-            Run();
-            
-            print("Done.");
-            valprint<30>("Time elapsed during burn-in",burn_in_time);
-            valprint<30>("Time elapsed during sampling",total_sampling_time);
-            valprint<30>("Time elapsed during analysis",total_analysis_time);
-            valprint<30>("Time elapsed during snapshots",total_snapshot_time);
-            print(std::string(26 + 24,'-'));
-            valprint<30>("Time elapsed all together",total_timing);
-            
+            catch(...)
+            {
+                eprint(ClassName()+"(): Unknown exception.");
+                throw;
+            }
         }
         
         ~PolyFold()
         {
             log << "\n|>";
         }
-        
-    private:
-
-#ifdef POLYFOLD_SIGNPOSTS
-        
-        os_log_t log_handle = os_log_create("PolyFols", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
-        
-        os_signpost_id_t clisby_signpost  = os_signpost_id_generate(log_handle);
-        os_signpost_id_t link_signpost    = os_signpost_id_generate(log_handle);
-        os_signpost_id_t pd_signpost      = os_signpost_id_generate(log_handle);
-        
-        os_signpost_id_t sample_signpost  = os_signpost_id_generate(log_handle);
-        os_signpost_id_t analyze_signpost = os_signpost_id_generate(log_handle);
-        
-        void clisby_begin()
-        {
-            os_signpost_interval_begin(log_handle, clisby_signpost, "Clisby_T" );
-        }
-        
-        void clisby_end()
-        {
-            os_signpost_interval_end( log_handle, clisby_signpost, "Clisby_T" );
-        }
-        
-        void link_begin()
-        {
-            os_signpost_interval_begin( log_handle, link_signpost, "Link_T" );
-        }
-        
-        void link_end()
-        {
-            os_signpost_interval_end( log_handle, link_signpost, "Link_T" );
-        }
-        
-        void pd_begin()
-        {
-            os_signpost_interval_begin( log_handle, pd_signpost, "PD_T" );
-        }
-        
-        void pd_end()
-        {
-            os_signpost_interval_end( log_handle, pd_signpost, "PD_T" );
-        }
-        
-        void sample_begin()
-        {
-            os_signpost_interval_begin( log_handle, sample_signpost, "Sample" );
-        }
-        
-        void sample_end()
-        {
-            os_signpost_interval_end( log_handle, sample_signpost, "Sample" );
-        }
-        
-        void analyze_begin()
-        {
-            os_signpost_interval_begin( log_handle, analyze_signpost, "Analyze" );
-        }
-        
-        void analyze_end()
-        {
-            os_signpost_interval_end( log_handle, analyze_signpost, "Analyze" );
-        }
-#else
-        void clisby_begin() {}
-        
-        void clisby_end() {}
-        
-        void link_begin() {}
-        
-        void link_end() {}
-        
-        void pd_begin() {}
-        
-        void pd_end() {}
-        
-        void sample_begin() {}
-        
-        void sample_end() {}
-        
-        void analyze_begin() {}
-        
-        void analyze_end() {}
-#endif
         
     private:
 

@@ -10,29 +10,65 @@ void Initialize()
     
     TimeInterval T_init(0);
     
-//    log_file = path / "Info.m";
-//    pds_file = path / "PDCodes.tsv";
+    log_file = path / "Info.m";
+    log.open( log_file, std::ios_base::out );
     
-    log.open( path / "Info.m", std::ios_base::out );
-    pds.open( path / "PDCodes.tsv", std::ios_base::out );
+    if( !log )
+    {
+        throw std::runtime_error( 
+            ClassName() + "::Initialize: Failed to create file \"" + log_file.string() + "\"."
+        );
+    }
+    
+    pds_file = path / "PDCodes.tsv";
+    pds.open( pds_file, std::ios_base::out );
+    
+    if( !pds )
+    {
+        throw std::runtime_error( 
+            ClassName() + "::Initialize: Failed to create file \"" + pds_file.string() + "\"."
+        );
+    }
     
     edge_length_tolerance = Real(0.00000000001) * Real(n);
     
     if constexpr ( Clisby_T::witnessesQ )
     {
-        witness_stream.open( path / "Witnesses.tsv", std::ios_base::out );
+        witness_file = path / "Witnesses.tsv";
+        witness_stream.open( witness_file, std::ios_base::out );
         
-        witness_stream << "Pivot 0"   << "\t" << "Pivot 1"
-        << "\t" << "Witness 0" << "\t" << "Witness 1\n";
+        if( !witness_stream )
+        {
+            throw std::runtime_error(
+                ClassName() + "::Initialize: Failed to create file \"" + witness_file.string() + "\"."
+            );
+        }
         
-        pivot_stream.open( path / "AcceptedPivotMoves.tsv", std::ios_base::out );
+        witness_stream << "Pivot 0" << "\t" << "Pivot 1" << "\t" << "Witness 0" << "\t" << "Witness 1\n";
         
-        pivot_stream   << "Pivot 0"   << "\t" << "Pivot 1" << "\t" << "Angle\n";
+        pivot_file = path / "AcceptedPivotMoves.tsv";
+        pivot_stream.open( pivot_file, std::ios_base::out );
+        
+        if( !pivot_stream )
+        {
+            throw std::runtime_error(
+                ClassName() + "::Initialize: Failed to create file \"" + pivot_file.string() + "\"."
+            );
+        }
+        
+        pivot_stream   << "Pivot 0" << "\t" << "Pivot 1" << "\t" << "Angle\n";
     }
     
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);
+    
+    if( !Profiler::log )
+    {
+        throw std::runtime_error(
+             ClassName() + "::Initialize: Failed to create file \"" + Profiler::prof_file.string() + "\"."
+        );
+    }
     
     log << ct_tabs<t0> + "<|";
     
@@ -83,7 +119,6 @@ void Initialize()
     kv<t3,0>("Class",Clisby_T::ClassName());
     log << std::flush;
     
-    clisby_begin();
     {
         Clisby_T T ( n, hard_sphere_diam );
         
@@ -105,8 +140,7 @@ void Initialize()
             // TODO: Check that loaded polygon has edgelengths close to 1.
             if( error > edge_length_tolerance )
             {
-                eprint(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is too large. Aborting." );
-                exit(3);
+                throw std::runtime_error(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is too large.");
             }
             
             if( checksQ )
@@ -114,8 +148,8 @@ void Initialize()
                 if( T.template CollisionQ<true>() )
                 {
                     kv<t3>("Hard Sphere Constraint Satisfied", "False" );
-                    eprint(ClassName() + "::Initialize: Loaded polygon does not satisfy the hard sphere constraint with diameter" + ToString(hard_sphere_diam) + ".  Aborting." );
-                    exit(4);
+                    
+                    throw std::runtime_error(ClassName() + "::Initialize: Loaded polygon does not satisfy the hard sphere constraint with diameter" + ToString(hard_sphere_diam) + ".");
                 }
                 else
                 {
@@ -147,12 +181,11 @@ void Initialize()
         {
            if( SetState( prng, prng_init ) )
            {
-               eprint( ClassName() + "::Initialize: Failed to initialize random engine with <|"
+               throw std::runtime_error( ClassName() + "::Initialize: Failed to initialize random engine with <|"
                       + "Multiplier -> " + prng_init.multiplier + ", "
                       + "Increment -> "  + prng_init.increment + ", "
-                      + "State -> "      + prng_init.state + "|>. Aborting."
-                );
-               exit(5);
+                      + "State -> "      + prng_init.state + "|>."
+               );
            }
         }
         
@@ -180,9 +213,7 @@ void Initialize()
             T = Clisby_T();
         }
     }
-    clisby_end();
 
-    link_begin();
     {
         Link_T L ( n );
 
@@ -211,13 +242,11 @@ void Initialize()
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
-        pd_begin();
         PD_T PD ( L );
 
         if( force_deallocQ )
         {
             L = Link_T();
-            link_end();
         }
         
             kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
@@ -228,7 +257,6 @@ void Initialize()
         {
             PD = PD_T();
         }
-        pd_end();
     }
     
     T_init.Toc();
@@ -236,7 +264,6 @@ void Initialize()
     kv<t2>("Initialization Seconds Elapsed", T_init.Duration() );
 
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
-    
     
     acc_intersec_counts.SetZero();
 }

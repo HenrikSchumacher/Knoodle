@@ -10,7 +10,14 @@ using PolyFold_T = Knoodle::PolyFold<Real,Int,LInt,BReal>;
 
 int main( int argc, char** argv )
 {
-    PolyFold_T polyfold ( argc, argv );
+    try
+    {
+        PolyFold_T polyfold ( argc, argv );
+    }
+    catch(...)
+    {
+        return EXIT_FAILURE;
+    }
     
-    return 0;
+    return EXIT_SUCCESS;
 }

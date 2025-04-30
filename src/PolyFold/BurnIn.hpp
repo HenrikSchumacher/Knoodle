@@ -28,7 +28,6 @@ void BurnIn()
     
     typename Clisby_T::CallCounters_T call_counters;
     
-    clisby_begin();
     {
         T_clisby.Tic<V2Q>();
         Clisby_T T ( x.data(), n, hard_sphere_diam, prng );
@@ -87,7 +86,6 @@ void BurnIn()
             T_dealloc.Toc<V2Q>();
         }
     }
-    clisby_end();
     
     T_burn_in.Toc();
 

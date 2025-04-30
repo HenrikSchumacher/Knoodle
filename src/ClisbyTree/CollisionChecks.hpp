@@ -56,7 +56,7 @@ bool CollisionQ()
 //            dump(witness[0]);
 //            dump(w_1);
 //            dump(witness[1]);
-//            exit(-1);
+//            throw std::runtime_error(ClassName() + "::CollisionQ: Deviation from reference implemention.");
 //        }
 //    }
 

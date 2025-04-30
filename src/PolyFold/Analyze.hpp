@@ -27,12 +27,8 @@ std::string PDCodeString( mref<PD_T> P ) const
 }
 
 template<Size_T t0, int my_verbosity>
-int Analyze( const LInt i )
+void Analyze( const LInt i )
 {
-//    (void)i;
-    
-    analyze_begin();
-    
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
     
@@ -106,7 +102,6 @@ int Analyze( const LInt i )
     if( pdQ )
     {
         T_link.Tic<V2Q>();
-        link_begin();
         Link_T L ( n );
 
         // Read coordinates into `Link_T` object `L`...
@@ -124,15 +119,14 @@ int Analyze( const LInt i )
         
         acc_intersec_counts += intersection_flag_counts;
         
-        if ( (err != 0) || V1Q )
+        if( (err != 0) || V1Q )
         {
             log << ",\n" + ct_tabs<t1> + "\"Link\" -> <|";
                 kv<t2,0>("Byte Count", L.ByteCount() );
-            if constexpr ( V2Q )
+            if( (err != 0) || V2Q )
             {
                 log << ",\n" + ct_tabs<t2> + "\"Byte Count Details\" -> ";
                 log << L.template AllocatedByteCountDetails<t2>();
-                
                 
                 PrintIntersectionFlagCounts<t2>(
                     "Intersection Flag Counts", intersection_flag_counts
@@ -149,7 +143,7 @@ int Analyze( const LInt i )
         {
             kv<t1>("FindIntersections Error Flag", err);
             log << std::flush;
-            return err;
+            throw std::runtime_error(ClassName()+"::Analyze(" + ToString(i) + "): Error in creating the planar diagram.");
         }
         
         // Deallocate tree-related data in L to make room for the PlanarDiagram.
@@ -174,7 +168,6 @@ int Analyze( const LInt i )
             T_link_dealloc.Toc<V2Q>();
             deallocation_time += T_link_dealloc.Duration();
         }
-        link_end();
     
         if constexpr ( V1Q )
         {
@@ -185,11 +178,6 @@ int Analyze( const LInt i )
         }
         
         std::vector<PD_T> PD_list;
-        
-        if( force_deallocQ )
-        {
-            pd_begin();
-        }
         
         T_simplify.Tic<V2Q>();
         PD.Simplify5( PD_list );
@@ -211,6 +199,7 @@ int Analyze( const LInt i )
         {
             T_write.Tic();
         }
+
         
         // Writing the PD codes to file.
         pds << "k";
@@ -228,6 +217,14 @@ int Analyze( const LInt i )
         pds << "\n";
         pds << std::flush;
         
+        
+        if( !pds )
+        {
+            throw std::runtime_error(
+                ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + pds_file.string() + "\"."
+            );
+        }
+        
         if constexpr ( V2Q )
         {
             T_write.Toc();
@@ -240,7 +237,6 @@ int Analyze( const LInt i )
             T_pd_dealloc.Toc<V2Q>();
             deallocation_time += T_pd_dealloc.Duration();
         }
-        pd_end();
     }
     
     T_analysis.Toc();
@@ -282,7 +278,4 @@ int Analyze( const LInt i )
         log << "\n" + ct_tabs<t1> + "|>";
     }
 
-    analyze_end();
-    
-    return 0;
 } // Analyze
