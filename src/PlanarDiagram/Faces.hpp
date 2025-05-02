@@ -66,7 +66,7 @@ void RequireFaces() const
 //    cptr<Int> A_left = A_left_buffer.data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    Tensor2<Int,Int> A_faces_buffer (initial_arc_count,2);
+    Tensor2<Int,Int> A_faces_buffer (max_arc_count,2);
     
     mptr<Int> A_face = A_faces_buffer.data();
     
@@ -83,7 +83,7 @@ void RequireFaces() const
     // Entry -1 means "unvisited but to be visited".
     // Entry -2 means "do not visit".
     
-    for( Int a = 0; a < initial_arc_count; ++ a )
+    for( Int a = 0; a < max_arc_count; ++ a )
     {
         const Int A = (a << 1);
         
@@ -99,7 +99,7 @@ void RequireFaces() const
         }
     }
     
-    const Int A_count = 2 * initial_arc_count;
+    const Int A_count = 2 * max_arc_count;
     
     Int A_counter = 0;
     
@@ -137,7 +137,7 @@ void RequireFaces() const
         
         if( A_finder >= A_count )
         {
-            goto exit;
+            goto Exit;
         }
 
         const Int A_0 = A_finder;
@@ -166,7 +166,7 @@ void RequireFaces() const
         F_A_ptr_agg.push_back(A_counter);
     }
     
-exit:
+Exit:
     
     
     if( !std::in_range<Int>( F_A_ptr_agg.size() ) )

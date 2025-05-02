@@ -112,7 +112,7 @@ Int simplify3( Int max_iter )
         
         old_counter = counter;
         
-        for( Int a = 0; a < initial_arc_count; ++a )
+        for( Int a = 0; a < max_arc_count; ++a )
         {
             counter += arc_simplifier(a);
         }

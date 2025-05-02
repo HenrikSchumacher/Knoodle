@@ -32,7 +32,7 @@ Int Simplify2()
         
         old_counter = counter;
 
-        for( Int c = 0; c < initial_crossing_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {

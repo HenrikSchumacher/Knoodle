@@ -442,8 +442,8 @@ namespace Knoodle
             {
                 // TODO: Find a pair of actual intersection times.
                 
-                t[0] = 0.5;
-                t[1] = 0.5;
+                t[0] = Scalar::Half<Real>;
+                t[1] = Scalar::Half<Real>;
                 
                 return {t, sign};
             }

@@ -3,9 +3,8 @@ public:
     template<bool printQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
-        TOOLS_PTIC(ClassName()+"FindIntersections");
-        
-        // TODO: Randomly rotate until not degenerate.
+//        TOOLS_PTIC(ClassName()+"FindIntersections");
+        TOOLS_PTIMER(timer,ClassName()+"FindIntersections");
         
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
@@ -15,17 +14,19 @@ public:
 
         ComputeBoundingBoxes();
         
-        CountDegenerateEdges();
+        const Int degenerate_edge_count = DegenerateEdgeCount();
         
         if( degenerate_edge_count > Int(0) )
         {
             if constexpr ( printQ )
             {
-                eprint(ClassName() + "::CountDegenerateEdges: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(ClassName() + "::FindIntersectionsx: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
             }
             return 7;
         }
           
+        // TODO: Randomly rotate until not degenerate.
+        
         TOOLS_PTIC("FindIntersectingEdges_DFS");
         FindIntersectingEdges_DFS();
         TOOLS_PTOC("FindIntersectingEdges_DFS");
@@ -50,25 +51,37 @@ public:
             {
                 if constexpr ( printQ )
                 {
-                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval).");
+                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
         }
         
         {
-            const Size_T count =
-                  intersection_flag_counts[2]
-                + intersection_flag_counts[3]
-                + intersection_flag_counts[4];
+            const Size_T count = intersection_flag_counts[4];
             
             if( count > Size_T(0) )
             {
                 if constexpr ( printQ )
                 {
-                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment.");
+                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
                 return 4;
+            }
+        }
+        
+        {
+            const Size_T count =
+                  intersection_flag_counts[2]
+                + intersection_flag_counts[3];
+            
+            if( count > Size_T(0) )
+            {
+                if constexpr ( printQ )
+                {
+                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
+                }
+                return 3;
             }
         }
         
@@ -79,7 +92,7 @@ public:
             )
         )
         {
-            eprint(ClassName() + "::FindIntersections: More intersections found than can be handled with integer type " + TypeName<Int> + "." );
+            eprint(ClassName() + "::FindIntersections: More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
         const Int intersection_count = static_cast<Int>(intersections.size());
@@ -100,7 +113,6 @@ public:
         
         if( intersection_count <= Int(0) )
         {
-            TOOLS_PTOC(ClassName()+"FindIntersections");
             return 0;
         }
         
@@ -145,8 +157,6 @@ public:
         TOOLS_PTOC("Counting sort");
         
         // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
-        
-        TOOLS_PTOC(ClassName()+"FindIntersections");
         
         return 0;
     }

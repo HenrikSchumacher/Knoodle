@@ -77,3 +77,24 @@ private:
             hi[2] = Max( hi[2], v[3 * i + 2] );
         }
     }
+
+
+    Int DegenerateEdgeCount() const
+    {
+        Int counter = 0;
+        
+        Vector2_T x;
+        Vector2_T y;
+        
+        for( Int edge = 0; edge < edge_count; ++edge )
+        {
+            x = EdgeVector2(edge,0);
+            y = EdgeVector2(edge,1);
+            
+            const Real d2 = SquaredDistance(x,y);
+            
+            counter += (d2 <= Real(0));
+        }
+        
+        return counter;
+    }

@@ -217,12 +217,23 @@ void HandleOptions( int argc, char** argv )
                 + (vm.count("tag") ? ("_" + vm["tag"].as<std::string>()) : "")
             );
         }
-        
-        valprint<a>("Output Path", path.string());
     }
     else
     {
         throw std::invalid_argument( "Output path unspecified. Use the option -o to set it." );
+    }
+    
+    
+    valprint<a>("Output Path", path.string());
+    
+    // Use this path for profiles and general log files.
+    Profiler::Clear(path,true);
+    
+    if( !Profiler::log )
+    {
+        throw std::runtime_error(
+             ClassName() + "::Initialize: Failed to create file \"" + Profiler::prof_file.string() + "\"."
+        );
     }
     
     if( vm.count("input") )
@@ -233,8 +244,6 @@ void HandleOptions( int argc, char** argv )
         
         Int flag = x.ReadFromFile( input_file );
         
-//            int flag = x.ReadFromBinaryFile( input_file );
-
         if( flag != 0 )
         {
             throw std::invalid_argument(

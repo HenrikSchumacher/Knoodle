@@ -56,11 +56,11 @@ namespace Knoodle
         
         // Class data members
         
-        Int crossing_count          = 0;
-        Int arc_count               = 0;
-        Int unlink_count            = 0;
-        Int initial_crossing_count  = 0;
-        Int initial_arc_count       = 0;
+        Int crossing_count      = 0;
+        Int arc_count           = 0;
+        Int unlink_count        = 0;
+        Int max_crossing_count  = 0;
+        Int max_arc_count       = 0;
         
         // Exposed to user via Crossings().
         CrossingContainer_T      C_arcs;
@@ -73,15 +73,15 @@ namespace Knoodle
         ArcStateContainer_T      A_state;
         
         // Counters for Reidemeister moves.
-        Int R_I_counter             = 0;
-        Int R_Ia_counter            = 0;
-        Int R_II_counter            = 0;
-        Int R_IIa_counter           = 0;
-        Int twist_counter           = 0;
-        Int four_counter            = 0;
+        Int R_I_counter   = 0;
+        Int R_Ia_counter  = 0;
+        Int R_II_counter  = 0;
+        Int R_IIa_counter = 0;
+        Int twist_counter = 0;
+        Int four_counter  = 0;
         
-        Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
-        Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
+        mutable Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
+        mutable Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
 
 //        Stack<Int,Int> stack;
         
@@ -101,19 +101,20 @@ namespace Knoodle
          */
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        :   crossing_count          ( crossing_count_                         )
-        ,   arc_count               ( Int(2)*crossing_count                   )
-        ,   unlink_count            ( unlink_count_                           )
-        ,   initial_crossing_count  ( crossing_count                          )
-        ,   initial_arc_count       ( arc_count                               )
-//        ,   C_arcs                  ( crossing_count, Int(2), Int(2), -1      )
-        ,   C_arcs                  ( crossing_count, -1                      )
-        ,   C_state                 ( crossing_count, CrossingState::Inactive )
-//        ,   A_cross                 ( arc_count,      Int(2), -1              )
-        ,   A_cross                 ( arc_count,      -1                      )
-        ,   A_state                 ( arc_count,      ArcState::Inactive      )
-        ,   C_scratch               ( crossing_count                          )
-        ,   A_scratch               ( arc_count                               )
+        : crossing_count     ( crossing_count_                             )
+        , arc_count          ( Int(2)*crossing_count                       )
+        // TODO: Make this zero.
+//        : crossing_count     ( Int(0)                                      )
+//        , arc_count          ( Int(0)                                      )
+        , unlink_count       ( unlink_count_                               )
+        , max_crossing_count ( crossing_count_                             )
+        , max_arc_count      ( Int(2)*crossing_count_                      )
+        , C_arcs             ( max_crossing_count, -1                      )
+        , C_state            ( max_crossing_count, CrossingState::Inactive )
+        , A_cross            ( max_arc_count,      -1                      )
+        , A_state            ( max_arc_count,      ArcState::Inactive      )
+        , C_scratch          ( max_crossing_count                          )
+        , A_scratch          ( max_arc_count                               )
         {}
         
     public:
@@ -126,8 +127,8 @@ namespace Knoodle
         :   crossing_count          { other.crossing_count          }
         ,   arc_count               { other.arc_count               }
         ,   unlink_count            { other.unlink_count            }
-        ,   initial_crossing_count  { other.initial_crossing_count  }
-        ,   initial_arc_count       { other.initial_arc_count       }
+        ,   max_crossing_count  { other.max_crossing_count  }
+        ,   max_arc_count       { other.max_arc_count       }
         ,   C_arcs                  { other.C_arcs                  }
         ,   C_state                 { other.C_state                 }
         ,   A_cross                 { other.A_cross                 }
@@ -154,8 +155,8 @@ namespace Knoodle
             swap( A.crossing_count         , B.crossing_count          );
             swap( A.arc_count              , B.arc_count               );
             swap( A.unlink_count           , B.unlink_count            );
-            swap( A.initial_crossing_count , B.initial_crossing_count  );
-            swap( A.initial_arc_count      , B.initial_arc_count       );
+            swap( A.max_crossing_count , B.max_crossing_count  );
+            swap( A.max_arc_count      , B.max_arc_count       );
             
             swap( A.C_arcs                 , B.C_arcs                  );
             swap( A.C_state                , B.C_state                 );
@@ -214,7 +215,7 @@ namespace Knoodle
         
         template<typename Real, typename BReal>
         PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
-        :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
+        :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
@@ -233,7 +234,7 @@ namespace Knoodle
         
         template<typename Real, typename BReal>
         PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
-        :   PlanarDiagram( L.CrossingCount(), L.UnlinkCount() )
+        :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
@@ -244,27 +245,6 @@ namespace Knoodle
                 L.Intersections()
             );
         }
-        
-//        template<typename Real, typename BReal>
-//        PlanarDiagram( Link_2D<Real,Int,BReal> && L )
-//        {
-//            L.DeleteTree();
-//            
-//            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
-//            
-//            ReadFromLink<Real,BReal>(
-//                L.ComponentCount(),
-//                L.ComponentPointers().data(),
-//                L.EdgePointers().data(),
-//                L.EdgeIntersections().data(),
-//                L.EdgeOverQ().data(),
-//                L.Intersections()
-//            );
-//            
-//            L = Link_2D<Real,Int,BReal>();
-//        }
-        
-    
         
         /*! @brief Construction from coordinates.
          */
@@ -288,7 +268,7 @@ namespace Knoodle
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
-            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
+            *this = PlanarDiagram( L.CrossingCount(), Int(0) );
             
             ReadFromLink<Real,Real>(
                 L.ComponentCount(),
@@ -321,7 +301,7 @@ namespace Knoodle
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
-            *this = PlanarDiagram( L.CrossingCount(), L.UnlinkCount() );
+            *this = PlanarDiagram( L.CrossingCount(), Int(0) );
             
             ReadFromLink<Real,Real>(
                 L.ComponentCount(),
@@ -346,12 +326,17 @@ namespace Knoodle
         )
         {
             using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
-            using Sign_T           = typename Intersection_T::Sign_T;
+            using Sign_T         = typename Intersection_T::Sign_T;
             
             // Now we go through all components
             //      then through all edges of the component
             //      then through all intersections of the edge
             // and generate new vertices, edges, crossings, and arcs in one go.
+            
+            unlink_count = 0;
+            
+            C_scratch.Fill(Int(-1));
+            Int C_counter = 0;
             
             for( Int comp = 0; comp < component_count; ++comp )
             {
@@ -362,18 +347,26 @@ namespace Knoodle
                 if( arc_begin == arc_end )
                 {
                     // Component is an unlink. Just skip it.
+                    ++unlink_count;
                     continue;
                 }
                 
                 // If we arrive here, then there is definitely a crossing in the first edge.
-
+                
                 for( Int b = arc_begin, a = arc_end-Int(1); b < arc_end; a = (b++) )
                 {
-                    const Int c = edge_intersections[b];
+                    const Int c_pos = edge_intersections[b];
+                    
+                    if( C_scratch[c_pos] < 0 )
+                    {
+                        C_scratch[c_pos] = C_counter++;
+                    }
+                    
+                    const Int c = C_scratch[c_pos];
                     
                     const bool overQ = edge_overQ[b];
                     
-                    cref<Intersection_T> inter = intersections[static_cast<Size_T>(c)];
+                    cref<Intersection_T> inter = intersections[static_cast<Size_T>(c_pos)];
                     
                     A_cross(a,Head) = c; // c is head of a
                     A_cross(b,Tail) = c; // c is tail of b
@@ -450,7 +443,7 @@ namespace Knoodle
         
         Int InitialCrossingCount() const
         {
-            return initial_crossing_count;
+            return max_crossing_count;
         }
         
         /*!
@@ -575,7 +568,7 @@ namespace Knoodle
         
         Int InitialArcCount() const
         {
-            return initial_arc_count;
+            return max_arc_count;
         }
         
         /*!
@@ -651,7 +644,7 @@ namespace Knoodle
         
         void SanitizeArcStates()
         {
-            for( Int a = 0; a < initial_arc_count; ++a )
+            for( Int a = 0; a < max_arc_count; ++a )
             {
                 if( ArcActiveQ(a) )
                 {
@@ -902,7 +895,7 @@ namespace Knoodle
         {
             Int counter = 0;
             
-            for( Int c = 0; c < initial_crossing_count; ++c )
+            for( Int c = 0; c < max_crossing_count; ++c )
             {
                 counter += CrossingActiveQ(c);
             }
@@ -914,7 +907,7 @@ namespace Knoodle
         {
             Int counter = 0;
             
-            for( Int a = 0; a < initial_arc_count; ++a )
+            for( Int a = 0; a < max_arc_count; ++a )
             {
                 counter += ArcActiveQ(a);
             }
@@ -964,7 +957,7 @@ namespace Knoodle
             const bool j0 = mirrorQ != reverseQ;
             const bool j1 = mirrorQ == reverseQ;
 
-            for( Int c = 0; c < initial_crossing_count; ++c )
+            for( Int c = 0; c < max_crossing_count; ++c )
             {
                 PD_C_arcs(c,0,0) = C_arcs(c,i0,j0);
                 PD_C_arcs(c,0,1) = C_arcs(c,i0,j1);
@@ -974,7 +967,7 @@ namespace Knoodle
             
             if( mirrorQ )
             {
-                for( Int c = 0; c < initial_crossing_count; ++c )
+                for( Int c = 0; c < max_crossing_count; ++c )
                 {
                     PD_C_state(c) = Flip(C_state(c));
                 }
@@ -988,7 +981,7 @@ namespace Knoodle
             const bool k0 = reverseQ;
             const bool k1 = !reverseQ;
             
-            for( Int a = 0; a < initial_arc_count; ++a )
+            for( Int a = 0; a < max_arc_count; ++a )
             {
                 PD_A_cross(a,0) = A_cross(a,k0);
                 PD_A_cross(a,1) = A_cross(a,k1);
@@ -1001,7 +994,7 @@ namespace Knoodle
         
     public:
 
-
+#include "PlanarDiagram/Traverse.hpp"
 #include "PlanarDiagram/Compress.hpp"
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
@@ -1036,6 +1029,11 @@ namespace Knoodle
         bool ProvablyMinimalQ() const
         {
             return provably_minimalQ;
+        }
+        
+        bool ValidQ() const
+        {
+            return (crossing_count >= Int(0)) || ( unlink_count >= Int(0) );
         }
         
     public:

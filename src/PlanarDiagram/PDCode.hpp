@@ -68,8 +68,6 @@ static PlanarDiagram<Int> FromPDCode(
 {
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
-    pd.provably_minimalQ = provably_minimalQ_;
-    
     constexpr Int d = PDsignedQ ? 5 : 4;
     
     static_assert( IntQ<ExtInt>, "" );
@@ -79,19 +77,17 @@ static PlanarDiagram<Int> FromPDCode(
         return pd;
     }
     
-    pd.A_cross.Fill(-1);
-
     // The maximally allowed arc index.
-    const Int max_a = 2 * pd.crossing_count - 1;
+    const Int max_a = 2 * pd.max_crossing_count - 1;
     
-    for( Int c = 0; c < pd.crossing_count; ++c )
+    for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
         Int X [d];
         copy_buffer<d>( &pd_codes_[d*c], &X[0] );
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1." );
+            eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1. Returning invalid PlanarDiagram." );
             return PlanarDiagram<Int>();
         }
         
@@ -137,6 +133,11 @@ static PlanarDiagram<Int> FromPDCode(
                 pd.C_arcs(c,In ,Left ) = X[3];
                 pd.C_arcs(c,In ,Right) = X[0];
                 
+                pd.A_state(X[0]) = ArcState::Active;
+                pd.A_state(X[1]) = ArcState::Active;
+                pd.A_state(X[2]) = ArcState::Active;
+                pd.A_state(X[3]) = ArcState::Active;
+                
                 break;
             }
             case CrossingState::LeftHanded:
@@ -168,6 +169,11 @@ static PlanarDiagram<Int> FromPDCode(
                 pd.C_arcs(c,In ,Left ) = X[0];
                 pd.C_arcs(c,In ,Right) = X[1];
                 
+                pd.A_state(X[0]) = ArcState::Active;
+                pd.A_state(X[1]) = ArcState::Active;
+                pd.A_state(X[2]) = ArcState::Active;
+                pd.A_state(X[3]) = ArcState::Active;
+                
                 break;
             }
             default:
@@ -178,10 +184,18 @@ static PlanarDiagram<Int> FromPDCode(
         }
     }
     
-    fill_buffer( pd.A_state.data(), ArcState::Active, pd.arc_count );
+    pd.crossing_count    = crossing_count_;
+    pd.arc_count         = pd.CountActiveArcs();
+    pd.provably_minimalQ = provably_minimalQ_;
+    
+    if( pd.arc_count != Int(2) * pd.crossing_count )
+    {
+        eprint(ClassName() + "FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
+        
+        return PlanarDiagram<Int>();
+    }
     
     // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-    
     return pd.CreateCompressed();
 }
 
@@ -203,79 +217,44 @@ public:
  *    -1 for a left-handed crossing.
  */
 
-Tensor2<Int,Int> PDCode()
+template<typename T = Int>
+Tensor2<T,Int> PDCode()
 {
-    TOOLS_PTIC(ClassName()+"::PDCode" );
+    TOOLS_PTIC(ClassName()+"::PDCode<" + TypeName<T> + ">" );
     
-    const Int m = A_cross.Dimension(0);
+    static_assert( SignedIntQ<T>, "" );
     
-    Tensor2<Int,Int> pdcode ( crossing_count, 5 );
+    Tensor2<T,Int> pd_code;
     
-    // We are using C_scratch to keep track of the new crossing's labels.
-    C_scratch.Fill(-1);
-    
-    // We are using A_scratch to keep track of the new crossing's labels.
-    A_scratch.Fill(-1);
-    
-    mptr<Int> C_labels = C_scratch.data();
-    mptr<Int> A_labels = A_scratch.data();
-    
-    Int c_counter = 0;
-    Int a_counter = 0;
-    Int a_ptr     = 0;
-    
-    while( a_ptr < m )
+    // We do this to suppress a warning by `Traverse`.
+    if( !ValidQ() )
     {
-        // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_labels[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
-        {
-            ++a_ptr;
-        }
+        goto Exit;
+    }
+    
+    if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
+    {
+        throw std::runtime_error(ClassName() + "::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
-        if( a_ptr >= m )
+        goto Exit;
+    }
+    
+    pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
+    
+    Traverse(
+        []( const Int lc, const Int lc_begin ){},
+        [&pd_code,this](
+            const Int a,   const Int a_label,
+            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
+            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
+        )
         {
-            break;
-        }
-        
-        Int a = a_ptr;
-        
-        {
-            A_labels[a] = a_counter;
-            
-            const Int c_0 = A_cross(a,Tail);
-            
-            AssertCrossing(c_0);
-            
-            if( C_labels[c_0] < Int(0) )
-            {
-                C_labels[c_0] = c_counter++;
-            }
-        }
-        
-        // Cycle along all arcs in the link component, until we return where we started.
-        do
-        {
-            A_labels[a] = a_counter;
-
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-
-            AssertCrossing(c_0);
-            AssertCrossing(c_1);
-            
-            if( C_labels[c_1] < Int(0) )
-            {
-                C_labels[c_1] = c_counter++;
-            }
-
             // Tell c_0 that arc a_counter goes out of it.
             {
-                const CrossingState state = C_state  [c_0];
-                const Int           c     = C_scratch[c_0];
-
+                const CrossingState state = C_state[c_0];
                 const bool side = (C_arcs(c_0,Out,Right) == a);
                 
-                mptr<Int> pd = pdcode.data(c);
+                mptr<Int> pd = pd_code.data(c_0_label);
                 
                 if( RightHandedQ(state) )
                 {
@@ -283,37 +262,37 @@ Tensor2<Int,Int> PDCode()
                     
                     if( side == Left )
                     {
-                        /* a_counter
+                        /*  a_label
                          *     =
                          *    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_labels[c_0]
+                         *             / <--- c_0_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          */
                         
-                        pd[2] = a_counter;
+                        pd[2] = static_cast<T>(a_label);
                     }
                     else // if( side == Right )
                     {
-                        /*                a_counter
+                        /*                 a_label
                          *                    =
                          *    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_scratch[c_0]
+                         *             / <--- c_0_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          */
                         
-                        pd[1] = a_counter;
+                        pd[1] = static_cast<T>(a_label);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -322,49 +301,47 @@ Tensor2<Int,Int> PDCode()
                     
                     if( side == Left )
                     {
-                        /* a_counter
+                        /*  a_label
                          *     =
                          *    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_labels[c_0]
+                         *             \ <--- c_0_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          */
                         
-                        pd[3] = a_counter;
+                        pd[3] = static_cast<T>(a_label);
                     }
                     else // if( side == Right )
                     {
-                        /*                a_counter
+                        /*                 a_label
                          *                    =
                          *    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_scratch[c_0]
+                         *             \ <--- c_0_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          */
                         
-                        pd[2] = a_counter;
+                        pd[2] = static_cast<T>(a_label);
                     }
                 }
             }
             
             // Tell c_1 that arc a_counter goes into it.
             {
-                const CrossingState state = C_state [c_1];
-                const Int           c     = C_labels[c_1];
-                
+                const CrossingState state = C_state[c_1];
                 const bool side  = (C_arcs(c_1,In,Right)) == a;
                 
-                mptr<Int> pd = pdcode.data(c);
+                mptr<Int> pd = pd_code.data(c_1_label);
                 
                 if( RightHandedQ(state) )
                 {
@@ -376,16 +353,16 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_scratch[c_1]
+                         *             / <--- c_1_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          *     =
-                         * a_counter
+                         *  a_label
                          */
                         
-                        pd[3] = a_counter;
+                        pd[3] = static_cast<T>(a_label);
                     }
                     else // if( side == Right )
                     {
@@ -393,16 +370,16 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c = C_labels[c_1]
+                         *             / <--- c_1_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          *                    =
-                         *                a_counter
+                         *                 a_label
                          */
                         
-                        pd[0] = a_counter;
+                        pd[0] = static_cast<T>(a_label);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -415,16 +392,16 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_scratch[c_1]
+                         *             \ <--- c_1_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          *     =
-                         * a_counter
+                         *  a_label
                          */
                         
-                        pd[0] = a_counter;
+                        pd[0] = static_cast<T>(a_label);
                     }
                     else // if( lr == Right )
                     {
@@ -432,34 +409,28 @@ Tensor2<Int,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c = C_labels[c_1]
+                         *             \ <--- c_1_label
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          *                    =
-                         *                a_counter
+                         *                 a_label
                          */
                         
-                        pd[1] = a_counter;
+                        pd[1] = static_cast<T>(a_label);
                     }
                 }
             }
-            
-            a = NextArc<Head>(a,c_1);
-            
-            AssertArc(a);
-            
-            ++a_counter;
-        }
-        while( a != a_ptr );
-        
-        ++a_ptr;
-    }
+        },
+        []( const Int lc, const Int lc_begin, const Int lc_end ){}
+    );
     
-    TOOLS_PTOC(ClassName()+"::PDCode");
+Exit:
     
-    return pdcode;
+    TOOLS_PTOC(ClassName()+"::PDCode<" + TypeName<T> + ">" );
+    
+    return pd_code;
 }
 
 std::tuple<Tensor2<Int,Int>,Tensor1<Int,Int>,Tensor1<Int,Int>> PDCodeWithLabels()

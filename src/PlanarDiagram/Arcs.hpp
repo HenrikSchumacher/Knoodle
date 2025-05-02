@@ -148,7 +148,7 @@ bool AlternatingQ()
 {
     bool alternatingQ = true;
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         alternatingQ
             = alternatingQ && ArcActiveQ(a) && (ArcOverQ<Tail>(a) != ArcOverQ<Head>(a));
@@ -330,7 +330,7 @@ bool CheckNextLeftArc() const
 {
     bool passedQ = true;
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( !ArcActiveQ(a) )
         {
@@ -570,9 +570,9 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor2<Int,Int> A_left ( initial_arc_count, 2 );
+        Tensor2<Int,Int> A_left ( max_arc_count, 2 );
         
-        for( Int c = 0; c < initial_crossing_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
@@ -674,7 +674,7 @@ bool CheckNextRightArc() const
 {
     bool passedQ = true;
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( !ArcActiveQ(a) )
         {
@@ -770,9 +770,9 @@ Int NextArc( const Int a, const Int c ) const
 
 Tensor3<Int,Int> ArcWings() const
 {
-    Tensor3<Int,Int> A_wings ( initial_arc_count, 2, 2 );
+    Tensor3<Int,Int> A_wings ( max_arc_count, 2, 2 );
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
         if( CrossingActiveQ(c) )
         {
@@ -879,9 +879,9 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_next ( initial_arc_count, -1 );
+        Tensor1<Int,Int> A_next ( max_arc_count, -1 );
         
-        for( Int c = 0; c < initial_crossing_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
@@ -902,9 +902,9 @@ Tensor1<Int,Int> ArcPrevArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_prev ( initial_arc_count, -1 );
+        Tensor1<Int,Int> A_prev ( max_arc_count, -1 );
         
-        for( Int c = 0; c < initial_crossing_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {

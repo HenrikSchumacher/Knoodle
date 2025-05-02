@@ -422,7 +422,7 @@ namespace Knoodle
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
-//            for( Int A = 0; A < 2 * pd.initial_arc_count; ++A )
+//            for( Int A = 0; A < 2 * pd.max_arc_count; ++A )
 //            {
 //                RepairArcLeftArc(A);
 //            }
@@ -1368,7 +1368,7 @@ namespace Knoodle
                                 // Remember from which arc we came
                                 A_data(a,1) = a_0;
                                 
-                                goto exit;
+                                goto Exit;
                             }
                             
                             PD_ASSERT( a != a_begin );
@@ -1446,7 +1446,7 @@ namespace Knoodle
             
             d = max_dist + 1;
             
-        exit:
+        Exit:
             
             // Write the actual path to array `path`.
             

@@ -1,3 +1,5 @@
+public:
+
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
@@ -56,10 +58,18 @@ PlanarDiagram CreateCompressed()
         
         AssertArc(a);
         
+#ifdef PD_DEBUG
         if( A_visited[a] )
         {
-            eprint(ClassName()+"::CreateCompressed: A_visited[a]!!!!!");
+            eprint(ClassName()+"::CreateCompressed: A_visited[a] already! Something must be wrong with this diagram.");
+            
+            logprint( ArcString(a) );
+
+            PrintInfo();
+            
+            CheckAll();
         }
+#endif
         
         {
             const Int c_0 = A_cross(a,Tail);
@@ -88,14 +98,13 @@ PlanarDiagram CreateCompressed()
 #ifdef PD_DEBUG
             if( A_visited[a] )
             {
-                eprint(ClassName()+"::CreateCompressed: A_visited[a].");
+                eprint(ClassName()+"::CreateCompressed: A_visited[a] already! Something must be wrong with this diagram.");
                 
                 logprint( ArcString(a) );
 
                 PrintInfo();
                 
                 CheckAll();
-
             }
 #endif
             
@@ -147,24 +156,86 @@ PlanarDiagram CreateCompressed()
     return pd;
 }
 
-bool ArcsCanonicallyOrderedQ() const
+PlanarDiagram CreateCompressed2()
 {
-    bool orderedQ = true;
+    TOOLS_PTIC( ClassName()+"::CreateCompressed");
+    
+    if( !ValidQ() )
+    {
+        wprint( ClassName()+"::CreateCompressed: Trying to compress invalid PlanarDiagram. Returning invalid diagram.");
+        return PlanarDiagram();
+    }
+    
+    PlanarDiagram pd ( crossing_count, unlink_count );
+    
+    // We assume that we start with a valid diagram.
+    // So we do not have to compute `crossing_count` or `arc_count`.
+    pd.crossing_count    = crossing_count;
+    pd.arc_count         = arc_count;
+    pd.provably_minimalQ = provably_minimalQ;
+    
+    const Int m = A_cross.Dimension(0);
+    
+    mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
+    mptr<CrossingState>       C_state_new = pd.C_state.data();
+    
+    mref<ArcContainer_T>      A_cross_new = pd.A_cross;
+    mptr<ArcState>            A_state_new = pd.A_state.data();
+    
+    Traverse(
+         []( const Int lc, const Int lc_begin ){},
+         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
+            const Int a,   const Int a_label,
+            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
+            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
+         )
+         {
+             A_state_new[a_label] = ArcState::Active;
+             
+             if( !c_1_visitedQ )
+             {
+                 C_state_new[c_1_label] = this->C_state[c_1];
+             }
+             
+             const bool side_0 = (this->C_arcs(c_0,Out,Right) == a);
+             C_arcs_new(c_0_label,Out,side_0) = a_label;
+             
+             const bool side_1 = (this->C_arcs(c_1,In,Right) == a);
+             C_arcs_new(c_1_label,In,side_1) = a_label;
+             
+             A_cross_new(a_label,Tail) = c_0_label;
+             A_cross_new(a_label,Head) = c_1_label;
+         },
+         []( const Int lc, const Int lc_begin, const Int lc_end ){}
+     );
+    
+    TOOLS_PTOC( ClassName()+"::CreateCompressed");
+    
+    return pd;
+}
 
-    Int a = 0;
-    
-    while( orderedQ && (a + Int(1) < arc_count) )
+bool CanonicallyOrderedQ()
+{
+    // An empty list is ordered, of course.s
+    if( !ValidQ() )
     {
-        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == a + Int(1));
+        return true;
     }
     
-    if( arc_count > Int(0) )
-    {
-        a = arc_count - Int(1) ;
-        
-        orderedQ = orderedQ && ArcActiveQ(a) && (NextArc<Head>(a) == Int(0));
-    }
+    bool orderedQ = true;
+    
+    Traverse(
+        []( const Int lc, const Int lc_begin ){},
+        [&orderedQ](
+            const Int a,   const Int a_label,
+            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
+            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
+        )
+        {
+            orderedQ = orderedQ && (a == a_label) && (c_0 == c_0_label);
+        },
+        []( const Int lc, const Int lc_begin, const Int lc_end ){}
+    );
     
     return orderedQ;
 }
-    

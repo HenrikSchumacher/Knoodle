@@ -79,7 +79,7 @@ bool Reidemeister_I( const Int c )
         
         DeactivateCrossing(c);
         
-        goto exit;
+        goto Exit;
     }
     else
     {
@@ -102,10 +102,10 @@ bool Reidemeister_I( const Int c )
         
         DeactivateCrossing(c);
         
-        goto exit;
+        goto Exit;
     }
    
-exit:
+Exit:
     
     ++pd.R_I_counter;
     

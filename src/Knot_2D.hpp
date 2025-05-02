@@ -86,7 +86,6 @@ namespace Knoodle
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
         
-        Int degenerate_edge_count = 0;
         Int intersection_count_3D = 0;
         
     public:
@@ -115,7 +114,7 @@ namespace Knoodle
 
 #include "Link_2D/Helpers.hpp"
 #include "Link_2D/FindIntersections.hpp"
-#include "Link_2D/CountDegenerateEdges.hpp"
+
     
     public:
         
@@ -182,11 +181,12 @@ namespace Knoodle
             
             for( Int edge = 0; edge < edge_count; ++edge )
             {
+                cptr<Real> source = &v[AmbDim * edge];
                 mptr<Real> target = &vertex_coords.data()[AmbDim * edge];
                 
-                target[0] = v[AmbDim * edge + 0] + Sterbenz_shift[0];
-                target[1] = v[AmbDim * edge + 1] + Sterbenz_shift[1];
-                target[2] = v[AmbDim * edge + 2] + Sterbenz_shift[2];
+                target[0] = source[0] + Sterbenz_shift[0];
+                target[1] = source[1] + Sterbenz_shift[1];
+                target[2] = source[2] + Sterbenz_shift[2];
             }
 
             copy_buffer<AmbDim>( vertex_coords.data(), &vertex_coords.data()[AmbDim * edge_count]);
@@ -202,12 +202,6 @@ namespace Knoodle
                 vertex_coords.data(), box_coords.data()
             );
             TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
-        }
-        
-        Int UnlinkCount() const
-        {
-            //TODO: Ensure that edge_ptr is initialized correctly when this is called!
-            return (edge_ptr[0] == edge_ptr[edge_count]);
         }
         
     private:

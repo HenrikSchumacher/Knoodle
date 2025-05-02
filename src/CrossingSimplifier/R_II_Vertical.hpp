@@ -63,7 +63,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
             Reconnect<Tail>(B,E_1);
             Reconnect<Head>(B,E_2);
             
-            goto exit;
+            goto Exit;
         }
         else
         {
@@ -102,7 +102,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         DeactivateArc(A.Idx());
         DeactivateArc(E_1.Idx());
         
-        goto exit;
+        goto Exit;
     }
     else if (E_1 != E_2)
     {
@@ -138,7 +138,7 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         
         DeactivateArc(B.Idx());
         
-        goto exit;
+        goto Exit;
     }
     else
     {
@@ -174,10 +174,10 @@ void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
         DeactivateArc(E_1.Idx());
         DeactivateArc(E_2.Idx());
         
-        goto exit;
+        goto Exit;
     }
     
-exit:
+Exit:
     
     // The two crossings are inactivated in any case.
     

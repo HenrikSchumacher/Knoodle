@@ -532,26 +532,26 @@ namespace Knoodle
             if( tail_checkQ && OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
             {
                 flag = 2;
-                goto exit;
+                goto Exit;
             }
             
             // Test front of P against end of Q.
             if( tail_checkQ && OverlapQ( P_begin, P_ts, Q_end - Q_ts, Q_ts ) )
             {
                 flag = 3;
-                goto exit;
+                goto Exit;
             }
 
             // Test P against Q.
             if( OverlapQ( P_begin, P_size, Q_begin, Q_size ) )
             {
                 flag = 4;
-                goto exit;
+                goto Exit;
             }
             
             swap(X,Y);
             
-        exit:
+        Exit:
             
             TOOLS_PTOC(ClassName()+"::Fold_Reference");
             
@@ -637,7 +637,7 @@ namespace Knoodle
                 if( OverlapQ( P_end - P_ts, P_ts, Q_begin, Q_ts ) )
                 {
                     flag = 2;
-                    goto exit;
+                    goto Exit;
                 }
             }
             
@@ -655,7 +655,7 @@ namespace Knoodle
                 if( OverlapQ( P_begin, P_ts, Q_end - Q_ts, Q_ts ) )
                 {
                     flag = 3;
-                    goto exit;
+                    goto Exit;
                 }
             }
             
@@ -677,12 +677,12 @@ namespace Knoodle
             if( OverlapQ( P_begin, P_size, Q_begin, Q_size) )
             {
                 flag = 4;
-                goto exit;
+                goto Exit;
             }
             
             swap(X,Y);
             
-        exit:
+        Exit:
             
             TOOLS_PTOC(ClassName()+"::Fold");
             

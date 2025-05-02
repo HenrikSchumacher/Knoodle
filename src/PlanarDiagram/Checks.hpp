@@ -1,9 +1,9 @@
 bool CheckCrossing( const Int c  ) const
 {
-    if( (c < Int(0)) || (c > initial_crossing_count) )
+    if( (c < Int(0)) || (c > max_crossing_count) )
     {
         eprint(ClassName()+"::CheckCrossing: Crossing index c = " + Tools::ToString(c) + " is out of bounds.");
-        TOOLS_LOGDUMP(initial_crossing_count);
+        TOOLS_LOGDUMP(max_crossing_count);
         return false;
     }
     
@@ -21,10 +21,10 @@ bool CheckCrossing( const Int c  ) const
         {
             const Int a = C_arcs(c,io,lr);
             
-            if( (a < Int(0)) || (a > initial_arc_count) )
+            if( (a < Int(0)) || (a > max_arc_count) )
             {
                 eprint(ClassName()+"::CheckCrossing: Arc index a = " + Tools::ToString(a) + " in " + CrossingString(c) + " is out of bounds.");
-                TOOLS_LOGDUMP(initial_arc_count);
+                TOOLS_LOGDUMP(max_arc_count);
                 return false;
             }
             
@@ -59,9 +59,9 @@ bool CheckAllCrossings() const
 {
     bool passedQ = true;
 
-    if( initial_crossing_count < Int(0) )
+    if( max_crossing_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllCrossings: initial_crossing_count < 0.");
+        eprint(ClassName() + "::CheckAllCrossings: max_crossing_count < 0.");
         passedQ = false;
     }
     
@@ -71,7 +71,7 @@ bool CheckAllCrossings() const
         passedQ = false;
     }
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
         passedQ = passedQ && CheckCrossing(c);
     }
@@ -90,10 +90,10 @@ bool CheckAllCrossings() const
 
 bool CheckArc( const Int a ) const
 {
-    if( (a < Int(0)) || (a > initial_arc_count) )
+    if( (a < Int(0)) || (a > max_arc_count) )
     {
         eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " is out of bounds.");
-        TOOLS_LOGDUMP(initial_arc_count);
+        TOOLS_LOGDUMP(max_arc_count);
         return false;
     }
     
@@ -110,10 +110,10 @@ bool CheckArc( const Int a ) const
     {
         const Int c = A_cross(a,headtail);
         
-        if( (c < Int(0)) || (c > initial_crossing_count) )
+        if( (c < Int(0)) || (c > max_crossing_count) )
         {
             eprint(ClassName()+"::CheckArc: Crossing index c = " + Tools::ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
-            TOOLS_LOGDUMP(initial_crossing_count);
+            TOOLS_LOGDUMP(max_crossing_count);
             return false;
         }
         
@@ -149,9 +149,9 @@ bool CheckAllArcs() const
 {
     bool passedQ = true;
     
-    if( initial_arc_count < Int(0) )
+    if( max_arc_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllArcs: initial_arc_count < 0.");
+        eprint(ClassName() + "::CheckAllArcs: max_arc_count < 0.");
         passedQ = false;
     }
     
@@ -161,7 +161,7 @@ bool CheckAllArcs() const
         passedQ = false;
     }
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         passedQ = passedQ && CheckArc(a);
     }
@@ -182,9 +182,9 @@ bool CheckVertexDegrees() const
 {
     bool passed = true;
     
-    Tensor1<Int,Int> d (initial_crossing_count,Int(0));
+    Tensor1<Int,Int> d (max_crossing_count,Int(0));
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( ArcActiveQ(a) )
         {
@@ -193,7 +193,7 @@ bool CheckVertexDegrees() const
         }
     }
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
         if( CrossingActiveQ(c) )
         {
@@ -220,9 +220,9 @@ bool CheckArcDegrees() const
 {
     bool passed = true;
     
-    Tensor1<Int,Int> d (initial_arc_count,Int(0));
+    Tensor1<Int,Int> d (max_arc_count,Int(0));
     
-    for( Int c = 0; c < initial_crossing_count; ++c )
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
         if( CrossingActiveQ(c) )
         {
@@ -233,7 +233,7 @@ bool CheckArcDegrees() const
         }
     }
     
-    for( Int a = 0; a < initial_arc_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( ArcActiveQ(a) )
         {

@@ -10,7 +10,7 @@ cref<Multigraph<Int>> DiagramComponentLinkComponentGraph()
         
         std::unordered_set<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
         
-        for( Int c = 0; c < initial_crossing_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {

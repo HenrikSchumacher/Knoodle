@@ -59,17 +59,6 @@ void Initialize()
         pivot_stream   << "Pivot 0" << "\t" << "Pivot 1" << "\t" << "Angle\n";
     }
     
-    
-    // Use this path for profiles and general log files.
-    Profiler::Clear(path,true);
-    
-    if( !Profiler::log )
-    {
-        throw std::runtime_error(
-             ClassName() + "::Initialize: Failed to create file \"" + Profiler::prof_file.string() + "\"."
-        );
-    }
-    
     log << ct_tabs<t0> + "<|";
     
     kv<t1,0>("Prescribed Edge Length",prescribed_edge_length);

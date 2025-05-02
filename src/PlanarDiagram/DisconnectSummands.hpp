@@ -20,7 +20,7 @@ bool DisconnectSummands(
     
     // TODO: Introduce some tracking of from where the components are split off.
     
-    TwoArraySort<Int,Int,Int> sort ( initial_arc_count );
+    TwoArraySort<Int,Int,Int> sort ( max_arc_count );
     
     std::vector<Int> f_arcs;
     
@@ -448,6 +448,9 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         a = a_next;
     }
     while( a != a_0 );
+    
+    // TODO: Should we compress here?
+    // TODO: Compute crossing_count and arc_count!
     
     PD_ASSERT( pd.CheckAll() );
     

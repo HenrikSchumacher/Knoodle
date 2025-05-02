@@ -101,7 +101,6 @@ namespace Knoodle
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
         
-        Int degenerate_edge_count = 0;
         Int intersection_count_3D = 0;
         
     public:
@@ -162,7 +161,7 @@ namespace Knoodle
 
 #include "Link_2D/Helpers.hpp"
 #include "Link_2D/FindIntersections.hpp"
-#include "Link_2D/CountDegenerateEdges.hpp"
+
         
     public:
         
@@ -270,120 +269,12 @@ namespace Knoodle
             TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
         
-        // TODO: Apply Sterbenz shift.
-//        void ReadVertexCoordinates( cptr<Real> x, cptr<Real> y, cptr<Real> z )
-//        {
-//            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
-//
-//            if( preorderedQ )
-//            {
-//                for( Int c = 0; c < component_count; ++c )
-//                {
-//                    const Int i_begin = component_ptr[c  ];
-//                    const Int i_end   = component_ptr[c+1];
-//
-//                    for( Int i = i_begin; i < i_end-1; ++i )
-//                    {
-//                        const int j = i+1;
-//
-//                        edge_coords(i,0,0) = x[i];
-//                        edge_coords(i,0,1) = y[i];
-//                        edge_coords(i,0,2) = z[i];
-//
-//                        edge_coords(i,1,0) = x[j];
-//                        edge_coords(i,1,1) = y[j];
-//                        edge_coords(i,1,2) = z[j];
-//                    }
-//
-//                    {
-//                        const Int i = i_end-1;
-//                        const Int j = i_begin;
-//
-//                        edge_coords(i,0,0) = x[i];
-//                        edge_coords(i,0,1) = y[i];
-//                        edge_coords(i,0,2) = z[i];
-//
-//                        edge_coords(i,1,0) = x[j];
-//                        edge_coords(i,1,1) = y[j];
-//                        edge_coords(i,1,2) = z[j];
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                cptr<Int> edge_tails = edges.data(0);
-//                cptr<Int> edge_tips  = edges.data(1);
-//
-//                for( Int edge = 0; edge < edge_count; ++edge )
-//                {
-//                    const Int i = edge_tails[edge];
-//                    const Int j = edge_tips [edge];
-//
-//                    edge_coords(edge,0,0) = x[i];
-//                    edge_coords(edge,0,1) = y[i];
-//                    edge_coords(edge,0,2) = z[i];
-//
-//                    edge_coords(edge,1,0) = x[j];
-//                    edge_coords(edge,1,1) = y[j];
-//                    edge_coords(edge,1,2) = z[j];
-//                }
-//            }
-//
-//            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (SoA, " + (preorderedQ ? "preordered" : "unordered") + ")");
-//        }
-        
-//
-//        void Rotate()
-//        {
-//            cptr<Int> edge_tails = edges.data(0);
-//            cptr<Int> edge_tips  = edges.data(1);
-//
-//            for( Int edge = 0; edge < edge_count; ++edge )
-//            {
-//                const Int i = edge_tails[edge];
-//                const Int j = edge_tips [edge];
-//
-//                // TODO: There is too much copying here. Remove it.
-//
-//                const Vector3_T x ( edge_coords.data(edge,0) );
-//                const Vector3_T y ( edge_coords.data(edge,1) );
-//
-//                const Vector3_T Rx = Dot( R, x );
-//                const Vector3_T Ry = Dot( R, y );
-//
-//                Rx.Write( edge_coords.data(edge,0) );
-//                Ry.Write( edge_coords.data(edge,1) );
-//            }
-//        }
-        
         void ComputeBoundingBoxes()
         {
             TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
             TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
         }
-        
-        Int UnlinkCount() const
-        {
-            //TODO: Ensure that edge_ptr is initialized correctly when this is called!
-            
-            Int unlink_count = 0;
-            
-            for( Int c = 0; c < component_count; ++c )
-            {
-                // The range of arcs belonging to this component.
-                const Int arc_begin  = edge_ptr[component_ptr[c  ]];
-                const Int arc_end    = edge_ptr[component_ptr[c+1]];
-
-                if( arc_begin == arc_end )
-                {
-                    ++unlink_count;
-                }
-            }
-            
-            return unlink_count;
-        }
-        
         
     private:
 
