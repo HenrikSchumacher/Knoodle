@@ -327,16 +327,23 @@ namespace Knoodle
         {
             using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
             using Sign_T         = typename Intersection_T::Sign_T;
+            // TODO: Handle over/under in ArcState.
+//            using F_T            = Underlying_T<ArcState>;
+            
+            this->template SetCache<false>("LinkComponentCount",component_count);
+
+            unlink_count = 0;
+            
+            C_scratch.Fill(Int(-1));
+            Int C_counter = 0;
+            
+            
+            // TODO: Extract LinkComponentCount, LinkComponentArcPointers, LinkComponentIndices, ArcLinkComponents from here (only if needed).
             
             // Now we go through all components
             //      then through all edges of the component
             //      then through all intersections of the edge
             // and generate new vertices, edges, crossings, and arcs in one go.
-            
-            unlink_count = 0;
-            
-            C_scratch.Fill(Int(-1));
-            Int C_counter = 0;
             
             for( Int comp = 0; comp < component_count; ++comp )
             {
@@ -374,7 +381,6 @@ namespace Knoodle
                     PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
                     
                     bool righthandedQ = inter.handedness > Sign_T(0);
-
                     
                     /*
                      *
@@ -397,7 +403,11 @@ namespace Knoodle
                      */
                     
                     C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
+                    
+                    // TODO: Handle over/under in ArcState.
                     A_state[a] = ArcState::Active;
+//                    A_state[a] = ToUnderlying(A_state[a]) | F_T(1) | (F_T(overQ) << 2);
+//                    A_state[b] = ToUnderlying(A_state[b]) | F_T(1) | (F_T(overQ) << 1);
                     
                     /*
                     * righthandedQ == true and overQ == true:
@@ -642,16 +652,16 @@ namespace Knoodle
         }
         
         
-        void SanitizeArcStates()
-        {
-            for( Int a = 0; a < max_arc_count; ++a )
-            {
-                if( ArcActiveQ(a) )
-                {
-                    A_state[a] = ArcState::Active;
-                }
-            }
-        }
+//        void SanitizeArcStates()
+//        {
+//            for( Int a = 0; a < max_arc_count; ++a )
+//            {
+//                if( ArcActiveQ(a) )
+//                {
+//                    A_state[a] = ArcState::Active;
+//                }
+//            }
+//        }
 
         
     public:
@@ -1031,9 +1041,14 @@ namespace Knoodle
             return provably_minimalQ;
         }
         
+        bool InvalidQ() const
+        {
+            return (max_crossing_count == Int(0)) && (unlink_count == Int(0));
+        }
+        
         bool ValidQ() const
         {
-            return (crossing_count >= Int(0)) || ( unlink_count >= Int(0) );
+            return !InvalidQ();
         }
         
     public:

@@ -36,6 +36,7 @@ void Reconnect( const Int a, const Int b )
     
     SetMatchingPortTo<headtail>(c,b,a);
 
+    // TODO: Handle over/under in ArcState.
     if constexpr( deactivateQ )
     {
         DeactivateArc(b);
@@ -71,6 +72,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
 
     A_cross(a,headtail) = c;
     
+    // TODO: Handle over/under in ArcState.
     SetMatchingPortTo(c,headtail,b,a);
     
     DeactivateArc(b);

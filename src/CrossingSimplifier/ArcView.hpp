@@ -45,7 +45,7 @@ public:
     
     bool ActiveQ() const
     {
-        return (ToUnderlying(S) > 0);
+        return (ToUnderlying(S) & Underlying_T<ArcState>(1));
     }
     
     inline friend bool operator==( const ArcView & A_0, const ArcView & A_1 )

@@ -94,6 +94,7 @@ namespace Knoodle
             
             Int a_ptr = 0;
             
+            // TODO: Use TraverseWithCrossings
             logprint("Start while loop.");
             while( a_ptr < m )
             {
@@ -113,7 +114,7 @@ namespace Knoodle
                 {
                     A_flag[a] = 1;
                     
-                    const Int c = A_cross[a][Head];
+                    const Int c = A_cross(a,Head);
                     
                     Int C [2][2];
                     copy_buffer<4>( C_arcs.data(c), &C[0][0] );
@@ -124,7 +125,7 @@ namespace Knoodle
                     s_val.Push(rightQ ? -1 : 1);
                     
                     a = C[0][rightQ];
-                    C_disks[c][rightQ] = s_rp.Size()-1;
+                    C_disks(c,rightQ) = s_rp.Size()-1;
                     
                 }
                 while( a != a_ptr );

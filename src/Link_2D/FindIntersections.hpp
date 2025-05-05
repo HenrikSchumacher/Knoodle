@@ -314,7 +314,7 @@ private:
             {
     //                    Time edge_start_time = Clock::now();
     //                    ++edge_call_count;
-
+                
                 ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
 
     //                    Time edge_end_time = Clock::now();
@@ -438,8 +438,38 @@ public:
 
 protected:
 
+
+
     void ComputeEdgeIntersection( const Int k, const Int l )
     {
+//        constexpr Int k0 = 4453;
+//        constexpr Int l0 = 7619;
+//
+//        const bool verboseQ = (k == k0) && (l == l0);
+//        
+//        if( verboseQ )
+//        {
+//            this->template ComputeEdgeIntersection_impl<true>(k,l);
+//        }
+//        else
+//        {
+//            this->template ComputeEdgeIntersection_impl<false>(k,l);
+//        }
+        
+        this->template ComputeEdgeIntersection_impl<false>(k,l);
+    }
+
+
+    template<bool verboseQ>
+    void ComputeEdgeIntersection_impl( const Int k, const Int l )
+    {
+        if constexpr ( verboseQ )
+        {
+            print(ClassName() + "::ComputeEdgeIntersection in verbose mode.");
+            TOOLS_DUMP(k);
+            TOOLS_DUMP(l);
+        }
+        
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
@@ -449,8 +479,21 @@ protected:
             const E_T x = EdgeData(k);
             const E_T y = EdgeData(l);
             
+            if constexpr ( verboseQ )
+            {
+                TOOLS_DUMP(ToString(x));
+                TOOLS_DUMP(ToString(y));
+            }
+            
+            
             LineSegmentsIntersectionFlag flag
-                = S.IntersectionType( x[0], x[1], y[0], y[1] );
+                = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
+            
+            
+            if constexpr ( verboseQ )
+            {
+                TOOLS_DUMP(flag);
+            }
             
             if( IntersectingQ(flag) )
             {

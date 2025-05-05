@@ -492,6 +492,7 @@ namespace Knoodle
             A_cross(a,headtail) = c;
             C_arcs(c,headtail,side) = a;
             
+            // TODO: Handle over/under in ArcState.
             TouchArc(a,headtail);
             
             if constexpr( deactivateQ )

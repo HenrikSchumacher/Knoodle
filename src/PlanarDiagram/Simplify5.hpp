@@ -73,13 +73,11 @@ bool Simplify5(
 //    TOOLS_DUMP(AlternatingQ());
 //    TOOLS_DUMP(CrossingCount());
 //    TOOLS_DUMP(DiagramComponentCount());
-//    
-    provably_minimalQ = AlternatingQ() && (DiagramComponentCount() == 1);
-//    
-//    if( provably_minimalQ )
-//    {
-//        print("Found minimal component.");
-//    }
+//
+    if( AlternatingQ() && (DiagramComponentCount() == 1) )
+    {
+        provably_minimalQ = true;
+    }
     
     TOOLS_PTOC(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)

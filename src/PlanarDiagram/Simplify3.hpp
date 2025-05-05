@@ -123,6 +123,11 @@ Int simplify3( Int max_iter )
         this->ClearCache();
     }
     
+    if( ValidQ() && (CrossingCount() == Int(0)) )
+    {
+        provably_minimalQ = true;
+    }   
+    
     TOOLS_PTOC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     return counter;

@@ -28,7 +28,9 @@ bool CheckCrossing( const Int c  ) const
                 return false;
             }
             
-            const int A_activeQ = (A_state[a] == ArcState::Active) || (A_state[a] == ArcState::Unchanged);
+//            const int A_activeQ = (A_state[a] == ArcState::Active) || (A_state[a] == ArcState::Unchanged);
+            
+            const bool A_activeQ = ToUnderlying(A_state[a]) & Underlying_T<ArcState>(1);
             
             if( !A_activeQ )
             {

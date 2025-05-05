@@ -46,7 +46,7 @@ public:
     
     bool ActiveQ() const
     {
-        return (ToUnderlying(S) % 2);
+        return (ToUnderlying(S) & Underlying_T<CrossingState>(1));
     }
     
     inline friend bool operator==( const CrossingView & C_0, const CrossingView & C_1 )

@@ -61,6 +61,11 @@ Int Simplify1()
         this->ClearCache();
     }
     
+    if( ValidQ() && (CrossingCount() == Int(0)) )
+    {
+        provably_minimalQ = true;
+    }
+    
     TOOLS_PTOC(ClassName()+"::Simplify1");
     
     return counter;

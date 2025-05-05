@@ -144,18 +144,17 @@ bool ArcOverQ( const Int a, const bool headtail )  const
     return !ArcUnderQ(a,headtail);
 }
 
-bool AlternatingQ()
+bool AlternatingQ() const
 {
-    bool alternatingQ = true;
-    
     for( Int a = 0; a < max_arc_count; ++a )
     {
-        alternatingQ
-            = alternatingQ && ArcActiveQ(a) && (ArcOverQ<Tail>(a) != ArcOverQ<Head>(a));
-        
+        if( ArcActiveQ(a) && (ArcOverQ<Tail>(a) == ArcOverQ<Head>(a)) )
+        {
+            return false;
+        }
     }
 
-    return alternatingQ;
+    return true;
 }
 
 

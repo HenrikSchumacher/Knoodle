@@ -95,6 +95,11 @@ Int Simplify4(
         this->ClearCache();
     }
     
+    if( ValidQ() && (CrossingCount() == Int(0)) )
+    {
+        provably_minimalQ = true;
+    }
+    
     PD_ASSERT(CheckAll());
 
     TOOLS_PTOC(ClassName()+"::Simplify4"

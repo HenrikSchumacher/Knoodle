@@ -198,10 +198,14 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
             {
                 const Int a = lc_arc_idx[j];
 
+                // TODO: Handle over/under in ArcState.
                 pd.A_state[a_counter] = ArcState::Active;
+//                pd.A_state[a_counter] = A_state[a];
                 
                 const Int c_0 = A_cross(a,Tail);
                 const Int c_1 = A_cross(a,Head);
+                
+                // TODO: Hande 
                 
                 DeactivateArc(a);
                 

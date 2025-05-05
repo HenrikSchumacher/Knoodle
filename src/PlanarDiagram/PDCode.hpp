@@ -63,10 +63,18 @@ static PlanarDiagram<Int> FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_,
-    const bool    provably_minimalQ_ = false
+    const bool provably_minimalQ_ = false
 )
 {
+    // TODO: Handle over/under in ArcState.
+//    using F_T = Underlying_T<ArcState>;
+//    constexpr F_T TailUnder = F_T(1) | ( F_T(0) >> 1);
+//    constexpr F_T TailOver  = F_T(1) | ( F_T(1) >> 1);
+//    constexpr F_T HeadUnder = F_T(1) | ( F_T(0) >> 2);
+//    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
+    
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
+    pd.provably_minimalQ = provably_minimalQ_;
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     
@@ -78,7 +86,7 @@ static PlanarDiagram<Int> FromPDCode(
     }
     
     // The maximally allowed arc index.
-    const Int max_a = 2 * pd.max_crossing_count - 1;
+    const Int max_a = pd.max_arc_count - 1;
     
     for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
@@ -87,7 +95,8 @@ static PlanarDiagram<Int> FromPDCode(
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint( ClassName()+"(): There is a pd code entry that is greater than 2 * number of crosssings - 1. Returning invalid PlanarDiagram." );
+            eprint( ClassName()+"(): There is a pd code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
+            valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
             return PlanarDiagram<Int>();
         }
         
@@ -132,11 +141,17 @@ static PlanarDiagram<Int> FromPDCode(
                 pd.C_arcs(c,Out,Right) = X[1];
                 pd.C_arcs(c,In ,Left ) = X[3];
                 pd.C_arcs(c,In ,Right) = X[0];
-                
+
+                // TODO: Handle over/under in ArcState.
                 pd.A_state(X[0]) = ArcState::Active;
                 pd.A_state(X[1]) = ArcState::Active;
                 pd.A_state(X[2]) = ArcState::Active;
                 pd.A_state(X[3]) = ArcState::Active;
+                
+//                pd.A_state(X[0]) |= HeadUnder;
+//                pd.A_state(X[1]) |= TailOver;
+//                pd.A_state(X[2]) |= TailUnder;
+//                pd.A_state(X[3]) |= HeadOver;
                 
                 break;
             }
@@ -169,10 +184,16 @@ static PlanarDiagram<Int> FromPDCode(
                 pd.C_arcs(c,In ,Left ) = X[0];
                 pd.C_arcs(c,In ,Right) = X[1];
                 
+                // TODO: Handle over/under in ArcState.
                 pd.A_state(X[0]) = ArcState::Active;
                 pd.A_state(X[1]) = ArcState::Active;
                 pd.A_state(X[2]) = ArcState::Active;
                 pd.A_state(X[3]) = ArcState::Active;
+                
+//                pd.A_state(X[0]) |= HeadUnder;
+//                pd.A_state(X[1]) |= HeadOver;
+//                pd.A_state(X[2]) |= TailUnder;
+//                pd.A_state(X[3]) |= TailOver;
                 
                 break;
             }
@@ -184,9 +205,8 @@ static PlanarDiagram<Int> FromPDCode(
         }
     }
     
-    pd.crossing_count    = crossing_count_;
-    pd.arc_count         = pd.CountActiveArcs();
-    pd.provably_minimalQ = provably_minimalQ_;
+    pd.crossing_count = crossing_count_;
+    pd.arc_count      = pd.CountActiveArcs();
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
@@ -241,20 +261,28 @@ Tensor2<T,Int> PDCode()
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
     
-    Traverse(
-        []( const Int lc, const Int lc_begin ){},
+    TraverseWithCrossings(
+        []( const Int lc, const Int lc_begin )
+        {
+            (void)lc;
+            (void)lc_begin;
+        },
         [&pd_code,this](
-            const Int a,   const Int a_label,
-            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
-            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
+            const Int a,   const Int a_pos,   const Int  lc,
+            const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
+            const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )
         {
+            (void)lc;
+            (void)c_0_visitedQ;
+            (void)c_1_visitedQ;
+            
             // Tell c_0 that arc a_counter goes out of it.
             {
                 const CrossingState state = C_state[c_0];
                 const bool side = (C_arcs(c_0,Out,Right) == a);
                 
-                mptr<Int> pd = pd_code.data(c_0_label);
+                mptr<Int> pd = pd_code.data(c_0_pos);
                 
                 if( RightHandedQ(state) )
                 {
@@ -262,37 +290,37 @@ Tensor2<T,Int> PDCode()
                     
                     if( side == Left )
                     {
-                        /*  a_label
+                        /*   a_pos
                          *     =
                          *    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c_0_label
+                         *             / <--- c_0_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          */
                         
-                        pd[2] = static_cast<T>(a_label);
+                        pd[2] = static_cast<T>(a_pos);
                     }
                     else // if( side == Right )
                     {
-                        /*                 a_label
+                        /*                  a_pos
                          *                    =
                          *    X[2]           X[1]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c_0_label
+                         *             / <--- c_0_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          */
                         
-                        pd[1] = static_cast<T>(a_label);
+                        pd[1] = static_cast<T>(a_pos);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -301,37 +329,37 @@ Tensor2<T,Int> PDCode()
                     
                     if( side == Left )
                     {
-                        /*  a_label
+                        /*   a_pos
                          *     =
                          *    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c_0_label
+                         *             \ <--- c_0_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          */
                         
-                        pd[3] = static_cast<T>(a_label);
+                        pd[3] = static_cast<T>(a_pos);
                     }
                     else // if( side == Right )
                     {
-                        /*                 a_label
+                        /*                  a_pos
                          *                    =
                          *    X[3]           X[2]
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c_0_label
+                         *             \ <--- c_0_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          */
                         
-                        pd[2] = static_cast<T>(a_label);
+                        pd[2] = static_cast<T>(a_pos);
                     }
                 }
             }
@@ -341,7 +369,7 @@ Tensor2<T,Int> PDCode()
                 const CrossingState state = C_state[c_1];
                 const bool side  = (C_arcs(c_1,In,Right)) == a;
                 
-                mptr<Int> pd = pd_code.data(c_1_label);
+                mptr<Int> pd = pd_code.data(c_1_pos);
                 
                 if( RightHandedQ(state) )
                 {
@@ -353,16 +381,16 @@ Tensor2<T,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c_1_label
+                         *             / <--- c_1_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          *     =
-                         *  a_label
+                         *   a_pos
                          */
                         
-                        pd[3] = static_cast<T>(a_label);
+                        pd[3] = static_cast<T>(a_pos);
                     }
                     else // if( side == Right )
                     {
@@ -370,16 +398,16 @@ Tensor2<T,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             / <--- c_1_label
+                         *             / <--- c_1_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[3]           X[0]
                          *                    =
-                         *                 a_label
+                         *                  a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_label);
+                        pd[0] = static_cast<T>(a_pos);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -392,16 +420,16 @@ Tensor2<T,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c_1_label
+                         *             \ <--- c_1_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          *     =
-                         *  a_label
+                         *   a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_label);
+                        pd[0] = static_cast<T>(a_pos);
                     }
                     else // if( lr == Right )
                     {
@@ -409,21 +437,26 @@ Tensor2<T,Int> PDCode()
                          *          ^     ^
                          *           \   /
                          *            \ /
-                         *             \ <--- c_1_label
+                         *             \ <--- c_1_pos
                          *            ^ ^
                          *           /   \
                          *          /     \
                          *    X[0]           X[1]
                          *                    =
-                         *                 a_label
+                         *                  a_pos
                          */
                         
-                        pd[1] = static_cast<T>(a_label);
+                        pd[1] = static_cast<T>(a_pos);
                     }
                 }
             }
         },
-        []( const Int lc, const Int lc_begin, const Int lc_end ){}
+        []( const Int lc, const Int lc_begin, const Int lc_end )
+        {
+            (void)lc;
+            (void)lc_begin;
+            (void)lc_end;
+        }
     );
     
 Exit:
@@ -433,11 +466,231 @@ Exit:
     return pd_code;
 }
 
-std::tuple<Tensor2<Int,Int>,Tensor1<Int,Int>,Tensor1<Int,Int>> PDCodeWithLabels()
-{
-    Tensor2<Int,Int> pd_code  = PDCode();
-    Tensor1<Int,Int> C_labels = C_scratch;
-    Tensor1<Int,Int> A_labels = A_scratch;
-    
-    return std::tuple(pd_code,C_labels,A_labels);
-}
+// TODO: Here we really want to have the labels...
+//std::tuple<Tensor2<Int,Int>,Tensor1<Int,Int>,Tensor1<Int,Int>> PDCodeWithLabels()
+//{
+//    Tensor2<Int,Int> pd_code  = PDCode();
+//    Tensor1<Int,Int> C_pos = C_scratch;
+//    Tensor1<Int,Int> A_pos = A_scratch;
+//    
+//    return std::tuple(pd_code,C_pos,A_pos);
+//}
+
+
+
+
+//template<typename T = Int>
+//Tensor2<T,Int> PDCode2()
+//{
+//    TOOLS_PTIC(ClassName()+"::PDCode2<" + TypeName<T> + ">" );
+//    
+//    static_assert( SignedIntQ<T>, "" );
+//    
+//    Tensor2<T,Int> pd_code;
+//    
+//    // We do this to suppress a warning by `Traverse`.
+//    if( !ValidQ() )
+//    {
+//        goto Exit;
+//    }
+//    
+//    if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
+//    {
+//        throw std::runtime_error(ClassName() + "::PDCode2: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+//        
+//        goto Exit;
+//    }
+//    
+//    pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
+//    
+//    Traverse2(
+//        []( const Int lc, const Int lc_begin ){},
+//        [&pd_code,this](
+//            const Int a,   const Int a_label,
+//            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
+//            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
+//        )
+//        {
+//            // Tell c_0 that arc a_counter goes out of it.
+//            {
+//                const CrossingState state = C_state[c_0];
+//                const bool side = (C_arcs(c_0,Out,Right) == a);
+//                
+//                mptr<Int> pd = pd_code.data(c_0_label);
+//                
+//                if( RightHandedQ(state) )
+//                {
+//                    pd[4] = 1;
+//                    
+//                    if( side == Left )
+//                    {
+//                        /*  a_label
+//                         *     =
+//                         *    X[2]           X[1]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             / <--- c_0_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[3]           X[0]
+//                         */
+//                        
+//                        pd[2] = static_cast<T>(a_label);
+//                    }
+//                    else // if( side == Right )
+//                    {
+//                        /*                 a_label
+//                         *                    =
+//                         *    X[2]           X[1]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             / <--- c_0_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[3]           X[0]
+//                         */
+//                        
+//                        pd[1] = static_cast<T>(a_label);
+//                    }
+//                }
+//                else if( LeftHandedQ(state) )
+//                {
+//                    pd[4] = -1;
+//                    
+//                    if( side == Left )
+//                    {
+//                        /*  a_label
+//                         *     =
+//                         *    X[3]           X[2]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             \ <--- c_0_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[0]           X[1]
+//                         */
+//                        
+//                        pd[3] = static_cast<T>(a_label);
+//                    }
+//                    else // if( side == Right )
+//                    {
+//                        /*                 a_label
+//                         *                    =
+//                         *    X[3]           X[2]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             \ <--- c_0_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[0]           X[1]
+//                         */
+//                        
+//                        pd[2] = static_cast<T>(a_label);
+//                    }
+//                }
+//            }
+//            
+//            // Tell c_1 that arc a_counter goes into it.
+//            {
+//                const CrossingState state = C_state[c_1];
+//                const bool side  = (C_arcs(c_1,In,Right)) == a;
+//                
+//                mptr<Int> pd = pd_code.data(c_1_label);
+//                
+//                if( RightHandedQ(state) )
+//                {
+//                    pd[4] = 1;
+//                    
+//                    if( side == Left )
+//                    {
+//                        /*    X[2]           X[1]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             / <--- c_1_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[3]           X[0]
+//                         *     =
+//                         *  a_label
+//                         */
+//                        
+//                        pd[3] = static_cast<T>(a_label);
+//                    }
+//                    else // if( side == Right )
+//                    {
+//                        /*    X[2]           X[1]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             / <--- c_1_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[3]           X[0]
+//                         *                    =
+//                         *                 a_label
+//                         */
+//                        
+//                        pd[0] = static_cast<T>(a_label);
+//                    }
+//                }
+//                else if( LeftHandedQ(state) )
+//                {
+//                    pd[4] = -1;
+//                    
+//                    if( side == Left )
+//                    {
+//                        /*    X[3]           X[2]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             \ <--- c_1_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[0]           X[1]
+//                         *     =
+//                         *  a_label
+//                         */
+//                        
+//                        pd[0] = static_cast<T>(a_label);
+//                    }
+//                    else // if( lr == Right )
+//                    {
+//                        /*    X[3]           X[2]
+//                         *          ^     ^
+//                         *           \   /
+//                         *            \ /
+//                         *             \ <--- c_1_label
+//                         *            ^ ^
+//                         *           /   \
+//                         *          /     \
+//                         *    X[0]           X[1]
+//                         *                    =
+//                         *                 a_label
+//                         */
+//                        
+//                        pd[1] = static_cast<T>(a_label);
+//                    }
+//                }
+//            }
+//        },
+//        []( const Int lc, const Int lc_begin, const Int lc_end ){}
+//    );
+//    
+//Exit:
+//    
+//    TOOLS_PTOC(ClassName()+"::PDCode2<" + TypeName<T> + ">" );
+//    
+//    return pd_code;
+//}

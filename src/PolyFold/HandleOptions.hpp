@@ -224,6 +224,9 @@ void HandleOptions( int argc, char** argv )
     }
     
     
+    // Make sure that the working directory exists.
+    std::filesystem::create_directories(path);
+    
     valprint<a>("Output Path", path.string());
     
     // Use this path for profiles and general log files.
@@ -232,7 +235,7 @@ void HandleOptions( int argc, char** argv )
     if( !Profiler::log )
     {
         throw std::runtime_error(
-             ClassName() + "::Initialize: Failed to create file \"" + Profiler::prof_file.string() + "\"."
+             ClassName() + "::Initialize: Failed to create file \"" + Profiler::log_file.string() + "\"."
         );
     }
     
@@ -264,8 +267,5 @@ void HandleOptions( int argc, char** argv )
     {
         throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -P, -a, -B, or -histograms to define outputs.");
     }
-    
-    // Make sure that the working directory exists.
-    std::filesystem::create_directories(path);
     
 }

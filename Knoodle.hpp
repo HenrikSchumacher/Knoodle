@@ -100,20 +100,26 @@ namespace Knoodle
     
     enum class ArcState : Int8
     {
-        Unchanged =  2,
-        Active    =  1,
-        Inactive  =  0
+//        Unchanged =  2,
+        
+        // TODO: Handle over/under in ArcState.
+//        ActiveOverOver   = Int8(1) | (Int8(1) << 1) | (Int8(1) << 2),
+//        ActiveUnderOver  = Int8(1) | (Int8(0) << 1) | (Int8(1) << 2),
+//        ActiveOverUnder  = Int8(1) | (Int8(1) << 1) | (Int8(0) << 2),
+//        ActiveUnderUnder = Int8(1) | (Int8(0) << 1) | (Int8(0) << 2),
+        Active           =  1,
+        Inactive         =  0
     };
     
-    inline constexpr bool ChangedQ( const ArcState & s )
-    {
-        return ToUnderlying(s) % 2;
-    }
-    
-    inline constexpr bool UnchangedQ( const ArcState & s )
-    {
-        return !ChangedQ(s);
-    }
+//    inline constexpr bool ChangedQ( const ArcState & s )
+//    {
+//        return ToUnderlying(s) % 2;
+//    }
+//    
+//    inline constexpr bool UnchangedQ( const ArcState & s )
+//    {
+//        return !ChangedQ(s);
+//    }
     
     inline constexpr bool ActiveQ( const ArcState & s )
     {
@@ -125,10 +131,15 @@ namespace Knoodle
         switch( s )
         {
             case ArcState::Active    : return "Active";
+            // TODO: Handle over/under in ArcState.
+//            case ArcState::ActiveOverOver   : return "ActiveOO";
+//            case ArcState::ActiveUnderOver  : return "ActiveUO";
+//            case ArcState::ActiveOverUnder  : return "ActiveOU";
+//            case ArcState::ActiveUnderUnder : return "ActiveUU";
                 
             case ArcState::Inactive  : return "Inactive";
                 
-            case ArcState::Unchanged : return "Unchanged";
+//            case ArcState::Unchanged : return "Unchanged";
         }
     }
     

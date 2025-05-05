@@ -58,11 +58,7 @@ namespace Knoodle
             {
                 eprint(ClassName()+" initialized with 0 leaf nodes.");
             }
-            
-//            TOOLS_DUMP(actual_depth);
-//            TOOLS_DUMP(regular_leaf_node_count);
-//            TOOLS_DUMP(last_row_count);
-//
+
             if constexpr ( precompute_rangesQ )
             {
                 N_ranges = Tensor2<Int,Int>(node_count,2);

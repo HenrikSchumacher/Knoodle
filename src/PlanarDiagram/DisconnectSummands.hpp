@@ -389,7 +389,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     
     PlanarDiagram<Int> pd (comp_size/2,0);
     
-    Int a_label = 0;
+    Int a_counter = 0;
     Int c_counter = 0;
     
     // Using C_scratch to keep track of the new labels of crossings.
@@ -431,19 +431,21 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         const bool t_side = (C_arcs(t,Out,Right) == a);
         const bool h_side = (C_arcs(h,In ,Right) == a);
         
-        pd.C_arcs(t_label,Out,t_side) = a_label;
-        pd.C_arcs(h_label,In ,h_side) = a_label;
+        pd.C_arcs(t_label,Out,t_side) = a_counter;
+        pd.C_arcs(h_label,In ,h_side) = a_counter;
         
-        pd.A_cross(a_label,Tail) = t_label;
-        pd.A_cross(a_label,Head) = h_label;
-        pd.A_state[a_label] = ArcState::Active;
+        pd.A_cross(a_counter,Tail) = t_label;
+        pd.A_cross(a_counter,Head) = h_label;
+        // TODO: Handle over/under in ArcState.
+        pd.A_state[a_counter] = ArcState::Active;
+//        pd.A_state[a_counter] = A_state[a];
         
         const Int a_next = C_arcs(h,Out,!h_side);
         
         DeactivateArc(a);
         DeactivateCrossing<false>(h);
         
-        ++a_label;
+        ++a_counter;
         
         a = a_next;
     }

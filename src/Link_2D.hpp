@@ -199,17 +199,12 @@ namespace Knoodle
 
             ComputeBoundingBox( v, lo, hi );
             
-//            TOOLS_DUMP(lo);
-//            TOOLS_DUMP(hi);
-            
             constexpr Real margin = static_cast<Real>(1.01);
             constexpr Real two = 2;
 
             Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
             Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
             Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
-            
-//            TOOLS_DUMP(Sterbenz_shift);
             
             if( preorderedQ )
             {

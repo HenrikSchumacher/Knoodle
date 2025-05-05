@@ -43,7 +43,6 @@ namespace Knoodle
         {
 //            Size_T k = intersection_counts[2] + intersection_counts[3];
 //
-////            TOOLS_LOGDUMP(intersection_counts);
 //
 //            if( k > 0 )
 //            {
@@ -208,10 +207,17 @@ namespace Knoodle
         
     public:
             
+        template<bool verboseQ = false>
         LineSegmentsIntersectionFlag IntersectionType(
             cptr<Real> x_0, cptr<Real> x_1, cptr<Real> y_0, cptr<Real> y_1
         )
         {
+            
+            if constexpr ( verboseQ )
+            {
+                print(ClassName() + "::IntersectionType in verbose mode.");
+            }
+            
             // Caution:
             // We should have checked that x_0 != x_1 and y_0 != y_1 before we arrive here
             
@@ -268,6 +274,11 @@ namespace Knoodle
                 
                 flag = F_T::Empty;
                 
+                if constexpr ( verboseQ )
+                {
+                    print("A");
+                }
+                
                 return flag;
             }
                 
@@ -281,6 +292,11 @@ namespace Knoodle
                 
                 flag = F_T::Empty;
                 
+                if constexpr ( verboseQ )
+                {
+                    print("B");
+                }
+                
                 return flag;
             }
             
@@ -291,6 +307,11 @@ namespace Knoodle
                 flag = ( vxq == qxu ) && ( pxv == uxp )
                     ? F_T::Transversal
                     : F_T::Empty;
+                
+                if constexpr ( verboseQ )
+                {
+                    print("C");
+                }
                 
                 return flag;
             }
@@ -310,9 +331,10 @@ namespace Knoodle
             
             // If we arrive here then at least one of the points x_0, x_1, y_0, y_1 lies on both of the two segments.
             
-            // We purposfully ignore the cases vxq == 0 or uxp == 0,
-            // which corresplond to x_1 in Line(y_0,y_1) or y_1 in Line(x_0,x_1).
-            // Sow are only interested in cases where pxv == 0 or qxu == 0, which correspond to x_0 lying on Line(y_0,y_1) and y_0 lying on Line(x_0,x_1), respectively.
+            // We purposefully ignore the cases vxq == 0 or uxp == 0,
+            // which correspond to x_1 in Line(y_0,y_1) or y_1 in Line(x_0,x_1).
+            // They will be handled by the edged following these ones.
+            // So we are only interested in the cases where pxv == 0 or qxu == 0, which correspond to x_0 lying on Line(y_0,y_1) and y_0 lying on Line(x_0,x_1), respectively.
             
             // That is the corner cases (pun intended) and the interval case.
             
@@ -343,6 +365,11 @@ namespace Knoodle
                     {
                         flag =  F_T::CornerCorner;
                         
+                        if constexpr ( verboseQ )
+                        {
+                            print("D");
+                        }
+                        
                         return flag;
                     }
                     
@@ -356,6 +383,11 @@ namespace Knoodle
                     if( (dot_vq_sign == Sign_T(0)) || (dot_vp_sign == Sign_T(0)) )
                     {
                         flag = F_T::Empty;
+                        
+                        if constexpr ( verboseQ )
+                        {
+                            print("E");
+                        }
                         
                         return flag;
                     }
@@ -372,6 +404,11 @@ namespace Knoodle
                         // TODO: Compute intersection time intervals.
                     }
                     
+                    if constexpr ( verboseQ )
+                    {
+                        print("F");
+                    }
+                    
                     return flag;
                 }
                 else
@@ -381,6 +418,11 @@ namespace Knoodle
                     
                     flag = (x_0_aft_y_0_Q && x_0_bef_y_1_Q)
                         ? F_T::AtCorner0 : F_T::Empty;
+                    
+                    if constexpr ( verboseQ )
+                    {
+                        print("G");
+                    }
                     
                     return flag;
                 }
@@ -414,6 +456,11 @@ namespace Knoodle
                     flag = (y_0_aft_x_0_Q && y_0_bef_x_1_Q)
                         ? F_T::AtCorner1 : F_T::Empty;
                     
+                    if constexpr ( verboseQ )
+                    {
+                        print("H");
+                    }
+                    
                     return flag;
                 }
                 else
@@ -423,8 +470,18 @@ namespace Knoodle
                     // We may ignore this case as only x_1 and y_1 remain as potential intersection points and because we ignore them intentionally.
                     flag = F_T::Empty;
                     
+                    if constexpr ( verboseQ )
+                    {
+                        print("I");
+                    }
+                    
                     return flag;
                 }
+            }
+            
+            if constexpr ( verboseQ )
+            {
+                print("Z");
             }
         }
         
