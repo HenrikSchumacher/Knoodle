@@ -81,13 +81,15 @@ namespace Knoodle
         
         std::filesystem::path path;
         std::filesystem::path log_file;
-        std::filesystem::path pds_file;
+        std::filesystem::path pd_file;
+        std::filesystem::path gauss_file;
         std::filesystem::path input_file;
         std::filesystem::path witness_file;
         std::filesystem::path pivot_file;
         
         std::ofstream log;
-        std::ofstream pds;
+        std::ofstream pd_stream;
+        std::ofstream gauss_stream;
         
         PolygonContainer_T x;
         
@@ -129,6 +131,7 @@ namespace Knoodle
         bool anglesQ            = false;
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
+        bool gaussQ             = false;
         bool printQ             = false;
         bool inputQ             = false;
         bool hierarchicalQ      = false;
