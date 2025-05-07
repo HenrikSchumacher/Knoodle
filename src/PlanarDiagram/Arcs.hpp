@@ -878,7 +878,7 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_next ( max_arc_count, -1 );
+        Tensor1<Int,Int> A_next ( max_arc_count, Int(-1) );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
@@ -897,7 +897,7 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
 
 Tensor1<Int,Int> ArcPrevArc() const
 {
-    std::string tag ("ArcNextArc");
+    std::string tag ("ArcPrevArc");
     
     if( !this->InCacheQ(tag) )
     {
