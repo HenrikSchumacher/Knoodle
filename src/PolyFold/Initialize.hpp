@@ -20,14 +20,30 @@ void Initialize()
         );
     }
     
-    pds_file = path / "PDCodes.tsv";
-    pds.open( pds_file, std::ios_base::out );
-    
-    if( !pds )
+    if( pdQ )
     {
-        throw std::runtime_error( 
-            ClassName() + "::Initialize: Failed to create file \"" + pds_file.string() + "\"."
-        );
+        pd_file = path / "PDCodes.tsv";
+        pd_stream.open( pd_file, std::ios_base::out );
+        
+        if( !pd_stream )
+        {
+            throw std::runtime_error(
+                ClassName() + "::Initialize: Failed to create file \"" + pd_file.string() + "\"."
+            );
+        }
+    }
+    
+    if( gaussQ )
+    {
+        gauss_file = path / "GaussCodes.txt";
+        gauss_stream.open( gauss_file, std::ios_base::out );
+        
+        if( !gauss_stream )
+        {
+            throw std::runtime_error(
+                ClassName() + "::Initialize: Failed to create file \"" + gauss_file.string() + "\"."
+            );
+        }
     }
     
     edge_length_tolerance = Real(0.00000000001) * Real(n);
@@ -118,18 +134,15 @@ void Initialize()
             
             e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
             
-            Real error = Max(Abs(e_dev.first),Abs(e_dev.second));
-            
-            TOOLS_DUMP(error);
-            TOOLS_DUMP(edge_length_tolerance);
-            
+            const Real error = Max(Abs(e_dev.first),Abs(e_dev.second));
+
             kv<t3>("(Smallest Edge Length)/(Prescribed Edge Length) - 1", e_dev.first );
             kv<t3>("(Greatest Edge Length)/(Prescribed Edge Length) - 1", e_dev.second );
             
             // TODO: Check that loaded polygon has edgelengths close to 1.
             if( error > edge_length_tolerance )
             {
-                throw std::runtime_error(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is too large.");
+                throw std::runtime_error(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
             }
             
             if( checksQ )

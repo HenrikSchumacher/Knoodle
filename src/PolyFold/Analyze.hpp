@@ -26,6 +26,24 @@ std::string PDCodeString( mref<PD_T> P ) const
     return s;
 }
 
+std::string GaussCodeString( mref<PD_T> P ) const
+{
+    if( P.CrossingCount() <= 0 )
+    {
+        return std::string();
+    }
+    
+    std::string s;
+    s+= "\ns ";
+    s+= ToString(P.ProvablyMinimalQ());
+    s+= " | ";
+    auto gauss_code = P.ExtendedGaussCode();
+    
+    s+= VectorString( gauss_code.data(), "", " ", "", gauss_code.Size() );
+    
+    return s;
+}
+
 template<Size_T t0, int my_verbosity>
 void Analyze( const LInt i )
 {
@@ -43,7 +61,8 @@ void Analyze( const LInt i )
     TimeInterval T_link_dealloc;
     TimeInterval T_pd;
     TimeInterval T_simplify;
-    TimeInterval T_write;
+    TimeInterval T_pd_write;
+    TimeInterval T_gauss_write;
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
     TimeInterval T_curvature_torsion;
@@ -99,7 +118,7 @@ void Analyze( const LInt i )
         kv<t1>("Bounding Box Upper Corner",upper);
     }
     
-    if( pdQ )
+    if( pdQ || gaussQ )
     {
         T_link.Tic<V2Q>();
         Link_T L ( n );
@@ -195,39 +214,78 @@ void Analyze( const LInt i )
             log << std::flush;
         }
         
-        if constexpr ( V2Q )
+        if( pdQ )
         {
-            T_write.Tic();
-        }
+            if constexpr ( V2Q )
+            {
+                T_pd_write.Tic();
+            }
 
-        
-        // Writing the PD codes to file.
-        pds << "k";
-        
-        Int crossing_count = PD.CrossingCount();
-        
-        pds << PDCodeString(PD);
-        
-        for( auto & P : PD_list )
-        {
-            pds << PDCodeString(P);
-            crossing_count += P.CrossingCount();
+            // Writing the PD codes to file.
+            pd_stream << "k";
+            
+            Int crossing_count = PD.CrossingCount();
+            
+            pd_stream << PDCodeString(PD);
+            
+            for( auto & P : PD_list )
+            {
+                pd_stream << PDCodeString(P);
+                crossing_count += P.CrossingCount();
+            }
+            
+            pd_stream << "\n";
+            pd_stream << std::flush;
+            
+            
+            if( !pd_stream )
+            {
+                throw std::runtime_error(
+                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
+                );
+            }
+            
+            if constexpr ( V2Q )
+            {
+                T_pd_write.Toc();
+            }
         }
         
-        pds << "\n";
-        pds << std::flush;
-        
-        
-        if( !pds )
+        if ( gaussQ )
         {
-            throw std::runtime_error(
-                ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + pds_file.string() + "\"."
-            );
-        }
-        
-        if constexpr ( V2Q )
-        {
-            T_write.Toc();
+            if constexpr ( V2Q )
+            {
+                T_gauss_write.Tic();
+            }
+
+            // Writing the PD codes to file.
+            gauss_stream << "k";
+                
+            Int crossing_count = PD.CrossingCount();
+            
+            gauss_stream << GaussCodeString(PD);
+            
+            for( auto & P : PD_list )
+            {
+                gauss_stream << GaussCodeString(P);
+                crossing_count += P.CrossingCount();
+            }
+            
+            gauss_stream << "\n";
+            gauss_stream << std::flush;
+            
+            
+            if( !gauss_stream )
+            {
+                throw std::runtime_error(
+                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
+                );
+            }
+            
+            if constexpr ( V2Q )
+            {
+                T_gauss_write.Toc();
+            }
         }
         
         if( force_deallocQ )
@@ -259,7 +317,7 @@ void Analyze( const LInt i )
                 kv<t2>("Compute Squared Gyradius", T_gyradius.Duration());
         }
         
-        if( pdQ )
+        if( pdQ || gaussQ )
         {
                 kv<t2>("Create Link", T_link.Duration());
                 kv<t2>("Compute Intersections",T_intersection.Duration());
@@ -273,7 +331,14 @@ void Analyze( const LInt i )
             {
                 kv<t2>("Deallocate PlanarDiagram",T_pd_dealloc.Duration());
             }
-                kv<t2>("Write PD Code", T_write.Duration());
+            if( pdQ )
+            {
+                kv<t2>("Write PD Code", T_pd_write.Duration());
+            }
+            if( gaussQ )
+            {
+                kv<t2>("Write Gauss Code", T_gauss_write.Duration());
+            }
         }
         log << "\n" + ct_tabs<t1> + "|>";
     }

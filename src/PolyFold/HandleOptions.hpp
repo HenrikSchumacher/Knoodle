@@ -24,7 +24,8 @@ void HandleOptions( int argc, char** argv )
     ("low-mem,m", "force deallocation of large data structures; this will be a bit slower but peak memory will be less")
     ("angles,a", "compute statistics on curvature and torsion angles and report them in file \"Info.m\"")
     ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
-    ("pd-code,c", "compute pd codes and print to file \"PDCodes.tsv\"")
+    ("pd-code,c", "compute pd codes and print them to file \"PDCodes.tsv\"")
+    ("gauss-code,G", "compute extended Gauss codes and them print to file \"GaussCodes.txt\"")
     ("bounding-boxes,B", "compute statistics of bounding boxes and report them in file \"Info.m\"")
     ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file")
     ("histograms", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
@@ -129,6 +130,9 @@ void HandleOptions( int argc, char** argv )
     
     pdQ = (vm.count("pd-code") != 0);
     valprint<a>("Compute PD Codes", BoolString(pdQ) );
+    
+    gaussQ = (vm.count("gauss-code") != 0);
+    valprint<a>("Compute Gauss Codes", BoolString(gaussQ) );
     
     steps_between_print = vm["polygons"].as<LInt>();
     printQ = (steps_between_print > LInt(0));
@@ -263,7 +267,7 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( !(squared_gyradiusQ || pdQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
+    if( !(squared_gyradiusQ || pdQ || gaussQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
     {
         throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -P, -a, -B, or -histograms to define outputs.");
     }
