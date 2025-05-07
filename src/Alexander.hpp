@@ -10,7 +10,7 @@
 namespace Knoodle
 {
     // TODO: Check against calling on trivial diagram.
-    // TODO: Check against calling on multiple component link.
+    // TODO: Check against calling on multiple compenent diagram.
     
     template<typename Scal_, typename Int_, typename LInt_>
     class Alexander
