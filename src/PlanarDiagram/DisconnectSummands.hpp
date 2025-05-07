@@ -438,7 +438,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         pd.A_cross(a_counter,Head) = h_label;
         // TODO: Handle over/under in ArcState.
         pd.A_state[a_counter] = ArcState::Active;
-//        pd.A_state[a_counter] = A_state[a];
+//        pd.A_state[a_counter] = ??;
         
         const Int a_next = C_arcs(h,Out,!h_side);
         

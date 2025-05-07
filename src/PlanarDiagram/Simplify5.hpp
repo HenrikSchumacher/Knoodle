@@ -62,10 +62,12 @@ bool Simplify5(
     {
         if( compressQ )
         {
-            *this = this->CreateCompressed();
+            *this = this->CreateCompressed();   // This also erases the Cache.
         }
-        
-        this->ClearCache();
+        else
+        {
+            this->ClearCache();
+        }
     }
     
     
@@ -74,7 +76,12 @@ bool Simplify5(
 //    TOOLS_DUMP(CrossingCount());
 //    TOOLS_DUMP(DiagramComponentCount());
 //
-    if( AlternatingQ() && (DiagramComponentCount() == 1) )
+    if( AlternatingQ() && (LinkComponentCount() <= 1) )
+    {
+        provably_minimalQ = true;
+    }
+    
+    if( ValidQ() && (CrossingCount() == Int(0)) )
     {
         provably_minimalQ = true;
     }

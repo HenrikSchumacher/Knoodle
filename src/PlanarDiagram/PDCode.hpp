@@ -1,5 +1,275 @@
 public:
 
+/*!
+ * @brief Returns the pd-codes of the crossing as Tensor2 object.
+ *
+ *  The pd-code of crossing `c` is given by
+ *
+ *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3), PDCode()(c,4) }`
+ *
+ *  The first 4 entries are the arcs attached to crossing c.
+ *  `PDCode()(c,0)` is the incoming arc that goes under.
+ *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
+ *
+ *  The last entry stores the handedness of the crossing:
+ *    +1 for a right-handed crossing,
+ *    -1 for a left-handed crossing.
+ */
+    
+template<typename T = Int, bool arclabelsQ = false, int method = DefaultTraversalMethod>
+Tensor2<T,Int> PDCode()
+{
+    TOOLS_PTIC(ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
+    
+    static_assert( SignedIntQ<T>, "" );
+    
+    Tensor2<T,Int> pd_code;
+    
+    // We do this to suppress a warning by `Traverse`.
+    if( !ValidQ() )
+    {
+        goto Exit;
+    }
+    
+    if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
+    {
+        throw std::runtime_error(ClassName() + "::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        
+        goto Exit;
+    }
+    
+    pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
+
+    this->WritePDCode<T,arclabelsQ,method>(pd_code.data());
+    
+Exit:
+    
+    TOOLS_PTOC(ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
+    
+    return pd_code;
+}
+
+template<typename T = Int, bool arclabelsQ = false, int method = DefaultTraversalMethod>
+void WritePDCode( mptr<T> pd_code )
+{
+    TOOLS_PTIC(ClassName()+"::WritePDCode"
+        + "<" + TypeName<T>
+        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
+        + "," + ToString(method)
+        + ">");
+    
+    constexpr bool crossingsQ = true;
+    
+    this->template Traverse<crossingsQ,arclabelsQ,-1,method>(
+        [&pd_code,this](
+            const Int a,   const Int a_pos,   const Int  lc,
+            const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
+            const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
+        )
+        {
+            (void)lc;
+            (void)c_0_visitedQ;
+            (void)c_1_visitedQ;
+            
+            // Tell c_0 that arc a_counter goes out of it.
+            {
+                const CrossingState state = C_state[c_0];
+                const bool side = (C_arcs(c_0,Out,Right) == a);
+                
+                mptr<Int> pd = &pd_code[Int(5) * c_0_pos];
+                
+                if( RightHandedQ(state) )
+                {
+                    pd[4] = 1;
+                    
+                    if( side == Left )
+                    {
+                        /*   a_pos
+                         *     =
+                         *    X[2]           X[1]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             / <--- c_0_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[3]           X[0]
+                         */
+                        
+                        pd[2] = static_cast<T>(a_pos);
+                    }
+                    else // if( side == Right )
+                    {
+                        /*                  a_pos
+                         *                    =
+                         *    X[2]           X[1]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             / <--- c_0_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[3]           X[0]
+                         */
+                        
+                        pd[1] = static_cast<T>(a_pos);
+                    }
+                }
+                else if( LeftHandedQ(state) )
+                {
+                    pd[4] = -1;
+                    
+                    if( side == Left )
+                    {
+                        /*   a_pos
+                         *     =
+                         *    X[3]           X[2]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             \ <--- c_0_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[0]           X[1]
+                         */
+                        
+                        pd[3] = static_cast<T>(a_pos);
+                    }
+                    else // if( side == Right )
+                    {
+                        /*                  a_pos
+                         *                    =
+                         *    X[3]           X[2]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             \ <--- c_0_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[0]           X[1]
+                         */
+                        
+                        pd[2] = static_cast<T>(a_pos);
+                    }
+                }
+            }
+            
+            // Tell c_1 that arc a_counter goes into it.
+            {
+                const CrossingState state = C_state[c_1];
+                const bool side  = (C_arcs(c_1,In,Right)) == a;
+                
+                mptr<Int> pd = &pd_code[Int(5) * c_1_pos];
+                
+                if( RightHandedQ(state) )
+                {
+                    pd[4] = 1;
+                    
+                    if( side == Left )
+                    {
+                        /*    X[2]           X[1]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             / <--- c_1_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[3]           X[0]
+                         *     =
+                         *   a_pos
+                         */
+                        
+                        pd[3] = static_cast<T>(a_pos);
+                    }
+                    else // if( side == Right )
+                    {
+                        /*    X[2]           X[1]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             / <--- c_1_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[3]           X[0]
+                         *                    =
+                         *                  a_pos
+                         */
+                        
+                        pd[0] = static_cast<T>(a_pos);
+                    }
+                }
+                else if( LeftHandedQ(state) )
+                {
+                    pd[4] = -1;
+                    
+                    if( side == Left )
+                    {
+                        /*    X[3]           X[2]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             \ <--- c_1_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[0]           X[1]
+                         *     =
+                         *   a_pos
+                         */
+                        
+                        pd[0] = static_cast<T>(a_pos);
+                    }
+                    else // if( lr == Right )
+                    {
+                        /*    X[3]           X[2]
+                         *          ^     ^
+                         *           \   /
+                         *            \ /
+                         *             \ <--- c_1_pos
+                         *            ^ ^
+                         *           /   \
+                         *          /     \
+                         *    X[0]           X[1]
+                         *                    =
+                         *                  a_pos
+                         */
+                        
+                        pd[1] = static_cast<T>(a_pos);
+                    }
+                }
+            }
+        }
+    );
+    
+    TOOLS_PTOC(ClassName()+"::WritePDCode"
+        + "<" + TypeName<T>
+        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
+        + "," + ToString(method)
+        + ">");
+}
+
+
+template<typename T = Int, int method = DefaultTraversalMethod>
+std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
+{
+    Tensor2<T,Int> pd_code  = this->template PDCode<T,true,method>();
+    Tensor1<T,Int> C_pos    = C_scratch;
+    Tensor1<T,Int> A_pos    = A_scratch;
+    
+    return std::tuple(pd_code,C_pos,A_pos);
+}
+
+
+
+
+public:
+
 /*! @brief Construction from PD codes and handedness of crossings.
  *
  *  @param pd_codes Integer array of length `5 * crossing_count_`.
@@ -218,479 +488,3 @@ static PlanarDiagram<Int> FromPDCode(
     // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
     return pd.CreateCompressed();
 }
-
-public:
-
-/*!
- * @brief Returns the pd-codes of the crossing as Tensor2 object.
- *
- *  The pd-code of crossing `c` is given by
- *
- *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3), PDCode()(c,4) }`
- *
- *  The first 4 entries are the arcs attached to crossing c.
- *  `PDCode()(c,0)` is the incoming arc that goes under.
- *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
- *
- *  The last entry stores the handedness of the crossing:
- *    +1 for a right-handed crossing,
- *    -1 for a left-handed crossing.
- */
-
-template<typename T = Int>
-Tensor2<T,Int> PDCode()
-{
-    TOOLS_PTIC(ClassName()+"::PDCode<" + TypeName<T> + ">" );
-    
-    static_assert( SignedIntQ<T>, "" );
-    
-    Tensor2<T,Int> pd_code;
-    
-    // We do this to suppress a warning by `Traverse`.
-    if( !ValidQ() )
-    {
-        goto Exit;
-    }
-    
-    if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
-    {
-        throw std::runtime_error(ClassName() + "::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
-        
-        goto Exit;
-    }
-    
-    pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
-    
-    TraverseWithCrossings(
-        []( const Int lc, const Int lc_begin )
-        {
-            (void)lc;
-            (void)lc_begin;
-        },
-        [&pd_code,this](
-            const Int a,   const Int a_pos,   const Int  lc,
-            const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
-            const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
-        )
-        {
-            (void)lc;
-            (void)c_0_visitedQ;
-            (void)c_1_visitedQ;
-            
-            // Tell c_0 that arc a_counter goes out of it.
-            {
-                const CrossingState state = C_state[c_0];
-                const bool side = (C_arcs(c_0,Out,Right) == a);
-                
-                mptr<Int> pd = pd_code.data(c_0_pos);
-                
-                if( RightHandedQ(state) )
-                {
-                    pd[4] = 1;
-                    
-                    if( side == Left )
-                    {
-                        /*   a_pos
-                         *     =
-                         *    X[2]           X[1]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             / <--- c_0_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[3]           X[0]
-                         */
-                        
-                        pd[2] = static_cast<T>(a_pos);
-                    }
-                    else // if( side == Right )
-                    {
-                        /*                  a_pos
-                         *                    =
-                         *    X[2]           X[1]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             / <--- c_0_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[3]           X[0]
-                         */
-                        
-                        pd[1] = static_cast<T>(a_pos);
-                    }
-                }
-                else if( LeftHandedQ(state) )
-                {
-                    pd[4] = -1;
-                    
-                    if( side == Left )
-                    {
-                        /*   a_pos
-                         *     =
-                         *    X[3]           X[2]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             \ <--- c_0_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[0]           X[1]
-                         */
-                        
-                        pd[3] = static_cast<T>(a_pos);
-                    }
-                    else // if( side == Right )
-                    {
-                        /*                  a_pos
-                         *                    =
-                         *    X[3]           X[2]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             \ <--- c_0_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[0]           X[1]
-                         */
-                        
-                        pd[2] = static_cast<T>(a_pos);
-                    }
-                }
-            }
-            
-            // Tell c_1 that arc a_counter goes into it.
-            {
-                const CrossingState state = C_state[c_1];
-                const bool side  = (C_arcs(c_1,In,Right)) == a;
-                
-                mptr<Int> pd = pd_code.data(c_1_pos);
-                
-                if( RightHandedQ(state) )
-                {
-                    pd[4] = 1;
-                    
-                    if( side == Left )
-                    {
-                        /*    X[2]           X[1]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             / <--- c_1_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[3]           X[0]
-                         *     =
-                         *   a_pos
-                         */
-                        
-                        pd[3] = static_cast<T>(a_pos);
-                    }
-                    else // if( side == Right )
-                    {
-                        /*    X[2]           X[1]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             / <--- c_1_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[3]           X[0]
-                         *                    =
-                         *                  a_pos
-                         */
-                        
-                        pd[0] = static_cast<T>(a_pos);
-                    }
-                }
-                else if( LeftHandedQ(state) )
-                {
-                    pd[4] = -1;
-                    
-                    if( side == Left )
-                    {
-                        /*    X[3]           X[2]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             \ <--- c_1_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[0]           X[1]
-                         *     =
-                         *   a_pos
-                         */
-                        
-                        pd[0] = static_cast<T>(a_pos);
-                    }
-                    else // if( lr == Right )
-                    {
-                        /*    X[3]           X[2]
-                         *          ^     ^
-                         *           \   /
-                         *            \ /
-                         *             \ <--- c_1_pos
-                         *            ^ ^
-                         *           /   \
-                         *          /     \
-                         *    X[0]           X[1]
-                         *                    =
-                         *                  a_pos
-                         */
-                        
-                        pd[1] = static_cast<T>(a_pos);
-                    }
-                }
-            }
-        },
-        []( const Int lc, const Int lc_begin, const Int lc_end )
-        {
-            (void)lc;
-            (void)lc_begin;
-            (void)lc_end;
-        }
-    );
-    
-Exit:
-    
-    TOOLS_PTOC(ClassName()+"::PDCode<" + TypeName<T> + ">" );
-    
-    return pd_code;
-}
-
-// TODO: Here we really want to have the labels...
-//std::tuple<Tensor2<Int,Int>,Tensor1<Int,Int>,Tensor1<Int,Int>> PDCodeWithLabels()
-//{
-//    Tensor2<Int,Int> pd_code  = PDCode();
-//    Tensor1<Int,Int> C_pos = C_scratch;
-//    Tensor1<Int,Int> A_pos = A_scratch;
-//    
-//    return std::tuple(pd_code,C_pos,A_pos);
-//}
-
-
-
-
-//template<typename T = Int>
-//Tensor2<T,Int> PDCode2()
-//{
-//    TOOLS_PTIC(ClassName()+"::PDCode2<" + TypeName<T> + ">" );
-//    
-//    static_assert( SignedIntQ<T>, "" );
-//    
-//    Tensor2<T,Int> pd_code;
-//    
-//    // We do this to suppress a warning by `Traverse`.
-//    if( !ValidQ() )
-//    {
-//        goto Exit;
-//    }
-//    
-//    if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
-//    {
-//        throw std::runtime_error(ClassName() + "::PDCode2: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
-//        
-//        goto Exit;
-//    }
-//    
-//    pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
-//    
-//    Traverse2(
-//        []( const Int lc, const Int lc_begin ){},
-//        [&pd_code,this](
-//            const Int a,   const Int a_label,
-//            const Int c_0, const Int c_0_label, const bool c_0_visitedQ,
-//            const Int c_1, const Int c_1_label, const bool c_1_visitedQ
-//        )
-//        {
-//            // Tell c_0 that arc a_counter goes out of it.
-//            {
-//                const CrossingState state = C_state[c_0];
-//                const bool side = (C_arcs(c_0,Out,Right) == a);
-//                
-//                mptr<Int> pd = pd_code.data(c_0_label);
-//                
-//                if( RightHandedQ(state) )
-//                {
-//                    pd[4] = 1;
-//                    
-//                    if( side == Left )
-//                    {
-//                        /*  a_label
-//                         *     =
-//                         *    X[2]           X[1]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             / <--- c_0_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[3]           X[0]
-//                         */
-//                        
-//                        pd[2] = static_cast<T>(a_label);
-//                    }
-//                    else // if( side == Right )
-//                    {
-//                        /*                 a_label
-//                         *                    =
-//                         *    X[2]           X[1]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             / <--- c_0_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[3]           X[0]
-//                         */
-//                        
-//                        pd[1] = static_cast<T>(a_label);
-//                    }
-//                }
-//                else if( LeftHandedQ(state) )
-//                {
-//                    pd[4] = -1;
-//                    
-//                    if( side == Left )
-//                    {
-//                        /*  a_label
-//                         *     =
-//                         *    X[3]           X[2]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             \ <--- c_0_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[0]           X[1]
-//                         */
-//                        
-//                        pd[3] = static_cast<T>(a_label);
-//                    }
-//                    else // if( side == Right )
-//                    {
-//                        /*                 a_label
-//                         *                    =
-//                         *    X[3]           X[2]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             \ <--- c_0_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[0]           X[1]
-//                         */
-//                        
-//                        pd[2] = static_cast<T>(a_label);
-//                    }
-//                }
-//            }
-//            
-//            // Tell c_1 that arc a_counter goes into it.
-//            {
-//                const CrossingState state = C_state[c_1];
-//                const bool side  = (C_arcs(c_1,In,Right)) == a;
-//                
-//                mptr<Int> pd = pd_code.data(c_1_label);
-//                
-//                if( RightHandedQ(state) )
-//                {
-//                    pd[4] = 1;
-//                    
-//                    if( side == Left )
-//                    {
-//                        /*    X[2]           X[1]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             / <--- c_1_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[3]           X[0]
-//                         *     =
-//                         *  a_label
-//                         */
-//                        
-//                        pd[3] = static_cast<T>(a_label);
-//                    }
-//                    else // if( side == Right )
-//                    {
-//                        /*    X[2]           X[1]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             / <--- c_1_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[3]           X[0]
-//                         *                    =
-//                         *                 a_label
-//                         */
-//                        
-//                        pd[0] = static_cast<T>(a_label);
-//                    }
-//                }
-//                else if( LeftHandedQ(state) )
-//                {
-//                    pd[4] = -1;
-//                    
-//                    if( side == Left )
-//                    {
-//                        /*    X[3]           X[2]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             \ <--- c_1_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[0]           X[1]
-//                         *     =
-//                         *  a_label
-//                         */
-//                        
-//                        pd[0] = static_cast<T>(a_label);
-//                    }
-//                    else // if( lr == Right )
-//                    {
-//                        /*    X[3]           X[2]
-//                         *          ^     ^
-//                         *           \   /
-//                         *            \ /
-//                         *             \ <--- c_1_label
-//                         *            ^ ^
-//                         *           /   \
-//                         *          /     \
-//                         *    X[0]           X[1]
-//                         *                    =
-//                         *                 a_label
-//                         */
-//                        
-//                        pd[1] = static_cast<T>(a_label);
-//                    }
-//                }
-//            }
-//        },
-//        []( const Int lc, const Int lc_begin, const Int lc_end ){}
-//    );
-//    
-//Exit:
-//    
-//    TOOLS_PTOC(ClassName()+"::PDCode2<" + TypeName<T> + ">" );
-//    
-//    return pd_code;
-//}

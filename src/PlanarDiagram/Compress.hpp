@@ -14,6 +14,7 @@ public:
 // TODO: Test this!
 // TODO: Generate the link component information and forward it to the new diagram!
 
+
 PlanarDiagram CreateCompressed()
 {
     TOOLS_PTIC( ClassName()+"::CreateCompressed");
@@ -38,46 +39,35 @@ PlanarDiagram CreateCompressed()
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState>            A_state_new = pd.A_state.data();
     
-    TraverseWithCrossings(
-         []( const Int lc, const Int lc_begin )
-         {
-             (void)lc;
-             (void)lc_begin;
-         },
-         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
+    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
+        [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
-         )
-         {
-             (void)lc;
-             (void)c_0_visitedQ;
-             (void)c_1_visitedQ;
-             
-             // TODO: Handle over/under in ArcState.
-             A_state_new[a_pos] = ArcState::Active;
+        )
+        {
+            (void)lc;
+            (void)c_0_visitedQ;
+            (void)c_1_visitedQ;
+
+            // TODO: Handle over/under in ArcState.
+            A_state_new[a_pos] = ArcState::Active;
 //             A_state_new[a_pos] = A_state[a];
 
-             if( !c_0_visitedQ )
-             {
-                 C_state_new[c_0_pos] = this->C_state[c_0];
-             }
-             
-             const bool side_0 = (this->C_arcs(c_0,Out,Right) == a);
-             C_arcs_new(c_0_pos,Out,side_0) = a_pos;
-             A_cross_new(a_pos,Tail) = c_0_pos;
-             
-             const bool side_1 = (this->C_arcs(c_1,In ,Right) == a);
-             C_arcs_new(c_1_pos,In,side_1) = a_pos;
-             A_cross_new(a_pos,Head) = c_1_pos;
-         },
-         []( const Int lc, const Int lc_begin, const Int lc_end )
-         {
-             (void)lc;
-             (void)lc_begin;
-             (void)lc_end;
-         }
-     );
+            if( !c_0_visitedQ )
+            {
+                C_state_new[c_0_pos] = this->C_state[c_0];
+            }
+
+            const bool side_0 = (this->C_arcs(c_0,Out,Right) == a);
+            C_arcs_new(c_0_pos,Out,side_0) = a_pos;
+            A_cross_new(a_pos,Tail) = c_0_pos;
+
+            const bool side_1 = (this->C_arcs(c_1,In ,Right) == a);
+            C_arcs_new(c_1_pos,In,side_1) = a_pos;
+            A_cross_new(a_pos,Head) = c_1_pos;
+        }
+    );
     
     TOOLS_PTOC( ClassName()+"::CreateCompressed");
     
@@ -94,12 +84,7 @@ bool CanonicallyOrderedQ()
     
     bool orderedQ = true;
     
-    TraverseWithCrossings(
-        []( const Int lc, const Int lc_begin )
-        {
-            (void)lc;
-            (void)lc_begin;
-        },
+    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
         [&orderedQ](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -113,12 +98,6 @@ bool CanonicallyOrderedQ()
             (void)c_1_visitedQ;
             
             orderedQ = orderedQ && (a == a_pos) && (c_0 == c_0_pos);
-        },
-        []( const Int lc, const Int lc_begin, const Int lc_end )
-        {
-            (void)lc;
-            (void)lc_begin;
-            (void)lc_end;
         }
     );
     

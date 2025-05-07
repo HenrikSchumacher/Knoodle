@@ -33,55 +33,21 @@ Tensor1<Int,Int> ArcStrands() const
 {
     TOOLS_PTIC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    const Int m = A_cross.Dimension(0);
-    
-    Tensor1<Int ,Int> A_colors  ( m, -1 );
-    Tensor1<bool,Int> A_visited ( m, false );
-    
+    Tensor1<Int,Int> A_colors  ( A_cross.Dimension(0), -1 );
     Int color = 0;
-    Int a_ptr = 0;
     
-    while( a_ptr < m )
-    {
-        // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+    this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(
+        [&color,&A_colors,this]( const Int a, const Int a_pos, const Int  lc )
         {
-            ++a_ptr;
-        }
-        
-        if( a_ptr >= m )
-        {
-            break;
-        }
-        
-        Int a = a_ptr;
-        // Find the beginning of first strand.
-        
-        // For this, we move backwards along arcs until ArcUnderQ<Tail>(a)/ArcOverQ<Tail>(a)
-        while( ArcUnderQ<Tail>(a) != overQ )
-        {
-            a = NextArc<Tail>(a);
-        }
-        
-        const Int a_0 = a;
-        
-        // Traverse forward through all arcs in the link component, until we return where we started.
-        do
-        {
-            A_visited[a] = true;
-            
+            (void)a_pos;
+            (void)lc;
+
             A_colors[a] = color;
 
             // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
-            
-            color += (ArcUnderQ<Head>(a) == overQ);
-            
-            a = NextArc<Head>(a);
+            color += (ArcOverQ<Head>(a) != overQ);
         }
-        while( a != a_0 );
-        
-        ++a_ptr;
-    }
+    );
     
     TOOLS_PTOC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
@@ -125,57 +91,27 @@ Tensor3<Int,Int> CrossingStrands() const
 {
     TOOLS_PTIC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
-    const Int n = C_arcs.Dimension(0);
-    const Int m = A_cross.Dimension(0);
+    Tensor3<Int,Int> C_strands ( C_arcs.Dimension(0), 2, 2, -1 );
     
-    Tensor3<Int ,Int> C_strands  ( n, 2, 2, -1 );
-    Tensor1<bool,Int> A_visited ( m, false );
+    Int strand_counter = 0;
     
-    Int counter = 0;
-    Int a_ptr   = 0;
-    
-    while( a_ptr < m )
-    {
-        // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( A_visited[a_ptr]  || (!ArcActiveQ(a_ptr)) ) )
+    this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(
+        [&strand_counter,&C_strands,this]( const Int a, const Int a_pos, const Int  lc )
         {
-            ++a_ptr;
-        }
-        
-        if( a_ptr >= m )
-        {
-            break;
-        }
-        
-        Int a = a_ptr;
-        // Find the beginning of first overstrand.
-        // For this, we go back along a until ArcUnderQ<Tail>(a)/ ArcOverQ<Tail>(a)
-        while( ArcUnderQ<Tail>(a) != overQ )
-        {
-            a = NextArc<Tail>(a);
-        }
-        
-        const Int a_0 = a;
-        
-        // Traverse forward trhough all arcs in the link component, until we return where we started.
-        do
-        {
-            A_visited[a] = true;
+            (void)a_pos;
+            (void)lc;
             
             const Int c_0 = A_cross(a,Tail);
             const Int c_1 = A_cross(a,Head);
+            
+            // TODO: Putting side information into A_state would be very useful here.
 
-            C_strands(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = counter;
-            C_strands(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = counter;
-            
-            counter += (ArcUnderQ<Head>(a) == overQ);
-            
-            a = NextArc<Head>(a);
+            C_strands(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = strand_counter;
+            C_strands(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = strand_counter;
+
+            strand_counter += (ArcUnderQ<Head>(a) == overQ);
         }
-        while( a != a_0 );
-        
-        ++a_ptr;
-    }
+    );
     
     TOOLS_PTOC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     

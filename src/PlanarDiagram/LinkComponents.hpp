@@ -1,6 +1,6 @@
 public:
 
-Int LinkComponentCount()
+Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
     
@@ -9,14 +9,14 @@ Int LinkComponentCount()
     return this->template GetCache<Int>(tag);
 }
 
-Int LinkComponentSize( const Int lc )
+Int LinkComponentSize( const Int lc ) const
 {
     const auto & lc_arc_ptr = LinkComponentArcPointers();
     
     return (lc_arc_ptr[lc+1] - lc_arc_ptr[lc]);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcIndices()
+const Tensor1<Int,Int> & LinkComponentArcIndices() const
 {
     const std::string tag = "LinkComponentArcIndices";
     
@@ -25,7 +25,7 @@ const Tensor1<Int,Int> & LinkComponentArcIndices()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcPointers()
+const Tensor1<Int,Int> & LinkComponentArcPointers() const
 {
     const std::string tag = "LinkComponentArcPointers";
     
@@ -34,7 +34,7 @@ const Tensor1<Int,Int> & LinkComponentArcPointers()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcLinkComponents()
+const Tensor1<Int,Int> & ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
     
@@ -43,7 +43,7 @@ const Tensor1<Int,Int> & ArcLinkComponents()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcPositions()
+const Tensor1<Int,Int> & ArcPositions() const
 {
     const std::string tag = "ArcPositions";
     
@@ -52,7 +52,7 @@ const Tensor1<Int,Int> & ArcPositions()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor2<Int,Int> & ArcTraversalFlags()
+const Tensor2<Int,Int> & ArcTraversalFlags() const
 {
     const std::string tag = "ArcTraversalFlags";
     
@@ -63,7 +63,7 @@ const Tensor2<Int,Int> & ArcTraversalFlags()
 
 
 // TODO: Test this.
-Int ArcDistance( const Int a_0, const Int a_1 )
+Int ArcDistance( const Int a_0, const Int a_1 ) const
 {
     cptr<Int> A_lc  = ArcLinkComponents().data();
     cptr<Int> A_pos = ArcPositions().data();
@@ -86,7 +86,7 @@ Int ArcDistance( const Int a_0, const Int a_1 )
 }
 
 // TODO: Test this.
-void RequireLinkComponents()
+void RequireLinkComponents() const
 {
     TOOLS_PTIC(ClassName()+"::RequireLinkComponents");
     
@@ -106,7 +106,7 @@ void RequireLinkComponents()
     
     lc_arc_ptr[0]  = 0;
     
-    TraverseWithCrossings(
+    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
         []( const Int lc, const Int lc_begin )
         {
             (void)lc;
@@ -245,7 +245,7 @@ void TraverseLinkComponentsWithCrossings(
     LinkCompPre_T  && lc_pre,
     ArcFun_T       && arc_fun,
     LinkCompPost_T && lc_post
-)
+) const
 {
     if( !ValidQ() )
     {
