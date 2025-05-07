@@ -97,16 +97,134 @@ namespace Knoodle
     }
     
     
-    
+    // Make this a class in PlanarDiagram?
+    class ArcStateNew
+    {
+    public:
+        using UInt = UInt8;
+       
+        
+        static constexpr bool Tail  = 0;
+        static constexpr bool Head  = 1;
+        static constexpr bool Left  = 0;
+        static constexpr bool Right = 1;
+        static constexpr bool Out   = 0;
+        static constexpr bool In    = 1;
+        
+        static constexpr UInt one  = 1;
+        static constexpr UInt zero = 0;
+        
+        
+        // ht means "head or tail"
+        template<bool ht> static constexpr int ActiveBit      = 0 + 4 * ht;
+        template<bool ht> static constexpr int OverUnderBit   = 1 + 4 * ht;
+        template<bool ht> static constexpr int SideBit        = 2 + 4 * ht;
+        template<bool ht> static constexpr int HandednessBit  = 3 + 4 * ht;
+        
+        template<bool ht> static constexpr int ActiveMask     = (one << ActiveBit<ht>    );
+        template<bool ht> static constexpr int OverUnderMask  = (one << OverUnderBit<ht> );
+        template<bool ht> static constexpr int SideMask       = (one << SideBit<ht>      );
+        template<bool ht> static constexpr int HandednessMask = (one << HandednessBit<ht>);
+        
+        static constexpr UInt Active = ActiveMask<Tail> | ActiveMask<Head>;
+        
+    private:
+        
+        UInt state = 0;
+        
+    public:
+        
+        ArcStateNew()  = default;
+        ~ArcStateNew() = default;
+        
+        // TODO: Should these methods better be methods of PlanardDiagram?
+        
+        bool ActiveQ() const
+        {
+            return (state & Active) == Active;
+        }
+        
+        void Activate( bool headtail)
+        {
+            state |= (headtail ? ActiveMask<Head> : ActiveMask<Tail>);
+        }
+        
+        template<bool headtail>
+        void Activate()
+        {
+            state |= ActiveMask<headtail>;
+        }
+        
+        void Deactivate()
+        {
+            state = 0;
+        }
+        
+        
+        template<bool headtail>
+        bool OverQ()
+        {
+            return ((state & OverUnderMask<headtail>) != zero);
+        }
+        
+        bool OverQ( bool headtail )
+        {
+            return headtail ? OverQ<Head>() : OverQ<Tail>();
+        }
+        
+        template<bool headtail>
+        bool UnderQ()
+        {
+            return ((state & OverUnderMask<headtail>) == zero);
+            
+        }
+        
+        bool UnderQ( bool headtail )
+        {
+            return headtail ? UnderQ<Head>() : UnderQ<Tail>();
+        }
+        
+        
+        template<bool headtail>
+        bool Side()
+        {
+            return ((state & SideMask<headtail>) != zero);
+        }
+        
+        bool Side( bool headtail )
+        {
+            return headtail ? Side<Head>() : Side<Tail>();
+        }
+        
+        
+        template<bool headtail>
+        bool RightHandedQ()
+        {
+            return ((state & HandednessMask<headtail>) != zero);
+        }
+        
+        bool RightHandedQ( bool headtail )
+        {
+            return headtail ? RightHandedQ<Head>() : RightHandedQ<Tail>();
+        }
+        
+        template<bool headtail>
+        bool LeftHandedQ()
+        {
+            return ((state & HandednessMask<headtail>) == zero);
+        }
+        
+        bool LeftHandedQ( bool headtail )
+        {
+            return headtail ? LeftHandedQ<Head>() : LeftHandedQ<Tail>();
+        }
+    };
+        
     enum class ArcState : Int8
     {
 //        Unchanged =  2,
         
         // TODO: Handle over/under in ArcState.
-//        ActiveOverOver   = Int8(1) | (Int8(1) << 1) | (Int8(1) << 2),
-//        ActiveUnderOver  = Int8(1) | (Int8(0) << 1) | (Int8(1) << 2),
-//        ActiveOverUnder  = Int8(1) | (Int8(1) << 1) | (Int8(0) << 2),
-//        ActiveUnderUnder = Int8(1) | (Int8(0) << 1) | (Int8(0) << 2),
         Active           =  1,
         Inactive         =  0
     };
