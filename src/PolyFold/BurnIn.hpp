@@ -143,4 +143,8 @@ void BurnIn()
     log << "\n" + ct_tabs<t0> + "|>";
 
     
+    print("Burn-in done.");
+    valprint<a>("Burn-In Seconds Elapsed", burn_in_time);
+    print("");
+    
 } // BurnIn

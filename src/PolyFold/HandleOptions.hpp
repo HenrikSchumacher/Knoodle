@@ -261,7 +261,10 @@ void HandleOptions( int argc, char** argv )
         inputQ = true;
         
         valprint<a>("Input file", input_file.string());
-
+    }
+    else
+    {
+        x = Tensor2<Real,Int>( n, AmbDim );
     }
     
     print("");

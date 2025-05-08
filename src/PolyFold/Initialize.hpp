@@ -10,6 +10,11 @@ void Initialize()
     
     TimeInterval T_init(0);
     
+    Size_T x_byte_count   = 0;
+    Size_T T_byte_count   = 0;
+    Size_T L_byte_count   = 0;
+    Size_T PD_byte_count  = 0;
+    
     log_file = path / "Info.m";
     log.open( log_file, std::ios_base::out );
     
@@ -109,11 +114,7 @@ void Initialize()
     
     log << ",\n" + ct_tabs<t2> + "\"Coordinate Buffer\" -> <|";
     
-    if( !inputQ )
-    {
-        x = Tensor2<Real,Int>( n, AmbDim );
-    }
-    
+        x_byte_count = x.ByteCount();
         kv<t3,0>("Byte Count", x.ByteCount() );
     log << "\n" + ct_tabs<t2> + "|>";
     
@@ -191,6 +192,7 @@ void Initialize()
            }
         }
         
+        T_byte_count = T.ByteCount();
         kv<t3>("Byte Count", T.ByteCount() );
         log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
         log << T.template AllocatedByteCountDetails<t3>();
@@ -227,6 +229,7 @@ void Initialize()
         
         (void)L.FindIntersections();
         
+            L_byte_count = L.ByteCount();
             kv<t3>("Byte Count", L.ByteCount() );
             log << ",\n" + ct_tabs<t3> + "\"Byte Count Details\" -> ";
             log << L.template AllocatedByteCountDetails<t3>();
@@ -250,7 +253,7 @@ void Initialize()
         {
             L = Link_T();
         }
-        
+        PD_byte_count = PD.ByteCount();
             kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
         log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
@@ -268,4 +271,36 @@ void Initialize()
     log << "\n" + ct_tabs<t1> + "|>"  << std::flush;
     
     acc_intersec_counts.SetZero();
+    
+    
+    Size_T max_byte_count = 0;
+    max_byte_count += x_byte_count;
+    max_byte_count += T_byte_count;
+    max_byte_count += L_byte_count;
+    max_byte_count += PD_byte_count;
+    max_byte_count += curvature_hist.ByteCount();
+    max_byte_count += torsion_hist.ByteCount();
+    
+    // Give 10% buffer to these calculcations.
+    max_byte_count = static_cast<Size_T>(max_byte_count * 1.1);
+    
+    Size_T expected_byte_count = 0;
+    expected_byte_count += x_byte_count;
+    expected_byte_count += Max( T_byte_count, L_byte_count + PD_byte_count);
+    expected_byte_count += curvature_hist.ByteCount();
+    expected_byte_count += torsion_hist.ByteCount();
+    
+    // Give 10% buffer to these calculcations.
+    expected_byte_count = static_cast<Size_T>(expected_byte_count * 1.1);
+    
+    print("Initialization done.");
+    valprint<a>("Maximum Byte Count", max_byte_count);
+    valprint<a>("Expected Byte Count", force_deallocQ ? expected_byte_count : max_byte_count);
+    
+    if( !force_deallocQ )
+    {
+        print("Run with command-line option \"-m\" to run with forced deallocation to reduce Expected Byte Count to " + ToString(expected_byte_count) + ".");
+    }
+    
+    print("");
 }
