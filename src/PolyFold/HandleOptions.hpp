@@ -34,6 +34,7 @@ void HandleOptions( int argc, char** argv )
     ("hierarchical,H", po::value<bool>()->default_value(false), "whether to use hierarchical moves for burn-in and sampling")
     ("shift,S", po::value<bool>()->default_value(true), "shift vertex indices randomly in each sample")
     ("recenter,Z", po::value<bool>()->default_value(true), "translate each sample so that its barycenter is the origin")
+    ("edge-length-tol", po::value<Real>()->default_value(0.00000000001), "relative tolerance for the edge lengths")
     ;
     
     
@@ -77,6 +78,7 @@ void HandleOptions( int argc, char** argv )
     {
         throw std::invalid_argument( "Number of edges unspecified. Use the option -n to set it." );
     }
+
     
     if( vm.count("burn-in") )
     {
@@ -156,6 +158,10 @@ void HandleOptions( int argc, char** argv )
         reflection_probability = 0;
     }
     valprint<a>("Reflection Probability",ToStringFPGeneral(reflection_probability));
+    
+    
+    edge_length_tolerance = vm["edge-length-tol"].as<Real>() * Real(n);
+    valprint<a>("Edge Length Tolerance", n);
     
     hierarchicalQ = vm["hierarchical"].as<bool>();
     valprint<a>("Hierarchical Moves", BoolString(hierarchicalQ) );

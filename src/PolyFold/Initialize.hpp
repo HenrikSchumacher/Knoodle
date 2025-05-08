@@ -51,8 +51,6 @@ void Initialize()
         }
     }
     
-    edge_length_tolerance = Real(0.00000000001) * Real(n);
-    
     if constexpr ( Clisby_T::witnessesQ )
     {
         witness_file = path / "Witnesses.tsv";

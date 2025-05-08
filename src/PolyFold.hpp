@@ -96,7 +96,7 @@ namespace Knoodle
         Tensor1<LInt,Int> curvature_hist;
         Tensor1<LInt,Int> torsion_hist;
         
-        Real edge_length_tolerance = 1;
+        Real edge_length_tolerance = 0;
         Real reflection_probability = 1;
         LInt total_attempt_count = 0;
         LInt total_accept_count = 0;

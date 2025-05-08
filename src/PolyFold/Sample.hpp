@@ -114,7 +114,7 @@ void Sample( const LInt i )
             
             // We fuse shifting and recentering so that we have to cycle over the arrays only twice, not four times.
             
-            Int shift = shiftQ ? Int(0) : std::uniform_int_distribution<Int>(Int(0),n-Int(1))(prng);
+            const Int shift = shiftQ ? std::uniform_int_distribution<Int>(Int(0),n-Int(1))(prng) : Int(0);
             
             if( recenterQ )
             {
@@ -138,7 +138,7 @@ void Sample( const LInt i )
                         to[k] = from[k] - center[k];
                     }
                 };
-                
+
                 row_rotate_matrix<VarSize,AmbDim,Side::Right>(
                     x.data(), AmbDim, shift, n, AmbDim, pre_scan, post_scan
                 );
@@ -162,10 +162,7 @@ void Sample( const LInt i )
                 PrintWitnesses(i,T);
             }
             
-            if( V2Q || (i + 1 == N) )
-            {
-                e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
-            }
+            e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
             
             bytes = T.AllocatedByteCount();
             
@@ -255,6 +252,16 @@ void Sample( const LInt i )
             }
             
             log << std::flush;
+        }
+        
+        if( Abs(e_dev.first) > edge_length_tolerance * Real(n) )
+        {
+            throw std::runtime_error(ClassName() + "::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.first)) + " of shortest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
+        }
+        
+        if( Abs(e_dev.second) > edge_length_tolerance * Real(n) )
+        {
+            throw std::runtime_error(ClassName() + "::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.second)) + " of longest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
         }
     
         Analyze<t0,my_verbosity>(i);
