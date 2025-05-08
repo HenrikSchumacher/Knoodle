@@ -161,7 +161,7 @@ void HandleOptions( int argc, char** argv )
     
     
     edge_length_tolerance = vm["edge-length-tol"].as<Real>() * Real(n);
-    valprint<a>("Edge Length Tolerance", n);
+    valprint<a>("Edge Length Tolerance", edge_length_tolerance);
     
     hierarchicalQ = vm["hierarchical"].as<bool>();
     valprint<a>("Hierarchical Moves", BoolString(hierarchicalQ) );
