@@ -1,6 +1,6 @@
 public:
     
-    template<bool printQ = true> // whether to print errors and warnings
+    template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
 //        TOOLS_PTIC(ClassName()+"FindIntersections");
@@ -18,11 +18,11 @@ public:
         
         if( degenerate_edge_count > Int(0) )
         {
-            if constexpr ( printQ )
+            if constexpr ( verboseQ )
             {
-                eprint(ClassName() + "::FindIntersectionsx: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(ClassName() + "::FindIntersections: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
             }
-            return 7;
+            return 9;
         }
           
         // TODO: Randomly rotate until not degenerate.
@@ -34,10 +34,22 @@ public:
         // Check for bad intersections.
 
         {
+            const Size_T count = intersection_flag_counts[7];
+            if( count > Size_T(0) )
+            {
+                if constexpr ( verboseQ )
+                {
+                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
+                }
+                return 7;
+            }
+        }
+        
+        {
             const Size_T count = intersection_flag_counts[6];
             if( count > Size_T(0) )
             {
-                if constexpr ( printQ )
+                if constexpr ( verboseQ )
                 {
                     eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where line segments intersected in 3D.");
                 }
@@ -49,7 +61,7 @@ public:
             const Size_T count = intersection_flag_counts[5];
             if( count > Size_T(0) )
             {
-                if constexpr ( printQ )
+                if constexpr ( verboseQ )
                 {
                     eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
@@ -62,7 +74,7 @@ public:
             
             if( count > Size_T(0) )
             {
-                if constexpr ( printQ )
+                if constexpr ( verboseQ )
                 {
                     wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
@@ -77,7 +89,7 @@ public:
             
             if( count > Size_T(0) )
             {
-                if constexpr ( printQ )
+                if constexpr ( verboseQ )
                 {
                     wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
                 }
@@ -138,23 +150,63 @@ public:
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
         
+        Int close_counter = 0;
+        
         for( Int i = 0; i < edge_count; ++i )
         {
             // This is the range of data in edge_intersections/edge_times that belongs to edge i.
             const Int k_begin = edge_ptr[i  ];
             const Int k_end   = edge_ptr[i+1];
                  
-            if( k_begin < k_end )
+            // We need to sort only if there are at least two intersections on that edge.
+            if( k_begin + Int(1) < k_end )
             {
                 sort(
-                     &edge_times[k_begin],
-                     &edge_intersections[k_begin],
-                     &edge_overQ[k_begin],
-                     k_end - k_begin
-                 );
+                    &edge_times[k_begin],
+                    &edge_intersections[k_begin],
+                    &edge_overQ[k_begin],
+                    k_end - k_begin
+                );
+                
+                constexpr Real intersection_time_tolerance = 0.000000000001;
+                
+                for( Int l = k_begin + Int(1); l < k_end; ++l )
+                {
+                    const Real delta = edge_times[l] - edge_times[l-1];
+                    
+                    if( delta < intersection_time_tolerance )
+                    {
+                        ++close_counter;
+                        
+                        if constexpr ( verboseQ )
+                        {
+                            auto inter_0 = intersections[edge_intersections[l-1]];
+                            auto inter_1 = intersections[edge_intersections[l  ]];
+                            
+                            const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
+                            
+                            const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
+                            
+                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToStringFPGeneral(delta) + " < " + ToStringFPGeneral(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
+                        }
+                    }
+                }
             }
         }
+        
+        intersection_flag_counts[8] = close_counter;
+        
         TOOLS_PTOC("Counting sort");
+        
+        
+        if( intersection_flag_counts[8] )
+        {
+            if constexpr ( verboseQ )
+            {
+                wprint(ClassName()+"::FindIntersections: Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
+            }
+            return 8;
+        }
         
         // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
         
@@ -177,9 +229,11 @@ private:
         
         edge_ptr.Fill(0);
         
-        FindIntersectingEdges_DFS_Reference();
+        // Last time I checked the _ManualStack version was 5% faster.
+        
+        FindIntersectingEdges_DFS_ManualStack();
 
-    //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
+//        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
         edge_ptr.Accumulate();
 
@@ -189,7 +243,7 @@ private:
 
 
     // Improved version of FindIntersectingEdges_DFS_impl_0; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
-    void FindIntersectingEdges_DFS_Reference()
+    void FindIntersectingEdges_DFS_ManualStack()
     {
         const Int int_node_count = T.InternalNodeCount();
 
@@ -272,7 +326,7 @@ private:
                 auto [L_i,R_i] = Tree2_T::Children(i);
                 auto [L_j,R_j] = Tree2_T::Children(j);
                 
-                // T is a balanced bindary tree.
+                // T is a balanced binary tree.
 
                 if( i_internalQ == j_internalQ )
                 {
@@ -314,8 +368,7 @@ private:
             {
     //                    Time edge_start_time = Clock::now();
     //                    ++edge_call_count;
-                
-                ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
+                ComputeEdgeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
 
     //                    Time edge_end_time = Clock::now();
     //                    edge_time += Tools::Duration( edge_start_time, edge_end_time );
@@ -327,7 +380,7 @@ private:
     //        TOOLS_DUMP(edge_call_count);
     //        TOOLS_DUMP(edge_time);
         
-    } // FindIntersectingEdges_DFS_Reference
+    } // FindIntersectingEdges_DFS_ManualStack
 
 
     void FindIntersectingEdges_DFS_Recursive( const Int i, const Int j )
@@ -425,7 +478,7 @@ private:
         }
         else
         {
-            ComputeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
+            ComputeEdgeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
         }
     }
 
@@ -438,180 +491,190 @@ public:
 
 protected:
 
-
-
-    void ComputeEdgeIntersection( const Int k, const Int l )
-    {
-//        constexpr Int k0 = 4453;
-//        constexpr Int l0 = 7619;
+    void ComputeEdgeEdgeIntersection( const Int k, const Int l )
+{
+        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
+        if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
+        {
+//            constexpr Int k0 = 4453;
+//            constexpr Int l0 = 7619;
 //
-//        const bool verboseQ = (k == k0) && (l == l0);
-//        
-//        if( verboseQ )
-//        {
-//            this->template ComputeEdgeIntersection_impl<true>(k,l);
-//        }
-//        else
-//        {
-//            this->template ComputeEdgeIntersection_impl<false>(k,l);
-//        }
-        
-        this->template ComputeEdgeIntersection_impl<false>(k,l);
+//            const bool verboseQ = (k == k0) && (l == l0);
+//
+//            if( verboseQ )
+//            {
+//                this->template ComputeEdgeEdgeIntersection_impl<true>(k,l);
+//            }
+//            else
+//            {
+//                this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
+//            }
+            
+            this->template ComputeEdgeEdgeIntersection_impl<false>(k,l);
+        }
     }
 
 
     template<bool verboseQ>
-    void ComputeEdgeIntersection_impl( const Int k, const Int l )
+    void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     {
         if constexpr ( verboseQ )
         {
-            print(ClassName() + "::ComputeEdgeIntersection in verbose mode.");
+            print(ClassName() + "::ComputeEdgeEdgeIntersection in verbose mode.");
             TOOLS_DUMP(k);
             TOOLS_DUMP(l);
         }
         
-        // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
-        if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
+        // At this point we assume that `k != l` and that they are also not direct neighbors.
+
+        const E_T x = EdgeData(k);
+        const E_T y = EdgeData(l);
+        
+        if constexpr ( verboseQ )
         {
+            TOOLS_DUMP(ToString(x));
+            TOOLS_DUMP(ToString(y));
+        }
+        
+        LineSegmentsIntersectionFlag flag
+            = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
+        
+        if constexpr ( verboseQ )
+        {
+            TOOLS_DUMP(flag);
+        }
+        
+        if( IntersectingQ(flag) )
+        {
+            auto [t,sign] = S.IntersectionTimesAndSign();
             
-            // Get the edge lengths in order to decide what's a "small" determinant.
-
-            const E_T x = EdgeData(k);
-            const E_T y = EdgeData(l);
             
-            if constexpr ( verboseQ )
+            if( (t[0]<Real(0)) || (t[0]>=Real(1)) || (t[1]<Real(0)) || (t[1]>=Real(1)) )
             {
-                TOOLS_DUMP(ToString(x));
-                TOOLS_DUMP(ToString(y));
+                flag = LineSegmentsIntersectionFlag::OOBounds;
             }
             
+            // Compute heights at the intersection.
+            const Real h[2] = {
+                x[0][2] * (one - t[0]) + t[0] * x[1][2],
+                y[0][2] * (one - t[1]) + t[1] * y[1][2]
+            };
             
-            LineSegmentsIntersectionFlag flag
-                = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
-            
-            
-            if constexpr ( verboseQ )
+            // Tell edges k and l that they contain an additional crossing.
+            edge_ptr[k+1]++;
+            edge_ptr[l+1]++;
+
+            if( h[0] < h[1] )
             {
-                TOOLS_DUMP(flag);
+                // edge k goes UNDER edge l
+                
+                intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
+                
+                /*      If det > 0, then this looks like this (left-handed crossing):
+                 *
+                 *        v       u
+                 *         ^     ^
+                 *          \   /
+                 *           \ /
+                 *            \
+                 *           / \
+                 *          /   \
+                 *         /     \
+                 *        k       l
+                 *
+                 *      If det < 0, then this looks like this (right-handed crossing):
+                 *
+                 *        u       v
+                 *         ^     ^
+                 *          \   /
+                 *           \ /
+                 *            /
+                 *           / \
+                 *          /   \
+                 *         /     \
+                 *        l       k
+                 */
+            }
+            else if ( h[0] > h[1] )
+            {
+                intersections.push_back( Intersection_T(k,l,t[0],t[1],sign) );
+                // edge k goes OVER l
+                
+                /*      If det > 0, then this looks like this (positive crossing):
+                 *
+                 *        v       u
+                 *         ^     ^
+                 *          \   /
+                 *           \ /
+                 *            /
+                 *           / \
+                 *          /   \
+                 *         /     \
+                 *        k       l
+                 *
+                 *      If det < 0, then this looks like this (positive crossing):
+                 *
+                 *        u       v
+                 *         ^     ^
+                 *          \   /
+                 *           \ /
+                 *            \
+                 *           / \
+                 *          /   \
+                 *         /     \
+                 *        l       k
+                 */
+            }
+            else
+            {
+                flag = LineSegmentsIntersectionFlag::Spatial;
             }
             
-            if( IntersectingQ(flag) )
+        } // if( IntersectingQ(flag) )
+        
+        ++intersection_flag_counts[ ToUnderlying(flag) ];
+        
+        switch(flag)
+        {
+            case LineSegmentsIntersectionFlag::AtCorner0:
             {
-                auto [t,sign] = S.IntersectionTimesAndSign();
-                
-                // Compute heights at the intersection.
-                const Real h[2] = {
-                    x[0][2] * (one - t[0]) + t[0] * x[1][2],
-                    y[0][2] * (one - t[1]) + t[1] * y[1][2]
-                };
-                
-                // Tell edges k and l that they contain an additional crossing.
-                edge_ptr[k+1]++;
-                edge_ptr[l+1]++;
-
-                if( h[0] < h[1] )
-                {
-                    // edge k goes UNDER edge l
-                    
-                    intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
-                    
-                    /*      If det > 0, then this looks like this (left-handed crossing):
-                     *
-                     *        v       u
-                     *         ^     ^
-                     *          \   /
-                     *           \ /
-                     *            \
-                     *           / \
-                     *          /   \
-                     *         /     \
-                     *        k       l
-                     *
-                     *      If det < 0, then this looks like this (right-handed crossing):
-                     *
-                     *        u       v
-                     *         ^     ^
-                     *          \   /
-                     *           \ /
-                     *            /
-                     *           / \
-                     *          /   \
-                     *         /     \
-                     *        l       k
-                     */
-                }
-                else if ( h[0] > h[1] )
-                {
-                    intersections.push_back( Intersection_T(k,l,t[0],t[1],sign) );
-                    // edge k goes OVER l
-                    
-                    /*      If det > 0, then this looks like this (positive crossing):
-                     *
-                     *        v       u
-                     *         ^     ^
-                     *          \   /
-                     *           \ /
-                     *            /
-                     *           / \
-                     *          /   \
-                     *         /     \
-                     *        k       l
-                     *
-                     *      If det < 0, then this looks like this (positive crossing):
-                     *
-                     *        u       v
-                     *         ^     ^
-                     *          \   /
-                     *           \ /
-                     *            \
-                     *           / \
-                     *          /   \
-                     *         /     \
-                     *        l       k
-                     */
-                }
-                else
-                {
-                    flag = LineSegmentsIntersectionFlag::Spatial;
-                }
-                
-            } // if( IntersectingQ(flag) )
-            
-            ++intersection_flag_counts[ ToUnderlying(flag) ];
-            
-            switch(flag)
+                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
+                break;
+            }
+            case LineSegmentsIntersectionFlag::AtCorner1:
             {
-                case LineSegmentsIntersectionFlag::AtCorner0:
-                {
-                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
-                    break;
-                }
-                case LineSegmentsIntersectionFlag::AtCorner1:
-                {
-                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
-                    break;
-                }
-                case LineSegmentsIntersectionFlag::CornerCorner:
-                {
-                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
-                    break;
-                }
-                case LineSegmentsIntersectionFlag::Interval:
-                {
-                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
-                    break;
-                }
-                case LineSegmentsIntersectionFlag::Spatial:
-                {
-                    wprint(ClassName() + "::ComputeEdgeInterection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
-                    break;
-                }
-                default:
-                {
-                    break;
-                }
+                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
+                break;
+            }
+            case LineSegmentsIntersectionFlag::CornerCorner:
+            {
+                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
+                break;
+            }
+            case LineSegmentsIntersectionFlag::Interval:
+            {
+                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
+                break;
+            }
+            case LineSegmentsIntersectionFlag::Spatial:
+            {
+                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                break;
+            }
+            case LineSegmentsIntersectionFlag::OOBounds:
+            {
+                wprint(ClassName() + "::ComputeEdgeIntersection: Intersection times of intetsection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
+                break;
+            }
+            default:
+            {
+                break;
             }
         }
+        
+//        if( t[0] < Real(0) )
+//        {
+//        }
     }
 
 

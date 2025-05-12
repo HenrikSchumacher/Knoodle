@@ -40,7 +40,7 @@ namespace Knoodle
         using Intersection_T = Intersection<Real,Int>;
         
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
+        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
         static constexpr Int AmbDim = 3;
         

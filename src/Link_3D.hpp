@@ -234,6 +234,110 @@ namespace Knoodle
             WriteEdgeCoordinates( E_coords, E );
         }
         
+        static void ProjectPointToEdge(
+            cptr<Real> x, cptr<Real> E, mref<Real> t, cptr<Real> y, mref<Real> dist
+        )
+        {
+            Vector3_T P_0 ( &E[0] );
+            Vector3_T P_1 ( &E[3] );
+            Vector3_T X   ( x );
+            
+            Vector3_T u = P_1 - P_0;
+            Vector3_T v = X  - P_0;
+            
+            Real uu = u.SquaredNorm();
+            
+            if( uu <= Real(0) )
+            {
+                t = Real(0);
+                P_0.Write(y);
+                dist = v.Norm();
+            }
+         
+            t = Dot(u,v) / uu;
+            
+            if( ( Real(0) <= t) && (t <= Real(1)) )
+            {
+                Vector3_T Y = P_0 + t * u;
+                Y.Write(y);
+                Vector3_T w = Y - X;
+                dist = w.Norm();
+            }
+            else
+            {
+                const Real d2_0 = v.SquaredNorm();
+                
+                Vector3_T w = X - P_1;
+                const Real d2_1 = w.SquaredNorm();
+                
+                if( d2_0 <= d2_1 )
+                {
+                    t = 0;
+                    P_0.Write(y);
+                    dist = Sqrt(d2_0);
+                }
+                else
+                {
+                    t = 1;
+                    P_1.Write(y);
+                    dist = Sqrt(d2_1);
+                }
+            }
+        }
+        
+        void ProjectPointToEdge(
+            cptr<Real> x, Int i, mref<Real> t, cptr<Real> y, mref<Real> dist
+        )
+        {
+            ProjectPointToEdge(x,E_coords.data(i),t,y,dist);
+        }
+        
+//        void EdgeEdgeClosestPoints(
+//            cptr<Real> E_0,
+//            cptr<Real> E_1,
+//            mref<Real> s, cptr<Real> x,
+//            mref<Real> t, cptr<Real> y,
+//            mref<Real> dist
+//        )
+//        {
+//            Vector3_T P_0 ( &E_0[0] );
+//            Vector3_T P_1 ( &E_0[3] );
+//            Vector3_T Q_0 ( &E_1[0] );
+//            Vector3_T Q_1 ( &E_1[3] );
+//            
+//            Vector3_T u = P_1 - P_0;
+//            Vector3_T v = Q_0 - Q_1;
+//            Vector3_T w = Q_0 - P_0;
+//            
+////            f(s,t) = Dot( (P_0 + s * u) - (Q_0 - t * v), (P_0 + s * u) - (Q_0 - t * v) );
+//            
+////            df/fs = 2 * Dot( u, P_0 - Q_0 + s * u + t * v );
+////            df/ft = 2 * Dot( v, P_0 - Q_0 + s * u + t * v );
+//            
+////            Dot( u, P_0 - Q_0 ) + Dot( u, u ) * s + Dot( u, v ) * t == 0
+////            Dot( v, P_0 - Q_0 ) + Dot( v, u ) * s + Dot( v, v ) * t == 0
+//            
+////            Dot( u, u ) * s + Dot( u, v ) * t == Dot( u, Q_0 - P_0 )
+////            Dot( v, u ) * s + Dot( v, v ) * t == Dot( v, Q_0 - P_0 )
+//            
+//            const Real uu = Dot(u,u);
+//            const Real uv = Dot(u,v);
+//            const Real vv = Dot(v,v);
+////            Tiny::Matrix<2,2,Real,Int> A ( { {Dot(u,u), uv}, {uv, Dot(v,v)} } );
+//            Real det = Det2D_Kahan( uu, uv, uv, vv );
+//            // TODO: Check whether det == 0.
+//            
+//            Real det_inv = Inv(det);
+//            
+//            Tiny::Vector<2,  Real,Int> b ( { Dot(u,w), Dot(v,w) } );
+//            s = (vv * b[0] - uv * b[1]) * det_inv;
+//            t = (uv * b[0] - uu * b[1]) * det_inv;
+//            
+//            
+//        }
+        
+
+        
     public:
 
         static std::string ClassName()

@@ -3,7 +3,7 @@
 namespace Knoodle
 {
 
-    // This is basically a Tensor2 whose last dimension equals 2. This way we can help the compiler to speed up the indexing operations a little.
+    // This is basically a Tensor2 whose last dimension equals 2. This way we can help the compiler to speed up the indexing operations a little. (The compiler has the discretion to use fused shift-load operations.)
     
     template <typename Int_>
     class ArcContainer : public Tensor2<Int_,Int_>

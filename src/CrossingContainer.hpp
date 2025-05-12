@@ -3,7 +3,7 @@
 namespace Knoodle
 {
         
-    // This is basically a Tensor3 whose last two dimensions equal 2. This way we can help the compiler to speed up the indexing operations a little.
+    // This is basically a Tensor3 whose last two dimensions equal 2. This way we can help the compiler to speed up the indexing operations a little. (The compiler has the discretion to use fused shift-load operations.)
     
     template <typename Int_>
     class CrossingContainer : public Tensor3<Int_,Int_>

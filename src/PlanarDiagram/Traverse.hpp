@@ -147,9 +147,14 @@ void Traverse_impl(
         (void)A_next;
     }
     
-    if( !ValidQ() )
+    if( InvalidQ() )
     {
-        eprint(ClassName() + "Traverse_impl:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+        eprint(ClassName() + "Traverse_impl"
+            + "<" + BoolString(crossingsQ)
+            + "," + BoolString(arclabelsQ)
+            + "," + ToString(start_arc_ou)
+            + "," + ToString(method)
+            + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
         return;
     }
 

@@ -45,7 +45,7 @@ void DirichletHessian_CollectTriples(
         }
     }
 
-} // BendingHessian_CollectTriples
+} // DirichletHessian_CollectTriples
 
 
 public:

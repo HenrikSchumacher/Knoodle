@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    enum class LineSegmentsIntersectionFlag : FastInt8
+    enum class LineSegmentsIntersectionFlag : int
     {
         Empty        = 0, // Empty intersection.
         Transversal  = 1, // Exactly one intersec. point X and X != x_1 and X != y_1.
@@ -11,6 +11,7 @@ namespace Knoodle
         CornerCorner = 4, // Exactly one intersec. point X == x_0 == y_0.
         Interval     = 5,   // The intersection between the two lines consists of more than two points.
         Spatial      = 6,   // The intersection between the two lines is tranversal in 2D, but also exists in 3D.
+        OOBounds     = 7,   // The intersection times are out of bounds, indicating that rounding errors occurred.
     };
     
     inline bool IntersectingQ( LineSegmentsIntersectionFlag f )
