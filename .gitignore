@@ -33,3 +33,10 @@
 
 PolyFold/Polyfold
 PolyFold_Kyoto/Polyfold
+submodules/.DS_Store
+python/src/.DS_Store
+python/knoodle/.DS_Store
+python/.DS_Store
+.DS_Store
+python/test_knoodle.py
+python/knoodle/__pycache__/__init__.cpython-310.pyc
