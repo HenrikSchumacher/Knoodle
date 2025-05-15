@@ -1,0 +1,7 @@
+[build-system]
+requires = [
+    "setuptools>=42", # A reasonably modern version of setuptools
+    "wheel",
+    "pybind11>=2.6"   # Specify pybind11 as a build-time requirement
+]
+build-backend = "setuptools.build_meta"
