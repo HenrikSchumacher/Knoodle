@@ -1,11 +1,12 @@
 from setuptools import setup, Extension
 import pybind11
 import os
+import sys
 
 # Path to Knoodle headers
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root_dir_guess = os.path.abspath(os.path.join(current_script_dir, '..'))
-knoodle_base_dir = os.path.join(project_root_dir_guess)#, 'Knoodle')
+knoodle_base_dir = os.path.abspath(os.path.join(current_script_dir, '..'))
+ 
 
 print(f"DEBUG: knoodle_base_dir is set to: {knoodle_base_dir}")
 if not os.path.isdir(knoodle_base_dir):
@@ -17,11 +18,28 @@ cpp_args = [
     '-std=c++20',
     '-fvisibility=hidden',
     '-g0',
-    '-mmacosx-version-min=13.4',
     '-DPOLYFOLD_NO_QUATERNIONS=1',
-    '-fenable-matrix',
     '-Wno-deprecated-declarations',
 ]
+
+if sys.platform == 'darwin':
+    cpp_args.append('-mmacosx-version-min=13.4')
+    cpp_args.append('-fenable-matrix')
+elif sys.platform.startswith('linux'): 
+    compat_header = os.path.join(current_script_dir, 'src', 'linux_compat.hpp')
+    cpp_args = ['-include', compat_header] + cpp_args
+    cpp_args.append('-fpermissive')
+    cpp_args.append('-DUSE_FASTINTS=1')  
+
+
+
+link_args = []
+
+if sys.platform == 'darwin':
+    pass
+elif sys.platform.startswith('linux'):
+    link_args.append('-Wl,--strip-all')
+    link_args.append('-Wl,-rpath,$ORIGIN')
 
 ext_modules = [
     Extension(
@@ -38,9 +56,20 @@ ext_modules = [
             os.path.join(knoodle_base_dir, 'src'),
         ],
         language='c++',
-        extra_compile_args=cpp_args
+        extra_compile_args=cpp_args,
+        extra_link_args=link_args
     )
 ]
+
+knoodle_dir = os.path.join(current_script_dir, 'knoodle')
+if not os.path.exists(knoodle_dir):
+    os.makedirs(knoodle_dir)
+    
+init_file = os.path.join(knoodle_dir, '__init__.py')
+if not os.path.exists(init_file):
+    with open(init_file, 'w') as f:
+        f.write('from ._knoodle import *\n')
+
 
 setup(
     name='pyknoodle', 

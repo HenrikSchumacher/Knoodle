@@ -1,3 +1,26 @@
+#ifdef __linux__
+#include <cstdint>
+
+
+#ifndef FASTINT8_DEFINED
+#define FASTINT8_DEFINED
+typedef std::int8_t FastInt8;
+typedef std::int16_t FastInt16;
+typedef std::int32_t FastInt32;
+typedef std::int64_t FastInt64;
+typedef std::uint8_t FastUInt8;
+typedef std::uint16_t FastUInt16;
+typedef std::uint32_t FastUInt32;
+typedef std::uint64_t FastUInt64;
+#endif
+
+
+#ifndef TOOLS_PTIMER
+#define TOOLS_PTIMER(name, description) do {} while(0)
+#endif
+
+#endif 
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <vector>
