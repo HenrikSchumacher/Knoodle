@@ -40,3 +40,10 @@ python/.DS_Store
 .DS_Store
 python/test_knoodle.py
 python/knoodle/__pycache__/__init__.cpython-310.pyc
+python/knoodle/__init__.py
+python/pyknoodle.egg-info/dependency_links.txt
+python/pyknoodle.egg-info/not-zip-safe
+python/pyknoodle.egg-info/PKG-INFO
+python/pyknoodle.egg-info/SOURCES.txt
+python/pyknoodle.egg-info/top_level.txt
+submodules/Tensors
