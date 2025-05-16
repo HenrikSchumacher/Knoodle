@@ -103,7 +103,7 @@ setup(
     name='pyknoodle', 
     version='1.0.0',
     author='Dimos Gkountaroulis',
-    description='Python bindings for Knoodle knot analysis library',
+    description='Python bindings for Knoodle library',
     ext_modules=ext_modules,
     packages=['knoodle'],
     zip_safe=False,
