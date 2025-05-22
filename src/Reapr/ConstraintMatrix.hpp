@@ -8,6 +8,7 @@ void ConstraintMatrix_CollectTriples(
     const Int col_offset
 )
 {
+    TOOLS_PTIC(ClassName() + "::ConstraintMatrix_CollectTriples");
     const Int n = pd.CrossingCount();
     
     cptr<Int>           C_arcs   = pd.Crossings().data();
@@ -35,6 +36,7 @@ void ConstraintMatrix_CollectTriples(
             agg.Push( row, a_1 + col_offset,  s );
         }
     }
+    TOOLS_PTOC(ClassName() + "::ConstraintMatrix_CollectTriples");
 }
 
 public:

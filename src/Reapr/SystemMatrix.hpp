@@ -2,6 +2,7 @@ public:
 
 Matrix_T SystemMatrix( mref<PlanarDiagram_T> pd )
 {
+    TOOLS_PTIC(ClassName() + "::SystemMatrix");
     const I_T n = pd.CrossingCount();
     const I_T m = pd.ArcCount();
     
@@ -32,6 +33,7 @@ Matrix_T SystemMatrix( mref<PlanarDiagram_T> pd )
     
     Matrix_T L ( agg, m+n, m+n, I_T(1), true, true ); // symmetrize
 
+    TOOLS_PTOC(ClassName() + "::SystemMatrix");
     return L;
 }
 
@@ -40,6 +42,8 @@ void WriteSystemMatrixModifiedValues(
     mref<PlanarDiagram_T> pd, cref<Matrix_T> L, cptr<Real> y, mptr<Real> mod_vals
 )
 {
+    TOOLS_PTIC(ClassName() + "::WriteSystemMatrixModifiedValues");
+    
     cptr<I_T>  outer      = L.Outer().data();
     cptr<Real> fixed_vals = L.Values().data();
     
@@ -69,6 +73,8 @@ void WriteSystemMatrixModifiedValues(
         // But this _is_ what the semi-smooth Newton algorithm requires!
         mod_vals[k_end - 1] = (mask - Real(1));
     }
+    
+    TOOLS_PTOC(ClassName() + "::WriteSystemMatrixModifiedValues");
 }
 
 

@@ -2,6 +2,8 @@ public:
 
 Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
 {
+    TOOLS_PTIC(ClassName() + "::Optimize_SemiSmoothNewton");
+    
     const I_T m = pd.ArcCount();
     const I_T n = pd.CrossingCount();
     
@@ -10,9 +12,6 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
 //    Tensor1<Real,I_T> x     (m+n);
     Tensor1<Real,I_T> x     (m+n,Real(0));
     Tensor1<Real,I_T> x_tau (m+n);
-    
-//    WriteReaprFeasibleLevels( pd, x.data() );
-//    zerofy_buffer( x.data(m), n );
 
     // TODO: Remove initialization.
     
@@ -127,6 +126,8 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
     {
         wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of iterations reached without reaching the stopping criterion/");
     }
+    
+    TOOLS_PTOC(ClassName() + "::Optimize_SemiSmoothNewton");
     
     return x;
 }

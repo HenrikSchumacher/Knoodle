@@ -14,6 +14,7 @@ void BendingHessian_CollectTriples(
     const Int col_offset
 ) const
 {
+    TOOLS_PTIC(ClassName() + "::BendingHessian_CollectTriples");
     // Caution: This creates only the triples for the upper triangle.
     
     const Int comp_count   = pd.LinkComponentCount();
@@ -47,6 +48,8 @@ void BendingHessian_CollectTriples(
             ap2 = next_arc[ap1];
         }
     }
+    
+    TOOLS_PTOC(ClassName() + "::BendingHessian_CollectTriples");
     
 } // BendingHessian_CollectTriples
 

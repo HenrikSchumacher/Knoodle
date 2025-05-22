@@ -14,6 +14,8 @@ void DirichletHessian_CollectTriples(
     const Int col_offset
 ) const
 {
+    TOOLS_PTIC(ClassName() + "::DirichletHessian_CollectTriples");
+    
     // Caution: This creates only the triples for the essentially upper triangle.
     // ("Essentially", because few off-diagonal triples lie in the lower triangle.)
 
@@ -45,6 +47,8 @@ void DirichletHessian_CollectTriples(
         }
     }
 
+    TOOLS_PTOC(ClassName() + "::DirichletHessian_CollectTriples");
+    
 } // DirichletHessian_CollectTriples
 
 
