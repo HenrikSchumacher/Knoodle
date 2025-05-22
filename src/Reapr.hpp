@@ -2,6 +2,10 @@
 
 #include "../submodules/Tensors/UMFPACK.hpp"
 
+#ifdef REAPR_USE_CLP
+    #include "../submodules/Tensors/Clp.hpp"
+#endif
+
 namespace Knoodle
 {
     
@@ -124,7 +128,7 @@ namespace Knoodle
                 
                 a = a_begin;
                 
-                // TODO: This works only for knots, not for links.
+                // TODO: This might not work for multi-component links.
                 for( Int i = a_begin; i < a_end; ++i )
                 {
                     Int c = A_cross(a,0);
@@ -156,14 +160,16 @@ namespace Knoodle
                 }
             }
             
-        } // WriteReaprFeasibleLevels
+        }
 
 #include "Reapr/DirichletHessian.hpp"
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/ConstraintMatrix.hpp"
 #include "Reapr/SystemMatrix.hpp"
 #include "Reapr/Optimize_SemiSmoothNewton.hpp"
- 
+#ifdef REAPR_USE_CLP
+    #include "Reapr/Optimize_CLP.hpp"
+#endif
         
     public:
         
