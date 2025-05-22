@@ -12,7 +12,7 @@ public:
 
 Int Simplify2()
 {
-    if( provably_minimalQ )
+    if( provably_minimalQ || InvalidQ() )
     {
         return 0;
     }

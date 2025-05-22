@@ -26,7 +26,7 @@ bool Simplify5(
     const bool strand_R_II_Q = true
 )
 {
-    if( provably_minimalQ )
+    if( provably_minimalQ || InvalidQ() )
     {
         return false;
     }

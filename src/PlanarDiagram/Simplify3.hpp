@@ -22,7 +22,7 @@ Int Simplify3(
     const bool multi_compQ = true
 )
 {
-    if( provably_minimalQ )
+    if( provably_minimalQ || InvalidQ() )
     {
         return 0;
     }
