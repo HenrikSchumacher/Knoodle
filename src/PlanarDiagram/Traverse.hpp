@@ -23,10 +23,11 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
  *
+ * @tparam method The method used for traversal. You should typically use the default method.
+ *
  * @param lc_pre A lambda function that is executed at the start of every link component.
  *    `lc_post( const Int lc, const Int lc_begin )`.
  *
- * @param method The method used for traversal. You should typically use the default method.
  *
  * @param arc_fun A function to apply to every visited arc. Its require argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
@@ -155,6 +156,11 @@ void Traverse_impl(
             + "," + ToString(start_arc_ou)
             + "," + ToString(method)
             + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+        
+        // Other methods might assume that this is set.
+        // In particular, calls to `LinkComponentCount` might go into a infinite loop.
+        this->template SetCache<false>("LinkComponentCount",Int(0));
+        
         return;
     }
 

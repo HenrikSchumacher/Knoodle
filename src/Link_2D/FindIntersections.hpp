@@ -150,7 +150,7 @@ public:
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
         
-        Int close_counter = 0;
+        Size_T close_counter = 0;
         
         for( Int i = 0; i < edge_count; ++i )
         {
@@ -180,8 +180,12 @@ public:
                         
                         if constexpr ( verboseQ )
                         {
-                            auto inter_0 = intersections[edge_intersections[l-1]];
-                            auto inter_1 = intersections[edge_intersections[l  ]];
+                            auto inter_0 = intersections[
+                                static_cast<Size_T>(edge_intersections[l-1])
+                            ];
+                            auto inter_1 = intersections[
+                                static_cast<Size_T>(edge_intersections[l  ])
+                            ];
                             
                             const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
                             
@@ -659,11 +663,21 @@ protected:
             case LineSegmentsIntersectionFlag::Spatial:
             {
                 wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                
+                // DEBUGGING
+                
+                logvalprint( "edge " + ToString(k), x );
+                logvalprint( "edge " + ToString(l), y );
+                logprint("full polygon");
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    logvalprint( "edge " + ToString(e), EdgeData(e) );
+                }
                 break;
             }
             case LineSegmentsIntersectionFlag::OOBounds:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Intersection times of intetsection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
+                wprint(ClassName() + "::ComputeEdgeIntersection: Intersection times of intersection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
                 break;
             }
             default:

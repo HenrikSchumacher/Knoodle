@@ -134,31 +134,15 @@ void RequireLinkComponents() const
             lc_arc_ptr[lc+1] = lc_end;
         }
      );
-
-//    TraverseWithoutCrossings(
-//        []( const Int lc, const Int lc_begin ){},
-//        [&A_lc,&A_pos,&lc_arc_idx](
-//            const Int a, const Int a_label, const Int lc
-//        )
-//        {
-//            A_lc[a]  = lc;
-//            A_pos[a] = a_label;
-//            lc_arc_idx[a_label] = a;
-//        },
-//        [&lc_arc_ptr]( const Int lc, const Int lc_begin, const Int lc_end )
-//        {
-//            lc_arc_ptr[lc+1] = lc_end;
-//        }
-//     );
     
-    // LinkComponentCount is set by TraverseWithoutCrossings.
+    // LinkComponentCount is set by `Traverse`.
     lc_arc_ptr.template Resize<true>(LinkComponentCount()+1);
     
     this->SetCache( "LinkComponentArcIndices",   std::move(lc_arc_idx) );
     this->SetCache( "LinkComponentArcPointers",  std::move(lc_arc_ptr) );
     this->SetCache( "ArcLinkComponents",         std::move(A_lc)       );
     this->SetCache( "ArcPositions",              std::move(A_pos)      );
-    this->SetCache( "ArcTraversalFlags",                  std::move(A_flags)    );
+    this->SetCache( "ArcTraversalFlags",         std::move(A_flags)    );
 //    this->SetCache( "LinkComponentCount",        lc_count              );
     
     TOOLS_PTOC(ClassName()+"::RequireLinkComponents");

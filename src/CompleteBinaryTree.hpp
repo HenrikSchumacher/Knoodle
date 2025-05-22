@@ -421,7 +421,6 @@ namespace Knoodle
          *
          * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
          *
-         * @param start_node The root of the subtree to be visited.
          *
          */
         
@@ -481,8 +480,6 @@ namespace Knoodle
          * @param int_visit An instance of a functor class (e.g. a lamda). It must have a method `operator()( Int node )` that executes what ought to be done in an internal node.
          *
          * @param leaf_visit An instance of a functor class that specifies what ought to be done in a leaf node.
-         *
-         * @param start_node The root of the subtree to be visited.
          *
          */
         
