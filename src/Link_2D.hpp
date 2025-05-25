@@ -194,15 +194,6 @@ namespace Knoodle
         {
             TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             
-            // DEBUGGING
-            
-            print(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
-            
-            logvalprint("edges[0]",edges[0]);
-            logvalprint("edges[1]",edges[1]);
-            
-            logvalprint("v",ArrayToString(v,{edge_count,Int(3)}));
-            
             Vector3_T lo;
             Vector3_T hi;
 
@@ -215,42 +206,42 @@ namespace Knoodle
             Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
             Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
             
-//            if( preorderedQ )
-//            {
-//                logprint("preordered");
-//                for( Int c = 0; c < component_count; ++c )
-//                {
-//                    const Int i_begin = component_ptr[c  ];
-//                    const Int i_end   = component_ptr[c+1];
-//                    
-//                    for( Int i = i_begin; i < i_end-1; ++i )
-//                    {
-//                        const Int j = i+1;
-//                        
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
-//                        
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//
-//                    {
-//                        const Int i = i_end-1;
-//                        const Int j = i_begin;
-//
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = edge_coords.data(j,0);
-//                      
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//                }
-//            }
-//            else
+            if( preorderedQ )
             {
-                logprint("not preordered");
+//                logprint("preordered");
+                for( Int c = 0; c < component_count; ++c )
+                {
+                    const Int i_begin = component_ptr[c  ];
+                    const Int i_end   = component_ptr[c+1];
+                    
+                    for( Int i = i_begin; i < i_end-1; ++i )
+                    {
+                        const Int j = i+1;
+                        
+                        mptr<Real> target_0 = edge_coords.data(i,1);
+                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
+                        
+                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+                    }
+
+                    {
+                        const Int i = i_end-1;
+                        const Int j = i_begin;
+
+                        mptr<Real> target_0 = edge_coords.data(i,1);
+                        mptr<Real> target_1 = edge_coords.data(j,0);
+                      
+                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+                    }
+                }
+            }
+            else
+            {
+//                logprint("not preordered");
                 cptr<Int> edge_tails = edges.data(0);
                 cptr<Int> edge_tips  = edges.data(1);
                 
@@ -272,7 +263,7 @@ namespace Knoodle
                 }
             }
             
-            logvalprint("edge_coords",edge_coords);
+//            logvalprint("edge_coords",edge_coords);
             
             TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
