@@ -324,8 +324,6 @@ namespace Knoodle
                     
                     if( e_flags[e] == 1 )
                     {
-//                        logprint("Edge " + ToString(e) + " is explored.");
-                        
                         // Mark as visited and tack back.
                         e_flags[e] = 2;
                         
@@ -342,11 +340,7 @@ namespace Knoodle
                     }
                     else if( e_flags[e] == 2 )
                     {
-//                        logprint("Edge " + ToString(e) + " is visited.");
-                        
-//                        e_stack[stack_ptr] = -2;
-                        
-                        // Pop stack from stack.
+                        // Pop from stack.
                         --stack_ptr;
                         
                         continue;
@@ -378,8 +372,6 @@ namespace Knoodle
                     
                     if( f < Int(1) )
                     {
-//                        logprint("Vertex " + ToString(v) + " is unexplored.");
-                        
                         v_flags[v]   = 1;
                         v_parents[v] = w;
                         
@@ -395,16 +387,12 @@ namespace Knoodle
                             
                             if( n_e != e )
                             {
-//                                logprint("Pushing " + ToString(n_e) + " onto e_stack. ");
-                                
                                 e_stack[++stack_ptr] = n_e;
                             }
                         }
                     }
                     else
                     {
-//                        logprint("Vertex " + ToString(v) + " is visited.");
-                        
                         // Create a new cycle.
                         
                         Int pos = path_ptr;
@@ -521,22 +509,14 @@ namespace Knoodle
             
             if( !this->InCacheQ( tag ) )
             {
-                
                 const Int edge_count = edges.Dimension(0);
                 
                 if( edge_count <= 0 )
                 {
-                    ComponentMatrix_T C ( vertex_count, vertex_count, vertex_count, Int(1) );
-                    
-                    C.Outer(0) = 0;
-                    
-                    for( Int v = 0; v < vertex_count; ++v )
-                    {
-                        C.Outer(v+1) = v;
-                        C.Inner(v)   = v;
-                    }
-                    
-                    this->SetCache( std::string(tag), std::move(C) );
+                    this->SetCache(
+                        std::string(tag),
+                        ComponentMatrix_T::IdentityMatrix(vertex_count)
+                    );
 
                     return this->template GetCache<ComponentMatrix_T>(tag);
                 }
