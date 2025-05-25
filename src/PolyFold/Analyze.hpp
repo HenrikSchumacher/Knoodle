@@ -196,10 +196,10 @@ void Analyze( const LInt i )
             log << std::flush;
         }
         
-        std::vector<PD_T> PD_list;
+        std::vector<PD_T> pd_list;
         
         T_simplify.Tic<V2Q>();
-        PD.Simplify5( PD_list );
+        PD.Simplify5( pd_list );
         T_simplify.Toc<V2Q>();
         
         if constexpr ( V2Q )
@@ -228,7 +228,7 @@ void Analyze( const LInt i )
             
             pd_stream << PDCodeString(PD);
             
-            for( auto & P : PD_list )
+            for( auto & P : pd_list )
             {
                 pd_stream << PDCodeString(P);
                 crossing_count += P.CrossingCount();
@@ -265,7 +265,7 @@ void Analyze( const LInt i )
             
             gauss_stream << GaussCodeString(PD);
             
-            for( auto & P : PD_list )
+            for( auto & P : pd_list )
             {
                 gauss_stream << GaussCodeString(P);
                 crossing_count += P.CrossingCount();
