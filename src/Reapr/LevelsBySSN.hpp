@@ -1,43 +1,66 @@
 public:
 
-Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
+// Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
+
+template<typename Int>
+Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
 {
-    TOOLS_PTIC(ClassName() + "::Optimize_SemiSmoothNewton");
+    auto x_mu = this->LevelsAndLagrangeMultipliersBySSN(pd);
     
-    const I_T m = pd.ArcCount();
-    const I_T n = pd.CrossingCount();
+    if( x_mu.Size() > 0 )
+    {
+        return Tensor1<Real,Int>(x_mu.data(),pd.ArcCount());
+    }
+    else
+    {
+        Tensor1<Real,Int>();
+    }
+}
+
+// Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
+// Returns a vector that contains the levels _and_ the Lagrange multipliers.
+
+template<typename Int>
+Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN( mref<PlanarDiagram<Int>> pd )
+{
+    TOOLS_PTIMER(timer, ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+//    TOOLS_PTIC(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+    
+    const Int m = pd.ArcCount();
+    const Int n = pd.CrossingCount();
     
     // x[0,...,m[ is the levels.
     // x[m+1,...,m_n[ is the Lagrange multipliers.
-//    Tensor1<Real,I_T> x     (m+n);
-    Tensor1<Real,I_T> x     (m+n,Real(0));
-    Tensor1<Real,I_T> x_tau (m+n);
+//    Tensor1<Real,Int> x     (m+n);
+    Tensor1<Real,Int> x     (m+n,Real(0));
+    Tensor1<Real,Int> x_tau (m+n);
 
     // TODO: Remove initialization.
     
     // Stores the result y = L.x.
-    Tensor1<Real,I_T> y     (m+n,Real(0));
+    Tensor1<Real,Int> y     (m+n,Real(0));
     
     // Stores the result z = F(x).
-    Tensor1<Real,I_T> z     (m+n,Real(0));
-    fill_buffer(&z[m], jump, n );
+    Tensor1<Real,Int> z     (m+n);
+    fill_buffer(&z[0], Real(0), m );
+    fill_buffer(&z[m], jump,    n );
     
     // Update direction.
-    Tensor1<Real,I_T> u     (m+n);
+    Tensor1<Real,Int> u     (m+n);
     
-    Matrix_T L = SystemMatrix(pd);
-    Values_T mod_values = L.Values();
+    auto L = this->template LevelsSystemMatrix<UMF_Int,UMF_Int>(pd);
+    auto mod_values = L.Values();
     
     // Symbolic factorization
-    UMFPACK<Real,I_T> umfpack(
+    UMFPACK<Real,UMF_Int> umfpack(
         L.RowCount(), L.ColCount(), L.Outer().data(), L.Inner().data()
     );
-
+    
     // TODO: Is this a good value for the tolerance?
     const Real threshold = Power(m * tolerance,2);
     
-    Int  iter          = 0;
-    Real max_step_size = 0;
+    iter = 0;
+//    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
     // In first iteration both x and y are zero at this point.
@@ -48,12 +71,19 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
     {
         ++iter;
         
-        WriteSystemMatrixModifiedValues( pd, L, y.data(), mod_values.data() );
-        
-//        TOOLS_DUMP(mod_values);
+        WriteLevelsSystemMatrixModifiedValues(
+            pd, L, y.data(), mod_values.data()
+        );
         
         // Numeric factorization
         umfpack.NumericFactorization( mod_values.data() );
+        
+        if( umfpack.NumericStatus() != UMFPACK_OK )
+        {
+            eprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN: Aborting because numeric factorization failed.");
+            
+            return Tensor1<Real,Int>();
+        }
 
         // u = - L^{-1} . z = -DF(x)^{-1} . F(x);
         umfpack.Solve<Op::Id,Flag_T::Minus,Flag_T::Zero>(
@@ -62,7 +92,7 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
         
         Real phi_tau;
         Real tau    = initial_time_step;
-        Int  b_iter = 0;
+        int  b_iter = 0;
         
         // Armijo line search.
         do{
@@ -80,14 +110,14 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
             
             phi_tau = 0;
 
-            for( I_T i = 0; i < m; ++i )
+            for( Int i = 0; i < m; ++i )
             {
                 z[i] = y[i];
                 
                 phi_tau += z[i] * z[i];
             }
             
-            for( I_T i = m; i < m + n; ++i )
+            for( Int i = m; i < m + n; ++i )
             {
                 z[i] = Ramp( y[i] + jump ) - x_tau[i];
                 
@@ -104,7 +134,7 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
         
         if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (b_iter >= max_b_iter) )
         {
-            wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of backtrackings reached.");
+            wprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
             
             TOOLS_DUMP( iter );
             TOOLS_DUMP( u.FrobeniusNorm() );
@@ -114,20 +144,18 @@ Tensor1<Real,I_T> Optimize_SemiSmoothNewton( mref<PlanarDiagram_T> pd )
         
         phi_0 = phi_tau;
         
-        max_step_size = Max( tau, max_step_size );
+//        max_step_size = Max( tau, max_step_size );
         
         swap( x, x_tau );
     }
-    while(
-        (phi_0 > threshold) && (iter < max_iter)
-    );
+    while( (phi_0 > threshold) && (iter < max_iter) );
     
     if( (phi_0 > threshold) && (iter >= max_iter))
     {
-        wprint(ClassName() + "::OptimizeSemiSmoothNewton: Maximal number of iterations reached without reaching the stopping criterion/");
+        wprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
     }
     
-    TOOLS_PTOC(ClassName() + "::Optimize_SemiSmoothNewton");
+//    TOOLS_PTOC(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     return x;
 }

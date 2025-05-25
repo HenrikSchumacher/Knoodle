@@ -321,7 +321,10 @@
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
 				);
-				LIBRARY_SEARCH_PATHS = /opt/homebrew/lib;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/homebrew/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -408,7 +411,10 @@
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
 				);
-				LIBRARY_SEARCH_PATHS = /opt/homebrew/lib;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/homebrew/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -441,12 +447,7 @@
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
-					/opt/homebrew/include/clp/coin,
-					/opt/homebrew/include/coinutils/coin,
-				);
-				LIBRARY_SEARCH_PATHS = (
-					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.2/lib",
+					"/usr/local/include/coin-or",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
@@ -454,7 +455,6 @@
 					"-lCoinUtils",
 					"-lamd",
 					"-lClp",
-					"-lClpSolver",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -474,12 +474,7 @@
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
-					/opt/homebrew/include/clp/coin,
-					/opt/homebrew/include/coinutils/coin,
-				);
-				LIBRARY_SEARCH_PATHS = (
-					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.2/lib",
+					"/usr/local/include/coin-or",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
@@ -487,7 +482,6 @@
 					"-lCoinUtils",
 					"-lamd",
 					"-lClp",
-					"-lClpSolver",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

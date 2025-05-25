@@ -7,14 +7,24 @@ Real BendingRegularization() const { return bending_reg; }
 private:
 
 
+template<typename I, typename J, typename Int>
 void BendingHessian_CollectTriples(
-    mref<PlanarDiagram_T> pd,
-    mref<Aggregator_T> agg,
-    const Int row_offset,
-    const Int col_offset
+    mref<PlanarDiagram<Int>> pd,
+    mref<TripleAggregator<I,I,Real,J>> agg,
+    const I row_offset,
+    const I col_offset
 ) const
 {
-    TOOLS_PTIC(ClassName() + "::BendingHessian_CollectTriples");
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
+    
+    TOOLS_PTIC( ClassName() + "::BendingHessian_CollectTriples"
+       + "<" + TypeName<I>
+       + "," + TypeName<J>
+       + "," + TypeName<Int>
+       + ">"
+    );
+    
     // Caution: This creates only the triples for the upper triangle.
     
     const Int comp_count   = pd.LinkComponentCount();
@@ -31,13 +41,13 @@ void BendingHessian_CollectTriples(
         const Int k_begin   = comp_arc_ptr[comp    ];
         const Int k_end     = comp_arc_ptr[comp + 1];
         
-        Int a   = comp_arc_idx[k_begin];
-        Int ap1 = next_arc[a  ];
-        Int ap2 = next_arc[ap1];
+        I a   = static_cast<I>(comp_arc_idx[k_begin]);
+        I ap1 = static_cast<I>(next_arc[a  ]);
+        I ap2 = static_cast<I>(next_arc[ap1]);
         
         for( Int k = k_begin; k < k_end; ++k )
         {
-            const Int row = a + row_offset;
+            const I row = a + row_offset;
             
             agg.Push( row, a   + col_offset, val_0 );
             agg.Push( row, ap1 + col_offset, val_1 );
@@ -49,20 +59,29 @@ void BendingHessian_CollectTriples(
         }
     }
     
-    TOOLS_PTOC(ClassName() + "::BendingHessian_CollectTriples");
+    TOOLS_PTOC( ClassName() + "::BendingHessian_CollectTriples"
+       + "<" + TypeName<I>
+       + "," + TypeName<J>
+       + "," + TypeName<Int>
+       + ">"
+    );
     
 } // BendingHessian_CollectTriples
 
 public:
 
-Matrix_T BendingHessian( mref<PlanarDiagram_T> pd ) const
+template<typename I, typename J, typename Int>
+Sparse::MatrixCSR<Real,I,J> BendingHessian( mref<PlanarDiagram<Int>> pd ) const
 {
-    const I_T m = pd.ArcCount();
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
     
-    Aggregator_T agg( 3 * m );
+    const I m = static_cast<I>(pd.ArcCount());
     
-    BendingHessian_CollectTriples( pd, agg, 0, 0 );
+    TripleAggregator<I,I,Real,J> agg( J(3) * static_cast<J>(m) );
     
-    return Matrix_T ( agg, m, m, I_T(1), true, true );
+    BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
+    
+    return { agg, m, m, I(1), true, true };
     
 } // BendingHessian

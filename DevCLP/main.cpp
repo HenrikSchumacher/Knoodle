@@ -3,31 +3,28 @@
 
 #include "../Knoodle.hpp"
 #include "../submodules/Tensors/Clp.hpp"
-//#include "ClpSimplex.hpp"
-//#include "ClpSimplexDual.hpp"
+#include "ClpSimplex.hpp"
+#include "ClpSimplexDual.hpp"
 //#include "CoinHelperFunctions.hpp"
 
-//#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+#include "../Reapr.hpp"
 
+//#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 
 using namespace Knoodle;
 using namespace Tensors;
 using namespace Tools;
-
 
 using Real  = double;          // scalar type used for positions of polygon
 using BReal = double;          // scalar type used for bounding boxes
 using Int   = int;             // integer type used, e.g., for indices
 using LInt  = CoinBigIndex;    // integer type for counting objects
 
-
-
 int main( int argc, char** argv )
 {
     TOOLS_MAKE_FP_STRICT();
     
     TOOLS_DUMP(TypeName<CoinBigIndex>);
-    
     
     auto fp_formatter = [](double x){ return ToStringFPGeneral(x); };
     
@@ -47,8 +44,8 @@ int main( int argc, char** argv )
     Tensor1<Real,Int> row_lower_bnd ( A.RowCount(),  Scalar::One  <Real> );
     Tensor1<Real,Int> row_upper_bnd ( A.RowCount(),  Scalar::Two  <Real> );
     
-    Tensor1<Real,Int> obj    ( A.ColCount() );
-    obj.Randomize();
+    Tensor1<Real,Int> obj_vec ( A.ColCount() );
+    obj_vec.Randomize();
 
     
     // https://coin-or.github.io/Clp/Doxygen/classClpSimplex.html
@@ -69,14 +66,11 @@ int main( int argc, char** argv )
         AT.RowCount(), AT.ColCount(),
         AT.Outer().data(), AT.Inner().data(), AT.Values().data(),
         col_lower_bnd.data(), col_upper_bnd.data(),
-        obj.data(),
+        obj_vec.data(),
         row_lower_bnd.data(), row_upper_bnd.data()
     );
     toc("ClpSimplex::loadProblem from pointers.");
-    
 
-    
-    
     tic("ClpSimplex::primal");
     LP.primal();
     toc("ClpSimplex::primal");
@@ -99,7 +93,7 @@ int main( int argc, char** argv )
     LP.loadProblem(
         B,
         col_lower_bnd.data(), col_upper_bnd.data(),
-        obj.data(),
+        obj_vec.data(),
         row_lower_bnd.data(), row_upper_bnd.data()
     );
     
@@ -127,5 +121,3 @@ int main( int argc, char** argv )
     valprint("solution_2",ToString(solution_2,fp_formatter));
     return 0;
 }
-
-
