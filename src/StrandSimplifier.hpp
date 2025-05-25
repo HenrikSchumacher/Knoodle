@@ -442,8 +442,6 @@ namespace Knoodle
             Time_RepairArcLeftArcs += Tools::Duration(start_time,stop_time);
 #endif
             PD_TOC(ClassName() + "::RepairArcLeftArcs");
-            
-            
         }
 
         template<bool headtail>
@@ -734,6 +732,8 @@ namespace Knoodle
         }
         
         
+    private:
+        
         void Prepare()
         {
             PD_TIC(ClassName() + "::Prepare");
@@ -759,6 +759,17 @@ namespace Knoodle
             PD_TOC(ClassName() + "::Prepare");
         }
         
+        void Cleanup()
+        {
+            PD_TIC(ClassName() + "::Cleanup");
+            
+            A_left = nullptr;
+            
+            pd.ClearCache("ArcLeftArc");
+            
+            PD_TOC(ClassName() + "::Cleanup");
+        }
+        
     public:
         
         template<bool R_II_Q = true>
@@ -766,7 +777,7 @@ namespace Knoodle
             bool overQ_, const Int max_dist = std::numeric_limits<Int>::max()
         )
         {
-            overQ = overQ_;
+            SetStrandMode(overQ_);
             
             TOOLS_PTIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
@@ -774,9 +785,9 @@ namespace Knoodle
             const Time start_time = Clock::now();
 #endif
 
-            const Int m = A_cross.Dimension(0);
-
             Prepare();
+            
+            const Int m = A_cross.Dimension(0);
             
             // We increase `color` for each strand. This ensures that all entries of A_data, A_colors, C_data etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
             // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in once call to `SimplifyStrands`. That should really be enough for all feasible applications.
@@ -1009,8 +1020,10 @@ namespace Knoodle
                         
                         if( (strand_length > Int(1)) && (max_dist > Int(0)) )
                         {
-                            changedQ = RerouteToShortestPath(
-                                a_begin,a,Min(strand_length-Int(1),max_dist),color
+                            changedQ = RerouteToShortestPath_impl(
+                                a_begin,a,
+                                Min(strand_length-Int(1),max_dist),
+                                color
                             );
                             
                             if( changedQ )
@@ -1065,6 +1078,8 @@ namespace Knoodle
             Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
             
+            Cleanup();
+            
             TOOLS_PTOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
@@ -1073,10 +1088,17 @@ namespace Knoodle
         
     private:
         
-        void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count_ )
+        void CollapseArcRange(
+            const Int a_begin, const Int a_end, const Int arc_count_
+        )
         {
 //            PD_DPRINT( ClassName() + "::CollapseArcRange" );
 
+            // DEBUGGING
+            print("CollapseArcRange");
+            TOOLS_DUMP(a_begin);
+            TOOLS_DUMP(a_end);
+            TOOLS_DUMP(arc_count_);
             
             // This shall collapse the arcs `a_begin, pd.NextArc<Head>(a_begin),...,a_end` to a single arc.
             // All crossings from the head of `a_begin` up to the tail of `a_end` have to be reconnected and deactivated.
@@ -1141,6 +1163,10 @@ namespace Knoodle
                     // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
                     Reconnect<Head>( C_arcs(c,In,Left),C_arcs(c,Out,Right) );
                 }
+                
+                // DEBGUGGING
+                valprint("Deactivating arc", a);
+                valprint("Deactivating crossing", c);
                 
                 pd.DeactivateArc(a);
                 
@@ -1274,10 +1300,10 @@ namespace Knoodle
         }
         
         
-    public:
+    private:
         
         /*!
-         * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
+         * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcs share a common face.
          *
          * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
          *
@@ -1287,16 +1313,16 @@ namespace Knoodle
          *
          * @param max_dist Maximal distance we want to travel
          *
-         * @param color_    Indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
+         * @param color_    Indicator that is written to first column of `A_data`; this avoids having to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
          *
          */
         
-        Int FindShortestPath(
+        Int FindShortestPath_impl(
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            PD_TIC(ClassName()+"::FindShortestPath");
-                        
+            PD_TIC(ClassName()+"::FindShortestPath_impl");
+         
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
@@ -1457,7 +1483,7 @@ namespace Knoodle
                 
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
-                    pd_eprint(ClassName() + "::FindShortestPath");
+                    pd_eprint(ClassName() + "::FindShortestPath_impl");
                     TOOLS_LOGDUMP(d);
                     TOOLS_LOGDUMP(max_dist);
                     TOOLS_LOGDUMP(a_end);
@@ -1489,36 +1515,80 @@ namespace Knoodle
             Time_FindShortestPath += Tools::Duration(start_time,stop_time);
 #endif
             
-            PD_TOC(ClassName()+"::FindShortestPath");
+            PD_TOC(ClassName()+"::FindShortestPath_impl");
             
             return d;
         }
         
+//    private:
+//        
+//        // Only meant for debugging. Don't do this in production!
+//        Tensor1<Int,Int> GetShortestPath_impl(
+//            const Int a_first, const Int a_last, const Int max_dist, const Int color_
+//        )
+//        {
+//            const Int d = FindShortestPath_impl( a_first, a_last, max_dist, color_ );
+//
+//            if( d <= max_dist )
+//            {
+//                Tensor1<Int,Int> path_out (path_length);
+//                
+//                path_out.Read( path.data() );
+//                
+//                return path_out;
+//            }
+//            else
+//            {
+//                return Tensor1<Int,Int>();
+//            }
+//        }
         
-        // Only meant for debugging. Don't do this in production!
-        Tensor1<Int,Int> GetShortestPath(
-            const Int a_begin, const Int a_end, const Int max_dist, const Int color_
+        
+    public:
+        
+        /*!
+         * @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+         *
+         * @param a_first The first arc of the input strand.
+         *
+         * @param a_last The last arc of the input strand (included).
+         *
+         * @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         */
+        
+        Tensor1<Int,Int> FindShortestPath(
+            const Int a_first, const Int a_last, const Int max_dist
         )
         {
-            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
+            Prepare();
+            
+            color = 1;
+            
+            Int a = a_first;
+            Int b = a_last;
+            
+            Int count = ColorArcs(a,b,color);
 
+            Int max_dist_ = Min(Ramp(count - Int(2)),max_dist);
+            
+            const Int d = FindShortestPath_impl(a,b,max_dist_,color);
+            
+            Tensor1<Int,Int> p;
+            
             if( d <= max_dist )
             {
-                Tensor1<Int,Int> path_out (path_length);
+                p = Tensor1<Int,Int> (path_length);
                 
-                path_out.Read( path.data() );
-                
-                return path_out;
+                p.Read( path.data() );
             }
-            else
-            {
-                return Tensor1<Int,Int>();
-            }
+            
+            Cleanup();
+            
+            return p;
         }
         
  private:
                 
-        
         /*!
          * @brief Attempts to reroute the strand.
          *
@@ -1531,8 +1601,9 @@ namespace Knoodle
          * @param color_ The color of the path.
          */
         
-        bool RerouteToShortestPath(
-            const Int a_begin, mref<Int> a_end, const Int max_dist, const Int color_
+        bool RerouteToShortestPath_impl(
+            const Int a_first, mref<Int> a_last,
+            const Int max_dist, const Int color_
         )
         {
             PD_ASSERT(CheckArcLeftArcs());
@@ -1542,9 +1613,11 @@ namespace Knoodle
             
             TOOLS_LOGDUMP(Cr_0);
 #endif
-            
-            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-            
+
+            const Int d = FindShortestPath_impl(
+                a_first, a_last, max_dist, color_
+            );
+
             if( (d < Int(0)) || (d > max_dist) )
             {
                 PD_DPRINT("No improvement detected.");
@@ -1552,7 +1625,7 @@ namespace Knoodle
                 return false;
             }
             
-            PD_TIC(ClassName()+"::RerouteToShortestPath");
+            PD_TIC(ClassName()+"::RerouteToShortestPath_impl");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1563,7 +1636,7 @@ namespace Knoodle
             // path[0] == a_begin. This is not to be crossed.
             
             Int p = 1;
-            Int a = a_begin;
+            Int a = a_first;
             
             // At the beginning of the strand we want to avoid inserting a crossing on
             // arc b if b branches directly off from the current strand.
@@ -1583,8 +1656,8 @@ namespace Knoodle
             // Same at the end.
             
             Int q = path_length - Int(1);
-            Int e = a_end;
-  
+            Int e = a_last;
+
             MoveWhileBranching<Tail>(e,q);
 
             // Now e is the last arc to be rerouted.
@@ -1593,7 +1666,7 @@ namespace Knoodle
             PD_TOC("Prepare reroute loop");
             
             PD_TIC("Reroute loop");
-            
+
             while( p < q )
             {
                 const Int c_0 = A_cross(a,Head);
@@ -1795,16 +1868,17 @@ namespace Knoodle
             }
             
             PD_TOC("Reroute loop");
+
             
             // strand_length is just an upper bound to prevent infinite loops.
             CollapseArcRange(a,e,strand_length);
-            
+
             AssertArc<1>(a);
             AssertArc<0>(e);
             
             TouchArc<Head>(a);
 
-            a_end = a;
+            a_last = a;
 
 #ifdef PD_DEBUG
             const Int Cr_1 = pd.CrossingCount();
@@ -1822,12 +1896,71 @@ namespace Knoodle
             
             ++change_counter;
             
-            PD_TOC(ClassName()+"::RerouteToShortestPath");
+            PD_TOC(ClassName()+"::RerouteToShortestPath_impl");
             
             return true;
         }
         
     public:
+        
+        /*!
+         * @brief Attempts to reroute the input strand. It returns the first and last arcs of the rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+         *
+         * @param a_first The first arc of the input strand.
+         *
+         * @param a_last The last arc of the input strand (included).
+         *
+         * @param overQ_ Whether the input strand is over (`true`) or under (`true`). Caution: The routine won't work correctly, if the input arc range is not a over/understrand according to this flag!
+         */
+        
+        std::array<Int,2> RerouteToShortestPath(
+            const Int a_first, const Int a_last, bool overQ_
+        )
+        {
+            Prepare();
+            SetStrandMode(overQ_);
+            
+            color = 1;
+            
+            Int a = a_first;
+            Int b = a_last;
+            
+            strand_length = ColorArcs(a,b,color);
+            
+            RerouteToShortestPath_impl(a,b,strand_length-Int(1),color);
+            
+            Cleanup();
+            
+            return {a,b};
+        }
+        
+    public:
+        
+        template<typename Int_0, typename Int_1>
+        Int ColorArcs(
+            const Int_0 a_first, const Int_0 a_last, const Int_1 color_
+        )
+        {
+            static_assert( IntQ<Int_0>, "" );
+            static_assert( IntQ<Int_1>, "" );
+            
+            const Int c   = int_cast<Int>(color_ );
+            const Int a_begin = int_cast<Int>(a_first);
+            const Int a_end   = int_cast<Int>(pd.template NextArc<Head>(a_last));
+            Int a = a_begin;
+            
+            Int counter = 0;
+            
+            do
+            {
+                ++counter;
+                A_color(a) = c;
+                a = pd.template NextArc<Head>(a);
+            }
+            while( (a != a_end) && (a != a_begin) );
+            
+            return counter;
+        }
         
         template<typename Int_0, typename Int_1, typename Int_2>
         void ColorArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 color_ )
