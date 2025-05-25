@@ -1,6 +1,6 @@
 public:
 
-cref<Multigraph<Int>> DiagramComponentLinkComponentGraph()
+cref<Multigraph_T> DiagramComponentLinkComponentGraph()
 {
     const std::string tag ("DiagramComponentLinkComponentGraph");
     
@@ -39,24 +39,30 @@ cref<Multigraph<Int>> DiagramComponentLinkComponentGraph()
             ++counter;
         }
         
-        this->SetCache( tag, Multigraph<Int> ( LinkComponentCount(), std::move(comp_edges) ) );
+        this->SetCache( tag,
+            Multigraph_T( LinkComponentCount(), std::move(comp_edges) )
+        );
     }
     
-    return this->template GetCache<Multigraph<Int>>(tag);
+    return this->template GetCache<Multigraph_T>(tag);
+}
+
+cref<ComponentMatrix_T> DiagramComponentLinkComponentMatrix()
+{
+    return DiagramComponentLinkComponentGraph().ComponentVertexMatrix();
 }
 
 Int DiagramComponentCount()
 {
-    return DiagramComponentLinkComponentGraph().ComponentVertexMatrix().RowCount();
+    return DiagramComponentLinkComponentMatrix().RowCount();
 }
+
 
 void RequireDiagramComponents()
 {
     TOOLS_PTIC(ClassName()+"::RequireDiagramComponents");
     
-    cref<Multigraph<Int>> G = DiagramComponentLinkComponentGraph();
-    
-    const auto & A = G.ComponentVertexMatrix();
+    cref<ComponentMatrix_T> A = DiagramComponentLinkComponentMatrix();
     
     // dc = diagram component
     // lc = link component
@@ -92,7 +98,6 @@ void RequireDiagramComponents()
             copy_buffer( &lc_arc_idx[j_begin], &dc_arc_idx[p], size );
             
             p += size;
-            
         }
         
         dc_arc_ptr[dc+1] = p;
@@ -129,18 +134,16 @@ cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
 }
 
 
-void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
+void Split( mref<PD_List_T> pd_list )
 {
     TOOLS_PTIC(ClassName()+"::Split");
-
+    
     if( CrossingCount() <= 0 )
     {
         return;
     }
     
-    cref<Multigraph<Int>> G = DiagramComponentLinkComponentGraph();
-
-    const auto & A = G.ComponentVertexMatrix();
+    cref<ComponentMatrix_T> A = DiagramComponentLinkComponentMatrix();
     
     // dc = diagram component
     // lc = link component
@@ -159,11 +162,8 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
     cptr<Int> lc_arc_idx = LinkComponentArcIndices().data();
     
     C_scratch.Fill(-1);
-//    A_scratch.Fill(-1);
     
     mptr<Int> C_labels = C_scratch.data();
-//    mptr<Int> A_labels = A_scratch.data();
-    
     
     for( Int dc = 1; dc < dc_count; ++dc  )
     {
@@ -196,16 +196,18 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
             
             for( Int j = j_begin; j < j_end; ++j )
             {
+                // Traversing link component `j`.
                 const Int a = lc_arc_idx[j];
 
                 // TODO: Handle over/under in ArcState.
-                pd.A_state[a_counter] = ArcState::Active;
-//                pd.A_state[a_counter] = A_state[a];
+//                pd.A_state[a_counter] = ArcState::Active;
+                pd.A_state[a_counter] = A_state[a];
                 
                 const Int c_0 = A_cross(a,Tail);
                 const Int c_1 = A_cross(a,Head);
                 
-                // TODO: Hande 
+                const bool side_0 = (C_arcs(c_0,Out,Right) == a);
+                const bool side_1 = (C_arcs(c_1,In ,Right) == a);
                 
                 DeactivateArc(a);
                 
@@ -227,8 +229,6 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
                     
                     DeactivateCrossing<false>(c_0);
                 }
-                
-                const bool side_0 = (C_arcs(c_0,Out,Right) == a);
                 pd.C_arcs(c_0_label,Out,side_0) = a_counter;
                 pd.A_cross(a_counter,Tail) = c_0_label;
                 
@@ -246,8 +246,6 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
                     
                     DeactivateCrossing<false>(c_1);
                 }
-                
-                const bool side_1 = (C_arcs(c_1,In,Right) == a);
                 pd.C_arcs(c_1_label,In,side_1) = a_counter;
                 pd.A_cross(a_counter,Head) = c_1_label;
                 
@@ -255,7 +253,7 @@ void Split( mref<std::vector<PlanarDiagram<Int>>> PD_list )
             }
         }
         
-        PD_list.push_back( std::move(pd) );
+        pd_list.push_back( std::move(pd) );
     } // for( Int dc = 0; dc < dc_count; ++dc )
     
     (*this) = this->CreateCompressed();
