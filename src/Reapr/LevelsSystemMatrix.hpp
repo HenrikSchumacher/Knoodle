@@ -15,8 +15,6 @@ Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
     
     Aggregator_T agg;
     
-    TOOLS_DUMP(en_flag);
-    
     switch ( en_flag )
     {
         case EnergyFlag_T::Bending:

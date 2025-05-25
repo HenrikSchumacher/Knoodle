@@ -31,6 +31,10 @@ namespace Knoodle
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
+        using Multigraph_T              = Multigraph<Int>;
+        using ComponentMatrix_T         = Multigraph_T::ComponentMatrix_T;
+        
+        using PD_List_T                 = std::vector<PlanarDiagram<Int>>;
 
         template<typename I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
@@ -951,14 +955,14 @@ namespace Knoodle
         
         PlanarDiagram ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
-            PlanarDiagram PD ( crossing_count, unlink_count );
+            PlanarDiagram pd ( crossing_count, unlink_count );
             
-            PD.provably_minimalQ = provably_minimalQ;
+            pd.provably_minimalQ = provably_minimalQ;
 
-            auto & PD_C_arcs  = PD.C_arcs;
-            auto & PD_C_state = PD.C_state;
-            auto & PD_A_cross = PD.A_cross;
-            auto & PD_A_state = PD.A_state;
+            auto & pd_C_arcs  = pd.C_arcs;
+            auto & pd_C_state = pd.C_state;
+            auto & pd_A_cross = pd.A_cross;
+            auto & pd_A_state = pd.A_state;
             
             
             const bool i0 = reverseQ;
@@ -969,22 +973,22 @@ namespace Knoodle
 
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                PD_C_arcs(c,0,0) = C_arcs(c,i0,j0);
-                PD_C_arcs(c,0,1) = C_arcs(c,i0,j1);
-                PD_C_arcs(c,1,0) = C_arcs(c,i1,j0);
-                PD_C_arcs(c,1,1) = C_arcs(c,i1,j1);
+                pd_C_arcs(c,0,0) = C_arcs(c,i0,j0);
+                pd_C_arcs(c,0,1) = C_arcs(c,i0,j1);
+                pd_C_arcs(c,1,0) = C_arcs(c,i1,j0);
+                pd_C_arcs(c,1,1) = C_arcs(c,i1,j1);
             }
             
             if( mirrorQ )
             {
                 for( Int c = 0; c < max_crossing_count; ++c )
                 {
-                    PD_C_state(c) = Flip(C_state(c));
+                    pd_C_state(c) = Flip(C_state(c));
                 }
             }
             else
             {
-                PD_C_state.Read(C_state.data());
+                pd_C_state.Read(C_state.data());
             }
             
             
@@ -993,13 +997,13 @@ namespace Knoodle
             
             for( Int a = 0; a < max_arc_count; ++a )
             {
-                PD_A_cross(a,0) = A_cross(a,k0);
-                PD_A_cross(a,1) = A_cross(a,k1);
+                pd_A_cross(a,0) = A_cross(a,k0);
+                pd_A_cross(a,1) = A_cross(a,k1);
             }
             
-            PD_A_state.Read(A_state.data());
+            pd_A_state.Read(A_state.data());
             
-            return PD;
+            return pd;
         }
         
     public:

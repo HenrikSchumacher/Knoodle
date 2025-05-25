@@ -25,6 +25,10 @@ namespace Knoodle
 #ifdef  REAPR_USE_CLP
         using COIN_Int  = int;
         using COIN_LInt = CoinBigIndex;
+        
+        static constexpr bool CLP_enabledQ = true;
+#else
+        static constexpr bool CLP_enabledQ = false;
 #endif
 
         using Flag_T = Scalar::Flag;
@@ -53,7 +57,7 @@ namespace Knoodle
         
         Real initial_time_step   = Real(1.0) / backtracking_factor;
         
-        EnergyFlag_T en_flag     = EnergyFlag_T::Dirichlet;
+        EnergyFlag_T en_flag     = CLP_enabledQ ? EnergyFlag_T::TV: EnergyFlag_T::Dirichlet;
         
     public:
         
@@ -197,12 +201,15 @@ namespace Knoodle
             {
                 case EnergyFlag_T::TV:
                 {
-#ifdef REAPR_USE_CLP
-                    return LevelsByLP(pd);
-#else
-                    eprint(ClassName() + "::Levels: Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
-                    return Tensor1<Real,Int>();
-#endif
+                    if constexpr( CLP_enabledQ )
+                    {
+                        return LevelsByLP(pd);
+                    }
+                    else
+                    {
+                        eprint(ClassName() + "::Levels: Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
+                        return Tensor1<Real,Int>();
+                    }
                 }
                 case EnergyFlag_T::Bending:
                 {

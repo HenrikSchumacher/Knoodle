@@ -6,7 +6,7 @@ public:
 
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`.
  *
- * @param PD_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
+ * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
  * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
  *
@@ -18,7 +18,7 @@ public:
  */
 
 bool Simplify5(
-    std::vector<PlanarDiagram<Int>> & PD_list,
+    PD_List_T & pd_list,
     const Int  max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
     const Int  simplify3_level = 4,
@@ -44,12 +44,18 @@ bool Simplify5(
     
     do
     {
-        changedQ = Simplify4(max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q);
+        changedQ = Simplify4(
+            max_dist, compressQ,
+            simplify3_level, simplify3_max_iter, strand_R_II_Q
+        );
         
         if( CrossingCount() >= 6 )
         {
-            changedQ = changedQ || DisconnectSummands(PD_list,
-                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+            changedQ = changedQ
+            ||
+            DisconnectSummands(
+                pd_list, max_dist, compressQ,
+                simplify3_level, simplify3_max_iter, strand_R_II_Q
             );
         }
         

@@ -31,10 +31,8 @@ Int Simplify4(
     Int counter = 0;
     Int iter = 0;
     
-    // TODO: Toggle this Boolean for multi-component links.
+    // TODO: Toggle this Boolean for multi/single-component links.
     StrandSimplifier<Int,true> S(*this);
-    
-    // TODO: Maybe we should recompress only in the first pass of this?
     
 //    const Int c_count = CrossingCount();
 //
