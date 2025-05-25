@@ -664,15 +664,8 @@ protected:
             {
                 wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
                 
-                // DEBUGGING
-                
                 logvalprint( "edge " + ToString(k), x );
                 logvalprint( "edge " + ToString(l), y );
-                logprint("full polygon");
-                for( Int e = 0; e < edge_count; ++e )
-                {
-                    logvalprint( "edge " + ToString(e), EdgeData(e) );
-                }
                 break;
             }
             case LineSegmentsIntersectionFlag::OOBounds:
