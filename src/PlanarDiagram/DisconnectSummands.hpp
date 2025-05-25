@@ -2,13 +2,13 @@ public:
 
 
 
-/*! @brief This just splits off connected summands and appends them to the supplied `PD_list`.
+/*! @brief This just splits off connected summands and appends them to the supplied `pd_list`.
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummands(
-    mref<std::vector<PlanarDiagram<Int>>> PD_list,
+    mref<PD_List_T> pd_list,
     const Int max_dist = std::numeric_limits<Int>::max(),
     const bool compressQ = true,
     const Int  simplify3_level = 4,
@@ -41,7 +41,7 @@ bool DisconnectSummands(
         for( Int f = 0; f < FaceCount(); ++f )
         {
             changedQ = changedQ || DisconnectSummand(
-                f,PD_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
+                f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
                 max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
@@ -63,16 +63,16 @@ bool DisconnectSummands(
 
 private:
 
-/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `PD_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
+/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `pd_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
  *
- * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `PD_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `PD_list`).
+ * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `pd_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `pd_list`).
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummand(
     const Int f,
-    mref<std::vector<PlanarDiagram<Int>>> PD_list,
+    mref<PD_List_T> pd_list,
     TwoArraySort<Int,Int,Int> & sort,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
@@ -136,7 +136,7 @@ bool DisconnectSummand(
     auto push = [&]( PlanarDiagram<Int> && pd )
     {
         pd.Simplify5(
-            PD_list,
+            pd_list,
             max_dist,
             compressQ,
             simplify3_level,
@@ -144,7 +144,7 @@ bool DisconnectSummand(
             strand_R_II_Q
         );
         
-        PD_list.push_back( std::move(pd) );
+        pd_list.push_back( std::move(pd) );
     };
     
     Size_T i = 0;
