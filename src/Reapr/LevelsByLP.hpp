@@ -13,14 +13,14 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
         {
-            eprint(ClassName()+"::Optimize_CLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
+            eprint(ClassName()+"::LevelsByLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
             return Tensor1<Real,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
         {
-            eprint(ClassName()+"::Optimize_CLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
+            eprint(ClassName()+"::LevelsByLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
             return Tensor1<Real,Int>();
         }

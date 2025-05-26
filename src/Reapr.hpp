@@ -162,11 +162,15 @@ namespace Knoodle
 #include "Reapr/DirichletHessian.hpp"
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/LevelsConstraintMatrix.hpp"
-#include "Reapr/LevelsSystemMatrix.hpp"
+#include "Reapr/LevelsSystemSSN.hpp"
 #include "Reapr/LevelsBySSN.hpp"
-#include "Reapr/LevelsLPMatrix.hpp"
+        
+#include "Reapr/LevelsSystemLP.hpp"
+#include "Reapr/BendsSystemLP.hpp"
+        
 #ifdef REAPR_USE_CLP
     #include "Reapr/LevelsByLP.hpp"
+    #include "Reapr/BendsByLP.hpp"
 #endif
         
     public:

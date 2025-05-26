@@ -12,13 +12,10 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
     
     const I m = static_cast<I>(pd.ArcCount());
     const I n = static_cast<I>(pd.CrossingCount());
-
-//    TOOLS_DUMP(pd.Crossings());
     
     cptr<Int>           C_arcs   = pd.Crossings().data();
     cptr<CrossingState> C_states = pd.CrossingStates().data();
     
-    // TODO: allocate upfront.
     TripleAggregator<I,I,Real,J> agg ( J(7) * m + J(1) );
     
     constexpr Real one = 1;
