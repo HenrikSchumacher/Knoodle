@@ -101,7 +101,7 @@ except ImportError as e:
 
 setup(
     name='pyknoodle', 
-    version='1.0.0',
+    version='1.2.0',
     author='Dimos Gkountaroulis',
     description='Python bindings for Knoodle library',
     ext_modules=ext_modules,
