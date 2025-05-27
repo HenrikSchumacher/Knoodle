@@ -36,6 +36,7 @@ namespace Knoodle
         
         using PD_List_T                 = std::vector<PlanarDiagram<Int>>;
 
+        
         template<typename I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
         
@@ -55,6 +56,7 @@ namespace Knoodle
         static constexpr bool Out   = 0;
         static constexpr bool In    = 1;
         
+        static constexpr bool always_canonicalizeQ = true;
         
     protected:
         
@@ -89,7 +91,9 @@ namespace Knoodle
 
 //        Stack<Int,Int> stack;
         
-        bool provably_minimalQ = false;
+        bool proven_minimalQ = false;
+        
+        
         
     public:
         
@@ -105,20 +109,20 @@ namespace Knoodle
          */
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        : crossing_count     ( crossing_count_                             )
-        , arc_count          ( Int(2)*crossing_count                       )
+        : crossing_count     { crossing_count_                             }
+        , arc_count          { Int(2)*crossing_count                       }
         // TODO: Make this zero.
-//        : crossing_count     ( Int(0)                                      )
-//        , arc_count          ( Int(0)                                      )
-        , unlink_count       ( unlink_count_                               )
-        , max_crossing_count ( crossing_count_                             )
-        , max_arc_count      ( Int(2)*crossing_count_                      )
-        , C_arcs             ( max_crossing_count, -1                      )
-        , C_state            ( max_crossing_count, CrossingState::Inactive )
-        , A_cross            ( max_arc_count,      -1                      )
-        , A_state            ( max_arc_count,      ArcState::Inactive      )
-        , C_scratch          ( max_crossing_count                          )
-        , A_scratch          ( max_arc_count                               )
+//        : crossing_count     { Int(0)                                      }
+//        , arc_count          { Int(0)                                      }
+        , unlink_count       { unlink_count_                               }
+        , max_crossing_count { crossing_count_                             }
+        , max_arc_count      { Int(2)*crossing_count_                      }
+        , C_arcs             { max_crossing_count, -1                      }
+        , C_state            { max_crossing_count, CrossingState::Inactive }
+        , A_cross            { max_arc_count,      -1                      }
+        , A_state            { max_arc_count,      ArcState::Inactive      }
+        , C_scratch          { max_crossing_count                          }
+        , A_scratch          { max_arc_count                               }
         {}
         
     public:
@@ -131,8 +135,8 @@ namespace Knoodle
         :   crossing_count          { other.crossing_count          }
         ,   arc_count               { other.arc_count               }
         ,   unlink_count            { other.unlink_count            }
-        ,   max_crossing_count  { other.max_crossing_count  }
-        ,   max_arc_count       { other.max_arc_count       }
+        ,   max_crossing_count      { other.max_crossing_count      }
+        ,   max_arc_count           { other.max_arc_count           }
         ,   C_arcs                  { other.C_arcs                  }
         ,   C_state                 { other.C_state                 }
         ,   A_cross                 { other.A_cross                 }
@@ -145,7 +149,7 @@ namespace Knoodle
         ,   four_counter            { other.four_counter            }
         ,   C_scratch               { other.C_scratch               }
         ,   A_scratch               { other.A_scratch               }
-        ,   provably_minimalQ       { other.provably_minimalQ       }
+        ,   proven_minimalQ       { other.proven_minimalQ       }
         {}
             
         
@@ -156,27 +160,27 @@ namespace Knoodle
             
             swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
             
-            swap( A.crossing_count         , B.crossing_count          );
-            swap( A.arc_count              , B.arc_count               );
-            swap( A.unlink_count           , B.unlink_count            );
-            swap( A.max_crossing_count , B.max_crossing_count  );
-            swap( A.max_arc_count      , B.max_arc_count       );
+            swap( A.crossing_count      , B.crossing_count      );
+            swap( A.arc_count           , B.arc_count           );
+            swap( A.unlink_count        , B.unlink_count        );
+            swap( A.max_crossing_count  , B.max_crossing_count  );
+            swap( A.max_arc_count       , B.max_arc_count       );
             
-            swap( A.C_arcs                 , B.C_arcs                  );
-            swap( A.C_state                , B.C_state                 );
-            swap( A.A_cross                , B.A_cross                 );
-            swap( A.A_state                , B.A_state                 );
+            swap( A.C_arcs              , B.C_arcs              );
+            swap( A.C_state             , B.C_state             );
+            swap( A.A_cross             , B.A_cross             );
+            swap( A.A_state             , B.A_state             );
             
-            swap( A.R_I_counter            , B.R_I_counter             );
-            swap( A.R_Ia_counter           , B.R_Ia_counter            );
-            swap( A.R_II_counter           , B.R_II_counter            );
-            swap( A.R_IIa_counter          , B.R_IIa_counter           );
-            swap( A.twist_counter          , B.twist_counter           );
-            swap( A.four_counter           , B.four_counter            );
+            swap( A.R_I_counter         , B.R_I_counter         );
+            swap( A.R_Ia_counter        , B.R_Ia_counter        );
+            swap( A.R_II_counter        , B.R_II_counter        );
+            swap( A.R_IIa_counter       , B.R_IIa_counter       );
+            swap( A.twist_counter       , B.twist_counter       );
+            swap( A.four_counter        , B.four_counter        );
             
-            swap( A.C_scratch              , B.C_scratch               );
-            swap( A.A_scratch              , B.A_scratch               );
-            swap( A.provably_minimalQ      , B.provably_minimalQ       );
+            swap( A.C_scratch           , B.C_scratch           );
+            swap( A.A_scratch           , B.A_scratch           );
+            swap( A.proven_minimalQ   , B.proven_minimalQ   );
         }
         
         // Move constructor
@@ -203,24 +207,31 @@ namespace Knoodle
             cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
             const ExtInt crossing_count_,
             const ExtInt unlink_count_,
-            const bool provably_minimalQ_ = false
+            const bool proven_minimalQ_ = false
         )
         :   PlanarDiagram( crossing_count_, unlink_count_ )
         {
+            static_assert(IntQ<ExtInt>,"");
+            
             C_arcs.Read(crossings);
             C_state.Read(crossing_states);
             A_cross.Read(arcs);
             A_state.Read(arc_states);
-            provably_minimalQ = provably_minimalQ_;
+            proven_minimalQ = proven_minimalQ_;
         }
         
-        /*! @brief Construction from `Knot_2D` object.
+        /*!@brief Construction from `Knot_2D` object.
+         *
+         * Caution: This assumes that `Knot_2D::FindIntersections` has been called already!
          */
         
         template<typename Real, typename BReal>
-        PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
+        explicit PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
+            static_assert(FloatQ<Real>,"");
+            static_assert(FloatQ<BReal>,"");
+            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -231,15 +242,18 @@ namespace Knoodle
             );
         }
         
-        /*! @brief Construction from `Link_2D` object.
+        /*!@brief Construction from `Link_2D` object.
+         *
+         * Caution: This assumes that `Link_2D::FindIntersections` has been called already!
          */
         
-        
-        
         template<typename Real, typename BReal>
-        PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
+        explicit PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
+            static_assert(FloatQ<Real>,"");
+            static_assert(FloatQ<BReal>,"");
+            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -256,6 +270,9 @@ namespace Knoodle
         template<typename Real, typename ExtInt>
         PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
+            static_assert(FloatQ<Real>,"");
+            static_assert(IntQ<ExtInt>,"");
+            
             Knot_2D<Real,Int,Real> L ( n );
 
             L.ReadVertexCoordinates ( x );
@@ -287,6 +304,9 @@ namespace Knoodle
         template<typename Real, typename ExtInt>
         PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
         {
+            static_assert(FloatQ<Real>,"");
+            static_assert(IntQ<ExtInt>,"");
+            
             using Link_T = Link_2D<Real,Int,Real>;
             
             Link_T L ( edges, n );
@@ -329,33 +349,121 @@ namespace Knoodle
             cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections
         )
         {
+            static_assert(FloatQ<Real>,"");
+            static_assert(FloatQ<BReal>,"");
+            
             using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
             using Sign_T         = typename Intersection_T::Sign_T;
             // TODO: Handle over/under in ArcState.
 //            using F_T            = Underlying_T<ArcState>;
             
-            this->template SetCache<false>("LinkComponentCount",component_count);
-
+            
+            if( intersections.size() <= Size_T(0) )
+            {
+                unlink_count = component_count;
+                proven_minimalQ = true;
+                return;
+            }
+            
             unlink_count = 0;
             
             C_scratch.Fill(Int(-1));
+            
+            mptr<Int> C_label = C_scratch.data();
             Int C_counter = 0;
             
+            // TODO: If we want to canonicalize here, then we also need arc labels!
             
-            // TODO: Extract LinkComponentCount, LinkComponentArcPointers, LinkComponentIndices, ArcLinkComponents from here (only if needed).
+            auto process = [&,C_label,edge_intersections,edge_overQ,this]( const Int a, const Int b
+            )
+            {
+                const Int c_pos = edge_intersections[b];
+                
+                if( C_label[c_pos] < 0 )
+                {
+                    C_label[c_pos] = C_counter++;
+                }
+                
+                const Int c = C_label[c_pos];
+                
+                const bool overQ = edge_overQ[b];
+                
+                cref<Intersection_T> inter = intersections[static_cast<Size_T>(c_pos)];
+                
+                A_cross(a,Head) = c; // c is head of a
+                A_cross(b,Tail) = c; // c is tail of b
+                
+                PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
+                
+                bool righthandedQ = inter.handedness > Sign_T(0);
+                
+                /*
+                 *
+                 *    negative         positive
+                 *    right-handed     left-handed
+                 *    .       .        .       .
+                 *    .       .        .       .
+                 *    O       O        O       O
+                 *     ^     ^          ^     ^
+                 *      \   /            \   /
+                 *       \ /              \ /
+                 *        /                \
+                 *       / \              / \
+                 *      /   \            /   \
+                 *     /     \          /     \
+                 *    O       O        O       O
+                 *    .       .        .       .
+                 *    .       .        .       .
+                 *
+                 */
+                
+                C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
+                
+                // TODO: Handle over/under in ArcState.
+                A_state[a] = ArcState::Active;
+//                A_state[a] = ToUnderlying(A_state[a]) | F_T(1) | (F_T(overQ) << 2);
+//                A_state[b] = ToUnderlying(A_state[b]) | F_T(1) | (F_T(overQ) << 1);
+                
+                /*
+                * righthandedQ == true and overQ == true:
+                *
+                *         C_arcs(c,Out,Left) |       | C_arcs(c,Out,Right) = b
+                *                            |       |
+                *                            O       O
+                *                             ^     ^
+                *                              \   /
+                *                               \ /
+                *                                /
+                *                               / \
+                *                              /   \
+                *                             /     \
+                *                            O       O
+                *                            |       |
+                *      a = C_arcs(c,In,Left) |       | C_arcs(c,In,Right)
+                */
+                
+                const bool over_in_side = (righthandedQ == overQ) ? Left : Right ;
+                
+                C_arcs(c,In , over_in_side) = a;
+                C_arcs(c,Out,!over_in_side) = b;
+            };
+            
+            
+            // TODO: Extract LinkComponentArcPointers, LinkComponentIndices, ArcLinkComponents from here (only if needed)?
             
             // Now we go through all components
             //      then through all edges of the component
             //      then through all intersections of the edge
             // and generate new vertices, edges, crossings, and arcs in one go.
             
+            
             for( Int comp = 0; comp < component_count; ++comp )
             {
                 // The range of arcs belonging to this component.
-                const Int arc_begin = edge_ptr[component_ptr[comp  ]];
-                const Int arc_end   = edge_ptr[component_ptr[comp+1]];
+                const Int b_begin = edge_ptr[component_ptr[comp  ]];
+                const Int b_end   = edge_ptr[component_ptr[comp+1]];
 
-                if( arc_begin == arc_end )
+                if( b_begin == b_end )
                 {
                     // Component is an unlink. Just skip it.
                     ++unlink_count;
@@ -364,78 +472,20 @@ namespace Knoodle
                 
                 // If we arrive here, then there is definitely a crossing in the first edge.
                 
-                for( Int b = arc_begin, a = arc_end-Int(1); b < arc_end; a = (b++) )
+                
+                // TODO: Do the traversal so that the resulting `PlanarDiagram` is in canonical ordering in the sense of `CanonicallyOrderedQ`. For this, we have to go forward along the component until reach the first edge whose tail goes under. If if there is no such edge, we start at `b_begin`.
+                
+                for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
                 {
-                    const Int c_pos = edge_intersections[b];
-                    
-                    if( C_scratch[c_pos] < 0 )
-                    {
-                        C_scratch[c_pos] = C_counter++;
-                    }
-                    
-                    const Int c = C_scratch[c_pos];
-                    
-                    const bool overQ = edge_overQ[b];
-                    
-                    cref<Intersection_T> inter = intersections[static_cast<Size_T>(c_pos)];
-                    
-                    A_cross(a,Head) = c; // c is head of a
-                    A_cross(b,Tail) = c; // c is tail of b
-                    
-                    PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
-                    
-                    bool righthandedQ = inter.handedness > Sign_T(0);
-                    
-                    /*
-                     *
-                     *    negative         positive
-                     *    right-handed     left-handed
-                     *    .       .        .       .
-                     *    .       .        .       .
-                     *    +       +        +       +
-                     *     ^     ^          ^     ^
-                     *      \   /            \   /
-                     *       \ /              \ /
-                     *        /                \
-                     *       / \              / \
-                     *      /   \            /   \
-                     *     /     \          /     \
-                     *    +       +        +       +
-                     *    .       .        .       .
-                     *    .       .        .       .
-                     *
-                     */
-                    
-                    C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
-                    
-                    // TODO: Handle over/under in ArcState.
-                    A_state[a] = ArcState::Active;
-//                    A_state[a] = ToUnderlying(A_state[a]) | F_T(1) | (F_T(overQ) << 2);
-//                    A_state[b] = ToUnderlying(A_state[b]) | F_T(1) | (F_T(overQ) << 1);
-                    
-                    /*
-                    * righthandedQ == true and overQ == true:
-                    *
-                    *        C_arcs(c,Out,Left)  .       .  C_arcs(c,Out,Right) = b
-                    *                            .       .
-                    *                            +       +
-                    *                             ^     ^
-                    *                              \   /
-                    *                               \ /
-                    *                                /
-                    *                               / \
-                    *                              /   \
-                    *                             /     \
-                    *                            +       +
-                    *                            .       .
-                    *     a = C_arcs(c,In,Left)  .       .  C_arcs(c,In,Right)
-                    */
-                    
-                    const bool over_in_side = (righthandedQ == overQ) ? Left : Right ;
-                    
-                    C_arcs(c,In , over_in_side) = a;
-                    C_arcs(c,Out,!over_in_side) = b;
+                    process(a,b);
                 }
+            }
+            
+            // TODO: For some reason, the resulting `PlanarDiagram` is not canonically ordered in the sense of `CanonicallyOrderedQ`. This may be a big issue when using `PlanarDiagram` in conjunction of the external visualization tools as `PlanarDiagram` returns PDCode always in canonically ordered form. So we do here a maybe unnecessary recanonicalization here. Maybe we can create the diagram in canonical form already?
+            
+            if constexpr ( always_canonicalizeQ )
+            {
+                CanonicalizeInPlace();
             }
         }
         
@@ -957,7 +1007,7 @@ namespace Knoodle
         {
             PlanarDiagram pd ( crossing_count, unlink_count );
             
-            pd.provably_minimalQ = provably_minimalQ;
+            pd.proven_minimalQ = proven_minimalQ;
 
             auto & pd_C_arcs  = pd.C_arcs;
             auto & pd_C_state = pd.C_state;
@@ -1009,7 +1059,7 @@ namespace Knoodle
     public:
 
 #include "PlanarDiagram/Traverse.hpp"
-#include "PlanarDiagram/Compress.hpp"
+#include "PlanarDiagram/Canonicalize.hpp"
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/R_I.hpp"
@@ -1033,16 +1083,16 @@ namespace Knoodle
 #include "PlanarDiagram/PDCode.hpp"
 #include "PlanarDiagram/GaussCode.hpp"
 
-#include "PlanarDiagram/Resolve.hpp"
-#include "PlanarDiagram/Switch.hpp"
+#include "PlanarDiagram/ResolveCrossing.hpp"
+#include "PlanarDiagram/SwitchCrossing.hpp"
         
 #include "PlanarDiagram/VerticalSummandQ.hpp"
         
     public:
         
-        bool ProvablyMinimalQ() const
+        bool ProvenMinimalQ() const
         {
-            return provably_minimalQ;
+            return proven_minimalQ;
         }
         
         bool InvalidQ() const

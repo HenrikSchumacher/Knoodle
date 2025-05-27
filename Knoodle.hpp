@@ -299,7 +299,7 @@ namespace Knoodle
         // j and l differ by more than one due to the wrap-around at the end
         // of a connected component.
         
-        // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dor Bar-Natan.
+        // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dror Bar-Natan.
         
         if( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
         {

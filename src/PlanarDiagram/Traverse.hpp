@@ -21,13 +21,12 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * @tparam arclabelsQ A `bool` that controls whether `A_scratch` shall be populated with the reordering of arcs.
  *
- * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
+ * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1` (default), then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
  *
  * @tparam method The method used for traversal. You should typically use the default method.
  *
- * @param lc_pre A lambda function that is executed at the start of every link component.
- *    `lc_post( const Int lc, const Int lc_begin )`.
- *
+ * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
+ *    `lc_pre( const Int lc, const Int lc_begin )`.
  *
  * @param arc_fun A function to apply to every visited arc. Its require argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
@@ -45,17 +44,18 @@ static constexpr int DefaultTraversalMethod = 1;
  *      - `c_1_pos` is the position of `c_1` within the traversal.
  *      - `c_1_visited` is a `bool` that indicates whether crossing `c_0` is visited for the first (`false`) or the second (`true`) time.
  *
- * @param lc_post A lambda
+ * @param lc_post A lambda function that is executed at the end of every link component. Must have the following signature:
  *    `lc_post( const Int lc, const Int lc_begin, const Int lc_end )`.
  */
 
-    
 template<
     bool crossingsQ, bool arclabelsQ,
     int start_arc_ou = -1, int method = DefaultTraversalMethod,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
-void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post )  const
+void Traverse(
+    LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
+)  const
 {
     TOOLS_PTIC(ClassName()+"::Traverse"
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
@@ -64,22 +64,26 @@ void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && l
         + "," + ToString(method)
         + ">");
     
+//    cptr<Int>  A_next,
+//    mptr<std::conditional_t<arclabelsQ,Int,bool>> A_flag,
+//    mptr<Int>  C_pos
+    
+    auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
+    
+    auto * C_data = C_scratch.data();
+    
     if constexpr ( method == 0 )
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
-            nullptr,
-            reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data()),
-            C_scratch.data()
+            nullptr, A_data, C_data
         );
     }
     else if constexpr ( method == 1 )
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
-            ArcNextArc().data(),
-            reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data()),
-            C_scratch.data()
+            ArcNextArc().data(), A_data, C_data
         );
         this->ClearCache("ArcNextArc");
     }
@@ -91,6 +95,7 @@ void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && l
         );
     }
     
+
     TOOLS_PTOC(ClassName()+"::Traverse"
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
         + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")

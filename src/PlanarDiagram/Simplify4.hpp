@@ -8,20 +8,20 @@ public:
 
 Int Simplify4(
     const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
+    const bool canonicalizeQ      = true,
     const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q      = true
 )
 {
-    if( provably_minimalQ || InvalidQ() )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
     
     TOOLS_PTIC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
@@ -53,9 +53,9 @@ Int Simplify4(
             
             counter += simpl3_changes;
             
-            if( compressQ && (simpl3_changes > Int(0)) )
+            if( canonicalizeQ && (simpl3_changes > Int(0)) )
             {
-                (*this) = CreateCompressed();
+                CanonicalizeInPlace();
             }
         }
         
@@ -65,9 +65,9 @@ Int Simplify4(
         
         counter += o_changes;
         
-        if( compressQ && (o_changes > Int(0)) )
+        if( canonicalizeQ && (o_changes > Int(0)) )
         {
-            (*this) = CreateCompressed();
+            CanonicalizeInPlace();
         }
         
         PD_ASSERT(CheckAll());
@@ -78,9 +78,9 @@ Int Simplify4(
         
         counter += u_changes;
         
-        if( compressQ && (u_changes > Int(0)) )
+        if( canonicalizeQ && (u_changes > Int(0)) )
         {
-            (*this) = CreateCompressed();
+            CanonicalizeInPlace();
         }
         
         PD_ASSERT(CheckAll());
@@ -95,14 +95,14 @@ Int Simplify4(
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     PD_ASSERT(CheckAll());
 
     TOOLS_PTOC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)

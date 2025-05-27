@@ -12,7 +12,7 @@ public:
 
 Int Simplify1()
 {
-    if( provably_minimalQ || InvalidQ() )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
@@ -63,7 +63,7 @@ Int Simplify1()
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     TOOLS_PTOC(ClassName()+"::Simplify1");

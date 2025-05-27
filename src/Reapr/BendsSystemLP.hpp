@@ -46,7 +46,7 @@ Sparse::MatrixCSR<Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
 template<typename Int>
 Tensor1<Real,Int> BendsColLowerBounds( mref<PlanarDiagram<Int>> pd )
 {
-    // All bends must be nonnegtative.
+    // All bends must be nonnegative.
     return Tensor1<Real,Int>( Int(2) * pd.ArcCount(), Real(0) );
 }
 
@@ -94,22 +94,6 @@ Tensor1<Real,Int> BendsRowEqualityVector(
     
     return v;
 }
-
-//template<typename Int>
-//Tensor1<Real,Int> BendsRowUpperBounds( mref<PlanarDiagram<Int>> pd )
-//{
-//    TOOLS_MAKE_FP_STRICT();
-//    
-//    const Int m = pd.ArcCount();
-//    const Int n = pd.CrossingCount();
-//    Tensor1<Real,Int> v ( n + Int(2) * m + Int(1) );
-//    
-//    fill_buffer( &v[0], Real(-1), n                   );
-//    fill_buffer( &v[n], Real( 0), Int(2) * m + Int(1) );
-//    
-//    return v;
-//}
-
 
 template<typename Int>
 Tensor1<Real,Int> BendsObjectiveVector( mref<PlanarDiagram<Int>> pd )

@@ -96,7 +96,6 @@ private:
             const bool degenerateQ = (d2 <= Real(0));
             counter += degenerateQ;
             
-            // DEBUGGING
             if( degenerateQ )
             {
                 wprint(ClassName() + "::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");

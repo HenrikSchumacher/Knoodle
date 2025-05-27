@@ -8,12 +8,16 @@
 
 namespace Knoodle
 {
+    // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
-    
-    // TODO: Allow use of Dirichlet energy as well as bending energy.
-    // TODO: Call COIN-OR for TV regularizer -> simplex? interior point?
     // TODO: Call COIN-OR for height regularizer.
     
+    
+    
+    
+    
+    // DONE: Allow use of Dirichlet energy as well as bending energy.
+    // DONE: Call COIN-OR for TV regularizer -> simplex? interior point?
 //    template<typename Int_>
     class Reapr
     {

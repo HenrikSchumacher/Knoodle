@@ -88,7 +88,7 @@ namespace Knoodle
                     const Int a_out = C_arcs(c,Out,Right);
                     const Int a_in  = C_arcs(c,In ,Left);
                     
-                    // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
+                    // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
                     // Then these are consecutive reads.
 
                     // Caution: In A_faces the _right_ face comes first!
@@ -312,7 +312,7 @@ namespace Knoodle
                 const Int a_out = C_arcs(c,Out,Right);
                 const Int a_in  = C_arcs(c,In ,Left);
                 
-                // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
+                // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
                 // Then these are consecutive reads.
                 
                 // Caution: In A_faces the _right_ face comes first!

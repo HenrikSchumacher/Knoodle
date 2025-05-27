@@ -283,7 +283,9 @@ public:
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
- *  @param provably_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
+ *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
+ *
+ *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
@@ -291,11 +293,12 @@ static PlanarDiagram<Int> FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
-    const bool    provably_minimalQ_ = false
+    const bool    canonicalizeQ = true,
+    const bool    proven_minimalQ_ = false
 )
 {
     return PlanarDiagram<Int>::FromPDCode<true>(
-        pd_codes, crossing_count, unlink_count, provably_minimalQ_
+        pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
     );
 }
 
@@ -310,7 +313,9 @@ static PlanarDiagram<Int> FromSignedPDCode(
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
- *  @param provably_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
+ *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
+ *
+ *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
@@ -318,22 +323,27 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
-    const bool    provably_minimalQ_ = false
+    const bool    canonicalizeQ = true,
+    const bool    proven_minimalQ_ = false
 )
 {
     return PlanarDiagram<Int>::FromPDCode<false>(
-        pd_codes, crossing_count, unlink_count, provably_minimalQ_
+        pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
     );
 }
 
 private:
 
-template<bool PDsignedQ, typename ExtInt, typename ExtInt2, typename ExtInt3>
+template<
+    bool PDsignedQ,
+    typename ExtInt, typename ExtInt2, typename ExtInt3
+>
 static PlanarDiagram<Int> FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_,
-    const bool provably_minimalQ_ = false
+    const bool canonicalizeQ,
+    const bool proven_minimalQ_
 )
 {
     // TODO: Handle over/under in ArcState.
@@ -344,7 +354,6 @@ static PlanarDiagram<Int> FromPDCode(
 //    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
     
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
-    pd.provably_minimalQ = provably_minimalQ_;
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     
@@ -352,8 +361,12 @@ static PlanarDiagram<Int> FromPDCode(
     
     if( crossing_count_ <= 0 )
     {
+        pd.proven_minimalQ = true;
         return pd;
     }
+    
+    pd.proven_minimalQ = proven_minimalQ_;
+
     
     // The maximally allowed arc index.
     const Int max_a = pd.max_arc_count - 1;
@@ -365,7 +378,7 @@ static PlanarDiagram<Int> FromPDCode(
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint( ClassName()+"(): There is a pd code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
+            eprint( ClassName()+"FromPDCode(): There is a pd code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
             return PlanarDiagram<Int>();
         }
@@ -480,11 +493,18 @@ static PlanarDiagram<Int> FromPDCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(ClassName() + "FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
+        eprint(ClassName() + "::FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
         
         return PlanarDiagram<Int>();
     }
     
-    // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-    return pd.CreateCompressed();
+    if( canonicalizeQ )
+    {
+        // We finally call `Canonicalize` to get the ordering of crossings and arcs consistent.
+        return pd.Canonicalize();
+    }
+    else
+    {
+        return pd;
+    }
 }

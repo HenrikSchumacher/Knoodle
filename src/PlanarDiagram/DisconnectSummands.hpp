@@ -9,11 +9,11 @@ public:
 
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
-    const Int max_dist = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
-    const Int  simplify3_level = 4,
+    const Int  max_dist           = std::numeric_limits<Int>::max(),
+    const bool canonicalizeQ      = true,
+    const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q = true
+    const bool strand_R_II_Q      = true
 )
 {
     TOOLS_PTIC(ClassName()+"::DisconnectSummands");
@@ -42,7 +42,7 @@ bool DisconnectSummands(
         {
             changedQ = changedQ || DisconnectSummand(
                 f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+                max_dist,canonicalizeQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -80,7 +80,7 @@ bool DisconnectSummand(
     cptr<Int> F_A_idx,
     cptr<Int> A_face,
     const Int max_dist,
-    const bool compressQ,
+    const bool canonicalizeQ,
     const Int  simplify3_level,
     const Int  simplify3_max_iter,
     const bool strand_R_II_Q = true
@@ -113,20 +113,22 @@ bool DisconnectSummand(
         
     const Size_T f_size = f_arcs.size();
     
-    if( f_size == 1 )
+    if( f_size == Size_T(1) ) [[unlikely]]
     {
         const Int a = (f_arcs[0] >> 1);
+
+        // Warning: This alters the diagram but preserves the Cache -- which is important to not invalidate `FaceDirectedArcPointers` and `FaceDirectedArcIndices`, etc. I don't think that this will ever happen because `DisconnectSummand` is called only in a very controlled context when all possible Reidemeister I moves have been performed already.
         
-        if( A_cross(a,Tail) == A_cross(a,Head) )
+        if( Private_Reidemeister_I<true,true>(a) )
         {
-            Reidemeister_I(a);
+            wprint(ClassName() + "::DisconnectSummand: Found a face with just one arc around it. Tried to call Private_Reidemeister_I to remove. But maybe the face information is violated. Check your results thoroughly.");
             return true;
         }
         else
         {
             // TODO: Can we get here? What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
 
-            eprint(ClassName()+"::DisconnectSummand: Face with one arc detected.");
+            eprint(ClassName()+"::DisconnectSummand: Face with one arc detected that is not a loop arc. Something must have gone very wrong here.");
             return false;
         }
     }
@@ -138,7 +140,7 @@ bool DisconnectSummand(
         pd.Simplify5(
             pd_list,
             max_dist,
-            compressQ,
+            canonicalizeQ,
             simplify3_level,
             simplify3_max_iter,
             strand_R_II_Q
@@ -451,7 +453,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     }
     while( a != a_0 );
     
-    // TODO: Should we compress here?
+    // TODO: Should we recanonicalize here?
     // TODO: Compute crossing_count and arc_count!
     
     PD_ASSERT( pd.CheckAll() );

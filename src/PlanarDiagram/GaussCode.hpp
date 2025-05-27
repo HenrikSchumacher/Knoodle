@@ -70,19 +70,23 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
-    const bool    provably_minimalQ_ = false
+    const bool    canonicalizeQ = true,
+    const bool    proven_minimalQ_ = false
 )
 {
-    PlanarDiagram<Int> pd (int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_));
-    
-    pd.provably_minimalQ = provably_minimalQ_;
+    PlanarDiagram<Int> pd (
+        int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
+    );
     
     static_assert( SignedIntQ<T>, "" );
     
     if( arc_count_ <= 0 )
     {
+        pd.proven_minimalQ = true;
         return pd;
     }
+    
+    pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
     
@@ -184,8 +188,15 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    return pd;
-//    return pd.CreateCompressed();
+    if( canonicalizeQ )
+    {
+        // We finally call `Canonicalize` to get the ordering of crossings and arcs consistent.
+        return pd.Canonicalize();
+    }
+    else
+    {
+        return pd;
+    }
 }
 
 

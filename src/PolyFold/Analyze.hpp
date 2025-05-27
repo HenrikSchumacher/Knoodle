@@ -16,7 +16,7 @@ std::string PDCodeString( mref<PD_T> P ) const
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(P.ProvablyMinimalQ());
+    s+= ToString(P.ProvenMinimalQ());
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
@@ -35,7 +35,7 @@ std::string GaussCodeString( mref<PD_T> P ) const
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(P.ProvablyMinimalQ());
+    s+= ToString(P.ProvenMinimalQ());
     s+= " | ";
     auto gauss_code = P.ExtendedGaussCode();
     

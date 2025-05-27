@@ -17,12 +17,12 @@ public:
  */
 
 Int Simplify3(
-    const Int optimization_level,
-    const Int max_iter = std::numeric_limits<Int>::max(),
+    const Int  optimization_level,
+    const Int  max_iter    = std::numeric_limits<Int>::max(),
     const bool multi_compQ = true
 )
 {
-    if( provably_minimalQ || InvalidQ() )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
@@ -125,7 +125,7 @@ Int simplify3( Int max_iter )
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }   
     
     TOOLS_PTOC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
