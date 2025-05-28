@@ -1,5 +1,7 @@
 #pragma  once
 
+#include <unordered_set>
+
 namespace Knoodle
 {
     template<typename Int_, Size_T optimization_level, bool mult_compQ_>
@@ -22,9 +24,6 @@ namespace Knoodle
         
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
-
-//        using CrossingContainer_T       = Tensor3<Int,Int>;
-//        using ArcContainer_T            = Tensor2<Int,Int>;
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
