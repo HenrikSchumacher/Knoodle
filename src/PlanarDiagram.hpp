@@ -117,9 +117,9 @@ namespace Knoodle
         , unlink_count       { unlink_count_                               }
         , max_crossing_count { crossing_count_                             }
         , max_arc_count      { Int(2)*crossing_count_                      }
-//        , C_arcs             { max_crossing_count, -1                      }
+        , C_arcs             { max_crossing_count, -1                      }
         , C_state            { max_crossing_count, CrossingState::Inactive }
-//        , A_cross            { max_arc_count,      -1                      }
+        , A_cross            { max_arc_count,      -1                      }
         , A_state            { max_arc_count,      ArcState::Inactive      }
         , C_scratch          { max_crossing_count                          }
         , A_scratch          { max_arc_count                               }
