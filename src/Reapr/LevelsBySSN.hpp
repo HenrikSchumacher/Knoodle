@@ -21,7 +21,9 @@ Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
 // Returns a vector that contains the levels _and_ the Lagrange multipliers.
 
 template<typename Int>
-Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
+    mref<PlanarDiagram<Int>> pd
+)
 {
     TOOLS_PTIMER(timer, ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
 //    TOOLS_PTIC(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
