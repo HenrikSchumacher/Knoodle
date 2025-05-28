@@ -1,7 +1,5 @@
 #pragma  once
 
-#include <unordered_set>
-
 namespace Knoodle
 {
     template<typename Int_, Size_T optimization_level, bool mult_compQ_>
@@ -25,8 +23,14 @@ namespace Knoodle
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
 
-        using CrossingContainer_T       = CrossingContainer<Int>;
-        using ArcContainer_T            = ArcContainer<Int>;
+//        using CrossingContainer_T       = Tensor3<Int,Int>;
+//        using ArcContainer_T            = Tensor2<Int,Int>;
+        
+//        using CrossingContainer_T       = CrossingContainer<Int>;
+//        using ArcContainer_T            = ArcContainer<Int>;
+        
+        using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
+        using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
@@ -117,9 +121,9 @@ namespace Knoodle
         , unlink_count       { unlink_count_                               }
         , max_crossing_count { crossing_count_                             }
         , max_arc_count      { Int(2)*crossing_count_                      }
-        , C_arcs             { max_crossing_count, -1                      }
+//        , C_arcs             { max_crossing_count, -1                      }
         , C_state            { max_crossing_count, CrossingState::Inactive }
-        , A_cross            { max_arc_count,      -1                      }
+//        , A_cross            { max_arc_count,      -1                      }
         , A_state            { max_arc_count,      ArcState::Inactive      }
         , C_scratch          { max_crossing_count                          }
         , A_scratch          { max_arc_count                               }
