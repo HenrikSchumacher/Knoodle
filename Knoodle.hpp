@@ -408,8 +408,6 @@ namespace Knoodle
 #include "src/Multigraph.hpp"
 
 #include "src/Debugging.hpp"
-#include "src/ArcContainer.hpp"
-#include "src/CrossingContainer.hpp"
 #include "src/PlanarDiagram.hpp"
 #include "src/CrossingSimplifier.hpp"
 #include "src/ArcSimplifier.hpp"
