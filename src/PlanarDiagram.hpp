@@ -26,9 +26,6 @@ namespace Knoodle
 //        using CrossingContainer_T       = Tensor3<Int,Int>;
 //        using ArcContainer_T            = Tensor2<Int,Int>;
         
-//        using CrossingContainer_T       = CrossingContainer<Int>;
-//        using ArcContainer_T            = ArcContainer<Int>;
-        
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         
