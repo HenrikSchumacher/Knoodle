@@ -50,7 +50,10 @@ PYBIND11_MODULE(_knoodle, m) {
         .def_readwrite("squared_gyradius", &KnotAnalyzer::squared_gyradius)
         .def_readwrite("link_component_count", &KnotAnalyzer::link_component_count)
         .def_readwrite("unlink_count", &KnotAnalyzer::unlink_count)
-        .def_readwrite("components", &KnotAnalyzer::components)
+        .def_readwrite("is_prime", &KnotAnalyzer::is_prime)
+        .def_readwrite("is_composite", &KnotAnalyzer::is_composite)
+        .def_readwrite("prime_component_count", &KnotAnalyzer::prime_component_count)
+        .def_readwrite("prime_components", &KnotAnalyzer::prime_components)
         
         // Methods
         .def("get_crossing_count", &KnotAnalyzer::get_crossing_count,
@@ -69,16 +72,27 @@ PYBIND11_MODULE(_knoodle, m) {
              "Get the number of link components")
         .def("get_unlink_count", &KnotAnalyzer::get_unlink_count,
              "Get the number of trivial unlinks")
-        .def("get_components", &KnotAnalyzer::get_components,
-             "Get the knot components split off during simplification")
+        .def("get_is_prime", &KnotAnalyzer::get_is_prime,
+             "Check if the knot is prime")
+        .def("get_is_composite", &KnotAnalyzer::get_is_composite,
+             "Check if the knot is composite")
+        .def("get_prime_component_count", &KnotAnalyzer::get_prime_component_count,
+             "Get the total number of prime components")
+        .def("get_prime_components", &KnotAnalyzer::get_prime_components,
+             "Get the prime knot components")
         
         .def("__repr__", [](const KnotAnalyzer &r) {
             std::stringstream ss;
             ss << "KnotAnalyzer(crossings=" << r.crossing_count
-               << ", writhe=" << r.writhe
-               << ", link_components=" << r.link_component_count
-               << ", unlinks=" << r.unlink_count
-               << ", split_components=" << r.components.size() << ")";
+               << ", writhe=" << r.writhe;
+            if (r.is_composite) {
+                ss << ", composite with " << r.prime_component_count << " prime factors";
+            } else if (r.is_prime && r.crossing_count > 0) {
+                ss << ", prime";
+            } else if (r.crossing_count == 0) {
+                ss << ", unknot";
+            }
+            ss << ")";
             return ss.str();
         });
     

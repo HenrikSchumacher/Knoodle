@@ -19,9 +19,12 @@ public:
     std::string pd_code;
     std::string gauss_code;  // Note: This is extended Gauss code (one entry per arc)
     double squared_gyradius;
-    int link_component_count;  // True number of link components
+    int link_component_count;  // Number of link components (always 1 for single polygons)
     int unlink_count;  // Number of trivial unlinks
-    std::vector<KnotAnalyzer> components;  // Components split off during simplification
+    bool is_prime;  // True if the knot is prime (not composite)
+    bool is_composite;  // True if the knot is composite
+    int prime_component_count;  // Total number of prime components (including remainder)
+    std::vector<KnotAnalyzer> prime_components;  // Prime knot factors split off
     
     // Constructors
     KnotAnalyzer();
@@ -42,10 +45,13 @@ public:
     const std::string& get_pd_code() const { return pd_code; }
     const std::string& get_gauss_code() const { return gauss_code; }
     double get_squared_gyradius() const { return squared_gyradius; }
-    bool is_unknot() const { return crossing_count == 0; }
+    bool is_unknot() const { return crossing_count == 0 && link_component_count == 1; }
     int get_link_component_count() const { return link_component_count; }
     int get_unlink_count() const { return unlink_count; }
-    const std::vector<KnotAnalyzer>& get_components() const { return components; }
+    bool get_is_prime() const { return is_prime; }
+    bool get_is_composite() const { return is_composite; }
+    int get_prime_component_count() const { return prime_component_count; }
+    const std::vector<KnotAnalyzer>& get_prime_components() const { return prime_components; }
 };
 
 // Convenience functions that create a KnotAnalyzer internally

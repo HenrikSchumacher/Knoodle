@@ -118,6 +118,9 @@ KnotAnalyzer::KnotAnalyzer() : impl(std::make_shared<KnotAnalyzerImpl>()) {
     squared_gyradius = 0.0;
     link_component_count = 1;
     unlink_count = 0;
+    is_prime = true;
+    is_composite = false;
+    prime_component_count = 0;
 }
 
 KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify, int simplify_level) 
@@ -149,7 +152,7 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
                 default:
                     impl->pd->Simplify5(comps);
                     
-                    // Process components that were split off during simplification
+                    // Process prime components that were split off
                     for (PD_T& comp : comps) {
                         KnotAnalyzer comp_analyzer;
                         comp_analyzer.crossing_count = comp.CrossingCount();
@@ -159,8 +162,11 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
                         comp_analyzer.squared_gyradius = 0.0; // Components don't have coordinates
                         comp_analyzer.link_component_count = comp.LinkComponentCount();
                         comp_analyzer.unlink_count = comp.UnlinkCount();
+                        comp_analyzer.is_prime = true; // Components from DisconnectSummands are prime
+                        comp_analyzer.is_composite = false;
+                        comp_analyzer.prime_component_count = 1;
                         
-                        components.push_back(std::move(comp_analyzer));
+                        prime_components.push_back(std::move(comp_analyzer));
                     }
                     break;
             }
@@ -177,6 +183,25 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
             // Get the true link component count and unlink count
             link_component_count = impl->pd->LinkComponentCount();
             unlink_count = impl->pd->UnlinkCount();
+            
+            // Determine if knot is prime or composite
+            if (prime_components.empty()) {
+                // No components were split off
+                is_prime = true;
+                is_composite = false;
+                prime_component_count = (crossing_count > 0) ? 1 : 0; // 1 if non-trivial, 0 if unknot
+            } else {
+                // Components were split off - this is a composite knot
+                is_composite = true;
+                is_prime = false;
+                
+                // Total prime components = split-off components + remainder (if non-trivial)
+                prime_component_count = prime_components.size();
+                if (crossing_count > 0) {
+                    // The remainder after splitting is also a prime component
+                    prime_component_count++;
+                }
+            }
         } else {
             throw std::runtime_error("Failed to create planar diagram");
         }
@@ -190,6 +215,9 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
         squared_gyradius = 0.0;
         link_component_count = -1;
         unlink_count = -1;
+        is_prime = false;
+        is_composite = false;
+        prime_component_count = -1;
     }
 }
 
@@ -203,7 +231,10 @@ KnotAnalyzer::KnotAnalyzer(const KnotAnalyzer& other)
       squared_gyradius(other.squared_gyradius),
       link_component_count(other.link_component_count),
       unlink_count(other.unlink_count),
-      components(other.components) {
+      is_prime(other.is_prime),
+      is_composite(other.is_composite),
+      prime_component_count(other.prime_component_count),
+      prime_components(other.prime_components) {
 }
 
 // Move constructor
@@ -216,7 +247,10 @@ KnotAnalyzer::KnotAnalyzer(KnotAnalyzer&& other) noexcept
       squared_gyradius(other.squared_gyradius),
       link_component_count(other.link_component_count),
       unlink_count(other.unlink_count),
-      components(std::move(other.components)) {
+      is_prime(other.is_prime),
+      is_composite(other.is_composite),
+      prime_component_count(other.prime_component_count),
+      prime_components(std::move(other.prime_components)) {
 }
 
 // Copy assignment
@@ -230,7 +264,10 @@ KnotAnalyzer& KnotAnalyzer::operator=(const KnotAnalyzer& other) {
         squared_gyradius = other.squared_gyradius;
         link_component_count = other.link_component_count;
         unlink_count = other.unlink_count;
-        components = other.components;
+        is_prime = other.is_prime;
+        is_composite = other.is_composite;
+        prime_component_count = other.prime_component_count;
+        prime_components = other.prime_components;
     }
     return *this;
 }
@@ -246,7 +283,10 @@ KnotAnalyzer& KnotAnalyzer::operator=(KnotAnalyzer&& other) noexcept {
         squared_gyradius = other.squared_gyradius;
         link_component_count = other.link_component_count;
         unlink_count = other.unlink_count;
-        components = std::move(other.components);
+        is_prime = other.is_prime;
+        is_composite = other.is_composite;
+        prime_component_count = other.prime_component_count;
+        prime_components = std::move(other.prime_components);
     }
     return *this;
 }
