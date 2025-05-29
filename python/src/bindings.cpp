@@ -48,6 +48,8 @@ PYBIND11_MODULE(_knoodle, m) {
         .def_readwrite("pd_code", &KnotAnalyzer::pd_code)
         .def_readwrite("gauss_code", &KnotAnalyzer::gauss_code)
         .def_readwrite("squared_gyradius", &KnotAnalyzer::squared_gyradius)
+        .def_readwrite("link_component_count", &KnotAnalyzer::link_component_count)
+        .def_readwrite("unlink_count", &KnotAnalyzer::unlink_count)
         .def_readwrite("components", &KnotAnalyzer::components)
         
         // Methods
@@ -58,21 +60,25 @@ PYBIND11_MODULE(_knoodle, m) {
         .def("get_pd_code", &KnotAnalyzer::get_pd_code,
              "Get the PD code")
         .def("get_gauss_code", &KnotAnalyzer::get_gauss_code,
-             "Get the Gauss code")
+             "Get the extended Gauss code (one entry per arc, not per crossing)")
         .def("get_squared_gyradius", &KnotAnalyzer::get_squared_gyradius,
              "Get the squared radius of gyration")
         .def("is_unknot", &KnotAnalyzer::is_unknot,
              "Check if this is an unknot")
+        .def("get_link_component_count", &KnotAnalyzer::get_link_component_count,
+             "Get the number of link components")
+        .def("get_unlink_count", &KnotAnalyzer::get_unlink_count,
+             "Get the number of trivial unlinks")
         .def("get_components", &KnotAnalyzer::get_components,
-             "Get the knot components")
+             "Get the knot components split off during simplification")
         
         .def("__repr__", [](const KnotAnalyzer &r) {
             std::stringstream ss;
             ss << "KnotAnalyzer(crossings=" << r.crossing_count
                << ", writhe=" << r.writhe
-               << ", pd_code='" << r.pd_code << "'"
-               << ", gauss_code='" << r.gauss_code << "'"
-               << ", components=[" << r.components.size() << "])";
+               << ", link_components=" << r.link_component_count
+               << ", unlinks=" << r.unlink_count
+               << ", split_components=" << r.components.size() << ")";
             return ss.str();
         });
     
@@ -94,7 +100,7 @@ PYBIND11_MODULE(_knoodle, m) {
     m.def("get_gauss_code", &get_gauss_code,
           py::arg("coordinates"),
           py::arg("simplify") = true,
-          "Get the Extended Gauss code representation of a knot");
+          "Get the extended Gauss code representation of a knot (one entry per arc)");
     
     m.def("is_unknot", &is_unknot,
           py::arg("coordinates"),

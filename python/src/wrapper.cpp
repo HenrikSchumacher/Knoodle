@@ -87,11 +87,25 @@ std::string pd_to_string(PD_T& pd) {
 // Convert PD_T to Gauss code string
 std::string gauss_to_string(PD_T& pd) {
     std::stringstream ss;
-    auto gausscode = pd.ExtendedGaussCode();
     
-    for (Int i = 0; i < gausscode.Size(); ++i) {
-        ss << gausscode[i];
-        if (i < gausscode.Size() - 1) ss << " ";
+    // Get the extended Gauss code (one entry per arc)
+    auto extgausscode = pd.ExtendedGaussCode();
+    Int code_size = extgausscode.Size();
+    
+    if (code_size == 0) {
+        return "";
+    }
+    
+    // The ExtendedGaussCode has one entry per arc (not per crossing)
+    // For a knot with n crossings, there are 2n arcs
+    // Each crossing is visited twice during the traversal
+    
+    // For now, return the extended code but mark it as such
+    // A proper standard Gauss code would require different logic
+    ss << "ext:";
+    for (Int i = 0; i < code_size; ++i) {
+        ss << extgausscode[i];
+        if (i < code_size - 1) ss << " ";
     }
     
     return ss.str();
@@ -102,6 +116,8 @@ KnotAnalyzer::KnotAnalyzer() : impl(std::make_shared<KnotAnalyzerImpl>()) {
     crossing_count = 0;
     writhe = 0;
     squared_gyradius = 0.0;
+    link_component_count = 1;
+    unlink_count = 0;
 }
 
 KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify, int simplify_level) 
@@ -133,7 +149,7 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
                 default:
                     impl->pd->Simplify5(comps);
                     
-                    // Process components if any
+                    // Process components that were split off during simplification
                     for (PD_T& comp : comps) {
                         KnotAnalyzer comp_analyzer;
                         comp_analyzer.crossing_count = comp.CrossingCount();
@@ -141,6 +157,8 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
                         comp_analyzer.pd_code = pd_to_string(comp);
                         comp_analyzer.gauss_code = gauss_to_string(comp);
                         comp_analyzer.squared_gyradius = 0.0; // Components don't have coordinates
+                        comp_analyzer.link_component_count = comp.LinkComponentCount();
+                        comp_analyzer.unlink_count = comp.UnlinkCount();
                         
                         components.push_back(std::move(comp_analyzer));
                     }
@@ -155,11 +173,14 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
             pd_code = pd_to_string(*impl->pd);
             gauss_code = gauss_to_string(*impl->pd);
             squared_gyradius = calculate_squared_gyradius(coordinates);
+            
+            // Get the true link component count and unlink count
+            link_component_count = impl->pd->LinkComponentCount();
+            unlink_count = impl->pd->UnlinkCount();
         } else {
             throw std::runtime_error("Failed to create planar diagram");
         }
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error in KnotAnalyzer constructor: " << e.what() << std::endl;
         // Set error values
         crossing_count = -1;
@@ -167,6 +188,8 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
         pd_code = "Error: " + std::string(e.what());
         gauss_code = "Error: " + std::string(e.what());
         squared_gyradius = 0.0;
+        link_component_count = -1;
+        unlink_count = -1;
     }
 }
 
@@ -178,6 +201,8 @@ KnotAnalyzer::KnotAnalyzer(const KnotAnalyzer& other)
       pd_code(other.pd_code),
       gauss_code(other.gauss_code),
       squared_gyradius(other.squared_gyradius),
+      link_component_count(other.link_component_count),
+      unlink_count(other.unlink_count),
       components(other.components) {
 }
 
@@ -189,6 +214,8 @@ KnotAnalyzer::KnotAnalyzer(KnotAnalyzer&& other) noexcept
       pd_code(std::move(other.pd_code)),
       gauss_code(std::move(other.gauss_code)),
       squared_gyradius(other.squared_gyradius),
+      link_component_count(other.link_component_count),
+      unlink_count(other.unlink_count),
       components(std::move(other.components)) {
 }
 
@@ -201,6 +228,8 @@ KnotAnalyzer& KnotAnalyzer::operator=(const KnotAnalyzer& other) {
         pd_code = other.pd_code;
         gauss_code = other.gauss_code;
         squared_gyradius = other.squared_gyradius;
+        link_component_count = other.link_component_count;
+        unlink_count = other.unlink_count;
         components = other.components;
     }
     return *this;
@@ -215,6 +244,8 @@ KnotAnalyzer& KnotAnalyzer::operator=(KnotAnalyzer&& other) noexcept {
         pd_code = std::move(other.pd_code);
         gauss_code = std::move(other.gauss_code);
         squared_gyradius = other.squared_gyradius;
+        link_component_count = other.link_component_count;
+        unlink_count = other.unlink_count;
         components = std::move(other.components);
     }
     return *this;
