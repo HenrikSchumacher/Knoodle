@@ -46,56 +46,56 @@ namespace Knoodle
         static constexpr bool Tail  = PlanarDiagram_T::Tail;
         static constexpr bool Head  = PlanarDiagram_T::Head;
         
-        Dir_T TurnLeft( Dir_T dir )
-        {
-            switch( dir )
-            {
-                case East:  return North;
-                case North: return West;
-                case West:  return South;
-                case South: return East;
-                case NoDir: return NoDir;
-            }
-        }
-        
-        Dir_T TurnRight( Dir_T dir )
-        {
-            switch( dir )
-            {
-                case East:  return South;
-                case North: return East;
-                case West:  return North;
-                case South: return West;
-                case NoDir: return NoDir;
-            }
-        }
-        
-        Dir_T TurnAround( Dir_T dir )
-        {
-            switch( dir )
-            {
-                case East:  return West;
-                case North: return South;
-                case West:  return East;
-                case South: return North;
-                case NoDir: return NoDir;
-            }
-        }
+//        Dir_T TurnLeft( Dir_T dir )
+//        {
+//            switch( dir )
+//            {
+//                case East:  return North;
+//                case North: return West;
+//                case West:  return South;
+//                case South: return East;
+//                case NoDir: return NoDir;
+//            }
+//        }
+//        
+//        Dir_T TurnRight( Dir_T dir )
+//        {
+//            switch( dir )
+//            {
+//                case East:  return South;
+//                case North: return East;
+//                case West:  return North;
+//                case South: return West;
+//                case NoDir: return NoDir;
+//            }
+//        }
+//        
+//        Dir_T TurnAround( Dir_T dir )
+//        {
+//            switch( dir )
+//            {
+//                case East:  return West;
+//                case North: return South;
+//                case West:  return East;
+//                case South: return North;
+//                case NoDir: return NoDir;
+//            }
+//        }
         
         OrthogonalRepresentation() = default;
         
         // Copy constructor
         OrthogonalRepresentation( const OrthogonalRepresentation & other ) = default;
         
+        // TODO: swap
+        // TODO: copy assignment
+        // TODO: move constructor
+        // TODO: move assignment
         
 
         UInt getArcOrientation( bool io, bool lr )
         {
-            UInt d =  (io ? ( UInt(2) + lr ): !lr);
-//            d -= rot;
-            d %= 4;
-            
-            return d;
+            return (io ? ( UInt(2) + lr ): !lr) % UInt(4);
         }
         
         OrthogonalRepresentation(
