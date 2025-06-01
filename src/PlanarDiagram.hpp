@@ -31,8 +31,8 @@ namespace Knoodle
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
         
-        using Multigraph_T              = Multigraph<Int>;
-        using ComponentMatrix_T         = Multigraph_T::ComponentMatrix_T;
+        using MultiGraph_T              = MultiGraph<Int,Int>;
+        using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
         
         using PD_List_T                 = std::vector<PlanarDiagram<Int>>;
 
@@ -1002,6 +1002,30 @@ namespace Knoodle
             return writhe;
         }
         
+        Int EulerCharacteristic() const
+        {
+            return CrossingCount() - ArcCount() + FaceCount();
+        }
+        
+        template<bool verboseQ = true>
+        bool EulerCharacteristicValidQ()
+        {
+            const Int euler_char  = (CrossingCount() + FaceCount()) - ArcCount();
+            const Int euler_char0 = Int(2) * DiagramComponentCount();
+            
+            const bool validQ = (euler_char == euler_char0);
+            
+            if constexpr ( verboseQ )
+            {
+                if( !validQ )
+                {
+                    wprint(ClassName()+"::RequireFaces: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
+                }
+            }
+            
+            return validQ;
+        }
+        
         
         PlanarDiagram ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
@@ -1088,6 +1112,9 @@ namespace Knoodle
         
 #include "PlanarDiagram/VerticalSummandQ.hpp"
         
+#include "PlanarDiagram/DepthFirstSearch.hpp"
+#include "PlanarDiagram/SpanningForest.hpp"
+        
     public:
         
         bool ProvenMinimalQ() const
@@ -1104,6 +1131,12 @@ namespace Knoodle
         {
             return !InvalidQ();
         }
+        
+        bool NonTrivialQ()
+        {
+            return (CrossingCount() > Int(0)) || (UnlinkCount() > Int(1));
+        }
+        
         
     public:
         

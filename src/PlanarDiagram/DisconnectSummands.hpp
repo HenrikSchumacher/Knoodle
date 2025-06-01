@@ -135,7 +135,7 @@ bool DisconnectSummand(
     
     sort( &f_faces[0], &f_arcs[0], static_cast<Int>(f_size) );
     
-    auto push = [&]( PlanarDiagram<Int> && pd )
+    auto conditional_push = [&]( PlanarDiagram<Int> && pd )
     {
         pd.Simplify5(
             pd_list,
@@ -146,7 +146,10 @@ bool DisconnectSummand(
             strand_R_II_Q
         );
         
-        pd_list.push_back( std::move(pd) );
+        if( pd.NonTrivialQ() )
+        {
+            pd_list.push_back( std::move(pd) );
+        }
     };
     
     Size_T i = 0;
@@ -228,7 +231,7 @@ bool DisconnectSummand(
                 }
                 else
                 {
-                    push( std::move( ExportSmallerComponent(a_prev,a_next) ) );
+                    conditional_push( std::move(ExportSmallerComponent(a_prev,a_next)) );
                     return true;
                 }
             }
@@ -262,8 +265,7 @@ bool DisconnectSummand(
                 Reconnect<Tail>(a,b);
                 DeactivateCrossing(c);
 
-                push( std::move( ExportSmallerComponent(a_prev,a) ) );
-                
+                conditional_push( std::move( ExportSmallerComponent(a_prev,a) ) );
                 return true;
             }
         }
@@ -297,10 +299,7 @@ bool DisconnectSummand(
             Reconnect<Tail>(a_next,b_prev);
             DeactivateCrossing(c);
             
-            push( std::move( ExportSmallerComponent(a,a_next) ) );
-            
-            // push( std::move( SplitSmallerDiagramComponent(a,a_next) ) );
-                            
+            conditional_push( std::move(ExportSmallerComponent(a,a_next)) );
             return true;
         }
         
@@ -324,10 +323,7 @@ bool DisconnectSummand(
         SetMatchingPortTo<In>(c_a,a,b);
         SetMatchingPortTo<In>(c_b,b,a);
         
-        push( std::move( ExportSmallerComponent(a,b) ) );
-        
-//        push( std::move( SplitSmallerDiagramComponent(a,b) ) );
-        
+        conditional_push( std::move( ExportSmallerComponent(a,b) ) );
         return true;
     }
 

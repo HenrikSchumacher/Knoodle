@@ -117,7 +117,7 @@ void RequireFaces() const
     // face_count = crossing_count + 2 * #(connected components)
     //
     // I don't want to count the number of connected components here, so I use an
-    // expandable std::vector here -- with default lenght that will always do for knots.
+    // expandable std::vector here -- with default length that will always do for knots.
 
     Size_T expected_face_count = static_cast<Size_T>(crossing_count + 2);
     std::vector<Int> F_A_ptr_agg;

@@ -1,6 +1,6 @@
 public:
 
-cref<Multigraph_T> DiagramComponentLinkComponentGraph()
+cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
 {
     const std::string tag ("DiagramComponentLinkComponentGraph");
     
@@ -27,24 +27,26 @@ cref<Multigraph_T> DiagramComponentLinkComponentGraph()
             }
         }
                                                                  
-        Tensor2<Int,Int> comp_edges ( static_cast<Int>(aggregator.size()), Int(2) );
+        typename MultiGraph_T::EdgeContainer_T comp_edges (
+            static_cast<Int>(aggregator.size())
+        );
         
         Int counter = 0;
         
         for( auto p : aggregator )
         {
-            comp_edges(counter,0) = p.first;
-            comp_edges(counter,1) = p.second;
+            comp_edges(counter,MultiGraph_T::Tail) = p.first;
+            comp_edges(counter,MultiGraph_T::Head) = p.second;
             
             ++counter;
         }
         
         this->SetCache( tag,
-            Multigraph_T( LinkComponentCount(), std::move(comp_edges) )
+            MultiGraph_T( LinkComponentCount(), std::move(comp_edges) )
         );
     }
     
-    return this->template GetCache<Multigraph_T>(tag);
+    return this->template GetCache<MultiGraph_T>(tag);
 }
 
 cref<ComponentMatrix_T> DiagramComponentLinkComponentMatrix()
