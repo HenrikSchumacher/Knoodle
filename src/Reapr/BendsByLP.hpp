@@ -8,10 +8,14 @@ public:
  *  This approach is similar to Tamassia, On embedding a graph in the grid with the minimum number of bends. Siam J. Comput. 16 (1987) http://dx.doi.org/10.1137/0216030. The main difference is that we can assume that each vertex in the graph underlying the planar diagram has valence 4. Moreover, we do not use the elaborate formulation as min cost flow problem, which would allow us to use a potentially faster network solver. Instead, we use a CLP, a generic solver for linear problems.
  *
  * @param pd Planar diagram whose bends we want to compute.
+ *
+ * @param ext_face Specify which face shall be treated as exterior face. If `ext_face < 0`, then a face with maximum number of arcs is chosen.
  */
 
 template<typename Int>
-Tensor1<Int,Int> BendsByLP( mref<PlanarDiagram<Int>> pd )
+Tensor1<Int,Int> BendsByLP(
+    mref<PlanarDiagram<Int>> pd, const Int ext_face = -1
+)
 {
     TOOLS_MAKE_FP_STRICT();
 

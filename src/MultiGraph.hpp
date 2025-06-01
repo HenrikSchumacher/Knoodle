@@ -3,89 +3,93 @@
 namespace Knoodle
 {
     
-    template<typename Int_ = Int64, typename SInt_ = FastInt8>
-    class alignas( ObjectAlignment ) Multigraph : public CachedObject
+    template<
+        typename VInt_ = Int64, typename EInt_ = VInt_, typename SInt_ = Int8
+    >
+    class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,SInt_>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
-        
-        static_assert(SignedIntQ<Int_>,"");
                 
     public:
         
-        using Int  = Int_;
+        using Base_T            = MultiGraphBase<VInt_,EInt_,SInt_>;
+        using VInt              = Base_T::VInt;
+        using EInt              = Base_T::EInt;
+        using SInt              = Base_T::SInt;
+        using Edge_T            = Base_T::Edge_T;
+        using EdgeContainer_T   = Base_T::EdgeContainer_T;
+        using InOut             = Base_T::InOut;
+        using IncidenceMatrix_T = Base_T::IncidenceMatrix_T;
         
-        using SInt = SInt_;
+        using VV_Vector_T       = Base_T::VV_Vector_T;
+        using EE_Vector_T       = Base_T::EE_Vector_T;
+        using EV_Vector_T       = Base_T::EV_Vector_T;
+        using VE_Vector_T       = Base_T::VE_Vector_T;
         
-        using IncidenceMatrix_T  = Sparse::MatrixCSR<Int,Int,Int>;
+        using CycleMatrix_T     = Sparse::MatrixCSR<SInt,EInt,EInt>;
         
-        using CycleMatrix_T      = Sparse::MatrixCSR<Int,Int,Int>;
+        using ComponentMatrix_T = Sparse::BinaryMatrixCSR<VInt,VInt>;
+
+        using Base_T::Tail;
+        using Base_T::Head;
+        using Base_T::TrivialEdgeFunction;
         
-        using ComponentMatrix_T  = Sparse::BinaryMatrixCSR<Int,Int>;
-        
-        using Edge_T = Tiny::Vector<2,Int,Int>;
-        
+        template<typename Int,bool nonbinQ>
+        using SignedMatrix_T = Base_T::template SignedMatrix_T<Int,nonbinQ>;
         
     protected:
         
-        Int vertex_count;
-        
-        Tensor2<Int,Int> edges;
+        using Base_T::vertex_count;
+        using Base_T::edges;
+        using Base_T::V_scratch;
+        using Base_T::E_scratch;
 
     public:
         
-        Multigraph() = default;
+        MultiGraph() = default;
         
-        virtual ~Multigraph() override = default;
+        virtual ~MultiGraph() override = default;
 
         
         // Provide a list of edges in interleaved form.
         template<typename I_0, typename I_1, typename I_2>
-        Multigraph( const I_0 vertex_count_, cptr<I_1> edges_, const I_2 edge_count_ )
-        :   vertex_count ( vertex_count_          )
-        ,   edges        ( edges_, edge_count_, 2 )
-        {
-            CheckInputs();
-        }
+        MultiGraph(
+           const I_0 vertex_count_, cptr<I_1> edges_, const I_2 edge_count_
+        )
+        :   Base_T( vertex_count_, edges_, edge_count_ )
+        {}
         
         
-        // Provide a list of edges in interleaved form.
+        // Provide am EdgeContainer_T. Caution: this destroys the container.
         template<typename I_0>
-        Multigraph( const I_0 vertex_count_, Tensor2<Int,Int> && edges_ )
-        :   vertex_count ( vertex_count_     )
-        ,   edges        ( std::move(edges_) )
-        {
-            if( edges.Dimension(1) != 2 )
-            {
-                wprint( this->ClassName()+"(): Second dimension of input tensor is not equal to 0." );
-            }
-            
-            CheckInputs();
-        }
-        
+        MultiGraph( const I_0 vertex_count_, EdgeContainer_T && edges_ )
+        :   Base_T( vertex_count_, std::move(edges_) )
+        {}
         
         // Copy constructor
-        Multigraph( const Multigraph & other ) = default;
+        MultiGraph( const MultiGraph & other )= default;
         
-        friend void swap( Multigraph & A, Multigraph & B ) noexcept
+//        MultiGraph( const MultiGraph & other )
+//        :   Base_T( static_cast<const Base_T &>(other) )
+//        {}
+        
+        friend void swap( MultiGraph & A, MultiGraph & B ) noexcept
         {
             // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
             using std::swap;
             
-            swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
-            
-            swap( A.vertex_count, B.vertex_count );
-            swap( A.edges       , B.edges        );
+            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
         }
         
         // Move constructor
-        Multigraph( Multigraph && other ) noexcept
-        :   Multigraph()
+        MultiGraph( MultiGraph && other ) noexcept
+        :   MultiGraph()
         {
             swap(*this, other);
         }
 
         /* Copy assignment operator */
-        Multigraph & operator=( Multigraph other ) noexcept
+        MultiGraph & operator=( MultiGraph other ) noexcept
         {   //                                     ^
             //                                     |
             // Use the copy constructor     -------+
@@ -93,123 +97,26 @@ namespace Knoodle
             return *this;
         }
         
-    private:
-        
-        void CheckInputs() const
-        {
-            const Int edge_count = edges.Dimension(0);
-            
-            for( Int e = 0; e < edge_count; ++e )
-            {
-                Edge_T E ( edges.data(e) );
-
-                if( E[0] < Int(0) )
-                {
-                    eprint("Multigraph:  first entry of edge " + ToString(e) + " is negative.");
-
-                    return;
-                }
-
-                if( E[1] < Int(0) )
-                {
-                    eprint("Multigraph: second entry of edge " + ToString(e) + " is negative.");
-                    return;
-                }
-            }
-        }
+    protected:
         
     public:
         
+        using Base_T::VertexCount;
+        using Base_T::EdgeCount;
+        using Base_T::Edges;
+        using Base_T::OrientedIncidenceMatrix;
+        using Base_T::InIncidenceMatrix;
+        using Base_T::OutIncidenceMatrix;
         
-        Int VertexCount() const
-        {
-            return vertex_count;
-        }
+        using Base_T::VertexDegree;
+        using Base_T::VertexInDegree;
+        using Base_T::VertexOutDegree;
         
-        Int EdgeCount() const
-        {
-            return edges.Dimension(0);
-        }
+        using Base_T::VertexDegrees;
+        using Base_T::VertexInDegrees;
+        using Base_T::VertexOutDegrees;
         
-    
-        cref<Tensor2<Int,Int>> Edges() const
-        {
-            return edges;
-        }
-        
-        cref<IncidenceMatrix_T> TransposedIncidenceMatrix() const
-        {
-            std::string tag ("TransposedIncidenceMatrix");
-            
-            if( !this->InCacheQ( tag ) )
-            {
-                const Int edge_count = edges.Dimension(0);
-                
-                Tensor1<Int,Int>    rp  ( edge_count + 1 );
-                Aggregator<Int,Int> ci  ( 2 * edge_count );
-                Aggregator<Int,Int> val ( 2 * edge_count );
-                
-                // If there are no loops in the graph, then agg has already the correct length.
-                
-                
-                rp[0] = 0;
-                
-                for( Int e = 0; e < edge_count; ++e )
-                {
-                    rp[ e + 1 ] = 2 * (e + 1);
-                    
-                    Edge_T E ( edges.data(e) );
-                    
-                    if( E[0] < E[1] )
-                    {
-                        ci.Push( E[0] );
-                        ci.Push( E[1] );
-                        
-                        val.Push( Int(-1) );
-                        val.Push( Int( 1) );
-                    }
-                    else if( E[0] > E[1] )
-                    {
-                        ci.Push( E[1] );
-                        ci.Push( E[0] );
-                        
-                        val.Push( Int( 1) );
-                        val.Push( Int(-1) );
-                    }
-                    else // if(E[0] == E[1] )
-                    {
-                        ci.Push( E[0] );
-                        
-                        val.Push( Int( 0) ); // Putting an explicit zero for the loop.
-                    }
-                }
-                
-                this->SetCache(
-                    tag,
-                    std::make_any<IncidenceMatrix_T>(
-                        std::move(rp), std::move(ci.Get()), std::move(val.Get()),
-                        edge_count, vertex_count, Int(1)
-                    )
-                );
-            }
-
-            return this->template GetCache<IncidenceMatrix_T>(tag);
-        }
-        
-        cref<IncidenceMatrix_T> IncidenceMatrix() const
-        {
-            std::string tag ("IncidenceMatrix");
-            
-            if( !this->InCacheQ( tag ) )
-            {
-                this->SetCache( tag, std::move(TransposedIncidenceMatrix().Transpose()) );
-            }
-
-            return this->template GetCache<IncidenceMatrix_T>(tag);
-        }
-        
-        
-//    private:
+    public:
         
         // TODO: This function is not correct, I think. It does not account for single-vertex components!
         
@@ -222,7 +129,7 @@ namespace Knoodle
             // c stands for "component"
             // z stands for "cycle" (German "Zykel")
             
-            const Int edge_count = edges.Dimension(0);
+            const EInt edge_count = edges.Dimension(0);
             
             // TODO: Make it work with unsigned integers.
             // TODO: Make this consistent with Sparse::Tree?
@@ -230,21 +137,21 @@ namespace Knoodle
             // v_parent[v] == -2 means that vertex v does not exist.
             // v_parent[v] == -1 means that vertex v is a root vertex.
             // v_parent[v] >=  0 means that vertex v_parent[v] is v's parent.
-            Tensor1<Int,Int> v_parents ( vertex_count, -2 );
+            Tensor1<VInt,VInt> v_parents ( vertex_count, -2 );
             
             
             // Stores the graph's components.
             // c_ptr contains a counter for the number of components.
-            Aggregator<Int,Int> c_ptr ( edge_count + 1 );
-            Aggregator<Int,Int> c_idx ( edge_count     );
+            Aggregator<VInt,EInt> c_ptr ( edge_count + 1 );
+            Aggregator<VInt,EInt> c_idx ( edge_count     );
             
             c_ptr.Push(0);
             
             // Stores the graph's cycles.
             // z_ptr contains a counter for the number of cycles.
-            Aggregator<Int,Int> z_ptr ( edge_count );
-            Aggregator<Int,Int> z_idx ( edge_count );
-            Aggregator<Int,Int> z_val ( edge_count );
+            Aggregator<EInt,EInt> z_ptr ( edge_count );
+            Aggregator<EInt,EInt> z_idx ( edge_count );
+            Aggregator<SInt,EInt> z_val ( edge_count );
             
             z_ptr.Push(0);
             
@@ -253,30 +160,30 @@ namespace Knoodle
             // v_flags[v] == 0 means vertex v is unvisited.
             // v_flags[v] == 1 means vertex v is explored.
             
-            Tensor1<SInt,Int> v_flags ( vertex_count, 0 );
+            Tensor1<SInt,VInt> v_flags ( vertex_count, 0 );
             
             // Tracks which edges have been visited.
             // e_flags[e] == 0 means edge e is unvisited.
             // e_flags[e] == 1 means edge e is explored.
             // e_flags[e] == 2 means edge e is visited (and completed).
-            Tensor1<SInt,Int> e_flags ( edge_count, SInt(0) );
+            Tensor1<SInt,EInt> e_flags ( edge_count, SInt(0) );
             
             // TODO: I can keep e_stack, path, and d_stack uninitialized.
             // Keeps track of the edges we have to process.
             // Every edge can be only explored in two ways: from its two vertices.
             // Thus, the stack does not have to be bigger than 2 * edge_count.
-            Tensor1<Int,Int> e_stack ( Int(2) * edge_count, Int(-2) );
+            Tensor1<EInt,EInt> e_stack ( EInt(2) * edge_count, EInt(-2) );
             
             // Keeps track of the edges we travelled through.
-            Tensor1<Int,Int> e_path ( edge_count + Int(2), Int(-2) );
+            Tensor1<EInt,EInt> e_path ( edge_count + EInt(2), EInt(-2) );
             // Keeps track of the vertices we travelled through.
-            Tensor1<Int,Int> v_path ( edge_count + Int(2), Int(-2) );
+            Tensor1<VInt,EInt> v_path ( edge_count + EInt(2), VInt(-2) );
             // Keeps track of the directions we travelled through the edges.
-            Tensor1<Int,Int> d_path ( edge_count + Int(2), Int(-2) );
+            Tensor1<SInt,EInt> d_path ( edge_count + EInt(2), SInt(-2) );
             
-            Int e_ptr = 0; // Guarantees that every component will be visited.
+            EInt e_ptr = 0; // Guarantees that every component will be visited.
             
-            cref<IncidenceMatrix_T> B = IncidenceMatrix();
+            auto & B = OrientedIncidenceMatrix();
             
             while( e_ptr < edge_count )
             {
@@ -293,23 +200,21 @@ namespace Knoodle
                 // Now e_ptr is an unvisited edge.
                 // We can start a new component.
                 
-                const Int root = edges[e_ptr][0];
+                const VInt root = edges(e_ptr,Tail);
                 
                 v_parents[root] = -1;
                 
-                Int stack_ptr = -1;
-                Int path_ptr  = -1;
+                EInt stack_ptr = -1;
+                EInt path_ptr  = -1;
                 
                 // Tell vertex root that it is explored and put it onto the path.
                 v_flags[root] = 1;
                 v_path[0] = root;
                 
                 // Push all edges incident to v onto the stack.
-                for( Int k = B.Outer(root+1); k --> B.Outer(root);  )
+                for( EInt k = B.Outer(root+1); k --> B.Outer(root);  )
                 {
-                    const Int n_e = B.Inner(k); // new edge
-                    
-//                    logprint("Pushing " + ToString(n_e) + " onto e_stack. ");
+                    const EInt n_e = B.Inner(k); // new edge
                     
                     e_stack[++stack_ptr] = n_e;
                 }
@@ -317,10 +222,10 @@ namespace Knoodle
                 
                 // Start spanning tree.
                 
-                while( stack_ptr > Int(-1) )
+                while( stack_ptr > EInt(-1) )
                 {
                     // Top
-                    const Int e = e_stack[stack_ptr];
+                    const EInt e = e_stack[stack_ptr];
                     
                     if( e_flags[e] == 1 )
                     {
@@ -347,9 +252,9 @@ namespace Knoodle
                     }
                     
                     
-                    Tiny::Vector<2,Int,Int> E ( edges.data(e) );
+                    Tiny::Vector<2,VInt,EInt> E ( edges.data(e) );
                     
-                    const Int w = v_path[path_ptr+1];
+                    const VInt w = v_path[path_ptr+1];
                     
                     
                     if( (E[0] != w) && (E[1] != w) )
@@ -357,8 +262,8 @@ namespace Knoodle
                         eprint( "(E[0] != w) && (E[1] != w)" );
                     }
                     
-                    const Int d = (E[0] == w) ? Int(1) : Int(-1);
-                    const Int v = E[d > Int(0)];
+                    const SInt d = (E[0] == w) ? SInt(1) : SInt(-1);
+                    const VInt v = E[d > SInt(0)];
                     
                     // Mark edge e as explored and put it onto the path.
                     e_flags[e] = 1;
@@ -368,22 +273,22 @@ namespace Knoodle
                     d_path[path_ptr  ] = d;
                     v_path[path_ptr+1] = v;
                     
-                    const Int f = v_flags[v];
+                    const SInt f = v_flags[v];
                     
-                    if( f < Int(1) )
+                    if( f < SInt(1) )
                     {
                         v_flags[v]   = 1;
                         v_parents[v] = w;
                         
-                        const Int k_begin = B.Outer(v  );
-                        const Int k_end   = B.Outer(v+1);
+                        const EInt k_begin = B.Outer(v  );
+                        const EInt k_end   = B.Outer(v+1);
                         
                         // TODO: I could pop the stack if k_end == k_begin + 1.
                         
                         // Push all edges incident to v except e onto the stack.
-                        for( Int k = k_end; k --> k_begin;  )
+                        for( EInt k = k_end; k --> k_begin;  )
                         {
-                            const Int n_e = B.Inner(k); // new edge
+                            const EInt n_e = B.Inner(k); // new edge
                             
                             if( n_e != e )
                             {
@@ -395,26 +300,23 @@ namespace Knoodle
                     {
                         // Create a new cycle.
                         
-                        Int pos = path_ptr;
+                        EInt pos = path_ptr;
 
-                        while( (pos >= Int(0)) && (v_path[pos] != v) )
+                        while( (pos >= EInt(0)) && (v_path[pos] != v) )
                         {
                             --pos;
                         }
                         
-                        if( pos < Int(0) )
+                        if( pos < EInt(0) )
                         {
                             eprint("pos < 0");
                         }
                         
-                        const Int z_length = path_ptr - pos + 1;
+                        const EInt z_length = path_ptr - pos + 1;
                         
                         z_idx.Push( &e_path[pos], z_length );
                         z_val.Push( &d_path[pos], z_length );
                         z_ptr.Push( z_idx.Size() );
-//
-//                        logvalprint( "Cycle " , ArrayToString( &e_path[pos], {z_length} ) );
-//                        logvalprint( "Orient" , ArrayToString( &d_path[pos], {z_length} ) );
                         
                         // TODO: I could pop the stack right now.
                     }
@@ -439,7 +341,7 @@ namespace Knoodle
                 std::move(z_ptr.Get()), 
                 std::move(z_idx.Get()),
                 std::move(z_val.Get()),
-                z_ptr.Size()-1, edge_count, Int(1)
+                z_ptr.Size()-1, edge_count, VInt(1)
             );
             
             // TODO: I don't like the idea to lose the information on the ordering of edges in the cycles. But we have to conform to CSR format, right?
@@ -452,7 +354,7 @@ namespace Knoodle
             ComponentMatrix_T C (
                 std::move(c_ptr.Get()), 
                 std::move(c_idx.Get()), 
-                c_ptr.Size()-1, edge_count, Int(1)
+                c_ptr.Size()-1, edge_count, VInt(1)
             );
 
             C.SortInner();
@@ -489,7 +391,7 @@ namespace Knoodle
             return this->template GetCache<ComponentMatrix_T>(tag);
         }
         
-        cref<Tensor1<Int,Int>> SpanningTree() const
+        cref<Tensor1<VInt,VInt>> SpanningTree() const
         {
             std::string tag ( "SpanningTree" );
             
@@ -498,7 +400,7 @@ namespace Knoodle
                 RequireTopology();
             }
 
-            return this->template GetCache<Tensor1<Int,Int>>(tag);
+            return this->template GetCache<Tensor1<VInt,VInt>>(tag);
         }
         
         cref<ComponentMatrix_T> ComponentVertexMatrix() const
@@ -509,7 +411,7 @@ namespace Knoodle
             
             if( !this->InCacheQ( tag ) )
             {
-                const Int edge_count = edges.Dimension(0);
+                const EInt edge_count = edges.Dimension(0);
                 
                 if( edge_count <= 0 )
                 {
@@ -525,28 +427,31 @@ namespace Knoodle
                 
                 // Stores the graph's components.
                 // c_v_ptr contains a counter for the number of components.
-                Aggregator<Int,Int> c_v_ptr ( edge_count + 1 );
-                Aggregator<Int,Int> c_v_idx ( edge_count     );
+                Aggregator<VInt,EInt> c_v_ptr ( edge_count + 1 );
+                Aggregator<VInt,EInt> c_v_idx ( edge_count     );
 
-                Tensor1<bool,Int> v_visitedQ ( vertex_count, false );
-                Tensor1<bool,Int> e_visitedQ ( edge_count,   false );
+                mptr<bool> V_visitedQ = reinterpret_cast<bool *>(V_scratch.data());
+                fill_buffer( V_visitedQ, false, vertex_count );
+                
+                mptr<bool> E_visitedQ = reinterpret_cast<bool *>(E_scratch.data());
+                fill_buffer( E_visitedQ, false, edge_count );
                 
                 // TODO: I can keep e_stack, path, and d_stack uninitialized.
                 // Keeps track of the edges we have to process.
                 // Every edge can be only explored in two ways: from its two vertices.
                 // Thus, the stack does not have to be bigger than 2 * edge_count.
-                Stack<Int,Int> e_stack ( edge_count );
+                Stack<EInt,EInt> e_stack ( edge_count );
 
-                cref<IncidenceMatrix_T> B = IncidenceMatrix();
+                cref<SignedMatrix_T<EInt,1>> B = OrientedIncidenceMatrix();
                 
-                cptr<Int> B_outer = B.Outer().data();
-                cptr<Int> B_inner = B.Inner().data();
+                cptr<EInt> B_outer = B.Outer().data();
+                cptr<VInt> B_inner = B.Inner().data();
                 
-                Int v_ptr = 0; // Guarantees that every component will be visited.
+                VInt v_ptr = 0; // Guarantees that every component will be visited.
 
                 while( v_ptr < vertex_count )
                 {
-                    while( (v_ptr < vertex_count) && (v_visitedQ[v_ptr]) )
+                    while( (v_ptr < vertex_count) && (V_visitedQ[v_ptr]) )
                     {
                         ++v_ptr;
                     }
@@ -559,22 +464,22 @@ namespace Knoodle
                     // If we arrive here, then `v_ptr` is an unvisited vertex.
                     // We can start a new component.
                     {
-                        const Int v = v_ptr;
+                        const VInt v = v_ptr;
                         
                         c_v_ptr.Push(c_v_idx.Size());
                         c_v_idx.Push(v);
                         
                         // Tell vertex v that it is visited.
-                        v_visitedQ[v] = true;
+                        V_visitedQ[v] = true;
                         
-                        const Int k_begin = B_outer[v    ];
-                        const Int k_end   = B_outer[v + 1];
+                        const EInt k_begin = B_outer[v    ];
+                        const EInt k_end   = B_outer[v + 1];
                         
                         // Push all edges incident to `v` onto the stack.
                         // (They must be unvisited because we have not visited this component, yet.)
-                        for( Int k = k_end; k --> k_begin; )
+                        for( EInt k = k_end; k --> k_begin; )
                         {
-                            const Int n_e = B_inner[k]; // new edge
+                            const EInt n_e = B_inner[k]; // new edge
                             
                             e_stack.Push(n_e);
                         }
@@ -582,25 +487,27 @@ namespace Knoodle
                     
                     while( !e_stack.EmptyQ() )
                     {
-                        const Int e = e_stack.Pop();
+                        const EInt e = e_stack.Pop();
                         
-                        e_visitedQ[e] = true;
+                        V_visitedQ[e] = true;
                         
-                        const Int v = v_visitedQ[edges(e,0)] ? edges(e,1) : edges(e,0);
+                        const VInt v = V_visitedQ[edges(e,Tail)]
+                                      ? edges(e,Head)
+                                      : edges(e,Tail);
                         
-                        v_visitedQ[v] = true;
+                        V_visitedQ[v] = true;
                         
                         c_v_idx.Push(v);
 
-                        const Int k_begin = B_outer[v    ];
-                        const Int k_end   = B_outer[v + 1];
+                        const EInt k_begin = B_outer[v    ];
+                        const EInt k_end   = B_outer[v + 1];
                         
-                        // Push all invistited edges incident to v onto the stack.
-                        for( Int k = k_end; k --> k_begin; )
+                        // Push all unvisited edges incident to v onto the stack.
+                        for( EInt k = k_end; k --> k_begin; )
                         {
-                            const Int n_e = B_inner[k]; // new edge
+                            const EInt n_e = B_inner[k]; // new edge
                             
-                            if( !e_visitedQ[n_e] )
+                            if( !E_visitedQ[n_e] )
                             {
                                 e_stack.Push(n_e);
                             }
@@ -615,7 +522,7 @@ namespace Knoodle
                 ComponentMatrix_T C (
                     std::move(c_v_ptr.Get()),
                     std::move(c_v_idx.Get()),
-                    c_v_ptr.Size()-1, vertex_count, Int(1)
+                    c_v_ptr.Size()-1, vertex_count, VInt(1)
                 );
 
                 C.SortInner();
@@ -627,13 +534,14 @@ namespace Knoodle
 
             return this->template GetCache<ComponentMatrix_T>(tag);
         }
-
+        
     public:
                 
         static std::string ClassName()
         {
-            return ct_string("Multigraph")
-                + "<" + TypeName<Int>
+            return ct_string("MultiGraph")
+                + "<" + TypeName<VInt>
+                + "," + TypeName<EInt>
                 + "," + TypeName<SInt>
                 + ">";
         }

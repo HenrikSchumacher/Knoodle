@@ -107,8 +107,20 @@ namespace Knoodle
     public:
         
         template<typename Int>
-        void WriteReaprFeasibleLevels( mref<PlanarDiagram<Int>> pd, mptr<Real> x )
+        void WriteReaprFeasibleLevels(
+            mref<PlanarDiagram<Int>> pd,
+            mptr<Real> x )
         {
+            
+            constexpr bool Tail  = PlanarDiagram<Int>::Tail;
+//            constexpr bool Head  = PlanarDiagram<Int>::Head;
+
+            constexpr bool Out   = PlanarDiagram<Int>::Out;
+//            constexpr bool In    = PlanarDiagram<Int>::In;
+            
+            constexpr bool Left  = PlanarDiagram<Int>::Left;
+            constexpr bool Right = PlanarDiagram<Int>::Right;
+            
             const Int m        = pd.ArcCount();
             auto & C_arcs      = pd.Crossings();
             auto & A_cross     = pd.Arcs();
@@ -133,12 +145,12 @@ namespace Knoodle
                 // TODO: This might not work for multi-component links.
                 for( Int i = a_begin; i < a_end; ++i )
                 {
-                    Int c = A_cross(a,0);
+                    Int c = A_cross(a,Tail);
                     
                     visitedQ[a] = true;
                     
-                    Int a_0 = C_arcs(c,0,0);
-                    Int a_1 = C_arcs(c,0,1);
+                    Int a_0 = C_arcs(c,Out,Left );
+                    Int a_1 = C_arcs(c,Out,Right);
                     
                     if( a == a_0 )
                     {

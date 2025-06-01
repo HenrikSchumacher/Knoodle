@@ -1706,9 +1706,9 @@ namespace Knoodle
          * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
          * This is why we make this function private.
          *
-         * @param a_begin The first arc of the strand on entry as well as as on return.
+         * @param a_first The first arc of the strand on entry as well as as on return.
          *
-         * @param a_end The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
+         * @param a_last The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
          *
          * @param max_dist The maximal distance Dijkstra's algorithm will wander.
          *
