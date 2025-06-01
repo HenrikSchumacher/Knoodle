@@ -405,7 +405,10 @@ namespace Knoodle
 #include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/Link_2D.hpp"
 #include "src/Knot_2D.hpp"
-#include "src/Multigraph.hpp"
+
+#include "src/MultiGraphBase.hpp"
+#include "src/MultiGraph.hpp"
+#include "src/MultiDiGraph.hpp"
 
 #include "src/Debugging.hpp"
 #include "src/PlanarDiagram.hpp"
