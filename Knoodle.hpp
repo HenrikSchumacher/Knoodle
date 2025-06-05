@@ -1,5 +1,7 @@
 #pragma once
 
+#define KNOODLE_H
+
 #include "submodules/Tensors/Tensors.hpp"
 #include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
