@@ -4,36 +4,34 @@ void ComputeSpanningForest()
 {
     TOOLS_PTIC(ClassName() + "::ComputeSpanningForest");
     
-    Aggregator<Int,Int> C_pre (CrossingCount());
-    Aggregator<Int,Int> C_post (CrossingCount());
-    
-    Tensor1<Int,Int> C_parent_A (CrossingCount());
-    
-    Aggregator<Int,Int> roots(Int(1));
-    Aggregator<Int,Int> discovered_arcs(ArcCount());
+    Aggregator<Int,Int> C_pre           ( CrossingCount() );
+    Aggregator<Int,Int> C_post          ( CrossingCount() );
+    Aggregator<Int,Int> roots           ( Int(1)          );
+    Aggregator<Int,Int> discovered_arcs ( ArcCount()      );
+    Tensor1<Int,Int>    C_parent_A      ( CrossingCount() );
     
     DepthFirstSearch(
-        [&discovered_arcs]( cref<DirectedArcNode> da )
+        [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push(da.a >> 1);
+            discovered_arcs.Push(A.da / Int(2));
         },
-        [&discovered_arcs]( cref<DirectedArcNode> da )
+        [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push(da.a >> 1);
+            discovered_arcs.Push(A.da / Int(2));
         },
-        [&C_pre,&C_parent_A,&roots]( cref<DirectedArcNode> da )
+        [&C_pre,&C_parent_A,&roots]( cref<DirectedArcNode> A )
         {
-            C_pre.Push(da.head);
-            C_parent_A[da.head] = da.a;
+            C_pre.Push(A.head);
+            C_parent_A[A.head] = A.da;
             
-            if( da.a < Int(0) )
+            if( A.da < Int(0) )
             {
-                roots.Push(da.head);
+                roots.Push(A.head);
             }
         },
-        [&C_post]( cref<DirectedArcNode> da )
+        [&C_post]( cref<DirectedArcNode> A )
         {
-            C_post.Push(da.head);
+            C_post.Push(A.head);
         }
     );
     
@@ -48,7 +46,6 @@ void ComputeSpanningForest()
 }
 
 
-
 /*! @brief Returns the list of crossings ordered in the way they are pre-visited by `DepthFirstSearch`.
  */
 
@@ -58,10 +55,7 @@ Tensor1<Int,Int> CrossingPreOrdering()
     
     TOOLS_PTIC(ClassName() + "::" + tag);
     
-    if( !this->InCacheQ( tag ) )
-    {
-        ComputeSpanningForest();
-    }
+    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     
     TOOLS_PTOC(ClassName() + "::" + tag);
     
@@ -77,10 +71,7 @@ Tensor1<Int,Int> CrossingPostOrdering()
     
     TOOLS_PTIC(ClassName() + "::" + tag);
     
-    if( !this->InCacheQ( tag ) )
-    {
-        ComputeSpanningForest();
-    }
+    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     
     TOOLS_PTOC(ClassName() + "::" + tag);
     
@@ -96,10 +87,7 @@ Tensor1<Int,Int> SpanningForestDirectedArcs()
     
     TOOLS_PTIC(ClassName() + "::" + tag);
     
-    if( !this->InCacheQ( tag ) )
-    {
-        ComputeSpanningForest();
-    }
+    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     
     TOOLS_PTOC(ClassName() + "::" + tag);
     
@@ -112,10 +100,7 @@ Tensor1<Int,Int> SpanningForestRoots()
     
     TOOLS_PTIC(ClassName() + "::" + tag);
     
-    if( !this->InCacheQ( tag ) )
-    {
-        ComputeSpanningForest();
-    }
+    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     
     TOOLS_PTOC(ClassName() + "::" + tag);
     
@@ -127,11 +112,8 @@ Tensor1<Int,Int> DFSArcOrdering()
     std::string tag ("DFSArcOrdering");
     
     TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ( tag ) )
-    {
-        ComputeSpanningForest();
-    }
+
+    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     
     TOOLS_PTOC(ClassName() + "::" + tag);
     

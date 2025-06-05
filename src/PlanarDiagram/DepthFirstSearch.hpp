@@ -1,48 +1,48 @@
-//########################################################
-//##    DepthFirstSearch (fast)
-//########################################################
+//###############################################
+//##    Some Auxiliaries
+//###############################################
 
 struct DirectedArcNode
 {
     Int tail = -1;
-    Int a    = -1;
+    Int da   = -1;
     Int head = -1;
 };
 
-constexpr static auto TrivialArcFunction = []( cref<DirectedArcNode> da )
+constexpr static auto TrivialArcFunction = []( cref<DirectedArcNode> A )
 {
-    (void)da;
+    (void)A;
 };
 
-constexpr static auto PrintDiscover = []( cref<DirectedArcNode> da )
+constexpr static auto PrintDiscover = []( cref<DirectedArcNode> A )
 {
-    const Int a = da.a >> 1;
-    const bool d = da.a | Int(1);
+    auto [a,d] = FromDiArc(A.da);
     
-    print("Discovering crossing " + ToString(da.head) + " from crossing " + ToString(da.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Discovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintRediscover = []( cref<DirectedArcNode> da )
+constexpr static auto PrintRediscover = []( cref<DirectedArcNode> A )
 {
-    const Int a = da.a >> 1;
-    const bool d = da.a | Int(1);
+    auto [a,d] = FromDiArc(A.da);
 
-    print("Rediscovering crossing " + ToString(da.head) + " from crossing " + ToString(da.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Rediscovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintPreVisit = []( cref<DirectedArcNode> da )
+constexpr static auto PrintPreVisit = []( cref<DirectedArcNode> A )
 {
-    const Int a = da.a >> 1;
-    const bool d = da.a | Int(1);
+    auto [a,d] = FromDiArc(A.da);
     
-    print("Pre-visiting crossing " + ToString(da.head) + " from crossing " + ToString(da.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Pre-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
-constexpr static auto PrintPostVisit = []( cref<DirectedArcNode> da )
+constexpr static auto PrintPostVisit = []( cref<DirectedArcNode> A )
 {
-    const Int a = da.a >> 1;
-    const bool d = da.a | Int(1);
+    auto [a,d] = FromDiArc(A.da);
     
-    print("Post-visiting crossing " + ToString(da.head) + " from crossing " + ToString(da.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Post-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
+
+//###############################################
+//##    DepthFirstSearch
+//###############################################
 
 public:
 
@@ -68,7 +68,9 @@ void DepthFirstSearch(
         return;
     }
     
-    TOOLS_PTIC( ClassName() + "::DepthFirstSearch");
+    TOOLS_PTIC(ClassName() + "::DepthFirstSearch");
+    
+    cptr<Int> A_C = A_cross.data();
     
     mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
     fill_buffer(C_flag,UInt8(0),crossing_count);
@@ -76,47 +78,50 @@ void DepthFirstSearch(
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,arc_count);
 
-    cptr<Int> A_C = A_cross.data();
-
     Stack<DirectedArcNode,Int> stack ( arc_count );
-    
-    TOOLS_LOGDUMP(stack.Capacity());
 
-    auto fun = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover](
-        const DirectedArcNode & da, const Int b
+    auto conditional_push = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover](
+        const DirectedArcNode & A, const Int db
     )
     {
-        if( b == (da.a ^ Int(1)) )
+        // We never walk back the same arc.
+        if( (A.da >= Int(0)) && (db == FlipDiArc(A.da)) )
         {
             return;
         }
         
-        const Int head = A_C[b];
-        
-        const Int b_ud = (b >> 1);
-        
-        if( C_flag[head] == UInt8(0) )
+        // da.a may be virtual, but b may not.
+        if( db < Int(0) )
         {
-            logprint("--->discover " + ToString(b));
+            eprint(ClassName() + "::DepthFirstSearch: Virtual arc on stack.");
+            return;
+        }
+        
+        const Int head = A_C[db];
+        
+        auto [b,dir] = FromDiArc(db);
+
+        if( C_flag[head] <= UInt8(0) )
+        {
             C_flag[head] = UInt8(1);
-            A_visitedQ[b_ud] = true;
-            DirectedArcNode db {da.head,b,head};
-            discover( db );
-//            TOOLS_LOGDUMP("push vertex " + ToString(head));
-            stack.Push( std::move(db) );
+            A_visitedQ[b] = true;
+            DirectedArcNode B {A.head,db,head};
+//            logprint("discover crossing " + ToString(head) + "; arc = " + ToString(b_ud));
+            discover( B );
+            stack.Push( std::move(B) );
         }
         else
         {
-            // We need this check here to prevent loop edge being traversed more than once!
-            if( !A_visitedQ[b_ud] )
+            // We need this check here to prevent loop arc being traversed more than once!
+            if( !A_visitedQ[b] )
             {
-//                logprint("rediscover " + ToString(b_ud));
-                A_visitedQ[b_ud] = true;
-                rediscover({da.head,b,head});
+                A_visitedQ[b] = true;
+//                logprint("rediscover crossing " + ToString(head) + "; arc = " + ToString(b_ud));
+                rediscover({A.head,db,head});
             }
             else
             {
-//                logprint("skip rediscover " + ToString(b_ud));
+//                logprint("skip rediscover vertex " + ToString(head) + "; edge = " + ToString(b_ud));
             }
         }
     };
@@ -130,48 +135,48 @@ void DepthFirstSearch(
         
         {
             C_flag[c_0] = UInt8(1);
-            DirectedArcNode da {Int(-1), Int(-1), c_0};
-//            logprint("discover " + ToString(-1));
-            discover( da );
-//            TOOLS_LOGDUMP("push vertex " + ToString(c_0));
-            stack.Push( std::move(da) );
+            DirectedArcNode A {Int(-1), Int(-1), c_0};
+            discover( A );
+//            logprint("discover crossing " + ToString(c_0));
+            stack.Push( std::move(A) );
         }
         
         while( !stack.EmptyQ() )
         {
-            DirectedArcNode & da = stack.Top();
-//            TOOLS_LOGDUMP(stack.Size());
+            DirectedArcNode & A = stack.Top();
+            const Int c = A.head;
             
-//            TOOLS_LOGDUMP("top vertex " + ToString(da.head));
-
-            const Int c = da.head;
-            
-//            if( C_flag[c] == UInt8(0) )
-//            {
+            if( C_flag[c] == UInt8(0) )
+            {
 //                eprint("Undiscovered crossing " + ToString(c) + " on stack!");
-//            }
-            
-            if( C_flag[c] == UInt8(1) )
+                (void)stack.Pop();
+            }
+            else if( C_flag[c] == UInt8(1) )
             {
                 C_flag[c] = UInt8(2);
-                pre_visit( da );
-//                logprint("pre_visit vertex " + ToString(da.head));
-                // We process them here in reverse order so that they appear in correct order on the stack.
-                fun( da, Int(2) * C_arcs(c,In ,Right) + Int(0) );
-                fun( da, Int(2) * C_arcs(c,In ,Left ) + Int(0) );
-                fun( da, Int(2) * C_arcs(c,Out,Left ) + Int(1) );
-                fun( da, Int(2) * C_arcs(c,Out,Right) + Int(1) );
+//                logprint("pre-visit crossing " + ToString(c) + "; edge = " + ((da.a < 0) ? "-1" : ToString(da.a/2)) );
+                pre_visit( A );
+
+                // We process the arcs in reverse order so that they appear in correct order on the stack.
+                
+                
+                conditional_push( A, ToDiArc(C_arcs(c,In ,Right),Tail) );
+                conditional_push( A, ToDiArc(C_arcs(c,In ,Left ),Tail) );
+                conditional_push( A, ToDiArc(C_arcs(c,Out,Left ),Head) );
+                conditional_push( A, ToDiArc(C_arcs(c,Out,Right),Head) );
             }
             else if( C_flag[c] == UInt8(2) )
             {
-                post_visit( da );
+                C_flag[c] = UInt8(3);
+                post_visit( A );
+//                logprint("post-visit crossing " + ToString(c) + "; edge = " + ((A.da < 0) ? "-1" : ToString(A.da/2)) );
                 (void)stack.Pop();
             }
-            else
+            else // if( C_flag[c] == UInt8(3) )
             {
                 (void)stack.Pop();
             }
-            
+
         } // while( !stack.EmptyQ() )
         
     } // for( Int c_0 = 0; c_0 < crossing_count; ++c_0 )

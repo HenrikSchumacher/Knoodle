@@ -488,22 +488,3 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 //        return d;
 //    }
 //}
-
-
-private:
-
-
-void PrintFace( const Int a_0, const bool headtail )
-{
-    Int a = a_0;
-    
-    bool dir = headtail;
-    
-    do
-    {
-        logprint( ArcString(a) );
-
-        std::tie(a,dir) = NextLeftArc(a,dir);
-    }
-    while( a != a_0 );
-}
