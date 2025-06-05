@@ -131,7 +131,7 @@ namespace Knoodle
             return proven_cyclicQ;
         }
 
-#include "MultiDiGraph/TopologicalOrderingByKahn.hpp"
+#include "MultiDiGraph/KahnsAlgorithm.hpp"
         
         
     public:

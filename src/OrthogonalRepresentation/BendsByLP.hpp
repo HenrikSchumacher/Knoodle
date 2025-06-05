@@ -9,16 +9,21 @@ public:
  *
  * @param pd Planar diagram whose bends we want to compute.
  *
- * @param ext_face Specify which face shall be treated as exterior face. If `ext_face < 0`, then a face with maximum number of arcs is chosen.
+ * @param ext_f Specify which face shall be treated as exterior face. If `ext_f < 0` or `ext_f > pd.FaceCount()`, then a face with maximum number of arcs is chosen.
  */
 
 template<typename Int>
 Tensor1<Int,Int> BendsByLP(
-    mref<PlanarDiagram<Int>> pd, const Int ext_face = -1
+    mref<PlanarDiagram<Int>> pd, const Int ext_f = -1
 )
 {
     TOOLS_MAKE_FP_STRICT();
 
+    TOOLS_PTIMER( timer, ClassName() + "::BendsByLP"
+        + "<" + TypeName<Int>
+        + ">"
+    );
+    
     {
         Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.ArcCount());
         Size_T nnz     = Size_T(4) * static_cast<Size_T>(pd.ArcCount());
@@ -38,11 +43,7 @@ Tensor1<Int,Int> BendsByLP(
         }
     }
     
-    TOOLS_PTIC( ClassName() + "::BendsByLP"
-        + "<" + TypeName<Int>
-        + ">"
-    );
-    
+
     ClpSimplex LP;
     LP.setMaximumIterations(1000000);
     LP.setOptimizationDirection(1); // +1 -> minimize; -1 -> maximize
@@ -51,7 +52,7 @@ Tensor1<Int,Int> BendsByLP(
     
     auto col_lower_bnd = BendsColLowerBounds(pd);
     auto col_upper_bnd = BendsColUpperBounds(pd);
-    auto row_eq_vec    = BendsRowEqualityVector(pd,ext_face);
+    auto row_eq_vec    = BendsRowEqualityVector(pd,ext_f);
     auto obj_vec       = BendsObjectiveVector(pd);
     
     LP.loadProblem(
@@ -64,7 +65,19 @@ Tensor1<Int,Int> BendsByLP(
 
     LP.primal();
     
-//    iter = LP.getIterationCount();
+    if( !LP.statusOfProblem() )
+    {
+        eprint(ClassName()+"::BendByLP: CLP reports a problem in the solve phase. The returned solution may be incorrect.");
+        
+//        valprint("Primal problem feasible" BoolString(LP.primalFeasible()) );
+//        valprint("Dual   problem feasible" BoolString(LP.dualFeasible()) );
+        
+        TOOLS_DUMP(LP.getIterationCount());
+        TOOLS_DUMP(LP.primalFeasible());
+        TOOLS_DUMP(LP.dualFeasible());
+        TOOLS_DUMP(LP.largestPrimalError());
+        TOOLS_DUMP(LP.largestDualError());
+    }
 
     Tensor1<Int,Int> bends ( pd.ArcCount() );
     
@@ -72,13 +85,10 @@ Tensor1<Int,Int> BendsByLP(
 
     for( Int a = 0; a < pd.ArcCount(); ++a )
     {
-        bends[a] = static_cast<Int>(std::round(sol[2 * a] - sol[2 * a + 1]));
+        const Int head = pd.ToDiArc(a,Head);
+        const Int tail = pd.ToDiArc(a,Tail);
+        bends[a] = static_cast<Int>(std::round(sol[head] - sol[tail]));
     }
 
-    TOOLS_PTOC( ClassName() + "::BendsByLP"
-        + "<" + TypeName<Int>
-        + ">"
-    );
-    
     return bends;
 }

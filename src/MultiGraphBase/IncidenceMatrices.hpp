@@ -129,7 +129,7 @@ cref<SignedMatrix_T<EInt,1>> OrientedIncidenceMatrix() const
     
     std::string tag ("OrientedIncidenceMatrix");
     
-    if( !this->InCacheQ( tag ) )
+    if( !this->InCacheQ(tag) )
     {
         // TODO: It should actually be faster to merge OrientedIncidenceMatrix from InIncidenceMatrix and OutIncidenceMatrix.
         this->template ComputeIncidenceMatrices<1,0,0>();
@@ -147,7 +147,7 @@ cref<SignedMatrix_T<EInt,0>> InIncidenceMatrix() const
     
     std::string tag ("InIncidenceMatrix");
     
-    if( !this->InCacheQ( tag ) )
+    if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,1,0>();
     }
@@ -163,7 +163,7 @@ cref<SignedMatrix_T<EInt,0>> OutIncidenceMatrix() const
     
     std::string tag ("OutIncidenceMatrix");
     
-    if( !this->InCacheQ( tag ) )
+    if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,0,1>();
     }

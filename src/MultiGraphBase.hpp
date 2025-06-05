@@ -13,54 +13,10 @@ namespace Knoodle
         static_assert(SignedIntQ<EInt_>,"");
         static_assert(SignedIntQ<SInt_>,"");
         
-    public:
-        
-        using Base_T            = CachedObject;
-        
-        using VInt              = VInt_;
-        using EInt              = EInt_;
-        using SInt              = SInt_;
-        using Edge_T            = Tiny::Vector<2,VInt,EInt>;
-        using EdgeContainer_T   = Tiny::VectorList_AoS<2,VInt,EInt>;
-        
-        enum class InOut : SInt
-        {
-            Undirected =  0,
-            In         =  1,
-            Out        = -1
-        };
-        
-        enum class Direction : bool
-        {
-            Forward  = 1,
-            Backward = 0
-        };
-        
-        template<typename Int, bool nonbinaryQ>
-        using SignedMatrix_T = std::conditional_t<
-                nonbinaryQ,
-                Sparse::MatrixCSR<SInt,Int,Int>,
-                Sparse::BinaryMatrixCSR<Int,Int>
-        >;
-        
-        using IncidenceMatrix_T = SignedMatrix_T<EInt,1>;
-        
-        using VV_Vector_T       = Tensor1<VInt,VInt>;
-        using EE_Vector_T       = Tensor1<EInt,EInt>;
-        using EV_Vector_T       = Tensor1<EInt,VInt>;
-        using VE_Vector_T       = Tensor1<VInt,EInt>;
+#include "MultiGraphBase/Types.hpp"
         
         static constexpr bool Tail = 0;
         static constexpr bool Head = 1;
-        
-    protected:
-        
-        VInt vertex_count;
-        EdgeContainer_T edges;
-        
-        // Multiple purpose helper buffer, e.g., for marking visited vertices or edges or for storing labels.
-        mutable VV_Vector_T V_scratch;
-        mutable EE_Vector_T E_scratch;
 
     public:
         
@@ -134,49 +90,15 @@ namespace Knoodle
 //            swap( *this, other );
 //            return *this;
 //        }
-        
+
     protected:
         
-        void CheckInputs() const
-        {
-            TOOLS_PTIMER( timer, ClassName() + "::CheckInputs" );
-            
-            const EInt edge_count = edges.Dimension(0);
-            
-            for( EInt e = 0; e < edge_count; ++e )
-            {
-                const VInt e_0 = edges(e,Tail);
-                const VInt e_1 = edges(e,Head);
-
-
-                if( e_0 < VInt(0) )
-                {
-                    eprint("MultiGraphBase:  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is negative.");
-
-                    return;
-                }
-                
-                if( e_0 >= vertex_count )
-                {
-                    eprint("MultiGraphBase:  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
-
-                    return;
-                }
-
-                if( e_1 < VInt(0) )
-                {
-                    eprint("MultiGraphBase: second entry " + ToString(e_1) + " of edge " + ToString(e) + " is negative.");
-                    return;
-                }
-                
-                if( e_1 >= vertex_count )
-                {
-                    eprint("MultiGraphBase: second entry " + ToString(e_1) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
-
-                    return;
-                }
-            }
-        }
+        VInt vertex_count;
+        EdgeContainer_T edges;
+        
+        // Multiple purpose helper buffer, e.g., for marking visited vertices or edges or for storing labels.
+        mutable VV_Vector_T V_scratch;
+        mutable EE_Vector_T E_scratch;
         
     public:
         
@@ -195,11 +117,29 @@ namespace Knoodle
             return edges;
         }
         
-    protected:
+        static constexpr std::pair<EInt,bool> FromDiEdge( EInt de )
+        {
+            return std::pair( de / EInt(2), de % EInt(2) );
+        }
         
+        static constexpr EInt ToDiEdge( const EInt e, const bool d )
+        {
+            return EInt(2) * e + d;
+        }
+        
+        template<bool d>
+        static constexpr EInt ToDiEdge( const EInt e )
+        {
+            return EInt(2) * e + d;
+        }
+        
+    protected:
+
+#include "MultiGraphBase/CheckInputs.hpp"
 #include "MultiGraphBase/IncidenceMatrices.hpp"
 #include "MultiGraphBase/VertexDegree.hpp"
 #include "MultiGraphBase/DepthFirstSearch.hpp"
+#include "MultiGraphBase/SpanningForest.hpp"
 
     public:
                 

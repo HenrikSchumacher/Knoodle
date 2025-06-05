@@ -1,55 +1,51 @@
-//########################################################
+//###############################################
 //##    Some Auxiliaries
-//########################################################
+//###############################################
 
 public:
 
 struct DirectedEdge
 {
-    VInt v = -1; // vertex we came from
-    EInt e = -1; // direction is stored in lowest bit.
-    VInt w = -1; // vertex we go to
+    VInt tail = -1; // vertex we came from
+    EInt de   = -1; // direction is stored in lowest bit.
+    VInt head = -1; // vertex we go to
 };
 
-constexpr static auto TrivialEdgeFunction = []( cref<DirectedEdge> de )
+constexpr static auto TrivialEdgeFunction = []( cref<DirectedEdge> E )
 {
-    (void)de;
+    (void)E;
 };
 
-constexpr static auto PrintDiscover = []( cref<DirectedEdge> de )
+constexpr static auto PrintDiscover = []( cref<DirectedEdge> E )
 {
-    const EInt e = de.e >> 1;
-    const bool d = de.e | EInt(1);
+    auto [e,d] = FromDiEdge(E.de);
     
-    print("Discovering vertex " + ToString(de.w) + " from vertex " + ToString(de.v) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Discovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintRediscover = []( cref<DirectedEdge> de )
+constexpr static auto PrintRediscover = []( cref<DirectedEdge> E )
 {
-    const EInt e = de.e >> 1;
-    const bool d = de.e | EInt(1);
+    auto [e,d] = FromDiEdge(E.de);
 
-    print("Rediscovering vertex " + ToString(de.w) + " from vertex " + ToString(de.v) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Rediscovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintPreVisit = []( cref<DirectedEdge> de )
+constexpr static auto PrintPreVisit = []( cref<DirectedEdge> E )
 {
-    const EInt e = de.e >> 1;
-    const bool d = de.e | EInt(1);
+    auto [e,d] = FromDiEdge(E.de);
     
-    print("Pre-visiting vertex " + ToString(de.w) + " from vertex " + ToString(de.v) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Pre-visiting vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
-constexpr static auto PrintPostVisit = []( cref<DirectedEdge> de )
+constexpr static auto PrintPostVisit = []( cref<DirectedEdge> E )
 {
-    const EInt e = de.e >> 1;
-    const bool d = de.e | EInt(1);
+    auto [e,d] = FromDiEdge(E.de);
     
-    print("Post-visiting vertex " + ToString(de.w) + " from vertex " + ToString(de.v) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
+    print("Post-visiting vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
 
-//########################################################
+//###############################################
 //##    DepthFirstSearch (fast)
-//########################################################
+//###############################################
 
 public:
 
@@ -58,10 +54,10 @@ public:
 
 template<
     InOut dir = InOut::Undirected,
-    class DiscoverVertex_T,   // f( const DirectedEdge & de )
-    class RediscoverVertex_T, // f( const DirectedEdge & de )
-    class PreVisitVertex_T,   // f( const DirectedEdge & de )
-    class PostVisitVertex_T   // f( const DirectedEdge & de )
+    class DiscoverVertex_T,   // f( const DirectedEdge & E )
+    class RediscoverVertex_T, // f( const DirectedEdge & E )
+    class PreVisitVertex_T,   // f( const DirectedEdge & E )
+    class PostVisitVertex_T   // f( const DirectedEdge & E )
 >
 void DepthFirstSearch(
     DiscoverVertex_T   && discover,
@@ -70,20 +66,17 @@ void DepthFirstSearch(
     PostVisitVertex_T  && post_visit
 )
 {
-    if( vertex_count <= VInt(0) )
-    {
-        return;
-    }
+    if( vertex_count <= VInt(0) ) { return; }
     
     TOOLS_PTIC( ClassName() + "::DepthFirstSearch<" + ToString(dir) + ">");
     
-    const EInt * E_V = edges.data();
+    cptr<EInt> dE_V = edges.data();
     
-    const EInt * V_Out_ptr;
-    const EInt * V_Out_idx;
+    const EInt * V_Out_ptr = nullptr;
+    const EInt * V_Out_idx = nullptr;
     
-    const EInt * V_In_ptr;
-    const EInt * V_In_idx;
+    const EInt * V_In_ptr  = nullptr;
+    const EInt * V_In_idx  = nullptr;
     
     if constexpr( dir != InOut::In )
     {
@@ -114,74 +107,82 @@ void DepthFirstSearch(
     // The problem with this approach is that we have to do the marking in the order of discovery, but the pushing to stack in reverse order. That would take roughly twice as long. In constrast, memory is cheap nowadays. And we use a stack, so we interesting stuff will stay in hot memory. So we can afford allocating a potentially oversized stack in favor of faster execution.
     Stack<DirectedEdge,EInt> stack ( EdgeCount() );
 
-    auto process = [V_flag,E_visitedQ,E_V,&stack,&discover,&rediscover](
-        const DirectedEdge & de, const EInt e
+    auto conditional_push = [V_flag,E_visitedQ,dE_V,&stack,&discover,&rediscover](
+        const DirectedEdge & E, const EInt de
     )
     {
         if constexpr ( dir == InOut::Undirected )
         {
             // We never walk back the same edge. (Not needed if traversal is directed.
-            if( e == (de.e ^ EInt(1)) )
+            // Also, we have to handle the case where E.de = -1.
+            if( (E.de >= EInt(0)) && (de == FlipDiEdge(E.de)) )
             {
                 return;
             }
         }
-            
-        const EInt e_ud = (e >> 1);
-        const VInt w = E_V[e];
         
-        if( V_flag[w] == UInt8(0) )
+        // E.de may be virtual, but e may not.
+        if( de < EInt(0) )
         {
-            if( E_visitedQ[e_ud] )
-            {
-                eprint("!!!");
-            }
-            E_visitedQ[e_ud] = true;
-            DirectedEdge de_next {de.w,e,w};
+            eprint(ClassName() + "::DepthFirstSearch: Virtual edge on stack.");
+            return;
+        }
+        
+        const VInt w = dE_V[de];
+        auto [e,d] = FromDiEdge(de);
+        
+        if( V_flag[w] <= UInt8(0) )
+        {
+            V_flag[w] = UInt8(1);
+            E_visitedQ[e] = true;
+            DirectedEdge de_next {E.head,de,w};
+//            logprint("discover vertex " + ToString(w) + "; edge = " + ToString(e));
             discover( de_next );
             stack.Push( std::move(de_next) );
         }
         else
         {
             // We need this check here to prevent loop edge being traversed more than once!
-            if( !E_visitedQ[e_ud] )
+            if( !E_visitedQ[e] )
             {
-                E_visitedQ[e_ud] = true;
-                rediscover({de.w,e,w});
+                E_visitedQ[e] = true;
+//                logprint("rediscover vertex " + ToString(w) + "; edge = " + ToString(e));
+                rediscover({E.head,de,w});
+            }
+            else
+            {
+//                logprint("skip rediscover vertex " + ToString(w) + "; edge = " + ToString(e));
             }
         }
     };
 
     for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
     {
-        if( V_flag[v_0] != UInt8(0) )
-        {
-            continue;
-        }
+        if( V_flag[v_0] != UInt8(0) ) { continue; }
         
         {
             V_flag[v_0] = UInt8(1);
-            DirectedEdge de {VInt(-1), EInt(-1), v_0};
-            discover( de );
-            stack.Push( std::move(de) );
+            DirectedEdge E {VInt(-1), EInt(-1), v_0};
+            discover( E );
+//            logprint("discover vertex " + ToString(v_0));
+            stack.Push( std::move(E) );
         }
 
         while( !stack.EmptyQ() )
         {
-            DirectedEdge & de = stack.Top();
-
-            const VInt v = de.w;
+            DirectedEdge & E = stack.Top();
+            const VInt v = E.head;
             
-            if( V_flag[v] == UInt8(1) )
+            if( V_flag[v] == UInt8(0) )
             {
-                eprint("Undiscovered vertex on stack!");
+                eprint(ClassName() + "::DepthFirstSearch: Undiscovered vertex on stack!");
+                (void)stack.Pop();
             }
-            
-            if( V_flag[v] == UInt8(1) )
+            else if( V_flag[v] == UInt8(1) )
             {
                 V_flag[v] = UInt8(2);
-                pre_visit( de );
-                
+//                logprint("pre-visit vertex " + ToString(v) + "; edge = " + ((E.de < 0) ? "-1" : ToString(E.de/2)) );
+                pre_visit( E );
                 // Process outgoing edges first.
                 if constexpr ( dir != InOut::In )
                 {
@@ -190,8 +191,8 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ((V_Out_idx[k] << 1) | EInt(Head));
-                        process( de, e );
+                        const EInt e = ToDirEdge<Head>(V_Out_idx[k]);
+                        conditional_push( E, e );
                     }
                 }
                 
@@ -203,21 +204,24 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ((V_In_idx[k] << 1) | EInt(Tail));
-                        process( de, e );
+                        const EInt e = ToDirEdge<Tail>(V_In_idx[k]);
+                        conditional_push( E, e );
                     }
                 }
             }
             else if( V_flag[v] == UInt8(2) )
             {
                 V_flag[v] = UInt8(3);
-                post_visit( de );
+                post_visit( E );
+//                logprint("post-visit vertex " + ToString(v) + "; edge = " + ((E.de < 0) ? "-1" : ToString(E.de/2)) );
                 (void)stack.Pop();
             }
             else // if( V_flag[v] == UInt8(3) )
             {
+//                logprint("pop garbage edge " + ((E.de < 0) ? "-1" : ToString(E.de/2)));
                 (void)stack.Pop();
             }
+            
         } // while( !stack.EmptyQ() )
         
     } // for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
@@ -231,291 +235,7 @@ void DepthFirstSearch( PreVisitVertex_T && pre_visit )
     this->template DepthFirstSearch<dir>(
         TrivialEdgeFunction,    //discover
         TrivialEdgeFunction,    //rediscover
-        pre_visit,              // f( const DirectedEdge & de )
+        pre_visit,              // f( const DirectedEdge & E )
         TrivialEdgeFunction     //postvisit
     );
 }
-
-template<InOut dir = InOut::Undirected>
-void RequireDFSOrderings()
-{
-    TOOLS_PTIC(ClassName() + "::RequireDFSOrderings<" + ToString(dir) + ">");
-    
-    Tensor1<VInt,VInt> V_perm (VertexCount());
-    VInt V_ptr = 0;
-    
-    Tensor1<EInt,VInt> V_parent_E (VertexCount());
-    
-    Aggregator<VInt,VInt> roots(VInt(1));
-    
-    this->template DepthFirstSearch<dir>(
-        [&V_perm,&V_ptr,&V_parent_E,&roots]( cref<DirectedEdge> de )
-        {
-            V_perm[V_ptr++]  = de.w;
-            V_parent_E[de.w] = de.e;
-            
-            if( de.e < EInt(0) )
-            {
-                roots.Push(de.w);
-            }
-            
-        }
-    );
-    
-    this->SetCache(
-       "DFSVertexOrdering<" + ToString(dir) + ">", std::move(V_perm)
-    );
-    this->SetCache(
-       "SpanningForestDirectedEdges<" + ToString(dir) + ">", std::move(V_parent_E)
-    );
-    this->SetCache(
-        "SpanningForestRoots<" + ToString(dir) + ">", std::move(roots.Get())
-    );
-    
-    TOOLS_PTOC(ClassName() + "::RequireDFSOrderings<" + ToString(dir) + ">");
-}
-
-/*! @brief Returns the list of vertices ordered in the way they are visited by  `DepthFirstSearch`.
- */
-
-template<InOut dir = InOut::Undirected>
-Tensor1<VInt,VInt> DFSVertexOrdering()
-{
-    std::string tag ("DFSVertexOrdering<" + ToString(dir) + ">");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ( tag ) )
-    {
-        this->template RequireDFSOrderings<dir>();
-    }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
-    return this->template GetCache<Tensor1<VInt,VInt>>(tag);
-}
-
-/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDirectedEdges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root vertex, then `-1` is returned instead.
- */
-
-template<InOut dir = InOut::Undirected>
-Tensor1<EInt,VInt> SpanningForestDirectedEdges()
-{
-    std::string tag ("SpanningForestDirectedEdges<" + ToString(dir) + ">");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ( tag ) )
-    {
-        this->template RequireDFSOrderings<dir>();
-    }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
-    return this->template GetCache<Tensor1<EInt,VInt>>(tag);
-}
-
-template<InOut dir = InOut::Undirected>
-Tensor1<VInt,VInt> SpanningForestRoots()
-{
-    std::string tag ("SpanningForestRoots<" + ToString(dir) + ">");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ( tag ) )
-    {
-        this->template RequireDFSOrderings<dir>();
-    }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
-    return this->template GetCache<Tensor1<VInt,VInt>>(tag);
-}
-
-// TODO: Fix the bugs in the code below.
-
-////########################################################
-////##    DepthFirstSearch (strict)
-////########################################################
-//
-///*!@brief Strict version of `DepthFirstSearch`. The new vertices are discovered on the order of the indices of the edges leading to them. This uses `OrientedIncidenceMatrix`, which is much slower to assemble than `InIncidenceMatrix` and `OutIncidenceMatrix` together. Morever, the signs from `OrientedIncidenceMatrix` have to be loaded and processes. So this overall slower than `DepthFirstSearch`.
-// */
-//
-//template<
-//    InOut dir = 0,
-//    class DiscoverVertex_T,   // f( const DirectedEdge & de )
-//    class RediscoverVertex_T, // f( const DirectedEdge & de )
-//    class PreVisitVertex_T,   // f( const DirectedEdge & de )
-//    class PostVisitVertex_T   // f( const DirectedEdge & de )
-//>
-//void StrictDepthFirstSearch(
-//    DiscoverVertex_T   && discover,
-//    RediscoverVertex_T && rediscover,
-//    PreVisitVertex_T   && pre_visit,
-//    PostVisitVertex_T  && post_visit
-//)
-//{
-//    if( vertex_count <= VInt(0) )
-//    {
-//        return;
-//    }
-//    
-//    TOOLS_PTIC( ClassName() + "::StrictDepthFirstSearch<" + ToString(dir) + ">");
-//    
-//    const EInt * E_V = edges.data();
-//    
-//    const EInt * V_E_ptr;
-//    const EInt * V_E_idx;
-//    const SInt * V_E_sign;
-//    
-//    if constexpr( dir == InOut::Undirected )
-//    {
-//        auto & A = OrientedIncidenceMatrix();
-//        V_E_ptr  = A.Outer().data();
-//        V_E_idx  = A.Inner().data();
-//        V_E_sign = A.Values().data();
-//    }
-//    else if constexpr( dir == InOut::Out )
-//    {
-//        auto & A = OutIncidenceMatrix();
-//        V_E_ptr  = A.Outer().data();
-//        V_E_idx  = A.Inner().data();
-//        V_E_sign = nullptr;
-//    }
-//    else if constexpr( dir == InOut::In )
-//    {
-//        auto & A = InIncidenceMatrix();
-//        V_E_ptr  = A.Outer().data();
-//        V_E_idx  = A.Inner().data();
-//        V_E_sign = nullptr;
-//    }
-//    
-//    mptr<bool> V_visitedQ = reinterpret_cast<bool *>(V_scratch.data());
-//    fill_buffer(V_visitedQ,false,vertex_count);
-//
-//    // In the worst case (2 vertices, n edges), we push a stack_node for every edge before we ever can pop a node.
-//    // Note: We could mark every newly discovered vertex w as "discovered, not visited"  and push only {v,e,w,d} with undiscovered vertex w.
-//    // The problem with this approach is that we have to do the marking in the order of discovery, but the pushing to stack in reverse order. That would take roughly twice as long. In constrast, memory is cheap nowadays. And we use a stack, so we interesting stuff will stay in hot memory. So we can afford allocating a potentially oversized stack in favor of faster execution.
-//    Stack<DirectedEdge,EInt> stack ( EdgeCount() );
-//    
-//    // `process(de,e)` does the discovery given `de` pointing to the currently visited vertex and the directed edge index `e` of the next edge to discover.
-//    auto process = [V_visitedQ,E_V,&stack,&discover,&rediscover](
-//        const DirectedEdge & de, const EInt e
-//    )
-//    {
-//        if constexpr ( dir == InOut::Undirected )
-//        {
-//            // We never walk back the same edge. (Not needed if traversal is directed.
-//            if( e == (de.e ^ EInt(1)) )
-//            {
-//                return;
-//            }
-//        }
-//            
-//        const VInt w = E_V[e];  // the (re)discovered vertex
-//        
-//        if( !V_visitedQ[w] )
-//        {
-//            DirectedEdge de_next {de.w,e,w};
-//            discover( de_next );
-//            stack.Push( std::move(de_next) );
-//        }
-//        else
-//        {
-//            rediscover({de.w,e,w});
-//        }
-//    };
-//
-//    for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
-//    {
-//        if( !V_visitedQ[v_0] )
-//        {
-//            {
-//                DirectedEdge de {VInt(-1), EInt(-1), v_0};
-//                discover( de );
-//                stack.Push( std::move(de) );
-//            }
-//         
-//            while( !stack.EmptyQ() )
-//            {
-//                DirectedEdge & de = stack.Top();
-//
-//                const VInt v = de.w;
-//                
-//                if( !V_visitedQ[v] )
-//                {
-//                    V_visitedQ[v] = true;
-//                    pre_visit( de );
-//                    
-//                    const EInt k_begin = V_E_ptr[v          ];
-//                    const EInt k_end   = V_E_ptr[v + VInt(1)];
-//                    
-//                    for( EInt k = k_end; k --> k_begin; )
-//                    {
-//                        if constexpr ( dir == InOut::Undirected )
-//                        {
-//                            const bool d = V_E_sign[k] >= 0;
-//                            const EInt e = ((V_E_idx[k] << 1) | EInt(d));
-//                            process(de,e);
-//                        }
-//                        else if constexpr ( dir == InOut::Out )
-//                        {
-//                            const EInt e = ((V_E_idx[k] << 1) | EInt(Head));
-//                            process(de,e);
-//                        }
-//                        else if constexpr ( dir == InOut::In )
-//                        {
-//                            const EInt e = ((V_E_idx[k] << 1) | EInt(Tail));
-//                            process(de,e);
-//                        }
-//                        else
-//                        {
-//                            static_assert(Tools::DependentFalse<PreVisitVertex_T>,"");
-//                        }
-//                    } // for( EInt k = k_end; k --> k_begin; )
-//                }
-//                else
-//                {
-//                    post_visit( de );
-//                    (void)stack.Pop();
-//                }
-//                
-//            } // while( !stack.EmptyQ() )
-//        }
-//    } // for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
-//    
-//    TOOLS_PTOC( ClassName() + "::StrictDepthFirstSearch<" + ToString(dir) + ">");
-//}
-//
-//
-//template< InOut dir = 0, class PreVisitVertex_T >
-//void StrictDepthFirstSearch( PreVisitVertex_T && pre_visit )
-//{
-//    this->template StrictDepthFirstSearch<dir>(
-//        TrivialEdgeFunction,    //discover
-//        TrivialEdgeFunction,    //rediscover
-//        pre_visit,              // f( const DirectedEdge & de )
-//        TrivialEdgeFunction     //postvisit
-//    );
-//}
-//
-//template<InOut dir = InOut::Undirected>
-//Tensor1<VInt,VInt> StrictDepthFirstSearchOrdering()
-//{
-//    TOOLS_PTIC(ClassName() + "::StrictDepthFirstSearchOrdering<" + ToString(dir) + ">");
-//    
-//    Tensor1<VInt,VInt> p (VertexCount());
-//    VInt p_ptr = 0;
-//    
-//    this->template StrictDepthFirstSearch<dir>(
-//        [&p_ptr,&p]( cref<DirectedEdge> de )
-//        {
-//            p[p_ptr++] = de.w;
-//        }
-//    );
-//    
-//    TOOLS_PTOC(ClassName() + "::StrictDepthFirstSearchOrdering<" + ToString(dir) + ">");
-//    
-//    return p;
-//}
-

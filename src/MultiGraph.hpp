@@ -371,7 +371,7 @@ namespace Knoodle
         {
             std::string tag ("CyleMatrix");
             
-            if( !this->InCacheQ( tag ) )
+            if( !this->InCacheQ(tag) )
             {
                 RequireTopology();
             }
@@ -383,7 +383,7 @@ namespace Knoodle
         {
             std::string tag ("ComponentEdgeMatrix");
             
-            if( !this->InCacheQ( tag ) )
+            if( !this->InCacheQ(tag) )
             {
                 RequireTopology();
             }
@@ -395,7 +395,7 @@ namespace Knoodle
         {
             std::string tag ( "SpanningTree" );
             
-            if( !this->InCacheQ( tag ) )
+            if( !this->InCacheQ(tag) )
             {
                 RequireTopology();
             }
@@ -409,7 +409,7 @@ namespace Knoodle
             
             std::string tag ("ComponentVertexMatrix");
             
-            if( !this->InCacheQ( tag ) )
+            if( !this->InCacheQ(tag) )
             {
                 const EInt edge_count = edges.Dimension(0);
                 
