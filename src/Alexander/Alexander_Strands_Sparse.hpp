@@ -42,5 +42,5 @@ UMFPACK_Ptr SparseAlexanderStrandMatrix_UMFPACK( cref<PD_T> pd ) const
         pd.SetCache( tag, umfpack );
     }
     
-    return pd.template GetCache<UMFPACK_Ptr>( tag );
+    return pd.template GetCache<UMFPACK_Ptr>(tag);
 }

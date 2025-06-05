@@ -121,5 +121,5 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
         pd.SetCache( tag, std::pair(factor,exp) );
     }
         
-    return pd.template GetCache<T>( tag );
+    return pd.template GetCache<T>(tag);
 }

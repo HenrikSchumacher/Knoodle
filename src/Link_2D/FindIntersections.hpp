@@ -109,6 +109,8 @@ public:
         
         const Int intersection_count = static_cast<Int>(intersections.size());
         
+        
+
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
         edge_ctr.Read( edge_ptr.data() );
@@ -127,6 +129,8 @@ public:
         {
             return 0;
         }
+        
+        logprint("Counting sort");
         
         TOOLS_PTIC("Counting sort");
         for( Int k = intersection_count; k --> Int(0);  )
@@ -542,7 +546,7 @@ protected:
         
         LineSegmentsIntersectionFlag flag
             = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
-        
+
         if constexpr ( verboseQ )
         {
             TOOLS_DUMP(flag);

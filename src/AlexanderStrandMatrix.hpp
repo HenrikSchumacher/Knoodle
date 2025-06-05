@@ -179,7 +179,7 @@ namespace Knoodle
                 pd.SetCache( tag, std::move(A) );
             }
             
-            return pd.template GetCache<Pattern_T>( tag );
+            return pd.template GetCache<Pattern_T>(tag);
         }
 
         template<bool fullQ>

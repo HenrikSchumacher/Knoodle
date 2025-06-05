@@ -14,40 +14,39 @@ namespace Knoodle
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
     {
-    public:
-        
         static_assert(SignedIntQ<Int_>,"");
 
-        using Int  = Int_;
-        
-        using UInt = Scalar::Unsigned<Int>;
-        
+    public:
+            
+        using Int     = Int_;
+        using UInt    = Scalar::Unsigned<Int>;
+
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
-        
+
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-        
+
         using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState,Int>;
-        
+
         using MultiGraph_T              = MultiGraph<Int,Int>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
-        
+
         using PD_List_T                 = std::vector<PlanarDiagram<Int>>;
 
-        
         template<typename I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
-        
+
         template<typename I, bool mult_compQ_>
         friend class CrossingSimplifier;
-        
+
         template<typename I, bool mult_compQ_>
         friend class StrandSimplifier;
             
-        
         using Arrow_T = std::pair<Int,bool>;
+            
+    public:
         
         static constexpr bool Tail  = 0;
         static constexpr bool Head  = 1;
@@ -55,7 +54,7 @@ namespace Knoodle
         static constexpr bool Right = 1;
         static constexpr bool Out   = 0;
         static constexpr bool In    = 1;
-        
+
         static constexpr bool always_canonicalizeQ = true;
         
     protected:
@@ -93,16 +92,11 @@ namespace Knoodle
         
         bool proven_minimalQ = false;
         
-        
-        
     public:
         
         PlanarDiagram() = default;
         
         virtual ~PlanarDiagram() override = default;
-        
-        
-    protected:
         
         /*! @brief This constructor is supposed to only allocate all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
@@ -124,8 +118,6 @@ namespace Knoodle
         , C_scratch          { max_crossing_count                          }
         , A_scratch          { max_arc_count                               }
         {}
-        
-    public:
   
 //        // Copy constructor
 //        PlanarDiagram( const PlanarDiagram & other ) = default;
@@ -180,7 +172,7 @@ namespace Knoodle
             
             swap( A.C_scratch           , B.C_scratch           );
             swap( A.A_scratch           , B.A_scratch           );
-            swap( A.proven_minimalQ   , B.proven_minimalQ   );
+            swap( A.proven_minimalQ     , B.proven_minimalQ     );
         }
         
         // Move constructor
@@ -198,8 +190,6 @@ namespace Knoodle
             swap( *this, other );
             return *this;
         }
-        
-        
         
         template<typename ExtInt>
         PlanarDiagram(
@@ -337,161 +327,8 @@ namespace Knoodle
             );
         }
         
-    private:
-        
-        template<typename Real, typename BReal>
-        void ReadFromLink(
-            const Int  component_count,
-            cptr<Int>  component_ptr,
-            cptr<Int>  edge_ptr,
-            cptr<Int>  edge_intersections,
-            cptr<bool> edge_overQ,
-            cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections
-        )
-        {
-            static_assert(FloatQ<Real>,"");
-            static_assert(FloatQ<BReal>,"");
-            
-            using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
-            using Sign_T         = typename Intersection_T::Sign_T;
-            // TODO: Handle over/under in ArcState.
-//            using F_T            = Underlying_T<ArcState>;
-            
-            
-            if( intersections.size() <= Size_T(0) )
-            {
-                unlink_count = component_count;
-                proven_minimalQ = true;
-                return;
-            }
-            
-            unlink_count = 0;
-            
-            C_scratch.Fill(Int(-1));
-            
-            mptr<Int> C_label = C_scratch.data();
-            Int C_counter = 0;
-            
-            // TODO: If we want to canonicalize here, then we also need arc labels!
-            
-            auto process = [&,C_label,edge_intersections,edge_overQ,this]( const Int a, const Int b
-            )
-            {
-                const Int c_pos = edge_intersections[b];
-                
-                if( C_label[c_pos] < 0 )
-                {
-                    C_label[c_pos] = C_counter++;
-                }
-                
-                const Int c = C_label[c_pos];
-                
-                const bool overQ = edge_overQ[b];
-                
-                cref<Intersection_T> inter = intersections[static_cast<Size_T>(c_pos)];
-                
-                A_cross(a,Head) = c; // c is head of a
-                A_cross(b,Tail) = c; // c is tail of b
-                
-                PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
-                
-                bool righthandedQ = inter.handedness > Sign_T(0);
-                
-                /*
-                 *
-                 *    negative         positive
-                 *    right-handed     left-handed
-                 *    .       .        .       .
-                 *    .       .        .       .
-                 *    O       O        O       O
-                 *     ^     ^          ^     ^
-                 *      \   /            \   /
-                 *       \ /              \ /
-                 *        /                \
-                 *       / \              / \
-                 *      /   \            /   \
-                 *     /     \          /     \
-                 *    O       O        O       O
-                 *    .       .        .       .
-                 *    .       .        .       .
-                 *
-                 */
-                
-                C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
-                
-                // TODO: Handle over/under in ArcState.
-                A_state[a] = ArcState::Active;
-//                A_state[a] = ToUnderlying(A_state[a]) | F_T(1) | (F_T(overQ) << 2);
-//                A_state[b] = ToUnderlying(A_state[b]) | F_T(1) | (F_T(overQ) << 1);
-                
-                /*
-                * righthandedQ == true and overQ == true:
-                *
-                *         C_arcs(c,Out,Left) |       | C_arcs(c,Out,Right) = b
-                *                            |       |
-                *                            O       O
-                *                             ^     ^
-                *                              \   /
-                *                               \ /
-                *                                /
-                *                               / \
-                *                              /   \
-                *                             /     \
-                *                            O       O
-                *                            |       |
-                *      a = C_arcs(c,In,Left) |       | C_arcs(c,In,Right)
-                */
-                
-                const bool over_in_side = (righthandedQ == overQ) ? Left : Right ;
-                
-                C_arcs(c,In , over_in_side) = a;
-                C_arcs(c,Out,!over_in_side) = b;
-            };
-            
-            
-            // TODO: Extract LinkComponentArcPointers, LinkComponentIndices, ArcLinkComponents from here (only if needed)?
-            
-            // Now we go through all components
-            //      then through all edges of the component
-            //      then through all intersections of the edge
-            // and generate new vertices, edges, crossings, and arcs in one go.
-            
-            
-            for( Int comp = 0; comp < component_count; ++comp )
-            {
-                // The range of arcs belonging to this component.
-                const Int b_begin = edge_ptr[component_ptr[comp  ]];
-                const Int b_end   = edge_ptr[component_ptr[comp+1]];
-
-                if( b_begin == b_end )
-                {
-                    // Component is an unlink. Just skip it.
-                    ++unlink_count;
-                    continue;
-                }
-                
-                // If we arrive here, then there is definitely a crossing in the first edge.
-                
-                
-                // TODO: Do the traversal so that the resulting `PlanarDiagram` is in canonical ordering in the sense of `CanonicallyOrderedQ`. For this, we have to go forward along the component until reach the first edge whose tail goes under. If if there is no such edge, we start at `b_begin`.
-                
-                for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
-                {
-                    process(a,b);
-                }
-            }
-            
-            // TODO: For some reason, the resulting `PlanarDiagram` is not canonically ordered in the sense of `CanonicallyOrderedQ`. This may be a big issue when using `PlanarDiagram` in conjunction of the external visualization tools as `PlanarDiagram` returns PDCode always in canonically ordered form. So we do here a maybe unnecessary recanonicalization here. Maybe we can create the diagram in canonical form already?
-            
-            if constexpr ( always_canonicalizeQ )
-            {
-                CanonicalizeInPlace();
-            }
-        }
-        
     public:
-        
-        
+
         /*!
          * @brief Returns the number of trivial unlinks in the diagram, i.e., unknots that do not share any crossings with other link components.
          */
@@ -880,6 +717,27 @@ namespace Knoodle
             
             return c_next;
         }
+        
+        static constexpr std::pair<Int,bool> FromDiArc( Int da )
+        {
+            return std::pair( da / Int(2), da % Int(2) );
+        }
+        
+        static constexpr Int ToDiArc( const Int a, const bool d )
+        {
+            return Int(2) * a + d;
+        }
+        
+        template<bool d>
+        static constexpr Int ToDiArc( const Int a )
+        {
+            return Int(2) * a + d;
+        }
+        
+        static constexpr Int FlipDiArc( const Int da )
+        {
+            return da ^ Int(1);
+        }
 
         
     private:
@@ -1082,6 +940,7 @@ namespace Knoodle
         
     public:
 
+#include "PlanarDiagram/ReadFromLink.hpp"
 #include "PlanarDiagram/Traverse.hpp"
 #include "PlanarDiagram/Canonicalize.hpp"
 #include "PlanarDiagram/Reconnect.hpp"

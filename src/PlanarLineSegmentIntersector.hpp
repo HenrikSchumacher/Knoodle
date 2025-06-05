@@ -213,7 +213,6 @@ namespace Knoodle
             cptr<Real> x_0, cptr<Real> x_1, cptr<Real> y_0, cptr<Real> y_1
         )
         {
-            
             if constexpr ( verboseQ )
             {
                 print(ClassName() + "::IntersectionType in verbose mode.");

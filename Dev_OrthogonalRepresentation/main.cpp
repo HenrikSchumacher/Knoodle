@@ -34,7 +34,7 @@ int main( int argc, char** argv )
         {4, 3, 5, 4, -1}
     };
 
-    Tensor1<Int,Int> bends ({ 2, -3, 0, 0, 3, -2 });
+    Int bends [6] = { 2, -3, 0, 0, 3, -2 };
     
     
 //              v_6     e_8     v_5             e_14    v_11
@@ -45,13 +45,14 @@ int main( int argc, char** argv )
 //                 |           |           |           |
 //  v_9            v    a_2    |    a_3    v           |
 //     +---------->|---------->----------->----------->+
-//     ^    e_12   |c_1        ^c_0        |c_2 e_4     v_10
+//     ^    e_12   |c_1 e_2    ^c_0 e_3    |c_2 e_4     v_10
 //     |           |           |           |
 //     |e_11    e_1|           |e_7     e_5|
 //     |           |           |           |
 //     |    e_10   v           |    e_6    v
 //     +<----------+           +<----------+
 //  v_8     a_1     v_7     v_4     a_5     v_3
+
     
     PlanarDiagram<Int> pd = PlanarDiagram<Int>::FromSignedPDCode(
         &pd_code[0][0], 3, 0, false, false
@@ -66,7 +67,7 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.Edges());
     
     TOOLS_DUMP(H.Bends());
-    TOOLS_DUMP(bends);
+    valprint("bends",ArrayToString(&bends[0],{6}));
     
     TOOLS_DUMP(H.DirectedEdgeTurns());
     
