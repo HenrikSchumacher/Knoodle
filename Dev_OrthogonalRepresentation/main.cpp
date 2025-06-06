@@ -63,13 +63,13 @@ int main( int argc, char** argv )
 
     OrthogonalRepresentation<Int> H (pd,-1);
     
-    TOOLS_DUMP(H.Vertices());
+    TOOLS_DUMP(H.VertexDiEdges());
     TOOLS_DUMP(H.Edges());
     
     TOOLS_DUMP(H.Bends());
     valprint("bends",ArrayToString(&bends[0],{6}));
     
-    TOOLS_DUMP(H.DirectedEdgeTurns());
+    TOOLS_DUMP(H.EdgeTurns());
     
     print("");
     cptr<Int> A_V_ptr = H.ArcVertexPointers().data();

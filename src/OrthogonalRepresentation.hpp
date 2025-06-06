@@ -14,25 +14,48 @@ namespace Knoodle
     class OrthogonalRepresentation
     {
     public:
-        static_assert(IntQ<Int_>,"");
+        static_assert(SignedIntQ<Int_>,"");
         
         using Int       = Int_;
-        using SInt      = Int8;
         using COIN_Real = double;
         using COIN_Int  = int;
         using COIN_LInt = CoinBigIndex;
         using UInt      = UInt32;
-        using Dir_T     = SInt;
-
+        using Dir_T     = UInt8;
+        using Turn_T    = std::make_signed<Int>::type;
+        
         using DiGraph_T           = MultiDiGraph<Int,Int>;
+        using HeadTail_T          = DiGraph_T::HeadTail_T;
         using PlanarDiagram_T     = PlanarDiagram<Int>;
         using VertexContainer_T   = Tiny::VectorList_AoS<4, Int,Int>;
         using EdgeContainer_T     = DiGraph_T::EdgeContainer_T;
-        using EdgeTurnContainer_T = Tiny::VectorList_AoS<2,SInt,Int>;
+        using EdgeTurnContainer_T = Tiny::VectorList_AoS<2,Turn_T,Int>;
         using DirectedArcNode     = PlanarDiagram_T::DirectedArcNode;
 
-    private:
+        enum class VertexState : Int8
+        {
+            Inactive    =  0,
+            RightHanded =  1,
+            LeftHanded  = -1,
+            Corner      =  0
+        };
         
+        enum class EdgeState : UInt8
+        {
+            Inactive    = 0,
+            Active      = 1,
+            Virtual     = 2
+        };
+
+        static constexpr Int Uninitialized = PlanarDiagram_T::Uninitialized;
+        static constexpr Int MaxValidIndex = PlanarDiagram_T::MaxValidIndex;
+
+        static constexpr bool ValidIndexQ( const Int i )
+        {
+            return PlanarDiagram_T::ValidIndexQ(i);
+        };
+        
+    private:
         
         static constexpr Int ToDiArc( const Int a, const bool d )
         {
@@ -61,47 +84,51 @@ namespace Knoodle
         // Copy constructor
         OrthogonalRepresentation( const OrthogonalRepresentation & other ) = default;
         
+        // TODO: Add this when the class is finished:
         // TODO: swap
         // TODO: copy assignment
         // TODO: move constructor
         // TODO: move assignment
-        
 
-        UInt getArcOrientation( bool io, bool lr )
-        {
-            return (io ? ( UInt(2) + lr ): !lr) % UInt(4);
-        }
-        
-        OrthogonalRepresentation( mref<PlanarDiagram_T> pd, const Int exterior_face )
+        OrthogonalRepresentation(
+            mref<PlanarDiagram_T> pd, const Int exterior_face
+        )
         {
             LoadPlanarDiagram(pd,exterior_face);
-            ComputeConstraintGraphs();
+            
+            //ComputeConstraintGraphs();
         }
                                  
         ~OrthogonalRepresentation() = default;
         
     private:
         
-        Int crossing_count = 0;
-        Int arc_count      = 0;
-        Int face_count     = 0;
-        Int bend_count     = 0;
-        Int vertex_count   = 0;
-        Int edge_count     = 0;
+        Int crossing_count      = 0; // number of active crossings
+        Int arc_count           = 0; // number of active arcs
+        Int face_count          = 0; // number of number of faces
         
-        Int exterior_face  = 0;
+        Int max_crossing_count  = 0; // number of active + inactive crossings
+        Int max_arc_count       = 0; // number of active + inactive arcs
+        
+        Int bend_count          = 0;
+        Int vertex_count        = 0;
+        Int edge_count          = 0;
+        
+        Int exterior_face       = 0;
 
+        Tensor1<VertexState,Int> V_state;
+        Tensor1<EdgeState,Int>   E_state;
+        
         Tensor1<Int,Int>    A_bends;
         VertexContainer_T   V_dE; // Entries are _outgoing_ directed edge indices. Do /2 to get actual arc index.
         EdgeContainer_T     A_C; // The orginal arcs. Not sure whether we are really going to need them...
         EdgeContainer_T     E_V;
         EdgeContainer_T     E_left_dE; // Entries are _directed_ edge indices. Do /2 to get actual arc indes.
         
-        // This ought to map directed edges to the turn at the _tail_.
         EdgeTurnContainer_T E_turn;
-        // TODO: Computing both (A_V_ptr,A_V_idx) and (A_E_ptr,A_E_idx) seems redundant.
-        Tensor1<SInt,Int>   E_dir; // Cardinal direction of _undirected_ edges.
+        Tensor1<Dir_T,Int>  E_dir; // Cardinal direction of _undirected_ edges.
         
+        // TODO: Computing both (A_V_ptr,A_V_idx) and (A_E_ptr,A_E_idx) seems redundant.
         Tensor1<Int,Int>    A_V_ptr;
         Tensor1<Int,Int>    A_V_idx;
         // Arc a has vertices A_V_idx[A_V_ptr[a]], A_V_idx[A_V_ptr[0]+1],A_V_idx[A_V_ptr[0]+2],...,A_V_idx[A_V_ptr[a+1]])
@@ -126,22 +153,24 @@ namespace Knoodle
         Tensor1<Int,Int>    S_v_ptr;
         Tensor1<Int,Int>    S_v_idx;
         
-        // Maps each undirected edge to its horizontal segment (-1 if vertical)
+        // Maps each undirected edge to its horizontal segment (`Uninitialized` if vertical)
         Tensor1<Int,Int>    E_S_h;
-        // Maps each undirected edge to its vertical segment (-1 if horizontal)
+        // Maps each undirected edge to its vertical segment (`Uninitialized` if horizontal)
         Tensor1<Int,Int>    E_S_v;
         
-        // Maps each vertex to its horizontal segment (-1 if vertical)
+        // Maps each vertex to its horizontal segment (`Uninitialized` if vertical)
         Tensor1<Int,Int>    V_S_h;
-        // Maps each vertex to its vertical segment (-1 if horizontal)
+        // Maps each vertex to its vertical segment (`Uninitialized` if horizontal)
         Tensor1<Int,Int>    V_S_v;
         
+        // General purpose buffers. May be used in all routines as temporary space.
         mutable Tensor1<Int,Int> V_scratch;
         mutable Tensor1<Int,Int> E_scratch;
         
         bool proven_turn_regularQ = false;
         
-        PlanarDiagram_T * pd_ptr;
+        // TODO: Delete this when the class is finished.
+        PlanarDiagram_T * pd_ptr = nullptr;
         
     private:
 
@@ -149,6 +178,7 @@ namespace Knoodle
 #include "OrthogonalRepresentation/BendsByLP.hpp"
 #include "OrthogonalRepresentation/LoadPlanarDiagram.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
+#include "OrthogonalRepresentation/KittyCorners.hpp"
         
     public:
         
@@ -165,6 +195,16 @@ namespace Knoodle
         Int EdgeCount() const
         {
             return edge_count;
+        }
+        
+        bool VertexActiveQ( const Int v ) const
+        {
+            return V_state[v] != VertexState::Inactive;
+        }
+        
+        bool EdgeActiveQ( const Int e ) const
+        {
+            return E_state[e] != EdgeState::Inactive;
         }
         
         cref<EdgeContainer_T> Edges() const
@@ -202,12 +242,12 @@ namespace Knoodle
             return E_turn;
         }
         
-        SInt EdgeTurn( const Int de ) const
+        Turn_T EdgeTurn( const Int de ) const
         {
             return E_turn.data()[de];
         }
 
-        SInt EdgeTurn( const Int e, const bool d )  const
+        Turn_T EdgeTurn( const Int e, const bool d )  const
         {
             return E_turn(e,d);
         }
@@ -235,7 +275,7 @@ namespace Knoodle
         
         
         // You should always do a check that e >= 0 before calling this!
-        Int ToDiEdge( const Int e, const bool d ) const
+        Int ToDiEdge( const Int e, const HeadTail_T d ) const
         {
             return Int(2) * e + d;
         }
@@ -247,12 +287,18 @@ namespace Knoodle
         }
         
         // You should always do a check that de >= 0 before calling this!
-        std::pair<Int,bool> FromDiEdge( const Int de ) const
+        std::pair<Int,HeadTail_T> FromDiEdge( const Int de ) const
         {
             return std::pair( de / Int(2), de % Int(2) );
         }
         
-        cref<Tensor1<SInt,Int>> EdgeDirections() const
+        static constexpr Int FlipDiEdge( const Int de )
+        {
+            return de ^ Int(1);
+        }
+        
+        
+        cref<Tensor1<Dir_T,Int>> EdgeDirections() const
         {
             return E_dir;
         }
@@ -373,7 +419,7 @@ namespace Knoodle
 
     public:
         
-        static std::string DirectionString( const SInt dir )
+        static std::string DirectionString( const Dir_T dir )
         {
             switch ( dir )
             {
@@ -401,12 +447,13 @@ namespace Knoodle
             const Int tail = E_V(e,Tail);
             const Int head = E_V(e,Head);
             
-            const SInt dir       = E_dir[e];
-            const SInt tail_port = E_dir[e];
-            const SInt head_port = static_cast<SInt>( (static_cast<UInt>(dir) + UInt(2) ) % UInt(4) );
+            const Dir_T dir       = E_dir[e];
+            const Dir_T tail_port = E_dir[e];
+            const Dir_T head_port = static_cast<Dir_T>( (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4) );
             
-            const bool tail_okayQ = (V_dE(tail,tail_port) == Int(2) * e + Head);
-            const bool head_okayQ = (V_dE(head,head_port) == Int(2) * e + Tail);
+            
+            const bool tail_okayQ = (V_dE(tail,tail_port) == ToDiEdge(e,Head));
+            const bool head_okayQ = (V_dE(head,head_port) == ToDiEdge(e,Tail));
             
             if constexpr( verboseQ )
             {
@@ -436,96 +483,96 @@ namespace Knoodle
         }
 
         
-        Tensor1<Int,Int> CreateFaceFromDiEdge( const Int de_0 ) const
-        {
-            TOOLS_PTIMER(timer,ClassName() + "::CreateFaceFromDiEdge");
-            
-            if( de_0 < Int(0) )
-            {
-                return Tensor1<Int,Int>();
-            }
-            
-            Int ptr = 0;
-            Int de = de_0;
-            
-            do
-            {
-                E_scratch[ptr++] = de;
-                de = DiEdgeLeftDiEdge(de);
-            }
-            while( (de != de_0) && ptr < edge_count );
-            
-            if( (de != de_0) && (ptr >= edge_count) )
-            {
-                eprint(ClassName() + "::CreatedFaceFromDiEdge: Aborted because two many elements were collected. The data structure is probably corrupted.");
-            }
-            
-            return Tensor1<Int,Int>( E_scratch.data(), ptr );
-        }
+//        Tensor1<Int,Int> CreateFaceFromDiEdge( const Int de_0 ) const
+//        {
+//            TOOLS_PTIMER(timer,ClassName() + "::CreateFaceFromDiEdge");
+//            
+//            if( de_0 < Int(0) )
+//            {
+//                return Tensor1<Int,Int>();
+//            }
+//            
+//            Int ptr = 0;
+//            Int de = de_0;
+//            
+//            do
+//            {
+//                E_scratch[ptr++] = de;
+//                de = DiEdgeLeftDiEdge(de);
+//            }
+//            while( (de != de_0) && ptr < edge_count );
+//            
+//            if( (de != de_0) && (ptr >= edge_count) )
+//            {
+//                eprint(ClassName() + "::CreatedFaceFromDiEdge: Aborted because two many elements were collected. The data structure is probably corrupted.");
+//            }
+//            
+//            return Tensor1<Int,Int>( E_scratch.data(), ptr );
+//        }
         
-        std::pair<Int,Int> FindKittyCorner( const Int de_0 ) const
-        {
-            TOOLS_PTIMER(timer,ClassName() + "::FindKittyCorner");
-            
-            if( de_0 < Int(0) )
-            {
-                return std::pair(Int(-1),Int(-1));
-            }
-
-            mptr<Int> rotation = V_scratch.data();
-            
-            Int ptr = 0;
-            rotation[0] = Int(0);
-            
-            {
-                Int de = de_0;
-                do
-                {
-                    E_scratch[ptr++] = de;
-                    rotation[ptr] = rotation[ptr-1] + E_turn.data()[de];
-                    de = DiEdgeLeftDiEdge(de);
-                }
-                while( (de != de_0) && ptr < edge_count );
-            
-                if( (de != de_0) && (ptr >= edge_count) )
-                {
-                    eprint(ClassName() + "::TurnRegularFaceQ: Aborted because two many elements were collected. The data structure is probably corrupted.");
-                    
-                    return std::pair(Int(-1),Int(-1));
-                }
-            }
-            
-            valprint("rotation", ArrayToString(rotation,{ptr}));
-            
-            for( Int i = 0; i < ptr; ++i )
-            {
-                const Int de = E_scratch[i];
-                
-                if( E_turn.data()[de] == SInt(-1) )
-                {
-                    for( Int j = i; j < ptr; ++j )
-                    {
-                        const Int df = E_scratch[j];
-                        
-                        if( rotation[i] - rotation[j] == Int(2) )
-                        {
-                            if( E_turn.data()[df] == SInt(-1) )
-                            {
-                                const Int v = E_V.data()[de];
-                                const Int w = E_V.data()[df];
-                                TOOLS_DUMP(de/2);
-                                TOOLS_DUMP(v);
-                                TOOLS_DUMP(df/2);
-                                TOOLS_DUMP(w);
-                                return std::pair(v,w);
-                            }
-                        }
-                    }
-                }
-            }
-            
-            return std::pair(Int(-1),Int(-1));
-        }
+//        std::pair<Int,Int> FindKittyCorner( const Int de_0 ) const
+//        {
+//            TOOLS_PTIMER(timer,ClassName() + "::FindKittyCorner");
+//            
+//            if( de_0 < Int(0) )
+//            {
+//                return std::pair(Uninitialized,Uninitialized);
+//            }
+//
+//            mptr<Int> rotation = V_scratch.data();
+//            
+//            Int ptr = 0;
+//            rotation[0] = Int(0);
+//            
+//            {
+//                Int de = de_0;
+//                do
+//                {
+//                    E_scratch[ptr++] = de;
+//                    rotation[ptr] = rotation[ptr-1] + E_turn.data()[de];
+//                    de = DiEdgeLeftDiEdge(de);
+//                }
+//                while( (de != de_0) && ptr < edge_count );
+//            
+//                if( (de != de_0) && (ptr >= edge_count) )
+//                {
+//                    eprint(ClassName() + "::TurnRegularFaceQ: Aborted because two many elements were collected. The data structure is probably corrupted.");
+//                    
+//                    return std::pair(Uninitialized,Uninitialized);
+//                }
+//            }
+//            
+//            valprint("rotation", ArrayToString(rotation,{ptr}));
+//            
+//            for( Int i = 0; i < ptr; ++i )
+//            {
+//                const Int de = E_scratch[i];
+//                
+//                if( E_turn.data()[de] == Turn_T(-1) )
+//                {
+//                    for( Int j = i; j < ptr; ++j )
+//                    {
+//                        const Int df = E_scratch[j];
+//                        
+//                        if( rotation[i] - rotation[j] == Int(2) )
+//                        {
+//                            if( E_turn.data()[df] == Turn_T(-1) )
+//                            {
+//                                const Int v = E_V.data()[de];
+//                                const Int w = E_V.data()[df];
+//                                TOOLS_DUMP(de/2);
+//                                TOOLS_DUMP(v);
+//                                TOOLS_DUMP(df/2);
+//                                TOOLS_DUMP(w);
+//                                return std::pair(v,w);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//            
+//            return std::pair(Uninitialized,Uninitialized);
+//        }
         
         
     public:
