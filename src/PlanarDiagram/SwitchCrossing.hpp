@@ -19,17 +19,7 @@ bool Private_SwitchCrossing( const Int c )
             C_state[c] = CrossingState::LeftHanded;
             return true;
         }
-        case CrossingState::RightHandedUnchanged:
-        {
-            C_state[c] = CrossingState::LeftHanded;
-            return true;
-        }
         case CrossingState::LeftHanded:
-        {
-            C_state[c] = CrossingState::RightHanded;
-            return true;
-        }
-        case CrossingState::LeftHandedUnchanged:
         {
             C_state[c] = CrossingState::RightHanded;
             return true;
