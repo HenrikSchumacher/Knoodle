@@ -2,7 +2,8 @@
 
 namespace Knoodle
 {
-    
+    // TODO: Enable unsigned integers because they should be about 15% faster in tasks heavy bit manipulations.
+    // TODO: Unify the compile-size stacks for pairs of indices. They work only with signed integers at the moment. Moreover, they are quite annoying to maintain.
     
     template<
         typename Int_,
@@ -114,9 +115,6 @@ namespace Knoodle
         // A full binary tree with depth = actual_depth has this many leaf nodes.
         Int regular_leaf_node_count = 0;
         Int last_row_count          = 0;
-
-
-
 
         Node Left( const Node node) const
         {
@@ -681,10 +679,11 @@ namespace Knoodle
             const Int start_node = Int(-1)
         )
         {
+            static_assert(SignedIntQ<Int>,"");
             Int stack [2 * max_depth];
-
-            Int stack_ptr = 0;
-            stack[stack_ptr] = (start_node < Int(0)) ? Root() : start_node;
+            Int stack_ptr = -1;
+            
+            stack[++stack_ptr] = (start_node < Int(0)) ? Root() : start_node;
             
             while( (Int(0) <= stack_ptr) && (stack_ptr < Int(2) * max_depth - Int(2) ) )
             {
