@@ -70,7 +70,7 @@ VV_Vector_T VertexPostOrdering()
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
-/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDirectedEdges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `-1` is returned instead.
+/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDirectedEdges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `UninitializedEdge` is returned instead.
  */
 
 EE_Vector_T SpanningForestDirectedEdges()

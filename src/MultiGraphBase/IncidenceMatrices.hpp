@@ -47,13 +47,13 @@ void ComputeIncidenceMatrices() const
         + ">"
     );
     const EInt edge_count = edges.Dimension(0);
-    TripleAggregator<EInt,EInt,SInt,EInt> agg_undir;
+    TripleAggregator<EInt,EInt,Sign_T,EInt> agg_undir;
     PairAggregator<EInt,EInt,EInt> agg_out;
     PairAggregator<EInt,EInt,EInt> agg_in;
     
     if constexpr( undirQ )
     {
-        agg_undir = TripleAggregator<EInt,EInt,SInt,EInt> ( EInt(2) * edge_count );
+        agg_undir = TripleAggregator<EInt,EInt,Sign_T,EInt> ( EInt(2) * edge_count );
     }
     if constexpr( outQ )
     {
@@ -70,8 +70,8 @@ void ComputeIncidenceMatrices() const
         
         if constexpr( undirQ )
         {
-            agg_undir.Push( E[Tail], e, SInt(-1) );
-            agg_undir.Push( E[Head], e, SInt( 1) );
+            agg_undir.Push( E[Tail], e, Sign_T(-1) );
+            agg_undir.Push( E[Head], e, Sign_T( 1) );
         }
         if constexpr( outQ )
         {

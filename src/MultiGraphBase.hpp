@@ -2,21 +2,63 @@
 
 namespace Knoodle
 {
+    // TODO: Make MultiGraphBase ready for unsigned integers.
+    
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename SInt_ = Int8
+        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
     >
     class alignas( ObjectAlignment ) MultiGraphBase : public CachedObject
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
         
-        static_assert(SignedIntQ<VInt_>,"");
-        static_assert(SignedIntQ<EInt_>,"");
-        static_assert(SignedIntQ<SInt_>,"");
+        static_assert(IntQ<VInt_>,"");
+        static_assert(IntQ<EInt_>,"");
+        static_assert(SignedIntQ<Sign_T_>,"");
         
-#include "MultiGraphBase/Types.hpp"
+    public:
         
-        static constexpr bool Tail = 0;
-        static constexpr bool Head = 1;
+        using Base_T          = CachedObject;
+
+        using VInt            = VInt_;
+        using EInt            = EInt_;
+        using Sign_T          = Sign_T_;
+        using Edge_T          = Tiny::Vector<2,VInt,EInt>;
+        using EdgeContainer_T = Tiny::VectorList_AoS<2,VInt,EInt>;
+        
+        enum class InOut : Sign_T
+        {
+            Undirected =  0,
+            In         =  1,
+            Out        = -1
+        };
+
+//        enum class Direction : bool
+//        {
+//            Forward  = 1,
+//            Backward = 0
+//        };
+        
+        using HeadTail_T = bool;
+        static constexpr HeadTail_T Tail = 0;
+        static constexpr HeadTail_T Head = 1;
+
+        template<typename Int, bool nonbinaryQ>
+        using SignedMatrix_T = std::conditional_t<
+                nonbinaryQ,
+                Sparse::MatrixCSR<Sign_T,Int,Int>,
+                Sparse::BinaryMatrixCSR<Int,Int>
+        >;
+
+        using IncidenceMatrix_T = SignedMatrix_T<EInt,1>;
+
+        using VV_Vector_T       = Tensor1<VInt,VInt>;
+        using EE_Vector_T       = Tensor1<EInt,EInt>;
+        using EV_Vector_T       = Tensor1<EInt,VInt>;
+        using VE_Vector_T       = Tensor1<VInt,EInt>;
+         
+        VInt UninitializedVertex = SignedIntQ<VInt> ? VInt(-1) : std::numeric_limits<VInt>::max();
+        
+        EInt UninitializedEdge = SignedIntQ<EInt> ? EInt(-1) : std::numeric_limits<EInt>::max();
 
     public:
         
@@ -117,20 +159,26 @@ namespace Knoodle
             return edges;
         }
         
-        static constexpr std::pair<EInt,bool> FromDiEdge( EInt de )
+        // TODO: These things would be way faster if EInt where unsigned.
+        static constexpr std::pair<EInt,HeadTail_T> FromDiEdge( EInt de )
         {
-            return std::pair( de / EInt(2), de % EInt(2) );
+            return std::pair( de / EInt(2), HeadTail_T(de % EInt(2)) );
         }
         
-        static constexpr EInt ToDiEdge( const EInt e, const bool d )
+        static constexpr EInt ToDiEdge( const EInt e, const HeadTail_T d )
         {
             return EInt(2) * e + d;
         }
         
-        template<bool d>
+        template<HeadTail_T d>
         static constexpr EInt ToDiEdge( const EInt e )
         {
             return EInt(2) * e + d;
+        }
+        
+        static constexpr EInt FlipDiEdge( const EInt de )
+        {
+            return de ^ EInt(1);
         }
         
     protected:
@@ -148,7 +196,7 @@ namespace Knoodle
             return ct_string("MultiGraphBase")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
-                + "," + TypeName<SInt>
+                + "," + TypeName<Sign_T>
                 + ">";
         }
         

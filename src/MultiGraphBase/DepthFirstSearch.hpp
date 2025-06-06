@@ -162,7 +162,7 @@ void DepthFirstSearch(
         
         {
             V_flag[v_0] = UInt8(1);
-            DirectedEdge E {VInt(-1), EInt(-1), v_0};
+            DirectedEdge E {UninitializedVertex, UninitializedEdge, v_0};
             discover( E );
 //            logprint("discover vertex " + ToString(v_0));
             stack.Push( std::move(E) );
@@ -191,7 +191,7 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ToDirEdge<Head>(V_Out_idx[k]);
+                        const EInt e = ToDiEdge<Head>(V_Out_idx[k]);
                         conditional_push( E, e );
                     }
                 }
@@ -204,7 +204,7 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ToDirEdge<Tail>(V_In_idx[k]);
+                        const EInt e = ToDiEdge<Tail>(V_In_idx[k]);
                         conditional_push( E, e );
                     }
                 }

@@ -2,20 +2,22 @@
 
 namespace Knoodle
 {
+    // TODO: Make MultiGraphBase ready for unsigned integers.
     
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename SInt_ = Int8
+        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
     >
-    class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,SInt_>
+    class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
                 
     public:
         
-        using Base_T            = MultiGraphBase<VInt_,EInt_,SInt_>;
+        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_>;
         using VInt              = Base_T::VInt;
         using EInt              = Base_T::EInt;
-        using SInt              = Base_T::SInt;
+        using Sign_T            = Base_T::Sign_T;
+        using HeadTail_T        = Base_T::HeadTail_T;
         using Edge_T            = Base_T::Edge_T;
         using EdgeContainer_T   = Base_T::EdgeContainer_T;
         using InOut             = Base_T::InOut;
@@ -26,13 +28,15 @@ namespace Knoodle
         using EV_Vector_T       = Base_T::EV_Vector_T;
         using VE_Vector_T       = Base_T::VE_Vector_T;
         
-        using CycleMatrix_T     = Sparse::MatrixCSR<SInt,EInt,EInt>;
+        using CycleMatrix_T     = Sparse::MatrixCSR<Sign_T,EInt,EInt>;
         
         using ComponentMatrix_T = Sparse::BinaryMatrixCSR<VInt,VInt>;
 
         using Base_T::Tail;
         using Base_T::Head;
         using Base_T::TrivialEdgeFunction;
+        using Base_T::UninitializedVertex;
+        using Base_T::UninitializedEdge;
         
         template<typename Int,bool nonbinQ>
         using SignedMatrix_T = Base_T::template SignedMatrix_T<Int,nonbinQ>;
@@ -149,9 +153,9 @@ namespace Knoodle
             
             // Stores the graph's cycles.
             // z_ptr contains a counter for the number of cycles.
-            Aggregator<EInt,EInt> z_ptr ( edge_count );
-            Aggregator<EInt,EInt> z_idx ( edge_count );
-            Aggregator<SInt,EInt> z_val ( edge_count );
+            Aggregator<EInt  ,EInt> z_ptr ( edge_count );
+            Aggregator<EInt  ,EInt> z_idx ( edge_count );
+            Aggregator<Sign_T,EInt> z_val ( edge_count );
             
             z_ptr.Push(0);
             
@@ -160,13 +164,13 @@ namespace Knoodle
             // v_flags[v] == 0 means vertex v is unvisited.
             // v_flags[v] == 1 means vertex v is explored.
             
-            Tensor1<SInt,VInt> v_flags ( vertex_count, 0 );
+            Tensor1<UInt8,VInt> v_flags ( vertex_count, 0 );
             
             // Tracks which edges have been visited.
             // e_flags[e] == 0 means edge e is unvisited.
             // e_flags[e] == 1 means edge e is explored.
             // e_flags[e] == 2 means edge e is visited (and completed).
-            Tensor1<SInt,EInt> e_flags ( edge_count, SInt(0) );
+            Tensor1<Sign_T,EInt> e_flags ( edge_count, Sign_T(0) );
             
             // TODO: I can keep e_stack, path, and d_stack uninitialized.
             // Keeps track of the edges we have to process.
@@ -179,7 +183,7 @@ namespace Knoodle
             // Keeps track of the vertices we travelled through.
             Tensor1<VInt,EInt> v_path ( edge_count + EInt(2), VInt(-2) );
             // Keeps track of the directions we travelled through the edges.
-            Tensor1<SInt,EInt> d_path ( edge_count + EInt(2), SInt(-2) );
+            Tensor1<Sign_T,EInt> d_path ( edge_count + EInt(2), Sign_T(-2) );
             
             EInt e_ptr = 0; // Guarantees that every component will be visited.
             
@@ -187,7 +191,7 @@ namespace Knoodle
             
             while( e_ptr < edge_count )
             {
-                while( (e_ptr < edge_count) && (e_flags[e_ptr] > SInt(0)) )
+                while( (e_ptr < edge_count) && (e_flags[e_ptr] > Sign_T(0)) )
                 {
                     ++e_ptr;
                 }
@@ -202,8 +206,9 @@ namespace Knoodle
                 
                 const VInt root = edges(e_ptr,Tail);
                 
-                v_parents[root] = -1;
+                v_parents[root] = UninitializedVertex;
                 
+                static_assert(SignedIntQ<EInt>,"");
                 EInt stack_ptr = -1;
                 EInt path_ptr  = -1;
                 
@@ -221,7 +226,7 @@ namespace Knoodle
                 
                 
                 // Start spanning tree.
-                
+                static_assert(SignedIntQ<EInt>,"");
                 while( stack_ptr > EInt(-1) )
                 {
                     // Top
@@ -262,8 +267,8 @@ namespace Knoodle
                         eprint( "(E[0] != w) && (E[1] != w)" );
                     }
                     
-                    const SInt d = (E[0] == w) ? SInt(1) : SInt(-1);
-                    const VInt v = E[d > SInt(0)];
+                    const Sign_T d = (E[0] == w) ? Sign_T(1) : Sign_T(-1);
+                    const VInt v = E[d > Sign_T(0)];
                     
                     // Mark edge e as explored and put it onto the path.
                     e_flags[e] = 1;
@@ -273,9 +278,9 @@ namespace Knoodle
                     d_path[path_ptr  ] = d;
                     v_path[path_ptr+1] = v;
                     
-                    const SInt f = v_flags[v];
+                    const UInt8 f = v_flags[v];
                     
-                    if( f < SInt(1) )
+                    if( f < UInt8(1) )
                     {
                         v_flags[v]   = 1;
                         v_parents[v] = w;
@@ -341,7 +346,7 @@ namespace Knoodle
                 std::move(z_ptr.Get()), 
                 std::move(z_idx.Get()),
                 std::move(z_val.Get()),
-                z_ptr.Size()-1, edge_count, VInt(1)
+                z_ptr.Size()-EInt(1), edge_count, EInt(1)
             );
             
             // TODO: I don't like the idea to lose the information on the ordering of edges in the cycles. But we have to conform to CSR format, right?
@@ -522,7 +527,7 @@ namespace Knoodle
                 ComponentMatrix_T C (
                     std::move(c_v_ptr.Get()),
                     std::move(c_v_idx.Get()),
-                    c_v_ptr.Size()-1, vertex_count, VInt(1)
+                    c_v_ptr.Size()-VInt(1), vertex_count, VInt(1)
                 );
 
                 C.SortInner();
@@ -542,7 +547,7 @@ namespace Knoodle
             return ct_string("MultiGraph")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
-                + "," + TypeName<SInt>
+                + "," + TypeName<Sign_T>
                 + ">";
         }
         

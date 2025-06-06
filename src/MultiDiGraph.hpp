@@ -2,19 +2,22 @@
 
 namespace Knoodle
 {
+    // TODO: Make MultiGraphBase ready for unsigned integers.
+
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename SInt_ = Int8
+        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
     >
-    class alignas( ObjectAlignment ) MultiDiGraph : public MultiGraphBase<VInt_,EInt_,SInt_>
+    class alignas( ObjectAlignment ) MultiDiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
 
     public:
         
-        using Base_T            = MultiGraphBase<VInt_,EInt_,SInt_>;
+        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_>;
         using VInt              = Base_T::VInt;
         using EInt              = Base_T::EInt;
-        using SInt              = Base_T::SInt;
+        using Sign_T            = Base_T::Sign_T;
+        using HeadTail_T        = Base_T::HeadTail_T;
         using Edge_T            = Base_T::Edge_T;
         using EdgeContainer_T   = Base_T::EdgeContainer_T;
         using InOut             = Base_T::InOut;
@@ -31,7 +34,8 @@ namespace Knoodle
         using Base_T::Tail;
         using Base_T::Head;
         using Base_T::TrivialEdgeFunction;
-        
+        using Base_T::UninitializedVertex;
+        using Base_T::UninitializedEdge;
         
     protected:
         
@@ -141,7 +145,7 @@ namespace Knoodle
             return ct_string("MultiDiGraph")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
-                + "," + TypeName<SInt>
+                + "," + TypeName<Sign_T>
                 + ">";
         }
         
