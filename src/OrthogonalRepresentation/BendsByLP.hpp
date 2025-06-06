@@ -13,7 +13,7 @@ public:
  */
 
 template<typename Int>
-Tensor1<Int,Int> BendsByLP(
+Tensor1<Turn_T,Int> BendsByLP(
     mref<PlanarDiagram<Int>> pd, const Int ext_f = -1
 )
 {
@@ -25,21 +25,21 @@ Tensor1<Int,Int> BendsByLP(
     );
     
     {
-        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.ArcCount());
+        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dimension(0));
         Size_T nnz     = Size_T(4) * static_cast<Size_T>(pd.ArcCount());
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
         {
             eprint(ClassName()+"::BendsByLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
-            return Tensor1<Int,Int>();
+            return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
         {
             eprint(ClassName()+"::BendsByLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
-            return Tensor1<Int,Int>();
+            return Tensor1<Turn_T,Int>();
         }
     }
     
@@ -79,15 +79,15 @@ Tensor1<Int,Int> BendsByLP(
         TOOLS_DUMP(LP.largestDualError());
     }
 
-    Tensor1<Int,Int> bends ( pd.ArcCount() );
+    Tensor1<Int,Int> bends ( pd.Arcs().Dimension(0) );
     
     cptr<COIN_Real> sol = LP.primalColumnSolution();
 
-    for( Int a = 0; a < pd.ArcCount(); ++a )
+    for( Int a = 0; a < pd.Arcs().Dimension(0); ++a )
     {
         const Int head = pd.ToDiArc(a,Head);
         const Int tail = pd.ToDiArc(a,Tail);
-        bends[a] = static_cast<Int>(std::round(sol[head] - sol[tail]));
+        bends[a] = static_cast<Turn_T>(std::round(sol[head] - sol[tail]));
     }
 
     return bends;

@@ -11,20 +11,20 @@ void ComputeConstraintGraphs()
     // TODO: Alas, my MultiDiGraph class does not like it!
     
  
-    Aggregator<Int,Int> S_h_ptr_agg ( EdgeCount() );
-    Aggregator<Int,Int> S_h_idx_agg ( EdgeCount() );
+    Aggregator<Int,Int> S_h_ptr_agg ( edge_count );
+    Aggregator<Int,Int> S_h_idx_agg ( edge_count );
     
-    Aggregator<Int,Int> S_v_ptr_agg ( EdgeCount() );
-    Aggregator<Int,Int> S_v_idx_agg ( EdgeCount() );
+    Aggregator<Int,Int> S_v_ptr_agg ( edge_count );
+    Aggregator<Int,Int> S_v_idx_agg ( edge_count );
     
-    E_S_h = Tensor1<Int,Int>( EdgeCount(), Int(-1) );
-    E_S_v = Tensor1<Int,Int>( EdgeCount(), Int(-1) );
+    E_S_h = Tensor1<Int,Int>( edge_count, Uninitialized );
+    E_S_v = Tensor1<Int,Int>( edge_count, Uninitialized );
     
-    V_S_h = Tensor1<Int,Int>( VertexCount(), Int(-1) );
-    V_S_v = Tensor1<Int,Int>( VertexCount(), Int(-1) );
+    V_S_h = Tensor1<Int,Int>( vertex_count, Uninitialized );
+    V_S_v = Tensor1<Int,Int>( vertex_count, Uninitialized );
     
-    Aggregator<Int,Int> D_h_agg ( Int(2) * EdgeCount() );
-    Aggregator<Int,Int> D_v_agg ( Int(2) * EdgeCount() );
+    Aggregator<Int,Int> D_h_agg ( Int(2) * edge_count );
+    Aggregator<Int,Int> D_v_agg ( Int(2) * edge_count );
     
 //    Int counter_h = 0;
 //    Int counter_v = 0;
@@ -34,6 +34,8 @@ void ComputeConstraintGraphs()
     
     for( Int v_0 = 0; v_0 < vertex_count; ++v_0 )
     {
+        if( !VertexActiveQ(v_0) ) { continue; };
+        
         // TODO: Segments are also allowed to contain exactly one vertex.
         if( (V_dE(v_0,West) == Int(-1)) && (V_dE(v_0,East) != Int(-1)) )
         {
@@ -97,6 +99,8 @@ void ComputeConstraintGraphs()
     // Thise correspond to the sets A_h and A_v from the paper.
     for( Int e = 0; e < edge_count; ++e )
     {
+        if( !EdgeActiveQ(e) ) { continue; }
+        
 //        print("e = " + ToString(e) + "; E_dir[e] = " + ToString(e) );
         switch( E_dir[e] )
         {

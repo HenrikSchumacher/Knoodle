@@ -1,10 +1,10 @@
 public:
 
-static constexpr Dir_T East  =  0;
-static constexpr Dir_T North =  1;
-static constexpr Dir_T West  =  2;
-static constexpr Dir_T South =  3;
-static constexpr Dir_T NoDir = -1;
+static constexpr UInt East  =  0;
+static constexpr UInt North =  1;
+static constexpr UInt West  =  2;
+static constexpr UInt South =  3;
+static constexpr UInt NoDir = 15;
 
 static constexpr bool Left  = PlanarDiagram_T::Left;
 static constexpr bool Right = PlanarDiagram_T::Right;

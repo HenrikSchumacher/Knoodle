@@ -5,28 +5,29 @@ Sparse::MatrixCSR<COIN_Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
 {
     TOOLS_PTIC(ClassName() + "::BendsMatrix");
     
-    const I arc_count_  = static_cast<I>(pd.ArcCount());
-    const I face_count_ = static_cast<I>(pd.FaceCount());
-    
     cptr<Int> dA_F = pd.ArcFaces().data();
     
-    TripleAggregator<I,I,COIN_Real,J> agg ( J(4) * arc_count );
+    TripleAggregator<I,I,COIN_Real,J> agg ( J(4) * static_cast<J>(pd.ArcCount()) );
     
     // We assemble the matrix transpose because CLP assumes column-major ordering.
     
-    for( I a = 0; a < arc_count_; ++a )
+    for( Int a = 0; a < pd.Arcs().Dimension(0); ++a )
     {
-        const I da_0 = pd.ToDiArc(a,Tail);
-        const I da_1 = pd.ToDiArc(a,Head);
+        if( !pd.ArcActiveQ(a) ) { continue; };
+        const I da_0 = static_cast<I>( pd.template ToDiArc<Tail>(a) );
+        const I da_1 = static_cast<I>( pd.template ToDiArc<Head>(a) );
         
-        const I f_0 = static_cast<I>(dA_F[da_0]); // right face of a
-        const I f_1 = static_cast<I>(dA_F[da_1]); // left  face of a
+        const I f_0  = static_cast<I>(dA_F[da_0]); // right face of a
+        const I f_1  = static_cast<I>(dA_F[da_1]); // left  face of a
                                      
         agg.Push( da_0, f_0,  COIN_Real(1) );
         agg.Push( da_0, f_1, -COIN_Real(1) );
         agg.Push( da_1, f_0, -COIN_Real(1) );
         agg.Push( da_1, f_1,  COIN_Real(1) );
     }
+    
+    const I arc_count_  = static_cast<I>(pd.ArcCount());
+    const I face_count_ = static_cast<I>(pd.FaceCount());
     
     Sparse::MatrixCSR<COIN_Real,I,J> A (
         agg, I(2) * arc_count_, face_count_, true, false
@@ -43,15 +44,15 @@ template<typename Int>
 Tensor1<COIN_Real,Int> BendsColLowerBounds( mref<PlanarDiagram<Int>> pd )
 {
     // All bends must be nonnegative.
-    return Tensor1<COIN_Real,Int>( Int(2) * pd.ArcCount(), COIN_Real(0) );
+    return Tensor1<COIN_Real,Int>( Int(2) * pd.Arcs().Dimension(0), COIN_Real(0) );
 }
 
 template<typename Int>
 Tensor1<COIN_Real,Int> BendsColUpperBounds( mref<PlanarDiagram<Int>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
-    return Tensor1<COIN_Real,Int>( Int(2) * pd.ArcCount(), Scalar::Infty<COIN_Real> );
-//    return Tensor1<COIN_Real,Int>( Int(2) * pd.ArcCount(), COIN_Real(3) );
+    return Tensor1<COIN_Real,Int>( Int(2) * pd.Arcs().Dimension(0), Scalar::Infty<COIN_Real> );
+//    return Tensor1<COIN_Real,Int>( Int(2) * pd.Arcs.Dimension(0), COIN_Real(3) );
 }
 
 template<typename Int>
@@ -96,5 +97,5 @@ Tensor1<COIN_Real,Int> BendsRowEqualityVector(
 template<typename Int>
 Tensor1<COIN_Real,Int> BendsObjectiveVector( mref<PlanarDiagram<Int>> pd )
 {
-    return Tensor1<COIN_Real,Int> ( Int(2) * pd.ArcCount(), COIN_Real(1) );
+    return Tensor1<COIN_Real,Int> ( Int(2) * pd.Arcs().Dimension(0), COIN_Real(1) );
 }

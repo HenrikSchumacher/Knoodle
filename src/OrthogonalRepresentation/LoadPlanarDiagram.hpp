@@ -5,17 +5,20 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
     TOOLS_PTIC(ClassName() + "::LoadPlanarDiagram");
     
     // CAUTION: This assumes no gaps in pd!
-    A_C            = pd.Arcs();
-    crossing_count = pd.Crossings().Dimension(0);
-    arc_count      = pd.Arcs().Dimension(0);
-    face_count     = pd.FaceCount();
+    A_C                 = pd.Arcs();
+    max_crossing_count  = pd.Crossings().Dimension(0);
+    max_arc_count       = pd.Arcs().Dimension(0);
+    
+    crossing_count      = pd.CrossingCount();
+    arc_count           = pd.ArcCount();
+    face_count          = pd.FaceCount();
     
     // TODO: Allow more general bend sequences.
-    exterior_face = exterior_face_;// TODO: BendsByLP may actually use another ext face!
+    exterior_face = (exterior_face_ < Int(0)) ? pd. MaximumFace() : exterior_face_;
 
     A_bends = BendsByLP(pd,exterior_face);
     
-    if( A_bends.Size() != arc_count)
+    if( A_bends.Size() != max_arc_count)
     {
         eprint(ClassName() + "::LoadPlanarDiagram: Bend optimization failed. Aborting.");
         return;
@@ -29,14 +32,16 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
         bend_count += Abs(A_bends[a]);
     }
 
-    vertex_count = crossing_count + bend_count;
-    edge_count   = arc_count      + bend_count;
+    // This counts all vertices and edges, not only the active ones.
+    vertex_count = max_crossing_count + bend_count;
+    edge_count   = max_arc_count      + bend_count;
     
-    V_scratch    = Tensor1<Int,Int> ( vertex_count );
-    E_scratch    = Tensor1<Int,Int> ( edge_count );
+    // General purpose buffers. May be used in all routines as temporary space.
+    V_scratch    = Tensor1<Int,Int> ( Int(2) * vertex_count );
+    E_scratch    = Tensor1<Int,Int> ( Int(2) * edge_count   );
     
-    mptr<SInt> C_dir = reinterpret_cast<SInt *>(V_scratch.data());
-    fill_buffer( C_dir, SInt(-1), crossing_count);
+    mptr<Dir_T> C_dir = reinterpret_cast<Dir_T *>(V_scratch.data());
+    fill_buffer( C_dir, Dir_T(-1), max_crossing_count);
     
     // C_dir[c] == -1 means invalid.
     // C_dir[c] == 0 means C_A(c,Out,Right) points east.
@@ -44,8 +49,11 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
     // C_dir[c] == 1 means C_A(c,Out,Right) points west.
     // C_dir[c] == 2 means C_A(c,Out,Right) points south.
 
+    // The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
+    constexpr Dir_T lut [2][2] = { {North,East}, {West,South} };
+    
     const auto & C_A = pd.Crossings();
-
+    
     // Tell each crossing what its absolute orientation is.
     // This would be hard to parallelize
     pd.DepthFirstSearch(
@@ -53,7 +61,7 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
         {
             if( A.da < Int(0) )
             {
-                C_dir[A.head] = SInt(0);
+                C_dir[A.head] = Dir_T(0);
             }
             else
             {
@@ -65,61 +73,77 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
                 const bool lr_0 = (C_A(c_0,io_0,Right) == a);
                 
                 // Direction where a would leave the standard-oriented port.
-                UInt dir = getArcOrientation(io_0,lr_0);
-
+                Dir_T dir = lut[io_0][lr_0];
+                
                 // Take orientation of c_0 into account.
                 dir += C_dir[c_0];
                 
                 // Take bends into account.
                 dir += (d ? A_bends[a] : -A_bends[a]);
                 // Arc enters through opposite direction.
-                dir += UInt(2);
+                dir += Dir_T(2);
                 
                 // a_dir % 4 is the port to dock to.
                 const bool io_1 = d;
                 const bool lr_1 = (C_A(c_1,io_1,Right) == a);
 
                 // Now we have to rotate c_1 by rot so that C_A(c_1,io_1,lr_1) equals a_dir:
-                // getArcOrientation(io_1,lr_1) + C_dir[c_1] == dir mod 4
+                // lut[io_1][lr_1] + C_dir[c_1] == dir mod 4
                 
-                C_dir[c_1] = (dir - getArcOrientation(io_1,lr_1)) % 4;
+                C_dir[c_1] = (dir - lut[io_1][lr_1]) % Dir_T(4);
             }
         }
     );
     
-    V_dE         = VertexContainer_T( vertex_count, Int(-1) );
-    E_V          = EdgeContainer_T  ( edge_count, Int(-1) );
+    V_dE         = VertexContainer_T( vertex_count, Uninitialized );
+    E_V          = EdgeContainer_T  ( edge_count,   Uninitialized );
+    
+    V_state      = Tensor1<VertexState,Int>( vertex_count, VertexState::Corner );
+    E_state      = Tensor1<EdgeState,Int>  ( edge_count  , EdgeState::Virtual );
 
     // Needed for turn regularity and for building E_left_dE.
     E_turn       = EdgeTurnContainer_T( edge_count );
     // E_turn(a,Head) = turn between a and E_left_dE(a,Head);
     // E_turn(a,Tail) = turn between a and E_left_dE(a,Tail);
 
-    E_dir        = Tensor1<SInt,Int>( edge_count );
-    E_A          = Tensor1< Int,Int>( edge_count );
+    E_dir        = Tensor1<Dir_T,Int>( edge_count );
+    E_A          = Tensor1<Int,Int>( edge_count );
     
-    A_V_ptr      = Tensor1<Int,Int>( arc_count + Int(1) );
+    A_V_ptr      = Tensor1<Int,Int>( max_arc_count + Int(1) );
     A_V_ptr[0]   = 0;
-    A_V_idx      = Tensor1< Int,Int>( edge_count + arc_count, Int(-1) );
+    A_V_idx      = Tensor1<Int,Int>( edge_count + arc_count, Uninitialized );
     
-    A_E_ptr      = Tensor1<Int,Int>( arc_count + Int(1) );
+    A_E_ptr      = Tensor1<Int,Int>( max_arc_count + Int(1) );
     A_E_ptr[0]   = 0;
-    A_E_idx      = Tensor1< Int,Int>( edge_count, Int(-1) );
+    A_E_idx      = Tensor1<Int,Int>( edge_count            , Uninitialized );
         
     
-    // Vertices, 0,...,crossing_count-1 correspond to crossings 0,...,crossing_count-1.
+    // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
     
-    Int V_counter = crossing_count;
-    Int E_counter = arc_count;
+    Int V_counter = max_crossing_count;
+    Int E_counter = max_arc_count;
 
-    // Subdivide each arc.
-    for( Int a = 0; a < arc_count; ++a )
+    
+    cptr<CrossingState> C_state = pd.CrossingStates().data();
+    cptr<ArcState>      A_state = pd.ArcStates().data();
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
-        const Int  b       = A_bends(a);
-        const Int  abs_b   = Abs(b);
-        const SInt sign_b  = Sign<SInt>(b);     // bend per turn.
-        const Int  c_0     = A_C(a,Tail);
-        const Int  c_1     = A_C(a,Head);
+        V_state[c] = VertexState(ToUnderlying(C_state[c]));
+    }
+    
+    // Subdivide each arc.
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        E_state[a] = EdgeState(ToUnderlying(A_state[a]));
+        
+        if( !EdgeActiveQ(a) ) { continue; }
+        
+        const Turn_T b       = A_bends(a);
+        const Int    abs_b   = static_cast<Int>(Abs(b));
+        const Turn_T sign_b  = Sign<Turn_T>(b);     // bend per turn.
+        const Int    c_0     = A_C(a,Tail);
+        const Int    c_1     = A_C(a,Head);
         
         const Int A_V_pos  = A_V_ptr[a];
         const Int A_E_pos  = A_E_ptr[a];
@@ -135,17 +159,17 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
 //         |    a        e_1       e_2       e_3   |c_1
 //         |                                       |
         
-        UInt e_dir = (getArcOrientation(Out,C_A(c_0,Out,Right) == a) + C_dir[c_0]) % 4;
+        Dir_T e_dir = (lut[Out][C_A(c_0,Out,Right) == a] + C_dir[c_0]) % Dir_T(4);
         
         A_V_idx[A_V_pos] = c_0;
         A_E_idx[A_E_pos] = a;
         
         V_dE(c_0,e_dir) = ToDiEdge(a,Head);
-        E_dir(a) = static_cast<SInt>(e_dir);
+        E_dir(a) = e_dir;
         E_A(a) = a;
         
         E_V   (a,Tail) = c_0;
-        E_turn(a,Tail) = SInt(1);
+        E_turn(a,Tail) = Turn_T(1);
         
 //               |
 //            c_0|   e     ?
@@ -179,10 +203,10 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
 //                    ???     f    |
 //                     --+-------->+ v
             
-            V_dE(v,(e_dir + UInt(2)) % 4) = ToDiEdge(f,Tail);
+            V_dE(v,(e_dir + Dir_T(2)) % Dir_T(4)) = ToDiEdge(f,Tail);
             
-            e_dir = (e_dir + sign_b) % 4;
-            E_dir(e) = static_cast<SInt>(e_dir);
+            e_dir = static_cast<Dir_T>(e_dir + sign_b) % Dir_T(4);
+            E_dir(e) = e_dir;
             
             
             V_dE(v,e_dir) = ToDiEdge(e,Head);
@@ -199,7 +223,7 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
             f = e;
         }
         
-        A_V_idx(A_V_pos + abs_b + 1) = c_1;
+        A_V_idx(A_V_pos + abs_b + Int(1)) = c_1;
         
 //                               | A_left_A(a,Head);
 //                     v      (*)|
@@ -210,7 +234,7 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
         V_dE(c_1,(e_dir + UInt(2)) % 4) = ToDiEdge(e,Tail);
         
         E_V   (e,Head) = c_1;
-        E_turn(e,Head) = SInt(1);
+        E_turn(e,Head) = Turn_T(1);
     };
     
     // We can compute this only after E_V and V_dE have been computed completed.
@@ -244,22 +268,23 @@ void ComputeEdgeLeftDiEdge()
     
     for( Int e = 0; e < edge_count; ++e )
     {
-        if( E_dir(e) == SInt(-1) )
+        TOOLS_DUMP( E_state[e] );
+        if( !EdgeActiveQ(e) )
         {
             wprint(ClassName() + "::ComputeEdgeLeftDiEdge: Skipping edge " + ToString(e) + ".");
             continue;
         }
 
-        const UInt e_dir = static_cast<UInt>(E_dir(e));
+        const Dir_T e_dir = E_dir(e);
         
-        const UInt t_0 = static_cast<UInt>(E_turn(e,Tail));
-        const UInt t_1 = static_cast<UInt>(E_turn(e,Head));
+        const Turn_T t_0  = E_turn(e,Tail);
+        const Turn_T t_1  = E_turn(e,Head);
         
-        const UInt s_0 = (e_dir + UInt(2) + t_0) % UInt(4);
-        const UInt s_1 = (e_dir +           t_1) % UInt(4);
+        const Dir_T s_0   = static_cast<Dir_T>(t_0 + Turn_T(2) + e_dir) % Dir_T(4);
+        const Dir_T s_1   = static_cast<Dir_T>(t_1 +           + e_dir) % Dir_T(4);
         
-        const Int  c_0 = E_V(e,Tail);
-        const Int  c_1 = E_V(e,Head);
+        const Int   c_0   = E_V(e,Tail);
+        const Int   c_1   = E_V(e,Head);
         
         E_left_dE(e,Tail) = V_dE(c_0,s_0);
         E_left_dE(e,Head) = V_dE(c_1,s_1);
@@ -346,21 +371,22 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
     
     for( Int da = 0; da < dA_count; ++da )
     {
-//        print("==============================");
-        if( dE_F[da] != Int(-1) )
+        auto [a,d] = pd.FromDiArc(da);
+        
+        if( (!EdgeActiveQ(a)) || (dE_F[da] != Int(-1)) )
         {
             continue;
         }
-        
+        //        print("==============================");
 //        TOOLS_DUMP(F_counter);
 //        TOOLS_DUMP(dE_counter);
         
-        auto [a,d] = pd.FromDiArc(da);
+        
         
         // This is to traverse the _crossings_ of each face in the same order as in pd.
         // Moreover, the first vertex in each face is guaranteed to be a crossing.
         const Int de_0 = d
-                       ? ToDiEdge(A_E_idx[A_E_ptr[a]],d)
+                       ? ToDiEdge(A_E_idx[A_E_ptr[a       ]       ],d)
                        : ToDiEdge(A_E_idx[A_E_ptr[a+Int(1)]-Int(1)],d);
         
 //        TOOLS_DUMP(da);
