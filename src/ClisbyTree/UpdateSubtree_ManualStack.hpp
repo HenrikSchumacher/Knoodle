@@ -2,6 +2,8 @@ private:
 
 void UpdateSubtree_ManualStack( const Int start_node )
 {
+    static_assert(SignedIntQ<Int>,"");
+    
     Int  stack [max_depth];
     Int stack_ptr = -1;
     

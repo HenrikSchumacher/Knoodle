@@ -2,6 +2,7 @@ private:
 
 bool CollisionQ_Reference()
 {
+    static_assert(SignedIntQ<Int>,"");
     Int stack [Int(4) * max_depth][2];
     Int stack_ptr = -1;
 

@@ -329,6 +329,8 @@ void PullTransforms_Recursive( const Int from, const Int node )
 // TODO: Test this. And try whether it improves the computation of the pivots.
 void PullTransforms_ManualStack( const Int from, const Int to )
 {
+    static_assert(SignedIntQ<Int>,"");
+    
     Int stack [max_depth];
     
     Int node = to;
