@@ -4,9 +4,9 @@
 
 struct DirectedArcNode
 {
-    Int tail = -1;
-    Int da   = -1;
-    Int head = -1;
+    Int tail = Uninitialized;
+    Int da   = Uninitialized;
+    Int head = Uninitialized;
 };
 
 constexpr static auto TrivialArcFunction = []( cref<DirectedArcNode> A )
@@ -80,26 +80,25 @@ void DepthFirstSearch(
 
     Stack<DirectedArcNode,Int> stack ( arc_count );
 
-    auto conditional_push = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover](
+    auto conditional_push = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover,this](
         const DirectedArcNode & A, const Int db
     )
     {
         // We never walk back the same arc.
-        if( (A.da >= Int(0)) && (db == FlipDiArc(A.da)) )
+        if( this->ValidIndexQ(A.da) && (db == FlipDiArc(A.da)) )
         {
             return;
         }
         
         // da.a may be virtual, but b may not.
-        if( db < Int(0) )
+        if( !this->ValidIndexQ(db) )
         {
             eprint(ClassName() + "::DepthFirstSearch: Virtual arc on stack.");
             return;
         }
         
+        auto [b,dir] = this->FromDiArc(db);
         const Int head = A_C[db];
-        
-        auto [b,dir] = FromDiArc(db);
 
         if( C_flag[head] <= UInt8(0) )
         {
@@ -135,7 +134,7 @@ void DepthFirstSearch(
         
         {
             C_flag[c_0] = UInt8(1);
-            DirectedArcNode A {Int(-1), Int(-1), c_0};
+            DirectedArcNode A {Uninitialized, Uninitialized, c_0};
             discover( A );
 //            logprint("discover crossing " + ToString(c_0));
             stack.Push( std::move(A) );
@@ -153,12 +152,12 @@ void DepthFirstSearch(
             }
             else if( C_flag[c] == UInt8(1) )
             {
+                
                 C_flag[c] = UInt8(2);
-//                logprint("pre-visit crossing " + ToString(c) + "; edge = " + ((da.a < 0) ? "-1" : ToString(da.a/2)) );
+//                logprint("pre-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(da.a) ? "Uninitialized" : ToString(da.a/2)) );
                 pre_visit( A );
 
                 // We process the arcs in reverse order so that they appear in correct order on the stack.
-                
                 
                 conditional_push( A, ToDiArc(C_arcs(c,In ,Right),Tail) );
                 conditional_push( A, ToDiArc(C_arcs(c,In ,Left ),Tail) );
@@ -169,7 +168,7 @@ void DepthFirstSearch(
             {
                 C_flag[c] = UInt8(3);
                 post_visit( A );
-//                logprint("post-visit crossing " + ToString(c) + "; edge = " + ((A.da < 0) ? "-1" : ToString(A.da/2)) );
+//                logprint("post-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(da.a) ? "Uninitialized" : ToString(A.da/2)) );
                 (void)stack.Pop();
             }
             else // if( C_flag[c] == UInt8(3) )

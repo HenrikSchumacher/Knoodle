@@ -9,10 +9,10 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * Beware that `A_scratch` and `C_scratch` are overwritten.
  * On return `C_scratch` contains the reordering of the crossings:
- * If crossing `c` is inactive, then `C_scratch[c] = -1`.
+ * If crossing `c` is inactive, then `C_scratch[c] = Uninitialized`.
  * Otherwise, `C_scratch[c]` contains the position of crossing `c` in the traversal.
  * On return `A_scratch` contains the reordering of the crossings if `arclabelsQ == true`:
- * If arc `a` is inactive, then `A_scratch[a] = -1`.
+ * If arc `a` is inactive, then `A_scratch[a] = Uninitialized`.
  * Otherwise, if `arclabelsQ == false`, then `A_scratch` containes garbage do not use it.
  *
  * Typically, `A_scratch` and `C_scratch` need not and should not be used externally, because the values `A_scratch[a]`, `C_scratch[c_0]`, and `C_scratch[c_1]` are fed to `fun` as `a_pos`, `c_0_pos`, and `c_1_pos`.
@@ -175,7 +175,7 @@ void Traverse_impl(
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )
     {
-        fill_buffer( A_flag, Int(-1), m );
+        fill_buffer( A_flag, Uninitialized, m );
     }
     else
     {
@@ -184,7 +184,7 @@ void Traverse_impl(
 
     if constexpr ( crossingsQ )
     {
-        fill_buffer( C_pos, Int(-1), n );
+        fill_buffer( C_pos, Uninitialized, n );
     }
 
     Int lc_counter = 0; // counter for the link components.
@@ -194,7 +194,8 @@ void Traverse_impl(
 
     constexpr bool ou_flag = (start_arc_ou != 0) ;
     constexpr bool overQ   = (start_arc_ou >  0) ;
-
+    
+    // TODO: Simply do a loop
     while( a_ptr < m )
     {
         // Search for next active, unvisited arc whose tail is over/under crossing (or arbitary if ou_flag == false).
@@ -202,7 +203,7 @@ void Traverse_impl(
             ( a_ptr < m )
             &&
             (
-                ( arclabelsQ ? (A_flag[a_ptr] >= Int(0)): (A_flag[a_ptr] == true) )
+                ( arclabelsQ ? ValidIndexQ(a_ptr) : (A_flag[a_ptr] == true) )
                 ||
                 (!this->ArcActiveQ(a_ptr))
             )
@@ -262,7 +263,7 @@ void Traverse_impl(
             AssertCrossing(c_1);
 
             c_1_pos = C_pos[c_1];
-            c_1_visitedQ = ( c_1_pos >= Int(0) );
+            c_1_visitedQ = ValidIndexQ(c_1_pos);
 
             if( !c_1_visitedQ )
             {
@@ -296,7 +297,7 @@ void Traverse_impl(
                 AssertCrossing(c_1);
 
                 c_1_pos = C_pos[c_1];
-                c_1_visitedQ = ( c_1_pos >= Int(0) );
+                c_1_visitedQ = ValidIndexQ(c_1_pos);
                 if( !c_1_visitedQ )
                 {
                     c_1_pos = C_pos[c_1] = c_counter;

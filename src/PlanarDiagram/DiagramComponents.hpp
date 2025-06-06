@@ -140,7 +140,7 @@ void Split( mref<PD_List_T> pd_list )
 {
     TOOLS_PTIC(ClassName()+"::Split");
     
-    if( CrossingCount() <= 0 )
+    if( CrossingCount() <= Int(0) )
     {
         return;
     }
@@ -163,7 +163,7 @@ void Split( mref<PD_List_T> pd_list )
     cptr<Int> lc_arc_ptr = LinkComponentArcPointers().data();
     cptr<Int> lc_arc_idx = LinkComponentArcIndices().data();
     
-    C_scratch.Fill(-1);
+    C_scratch.Fill(Uninitialized);
     
     mptr<Int> C_labels = C_scratch.data();
     
@@ -217,7 +217,7 @@ void Split( mref<PD_List_T> pd_list )
                 Int c_1_label;
                 
                 // TODO: I think we can get rid of this check.
-                if( C_labels[c_0] < Int(0) )
+                if( !ValidIndexQ(C_labels[c_0]) )
                 {
                     c_0_label = C_labels[c_0] = c_counter;
                     
@@ -234,7 +234,7 @@ void Split( mref<PD_List_T> pd_list )
                 pd.C_arcs(c_0_label,Out,side_0) = a_counter;
                 pd.A_cross(a_counter,Tail) = c_0_label;
                 
-                if( C_labels[c_1] < Int(0) )
+                if( !ValidIndexQ(C_labels[c_1]) )
                 {
                     c_1_label = C_labels[c_1] = c_counter;
                     

@@ -123,7 +123,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState>            A_state_new = pd.A_state.data();
     
-    C_scratch.Fill(-1);
+    C_scratch.Fill(Uninitialized);
     mptr<Int> C_pos = C_scratch.data();
     
     mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
@@ -182,7 +182,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
             
             AssertCrossing(c_1);
             
-            if( C_pos[c_1] < Int(0) )
+            if( !ValidIndexQ(C_pos[c_1]) )
             {
                 C_pos[c_1] = c_counter;
                 C_state_new[c_counter] = C_state[c_1];
@@ -217,7 +217,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
             
             A_visited[a] = true;
             
-            if( C_pos[c_1] < Int(0) )
+            if( !ValidIndexQ(C_pos[c_1]) )
             {
                 C_pos[c_1] = c_counter;
                 C_state_new[c_counter] = C_state[c_1];

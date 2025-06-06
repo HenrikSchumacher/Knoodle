@@ -10,21 +10,22 @@ void ComputeSpanningForest()
     Aggregator<Int,Int> discovered_arcs ( ArcCount()      );
     Tensor1<Int,Int>    C_parent_A      ( CrossingCount() );
     
+    
     DepthFirstSearch(
         [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push(A.da / Int(2));
+            discovered_arcs.Push( FromDiArc(A.da).first );
         },
         [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push(A.da / Int(2));
+            discovered_arcs.Push( FromDiArc(A.da).first );
         },
         [&C_pre,&C_parent_A,&roots]( cref<DirectedArcNode> A )
         {
             C_pre.Push(A.head);
             C_parent_A[A.head] = A.da;
             
-            if( A.da < Int(0) )
+            if( A.da == Uninitialized )
             {
                 roots.Push(A.head);
             }

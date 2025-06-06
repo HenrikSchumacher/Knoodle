@@ -28,7 +28,7 @@ void ReadFromLink(
     
     unlink_count = 0;
     
-    C_scratch.Fill(Int(-1));
+    C_scratch.Fill(Uninitialized);
     
     mptr<Int> C_label = C_scratch.data();
     Int C_counter = 0;
@@ -40,7 +40,7 @@ void ReadFromLink(
     {
         const Int c_pos = edge_intersections[b];
         
-        if( C_label[c_pos] < 0 )
+        if( !ValidIndexQ(C_label[c_pos]) )
         {
             C_label[c_pos] = C_counter++;
         }

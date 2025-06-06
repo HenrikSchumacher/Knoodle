@@ -352,8 +352,8 @@ PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
         const Int c_a = A_cross(a,Head);
         const Int c_b = A_cross(b,Head);
         
-        C_scratch[c_a] = -1;
-        C_scratch[c_b] = -1;
+        C_scratch[c_a] = Uninitialized;
+        C_scratch[c_b] = Uninitialized;
         
         ++length;
         
@@ -404,7 +404,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         Int t_label;
         Int h_label;
         
-        if( C_color[t] < Int(0) )
+        if( !ValidIndexQ(C_color[t]) )
         {
             C_color[t] = t_label = c_counter;
             pd.C_state[t_label] = C_state[t];
@@ -415,7 +415,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
             t_label = C_color[t];
         }
         
-        if( C_color[h] < Int(0) )
+        if( !ValidIndexQ(C_color[h]) )
         {
             C_color[h] = h_label = c_counter;
             pd.C_state[h_label] = C_state[h];
@@ -458,33 +458,3 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     
     return pd;
 }
-
-//Int ArcRangeLength( const Int a_begin, const Int a_end ) const
-//{
-//    if( a_end == a_begin )
-//    {
-//        return 0;
-//    }
-//
-//    Int a = a_begin;
-//    Int d = 0;
-//    
-//    do{
-//        ++d;
-//        Int a = NextArc<Head>(a);
-//    }
-//    while( (a != a_begin) and (a != a_end) );
-//    
-//    if( a == a_begin )
-//    {
-//        wprint(ClassName()+"::ArcRangeLength: " + ArcString(a_begin) + " and  " + ArcString(a_end) + " do not belong to the same connected component. Returning -1.");
-//        
-//        TOOLS_DUMP(d);
-//        
-//        return -1;
-//    }
-//    else
-//    {
-//        return d;
-//    }
-//}

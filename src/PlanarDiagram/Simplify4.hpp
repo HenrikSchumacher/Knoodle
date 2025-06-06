@@ -27,7 +27,8 @@ Int Simplify4(
          + "," + ToString(strand_R_II_Q)
          + ")");
     
-    Int old_counter = -1;
+    static_assert(SignedIntQ<Int>,"");
+    Int old_counter = 0;
     Int counter = 0;
     Int iter = 0;
     

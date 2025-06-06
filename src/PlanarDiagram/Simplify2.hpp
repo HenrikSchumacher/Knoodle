@@ -19,14 +19,12 @@ Int Simplify2()
     
     TOOLS_PTIC(ClassName()+"::Simplify2");
 
-    Int counter = 0;
-    
-    Int old_counter = -1;
-    Int iter = 0;
-    
     CrossingSimplifier<Int,true> S(*this);
     
-    while( counter != old_counter )
+    Int counter = 0;
+    Int old_counter = 0;
+    Int iter = 0;
+    do
     {
         ++iter;
         
@@ -64,7 +62,8 @@ Int Simplify2()
             }
         }
     }
-    
+    while( counter != old_counter );
+        
     if( counter > Int(0) )
     {
         this->ClearCache();

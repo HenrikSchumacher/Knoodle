@@ -38,6 +38,8 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
     TOOLS_PTIC(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
     
+    static_assert( SignedIntQ<T>, "" );
+    
     this->template Traverse<true,false,-1,method>(
         [&gauss_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
@@ -74,13 +76,13 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
     const bool    proven_minimalQ_ = false
 )
 {
+    static_assert( SignedIntQ<T>, "" );
+    
     PlanarDiagram<Int> pd (
         int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
     );
-    
-    static_assert( SignedIntQ<T>, "" );
-    
-    if( arc_count_ <= 0 )
+
+    if( arc_count_ <= Int(0) )
     {
         pd.proven_minimalQ = true;
         return pd;
@@ -95,7 +97,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         const T g = gauss_code[a];
         if( g == T(0) )
         {
-            eprint(ClassName() + "::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0 detected. Returning invalid PlanarDiagram.");
+            eprint(ClassName() + "::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
             
             return 1;
         }
@@ -107,7 +109,8 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         // TODO: Handle over/under in ArcState.
         pd.A_state[a] = ArcState::Active;
         
-        const bool visitedQ = pd.C_arcs(c,In,Left) != Int(-1);
+        static_assert(SignedIntQ<Int>);
+        const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
         {

@@ -41,8 +41,26 @@ cref<ArcContainer_T> ArcFaces()  const
     const std::string tag = "ArcFaces";
     
     if( !this->InCacheQ(tag) ) { RequireFaces(); }
-    
+
     return this->template GetCache<ArcContainer_T>(tag);
+}
+
+Int MaximumFace() const
+{
+    const std::string tag = "MaximumFace";
+    
+    if( !this->InCacheQ(tag) ) { RequireFaces(); }
+
+    return this->template GetCache<Int>(tag);
+}
+
+Int MaxFaceSize() const
+{
+    const std::string tag = "MaxFaceSize";
+    
+    if( !this->InCacheQ(tag) ) { RequireFaces(); }
+
+    return this->template GetCache<Int>(tag);
 }
 
 void RequireFaces() const
@@ -52,7 +70,7 @@ void RequireFaces() const
     cptr<Int> dA_left_dA = ArcLeftArc().data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    ArcContainer_T dA_F_buffer (max_arc_count);
+    ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );
     
     mptr<Int> dA_F = dA_F_buffer.data();
     
@@ -67,8 +85,8 @@ void RequireFaces() const
     // This way the directed arc da = 2 * a + Head has its left face in dA_f[da].
     
     
-    // Entry -1 means "unvisited but to be visited".
-    // Entry -2 means "do not visit".
+    // Entry Uninitialized means "unvisited but to be visited".
+    // Entry Uninitialized - 1 means "do not visit".
     
     for( Int a = 0; a < max_arc_count; ++ a )
     {
@@ -76,13 +94,13 @@ void RequireFaces() const
         
         if( ArcActiveQ(a) )
         {
-            dA_F[da         ] = Int(-1);
-            dA_F[da + Int(1)] = Int(-1);
+            dA_F[da         ] = Uninitialized;
+            dA_F[da + Int(1)] = Uninitialized;
         }
         else
         {
-            dA_F[da         ] = Int(-2);
-            dA_F[da + Int(1)] = Int(-2);
+            dA_F[da         ] = Uninitialized - Int(1);
+            dA_F[da + Int(1)] = Uninitialized - Int(1);
         }
     }
     
@@ -110,9 +128,14 @@ void RequireFaces() const
     Aggregator<Int,Int> F_dA_ptr_agg ( expected_face_count + Int(1) );
     F_dA_ptr_agg.Push(Int(0));
     
+    Int max_f    = 0;
+    Int max_size = 0;
+    
     for( Int da_0 = 0; da_0 < dA_count; ++da_0 )
     {
-        if( dA_F[da_0] != Int(-1) ) { continue; }
+        if( dA_F[da_0] != Uninitialized ) { continue; }
+        
+        const Int count_0 = dA_counter;
         
         Int da = da_0;
         do
@@ -130,43 +153,25 @@ void RequireFaces() const
         }
         while( da != da_0 );
         
+        const Int f = F_dA_ptr_agg.Size() - Int(1);
+        
         F_dA_ptr_agg.Push(dA_counter);
+        
+        const Int count_1 = dA_counter;
+        const Int f_size = count_1 - count_0;
+        
+        if( f_size > max_size )
+        {
+            max_f = f;
+            max_size = f_size;
+        }
     }
     
     this->SetCache( "FaceDirectedArcPointers", std::move(F_dA_ptr_agg.Get()) );
     this->SetCache( "FaceDirectedArcIndices" , std::move(F_dA_idx)           );
     this->SetCache( "ArcFaces",                std::move(dA_F_buffer)        );
+    this->SetCache( "MaxFaceSize",             max_size                      );
+    this->SetCache( "MaximumFace",             max_f                         );
     
     TOOLS_PTOC(ClassName()+"::RequireFaces");
-}
-
-
-Int OutsideFace()
-{
-    const std::string tag = "OutsideFace";
-    
-    if( !this->InCacheQ(tag) )
-    {
-        auto & F_dA_ptr = FaceDirectedArcPointers();
-        
-        const Int f_count = FaceCount();
-        
-        Int max_f = 0;
-        Int max_a = F_dA_ptr[max_f+1] - F_dA_ptr[max_f];
-        
-        for( Int f = 1; f < f_count; ++f )
-        {
-            const Int a_count = F_dA_ptr[f+1] - F_dA_ptr[f];
-            
-            if( a_count > max_a )
-            {
-                max_f = f;
-                max_a = a_count;
-            }
-        }
-        
-        this->SetCache(tag, max_f);
-    }
-    
-    return this->template GetCache<Int>(tag);
 }

@@ -667,13 +667,13 @@ mref<ArcContainer_T> ArcLeftArc() const
             }
 //            else
 //            {
-//                A_left(A[Out][Left ],Tail) = Int(-1);
-//                
-//                A_left(A[Out][Right],Tail) = Int(-1);
-//                
-//                A_left(A[In ][Left ],Head) = Int(-1);
-//                
-//                A_left(A[In ][Right],Head) = Int(-1);
+//                A_left(A[Out][Left ],Tail) = Uninitialized;
+//
+//                A_left(A[Out][Right],Tail) = Uninitialized;
+//
+//                A_left(A[In ][Left ],Head) = Uninitialized;
+//
+//                A_left(A[In ][Right],Head) = Uninitialized;
 //            }
         }
         
@@ -895,7 +895,7 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_next ( max_arc_count, Int(-1) );
+        Tensor1<Int,Int> A_next ( max_arc_count, Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
@@ -918,7 +918,7 @@ Tensor1<Int,Int> ArcPrevArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_prev ( max_arc_count, -1 );
+        Tensor1<Int,Int> A_prev ( max_arc_count, Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {

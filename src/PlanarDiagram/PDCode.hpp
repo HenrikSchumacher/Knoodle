@@ -11,9 +11,12 @@ public:
  *  `PDCode()(c,0)` is the incoming arc that goes under.
  *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
  *
- *  The last entry stores the handedness of the crossing:
- *    +1 for a right-handed crossing,
- *    -1 for a left-handed crossing.
+ *  The last entry stores the handedness of the crossing: if `T` is a signed integer typem then this is encoded as follows:
+ *    `+1` for a right-handed crossing,
+ *    `-1` for a left-handed crossing.
+ *  If `T` is an unsigned integer type, then we use
+ *    `+1` for a right-handed crossing,
+ *     `0` for a left-handed crossing.
  */
     
 template<typename T = Int, bool arclabelsQ = false, int method = DefaultTraversalMethod>
@@ -49,7 +52,7 @@ Exit:
     return pd_code;
 }
 
-template<typename T = Int, bool arclabelsQ = false, int method = DefaultTraversalMethod>
+template<typename T, bool arclabelsQ = false, int method = DefaultTraversalMethod>
 void WritePDCode( mptr<T> pd_code )
 {
     TOOLS_PTIC(ClassName()+"::WritePDCode"
@@ -59,6 +62,9 @@ void WritePDCode( mptr<T> pd_code )
         + ">");
     
     constexpr bool crossingsQ = true;
+    
+    constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
+    constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
     this->template Traverse<crossingsQ,arclabelsQ,-1,method>(
         [&pd_code,this](
@@ -80,7 +86,7 @@ void WritePDCode( mptr<T> pd_code )
                 
                 if( RightHandedQ(state) )
                 {
-                    pd[4] = 1;
+                    pd[4] = T_RightHanded;
                     
                     if( side == Left )
                     {
@@ -119,7 +125,7 @@ void WritePDCode( mptr<T> pd_code )
                 }
                 else if( LeftHandedQ(state) )
                 {
-                    pd[4] = -1;
+                    pd[4] = T_LeftHanded;
                     
                     if( side == Left )
                     {
@@ -167,7 +173,7 @@ void WritePDCode( mptr<T> pd_code )
                 
                 if( RightHandedQ(state) )
                 {
-                    pd[4] = 1;
+                    pd[4] = T_RightHanded;
                     
                     if( side == Left )
                     {
@@ -206,7 +212,7 @@ void WritePDCode( mptr<T> pd_code )
                 }
                 else if( LeftHandedQ(state) )
                 {
-                    pd[4] = -1;
+                    pd[4] = T_LeftHanded;
                     
                     if( side == Left )
                     {
@@ -358,8 +364,10 @@ static PlanarDiagram<Int> FromPDCode(
     constexpr Int d = PDsignedQ ? 5 : 4;
     
     static_assert( IntQ<ExtInt>, "" );
+    static_assert( IntQ<ExtInt2>, "" );
+    static_assert( IntQ<ExtInt3>, "" );
     
-    if( crossing_count_ <= 0 )
+    if( crossing_count_ <= Int(0) )
     {
         pd.proven_minimalQ = true;
         return pd;

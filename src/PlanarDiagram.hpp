@@ -10,7 +10,9 @@ namespace Knoodle
     template<typename Int_, bool mult_compQ_> class CrossingSimplifier;
     
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
+
     
+    // TODO: Enable unsigned integers because they should be about 15% faster in tasks heavy bit manipulations.
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
     {
@@ -44,18 +46,40 @@ namespace Knoodle
         template<typename I, bool mult_compQ_>
         friend class StrandSimplifier;
             
-        using Arrow_T = std::pair<Int,bool>;
-            
+        using HeadTail_T = bool;
+        using Arrow_T = std::pair<Int,HeadTail_T>;
+        
     public:
         
-        static constexpr bool Tail  = 0;
-        static constexpr bool Head  = 1;
+        
+        static constexpr HeadTail_T Tail  = 0;
+        static constexpr HeadTail_T Head  = 1;
+        
         static constexpr bool Left  = 0;
         static constexpr bool Right = 1;
         static constexpr bool Out   = 0;
         static constexpr bool In    = 1;
 
         static constexpr bool always_canonicalizeQ = true;
+        
+        static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
+        
+        
+        static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
+        
+        // For the faces I need and invalid value that is different from InvalidIndex.
+        
+        static constexpr bool ValidIndexQ( const Int i )
+        {
+            if constexpr (  SignedIntQ<Int> )
+            {
+                return i >= Int(0);
+            }
+            else
+            {
+                return i <= MaxValidIndex;
+            }
+        };
         
     protected:
         
@@ -104,16 +128,16 @@ namespace Knoodle
         
         PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
         : crossing_count     { crossing_count_                             }
-        , arc_count          { Int(2)*crossing_count                       }
+        , arc_count          { Int(2) * crossing_count                     }
         // TODO: Make this zero.
 //        : crossing_count     { Int(0)                                      }
 //        , arc_count          { Int(0)                                      }
         , unlink_count       { unlink_count_                               }
         , max_crossing_count { crossing_count_                             }
-        , max_arc_count      { Int(2)*crossing_count_                      }
-        , C_arcs             { max_crossing_count, -1                      }
+        , max_arc_count      { Int(2) * crossing_count                     }
+        , C_arcs             { max_crossing_count, Uninitialized           }
         , C_state            { max_crossing_count, CrossingState::Inactive }
-        , A_cross            { max_arc_count,      -1                      }
+        , A_cross            { max_arc_count,      Uninitialized           }
         , A_state            { max_arc_count,      ArcState::Inactive      }
         , C_scratch          { max_crossing_count                          }
         , A_scratch          { max_arc_count                               }
@@ -445,9 +469,7 @@ namespace Knoodle
          *  The states that a crossing can have are:
          *
          *  - `CrossingState::RightHanded`
-         *  - `CrossingState::RightHandedUnchanged`
          *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::LeftHandedUnchanged`
          *  - `CrossingState::Inactive`
          *
          * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
@@ -718,17 +740,19 @@ namespace Knoodle
             return c_next;
         }
         
-        static constexpr std::pair<Int,bool> FromDiArc( Int da )
+        // TODO: These things would be way faster if Int where unsigned.
+        
+        static constexpr std::pair<Int,HeadTail_T> FromDiArc( Int da )
         {
             return std::pair( da / Int(2), da % Int(2) );
         }
         
-        static constexpr Int ToDiArc( const Int a, const bool d )
+        static constexpr Int ToDiArc( const Int a, const HeadTail_T d )
         {
             return Int(2) * a + d;
         }
         
-        template<bool d>
+        template<HeadTail_T d>
         static constexpr Int ToDiArc( const Int a )
         {
             return Int(2) * a + d;
