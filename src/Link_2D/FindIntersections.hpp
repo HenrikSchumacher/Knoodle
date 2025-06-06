@@ -109,8 +109,6 @@ public:
         
         const Int intersection_count = static_cast<Int>(intersections.size());
         
-        
-
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
         edge_ctr.Read( edge_ptr.data() );
@@ -130,7 +128,6 @@ public:
             return 0;
         }
         
-        logprint("Counting sort");
         
         TOOLS_PTIC("Counting sort");
         for( Int k = intersection_count; k --> Int(0);  )
@@ -182,8 +179,11 @@ public:
                     {
                         ++close_counter;
                         
-                        if constexpr ( verboseQ )
-                        {
+                        // TODO: For the moment we _want_ to see this warning.
+                        // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+                        
+//                        if constexpr ( verboseQ )
+//                        {
                             auto inter_0 = intersections[
                                 static_cast<Size_T>(edge_intersections[l-1])
                             ];
@@ -196,7 +196,7 @@ public:
                             const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
                             wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToStringFPGeneral(delta) + " < " + ToStringFPGeneral(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
-                        }
+//                        }
                     }
                 }
             }
@@ -209,10 +209,12 @@ public:
         
         if( intersection_flag_counts[8] )
         {
-            if constexpr ( verboseQ )
-            {
+            // TODO: For the moment we _want_ to see this warning.
+            // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+//            if constexpr ( verboseQ )
+//            {
                 wprint(ClassName()+"::FindIntersections: Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
-            }
+//            }
             return 8;
         }
         
@@ -255,6 +257,7 @@ private:
     {
         const Int int_node_count = T.InternalNodeCount();
 
+        static_assert(SignedIntQ<Int>,"");
         Int stack [4 * max_depth][2];
         Int stack_ptr = -1;
 
@@ -546,7 +549,7 @@ protected:
         
         LineSegmentsIntersectionFlag flag
             = S.template IntersectionType<verboseQ>( x[0], x[1], y[0], y[1] );
-
+        
         if constexpr ( verboseQ )
         {
             TOOLS_DUMP(flag);
@@ -682,10 +685,6 @@ protected:
                 break;
             }
         }
-        
-//        if( t[0] < Real(0) )
-//        {
-//        }
     }
 
 
