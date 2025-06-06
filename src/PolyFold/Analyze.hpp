@@ -158,7 +158,8 @@ void Analyze( const LInt i )
             log << "\n" + ct_tabs<t1> + "|>";
         }
         
-        if( err != 0 )
+        // TODO: This lets the simulation continue if closeby intersection times have been detected. Should should make this check more robust in the future.
+        if( (err != 0) && (err != 8) )
         {
             kv<t1>("FindIntersections Error Flag", err);
             log << std::flush;
