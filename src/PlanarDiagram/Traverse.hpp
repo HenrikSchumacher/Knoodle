@@ -2,6 +2,8 @@ public:
 
 static constexpr int DefaultTraversalMethod = 1;
 
+// TODO: Precompute ArcOverQ -- or actually pack that into A_state.
+
 // TODO: Use this for ArcOverStrands and ArcUnderStrands.
 
 /*!
@@ -195,15 +197,16 @@ void Traverse_impl(
     constexpr bool ou_flag = (start_arc_ou != 0) ;
     constexpr bool overQ   = (start_arc_ou >  0) ;
     
-    // TODO: Simply do a loop
+    // TODO: Simply do a loop?
+
     while( a_ptr < m )
     {
-        // Search for next active, unvisited arc whose tail is over/under crossing (or arbitary if ou_flag == false).
+        // Search for next active, unvisited arc.
         while(
             ( a_ptr < m )
             &&
             (
-                ( arclabelsQ ? ValidIndexQ(a_ptr) : (A_flag[a_ptr] == true) )
+                ( arclabelsQ ? ValidIndexQ(A_flag[a_ptr]) : (A_flag[a_ptr] == true) )
                 ||
                 (!this->ArcActiveQ(a_ptr))
             )
@@ -243,7 +246,7 @@ void Traverse_impl(
             a_ptr = a;
         }
         
-        // Now we are at the first arc of an over/understrand or we have `a = a_ptr`å.
+        // Now we are at the first arc of an over/understrand or we have `a = a_ptr`.
         // The latter can only happen if `ou_flag == true` and if the whole link component is a single over/understrand.
         
         // In any case, we just have to traverse forward through all arcs in the link component.
