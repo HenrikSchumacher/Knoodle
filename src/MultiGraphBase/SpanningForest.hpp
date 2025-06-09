@@ -52,9 +52,9 @@ void ComputeSpanningForest()
 VV_Vector_T VertexPreOrdering()
 {
     std::string tag ("VertexPreOrdering");
-    TOOLS_PTIC(ClassName() + "::" + tag);
+    TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName() + "::" + tag);
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
@@ -64,9 +64,9 @@ VV_Vector_T VertexPreOrdering()
 VV_Vector_T VertexPostOrdering()
 {
     std::string tag ("VertexPostOrdering");
-    TOOLS_PTIC(ClassName() + "::" + tag);
+    TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName() + "::" + tag);
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
@@ -76,9 +76,9 @@ VV_Vector_T VertexPostOrdering()
 EE_Vector_T SpanningForestDirectedEdges()
 {
     std::string tag ("SpanningForestDirectedEdges");
-    TOOLS_PTIC(ClassName() + "::" + tag);
+    TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName() + "::" + tag);
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<EE_Vector_T>(tag);
 }
 
@@ -86,17 +86,17 @@ EE_Vector_T SpanningForestDirectedEdges()
 VV_Vector_T SpanningForestRoots()
 {
     std::string tag ("SpanningForestRoots");
-    TOOLS_PTIC(ClassName() + "::" + tag);
+    TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName() + "::" + tag);
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
 EE_Vector_T DFSEdgeOrdering()
 {
     std::string tag ("DFSEdgeOrdering");
-    TOOLS_PTIC(ClassName() + "::" + tag);
+    TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName() + "::" + tag);
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<EE_Vector_T>(tag);
 }
