@@ -2,7 +2,8 @@
 
 namespace Knoodle
 {
-    // TODO: Make MultiGraphBase ready for unsigned integers.
+    // TODO: Make this ready for unsigned integers.
+
     
     template<
         typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
@@ -124,6 +125,8 @@ namespace Knoodle
         
         // TODO: This function is not correct, I think. It does not account for single-vertex components!
         
+        // TODO: Rewrite this with `DepthFirstSearch`.
+        
         void RequireTopology() const
         {
             TOOLS_PTIC( ClassName()+ "::RequireTopology" );
@@ -172,12 +175,13 @@ namespace Knoodle
             // e_flags[e] == 2 means edge e is visited (and completed).
             Tensor1<Sign_T,EInt> e_flags ( edge_count, Sign_T(0) );
             
+            static_assert(SignedIntQ<EInt>,"");
+            
             // TODO: I can keep e_stack, path, and d_stack uninitialized.
             // Keeps track of the edges we have to process.
             // Every edge can be only explored in two ways: from its two vertices.
             // Thus, the stack does not have to be bigger than 2 * edge_count.
             Tensor1<EInt,EInt> e_stack ( EInt(2) * edge_count, EInt(-2) );
-            
             // Keeps track of the edges we travelled through.
             Tensor1<EInt,EInt> e_path ( edge_count + EInt(2), EInt(-2) );
             // Keeps track of the vertices we travelled through.
@@ -234,10 +238,10 @@ namespace Knoodle
                     
                     if( e_flags[e] == 1 )
                     {
-                        // Mark as visited and tack back.
+                        // Mark as visited and track back.
                         e_flags[e] = 2;
                         
-                        // Pop stack from stack.
+                        // Pop from stack.
                         --stack_ptr;
 
                         // Backtrack.
@@ -282,6 +286,7 @@ namespace Knoodle
                     
                     if( f < UInt8(1) )
                     {
+                        // Visit vertex.
                         v_flags[v]   = 1;
                         v_parents[v] = w;
                         
@@ -303,6 +308,7 @@ namespace Knoodle
                     }
                     else
                     {
+                        // Vertex rediscovered.
                         // Create a new cycle.
                         
                         EInt pos = path_ptr;
@@ -366,7 +372,6 @@ namespace Knoodle
             
             this->SetCache( std::string("ComponentEdgeMatrix"), std::move(C) );
             
-            
             TOOLS_PTOC( ClassName()+ "::RequireTopology" );
         }
         
@@ -375,36 +380,21 @@ namespace Knoodle
         cref<CycleMatrix_T> CycleMatrix( ) const
         {
             std::string tag ("CyleMatrix");
-            
-            if( !this->InCacheQ(tag) )
-            {
-                RequireTopology();
-            }
-
+            if(!this->InCacheQ(tag)) { RequireTopology(); }
             return this->template GetCache<CycleMatrix_T>(tag);
         }
         
         cref<ComponentMatrix_T> ComponentEdgeMatrix() const
         {
             std::string tag ("ComponentEdgeMatrix");
-            
-            if( !this->InCacheQ(tag) )
-            {
-                RequireTopology();
-            }
-
+            if(!this->InCacheQ(tag)) { RequireTopology(); }
             return this->template GetCache<ComponentMatrix_T>(tag);
         }
         
         cref<Tensor1<VInt,VInt>> SpanningTree() const
         {
             std::string tag ( "SpanningTree" );
-            
-            if( !this->InCacheQ(tag) )
-            {
-                RequireTopology();
-            }
-
+            if(!this->InCacheQ(tag)) { RequireTopology(); }
             return this->template GetCache<Tensor1<VInt,VInt>>(tag);
         }
         
