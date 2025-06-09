@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    // TODO: Make MultiGraphBase ready for unsigned integers.
+    // TODO: Make this ready for unsigned integers.
 
     template<
         typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
