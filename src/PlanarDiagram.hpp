@@ -64,10 +64,9 @@ namespace Knoodle
         
         static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
         
+        // For the faces I need at least ine invalid value that is different from `Uninitialized`. So we consider (Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
         
         static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
-        
-        // For the faces I need and invalid value that is different from InvalidIndex.
         
         static constexpr bool ValidIndexQ( const Int i )
         {
