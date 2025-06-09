@@ -53,13 +53,9 @@ void ComputeSpanningForest()
 Tensor1<Int,Int> CrossingPreOrdering()
 {
     std::string tag ("CrossingPreOrdering");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
+    TOOLS_PTIC(ClassName()+"::"+tag);
+    if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
@@ -69,13 +65,9 @@ Tensor1<Int,Int> CrossingPreOrdering()
 Tensor1<Int,Int> CrossingPostOrdering()
 {
     std::string tag ("CrossingPostOrdering");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
+    TOOLS_PTIC(ClassName()+"::"+tag);
+    if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
@@ -85,38 +77,26 @@ Tensor1<Int,Int> CrossingPostOrdering()
 Tensor1<Int,Int> SpanningForestDirectedArcs()
 {
     std::string tag ("SpanningForestDirectedArcs");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
+    TOOLS_PTIC(ClassName()+"::"+tag);
+    if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 Tensor1<Int,Int> SpanningForestRoots()
 {
     std::string tag ("SpanningForestRoots");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-    
-    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
+    TOOLS_PTIC(ClassName()+"::"+tag);
+    if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 Tensor1<Int,Int> DFSArcOrdering()
 {
     std::string tag ("DFSArcOrdering");
-    
-    TOOLS_PTIC(ClassName() + "::" + tag);
-
-    if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    
-    TOOLS_PTOC(ClassName() + "::" + tag);
-    
+    TOOLS_PTIC(ClassName()+"::"+tag);
+    if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
+    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
