@@ -11,20 +11,18 @@ void ComputeConstraintGraphs()
     // TODO: Alas, my MultiDiGraph class does not like it!
     
  
-    Aggregator<Int,Int> S_h_ptr_agg ( edge_count );
-    Aggregator<Int,Int> S_h_idx_agg ( edge_count );
+    Aggregator<Int,Int> S_h_ptr_agg ( tre_count );
+    Aggregator<Int,Int> S_h_idx_agg ( tre_count );
+    Aggregator<Int,Int> S_v_ptr_agg ( tre_count );
+    Aggregator<Int,Int> S_v_idx_agg ( tre_count );
     
-    Aggregator<Int,Int> S_v_ptr_agg ( edge_count );
-    Aggregator<Int,Int> S_v_idx_agg ( edge_count );
+    E_S_h = Tensor1<Int,Int>( tre_count, Uninitialized );
+    E_S_v = Tensor1<Int,Int>( tre_count, Uninitialized );
+    V_S_h = Tensor1<Int,Int>( vertex_count  , Uninitialized );
+    V_S_v = Tensor1<Int,Int>( vertex_count  , Uninitialized );
     
-    E_S_h = Tensor1<Int,Int>( edge_count, Uninitialized );
-    E_S_v = Tensor1<Int,Int>( edge_count, Uninitialized );
-    
-    V_S_h = Tensor1<Int,Int>( vertex_count, Uninitialized );
-    V_S_v = Tensor1<Int,Int>( vertex_count, Uninitialized );
-    
-    Aggregator<Int,Int> D_h_agg ( Int(2) * edge_count );
-    Aggregator<Int,Int> D_v_agg ( Int(2) * edge_count );
+    Aggregator<Int,Int> D_h_agg ( Int(2) * tre_count );
+    Aggregator<Int,Int> D_v_agg ( Int(2) * tre_count );
     
 //    Int counter_h = 0;
 //    Int counter_v = 0;
@@ -32,62 +30,93 @@ void ComputeConstraintGraphs()
     S_h_ptr_agg.Push(Int(0));
     S_v_ptr_agg.Push(Int(0));
     
+//    TOOLS_DUMP(S_h_ptr_agg.Size());
+//    TOOLS_DUMP(S_v_ptr_agg.Size());
+    
+//    TOOLS_DUMP(vertex_count);
+    
     for( Int v_0 = 0; v_0 < vertex_count; ++v_0 )
     {
-        if( !VertexActiveQ(v_0) ) { continue; };
+//        print("========");
+//        TOOLS_DUMP(v_0);
+//        TOOLS_DUMP(V_state[v_0]);
+//        if( !VertexActiveQ(v_0) )
+//        {
+//            print("Skipping vertex " + ToString(v_0));
+//            continue;
+//        };
+//        
+//        TOOLS_DUMP(V_dTRE(v_0,West));
+//        TOOLS_DUMP(V_dTRE(v_0,South));
         
         // TODO: Segments are also allowed to contain exactly one vertex.
-        if( (V_dE(v_0,West) == Int(-1)) && (V_dE(v_0,East) != Int(-1)) )
+        if( V_dTRE(v_0,West) == Uninitialized )
         {
+//            print("Eastward");
             // Collect horizontal segment.
             const Int s = S_h_ptr_agg.Size() - Int(1);
+            
+//            TOOLS_DUMP(s);
+            
             Int w  = v_0;
-            Int de = V_dE(w,East);
+            Int de = V_dTRE(w,East);
             Int v;
+//            TOOLS_DUMP(w);
             V_S_h[w] = s;
-            do
+            
+//            TOOLS_DUMP(de);
+            
+            while( de != Uninitialized )
             {
                 auto [e,dir] = FromDiEdge(de);
                 S_h_idx_agg.Push(e);
                 E_S_h[e] = s;
                 
-                v  = E_V.data()[de];
-                de = V_dE(v,East);
+                v  = TRE_V.data()[de];
+                de = V_dTRE(v,East);
                 w  = v;
+//                TOOLS_DUMP(w);
                 V_S_h[w] = s;
             }
-            while( de != Int(-1) );
 
             S_h_ptr_agg.Push( S_h_idx_agg.Size() );
         }
         
-        // TODO: Segments are also allowed to contain exactly one vertex.
-        if( (V_dE(v_0,South) == Int(-1)) && (V_dE(v_0,North) != Int(-1)) )
+        if( V_dTRE(v_0,South) == Uninitialized )
         {
+//            print("Northward");
             // Collect vertical segment.
             const Int s = S_v_ptr_agg.Size() - Int(1);
+            
+//            TOOLS_DUMP(s);
+            
             Int  w = v_0;
-            Int de = V_dE(w,North);
+            Int de = V_dTRE(w,North);
             Int v;
+//            TOOLS_DUMP(w);
             V_S_v[w] = s;
             
-            do
+//            TOOLS_DUMP(de);
+            
+            while( de != Uninitialized )
             {
                 auto [e,dir] = FromDiEdge(de);
                 S_v_idx_agg.Push(e);
                 E_S_v[e] = s;
                 
-                v  = E_V.data()[de];
-                de = V_dE(v,North);
+                v  = TRE_V.data()[de];
+                de = V_dTRE(v,North);
                 w  = v;
+//                TOOLS_DUMP(w);
                 V_S_v[w] = s;
             }
-            while( de != Int(-1) );
 
             S_v_ptr_agg.Push( S_v_idx_agg.Size() );
         }
     }
-
+    
+//    TOOLS_DUMP(V_S_h);
+//    TOOLS_DUMP(V_S_v);
     
     S_h_ptr = S_h_ptr_agg.Get();
     S_h_idx = S_h_idx_agg.Get();
@@ -95,67 +124,89 @@ void ComputeConstraintGraphs()
     S_v_ptr = S_v_ptr_agg.Get();
     S_v_idx = S_v_idx_agg.Get();
     
-    // This pushes only the directly obvious relation stemming form edges in H.
-    // Thise correspond to the sets A_h and A_v from the paper.
-    for( Int e = 0; e < edge_count; ++e )
+    // This pushes only the directly obvious relations stemming from edges in H.
+    // These correspond to the sets A_h and A_v from the paper.
+    for( Int e = 0; e < tre_count; ++e )
     {
-        if( !EdgeActiveQ(e) ) { continue; }
+//        TOOLS_DUMP(e);
+        if( !ValidIndexQ(e) )
+        {
+            print(ClassName()+"::ComputeConstraintGraphs: invalid edge index " + ToString(e) + ".");
+            continue;
+        }
         
-//        print("e = " + ToString(e) + "; E_dir[e] = " + ToString(e) );
-        switch( E_dir[e] )
+        // All virtual edges are active, so we do not have to check them.
+        // But the other edges need some check here.
+        if( (e < edge_count) && !EdgeActiveQ(e) ) { continue; }
+        
+        const Int c_0 = TRE_V(e,Tail);
+        const Int c_1 = TRE_V(e,Head);
+        
+//        TOOLS_DUMP(TRE_dir[e]);
+//        TOOLS_DUMP(c_0);
+//        TOOLS_DUMP(c_1);
+        
+        switch( TRE_dir[e] )
         {
             case East:
             {
-                D_v_agg.Push( V_S_v[E_V(e,Tail)] );
-                D_v_agg.Push( V_S_v[E_V(e,Head)] );
+                const Int v_0 = V_S_v[c_0];
+                const Int v_1 = V_S_v[c_1];
+                
+//                if(v_0 == v_1)
+//                {
+//                    eprint("East!!!");
+//                }
+                D_v_agg.Push(v_0);
+                D_v_agg.Push(v_1);
                 break;
             }
             case North:
             {
-                D_h_agg.Push( V_S_h[E_V(e,Tail)] );
-                D_h_agg.Push( V_S_h[E_V(e,Head)] );
+                const Int v_0 = V_S_h[c_0];
+                const Int v_1 = V_S_h[c_1];
+                
+//                if(v_0 == v_1)
+//                {
+//                    eprint("North!!!");
+//                }
+                D_h_agg.Push(v_0);
+                D_h_agg.Push(v_1);
                 break;
             }
             case West:
             {
-                D_v_agg.Push( V_S_v[E_V(e,Head)] );
-                D_v_agg.Push( V_S_v[E_V(e,Tail)] );
+                const Int v_0 = V_S_v[c_0];
+                const Int v_1 = V_S_v[c_1];
+                
+//                if(v_0 == v_1)
+//                {
+//                    eprint("West!!!");
+//                }
+                D_v_agg.Push(v_1);
+                D_v_agg.Push(v_0);
                 break;
             }
             case South:
             {
-                D_h_agg.Push( V_S_h[E_V(e,Head)] );
-                D_h_agg.Push( V_S_h[E_V(e,Tail)] );
+                const Int v_0 = V_S_h[c_0];
+                const Int v_1 = V_S_h[c_1];
+                
+//                if(v_0 == v_1)
+//                {
+//                    eprint("South!!!");
+//                }
+                D_h_agg.Push(v_1);
+                D_h_agg.Push(v_0);
                 break;
             }
             default:
             {
-                eprint( ClassName() + "::ComputeConstraintGraphs: Invalid entry of edge direction array E_dir detected.");
+                eprint( ClassName() + "::ComputeConstraintGraphs: Invalid entry of edge direction array TRE_dir detected.");
                 break;
             }
         }
     }
-    
-//
-//    TOOLS_DUMP( D_h_agg.Size() );
-//    auto D_h_edges = D_h_agg.Get();
-//    TOOLS_DUMP( D_h_edges );
-//    TOOLS_DUMP( D_h_agg.Size() );
-//    
-//    valprint(
-//        "D_h_edges by points",
-//        ArrayToString( D_h_agg.data(), {D_h_agg.Size(),Int(2)} )
-//    );
-//    
-//    TOOLS_DUMP( D_v_agg.Size() );
-//    auto D_v_edges = D_v_agg.Get();
-//    TOOLS_DUMP( D_v_edges );
-//    TOOLS_DUMP( D_v_agg.Size() );
-//    
-//    valprint(
-//        "D_b_edges by points",
-//        ArrayToString( D_v_agg.data(), {D_v_agg.Size()/2,Int(2)} )
-//    );
     
     D_h = DiGraph_T( S_h_ptr.Size() - Int(1), D_h_agg.data(), D_h_agg.Size()/2 );
     D_v = DiGraph_T( S_v_ptr.Size() - Int(1), D_v_agg.data(), D_v_agg.Size()/2 );
@@ -200,3 +251,5 @@ Segment TopSegment( const Segment s ) const
            ? Segment(V_S_h[ S_v_ptr[s+1] - 1],false)
            : s;
 }
+
+

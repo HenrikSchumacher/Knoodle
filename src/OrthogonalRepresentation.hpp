@@ -4,8 +4,8 @@
 
 namespace Knoodle
 {
-    // TODO: NextLeftEdge;
-    // TODO: check for EdgeTurns;
+    // TODO: check EdgeTurns;
+    // TODO: What to do with multiple diagram components?
     
     // TODO: Child class TurnRegularOrthogonalRepresentation?
     // Or just use a flag for that?
@@ -31,13 +31,15 @@ namespace Knoodle
         using EdgeContainer_T     = DiGraph_T::EdgeContainer_T;
         using EdgeTurnContainer_T = Tiny::VectorList_AoS<2,Turn_T,Int>;
         using DirectedArcNode     = PlanarDiagram_T::DirectedArcNode;
-
+        using CoordsContainer_T   = Tiny::VectorList_AoS<2,Int,Int>;
+        using FlagContainer_T     = Tiny::VectorList_AoS<2,UInt8,Int>;
+        
         enum class VertexState : Int8
         {
             Inactive    =  0,
             RightHanded =  1,
             LeftHanded  = -1,
-            Corner      =  0
+            Corner      =  2
         };
         
         enum class EdgeState : UInt8
@@ -46,14 +48,14 @@ namespace Knoodle
             Active      = 1,
             Virtual     = 2
         };
-
+        
         static constexpr Int Uninitialized = PlanarDiagram_T::Uninitialized;
         static constexpr Int MaxValidIndex = PlanarDiagram_T::MaxValidIndex;
-
+        
         static constexpr bool ValidIndexQ( const Int i )
         {
             return PlanarDiagram_T::ValidIndexQ(i);
-        };
+        }
         
     private:
         
@@ -76,7 +78,6 @@ namespace Knoodle
         
 #include "OrthogonalRepresentation/Constants.hpp"
 
-        
     public:
         
         OrthogonalRepresentation() = default;
@@ -94,9 +95,56 @@ namespace Knoodle
             mref<PlanarDiagram_T> pd, const Int exterior_face
         )
         {
-            LoadPlanarDiagram(pd,exterior_face);
+            SubdividePlanarDiagram(pd,exterior_face);
             
-            //ComputeConstraintGraphs();
+            // We can compute this only after E_V and V_dE have been computed completed.
+            ComputeEdgeLeftDiEdge();
+            
+//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+            
+            ComputeFaces(pd);
+            
+//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+//            TOOLS_DUMP(BoolString(CheckFaceTurns()));
+//            
+//            auto V_dE_backup = V_dE;
+//            auto E_V_backup = E_V;
+//            auto E_dir_backup = E_dir;
+//            auto E_turn_backup = E_turn;
+            
+            TurnRegularize();
+            
+//            TOOLS_DUMP(V_dE == V_dE_backup);
+//            TOOLS_DUMP(E_V == E_V_backup);
+//            TOOLS_DUMP(E_dir == E_dir_backup);
+//            TOOLS_DUMP(E_turn == E_turn_backup);
+            
+            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+            TOOLS_DUMP(BoolString(CheckFaceTurns()));
+            TOOLS_DUMP(BoolString(Check_TRE_Directions()));
+            
+            ComputeConstraintGraphs();
+            
+            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+            TOOLS_DUMP(BoolString(CheckFaceTurns()));
+            TOOLS_DUMP(BoolString(Check_TRE_Directions()));
+            TOOLS_DUMP(BoolString(CheckTurnRegularity()));
+            
+            {
+                auto x = VerticalSegmentTopologicalNumbering();
+                auto y = HorizontalSegmentTopologicalNumbering();
+                
+//                TOOLS_DUMP(x);
+//                TOOLS_DUMP(y);
+//                TOOLS_DUMP(V_S_v);
+//                TOOLS_DUMP(V_S_h);
+                
+                ComputeVertexCoordinates(x,y);
+            }
+            
+            ComputeArcLines();
+            
+            ComputeArcSplines();
         }
                                  
         ~OrthogonalRepresentation() = default;
@@ -119,6 +167,8 @@ namespace Knoodle
         Tensor1<VertexState,Int> V_state;
         Tensor1<EdgeState,Int>   E_state;
         
+        Tiny::VectorList_AoS<2,bool,Int>  A_overQ;
+        
         Tensor1<Int,Int>    A_bends;
         VertexContainer_T   V_dE; // Entries are _outgoing_ directed edge indices. Do /2 to get actual arc index.
         EdgeContainer_T     A_C; // The orginal arcs. Not sure whether we are really going to need them...
@@ -128,19 +178,33 @@ namespace Knoodle
         EdgeTurnContainer_T E_turn;
         Tensor1<Dir_T,Int>  E_dir; // Cardinal direction of _undirected_ edges.
         
-        // TODO: Computing both (A_V_ptr,A_V_idx) and (A_E_ptr,A_E_idx) seems redundant.
+//        // TODO: Computing both (A_V_ptr,A_V_idx) and (A_E_ptr,A_E_idx) seems redundant.
         Tensor1<Int,Int>    A_V_ptr;
         Tensor1<Int,Int>    A_V_idx;
-        // Arc a has vertices A_V_idx[A_V_ptr[a]], A_V_idx[A_V_ptr[0]+1],A_V_idx[A_V_ptr[0]+2],...,A_V_idx[A_V_ptr[a+1]])
         
         Tensor1<Int,Int>    E_A; // Undirected edge indices to undirected arc indices.
         Tensor1<Int,Int>    A_E_ptr;
         Tensor1<Int,Int>    A_E_idx;
         // Arc a has undirected edges A_E_idx[A_E_ptr[a]], A_E_idx[A_E_ptr[0]+1],A_E_idx[A_E_ptr[0]+2],...,A_E_idx[A_E_ptr[a+1]])
         
+        // Faces
+        
         EdgeContainer_T     E_F;
         Tensor1<Int,Int>    F_dE_ptr;
         Tensor1<Int,Int>    F_dE_idx;
+        
+        
+        // Turn regularization (TRE = turn regularized edges
+        
+        Int tre_count  = 0;
+        
+        VertexContainer_T   V_dTRE;
+        EdgeContainer_T     TRE_V;
+        EdgeContainer_T     TRE_left_dTRE;
+        EdgeTurnContainer_T TRE_turn;
+        Tensor1<Dir_T,Int>  TRE_dir;
+        
+        // Compaction
         
         DiGraph_T           D_h; // constraint graph of horizontal segments
         DiGraph_T           D_v; // constraint graph of vertical segments
@@ -166,35 +230,52 @@ namespace Knoodle
         // General purpose buffers. May be used in all routines as temporary space.
         mutable Tensor1<Int,Int> V_scratch;
         mutable Tensor1<Int,Int> E_scratch;
+        mutable FlagContainer_T  TRE_flag;
         
         bool proven_turn_regularQ = false;
         
         // TODO: Delete this when the class is finished.
         PlanarDiagram_T * pd_ptr = nullptr;
         
+        
+        // Plotting
+        
+        Int width       = 0;
+        Int height      = 0;
+        
+        Int x_grid_size = 20;
+        Int y_grid_size = 20;
+        Int x_gap_size  = 4;
+        Int y_gap_size  = 4;
+        
+        CoordsContainer_T V_coords;
+        CoordsContainer_T A_line_coords;
+        
+        Tensor1<Int,Int>  A_spline_ptr;
+        CoordsContainer_T A_spline_coords;
+        
     private:
 
 #include "OrthogonalRepresentation/BendsSystemLP.hpp"
 #include "OrthogonalRepresentation/BendsByLP.hpp"
-#include "OrthogonalRepresentation/LoadPlanarDiagram.hpp"
+#include "OrthogonalRepresentation/SubdividePlanarDiagram.hpp"
+#include "OrthogonalRepresentation/Edges.hpp"
+#include "OrthogonalRepresentation/Faces.hpp"
+#include "OrthogonalRepresentation/TurnRegularize.hpp"
+#include "OrthogonalRepresentation/SaturateFaces.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
-#include "OrthogonalRepresentation/KittyCorners.hpp"
+#include "OrthogonalRepresentation/Coordinates.hpp"
         
     public:
         
-        Int VertexCount() const
+        Int CrossingCount() const
         {
-            return vertex_count;
+            return crossing_count;
         }
         
-        cref<VertexContainer_T> VertexDiEdges() const
+        Int ArcCount() const
         {
-            return V_dE;
-        }
-        
-        Int EdgeCount() const
-        {
-            return edge_count;
+            return arc_count;
         }
         
         bool VertexActiveQ( const Int v ) const
@@ -202,15 +283,72 @@ namespace Knoodle
             return V_state[v] != VertexState::Inactive;
         }
         
+        Int VertexCount() const
+        {
+            return vertex_count;
+        }
+        
+        cref<Tensor1<VertexState,Int>> VertexStates() const
+        {
+            return V_state;
+        }
+        
+        
+        cref<VertexContainer_T> VertexDiEdges() const
+        {
+            return V_dE;
+        }
+        
         bool EdgeActiveQ( const Int e ) const
         {
             return E_state[e] != EdgeState::Inactive;
+        }
+        
+        Int EdgeCount() const
+        {
+            return edge_count;
         }
         
         cref<EdgeContainer_T> Edges() const
         {
             return E_V;
         }
+        
+        Int VirtualEdgeCount() const
+        {
+            return tre_count - edge_count;
+        }
+        
+        EdgeContainer_T VirtualEdges() const
+        {
+            const Int virtual_edge_count = VirtualEdgeCount();
+            
+            EdgeContainer_T virtual_edges ( virtual_edge_count );
+            
+            copy_buffer(
+                TRE_V.data( edge_count ),
+                virtual_edges.data(),
+                Int(2) * virtual_edge_count
+            );
+            
+            return virtual_edges;
+        }
+        
+        Int ExteriorFace() const
+        {
+            return exterior_face;
+        }
+        
+        cref<VertexContainer_T> TurnRegularizedVertexDiEdges() const
+        {
+            return V_dTRE;
+        }
+        
+        cref<EdgeContainer_T> TurnRegularizedEdges() const
+        {
+            return TRE_V;
+        }
+        
         
         cref<Tensor1<Int,Int>> EdgeArcs() const
         {
@@ -309,6 +447,7 @@ namespace Knoodle
             return A_bends;
         }
         
+        // Horizontal and vertical constaint grapj
         
         cref<DiGraph_T> HorizontalConstraintGraph() const
         {
@@ -325,12 +464,12 @@ namespace Knoodle
             return S_h_idx;
         }
         
-        cref<Tensor1<Int,Int>> VerticesHorizontalSegments() const
+        cref<Tensor1<Int,Int>> VertexHorizontalSegments() const
         {
             return V_S_h;
         }
         
-        cref<Tensor1<Int,Int>> EdgesHorizontalSegments() const
+        cref<Tensor1<Int,Int>> EdgeHorizontalSegments() const
         {
             return E_S_h;
         }
@@ -351,12 +490,12 @@ namespace Knoodle
             return S_v_idx;
         }
         
-        cref<Tensor1<Int,Int>> VerticesVerticalSegments() const
+        cref<Tensor1<Int,Int>> VertexVerticalSegments() const
         {
             return V_S_v;
         }
         
-        cref<Tensor1<Int,Int>> EdgesVerticalSegments() const
+        cref<Tensor1<Int,Int>> EdgeVerticalSegments() const
         {
             return E_S_v;
         }
@@ -383,12 +522,12 @@ namespace Knoodle
         }
         
         
-        cref<Tensor1<Int,Int>> FaceDiEdgePointers() const
+        cref<Tensor1<Int,Int>> FaceDirectedEdgePointers() const
         {
             return F_dE_ptr;
         }
         
-        cref<Tensor1<Int,Int>> FaceDiEdgeIndices() const
+        cref<Tensor1<Int,Int>> FaceDirectedEdgeIndices() const
         {
             return F_dE_idx;
         }
@@ -398,24 +537,27 @@ namespace Knoodle
             return E_F;
         }
         
-//        OrthogonalRepresentation RegularizeTurnsByKittyCorners()
-//        {
-//            // DONE: Compute the faces.
-//            // TODO: Check faces for turn-regularity/detect kitty-corners.
-//            // TODO: Resolve kitty-corners.
-//            //      TODO: Do that horizontally/vertically in alternating fashion.
-//            //      TODO: Do that randomly.
-//            // TODO: Update and forward the map from edges to original arcs.
-//        }
-  
-//        Not that important:
-//        OrthogonalRepresentation RegularizeTurnsByReactangles()
-//        {
-//            // TODO: Check faces for turn-regularity/detect kitty-corners.
-//            // TODO: Resolve by using rectangles.
-//            // TODO: Update and forward the map from original crossings to vertices.
-//            // TODO: Update and forward the map from edges to original arcs.
-//        }
+        
+        cref<CoordsContainer_T> VertexCoordinates() const
+        {
+            return V_coords;
+        }
+        
+        cref<CoordsContainer_T> ArcLineCoordinates() const
+        {
+            return A_line_coords;
+        }
+
+        cref<Tensor1<Int,Int>> ArcSplinePointers() const
+        {
+            return A_spline_ptr;
+        }
+        
+        cref<CoordsContainer_T> ArcSplineCoordinates() const
+        {
+            return A_spline_coords;
+        }
+
 
     public:
         
@@ -430,149 +572,51 @@ namespace Knoodle
                 default:    return "invalid";
             }
         }
-        
-        template<bool bound_checkQ = true,bool verboseQ = true>
-        bool CheckEdgeDirection( Int e )
-        {
-            if constexpr( bound_checkQ )
-            {
-                if( (e < Int(0)) || (e >= EdgeCount()) )
-                {
-                    eprint(ClassName() + "::CheckEdgeDirection: Index " + ToString(e) + " is out of bounds.");
-                    
-                    return false;
-                }
-            }
-            
-            const Int tail = E_V(e,Tail);
-            const Int head = E_V(e,Head);
-            
-            const Dir_T dir       = E_dir[e];
-            const Dir_T tail_port = E_dir[e];
-            const Dir_T head_port = static_cast<Dir_T>( (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4) );
-            
-            
-            const bool tail_okayQ = (V_dE(tail,tail_port) == ToDiEdge(e,Head));
-            const bool head_okayQ = (V_dE(head,head_port) == ToDiEdge(e,Tail));
-            
-            if constexpr( verboseQ )
-            {
-                if( !tail_okayQ )
-                {
-                    eprint(ClassName() + "::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
-                }
-                if( !head_okayQ )
-                {
-                    eprint(ClassName() + "::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
-                }
-            }
-            return tail_okayQ && head_okayQ;
-        }
-        
-        template<bool verboseQ = true>
-        bool CheckEdgeDirections()
-        {
-            for( Int e = 0; e < EdgeCount(); ++e )
-            {
-                if( !this->template CheckEdgeDirection<false,verboseQ>(e) )
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
 
+        // Drawing
+    public:
         
-//        Tensor1<Int,Int> CreateFaceFromDiEdge( const Int de_0 ) const
-//        {
-//            TOOLS_PTIMER(timer,ClassName() + "::CreateFaceFromDiEdge");
-//            
-//            if( de_0 < Int(0) )
-//            {
-//                return Tensor1<Int,Int>();
-//            }
-//            
-//            Int ptr = 0;
-//            Int de = de_0;
-//            
-//            do
-//            {
-//                E_scratch[ptr++] = de;
-//                de = DiEdgeLeftDiEdge(de);
-//            }
-//            while( (de != de_0) && ptr < edge_count );
-//            
-//            if( (de != de_0) && (ptr >= edge_count) )
-//            {
-//                eprint(ClassName() + "::CreatedFaceFromDiEdge: Aborted because two many elements were collected. The data structure is probably corrupted.");
-//            }
-//            
-//            return Tensor1<Int,Int>( E_scratch.data(), ptr );
-//        }
+        Int HorizontalGridSize() const
+        {
+            return x_grid_size;
+        }
         
-//        std::pair<Int,Int> FindKittyCorner( const Int de_0 ) const
-//        {
-//            TOOLS_PTIMER(timer,ClassName() + "::FindKittyCorner");
-//            
-//            if( de_0 < Int(0) )
-//            {
-//                return std::pair(Uninitialized,Uninitialized);
-//            }
-//
-//            mptr<Int> rotation = V_scratch.data();
-//            
-//            Int ptr = 0;
-//            rotation[0] = Int(0);
-//            
-//            {
-//                Int de = de_0;
-//                do
-//                {
-//                    E_scratch[ptr++] = de;
-//                    rotation[ptr] = rotation[ptr-1] + E_turn.data()[de];
-//                    de = DiEdgeLeftDiEdge(de);
-//                }
-//                while( (de != de_0) && ptr < edge_count );
-//            
-//                if( (de != de_0) && (ptr >= edge_count) )
-//                {
-//                    eprint(ClassName() + "::TurnRegularFaceQ: Aborted because two many elements were collected. The data structure is probably corrupted.");
-//                    
-//                    return std::pair(Uninitialized,Uninitialized);
-//                }
-//            }
-//            
-//            valprint("rotation", ArrayToString(rotation,{ptr}));
-//            
-//            for( Int i = 0; i < ptr; ++i )
-//            {
-//                const Int de = E_scratch[i];
-//                
-//                if( E_turn.data()[de] == Turn_T(-1) )
-//                {
-//                    for( Int j = i; j < ptr; ++j )
-//                    {
-//                        const Int df = E_scratch[j];
-//                        
-//                        if( rotation[i] - rotation[j] == Int(2) )
-//                        {
-//                            if( E_turn.data()[df] == Turn_T(-1) )
-//                            {
-//                                const Int v = E_V.data()[de];
-//                                const Int w = E_V.data()[df];
-//                                TOOLS_DUMP(de/2);
-//                                TOOLS_DUMP(v);
-//                                TOOLS_DUMP(df/2);
-//                                TOOLS_DUMP(w);
-//                                return std::pair(v,w);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//            
-//            return std::pair(Uninitialized,Uninitialized);
-//        }
+        void SetHorizontalGridSize( const Int val )
+        {
+            x_grid_size = val;
+        }
+        
+        Int VerticalGridSize() const
+        {
+            return y_grid_size;
+        }
+        
+        void SetVerticalGridSize( const Int val )
+        {
+            y_grid_size = val;
+        }
+        
+        
+        
+        Int HorizontalGapSize() const
+        {
+            return x_gap_size;
+        }
+        
+        void SetHorizontalGapSize( const Int val )
+        {
+            x_gap_size = val;
+        }
+        
+        Int VerticalGapSize() const
+        {
+            return y_gap_size;
+        }
+        
+        void SetVerticalGapSize( const Int val )
+        {
+            y_gap_size = val;
+        }
         
         
     public:

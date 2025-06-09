@@ -1,8 +1,8 @@
 private:
 
-void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
+void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
 {
-    TOOLS_PTIC(ClassName() + "::LoadPlanarDiagram");
+    TOOLS_PTIC(ClassName() + "::SubdividePlanarDiagram");
     
     // CAUTION: This assumes no gaps in pd!
     A_C                 = pd.Arcs();
@@ -20,7 +20,7 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
     
     if( A_bends.Size() != max_arc_count)
     {
-        eprint(ClassName() + "::LoadPlanarDiagram: Bend optimization failed. Aborting.");
+        eprint(ClassName() + "::SubdividePlanarDiagram: Bend optimization failed. Aborting.");
         return;
     }
     
@@ -123,9 +123,10 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
     Int V_counter = max_crossing_count;
     Int E_counter = max_arc_count;
 
-    
     cptr<CrossingState> C_state = pd.CrossingStates().data();
     cptr<ArcState>      A_state = pd.ArcStates().data();
+    
+    A_overQ = Tiny::VectorList_AoS<2,bool,Int>(arc_count);
     
     for( Int c = 0; c < max_crossing_count; ++c )
     {
@@ -136,6 +137,12 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
     for( Int a = 0; a < max_arc_count; ++a )
     {
         E_state[a] = EdgeState(ToUnderlying(A_state[a]));
+        
+        if( pd.ArcActiveQ(a) )
+        {
+            A_overQ(a,Tail) = pd.template ArcOverQ<Tail>(a);
+            A_overQ(a,Head) = pd.template ArcOverQ<Head>(a);
+        }
         
         if( !EdgeActiveQ(a) ) { continue; }
         
@@ -237,184 +244,5 @@ void LoadPlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
         E_turn(e,Head) = Turn_T(1);
     };
     
-    // We can compute this only after E_V and V_dE have been computed completed.
-    ComputeEdgeLeftDiEdge();
-    
-    ComputeFaces(pd);
-    
-    TOOLS_PTOC(ClassName() + "::LoadPlanarDiagram");
-}
-
-private:
-
-//Int DiEdgeLeftDiEdge( const Int de )
-//{
-//    auto [e,d] = FromDiEdge(de);
-//    
-//    const UInt e_dir = static_cast<UInt>(E_dir(e));
-//    
-//    const UInt t = E_turn.data()[de];
-//    const UInt s = (e_dir + (d ? UInt(2) : UInt(0)) ) % UInt(4);
-//    const Int  c = E_V.data()[de];
-//    
-//    return V_dE(c,s);
-//}
-
-void ComputeEdgeLeftDiEdge()
-{
-    TOOLS_PTIC( ClassName() + "::ComputeEdgeLeftDiEdge" );
-    
-    E_left_dE = EdgeContainer_T ( edge_count, Int(-1) );
-    
-    for( Int e = 0; e < edge_count; ++e )
-    {
-        TOOLS_DUMP( E_state[e] );
-        if( !EdgeActiveQ(e) )
-        {
-            wprint(ClassName() + "::ComputeEdgeLeftDiEdge: Skipping edge " + ToString(e) + ".");
-            continue;
-        }
-
-        const Dir_T e_dir = E_dir(e);
-        
-        const Turn_T t_0  = E_turn(e,Tail);
-        const Turn_T t_1  = E_turn(e,Head);
-        
-        const Dir_T s_0   = static_cast<Dir_T>(t_0 + Turn_T(2) + e_dir) % Dir_T(4);
-        const Dir_T s_1   = static_cast<Dir_T>(t_1 +           + e_dir) % Dir_T(4);
-        
-        const Int   c_0   = E_V(e,Tail);
-        const Int   c_1   = E_V(e,Head);
-        
-        E_left_dE(e,Tail) = V_dE(c_0,s_0);
-        E_left_dE(e,Head) = V_dE(c_1,s_1);
-        
-//        print("=========");
-//        TOOLS_DUMP(E_turn(e,Tail));
-//        TOOLS_DUMP(s_0);
-//        TOOLS_DUMP(c_0);
-//        valprint("V_dE.data(c_0)", ArrayToString(V_dE.data(c_0),{4}));
-//        TOOLS_DUMP(E_left_dE(e,Tail));
-//        print("=========");
-//        TOOLS_DUMP(E_turn(e,Head));
-//        TOOLS_DUMP(s_1);
-//        TOOLS_DUMP(c_1);
-//        valprint("V_dE.data(c_1)", ArrayToString(V_dE.data(c_1),{4}));
-//        TOOLS_DUMP(E_left_dE(e,Head));
-    }
-    
-    TOOLS_PTOC( ClassName() + "::ComputeEdgeLeftDiEdge" );
-}
-
-public:
-
-void ComputeFaces( mref<PlanarDiagram_T> pd )
-{
-    TOOLS_PTIC(ClassName()+"::ComputeFaces");
-    
-    cptr<Int> dE_left_dE = E_left_dE.data();
-    
-//    TOOLS_DUMP(E_left_dE);
-
-    // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    E_F = EdgeContainer_T( edge_count );
-    
-    mptr<Int> dE_F = E_F.data();
-    
-    // Convention: _Right_ face first:
-    //
-    //            E_F(e,0)
-    //
-    //            <------------|  e
-    //
-    //            E_F(e,1)
-    //
-    // This way the directed edge de = 2 * e + Head has its left face in dE_F[de].
-    
-    
-    // Entry -1 means "unvisited but to be visited".
-    // Entry -2 means "do not visit".
-    
-    for( Int e = 0; e < edge_count; ++ e )
-    {
-        dE_F[ToDiEdge(e,Tail)] = Int(-1);
-        dE_F[ToDiEdge(e,Head)] = Int(-1);
-        
-        // TODO: Revisit this if edge can be deactive.
-//        if( EdgeActiveQ(e) )
-//        {
-//            dE_F[de + Tail] = Int(-1);
-//            dE_F[de + Head] = Int(-1);
-//        }
-//        else
-//        {
-//            dE_F[de + Tail] = Int(-2);
-//            dE_F[de + Head] = Int(-2);
-//        }
-    }
-    
-//    TOOLS_DUMP(A_E_ptr);
-//    TOOLS_DUMP(A_E_idx);
-    
-    
-    const Int dA_count = Int(2) * edge_count;
-
-    F_dE_ptr = Tensor1<Int,Int>( face_count + Int(1) );
-    F_dE_ptr[0] = 0;
-    F_dE_idx = Tensor1<Int,Int>( dA_count );
-
-    Int dE_counter = 0;
-    Int F_counter = 0;
-    
-    // Same traversal as in PlanarDiagram_T::RequireFaces in the sense that the faces are traversed in the same order.
-    // We only have to cycle over the directed arcs, because every edge has to belong to one.
-    
-    for( Int da = 0; da < dA_count; ++da )
-    {
-        auto [a,d] = pd.FromDiArc(da);
-        
-        if( (!EdgeActiveQ(a)) || (dE_F[da] != Int(-1)) )
-        {
-            continue;
-        }
-        //        print("==============================");
-//        TOOLS_DUMP(F_counter);
-//        TOOLS_DUMP(dE_counter);
-        
-        
-        
-        // This is to traverse the _crossings_ of each face in the same order as in pd.
-        // Moreover, the first vertex in each face is guaranteed to be a crossing.
-        const Int de_0 = d
-                       ? ToDiEdge(A_E_idx[A_E_ptr[a       ]       ],d)
-                       : ToDiEdge(A_E_idx[A_E_ptr[a+Int(1)]-Int(1)],d);
-        
-//        TOOLS_DUMP(da);
-//        TOOLS_DUMP(a);
-//        TOOLS_DUMP(d);
-//        TOOLS_DUMP(de_0);
-        
-        Int de = de_0;
-        do
-        {
-//            print("de = " + ToString(de) + "; e = " + ToString(de/2));
-            // Declare current face to be a face of this directed arc.
-            dE_F[de] = F_counter;
-            
-            // Declare this arc to belong to the current face.
-            F_dE_idx[dE_counter++] = de;
-            
-            // Move to next arc.
-            de = dE_left_dE[de];
-        }
-        while( de != de_0 );
-        
-        F_dE_ptr[++F_counter] = dE_counter;
-        
-//        TOOLS_DUMP(E_F);
-//        TOOLS_DUMP(F_dE_ptr);
-//        TOOLS_DUMP(F_dE_idx);
-    }
-    
-    TOOLS_PTOC(ClassName()+"::ComputeFaces");
+    TOOLS_PTOC(ClassName() + "::SubdividePlanarDiagram");
 }
