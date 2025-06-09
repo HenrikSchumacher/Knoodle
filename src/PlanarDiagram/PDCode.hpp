@@ -77,9 +77,20 @@ void WritePDCode( mptr<T> pd_code )
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
             
+            // DEBUGGING
+            if( !ValidIndexQ(a  ) ) { eprint("!ValidIndexQ(a)"); }
+            
+            // DEBUGGING
+            if( !ValidIndexQ(c_0) ) { eprint("!ValidIndexQ(c_0)"); }
+            if( !CrossingActiveQ(c_0) ) { eprint("Inactive crossing!"); }
+            // DEBUGGING
+            if( !ValidIndexQ(c_1) ) { eprint("!ValidIndexQ(c_1)"); }
+            if( !CrossingActiveQ(c_1) ) { eprint("Inactive crossing!"); }
+            
             // Tell c_0 that arc a_counter goes out of it.
             {
                 const CrossingState state = C_state[c_0];
+                
                 const bool side = (C_arcs(c_0,Out,Right) == a);
                 
                 mptr<Int> pd = &pd_code[Int(5) * c_0_pos];

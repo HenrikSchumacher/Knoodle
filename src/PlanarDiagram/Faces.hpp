@@ -21,45 +21,35 @@ std::string FaceString( const Int f ) const
 cref<Tensor1<Int,Int>> FaceDirectedArcIndices() const
 {
     const std::string tag = "FaceDirectedArcIndices";
-    
-    if( !this->InCacheQ(tag) ) { RequireFaces(); }
-    
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> FaceDirectedArcPointers() const
 {
     const std::string tag = "FaceDirectedArcPointers";
-    
-    if( !this->InCacheQ(tag) ) { RequireFaces(); }
-    
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<ArcContainer_T> ArcFaces()  const
 {
     const std::string tag = "ArcFaces";
-    
-    if( !this->InCacheQ(tag) ) { RequireFaces(); }
-
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<ArcContainer_T>(tag);
 }
 
 Int MaximumFace() const
 {
     const std::string tag = "MaximumFace";
-    
-    if( !this->InCacheQ(tag) ) { RequireFaces(); }
-
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Int>(tag);
 }
 
 Int MaxFaceSize() const
 {
     const std::string tag = "MaxFaceSize";
-    
-    if( !this->InCacheQ(tag) ) { RequireFaces(); }
-
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Int>(tag);
 }
 

@@ -214,10 +214,8 @@ void Traverse_impl(
         {
             ++a_ptr;
         }
-        if( a_ptr >= m )
-        {
-            break;
-        };
+        
+        if( a_ptr >= m ) { break; };
         
         // Now a_ptr points to the beginning of a link component.
         Int a = a_ptr;

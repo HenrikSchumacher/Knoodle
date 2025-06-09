@@ -3,9 +3,7 @@ public:
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Int>(tag);
 }
 
@@ -16,48 +14,38 @@ Int LinkComponentSize( const Int lc ) const
     return (lc_arc_ptr[lc+1] - lc_arc_ptr[lc]);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcIndices() const
+cref<Tensor1<Int,Int>> LinkComponentArcIndices() const
 {
     const std::string tag = "LinkComponentArcIndices";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcPointers() const
+cref<Tensor1<Int,Int>> LinkComponentArcPointers() const
 {
     const std::string tag = "LinkComponentArcPointers";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcLinkComponents() const
+cref<Tensor1<Int,Int>> ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcPositions() const
+cref<Tensor1<Int,Int>> ArcPositions() const
 {
     const std::string tag = "ArcPositions";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor2<Int,Int> & ArcTraversalFlags() const
+cref<Tensor2<Int,Int>> ArcTraversalFlags() const
 {
     const std::string tag = "ArcTraversalFlags";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor2<Int,Int>>(tag);
 }
 
@@ -114,7 +102,7 @@ void RequireLinkComponents() const
             (void)lc_begin;
         },
         [&A_lc,&A_pos,&lc_arc_idx,&A_flags](
-            const Int a, const Int a_label, const Int lc,
+            const Int a,   const Int a_label, const Int lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )

@@ -8,6 +8,8 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
     {
         const auto & A_lc = ArcLinkComponents();
         
+        // Using a hash map to delete duplicates.
+        // TODO: We could also use a Sparse::BinaryMatrix here.
         std::unordered_set<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
         
         for( Int c = 0; c < max_crossing_count; ++c )
@@ -37,7 +39,6 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
         {
             comp_edges(counter,MultiGraph_T::Tail) = p.first;
             comp_edges(counter,MultiGraph_T::Head) = p.second;
-            
             ++counter;
         }
         
@@ -114,24 +115,14 @@ void RequireDiagramComponents()
 cref<Tensor1<Int,Int>> DiagramComponentArcPointers()
 {
     const std::string tag ("DiagramComponentArcPointers");
-    
-    if( !this->InCacheQ(tag) )
-    {
-        RequireDiagramComponents();
-    }
-    
+    if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
 {
     const std::string tag ("DiagramComponentArcIndices");
-    
-    if( !this->InCacheQ(tag) )
-    {
-        RequireDiagramComponents();
-    }
-    
+    if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
@@ -140,10 +131,7 @@ void Split( mref<PD_List_T> pd_list )
 {
     TOOLS_PTIC(ClassName()+"::Split");
     
-    if( CrossingCount() <= Int(0) )
-    {
-        return;
-    }
+    if( CrossingCount() <= Int(0) ) { return; }
     
     cref<ComponentMatrix_T> A = DiagramComponentLinkComponentMatrix();
     
@@ -155,10 +143,7 @@ void Split( mref<PD_List_T> pd_list )
     
     const Int dc_count  = A.RowCount();
     
-    if( dc_count <= 1 )
-    {
-        return;
-    }
+    if( dc_count <= 1 ) { return; }
     
     cptr<Int> lc_arc_ptr = LinkComponentArcPointers().data();
     cptr<Int> lc_arc_idx = LinkComponentArcIndices().data();
