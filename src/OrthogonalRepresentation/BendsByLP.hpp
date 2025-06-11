@@ -19,7 +19,7 @@ Tensor1<Turn_T,Int> BendsByLP(
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER( timer, ClassName() + "::BendsByLP"
+    TOOLS_PTIMER( timer, ClassName()+"::BendsByLP"
         + "<" + TypeName<Int>
         + ">"
     );
@@ -85,8 +85,8 @@ Tensor1<Turn_T,Int> BendsByLP(
 
     for( Int a = 0; a < pd.Arcs().Dimension(0); ++a )
     {
-        const Int head = pd.ToDiArc(a,Head);
-        const Int tail = pd.ToDiArc(a,Tail);
+        const Int head = pd.ToDarc(a,Head);
+        const Int tail = pd.ToDarc(a,Tail);
         bends[a] = static_cast<Turn_T>(std::round(sol[head] - sol[tail]));
     }
 

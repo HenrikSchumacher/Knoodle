@@ -65,7 +65,7 @@ Switch_T G_l_SwitchType( Int da )
     
     // Int db = E_left_dE_reg.data()[da];
     
-    auto [a,d] = FromDiArc(da);
+    auto [a,d] = FromDarc(da);
     
     Dir_T a_dir = TRE_dir[a];
     
@@ -210,7 +210,7 @@ Switch_T G_l_SwitchType( Int da )
     }
     else if( dTRE_turn[da] == Turn_T(2) )
     {
-        eprint(ClassName() + "::G_l_SwitchType: turn = 2; case not handled at the moment.");
+        eprint(ClassName()+"::G_l_SwitchType: turn = 2; case not handled at the moment.");
         return None;
     }
     else
@@ -226,7 +226,7 @@ Switch_T G_r_SwitchType( Int da )
     
     // Int db = E_left_dE_reg.data()[da];
     
-    auto [a,d] = FromDiArc(da);
+    auto [a,d] = FromDarc(da);
     
     Dir_T a_dir = TRE_dir[a];
     
@@ -370,7 +370,7 @@ Switch_T G_r_SwitchType( Int da )
     }
     else if( dTRE_turn[da] == Turn_T(2) )
     {
-        eprint(ClassName() + "::G_l_SwitchType: turn = 2; case not handled at the moment.");
+        eprint(ClassName()+"::G_l_SwitchType: turn = 2; case not handled at the moment.");
         return None;
     }
     else
@@ -430,7 +430,7 @@ public:
 
 Tensor1<UInt8,Int> TRF_TRE_G_l_SwitchTypes()
 {
-    TOOLS_PTIC(ClassName() + "::TRF_TRE_G_l_SwitchTypes");
+    TOOLS_PTIC(ClassName()+"::TRF_TRE_G_l_SwitchTypes");
     
     Aggregator<UInt8,Int> agg ( 4 * vertex_count );
 
@@ -443,14 +443,14 @@ Tensor1<UInt8,Int> TRF_TRE_G_l_SwitchTypes()
         [](){}
     );
     
-    TOOLS_PTOC(ClassName() + "::TRF_TRE_G_l_SwitchTypes");
+    TOOLS_PTOC(ClassName()+"::TRF_TRE_G_l_SwitchTypes");
     
     return agg.Get();
 }
 
 Tensor1<UInt8,Int> TRF_TRE_G_r_SwitchTypes()
 {
-    TOOLS_PTIC(ClassName() + "::TRF_TRE_G_r_SwitchTypes");
+    TOOLS_PTIC(ClassName()+"::TRF_TRE_G_r_SwitchTypes");
     
     Aggregator<UInt8,Int> agg ( 4 * vertex_count );
 
@@ -463,7 +463,7 @@ Tensor1<UInt8,Int> TRF_TRE_G_r_SwitchTypes()
         [](){}
     );
     
-    TOOLS_PTOC(ClassName() + "::TRF_TRE_G_r_SwitchTypes");
+    TOOLS_PTOC(ClassName()+"::TRF_TRE_G_r_SwitchTypes");
     
     return agg.Get();
 }

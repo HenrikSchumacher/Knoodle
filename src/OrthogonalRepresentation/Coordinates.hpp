@@ -4,13 +4,12 @@ void ComputeVertexCoordinates(
     cref<Tensor1<Int,Int>> x, cref<Tensor1<Int,Int>> y
 )
 {
-    TOOLS_PTIC(ClassName() + "::ComputeVertexCoordinates");
+    TOOLS_PTIC(ClassName()+"::ComputeVertexCoordinates");
     
     if( V_coords.Dimension(0) != vertex_count )
     {
         V_coords = CoordsContainer_T( vertex_count );
     }
-    
     
     auto [x_min,x_max] = x.MinMax();
     auto [y_min,y_max] = y.MinMax();
@@ -32,7 +31,32 @@ void ComputeVertexCoordinates(
         }
     }
     
-    TOOLS_PTOC(ClassName() + "::ComputeVertexCoordinates");
+    TOOLS_PTOC(ClassName()+"::ComputeVertexCoordinates");
+}
+
+void ComputeVertexCoordinates_ByTopologicalOrdering()
+{
+    ComputeVertexCoordinates(
+        D_v.TopologicalOrdering(),
+        D_h.TopologicalOrdering()
+    );
+}
+
+void ComputeVertexCoordinates_ByTopologicalNumbering()
+{
+    ComputeVertexCoordinates(
+        D_v.TopologicalNumbering(),
+        D_h.TopologicalNumbering()
+    );
+
+}
+
+void ComputeVertexCoordinates_ByTopologicalTightening()
+{
+    ComputeVertexCoordinates(
+        D_v.TopologicalTightening(D_v_edge_costs.data()),
+        D_h.TopologicalTightening(D_h_edge_costs.data())
+    );
 }
 
 //void ComputeArcLines()
@@ -59,7 +83,7 @@ void ComputeVertexCoordinates(
 
 void ComputeArcLines()
 {
-    TOOLS_PTIC(ClassName() + "::ComputeArcLines");
+    TOOLS_PTIC(ClassName()+"::ComputeArcLines");
     
     if( A_line_coords.Dimension(0) != A_V_ptr[arc_count] )
     {
@@ -115,13 +139,13 @@ void ComputeArcLines()
         }
     }
     
-    TOOLS_PTOC(ClassName() + "::ComputeArcLines");
+    TOOLS_PTOC(ClassName()+"::ComputeArcLines");
 }
 
 
 void ComputeArcSplines()
 {
-    TOOLS_PTIC(ClassName() + "::ComputeArcSplines");
+    TOOLS_PTIC(ClassName()+"::ComputeArcSplines");
 
     Aggregator<Int,Int> A_spline_ptr_agg ( arc_count + 1);
     A_spline_ptr_agg.Push(Int(0));
@@ -236,7 +260,7 @@ void ComputeArcSplines()
         A_spline_coords(i,1) = y[i];
     }
     
-    TOOLS_PTOC(ClassName() + "::ComputeArcSplines");
+    TOOLS_PTOC(ClassName()+"::ComputeArcSplines");
 }
 
 

@@ -1,40 +1,11 @@
 public:
 
-// TODO: Make this useful.
-//template<typename Fun_T>
-//void TraverseFaces( Fun_T && fun )
-//{
-//    TOOLS_PTIC(ClassName() + "::TraverseFaces");
-//    
-//    cptr<Int>  dE_left_dE  = E_left_dE.data();
-//    mptr<bool> dE_visitedQ = reinterpret_cast<bool *>(E_scratch.data());
-//    fill_buffer( dE_visitedQ, false, edge_count );
-//
-//    for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
-//    {
-//        if( !dE_visitedQ(de_ptr) ) { continue; }
-//        
-//        Int de = de_ptr;
-//        do
-//        {
-//            fun(de);
-//            dE_visitedQ[de] = true;
-//            de = dE_left_dE[de];
-//        }
-//        while( de != de_ptr );
-//    }
-//    
-//    TOOLS_PTOC(ClassName() + "::TraverseFaces");
-//}
-
 void ComputeFaces( mref<PlanarDiagram_T> pd )
 {
     TOOLS_PTIC(ClassName()+"::ComputeFaces");
     
     cptr<Int> dE_left_dE = E_left_dE.data();
     
-//    TOOLS_DUMP(E_left_dE);
-
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     E_F = EdgeContainer_T( edge_count );
     
@@ -58,13 +29,13 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
     {
         if( EdgeActiveQ(e) )
         {
-            dE_F[ToDiEdge(e,Tail)] = Uninitialized;
-            dE_F[ToDiEdge(e,Head)] = Uninitialized;
+            dE_F[ToDedge(e,Tail)] = Uninitialized;
+            dE_F[ToDedge(e,Head)] = Uninitialized;
         }
         else
         {
-            dE_F[ToDiEdge(e,Tail)] = Uninitialized - Int(1);
-            dE_F[ToDiEdge(e,Head)] = Uninitialized - Int(1);
+            dE_F[ToDedge(e,Tail)] = Uninitialized - Int(1);
+            dE_F[ToDedge(e,Head)] = Uninitialized - Int(1);
         }
     }
     
@@ -86,23 +57,15 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
     
     for( Int da = 0; da < dA_count; ++da )
     {
-        auto [a,d] = pd.FromDiArc(da);
+        auto [a,d] = pd.FromDarc(da);
         
         if( (!EdgeActiveQ(a)) || (dE_F[da] != Uninitialized) ) { continue; }
-        //        print("==============================");
-//        TOOLS_DUMP(F_counter);
-//        TOOLS_DUMP(dE_counter);
-        
+
         // This is to traverse the _crossings_ of each face in the same order as in pd.
         // Moreover, the first vertex in each face is guaranteed to be a crossing.
         const Int de_0 = d
-                       ? ToDiEdge(A_E_idx[A_E_ptr[a       ]       ],d)
-                       : ToDiEdge(A_E_idx[A_E_ptr[a+Int(1)]-Int(1)],d);
-        
-//        TOOLS_DUMP(da);
-//        TOOLS_DUMP(a);
-//        TOOLS_DUMP(d);
-//        TOOLS_DUMP(de_0);
+                       ? ToDedge(A_E_idx[A_E_ptr[a       ]       ],d)
+                       : ToDedge(A_E_idx[A_E_ptr[a+Int(1)]-Int(1)],d);
         
         Int de = de_0;
         do
@@ -120,98 +83,113 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
         while( de != de_0 );
         
         F_dE_ptr[++F_counter] = dE_counter;
-        
-//        TOOLS_DUMP(E_F);
-//        TOOLS_DUMP(F_dE_ptr);
-//        TOOLS_DUMP(F_dE_idx);
     }
     
     TOOLS_PTOC(ClassName()+"::ComputeFaces");
 }
 
-
-
-// Only for debugging, I guess.
-Tensor1<Int,Int> FaceEdgeRotations() const
+template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
+void TraverseAllFaces(
+    PreVisit_T  && pre_visit,
+    EdgeFun_T   && edge_fun,
+    PostVisit_T && post_visit
+)
 {
-    TOOLS_PTIC(ClassName() + "::FaceEdgeRotations");
-    
-    Tensor1<Int,Int> rotations ( F_dE_ptr[face_count] );
-    cptr<Turn_T> dE_turn = E_turn.data();
+    TOOLS_PTIC(ClassName()+"::TraverseAllFaces");
     
     for( Int f = 0; f < face_count; ++f )
     {
-        const Int k_begin = F_dE_ptr[f  ];
-        const Int k_end   = F_dE_ptr[f+1];
+        const Int k_begin = F_dE_ptr[f    ];
+        const Int k_end   = F_dE_ptr[f + 1];
         
-        Int rot = 0;
-        for( Int k = k_begin; k < k_end; ++k )
-        {
-            const Int de = F_dE_idx[k];
-            rotations[k] = rot;
-            rot += static_cast<Int>(dE_turn[de]);
-        }
-    }
-    
-    TOOLS_PTOC(ClassName() + "::FaceEdgeRotations");
-    
-    return rotations;
-}
-
-Tensor1<Int,Int> FaceRotations() const
-{
-    TOOLS_PTIC(ClassName() + "::FaceRotations");
-    
-    Tensor1<Int,Int> rotations ( face_count );
-    cptr<Turn_T> dE_turn = E_turn.data();
-    
-    for( Int f = 0; f < face_count; ++f )
-    {
-        const Int k_begin = F_dE_ptr[f  ];
-        const Int k_end   = F_dE_ptr[f+1];
-        
-        Int rot = 0;
-        for( Int k = k_begin; k < k_end; ++k )
-        {
-            const Int de = F_dE_idx[k];
-            rot += static_cast<Int>(dE_turn[de]);
-        }
-        rotations[f] = rot;
-    }
-    
-    TOOLS_PTOC(ClassName() + "::FaceRotations");
-    
-    return rotations;
-}
-
-bool CheckFaceTurns() const
-{
-    cptr<Turn_T> dE_turn = E_turn.data();
-    
-    bool okayQ = true;
-    
-    for( Int f = 0; f < face_count; ++f )
-    {
-        Turn_T total_turns = 0;
-        const Int k_begin = F_dE_ptr[f  ];
-        const Int k_end   = F_dE_ptr[f+1];
+        pre_visit(f);
         
         for( Int k = k_begin; k < k_end; ++k )
         {
             const Int de = F_dE_idx[k];
             
-            total_turns += dE_turn[de];
+            edge_fun(f,k,de);
         }
         
-        if( f == exterior_face )
-        {
-            okayQ = okayQ && ( total_turns == Turn_T(-4) );
-        }
-        else
-        {
-            okayQ = okayQ && ( total_turns == Turn_T( 4) );
-        }
+        post_visit(f);
     }
+    
+    TOOLS_PTOC(ClassName()+"::TraverseAllFaces");
+}
+
+// Only for debugging, I guess.
+Tensor1<Turn_T,Int> FaceDedgeRotations()
+{
+    TOOLS_PTIC(ClassName()+"::FaceDedgeRotations");
+    
+    Turn_T rot = 0;
+    Tensor1<Turn_T,Int> rotations ( F_dE_ptr[face_count] );
+    cptr<Turn_T> dE_turn = E_turn.data();
+    
+    TraverseAllFaces(
+        [&rot]( const Int f ){ (void)f; rot = Turn_T(0); },
+        [&rotations,dE_turn,&rot]( const Int f, const Int k, const Int de )
+        {
+            rotations[k] = rot;
+            rot += dE_turn[de];
+        },
+        []( const Int f ){ (void)f; }
+    );
+    
+    TOOLS_PTOC(ClassName()+"::FaceDedgeRotations");
+    
+    return rotations;
+}
+
+Tensor1<Turn_T,Int> FaceRotations()
+{
+    TOOLS_PTIC(ClassName()+"::FaceRotations");
+    
+    Turn_T rot = 0;
+    Tensor1<Turn_T,Int> rotations ( face_count );
+    cptr<Turn_T> dE_turn = E_turn.data();
+    
+    TraverseAllFaces(
+        [&rot]( const Int f ){ rot = Turn_T(0); },
+        [dE_turn,&rot]( const Int f, const Int k, const Int de )
+        {
+            rot += dE_turn[de];
+        },
+        [&rotations,&rot]( const Int f ){ rotations[f] = rot; }
+    );
+    
+    TOOLS_PTOC(ClassName()+"::FaceRotations");
+    
+    return rotations;
+}
+
+bool CheckFaceTurns()
+{
+    bool okayQ = true;
+    Turn_T rot = 0;
+    Tensor1<Turn_T,Int> rotations ( face_count );
+    cptr<Turn_T> dE_turn = E_turn.data();
+    
+    TraverseAllFaces(
+        [&rot]( const Int f ){
+            rot = Turn_T(0);
+        },
+        [dE_turn,&rot]( const Int f, const Int k, const Int de )
+        {
+            rot += dE_turn[de];
+        },
+        [&rot,&okayQ,this]( const Int f )
+        {
+            if( f == exterior_face )
+            {
+                okayQ = okayQ && ( rot == Turn_T(-4) );
+            }
+            else
+            {
+                okayQ = okayQ && ( rot == Turn_T( 4) );
+            }
+        }
+    );
     
     return okayQ;
 }

@@ -58,9 +58,8 @@ void TRF_MarkAsVisited( const Int de_ptr )
 }
 
 
-void TurnRegularize()
+void TurnRegularize( bool regularizeQ = true )
 {
-    print("TurnRegularize");
     TOOLS_PTIC(ClassName()+"::TurnRegularize");
     
     Int TRE_max_count = Int(2) * edge_count;
@@ -109,10 +108,13 @@ void TurnRegularize()
     ;
     
     TRF_MarkAsExterior( F_dE_idx[F_dE_ptr[exterior_face]] );
-    
-    for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
+
+    if( regularizeQ )
     {
-        TurnRegularizeFace(de_ptr);
+        for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
+        {
+            TurnRegularizeFace(de_ptr);
+        }
     }
     
     TOOLS_PTOC(ClassName()+"::TurnRegularize");
@@ -128,13 +130,13 @@ void TurnRegularize()
  *
  */
 
-std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
+std::tuple<Int,Int> FindKittyCorner_Naive( const Int de_ptr ) const
 {
-//    print("FindKittyCorner("+ToString(de_ptr)+")");
+//    print("FindKittyCorner_Naive("+ToString(de_ptr)+")");
     
     if( !ValidIndexQ(de_ptr) )
     {
-        return {Uninitialized,Uninitialized,Turn_T(0)};
+        return {Uninitialized,Uninitialized};
     }
     
     cptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
@@ -142,11 +144,14 @@ std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
     
     mptr<Int>   rotations      = V_scratch.data();
     mptr<Int>   reflex_edges   = E_scratch.data();
+    
+//    std::unordered_map<Turn_T,std::vector<Int>> rotation_lut;
 
     const bool exteriorQ = TRE_BoundaryQ(de_ptr);
     
     Int reflex_counter = 0;
     
+    // Compute rotations.
     {
         Int rot = 0;
         Int de = de_ptr;
@@ -161,7 +166,7 @@ std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
                 // DEBUGGING
                 if( exteriorQ != TRE_BoundaryQ(de) )
                 {
-                    eprint(ClassName() + "::FindKittyCorner: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
+                    eprint(ClassName()+"::FindKittyCorner_Naive: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
                 }
             }
             rot += dTRE_turn[de];
@@ -172,9 +177,9 @@ std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
 
         if( (de != de_ptr) && (reflex_counter >= edge_count) )
         {
-            eprint(ClassName() + "::FindKirryCorner: Aborted because two many elements were collected. The data structure is probably corrupted.");
+            eprint(ClassName()+"::FindKittyCorner_Naive: Aborted because two many elements were collected. The data structure is probably corrupted.");
 
-            return {Uninitialized,Uninitialized,Turn_T(0)};
+            return {Uninitialized,Uninitialized};
         }
     }
 
@@ -192,7 +197,7 @@ std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
                 
                 if( (rot == Turn_T(2)) || (rot == Turn_T(-6)) )
                 {
-                    return {reflex_edges[i],reflex_edges[j],rot};
+                    return {reflex_edges[i],reflex_edges[j]};
                 }
             }
         }
@@ -207,13 +212,184 @@ std::tuple<Int,Int,Turn_T> FindKittyCorner( const Int de_ptr) const
                 
                 if( rot == Turn_T(2) )
                 {
-                    return {reflex_edges[i],reflex_edges[j],rot};
+                    return {reflex_edges[i],reflex_edges[j]};
                 }
             }
         }
     }
     
-    return {Uninitialized,Uninitialized,Turn_T(0)};
+    return {Uninitialized,Uninitialized};
+}
+
+template<bool verboseQ = false>
+std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
+{
+    if constexpr ( verboseQ )
+    {
+        print("FindKittyCorner("+ToString(de_ptr)+")");
+    }
+    
+    if( !ValidIndexQ(de_ptr) )
+    {
+        return {Uninitialized,Uninitialized};
+    }
+    
+    cptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
+    cptr<Int>   dTRE_turn      = TRE_turn.data();
+    
+    // RE = reflex edge
+    mptr<Int>   RE_rot = V_scratch.data();
+    mptr<Int>   RE_de  = E_scratch.data();
+    mptr<Int>   RE_d   = E_scratch.data() + edge_count;
+    
+    std::unordered_map<Turn_T,std::vector<Int>> rot_lut;
+
+    const bool exteriorQ = TRE_BoundaryQ(de_ptr);
+    
+    Int dE_counter = 0;
+    Int RE_counter = 0;
+    
+    // Compute rotations.
+    {
+        Int rot = 0;
+        Int de = de_ptr;
+        do
+        {
+            if( dTRE_turn[de] == Turn_T(-1) )
+            {
+                RE_de [RE_counter] = de;
+                RE_d  [RE_counter] = dE_counter;
+                RE_rot[RE_counter] = rot;
+                rot_lut[rot].push_back(RE_counter);
+                
+                RE_counter++;
+                
+                // DEBUGGING
+                if( exteriorQ != TRE_BoundaryQ(de) )
+                {
+                    eprint(ClassName()+"::FindKittyCorner: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
+                }
+            }
+            ++dE_counter;
+            rot += dTRE_turn[de];
+            de = dTRE_left_dTRE[de];
+        }
+        while( (de != de_ptr) && dE_counter < edge_count );
+        // TODO: The checks on reflex_counter should be irrelevant if the graph structure is intact.
+
+        if( (de != de_ptr) && (dE_counter >= edge_count) )
+        {
+            eprint(ClassName()+"::FindKittyCorner: Aborted because two many elements were collected. The data structure is probably corrupted.");
+
+            return {Uninitialized,Uninitialized};
+        }
+    }
+    
+    
+    if( RE_counter <= Int(1) )
+    {
+        return {Uninitialized,Uninitialized};
+    }
+
+//    valprint("rotation", ArrayToString(rotation,{reflex_counter}));
+
+//    const Int target_turn = exteriorQ ? Turn_T(2) : Turn_T(-6);
+    
+    if constexpr ( verboseQ )
+    {
+        TOOLS_DUMP(dE_counter);
+        TOOLS_DUMP(RE_counter);
+    }
+    
+    Int p_min = 0;
+    Int q_min = 0;
+    Int d_min = Scalar::Max<Int>;
+    
+    constexpr Turn_T targets [2] = { Turn_T(2), Turn_T(-6) };
+    
+    for( Int q = 0; q < RE_counter; ++q )
+    {
+        const Int rot = RE_rot[q];
+        
+        
+        for( Int k = 0; k < Int(1) + exteriorQ; ++k )
+        {
+            const Int target = rot - targets[k];
+            
+            if( rot_lut.count(target) <= Size_T(0) ) { continue; }
+            
+
+            const Int j = RE_d[q];
+            
+            auto & list = rot_lut[target];
+            
+            if constexpr ( verboseQ )
+            {
+                print("===============");
+                TOOLS_DUMP(q);
+                TOOLS_DUMP(RE_rot[q]);
+                TOOLS_DUMP(rot - Turn_T(2));
+                TOOLS_DUMP(j);
+                
+                std::string s = "list = ";
+                for( auto & p : list )
+                {
+                    s += ToString(RE_d[p]) + ",";
+                }
+                
+                print(s);
+            }
+            
+
+            
+            const Int p = BinarySearch( list.data(), RE_d, int_cast<Int>(list.size()), j );
+
+            const Int i = RE_d[p];
+            const Int d = ModDistance(dE_counter,i,j);
+
+            if constexpr ( verboseQ )
+            {
+                TOOLS_DUMP(p);
+                TOOLS_DUMP(RE_rot[p]);
+                TOOLS_DUMP(i);
+                TOOLS_DUMP(d);
+            }
+            
+            if( (i < j) && (d < d_min) )
+            {
+                p_min = p;
+                q_min = q;
+                d_min = d;
+            }
+        }
+    }
+    
+    if constexpr ( verboseQ )
+    {
+        TOOLS_DUMP(p_min);
+        TOOLS_DUMP(q_min);
+        TOOLS_DUMP(d_min);
+        print(">>>>>>>>>>>>>>>>>");
+    }
+    
+    if( p_min != q_min )
+    {
+        if constexpr ( verboseQ )
+        {
+            TOOLS_DUMP(RE_de[p_min]);
+            TOOLS_DUMP(RE_de[q_min]);
+        }
+        
+        return {RE_de[p_min],RE_de[q_min]};
+    }
+    else
+    {
+        if constexpr ( verboseQ )
+        {
+            print("No kitty corners found.");
+        }
+        return {Uninitialized,Uninitialized};
+    }
 }
 
 /*!@brief Check whether directed edge `de_ptr` is active and invisited. If affirmative, check whether the left face of `de_ptr` is turn-regular. If yes, return false (nothing changed); otherwise split the face by inserting a virtual edge and apply `TurnRegularizeFace` to both directed edges of the inserted virtual edge.
@@ -230,8 +406,9 @@ bool TurnRegularizeFace( const Int de_ptr )
 
     // TODO: We should cycle around the face just once and collect all directed edges.
     
-    auto [da_0,db_0,rot] = FindKittyCorner(de_ptr);
-
+//    print("FindKittyCorner...");
+    auto [da_0,db_0] = this->template FindKittyCorner<false>(de_ptr);
+//    print("FindKittyCorner done.");
 
     if( !ValidIndexQ(da_0) )
     {
@@ -272,8 +449,8 @@ bool TurnRegularizeFace( const Int de_ptr )
     ++tre_count;
 
     // The new edge; de_0 in forward direction; de_1 in reverse direction.
-    Int de_0 = ToDiArc(e,Tail);
-    Int de_1 = ToDiArc(e,Head);
+    Int de_0 = ToDarc(e,Tail);
+    Int de_1 = ToDarc(e,Head);
     dTRE_V[de_0] = c_0;
     dTRE_V[de_1] = c_1;
 
@@ -288,7 +465,7 @@ bool TurnRegularizeFace( const Int de_ptr )
     
     // If e_parallel_to_da_0 == true, then s_0 = TRE_dir[a_0]; otherwise we turn by 90 degrees.
     
-    auto [a_0,d_0] = FromDiArc(da_0);
+    auto [a_0,d_0] = FromDarc(da_0);
     
 //        TOOLS_DUMP(a_0);
 //        TOOLS_DUMP(TRE_dir[a_0]);
@@ -360,17 +537,16 @@ bool CheckTurnRegularity()
     {
         if( !TRE_ActiveQ(de_ptr) || TRE_VisitedQ(de_ptr) ) { continue; }
         
-        auto [da,db,rot] = FindKittyCorner(de_ptr);
+        auto [da,db] = FindKittyCorner_Naive(de_ptr);
         
         if( da != Uninitialized )
         {
             okayQ = false;
             
-            eprint(ClassName() + "::CheckTurnRegularity: Face containing TRE " + ToString(de_ptr) + " is not regular.");
+            eprint(ClassName()+"::CheckTurnRegularity: Face containing TRE " + ToString(de_ptr) + " is not regular.");
             
             TOOLS_DUMP(da);
             TOOLS_DUMP(db);
-            TOOLS_DUMP(rot);
         }
     }
     
@@ -379,13 +555,13 @@ bool CheckTurnRegularity()
 
 
 template<bool bound_checkQ = true,bool verboseQ = true>
-bool Check_TRE_Direction( Int e )
+bool CheckTreDirection( Int e )
 {
     if constexpr( bound_checkQ )
     {
         if ( (e < Int(0)) || (e >= tre_count) )
         {
-            eprint(ClassName() + "::Check_TRE_Direction: Index " + ToString(e) + " is out of bounds.");
+            eprint(ClassName()+"::CheckTreDirection: Index " + ToString(e) + " is out of bounds.");
             
             return false;
         }
@@ -405,31 +581,31 @@ bool Check_TRE_Direction( Int e )
         (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4)
     );
     
-    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDiEdge(e,Head));
-    const bool head_okayQ = (V_dTRE(head,head_port) == ToDiEdge(e,Tail));
+    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDedge(e,Head));
+    const bool head_okayQ = (V_dTRE(head,head_port) == ToDedge(e,Tail));
     
     if constexpr( verboseQ )
     {
         if( !tail_okayQ )
         {
-            eprint(ClassName() + "::CheckTurnRegularizedEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
+            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
         }
         if( !head_okayQ )
         {
-            eprint(ClassName() + "::CheckTurnRegularizedEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
+            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
         }
     }
     return tail_okayQ && head_okayQ;
 }
 
 template<bool verboseQ = true>
-bool Check_TRE_Directions()
+bool CheckTreDirections()
 {
     bool okayQ = true;
     
     for( Int e = 0; e < tre_count; ++e )
     {
-        if ( !this->template Check_TRE_Direction<false,verboseQ>(e) )
+        if ( !this->template CheckTreDirection<false,verboseQ>(e) )
         {
             okayQ = false;
         }
@@ -486,7 +662,7 @@ void TRF_TraverseAll(
     PostVisit_T && post_visit
 )
 {
-    TOOLS_PTIC(ClassName() + "::TRF_TraverseAll");
+    TOOLS_PTIC(ClassName()+"::TRF_TraverseAll");
     
     cptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
     
@@ -513,12 +689,12 @@ void TRF_TraverseAll(
         post_visit();
     }
     
-    TOOLS_PTOC(ClassName() + "::TRF_TraverseAll");
+    TOOLS_PTOC(ClassName()+"::TRF_TraverseAll");
 }
 
 Tensor1<Int,Int> TRF_TRE_Pointers()
 {
-    TOOLS_PTIC(ClassName() + "::TRF_TRE_Pointers");
+    TOOLS_PTIC(ClassName()+"::TRF_TRE_Pointers");
     
     Aggregator<Int,Int> agg ( vertex_count );
     agg.Push(Int(0));
@@ -537,14 +713,14 @@ Tensor1<Int,Int> TRF_TRE_Pointers()
         }
     );
     
-    TOOLS_PTOC(ClassName() + "::TRF_TRE_Pointers");
+    TOOLS_PTOC(ClassName()+"::TRF_TRE_Pointers");
     
     return agg.Get();
 }
 
 Tensor1<Int,Int> TRF_TRE_Indices()
 {
-    TOOLS_PTIC(ClassName() + "::TRF_TRE_Indices");
+    TOOLS_PTIC(ClassName()+"::TRF_TRE_Indices");
     
     Aggregator<Int,Int> agg ( vertex_count );
     
@@ -557,7 +733,7 @@ Tensor1<Int,Int> TRF_TRE_Indices()
         [](){}
     );
     
-    TOOLS_PTOC(ClassName() + "::TRF_TRE_Indices");
+    TOOLS_PTOC(ClassName()+"::TRF_TRE_Indices");
     
     return agg.Get();
 }
@@ -568,7 +744,59 @@ Int TRE_Count() const
     return tre_count;
 }
 
+cref<EdgeContainer_T> TRE_Edges() const
+{
+    return TRE_V;
+}
+
 cref<FlagContainer_T> TRE_Flags() const
 {
     return TRE_flag;
 }
+
+
+
+
+
+private:
+
+static Int BinarySearch(
+    cptr<Int> pos, cptr<Int> val, const Int n, cref<Int> j
+)
+{
+    static_assert(IntQ<Int>,"");
+    
+    if( n <= Int(0) )
+    {
+        eprint(ClassName()+"::FindNearestPosition_BinarySearch:: n <= 0.");
+        return Int(0);
+    }
+    
+    if( n == Int(1) )
+    {
+        return pos[Int(0)];
+    }
+    
+    Int L = Int(0);
+    Int R = n - Int(1);
+    
+    // L < R.
+    
+    // Binary search.
+    while( L < R )
+    {
+        const Int C = R - (R-L)/static_cast<Int>(2);
+        
+        if( j < val[pos[C]] )
+        {
+            R = C - Int(1);
+        }
+        else
+        {
+            L = C;
+        }
+    }
+    
+    return pos[L];
+    
+} // BinarySearch

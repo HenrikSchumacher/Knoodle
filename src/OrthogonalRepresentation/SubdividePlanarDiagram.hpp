@@ -2,7 +2,7 @@ private:
 
 void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
 {
-    TOOLS_PTIC(ClassName() + "::SubdividePlanarDiagram");
+    TOOLS_PTIC(ClassName()+"::SubdividePlanarDiagram");
     
     // CAUTION: This assumes no gaps in pd!
     A_C                 = pd.Arcs();
@@ -13,14 +13,19 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
     arc_count           = pd.ArcCount();
     face_count          = pd.FaceCount();
     
+    maximum_face  = pd.MaximumFace();
+    max_face_size = pd.MaxFaceSize();
+    
+    F_scratch = Tensor1<Int,Int>( max_face_size );
+    
     // TODO: Allow more general bend sequences.
-    exterior_face = (exterior_face_ < Int(0)) ? pd. MaximumFace() : exterior_face_;
+    exterior_face = (exterior_face_ < Int(0)) ? maximum_face : exterior_face_;
 
     A_bends = BendsByLP(pd,exterior_face);
     
     if( A_bends.Size() != max_arc_count)
     {
-        eprint(ClassName() + "::SubdividePlanarDiagram: Bend optimization failed. Aborting.");
+        eprint(ClassName()+"::SubdividePlanarDiagram: Bend optimization failed. Aborting.");
         return;
     }
     
@@ -65,7 +70,7 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
             }
             else
             {
-                auto [a,d] = FromDiArc(A.da);
+                auto [a,d] = FromDarc(A.da);
 
                 const Int  c_0  = A.tail;
                 const Int  c_1  = A.head;
@@ -171,7 +176,7 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
         A_V_idx[A_V_pos] = c_0;
         A_E_idx[A_E_pos] = a;
         
-        V_dE(c_0,e_dir) = ToDiEdge(a,Head);
+        V_dE(c_0,e_dir) = ToDedge(a,Head);
         E_dir(a) = e_dir;
         E_A(a) = a;
         
@@ -210,13 +215,13 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
 //                    ???     f    |
 //                     --+-------->+ v
             
-            V_dE(v,(e_dir + Dir_T(2)) % Dir_T(4)) = ToDiEdge(f,Tail);
+            V_dE(v,(e_dir + Dir_T(2)) % Dir_T(4)) = ToDedge(f,Tail);
             
             e_dir = static_cast<Dir_T>(e_dir + sign_b) % Dir_T(4);
             E_dir(e) = e_dir;
             
             
-            V_dE(v,e_dir) = ToDiEdge(e,Head);
+            V_dE(v,e_dir) = ToDedge(e,Head);
             E_A(e) = a;
             A_V_idx[A_V_pos + k] = v;
             A_E_idx[A_E_pos + k] = e;
@@ -238,11 +243,11 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
 //                          e    |c_1
 //                               |
         
-        V_dE(c_1,(e_dir + UInt(2)) % 4) = ToDiEdge(e,Tail);
+        V_dE(c_1,(e_dir + UInt(2)) % 4) = ToDedge(e,Tail);
         
         E_V   (e,Head) = c_1;
         E_turn(e,Head) = Turn_T(1);
     };
     
-    TOOLS_PTOC(ClassName() + "::SubdividePlanarDiagram");
+    TOOLS_PTOC(ClassName()+"::SubdividePlanarDiagram");
 }

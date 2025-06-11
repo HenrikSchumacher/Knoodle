@@ -3,7 +3,7 @@ private:
 
 //Int DiEdgeLeftDiEdge( const Int de )
 //{
-//    auto [e,d] = FromDiEdge(de);
+//    auto [e,d] = FromDedge(de);
 //
 //    const UInt e_dir = static_cast<UInt>(E_dir(e));
 //
@@ -14,9 +14,9 @@ private:
 //    return V_dE(c,s);
 //}
 
-void ComputeEdgeLeftDiEdge()
+void ComputeEdgeLeftDedges()
 {
-    TOOLS_PTIC( ClassName() + "::ComputeEdgeLeftDiEdge" );
+    TOOLS_PTIC( ClassName()+"::ComputeEdgeLeftDedges" );
     
     E_left_dE = EdgeContainer_T ( edge_count, Int(-1) );
     
@@ -25,7 +25,7 @@ void ComputeEdgeLeftDiEdge()
 //        TOOLS_DUMP( E_state[e] );
         if( !EdgeActiveQ(e) )
         {
-            wprint(ClassName() + "::ComputeEdgeLeftDiEdge: Skipping edge " + ToString(e) + ".");
+            wprint(ClassName()+"::ComputeEdgeLeftDedges: Skipping edge " + ToString(e) + ".");
             continue;
         }
 
@@ -54,7 +54,7 @@ void ComputeEdgeLeftDiEdge()
 //        TOOLS_DUMP(E_left_dE(e,Head));
     }
     
-    TOOLS_PTOC( ClassName() + "::ComputeEdgeLeftDiEdge" );
+    TOOLS_PTOC( ClassName()+"::ComputeEdgeLeftDedges" );
 }
 
 
@@ -67,7 +67,7 @@ bool CheckEdgeDirection( Int e )
     {
         if ( (e < Int(0)) || (e >= edge_count) )
         {
-            eprint(ClassName() + "::CheckEdgeDirection: Index " + ToString(e) + " is out of bounds.");
+            eprint(ClassName()+"::CheckEdgeDirection: Index " + ToString(e) + " is out of bounds.");
             
             return false;
         }
@@ -86,18 +86,18 @@ bool CheckEdgeDirection( Int e )
     const Dir_T head_port = static_cast<Dir_T>( (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4) );
     
     
-    const bool tail_okayQ = (V_dE(tail,tail_port) == ToDiEdge(e,Head));
-    const bool head_okayQ = (V_dE(head,head_port) == ToDiEdge(e,Tail));
+    const bool tail_okayQ = (V_dE(tail,tail_port) == ToDedge(e,Head));
+    const bool head_okayQ = (V_dE(head,head_port) == ToDedge(e,Tail));
     
     if constexpr( verboseQ )
     {
         if( !tail_okayQ )
         {
-            eprint(ClassName() + "::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
+            eprint(ClassName()+"::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
         }
         if( !head_okayQ )
         {
-            eprint(ClassName() + "::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
+            eprint(ClassName()+"::CheckEdgeDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
         }
     }
     return tail_okayQ && head_okayQ;

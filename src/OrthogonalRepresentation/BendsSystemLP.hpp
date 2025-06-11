@@ -3,7 +3,7 @@ public:
 template<typename I, typename J, typename Int>
 Sparse::MatrixCSR<COIN_Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
 {
-    TOOLS_PTIC(ClassName() + "::BendsMatrix");
+    TOOLS_PTIC(ClassName()+"::BendsMatrix");
     
     cptr<Int> dA_F = pd.ArcFaces().data();
     
@@ -14,8 +14,8 @@ Sparse::MatrixCSR<COIN_Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
     for( Int a = 0; a < pd.Arcs().Dimension(0); ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
-        const I da_0 = static_cast<I>( pd.template ToDiArc<Tail>(a) );
-        const I da_1 = static_cast<I>( pd.template ToDiArc<Head>(a) );
+        const I da_0 = static_cast<I>( pd.template ToDarc<Tail>(a) );
+        const I da_1 = static_cast<I>( pd.template ToDarc<Head>(a) );
         
         const I f_0  = static_cast<I>(dA_F[da_0]); // right face of a
         const I f_1  = static_cast<I>(dA_F[da_1]); // left  face of a
@@ -33,7 +33,7 @@ Sparse::MatrixCSR<COIN_Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
         agg, I(2) * arc_count_, face_count_, true, false
     );
 
-    TOOLS_PTOC(ClassName() + "::BendsMatrix");
+    TOOLS_PTOC(ClassName()+"::BendsMatrix");
     
     return A;
 }
