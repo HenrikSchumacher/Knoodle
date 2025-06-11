@@ -242,7 +242,7 @@ void Analyze( const LInt i )
             if( !pd_stream )
             {
                 throw std::runtime_error(
-                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
+                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
                 );
             }
             
@@ -279,7 +279,7 @@ void Analyze( const LInt i )
             if( !gauss_stream )
             {
                 throw std::runtime_error(
-                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
+                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
                 );
             }
             

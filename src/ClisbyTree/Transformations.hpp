@@ -345,7 +345,7 @@ void PullTransforms_ManualStack( const Int from, const Int to )
     
     if( stack_ptr >= max_depth )
     {
-        eprint(ClassName() + "::PullTransforms_ManualStack: Stack overflow.");
+        eprint(ClassName()+"::PullTransforms_ManualStack: Stack overflow.");
         return;
     }
     

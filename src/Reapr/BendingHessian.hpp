@@ -18,7 +18,7 @@ void BendingHessian_CollectTriples(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC( ClassName() + "::BendingHessian_CollectTriples"
+    TOOLS_PTIC( ClassName()+"::BendingHessian_CollectTriples"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>
@@ -59,7 +59,7 @@ void BendingHessian_CollectTriples(
         }
     }
     
-    TOOLS_PTOC( ClassName() + "::BendingHessian_CollectTriples"
+    TOOLS_PTOC( ClassName()+"::BendingHessian_CollectTriples"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>

@@ -2,7 +2,7 @@ private:
 
 void Reidemeister_II_Vertical( const Int c_0, const Int c_1 )
 {
-    PD_PRINT("\n" + ClassName() + "::Reidemeister_II_Vertical  ( "+CrossingString(c_0)+", "+CrossingString(c_1)+" )");
+    PD_PRINT("\n" + ClassName()+"::Reidemeister_II_Vertical  ( "+CrossingString(c_0)+", "+CrossingString(c_1)+" )");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT(c_0 != c_1);

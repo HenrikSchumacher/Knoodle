@@ -36,7 +36,7 @@ Tensor2<T,Int> PDCode()
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName() + "::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        throw std::runtime_error(ClassName()+"::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
         goto Exit;
     }
@@ -512,7 +512,7 @@ static PlanarDiagram<Int> FromPDCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(ClassName() + "::FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
+        eprint(ClassName()+"::FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
         
         return PlanarDiagram<Int>();
     }

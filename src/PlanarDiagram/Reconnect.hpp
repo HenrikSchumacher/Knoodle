@@ -87,7 +87,7 @@ void Reconnect( const Int a, const Int b )
 {
     // TODO: It is a bit annoying and violates the DRY principle that we have two functions `Reconnect` with almost 100% the same code. However, I made this intentionally so because I think that the compiler will optimize the two routines quite differently.
     
-    PD_DPRINT(ClassName() + "::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    PD_DPRINT(ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));

@@ -40,12 +40,13 @@ private:
 template<bool undirQ, bool inQ, bool outQ>
 void ComputeIncidenceMatrices() const
 {
-    TOOLS_PTIC( ClassName() + "::ComputeIncidenceMatrices"
+    TOOLS_PTIC( ClassName()+"::ComputeIncidenceMatrices"
         + "<" + ToString(undirQ)
         + "," + ToString(inQ)
         + "," + ToString(outQ)
         + ">"
     );
+
     const EInt edge_count = edges.Dimension(0);
     TripleAggregator<EInt,EInt,Sign_T,EInt> agg_undir;
     PairAggregator<EInt,EInt,EInt> agg_out;
@@ -63,7 +64,7 @@ void ComputeIncidenceMatrices() const
     {
         agg_in  = PairAggregator<EInt,EInt,EInt> ( edge_count );
     }
-    
+
     for( EInt e = 0; e < edge_count; ++e )
     {
         Edge_T E ( edges.data(e) );
@@ -98,22 +99,22 @@ void ComputeIncidenceMatrices() const
     {
         this->SetCache(
             "OutIncidenceMatrix",
-            SignedMatrix_T<EInt,0>(agg_out  ,v_count,edge_count,EInt(1),false,false)
-//                                                                        ^
-//                              No compression needed because here. ------+
+            SignedMatrix_T<EInt,0>(agg_out,v_count,edge_count,EInt(1),false,false)
+//                                                                      ^
+//                            No compression needed because here. ------+
         );
     }
     if constexpr( inQ )
     {
         this->SetCache(
             "InIncidenceMatrix",
-            SignedMatrix_T<EInt,0>(agg_in   ,v_count,edge_count,EInt(1),false,false)
-//                                                                        ^
-//                              No compression needed because here. ------+
+            SignedMatrix_T<EInt,0>(agg_in,v_count,edge_count,EInt(1),false,false)
+//                                                                     ^
+//                           No compression needed because here. ------+
         );
     }
-    
-    TOOLS_PTOC( ClassName() + "::ComputeIncidenceMatrices"
+
+    TOOLS_PTOC( ClassName()+"::ComputeIncidenceMatrices"
         + "<" + ToString(undirQ)
         + "," + ToString(inQ)
         + "," + ToString(outQ)
@@ -125,50 +126,38 @@ public:
 
 cref<SignedMatrix_T<EInt,1>> OrientedIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName() + "::OrientedIncidenceMatrix" );
-    
+    TOOLS_PTIC( ClassName()+"::OrientedIncidenceMatrix" );
     std::string tag ("OrientedIncidenceMatrix");
-    
     if( !this->InCacheQ(tag) )
     {
         // TODO: It should actually be faster to merge OrientedIncidenceMatrix from InIncidenceMatrix and OutIncidenceMatrix.
         this->template ComputeIncidenceMatrices<1,0,0>();
     }
-    
-    TOOLS_PTOC( ClassName() + "::OrientedIncidenceMatrix" );
-    
+    TOOLS_PTOC( ClassName()+"::OrientedIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,1>>(tag);
 }
 
 
 cref<SignedMatrix_T<EInt,0>> InIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName() + "::InIncidenceMatrix" );
-    
+    TOOLS_PTIC( ClassName()+"::InIncidenceMatrix" );
     std::string tag ("InIncidenceMatrix");
-    
     if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,1,0>();
     }
-    
-    TOOLS_PTOC( ClassName() + "::InIncidenceMatrix" );
-    
+    TOOLS_PTOC( ClassName()+"::InIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,0>>(tag);
 }
 
 cref<SignedMatrix_T<EInt,0>> OutIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName() + "::OutIncidenceMatrix" );
-    
+    TOOLS_PTIC( ClassName()+"::OutIncidenceMatrix" );
     std::string tag ("OutIncidenceMatrix");
-    
     if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,0,1>();
     }
-    
-    TOOLS_PTOC( ClassName() + "::OutIncidenceMatrix" );
-    
+    TOOLS_PTOC( ClassName()+"::OutIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,0>>(tag);
 }

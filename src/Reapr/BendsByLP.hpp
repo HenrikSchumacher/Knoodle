@@ -38,7 +38,7 @@ Tensor1<Int,Int> BendsByLP(
         }
     }
     
-    TOOLS_PTIC( ClassName() + "::BendsByLP"
+    TOOLS_PTIC( ClassName()+"::BendsByLP"
         + "<" + TypeName<Int>
         + ">"
     );
@@ -75,7 +75,7 @@ Tensor1<Int,Int> BendsByLP(
         bends[a] = static_cast<Int>(std::round(sol[2 * a] - sol[2 * a + 1]));
     }
 
-    TOOLS_PTOC( ClassName() + "::BendsByLP"
+    TOOLS_PTOC( ClassName()+"::BendsByLP"
         + "<" + TypeName<Int>
         + ">"
     );

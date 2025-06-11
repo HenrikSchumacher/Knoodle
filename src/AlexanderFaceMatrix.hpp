@@ -38,7 +38,7 @@ namespace Knoodle
         template<bool fullQ = false>
         cref<Pattern_T> Pattern( cref<PD_T> pd ) const
         {
-            std::string tag ( ClassName() + "::Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
+            std::string tag ( ClassName()+"::Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
             );
             
             if( !pd.InCacheQ(tag) )

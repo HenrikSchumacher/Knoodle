@@ -71,6 +71,8 @@ namespace Knoodle
         virtual ~MultiGraphBase() override = default;
 
         
+    public:
+        
         // Provide a list of edges in interleaved form.
         template<typename I_0, typename I_1, typename I_2>
         MultiGraphBase(
@@ -88,19 +90,39 @@ namespace Knoodle
         // Provide a list of edges in interleaved form.
         template<typename I_0>
         MultiGraphBase( const I_0 vertex_count_, EdgeContainer_T && edges_ )
-        :   vertex_count ( vertex_count_        )
-        ,   edges        ( std::move(edges_)    )
-        ,   V_scratch    ( vertex_count         )
-        ,   E_scratch    ( edges.Dimension(0)   )
+        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
+        ,   edges        ( std::move(edges_)                )
+        ,   V_scratch    ( vertex_count                     )
+        ,   E_scratch    ( edges.Dimension(0)               )
         {
-            if( edges.Dimension(1) != 2 )
-            {
-                wprint( this->ClassName()+"(): Second dimension of input tensor is not equal to 0." );
-            }
-            
             CheckInputs();
         }
         
+        
+        // Provide a list of edges by a PairAggregator.
+        template<typename I_0, typename I_1>
+        MultiGraphBase(
+            const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
+        )
+        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
+        ,   edges        ( int_cast<EInt>(pairs.Size())    )
+        ,   V_scratch    ( vertex_count                     )
+        ,   E_scratch    ( edges.Dimension(0)               )
+        {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+            
+            cptr<I_0> i = pairs.Get_0().data();
+            cptr<I_0> j = pairs.Get_1().data();
+            
+            for( EInt e = 0; e < edges.Dimension(0); ++e )
+            {
+                edges(e,Tail) = i[e];
+                edges(e,Head) = j[e];
+            }
+
+            CheckInputs();
+        }
         
         // Copy constructor
         MultiGraphBase( const MultiGraphBase & other ) = default;
@@ -164,18 +186,18 @@ namespace Knoodle
         }
         
         // TODO: These things would be way faster if EInt where unsigned.
-        static constexpr std::pair<EInt,HeadTail_T> FromDiEdge( EInt de )
+        static constexpr std::pair<EInt,HeadTail_T> FromDedge( EInt de )
         {
             return std::pair( de / EInt(2), HeadTail_T(de % EInt(2)) );
         }
         
-        static constexpr EInt ToDiEdge( const EInt e, const HeadTail_T d )
+        static constexpr EInt ToDedge( const EInt e, const HeadTail_T d )
         {
             return EInt(2) * e + d;
         }
         
         template<HeadTail_T d>
-        static constexpr EInt ToDiEdge( const EInt e )
+        static constexpr EInt ToDedge( const EInt e )
         {
             return EInt(2) * e + d;
         }

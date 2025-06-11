@@ -16,26 +16,26 @@ constexpr static auto TrivialArcFunction = []( cref<DirectedArcNode> A )
 
 constexpr static auto PrintDiscover = []( cref<DirectedArcNode> A )
 {
-    auto [a,d] = FromDiArc(A.da);
+    auto [a,d] = FromDarc(A.da);
     
     print("Discovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 constexpr static auto PrintRediscover = []( cref<DirectedArcNode> A )
 {
-    auto [a,d] = FromDiArc(A.da);
+    auto [a,d] = FromDarc(A.da);
 
     print("Rediscovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 constexpr static auto PrintPreVisit = []( cref<DirectedArcNode> A )
 {
-    auto [a,d] = FromDiArc(A.da);
+    auto [a,d] = FromDarc(A.da);
     
     print("Pre-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
 constexpr static auto PrintPostVisit = []( cref<DirectedArcNode> A )
 {
-    auto [a,d] = FromDiArc(A.da);
+    auto [a,d] = FromDarc(A.da);
     
     print("Post-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
@@ -68,7 +68,7 @@ void DepthFirstSearch(
         return;
     }
     
-    TOOLS_PTIC(ClassName() + "::DepthFirstSearch");
+    TOOLS_PTIC(ClassName()+"::DepthFirstSearch");
     
     cptr<Int> A_C = A_cross.data();
     
@@ -93,11 +93,11 @@ void DepthFirstSearch(
         // da.a may be virtual, but b may not.
         if( !this->ValidIndexQ(db) )
         {
-            eprint(ClassName() + "::DepthFirstSearch: Virtual arc on stack.");
+            eprint(ClassName()+"::DepthFirstSearch: Virtual arc on stack.");
             return;
         }
         
-        auto [b,dir] = this->FromDiArc(db);
+        auto [b,dir] = this->FromDarc(db);
         const Int head = A_C[db];
 
         if( C_flag[head] <= UInt8(0) )
@@ -159,10 +159,10 @@ void DepthFirstSearch(
 
                 // We process the arcs in reverse order so that they appear in correct order on the stack.
                 
-                conditional_push( A, ToDiArc(C_arcs(c,In ,Right),Tail) );
-                conditional_push( A, ToDiArc(C_arcs(c,In ,Left ),Tail) );
-                conditional_push( A, ToDiArc(C_arcs(c,Out,Left ),Head) );
-                conditional_push( A, ToDiArc(C_arcs(c,Out,Right),Head) );
+                conditional_push( A, ToDarc(C_arcs(c,In ,Right),Tail) );
+                conditional_push( A, ToDarc(C_arcs(c,In ,Left ),Tail) );
+                conditional_push( A, ToDarc(C_arcs(c,Out,Left ),Head) );
+                conditional_push( A, ToDarc(C_arcs(c,Out,Right),Head) );
             }
             else if( C_flag[c] == UInt8(2) )
             {
@@ -180,7 +180,7 @@ void DepthFirstSearch(
         
     } // for( Int c_0 = 0; c_0 < crossing_count; ++c_0 )
     
-    TOOLS_PTOC( ClassName() + "::DepthFirstSearch");
+    TOOLS_PTOC( ClassName()+"::DepthFirstSearch");
 }
 
 template<class PreVisitVertex_T>

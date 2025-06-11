@@ -749,7 +749,7 @@ namespace Knoodle
             
             if( stack_ptr >= Int(2) * max_depth - Int(2) )
             {
-                eprint(ClassName() + "::DepthFirstScan_ManualStack: Stack overflow.");
+                eprint(ClassName()+"::DepthFirstScan_ManualStack: Stack overflow.");
             }
         }
         

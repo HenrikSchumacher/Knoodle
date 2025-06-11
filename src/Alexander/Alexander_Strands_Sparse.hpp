@@ -29,7 +29,7 @@ Multiplier_T Alexander_Strands_Det_Sparse(
 
 UMFPACK_Ptr SparseAlexanderStrandMatrix_UMFPACK( cref<PD_T> pd ) const
 {
-    std::string tag ( ClassName() + "::SparseAlexanderStrandMatrix_UMFPACK" );
+    std::string tag ( ClassName()+"::SparseAlexanderStrandMatrix_UMFPACK" );
     
     if( !pd.InCacheQ(tag) )
     {

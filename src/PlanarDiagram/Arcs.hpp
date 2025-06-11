@@ -250,7 +250,7 @@ Int NextLeftArc( const Int da ) const
 {
     const Int c = A_cross.data()[da];
 
-    auto [a,d] = FromDiArc(da);
+    auto [a,d] = FromDarc(da);
     
     // It might seem a bit weird, but on my Apple M1 these conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
     
@@ -258,7 +258,7 @@ Int NextLeftArc( const Int da ) const
     {
         // We exploit a 50% chance that we do not have to read any index again.
         
-//        const Int db = ToDiArc(C_arcs(c,In,Left),Head);
+//        const Int db = ToDarc(C_arcs(c,In,Left),Head);
         const Int b = C_arcs(c,In,Left);
         
         if( b != a )
@@ -273,7 +273,7 @@ Int NextLeftArc( const Int da ) const
              *    b     a
              */
              
-            return ToDiArc<Tail>(b);
+            return ToDarc<Tail>(b);
         }
         else // if( db == da )
         {
@@ -287,14 +287,14 @@ Int NextLeftArc( const Int da ) const
              * a == b
              */
 
-            return ToDiArc<Head>(C_arcs(c,Out,Left));
+            return ToDarc<Head>(C_arcs(c,Out,Left));
         }
     }
     else // if( headtail == Tail )
     {
         // We exploit a 50% chance that we do not have to read any index again.
 
-//        const Int db = ToDiArc(C_arcs(c,Out,Right),Tail);
+//        const Int db = ToDarc(C_arcs(c,Out,Right),Tail);
         const Int b = C_arcs(c,Out,Right);
         
         if( b != a )
@@ -309,7 +309,7 @@ Int NextLeftArc( const Int da ) const
              *   O     O
              */
 
-            return ToDiArc<Head>(b);
+            return ToDarc<Head>(b);
         }
         else // if( b == a )
         {
@@ -323,7 +323,7 @@ Int NextLeftArc( const Int da ) const
              *   O     O
              */
 
-            return ToDiArc<Tail>(C_arcs(c,In,Right));
+            return ToDarc<Tail>(C_arcs(c,In,Right));
         }
     }
 }
@@ -341,13 +341,13 @@ bool CheckNextLeftArc() const
         }
         
         {
-            const Int da = ToDiArc(a,Tail);
+            const Int da = ToDarc(a,Tail);
             
             const Int db = NextLeftArc(da);
             
             auto [b,dir] = NextLeftArc(a,Tail);
             
-            passedQ = passedQ && (db == ToDiArc(b,dir));
+            passedQ = passedQ && (db == ToDarc(b,dir));
             
             if( !passedQ )
             {
@@ -365,13 +365,13 @@ bool CheckNextLeftArc() const
         }
         
         {
-            const Int da = ToDiArc(a,Head);
+            const Int da = ToDarc(a,Head);
             
             const Int db = NextLeftArc(da);
             
             auto [b,dir] = NextLeftArc(a,Head);
             
-            passedQ = passedQ && (db == ToDiArc(b,dir) );
+            passedQ = passedQ && (db == ToDarc(b,dir) );
             
             if( !passedQ )
             {
@@ -492,7 +492,7 @@ Int NextRightArc( const Int da ) const
     
     // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
     
-    auto [a,d] = FromDiArc(da);
+    auto [a,d] = FromDarc(da);
     
     if( d == Head )
     {
@@ -512,7 +512,7 @@ Int NextRightArc( const Int da ) const
              *   a     b
              */
 
-            return ToDiArc<Tail>(b);
+            return ToDarc<Tail>(b);
         }
         else // if( a == b )
         {
@@ -526,7 +526,7 @@ Int NextRightArc( const Int da ) const
              *       a == b
              */
 
-            return ToDiArc<Head>(C_arcs(c,Out,Right));
+            return ToDarc<Head>(C_arcs(c,Out,Right));
         }
     }
     else
@@ -547,7 +547,7 @@ Int NextRightArc( const Int da ) const
              *   O     O
              */
 
-            return ToDiArc<Head>(b);
+            return ToDarc<Head>(b);
         }
         else // if( b == a )
         {
@@ -561,7 +561,7 @@ Int NextRightArc( const Int da ) const
              *   O     O
              */
 
-            return ToDiArc<Tail>(C_arcs(c,In,Left));
+            return ToDarc<Tail>(C_arcs(c,In,Left));
         }
     }
 }
@@ -588,11 +588,11 @@ mref<ArcContainer_T> ArcLeftArc() const
                 const Int arrows [2][2] =
                 {
                     {
-                        ToDiArc<Head>(A[Out][Left ]),
-                        ToDiArc<Head>(A[Out][Right])
+                        ToDarc<Head>(A[Out][Left ]),
+                        ToDarc<Head>(A[Out][Right])
                     },{
-                        ToDiArc<Tail>(A[In ][Left ]),
-                        ToDiArc<Tail>(A[In ][Right])
+                        ToDarc<Tail>(A[In ][Left ]),
+                        ToDarc<Tail>(A[In ][Right])
                     }
                 };
                 
@@ -696,7 +696,7 @@ bool CheckNextRightArc() const
         }
         
         {
-            const Int da = ToDiArc<Tail>(a);
+            const Int da = ToDarc<Tail>(a);
             
             const Int db = NextRightArc(da);
             
@@ -704,7 +704,7 @@ bool CheckNextRightArc() const
             
             
             
-            passedQ = passedQ && (db == ToDiArc(b,d));
+            passedQ = passedQ && (db == ToDarc(b,d));
             
             if( !passedQ )
             {
@@ -718,13 +718,13 @@ bool CheckNextRightArc() const
         }
         
         {
-            const Int da = ToDiArc<Head>(a);
+            const Int da = ToDarc<Head>(a);
             
             const Int db = NextRightArc(da);
             
             auto [b,d] = NextRightArc(a,Head);
             
-            passedQ = passedQ && (db == ToDiArc(b,d));
+            passedQ = passedQ && (db == ToDarc(b,d));
             
             if( !passedQ )
             {
@@ -803,11 +803,11 @@ Int NextArc( const Int a, const Int c ) const
 //            const Int arrows [2][2] =
 //            {
 //                {
-//                    ToDiArc<Head>(A[Out][Left ]),
-//                    ToDiArc<Head>(A[Out][Right])
+//                    ToDarc<Head>(A[Out][Left ]),
+//                    ToDarc<Head>(A[Out][Right])
 //                },{
-//                    ToDiArc<Tail>(A[In ][Left ]),
-//                    ToDiArc<Tail>(A[In ][Right])
+//                    ToDarc<Tail>(A[In ][Left ]),
+//                    ToDarc<Tail>(A[In ][Right])
 //                }
 //            };
 //            

@@ -18,7 +18,7 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName() + "::ExtendedGaussCode: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        throw std::runtime_error(ClassName()+"::ExtendedGaussCode: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     gauss_code = Tensor1<T,Int>( arc_count );
@@ -97,7 +97,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         const T g = gauss_code[a];
         if( g == T(0) )
         {
-            eprint(ClassName() + "::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
+            eprint(ClassName()+"::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
             
             return 1;
         }
@@ -221,7 +221,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName() + "::ExtendedGaussCodeByLinkTraversal: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        throw std::runtime_error(ClassName()+"::ExtendedGaussCodeByLinkTraversal: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     gauss_code = Tensor1<T,Int>( arc_count );
@@ -286,7 +286,7 @@ Exit:
 //
 //    if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
 //    {
-//        throw std::runtime_error(ClassName() + "::GaussCode: Requested type " + TypeName<T> +  " cannot store Gauss code for this diagram.");
+//        throw std::runtime_error(ClassName()+"::GaussCode: Requested type " + TypeName<T> +  " cannot store Gauss code for this diagram.");
 //    }
 //
 //    gauss_code = Tensor1<T,Int> ( arc_count );
@@ -359,7 +359,7 @@ Exit:
 //        )
 //    )
 //    {
-//        eprint(ClassName() + "::ExperimentalGaussCode: Requested type T cannot store oriented Gauss code for this diagram.");
+//        eprint(ClassName()+"::ExperimentalGaussCode: Requested type T cannot store oriented Gauss code for this diagram.");
 //
 //        TOOLS_PTOC(ClassName()+"::ExperimentalGaussCode<" + TypeName<T> + ">" );
 //

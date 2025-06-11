@@ -67,7 +67,7 @@ void Sample( const LInt i )
     if( !log )
     {
         throw std::runtime_error(
-            ClassName() + "::Sample(" + ToString(i) + "): Failed to write to file \"" + log_file.string() + "\"."
+            ClassName()+"::Sample(" + ToString(i) + "): Failed to write to file \"" + log_file.string() + "\"."
         );
     }
     
@@ -256,12 +256,12 @@ void Sample( const LInt i )
         
         if( Abs(e_dev.first) > edge_length_tolerance * Real(n) )
         {
-            throw std::runtime_error(ClassName() + "::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.first)) + " of shortest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
+            throw std::runtime_error(ClassName()+"::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.first)) + " of shortest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
         }
         
         if( Abs(e_dev.second) > edge_length_tolerance * Real(n) )
         {
-            throw std::runtime_error(ClassName() + "::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.second)) + " of longest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
+            throw std::runtime_error(ClassName()+"::Sample("+ToString(i)+"): Relative edge length deviation " + ToStringFPGeneral(Abs(e_dev.second)) + " of longest edge is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
         }
     
         Analyze<t0,my_verbosity>(i);
@@ -289,7 +289,7 @@ void PrintWitnesses( const Int i, cref<Clisby_T> T )
     if( !witness_stream )
     {
         throw std::runtime_error(
-            ClassName() + "::Sample(" + ToString(i) + "): Failed to write to file \"" + witness_file.string() + "\"."
+            ClassName()+"::Sample(" + ToString(i) + "): Failed to write to file \"" + witness_file.string() + "\"."
         );
     }
     
@@ -303,7 +303,7 @@ void PrintWitnesses( const Int i, cref<Clisby_T> T )
     if( !pivot_stream )
     {
         throw std::runtime_error(
-            ClassName() + "::Sample(" + ToString(i) + "): Failed to write to file \"" + pivot_file.string() + "\"."
+            ClassName()+"::Sample(" + ToString(i) + "): Failed to write to file \"" + pivot_file.string() + "\"."
         );
     }
 }

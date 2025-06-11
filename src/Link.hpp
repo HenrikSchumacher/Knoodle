@@ -208,7 +208,7 @@ namespace Knoodle
             
             if( !in_rangeQ )
             {
-                eprint(ClassName() + "::ReadEdges: input edges are out of range for type " + TypeName<Int> + "." );
+                eprint(ClassName()+"::ReadEdges: input edges are out of range for type " + TypeName<Int> + "." );
             }
 
             for( Int e = 0; e < edge_count; ++e )

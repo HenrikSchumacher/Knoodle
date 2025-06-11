@@ -27,7 +27,7 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
     }
     
     
-    TOOLS_PTIC( ClassName() + "::LevelsByLP"
+    TOOLS_PTIC( ClassName()+"::LevelsByLP"
         + "<" + TypeName<Int>
         + ">"
     );
@@ -74,7 +74,7 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
         L[i] -= minimum;
     }
 
-    TOOLS_PTOC( ClassName() + "::LevelsByLP"
+    TOOLS_PTOC( ClassName()+"::LevelsByLP"
         + "<" + TypeName<Int>
         + ">"
     );

@@ -121,7 +121,7 @@ bool DisconnectSummand(
         
         if( Private_Reidemeister_I<true,true>(a) )
         {
-            wprint(ClassName() + "::DisconnectSummand: Found a face with just one arc around it. Tried to call Private_Reidemeister_I to remove. But maybe the face information is violated. Check your results thoroughly.");
+            wprint(ClassName()+"::DisconnectSummand: Found a face with just one arc around it. Tried to call Private_Reidemeister_I to remove. But maybe the face information is violated. Check your results thoroughly.");
             return true;
         }
         else

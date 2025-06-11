@@ -34,7 +34,7 @@ bool Private_Reidemeister_I( const Int a )
         }
     }
     
-    PD_PRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+    PD_PRINT( ClassName()+"::Reidemeister_I at " + ArcString(a) );
     
     // We assume here that we already know that a is a loop arc.
     

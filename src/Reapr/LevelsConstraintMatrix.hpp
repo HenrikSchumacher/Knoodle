@@ -11,7 +11,7 @@ void LevelsConstraintMatrix_CollectTriples(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC( ClassName() + "::LevelsConstraintMatrix_CollectTriples"
+    TOOLS_PTIC( ClassName()+"::LevelsConstraintMatrix_CollectTriples"
         + "<" + ToString(op)
         + "," + TypeName<I>
         + "," + TypeName<J>
@@ -47,7 +47,7 @@ void LevelsConstraintMatrix_CollectTriples(
         }
     }
     
-    TOOLS_PTOC( ClassName() + "::LevelsConstraintMatrix_CollectTriples"
+    TOOLS_PTOC( ClassName()+"::LevelsConstraintMatrix_CollectTriples"
         + "<" + ToString(op)
         + "," + TypeName<I>
         + "," + TypeName<J>

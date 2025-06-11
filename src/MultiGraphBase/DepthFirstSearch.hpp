@@ -18,26 +18,26 @@ constexpr static auto TrivialEdgeFunction = []( cref<DirectedEdge> E )
 
 constexpr static auto PrintDiscover = []( cref<DirectedEdge> E )
 {
-    auto [e,d] = FromDiEdge(E.de);
+    auto [e,d] = FromDedge(E.de);
     
     print("Discovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 constexpr static auto PrintRediscover = []( cref<DirectedEdge> E )
 {
-    auto [e,d] = FromDiEdge(E.de);
+    auto [e,d] = FromDedge(E.de);
 
     print("Rediscovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 constexpr static auto PrintPreVisit = []( cref<DirectedEdge> E )
 {
-    auto [e,d] = FromDiEdge(E.de);
+    auto [e,d] = FromDedge(E.de);
     
     print("Pre-visiting vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
 constexpr static auto PrintPostVisit = []( cref<DirectedEdge> E )
 {
-    auto [e,d] = FromDiEdge(E.de);
+    auto [e,d] = FromDedge(E.de);
     
     print("Post-visiting vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
@@ -68,7 +68,7 @@ void DepthFirstSearch(
 {
     if( vertex_count <= VInt(0) ) { return; }
     
-    TOOLS_PTIC( ClassName() + "::DepthFirstSearch<" + ToString(dir) + ">");
+    TOOLS_PTIC( ClassName()+"::DepthFirstSearch<" + ToString(dir) + ">");
     
     cptr<EInt> dE_V = edges.data();
     
@@ -124,12 +124,12 @@ void DepthFirstSearch(
         // E.de may be virtual, but e may not.
         if( de < EInt(0) )
         {
-            eprint(ClassName() + "::DepthFirstSearch: Virtual edge on stack.");
+            eprint(ClassName()+"::DepthFirstSearch: Virtual edge on stack.");
             return;
         }
         
         const VInt w = dE_V[de];
-        auto [e,d] = FromDiEdge(de);
+        auto [e,d] = FromDedge(de);
         
         if( V_flag[w] <= UInt8(0) )
         {
@@ -175,7 +175,7 @@ void DepthFirstSearch(
             
             if( V_flag[v] == UInt8(0) )
             {
-                eprint(ClassName() + "::DepthFirstSearch: Undiscovered vertex on stack!");
+                eprint(ClassName()+"::DepthFirstSearch: Undiscovered vertex on stack!");
                 (void)stack.Pop();
             }
             else if( V_flag[v] == UInt8(1) )
@@ -191,7 +191,7 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ToDiEdge<Head>(V_Out_idx[k]);
+                        const EInt e = ToDedge<Head>(V_Out_idx[k]);
                         conditional_push( E, e );
                     }
                 }
@@ -204,7 +204,7 @@ void DepthFirstSearch(
                     
                     for( EInt k = k_end; k --> k_begin; )
                     {
-                        const EInt e = ToDiEdge<Tail>(V_In_idx[k]);
+                        const EInt e = ToDedge<Tail>(V_In_idx[k]);
                         conditional_push( E, e );
                     }
                 }
@@ -226,7 +226,7 @@ void DepthFirstSearch(
         
     } // for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
     
-    TOOLS_PTOC( ClassName() + "::DepthFirstSearch<" + ToString(dir) + ">");
+    TOOLS_PTOC( ClassName()+"::DepthFirstSearch<" + ToString(dir) + ">");
 }
 
 template< InOut dir = 0, class PreVisitVertex_T >

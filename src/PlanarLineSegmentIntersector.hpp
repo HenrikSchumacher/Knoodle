@@ -215,7 +215,7 @@ namespace Knoodle
         {
             if constexpr ( verboseQ )
             {
-                print(ClassName() + "::IntersectionType in verbose mode.");
+                print(ClassName()+"::IntersectionType in verbose mode.");
             }
             
             // Caution:

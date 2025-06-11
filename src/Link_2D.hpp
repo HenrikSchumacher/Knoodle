@@ -270,9 +270,9 @@ namespace Knoodle
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
     private:

@@ -417,7 +417,7 @@ namespace Knoodle
         
         void RepairArcLeftArcs()
         {
-            PD_TIC(ClassName() + "::RepairArcLeftArcs");
+            PD_TIC(ClassName()+"::RepairArcLeftArcs");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -441,7 +441,7 @@ namespace Knoodle
             
             Time_RepairArcLeftArcs += Tools::Duration(start_time,stop_time);
 #endif
-            PD_TOC(ClassName() + "::RepairArcLeftArcs");
+            PD_TOC(ClassName()+"::RepairArcLeftArcs");
         }
 
         template<bool headtail>
@@ -482,7 +482,7 @@ namespace Knoodle
         void Reconnect( const Int a, const Int b )
         {
 #ifdef PD_DEBUG
-            std::string tag  (ClassName() + "::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+            std::string tag  (ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
 #endif
             
             PD_TIC(tag);
@@ -532,7 +532,7 @@ namespace Knoodle
                 }
             }
             
-            PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+            PD_DPRINT( ClassName()+"::Reidemeister_I at " + ArcString(a) );
             
             // We assume here that we already know that a is a loop arc.
             
@@ -746,7 +746,7 @@ namespace Knoodle
         
         void Prepare()
         {
-            PD_TIC(ClassName() + "::Prepare");
+            PD_TIC(ClassName()+"::Prepare");
             
             PD_ASSERT(pd.CheckAll());
             
@@ -766,18 +766,18 @@ namespace Knoodle
             
             PD_ASSERT(CheckArcLeftArcs());
 
-            PD_TOC(ClassName() + "::Prepare");
+            PD_TOC(ClassName()+"::Prepare");
         }
         
         void Cleanup()
         {
-            PD_TIC(ClassName() + "::Cleanup");
+            PD_TIC(ClassName()+"::Cleanup");
             
             A_left = nullptr;
             
             pd.ClearCache("ArcLeftArc");
             
-            PD_TOC(ClassName() + "::Cleanup");
+            PD_TOC(ClassName()+"::Cleanup");
         }
         
     public:
@@ -1217,7 +1217,7 @@ namespace Knoodle
             const Int a_begin, const Int a_end, const Int arc_count_
         )
         {
-//            PD_DPRINT( ClassName() + "::CollapseArcRange" );
+//            PD_DPRINT( ClassName()+"::CollapseArcRange" );
             
             // We remove the arcs _backwards_ because of how Reconnect uses PD_ASSERT.
             // (It is legal that the head is inactive, but the tail must be active!)
@@ -1228,7 +1228,7 @@ namespace Knoodle
                 return;
             }
             
-            PD_TIC(ClassName() + "::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
+            PD_TIC(ClassName()+"::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1304,13 +1304,13 @@ namespace Knoodle
             
             Time_CollapseArcRange += Tools::Duration(start_time,stop_time);
 #endif
-            PD_TOC(ClassName() + "::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
+            PD_TOC(ClassName()+"::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
         }
         
         
         void RemoveLoop( const Int e, const Int c_0 )
         {
-            PD_TIC(ClassName() + "::RemoveLoop");
+            PD_TIC(ClassName()+"::RemoveLoop");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1374,7 +1374,7 @@ namespace Knoodle
                     
                     ++change_counter;
                     
-                    PD_TOC(ClassName() + "::RemoveLoop");
+                    PD_TOC(ClassName()+"::RemoveLoop");
                     
                     
                     return;
@@ -1409,7 +1409,7 @@ namespace Knoodle
             Time_RemoveLoop += Tools::Duration(start_time,stop_time);
 #endif
             
-            PD_TOC(ClassName() + "::RemoveLoop");
+            PD_TOC(ClassName()+"::RemoveLoop");
         }
         
         
@@ -1596,7 +1596,7 @@ namespace Knoodle
                 
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
-                    pd_eprint(ClassName() + "::FindShortestPath_impl");
+                    pd_eprint(ClassName()+"::FindShortestPath_impl");
                     TOOLS_LOGDUMP(d);
                     TOOLS_LOGDUMP(max_dist);
                     TOOLS_LOGDUMP(a_end);

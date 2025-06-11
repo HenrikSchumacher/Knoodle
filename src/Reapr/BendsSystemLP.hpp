@@ -3,7 +3,7 @@ public:
 template<typename I, typename J, typename Int>
 Sparse::MatrixCSR<Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
 {
-    TOOLS_PTIC(ClassName() + "::BendsMatrix");
+    TOOLS_PTIC(ClassName()+"::BendsMatrix");
     
     const I arc_count  = static_cast<I>(pd.ArcCount());
     const I face_count = static_cast<I>(pd.FaceCount());
@@ -36,7 +36,7 @@ Sparse::MatrixCSR<Real,I,J> BendsMatrix( mref<PlanarDiagram<Int>> pd )
         agg, I(2) * arc_count, face_count, true, false
     );
 
-    TOOLS_PTOC(ClassName() + "::BendsMatrix");
+    TOOLS_PTOC(ClassName()+"::BendsMatrix");
     
     return A;
 }

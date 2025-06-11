@@ -22,7 +22,8 @@ namespace Knoodle
         using COIN_LInt = CoinBigIndex;
         using UInt      = UInt32;
         using Dir_T     = UInt8;
-        using Turn_T    = std::make_signed<Int>::type;
+        using Turn_T    = std::make_signed_t<Int>;
+        using Cost_T    = std::make_signed_t<Int>;
         
         using DiGraph_T           = MultiDiGraph<Int,Int>;
         using HeadTail_T          = DiGraph_T::HeadTail_T;
@@ -33,6 +34,8 @@ namespace Knoodle
         using DirectedArcNode     = PlanarDiagram_T::DirectedArcNode;
         using CoordsContainer_T   = Tiny::VectorList_AoS<2,Int,Int>;
         using FlagContainer_T     = Tiny::VectorList_AoS<2,UInt8,Int>;
+        
+        using Vector_T            = Tiny::Vector<2,Int,Int>;
         
         enum class VertexState : Int8
         {
@@ -59,20 +62,20 @@ namespace Knoodle
         
     private:
         
-        static constexpr Int ToDiArc( const Int a, const bool d )
+        static constexpr Int ToDarc( const Int a, const bool d )
         {
-            return PlanarDiagram_T::ToDiArc(a,d);
+            return PlanarDiagram_T::ToDarc(a,d);
         }
         
         template<bool d>
-        static constexpr Int ToDiArc( const Int a )
+        static constexpr Int ToDarc( const Int a )
         {
-            return PlanarDiagram_T::ToDiArc<d>(a);
+            return PlanarDiagram_T::ToDarc<d>(a);
         }
         
-        static constexpr std::pair<Int,bool> FromDiArc( const Int da )
+        static constexpr std::pair<Int,bool> FromDarc( const Int da )
         {
-            return PlanarDiagram_T::FromDiArc(da);
+            return PlanarDiagram_T::FromDarc(da);
         }
         
         
@@ -98,7 +101,7 @@ namespace Knoodle
             SubdividePlanarDiagram(pd,exterior_face);
             
             // We can compute this only after E_V and V_dE have been computed completed.
-            ComputeEdgeLeftDiEdge();
+            ComputeEdgeLeftDedges();
             
 //            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
             
@@ -106,41 +109,41 @@ namespace Knoodle
             
 //            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
 //            TOOLS_DUMP(BoolString(CheckFaceTurns()));
-//            
+//
 //            auto V_dE_backup = V_dE;
 //            auto E_V_backup = E_V;
 //            auto E_dir_backup = E_dir;
 //            auto E_turn_backup = E_turn;
             
-            TurnRegularize();
+//            bool regularizeQ = true;
+            bool regularizeQ = false;
+            
+//            print("TurnRegularize...");
+            TurnRegularize( regularizeQ );
+//            print("TurnRegularize done.");
             
 //            TOOLS_DUMP(V_dE == V_dE_backup);
 //            TOOLS_DUMP(E_V == E_V_backup);
 //            TOOLS_DUMP(E_dir == E_dir_backup);
 //            TOOLS_DUMP(E_turn == E_turn_backup);
-            
-            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
-            TOOLS_DUMP(BoolString(CheckFaceTurns()));
-            TOOLS_DUMP(BoolString(Check_TRE_Directions()));
+//            
+//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+//            TOOLS_DUMP(BoolString(CheckFaceTurns()));
+//            TOOLS_DUMP(BoolString(CheckTreDirections()));
             
             ComputeConstraintGraphs();
             
             TOOLS_DUMP(BoolString(CheckEdgeDirections()));
             TOOLS_DUMP(BoolString(CheckFaceTurns()));
-            TOOLS_DUMP(BoolString(Check_TRE_Directions()));
-            TOOLS_DUMP(BoolString(CheckTurnRegularity()));
+            TOOLS_DUMP(BoolString(CheckTreDirections()));
             
+            if( regularizeQ )
             {
-                auto x = VerticalSegmentTopologicalNumbering();
-                auto y = HorizontalSegmentTopologicalNumbering();
-                
-//                TOOLS_DUMP(x);
-//                TOOLS_DUMP(y);
-//                TOOLS_DUMP(V_S_v);
-//                TOOLS_DUMP(V_S_h);
-                
-                ComputeVertexCoordinates(x,y);
+                TOOLS_DUMP(BoolString(CheckTurnRegularity()));
             }
+            
+//            ComputeVertexCoordinates_ByTopologicalNumbering();
+            ComputeVertexCoordinates_ByTopologicalTightening();
             
             ComputeArcLines();
             
@@ -163,6 +166,8 @@ namespace Knoodle
         Int edge_count          = 0;
         
         Int exterior_face       = 0;
+        Int maximum_face        = 0;
+        Int max_face_size       = 0;
 
         Tensor1<VertexState,Int> V_state;
         Tensor1<EdgeState,Int>   E_state;
@@ -192,6 +197,7 @@ namespace Knoodle
         EdgeContainer_T     E_F;
         Tensor1<Int,Int>    F_dE_ptr;
         Tensor1<Int,Int>    F_dE_idx;
+        Tensor1<Int,Int>    F_scratch; // Must be able to store all arcs of a face.
         
         
         // Turn regularization (TRE = turn regularized edges
@@ -209,13 +215,16 @@ namespace Knoodle
         DiGraph_T           D_h; // constraint graph of horizontal segments
         DiGraph_T           D_v; // constraint graph of vertical segments
         
-        // The range [ S_h_idx[S_h_ptr[s]],...,S_h_idx[S_h_ptr[s+1]] ) are the edges that belong to s-th horizontal segment, ordered from West to East.
-        Tensor1<Int,Int>    S_h_ptr;
-        Tensor1<Int,Int>    S_h_idx;
+        Tensor1<Cost_T,Int> D_h_edge_costs;
+        Tensor1<Cost_T,Int> D_v_edge_costs;
         
-        // The range [ S_v_idx[S_v_ptr[s]],...,S_v_idx[S_v_ptr[s+1]] ) are the edges that belong to s-th vertical segment, ordered from West to East.
-        Tensor1<Int,Int>    S_v_ptr;
-        Tensor1<Int,Int>    S_v_idx;
+        // The range [ S_h_E_idx[S_h_E_ptr[s]],...,S_h_E_idx[S_h_E_ptr[s+1]] ) are the edges that belong to s-th horizontal segment, ordered from West to East.
+        Tensor1<Int,Int>    S_h_E_ptr;
+        Tensor1<Int,Int>    S_h_E_idx;
+        
+        // The range [ S_v_E_idx[S_v_E_ptr[s]],...,S_v_E_idx[S_v_E_ptr[s+1]] ) are the edges that belong to s-th vertical segment, ordered from West to East.
+        Tensor1<Int,Int>    S_v_E_ptr;
+        Tensor1<Int,Int>    S_v_E_idx;
         
         // Maps each undirected edge to its horizontal segment (`Uninitialized` if vertical)
         Tensor1<Int,Int>    E_S_h;
@@ -265,6 +274,7 @@ namespace Knoodle
 #include "OrthogonalRepresentation/SaturateFaces.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
 #include "OrthogonalRepresentation/Coordinates.hpp"
+#include "OrthogonalRepresentation/FindIntersections.hpp"
         
     public:
         
@@ -294,7 +304,7 @@ namespace Knoodle
         }
         
         
-        cref<VertexContainer_T> VertexDiEdges() const
+        cref<VertexContainer_T> VertexDedges() const
         {
             return V_dE;
         }
@@ -339,12 +349,12 @@ namespace Knoodle
             return exterior_face;
         }
         
-        cref<VertexContainer_T> TurnRegularizedVertexDiEdges() const
+        cref<VertexContainer_T> TrvDtre() const
         {
             return V_dTRE;
         }
         
-        cref<EdgeContainer_T> TurnRegularizedEdges() const
+        cref<EdgeContainer_T> TreTrv() const
         {
             return TRE_V;
         }
@@ -391,12 +401,12 @@ namespace Knoodle
         }
 
         
-        cref<EdgeContainer_T> EdgeLeftDiEdges() const
+        cref<EdgeContainer_T> EdgeLeftDedges() const
         {
             return E_left_dE;
         }
         
-        Int DiEdgeLeftDiEdge( const Int de ) const
+        Int DedgeLeftDedge( const Int de ) const
         {
             return E_left_dE.data()[de];
         }
@@ -406,31 +416,31 @@ namespace Knoodle
             return std::pair(e,d);
         }
         
-        Int EdgeLeftDiEdge( const Int e, const bool d )  const
+        Int EdgeLeftDedge( const Int e, const bool d )  const
         {
             return E_left_dE(e,d);
         }
         
         
         // You should always do a check that e >= 0 before calling this!
-        Int ToDiEdge( const Int e, const HeadTail_T d ) const
+        Int ToDedge( const Int e, const HeadTail_T d ) const
         {
             return Int(2) * e + d;
         }
         
         template<bool d>
-        Int ToDiEdge( const Int e ) const
+        Int ToDedge( const Int e ) const
         {
             return Int(2) * e + d;
         }
         
         // You should always do a check that de >= 0 before calling this!
-        std::pair<Int,HeadTail_T> FromDiEdge( const Int de ) const
+        std::pair<Int,HeadTail_T> FromDedge( const Int de ) const
         {
             return std::pair( de / Int(2), de % Int(2) );
         }
         
-        static constexpr Int FlipDiEdge( const Int de )
+        static constexpr Int FlipDedge( const Int de )
         {
             return de ^ Int(1);
         }
@@ -449,85 +459,94 @@ namespace Knoodle
         
         // Horizontal and vertical constaint grapj
         
-        cref<DiGraph_T> HorizontalConstraintGraph() const
+        cref<DiGraph_T> HsConstraintGraph() const
         {
             return D_h;
         }
         
-        cref<Tensor1<Int,Int>> HorizontalSegmentPointers() const
+        cref<Tensor1<Int,Int>> HsEdgePointers() const
         {
-            return S_h_ptr;
+            return S_h_E_ptr;
         }
         
-        cref<Tensor1<Int,Int>> HorizontalEdgeIndices() const
+        cref<Tensor1<Int,Int>> HsEdgeIndices() const
         {
-            return S_h_idx;
+            return S_h_E_idx;
         }
         
-        cref<Tensor1<Int,Int>> VertexHorizontalSegments() const
+        cref<Tensor1<Int,Int>> VertexHs() const
         {
             return V_S_h;
         }
         
-        cref<Tensor1<Int,Int>> EdgeHorizontalSegments() const
+        cref<Tensor1<Int,Int>> EdgeHs() const
         {
             return E_S_h;
         }
         
         
-        cref<DiGraph_T> VerticalConstraintGraph() const
+        cref<DiGraph_T> VsConstraintGraph() const
         {
             return D_v;
         }
         
-        cref<Tensor1<Int,Int>> VerticalSegmentPointers() const
+        cref<Tensor1<Int,Int>> VsEdgePointers() const
         {
-            return S_v_ptr;
+            return S_v_E_ptr;
         }
         
-        cref<Tensor1<Int,Int>> VerticalEdgeIndices() const
+        cref<Tensor1<Int,Int>> VsEdgeIndices() const
         {
-            return S_v_idx;
+            return S_v_E_idx;
         }
         
-        cref<Tensor1<Int,Int>> VertexVerticalSegments() const
+        cref<Tensor1<Int,Int>> VertexVs() const
         {
             return V_S_v;
         }
         
-        cref<Tensor1<Int,Int>> EdgeVerticalSegments() const
+        cref<Tensor1<Int,Int>> EdgeVs() const
         {
             return E_S_v;
         }
         
         
-        Tensor1<Int,Int> HorizontalSegmentTopologicalNumbering() const
+        cref<Tensor1<Int,Int>> HsTopologicalNumbering() const
         {
             return D_h.TopologicalNumbering();
         }
         
-        Tensor1<Int,Int> HorizontalSegmentTopologicalOrdering() const
+        cref<Tensor1<Int,Int>> HsTopologicalOrdering() const
         {
             return D_h.TopologicalOrdering();
         }
         
-        Tensor1<Int,Int> VerticalSegmentTopologicalNumbering() const
+        cref<Tensor1<Int,Int>> VsTopologicalNumbering() const
         {
             return D_v.TopologicalNumbering();
         }
 
-        Tensor1<Int,Int> VerticalSegmentTopologicalOrdering() const
+        cref<Tensor1<Int,Int>> VsTopologicalOrdering() const
         {
             return D_v.TopologicalOrdering();
         }
         
+        Int FaceCount() const
+        {
+            return face_count;
+        }
         
-        cref<Tensor1<Int,Int>> FaceDirectedEdgePointers() const
+        cref<Tensor1<Int,Int>> FaceDedgePointers() const
         {
             return F_dE_ptr;
         }
         
-        cref<Tensor1<Int,Int>> FaceDirectedEdgeIndices() const
+        Int FaceSize( const Int f ) const
+        {
+            return F_dE_ptr[f+1] - F_dE_ptr[f];
+        }
+        
+        cref<Tensor1<Int,Int>> FaceDedgeIndices() const
         {
             return F_dE_idx;
         }

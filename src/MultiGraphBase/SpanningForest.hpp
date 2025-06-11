@@ -2,7 +2,7 @@ public:
 
 void ComputeSpanningForest()
 {
-    TOOLS_PTIC(ClassName() + "::ComputeSpanningForest");
+    TOOLS_PTIC(ClassName()+"::ComputeSpanningForest");
     
     Aggregator<VInt,VInt> V_pre           ( VertexCount() );
     Aggregator<VInt,VInt> V_post          ( VertexCount() );
@@ -42,7 +42,7 @@ void ComputeSpanningForest()
     this->SetCache( "SpanningForestRoots",         std::move(roots.Get())  );
     this->SetCache( "DFSEdgeOrdering",   std::move(discovered_arcs.Get())  );
     
-    TOOLS_PTOC(ClassName() + "::ComputeSpanningForest");
+    TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }
 
 

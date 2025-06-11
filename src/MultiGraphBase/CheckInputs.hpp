@@ -2,7 +2,7 @@ private:
     
 void CheckInputs() const
 {
-    TOOLS_PTIMER( timer, ClassName() + "::CheckInputs" );
+    TOOLS_PTIMER( timer, ClassName()+"::CheckInputs" );
     
     const EInt edge_count = edges.Dimension(0);
     

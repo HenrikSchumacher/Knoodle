@@ -98,7 +98,7 @@ private:
             
             if( degenerateQ )
             {
-                wprint(ClassName() + "::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");
+                wprint(ClassName()+"::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");
                 logvalprint("x", x);
                 logvalprint("y", y);
                 logvalprint("edge data", EdgeData(edge));

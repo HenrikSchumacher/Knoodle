@@ -65,10 +65,18 @@ namespace Knoodle
         {}
         
         
-        // Provide am EdgeContainer_T. Caution: this destroys the container.
+        // Provide an EdgeContainer_T. Caution: this destroys the container.
         template<typename I_0>
         MultiGraph( const I_0 vertex_count_, EdgeContainer_T && edges_ )
         :   Base_T( vertex_count_, std::move(edges_) )
+        {}
+        
+        // Provide a list of edges by a PairAggregator.
+        template<typename I_0, typename I_1>
+        MultiGraph(
+            const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
+        )
+        :   Base_T( vertex_count_, pairs )
         {}
         
         // Copy constructor

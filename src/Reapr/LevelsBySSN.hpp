@@ -25,8 +25,8 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     mref<PlanarDiagram<Int>> pd
 )
 {
-    TOOLS_PTIMER(timer, ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
-//    TOOLS_PTIC(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer, ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+//    TOOLS_PTIC(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
@@ -82,7 +82,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         if( umfpack.NumericStatus() != UMFPACK_OK )
         {
-            eprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN: Aborting because numeric factorization failed.");
+            eprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN: Aborting because numeric factorization failed.");
             
             return Tensor1<Real,Int>();
         }
@@ -136,7 +136,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (b_iter >= max_b_iter) )
         {
-            wprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
+            wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
             
             TOOLS_DUMP( iter );
             TOOLS_DUMP( u.FrobeniusNorm() );
@@ -154,10 +154,10 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     
     if( (phi_0 > threshold) && (iter >= max_iter))
     {
-        wprint(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
+        wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
     }
     
-//    TOOLS_PTOC(ClassName() + "::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+//    TOOLS_PTOC(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     return x;
 }

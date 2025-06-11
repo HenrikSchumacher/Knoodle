@@ -2,7 +2,7 @@ public:
 
 void ComputeSpanningForest()
 {
-    TOOLS_PTIC(ClassName() + "::ComputeSpanningForest");
+    TOOLS_PTIC(ClassName()+"::ComputeSpanningForest");
     
     Aggregator<Int,Int> C_pre           ( CrossingCount() );
     Aggregator<Int,Int> C_post          ( CrossingCount() );
@@ -14,11 +14,11 @@ void ComputeSpanningForest()
     DepthFirstSearch(
         [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push( FromDiArc(A.da).first );
+            discovered_arcs.Push( FromDarc(A.da).first );
         },
         [&discovered_arcs]( cref<DirectedArcNode> A )
         {
-            discovered_arcs.Push( FromDiArc(A.da).first );
+            discovered_arcs.Push( FromDarc(A.da).first );
         },
         [&C_pre,&C_parent_A,&roots]( cref<DirectedArcNode> A )
         {
@@ -43,7 +43,7 @@ void ComputeSpanningForest()
     this->SetCache( "SpanningForestRoots",        std::move(roots.Get())  );
     this->SetCache( "DFSArcOrdering",   std::move(discovered_arcs.Get())  );
     
-    TOOLS_PTOC(ClassName() + "::ComputeSpanningForest");
+    TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }
 
 

@@ -6,7 +6,7 @@ Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC(ClassName() + "::LevelsSystemMatrix<" + TypeName<Int> + ">");
+    TOOLS_PTIC(ClassName()+"::LevelsSystemMatrix<" + TypeName<Int> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
@@ -31,7 +31,7 @@ Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
         }
         default:
         {
-            wprint(ClassName() + "::LevelsSystemMatrix: Unknown or invalid energy flag. Using DirichletHessian to prevent system matrix from being singular." );
+            wprint(ClassName()+"::LevelsSystemMatrix: Unknown or invalid energy flag. Using DirichletHessian to prevent system matrix from being singular." );
             
             agg = Aggregator_T( J(2) * m + J(3) * n );
             DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
@@ -48,7 +48,7 @@ Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
     
     Sparse::MatrixCSR<Real,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
 
-    TOOLS_PTOC(ClassName() + "::LevelsSystemMatrix<" + TypeName<Int> + ">");
+    TOOLS_PTOC(ClassName()+"::LevelsSystemMatrix<" + TypeName<Int> + ">");
     
     return L;
 }
@@ -66,7 +66,7 @@ void WriteLevelsSystemMatrixModifiedValues(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC( ClassName() + "::WriteLevelsSystemMatrixModifiedValues"
+    TOOLS_PTIC( ClassName()+"::WriteLevelsSystemMatrixModifiedValues"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>
@@ -103,7 +103,7 @@ void WriteLevelsSystemMatrixModifiedValues(
         mod_vals[k_end - 1] = (mask - Real(1));
     }
     
-    TOOLS_PTOC( ClassName() + "::WriteLevelsSystemMatrixModifiedValues"
+    TOOLS_PTOC( ClassName()+"::WriteLevelsSystemMatrixModifiedValues"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>

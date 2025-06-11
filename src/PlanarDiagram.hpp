@@ -741,18 +741,18 @@ namespace Knoodle
         
         // TODO: These things would be way faster if Int where unsigned.
         
-        static constexpr std::pair<Int,HeadTail_T> FromDiArc( Int da )
+        static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
         {
             return std::pair( da / Int(2), da % Int(2) );
         }
         
-        static constexpr Int ToDiArc( const Int a, const HeadTail_T d )
+        static constexpr Int ToDarc( const Int a, const HeadTail_T d )
         {
             return Int(2) * a + d;
         }
         
         template<HeadTail_T d>
-        static constexpr Int ToDiArc( const Int a )
+        static constexpr Int ToDarc( const Int a )
         {
             return Int(2) * a + d;
         }

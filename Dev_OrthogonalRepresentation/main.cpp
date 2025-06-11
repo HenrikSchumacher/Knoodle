@@ -76,7 +76,13 @@ int main( int argc, char** argv )
 
     OrthogonalRepresentation<Int> H (pd,-1);
     
-    TOOLS_DUMP(H.VertexDiEdges());
+    TOOLS_DUMP(H.CrossingCount());
+    TOOLS_DUMP(H.ArcCount());
+    TOOLS_DUMP(H.VertexCount());
+    TOOLS_DUMP(H.EdgeCount());
+    TOOLS_DUMP(H.FaceCount());
+    
+    TOOLS_DUMP(H.VertexDedges());
     TOOLS_DUMP(H.Edges());
     
     TOOLS_DUMP(H.Bends());
@@ -112,8 +118,8 @@ int main( int argc, char** argv )
 
     print("\nFaces (edges)");
     {
-        cptr<Int> F_dE_ptr = H.FaceDirectedEdgePointers().data();
-        cptr<Int> F_dE_idx = H.FaceDirectedEdgeIndices().data();
+        cptr<Int> F_dE_ptr = H.FaceDedgePointers().data();
+        cptr<Int> F_dE_idx = H.FaceDedgeIndices().data();
         for( Int f = 0; f < pd.FaceCount(); ++f )
         {
             valprint(
@@ -130,12 +136,20 @@ int main( int argc, char** argv )
     H.SetVerticalGridSize(4);
     H.SetHorizontalGapSize(1);
     H.SetVerticalGapSize(1);
-    H.ComputeVertexCoordinates(
-        H.VerticalSegmentTopologicalNumbering(),
-        H.HorizontalSegmentTopologicalNumbering()
-    );
+    H.ComputeVertexCoordinates_ByTopologicalTightening();
+    
+    TOOLS_DUMP(H.VertexCoordinates());
+    
     //H.ComputeArcLines();
     print(H.DiagramString());
+    
+    
+    TOOLS_DUMP(H.FaceDedgePointers());
+    
+    TOOLS_DUMP(H.VertexCoordinates());
+    
+    TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
+    
     
     return EXIT_SUCCESS;
 }

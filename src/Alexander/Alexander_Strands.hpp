@@ -86,7 +86,7 @@ template<bool sparseQ>
 std::pair<Multiplier_T,E_T> &
 Alexander_Strands_Normalization( cref<PD_T> pd ) const
 {
-    const std::string tag ( ClassName() + "::Alexander_Strands_Normalization" + "<" + ToString(sparseQ) + ">" );
+    const std::string tag ( ClassName()+"::Alexander_Strands_Normalization" + "<" + ToString(sparseQ) + ">" );
     
     using T = std::pair<Multiplier_T,E_T>;
     

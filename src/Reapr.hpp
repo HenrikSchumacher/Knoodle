@@ -206,7 +206,7 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(ClassName() + "::Hessian: Unknown or invalid energy flag. Returning empty matrix" );
+                    wprint(ClassName()+"::Hessian: Unknown or invalid energy flag. Returning empty matrix" );
                     
                     return Sparse::MatrixCSR<Real,I,J>();
                 }
@@ -227,7 +227,7 @@ namespace Knoodle
                     }
                     else
                     {
-                        eprint(ClassName() + "::Levels: Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
+                        eprint(ClassName()+"::Levels: Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
                         return Tensor1<Real,Int>();
                     }
                 }

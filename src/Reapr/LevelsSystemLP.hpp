@@ -3,7 +3,7 @@ public:
 template<typename I, typename J, typename Int>
 Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
 {
-    TOOLS_PTIC(ClassName() + "::LevelsMatrixLP");
+    TOOLS_PTIC(ClassName()+"::LevelsMatrixLP");
     
 //    if( !IntFitsIntoTypeQ<I>(??) )
 //    {
@@ -76,7 +76,7 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
         agg, I(2) * m, n + I(2) * m + I(1), I(1), true, false
     );
 
-    TOOLS_PTOC(ClassName() + "::LevelsMatrixLP");
+    TOOLS_PTOC(ClassName()+"::LevelsMatrixLP");
     
     return A;
 }
