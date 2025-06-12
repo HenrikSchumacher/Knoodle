@@ -88,5 +88,6 @@ If you encounter import errors, ensure:
 1. The installed package matches your Python version
 2. Your C++ compiler supports C++20 features
 3. All submodules are properly initialized if installing from source
+4. Try to use the latest versions of conda to avoid error with dependencies, like boost. 
 
 For Linux users, if you see `GLIBCXX` version errors, ensure your GCC version is compatible.
