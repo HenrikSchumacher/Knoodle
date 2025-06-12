@@ -7,70 +7,62 @@ Int FaceCount() const
 
 std::string FaceString( const Int f ) const
 {
-    cptr<Int> F_A_ptr = FaceDirectedArcPointers().data();
-    cptr<Int> F_A_idx = FaceDirectedArcIndices().data();
+    cptr<Int> F_dA_ptr = FaceDirectedArcPointers().data();
+    cptr<Int> F_dA_idx = FaceDirectedArcIndices().data();
     
-    const Int i_begin = F_A_ptr[f  ];
-    const Int i_end   = F_A_ptr[f+1];
+    const Int i_begin = F_dA_ptr[f  ];
+    const Int i_end   = F_dA_ptr[f+1];
     
     const Int f_size = i_end - i_begin;
     
-    return "face " + ToString(f) + " = " + ArrayToString( &F_A_idx[i_begin], { f_size } );
+    return "face " + ToString(f) + " = " + ArrayToString( &F_dA_idx[i_begin], { f_size } );
 }
 
 cref<Tensor1<Int,Int>> FaceDirectedArcIndices() const
 {
     const std::string tag = "FaceDirectedArcIndices";
-    
-    if( !this->InCacheQ(tag) )
-    {
-        RequireFaces();
-    }
-    
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> FaceDirectedArcPointers() const
 {
     const std::string tag = "FaceDirectedArcPointers";
-    
-    if( !this->InCacheQ(tag) )
-    {
-        RequireFaces();
-    }
-    
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
-    
 }
 
-cref<Tensor2<Int,Int>> ArcFaces()  const
+cref<ArcContainer_T> ArcFaces()  const
 {
     const std::string tag = "ArcFaces";
-    
-    if( !this->InCacheQ(tag) )
-    {
-        RequireFaces();
-    }
-    
-    return this->template GetCache<Tensor2<Int,Int>>(tag);
-    
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<ArcContainer_T>(tag);
+}
+
+Int MaximumFace() const
+{
+    const std::string tag = "MaximumFace";
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<Int>(tag);
+}
+
+Int MaxFaceSize() const
+{
+    const std::string tag = "MaxFaceSize";
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<Int>(tag);
 }
 
 void RequireFaces() const
 {
     TOOLS_PTIC(ClassName()+"::RequireFaces");
     
-    cptr<Int> A_left = ArcLeftArc().data();
-    
-//    auto A_left_buffer = ArcLeftArc();
-//    cptr<Int> A_left = A_left_buffer.data();
+    cptr<Int> dA_left_dA = ArcLeftArc().data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    Tensor2<Int,Int> A_faces_buffer (max_arc_count,2);
+    ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );
     
-    mptr<Int> A_face = A_faces_buffer.data();
-    
-    // TODO: WHY???!!!
+    mptr<Int> dA_F = dA_F_buffer.data();
     
     // Convention: _Right_ face first:
     //
@@ -80,36 +72,39 @@ void RequireFaces() const
     //
     //            A_faces_buffer(a,1)
     //
-    // Entry -1 means "unvisited but to be visited".
-    // Entry -2 means "do not visit".
+    // This way the directed arc da = 2 * a + Head has its left face in dA_f[da].
+    
+    
+    // Entry Uninitialized means "unvisited but to be visited".
+    // Entry Uninitialized - 1 means "do not visit".
     
     for( Int a = 0; a < max_arc_count; ++ a )
     {
-        const Int A = (a << 1);
+        const Int da = Int(2) * a;
         
         if( ArcActiveQ(a) )
         {
-            A_face[A         ] = -1;
-            A_face[A | Int(1)] = -1;
+            dA_F[da         ] = Uninitialized;
+            dA_F[da + Int(1)] = Uninitialized;
         }
         else
         {
-            A_face[A         ] = -2;
-            A_face[A | Int(1)] = -2;
+            dA_F[da         ] = Uninitialized - Int(1);
+            dA_F[da + Int(1)] = Uninitialized - Int(1);
         }
     }
     
-    const Int A_count = 2 * max_arc_count;
+    const Int dA_count = 2 * max_arc_count;
     
-    Int A_counter = 0;
+    Int dA_counter = 0;
     
     // Each arc will appear in two faces.
-    Tensor1<Int,Int> F_A_idx ( 2 * arc_count );
+    Tensor1<Int,Int> F_dA_idx ( dA_count );
     // By Euler's polyhedra formula we have crossing_count - arc_count + face_count = 2.
     // Moreover, we have arc_count = 2 * crossing_count, hence face_count = crossing_count + 2.
     //    
     //    const Int face_count = crossing_count + 2;
-    //    Tensor1<Int,Int> F_A_ptr ( face_count + 1 );
+    //    Tensor1<Int,Int> F_dA_ptr ( face_count + 1 );
     //
     // BUT: We are actually interested in face boundary cycles.
     // When we have a disconnected planar diagram, then there may be more than one boundary cycle per face:
@@ -117,100 +112,56 @@ void RequireFaces() const
     // face_count = crossing_count + 2 * #(connected components)
     //
     // I don't want to count the number of connected components here, so I use an
-    // expandable std::vector here -- with default lenght that will always do for knots.
+    // expandable Aggregator<Int,Int>  here -- with default length that will always do for knots.
 
-    Size_T expected_face_count = static_cast<Size_T>(crossing_count + 2);
-    std::vector<Int> F_A_ptr_agg;
-    F_A_ptr_agg.reserve( expected_face_count + 1 );
-    F_A_ptr_agg.push_back(Int(0));
+    Int expected_face_count = crossing_count + Int(2);
+    Aggregator<Int,Int> F_dA_ptr_agg ( expected_face_count + Int(1) );
+    F_dA_ptr_agg.Push(Int(0));
     
-    Int F_counter = 0;
+    Int max_f    = 0;
+    Int max_size = 0;
     
-    Int A_finder = 0;
-    
-    while( A_finder < A_count )
+    for( Int da_0 = 0; da_0 < dA_count; ++da_0 )
     {
-        while( (A_finder < A_count) && (A_face[A_finder] != -1) )
-        {
-            ++A_finder;
-        }
+        if( dA_F[da_0] != Uninitialized ) { continue; }
         
-        if( A_finder >= A_count )
-        {
-            goto Exit;
-        }
-
-        const Int A_0 = A_finder;
+        const Int count_0 = dA_counter;
         
-        Int A = A_0;
-        
+        Int da = da_0;
         do
         {
             // Declare current face to be a face of this directed arc.
-            A_face[A] = F_counter;
+            dA_F[da] = F_dA_ptr_agg.Size() - Int(1);
             
             // Declare this arc to belong to the current face.
-//            F_A_ptr_agg.push_back(A);
-            F_A_idx[A_counter] = A;
+            F_dA_idx[dA_counter] = da;
             
             // Move to next arc.
-            A = A_left[A];
+            da = dA_left_dA[da];
             
-            ++A_counter;
+            ++dA_counter;
         }
-        while( A != A_0 );
+        while( da != da_0 );
         
-        ++F_counter;
-//        F_A_ptr[F_counter] = A_counter;
+        const Int f = F_dA_ptr_agg.Size() - Int(1);
         
-        F_A_ptr_agg.push_back(A_counter);
+        F_dA_ptr_agg.Push(dA_counter);
+        
+        const Int count_1 = dA_counter;
+        const Int f_size = count_1 - count_0;
+        
+        if( f_size > max_size )
+        {
+            max_f = f;
+            max_size = f_size;
+        }
     }
     
-Exit:
-    
-    
-    if( !std::in_range<Int>( F_A_ptr_agg.size() ) )
-    {
-        eprint(ClassName()+"::RequireFaces: Integer overflow");
-    }
-    Tensor1<Int,Int> F_A_ptr ( int_cast<Int>(F_A_ptr_agg.size()) );
-    
-    F_A_ptr.Read( &F_A_ptr_agg[0] );
-    
-    this->SetCache( "FaceDirectedArcIndices" , std::move(F_A_idx) );
-    this->SetCache( "FaceDirectedArcPointers", std::move(F_A_ptr) );
-    this->SetCache( "ArcFaces", std::move(A_faces_buffer) );
+    this->SetCache( "FaceDirectedArcPointers", std::move(F_dA_ptr_agg.Get()) );
+    this->SetCache( "FaceDirectedArcIndices" , std::move(F_dA_idx)           );
+    this->SetCache( "ArcFaces",                std::move(dA_F_buffer)        );
+    this->SetCache( "MaxFaceSize",             max_size                      );
+    this->SetCache( "MaximumFace",             max_f                         );
     
     TOOLS_PTOC(ClassName()+"::RequireFaces");
-}
-
-
-Int OutsideFace()
-{
-    const std::string tag = "OutsideFace";
-    
-    if( !this->InCacheQ(tag) )
-    {
-        auto & FA_ptr = FaceDirectedArcPointers();
-        
-        const Int f_count = FaceCount();
-        
-        Int max_f = 0;
-        Int max_a = FA_ptr[max_f+1] - FA_ptr[max_f];
-        
-        for( Int f = 1; f < f_count; ++f )
-        {
-            const Int a_count = FA_ptr[f+1] - FA_ptr[f];
-            
-            if( a_count > max_a )
-            {
-                max_f = f;
-                max_a = a_count;
-            }
-        }
-        
-        this->SetCache(tag, max_f);
-    }
-    
-    return this->template GetCache<Int>(tag);
 }

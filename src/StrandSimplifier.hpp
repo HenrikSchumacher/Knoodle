@@ -417,7 +417,7 @@ namespace Knoodle
         
         void RepairArcLeftArcs()
         {
-            PD_TIC(ClassName() + "::RepairArcLeftArcs");
+            PD_TIC(ClassName()+"::RepairArcLeftArcs");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -441,9 +441,7 @@ namespace Knoodle
             
             Time_RepairArcLeftArcs += Tools::Duration(start_time,stop_time);
 #endif
-            PD_TOC(ClassName() + "::RepairArcLeftArcs");
-            
-            
+            PD_TOC(ClassName()+"::RepairArcLeftArcs");
         }
 
         template<bool headtail>
@@ -472,16 +470,22 @@ namespace Knoodle
             }
         }
         
+        /*! @brief Checks whether arc `a` is a loop arc. In the affirmative case it performs a Reidemeister I move and returns `true`. Otherwise, it returns `false`.
+         *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Reidemeister_I`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
+         *
+         * @param a The arc to check as possibly, to remove.
+         *
+         * @tparam checkQ Whether the check for `a` being a loop is activated (`true`), which is the default.
+         */
+        
         template<bool headtail, bool deactivateQ = true>
         void Reconnect( const Int a, const Int b )
         {
 #ifdef PD_DEBUG
-            std::string tag (ClassName() + "::Reconnect " + (headtail ? "Head of " : "Tail of ") + ArcString(a) + " to " + (headtail ? "Head of " : "Tail of ") + ArcString(b) + "." );
+            std::string tag  (ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
 #endif
             
             PD_TIC(tag);
-
-//            AssertArc<1>(a);
             
             PD_ASSERT( pd.ArcActiveQ(a) );
             
@@ -507,8 +511,12 @@ namespace Knoodle
             PD_TOC(tag);
         }
 
-        
-        /*! @brief Attempts to perform a Reidemeister I move to arc `a` and returns `true` if an actual move has been performed. If called as `Reidemeister_I<false>`, the check for being a loop arc will be skipped and the surgery is performed right away. This may cause errors, though. If `Reidemeister_I<true>`, then the move is performed only if the check was successful.
+        /*! @brief Checks whether arc `a` is a loop arc. In the affirmative case it performs a Reidemeister I move and returns `true`. Otherwise, it returns `false`.
+         *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Private_Reidemeister_I`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
+         *
+         * @param a The arc to check as possibly, to remove.
+         *
+         * @tparam checkQ Whether the check for `a` being a loop is activated (`true`), which is the default.
          */
 
         template<bool checkQ>
@@ -524,7 +532,7 @@ namespace Knoodle
                 }
             }
             
-            PD_DPRINT( ClassName() + "::Reidemeister_I at " + ArcString(a) );
+            PD_DPRINT( ClassName()+"::Reidemeister_I at " + ArcString(a) );
             
             // We assume here that we already know that a is a loop arc.
             
@@ -532,7 +540,7 @@ namespace Knoodle
             
             // const bool side = (C_arcs(c,In,Right) == a);
             
-            // The allows a 50% chance that we do not have to load `C_arcs(c,In,Left)` again.
+            // This allows a 50% chance that we do not have to load `C_arcs(c,In,Left)` again.
             const bool side = (C_arcs(c,In,Left) != a);
             
             const Int a_next = C_arcs(c,Out,!side);
@@ -734,9 +742,11 @@ namespace Knoodle
         }
         
         
+    private:
+        
         void Prepare()
         {
-            PD_TIC(ClassName() + "::Prepare");
+            PD_TIC(ClassName()+"::Prepare");
             
             PD_ASSERT(pd.CheckAll());
             
@@ -756,17 +766,44 @@ namespace Knoodle
             
             PD_ASSERT(CheckArcLeftArcs());
 
-            PD_TOC(ClassName() + "::Prepare");
+            PD_TOC(ClassName()+"::Prepare");
+        }
+        
+        void Cleanup()
+        {
+            PD_TIC(ClassName()+"::Cleanup");
+            
+            A_left = nullptr;
+            
+            pd.ClearCache("ArcLeftArc");
+            
+            PD_TOC(ClassName()+"::Cleanup");
         }
         
     public:
+        
+        void SetStrandMode( const bool overQ_ )
+        {
+            overQ = overQ_;
+        }
+        
+        /*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrand. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the currect strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. 0 is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
+         *
+         * @param overQ_ Whether to simplify overstrands (true) or understrands(false).
+         *
+         * @param max_dist Maximal lengths of rerouted strands. If no rerouting is found that makes the end arcs this close to each other, the rerouting attempt is aborted. Typically, we should set this to "infinity".
+         *
+         * @tparam R_II_Q Whether to apply small Reidemeister II moves on the way.
+         */
         
         template<bool R_II_Q = true>
         Int SimplifyStrands(
             bool overQ_, const Int max_dist = std::numeric_limits<Int>::max()
         )
         {
-            overQ = overQ_;
+            // TODO: Maybe I should break this function into a few smaller pieces.
+            
+            SetStrandMode(overQ_);
             
             TOOLS_PTIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
@@ -774,12 +811,12 @@ namespace Knoodle
             const Time start_time = Clock::now();
 #endif
 
-            const Int m = A_cross.Dimension(0);
-
             Prepare();
             
+            const Int m = A_cross.Dimension(0);
+            
             // We increase `color` for each strand. This ensures that all entries of A_data, A_colors, C_data etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
-            // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in once call to `SimplifyStrands`. That should really be enough for all feasible applications.
+            // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `SimplifyStrands`. That should really be enough for all feasible applications.
             
             ++color;
             a_ptr = 0;
@@ -820,8 +857,8 @@ namespace Knoodle
                     continue;
                 }
                 
-                // Might be changed by RerouteToShortestPath.
-                // This we indeed a reference, not a copy here.
+                // Might be changed by RerouteToShortestPath_impl.
+                // Thus, we need indeed a reference, not a copy here.
                 ArcState & a_0_state = A_state[a_0];
                 
                 // Current arc.
@@ -834,9 +871,9 @@ namespace Knoodle
                 // Traverse forward through all arcs in the link component, until we return where we started.
                 do
                 {
-                    // TODO: I think we should increment this at the same place where we set a = a_next.
                     ++strand_length;
                     
+                    // Safe guard against integer overflow.
                     if( color == std::numeric_limits<Int>::max() )
                     {
 #ifdef PD_TIMINGQ
@@ -906,7 +943,7 @@ namespace Knoodle
                         }
                     }
                     
-                    // Arc gets old color.
+                    // Arc gets current color.
                     A_color(a) = color;
                     
                     
@@ -914,54 +951,149 @@ namespace Knoodle
                     // This finds out whether we have to reset.
                     strand_completeQ = ((side_1 == pd.CrossingRightHandedQ(c_1)) == overQ);
                     
-                    // TODO: This might require already that there are no possible Reidemeister II moves along the strand.
+                    // TODO: This might require already that there are no possible Reidemeister II moves along the strand. (?)
                     
-                    // Check for loops.
+                    // Check for loops, i.e., a over/understrand that starts and ends at the same crossing. This is akin to a "big Reidemeister I" move on top (or under) the diagram.
                     
                     if( C_color(c_1) == color )
                     {
                         // Vertex c has been visted before.
+                        
+                        
+                        /*            |
+                         *            |
+                         *         a  | a_ptr
+                         *     -------|-------
+                         *         c_1|
+                         *            |
+                         *            |
+                         */
 
                         // TODO: Test this.
                         if constexpr ( mult_compQ )
                         {
                             // We must insert this check because we might otherwise get problems when there is a configuration like this:
                             
-                            /*
-                             *            +-----+
-                             *            |     |
-                             *         a  |a_ptr|
-                             *      +-----|-----------+
-                             *      |  c_1|     |     |
-                             *      |     |     |     |
-                             *      |     +-----+     |
-                             *      |                 |
-                             *      +-----------------+
+                            /* "Big Hopf Loop"
                              *
+                             *            #       #
+                             *            #       #
+                             *            |       |
+                             *            |       |
+                             *         a  | a_ptr |
+                             *      +-----|-------------+
+                             *      |  c_1|       |     |
+                             *      |     |       |     |
+                             *      |     |       |     |
+                             *      |     |       |  +--|--##
+                             *  ##--|--+  +-------+  |  |
+                             *      |  |             |  |
+                             *      +-------------------+
+                             *         |             |
+                             *         #             #
                              */
-                            
-                            // We have computed a_next above; no need to recompute it.
-//                            const Int a_next = pd.template NextArc<Head>(a,c_1);
-                            
-                            if( !strand_completeQ || (A_color(a_next) != color)  )
+
+
+                            if(
+                               !strand_completeQ || (A_color(a_next) != color)
+                            )
                             {
                                 RemoveLoop(a,c_1);
-                                
                                 RepairArcLeftArcs();
-                                
                                 break;
                             }
+                            else
+                            {
+                                // TODO: What we have here could be a "big Hopf link", no? It should still be possible to reroute this to get rid of all but one crossings on the strand. We could reconnect it like this or increment a "Hopf loop" counter of the corresponding link component.
+                                
+                                /* "Big Hopf Loop"
+                                 *
+                                 *            #       #
+                                 *            #       #
+                                 *            |       |
+                                 *            |       |
+                                 *         a  | a_ptr |
+                                 *      +-----|-------------+
+                                 *      |  c_1|       |     |
+                                 *      |     |       |     |
+                                 *      |     |       |     |
+                                 *      |     |       |  +--|--##
+                                 *  ##--|--+  +-------+  |  |
+                                 *      |  |             |  |
+                                 *      +-------------------+
+                                 *         |             |
+                                 *         #             #
+                                 */
+                                
+                                /* Simplified "Big Hopf Loop"
+                                 *
+                                 *            #       #
+                                 *            #       #
+                                 *            |       |
+                                 *            |       |
+                                 *         a  | a_ptr |
+                                 *      +-----|---+   |
+                                 *      |  c_1|   |   |
+                                 *      |     |c_2|   |
+                                 *      +---------+   |
+                                 *            |       |  +-----##
+                                 *  ##-----+  +-------+  |
+                                 *         |             |
+                                 *         |             |
+                                 *         #             #
+                                 */
+                                
+                                // The Dijkstra algorithm should be able to simplify this. We could of course provide a shorter, slightly more efficient implementation. But I Dijkstra should terminate quite quickly, so we should be happy about getting rid of this mental load. We we just do not break here and let the algorithm continue.
+                                
+                                
+                                // TODO: CAUTION: Also this is possible:
+                                
+                                /* "Over Unknot"
+                                 *
+                                 *
+                                 *              +-------+
+                                 *              |       |
+                                 *       ##-----|-------|----##
+                                 *              |       |
+                                 *          a   | a_ptr |
+                                 *      +-------|-------+
+                                 *      |    c_1|
+                                 *      |       |
+                                 *  ##--|-------|------##
+                                 *      |       |
+                                 *      +-------+
+                                 *
+                                 */
+
+                                // TODO: I am not entirely sure whether Dijkstra will resolve this correctly.
+                            }
+                    
                         }
-                        else
+                        else // single component link
                         {
+                            // The only case I can imagine where `RemoveLoop` won't wotk is this unknot:
+                            
+                            /*            +-------+
+                             *            |       |
+                             *            |       |
+                             *         a  | a_ptr |
+                             *    +-------|-------+
+                             *    |    c_1|
+                             *    |       |
+                             *    |       |
+                             *    +-------+
+                             */
+                            
+                            // However, the earlier call(s) to Reidemeister_I should rule this case out. So we have the case of a "Big Reidemeister I" here, and that is what `RemoveLoop` is made for.
+                            
                             RemoveLoop(a,c_1);
-                            
                             RepairArcLeftArcs();
-                            
                             break;
                         }
                     }
 
+                    // Checking for Reidemeister II moves like this:
+                    
                     // overQ == true
                     //
                     //                  +--------+
@@ -972,18 +1104,12 @@ namespace Knoodle
                     //      |     |     |        |
                     
                     // TODO: It might even be worth to do this before RemoveLoop is called.
-                    
-//                    if( c_1 == A_cross(a_next,Head) )
-//                    {
-//                        logprint("R_I ahead");
-//                    }
-                    
-                    // TODO: Why not just calling `ArcSimplifier` on `a_next` and in case of changes, revisit `a`? (And don't forget to repair `A_left_buffer`!)
 
                     if constexpr ( R_II_Q )
                     {
                         if( (!strand_completeQ) && (a != a_begin) )
                         {
+                            // Caution: This might change `a`.
                             const bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
                             
                             if( changedQ )
@@ -1009,8 +1135,10 @@ namespace Knoodle
                         
                         if( (strand_length > Int(1)) && (max_dist > Int(0)) )
                         {
-                            changedQ = RerouteToShortestPath(
-                                a_begin,a,Min(strand_length-Int(1),max_dist),color
+                            changedQ = RerouteToShortestPath_impl(
+                                a_begin,a,
+                                Min(strand_length-Int(1),max_dist),
+                                color
                             );
                             
                             if( changedQ )
@@ -1065,22 +1193,31 @@ namespace Knoodle
             Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
             
+            Cleanup();
+            
             TOOLS_PTOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
-        }
+            
+        } // Int SimplifyStrands(
         
         
     private:
         
-        void CollapseArcRange( const Int a_begin, const Int a_end, const Int arc_count_ )
+        /*!@brief Collapse the strand made by the arcs `a_begin, pd.NextArc<Head>(a_begin),...,a_end` to a single arc. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that crossed this strand have to reconnected or deactivated.
+         *
+         * @param a_begin First arc on strand to be collapsed.
+         *
+         * @param a_end Last arc on strand to be collapsed.
+         *
+         * @param arc_count_ An upper bound for the number of arcs on the strand from `a_begin` to `a_end`. This merely serves as fallback to prevent infinite loops.
+         */
+        
+        void CollapseArcRange(
+            const Int a_begin, const Int a_end, const Int arc_count_
+        )
         {
-//            PD_DPRINT( ClassName() + "::CollapseArcRange" );
-
-            
-            // This shall collapse the arcs `a_begin, pd.NextArc<Head>(a_begin),...,a_end` to a single arc.
-            // All crossings from the head of `a_begin` up to the tail of `a_end` have to be reconnected and deactivated.
-            // Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate a_end.
+//            PD_DPRINT( ClassName()+"::CollapseArcRange" );
             
             // We remove the arcs _backwards_ because of how Reconnect uses PD_ASSERT.
             // (It is legal that the head is inactive, but the tail must be active!)
@@ -1091,7 +1228,7 @@ namespace Knoodle
                 return;
             }
             
-            PD_TIC(ClassName() + "::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
+            PD_TIC(ClassName()+"::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1108,8 +1245,7 @@ namespace Knoodle
                 
                 const Int c = A_cross(a,Tail);
                 
-//                const bool side  = (C_arcs(c,Out,Right) == a);
-//                const Int a_prev = C_arcs(c,In,!side);
+                const bool side  = (C_arcs(c,Out,Right) == a);
                 
                 // side == Left         side == Right
                 //
@@ -1120,14 +1256,16 @@ namespace Knoodle
                 //         |c                   |c
                 //         |                    |
                 //         v                    |
-                
-//                PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
 
-//                Reconnect<Head>( C_arcs(c,In,side),C_arcs(c,Out,!side) );
-                
                 Int a_prev;
                 
-                if( C_arcs(c,Out,Right) == a )
+//                const Int a_prev = C_arcs(c,In,!side);
+//                PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
+//                Reconnect<Head>( C_arcs(c,In,side),C_arcs(c,Out,!side) );
+                
+                
+                // I do an if check here so that all the indexing into `C_arcs` is mostly by constexpr numbers.
+                if( side == Right )
                 {
                     a_prev = C_arcs(c,In,Left);
                     
@@ -1166,12 +1304,13 @@ namespace Knoodle
             
             Time_CollapseArcRange += Tools::Duration(start_time,stop_time);
 #endif
-            PD_TOC(ClassName() + "::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
+            PD_TOC(ClassName()+"::CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")");
         }
+        
         
         void RemoveLoop( const Int e, const Int c_0 )
         {
-            PD_TIC(ClassName() + "::RemoveLoop");
+            PD_TIC(ClassName()+"::RemoveLoop");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1235,7 +1374,7 @@ namespace Knoodle
                     
                     ++change_counter;
                     
-                    PD_TOC(ClassName() + "::RemoveLoop");
+                    PD_TOC(ClassName()+"::RemoveLoop");
                     
                     
                     return;
@@ -1270,14 +1409,14 @@ namespace Knoodle
             Time_RemoveLoop += Tools::Duration(start_time,stop_time);
 #endif
             
-            PD_TOC(ClassName() + "::RemoveLoop");
+            PD_TOC(ClassName()+"::RemoveLoop");
         }
         
         
-    public:
+    private:
         
         /*!
-         * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcd share a common face.
+         * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcs share a common face.
          *
          * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
          *
@@ -1287,16 +1426,16 @@ namespace Knoodle
          *
          * @param max_dist Maximal distance we want to travel
          *
-         * @param color_    Indicator that is written to first column of `A_data`; this avoid have to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
+         * @param color_    Indicator that is written to first column of `A_data`; this avoids having to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
          *
          */
         
-        Int FindShortestPath(
+        Int FindShortestPath_impl(
             const Int a_begin, const Int a_end, const Int max_dist, const Int color_
         )
         {
-            PD_TIC(ClassName()+"::FindShortestPath");
-                        
+            PD_TIC(ClassName()+"::FindShortestPath_impl");
+         
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
@@ -1457,7 +1596,7 @@ namespace Knoodle
                 
                 if( Abs(A_data(a_end,0)) != color_ )
                 {
-                    pd_eprint(ClassName() + "::FindShortestPath");
+                    pd_eprint(ClassName()+"::FindShortestPath_impl");
                     TOOLS_LOGDUMP(d);
                     TOOLS_LOGDUMP(max_dist);
                     TOOLS_LOGDUMP(a_end);
@@ -1489,50 +1628,96 @@ namespace Knoodle
             Time_FindShortestPath += Tools::Duration(start_time,stop_time);
 #endif
             
-            PD_TOC(ClassName()+"::FindShortestPath");
+            PD_TOC(ClassName()+"::FindShortestPath_impl");
             
             return d;
         }
         
+//    private:
+//        
+//        // Only meant for debugging. Don't do this in production!
+//        Tensor1<Int,Int> GetShortestPath_impl(
+//            const Int a_first, const Int a_last, const Int max_dist, const Int color_
+//        )
+//        {
+//            const Int d = FindShortestPath_impl( a_first, a_last, max_dist, color_ );
+//
+//            if( d <= max_dist )
+//            {
+//                Tensor1<Int,Int> path_out (path_length);
+//                
+//                path_out.Read( path.data() );
+//                
+//                return path_out;
+//            }
+//            else
+//            {
+//                return Tensor1<Int,Int>();
+//            }
+//        }
         
-        // Only meant for debugging. Don't do this in production!
-        Tensor1<Int,Int> GetShortestPath(
-            const Int a_begin, const Int a_end, const Int max_dist, const Int color_
+        
+    public:
+        
+        /*!
+         * @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+         *
+         * @param a_first The first arc of the input strand.
+         *
+         * @param a_last The last arc of the input strand (included).
+         *
+         * @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+         */
+        
+        Tensor1<Int,Int> FindShortestPath(
+            const Int a_first, const Int a_last, const Int max_dist
         )
         {
-            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
+            Prepare();
+            
+            color = 1;
+            
+            Int a = a_first;
+            Int b = a_last;
+            
+            strand_length = ColorArcs(a,b,color);
 
+            Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
+            
+            const Int d = FindShortestPath_impl(a,b,max_dist_,color);
+            
+            Tensor1<Int,Int> p;
+            
             if( d <= max_dist )
             {
-                Tensor1<Int,Int> path_out (path_length);
+                p = Tensor1<Int,Int> (path_length);
                 
-                path_out.Read( path.data() );
-                
-                return path_out;
+                p.Read( path.data() );
             }
-            else
-            {
-                return Tensor1<Int,Int>();
-            }
+            
+            Cleanup();
+            
+            return p;
         }
         
  private:
                 
-        
         /*!
-         * @brief Attempts to reroute the strand.
+         * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
+         * This is why we make this function private.
          *
-         * @param a_begin The first arc of the strand on entry as well as as on return.
+         * @param a_first The first arc of the strand on entry as well as as on return.
          *
-         * @param a_end The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
+         * @param a_last The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
          *
          * @param max_dist The maximal distance Dijkstra's algorithm will wander.
          *
          * @param color_ The color of the path.
          */
         
-        bool RerouteToShortestPath(
-            const Int a_begin, mref<Int> a_end, const Int max_dist, const Int color_
+        bool RerouteToShortestPath_impl(
+            const Int a_first, mref<Int> a_last,
+            const Int max_dist, const Int color_
         )
         {
             PD_ASSERT(CheckArcLeftArcs());
@@ -1542,9 +1727,11 @@ namespace Knoodle
             
             TOOLS_LOGDUMP(Cr_0);
 #endif
-            
-            const Int d = FindShortestPath( a_begin, a_end, max_dist, color_ );
-            
+
+            const Int d = FindShortestPath_impl(
+                a_first, a_last, max_dist, color_
+            );
+
             if( (d < Int(0)) || (d > max_dist) )
             {
                 PD_DPRINT("No improvement detected.");
@@ -1552,7 +1739,7 @@ namespace Knoodle
                 return false;
             }
             
-            PD_TIC(ClassName()+"::RerouteToShortestPath");
+            PD_TIC(ClassName()+"::RerouteToShortestPath_impl");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -1560,31 +1747,30 @@ namespace Knoodle
             
             PD_TIC("Prepare reroute loop");
             
-            // path[0] == a_begin. This is not to be crossed.
+            // path[0] == a_first. This is not to be crossed.
             
             Int p = 1;
-            Int a = a_begin;
+            Int a = a_first;
             
-            // At the beginning of the strand we want to avoid inserting a crossing on
-            // arc b if b branches directly off from the current strand.
+            // At the beginning of the strand we want to avoid inserting a crossing on arc `b` if `b` branches directly off from the current strand.
             //
             //      |         |        |        |
             //      |    a    |        |        |    current strand
             //    --|-------->-------->-------->-------->
             //      |         |        |        |
             //      |         |        |        |
-            //                b
+            //            b = path[p]?
             //
 
             MoveWhileBranching<Head>(a,p);
             
-            // Now a is the first arc to be rerouted.
+            // Now `a` is the first arc to be rerouted.
             
             // Same at the end.
             
             Int q = path_length - Int(1);
-            Int e = a_end;
-  
+            Int e = a_last;
+
             MoveWhileBranching<Tail>(e,q);
 
             // Now e is the last arc to be rerouted.
@@ -1593,7 +1779,7 @@ namespace Knoodle
             PD_TOC("Prepare reroute loop");
             
             PD_TIC("Reroute loop");
-            
+
             while( p < q )
             {
                 const Int c_0 = A_cross(a,Head);
@@ -1608,7 +1794,7 @@ namespace Knoodle
                 
                 const Int c_1 = A_cross(b,Head);
                 
-                // This is the situation for `a` before rerouting for side == Right;
+                // This is the situation for `a` before rerouting for `side == Right`;
                 //
                 //
                 //                ^a_1
@@ -1642,7 +1828,7 @@ namespace Knoodle
                 PD_ASSERT( a_0 != a_1 );
                 
                 
-                // The case dir == true.
+                // The case `dir == true`.
                 // We cross arc `b` from left to right.
                 //
                 // Situation of `b` before rerouting:
@@ -1693,14 +1879,14 @@ namespace Knoodle
 
                 A_cross(b,Head) = c_0;
                 
-                // Caution: This might turn around a_1!
+                // Caution: This might turn around `a_1`!
                 A_cross(a_1,Tail) = c_0;
                 A_cross(a_1,Head) = c_1;
                 
                 pd.template SetMatchingPortTo<In>(c_1,b,a_1);
 
                 
-                // Recompute c_0. We have to be aware that the handedness and the positions of the arcs relative to c_0 can completely change!
+                // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
                 
                 if( dir )
                 {
@@ -1725,13 +1911,6 @@ namespace Knoodle
                     //             | b == path[p]
                     //             |
                     //             X
-                    
-//                    // Very likely, `A_left_buffer(a,Head)` and `A_left_buffer(a_2,Tail)` are next to each other in memory.
-//                    A_left_buffer(a  ,Head) = ((a_1 << 1) | Head);
-//                    A_left_buffer(a_2,Tail) = ((b   << 1) | Tail);
-//                    
-//                    A_left_buffer(b  ,Head) = ((a   << 1) | Tail);
-//                    A_left_buffer(a_1,Tail) = ((a_2 << 1) | Head);
                     
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_1,a_2,a,b };
@@ -1761,13 +1940,6 @@ namespace Knoodle
                     //             |
                     //             X
                     
-//                    // Very likely, `A_left_buffer(a,Head)` and `A_left_buffer(a_2,Tail)` are next to each other in memory.
-//                    A_left_buffer(a  ,Head) = ((b   << 1) | Tail);
-//                    A_left_buffer(a_2,Tail) = ((a_1 << 1) | Head);
-//                    
-//                    A_left_buffer(b  ,Head) = ((a_2 << 1) | Head);
-//                    A_left_buffer(a_1,Tail) = ((a   << 1) | Tail);
-                    
                     // Fortunately, this does not depend on overQ.
                     const Int buffer [4] = { a_2,a_1,b,a };
                     copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
@@ -1795,16 +1967,17 @@ namespace Knoodle
             }
             
             PD_TOC("Reroute loop");
+
             
             // strand_length is just an upper bound to prevent infinite loops.
             CollapseArcRange(a,e,strand_length);
-            
+
             AssertArc<1>(a);
             AssertArc<0>(e);
             
             TouchArc<Head>(a);
 
-            a_end = a;
+            a_last = a;
 
 #ifdef PD_DEBUG
             const Int Cr_1 = pd.CrossingCount();
@@ -1822,12 +1995,71 @@ namespace Knoodle
             
             ++change_counter;
             
-            PD_TOC(ClassName()+"::RerouteToShortestPath");
+            PD_TOC(ClassName()+"::RerouteToShortestPath_impl");
             
             return true;
         }
         
     public:
+        
+        /*!
+         * @brief Attempts to reroute the input strand. It returns the first and last arcs of the rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+         *
+         * @param a_first The first arc of the input strand.
+         *
+         * @param a_last The last arc of the input strand (included).
+         *
+         * @param overQ_ Whether the input strand is over (`true`) or under (`true`). Caution: The routine won't work correctly, if the input arc range is not a over/understrand according to this flag!
+         */
+        
+        std::array<Int,2> RerouteToShortestPath(
+            const Int a_first, const Int a_last, bool overQ_
+        )
+        {
+            Prepare();
+            SetStrandMode(overQ_);
+            
+            color = 1;
+            
+            Int a = a_first;
+            Int b = a_last;
+            
+            strand_length = ColorArcs(a,b,color);
+            
+            RerouteToShortestPath_impl(a,b,strand_length-Int(1),color);
+            
+            Cleanup();
+            
+            return {a,b};
+        }
+        
+    public:
+        
+        template<typename Int_0, typename Int_1>
+        Int ColorArcs(
+            const Int_0 a_first, const Int_0 a_last, const Int_1 color_
+        )
+        {
+            static_assert( IntQ<Int_0>, "" );
+            static_assert( IntQ<Int_1>, "" );
+            
+            const Int c   = int_cast<Int>(color_ );
+            const Int a_begin = int_cast<Int>(a_first);
+            const Int a_end   = int_cast<Int>(pd.template NextArc<Head>(a_last));
+            Int a = a_begin;
+            
+            Int counter = 0;
+            
+            do
+            {
+                ++counter;
+                A_color(a) = c;
+                a = pd.template NextArc<Head>(a);
+            }
+            while( (a != a_end) && (a != a_begin) );
+            
+            return counter;
+        }
         
         template<typename Int_0, typename Int_1, typename Int_2>
         void ColorArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 color_ )
@@ -1851,11 +2083,7 @@ namespace Knoodle
                 A_color(arcs[i]) = c;
             }
         }
-        
-        void SetStrandMode( const bool overQ_ )
-        {
-            overQ = overQ_;
-        }
+
         
     private:
         
@@ -1891,13 +2119,20 @@ namespace Knoodle
         template<bool headtail>
         void MoveWhileBranching( mref<Int> a, mref<Int> p ) const
         {
+            // `a` is an arc.
+            // `p` points to a position in `path`.
+            
             Int c = A_cross(a,headtail);
             
             Int side = (C_arcs(c,headtail,Right) == a);
             
             Int b = path[p];
             
-            while( (C_arcs(c,headtail,!side) == b) || (C_arcs(c,!headtail,side) == b) )
+            while(
+                (C_arcs(c,headtail,!side) == b)
+                ||
+                (C_arcs(c,!headtail,side) == b)
+            )
             {
                 a = C_arcs(c,!headtail,!side);
                 

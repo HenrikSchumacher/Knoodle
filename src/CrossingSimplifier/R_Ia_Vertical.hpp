@@ -2,7 +2,7 @@ private:
 
 bool Reidemeister_Ia_Vertical( const Int c_0, const Int c_1 )
 {
-    PD_PRINT(ClassName() + "::Reidemeister_Ia_Vertical("
+    PD_PRINT(ClassName()+"::Reidemeister_Ia_Vertical("
         + ",\n\t" + CrossingString(c_0)
         + ",\n\t" + CrossingString(c_1)
         + ")");

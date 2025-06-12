@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AF5FF6AB2DD27DCA0076AB0E /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AF7FD1D32D87464900D802C0 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -25,13 +34,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		AFBDADA52DECE2D9004BCA41 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
+		AF5FF6AD2DD27DCA0076AB0E /* DevCLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DevCLP; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold_Parallel; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFBDADA72DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthogonalRepresentation; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Reapr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
@@ -40,11 +60,20 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
+		AF5FF6AE2DD27DCA0076AB0E /* DevCLP */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DevCLP; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Parallel; sourceTree = "<group>"; };
+		AFBDADA82DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthogonalRepresentation; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AF5FF6AA2DD27DCA0076AB0E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF7FD1D22D87464900D802C0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -53,6 +82,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AFBA75672D90CA82008F2EB1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AFBDADA42DECE2D9004BCA41 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -81,6 +117,8 @@
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
 				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
+				AF5FF6AE2DD27DCA0076AB0E /* DevCLP */,
+				AFBDADA82DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -91,6 +129,8 @@
 			children = (
 				AF7FD1D52D87464900D802C0 /* PolyFold */,
 				AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */,
+				AF5FF6AD2DD27DCA0076AB0E /* DevCLP */,
+				AFBDADA72DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,6 +138,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AF5FF6AC2DD27DCA0076AB0E /* DevCLP */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF5FF6B32DD27DCA0076AB0E /* Build configuration list for PBXNativeTarget "DevCLP" */;
+			buildPhases = (
+				AF5FF6A92DD27DCA0076AB0E /* Sources */,
+				AF5FF6AA2DD27DCA0076AB0E /* Frameworks */,
+				AF5FF6AB2DD27DCA0076AB0E /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AF5FF6AE2DD27DCA0076AB0E /* DevCLP */,
+			);
+			name = DevCLP;
+			packageProductDependencies = (
+			);
+			productName = DevCLP;
+			productReference = AF5FF6AD2DD27DCA0076AB0E /* DevCLP */;
+			productType = "com.apple.product-type.tool";
+		};
 		AF7FD1D42D87464900D802C0 /* PolyFold */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF7FD1D92D87464900D802C0 /* Build configuration list for PBXNativeTarget "PolyFold" */;
@@ -142,6 +204,28 @@
 			productReference = AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */;
 			productType = "com.apple.product-type.tool";
 		};
+		AFBDADA62DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthogonalRepresentation" */;
+			buildPhases = (
+				AFBDADA32DECE2D9004BCA41 /* Sources */,
+				AFBDADA42DECE2D9004BCA41 /* Frameworks */,
+				AFBDADA52DECE2D9004BCA41 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AFBDADA82DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */,
+			);
+			name = Dev_OrthogonalRepresentation;
+			packageProductDependencies = (
+			);
+			productName = Dev_OrthogonalRepresentation;
+			productReference = AFBDADA72DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -149,13 +233,19 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					AF5FF6AC2DD27DCA0076AB0E = {
+						CreatedOnToolsVersion = 16.3;
+					};
 					AF7FD1D42D87464900D802C0 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 					AFBA75692D90CA82008F2EB1 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					AFBDADA62DECE2D9004BCA41 = {
+						CreatedOnToolsVersion = 16.4;
 					};
 				};
 			};
@@ -174,11 +264,20 @@
 			targets = (
 				AF7FD1D42D87464900D802C0 /* PolyFold */,
 				AFBA75692D90CA82008F2EB1 /* PolyFold_Parallel */,
+				AF5FF6AC2DD27DCA0076AB0E /* DevCLP */,
+				AFBDADA62DECE2D9004BCA41 /* Dev_OrthogonalRepresentation */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AF5FF6A92DD27DCA0076AB0E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF7FD1D12D87464900D802C0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -187,6 +286,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AFBA75662D90CA82008F2EB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AFBDADA32DECE2D9004BCA41 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -266,11 +372,11 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.1/include/suitesparse",
+					/opt/homebrew/include/suitesparse,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
 					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.2/lib",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -356,11 +462,11 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.1/include/suitesparse",
+					/opt/homebrew/include/suitesparse,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
 					/opt/homebrew/lib,
-					"/opt/homebrew/Cellar/suite-sparse/7.10.2/lib",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -380,12 +486,71 @@
 			};
 			name = Release;
 		};
+		AF5FF6B12DD27DCA0076AB0E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_FLOAT_CONVERSION = NO;
+				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"/usr/local/include/coin-or",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				OTHER_LDFLAGS = (
+					"-lCoinUtils",
+					"-lamd",
+					"-lClp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AF5FF6B22DD27DCA0076AB0E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_FLOAT_CONVERSION = NO;
+				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"/usr/local/include/coin-or",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				OTHER_LDFLAGS = (
+					"-lCoinUtils",
+					"-lamd",
+					"-lClp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AF7FD1DA2D87464900D802C0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_HARDENED_RUNTIME = NO;
+				LIBRARY_SEARCH_PATHS = (
+					/opt/homebrew/lib,
+					"/opt/homebrew/opt/suite-sparse/lib",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
 				OTHER_CPLUSPLUSFLAGS = (
@@ -411,8 +576,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_HARDENED_RUNTIME = NO;
+				LIBRARY_SEARCH_PATHS = (
+					/opt/homebrew/lib,
+					"/opt/homebrew/opt/suite-sparse/lib",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.7;
 				OTHER_CPLUSPLUSFLAGS = (
@@ -466,6 +636,54 @@
 			};
 			name = Release;
 		};
+		AFBDADAB2DECE2D9004BCA41 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_FLOAT_CONVERSION = NO;
+				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"/usr/local/include/coin-or",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				OTHER_LDFLAGS = (
+					"-lamd",
+					"-lCoinUtils",
+					"-lClp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AFBDADAC2DECE2D9004BCA41 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_FLOAT_CONVERSION = NO;
+				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
+				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"/usr/local/include/coin-or",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				OTHER_LDFLAGS = (
+					"-lamd",
+					"-lCoinUtils",
+					"-lClp",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -474,6 +692,15 @@
 			buildConfigurations = (
 				AF5BC0B829D1AF1C008CA8B7 /* Debug */,
 				AF5BC0B929D1AF1C008CA8B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AF5FF6B32DD27DCA0076AB0E /* Build configuration list for PBXNativeTarget "DevCLP" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF5FF6B12DD27DCA0076AB0E /* Debug */,
+				AF5FF6B22DD27DCA0076AB0E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -492,6 +719,15 @@
 			buildConfigurations = (
 				AFBA756F2D90CA82008F2EB1 /* Debug */,
 				AFBA75702D90CA82008F2EB1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthogonalRepresentation" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AFBDADAB2DECE2D9004BCA41 /* Debug */,
+				AFBDADAC2DECE2D9004BCA41 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

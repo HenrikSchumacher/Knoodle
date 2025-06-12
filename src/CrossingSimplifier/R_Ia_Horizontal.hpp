@@ -2,7 +2,7 @@ private:
 
 bool Reidemeister_Ia_Horizontal( const Int c_0, const Int c_1, const bool side )
 {
-    PD_PRINT(ClassName() + "::Reidemeister_Ia_Horizontal("
+    PD_PRINT(ClassName()+"::Reidemeister_Ia_Horizontal("
         + ",\n\t" + CrossingString(c_0)
         + ",\n\t" + CrossingString(c_1)
         + ",\n\t" + ((side == Right) ? "Right" : "Left") +")");

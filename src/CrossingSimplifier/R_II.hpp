@@ -10,7 +10,7 @@ public:
 template<bool allow_R_IaQ = true>
 bool Reidemeister_II( const Int c_0 )
 {
-    PD_PRINT("\n" + ClassName() + "::Reidemeister_II( c = "+CrossingString(c_0)+" )");
+    PD_PRINT("\n" + ClassName()+"::Reidemeister_II( c = "+CrossingString(c_0)+" )");
     
     // TODO: Test might be redundant.
     if( !CrossingActiveQ(c_0) )

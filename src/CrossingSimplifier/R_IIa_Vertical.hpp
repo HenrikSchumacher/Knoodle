@@ -7,7 +7,7 @@ bool Reidemeister_IIa_Vertical( const Int c_0 )
         return false;
     }
     
-    PD_PRINT(ClassName() + "::Reidemeister_IIa_Vertical");
+    PD_PRINT(ClassName()+"::Reidemeister_IIa_Vertical");
     
     auto C_0 = GetCrossing(c_0);
     

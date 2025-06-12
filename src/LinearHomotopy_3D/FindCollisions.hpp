@@ -28,6 +28,7 @@ public:
 
             const Int int_node_count = T.InternalNodeCount();
             
+            static_assert(SignedIntQ<Int>,"");
             Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             

@@ -3,27 +3,18 @@ public:
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
- * Relabeling is done as follows:
- * First active arc becomes first arc in new planar diagram.
- * The _tail_ of this arc becomes the new first crossing.
- * Then we follow all arcs in the component with `NextArc<Head>(a)`.
- * The new labels increase by one for each visited arc.
- * Same for the crossings.
+ * Relabeling is done in order of traversal by routine `Traverse<true,false,-1,DefaultTraversalMethod>`, i.e., the first arc on each link component is chosen such that its tail goes _under_.
  */
 
-// TODO: Test this!
-// TODO: Generate the link component information and forward it to the new diagram!
-
-
-PlanarDiagram CreateCompressed()
+PlanarDiagram Canonicalize()
 {
-    TOOLS_PTIC( ClassName()+"::CreateCompressed");
-    
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::CreateCompressed: Trying to compress invalid PlanarDiagram. Returning invalid diagram.");
+        wprint( ClassName()+"::Canonicalize: Input diagram is invalid. Returning invalid diagram.");
         return PlanarDiagram();
     }
+    
+    TOOLS_PTIC( ClassName()+"::Canonicalize" );
     
     PlanarDiagram pd ( crossing_count, unlink_count );
     
@@ -31,7 +22,7 @@ PlanarDiagram CreateCompressed()
     // So we do not have to compute `crossing_count` or `arc_count`.
     pd.crossing_count    = crossing_count;
     pd.arc_count         = arc_count;
-    pd.provably_minimalQ = provably_minimalQ;
+    pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState>       C_state_new = pd.C_state.data();
@@ -69,9 +60,20 @@ PlanarDiagram CreateCompressed()
         }
     );
     
-    TOOLS_PTOC( ClassName()+"::CreateCompressed");
+    // `Traverse` computes `LinkComponentCount`. That is definitely a useful quantity, even after relabeling.
+    if( this->InCacheQ("LinkComponentCount") )
+    {
+        pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
+    }
+    
+    TOOLS_PTOC( ClassName()+"::Canonicalize" );
     
     return pd;
+}
+
+void CanonicalizeInPlace()
+{
+    (*this) = this->Canonicalize();
 }
 
 bool CanonicallyOrderedQ()
@@ -105,9 +107,9 @@ bool CanonicallyOrderedQ()
 }
 
 
-PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
+PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
 {
-    TOOLS_PTIC( ClassName()+"::CreateCompressed_Legacy");
+    TOOLS_PTIC( ClassName()+"::Canonicalize_Legacy");
     
     PD_ASSERT(CheckAll());
     
@@ -121,7 +123,7 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState>            A_state_new = pd.A_state.data();
     
-    C_scratch.Fill(-1);
+    C_scratch.Fill(Uninitialized);
     mptr<Int> C_pos = C_scratch.data();
     
     mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
@@ -165,7 +167,7 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
 #ifdef PD_DEBUG
         if( A_visited[a] )
         {
-            eprint(ClassName()+"::CreateCompressed_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
+            eprint(ClassName()+"::Canonicalize_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
             
             logprint( ArcString(a) );
 
@@ -180,7 +182,7 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
             
             AssertCrossing(c_1);
             
-            if( C_pos[c_1] < Int(0) )
+            if( !ValidIndexQ(C_pos[c_1]) )
             {
                 C_pos[c_1] = c_counter;
                 C_state_new[c_counter] = C_state[c_1];
@@ -200,7 +202,7 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
 #ifdef PD_DEBUG
             if( A_visited[a] )
             {
-                eprint(ClassName()+"::CreateCompressed_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
+                eprint(ClassName()+"::Canonicalize_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
                 
                 logprint( ArcString(a) );
 
@@ -215,7 +217,7 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
             
             A_visited[a] = true;
             
-            if( C_pos[c_1] < Int(0) )
+            if( !ValidIndexQ(C_pos[c_1]) )
             {
                 C_pos[c_1] = c_counter;
                 C_state_new[c_counter] = C_state[c_1];
@@ -249,10 +251,10 @@ PlanarDiagram CreateCompressed_Legacy( bool under_crossing_flag = true )
         
     }
     
-    pd.provably_minimalQ = provably_minimalQ;
+    pd.proven_minimalQ = proven_minimalQ;
     pd.template SetCache<false>("LinkComponentCounter",lc_counter);
     
-    TOOLS_PTOC( ClassName()+"::CreateCompressed_Legacy");
+    TOOLS_PTOC( ClassName()+"::Canonicalize_Legacy");
     
     return pd;
 }

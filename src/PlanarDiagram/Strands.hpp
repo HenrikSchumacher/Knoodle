@@ -33,7 +33,7 @@ Tensor1<Int,Int> ArcStrands() const
 {
     TOOLS_PTIC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    Tensor1<Int,Int> A_colors  ( A_cross.Dimension(0), -1 );
+    Tensor1<Int,Int> A_colors  ( A_cross.Dimension(0), Uninitialized );
     Int color = 0;
     
     this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(

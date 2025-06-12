@@ -208,6 +208,7 @@ namespace Knoodle
             
             if( preorderedQ )
             {
+//                logprint("preordered");
                 for( Int c = 0; c < component_count; ++c )
                 {
                     const Int i_begin = component_ptr[c  ];
@@ -240,6 +241,7 @@ namespace Knoodle
             }
             else
             {
+//                logprint("not preordered");
                 cptr<Int> edge_tails = edges.data(0);
                 cptr<Int> edge_tips  = edges.data(1);
                 
@@ -261,14 +263,16 @@ namespace Knoodle
                 }
             }
             
+//            logvalprint("edge_coords",edge_coords);
+            
             TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
     private:

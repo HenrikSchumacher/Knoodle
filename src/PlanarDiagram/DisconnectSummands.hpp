@@ -2,18 +2,18 @@ public:
 
 
 
-/*! @brief This just splits off connected summands and appends them to the supplied `PD_list`.
+/*! @brief This just splits off connected summands and appends them to the supplied `pd_list`.
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummands(
-    mref<std::vector<PlanarDiagram<Int>>> PD_list,
-    const Int max_dist = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
-    const Int  simplify3_level = 4,
+    mref<PD_List_T> pd_list,
+    const Int  max_dist           = std::numeric_limits<Int>::max(),
+    const bool canonicalizeQ      = true,
+    const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q = true
+    const bool strand_R_II_Q      = true
 )
 {
     TOOLS_PTIC(ClassName()+"::DisconnectSummands");
@@ -41,8 +41,8 @@ bool DisconnectSummands(
         for( Int f = 0; f < FaceCount(); ++f )
         {
             changedQ = changedQ || DisconnectSummand(
-                f,PD_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+                f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
+                max_dist,canonicalizeQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -63,16 +63,16 @@ bool DisconnectSummands(
 
 private:
 
-/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `PD_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
+/*! @brief Checks whether face `f` has a double face neighbor. If yes, it may split off connected summand(s) and pushes them to the supplied `std::vector` `pd_list`. It may however decide to perform some Reidemeister moves to remove crossings in the case that this would lead to an unknot. Returns `true` if any change has been made.
  *
- * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `PD_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `PD_list`).
+ * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `pd_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `pd_list`).
  *
  * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummand(
     const Int f,
-    mref<std::vector<PlanarDiagram<Int>>> PD_list,
+    mref<PD_List_T> pd_list,
     TwoArraySort<Int,Int,Int> & sort,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
@@ -80,7 +80,7 @@ bool DisconnectSummand(
     cptr<Int> F_A_idx,
     cptr<Int> A_face,
     const Int max_dist,
-    const bool compressQ,
+    const bool canonicalizeQ,
     const Int  simplify3_level,
     const Int  simplify3_max_iter,
     const bool strand_R_II_Q = true
@@ -113,38 +113,43 @@ bool DisconnectSummand(
         
     const Size_T f_size = f_arcs.size();
     
-    if( f_size == 1 )
+    if( f_size == Size_T(1) ) [[unlikely]]
     {
         const Int a = (f_arcs[0] >> 1);
+
+        // Warning: This alters the diagram but preserves the Cache -- which is important to not invalidate `FaceDirectedArcPointers` and `FaceDirectedArcIndices`, etc. I don't think that this will ever happen because `DisconnectSummand` is called only in a very controlled context when all possible Reidemeister I moves have been performed already.
         
-        if( A_cross(a,Tail) == A_cross(a,Head) )
+        if( Private_Reidemeister_I<true,true>(a) )
         {
-            Reidemeister_I(a);
+            wprint(ClassName()+"::DisconnectSummand: Found a face with just one arc around it. Tried to call Private_Reidemeister_I to remove. But maybe the face information is violated. Check your results thoroughly.");
             return true;
         }
         else
         {
             // TODO: Can we get here? What to do here? This need not be a Reidemeister I move, since we ignore arcs on the current strand, right? So what is this?
 
-            eprint(ClassName()+"::DisconnectSummand: Face with one arc detected.");
+            eprint(ClassName()+"::DisconnectSummand: Face with one arc detected that is not a loop arc. Something must have gone very wrong here.");
             return false;
         }
     }
     
     sort( &f_faces[0], &f_arcs[0], static_cast<Int>(f_size) );
     
-    auto push = [&]( PlanarDiagram<Int> && pd )
+    auto conditional_push = [&]( PlanarDiagram<Int> && pd )
     {
         pd.Simplify5(
-            PD_list,
+            pd_list,
             max_dist,
-            compressQ,
+            canonicalizeQ,
             simplify3_level,
             simplify3_max_iter,
             strand_R_II_Q
         );
         
-        PD_list.push_back( std::move(pd) );
+        if( pd.NonTrivialQ() )
+        {
+            pd_list.push_back( std::move(pd) );
+        }
     };
     
     Size_T i = 0;
@@ -226,7 +231,7 @@ bool DisconnectSummand(
                 }
                 else
                 {
-                    push( std::move( ExportSmallerComponent(a_prev,a_next) ) );
+                    conditional_push( std::move(ExportSmallerComponent(a_prev,a_next)) );
                     return true;
                 }
             }
@@ -260,8 +265,7 @@ bool DisconnectSummand(
                 Reconnect<Tail>(a,b);
                 DeactivateCrossing(c);
 
-                push( std::move( ExportSmallerComponent(a_prev,a) ) );
-                
+                conditional_push( std::move( ExportSmallerComponent(a_prev,a) ) );
                 return true;
             }
         }
@@ -295,10 +299,7 @@ bool DisconnectSummand(
             Reconnect<Tail>(a_next,b_prev);
             DeactivateCrossing(c);
             
-            push( std::move( ExportSmallerComponent(a,a_next) ) );
-            
-            // push( std::move( SplitSmallerDiagramComponent(a,a_next) ) );
-                            
+            conditional_push( std::move(ExportSmallerComponent(a,a_next)) );
             return true;
         }
         
@@ -322,10 +323,7 @@ bool DisconnectSummand(
         SetMatchingPortTo<In>(c_a,a,b);
         SetMatchingPortTo<In>(c_b,b,a);
         
-        push( std::move( ExportSmallerComponent(a,b) ) );
-        
-//        push( std::move( SplitSmallerDiagramComponent(a,b) ) );
-        
+        conditional_push( std::move( ExportSmallerComponent(a,b) ) );
         return true;
     }
 
@@ -354,8 +352,8 @@ PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
         const Int c_a = A_cross(a,Head);
         const Int c_b = A_cross(b,Head);
         
-        C_scratch[c_a] = -1;
-        C_scratch[c_b] = -1;
+        C_scratch[c_a] = Uninitialized;
+        C_scratch[c_b] = Uninitialized;
         
         ++length;
         
@@ -406,7 +404,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         Int t_label;
         Int h_label;
         
-        if( C_color[t] < Int(0) )
+        if( !ValidIndexQ(C_color[t]) )
         {
             C_color[t] = t_label = c_counter;
             pd.C_state[t_label] = C_state[t];
@@ -417,7 +415,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
             t_label = C_color[t];
         }
         
-        if( C_color[h] < Int(0) )
+        if( !ValidIndexQ(C_color[h]) )
         {
             C_color[h] = h_label = c_counter;
             pd.C_state[h_label] = C_state[h];
@@ -451,7 +449,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     }
     while( a != a_0 );
     
-    // TODO: Should we compress here?
+    // TODO: Should we recanonicalize here?
     // TODO: Compute crossing_count and arc_count!
     
     PD_ASSERT( pd.CheckAll() );
@@ -459,53 +457,4 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     TOOLS_PTOC(ClassName()+"::ExportComponent");
     
     return pd;
-}
-
-//Int ArcRangeLength( const Int a_begin, const Int a_end ) const
-//{
-//    if( a_end == a_begin )
-//    {
-//        return 0;
-//    }
-//
-//    Int a = a_begin;
-//    Int d = 0;
-//    
-//    do{
-//        ++d;
-//        Int a = NextArc<Head>(a);
-//    }
-//    while( (a != a_begin) and (a != a_end) );
-//    
-//    if( a == a_begin )
-//    {
-//        wprint(ClassName()+"::ArcRangeLength: " + ArcString(a_begin) + " and  " + ArcString(a_end) + " do not belong to the same connected component. Returning -1.");
-//        
-//        TOOLS_DUMP(d);
-//        
-//        return -1;
-//    }
-//    else
-//    {
-//        return d;
-//    }
-//}
-
-
-private:
-
-
-void PrintFace( const Int a_0, const bool headtail )
-{
-    Int a = a_0;
-    
-    bool dir = headtail;
-    
-    do
-    {
-        logprint( ArcString(a) );
-
-        std::tie(a,dir) = NextLeftArc(a,dir);
-    }
-    while( a != a_0 );
 }

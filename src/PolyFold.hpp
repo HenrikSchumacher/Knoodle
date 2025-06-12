@@ -1,5 +1,7 @@
 #pragma once
 
+#define KNOODLE_POLYFOLD_HPP
+
 // Fix for some warnings because boost uses std::numeric_limits<T>::infinity;  compiler migth throw warnings if we are in -ffast-math mode.
 #pragma float_control(precise, on, push)
 #include <boost/program_options.hpp>

@@ -1,5 +1,7 @@
 #pragma once
 
+#define KNOODLE_H
+
 #include "submodules/Tensors/Tensors.hpp"
 #include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
@@ -14,9 +16,7 @@ namespace Knoodle
     {
         // Important! Active values are the only odd ones.
         RightHanded          =  1,
-        RightHandedUnchanged =  2,
         LeftHanded           = -1,
-        LeftHandedUnchanged  = -2,
         Inactive             =  0
     };
     
@@ -33,11 +33,7 @@ namespace Knoodle
                 
             case CrossingState::RightHanded          : return "RightHanded";
                 
-            case CrossingState::RightHandedUnchanged : return "RightHandedUnchanged";
-                
             case CrossingState::LeftHanded           : return "LeftHanded";
-                
-            case CrossingState::LeftHandedUnchanged  : return "LeftHandedUnchanged";
                 
             default:
             {
@@ -97,130 +93,130 @@ namespace Knoodle
     }
     
     
-    // Make this a class in PlanarDiagram?
-    class ArcStateNew
-    {
-    public:
-        using UInt = UInt8;
-       
+//    // Make this a class in PlanarDiagram?
+//    class ArcStateNew
+//    {
+//    public:
+//        using UInt = UInt8;
+//       
+//        
+//        static constexpr bool Tail  = 0;
+//        static constexpr bool Head  = 1;
+//        static constexpr bool Left  = 0;
+//        static constexpr bool Right = 1;
+//        static constexpr bool Out   = 0;
+//        static constexpr bool In    = 1;
+//        
+//        static constexpr UInt one  = 1;
+//        static constexpr UInt zero = 0;
+//        
+//        
+//        // ht means "head or tail"
+//        template<bool ht> static constexpr int ActiveBit      = 0 + 4 * ht;
+//        template<bool ht> static constexpr int OverUnderBit   = 1 + 4 * ht;
+//        template<bool ht> static constexpr int SideBit        = 2 + 4 * ht;
+//        template<bool ht> static constexpr int HandednessBit  = 3 + 4 * ht;
+//        
+//        template<bool ht> static constexpr int ActiveMask     = (one << ActiveBit<ht>    );
+//        template<bool ht> static constexpr int OverUnderMask  = (one << OverUnderBit<ht> );
+//        template<bool ht> static constexpr int SideMask       = (one << SideBit<ht>      );
+//        template<bool ht> static constexpr int HandednessMask = (one << HandednessBit<ht>);
+//        
+//        static constexpr UInt Active = ActiveMask<Tail> | ActiveMask<Head>;
+//        
+//    private:
+//        
+//        UInt state = 0;
+//        
+//    public:
+//        
+//        ArcStateNew()  = default;
+//        ~ArcStateNew() = default;
+//        
+//        // TODO: Should these methods better be methods of PlanardDiagram?
+//        
+//        bool ActiveQ() const
+//        {
+//            return (state & Active) == Active;
+//        }
+//        
+//        void Activate( bool headtail)
+//        {
+//            state |= (headtail ? ActiveMask<Head> : ActiveMask<Tail>);
+//        }
+//        
+//        template<bool headtail>
+//        void Activate()
+//        {
+//            state |= ActiveMask<headtail>;
+//        }
+//        
+//        void Deactivate()
+//        {
+//            state = 0;
+//        }
+//        
+//        
+//        template<bool headtail>
+//        bool OverQ()
+//        {
+//            return ((state & OverUnderMask<headtail>) != zero);
+//        }
+//        
+//        bool OverQ( bool headtail )
+//        {
+//            return headtail ? OverQ<Head>() : OverQ<Tail>();
+//        }
+//        
+//        template<bool headtail>
+//        bool UnderQ()
+//        {
+//            return ((state & OverUnderMask<headtail>) == zero);
+//            
+//        }
+//        
+//        bool UnderQ( bool headtail )
+//        {
+//            return headtail ? UnderQ<Head>() : UnderQ<Tail>();
+//        }
+//        
+//        
+//        template<bool headtail>
+//        bool Side()
+//        {
+//            return ((state & SideMask<headtail>) != zero);
+//        }
+//        
+//        bool Side( bool headtail )
+//        {
+//            return headtail ? Side<Head>() : Side<Tail>();
+//        }
+//        
+//        
+//        template<bool headtail>
+//        bool RightHandedQ()
+//        {
+//            return ((state & HandednessMask<headtail>) != zero);
+//        }
+//        
+//        bool RightHandedQ( bool headtail )
+//        {
+//            return headtail ? RightHandedQ<Head>() : RightHandedQ<Tail>();
+//        }
+//        
+//        template<bool headtail>
+//        bool LeftHandedQ()
+//        {
+//            return ((state & HandednessMask<headtail>) == zero);
+//        }
+//        
+//        bool LeftHandedQ( bool headtail )
+//        {
+//            return headtail ? LeftHandedQ<Head>() : LeftHandedQ<Tail>();
+//        }
+//    };
         
-        static constexpr bool Tail  = 0;
-        static constexpr bool Head  = 1;
-        static constexpr bool Left  = 0;
-        static constexpr bool Right = 1;
-        static constexpr bool Out   = 0;
-        static constexpr bool In    = 1;
-        
-        static constexpr UInt one  = 1;
-        static constexpr UInt zero = 0;
-        
-        
-        // ht means "head or tail"
-        template<bool ht> static constexpr int ActiveBit      = 0 + 4 * ht;
-        template<bool ht> static constexpr int OverUnderBit   = 1 + 4 * ht;
-        template<bool ht> static constexpr int SideBit        = 2 + 4 * ht;
-        template<bool ht> static constexpr int HandednessBit  = 3 + 4 * ht;
-        
-        template<bool ht> static constexpr int ActiveMask     = (one << ActiveBit<ht>    );
-        template<bool ht> static constexpr int OverUnderMask  = (one << OverUnderBit<ht> );
-        template<bool ht> static constexpr int SideMask       = (one << SideBit<ht>      );
-        template<bool ht> static constexpr int HandednessMask = (one << HandednessBit<ht>);
-        
-        static constexpr UInt Active = ActiveMask<Tail> | ActiveMask<Head>;
-        
-    private:
-        
-        UInt state = 0;
-        
-    public:
-        
-        ArcStateNew()  = default;
-        ~ArcStateNew() = default;
-        
-        // TODO: Should these methods better be methods of PlanardDiagram?
-        
-        bool ActiveQ() const
-        {
-            return (state & Active) == Active;
-        }
-        
-        void Activate( bool headtail)
-        {
-            state |= (headtail ? ActiveMask<Head> : ActiveMask<Tail>);
-        }
-        
-        template<bool headtail>
-        void Activate()
-        {
-            state |= ActiveMask<headtail>;
-        }
-        
-        void Deactivate()
-        {
-            state = 0;
-        }
-        
-        
-        template<bool headtail>
-        bool OverQ()
-        {
-            return ((state & OverUnderMask<headtail>) != zero);
-        }
-        
-        bool OverQ( bool headtail )
-        {
-            return headtail ? OverQ<Head>() : OverQ<Tail>();
-        }
-        
-        template<bool headtail>
-        bool UnderQ()
-        {
-            return ((state & OverUnderMask<headtail>) == zero);
-            
-        }
-        
-        bool UnderQ( bool headtail )
-        {
-            return headtail ? UnderQ<Head>() : UnderQ<Tail>();
-        }
-        
-        
-        template<bool headtail>
-        bool Side()
-        {
-            return ((state & SideMask<headtail>) != zero);
-        }
-        
-        bool Side( bool headtail )
-        {
-            return headtail ? Side<Head>() : Side<Tail>();
-        }
-        
-        
-        template<bool headtail>
-        bool RightHandedQ()
-        {
-            return ((state & HandednessMask<headtail>) != zero);
-        }
-        
-        bool RightHandedQ( bool headtail )
-        {
-            return headtail ? RightHandedQ<Head>() : RightHandedQ<Tail>();
-        }
-        
-        template<bool headtail>
-        bool LeftHandedQ()
-        {
-            return ((state & HandednessMask<headtail>) == zero);
-        }
-        
-        bool LeftHandedQ( bool headtail )
-        {
-            return headtail ? LeftHandedQ<Head>() : LeftHandedQ<Tail>();
-        }
-    };
-        
-    enum class ArcState : Int8
+    enum class ArcState : UInt8
     {
 //        Unchanged =  2,
         
@@ -299,7 +295,7 @@ namespace Knoodle
         // j and l differ by more than one due to the wrap-around at the end
         // of a connected component.
         
-        // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dor Bar-Natan.
+        // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dror Bar-Natan.
         
         if( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
         {
@@ -405,11 +401,12 @@ namespace Knoodle
 #include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/Link_2D.hpp"
 #include "src/Knot_2D.hpp"
-#include "src/Multigraph.hpp"
+
+#include "src/MultiGraphBase.hpp"
+#include "src/MultiGraph.hpp"
+#include "src/MultiDiGraph.hpp"
 
 #include "src/Debugging.hpp"
-#include "src/ArcContainer.hpp"
-#include "src/CrossingContainer.hpp"
 #include "src/PlanarDiagram.hpp"
 #include "src/CrossingSimplifier.hpp"
 #include "src/ArcSimplifier.hpp"

@@ -17,12 +17,12 @@ public:
  */
 
 Int Simplify3(
-    const Int optimization_level,
-    const Int max_iter = std::numeric_limits<Int>::max(),
+    const Int  optimization_level,
+    const Int  max_iter    = std::numeric_limits<Int>::max(),
     const bool multi_compQ = true
 )
 {
-    if( provably_minimalQ )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
@@ -100,24 +100,28 @@ Int simplify3( Int max_iter )
 {
     TOOLS_PTIC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
-    Int old_counter = -1;
-    Int counter = 0;
-    Int iter = 0;
-    
     ArcSimplifier<Int,optimization_level,multi_compQ> arc_simplifier (*this);
 
-    while( (counter != old_counter) && (iter < max_iter) )
+    Int old_counter = 0;
+    Int counter = 0;
+    Int iter = 0;
+    if( iter < max_iter )
     {
-        ++iter;
-        
-        old_counter = counter;
-        
-        for( Int a = 0; a < max_arc_count; ++a )
+        do
         {
-            counter += arc_simplifier(a);
+            ++iter;
+            
+            old_counter = counter;
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                counter += arc_simplifier(a);
+            }
         }
+        while( (counter != old_counter) && (iter < max_iter) );
     }
-
+    
+        
     if( counter > Int(0) )
     {
         this->ClearCache();
@@ -125,7 +129,7 @@ Int simplify3( Int max_iter )
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }   
     
     TOOLS_PTOC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");

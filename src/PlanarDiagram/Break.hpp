@@ -3,7 +3,7 @@
 //    print("BreakChild");
 //    // Make sure that Reidemeister_I is not applicable;
 //    
-//    Class_T pd = CreateCompressed();
+//    Class_T pd = Canonicalize();
 //    
 //    PD_VALPRINT("c",c);
 //    

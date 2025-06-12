@@ -83,12 +83,13 @@ public:
 //}
 
 
-// Warning: This assumes that PD is freshly ordered!
+// Caution: This assumes that PD is freshly ordered! Check first that CanonicallyOrderedQ() returns true.
 template<bool nontrivialQ = true>
 bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
 {
     bool goodQ = (ModDistance(arc_count,a,b) > Int(1));
 
+    
     if constexpr ( nontrivialQ )
     {
         goodQ = goodQ && (overQ != ArcOverQ<Tail>(a)) && (overQ != ArcOverQ<Head>(b));

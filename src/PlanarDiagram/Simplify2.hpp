@@ -12,21 +12,19 @@ public:
 
 Int Simplify2()
 {
-    if( provably_minimalQ )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
     
     TOOLS_PTIC(ClassName()+"::Simplify2");
 
-    Int counter = 0;
-    
-    Int old_counter = -1;
-    Int iter = 0;
-    
     CrossingSimplifier<Int,true> S(*this);
     
-    while( counter != old_counter )
+    Int counter = 0;
+    Int old_counter = 0;
+    Int iter = 0;
+    do
     {
         ++iter;
         
@@ -64,7 +62,8 @@ Int Simplify2()
             }
         }
     }
-    
+    while( counter != old_counter );
+        
     if( counter > Int(0) )
     {
         this->ClearCache();
@@ -72,7 +71,7 @@ Int Simplify2()
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     TOOLS_PTOC(ClassName()+"::Simplify2");

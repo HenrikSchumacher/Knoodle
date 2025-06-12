@@ -162,19 +162,19 @@ bool AlternatingQ() const
  * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
  */
 
-Arrow_T NextLeftArc( const Int a, const bool headtail ) const
+Arrow_T NextLeftArc( const Int a, const bool d ) const
 {
     // TODO: Signed indexing does not work because of 0!
     
     AssertArc(a);
     
-    const Int c = A_cross(a,headtail);
+    const Int c = A_cross(a,d);
     
     AssertCrossing(c);
     
     // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
     
-    if( headtail == Head )
+    if( d == Head )
     {
         // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
 
@@ -209,7 +209,7 @@ Arrow_T NextLeftArc( const Int a, const bool headtail ) const
             return Arrow_T(C_arcs(c,Out,Left),Head);
         }
     }
-    else // if( headtail == Tail )
+    else // if( a_dir == Tail )
     {
         // Also here we can make it so that we have to read for a second time only in 50% of the cases.
 
@@ -246,56 +246,60 @@ Arrow_T NextLeftArc( const Int a, const bool headtail ) const
     }
 }
 
-Int NextLeftArc( const Int A ) const
+Int NextLeftArc( const Int da ) const
 {
-    const Int c = A_cross.data()[A];
+    const Int c = A_cross.data()[da];
 
-    // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
+    auto [a,d] = FromDarc(da);
     
-    if( (A & Int(1)) == Head )
+    // It might seem a bit weird, but on my Apple M1 these conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
+    
+    if( d == Head )
     {
         // We exploit a 50% chance that we do not have to read any index again.
         
-        const Int B = (C_arcs(c,In,Left) << 1) | Int(Head);
+//        const Int db = ToDarc(C_arcs(c,In,Left),Head);
+        const Int b = C_arcs(c,In,Left);
         
-        if( B != A )
+        if( b != a )
         {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *   B     A
+            /*    O     O
+             *     ^   ^
+             *      \ /
+             *       X c
+             *      / \
+             *     /   \
+             *    O     O
+             *    b     a
              */
              
-            return B ^ Int(1);
+            return ToDarc<Tail>(b);
         }
-        else // if( B == A )
+        else // if( db == da )
         {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             * A == B
+            /*    O     O
+             *     ^   ^
+             *      \ /
+             *       X c
+             *      / \
+             *     /   \
+             *    O     O
+             * a == b
              */
 
-            return (C_arcs(c,Out,Left) << 1) | Int(Head);
+            return ToDarc<Head>(C_arcs(c,Out,Left));
         }
     }
     else // if( headtail == Tail )
     {
         // We exploit a 50% chance that we do not have to read any index again.
 
-        const Int B = (C_arcs(c,Out,Right) << 1) | Int(Tail);
+//        const Int db = ToDarc(C_arcs(c,Out,Right),Tail);
+        const Int b = C_arcs(c,Out,Right);
         
-        if( B != A )
+        if( b != a )
         {
-            /*   A     B
+            /*   a     b
              *   O     O
              *    ^   ^
              *     \ /
@@ -305,11 +309,11 @@ Int NextLeftArc( const Int A ) const
              *   O     O
              */
 
-            return B ^ Int(1);
+            return ToDarc<Head>(b);
         }
-        else // if( B == A )
+        else // if( b == a )
         {
-            /*      A == B
+            /*       a == b
              *   O     O
              *    ^   ^
              *     \ /
@@ -319,7 +323,7 @@ Int NextLeftArc( const Int A ) const
              *   O     O
              */
 
-            return (C_arcs(c,In,Right) << 1) | Int(Tail);
+            return ToDarc<Tail>(C_arcs(c,In,Right));
         }
     }
 }
@@ -337,23 +341,23 @@ bool CheckNextLeftArc() const
         }
         
         {
-            const Int A = (a << 1) | Int(Tail);
+            const Int da = ToDarc(a,Tail);
             
-            const Int B = NextLeftArc(A);
+            const Int db = NextLeftArc(da);
             
             auto [b,dir] = NextLeftArc(a,Tail);
             
-            passedQ = passedQ && ( b == (B >> 1) ) && ( dir == (B & Int(1)) );
+            passedQ = passedQ && (db == ToDarc(b,dir));
             
             if( !passedQ )
             {
                 eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Tail).");
                 
                 TOOLS_DUMP(a);
-                TOOLS_DUMP(A);
-                TOOLS_DUMP(B);
-                TOOLS_DUMP(B >> 1);
-                TOOLS_DUMP(B & Int(1));
+                TOOLS_DUMP(da);
+                TOOLS_DUMP(db);
+                TOOLS_DUMP(db / Int(2));
+                TOOLS_DUMP(db % Int(2));
                 TOOLS_DUMP(b);
                 TOOLS_DUMP(dir);
                 return false;
@@ -361,23 +365,23 @@ bool CheckNextLeftArc() const
         }
         
         {
-            const Int A = (a << 1) | Int(Head);
+            const Int da = ToDarc(a,Head);
             
-            const Int B = NextLeftArc(A);
+            const Int db = NextLeftArc(da);
             
             auto [b,dir] = NextLeftArc(a,Head);
             
-            passedQ = passedQ && ( b == (B >> 1) ) && ( dir == (B & Int(1) ) );
+            passedQ = passedQ && (db == ToDarc(b,dir) );
             
             if( !passedQ )
             {
                 eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Head).");
                 
                 TOOLS_DUMP(a);
-                TOOLS_DUMP(A);
-                TOOLS_DUMP(B);
-                TOOLS_DUMP(B >> 1);
-                TOOLS_DUMP(B & Int(1));
+                TOOLS_DUMP(da);
+                TOOLS_DUMP(db);
+                TOOLS_DUMP(db / Int(2));
+                TOOLS_DUMP(db % Int(2));
                 TOOLS_DUMP(b);
                 TOOLS_DUMP(dir);
                 return false;
@@ -482,19 +486,21 @@ Arrow_T NextRightArc( const Int a, const bool headtail ) const
     }
 }
 
-Int NextRightArc( const Int A ) const
+Int NextRightArc( const Int da ) const
 {
-    const Int c = A_cross.data()[A];
+    const Int c = A_cross.data()[da];
     
     // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
     
-    if( (A & Int(1)) == Head )
+    auto [a,d] = FromDarc(da);
+    
+    if( d == Head )
     {
         // We exploit a 50% chance that we do not have to read any index again.
 
-        const Int B = (C_arcs(c,In,Right) << 1) | Int(Head);
+        const Int b = C_arcs(c,In,Right);
 
-        if( B != A )
+        if( b != a )
         {
             /*   O     O
              *    ^   ^
@@ -503,12 +509,12 @@ Int NextRightArc( const Int A ) const
              *     / \
              *    /   \
              *   O     O
-             *   A     B
+             *   a     b
              */
 
-            return B ^ Int(1);
+            return ToDarc<Tail>(b);
         }
-        else // if( A == B )
+        else // if( a == b )
         {
             /*   O     O
              *    ^   ^
@@ -517,21 +523,21 @@ Int NextRightArc( const Int A ) const
              *     / \
              *    /   \
              *   O     O
-             *       A == B
+             *       a == b
              */
 
-            return (C_arcs(c,Out,Right) << 1) | Int(Head);
+            return ToDarc<Head>(C_arcs(c,Out,Right));
         }
     }
     else
     {
         // We exploit a 50% chance that we do not have to read any index again.
 
-        const Int B = (C_arcs(c,Out,Left) << 1) | Int(Tail);
+        const Int b = C_arcs(c,Out,Left);
 
-        if( B != A )
+        if( b != a )
         {
-            /*   B     A
+            /*   b     a
              *   O     O
              *    ^   ^
              *     \ /
@@ -541,11 +547,11 @@ Int NextRightArc( const Int A ) const
              *   O     O
              */
 
-            return B ^ Int(1);
+            return ToDarc<Head>(b);
         }
-        else // if( B == A )
+        else // if( b == a )
         {
-            /* A == B
+            /* a == b
              *   O     O
              *    ^   ^
              *     \ /
@@ -555,13 +561,13 @@ Int NextRightArc( const Int A ) const
              *   O     O
              */
 
-            return (C_arcs(c,In,Left) << 1) | Int(Tail);
+            return ToDarc<Tail>(C_arcs(c,In,Left));
         }
     }
 }
 
 
-mref<Tensor2<Int,Int>> ArcLeftArc() const
+mref<ArcContainer_T> ArcLeftArc() const
 {
     // Return value needs to be mutable so that StrandSimplifier can update it.
     
@@ -569,7 +575,7 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor2<Int,Int> A_left ( max_arc_count, 2 );
+        ArcContainer_T A_left ( max_arc_count );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
@@ -582,12 +588,11 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
                 const Int arrows [2][2] =
                 {
                     {
-                        static_cast<Int>((A[Out][Left ] << Int(1)) | Int(Head)),
-                        static_cast<Int>((A[Out][Right] << Int(1)) | Int(Head)) }
-                    ,
-                    {
-                        static_cast<Int>((A[In ][Left ] << Int(1)) | Int(Tail)),
-                        static_cast<Int>((A[In ][Right] << Int(1)) | Int(Tail))
+                        ToDarc<Head>(A[Out][Left ]),
+                        ToDarc<Head>(A[Out][Right])
+                    },{
+                        ToDarc<Tail>(A[In ][Left ]),
+                        ToDarc<Tail>(A[In ][Right])
                     }
                 };
                 
@@ -660,12 +665,22 @@ mref<Tensor2<Int,Int>> ArcLeftArc() const
                     NextLeftArc(A[Out][Right],Tail).second
                 );
             }
+//            else
+//            {
+//                A_left(A[Out][Left ],Tail) = Uninitialized;
+//
+//                A_left(A[Out][Right],Tail) = Uninitialized;
+//
+//                A_left(A[In ][Left ],Head) = Uninitialized;
+//
+//                A_left(A[In ][Right],Head) = Uninitialized;
+//            }
         }
         
         this->SetCache(tag,std::move(A_left));
     }
     
-    return this->GetCache<Tensor2<Int,Int>>(tag);
+    return this->GetCache<ArcContainer_T>(tag);
 }
 
 
@@ -681,41 +696,43 @@ bool CheckNextRightArc() const
         }
         
         {
-            const Int A = (a << 1) | Int(Tail);
+            const Int da = ToDarc<Tail>(a);
             
-            const Int B = NextRightArc(A);
+            const Int db = NextRightArc(da);
             
-            auto [b,dir] = NextRightArc(a,Tail);
+            auto [b,d] = NextRightArc(a,Tail);
             
-            passedQ = passedQ && ( b == (B >> 1) ) && ( dir == (B & Int(1) ) );
+            
+            
+            passedQ = passedQ && (db == ToDarc(b,d));
             
             if( !passedQ )
             {
                 eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Tail).");
                 
-                TOOLS_DUMP(B);
+                TOOLS_DUMP(db);
                 TOOLS_DUMP(b);
-                TOOLS_DUMP(dir);
+                TOOLS_DUMP(d);
                 return false;
             }
         }
         
         {
-            const Int A = (a << 1) | Int(Head);
+            const Int da = ToDarc<Head>(a);
             
-            const Int B = NextRightArc(A);
+            const Int db = NextRightArc(da);
             
-            auto [b,dir] = NextRightArc(a,Head);
+            auto [b,d] = NextRightArc(a,Head);
             
-            passedQ = passedQ && ( b == (B >> 1) ) && ( dir == (B & Int(1) ) );
+            passedQ = passedQ && (db == ToDarc(b,d));
             
             if( !passedQ )
             {
                 eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Head).");
                 
-                TOOLS_DUMP(B);
+                TOOLS_DUMP(db);
                 TOOLS_DUMP(b);
-                TOOLS_DUMP(dir);
+                TOOLS_DUMP(d);
                 return false;
             }
         }
@@ -767,109 +784,109 @@ Int NextArc( const Int a, const Int c ) const
     return a_next;
 }
 
-Tensor3<Int,Int> ArcWings() const
-{
-    Tensor3<Int,Int> A_wings ( max_arc_count, 2, 2 );
-    
-    for( Int c = 0; c < max_crossing_count; ++c )
-    {
-        if( CrossingActiveQ(c) )
-        {
-            Int A [2][2];
-            
-            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
-            
-            
-            constexpr Int tail_mask = 0;
-            constexpr Int head_mask = 1;
-            
-            const Int arrows [2][2] =
-            {
-                {
-                    (A[Out][Left ] << 1) | head_mask,
-                    (A[Out][Right] << 1) | head_mask
-                },{
-                    (A[In ][Left ] << 1) | tail_mask,
-                    (A[In ][Right] << 1) | tail_mask
-                }
-            };
-            
-            
-            /* A[Out][Left ]         A[Out][Right]
-             *               O     O
-             *                ^   ^
-             *                 \ /
-             *                  X c
-             *                 ^ ^
-             *                /   \
-             *               O     O
-             * A[In ][Left ]         A[In ][Right]
-             */
-             
-            A_wings(A[Out][Left ],Tail,Left ) = arrows[In ][Left ];
-            A_wings(A[Out][Left ],Tail,Right) = arrows[Out][Right];
-            
-            A_wings(A[Out][Right],Tail,Left ) = arrows[Out][Left ];
-            A_wings(A[Out][Right],Tail,Right) = arrows[In ][Right];
-            
-            A_wings(A[In ][Left ],Head,Left ) = arrows[Out][Left ];
-            A_wings(A[In ][Left ],Head,Right) = arrows[In ][Right];
-            
-            A_wings(A[In ][Right],Head,Left ) = arrows[In ][Left ];
-            A_wings(A[In ][Right],Head,Right) = arrows[Out][Right];
-            
-            PD_ASSERT(
-                (A_wings(A[In ][Left ],Head,Left ) >> 1)
-                ==
-                NextLeftArc(A[In ][Left ],Head).first
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[In ][Left ],Head,Left ) & Int(1))
-                ==
-                NextLeftArc(A[In ][Left ],Head).second
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[In ][Right],Head,Left ) >> 1)
-                ==
-                NextLeftArc(A[In ][Right],Head).first
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[In ][Right],Head,Left ) & Int(1))
-                ==
-                NextLeftArc(A[In ][Right],Head).second
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[Out][Left ],Tail,Right) >> 1)
-                ==
-                NextLeftArc(A[Out][Left ],Tail).first
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[Out][Left ],Tail,Right) & Int(1))
-                ==
-                NextLeftArc(A[Out][Left ],Tail).second
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[Out][Right],Tail,Right) >> 1)
-                ==
-                NextLeftArc(A[Out][Right],Tail).first
-            );
-            
-            PD_ASSERT(
-                (A_wings(A[Out][Right],Tail,Right) & Int(1))
-                ==
-                NextLeftArc(A[Out][Right],Tail).second
-            );
-        }
-    }
-    
-    return A_wings;
-}
+//Tensor3<Int,Int> ArcWings() const
+//{
+//    Tensor3<Int,Int> A_wings ( max_arc_count, 2, 2 );
+//    
+//    for( Int c = 0; c < max_crossing_count; ++c )
+//    {
+//        if( CrossingActiveQ(c) )
+//        {
+//            Int A [2][2];
+//            
+//            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
+//            
+//            
+//            constexpr Int tail_mask = 0;
+//            constexpr Int head_mask = 1;
+//            
+//            const Int arrows [2][2] =
+//            {
+//                {
+//                    ToDarc<Head>(A[Out][Left ]),
+//                    ToDarc<Head>(A[Out][Right])
+//                },{
+//                    ToDarc<Tail>(A[In ][Left ]),
+//                    ToDarc<Tail>(A[In ][Right])
+//                }
+//            };
+//            
+//            
+//            /* A[Out][Left ]         A[Out][Right]
+//             *               O     O
+//             *                ^   ^
+//             *                 \ /
+//             *                  X c
+//             *                 ^ ^
+//             *                /   \
+//             *               O     O
+//             * A[In ][Left ]         A[In ][Right]
+//             */
+//             
+//            A_wings(A[Out][Left ],Tail,Left ) = arrows[In ][Left ];
+//            A_wings(A[Out][Left ],Tail,Right) = arrows[Out][Right];
+//            
+//            A_wings(A[Out][Right],Tail,Left ) = arrows[Out][Left ];
+//            A_wings(A[Out][Right],Tail,Right) = arrows[In ][Right];
+//            
+//            A_wings(A[In ][Left ],Head,Left ) = arrows[Out][Left ];
+//            A_wings(A[In ][Left ],Head,Right) = arrows[In ][Right];
+//            
+//            A_wings(A[In ][Right],Head,Left ) = arrows[In ][Left ];
+//            A_wings(A[In ][Right],Head,Right) = arrows[Out][Right];
+//            
+//            PD_ASSERT(
+//                (A_wings(A[In ][Left ],Head,Left ) >> 1)
+//                ==
+//                NextLeftArc(A[In ][Left ],Head).first
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[In ][Left ],Head,Left ) & Int(1))
+//                ==
+//                NextLeftArc(A[In ][Left ],Head).second
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[In ][Right],Head,Left ) >> 1)
+//                ==
+//                NextLeftArc(A[In ][Right],Head).first
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[In ][Right],Head,Left ) & Int(1))
+//                ==
+//                NextLeftArc(A[In ][Right],Head).second
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[Out][Left ],Tail,Right) >> 1)
+//                ==
+//                NextLeftArc(A[Out][Left ],Tail).first
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[Out][Left ],Tail,Right) & Int(1))
+//                ==
+//                NextLeftArc(A[Out][Left ],Tail).second
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[Out][Right],Tail,Right) >> 1)
+//                ==
+//                NextLeftArc(A[Out][Right],Tail).first
+//            );
+//            
+//            PD_ASSERT(
+//                (A_wings(A[Out][Right],Tail,Right) & Int(1))
+//                ==
+//                NextLeftArc(A[Out][Right],Tail).second
+//            );
+//        }
+//    }
+//    
+//    return A_wings;
+//}
 
 
 cref<Tensor1<Int,Int>> ArcNextArc() const
@@ -878,7 +895,7 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_next ( max_arc_count, Int(-1) );
+        Tensor1<Int,Int> A_next ( max_arc_count, Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
@@ -901,7 +918,7 @@ Tensor1<Int,Int> ArcPrevArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_prev ( max_arc_count, -1 );
+        Tensor1<Int,Int> A_prev ( max_arc_count, Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {

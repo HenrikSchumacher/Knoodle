@@ -799,6 +799,7 @@ namespace Knoodle
             
             constexpr Int max_depth = Tree_T::max_depth;
             
+            static_assert(SignedIntQ<Int>,"");
             Int stack [4 * max_depth][2];
             Int stack_ptr = -1;
             

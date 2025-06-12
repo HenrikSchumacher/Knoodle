@@ -197,11 +197,11 @@ namespace Knoodle
 
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             T.template ComputeBoundingBoxes<2,AmbDim,AmbDim>(
                 vertex_coords.data(), box_coords.data()
             );
-            TOOLS_PTOC(ClassName() + "::ComputeBoundingBoxes");
+            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
     private:

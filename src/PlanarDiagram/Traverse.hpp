@@ -2,6 +2,8 @@ public:
 
 static constexpr int DefaultTraversalMethod = 1;
 
+// TODO: Precompute ArcOverQ -- or actually pack that into A_state.
+
 // TODO: Use this for ArcOverStrands and ArcUnderStrands.
 
 /*!
@@ -9,10 +11,10 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * Beware that `A_scratch` and `C_scratch` are overwritten.
  * On return `C_scratch` contains the reordering of the crossings:
- * If crossing `c` is inactive, then `C_scratch[c] = -1`.
+ * If crossing `c` is inactive, then `C_scratch[c] = Uninitialized`.
  * Otherwise, `C_scratch[c]` contains the position of crossing `c` in the traversal.
  * On return `A_scratch` contains the reordering of the crossings if `arclabelsQ == true`:
- * If arc `a` is inactive, then `A_scratch[a] = -1`.
+ * If arc `a` is inactive, then `A_scratch[a] = Uninitialized`.
  * Otherwise, if `arclabelsQ == false`, then `A_scratch` containes garbage do not use it.
  *
  * Typically, `A_scratch` and `C_scratch` need not and should not be used externally, because the values `A_scratch[a]`, `C_scratch[c_0]`, and `C_scratch[c_1]` are fed to `fun` as `a_pos`, `c_0_pos`, and `c_1_pos`.
@@ -21,12 +23,12 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * @tparam arclabelsQ A `bool` that controls whether `A_scratch` shall be populated with the reordering of arcs.
  *
- * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
+ * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1` (default), then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
  *
- * @param lc_pre A lambda function that is executed at the start of every link component.
- *    `lc_post( const Int lc, const Int lc_begin )`.
+ * @tparam method The method used for traversal. You should typically use the default method.
  *
- * @param method The method used for traversal. You should typically use the default method.
+ * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
+ *    `lc_pre( const Int lc, const Int lc_begin )`.
  *
  * @param arc_fun A function to apply to every visited arc. Its require argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
@@ -44,17 +46,18 @@ static constexpr int DefaultTraversalMethod = 1;
  *      - `c_1_pos` is the position of `c_1` within the traversal.
  *      - `c_1_visited` is a `bool` that indicates whether crossing `c_0` is visited for the first (`false`) or the second (`true`) time.
  *
- * @param lc_post A lambda
+ * @param lc_post A lambda function that is executed at the end of every link component. Must have the following signature:
  *    `lc_post( const Int lc, const Int lc_begin, const Int lc_end )`.
  */
 
-    
 template<
     bool crossingsQ, bool arclabelsQ,
     int start_arc_ou = -1, int method = DefaultTraversalMethod,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
-void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post )  const
+void Traverse(
+    LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
+)  const
 {
     TOOLS_PTIC(ClassName()+"::Traverse"
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
@@ -63,22 +66,26 @@ void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && l
         + "," + ToString(method)
         + ">");
     
+//    cptr<Int>  A_next,
+//    mptr<std::conditional_t<arclabelsQ,Int,bool>> A_flag,
+//    mptr<Int>  C_pos
+    
+    auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
+    
+    auto * C_data = C_scratch.data();
+    
     if constexpr ( method == 0 )
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
-            nullptr,
-            reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data()),
-            C_scratch.data()
+            nullptr, A_data, C_data
         );
     }
     else if constexpr ( method == 1 )
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
-            ArcNextArc().data(),
-            reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data()),
-            C_scratch.data()
+            ArcNextArc().data(), A_data, C_data
         );
         this->ClearCache("ArcNextArc");
     }
@@ -90,6 +97,7 @@ void Traverse( LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && l
         );
     }
     
+
     TOOLS_PTOC(ClassName()+"::Traverse"
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
         + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
@@ -155,6 +163,11 @@ void Traverse_impl(
             + "," + ToString(start_arc_ou)
             + "," + ToString(method)
             + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+        
+        // Other methods might assume that this is set.
+        // In particular, calls to `LinkComponentCount` might go into a infinite loop.
+        this->template SetCache<false>("LinkComponentCount",Int(0));
+        
         return;
     }
 
@@ -164,7 +177,7 @@ void Traverse_impl(
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )
     {
-        fill_buffer( A_flag, Int(-1), m );
+        fill_buffer( A_flag, Uninitialized, m );
     }
     else
     {
@@ -173,7 +186,7 @@ void Traverse_impl(
 
     if constexpr ( crossingsQ )
     {
-        fill_buffer( C_pos, Int(-1), n );
+        fill_buffer( C_pos, Uninitialized, n );
     }
 
     Int lc_counter = 0; // counter for the link components.
@@ -183,15 +196,17 @@ void Traverse_impl(
 
     constexpr bool ou_flag = (start_arc_ou != 0) ;
     constexpr bool overQ   = (start_arc_ou >  0) ;
+    
+    // TODO: Simply do a loop?
 
     while( a_ptr < m )
     {
-        // Search for next active, unvisited arc whose tail is over/under crossing (or arbitary if ou_flag == false).
+        // Search for next active, unvisited arc.
         while(
             ( a_ptr < m )
             &&
             (
-                ( arclabelsQ ? (A_flag[a_ptr] >= Int(0)): (A_flag[a_ptr] == true) )
+                ( arclabelsQ ? ValidIndexQ(A_flag[a_ptr]) : (A_flag[a_ptr] == true) )
                 ||
                 (!this->ArcActiveQ(a_ptr))
             )
@@ -199,10 +214,8 @@ void Traverse_impl(
         {
             ++a_ptr;
         }
-        if( a_ptr >= m )
-        {
-            break;
-        };
+        
+        if( a_ptr >= m ) { break; };
         
         // Now a_ptr points to the beginning of a link component.
         Int a = a_ptr;
@@ -231,7 +244,7 @@ void Traverse_impl(
             a_ptr = a;
         }
         
-        // Now we are at the first arc of an over/understrand or we have `a = a_ptr`å.
+        // Now we are at the first arc of an over/understrand or we have `a = a_ptr`.
         // The latter can only happen if `ou_flag == true` and if the whole link component is a single over/understrand.
         
         // In any case, we just have to traverse forward through all arcs in the link component.
@@ -251,7 +264,7 @@ void Traverse_impl(
             AssertCrossing(c_1);
 
             c_1_pos = C_pos[c_1];
-            c_1_visitedQ = ( c_1_pos >= Int(0) );
+            c_1_visitedQ = ValidIndexQ(c_1_pos);
 
             if( !c_1_visitedQ )
             {
@@ -285,7 +298,7 @@ void Traverse_impl(
                 AssertCrossing(c_1);
 
                 c_1_pos = C_pos[c_1];
-                c_1_visitedQ = ( c_1_pos >= Int(0) );
+                c_1_visitedQ = ValidIndexQ(c_1_pos);
                 if( !c_1_visitedQ )
                 {
                     c_1_pos = C_pos[c_1] = c_counter;

@@ -6,14 +6,24 @@ Real DirichletRegularization() const { return dirichlet_reg; }
 
 private:
 
-
+template<typename I, typename J, typename Int>
 void DirichletHessian_CollectTriples(
-    mref<PlanarDiagram_T> pd,
-    mref<Aggregator_T> agg,
-    const Int row_offset,
-    const Int col_offset
+    mref<PlanarDiagram<Int>> pd,
+    mref<TripleAggregator<I,I,Real,J>> agg,
+    const I row_offset,
+    const I col_offset
 ) const
 {
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
+    
+    TOOLS_PTIC(ClassName()+"::DirichletHessian_CollectTriples"
+       + "<" + TypeName<I>
+       + "," + TypeName<J>
+       + "," + TypeName<Int>
+       + ">"
+    );
+    
     // Caution: This creates only the triples for the essentially upper triangle.
     // ("Essentially", because few off-diagonal triples lie in the lower triangle.)
 
@@ -30,12 +40,12 @@ void DirichletHessian_CollectTriples(
         const Int k_begin   = comp_arc_ptr[comp    ];
         const Int k_end     = comp_arc_ptr[comp + 1];
         
-        Int a   = comp_arc_idx[k_begin];
-        Int ap1 = next_arc[a  ];
+        I a   = static_cast<I>(comp_arc_idx[k_begin]);
+        I ap1 = static_cast<I>(next_arc[a  ]);
         
         for( Int k = k_begin; k < k_end; ++k )
         {
-            const Int row = a + row_offset;
+            const I row = static_cast<I>(a + row_offset);
             
             agg.Push( row, a   + col_offset, val_0 );
             agg.Push( row, ap1 + col_offset, val_1 );
@@ -45,20 +55,31 @@ void DirichletHessian_CollectTriples(
         }
     }
 
+    TOOLS_PTOC(ClassName()+"::DirichletHessian_CollectTriples"
+       + "<" + TypeName<I>
+       + "," + TypeName<J>
+       + "," + TypeName<Int>
+       + ">"
+    );
+    
 } // DirichletHessian_CollectTriples
 
 
 public:
 
-Matrix_T DirichletHessian( mref<PlanarDiagram_T> pd ) const
+template<typename I, typename J, typename Int>
+Sparse::MatrixCSR<Real,I,J> DirichletHessian( mref<PlanarDiagram<Int>> pd ) const
 {
-    const I_T m = pd.ArcCount();
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
+
+    const I m = static_cast<I>(pd.ArcCount());
     
-    Aggregator_T agg( 2 * m );
+    TripleAggregator<I,I,Real,J> agg( I(2) * m );
     
-    DirichletHessian_CollectTriples( pd, agg, 0, 0 );
+    DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
     
     // We have to symmetrize because DirichletHessian_CollectTriples computes essentially only the upper triangle.
-    return Matrix_T ( agg, m, m, I_T(1), true, true );
+    return { agg, m, m, I(1), true, true };
 
 } // DirichletHessian

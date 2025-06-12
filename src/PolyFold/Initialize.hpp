@@ -21,7 +21,7 @@ void Initialize()
     if( !log )
     {
         throw std::runtime_error( 
-            ClassName() + "::Initialize: Failed to create file \"" + log_file.string() + "\"."
+            ClassName()+"::Initialize: Failed to create file \"" + log_file.string() + "\"."
         );
     }
     
@@ -33,7 +33,7 @@ void Initialize()
         if( !pd_stream )
         {
             throw std::runtime_error(
-                ClassName() + "::Initialize: Failed to create file \"" + pd_file.string() + "\"."
+                ClassName()+"::Initialize: Failed to create file \"" + pd_file.string() + "\"."
             );
         }
     }
@@ -46,7 +46,7 @@ void Initialize()
         if( !gauss_stream )
         {
             throw std::runtime_error(
-                ClassName() + "::Initialize: Failed to create file \"" + gauss_file.string() + "\"."
+                ClassName()+"::Initialize: Failed to create file \"" + gauss_file.string() + "\"."
             );
         }
     }
@@ -59,7 +59,7 @@ void Initialize()
         if( !witness_stream )
         {
             throw std::runtime_error(
-                ClassName() + "::Initialize: Failed to create file \"" + witness_file.string() + "\"."
+                ClassName()+"::Initialize: Failed to create file \"" + witness_file.string() + "\"."
             );
         }
         
@@ -71,7 +71,7 @@ void Initialize()
         if( !pivot_stream )
         {
             throw std::runtime_error(
-                ClassName() + "::Initialize: Failed to create file \"" + pivot_file.string() + "\"."
+                ClassName()+"::Initialize: Failed to create file \"" + pivot_file.string() + "\"."
             );
         }
         
@@ -141,7 +141,7 @@ void Initialize()
             // TODO: Check that loaded polygon has edgelengths close to 1.
             if( error > edge_length_tolerance )
             {
-                throw std::runtime_error(ClassName() + "::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
+                throw std::runtime_error(ClassName()+"::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
             }
             
             if( checksQ )
@@ -150,7 +150,7 @@ void Initialize()
                 {
                     kv<t3>("Hard Sphere Constraint Satisfied", "False" );
                     
-                    throw std::runtime_error(ClassName() + "::Initialize: Loaded polygon does not satisfy the hard sphere constraint with diameter" + ToString(hard_sphere_diam) + ".");
+                    throw std::runtime_error(ClassName()+"::Initialize: Loaded polygon does not satisfy the hard sphere constraint with diameter" + ToString(hard_sphere_diam) + ".");
                 }
                 else
                 {
@@ -182,7 +182,7 @@ void Initialize()
         {
            if( SetState( prng, prng_init ) )
            {
-               throw std::runtime_error( ClassName() + "::Initialize: Failed to initialize random engine with <|"
+               throw std::runtime_error( ClassName()+"::Initialize: Failed to initialize random engine with <|"
                       + "Multiplier -> " + prng_init.multiplier + ", "
                       + "Increment -> "  + prng_init.increment + ", "
                       + "State -> "      + prng_init.state + "|>."
