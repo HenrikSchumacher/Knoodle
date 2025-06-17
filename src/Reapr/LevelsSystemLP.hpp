@@ -24,16 +24,6 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
     
     for( I c = 0; c < n; ++c )
     {
-        
-//      a_0     a_1
-//        ^     ^
-//         \   /
-//          \ /
-//           X
-//          / \
-//         /   \
-//      b_1     b_0
-        
         const I a_0 = static_cast<I>(C_arcs[I(4) * c + I(0)]);
         const I a_1 = static_cast<I>(C_arcs[I(4) * c + I(1)]);
         const I b_1 = static_cast<I>(C_arcs[I(4) * c + I(2)]);
@@ -41,9 +31,26 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
 
         const Real s = static_cast<Real>(ToUnderlying(C_states[c]));
         
+        //  Case: right-handed.
+        //
+        //      a_0     a_1
+        //        ^     ^
+        //         \   /
+        //          \ /
+        //           /
+        //          / \
+        //         /   \
+        //        /     \
+        //      b_1     b_0
+        //
+        // If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
+        // x[a_1] >= x[a_0] + 1
+        // - x[a_0] + x[a_1] >= 1
+        //   x[a_0] - x[a_1] <= -1
+        
         // Over/under constraints
-        agg.Push( a_0, c, -s );
-        agg.Push( a_1, c,  s );
+        agg.Push( a_0, c,  s );
+        agg.Push( a_1, c, -s );
         
 //        const I col_0 = n     + I(2) * c;
 //        const I col_1 = n + m + I(2) * c;

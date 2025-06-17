@@ -26,24 +26,40 @@ void LevelsConstraintMatrix_CollectTriples(
     
     for( Int c = 0; c < n; ++c )
     {
-        const I a_0 = int_cast<I>(C_arcs[(c << 2)         ]);
-        const I a_1 = int_cast<I>(C_arcs[(c << 2) | Int(1)]);
+        const I a_0 = int_cast<I>(C_arcs[Int(4) * c         ]);
+        const I a_1 = int_cast<I>(C_arcs[Int(4) * c + Int(1)]);
 
         const Real s = static_cast<Real>(ToUnderlying(C_states[c]));
+        
+        //  Case: right-handed.
+        //
+        //      a_0     a_1
+        //        ^     ^
+        //         \   /
+        //          \ /
+        //           /
+        //          / \
+        //         /   \
+        //        /     \
+        //
+        // If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
+        //   x[a_1] >= x[a_0] + 1
+        // - x[a_0] + x[a_1] >= 1
+        //   x[a_0] - x[a_1] <= -1
         
         if constexpr ( TransposedQ(op) )
         {
             const I col = int_cast<I>(c + col_offset);
             
-            agg.Push( a_0 + row_offset, col, -s );
-            agg.Push( a_1 + row_offset, col,  s );
+            agg.Push( a_0 + row_offset, col,  s );
+            agg.Push( a_1 + row_offset, col, -s );
         }
         else
         {
             const I row = int_cast<I>(c + row_offset);
             
-            agg.Push( row, a_0 + col_offset, -s );
-            agg.Push( row, a_1 + col_offset,  s );
+            agg.Push( row, a_0 + col_offset,  s );
+            agg.Push( row, a_1 + col_offset, -s );
         }
     }
     
