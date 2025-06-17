@@ -199,9 +199,9 @@ namespace Knoodle
                     rp[row_counter] = nonzero_counter;
                 }
 
-                Pattern_T A ( rp.data(), ci.data(), a.data(), m, m, Int(1) );
-                A.SortInner();
-                A.Compress();
+                Pattern_T A (
+                    std::move(rp), std::move(ci), std::move(a), m, m, Int(1)
+                );
                 
                 pd.SetCache( tag, std::move(A) );
             }

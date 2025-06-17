@@ -43,11 +43,11 @@ namespace Knoodle
             
             if( !pd.InCacheQ(tag) )
             {
-                const Int n = pd.CrossingCount() - 1 + fullQ;
+                const Int n = pd.CrossingCount() - Int(1) + fullQ;
                 
-                Tensor1<LInt,Int > rp( n + 1 );
+                Tensor1<LInt,Int > rp( n + Int(1) );
                 rp[0] = 0;
-                Tensor1<Int ,LInt> ci( 3 * n );
+                Tensor1<Int ,LInt> ci( LInt(3) * n );
                 
                 // Using complex numbers to assemble two matrices at once.
                 
@@ -172,9 +172,9 @@ namespace Knoodle
                     rp[row_counter] = nonzero_counter;
                 }
 
-                Pattern_T A ( rp.data(), ci.data(), a.data(), n, n, Int(1) );
-                A.SortInner();
-                A.Compress();
+                Pattern_T A (
+                    std::move(rp), std::move(ci), std::move(a), n, n, Int(1)
+                );
                 
                 pd.SetCache( tag, std::move(A) );
             }
@@ -216,7 +216,7 @@ namespace Knoodle
         }
 
 
-        // This needs to copy the sparsity pattern. So, only meant for haveing look, not for production.
+        // This needs to copy the sparsity pattern. So, only meant for having a look, not for production.
         template<bool fullQ = false>
         SparseMatrix_T SparseMatrix( cref<PD_T> pd, const Scal t ) const
         {
