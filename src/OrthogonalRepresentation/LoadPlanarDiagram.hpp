@@ -1,27 +1,65 @@
 private:
 
-void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ )
+template<typename ExtInt>
+void LoadPlanarDiagram(
+    mref<PlanarDiagram<ExtInt>> pd,
+    const ExtInt exterior_face_,
+    bool use_dual_simplexQ = false
+)
 {
-    TOOLS_PTIC(ClassName()+"::SubdividePlanarDiagram");
+    using DirectedArcNode = PlanarDiagram<ExtInt>::DirectedArcNode;
     
-    // CAUTION: This assumes no gaps in pd!
-    A_C                 = pd.Arcs();
-    max_crossing_count  = pd.Crossings().Dimension(0);
-    max_arc_count       = pd.Arcs().Dimension(0);
+    TOOLS_PTIC(ClassName()+"::LoadPlanarDiagram");
     
-    crossing_count      = pd.CrossingCount();
-    arc_count           = pd.ArcCount();
-    face_count          = pd.FaceCount();
+    // CAUTION: This might assume that there are no gaps in pd!
+
+//    using A_C_T = PlanarDiagram_T::CrossingContainer_T;
+//    using C_A_T = PlanarDiagram_T::ArcContainer_T;
+//    
+//    A_C_T A_C_buffer;
+//    C_A_T C_A_buffer;
+//    
+//    if constexpr ( !SameQ<ExtInt,Int> )
+//    {
+//        C_A_buffer = pd.Crossings();
+//    }
     
-    maximum_face  = pd.MaximumFace();
-    max_face_size = pd.MaxFaceSize();
+    
+    using C_A_T = std::conditional_t<
+        SameQ<ExtInt,Int>,
+        const typename PlanarDiagram_T::CrossingContainer_T &,
+        const typename PlanarDiagram_T::CrossingContainer_T
+    >;
+    
+    using A_C_T = std::conditional_t<
+        SameQ<ExtInt,Int>,
+        const typename PlanarDiagram_T::ArcContainer_T &,
+        const typename PlanarDiagram_T::ArcContainer_T
+    >;
+    // If ExtInt is not the same as Int, then we make copies here for the conversion.
+    // Otherwise, we simply take a reference.
+    
+    C_A_T C_A = pd.Crossings();
+    A_C_T A_C = pd.Arcs();
+    
+    max_crossing_count  = int_cast<Int>(pd.Crossings().Dimension(0));
+    max_arc_count       = int_cast<Int>(pd.Arcs().Dimension(0));
+    
+    crossing_count      = int_cast<Int>(pd.CrossingCount());
+    arc_count           = int_cast<Int>(pd.ArcCount());
+    face_count          = int_cast<Int>(pd.FaceCount());
+    
+    maximum_face        = int_cast<Int>(pd.MaximumFace());
+    max_face_size       = int_cast<Int>(pd.MaxFaceSize());
     
     F_scratch = Tensor1<Int,Int>( max_face_size );
     
     // TODO: Allow more general bend sequences.
-    exterior_face = (exterior_face_ < Int(0)) ? maximum_face : exterior_face_;
+    exterior_face = (exterior_face_ < ExtInt(0))
+                    ? maximum_face
+                    : int_cast<Int>(exterior_face_);
 
-    A_bends = BendsByLP(pd,exterior_face);
+    A_bends = Bends(pd,exterior_face);
     
     if( A_bends.Size() != max_arc_count)
     {
@@ -31,7 +69,7 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
     
     bend_count = 0;
     
-    // TODO: Should be part of the info received from BendsByLP.
+    // TODO: Hsould be part of the info received from BendsByLP.
     for( Int a = 0; a < arc_count; ++a )
     {
         bend_count += Abs(A_bends[a]);
@@ -57,14 +95,12 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
     // The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
     constexpr Dir_T lut [2][2] = { {North,East}, {West,South} };
     
-    const auto & C_A = pd.Crossings();
-    
     // Tell each crossing what its absolute orientation is.
     // This would be hard to parallelize
     pd.DepthFirstSearch(
         [&C_dir,&C_A,this]( cref<DirectedArcNode> A )
         {
-            if( A.da < Int(0) )
+            if( A.da < ExtInt(0) )
             {
                 C_dir[A.head] = Dir_T(0);
             }
@@ -72,10 +108,10 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
             {
                 auto [a,d] = FromDarc(A.da);
 
-                const Int  c_0  = A.tail;
-                const Int  c_1  = A.head;
-                const bool io_0 = !d;
-                const bool lr_0 = (C_A(c_0,io_0,Right) == a);
+                const ExtInt c_0  = A.tail;
+                const ExtInt c_1  = A.head;
+                const bool   io_0 = !d;
+                const bool   lr_0 = (C_A(c_0,io_0,Right) == a);
                 
                 // Direction where a would leave the standard-oriented port.
                 Dir_T dir = lut[io_0][lr_0];
@@ -143,10 +179,12 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
     {
         E_state[a] = EdgeState(ToUnderlying(A_state[a]));
         
-        if( pd.ArcActiveQ(a) )
+        ExtInt a_ = static_cast<ExtInt>(a);
+        
+        if( (a < arc_count) && (pd.ArcActiveQ(a_)) )
         {
-            A_overQ(a,Tail) = pd.template ArcOverQ<Tail>(a);
-            A_overQ(a,Head) = pd.template ArcOverQ<Head>(a);
+            A_overQ(a,Tail) = pd.template ArcOverQ<Tail>(a_);
+            A_overQ(a,Head) = pd.template ArcOverQ<Head>(a_);
         }
         
         if( !EdgeActiveQ(a) ) { continue; }
@@ -176,7 +214,7 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
         A_V_idx[A_V_pos] = c_0;
         A_E_idx[A_E_pos] = a;
         
-        V_dE(c_0,e_dir) = ToDedge(a,Head);
+        V_dE(c_0,e_dir) = ToDedge<Head>(a);
         E_dir(a) = e_dir;
         E_A(a) = a;
         
@@ -215,13 +253,13 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
 //                    ???     f    |
 //                     --+-------->+ v
             
-            V_dE(v,(e_dir + Dir_T(2)) % Dir_T(4)) = ToDedge(f,Tail);
+            V_dE(v,(e_dir + Dir_T(2)) % Dir_T(4)) = ToDedge<Tail>(f);
             
             e_dir = static_cast<Dir_T>(e_dir + sign_b) % Dir_T(4);
             E_dir(e) = e_dir;
             
             
-            V_dE(v,e_dir) = ToDedge(e,Head);
+            V_dE(v,e_dir) = ToDedge<Head>(e);
             E_A(e) = a;
             A_V_idx[A_V_pos + k] = v;
             A_E_idx[A_E_pos + k] = e;
@@ -243,11 +281,11 @@ void SubdividePlanarDiagram( mref<PlanarDiagram_T> pd, const Int exterior_face_ 
 //                          e    |c_1
 //                               |
         
-        V_dE(c_1,(e_dir + UInt(2)) % 4) = ToDedge(e,Tail);
+        V_dE(c_1,(e_dir + UInt(2)) % 4) = ToDedge<Tail>(e);
         
         E_V   (e,Head) = c_1;
         E_turn(e,Head) = Turn_T(1);
     };
     
-    TOOLS_PTOC(ClassName()+"::SubdividePlanarDiagram");
+    TOOLS_PTOC(ClassName()+"::LoadPlanarDiagram");
 }

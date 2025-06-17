@@ -6,6 +6,18 @@ void ComputeVertexCoordinates(
 {
     TOOLS_PTIC(ClassName()+"::ComputeVertexCoordinates");
     
+    if( x.Size() <= Int(0) )
+    {
+        wprint(ClassName()+"::ComputeVertexCoordinates: Container x is empty. Aborting.");
+        return;
+    }
+    
+    if( y.Size() <= Int(0) )
+    {
+        wprint(ClassName()+"::ComputeVertexCoordinates: Container x is empty. Aborting.");
+        return;
+    }
+    
     if( V_coords.Dimension(0) != vertex_count )
     {
         V_coords = CoordsContainer_T( vertex_count );
@@ -21,8 +33,8 @@ void ComputeVertexCoordinates(
     {
         if( VertexActiveQ(v) )
         {
-            V_coords(v,0) = x_grid_size * x[V_S_v[v]];
-            V_coords(v,1) = y_grid_size * y[V_S_h[v]];
+            V_coords(v,0) = x_grid_size * x[V_Vs[v]];
+            V_coords(v,1) = y_grid_size * y[V_Hs[v]];
         }
         else
         {
@@ -37,16 +49,16 @@ void ComputeVertexCoordinates(
 void ComputeVertexCoordinates_ByTopologicalOrdering()
 {
     ComputeVertexCoordinates(
-        D_v.TopologicalOrdering(),
-        D_h.TopologicalOrdering()
+        Dv.TopologicalOrdering(),
+        Dh.TopologicalOrdering()
     );
 }
 
 void ComputeVertexCoordinates_ByTopologicalNumbering()
 {
     ComputeVertexCoordinates(
-        D_v.TopologicalNumbering(),
-        D_h.TopologicalNumbering()
+        Dv.TopologicalNumbering(),
+        Dh.TopologicalNumbering()
     );
 
 }
@@ -54,8 +66,8 @@ void ComputeVertexCoordinates_ByTopologicalNumbering()
 void ComputeVertexCoordinates_ByTopologicalTightening()
 {
     ComputeVertexCoordinates(
-        D_v.TopologicalTightening(D_v_edge_costs.data()),
-        D_h.TopologicalTightening(D_h_edge_costs.data())
+        Dv.TopologicalTightening(DvE_costs.data()),
+        Dh.TopologicalTightening(DhE_costs.data())
     );
 }
 

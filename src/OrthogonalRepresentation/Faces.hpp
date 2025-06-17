@@ -1,6 +1,6 @@
 public:
 
-void ComputeFaces( mref<PlanarDiagram_T> pd )
+void ComputeFaces()
 {
     TOOLS_PTIC(ClassName()+"::ComputeFaces");
     
@@ -29,13 +29,13 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
     {
         if( EdgeActiveQ(e) )
         {
-            dE_F[ToDedge(e,Tail)] = Uninitialized;
-            dE_F[ToDedge(e,Head)] = Uninitialized;
+            dE_F[ToDedge<Tail>(e)] = Uninitialized;
+            dE_F[ToDedge<Head>(e)] = Uninitialized;
         }
         else
         {
-            dE_F[ToDedge(e,Tail)] = Uninitialized - Int(1);
-            dE_F[ToDedge(e,Head)] = Uninitialized - Int(1);
+            dE_F[ToDedge<Tail>(e)] = Uninitialized - Int(1);
+            dE_F[ToDedge<Head>(e)] = Uninitialized - Int(1);
         }
     }
     
@@ -57,7 +57,7 @@ void ComputeFaces( mref<PlanarDiagram_T> pd )
     
     for( Int da = 0; da < dA_count; ++da )
     {
-        auto [a,d] = pd.FromDarc(da);
+        auto [a,d] = FromDedge(da);
         
         if( (!EdgeActiveQ(a)) || (dE_F[da] != Uninitialized) ) { continue; }
 

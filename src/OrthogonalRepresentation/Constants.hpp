@@ -6,12 +6,12 @@ static constexpr UInt West  =  2;
 static constexpr UInt South =  3;
 static constexpr UInt NoDir = 15;
 
-static constexpr bool Left  = PlanarDiagram_T::Left;
-static constexpr bool Right = PlanarDiagram_T::Right;
-static constexpr bool Out   = PlanarDiagram_T::Out;
-static constexpr bool In    = PlanarDiagram_T::In;
-static constexpr bool Tail  = PlanarDiagram_T::Tail;
-static constexpr bool Head  = PlanarDiagram_T::Head;
+static constexpr bool Left  = PlanarDiagram<Int>::Left;
+static constexpr bool Right = PlanarDiagram<Int>::Right;
+static constexpr bool Out   = PlanarDiagram<Int>::Out;
+static constexpr bool In    = PlanarDiagram<Int>::In;
+static constexpr bool Tail  = PlanarDiagram<Int>::Tail;
+static constexpr bool Head  = PlanarDiagram<Int>::Head;
 
 
 static constexpr UInt8 ActiveBit   = 0;

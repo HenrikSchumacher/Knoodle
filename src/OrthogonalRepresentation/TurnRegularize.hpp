@@ -1,5 +1,69 @@
 public:
 
+void TurnRegularize( bool regularizeQ = true )
+{
+    TOOLS_PTIC(ClassName()+"::TurnRegularize");
+    
+    Int TRE_max_count = Int(2) * edge_count;
+    
+    V_dTRE        = V_dE;
+    TRE_V         = EdgeContainer_T    ( TRE_max_count, Uninitialized );
+    TRE_left_dTRE = EdgeContainer_T    ( TRE_max_count, Uninitialized );
+    TRE_turn      = EdgeTurnContainer_T( TRE_max_count, Turn_T(0) );
+    TRE_dir       = Tensor1<Dir_T,Int> ( TRE_max_count, East );
+    
+    mptr<Int> dTRE_V         = TRE_V.data();
+    mptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
+    mptr<Int> dTRE_turn      = TRE_turn.data();
+    
+    E_V.Write( dTRE_V );
+    E_left_dE.Write( dTRE_left_dTRE );
+    E_turn.Write( dTRE_turn );
+    E_dir.Write( TRE_dir.data() );
+    
+    TRE_count = edge_count;
+
+    TRE_flag = Tiny::VectorList_AoS<2,UInt8,Int>( TRE_max_count );
+    
+//    print("Mark active edges.");
+    for( Int e = 0; e < edge_count; ++e )
+    {
+        if( EdgeActiveQ(e) )
+        {
+            TRE_flag(e,Tail) = ActiveMask;
+            TRE_flag(e,Head) = ActiveMask;
+        }
+        else
+        {
+            TRE_flag(e,Tail) = UInt8(0);
+            TRE_flag(e,Head) = UInt8(0);
+        }
+    }
+    for( Int e = edge_count; e < TRE_max_count; ++e )
+    {
+        TRE_flag(e,Tail) = UInt8(0);
+        TRE_flag(e,Head) = UInt8(0);
+    }
+
+    // TODO: This seems to be the only place where we need face information F_dE_ptr and F_dE_idx. We can avoid this by marking the edges already in LoadPlanarDiagram.
+    
+    ;
+    
+    TRF_MarkAsExterior( F_dE_idx[F_dE_ptr[exterior_face]] );
+
+    if( regularizeQ )
+    {
+        for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
+        {
+            TurnRegularizeFace(de_ptr);
+        }
+    }
+    
+    Compute_TRF();
+    
+    TOOLS_PTOC(ClassName()+"::TurnRegularize");
+}
+
 
 /*! @brief Cycle around `de_ptr`'s left face and evaluate `edge_fun` on each directed edge.
  */
@@ -56,70 +120,6 @@ void TRF_MarkAsVisited( const Int de_ptr )
         [this]( const Int de ) { TRE_flag.data()[de] |= VisitedMask; }
     );
 }
-
-
-void TurnRegularize( bool regularizeQ = true )
-{
-    TOOLS_PTIC(ClassName()+"::TurnRegularize");
-    
-    Int TRE_max_count = Int(2) * edge_count;
-    
-    V_dTRE        = V_dE;
-    TRE_V         = EdgeContainer_T    ( TRE_max_count, Uninitialized );
-    TRE_left_dTRE = EdgeContainer_T    ( TRE_max_count, Uninitialized );
-    TRE_turn      = EdgeTurnContainer_T( TRE_max_count, Turn_T(0) );
-    TRE_dir       = Tensor1<Dir_T,Int> ( TRE_max_count, East );
-    
-    mptr<Int> dTRE_V         = TRE_V.data();
-    mptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
-    mptr<Int> dTRE_turn      = TRE_turn.data();
-    
-    E_V.Write( dTRE_V );
-    E_left_dE.Write( dTRE_left_dTRE );
-    E_turn.Write( dTRE_turn );
-    E_dir.Write( TRE_dir.data() );
-    
-    tre_count = edge_count;
-
-    TRE_flag = Tiny::VectorList_AoS<2,UInt8,Int>( TRE_max_count );
-    
-//    print("Mark active edges.");
-    for( Int e = 0; e < edge_count; ++e )
-    {
-        if( EdgeActiveQ(e) )
-        {
-            TRE_flag(e,Tail) = ActiveMask;
-            TRE_flag(e,Head) = ActiveMask;
-        }
-        else
-        {
-            TRE_flag(e,Tail) = UInt8(0);
-            TRE_flag(e,Head) = UInt8(0);
-        }
-    }
-    for( Int e = edge_count; e < TRE_max_count; ++e )
-    {
-        TRE_flag(e,Tail) = UInt8(0);
-        TRE_flag(e,Head) = UInt8(0);
-    }
-
-    // TODO: This seems to be the only place where we need face information F_dE_ptr and F_dE_idx. We can avoid this by marking the edges already in LoadPlanarDiagram.
-    
-    ;
-    
-    TRF_MarkAsExterior( F_dE_idx[F_dE_ptr[exterior_face]] );
-
-    if( regularizeQ )
-    {
-        for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
-        {
-            TurnRegularizeFace(de_ptr);
-        }
-    }
-    
-    TOOLS_PTOC(ClassName()+"::TurnRegularize");
-}
-
 
 
 
@@ -392,6 +392,8 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
     }
 }
 
+private:
+
 /*!@brief Check whether directed edge `de_ptr` is active and invisited. If affirmative, check whether the left face of `de_ptr` is turn-regular. If yes, return false (nothing changed); otherwise split the face by inserting a virtual edge and apply `TurnRegularizeFace` to both directed edges of the inserted virtual edge.
  *
  */
@@ -445,8 +447,8 @@ bool TurnRegularizeFace( const Int de_ptr )
     
     
     // Create new edge.
-    const Int e = tre_count;
-    ++tre_count;
+    const Int e = TRE_count;
+    ++TRE_count;
 
     // The new edge; de_0 in forward direction; de_1 in reverse direction.
     Int de_0 = ToDarc(e,Tail);
@@ -524,16 +526,18 @@ bool TurnRegularizeFace( const Int de_ptr )
     return de_0_split || de_1_split;
 }
 
+public:
+
 bool CheckTurnRegularity()
 {
-    for( Int de = 0; de < Int(2) * tre_count; ++de )
+    for( Int de = 0; de < Int(2) * TRE_count; ++de )
     {
         TRE_Unvisit(de);
     }
     
     bool okayQ = true;
     
-    for( Int de_ptr = 0; de_ptr < Int(2) * tre_count; ++de_ptr )
+    for( Int de_ptr = 0; de_ptr < Int(2) * TRE_count; ++de_ptr )
     {
         if( !TRE_ActiveQ(de_ptr) || TRE_VisitedQ(de_ptr) ) { continue; }
         
@@ -559,7 +563,7 @@ bool CheckTreDirection( Int e )
 {
     if constexpr( bound_checkQ )
     {
-        if ( (e < Int(0)) || (e >= tre_count) )
+        if ( (e < Int(0)) || (e >= TRE_count) )
         {
             eprint(ClassName()+"::CheckTreDirection: Index " + ToString(e) + " is out of bounds.");
             
@@ -581,8 +585,8 @@ bool CheckTreDirection( Int e )
         (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4)
     );
     
-    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDedge(e,Head));
-    const bool head_okayQ = (V_dTRE(head,head_port) == ToDedge(e,Tail));
+    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDedge<Head>(e));
+    const bool head_okayQ = (V_dTRE(head,head_port) == ToDedge<Tail>(e));
     
     if constexpr( verboseQ )
     {
@@ -603,7 +607,7 @@ bool CheckTreDirections()
 {
     bool okayQ = true;
     
-    for( Int e = 0; e < tre_count; ++e )
+    for( Int e = 0; e < TRE_count; ++e )
     {
         if ( !this->template CheckTreDirection<false,verboseQ>(e) )
         {
@@ -612,8 +616,6 @@ bool CheckTreDirections()
     }
     return okayQ;
 }
-
-
 
 
 private:
@@ -650,8 +652,6 @@ bool TRE_VirtualQ( const Int de ) const
     return (TRE_flag.data()[de] & VirtualMask) != UInt(0);
 }
 
-
-
 public:
 
 
@@ -666,12 +666,12 @@ void TRF_TraverseAll(
     
     cptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
     
-    for( Int de = 0; de < Int(2) * tre_count; ++de )
+    for( Int de = 0; de < Int(2) * TRE_count; ++de )
     {
         TRE_Unvisit(de);
     }
     
-    for( Int de_0 = 0; de_0 < Int(2) * tre_count; ++de_0 )
+    for( Int de_0 = 0; de_0 < Int(2) * TRE_count; ++de_0 )
     {
         if( !TRE_ActiveQ(de_0) || TRE_VisitedQ(de_0) ) { continue; }
         
@@ -692,69 +692,50 @@ void TRF_TraverseAll(
     TOOLS_PTOC(ClassName()+"::TRF_TraverseAll");
 }
 
-Tensor1<Int,Int> TRF_TRE_Pointers()
+void Compute_TRF()
 {
-    TOOLS_PTIC(ClassName()+"::TRF_TRE_Pointers");
+    TOOLS_PTIC(ClassName()+"::Compute_TRF");
     
-    Aggregator<Int,Int> agg ( vertex_count );
-    agg.Push(Int(0));
     
+    print("Compute_TRF");
+    // This is only an initial guess.
+    TRF_count = TRE_count;
+    
+    Aggregator<Int,Int> TRF_dTRE_ptr_agg ( TRF_count );
+    TRF_dTRE_ptr_agg.Push(Int(0));
+    
+    TRF_dTRE_idx = Tensor1<Int,Int>( Int(2) * TRE_count );
+    
+    TRE_TRF = EdgeContainer_T( TRE_count );
+    mptr<Int> dTRE_TRF = TRE_TRF.data();
+        
     Int dE_counter = 0;
     
     TRF_TraverseAll(
         [](){},
-        [&dE_counter]( const Int de )
+        [&TRF_dTRE_ptr_agg,&dE_counter,dTRE_TRF,this]( const Int de )
         {
+            const Int f = TRF_dTRE_ptr_agg.Size();
+            dTRE_TRF[de] = f - Int(1);
+            TRF_dTRE_idx[dE_counter] = de;
+            
             ++dE_counter;
         },
-        [&agg,&dE_counter]()
+        [&TRF_dTRE_ptr_agg,&dE_counter]()
         {
-            agg.Push(dE_counter);
+            TRF_dTRE_ptr_agg.Push(dE_counter);
         }
     );
     
-    TOOLS_PTOC(ClassName()+"::TRF_TRE_Pointers");
+    TRF_dTRE_ptr = TRF_dTRE_ptr_agg.Get();
+    TRF_count = TRF_dTRE_ptr.Size() - Int(1);
     
-    return agg.Get();
-}
-
-Tensor1<Int,Int> TRF_TRE_Indices()
-{
-    TOOLS_PTIC(ClassName()+"::TRF_TRE_Indices");
     
-    Aggregator<Int,Int> agg ( vertex_count );
+    TOOLS_DUMP(TRF_dTRE_ptr.Size());
+    TOOLS_DUMP(TRF_dTRE_idx.Size());
     
-    TRF_TraverseAll(
-        [](){},
-        [&agg]( const Int de )
-        {
-            agg.Push(de);
-        },
-        [](){}
-    );
-    
-    TOOLS_PTOC(ClassName()+"::TRF_TRE_Indices");
-    
-    return agg.Get();
+    TOOLS_PTOC(ClassName()+"::Compute_TRF");
 }
-
-
-Int TRE_Count() const
-{
-    return tre_count;
-}
-
-cref<EdgeContainer_T> TRE_Edges() const
-{
-    return TRE_V;
-}
-
-cref<FlagContainer_T> TRE_Flags() const
-{
-    return TRE_flag;
-}
-
-
 
 
 

@@ -59,7 +59,7 @@ static std::string SwitchString( Switch_T t )
 //}
 
 
-Switch_T G_l_SwitchType( Int da )
+Switch_T GlSwitchType( Int da )
 {
     cptr<Turn_T> dTRE_turn = TRE_turn.data();
     
@@ -220,7 +220,7 @@ Switch_T G_l_SwitchType( Int da )
 }
 
 
-Switch_T G_r_SwitchType( Int da )
+Switch_T GrSwitchType( Int da )
 {
     cptr<Turn_T> dTRE_turn = TRE_turn.data();
     
@@ -428,42 +428,42 @@ Switch_T G_r_SwitchType( Int da )
 // TODO: Make private:
 public:
 
-Tensor1<UInt8,Int> TRF_TRE_G_l_SwitchTypes()
+Tensor1<UInt8,Int> TrfaceGlSwitchTypes()
 {
-    TOOLS_PTIC(ClassName()+"::TRF_TRE_G_l_SwitchTypes");
+    TOOLS_PTIC(ClassName()+"::TrfaceGlSwitchTypes");
     
-    Aggregator<UInt8,Int> agg ( 4 * vertex_count );
+    Aggregator<UInt8,Int> agg ( TrdedgeCount() );
 
     TRF_TraverseAll(
         [](){},
         [&agg,this]( const Int de )
         {
-            agg.Push( ToUnderlying(G_l_SwitchType(de)) );
+            agg.Push( ToUnderlying(GlSwitchType(de)) );
         },
         [](){}
     );
     
-    TOOLS_PTOC(ClassName()+"::TRF_TRE_G_l_SwitchTypes");
+    TOOLS_PTOC(ClassName()+"::TrfaceGlSwitchTypes");
     
     return agg.Get();
 }
 
-Tensor1<UInt8,Int> TRF_TRE_G_r_SwitchTypes()
+Tensor1<UInt8,Int> TrfaceGrSwitchTypes()
 {
-    TOOLS_PTIC(ClassName()+"::TRF_TRE_G_r_SwitchTypes");
+    TOOLS_PTIC(ClassName()+"::TrfaceGrSwitchTypes");
     
-    Aggregator<UInt8,Int> agg ( 4 * vertex_count );
+    Aggregator<UInt8,Int> agg ( TrdedgeCount() );
 
     TRF_TraverseAll(
         [](){},
         [&agg,this]( const Int de )
         {
-            agg.Push( ToUnderlying(G_r_SwitchType(de)) );
+            agg.Push( ToUnderlying(GrSwitchType(de)) );
         },
         [](){}
     );
     
-    TOOLS_PTOC(ClassName()+"::TRF_TRE_G_r_SwitchTypes");
+    TOOLS_PTOC(ClassName()+"::TrfaceGrSwitchTypes");
     
     return agg.Get();
 }

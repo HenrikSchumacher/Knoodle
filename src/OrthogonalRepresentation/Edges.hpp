@@ -86,8 +86,8 @@ bool CheckEdgeDirection( Int e )
     const Dir_T head_port = static_cast<Dir_T>( (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4) );
     
     
-    const bool tail_okayQ = (V_dE(tail,tail_port) == ToDedge(e,Head));
-    const bool head_okayQ = (V_dE(head,head_port) == ToDedge(e,Tail));
+    const bool tail_okayQ = (V_dE(tail,tail_port) == ToDedge<Head>(e));
+    const bool head_okayQ = (V_dE(head,head_port) == ToDedge<Tail>(e));
     
     if constexpr( verboseQ )
     {
