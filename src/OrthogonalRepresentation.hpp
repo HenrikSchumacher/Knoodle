@@ -286,7 +286,7 @@ namespace Knoodle
 #include "OrthogonalRepresentation/Trfaces.hpp"
 #include "OrthogonalRepresentation/SaturateFaces.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
-//#include "OrthogonalRepresentation/LengthsLP.hpp"
+#include "OrthogonalRepresentation/LengthsLP.hpp"
 #include "OrthogonalRepresentation/Coordinates.hpp"
 #include "OrthogonalRepresentation/FindIntersections.hpp"
         
