@@ -1,4 +1,6 @@
 #define TOOLS_ENABLE_PROFILER
+#define TENSORS_BOUND_CHECKS
+#define TENSORS_ALLOCATION_LOGS
 
 #define dump(x) TOOLS_DUMP(x);
 #define mem_dump(x) TOOLS_MEM_DUMP(x);
@@ -36,23 +38,23 @@ int main( int argc, char** argv )
 //    };
 //
 //    Int bends [6] = { 2, -3, 0, 0, 3, -2 };
-//    
-//    
-////              v_6     e_8     v_5             e_14    v_11
-////                 +<----------+           +<----------+
-////                 |    a_0    ^           |    a_4    ^
-////                 |           |           |           |
-////              e_9|           |e_0    e_15|           |e_13
-////                 |           |           |           |
-////  v_9            v    a_2    |    a_3    v           |
-////     +---------->|---------->----------->----------->+
-////     ^    e_12   |c_1 e_2    ^c_0 e_3    |c_2 e_4     v_10
-////     |           |           |           |
-////     |e_11    e_1|           |e_7     e_5|
-////     |           |           |           |
-////     |    e_10   v           |    e_6    v
-////     +<----------+           +<----------+
-////  v_8     a_1     v_7     v_4     a_5     v_3
+    
+    
+//              v_6     e_8     v_5             e_14    v_11
+//                 +<----------+           +<----------+
+//                 |    a_0    ^           |    a_4    ^
+//                 |           |           |           |
+//              e_9|           |e_0    e_15|           |e_13
+//                 |           |           |           |
+//  v_9            v    a_2    |    a_3    v           |
+//     +---------->|---------->----------->----------->+
+//     ^    e_12   |c_1 e_2    ^c_0 e_3    |c_2 e_4     v_10
+//     |           |           |           |
+//     |e_11    e_1|           |e_7     e_5|
+//     |           |           |           |
+//     |    e_10   v           |    e_6    v
+//     +<----------+           +<----------+
+//  v_8     a_1     v_7     v_4     a_5     v_3
 
     constexpr Int c_count = 9;
     Int pd_code [c_count][5] = {
@@ -73,7 +75,7 @@ int main( int argc, char** argv )
     
     Profiler::Clear();
     
-
+    
     OrthogonalRepresentation<Int> H (pd,-1);
     
     TOOLS_DUMP(H.CrossingCount());
@@ -139,16 +141,19 @@ int main( int argc, char** argv )
     H.ComputeVertexCoordinates_ByTopologicalTightening();
     
     TOOLS_DUMP(H.VertexCoordinates());
-    
-    //H.ComputeArcLines();
+        
     print(H.DiagramString());
     
     
-    TOOLS_DUMP(H.FaceDedgePointers());
-    
-    TOOLS_DUMP(H.VertexCoordinates());
+//    TOOLS_DUMP(H.FaceDedgePointers());
+//    
+//    TOOLS_DUMP(H.VertexCoordinates());
     
     TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
+    
+    TOOLS_DUMP(H.Test_TRE_DhE());
+    TOOLS_DUMP(H.Test_TRE_DvE());
+    
     
     
     return EXIT_SUCCESS;

@@ -3,17 +3,17 @@ public:
 template<typename T = Int, int method = DefaultTraversalMethod>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
-    TOOLS_PTIC(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
     
     static_assert( SignedIntQ<T>, "" );
     
-    Tensor1<T,Int> gauss_code;
+    Tensor1<T,Int> code;
     
     if( !ValidQ() )
     {
         wprint( ClassName()+"::ExtendedGaussCode: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
         
-        goto Exit;
+        return code;
     }
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
@@ -21,19 +21,15 @@ Tensor1<T,Int> ExtendedGaussCode()  const
         throw std::runtime_error(ClassName()+"::ExtendedGaussCode: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
-    gauss_code = Tensor1<T,Int>( arc_count );
+    code = Tensor1<T,Int>( arc_count );
     
-    this->WriteExtendedGaussCode<T,method>(gauss_code.data());
-    
-Exit:
-    
-    TOOLS_PTOC(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
-    
-    return gauss_code;
+    this->WriteExtendedGaussCode<T,method>(code.data());
+
+    return code;
 }
 
 
-template<typename T = Int, int method = DefaultTraversalMethod>
+template<typename T, int method = DefaultTraversalMethod>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
     TOOLS_PTIC(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
@@ -154,7 +150,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
                  *          ^     ^            ^     ^
                  *           \   /              \   /
                  *            \ /                \ /
-                 *             / <--- c  or       / <--- c
+                 *             / <--- c  or       \ <--- c
                  *            ^ ^                ^ ^
                  *           /   \              /   \
                  *          /     \            /     \

@@ -507,7 +507,7 @@ static PlanarDiagram<Int> FromPDCode(
         }
     }
     
-    pd.crossing_count = crossing_count_;
+    pd.crossing_count = int_cast<Int>(crossing_count_);
     pd.arc_count      = pd.CountActiveArcs();
     
     if( pd.arc_count != Int(2) * pd.crossing_count )

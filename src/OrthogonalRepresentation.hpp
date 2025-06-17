@@ -27,15 +27,16 @@ namespace Knoodle
         
         using DiGraph_T           = MultiDiGraph<Int,Int>;
         using HeadTail_T          = DiGraph_T::HeadTail_T;
-        using PlanarDiagram_T     = PlanarDiagram<Int>;
         using VertexContainer_T   = Tiny::VectorList_AoS<4, Int,Int>;
         using EdgeContainer_T     = DiGraph_T::EdgeContainer_T;
         using EdgeTurnContainer_T = Tiny::VectorList_AoS<2,Turn_T,Int>;
-        using DirectedArcNode     = PlanarDiagram_T::DirectedArcNode;
         using CoordsContainer_T   = Tiny::VectorList_AoS<2,Int,Int>;
         using FlagContainer_T     = Tiny::VectorList_AoS<2,UInt8,Int>;
-        
         using Vector_T            = Tiny::Vector<2,Int,Int>;
+        using PlanarDiagram_T     = PlanarDiagram<Int>;
+        
+        using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
+        using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
         
         enum class VertexState : Int8
         {
@@ -94,18 +95,23 @@ namespace Knoodle
         // TODO: move constructor
         // TODO: move assignment
 
+        template<typename ExtInt,typename ExtInt2>
         OrthogonalRepresentation(
-            mref<PlanarDiagram_T> pd, const Int exterior_face
+            mref<PlanarDiagram<ExtInt>> pd,
+            const ExtInt2 exterior_face,
+            bool use_dual_simplexQ = false
         )
         {
-            SubdividePlanarDiagram(pd,exterior_face);
+            LoadPlanarDiagram(
+                pd,int_cast<ExtInt>(exterior_face),use_dual_simplexQ
+            );
             
             // We can compute this only after E_V and V_dE have been computed completed.
             ComputeEdgeLeftDedges();
             
 //            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
             
-            ComputeFaces(pd);
+            ComputeFaces();
             
 //            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
 //            TOOLS_DUMP(BoolString(CheckFaceTurns()));
@@ -176,7 +182,6 @@ namespace Knoodle
         
         Tensor1<Int,Int>    A_bends;
         VertexContainer_T   V_dE; // Entries are _outgoing_ directed edge indices. Do /2 to get actual arc index.
-        EdgeContainer_T     A_C; // The orginal arcs. Not sure whether we are really going to need them...
         EdgeContainer_T     E_V;
         EdgeContainer_T     E_left_dE; // Entries are _directed_ edge indices. Do /2 to get actual arc indes.
         
@@ -202,7 +207,8 @@ namespace Knoodle
         
         // Turn regularization (TRE = turn regularized edges
         
-        Int tre_count  = 0;
+        Int TRE_count  = 0;
+        Int TRF_count  = 0;
         
         VertexContainer_T   V_dTRE;
         EdgeContainer_T     TRE_V;
@@ -210,31 +216,38 @@ namespace Knoodle
         EdgeTurnContainer_T TRE_turn;
         Tensor1<Dir_T,Int>  TRE_dir;
         
+        Tensor1<Int,Int>    TRF_dTRE_ptr;
+        Tensor1<Int,Int>    TRF_dTRE_idx;
+        EdgeTurnContainer_T TRE_TRF;
+        
         // Compaction
         
-        DiGraph_T           D_h; // constraint graph of horizontal segments
-        DiGraph_T           D_v; // constraint graph of vertical segments
+        DiGraph_T           Dh; // constraint graph of horizontal segments
+        DiGraph_T           Dv; // constraint graph of vertical segments
         
-        Tensor1<Cost_T,Int> D_h_edge_costs;
-        Tensor1<Cost_T,Int> D_v_edge_costs;
+        Tensor1<Cost_T,Int> DhE_costs;
+        Tensor1<Cost_T,Int> DvE_costs;
         
-        // The range [ S_h_E_idx[S_h_E_ptr[s]],...,S_h_E_idx[S_h_E_ptr[s+1]] ) are the edges that belong to s-th horizontal segment, ordered from West to East.
-        Tensor1<Int,Int>    S_h_E_ptr;
-        Tensor1<Int,Int>    S_h_E_idx;
+        Tensor1<Int,Int>    TRE_DhE;
+        Tensor1<Int,Int>    TRE_DvE;
         
-        // The range [ S_v_E_idx[S_v_E_ptr[s]],...,S_v_E_idx[S_v_E_ptr[s+1]] ) are the edges that belong to s-th vertical segment, ordered from West to East.
-        Tensor1<Int,Int>    S_v_E_ptr;
-        Tensor1<Int,Int>    S_v_E_idx;
+        // The range [ Hs_E_idx[Hs_E_ptr[s]],...,Hs_E_idx[Hs_E_ptr[s+1]] ) are the edges that belong to s-th horizontal segment, ordered from West to East.
+        Tensor1<Int,Int>    Hs_E_ptr;
+        Tensor1<Int,Int>    Hs_E_idx;
+        
+        // The range [ Vs_E_idx[Vs_E_ptr[s]],...,Vs_E_idx[Vs_E_ptr[s+1]] ) are the edges that belong to s-th vertical segment, ordered from West to East.
+        Tensor1<Int,Int>    Vs_E_ptr;
+        Tensor1<Int,Int>    Vs_E_idx;
         
         // Maps each undirected edge to its horizontal segment (`Uninitialized` if vertical)
-        Tensor1<Int,Int>    E_S_h;
+        Tensor1<Int,Int>    E_Hs;
         // Maps each undirected edge to its vertical segment (`Uninitialized` if horizontal)
-        Tensor1<Int,Int>    E_S_v;
+        Tensor1<Int,Int>    E_Vs;
         
         // Maps each vertex to its horizontal segment (`Uninitialized` if vertical)
-        Tensor1<Int,Int>    V_S_h;
+        Tensor1<Int,Int>    V_Hs;
         // Maps each vertex to its vertical segment (`Uninitialized` if horizontal)
-        Tensor1<Int,Int>    V_S_v;
+        Tensor1<Int,Int>    V_Vs;
         
         // General purpose buffers. May be used in all routines as temporary space.
         mutable Tensor1<Int,Int> V_scratch;
@@ -242,10 +255,6 @@ namespace Knoodle
         mutable FlagContainer_T  TRE_flag;
         
         bool proven_turn_regularQ = false;
-        
-        // TODO: Delete this when the class is finished.
-        PlanarDiagram_T * pd_ptr = nullptr;
-        
         
         // Plotting
         
@@ -263,16 +272,21 @@ namespace Knoodle
         Tensor1<Int,Int>  A_spline_ptr;
         CoordsContainer_T A_spline_coords;
         
+        std::vector<std::array<Int,2>> Hs_edge_agg;
+        std::vector<std::array<Int,2>> Vs_edge_agg;
+        
     private:
 
-#include "OrthogonalRepresentation/BendsSystemLP.hpp"
-#include "OrthogonalRepresentation/BendsByLP.hpp"
-#include "OrthogonalRepresentation/SubdividePlanarDiagram.hpp"
+#include "OrthogonalRepresentation/BendsLP.hpp"
+#include "OrthogonalRepresentation/LoadPlanarDiagram.hpp"
 #include "OrthogonalRepresentation/Edges.hpp"
 #include "OrthogonalRepresentation/Faces.hpp"
 #include "OrthogonalRepresentation/TurnRegularize.hpp"
+#include "OrthogonalRepresentation/Tredges.hpp"
+#include "OrthogonalRepresentation/Trfaces.hpp"
 #include "OrthogonalRepresentation/SaturateFaces.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
+//#include "OrthogonalRepresentation/LengthsLP.hpp"
 #include "OrthogonalRepresentation/Coordinates.hpp"
 #include "OrthogonalRepresentation/FindIntersections.hpp"
         
@@ -326,7 +340,7 @@ namespace Knoodle
         
         Int VirtualEdgeCount() const
         {
-            return tre_count - edge_count;
+            return TRE_count - edge_count;
         }
         
         EdgeContainer_T VirtualEdges() const
@@ -461,74 +475,74 @@ namespace Knoodle
         
         cref<DiGraph_T> HsConstraintGraph() const
         {
-            return D_h;
+            return Dh;
         }
         
         cref<Tensor1<Int,Int>> HsEdgePointers() const
         {
-            return S_h_E_ptr;
+            return Hs_E_ptr;
         }
         
         cref<Tensor1<Int,Int>> HsEdgeIndices() const
         {
-            return S_h_E_idx;
+            return Hs_E_idx;
         }
         
         cref<Tensor1<Int,Int>> VertexHs() const
         {
-            return V_S_h;
+            return V_Hs;
         }
         
         cref<Tensor1<Int,Int>> EdgeHs() const
         {
-            return E_S_h;
+            return E_Hs;
         }
         
         
         cref<DiGraph_T> VsConstraintGraph() const
         {
-            return D_v;
+            return Dv;
         }
         
         cref<Tensor1<Int,Int>> VsEdgePointers() const
         {
-            return S_v_E_ptr;
+            return Vs_E_ptr;
         }
         
         cref<Tensor1<Int,Int>> VsEdgeIndices() const
         {
-            return S_v_E_idx;
+            return Vs_E_idx;
         }
         
         cref<Tensor1<Int,Int>> VertexVs() const
         {
-            return V_S_v;
+            return V_Vs;
         }
         
         cref<Tensor1<Int,Int>> EdgeVs() const
         {
-            return E_S_v;
+            return E_Vs;
         }
         
         
         cref<Tensor1<Int,Int>> HsTopologicalNumbering() const
         {
-            return D_h.TopologicalNumbering();
+            return Dh.TopologicalNumbering();
         }
         
         cref<Tensor1<Int,Int>> HsTopologicalOrdering() const
         {
-            return D_h.TopologicalOrdering();
+            return Dh.TopologicalOrdering();
         }
         
         cref<Tensor1<Int,Int>> VsTopologicalNumbering() const
         {
-            return D_v.TopologicalNumbering();
+            return Dv.TopologicalNumbering();
         }
 
         cref<Tensor1<Int,Int>> VsTopologicalOrdering() const
         {
-            return D_v.TopologicalOrdering();
+            return Dv.TopologicalOrdering();
         }
         
         Int FaceCount() const

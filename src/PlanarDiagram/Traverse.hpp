@@ -183,12 +183,12 @@ void Traverse_impl(
     {
         fill_buffer( A_flag, false, m );
     }
-
+    
     if constexpr ( crossingsQ )
     {
         fill_buffer( C_pos, Uninitialized, n );
     }
-
+                      
     Int lc_counter = 0; // counter for the link components.
     Int a_counter  = 0; // counter for the arcs.
     Int c_counter  = 0; // counter for the crossings.
@@ -206,7 +206,7 @@ void Traverse_impl(
             ( a_ptr < m )
             &&
             (
-                ( arclabelsQ ? ValidIndexQ(A_flag[a_ptr]) : (A_flag[a_ptr] == true) )
+                ( arclabelsQ ? ValidIndexQ(A_flag[a_ptr]) : A_flag[a_ptr] )
                 ||
                 (!this->ArcActiveQ(a_ptr))
             )
@@ -248,7 +248,7 @@ void Traverse_impl(
         // The latter can only happen if `ou_flag == true` and if the whole link component is a single over/understrand.
         
         // In any case, we just have to traverse forward through all arcs in the link component.
-
+        
         const Int lc_begin = a_counter;
         lc_pre( lc_counter, lc_begin );
 

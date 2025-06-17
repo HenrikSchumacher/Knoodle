@@ -123,11 +123,7 @@ public:
         // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
         // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
         
-        if( intersection_count <= Int(0) )
-        {
-            return 0;
-        }
-        
+        if( intersection_count <= Int(0) ) { return 0; }
         
         TOOLS_PTIC("Counting sort");
         for( Int k = intersection_count; k --> Int(0);  )
