@@ -67,7 +67,7 @@ coordinates = np.array([
 print("Shape", coordinates.shape)
 
 # Convert the NumPy array to a list as Knoodle expects
-points = coordinates.tolist()
+points = coordinates.flatten().tolist()
 
 # Analyze the curve
 result = knoodle.analyze_curve(points)
