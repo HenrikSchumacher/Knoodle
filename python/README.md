@@ -57,12 +57,17 @@ import knoodle
 import numpy as np
 
 # Create a 3D curve representing a knot
-points = np.array([
+coordinates = np.array([
     # Your 3D points here
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     # ... more points
 ])
+
+print("Shape", coordinates.shape)
+
+# Convert the NumPy array to a flat list as Knoodle expects
+points = coordinates.flatten().tolist()
 
 # Analyze the curve
 result = knoodle.analyze_curve(points)
