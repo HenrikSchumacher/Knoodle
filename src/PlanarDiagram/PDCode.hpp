@@ -11,53 +11,55 @@ public:
  *  `PDCode()(c,0)` is the incoming arc that goes under.
  *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
  *
- *  The last entry stores the handedness of the crossing: if `T` is a signed integer typem then this is encoded as follows:
+ *  The fifth entry stores the handedness of the crossing: if `T` is a signed integer type, then this is encoded as follows:
  *    `+1` for a right-handed crossing,
  *    `-1` for a left-handed crossing.
  *  If `T` is an unsigned integer type, then we use
  *    `+1` for a right-handed crossing,
  *     `0` for a left-handed crossing.
+ *
+ * @tparam T Integer type to be used for the returned code.
+ *
+ * @tparam one_basedQ Whether the generated code should be 1-indexed (`true`) or 0-indexed (`false`).
  */
     
-template<typename T = Int, bool arclabelsQ = false, int method = DefaultTraversalMethod>
+template<typename T = Int, bool one_basedQ = false, int method = DefaultTraversalMethod>
 Tensor2<T,Int> PDCode()
 {
-    TOOLS_PTIC(ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
+    TOOLS_PTIMER(timer,ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
     
-    static_assert( SignedIntQ<T>, "" );
+    static_assert( IntQ<T>, "" );
     
     Tensor2<T,Int> pd_code;
     
     // We do this to suppress a warning by `Traverse`.
     if( !ValidQ() )
     {
-        goto Exit;
+        return pd_code;
     }
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
         throw std::runtime_error(ClassName()+"::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
-        goto Exit;
+        return pd_code;
     }
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
 
-    this->WritePDCode<T,arclabelsQ,method>(pd_code.data());
-    
-Exit:
-    
-    TOOLS_PTOC(ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
+    this->WritePDCode<T,one_basedQ,method>(pd_code.data());
     
     return pd_code;
 }
 
-template<typename T, bool arclabelsQ = false, int method = DefaultTraversalMethod>
+template<typename T, bool one_basedQ = false, int method = DefaultTraversalMethod>
 void WritePDCode( mptr<T> pd_code )
 {
-    TOOLS_PTIC(ClassName()+"::WritePDCode"
+    static_assert( IntQ<T>, "" );
+    
+    TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
-        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
+        + "," + ToString(one_basedQ)
         + "," + ToString(method)
         + ">");
     
@@ -66,7 +68,7 @@ void WritePDCode( mptr<T> pd_code )
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
     constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
-    this->template Traverse<crossingsQ,arclabelsQ,-1,method>(
+    this->template Traverse<crossingsQ,true,-1,method>(
         [&pd_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -77,15 +79,15 @@ void WritePDCode( mptr<T> pd_code )
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
             
-            // DEBUGGING
-            if( !ValidIndexQ(a  ) ) { eprint("!ValidIndexQ(a)"); }
-            
-            // DEBUGGING
-            if( !ValidIndexQ(c_0) ) { eprint("!ValidIndexQ(c_0)"); }
-            if( !CrossingActiveQ(c_0) ) { eprint("Inactive crossing!"); }
-            // DEBUGGING
-            if( !ValidIndexQ(c_1) ) { eprint("!ValidIndexQ(c_1)"); }
-            if( !CrossingActiveQ(c_1) ) { eprint("Inactive crossing!"); }
+//            // DEBUGGING
+//            if( !ValidIndexQ(a  ) ) { eprint("!ValidIndexQ(a)"); }
+//            
+//            // DEBUGGING
+//            if( !ValidIndexQ(c_0) ) { eprint("!ValidIndexQ(c_0)"); }
+//            if( !CrossingActiveQ(c_0) ) { eprint("Inactive crossing!"); }
+//            // DEBUGGING
+//            if( !ValidIndexQ(c_1) ) { eprint("!ValidIndexQ(c_1)"); }
+//            if( !CrossingActiveQ(c_1) ) { eprint("Inactive crossing!"); }
             
             // Tell c_0 that arc a_counter goes out of it.
             {
@@ -131,7 +133,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[3]           X[0]
                          */
                         
-                        pd[1] = static_cast<T>(a_pos);
+                        pd[1] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -153,7 +155,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[0]           X[1]
                          */
                         
-                        pd[3] = static_cast<T>(a_pos);
+                        pd[3] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                     else // if( side == Right )
                     {
@@ -170,7 +172,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[0]           X[1]
                          */
                         
-                        pd[2] = static_cast<T>(a_pos);
+                        pd[2] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                 }
             }
@@ -201,7 +203,7 @@ void WritePDCode( mptr<T> pd_code )
                          *   a_pos
                          */
                         
-                        pd[3] = static_cast<T>(a_pos);
+                        pd[3] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                     else // if( side == Right )
                     {
@@ -218,7 +220,7 @@ void WritePDCode( mptr<T> pd_code )
                          *                  a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_pos);
+                        pd[0] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -240,7 +242,7 @@ void WritePDCode( mptr<T> pd_code )
                          *   a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_pos);
+                        pd[0] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                     else // if( lr == Right )
                     {
@@ -257,22 +259,16 @@ void WritePDCode( mptr<T> pd_code )
                          *                  a_pos
                          */
                         
-                        pd[1] = static_cast<T>(a_pos);
+                        pd[1] = static_cast<T>(a_pos) + T(one_basedQ);
                     }
                 }
             }
         }
     );
-    
-    TOOLS_PTOC(ClassName()+"::WritePDCode"
-        + "<" + TypeName<T>
-        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
-        + "," + ToString(method)
-        + ">");
 }
 
 
-template<typename T = Int, int method = DefaultTraversalMethod>
+template<typename T = Int, bool  one_basedQ = false, int method = DefaultTraversalMethod>
 std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
 {
     Tensor2<T,Int> pd_code  = this->template PDCode<T,true,method>();
@@ -303,9 +299,11 @@ public:
  *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
+ *
+ *  @tparam one_basedQ Whether the input PD code is be to be interpreted as 1-indexed (`true`) or 0-indexed (`false`).
  */
 
-template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+template<bool one_basedQ = false, typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
@@ -314,7 +312,7 @@ static PlanarDiagram<Int> FromSignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<true>(
+    return PlanarDiagram<Int>::FromPDCode<true,one_basedQ>(
         pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
     );
 }
@@ -333,9 +331,11 @@ static PlanarDiagram<Int> FromSignedPDCode(
  *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
+ *
+ *  @tparam one_basedQ Whether the input PD code is be to be interpreted as 1-indexed (`true`) or 0-indexed (`false`).
  */
 
-template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+template<bool one_basedQ = false, typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
@@ -344,7 +344,7 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<false>(
+    return PlanarDiagram<Int>::FromPDCode<false,one_basedQ>(
         pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
     );
 }
@@ -352,7 +352,7 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
 private:
 
 template<
-    bool PDsignedQ,
+    bool PDsignedQ, bool one_basedQ = false,
     typename ExtInt, typename ExtInt2, typename ExtInt3
 >
 static PlanarDiagram<Int> FromPDCode(
@@ -369,10 +369,12 @@ static PlanarDiagram<Int> FromPDCode(
 //    constexpr F_T TailOver  = F_T(1) | ( F_T(1) >> 1);
 //    constexpr F_T HeadUnder = F_T(1) | ( F_T(0) >> 2);
 //    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
-    
+        
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
+    
+    constexpr Int s = one_basedQ ? Int(1) : Int(0);
     
     static_assert( IntQ<ExtInt>, "" );
     static_assert( IntQ<ExtInt2>, "" );
@@ -386,18 +388,41 @@ static PlanarDiagram<Int> FromPDCode(
     
     pd.proven_minimalQ = proven_minimalQ_;
 
-    
     // The maximally allowed arc index.
     const Int max_a = pd.max_arc_count - 1;
     
     for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
         Int X [d];
-        copy_buffer<d>( &pd_codes_[d*c], &X[0] );
+        
+        
+        if constexpr ( one_basedQ )
+        {
+            X[0] = pd_codes_[d*c + Int(0)] - s;
+            X[1] = pd_codes_[d*c + Int(1)] - s;
+            X[2] = pd_codes_[d*c + Int(2)] - s;
+            X[3] = pd_codes_[d*c + Int(3)] - s;
+            
+            if constexpr ( PDsignedQ )
+            {
+                X[4] = pd_codes_[d*c + Int(4)];
+            }
+        }
+        else
+        {
+            copy_buffer<d>( &pd_codes_[d*c], &X[0] );
+        }
+
+        if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
+        {
+            eprint( ClassName()+"FromPDCode(): There is a PD code entry with negative entries. Returning invalid PlanarDiagram." );
+            valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
+            return PlanarDiagram<Int>();
+        }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint( ClassName()+"FromPDCode(): There is a pd code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
+            eprint( ClassName()+"FromPDCode(): There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
             return PlanarDiagram<Int>();
         }
@@ -501,18 +526,84 @@ static PlanarDiagram<Int> FromPDCode(
             }
             default:
             {
+                eprint(ClassName()+"::FromPDCode: Unclear crossing state.");
+                TOOLS_DUMP(pd.C_state[c]);
                 // Do nothing;
                 break;
             }
         }
     }
-    
+
     pd.crossing_count = int_cast<Int>(crossing_count_);
     pd.arc_count      = pd.CountActiveArcs();
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
         eprint(ClassName()+"::FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
+        
+        return PlanarDiagram<Int>();
+    }
+    
+    bool all_crossings_initializedQ  = true;
+    
+    for( Int c = 0; c < pd.max_crossing_count; ++c )
+    {
+        bool out_okayQ =
+            (pd.C_arcs(c,Out,Left ) != Uninitialized)
+            &&
+            (pd.C_arcs(c,Out,Right) != Uninitialized);
+        
+        bool in_okayQ =
+            (pd.C_arcs(c,In ,Left ) != Uninitialized)
+            &&
+            (pd.C_arcs(c,In ,Right) != Uninitialized);
+        
+        
+        if( !in_okayQ )
+        {
+            eprint(ClassName()+"::FromPDCode: Input PD code is invalid because crossing " + ToString(c) + " has less than two incoming arcs.");
+            
+            valprint("crossing " + ToString(c), ArrayToString( pd.C_arcs.data(c), {2,2}) );
+            
+            all_crossings_initializedQ = false;
+        }
+        
+        if( !out_okayQ )
+        {
+            eprint(ClassName()+"::FromPDCode: Input PD code is invalid because crossing " + ToString(c) + " has less than two outgoing arcs.");
+            
+            valprint("crossing " + ToString(c), ArrayToString( pd.C_arcs.data(c), {2,2}) );
+            
+            all_crossings_initializedQ = false;
+        }
+    }
+    
+    bool all_arcs_initializedQ = true;
+
+    for( Int a = 0; a < pd.max_arc_count; ++a )
+    {
+        if( pd.A_cross(a,Tail) == Uninitialized )
+        {
+            eprint(ClassName()+"::FromPDCode: Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
+            
+            valprint("arc " + ToString(a), ArrayToString( pd.A_cross.data(a), {2}) );
+            
+            all_arcs_initializedQ = false;
+        }
+
+        if( pd.A_cross(a,Head) == Uninitialized )
+        {
+            eprint(ClassName()+"::FromPDCode: Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
+            
+            valprint("arc " + ToString(a), ArrayToString( pd.A_cross.data(a), {2}) );
+            
+            all_arcs_initializedQ = false;
+        }
+    }
+    
+    if( (!all_crossings_initializedQ) || (!all_arcs_initializedQ) )
+    {
+        eprint(ClassName()+"::FromPDCode: Input PD code is invalid. Returning invalid PlanarDiagram.");
         
         return PlanarDiagram<Int>();
     }
