@@ -64,10 +64,7 @@ namespace Knoodle
                 
                 for( Int c = 0; c < C_arcs.Size(); ++c )
                 {
-                    if( row_counter >= n )
-                    {
-                        break;
-                    }
+                    if( row_counter >= n )  { break; }
                     
                     const CrossingState s = C_state[c];
                     
@@ -172,8 +169,9 @@ namespace Knoodle
                     rp[row_counter] = nonzero_counter;
                 }
 
+                // Caution: We do not use move-constructors here because the Tensor1 objects `ci` and `a` might be a bit too long. Only `rp` knows how long they really ought to be.
                 Pattern_T A (
-                    std::move(rp), std::move(ci), std::move(a), n, n, Int(1)
+                    rp.data(), ci.data(), a.data(), n, n, Int(1)
                 );
                 
                 pd.SetCache( tag, std::move(A) );
