@@ -78,7 +78,12 @@ namespace Knoodle
             {
                 return i <= MaxValidIndex;
             }
-        };
+        }
+        
+        static constexpr Int UninitializedIndex()
+        {
+            return Uninitialized;
+        }
         
     protected:
         
@@ -1035,6 +1040,8 @@ namespace Knoodle
             TOOLS_LOGDUMP( unlink_count );
         }
 
+/*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.
+*/
         Size_T AllocatedByteCount()
         {
             Size_T byte_count =
@@ -1062,10 +1069,29 @@ namespace Knoodle
                 + "\t" + TOOLS_MEM_DUMP_STRING(A_scratch);
         }
         
+/*!@brief A coarse estimator of memory in use for this class instance. Does not account for quantities stored in the class' cache.
+*/
         Size_T ByteCount()
         {
             return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
+        
+/*!@brief Returns the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use with caution as its content depends heavily on which routines have been called before.
+ */
+        cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
+        {
+            return C_scratch;
+        }
+        
+/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
+ */
+        cref<Tensor1<Int,Int>> ArcScratchBuffer() const
+        {
+            return A_scratch;
+        }
+        
+/*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.
+ */
         
         static std::string ClassName()
         {
