@@ -1,9 +1,9 @@
 public:
 
 template<typename T = std::make_unsigned_t<Int>, int method = DefaultTraversalMethod>
-Tensor1<T,Int> McLeodCode()  const
+Tensor1<T,Int> MacLeodCode()  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::McLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+","+ToString(method)+">");
     
     static_assert( IntQ<T>, "" );
     
@@ -11,33 +11,33 @@ Tensor1<T,Int> McLeodCode()  const
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::McLeodCode<"+TypeName<T>+","+ToString(method)+": This diagram has several link components. And, you know, there can be only one.>");
+        eprint(ClassName()+"::MacLeodCode<"+TypeName<T>+","+ToString(method)+": This diagram has several link components. And, you know, there can be only one.>");
         return code;
     }
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::McLeodCode: Trying to compute extended  code of invalid PlanarDiagram. Returning empty vector.");
+        wprint( ClassName()+"::MacLeodCode: Trying to compute extended  code of invalid PlanarDiagram. Returning empty vector.");
         return code;
     }
     
     if( std::cmp_greater( Size_T(crossing_count) * Size_T(4) + Size_T(3) , std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::McLeodCode: Requested type " + TypeName<T> + " cannot store extended  code for this diagram.");
+        throw std::runtime_error(ClassName()+"::MacLeodCode: Requested type " + TypeName<T> + " cannot store extended  code for this diagram.");
     }
     
     code = Tensor1<T,Int>( arc_count );
     
-    this->WriteMcLeodCode<T,method>(code.data());
+    this->WriteMacLeodCode<T,method>(code.data());
     
     return code;
 }
 
 
 template<typename T, int method = DefaultTraversalMethod>
-void WriteMcLeodCode( mptr<T> code )  const
+void WriteMacLeodCode( mptr<T> code )  const
 {
-    TOOLS_PTIC(ClassName()+"::WriteMcLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIC(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
     
     static_assert( IntQ<T>, "" );
     
@@ -123,25 +123,25 @@ void WriteMcLeodCode( mptr<T> code )  const
         }
     }
     
-    this->template SetCache<false>("McLeodComparisonCount", counter );
+    this->template SetCache<false>("MacLeodComparisonCount", counter );
     
     rotate_buffer<Side::Left>( code, s, m );
     
-    TOOLS_PTOC(ClassName()+"::WriteMcLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTOC(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
 }
 
-Size_T McLeodComparisonCount()
+Size_T MacLeodComparisonCount()
 {
-    if( !this->InCacheQ("McLeodComparisonCount") )
+    if( !this->InCacheQ("MacLeodComparisonCount") )
     {
-        McLeodCode();
+        MacLeodCode();
     }
-    return this->GetCache<Size_T>("McLeodComparisonCount");
+    return this->GetCache<Size_T>("MacLeodComparisonCount");
 }
 
 
 template<typename T, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram<Int> FromMcLeodCode(
+static PlanarDiagram<Int> FromMacLeodCode(
     cptr<T>       code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,

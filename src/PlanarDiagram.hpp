@@ -993,7 +993,7 @@ namespace Knoodle
         
 #include "PlanarDiagram/PDCode.hpp"
 #include "PlanarDiagram/GaussCode.hpp"
-#include "PlanarDiagram/McLeodCode.hpp"
+#include "PlanarDiagram/MacLeodCode.hpp"
 
 #include "PlanarDiagram/ResolveCrossing.hpp"
 #include "PlanarDiagram/SwitchCrossing.hpp"
