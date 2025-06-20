@@ -2,6 +2,26 @@
 requires = [
     "setuptools>=42", # A reasonably modern version of setuptools
     "wheel",
-    "pybind11>=2.6"   # Specify pybind11 as a build-time requirement
+    "pybind11>=2.6",   # Specify pybind11 as a build-time requirement
+    "numpy>=1.18.0"    # NumPy for numerical computations (if needed)
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyknoodle"
+version = "1.2.2"
+description = "Python bindings for Knoodle knot analysis library with Alexander polynomial support"
+readme = "README.md"
+requires-python = ">=3.7"
+authors = [
+    {name = "Dimos Gkountaroulis"}
+]
+dependencies = [
+    "numpy>=1.18.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "matplotlib>=3.0.0"  # For visualization examples
+]

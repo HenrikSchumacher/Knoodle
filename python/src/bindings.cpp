@@ -1,4 +1,7 @@
 #ifdef __linux__
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/complex.h>
 #include <cstdint>
 
 #ifndef FASTINT8_DEFINED
@@ -34,6 +37,21 @@ namespace py = pybind11;
 PYBIND11_MODULE(_knoodle, m) {
     m.doc() = "Python binding for the Knoodle knot analysis library";
     
+    // Bind AlexanderResult struct
+    py::class_<AlexanderResult>(m, "AlexanderResult")
+        .def(py::init<>())
+        .def_readwrite("mantissa", &AlexanderResult::mantissa)
+        .def_readwrite("exponent", &AlexanderResult::exponent)
+        .def("to_string", &AlexanderResult::to_string,
+             "Convert to string representation")
+        .def("to_double", &AlexanderResult::to_double,
+             "Convert to double (may lose precision for large exponents)")
+        .def("__str__", &AlexanderResult::to_string)
+        .def("__repr__", [](const AlexanderResult& r) {
+            return "AlexanderResult(mantissa=" + std::to_string(r.mantissa) + 
+                   ", exponent=" + std::to_string(r.exponent) + ")";
+        });
+    
     py::class_<KnotAnalyzer>(m, "KnotAnalyzer")
         .def(py::init<>())
         .def(py::init<const std::vector<double>&, bool, int>(),
@@ -61,7 +79,13 @@ PYBIND11_MODULE(_knoodle, m) {
         .def("get_writhe", &KnotAnalyzer::get_writhe,
              "Get the writhe")
         .def("get_pd_code", &KnotAnalyzer::get_pd_code,
-             "Get the PD code")
+             "Get the PD code (5 entries per crossing: 4 arcs + handedness)")
+        .def("get_pd_code_unsigned", &KnotAnalyzer::get_pd_code_unsigned,
+             "Get the unsigned PD code (4 entries per crossing: arcs only)")
+        .def("get_pd_code_matrix", &KnotAnalyzer::get_pd_code_matrix,
+             "Get PD code as matrix of integers [[arc1,arc2,arc3,arc4,handedness], ...]")
+        .def("get_crossing_handedness", &KnotAnalyzer::get_crossing_handedness,
+             "Get handedness values for all crossings (+1=right, -1=left)")
         .def("get_gauss_code", &KnotAnalyzer::get_gauss_code,
              "Get the extended Gauss code (one entry per arc, not per crossing)")
         .def("get_squared_gyradius", &KnotAnalyzer::get_squared_gyradius,
@@ -80,6 +104,26 @@ PYBIND11_MODULE(_knoodle, m) {
              "Get the total number of prime components")
         .def("get_prime_components", &KnotAnalyzer::get_prime_components,
              "Get the prime knot components")
+        
+        // Alexander polynomial methods
+        .def("alexander", 
+             py::overload_cast<const std::complex<double>&>(&KnotAnalyzer::alexander, py::const_),
+             py::arg("z"),
+             "Compute Alexander polynomial at complex point z")
+        .def("alexander", 
+             py::overload_cast<double>(&KnotAnalyzer::alexander, py::const_),
+             py::arg("t"),
+             "Compute Alexander polynomial at real point t")
+        .def("alexander", 
+             py::overload_cast<const std::vector<std::complex<double>>&>(&KnotAnalyzer::alexander, py::const_),
+             py::arg("points"),
+             "Compute Alexander polynomial at multiple complex points")
+        .def("alexander", 
+             py::overload_cast<const std::vector<double>&>(&KnotAnalyzer::alexander, py::const_),
+             py::arg("points"),
+             "Compute Alexander polynomial at multiple real points")
+        .def("alexander_invariants", &KnotAnalyzer::alexander_invariants,
+             "Get Alexander polynomial evaluated at common invariant points")
         
         .def("__repr__", [](const KnotAnalyzer &r) {
             std::stringstream ss;
@@ -109,7 +153,12 @@ PYBIND11_MODULE(_knoodle, m) {
     m.def("get_pd_code", &get_pd_code,
           py::arg("coordinates"),
           py::arg("simplify") = true,
-          "Get the PD code representation of a knot");
+          "Get the PD code representation of a knot (5 entries per crossing: 4 arcs + handedness)");
+    
+    m.def("get_pd_code_unsigned", &get_pd_code_unsigned,
+          py::arg("coordinates"), 
+          py::arg("simplify") = true,
+          "Get the unsigned PD code representation of a knot (4 entries per crossing: arcs only)");
     
     m.def("get_gauss_code", &get_gauss_code,
           py::arg("coordinates"),
@@ -119,4 +168,15 @@ PYBIND11_MODULE(_knoodle, m) {
     m.def("is_unknot", &is_unknot,
           py::arg("coordinates"),
           "Check if the given curve is an unknot");
+    
+    // Alexander polynomial convenience functions
+    m.def("alexander", 
+          py::overload_cast<const std::vector<double>&, double, bool>(&alexander),
+          py::arg("coordinates"), py::arg("t"), py::arg("simplify") = true,
+          "Compute Alexander polynomial at point t for given coordinates");
+
+    m.def("alexander", 
+          py::overload_cast<const std::vector<double>&, const std::complex<double>&, bool>(&alexander),
+          py::arg("coordinates"), py::arg("z"), py::arg("simplify") = true,
+          "Compute Alexander polynomial at complex point z for given coordinates");
 }

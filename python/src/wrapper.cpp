@@ -1,6 +1,7 @@
 // Include minimal required headers from Knoodle
 #include "Knoodle.hpp"
 #include "src/PolyFold.hpp"
+#include "src/Alexander_UMFPACK.hpp"
 
 // Include our bridge header
 #include "bindings.h"
@@ -21,21 +22,51 @@ using Int = Int64;
 using LInt = Int64;
 using BReal = Real64;
 using PD_T = PlanarDiagram<Int>;
+using Complex = Complex64;
+
+// Define Alexander polynomial calculator type
+using Alexander_T = Alexander_UMFPACK<Complex, Int>;
+
+// AlexanderResult method implementations
+std::string AlexanderResult::to_string() const {
+    if (exponent == 0) {
+        return std::to_string(mantissa);
+    } else {
+        std::ostringstream ss;
+        ss << mantissa << "e" << exponent;
+        return ss.str();
+    }
+}
+
+double AlexanderResult::to_double() const {
+    return mantissa * std::pow(10.0, exponent);
+}
 
 // Implementation class that holds the planar diagram
 class KnotAnalyzerImpl {
 public:
     std::unique_ptr<PD_T> pd;
+    mutable std::unique_ptr<Alexander_T> alexander_calc;
     
-    KnotAnalyzerImpl() : pd(nullptr) {}
+    KnotAnalyzerImpl() : pd(nullptr), alexander_calc(nullptr) {}
     
     KnotAnalyzerImpl(const KnotAnalyzerImpl& other) {
         if (other.pd) {
             pd = std::make_unique<PD_T>(*other.pd);
         }
+        // Don't copy alexander_calc - it will be created on-demand
     }
     
-    KnotAnalyzerImpl(KnotAnalyzerImpl&& other) noexcept : pd(std::move(other.pd)) {}
+    KnotAnalyzerImpl(KnotAnalyzerImpl&& other) noexcept 
+        : pd(std::move(other.pd)), alexander_calc(std::move(other.alexander_calc)) {}
+    
+    // Get or create Alexander calculator
+    Alexander_T& get_alexander_calculator() const {
+        if (!alexander_calc) {
+            alexander_calc = std::make_unique<Alexander_T>();
+        }
+        return *alexander_calc;
+    }
 };
 
 // Calculate squared gyradius from coordinates
@@ -73,7 +104,25 @@ std::string pd_to_string(PD_T& pd) {
     
     for (Int i = 0; i < pdcode.Dimension(0); ++i) {
         ss << "[";
-        for (Int j = 0; j < 4; ++j) {
+        for (Int j = 0; j < 5; ++j) {  // Include all 5 entries (4 arcs + handedness)
+            ss << pdcode(i, j);
+            if (j < 4) ss << ",";  // Comma after first 4 entries
+        }
+        ss << "]";
+        if (i < pdcode.Dimension(0) - 1) ss << ",";
+    }
+    
+    return ss.str();
+}
+
+// Convert PD_T to unsigned PD code string (4 entries only, for backward compatibility)
+std::string pd_to_string_unsigned(PD_T& pd) {
+    std::stringstream ss;
+    auto pdcode = pd.PDCode();
+    
+    for (Int i = 0; i < pdcode.Dimension(0); ++i) {
+        ss << "[";
+        for (Int j = 0; j < 4; ++j) {  // Only first 4 entries (arcs only)
             ss << pdcode(i, j);
             if (j < 3) ss << ",";
         }
@@ -294,10 +343,174 @@ KnotAnalyzer& KnotAnalyzer::operator=(KnotAnalyzer&& other) noexcept {
 // Destructor
 KnotAnalyzer::~KnotAnalyzer() = default;
 
+// Helper methods for PD code analysis
+std::string KnotAnalyzer::get_pd_code_unsigned() const {
+    if (!impl->pd) return "";
+    return pd_to_string_unsigned(*impl->pd);
+}
+
+std::vector<std::vector<int>> KnotAnalyzer::get_pd_code_matrix() const {
+    std::vector<std::vector<int>> result;
+    
+    if (!impl->pd) return result;
+    
+    auto pdcode = impl->pd->PDCode();
+    int num_crossings = pdcode.Dimension(0);
+    
+    result.reserve(num_crossings);
+    
+    for (int i = 0; i < num_crossings; ++i) {
+        std::vector<int> crossing(5);  // 4 arcs + handedness
+        for (int j = 0; j < 5; ++j) {
+            crossing[j] = static_cast<int>(pdcode(i, j));
+        }
+        result.push_back(crossing);
+    }
+    
+    return result;
+}
+
+std::vector<int> KnotAnalyzer::get_crossing_handedness() const {
+    std::vector<int> handedness;
+    
+    if (!impl->pd) return handedness;
+    
+    auto pdcode = impl->pd->PDCode();
+    int num_crossings = pdcode.Dimension(0);
+    
+    handedness.reserve(num_crossings);
+    
+    for (int i = 0; i < num_crossings; ++i) {
+        handedness.push_back(static_cast<int>(pdcode(i, 4)));  // 5th entry is handedness
+    }
+    
+    return handedness;
+}
+
+// Alexander polynomial methods
+AlexanderResult KnotAnalyzer::alexander(const std::complex<double>& z) const {
+    AlexanderResult result;
+    
+    if (!impl->pd || impl->pd->CrossingCount() == 0) {
+        result.mantissa = 1.0;
+        result.exponent = 0;
+        return result;
+    }
+    
+    try {
+        Alexander_T& alex_calc = impl->get_alexander_calculator();
+        
+        Complex arg = Complex(z.real(), z.imag());
+        Complex mantissa;
+        Int exponent;
+        
+        alex_calc.Alexander(*impl->pd, arg, mantissa, exponent, false);
+        
+        // Convert complex result to real (Alexander polynomial should be real for real inputs)
+        result.mantissa = std::real(mantissa);
+        result.exponent = exponent;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error computing Alexander polynomial: " << e.what() << std::endl;
+        result.mantissa = 0.0;
+        result.exponent = 0;
+    }
+    
+    return result;
+}
+
+AlexanderResult KnotAnalyzer::alexander(double t) const {
+    return alexander(std::complex<double>(t, 0.0));
+}
+
+std::vector<AlexanderResult> KnotAnalyzer::alexander(const std::vector<std::complex<double>>& points) const {
+    std::vector<AlexanderResult> results;
+    results.reserve(points.size());
+    
+    if (!impl->pd || impl->pd->CrossingCount() == 0) {
+        // Unknot case
+        for (size_t i = 0; i < points.size(); ++i) {
+            results.push_back({1.0, 0});
+        }
+        return results;
+    }
+    
+    try {
+        Alexander_T& alex_calc = impl->get_alexander_calculator();
+        
+        // Convert input points to Complex
+        std::vector<Complex> args;
+        args.reserve(points.size());
+        for (const auto& p : points) {
+            args.emplace_back(p.real(), p.imag());
+        }
+        
+        // Prepare output arrays
+        std::vector<Complex> mantissas(points.size());
+        std::vector<Int> exponents(points.size());
+        
+        // Compute Alexander polynomial for all points
+        alex_calc.Alexander(*impl->pd, args.data(), static_cast<Int>(args.size()), 
+                           mantissas.data(), exponents.data(), false);
+        
+        // Convert results
+        for (size_t i = 0; i < points.size(); ++i) {
+            AlexanderResult result;
+            result.mantissa = std::real(mantissas[i]);
+            result.exponent = exponents[i];
+            results.push_back(result);
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error computing Alexander polynomial batch: " << e.what() << std::endl;
+        // Return zeros on error
+        for (size_t i = 0; i < points.size(); ++i) {
+            results.push_back({0.0, 0});
+        }
+    }
+    
+    return results;
+}
+
+std::vector<AlexanderResult> KnotAnalyzer::alexander(const std::vector<double>& points) const {
+    std::vector<std::complex<double>> complex_points;
+    complex_points.reserve(points.size());
+    for (double t : points) {
+        complex_points.emplace_back(t, 0.0);
+    }
+    
+    return alexander(complex_points);
+}
+
+std::map<std::string, AlexanderResult> KnotAnalyzer::alexander_invariants() const {
+    std::map<std::string, AlexanderResult> invariants;
+    
+    // Common evaluation points for Alexander polynomial
+    std::vector<std::pair<std::string, std::complex<double>>> test_points = {
+        {"at_minus_1", std::complex<double>(-1.0, 0.0)},
+        {"at_1", std::complex<double>(1.0, 0.0)},
+        {"at_i", std::complex<double>(0.0, 1.0)},
+        {"at_minus_i", std::complex<double>(0.0, -1.0)},
+        {"at_omega", std::complex<double>(-0.5, std::sqrt(3.0)/2.0)}, // primitive cube root of unity
+        {"at_omega2", std::complex<double>(-0.5, -std::sqrt(3.0)/2.0)} // omega^2
+    };
+    
+    for (const auto& [name, point] : test_points) {
+        invariants[name] = alexander(point);
+    }
+    
+    return invariants;
+}
+
 // Convenience functions that create a KnotAnalyzer internally
 std::string get_pd_code(const std::vector<double>& coordinates, bool simplify) {
     KnotAnalyzer analyzer(coordinates, simplify);
     return analyzer.get_pd_code();
+}
+
+std::string get_pd_code_unsigned(const std::vector<double>& coordinates, bool simplify) {
+    KnotAnalyzer analyzer(coordinates, simplify);
+    return analyzer.get_pd_code_unsigned();
 }
 
 std::string get_gauss_code(const std::vector<double>& coordinates, bool simplify) {
@@ -308,4 +521,14 @@ std::string get_gauss_code(const std::vector<double>& coordinates, bool simplify
 bool is_unknot(const std::vector<double>& coordinates) {
     KnotAnalyzer analyzer(coordinates, true);
     return analyzer.is_unknot();
+}
+
+AlexanderResult alexander(const std::vector<double>& coordinates, double t, bool simplify) {
+    KnotAnalyzer analyzer(coordinates, simplify);
+    return analyzer.alexander(t);
+}
+
+AlexanderResult alexander(const std::vector<double>& coordinates, const std::complex<double>& z, bool simplify) {
+    KnotAnalyzer analyzer(coordinates, simplify);
+    return analyzer.alexander(z);
 }

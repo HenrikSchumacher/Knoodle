@@ -14,6 +14,92 @@ if not os.path.isdir(knoodle_base_dir):
 if not os.path.isfile(os.path.join(knoodle_base_dir, 'Knoodle.hpp')):
     raise FileNotFoundError(f"Knoodle.hpp not found in {knoodle_base_dir}")
 
+# SuiteSparse/UMFPACK configuration
+suitesparse_paths = []
+suitesparse_lib_paths = []
+suitesparse_libs = ['umfpack', 'amd', 'cholmod', 'colamd', 'suitesparseconfig']
+
+if sys.platform == 'darwin':
+    # macOS with Homebrew
+    homebrew_prefix = '/opt/homebrew'  # Apple Silicon
+    if not os.path.exists(homebrew_prefix):
+        homebrew_prefix = '/usr/local'  # Intel Mac
+    
+    # SuiteSparse
+    suitesparse_base = os.path.join(homebrew_prefix, 'opt', 'suite-sparse')
+    if os.path.exists(suitesparse_base):
+        suitesparse_paths.append(os.path.join(suitesparse_base, 'include', 'suitesparse'))
+        suitesparse_lib_paths.append(os.path.join(suitesparse_base, 'lib'))
+        print(f"DEBUG: Found SuiteSparse at {suitesparse_base}")
+    else:
+        print(f"WARNING: SuiteSparse not found at {suitesparse_base}")
+    
+    # OpenBLAS (required for BLAS/LAPACK on macOS)
+    openblas_base = os.path.join(homebrew_prefix, 'opt', 'openblas')
+    if os.path.exists(openblas_base):
+        suitesparse_paths.append(os.path.join(openblas_base, 'include'))
+        suitesparse_lib_paths.append(os.path.join(openblas_base, 'lib'))
+        suitesparse_libs.extend(['openblas'])  # OpenBLAS provides BLAS/LAPACK
+        print(f"DEBUG: Found OpenBLAS at {openblas_base}")
+    else:
+        print(f"WARNING: OpenBLAS not found at {openblas_base}")
+        # Fallback to system BLAS/LAPACK (Accelerate framework)
+        suitesparse_libs.extend(['blas', 'lapack'])
+        
+elif sys.platform.startswith('linux'):
+    # Linux - check multiple common locations
+    linux_include_candidates = [
+        '/usr/include/suitesparse',      # Ubuntu/Debian standard
+        '/usr/local/include/suitesparse', # Local install
+        '/usr/include',                   # Some distros put headers directly here
+        '/opt/suitesparse/include',      # Custom install location
+    ]
+    
+    linux_lib_candidates = [
+        '/usr/lib',                      # Standard location
+        '/usr/lib/x86_64-linux-gnu',     # Ubuntu/Debian x86_64
+        '/usr/lib/aarch64-linux-gnu',    # Ubuntu/Debian ARM64
+        '/usr/lib64',                    # RedHat/CentOS/Fedora
+        '/usr/local/lib',                # Local install
+        '/usr/local/lib64',              # Local install 64-bit
+        '/opt/suitesparse/lib',          # Custom install
+    ]
+    
+    # Find include directory
+    suitesparse_include_found = False
+    for path in linux_include_candidates:
+        umfpack_header = os.path.join(path, 'suitesparse', 'umfpack.h') if path.endswith('include') else os.path.join(path, 'umfpack.h')
+        if os.path.exists(umfpack_header):
+            if path.endswith('suitesparse'):
+                suitesparse_paths.append(path)
+            else:
+                suitesparse_paths.append(os.path.join(path, 'suitesparse'))
+            suitesparse_include_found = True
+            print(f"DEBUG: Found SuiteSparse headers at {path}")
+            break
+    
+    if not suitesparse_include_found:
+        print("WARNING: SuiteSparse headers not found in standard locations")
+    
+    # Find library directory
+    suitesparse_lib_found = False
+    for path in linux_lib_candidates:
+        umfpack_lib = os.path.join(path, 'libumfpack.so')
+        if os.path.exists(umfpack_lib):
+            suitesparse_lib_paths.append(path)
+            suitesparse_lib_found = True
+            print(f"DEBUG: Found SuiteSparse libraries at {path}")
+            break
+    
+    if not suitesparse_lib_found:
+        print("WARNING: SuiteSparse libraries not found in standard locations")
+    
+    # Add BLAS/LAPACK dependencies for Linux
+    suitesparse_libs.extend(['blas', 'lapack'])
+    
+else:
+    print(f"WARNING: Unsupported platform {sys.platform} for SuiteSparse auto-detection")
+
 cpp_args = [
     '-std=c++20',
     '-fvisibility=hidden',
@@ -31,7 +117,14 @@ elif sys.platform.startswith('linux'):
     cpp_args.append('-fpermissive')
     cpp_args.append('-DUSE_FASTINTS=1')  
 
-
+# Include directories
+include_dirs = [
+    pybind11.get_include(),
+    knoodle_base_dir,
+    os.path.join(knoodle_base_dir, 'submodules', 'Tensors'),
+    os.path.join(knoodle_base_dir, 'submodules', 'Tensors', 'submodules', 'Tools'),
+    os.path.join(knoodle_base_dir, 'src'),
+] + suitesparse_paths
 
 link_args = []
 
@@ -48,13 +141,9 @@ ext_modules = [
             'src/bindings.cpp',
             'src/wrapper.cpp'
         ],
-        include_dirs=[
-            pybind11.get_include(),
-            knoodle_base_dir,
-            os.path.join(knoodle_base_dir, 'submodules', 'Tensors'),
-            os.path.join(knoodle_base_dir, 'submodules', 'Tensors', 'submodules', 'Tools'),
-            os.path.join(knoodle_base_dir, 'src'),
-        ],
+        include_dirs=include_dirs,
+        library_dirs=suitesparse_lib_paths,
+        libraries=suitesparse_libs,
         language='c++',
         extra_compile_args=cpp_args,
         extra_link_args=link_args
@@ -101,7 +190,7 @@ except ImportError as e:
 
 setup(
     name='pyknoodle', 
-    version='1.2.0',
+    version='1.2.2',
     author='Dimos Gkountaroulis',
     description='Python bindings for Knoodle library',
     ext_modules=ext_modules,

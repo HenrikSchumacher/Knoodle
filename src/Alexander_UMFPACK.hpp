@@ -6,8 +6,8 @@
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 ////#include "../submodules/Tensors/src/Sparse/Metis.hpp"
 //
-#include "../submodules/Tensors/src/BLAS_Wrappers.hpp"
-#include "../submodules/Tensors/src/LAPACK_Wrappers.hpp"
+#include "../submodules/Tensors/OpenBLAS.hpp"
+// OpenBLAS.hpp includes both BLAS_Wrappers.hpp and LAPACK_Wrappers.hpp with proper type definitions
 
 
 namespace Knoodle

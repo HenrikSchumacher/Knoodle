@@ -3,9 +3,23 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <complex>
+#include <map>
 
 // Forward declaration for the implementation
 class KnotAnalyzerImpl;
+
+// Alexander polynomial result structure
+struct AlexanderResult {
+    double mantissa;
+    int64_t exponent;
+    
+    // Convert to string representation
+    std::string to_string() const;
+    
+    // Convert to double (may lose precision for large exponents)
+    double to_double() const;
+};
 
 // Result structure that now owns the planar diagram
 class KnotAnalyzer {
@@ -52,9 +66,26 @@ public:
     bool get_is_composite() const { return is_composite; }
     int get_prime_component_count() const { return prime_component_count; }
     const std::vector<KnotAnalyzer>& get_prime_components() const { return prime_components; }
+    
+    // Helper methods for PD code analysis
+    std::string get_pd_code_unsigned() const;  // Get 4-entry PD code (backward compatibility)
+    std::vector<std::vector<int>> get_pd_code_matrix() const;  // Get as matrix of integers
+    std::vector<int> get_crossing_handedness() const;  // Get just the handedness values
+    
+    // Alexander polynomial methods
+    AlexanderResult alexander(const std::complex<double>& z) const;
+    AlexanderResult alexander(double t) const;
+    std::vector<AlexanderResult> alexander(const std::vector<std::complex<double>>& points) const;
+    std::vector<AlexanderResult> alexander(const std::vector<double>& points) const;
+    std::map<std::string, AlexanderResult> alexander_invariants() const;
 };
 
 // Convenience functions that create a KnotAnalyzer internally
 std::string get_pd_code(const std::vector<double>& coordinates, bool simplify = true);
+std::string get_pd_code_unsigned(const std::vector<double>& coordinates, bool simplify = true);
 std::string get_gauss_code(const std::vector<double>& coordinates, bool simplify = true);
 bool is_unknot(const std::vector<double>& coordinates);
+
+// Alexander polynomial convenience functions
+AlexanderResult alexander(const std::vector<double>& coordinates, double t, bool simplify = true);
+AlexanderResult alexander(const std::vector<double>& coordinates, const std::complex<double>& z, bool simplify = true);
