@@ -27,15 +27,24 @@ namespace Knoodle
         static_assert(IntQ<LInt>,"");
         static_assert(FloatQ<Real>,"");
         
-        RidgeRunner() = default;
-        
-        ~RidgeRunner() = default;
-        
 //        explicit RidgeRunner( cptr<Real> vertex_coords_, const Int vertex_count_ )
 //        :   vertex_count  ( vertex_count_ )
 //        ,   vertex_coords ( vertex_coords_, vertex_count, AmbDim )
 //        ,   vertex_buffer ( vertex_count, AmbDim )
 //        {}
+        
+        // Default constructor
+        RidgeRunner() = default;
+        // Destructor
+        ~RidgeRunner() = default;
+        // Copy constructor
+        RidgeRunner( const RidgeRunner & other ) = default;
+        // Copy assignment operator
+        RidgeRunner & operator=( const RidgeRunner & other ) = default;
+        // Move constructor
+        RidgeRunner( RidgeRunner && other ) = default;
+        // Move assignment operator
+        RidgeRunner & operator=( RidgeRunner && other ) = default;
         
     private:
         

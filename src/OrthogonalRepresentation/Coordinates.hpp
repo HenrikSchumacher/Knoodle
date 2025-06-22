@@ -33,7 +33,7 @@ void ComputeVertexCoordinates(
     {
         if( VertexActiveQ(v) )
         {
-            V_coords(v,0) = x_grid_size * x[V_Vs[v]];
+            V_coords(v,0) = x_grid_size * x[V_DvV[v]];
             V_coords(v,1) = y_grid_size * y[V_Hs[v]];
         }
         else

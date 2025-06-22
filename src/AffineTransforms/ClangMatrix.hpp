@@ -18,18 +18,12 @@ namespace Knoodle
         
         using M_T = mat_T<M,N,Real>;
        
-        ClangMatrix() = default;
-        
         template<typename ExtReal>
         ClangMatrix( cptr<ExtReal> A_ptr )
         {
             Read(A_ptr);
         }
         
-        ClangMatrix( cref<ClangMatrix> A_ )
-        :   A (A_.A)
-        {}
-
         ClangMatrix( const Real init )
         {
             fill_buffer<M*N>( get_ptr(A), init );
@@ -39,7 +33,18 @@ namespace Knoodle
         :   A ( B )
         {}
         
+        // Default constructor
+        ClangMatrix() = default;
+        // Destructor
         ~ClangMatrix() = default;
+        // Copy constructor
+        ClangMatrix( const ClangMatrix & other ) = default;
+        // Copy assignment operator
+        ClangMatrix & operator=( const ClangMatrix & other ) = default;
+        // Move constructor
+        ClangMatrix( ClangMatrix && other ) = default;
+        // Move assignment operator
+        ClangMatrix & operator=( ClangMatrix && other ) = default;
 
     private:
         

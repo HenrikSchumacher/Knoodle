@@ -25,8 +25,8 @@ namespace Knoodle
         
         static constexpr bool precompute_rangesQ = precompute_rangesQ_;
         
-        using Tree_T = CompleteBinaryTree<Int,precompute_rangesQ>;
-        using Tree_T::max_depth;
+        using Base_T = CompleteBinaryTree<Int,precompute_rangesQ>;
+        using Base_T::max_depth;
 
         
         static constexpr Int AmbDim = AmbDim_;
@@ -40,40 +40,70 @@ namespace Knoodle
         
         using UInt = Scalar::Unsigned<Int>;
         
-        AABBTree() = default;
-        
         explicit AABBTree( const Int prim_count_  )
-        :   Tree_T  ( prim_count_ )
+        :   Base_T  ( prim_count_ )
         {}
         
-        ~AABBTree() = default;
+        // Default constructor
+        AABBTree() = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~AABBTree() = default;
+        // Copy constructor
+        AABBTree( const AABBTree & other ) = default;
+        // Copy assignment operator
+        AABBTree & operator=( const AABBTree & other ) = default;
+        // Move constructor
+        AABBTree( AABBTree && other ) = default;
+        // Move assignment operator
+        AABBTree & operator=( AABBTree && other ) = default;
         
+//        friend void swap( AABBTree & A, AABBTree & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
+//        }
+//        
+//        // Copy assignment operator
+//        AABBTree & operator=( AABBTree other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        AABBTree( AABBTree && other ) noexcept
+//        :   AABBTree()
+//        {
+//            swap(*this, other);
+//        }
         
     protected:
         
         // Integer data for the combinatorics of the tree.
         
-        using Tree_T::leaf_node_count;
-        using Tree_T::node_count;
-        using Tree_T::int_node_count;
-        using Tree_T::last_row_begin;
-        using Tree_T::offset;
+        using Base_T::leaf_node_count;
+        using Base_T::node_count;
+        using Base_T::int_node_count;
+        using Base_T::last_row_begin;
+        using Base_T::offset;
         
     public:
         
-        using Tree_T::MaxDepth;
-        using Tree_T::NodeCount;
-        using Tree_T::InternalNodeCount;
-        using Tree_T::LeafNodeCount;
+        using Base_T::MaxDepth;
+        using Base_T::NodeCount;
+        using Base_T::InternalNodeCount;
+        using Base_T::LeafNodeCount;
         
-        using Tree_T::RightChild;
-        using Tree_T::LeftChild;
-        using Tree_T::Children;
-        using Tree_T::Parent;
-        using Tree_T::Depth;
-        using Tree_T::Column;
-        using Tree_T::NodeBegin;
-        using Tree_T::NodeEnd;
+        using Base_T::RightChild;
+        using Base_T::LeftChild;
+        using Base_T::Children;
+        using Base_T::Parent;
+        using Base_T::Depth;
+        using Base_T::Column;
+        using Base_T::NodeBegin;
+        using Base_T::NodeEnd;
         
     private:
         
@@ -264,7 +294,7 @@ namespace Knoodle
         
         Size_T AllocatedByteCount() const
         {
-            return Tree_T::N_ranges.AllocatedByteCount();
+            return Base_T::N_ranges.AllocatedByteCount();
         }
         
         Size_T ByteCount() const

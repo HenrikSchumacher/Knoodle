@@ -96,8 +96,6 @@ namespace Knoodle
         
     public:
         
-        LinearHomotopy_3D() = default;
-        
         // Initialization from precomputed edge coodinates and bounding boxes.
         // This is useful when handling piecewise-linear homotopies, because this data can be reused.
         LinearHomotopy_3D(
@@ -143,7 +141,18 @@ namespace Knoodle
             L.Tree().template ComputeBoundingBoxes<2,3>( E_1, B_1_buffer );
         }
         
+        // Default constructor
+        LinearHomotopy_3D() = default;
+        // Destructor
         ~LinearHomotopy_3D() = default;
+        // Copy constructor
+        LinearHomotopy_3D( const LinearHomotopy_3D & other ) = default;
+        // Copy assignment operator
+        LinearHomotopy_3D & operator=( const LinearHomotopy_3D & other ) = default;
+        // Move constructor
+        LinearHomotopy_3D( LinearHomotopy_3D && other ) = default;
+        // Move assignment operator
+        LinearHomotopy_3D & operator=( LinearHomotopy_3D && other ) = default;
 
 //###################################################################################
 //####         Interface                                                         ####

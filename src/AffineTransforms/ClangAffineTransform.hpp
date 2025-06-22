@@ -22,8 +22,6 @@ namespace Knoodle
         static constexpr Flag_T Id    = Flag_T::Id;
         static constexpr Flag_T NonId = Flag_T::NonId;
         
-        ClangAffineTransform() = default;
-        
         template<typename ExtReal>
         ClangAffineTransform(
             cptr<ExtReal> f_ptr, const Flag_T f_flag
@@ -47,7 +45,18 @@ namespace Knoodle
             Read( A_, b_, flag_ );
         }
         
+        // Default constructor
+        ClangAffineTransform() = default;
+        // Destructor
         ~ClangAffineTransform() = default;
+        // Copy constructor
+        ClangAffineTransform( const ClangAffineTransform & other ) = default;
+        // Copy assignment operator
+        ClangAffineTransform & operator=( const ClangAffineTransform & other ) = default;
+        // Move constructor
+        ClangAffineTransform( ClangAffineTransform && other ) = default;
+        // Move assignment operator
+        ClangAffineTransform & operator=( ClangAffineTransform && other ) = default;
 
     private:
         

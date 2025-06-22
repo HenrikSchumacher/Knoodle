@@ -78,17 +78,28 @@ namespace Knoodle
             }
         };
         
-        MatrixQuadTree() = default;
-        
         MatrixQuadTree( Int n_, Int d_ = Int(0) )
         {
             Reset(n_,d_);
         }
         
+        // Default constructor
+        MatrixQuadTree() = default;
+        
+        // TODO: A nast class this is!
+        // Destructor
         ~MatrixQuadTree()
         {
             DeleteNode(root);
         }
+        
+        MatrixQuadTree( const MatrixQuadTree & other ) = delete;
+        // Copy assignment operator
+        MatrixQuadTree & operator=( const MatrixQuadTree & other ) = delete;
+        // Move constructor
+        MatrixQuadTree( MatrixQuadTree && other ) = delete;
+        // Move assignment operator
+        MatrixQuadTree & operator=( MatrixQuadTree && other ) = delete;
         
         
     private:

@@ -21,10 +21,6 @@ namespace Knoodle
         static_assert(SignedIntQ<Int>,"");
         static_assert(FloatQ<Real>,"");
         
-        SONO() = default;
-        
-        ~SONO() = default;
-        
         explicit SONO( cptr<Real> vertex_coords_, const Int vertex_count_ )
         :   vertex_count  ( vertex_count_ )
         ,   vertex_coords ( vertex_coords_, vertex_count, AmbDim )
@@ -33,6 +29,18 @@ namespace Knoodle
             InitializeRandomEngine();
         }
         
+        // Default constructor
+        SONO() = default;
+        // Destructor
+        ~SONO() = default;
+        // Copy constructor
+        SONO( const SONO & other ) = default;
+        // Copy assignment operator
+        SONO & operator=( const SONO & other ) = default;
+        // Move constructor
+        SONO( SONO && other ) = default;
+        // Move assignment operator
+        SONO & operator=( SONO && other ) = default;
         
     private:
         

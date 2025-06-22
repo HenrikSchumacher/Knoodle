@@ -49,9 +49,18 @@ namespace Knoodle
         
     public:
         
+        // Default constructor
         MultiDiGraph() = default;
-        
-        virtual ~MultiDiGraph() override = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~MultiDiGraph() override  = default;
+        // Copy constructor
+        MultiDiGraph( const MultiDiGraph & other ) = default;
+        // Copy assignment operator
+        MultiDiGraph & operator=( const MultiDiGraph & other ) = default;
+        // Move constructor
+        MultiDiGraph( MultiDiGraph && other ) = default;
+        // Move assignment operator
+        MultiDiGraph & operator=( MultiDiGraph && other ) = default;
 
         
         // Provide a list of edges in interleaved form.
@@ -80,37 +89,6 @@ namespace Knoodle
         )
         :   Base_T( vertex_count_, pairs )
         {}
-
-        // Copy constructor
-        MultiDiGraph( const MultiDiGraph & other ) = default;
-        
-//        MultiDiGraph( const MultiDiGraph & other )
-//        :   Base_T( static_cast<const Base_T &>(other) )
-//        {}
-        
-        friend void swap( MultiDiGraph & A, MultiDiGraph & B ) noexcept
-        {
-            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-            using std::swap;
-            
-            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-        }
-        
-        // Move constructor
-        MultiDiGraph( MultiDiGraph && other ) noexcept
-        :   MultiDiGraph()
-        {
-            swap(*this, other);
-        }
-
-        /* Copy assignment operator */
-        MultiDiGraph & operator=( MultiDiGraph other ) noexcept
-        {   //                                   ^
-            //                                   |
-            // Use the copy constructor   -------+
-            swap( *this, other );
-            return *this;
-        }
         
     public:
         

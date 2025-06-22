@@ -28,11 +28,20 @@ namespace Knoodle
         static constexpr bool Right = PD_T::Right;
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
-        
+
+        // Default constructor
         AlexanderStrandMatrix() = default;
-      
+        // Destructor
         ~AlexanderStrandMatrix() = default;
-    
+        // Copy constructor
+        AlexanderStrandMatrix( const AlexanderStrandMatrix & other ) = default;
+        // Copy assignment operator
+        AlexanderStrandMatrix & operator=( const AlexanderStrandMatrix & other ) = default;
+        // Move constructor
+        AlexanderStrandMatrix( AlexanderStrandMatrix && other ) = default;
+        // Move assignment operator
+        AlexanderStrandMatrix & operator=( AlexanderStrandMatrix && other ) = default;
+        
     public:
         
         template<bool fullQ = false>

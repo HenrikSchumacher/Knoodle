@@ -4,15 +4,15 @@ void ComputeConstraintGraphs()
 {
     TOOLS_PTIC(ClassName()+"::ComputeConstraintGraphs");
     
-    Aggregator<Int,Int> Hs_E_ptr_agg ( TRE_count );
-    Aggregator<Int,Int> Hs_E_idx_agg ( TRE_count );
-    Aggregator<Int,Int> Vs_E_ptr_agg ( TRE_count );
-    Aggregator<Int,Int> Vs_E_idx_agg ( TRE_count );
+    Aggregator<Int,Int> DhV_E_ptr_agg ( TRE_count );
+    Aggregator<Int,Int> DhV_E_idx_agg ( TRE_count );
+    Aggregator<Int,Int> DvV_E_ptr_agg ( TRE_count );
+    Aggregator<Int,Int> DvV_E_idx_agg ( TRE_count );
     
-    E_Hs = Tensor1<Int,Int>( TRE_count   , Uninitialized );
-    E_Vs = Tensor1<Int,Int>( TRE_count   , Uninitialized );
-    V_Hs = Tensor1<Int,Int>( vertex_count, Uninitialized );
-    V_Vs = Tensor1<Int,Int>( vertex_count, Uninitialized );
+    E_DhV = Tensor1<Int,Int>( TRE_count   , Uninitialized );
+    E_DvV = Tensor1<Int,Int>( TRE_count   , Uninitialized );
+    V_DhV = Tensor1<Int,Int>( vertex_count, Uninitialized );
+    V_DvV = Tensor1<Int,Int>( vertex_count, Uninitialized );
 
     // We use TripleAggregator to let Sparse::MatrixCSR tally the duplicate edges.
     TripleAggregator<Int,Int,Cost_T,Int> DhE_agg ( TRE_count );
@@ -21,8 +21,8 @@ void ComputeConstraintGraphs()
     Tensor1<Int,Int> TRE_DhE_from ( TRE_count, Uninitialized );
     Tensor1<Int,Int> TRE_DvE_from ( TRE_count, Uninitialized );
     
-    Hs_E_ptr_agg.Push(Int(0));
-    Vs_E_ptr_agg.Push(Int(0));
+    DhV_E_ptr_agg.Push(Int(0));
+    DvV_E_ptr_agg.Push(Int(0));
     
     for( Int v_0 = 0; v_0 < vertex_count; ++v_0 )
     {
@@ -30,57 +30,57 @@ void ComputeConstraintGraphs()
         if( V_dTRE(v_0,West) == Uninitialized )
         {
             // Collect horizontal segment.
-            const Int s = Hs_E_ptr_agg.Size() - Int(1);
+            const Int s = DhV_E_ptr_agg.Size() - Int(1);
             Int w  = v_0;
             Int de = V_dTRE(w,East);
             Int v;
-            V_Hs[w] = s;
+            V_DhV[w] = s;
             
             while( de != Uninitialized )
             {
                 auto [e,dir] = FromDedge(de);
-                Hs_E_idx_agg.Push(e);
-                E_Hs[e] = s;
+                DhV_E_idx_agg.Push(e);
+                E_DhV[e] = s;
                 
                 v  = TRE_V.data()[de];
                 de = V_dTRE(v,East);
                 w  = v;
-                V_Hs[w] = s;
+                V_DhV[w] = s;
             }
 
-            Hs_E_ptr_agg.Push( Hs_E_idx_agg.Size() );
+            DhV_E_ptr_agg.Push( DhV_E_idx_agg.Size() );
         }
         
         if( V_dTRE(v_0,South) == Uninitialized )
         {
             // Collect vertical segment.
-            const Int s = Vs_E_ptr_agg.Size() - Int(1);
+            const Int s = DvV_E_ptr_agg.Size() - Int(1);
             Int  w = v_0;
             Int de = V_dTRE(w,North);
             Int v;
-            V_Vs[w] = s;
+            V_DvV[w] = s;
             
             while( de != Uninitialized )
             {
                 auto [e,dir] = FromDedge(de);
-                Vs_E_idx_agg.Push(e);
-                E_Vs[e] = s;
+                DvV_E_idx_agg.Push(e);
+                E_DvV[e] = s;
                 
                 v  = TRE_V.data()[de];
                 de = V_dTRE(v,North);
                 w  = v;
-                V_Vs[w] = s;
+                V_DvV[w] = s;
             }
 
-            Vs_E_ptr_agg.Push( Vs_E_idx_agg.Size() );
+            DvV_E_ptr_agg.Push( DvV_E_idx_agg.Size() );
         }
     }
     
-    Hs_E_ptr = Hs_E_ptr_agg.Get();
-    Hs_E_idx = Hs_E_idx_agg.Get();
+    DhV_E_ptr = DhV_E_ptr_agg.Get();
+    DhV_E_idx = DhV_E_idx_agg.Get();
     
-    Vs_E_ptr = Vs_E_ptr_agg.Get();
-    Vs_E_idx = Vs_E_idx_agg.Get();
+    DvV_E_ptr = DvV_E_ptr_agg.Get();
+    DvV_E_idx = DvV_E_idx_agg.Get();
 
 
     for( Int e = 0; e < TRE_count; ++e )
@@ -102,32 +102,32 @@ void ComputeConstraintGraphs()
         {
             case East:
             {
-                const Int s_0 = V_Vs[c_0];
-                const Int s_1 = V_Vs[c_1];
+                const Int s_0 = V_DvV[c_0];
+                const Int s_1 = V_DvV[c_1];
                 TRE_DvE_from[e] = DvE_agg.Size();
                 DvE_agg.Push(s_0,s_1,Cost_T(1));
                 break;
             }
             case North:
             {
-                const Int s_0 = V_Hs[c_0];
-                const Int s_1 = V_Hs[c_1];
+                const Int s_0 = V_DhV[c_0];
+                const Int s_1 = V_DhV[c_1];
                 TRE_DhE_from[e] = DhE_agg.Size();
                 DhE_agg.Push(s_0,s_1,Cost_T(1));
                 break;
             }
             case West:
             {
-                const Int s_0 = V_Vs[c_0];
-                const Int s_1 = V_Vs[c_1];
+                const Int s_0 = V_DvV[c_0];
+                const Int s_1 = V_DvV[c_1];
                 TRE_DvE_from[e] = DvE_agg.Size();
                 DvE_agg.Push(s_1,s_0,Cost_T(1));
                 break;
             }
             case South:
             {
-                const Int s_0 = V_Hs[c_0];
-                const Int s_1 = V_Hs[c_1];
+                const Int s_0 = V_DhV[c_0];
+                const Int s_1 = V_DhV[c_1];
                 TRE_DhE_from[e] = DhE_agg.Size();
                 DhE_agg.Push(s_1,s_0,Cost_T(1));
                 break;
@@ -144,12 +144,12 @@ void ComputeConstraintGraphs()
     // Pushing some additional edges here.
     // They come at no cost.
     
-    for( auto & e : Vs_edge_agg )
+    for( auto & e : Dv_edge_agg )
     {
         DvE_agg.Push(e[0],e[1],Cost_T(0));
     }
     
-    for( auto & e : Hs_edge_agg )
+    for( auto & e : Dh_edge_agg )
     {
         DhE_agg.Push(e[0],e[1],Cost_T(0));
     }
@@ -157,7 +157,7 @@ void ComputeConstraintGraphs()
     // We use Sparse::MatrixCSR to tally the duplicates.
     // The counts are stored in D_*_edge_costs for the TopologicalTightening.
     {
-        const Int n = Hs_E_ptr.Size() - Int(1);
+        const Int n = DhV_E_ptr.Size() - Int(1);
         Sparse::MatrixCSR<Cost_T,Int,Int> A (DhE_agg,n,n,Int(1),true,0,true);
         Dh = DiGraph_T( n, A.NonzeroPositions_AoS() );
         DhE_costs = A.Values();
@@ -175,7 +175,7 @@ void ComputeConstraintGraphs()
     }
     
     {
-        const Int n = Vs_E_ptr.Size() - Int(1);
+        const Int n = DvV_E_ptr.Size() - Int(1);
         Sparse::MatrixCSR<Cost_T,Int,Int> A (DvE_agg,n,n,Int(1),true,0,true);
         Dv = DiGraph_T( n, A.NonzeroPositions_AoS() );
         DvE_costs = A.Values();
@@ -205,7 +205,7 @@ struct Segment
 //Segment LeftSegment( const Segment s ) const
 //{
 //    return s.horizontalQ
-//           ? Segment(V_Vs[ Hs_E_ptr[s] - 1],false)
+//           ? Segment(V_DvV[ DhV_E_ptr[s] - 1],false)
 //           : s;
 //}
 //
@@ -213,7 +213,7 @@ struct Segment
 //Segment RightSegment( const Segment s ) const
 //{
 //    return s.horizontalQ
-//           ? Segment(V_Vs[ Hs_E_ptr[s+1] - 1],false)
+//           ? Segment(V_DvV[ DhV_E_ptr[s+1] - 1],false)
 //           : s;
 //}
 //
@@ -221,7 +221,7 @@ struct Segment
 //Segment BottomSegment( const Segment s ) const
 //{
 //    return !s.horizontalQ
-//           ? Segment(V_Hs[ Vs_E_ptr[s] - 1],false)
+//           ? Segment(V_DhV[ DvV_E_ptr[s] - 1],false)
 //           : s;
 //}
 //
@@ -229,39 +229,39 @@ struct Segment
 //Segment TopSegment( const Segment s ) const
 //{
 //    return !s.horizontalQ
-//           ? Segment(V_Hs[ Vs_E_ptr[s+1] - 1],false)
+//           ? Segment(V_DhV[ DvV_E_ptr[s+1] - 1],false)
 //           : s;
 //}
 
 
 public:
 
-void VsClearAddedEdges()
+void DvClearAddedEdges()
 {
-    Vs_edge_agg.clear();
+    Dv_edge_agg.clear();
 }
 
-void VsPushVertexPair( const Int i, const Int j )
+void DvPushVertexPair( const Int i, const Int j )
 {
-    Vs_edge_agg.push_back({V_Vs[i],V_Vs[j]});
+    Dv_edge_agg.push_back({V_DvV[i],V_DvV[j]});
 }
 
-void VsPushEdgePair( const Int i, const Int j )
+void DvPushEdgePair( const Int i, const Int j )
 {
-    Vs_edge_agg.push_back({E_Vs[i],E_Vs[j]});
+    Dv_edge_agg.push_back({E_DvV[i],E_DvV[j]});
 }
 
-void VsPushDedgePair( const Int da, const Int db )
+void DvPushDedgePair( const Int da, const Int db )
 {
     if( (da < Int(0)) || (da >= Int(2) * edge_count ) )
     {
-        eprint(ClassName()+"::VsPushDedgePair: dedge index " + ToString(da) + " is out of bounds.");
+        eprint(ClassName()+"::DvVPushDedgePair: dedge index " + ToString(da) + " is out of bounds.");
         return;
     }
     
     if( (db < Int(0)) || (db >= Int(2) * edge_count ) )
     {
-        eprint(ClassName()+"::VsPushDedgePair: dedge index " + ToString(db) + " is out of bounds.");
+        eprint(ClassName()+"::DvVPushDedgePair: dedge index " + ToString(db) + " is out of bounds.");
         return;
     }
     
@@ -270,29 +270,29 @@ void VsPushDedgePair( const Int da, const Int db )
     
     if( (E_dir(a) != Dir_T(1)) && (E_dir(a) != Dir_T(3)) )
     {
-        eprint(ClassName()+"::VsPushDedgePair: dedge " + ToString(da) + " is not vertical.");
+        eprint(ClassName()+"::DvVPushDedgePair: dedge " + ToString(da) + " is not vertical.");
         return;
     }
     
     if( (E_dir(b) != Dir_T(1)) && (E_dir(b) != Dir_T(3)) )
     {
-        eprint(ClassName()+"::VsPushDedgePair: dedge " + ToString(db) + " is not vertical.");
+        eprint(ClassName()+"::DvVPushDedgePair: dedge " + ToString(db) + " is not vertical.");
         return;
     }
     
-    Vs_edge_agg.push_back({E_Vs[a],E_Vs[b]});
+    Dv_edge_agg.push_back({E_DvV[a],E_DvV[b]});
 }
 
-EdgeContainer_T VsAddedEdges()
+EdgeContainer_T DvAddedEdges()
 {
-    const Int n = int_cast<Int>(Vs_edge_agg.size());
+    const Int n = int_cast<Int>(Dv_edge_agg.size());
                                 
     EdgeContainer_T result ( n );
     
     for( Int i = 0; i < n; ++i )
     {
-        result(i,0) = Vs_edge_agg[i][0];
-        result(i,1) = Vs_edge_agg[i][1];
+        result(i,0) = Dv_edge_agg[i][0];
+        result(i,1) = Dv_edge_agg[i][1];
     }
     
     return result;
@@ -300,28 +300,28 @@ EdgeContainer_T VsAddedEdges()
 
 
 
-void HsPushVertexPair( const Int i, const Int j )
+void DhPushVertexPair( const Int i, const Int j )
 {
-    Hs_edge_agg.push_back({V_Hs[i],V_Hs[j]});
+    Dh_edge_agg.push_back({V_DhV[i],V_DhV[j]});
 }
 
-void HsPushEdgePair( const Int i, const Int j )
+void DhPushEdgePair( const Int i, const Int j )
 {
-    Hs_edge_agg.push_back({E_Hs[i],E_Hs[j]});
+    Dh_edge_agg.push_back({E_DhV[i],E_DhV[j]});
 }
 
 
-void HsPushDedgePair( const Int da, const Int db )
+void DhPushDedgePair( const Int da, const Int db )
 {
     if( (da < Int(0)) || (da >= Int(2) * edge_count ) )
     {
-        eprint(ClassName()+"::HsPushDedgePair: dedge index " + ToString(da) + " is out of bounds.");
+        eprint(ClassName()+"::DhPushDedgePair: dedge index " + ToString(da) + " is out of bounds.");
         return;
     }
     
     if( (db < Int(0)) || (db >= Int(2) * edge_count ) )
     {
-        eprint(ClassName()+"::HsPushDedgePair: dedge index " + ToString(db) + " is out of bounds.");
+        eprint(ClassName()+"::DhPushDedgePair: dedge index " + ToString(db) + " is out of bounds.");
         return;
     }
     
@@ -330,38 +330,38 @@ void HsPushDedgePair( const Int da, const Int db )
     
     if( (E_dir(a) != Dir_T(0)) && (E_dir(a) != Dir_T(2)) )
     {
-        eprint(ClassName()+"::HsPushDedgePair: dedge " + ToString(da) + " is not horizontal.");
+        eprint(ClassName()+"::DhPushDedgePair: dedge " + ToString(da) + " is not horizontal.");
         return;
     }
     
     if( (E_dir(b) != Dir_T(0)) && (E_dir(b) != Dir_T(2)) )
     {
-        eprint(ClassName()+"::HsPushDedgePair: dedge " + ToString(db) + " is not horizontal.");
+        eprint(ClassName()+"::DhPushDedgePair: dedge " + ToString(db) + " is not horizontal.");
         return;
     }
     
-    Hs_edge_agg.push_back({E_Hs[a],E_Hs[b]});
+    Dh_edge_agg.push_back({E_DhV[a],E_DhV[b]});
 }
 
 
-EdgeContainer_T HsAddedEdges()
+EdgeContainer_T DhAddedEdges()
 {
-    const Int n = int_cast<Int>(Hs_edge_agg.size());
+    const Int n = int_cast<Int>(Dh_edge_agg.size());
                                 
     EdgeContainer_T result ( n );
     
     for( Int i = 0; i < n; ++i )
     {
-        result(i,0) = Hs_edge_agg[i][0];
-        result(i,1) = Hs_edge_agg[i][1];
+        result(i,0) = Dh_edge_agg[i][0];
+        result(i,1) = Dh_edge_agg[i][1];
     }
     
     return result;
 }
 
-void HsClearAddedEdges()
+void DhClearAddedEdges()
 {
-    Hs_edge_agg.clear();
+    Dh_edge_agg.clear();
 }
 
 
@@ -377,16 +377,16 @@ bool Test_TRE_DhE() const
         {
             bool s = (E_dir[e] == North);
             bool b =
-                ( V_Hs[TRE_V(e,Tail)] == Dh.Edges()(i,!s) )
+                ( V_DhV[TRE_V(e,Tail)] == Dh.Edges()(i,!s) )
                 &&
-                ( V_Hs[TRE_V(e,Head)] == Dh.Edges()(i, s) );
+                ( V_DhV[TRE_V(e,Head)] == Dh.Edges()(i, s) );
             
             if( !b )
             {
                 eprint(ClassName()+"::Test_TRE_DhE: TRE_count of tredge " + ToString(e) + " does not point to correct edge in graph Dh edge.");
                 TOOLS_DUMP(e);
-                TOOLS_DUMP(V_Hs[TRE_V(e,Tail)]);
-                TOOLS_DUMP(V_Hs[TRE_V(e,Head)]);
+                TOOLS_DUMP(V_DhV[TRE_V(e,Tail)]);
+                TOOLS_DUMP(V_DhV[TRE_V(e,Head)]);
                 
                 TOOLS_DUMP(i);
                 TOOLS_DUMP(Dh.Edges()(i,!s));
@@ -413,16 +413,16 @@ bool Test_TRE_DvE() const
         {
             bool s = (E_dir[e] == East);
             bool b =
-                ( V_Vs[TRE_V(e,Tail)] == Dv.Edges()(i,!s) )
+                ( V_DvV[TRE_V(e,Tail)] == Dv.Edges()(i,!s) )
                 &&
-                ( V_Vs[TRE_V(e,Head)] == Dv.Edges()(i, s) );
+                ( V_DvV[TRE_V(e,Head)] == Dv.Edges()(i, s) );
             
             if( !b )
             {
                 eprint(ClassName()+"::Test_TRE_DvE: TRE_count of tredge " + ToString(e) + " does not point to correct edge in graph Dv edge.");
                 TOOLS_DUMP(e);
-                TOOLS_DUMP(V_Vs[TRE_V(e,Tail)]);
-                TOOLS_DUMP(V_Vs[TRE_V(e,Head)]);
+                TOOLS_DUMP(V_DvV[TRE_V(e,Tail)]);
+                TOOLS_DUMP(V_DvV[TRE_V(e,Head)]);
                 
                 TOOLS_DUMP(i);
                 TOOLS_DUMP(Dv.Edges()(i,!s));

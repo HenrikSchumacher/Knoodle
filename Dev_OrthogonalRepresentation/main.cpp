@@ -7,7 +7,8 @@
 
 #include "../Knoodle.hpp"
 //#include "../submodules/Tensors/Clp.hpp"
-#include "../src/OrthogonalRepresentation.hpp"
+//#include "../src/OrthogonalRepresentation.hpp"
+#include "../src/OrthogonalRepresentation2.hpp"
 //#include "ClpSimplex.hpp"
 //#include "ClpSimplexDual.hpp"
 //#include "CoinHelperFunctions.hpp"
@@ -75,86 +76,82 @@ int main( int argc, char** argv )
     
     Profiler::Clear();
     
-    
-    OrthogonalRepresentation<Int> H (pd,-1);
+    OrthogonalRepresentation2<Int> H (pd);
+    H.TurnRegularize();
     
     TOOLS_DUMP(H.CrossingCount());
     TOOLS_DUMP(H.ArcCount());
     TOOLS_DUMP(H.VertexCount());
     TOOLS_DUMP(H.EdgeCount());
-    TOOLS_DUMP(H.FaceCount());
+    TOOLS_DUMP(H.VirtualEdgeCount());
     
     TOOLS_DUMP(H.VertexDedges());
     TOOLS_DUMP(H.Edges());
+    TOOLS_DUMP(H.EdgeFlags());
     
     TOOLS_DUMP(H.Bends());
-//    valprint("bends",ArrayToString(&bends[0],{6}));
     
     TOOLS_DUMP(H.EdgeTurns());
     
+
     print("\nArcs (vertices)");
     {
-        cptr<Int> A_V_ptr = H.ArcVertexPointers().data();
-        cptr<Int> A_V_idx = H.ArcVertexIndices().data();
-        for( Int a = 0; a < pd.ArcCount(); ++a )
+        auto & A_V = H.ArcVertices();
+        for( Int a = 0; a < A_V.SublistCount(); ++a )
         {
-            valprint(
-                "arc " + ToString(a),
-                ArrayToString( &A_V_idx[A_V_ptr[a]], {A_V_ptr[a+1]-A_V_ptr[a]} )
-            );
+            valprint( "arc " + ToString(a), ToString(A_V.Sublist(a)) );
         }
     }
-
+    
     print("\nArcs (edges)");
     {
-        cptr<Int> A_E_ptr = H.ArcEdgePointers().data();
-        cptr<Int> A_E_idx = H.ArcEdgeIndices().data();
-        for( Int a = 0; a < pd.ArcCount(); ++a )
+        auto & A_E = H.ArcEdges();
+        for( Int a = 0; a < A_E.SublistCount(); ++a )
         {
-            valprint(
-                "arc " + ToString(a),
-                ArrayToString( &A_E_idx[A_E_ptr[a]], {A_E_ptr[a+1]-A_E_ptr[a]} )
-            );
+            valprint( "arc " + ToString(a), ToString(A_E.Sublist(a)) );
         }
     }
-
-    print("\nFaces (edges)");
+    
+    print("\nFaces (dedges)");
     {
-        cptr<Int> F_dE_ptr = H.FaceDedgePointers().data();
-        cptr<Int> F_dE_idx = H.FaceDedgeIndices().data();
-        for( Int f = 0; f < pd.FaceCount(); ++f )
+        auto & F_dE = H.FaceDedges();
+        
+        for( Int f = 0; f < F_dE.SublistCount(); ++f )
         {
-            valprint(
-                "face " + ToString(f),
-                ArrayToString( &F_dE_idx[F_dE_ptr[f]], {F_dE_ptr[f+1]-F_dE_ptr[f]} )
-            );
+            valprint( "face " + ToString(f), ToString(F_dE.Sublist(f)) );
         }
     }
-    
+  
     print("");
-    print("Diagram");
+    print("Checks");
     print("");
-    H.SetHorizontalGridSize(8);
-    H.SetVerticalGridSize(4);
-    H.SetHorizontalGapSize(1);
-    H.SetVerticalGapSize(1);
-    H.ComputeVertexCoordinates_ByTopologicalTightening();
     
-    TOOLS_DUMP(H.VertexCoordinates());
-        
-    print(H.DiagramString());
+    TOOLS_DUMP(H.CheckEdgeDirections());
+    TOOLS_DUMP(H.CheckFaceTurns());
+    
+//    print("");
+//    print("Diagram");
+//    print("");
+//    H.SetHorizontalGridSize(8);
+//    H.SetVerticalGridSize(4);
+//    H.SetHorizontalGapSize(1);
+//    H.SetVerticalGapSize(1);
     
     
-//    TOOLS_DUMP(H.FaceDedgePointers());
+    
+//    H.ComputeVertexCoordinates_ByTopologicalTightening();
 //    
 //    TOOLS_DUMP(H.VertexCoordinates());
-    
-    TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
-    
-    TOOLS_DUMP(H.Test_TRE_DhE());
-    TOOLS_DUMP(H.Test_TRE_DvE());
-    
-    
+//        
+//    print(H.DiagramString());
+//    
+//    
+
+//    
+//    TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
+//    
+//    TOOLS_DUMP(H.Test_TRE_DhE());
+//    TOOLS_DUMP(H.Test_TRE_DvE());
     
     return EXIT_SUCCESS;
 }

@@ -105,11 +105,62 @@ namespace Knoodle
         
     public:
         
+        // Default constructor
         Link_2D() = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~Link_2D() = default;
+        // Copy constructor
+        Link_2D( const Link_2D & other ) = default;
+        // Copy assignment operator
+        Link_2D & operator=( const Link_2D & other ) = default;
+        // Move constructor
+        Link_2D( Link_2D && other ) = default;
+        // Move assignment operator
+        Link_2D & operator=( Link_2D && other ) = default;
         
-        Link_2D( const Link_2D & other) = default;
-        
-        virtual ~Link_2D() override = default;
+//        Link_2D() = default;
+//        
+//        virtual ~Link_2D() override = default;
+//        
+//        Link_2D( const Link_2D & other ) = default;
+//        
+//        friend void swap( Link_2D & A, Link_2D & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
+//            
+//            swap( A.edge_ctr                , B.edge_ctr                    );
+//            swap( A.edge_coords             , B.edge_coords                 );
+//            swap( A.R                       , B.R                           );
+//            swap( A.T                       , B.T                           );
+//            swap( A.box_coords              , B.box_coords                  );
+//            
+//            swap( A.intersections           , B.intersections               );
+//            swap( A.edge_intersections      , B.edge_intersections          );
+//            swap( A.edge_times              , B.edge_times                  );
+//            swap( A.edge_overQ              , B.edge_overQ                  );
+//            swap( A.Sterbenz_shift          , B.Sterbenz_shift              );
+//
+//            swap( A.S                       , B.S                           );
+//            swap( A.intersection_flag_counts, B.intersection_flag_counts    );
+//            swap( A.intersection_count_3D   , B.intersection_count_3D       );
+//        }
+//        
+//        // Copy assignment operator
+//        Link_2D & operator=( Link_2D other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        Link_2D( Link_2D && other ) noexcept
+//        :   Link_2D()
+//        {
+//            swap(*this, other);
+//        }
         
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.

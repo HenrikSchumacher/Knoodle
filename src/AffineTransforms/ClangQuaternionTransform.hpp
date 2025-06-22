@@ -23,8 +23,6 @@ namespace Knoodle
         
         static constexpr Flag_T Id    = Flag_T::Id;
         static constexpr Flag_T NonId = Flag_T::NonId;
-       
-        ClangQuaternionTransform() = default;
         
         template<typename ExtReal>
         ClangQuaternionTransform(
@@ -45,7 +43,18 @@ namespace Knoodle
             Read( q_ptr, b_ptr, flag_ );
         }
         
+        // Default constructor
+        ClangQuaternionTransform() = default;
+        // Destructor
         ~ClangQuaternionTransform() = default;
+        // Copy constructor
+        ClangQuaternionTransform( const ClangQuaternionTransform & other ) = default;
+        // Copy assignment operator
+        ClangQuaternionTransform & operator=( const ClangQuaternionTransform & other ) = default;
+        // Move constructor
+        ClangQuaternionTransform( ClangQuaternionTransform && other ) = default;
+        // Move assignment operator
+        ClangQuaternionTransform & operator=( ClangQuaternionTransform && other ) = default;
 
     private:
         

@@ -84,11 +84,6 @@ namespace Knoodle
 
     public:
         
-        OrthogonalRepresentation() = default;
-        
-        // Copy constructor
-        OrthogonalRepresentation( const OrthogonalRepresentation & other ) = default;
-        
         // TODO: Add this when the class is finished:
         // TODO: swap
         // TODO: copy assignment
@@ -156,7 +151,18 @@ namespace Knoodle
             ComputeArcSplines();
         }
                                  
-        ~OrthogonalRepresentation() = default;
+        // Default constructor
+        OrthogonalRepresentation() = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~OrthogonalRepresentation() override = default;
+        // Copy constructor
+        OrthogonalRepresentation( const OrthogonalRepresentation & other ) = default;
+        // Copy assignment operator
+        OrthogonalRepresentation & operator=( const OrthogonalRepresentation & other ) = default;
+        // Move constructor
+        OrthogonalRepresentation( OrthogonalRepresentation && other ) = default;
+        // Move assignment operator
+        OrthogonalRepresentation & operator=( OrthogonalRepresentation && other ) = default;
         
     private:
         
@@ -232,22 +238,22 @@ namespace Knoodle
         Tensor1<Int,Int>    TRE_DvE;
         
         // The range [ Hs_E_idx[Hs_E_ptr[s]],...,Hs_E_idx[Hs_E_ptr[s+1]] ) are the edges that belong to s-th horizontal segment, ordered from West to East.
-        Tensor1<Int,Int>    Hs_E_ptr;
-        Tensor1<Int,Int>    Hs_E_idx;
+        Tensor1<Int,Int>    DhV_E_ptr;
+        Tensor1<Int,Int>    DhV_E_idx;
         
         // The range [ Vs_E_idx[Vs_E_ptr[s]],...,Vs_E_idx[Vs_E_ptr[s+1]] ) are the edges that belong to s-th vertical segment, ordered from West to East.
-        Tensor1<Int,Int>    Vs_E_ptr;
-        Tensor1<Int,Int>    Vs_E_idx;
+        Tensor1<Int,Int>    DvV_E_ptr;
+        Tensor1<Int,Int>    DvV_E_idx;
         
         // Maps each undirected edge to its horizontal segment (`Uninitialized` if vertical)
-        Tensor1<Int,Int>    E_Hs;
+        Tensor1<Int,Int>    E_DhV;
         // Maps each undirected edge to its vertical segment (`Uninitialized` if horizontal)
-        Tensor1<Int,Int>    E_Vs;
+        Tensor1<Int,Int>    E_DvV;
         
         // Maps each vertex to its horizontal segment (`Uninitialized` if vertical)
-        Tensor1<Int,Int>    V_Hs;
+        Tensor1<Int,Int>    V_DhV;
         // Maps each vertex to its vertical segment (`Uninitialized` if horizontal)
-        Tensor1<Int,Int>    V_Vs;
+        Tensor1<Int,Int>    V_DvV;
         
         // General purpose buffers. May be used in all routines as temporary space.
         mutable Tensor1<Int,Int> V_scratch;
@@ -272,8 +278,8 @@ namespace Knoodle
         Tensor1<Int,Int>  A_spline_ptr;
         CoordsContainer_T A_spline_coords;
         
-        std::vector<std::array<Int,2>> Hs_edge_agg;
-        std::vector<std::array<Int,2>> Vs_edge_agg;
+        std::vector<std::array<Int,2>> Dh_edge_agg;
+        std::vector<std::array<Int,2>> Dv_edge_agg;
         
     private:
 
@@ -473,77 +479,77 @@ namespace Knoodle
         
         // Horizontal and vertical constaint grapj
         
-        cref<DiGraph_T> HsConstraintGraph() const
+        cref<DiGraph_T> DhConstraintGraph() const
         {
             return Dh;
         }
         
-        cref<Tensor1<Int,Int>> HsEdgePointers() const
+        cref<Tensor1<Int,Int>> DhVertexEdgePointers() const
         {
-            return Hs_E_ptr;
+            return DhV_E_ptr;
         }
         
-        cref<Tensor1<Int,Int>> HsEdgeIndices() const
+        cref<Tensor1<Int,Int>> DhVertexEdgeIndices() const
         {
-            return Hs_E_idx;
+            return DhV_E_idx;
         }
         
-        cref<Tensor1<Int,Int>> VertexHs() const
+        cref<Tensor1<Int,Int>> VertexDhVertex() const
         {
-            return V_Hs;
+            return V_DhV;
         }
         
-        cref<Tensor1<Int,Int>> EdgeHs() const
+        cref<Tensor1<Int,Int>> EdgeDhVertex() const
         {
-            return E_Hs;
+            return E_DhV;
         }
         
         
-        cref<DiGraph_T> VsConstraintGraph() const
+        cref<DiGraph_T> DvConstraintGraph() const
         {
             return Dv;
         }
         
-        cref<Tensor1<Int,Int>> VsEdgePointers() const
+        cref<Tensor1<Int,Int>> DvVertexEdgePointers() const
         {
-            return Vs_E_ptr;
+            return DvV_E_ptr;
         }
         
-        cref<Tensor1<Int,Int>> VsEdgeIndices() const
+        cref<Tensor1<Int,Int>> DvVertexEdgeIndices() const
         {
-            return Vs_E_idx;
+            return DvV_E_idx;
         }
         
-        cref<Tensor1<Int,Int>> VertexVs() const
+        cref<Tensor1<Int,Int>> VertexDvVertex() const
         {
-            return V_Vs;
+            return V_DvV;
         }
         
-        cref<Tensor1<Int,Int>> EdgeVs() const
+        cref<Tensor1<Int,Int>> EdgeDvVertices() const
         {
-            return E_Vs;
+            return E_DvV;
         }
         
         
-        cref<Tensor1<Int,Int>> HsTopologicalNumbering() const
-        {
-            return Dh.TopologicalNumbering();
-        }
-        
-        cref<Tensor1<Int,Int>> HsTopologicalOrdering() const
-        {
-            return Dh.TopologicalOrdering();
-        }
-        
-        cref<Tensor1<Int,Int>> VsTopologicalNumbering() const
-        {
-            return Dv.TopologicalNumbering();
-        }
-
-        cref<Tensor1<Int,Int>> VsTopologicalOrdering() const
-        {
-            return Dv.TopologicalOrdering();
-        }
+//        cref<Tensor1<Int,Int>> DhTopologicalNumbering() const
+//        {
+//            return Dh.TopologicalNumbering();
+//        }
+//        
+//        cref<Tensor1<Int,Int>> DhTopologicalOrdering() const
+//        {
+//            return Dh.TopologicalOrdering();
+//        }
+//        
+//        cref<Tensor1<Int,Int>> DvTopologicalNumbering() const
+//        {
+//            return Dv.TopologicalNumbering();
+//        }
+//
+//        cref<Tensor1<Int,Int>> DvTopologicalOrdering() const
+//        {
+//            return Dv.TopologicalOrdering();
+//        }
         
         Int FaceCount() const
         {

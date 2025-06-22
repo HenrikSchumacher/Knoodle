@@ -66,9 +66,18 @@ namespace Knoodle
 
     public:
         
+        // Default constructor
         MultiGraphBase() = default;
-        
-        virtual ~MultiGraphBase() override = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~MultiGraphBase() = default;
+        // Copy constructor
+        MultiGraphBase( const MultiGraphBase & other ) = default;
+        // Copy assignment operator
+        MultiGraphBase & operator=( const MultiGraphBase & other ) = default;
+        // Move constructor
+        MultiGraphBase( MultiGraphBase && other ) = default;
+        // Move assignment operator
+        MultiGraphBase & operator=( MultiGraphBase && other ) = default;
 
         
     public:
@@ -123,41 +132,8 @@ namespace Knoodle
 
             CheckInputs();
         }
-        
-        // Copy constructor
-        MultiGraphBase( const MultiGraphBase & other ) = default;
-//        MultiGraphBase( const MultiGraphBase & other )
-//        :   Base_T( static_cast<const Base_T &>(other) )
-//        {}
-        
-        friend void swap( MultiGraphBase & A, MultiGraphBase & B ) noexcept
-        {
-            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-            using std::swap;
-            
-            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-            swap( A.vertex_count, B.vertex_count );
-            swap( A.edges       , B.edges        );
-            swap( A.V_scratch   , B.V_scratch    );
-            swap( A.E_scratch   , B.E_scratch    );
-        }
-        
-        // Move constructor
-        MultiGraphBase( MultiGraphBase && other ) noexcept
-        :   MultiGraphBase()
-        {
-            print("MultiGraphBase move constructor");
-            swap(*this, other);
-        }
 
-//        /* Copy assignment operator */
-//        MultiGraphBase & operator=( MultiGraphBase other ) noexcept
-//        {   //                                   ^
-//            //                                   |
-//            // Use the copy constructor   -------+
-//            swap( *this, other );
-//            return *this;
-//        }
+
 
     protected:
         

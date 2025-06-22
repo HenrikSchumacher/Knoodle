@@ -49,13 +49,6 @@ namespace Knoodle
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
         
-        Alexander_UMFPACK()
-        :   sparsity_threshold ( 256 )
-//        :   sparsity_threshold ( 1 )
-        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
-        ,   LU_ipiv   ( sparsity_threshold )
-        {}
-        
         Alexander_UMFPACK( const Int sparsity_threshold_ )
         :   sparsity_threshold (
                 std::min(
@@ -66,8 +59,26 @@ namespace Knoodle
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
         ,   LU_ipiv   ( sparsity_threshold )
         {}
+        
+        // Default constructor
+        Alexander_UMFPACK()
+        :   sparsity_threshold ( 256 )
+//        :   sparsity_threshold ( 1 )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_ipiv   ( sparsity_threshold )
+        {}
       
+        // Destructor
         ~Alexander_UMFPACK() = default;
+        // Copy constructor
+        Alexander_UMFPACK( const Alexander_UMFPACK & other ) = default;
+        // Copy assignment operator
+        Alexander_UMFPACK & operator=( const Alexander_UMFPACK & other ) = default;
+        // Move constructor
+        Alexander_UMFPACK( Alexander_UMFPACK && other ) = default;
+        // Move assignment operator
+        Alexander_UMFPACK & operator=( Alexander_UMFPACK && other ) = default;
+        
         
     private:
         

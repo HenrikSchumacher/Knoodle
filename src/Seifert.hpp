@@ -43,12 +43,7 @@ namespace Knoodle
         static constexpr bool Right = PD_T::Right;
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
-        
-        Seifert()
-        :   sparsity_threshold ( 64 )
-        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
-        ,   LU_perm   ( sparsity_threshold )
-        {}
+    
         
         Seifert( const Int sparsity_threshold_ )
         :   sparsity_threshold (
@@ -61,7 +56,23 @@ namespace Knoodle
         ,   LU_perm   ( sparsity_threshold )
         {}
       
+        // Default constructor
+        Seifert()
+        :   sparsity_threshold ( 64 )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm   ( sparsity_threshold )
+        {}
+        
+        // Destructor
         ~Seifert() = default;
+        // Copy constructor
+        Seifert( const Seifert & other ) = default;
+        // Copy assignment operator
+        Seifert & operator=( const Seifert & other ) = default;
+        // Move constructor
+        Seifert( Seifert && other ) = default;
+        // Move assignment operator
+        Seifert & operator=( Seifert && other ) = default;
         
     private:
         

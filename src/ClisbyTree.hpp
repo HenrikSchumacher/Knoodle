@@ -66,10 +66,10 @@ namespace Knoodle
         static constexpr bool manual_stackQ = targs.manual_stackQ;
         static constexpr bool witnessesQ    = targs.witnessesQ;
         
-        using Tree_T = CompleteBinaryTree<Int,true,true>;
-        using DFS = Tree_T::DFS;
+        using Base_T = CompleteBinaryTree<Int,true,true>;
+        using DFS = Base_T::DFS;
         
-        using Tree_T::max_depth;
+        using Base_T::max_depth;
     
         using Transform_T
             = typename std::conditional_t<
@@ -123,7 +123,7 @@ namespace Knoodle
             Size_T mv             = 0;
             Size_T load_transform = 0;
         };
-    
+        
         
         enum class UpdateFlag_T : std::int_fast8_t
         {
@@ -132,14 +132,12 @@ namespace Knoodle
             Split     = 2
         };
         
-        ClisbyTree() = default;
-
         template<typename ExtReal, typename ExtInt>
         ClisbyTree(
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
         )
-        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        :   Base_T                      { int_cast<Int>(vertex_count_)         }
         ,   N_transform                 { InternalNodeCount(), TransformDim    }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
@@ -158,7 +156,7 @@ namespace Knoodle
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
         )
-        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        :   Base_T                      { int_cast<Int>(vertex_count_)         }
         ,   N_transform                 { InternalNodeCount(), TransformDim    }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
@@ -178,7 +176,7 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_,
             PRNG_T prng
         )
-        :   Tree_T                      { int_cast<Int>(vertex_count_)         }
+        :   Base_T                      { int_cast<Int>(vertex_count_)         }
         ,   N_transform                 { InternalNodeCount(), TransformDim    }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount(), BallDim                 }
@@ -191,28 +189,91 @@ namespace Knoodle
             ReadVertexCoordinates( vertex_coords_ );
         }
 
-        ~ClisbyTree() = default;
+        // Default constructor
+        ClisbyTree() = default;
+        // Destructor
+        virtual ~ClisbyTree() override = default;
+        // Copy constructor
+        ClisbyTree( const ClisbyTree & other ) = default;
+        // Copy assignment operator
+        ClisbyTree & operator=( const ClisbyTree & other ) = default;
+        // Move constructor
+        ClisbyTree( ClisbyTree && other ) = default;
+        // Move assignment operator
+        ClisbyTree & operator=( ClisbyTree && other ) = default;
+        
+//        friend void swap( ClisbyTree & A, ClisbyTree & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
+//            
+//            swap( A.N_transform                 , B.N_transform                 );
+//            swap( A.N_state                     , B.N_state                     );
+//            swap( A.N_ball                      , B.N_ball                      );
+//            
+//            swap( A.hard_sphere_diam            , B.hard_sphere_diam            );
+//            swap( A.hard_sphere_squared_diam    , B.hard_sphere_squared_diam    );
+//            swap( A.prescribed_edge_length      , B.prescribed_edge_length      );
+//            
+//            swap( A.p                           , B.p                           );
+//            swap( A.q                           , B.q                           );
+//            swap( A.p_shifted                   , B.p_shifted                   );
+//            swap( A.q_shifted                   , B.q_shifted                   );
+//            swap( A.witness                     , B.witness                     );
+//            
+//            swap( A.theta                       , B.theta                       );
+//            swap( A.X_p                         , B.X_p                         );
+//            swap( A.X_q                         , B.X_q                         );
+//            swap( A.transform                   , B.transform                   );
+//            
+//            swap( A.seed                        , B.seed                        );
+//            swap( A.random_engine               , B.random_engine               );
+//            
+//            swap( A.call_counters               , B.call_counters               );
+//            swap( A.mid_changedQ                , B.mid_changedQ                );
+//            swap( A.reflectQ                    , B.reflectQ                    );
+//
+//            swap( A.level_moves_per_node        , B.level_moves_per_node        );
+//            swap( A.pivot_collector             , B.pivot_collector             );
+//            swap( A.witness_collector           , B.witness_collector           );
+//        }
+//        
+//        // Copy assignment operator
+//        ClisbyTree & operator=( ClisbyTree other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        ClisbyTree( ClisbyTree && other ) noexcept
+//        :   ClisbyTree()
+//        {
+//            swap(*this, other);
+//        }
     
     public:
         
-        using Tree_T::MaxDepth;
-        using Tree_T::NodeCount;
-        using Tree_T::InternalNodeCount;
-        using Tree_T::LeafNodeCount;
+        using Base_T::MaxDepth;
+        using Base_T::NodeCount;
+        using Base_T::InternalNodeCount;
+        using Base_T::LeafNodeCount;
         
-        using Tree_T::RightChild;
-        using Tree_T::LeftChild;
-        using Tree_T::Children;
-        using Tree_T::Parent;
-        using Tree_T::Depth;
-        using Tree_T::Column;
-        using Tree_T::NodeBegin;
-        using Tree_T::NodeEnd;
-        using Tree_T::NodeRange;
-        using Tree_T::LeafNodeQ;
-        using Tree_T::InternalNodeQ;
-        using Tree_T::PrimitiveNode;
-        using Tree_T::Root;
+        using Base_T::RightChild;
+        using Base_T::LeftChild;
+        using Base_T::Children;
+        using Base_T::Parent;
+        using Base_T::Depth;
+        using Base_T::Column;
+        using Base_T::NodeBegin;
+        using Base_T::NodeEnd;
+        using Base_T::NodeRange;
+        using Base_T::LeafNodeQ;
+        using Base_T::InternalNodeQ;
+        using Base_T::PrimitiveNode;
+        using Base_T::Root;
         
     private:
         
@@ -226,10 +287,8 @@ namespace Knoodle
         
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
-    
         Int p_shifted = 0;              // Lower pivot index.
         Int q_shifted = 0;              // Greater pivot index.
-        
         WitnessVector_T witness {{-1,-1}};
     
         Real theta;                     // Rotation angle
@@ -424,15 +483,15 @@ namespace Knoodle
             return pivot_collector;
         }
         
-//###################################################################################
+//###########################################################
 //##    Standard interface
-//###################################################################################
+//###########################################################
         
     public:
     
         Size_T AllocatedByteCount() const
         {
-            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + Tree_T::N_ranges.AllocatedByteCount();
+            return N_transform.AllocatedByteCount() + N_ball.AllocatedByteCount() + N_state.AllocatedByteCount() + Base_T::N_ranges.AllocatedByteCount();
         }
         
         template<int t0>
@@ -444,7 +503,7 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_transform)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_ball)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(N_state)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Tree_T::N_ranges)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::N_ranges)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
@@ -460,7 +519,7 @@ namespace Knoodle
                 + "\t" + TOOLS_MEM_DUMP_STRING(N_transform)
                 + "\t" + TOOLS_MEM_DUMP_STRING(N_ball)
                 + "\t" + TOOLS_MEM_DUMP_STRING(N_state)
-                + "\t" + TOOLS_MEM_DUMP_STRING(Tree_T::N_ranges.AllocatedByteCount());
+                + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::N_ranges.AllocatedByteCount());
         }
         
         static std::string ClassName()

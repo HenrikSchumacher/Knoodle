@@ -25,12 +25,6 @@ namespace Knoodle
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
-        Alexander_Metis_LeftLooking()
-        :   sparsity_threshold ( 1024 )
-        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
-        ,   LU_perm   ( sparsity_threshold )
-        {}
-        
         Alexander_Metis_LeftLooking( const Int sparsity_threshold_ )
         :   sparsity_threshold (
                 std::min(
@@ -43,7 +37,23 @@ namespace Knoodle
         {}
       
         
+        // Default constructor
+        Alexander_Metis_LeftLooking()
+        :   sparsity_threshold ( 256 )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm   ( sparsity_threshold )
+        {}
+        
+        // Destructor
         ~Alexander_Metis_LeftLooking() = default;
+        // Copy constructor
+        Alexander_Metis_LeftLooking( const Alexander_Metis_LeftLooking & other ) = default;
+        // Copy assignment operator
+        Alexander_Metis_LeftLooking & operator=( const Alexander_Metis_LeftLooking & other ) = default;
+        // Move constructor
+        Alexander_Metis_LeftLooking( Alexander_Metis_LeftLooking && other ) = default;
+        // Move assignment operator
+        Alexander_Metis_LeftLooking & operator=( Alexander_Metis_LeftLooking && other ) = default;
         
     private:
         

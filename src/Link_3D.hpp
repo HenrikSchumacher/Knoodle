@@ -75,10 +75,44 @@ namespace Knoodle
         
     public:
         
+        // Default constructor
         Link_3D() = default;
+        // Destructor (virtual because of inheritance)
+        virtual ~Link_3D() = default;
+        // Copy constructor
+        Link_3D( const Link_3D & other ) = default;
+        // Copy assignment operator
+        Link_3D & operator=( const Link_3D & other ) = default;
+        // Move constructor
+        Link_3D( Link_3D && other ) = default;
+        // Move assignment operator
+        Link_3D & operator=( Link_3D && other ) = default;
         
-        virtual ~Link_3D() override = default;
-                
+//        friend void swap( Link_3D & A, Link_3D & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
+//            
+//            swap( A.E_coords                , B.E_coords                    );
+//            swap( A.T                       , B.T                           );
+//        }
+//        
+//        // Copy assignment operator
+//        Link_3D & operator=( Link_3D other ) noexcept
+//        {
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        Link_3D( Link_3D && other ) noexcept
+//        :   Link_3D()
+//        {
+//            swap(*this, other);
+//        }
+        
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>

@@ -38,8 +38,9 @@ namespace Knoodle
         
         using Vector2_T = Tiny::Vector<2,Real,Int>;
         
+        // Default constructor
         PlanarLineSegmentIntersector() = default;
-        
+        // Destructor (virtual because of inheritance)
         ~PlanarLineSegmentIntersector()
         {
 //            Size_T k = intersection_counts[2] + intersection_counts[3];
@@ -56,76 +57,27 @@ namespace Knoodle
 //                wprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[4]) + " corner-corner intersections."
 //                );
 //            }
-//            
+//
 //            if( intersection_counts[5] > 0 )
 //            {
 //                eprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[5]) + " interval edge-edge intersections."
 //                );
 //            }
-//            
+//
 //            if( intersection_counts[7] > 0 )
 //            {
 //                eprint(ClassName()+"::FindIntersectingEdges_DFS found " + ToString(intersection_counts[7]) + " invalid 3D intersections."
 //                );
 //            }
         }
-        
-//        // Copy constructor
-//        PlanarLineSegmentIntersector( const PlanarLineSegmentIntersector & other )
-//        :   u                   ( other.u                   )
-//        ,   v                   ( other.v                   )
-//        ,   p                   ( other.p                   )
-//        ,   q                   ( other.q                   )
-//        ,   d                   ( other.d                   )
-//        ,   e                   ( other.e                   )
-//        ,   pxv                 ( other.pxv                 )
-//        ,   vxq                 ( other.vxq                 )
-//        ,   qxu                 ( other.qxu                 )
-//        ,   uxp                 ( other.uxp                 )
-//        ,   pxv_vxq             ( other.pxv_vxq             )
-//        ,   qxu_uxp             ( other.qxu_uxp             )
-////        ,   intersection_counts ( other.intersection_counts )
-//        ,   flag                ( other.flag                )
-//        {}
-        
-//        friend void swap (PlanarLineSegmentIntersector &A, PlanarLineSegmentIntersector &B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( A.u,                      B.u                     );
-//            swap( A.v,                      B.v                     );
-//            swap( A.p,                      B.p                     );
-//            swap( A.q,                      B.q                     );
-//            swap( A.d,                      B.d                     );
-//            swap( A.e,                      B.e                     );
-//            swap( A.pxv,                    B.pxv                   );
-//            swap( A.vxq,                    B.vxq                   );
-//            swap( A.qxu,                    B.qxu                   );
-//            swap( A.uxp,                    B.uxp                   );
-//            swap( A.pxv_vxq,                B.pxv_vxq               );
-//            swap( A.qxu_uxp,                B.qxu_uxp               );
-////            swap( A.intersection_counts,    B.intersection_counts   );
-//            swap( A.flag,                   B.flag                  );
-//        }
-        
-//        //(Copy-)assignment operator
-//        PlanarLineSegmentIntersector & operator=( PlanarLineSegmentIntersector other ) // Passing by value is okay, because of copy elision.
-//        {
-//            // copy-and-swap idiom
-//            // see https://stackoverflow.com/a/3279550/8248900 for details
-//            
-//            swap(*this, other);
-//            
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        PlanarLineSegmentIntersector( PlanarLineSegmentIntersector && other ) noexcept
-//        : PlanarLineSegmentIntersector()
-//        {
-//            swap(*this, other);
-//        }
+        // Copy constructor
+        PlanarLineSegmentIntersector( const PlanarLineSegmentIntersector & other ) = default;
+        // Copy assignment operator
+        PlanarLineSegmentIntersector & operator=( const PlanarLineSegmentIntersector & other ) = default;
+        // Move constructor
+        PlanarLineSegmentIntersector( PlanarLineSegmentIntersector && other ) = default;
+        // Move assignment operator
+        PlanarLineSegmentIntersector & operator=( PlanarLineSegmentIntersector && other ) = default;
         
     protected:
         

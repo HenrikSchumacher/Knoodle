@@ -29,9 +29,19 @@ namespace Knoodle
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
         
+
+        // Default constructor
         AlexanderFaceMatrix() = default;
-      
+        // Destructor
         ~AlexanderFaceMatrix() = default;
+        // Copy constructor
+        AlexanderFaceMatrix( const AlexanderFaceMatrix & other ) = default;
+        // Copy assignment operator
+        AlexanderFaceMatrix & operator=( const AlexanderFaceMatrix & other ) = default;
+        // Move constructor
+        AlexanderFaceMatrix( AlexanderFaceMatrix && other ) = default;
+        // Move assignment operator
+        AlexanderFaceMatrix & operator=( AlexanderFaceMatrix && other ) = default;
     
     public:
         

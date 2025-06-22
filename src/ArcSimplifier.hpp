@@ -91,8 +91,6 @@ namespace Knoodle
         
     public:
         
-        ArcSimplifier() = delete;
-        
         ArcSimplifier( PD_T & pd_ )
         :   pd     { pd_        }
         ,   C_arcs { pd.C_arcs  }
@@ -101,11 +99,18 @@ namespace Knoodle
         ,   A_state{ pd.A_state }
         {}
         
+        // Default constructor
+        ArcSimplifier() = delete;
+        // Destructor
         ~ArcSimplifier() = default;
-        
-        ArcSimplifier( const ArcSimplifier & other ) = delete;
-        
-        ArcSimplifier( ArcSimplifier && other ) = delete;
+        // Copy constructor
+        ArcSimplifier( const ArcSimplifier & other ) = default;
+        // Copy assignment operator
+        ArcSimplifier & operator=( const ArcSimplifier & other ) = default;
+        // Move constructor
+        ArcSimplifier( ArcSimplifier && other ) = default;
+        // Move assignment operator
+        ArcSimplifier & operator=( ArcSimplifier && other ) = default;
 
     private:
         

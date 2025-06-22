@@ -41,8 +41,6 @@ namespace Knoodle
             {}
         };
         
-        CompleteBinaryTree() = default;
-        
         // TODO: What to do if leaf_node_count_ == 0?
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
@@ -90,8 +88,50 @@ namespace Knoodle
             }
         }
         
-        ~CompleteBinaryTree() = default;
+        // Default constructor
+        CompleteBinaryTree() = default;
+        // Destructor constructor (virtual because of inheritance)
+        virtual ~CompleteBinaryTree() = default;
+        // Copy constructor
+        CompleteBinaryTree( const CompleteBinaryTree & other ) = default;
+        // Copy assignment operator
+        CompleteBinaryTree & operator=( const CompleteBinaryTree & other ) = default;
+        // Move constructor
+        CompleteBinaryTree( CompleteBinaryTree && other ) = default;
+        // Move assignment operator
+        CompleteBinaryTree & operator=( CompleteBinaryTree && other ) = default;
         
+//        friend void swap( CompleteBinaryTree & A, CompleteBinaryTree & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( A.leaf_node_count         , B.leaf_node_count             );
+//            swap( A.node_count              , B.node_count                  );
+//            swap( A.int_node_count          , B.int_node_count              );
+//            swap( A.last_row_begin          , B.last_row_begin              );
+//            swap( A.offset                  , B.offset                      );
+//            swap( A.N_ranges                , B.N_ranges                    );
+//            swap( A.actual_depth            , B.actual_depth                );
+//            swap( A.regular_leaf_node_count , B.regular_leaf_node_count     );
+//            swap( A.last_row_count          , B.last_row_count              );
+//        }
+//        
+//        // Copy assignment operator
+//        CompleteBinaryTree & operator=( CompleteBinaryTree other ) noexcept
+//        {   //                                   ^
+//            //                                   |
+//            // Use the copy constructor   -------+
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        CompleteBinaryTree( CompleteBinaryTree && other ) noexcept
+//        :   CompleteBinaryTree()
+//        {
+//            swap(*this, other);
+//        }
         
     protected:
         
@@ -115,6 +155,9 @@ namespace Knoodle
         // A full binary tree with depth = actual_depth has this many leaf nodes.
         Int regular_leaf_node_count = 0;
         Int last_row_count          = 0;
+        
+        
+    public:
 
         Node Left( const Node node) const
         {

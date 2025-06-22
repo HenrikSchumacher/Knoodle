@@ -31,8 +31,6 @@ namespace Knoodle
         using FlagCountVec_T = Tiny::Vector<5,LInt,Flag_T>;
 
         
-        PolygonFolder() = default;
-        
         template<typename ExtReal, typename ExtInt>
         PolygonFolder( const ExtInt vertex_count_, const ExtReal hard_sphere_diam_  )
         :   n       { int_cast<Int>(vertex_count_) }
@@ -53,7 +51,18 @@ namespace Knoodle
             SetTailSize(128);
         }
         
+        // Default constructor
+        PolygonFolder() = default;
+        // Destructor
         ~PolygonFolder() = default;
+        // Copy constructor
+        PolygonFolder( const PolygonFolder & other ) = default;
+        // Copy assignment operator
+        PolygonFolder & operator=( const PolygonFolder & other ) = default;
+        // Move constructor
+        PolygonFolder( PolygonFolder && other ) = default;
+        // Move assignment operator
+        PolygonFolder & operator=( PolygonFolder && other ) = default;
         
     private:
         

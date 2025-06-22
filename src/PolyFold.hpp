@@ -147,8 +147,6 @@ namespace Knoodle
         
     public:
         
-        PolyFold() = delete;
-        
         PolyFold( int argc, char** argv )
         {
             // https://patorjk.com/software/taag/#p=testall&f=Big%20Money-ne&t=PolyFold
@@ -212,10 +210,21 @@ print(R"(
             }
         }
         
+        // No default constructor
+        PolyFold() = delete;
+        // Destructor
         ~PolyFold()
         {
-            log << "\n|>";
+            log << "\n|>"; // Make sure that the log file contains a valid Mathematica Association.
         }
+        // Copy constructor
+        PolyFold( const PolyFold & other ) = default;
+        // Copy assignment operator
+        PolyFold & operator=( const PolyFold & other ) = default;
+        // Move constructor
+        PolyFold( PolyFold && other ) = default;
+        // Move assignment operator
+        PolyFold & operator=( PolyFold && other ) = default;
         
     private:
 

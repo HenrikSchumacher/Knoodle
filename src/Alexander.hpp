@@ -42,12 +42,7 @@ namespace Knoodle
         static constexpr bool Right = PD_T::Right;
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
-        
-        Alexander()
-        :   sparsity_threshold ( 256 )
-        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
-        ,   LU_perm   ( sparsity_threshold )
-        {}
+
         
         Alexander( const Int sparsity_threshold_ )
         :   sparsity_threshold ( 
@@ -60,7 +55,23 @@ namespace Knoodle
         ,   LU_perm   ( sparsity_threshold )
         {}
       
+        // Default constructor
+        Alexander()
+        :   sparsity_threshold ( 256 )
+        ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
+        ,   LU_perm   ( sparsity_threshold )
+        {}
+        
+        // Destructor
         ~Alexander() = default;
+        // Copy constructor
+        Alexander( const Alexander & other ) = default;
+        // Copy assignment operator
+        Alexander & operator=( const Alexander & other ) = default;
+        // Move constructor
+        Alexander( Alexander && other ) = default;
+        // Move assignment operator
+        Alexander & operator=( Alexander && other ) = default;
         
     private:
         

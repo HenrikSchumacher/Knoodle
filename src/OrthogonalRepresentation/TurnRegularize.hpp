@@ -39,7 +39,7 @@ void TurnRegularize( bool regularizeQ = true )
             TRE_flag(e,Head) = UInt8(0);
         }
     }
-    for( Int e = edge_count; e < TRE_max_count; ++e )
+    for( Int e = edge_count; e < Int(2) * TRE_max_count; ++e )
     {
         TRE_flag(e,Tail) = UInt8(0);
         TRE_flag(e,Head) = UInt8(0);

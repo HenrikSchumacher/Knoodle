@@ -83,8 +83,6 @@ namespace Knoodle
         
     public:
         
-        StrandSimplifier() = delete;
-        
         StrandSimplifier( PD_T & pd_ )
         :   pd             { pd_                        }
         ,   C_arcs         { pd.C_arcs                  }
@@ -102,6 +100,10 @@ namespace Knoodle
         ,   path           { A_cross.Dimension(0), -1   }
         {}
         
+        // No default constructor
+        StrandSimplifier() = delete;
+        
+        // Destructor
         ~StrandSimplifier()
         {
 #ifdef PD_TIMINGQ
@@ -125,9 +127,14 @@ namespace Knoodle
 #endif
         }
         
-        StrandSimplifier( const StrandSimplifier & other ) = delete;
-        
-        StrandSimplifier( StrandSimplifier && other ) = delete;
+        // Copy constructor
+        StrandSimplifier( const StrandSimplifier & other ) = default;
+        // Copy assignment operator
+        StrandSimplifier & operator=( const StrandSimplifier & other ) = default;
+        // Move constructor
+        StrandSimplifier( StrandSimplifier && other ) = default;
+        // Move assignment operator
+        StrandSimplifier & operator=( StrandSimplifier && other ) = default;
         
 
     private:

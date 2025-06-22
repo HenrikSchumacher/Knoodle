@@ -42,8 +42,6 @@ namespace Knoodle
         
     public:
         
-        CrossingSimplifier() = delete;
-        
         CrossingSimplifier( PD_T & pd_ )
         :   pd     { pd_        }
         ,   C_arcs { pd.C_arcs  }
@@ -52,12 +50,18 @@ namespace Knoodle
         ,   A_state{ pd.A_state }
         {}
         
+        // Default constructor
+        CrossingSimplifier() = delete;
+        // Destructor
         ~CrossingSimplifier() = default;
-        
-        CrossingSimplifier( const CrossingSimplifier & other ) = delete;
-        
-        CrossingSimplifier( CrossingSimplifier && other ) = delete;
-        
+        // Copy constructor
+        CrossingSimplifier( const CrossingSimplifier & other ) = default;
+        // Copy assignment operator
+        CrossingSimplifier & operator=( const CrossingSimplifier & other ) = default;
+        // Move constructor
+        CrossingSimplifier( CrossingSimplifier && other ) = default;
+        // Move assignment operator
+        CrossingSimplifier & operator=( CrossingSimplifier && other ) = default;
 
     public:
         

@@ -22,8 +22,6 @@ namespace Knoodle
         static constexpr Flag_T Id    = Flag_T::Id;
         static constexpr Flag_T NonId = Flag_T::NonId;
         
-        AffineTransform() = default;
-        
         template<typename ExtReal>
         AffineTransform(
             cptr<ExtReal> f_ptr, const Flag_T f_flag
@@ -46,8 +44,19 @@ namespace Knoodle
         {
             Read( A_, b_, flag_ );
         }
-        
+
+        // Default constructor
+        AffineTransform() = default;
+        // Destructor
         ~AffineTransform() = default;
+        // Copy constructor
+        AffineTransform( const AffineTransform & other ) = default;
+        // Copy assignment operator
+        AffineTransform & operator=( const AffineTransform & other ) = default;
+        // Move constructor
+        AffineTransform( AffineTransform && other ) = default;
+        // Move assignment operator
+        AffineTransform & operator=( AffineTransform && other ) = default;
 
     private:
         
@@ -55,7 +64,6 @@ namespace Knoodle
         Vector_T b;
         Flag_T   flag = Id;
         
-
     public:
         
         static constexpr Int Size()

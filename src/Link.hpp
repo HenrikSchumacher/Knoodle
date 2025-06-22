@@ -51,9 +51,52 @@ namespace Knoodle
 
     public:
         
+        // Default constructor
         Link() = default;
-        
+        // Destructor (virtual because of inheritance)
         virtual ~Link() = default;
+        // Copy constructor
+        Link( const Link & other ) = default;
+        // Copy assignment operator
+        Link & operator=( const Link & other ) = default;
+        // Move constructor
+        Link( Link && other ) = default;
+        // Move assignment operator
+        Link & operator=( Link && other ) = default;
+        
+        
+//        friend void swap( Link & A, Link & B ) noexcept
+//        {
+//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
+//            using std::swap;
+//            
+//            swap( A.edge_count          , B.edge_count          );
+//            swap( A.edges               , B.edges               );
+//            swap( A.next_edge           , B.next_edge           );
+//            swap( A.edge_ptr            , B.edge_ptr            );
+//            
+//            swap( A.component_count     , B.component_count     );
+//            swap( A.component_ptr       , B.component_ptr       );
+//            swap( A.component_lookup    , B.component_lookup    );
+//            swap( A.cyclicQ             , B.cyclicQ             );
+//            swap( A.preorderedQ         , B.preorderedQ         );
+//        }
+//        
+//        // Copy assignment operator
+//        Link & operator=( Link other ) noexcept
+//        {   //                                   ^
+//            //                                   |
+//            // Use the copy constructor   -------+
+//            swap( *this, other );
+//            return *this;
+//        }
+//        
+//        // Move constructor
+//        Link( Link && other ) noexcept
+//        :   Link()
+//        {
+//            swap(*this, other);
+//        }
         
         
     private:

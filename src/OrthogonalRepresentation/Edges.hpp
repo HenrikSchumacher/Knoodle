@@ -22,7 +22,6 @@ void ComputeEdgeLeftDedges()
     
     for( Int e = 0; e < edge_count; ++e )
     {
-//        TOOLS_DUMP( E_state[e] );
         if( !EdgeActiveQ(e) )
         {
             wprint(ClassName()+"::ComputeEdgeLeftDedges: Skipping edge " + ToString(e) + ".");

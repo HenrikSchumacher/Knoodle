@@ -66,16 +66,25 @@ namespace Knoodle
                     && (c[1][1] == NoNode);
             }
         };
-        
-        MatrixQuadTree() = default;
-        
+
         MatrixQuadTree( Int n_, Int dist_ = Int(0) )
         {
             Reset(n_,dist_);
         }
         
+        // Default constructor
+        MatrixQuadTree() = default;
+        // Destructor
         ~MatrixQuadTree() = default;
-        
+        // Copy constructor
+        MatrixQuadTree( const MatrixQuadTree & other ) = default;
+        // Copy assignment operator
+        MatrixQuadTree & operator=( const MatrixQuadTree & other ) = default;
+        // Move constructor
+        MatrixQuadTree( MatrixQuadTree && other ) = default;
+        // Move assignment operator
+        MatrixQuadTree & operator=( MatrixQuadTree && other ) = default;
+
         
     private:
         
