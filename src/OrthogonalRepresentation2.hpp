@@ -10,8 +10,10 @@ namespace Knoodle
     // TODO: Child class TurnRegularOrthogonalRepresentation?
     // Or just use a flag for that?
     
+
+    
     template<typename Int_>
-    class OrthogonalRepresentation2 : CachedObject
+    class OrthogonalRepresentation2 final : CachedObject
     {
     private:
         
@@ -39,6 +41,24 @@ namespace Knoodle
             Corner      =  2
         };
         
+        struct Settings_T
+        {
+            bool pm_matrixQ           = true;
+            bool redistribute_bendsQ      = false;
+            bool use_dual_simplexQ        = false;
+            bool turn_regularizeQ         = true;
+            bool saturate_facesQ          = true;
+            bool saturate_exterior_faceQ  = false;
+            int  compaction_method        = 0;
+            
+            
+            Int  x_grid_size              = 20;
+            Int  y_grid_size              = 20;
+            
+            Int  x_gap_size               =  4;
+            Int  y_gap_size               =  4;
+        };
+        
         using DiGraph_T             = MultiDiGraph<Int,Int>;
         using HeadTail_T            = DiGraph_T::HeadTail_T;
         using VertexContainer_T     = Tiny::VectorList_AoS<4,Int,Int>;
@@ -49,6 +69,8 @@ namespace Knoodle
         using EdgeFlagContainer_T   = Tiny::VectorList_AoS<2,EdgeFlag_T,Int>;
         using Vector_T              = Tiny::Vector<2,Int,Int>;
         using PlanarDiagram_T       = PlanarDiagram<Int>;
+        
+        using ArcSplineContainer_T  = RaggedList<std::array<Int,2>,Int>;
         
         using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
@@ -102,40 +124,59 @@ namespace Knoodle
         OrthogonalRepresentation2(
             mref<PlanarDiagram<ExtInt>> pd,
             const ExtInt exterior_face_ = ExtInt(-1),
-            bool use_dual_simplexQ = false
+            Settings_T settings_ = Settings_T()
         )
+        :   settings( settings_ )
         {
-            LoadPlanarDiagram( pd, exterior_face_, use_dual_simplexQ );
+            if( pd.CrossingCount() <= ExtInt(0) )
+            {
+                return;
+            }
             
-//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
+            LoadPlanarDiagram( pd, exterior_face_, settings.use_dual_simplexQ );
             
-//            ComputeFaces();
+            if( settings.turn_regularizeQ )
+            {
+                TurnRegularize();
+            }
             
-//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
-//            TOOLS_DUMP(BoolString(CheckFaceTurns()));
-//
-//            auto V_dE_backup = V_dE;
-//            auto E_V_backup = E_V;
-//            auto E_dir_backup = E_dir;
-//            auto E_turn_backup = E_turn;
-            
-//            bool regularizeQ = true;
-//            bool regularizeQ = false;
-            
-//            print("TurnRegularize...");
-//            TurnRegularize( regularizeQ );
-//            print("TurnRegularize done.");
-            
-//            TOOLS_DUMP(V_dE == V_dE_backup);
-//            TOOLS_DUMP(E_V == E_V_backup);
-//            TOOLS_DUMP(E_dir == E_dir_backup);
-//            TOOLS_DUMP(E_turn == E_turn_backup);
-//
-//            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
-//            TOOLS_DUMP(BoolString(CheckFaceTurns()));
-//            TOOLS_DUMP(BoolString(CheckTreDirections()));
-            
-//            ComputeConstraintGraphs();
+            ComputeConstraintGraphs();
+
+            switch( settings.compaction_method)
+            {
+                case 0:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant1();
+                    break;
+                }
+                case 1:
+                {
+                    ComputeVertexCoordinates_ByTopologicalTightening();
+                    break;
+                }
+                case 2:
+                {
+                    ComputeVertexCoordinates_ByTopologicalNumbering();
+                    break;
+                }
+                case 3:
+                {
+                    ComputeVertexCoordinates_ByTopologicalOrdering();
+                    break;
+                }
+                case 4:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant2();
+                    break;
+                }
+                default:
+                {
+                    wprint(ClassName() + "(): Unknown compaction method. Using default (0).");
+                    ComputeVertexCoordinates_ByLengths_Variant1();
+                    break;
+                }
+            }
+
 //            
 //            TOOLS_DUMP(BoolString(CheckEdgeDirections()));
 //            TOOLS_DUMP(BoolString(CheckFaceTurns()));
@@ -145,13 +186,6 @@ namespace Knoodle
 //            {
 //                TOOLS_DUMP(BoolString(CheckTurnRegularity()));
 //            }
-//            
-////            ComputeVertexCoordinates_ByTopologicalNumbering();
-//            ComputeVertexCoordinates_ByTopologicalTightening();
-//            
-//            ComputeArcLines();
-//            
-//            ComputeArcSplines();
         }
                                  
         // Default constructor
@@ -166,80 +200,6 @@ namespace Knoodle
         OrthogonalRepresentation2( OrthogonalRepresentation2 && other ) = default;
         // Move assignment operator
         OrthogonalRepresentation2 & operator=( OrthogonalRepresentation2 && other ) = default;
-        
-        
-//        // Copy constructor
-//        OrthogonalRepresentation2( const OrthogonalRepresentation2 & other ) = default;
-//        
-////        MultiGraph( const MultiGraph & other )
-////        :   Base_T( static_cast<const Base_T &>(other) )
-////        {}
-//        
-//        friend void swap( OrthogonalRepresentation2 & A, OrthogonalRepresentation2 & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-//            
-//            swap( A.crossing_count      , B.crossing_count      );
-//            swap( A.arc_count           , B.arc_count           );
-//            swap( A.face_count          , B.face_count          );
-//            swap( A.max_crossing_count  , B.max_crossing_count  );
-//            swap( A.max_arc_count       , B.max_arc_count       );
-//            swap( A.bend_count          , B.bend_count          );
-//            swap( A.vertex_count        , B.vertex_count        );
-//            swap( A.edge_count          , B.edge_count          );
-//            swap( A.virtual_edge_count  , B.virtual_edge_count  );
-//            
-////            swap( A.exterior_face       , B.exterior_face       );
-////            swap( A.maximum_face        , B.maximum_face        );
-//            swap( A.max_face_size       , B.max_face_size       );
-//            
-//            swap( A.A_overQ             , B.A_overQ             );
-//            swap( A.A_bends             , B.A_bends             );
-//            
-//            swap( A.A_V                 , B.A_V                 );
-//            swap( A.A_E                 , B.A_E                 );
-//            
-//            swap( A.V_dE                , B.V_dE                );
-//            swap( A.V_flag              , B.V_flag              );
-//            swap( A.V_scratch           , B.V_scratch           );
-//            
-//            swap( A.E_A                 , B.E_A                 );
-//            swap( A.E_V                 , B.E_V                 );
-//            swap( A.E_left_dE           , B.E_left_dE           );
-//            swap( A.E_turn              , B.E_turn              );
-//            swap( A.E_dir               , B.E_dir               );
-//            swap( A.E_flag              , B.E_flag              );
-//            swap( A.E_scratch           , B.E_scratch           );
-//            
-//            swap( A.proven_turn_regularQ, B.proven_turn_regularQ);
-//            
-//            swap( A.x_grid_size         , B.x_grid_size         );
-//            swap( A.y_grid_size         , B.y_grid_size         );
-//            swap( A.x_gap_size          , B.x_gap_size          );
-//            swap( A.y_gap_size          , B.y_gap_size          );
-//        }
-//        
-//        
-//        // Copy assignment operator
-//        OrthogonalRepresentation2 & operator=( OrthogonalRepresentation2 other )
-//        {   //                                     ^
-//            //                                     |
-//            // Use the copy constructor     -------+
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        OrthogonalRepresentation2( OrthogonalRepresentation2 && other ) noexcept
-//        :   OrthogonalRepresentation2()
-//        {
-//            swap(*this, other);
-//        }
-
-
         
     private:
         
@@ -284,17 +244,19 @@ namespace Knoodle
         mutable Tensor1<Int,Int>     E_scratch;
         mutable EdgeFlagContainer_T  E_flag;
         
-        bool proven_turn_regularQ = false;
+        Settings_T settings;
+        
+        mutable bool proven_turn_regularQ = false;
         
         // Plotting
         
 //        Int width       = 0;
 //        Int height      = 0;
 //        
-        Int x_grid_size = 20;
-        Int y_grid_size = 20;
-        Int x_gap_size  = 4;
-        Int y_gap_size  = 4;
+//        Int x_grid_size = 20;
+//        Int y_grid_size = 20;
+//        Int x_gap_size  = 4;
+//        Int y_gap_size  = 4;
         
 //        CoordsContainer_T V_coords;
 //        CoordsContainer_T A_line_coords;
@@ -310,48 +272,115 @@ namespace Knoodle
         /*!@brief Make room for more virtual edges.
          */
         
-        void RequireMaxEdgeCount( const Int max_edge_count )
+        void Resize( const Int max_edge_count_ )
         {
-            if( max_edge_count > E_V.Dimension(0) )
+            const Int max_edge_count = Max(Int(0), max_edge_count_ );
+            
+            // We do not change E_A. This way we still know how many nonvirtual edges we had in the beginning.
+            
+            const Int old_max_edge_count = E_V.Dim(0);
+            
+            if( max_edge_count == old_max_edge_count) { return; };
+            
+            // Might or might not be necessary.
+            this->ClearAllCache();
+            
+//            print("before");
+//            TOOLS_DUMP(E_V.Dim(0));
+//            TOOLS_DUMP(E_flag.Dim(0));
+//            TOOLS_DUMP(E_flag);
+            
+            E_A.      template Resize<true >( max_edge_count );
+            E_V.      template Resize<true >( max_edge_count );
+            E_left_dE.template Resize<true >( max_edge_count );
+            E_turn.   template Resize<true >( max_edge_count );
+            E_dir.    template Resize<true >( max_edge_count );
+            E_flag.   template Resize<true >( max_edge_count );
+            E_scratch.template Resize<false>( max_edge_count * Int(2) );
+
+            if( max_edge_count > old_max_edge_count )
             {
-        //        OrthogonalRepresentation2 H = *this;
+                const Int p = old_max_edge_count;
+                const Int d = max_edge_count - old_max_edge_count;
                 
-                // We do not change E_A. This way we still know how many nonvirtual edge we had in the beginning.
-                
-                EdgeContainer_T     new_E_V         ( max_edge_count );
-                EdgeContainer_T     new_E_left_dE   ( max_edge_count );
-                EdgeTurnContainer_T new_E_turn      ( max_edge_count );
-                Tensor1<Dir_T,Int>  new_E_dir       ( max_edge_count );
-                EdgeFlagContainer_T new_E_flag      ( max_edge_count );
-                Tensor1<Int,Int>    new_E_scratch   ( Int(2) * max_edge_count );
-                
-                E_V.Write       ( new_E_V.data()       );
-                E_left_dE.Write ( new_E_left_dE.data() );
-                E_turn.Write    ( new_E_turn.data()    );
-                E_dir.Write     ( new_E_dir.data()     );
-                E_flag.Write    ( new_E_flag.data()    );
-                
-                for( Int e = E_V.Dimension(0); e < max_edge_count; ++e )
-                {
-                    new_E_V(e,Tail)         = Uninitialized;
-                    new_E_V(e,Head)         = Uninitialized;
-                    new_E_left_dE(e,Head)   = Uninitialized;
-                    new_E_left_dE(e,Head)   = Uninitialized;
-                    new_E_turn(e,Tail)      = Turn_T(0);
-                    new_E_turn(e,Head)      = Turn_T(0);
-                    new_E_dir[e]            = NoDir;
-                    new_E_flag(e,Tail)      = EdgeFlag_T(0);
-                    new_E_flag(e,Head)      = EdgeFlag_T(0);
-                }
-                
-                swap( E_V       ,new_E_V        );
-                swap( E_left_dE ,new_E_left_dE  );
-                swap( E_turn    ,new_E_turn     );
-                swap( E_dir     ,new_E_dir      );
-                swap( E_flag    ,new_E_flag     );
-                swap( E_scratch ,new_E_scratch  );
-                
+                fill_buffer( E_A.data(p)        , Uninitialized, d );
+                fill_buffer( E_V.data(p)        , Uninitialized, d * Int(2) );
+                fill_buffer( E_left_dE.data(p)  , Uninitialized, d * Int(2) );
+                fill_buffer( E_turn.data(p)     , Turn_T(0)    , d * Int(2) );
+                fill_buffer( E_dir.data(p)      , NoDir        , d );
+                fill_buffer( E_flag.data(p)     , EdgeFlag_T(0), d * Int(2) );
             }
+            
+            
+//            for( Int e = old_max_edge_count; e < max_edge_count; ++e )
+//            {
+//                E_A(e)              = Uninitialized;
+//                E_V(e,Tail)         = Uninitialized;
+//                E_V(e,Head)         = Uninitialized;
+//                E_left_dE(e,Head)   = Uninitialized;
+//                E_left_dE(e,Head)   = Uninitialized;
+//                E_turn(e,Tail)      = Turn_T(0);
+//                E_turn(e,Head)      = Turn_T(0);
+//                E_dir[e]            = NoDir;
+//                E_flag(e,Tail)      = EdgeFlag_T(0);
+//                E_flag(e,Head)      = EdgeFlag_T(0);
+//            }
+            
+//            print("after");
+//            TOOLS_DUMP(E_V.Dim(0));
+//            TOOLS_DUMP(E_flag.Dim(0));
+//            TOOLS_DUMP(E_flag);
+            
+//            E_left_dE.template Resize<true>( max_edge_count );
+//            E_turn.   template Resize<true>( max_edge_count );
+//            E_dir.    template Resize<true>( max_edge_count );
+//            E_flag.   template Resize<true>( max_edge_count );
+//            E_scratch.template Resize<true>( Int(2) * max_edge_count );
+            
+//            EdgeContainer_T     new_E_V         ( max_edge_count );
+//            EdgeContainer_T     new_E_left_dE   ( max_edge_count );
+//            EdgeTurnContainer_T new_E_turn      ( max_edge_count );
+//            Tensor1<Dir_T,Int>  new_E_dir       ( max_edge_count );
+//            EdgeFlagContainer_T new_E_flag      ( max_edge_count );
+//            Tensor1<Int,Int>    new_E_scratch   ( Int(2) * max_edge_count );
+//
+//            
+//            if( max_edge_count >= old_max_edge_count )
+//            {
+//                E_V.Write       ( new_E_V.data()       );
+//                E_left_dE.Write ( new_E_left_dE.data() );
+//                E_turn.Write    ( new_E_turn.data()    );
+//                E_dir.Write     ( new_E_dir.data()     );
+//                E_flag.Write    ( new_E_flag.data()    );
+//                
+//                for( Int e = E_V.Dim(0); e < max_edge_count; ++e )
+//                {
+//                    new_E_V(e,Tail)         = Uninitialized;
+//                    new_E_V(e,Head)         = Uninitialized;
+//                    new_E_left_dE(e,Head)   = Uninitialized;
+//                    new_E_left_dE(e,Head)   = Uninitialized;
+//                    new_E_turn(e,Tail)      = Turn_T(0);
+//                    new_E_turn(e,Head)      = Turn_T(0);
+//                    new_E_dir[e]            = NoDir;
+//                    new_E_flag(e,Tail)      = EdgeFlag_T(0);
+//                    new_E_flag(e,Head)      = EdgeFlag_T(0);
+//                }
+//            }
+//            else
+//            {
+//                new_E_V.Read(E_V.data());
+//                new_E_left_dE.Read(E_left_dE.data());
+//                new_E_turn.Read(E_turn.data());
+//                new_E_dir.Read(E_dir.data());
+//                new_E_flag.Read(E_flag.data());
+//            }
+//
+//            swap( E_V       ,new_E_V        );
+//            swap( E_left_dE ,new_E_left_dE  );
+//            swap( E_turn    ,new_E_turn     );
+//            swap( E_dir     ,new_E_dir      );
+//            swap( E_flag    ,new_E_flag     );
+//            swap( E_scratch ,new_E_scratch  );
         }
         
     private:
@@ -366,11 +395,12 @@ namespace Knoodle
         
 //#include "OrthogonalRepresentation2/Tredges.hpp"
 //#include "OrthogonalRepresentation2/Trfaces.hpp"
-//#include "OrthogonalRepresentation2/SaturateFaces.hpp"
-//#include "OrthogonalRepresentation2/ConstraintGraphs.hpp"
-//#include "OrthogonalRepresentation2/LengthsLP.hpp"
-//#include "OrthogonalRepresentation2/Coordinates.hpp"
-//#include "OrthogonalRepresentation2/FindIntersections.hpp"
+#include "OrthogonalRepresentation2/SaturateFaces.hpp"
+#include "OrthogonalRepresentation2/ConstraintGraphs.hpp"
+#include "OrthogonalRepresentation2/LengthsLP_Variant1.hpp"
+#include "OrthogonalRepresentation2/LengthsLP_Variant2.hpp"
+#include "OrthogonalRepresentation2/Coordinates.hpp"
+#include "OrthogonalRepresentation2/FindIntersections.hpp"
 
 
 //###########################################################
@@ -524,6 +554,15 @@ namespace Knoodle
             return A_bends;
         }
   
+        bool PlusMinusMatrixQ() const
+        {
+            return settings.pm_matrixQ;
+        }
+
+        void SetPlusMinusMatrixQ( const bool val )
+        {
+            settings.pm_matrixQ = val;
+        }
         
         
 //        // Horizontal and vertical constaint graph
@@ -638,6 +677,11 @@ namespace Knoodle
         
         
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
         
         static std::string ClassName()
         {

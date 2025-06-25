@@ -11,7 +11,7 @@ namespace Knoodle
     // Or just use a flag for that?
     
     template<typename Int_>
-    class OrthogonalRepresentation
+    class OrthogonalRepresentation final
     {
     public:
         static_assert(SignedIntQ<Int_>,"");
