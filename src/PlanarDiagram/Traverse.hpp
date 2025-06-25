@@ -23,7 +23,7 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * @tparam arclabelsQ A `bool` that controls whether `A_scratch` shall be populated with the reordering of arcs.
  *
- * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1` (default), then the algorithm tries to choose it so that its tail goes under. If set to `0`, then just the next unvisted arc is chosen.
+ * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `0` (default), then just the next unvisited arc is chosen. If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. This feature is useful to traverse over/understrands.
  *
  * @tparam method The method used for traversal. You should typically use the default method.
  *
@@ -52,7 +52,7 @@ static constexpr int DefaultTraversalMethod = 1;
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = -1, int method = DefaultTraversalMethod,
+    int start_arc_ou = 0, int method = DefaultTraversalMethod,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse(
@@ -109,7 +109,7 @@ void Traverse(
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = -1, int method = DefaultTraversalMethod,
+    int start_arc_ou = 0, int method = DefaultTraversalMethod,
     typename ArcFun_T
 >
 void Traverse( ArcFun_T && arc_fun )  const
@@ -171,8 +171,8 @@ void Traverse_impl(
         return;
     }
 
-    const Int m = A_cross.Dimension(0);
-    const Int n = C_arcs.Dimension(0);
+    const Int m = A_cross.Dim(0);
+    const Int n = C_arcs.Dim(0);
 
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )

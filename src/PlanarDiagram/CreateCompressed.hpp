@@ -3,18 +3,18 @@ public:
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
- * Relabeling is done in order of traversal by routine `Traverse<true,false,-1,DefaultTraversalMethod>`, i.e., the first arc on each link component is chosen such that its tail goes _under_.
+ * Relabeling is done in order of traversal by routine `Traverse<true,false,0,DefaultTraversalMethod>`.
  */
 
-PlanarDiagram Canonicalize()
+PlanarDiagram CreateCompressed()
 {
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::Canonicalize: Input diagram is invalid. Returning invalid diagram.");
+        wprint( ClassName()+"::CreateCompressed: Input diagram is invalid. Returning invalid diagram.");
         return PlanarDiagram();
     }
     
-    TOOLS_PTIC( ClassName()+"::Canonicalize" );
+    TOOLS_PTIMER(timer,ClassName()+"::CreateCompressed");
     
     PlanarDiagram pd ( crossing_count, unlink_count );
     
@@ -30,7 +30,7 @@ PlanarDiagram Canonicalize()
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState>            A_state_new = pd.A_state.data();
     
-    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0,DefaultTraversalMethod>(
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -66,17 +66,15 @@ PlanarDiagram Canonicalize()
         pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
     }
     
-    TOOLS_PTOC( ClassName()+"::Canonicalize" );
-    
     return pd;
 }
 
-void CanonicalizeInPlace()
+void Compress()
 {
-    (*this) = this->Canonicalize();
+    (*this) = this->CreateCompressed();
 }
 
-bool CanonicallyOrderedQ()
+bool CompressedOrderQ()
 {
     // An empty list is ordered, of course.
     if( !ValidQ() )
@@ -86,7 +84,7 @@ bool CanonicallyOrderedQ()
     
     bool orderedQ = true;
     
-    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0,DefaultTraversalMethod>(
         [&orderedQ](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -115,7 +113,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     
     PlanarDiagram pd ( crossing_count, unlink_count );
     
-    const Int m = A_cross.Dimension(0);
+    const Int m = A_cross.Dim(0);
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState>       C_state_new = pd.C_state.data();

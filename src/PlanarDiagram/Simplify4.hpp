@@ -8,7 +8,7 @@ public:
 
 Int Simplify4(
     const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool canonicalizeQ      = true,
+    const bool compressQ      = true,
     const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q      = true
@@ -21,7 +21,7 @@ Int Simplify4(
     
     TOOLS_PTIC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(canonicalizeQ)
+         + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
@@ -54,9 +54,9 @@ Int Simplify4(
             
             counter += simpl3_changes;
             
-            if( canonicalizeQ && (simpl3_changes > Int(0)) )
+            if( compressQ && (simpl3_changes > Int(0)) )
             {
-                CanonicalizeInPlace();
+                Compress();
             }
         }
         
@@ -66,9 +66,9 @@ Int Simplify4(
         
         counter += o_changes;
         
-        if( canonicalizeQ && (o_changes > Int(0)) )
+        if( compressQ && (o_changes > Int(0)) )
         {
-            CanonicalizeInPlace();
+            Compress();
         }
         
         PD_ASSERT(CheckAll());
@@ -79,9 +79,9 @@ Int Simplify4(
         
         counter += u_changes;
         
-        if( canonicalizeQ && (u_changes > Int(0)) )
+        if( compressQ && (u_changes > Int(0)) )
         {
-            CanonicalizeInPlace();
+            Compress();
         }
         
         PD_ASSERT(CheckAll());
@@ -103,7 +103,7 @@ Int Simplify4(
 
     TOOLS_PTOC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(canonicalizeQ)
+         + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)

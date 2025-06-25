@@ -36,7 +36,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
     
     static_assert( SignedIntQ<T>, "" );
     
-    this->template Traverse<true,false,-1,method>(
+    this->template Traverse<true,false,0,method>(
         [&gauss_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -68,7 +68,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
-    const bool    canonicalizeQ = true,
+    const bool    compressQ = true,
     const bool    proven_minimalQ_ = false
 )
 {
@@ -187,10 +187,11 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    if( canonicalizeQ )
+    // TODO: Is this really meaningful?
+    if( compressQ )
     {
-        // We finally call `Canonicalize` to get the ordering of crossings and arcs consistent.
-        return pd.Canonicalize();
+        // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
+        return pd.CreateCompressed();
     }
     else
     {
@@ -202,7 +203,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
 template<typename T = Int>
 Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
 {
-    TOOLS_PTIC(ClassName()+"::ExtendedGaussCodeByLinkTraversal<" + TypeName<T> + ">" );
+    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCodeByLinkTraversal<" + TypeName<T> + ">" );
     
     static_assert( SignedIntQ<T>, "" );
     
@@ -212,7 +213,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
     {
         wprint( ClassName()+"::ExtendedGaussCodeByLinkTraversal: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
         
-        goto Exit;
+        return gauss_code;
     }
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
@@ -255,10 +256,6 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
             (void)lc_end;
         }
     );
-    
-Exit:
-    
-    TOOLS_PTOC(ClassName()+"::ExtendedGaussCodeByLinkTraversal<" + TypeName<T> + ">" );
     
     return gauss_code;
 }

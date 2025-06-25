@@ -68,7 +68,7 @@ void WritePDCode( mptr<T> pd_code )
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
     constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
-    this->template Traverse<crossingsQ,true,-1,method>(
+    this->template Traverse<crossingsQ,true,0,method>(
         [&pd_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -296,7 +296,7 @@ public:
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
- *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
+ *  @param compressQ If set to `true`, then the internal representation will be recompressed so that `CompressedOrderQ()` returns `true`. If this is set to `false`, then the output `CompressedOrderQ()` might be `true` or `false`.
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
  *
@@ -308,12 +308,12 @@ static PlanarDiagram<Int> FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
-    const bool    canonicalizeQ = true,
+    const bool    compressQ = true,
     const bool    proven_minimalQ_ = false
 )
 {
     return PlanarDiagram<Int>::FromPDCode<true,one_basedQ>(
-        pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
+        pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
 
@@ -328,7 +328,7 @@ static PlanarDiagram<Int> FromSignedPDCode(
  *
  *  @param unlink_count Number of unlinks in the diagram. (This is necessary as pure PD codes cannot track trivial unlinks.
  *
- *  @param canonicalizeQ If set to `true`, then the internal representation will be canonicalized so that `CanonicallyOrderedQ()` returns `true`. It this is set to `false`, then the output `CanonicallyOrderedQ()` might be `true` or `false`.
+ *  @param compressQ If set to `true`, then the internal representation will be recompressed so that `CompressedOrderQ()` returns `true`. It this is set to `false`, then the output `CompressedOrderQ()` might be `true` or `false`.
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
  *
@@ -340,12 +340,12 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
-    const bool    canonicalizeQ = true,
+    const bool    compressQ = true,
     const bool    proven_minimalQ_ = false
 )
 {
     return PlanarDiagram<Int>::FromPDCode<false,one_basedQ>(
-        pd_codes, crossing_count, unlink_count, canonicalizeQ, proven_minimalQ_
+        pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
 
@@ -359,7 +359,7 @@ static PlanarDiagram<Int> FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_,
-    const bool canonicalizeQ,
+    const bool compressQ,
     const bool proven_minimalQ_
 )
 {
@@ -608,10 +608,11 @@ static PlanarDiagram<Int> FromPDCode(
         return PlanarDiagram<Int>();
     }
     
-    if( canonicalizeQ )
+    // TODO: Is this really meaningful?
+    if( compressQ )
     {
-        // We finally call `Canonicalize` to get the ordering of crossings and arcs consistent.
-        return pd.Canonicalize();
+        // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
+        return pd.CreateCompressed();
     }
     else
     {

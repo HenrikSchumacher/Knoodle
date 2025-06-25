@@ -83,7 +83,7 @@ public:
 //}
 
 
-// Caution: This assumes that PD is freshly ordered! Check first that CanonicallyOrderedQ() returns true.
+// Caution: This assumes that PD is freshly ordered! Check first that CompressedOrderQ() returns true.
 template<bool nontrivialQ = true>
 bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
 {

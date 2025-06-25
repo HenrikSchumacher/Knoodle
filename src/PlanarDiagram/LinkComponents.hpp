@@ -78,7 +78,7 @@ void RequireLinkComponents() const
 {
     TOOLS_PTIC(ClassName()+"::RequireLinkComponents");
     
-    const Int m = A_cross.Dimension(0);
+    const Int m = A_cross.Dim(0);
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
     Tensor1<Int,Int> A_lc ( m, Uninitialized );
@@ -95,7 +95,7 @@ void RequireLinkComponents() const
     
     lc_arc_ptr[0]  = 0;
     
-    this->template Traverse<true,false,-1,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0,DefaultTraversalMethod>(
         []( const Int lc, const Int lc_begin )
         {
             (void)lc;
@@ -142,7 +142,7 @@ void RequireLinkComponents_Legacy()
 {
     TOOLS_PTIC(ClassName()+"::RequireLinkComponents_Legacy");
     
-    const Int m = A_cross.Dimension(0);
+    const Int m = A_cross.Dim(0);
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
     Tensor1<Int,Int> A_lc ( m, Uninitialized );

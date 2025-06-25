@@ -32,9 +32,7 @@ void ReadFromLink(
     
     mptr<Int> C_label = C_scratch.data();
     Int C_counter = 0;
-    
-    // TODO: If we want to canonicalize here, then we also need arc labels!
-    
+        
     auto process = [&,C_label,edge_intersections,edge_overQ,this]( const Int a, const Int b
     )
     {
@@ -133,19 +131,16 @@ void ReadFromLink(
         
         // If we arrive here, then there is definitely a crossing in the first edge.
         
-        
-        // TODO: Do the traversal so that the resulting `PlanarDiagram` is in canonical ordering in the sense of `CanonicallyOrderedQ`. For this, we have to go forward along the component until reach the first edge whose tail goes under. If if there is no such edge, we start at `b_begin`.
-        
         for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
         {
             process(a,b);
         }
     }
     
-    // TODO: For some reason, the resulting `PlanarDiagram` is not canonically ordered in the sense of `CanonicallyOrderedQ`. This may be a big issue when using `PlanarDiagram` in conjunction of the external visualization tools as `PlanarDiagram` returns PDCode always in canonically ordered form. So we do here a maybe unnecessary recanonicalization here. Maybe we can create the diagram in canonical form already?
+    // TODO: Check whether this is really neccessary.
     
-    if constexpr ( always_canonicalizeQ )
+    if constexpr ( always_compressQ )
     {
-        CanonicalizeInPlace();
+        Compress();
     }
 }

@@ -10,7 +10,7 @@ public:
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
     const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool canonicalizeQ      = true,
+    const bool compressQ      = true,
     const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q      = true
@@ -42,7 +42,7 @@ bool DisconnectSummands(
         {
             changedQ = changedQ || DisconnectSummand(
                 f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,canonicalizeQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -80,7 +80,7 @@ bool DisconnectSummand(
     cptr<Int> F_A_idx,
     cptr<Int> A_face,
     const Int max_dist,
-    const bool canonicalizeQ,
+    const bool compressQ,
     const Int  simplify3_level,
     const Int  simplify3_max_iter,
     const bool strand_R_II_Q = true
@@ -140,7 +140,7 @@ bool DisconnectSummand(
         pd.Simplify5(
             pd_list,
             max_dist,
-            canonicalizeQ,
+            compressQ,
             simplify3_level,
             simplify3_max_iter,
             strand_R_II_Q
@@ -449,7 +449,7 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     }
     while( a != a_0 );
     
-    // TODO: Should we recanonicalize here?
+    // TODO: Should we recompress here?
     // TODO: Compute crossing_count and arc_count!
     
     PD_ASSERT( pd.CheckAll() );

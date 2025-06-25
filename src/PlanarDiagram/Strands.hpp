@@ -33,7 +33,7 @@ Tensor1<Int,Int> ArcStrands() const
 {
     TOOLS_PTIC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    Tensor1<Int,Int> A_colors  ( A_cross.Dimension(0), Uninitialized );
+    Tensor1<Int,Int> A_colors ( A_cross.Dim(0), Uninitialized );
     Int color = 0;
     
     this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(
@@ -91,7 +91,7 @@ Tensor3<Int,Int> CrossingStrands() const
 {
     TOOLS_PTIC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
-    Tensor3<Int,Int> C_strands ( C_arcs.Dimension(0), 2, 2, -1 );
+    Tensor3<Int,Int> C_strands ( C_arcs.Dim(0), 2, 2, -1 );
     
     Int strand_counter = 0;
     

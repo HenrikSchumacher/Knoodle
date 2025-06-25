@@ -243,7 +243,7 @@ void Split( mref<PD_List_T> pd_list )
         pd_list.push_back( std::move(pd) );
     } // for( Int dc = 0; dc < dc_count; ++dc )
     
-    CanonicalizeInPlace();
+    Compress();
     
     TOOLS_PTOC(ClassName()+"::Split");
 }

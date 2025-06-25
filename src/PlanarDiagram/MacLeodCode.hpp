@@ -145,7 +145,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
     cptr<T>       code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
-    const bool    canonicalizeQ = false,
+    const bool    compressQ = false,
     const bool    proven_minimalQ_ = false
 )
 {
@@ -279,10 +279,11 @@ static PlanarDiagram<Int> FromMacLeodCode(
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    if(canonicalizeQ)
+    // TODO: Is this really meaningful?
+    if(compressQ)
     {
-        // We finally call `Canonicalize` to get the ordering of crossings and arcs consistent.
-        return pd.Canonicalize();
+        // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
+        return pd.CreateCompressed();
     }
     else
     {
