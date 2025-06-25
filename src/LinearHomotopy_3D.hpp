@@ -4,7 +4,7 @@ namespace Knoodle
 {
     
     template<typename Real_, typename Int_>
-    class alignas( ObjectAlignment ) LinearHomotopy_3D
+    class alignas( ObjectAlignment ) LinearHomotopy_3D final
     {
         
     public:

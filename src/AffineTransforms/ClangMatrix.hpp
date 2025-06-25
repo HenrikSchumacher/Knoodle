@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     template<Size_T M_, Size_T N_, typename Real_, typename Int_>
-    class ClangMatrix
+    class ClangMatrix final
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");

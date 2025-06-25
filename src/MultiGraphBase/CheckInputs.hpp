@@ -4,7 +4,7 @@ void CheckInputs() const
 {
     TOOLS_PTIMER( timer, ClassName()+"::CheckInputs" );
     
-    const EInt edge_count = edges.Dimension(0);
+    const EInt edge_count = edges.Dim(0);
     
     for( EInt e = 0; e < edge_count; ++e )
     {

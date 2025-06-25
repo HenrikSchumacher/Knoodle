@@ -13,7 +13,7 @@ namespace Knoodle
     // TODO: Check against calling on multiple compenent diagram.
     
     template<typename Scal_, typename Int_, typename LInt_>
-    class Alexander
+    class Alexander final
     {
         static_assert(SignedIntQ<Int_>,"");
         static_assert(IntQ<LInt_>,"");
@@ -142,7 +142,7 @@ namespace Knoodle
 
             Int counter = 0;
             
-            for( Int c = 0; c < C_arcs.Size(); ++c )
+            for( Int c = 0; c < C_arcs.Dim(0); ++c )
             {
                 if( counter >= n )
                 {
@@ -258,7 +258,7 @@ namespace Knoodle
             
             Int counter = 0;
             
-            for( Int c = 0; c < C_arcs.Size(); ++c )
+            for( Int c = 0; c < C_arcs.Dim(0); ++c )
             {
                 if( counter >= n )
                 {
@@ -383,7 +383,7 @@ namespace Knoodle
                 
                 Int counter = 0;
                 
-                for( Int c = 0; c < C_arcs.Size(); ++c )
+                for( Int c = 0; c < C_arcs.Dim(0); ++c )
                 {
                     if( counter >= n )
                     {

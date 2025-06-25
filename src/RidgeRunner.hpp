@@ -8,7 +8,7 @@ namespace Knoodle
     template<
         typename Real_ = double, typename Int_ = std::int64_t, typename LInt_ = std::int64_t
     >
-    class RidgeRunner
+    class RidgeRunner final
     {
         
     public:

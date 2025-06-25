@@ -14,7 +14,7 @@ namespace Knoodle
     
     // TODO: Enable unsigned integers because they should be about 15% faster in tasks heavy bit manipulations.
     template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagram : public CachedObject
+    class alignas( ObjectAlignment ) PlanarDiagram final : public CachedObject
     {
         static_assert(SignedIntQ<Int_>,"");
 
@@ -60,7 +60,7 @@ namespace Knoodle
         static constexpr bool Out   = 0;
         static constexpr bool In    = 1;
 
-        static constexpr bool always_canonicalizeQ = true;
+        static constexpr bool always_compressQ = true;
         
         static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
         
@@ -982,7 +982,7 @@ namespace Knoodle
 
 #include "PlanarDiagram/ReadFromLink.hpp"
 #include "PlanarDiagram/Traverse.hpp"
-#include "PlanarDiagram/Canonicalize.hpp"
+#include "PlanarDiagram/CreateCompressed.hpp"
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/R_I.hpp"

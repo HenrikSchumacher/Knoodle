@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     template<int AmbDim_, typename Real_, typename Int_>
-    class AffineTransform
+    class AffineTransform final
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");

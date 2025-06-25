@@ -47,7 +47,7 @@ void ComputeIncidenceMatrices() const
         + ">"
     );
 
-    const EInt edge_count = edges.Dimension(0);
+    const EInt edge_count = edges.Dim(0);
     TripleAggregator<EInt,EInt,Sign_T,EInt> agg_undir;
     PairAggregator<EInt,EInt,EInt> agg_out;
     PairAggregator<EInt,EInt,EInt> agg_in;

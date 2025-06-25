@@ -12,7 +12,7 @@
 namespace Knoodle
 {    
     template<typename Real_, typename Int_, typename LInt_, typename BReal_ = Real_>
-    class PolyFold
+    class PolyFold final
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(SignedIntQ<Int_>,"");

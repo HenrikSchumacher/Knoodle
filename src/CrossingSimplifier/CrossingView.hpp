@@ -1,7 +1,7 @@
 
 public:
 
-class CrossingView
+class CrossingView final
 {
     Int c;
     mptr<Int> C;
@@ -14,8 +14,6 @@ public:
     , C { C_ }
     , S { S_ }
     {}
-
-    ~CrossingView() = default;
     
     // TODO: Value semantics.
     

@@ -3,18 +3,16 @@ public:
 cref<Tensor1<VInt,VInt>> TopologicalOrdering() const
 {
     std::string tag = "TopologicalOrdering";
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,ClassName()+"::"+tag);
     if(!this->InCacheQ(tag)){ KahnsAlgorithm(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<VInt,VInt>>("TopologicalOrdering");
 }
 
 cref<Tensor1<VInt,VInt>> TopologicalNumbering() const
 {
     std::string tag = "TopologicalNumbering";
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,ClassName()+"::"+tag);
     if(!this->InCacheQ(tag)){ KahnsAlgorithm(); }
-    TOOLS_PTOC( ClassName()+"::"+tag);
     return this->template GetCache<Tensor1<VInt,VInt>>(tag);
 }
 
@@ -124,7 +122,7 @@ void KahnsAlgorithm() const
 
 cref<Tensor1<VInt,VInt>> TopologicalTightened() const
 {
-    TOOLS_PTIC(ClassName()+"::TopologicalTightened");
+    TOOLS_PTIMER(timer,ClassName()+"::TopologicalTightening");
     
     auto & p = TopologicalOrdering();
     auto   q = TopologicalNumbering(); // intentional copy here; we modify this.
@@ -168,8 +166,6 @@ cref<Tensor1<VInt,VInt>> TopologicalTightened() const
         }
     }
     
-    TOOLS_PTOC( ClassName()+"::TopologicalTightened");
-    
     return q;
 }
 
@@ -178,7 +174,7 @@ public:
 template<typename Scal>
 Tensor1<VInt,VInt> TopologicalTightening( cptr<Scal> edge_costs ) const
 {
-    TOOLS_PTIC(ClassName()+"::TopologicalTightening");
+    TOOLS_PTIMER(timer,ClassName()+"::TopologicalTightening");
     
     auto & p = TopologicalOrdering();
     auto   q = TopologicalNumbering(); // intentional copy here; we modify this.
@@ -232,8 +228,6 @@ Tensor1<VInt,VInt> TopologicalTightening( cptr<Scal> edge_costs ) const
             q[v] = min - VInt(1);
         }
     }
-    
-    TOOLS_PTOC( ClassName()+"::TopologicalTightening");
     
     return q;
 }

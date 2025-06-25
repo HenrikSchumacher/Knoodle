@@ -1,6 +1,6 @@
 public:
     
-class ArcView
+class ArcView final
 {
     Int a;
     mptr<Int> A;
@@ -13,8 +13,6 @@ public:
     , A { A_ }
     , S { S_ }
     {}
-    
-    ~ArcView() = default;
 
     // TODO: Value semantics.
     

@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     template<typename Scal_, typename Int_, typename LInt_>
-    class AlexanderFaceMatrix
+    class AlexanderFaceMatrix final
     {
         static_assert(SignedIntQ<Int_>,"");
         
@@ -71,7 +71,7 @@ namespace Knoodle
                 Int row_counter     = 0;
                 Int nonzero_counter = 0;
                 
-                for( Int c = 0; c < C_arcs.Size(); ++c )
+                for( Int c = 0; c < C_arcs.Dim(0); ++c )
                 {
                     if( row_counter >= m )
                     {
@@ -98,7 +98,7 @@ namespace Knoodle
                     const Int a_out = C_arcs(c,Out,Right);
                     const Int a_in  = C_arcs(c,In ,Left);
                     
-                    // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
+                    // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
                     // Then these are consecutive reads.
 
                     // Caution: In A_faces the _right_ face comes first!
@@ -289,7 +289,7 @@ namespace Knoodle
             
             const Scal T = scalar_cast<Scal>(t);
             
-            for( Int c = 0; c < C_arcs.Size(); ++c )
+            for( Int c = 0; c < C_arcs.Dim(0); ++c )
             {
                 if( row_counter >= m )
                 {
@@ -323,7 +323,7 @@ namespace Knoodle
                 const Int a_out = C_arcs(c,Out,Right);
                 const Int a_in  = C_arcs(c,In ,Left);
                 
-                // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
+                // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
                 // Then these are consecutive reads.
                 
                 // Caution: In A_faces the _right_ face comes first!

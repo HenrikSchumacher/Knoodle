@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     template<typename Scal_, typename Int_, typename LInt_>
-    class AlexanderStrandMatrix
+    class AlexanderStrandMatrix final
     {
         static_assert(SignedIntQ<Int_>,"");
         
@@ -71,7 +71,7 @@ namespace Knoodle
                 Int row_counter     = 0;
                 Int nonzero_counter = 0;
                 
-                for( Int c = 0; c < C_arcs.Size(); ++c )
+                for( Int c = 0; c < C_arcs.Dim(0); ++c )
                 {
                     if( row_counter >= n )  { break; }
                     
@@ -261,7 +261,7 @@ namespace Knoodle
             
             Int row_counter = 0;
             
-            for( Int c = 0; c < C_arcs.Size(); ++c )
+            for( Int c = 0; c < C_arcs.Dim(0); ++c )
             {
                 if( row_counter >= n )
                 {

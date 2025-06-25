@@ -9,7 +9,7 @@ namespace Knoodle
 {
     
     template<typename Scal_, typename Int_>
-    class Seifert
+    class Seifert final
     {
         
     public:

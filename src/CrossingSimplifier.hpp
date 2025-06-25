@@ -6,7 +6,7 @@
 namespace Knoodle
 {
     template<typename Int_, bool mult_compQ_ = true>
-    class alignas( ObjectAlignment ) CrossingSimplifier
+    class alignas( ObjectAlignment ) CrossingSimplifier final
     {
     public:
         

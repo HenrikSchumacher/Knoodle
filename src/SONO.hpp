@@ -6,7 +6,7 @@ namespace Knoodle
     // Many magic numbers for which I do not know how to adjust them.
     
     template<typename Real_ = double, typename Int_ = std::int64_t>
-    class SONO
+    class SONO final
     {
         
     public:

@@ -4,7 +4,7 @@ namespace Knoodle
 {
     
     template<typename Int_>
-    class alignas( ObjectAlignment ) MatrixQuadTree
+    class alignas( ObjectAlignment ) MatrixQuadTree final
     {
         static_assert(SignedIntQ<Int_>,"");
         
@@ -23,7 +23,7 @@ namespace Knoodle
         
         using Tree_T = CompleteBinaryTree<Int,false>;
 
-        struct Node
+        struct Node final
         {
             Node * c[2][2] = {{nullptr,nullptr},{nullptr,nullptr}};
             Box_T box;

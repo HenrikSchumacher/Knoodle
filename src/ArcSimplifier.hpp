@@ -9,7 +9,7 @@ namespace Knoodle
         Size_T optimization_level_ = 4,
         bool mult_compQ_ = true
     >
-    class alignas( ObjectAlignment ) ArcSimplifier
+    class alignas( ObjectAlignment ) ArcSimplifier final
     {
     public:
         

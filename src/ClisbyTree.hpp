@@ -44,7 +44,7 @@ namespace Knoodle
         typename Real_, typename Int_, typename LInt_,
         ClisbyTree_TArgs targs = ClisbyTree_TArgs()
     >
-    class alignas( ObjectAlignment ) ClisbyTree
+    class alignas( ObjectAlignment ) ClisbyTree final
     : public CompleteBinaryTree<Int_,true,true>
     //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {

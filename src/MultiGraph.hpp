@@ -123,7 +123,7 @@ namespace Knoodle
             // c stands for "component"
             // z stands for "cycle" (German "Zykel")
             
-            const EInt edge_count = edges.Dimension(0);
+            const EInt edge_count = edges.Dim(0);
             
             // TODO: Make it work with unsigned integers.
             // TODO: Make this consistent with Sparse::Tree?
@@ -393,7 +393,7 @@ namespace Knoodle
             
             if( !this->InCacheQ(tag) )
             {
-                const EInt edge_count = edges.Dimension(0);
+                const EInt edge_count = edges.Dim(0);
                 
                 if( edge_count <= 0 )
                 {

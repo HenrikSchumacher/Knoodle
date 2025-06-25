@@ -26,6 +26,8 @@ using BReal = double;          // scalar type used for bounding boxes
 using Int   = Int64;           // integer type used, e.g., for indices
 using LInt  = Int64;           // integer type used, e.g., for indices
 
+using OR_T = OrthogonalRepresentation2<Int>;
+
 int main( int argc, char** argv )
 {
     (void)argc;
@@ -57,17 +59,35 @@ int main( int argc, char** argv )
 //     +<----------+           +<----------+
 //  v_8     a_1     v_7     v_4     a_5     v_3
 
-    constexpr Int c_count = 9;
+//    constexpr Int c_count = 9;
+//    Int pd_code [c_count][5] = {
+//        {17, 16, 0, 17, -1},
+//        {0, 16, 1, 15, 1},
+//        {1, 7, 2, 6, 1},
+//        {2, 7, 3,8, -1},
+//        {3, 9, 4, 8, 1},
+//        {4, 9, 5, 10, -1},
+//        {5, 11, 6, 10, 1},
+//        {14, 12, 15, 11, 1},
+//        {13, 12, 14, 13, -1}
+//    };
+    
+    constexpr Int c_count = 14;
     Int pd_code [c_count][5] = {
-        {17, 16, 0, 17, -1},
-        {0, 16, 1, 15, 1},
-        {1, 7, 2, 6, 1},
-        {2, 7, 3,8, -1},
-        {3, 9, 4, 8, 1},
-        {4, 9, 5, 10, -1},
-        {5, 11, 6, 10, 1},
-        {14, 12, 15, 11, 1},
-        {13, 12, 14, 13, -1}
+        {27, 11, 0, 10, 1},
+        {11, 1, 12, 0, 1},
+        {1, 9, 2, 8, 1},
+        {7, 3, 8, 2, 1},
+        {3, 7, 4, 6, 1},
+        {13, 4, 14, 5, -1},
+        {5, 12, 6, 13, -1},
+        {9, 27, 10, 26, 1},
+        {14, 17, 15, 18, -1},
+        {18, 15, 19, 16, -1},
+        {16, 19, 17, 20, -1},
+        {23, 21, 24, 20, 1},
+        {21, 25, 22, 24, 1},
+        {25, 23, 26, 22, 1}
     };
     
     PlanarDiagram<Int> pd = PlanarDiagram<Int>::FromSignedPDCode(
@@ -76,8 +96,21 @@ int main( int argc, char** argv )
     
     Profiler::Clear();
     
-    OrthogonalRepresentation2<Int> H (pd);
-    H.TurnRegularize();
+    OR_T H (pd, Int(-1),
+        {
+            .redistribute_bendsQ     = true,
+            .use_dual_simplexQ       = false,
+            .turn_regularizeQ        = false,
+            .saturate_facesQ         = true,
+            .saturate_exterior_faceQ = false,
+            .compaction_method       = 4,
+        
+            .x_grid_size             = 8,
+            .y_grid_size             = 4,
+            .x_gap_size              = 1,
+            .y_gap_size              = 1
+        }
+    );
     
     TOOLS_DUMP(H.CrossingCount());
     TOOLS_DUMP(H.ArcCount());
@@ -85,42 +118,41 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.EdgeCount());
     TOOLS_DUMP(H.VirtualEdgeCount());
     
-    TOOLS_DUMP(H.VertexDedges());
-    TOOLS_DUMP(H.Edges());
-    TOOLS_DUMP(H.EdgeFlags());
-    
-    TOOLS_DUMP(H.Bends());
-    
-    TOOLS_DUMP(H.EdgeTurns());
+//    TOOLS_DUMP(H.VertexFlags());
+//    TOOLS_DUMP(H.VertexDedges());
+//    TOOLS_DUMP(H.Edges());
+//    TOOLS_DUMP(H.EdgeFlags());
+//    TOOLS_DUMP(H.Bends());
+//    TOOLS_DUMP(H.EdgeTurns());
     
 
-    print("\nArcs (vertices)");
-    {
-        auto & A_V = H.ArcVertices();
-        for( Int a = 0; a < A_V.SublistCount(); ++a )
-        {
-            valprint( "arc " + ToString(a), ToString(A_V.Sublist(a)) );
-        }
-    }
-    
-    print("\nArcs (edges)");
-    {
-        auto & A_E = H.ArcEdges();
-        for( Int a = 0; a < A_E.SublistCount(); ++a )
-        {
-            valprint( "arc " + ToString(a), ToString(A_E.Sublist(a)) );
-        }
-    }
-    
-    print("\nFaces (dedges)");
-    {
-        auto & F_dE = H.FaceDedges();
-        
-        for( Int f = 0; f < F_dE.SublistCount(); ++f )
-        {
-            valprint( "face " + ToString(f), ToString(F_dE.Sublist(f)) );
-        }
-    }
+//    print("\nArcs (vertices)");
+//    {
+//        auto & A_V = H.ArcVertices();
+//        for( Int a = 0; a < A_V.SublistCount(); ++a )
+//        {
+//            valprint( "arc " + ToString(a), ToString(A_V.Sublist(a)) );
+//        }
+//    }
+//    
+//    print("\nArcs (edges)");
+//    {
+//        auto & A_E = H.ArcEdges();
+//        for( Int a = 0; a < A_E.SublistCount(); ++a )
+//        {
+//            valprint( "arc " + ToString(a), ToString(A_E.Sublist(a)) );
+//        }
+//    }
+//    
+//    print("\nFaces (dedges)");
+//    {
+//        auto & F_dE = H.FaceDedges();
+//        
+//        for( Int f = 0; f < F_dE.SublistCount(); ++f )
+//        {
+//            valprint( "face " + ToString(f), ToString(F_dE.Sublist(f)) );
+//        }
+//    }
   
     print("");
     print("Checks");
@@ -129,29 +161,96 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.CheckEdgeDirections());
     TOOLS_DUMP(H.CheckFaceTurns());
     
-//    print("");
-//    print("Diagram");
-//    print("");
-//    H.SetHorizontalGridSize(8);
-//    H.SetVerticalGridSize(4);
-//    H.SetHorizontalGapSize(1);
-//    H.SetVerticalGapSize(1);
+    print("");
+    print("Diagram -- ByTopologicalTightening");
+    print("");
     
+//    TOOLS_DUMP(H.Dv().VertexCount());
+//    TOOLS_DUMP(H.Dv().EdgeCount());
+//    TOOLS_DUMP(H.Dh().VertexCount());
+//    TOOLS_DUMP(H.Dh().EdgeCount());
     
+    H.ComputeVertexCoordinates_ByTopologicalTightening();
+    TOOLS_DUMP(H.Width());
+    TOOLS_DUMP(H.Height());
+    TOOLS_DUMP(H.Area());
+    TOOLS_DUMP(H.Length());
+    print(H.DiagramString());
     
-//    H.ComputeVertexCoordinates_ByTopologicalTightening();
-//    
-//    TOOLS_DUMP(H.VertexCoordinates());
-//        
-//    print(H.DiagramString());
-//    
-//    
+//    H.ArcLines();
+//    H.ArcSplines();
 
-//    
 //    TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
+
+    
+    print("");
+    print("Diagram -- ByLengthVariant1");
+    print("");
+
+    
+    
+    
+
+    H.ComputeVertexCoordinates_ByLengths_Variant1();
+    TOOLS_DUMP(H.Width());
+    TOOLS_DUMP(H.Height());
+    TOOLS_DUMP(H.Area());
+    TOOLS_DUMP(H.Length());
+    print(H.DiagramString());
+
+    
+    
+//    auto switch_to_string = []( const UInt8 x )
+//    {
+//        return OR_T::SwitchString(OR_T::Switch_T(x));
+//    };
 //    
-//    TOOLS_DUMP(H.Test_TRE_DhE());
-//    TOOLS_DUMP(H.Test_TRE_DvE());
+//    print("\nFaceGlSwitchTypes");
+//    {
+//        auto F_types = H.template FaceSwitchTypes<0>();
+//        
+//        TOOLS_DUMP(F_types.ElementCount());
+//        
+//        for( Int f = 0; f < F_types.SublistCount(); ++f )
+//        {
+//            valprint(
+//                "face " + ToString(f),
+//                 ArrayToString(
+//                    F_types.Sublist(f).begin(),
+//                    {F_types.Sublist(f).Size()},
+//                    switch_to_string
+//                 )
+//            );
+//        }
+//    }
+//    
+//    print("\nFaceGrSwitchTypes");
+//    {
+//        auto F_types = H.template FaceSwitchTypes<1>();
+//        
+//        TOOLS_DUMP(F_types.ElementCount());
+//        
+//        for( Int f = 0; f < F_types.SublistCount(); ++f )
+//        {
+//            valprint(
+//                "face " + ToString(f),
+//                 ArrayToString(
+//                    F_types.Sublist(f).begin(),
+//                    {F_types.Sublist(f).Size()},
+//                    switch_to_string
+//                 )
+//            );
+//        }
+//    }
+    
+    auto Gl_saturating_edges = H.template SaturatingEdges<0>();
+    
+    TOOLS_DUMP(Gl_saturating_edges);
+    
+    auto Gr_saturating_edges = H.template SaturatingEdges<1>();
+    
+    TOOLS_DUMP(Gr_saturating_edges);
+
     
     return EXIT_SUCCESS;
 }

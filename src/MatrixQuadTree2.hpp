@@ -4,7 +4,7 @@ namespace Knoodle
 {
     
     template<typename Int_>
-    class alignas( ObjectAlignment ) MatrixQuadTree
+    class alignas( ObjectAlignment ) MatrixQuadTree final
     {
         static_assert(SignedIntQ<Int_>,"");
         
@@ -34,7 +34,7 @@ namespace Knoodle
             Untouched = -1
         };
         
-        struct Node
+        struct Node final
         {
             Children_T c {{{NoNode,NoNode},{NoNode,NoNode}}};
             Box_T box;
@@ -51,8 +51,8 @@ namespace Knoodle
             :   box { box_ }
             {}
             
-            ~Node() = default;
-            
+//            ~Node() = default;
+//            
 //            Node( Node & N ) = delete;
 //            Node( const Node & N ) = delete;
             

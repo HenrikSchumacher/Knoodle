@@ -18,7 +18,7 @@ std::string PDCodeString( mref<PD_T> P ) const
     s+= "\ns ";
     s+= ToString(P.ProvenMinimalQ());
     
-    for( Int i = 0; i < pdcode.Dimension(0); ++i )
+    for( Int i = 0; i < pdcode.Dim(0); ++i )
     {
         s+= VectorString<5>(&code[5 * i + 0], "\n", "\t", "" );
     }
@@ -107,7 +107,7 @@ void Analyze( const LInt i )
         Tiny::Vector<AmbDim,Real,Int> upper (x,0);
         Tiny::Vector<AmbDim,Real,Int> u;
         
-        for( Int j = 0; j < x.Dimension(0); ++j )
+        for( Int j = 0; j < x.Dim(0); ++j )
         {
             u.Read(x,j);
             lower.ElementwiseMin(u);

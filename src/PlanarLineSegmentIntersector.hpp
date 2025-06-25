@@ -25,7 +25,7 @@ namespace Knoodle
     }
     
     template<typename Real_,typename Int_>
-    class PlanarLineSegmentIntersector
+    class PlanarLineSegmentIntersector final
     {
     public:
         

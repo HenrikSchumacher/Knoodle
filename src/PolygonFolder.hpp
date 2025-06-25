@@ -5,7 +5,7 @@ namespace Knoodle
     // WARNING: This is a rather old development version that is probably buggy and significantly less efficient than ClisbyTree. Better use ClisbyTree for all  purposes other than performance comparison.
     
     template<typename Real_, typename Int_, typename LInt_>
-    class alignas( ObjectAlignment ) PolygonFolder
+    class alignas( ObjectAlignment ) PolygonFolder final
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(SignedIntQ<Int_>,"");

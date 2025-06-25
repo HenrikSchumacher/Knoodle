@@ -90,7 +90,7 @@ namespace Knoodle
         :   vertex_count ( int_cast<VInt>(vertex_count_)        )
         ,   edges        ( edges_, int_cast<EInt>(edge_count_)  )
         ,   V_scratch    ( vertex_count                         )
-        ,   E_scratch    ( edges.Dimension(0)                   )
+        ,   E_scratch    ( edges.Dim(0)                         )
         {
             CheckInputs();
         }
@@ -102,7 +102,7 @@ namespace Knoodle
         :   vertex_count ( int_cast<VInt>(vertex_count_)    )
         ,   edges        ( std::move(edges_)                )
         ,   V_scratch    ( vertex_count                     )
-        ,   E_scratch    ( edges.Dimension(0)               )
+        ,   E_scratch    ( edges.Dim(0)                     )
         {
             CheckInputs();
         }
@@ -114,9 +114,9 @@ namespace Knoodle
             const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
         )
         :   vertex_count ( int_cast<VInt>(vertex_count_)    )
-        ,   edges        ( int_cast<EInt>(pairs.Size())    )
+        ,   edges        ( int_cast<EInt>(pairs.Size())     )
         ,   V_scratch    ( vertex_count                     )
-        ,   E_scratch    ( edges.Dimension(0)               )
+        ,   E_scratch    ( edges.Dim(0)                     )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -124,7 +124,7 @@ namespace Knoodle
             cptr<I_0> i = pairs.Get_0().data();
             cptr<I_0> j = pairs.Get_1().data();
             
-            for( EInt e = 0; e < edges.Dimension(0); ++e )
+            for( EInt e = 0; e < edges.Dim(0); ++e )
             {
                 edges(e,Tail) = i[e];
                 edges(e,Head) = j[e];
@@ -153,7 +153,7 @@ namespace Knoodle
         
         EInt EdgeCount() const
         {
-            return edges.Dimension(0);
+            return edges.Dim(0);
         }
     
         cref<EdgeContainer_T> Edges() const

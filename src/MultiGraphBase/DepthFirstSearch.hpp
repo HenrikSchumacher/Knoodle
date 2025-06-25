@@ -100,7 +100,7 @@ void DepthFirstSearch(
     fill_buffer(V_flag,UInt8(0),vertex_count);
     
     mptr<bool> E_visitedQ = reinterpret_cast<bool *>(E_scratch.data());
-    fill_buffer(E_visitedQ,false,edges.Size());
+    fill_buffer(E_visitedQ,false,edges.Dim(0));
 
     // In the worst case (2 vertices, n edges), we push a stack_node for every edge before we ever can pop a node.
     // Note: We could mark every newly discovered vertex w as "discovered, not visited"  and push only {v,e,w,d} with undiscovered vertex w.

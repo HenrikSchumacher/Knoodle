@@ -11,7 +11,7 @@ namespace Knoodle
 {
     
     template<typename Int_, bool mult_compQ_>
-    class alignas( ObjectAlignment ) StrandSimplifier
+    class alignas( ObjectAlignment ) StrandSimplifier final
     {
     public:
         
@@ -84,20 +84,20 @@ namespace Knoodle
     public:
         
         StrandSimplifier( PD_T & pd_ )
-        :   pd             { pd_                        }
-        ,   C_arcs         { pd.C_arcs                  }
-        ,   C_state        { pd.C_state                 }
-        ,   A_cross        { pd.A_cross                 }
-        ,   A_state        { pd.A_state                 }
-        ,   A_visited_from { pd.A_scratch               }
-        ,   C_data         { C_arcs.Dimension(0), 2, -1 }
+        :   pd             { pd_                  }
+        ,   C_arcs         { pd.C_arcs            }
+        ,   C_state        { pd.C_state           }
+        ,   A_cross        { pd.A_cross           }
+        ,   A_state        { pd.A_state           }
+        ,   A_visited_from { pd.A_scratch         }
+        ,   C_data         { C_arcs.Dim(0), 2, -1 }
         // We initialize by 0 because actual colors will have to be positive to use sign bit.
-        ,   A_data         { A_cross.Dimension(0), 2, 0 }
+        ,   A_data         { A_cross.Dim(0), 2, 0 }
         // We initialize by 0 because actual colors will have to be positive to use sign bit.
-        ,   A_colors       { A_cross.Dimension(0),  0   }
-        ,   next_front     { A_cross.Dimension(0)       }
-        ,   prev_front     { A_cross.Dimension(0)       }
-        ,   path           { A_cross.Dimension(0), -1   }
+        ,   A_colors       { A_cross.Dim(0),  0   }
+        ,   next_front     { A_cross.Dim(0)       }
+        ,   prev_front     { A_cross.Dim(0)       }
+        ,   path           { A_cross.Dim(0), -1   }
         {}
         
         // No default constructor
@@ -325,7 +325,7 @@ namespace Knoodle
         {
             duds.clear();
             
-            for( Int a = 0; a < A_cross.Dimension(0); ++a )
+            for( Int a = 0; a < A_cross.Dim(0); ++a )
             {
                 if( pd.ArcActiveQ(a) )
                 {
@@ -820,7 +820,7 @@ namespace Knoodle
 
             Prepare();
             
-            const Int m = A_cross.Dimension(0);
+            const Int m = A_cross.Dim(0);
             
             // We increase `color` for each strand. This ensures that all entries of A_data, A_colors, C_data etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
             // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `SimplifyStrands`. That should really be enough for all feasible applications.

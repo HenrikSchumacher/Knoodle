@@ -14,7 +14,7 @@ namespace Knoodle
 {
     
     template<typename Scal_, typename Int_>
-    class Alexander_UMFPACK
+    class Alexander_UMFPACK final
     {
         static_assert(SignedIntQ<Int_>,"");
         
