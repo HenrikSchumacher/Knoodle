@@ -80,13 +80,13 @@ void ComputeEdgeLeftDedges()
 {
     TOOLS_PTIMER(timer,ClassName()+"::ComputeEdgeLeftDedges" );
     
-    E_left_dE = EdgeContainer_T ( E_V.Dimension(0), Int(-1) );
+    E_left_dE = EdgeContainer_T ( E_V.Dim(0), Int(-1) );
     
     mptr<Int>    dE_left_dE = E_left_dE.data();
     cptr<Turn_T> dE_turn    = E_turn.data();
     cptr<Int>    dE_V       = E_V.data();
     
-    for( Int e = 0; e < E_V.Dimension(0); ++e )
+    for( Int e = 0; e < E_V.Dim(0); ++e )
     {
         const Int de_0 = ToDedge<Tail>(e);
         const Int de_1 = ToDedge<Head>(e);
@@ -131,7 +131,7 @@ bool CheckEdgeDirection( Int e )
 {
     if constexpr( bound_checkQ )
     {
-        if ( (e < Int(0)) || (e >= E_V.Dimension(0)) )
+        if ( (e < Int(0)) || (e >= E_V.Dim(0)) )
         {
             eprint(ClassName()+"::CheckEdgeDirection: Index " + ToString(e) + " is out of bounds.");
             
@@ -182,7 +182,7 @@ bool CheckEdgeDirection( Int e )
 template<bool verboseQ = true>
 bool CheckEdgeDirections()
 {
-    for( Int e = 0; e < E_V.Dimension(0); ++e )
+    for( Int e = 0; e < E_V.Dim(0); ++e )
     {
         if ( !this->template CheckEdgeDirection<false,verboseQ>(e) )
         {

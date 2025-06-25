@@ -29,22 +29,27 @@ void LoadPlanarDiagram(
     C_A_T C_A = pd.Crossings();
     A_C_T A_C = pd.Arcs();
     
-    max_crossing_count  = int_cast<Int>(pd.Crossings().Dimension(0));
-    max_arc_count       = int_cast<Int>(pd.Arcs().Dimension(0));
+    max_crossing_count  = int_cast<Int>(pd.Crossings().Dim(0));
+    max_arc_count       = int_cast<Int>(pd.Arcs().Dim(0));
     
     crossing_count      = int_cast<Int>(pd.CrossingCount());
     arc_count           = int_cast<Int>(pd.ArcCount());
     face_count          = int_cast<Int>(pd.FaceCount());
     
-    const Int maximum_face        = int_cast<Int>(pd.MaximumFace());
-    max_face_size       = int_cast<Int>(pd.MaxFaceSize());
+    const Int maximum_face = int_cast<Int>(pd.MaximumFace());
+    max_face_size          = int_cast<Int>(pd.MaxFaceSize());
     
     // TODO: Allow more general bend sequences.
     const Int exterior_face = (exterior_face_ < ExtInt(0))
                             ? maximum_face
                             : int_cast<Int>(exterior_face_);
     
-    A_bends = Bends(pd,exterior_face);
+    A_bends = ComputeBends(pd,exterior_face);
+    
+    if( settings.redistribute_bendsQ )
+    {
+        RedistributeBends(pd,A_bends);
+    }
     
     if( A_bends.Size() != max_arc_count)
     {
@@ -62,7 +67,7 @@ void LoadPlanarDiagram(
 
     // This counts all vertices and edges, not only the active ones.
     const Int max_vertex_count = max_crossing_count + bend_count;
-    const Int max_edge_count   = max_arc_count      + bend_count + bend_count/Int(2);
+    const Int max_edge_count   = max_arc_count      + bend_count + (settings.turn_regularizeQ ? bend_count/Int(2) : Int(0) );
     
     vertex_count = crossing_count + bend_count;
     edge_count   = arc_count      + bend_count;
@@ -207,6 +212,7 @@ void LoadPlanarDiagram(
         {
             v = V_counter++;
             e = E_counter++;
+            V_flag[v]  = VertexFlag_T::Corner;
             E_flag(e,Tail) = EdgeActiveMask;
             E_flag(e,Head) = EdgeActiveMask;
 //                                 + ??

@@ -62,7 +62,7 @@ void RequireFaces() const
     cptr<Int> dE_left_dE = E_left_dE.data();
     
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    EdgeContainer_T E_F ( E_V.Dimension(0) );
+    EdgeContainer_T E_F ( E_V.Dim(0) );
     
     mptr<Int> dE_F = E_F.data();
     
@@ -79,7 +79,7 @@ void RequireFaces() const
     
     constexpr Int yet_to_be_visited = Uninitialized - Int(1);
     
-    const Int dE_count = Int(2) * E_F.Dimension(0);
+    const Int dE_count = Int(2) * E_F.Dim(0);
     
     for( Int de = 0; de < dE_count; ++de )
     {
@@ -120,7 +120,6 @@ void RequireFaces() const
         while( de != de_ptr );
         
         F_dE.FinishSublist();
-        
     }
     
 //    print("");
@@ -130,7 +129,7 @@ void RequireFaces() const
 //    print("");
 //    TOOLS_DUMP(EdgeCount());
 //    TOOLS_DUMP(VirtualEdgeCount());
-//    TOOLS_DUMP(E_V.Dimension(0));
+//    TOOLS_DUMP(E_V.Dim(0));
 //    TOOLS_DUMP(dE_count);
 //    TOOLS_DUMP(dE_counter);
 //    TOOLS_DUMP(F_dE_idx_agg.Size());
@@ -143,9 +142,25 @@ void RequireFaces() const
         eprint(ClassName() + "::ComputeFaces(): Incorrect number of faces found.");
     }
     
-    this->SetCache( "FaceCount"         , F_dE.SublistCount() );
-    this->SetCache( "FaceDedges"        , std::move(F_dE)     );
-    this->SetCache( "EdgeFaces"         , std::move(E_F)      );
+    Int f_max = 0;
+    Int max_f_size = F_dE.SublistSize(f_max);
+    
+    for( Int f = 1; f < F_dE.SublistCount(); ++f )
+    {
+        const Int f_size = F_dE.SublistSize(f);
+        
+        if( f_size > max_f_size )
+        {
+            f_max = f;
+            max_f_size = f_size;
+        }
+    }
+    
+    this->SetCache( "FaceCount"  , F_dE.SublistCount() );
+    this->SetCache( "MaxFace"    , f_max               );
+    this->SetCache( "MaxFaceSize", max_f_size          );
+    this->SetCache( "FaceDedges" , std::move(F_dE)     );
+    this->SetCache( "EdgeFaces"  , std::move(E_F)      );
     
 }
 
@@ -153,6 +168,18 @@ Int FaceCount() const
 {
     if( !this->InCacheQ("FaceCount") ) { RequireFaces(); }
     return this->GetCache<Int>("FaceCount");
+}
+
+Int MaxFace() const
+{
+    if( !this->InCacheQ("MaxFace") ) { RequireFaces(); }
+    return this->GetCache<Int>("MaxFace");
+}
+
+Int MaxFaceSize() const
+{
+    if( !this->InCacheQ("MaxFaceSize") ) { RequireFaces(); }
+    return this->GetCache<Int>("MaxFaceSize");
 }
 
 cref<RaggedList<Int,Int>> FaceDedges() const

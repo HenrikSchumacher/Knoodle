@@ -1,22 +1,47 @@
 public:
 
 
+Int LastActiveEdge() const
+{
+    Int last_active_edge = E_V.Dim(0) - Int(1);
+    
+    for( Int e = E_V.Dim(0); e --> Int(0);  )
+    {
+        if( DedgeActiveQ(ToDedge<Head>(e)) )
+        {
+            last_active_edge = e;
+            break;
+        }
+    }
+    
+    return last_active_edge;
+}
+
 void TurnRegularize()
 {
     TOOLS_PTIMER(timer,ClassName()+"::TurnRegularize");
 
     if( proven_turn_regularQ ) { return; }
     
-    // We need two reflex corners per virtual edge.
-    const Int max_edge_count = E_A.Dimension(0) + (bend_count/Int(2)) ;
+    this->ClearCache();
     
-    RequireMaxEdgeCount( max_edge_count );
+    // We need two reflex corners per virtual edge.
+    const Int old_max_edge_count = E_V.Dim(0);
+    const Int max_edge_count = max_arc_count + bend_count + bend_count/Int(2);
+    
 
-    for( Int de_ptr = 0; de_ptr < Int(2) * E_V.Dimension(0); ++de_ptr )
+    if( max_edge_count > old_max_edge_count )
+    {
+        Resize(max_edge_count);
+    }
+    
+    for( Int de_ptr = 0; de_ptr < Int(2) * E_V.Dim(0); ++de_ptr )
     {
         TurnRegularizeFace(de_ptr);
     }
     
+    Resize(LastActiveEdge() + Int(1));
+
     proven_turn_regularQ = true;
 }
 
