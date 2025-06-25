@@ -81,9 +81,9 @@ Sparse::MatrixCSR<S,I,J> Lengths_ConstraintMatrix()
     TOOLS_DUMP(jj.MinMax());
     TOOLS_DUMP(aa.MinMax());
     
-    print("B");
+
     Sparse::MatrixCSR<S,I,J> A ( agg, var_count, constraint_count, true, false );
-    print("C");
+
     TOOLS_PTOC(ClassName()+"::Lengths_ConstraintMatrix");
     
     return A;
@@ -148,4 +148,3 @@ Tensor1<S,I> Lengths_ObjectiveVector()
     
     return c;
 }
-

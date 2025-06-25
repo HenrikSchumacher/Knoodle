@@ -18,7 +18,7 @@ void ComputeVertexCoordinates(
         return;
     }
     
-    if( V_coords.Dimension(0) != vertex_count )
+    if( V_coords.Dim(0) != vertex_count )
     {
         V_coords = CoordsContainer_T( vertex_count );
     }

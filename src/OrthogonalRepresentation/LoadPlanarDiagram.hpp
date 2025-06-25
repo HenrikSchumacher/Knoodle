@@ -42,8 +42,8 @@ void LoadPlanarDiagram(
     C_A_T C_A = pd.Crossings();
     A_C_T A_C = pd.Arcs();
     
-    max_crossing_count  = int_cast<Int>(pd.Crossings().Dimension(0));
-    max_arc_count       = int_cast<Int>(pd.Arcs().Dimension(0));
+    max_crossing_count  = int_cast<Int>(pd.Crossings().Dim(0));
+    max_arc_count       = int_cast<Int>(pd.Arcs().Dim(0));
     
     crossing_count      = int_cast<Int>(pd.CrossingCount());
     arc_count           = int_cast<Int>(pd.ArcCount());

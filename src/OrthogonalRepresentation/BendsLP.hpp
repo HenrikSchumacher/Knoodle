@@ -24,7 +24,7 @@ Tensor1<Turn_T,Int> Bends(
     ExtInt ext_f_ = int_cast<ExtInt>(ext_f);
     
     {
-        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dimension(0));
+        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dim(0));
         Size_T nnz     = Size_T(4) * static_cast<Size_T>(pd.ArcCount());
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
@@ -104,12 +104,12 @@ Tensor1<Turn_T,Int> Bends(
     }
     
 
-    Tensor1<Turn_T,Int> bends ( pd.Arcs().Dimension(0) );
+    Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     mptr<Int> bends_ptr = bends.data();
     
     cptr<COIN_Real> sol = LP.primalColumnSolution();
 
-    for( ExtInt a = 0; a < pd.Arcs().Dimension(0); ++a )
+    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
         const ExtInt head = pd.ToDarc(a,Head);
         const ExtInt tail = pd.ToDarc(a,Tail);
@@ -135,7 +135,7 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
     
-    for( ExtInt a = 0; a < pd.Arcs().Dimension(0); ++a )
+    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         const I da_0 = static_cast<I>( pd.template ToDarc<Tail>(a) );
