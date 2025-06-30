@@ -12,15 +12,15 @@ void ComputeSpanningForest()
     
     
     DepthFirstSearch(
-        [&discovered_arcs]( cref<DirectedArcNode> A )
+        [&discovered_arcs]( cref<DarcNode> A )
         {
             discovered_arcs.Push( FromDarc(A.da).first );
         },
-        [&discovered_arcs]( cref<DirectedArcNode> A )
+        [&discovered_arcs]( cref<DarcNode> A )
         {
             discovered_arcs.Push( FromDarc(A.da).first );
         },
-        [&C_pre,&C_parent_A,&roots]( cref<DirectedArcNode> A )
+        [&C_pre,&C_parent_A,&roots]( cref<DarcNode> A )
         {
             C_pre.Push(A.head);
             C_parent_A[A.head] = A.da;
@@ -30,18 +30,18 @@ void ComputeSpanningForest()
                 roots.Push(A.head);
             }
         },
-        [&C_post]( cref<DirectedArcNode> A )
+        [&C_post]( cref<DarcNode> A )
         {
             C_post.Push(A.head);
         }
     );
     
-    this->SetCache( "DiagramComponentCount",      roots.Size()            );
-    this->SetCache( "CrossingPreOrdering",        std::move(C_pre.Get())  );
-    this->SetCache( "CrossingPostOrdering",       std::move(C_post.Get()) );
-    this->SetCache( "SpanningForestDirectedArcs", std::move(C_parent_A)   );
-    this->SetCache( "SpanningForestRoots",        std::move(roots.Get())  );
-    this->SetCache( "DFSArcOrdering",   std::move(discovered_arcs.Get())  );
+    this->SetCache( "DiagramComponentCount", roots.Size()            );
+    this->SetCache( "CrossingPreOrdering",   std::move(C_pre.Get())  );
+    this->SetCache( "CrossingPostOrdering",  std::move(C_post.Get()) );
+    this->SetCache( "SpanningForestDarcs",   std::move(C_parent_A)   );
+    this->SetCache( "SpanningForestRoots",   std::move(roots.Get())  );
+    this->SetCache( "DFSArcOrdering",        std::move(discovered_arcs.Get())  );
     
     TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }
@@ -71,12 +71,12 @@ Tensor1<Int,Int> CrossingPostOrdering()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-/*! @brief Returns a spanning forest in the following format: For every crossing `c` the entry `a = SpanningForestDirectedArcs()[c]` is the _oriented_ arc of the spanning tree that points to `c`. If `c` is a root crossing, then `-1` is returned instead.
+/*! @brief Returns a spanning forest in the following format: For every crossing `c` the entry `a = SpanningForestDarcs()[c]` is the _oriented_ arc of the spanning tree that points to `c`. If `c` is a root crossing, then `-1` is returned instead.
  */
 
-Tensor1<Int,Int> SpanningForestDirectedArcs()
+Tensor1<Int,Int> SpanningForestDarcs()
 {
-    std::string tag ("SpanningForestDirectedArcs");
+    std::string tag ("SpanningForestDarcs");
     TOOLS_PTIC(ClassName()+"::"+tag);
     if(!this->InCacheQ(tag)) { ComputeSpanningForest(); }
     TOOLS_PTOC(ClassName()+"::"+tag);

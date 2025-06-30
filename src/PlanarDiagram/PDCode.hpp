@@ -20,10 +20,9 @@ public:
  *
  * @tparam T Integer type to be used for the returned code.
  *
- * @tparam one_basedQ Whether the generated code should be 1-indexed (`true`) or 0-indexed (`false`).
  */
     
-template<typename T = Int, bool one_basedQ = false, int method = DefaultTraversalMethod>
+template<typename T = Int, int method = DefaultTraversalMethod>
 Tensor2<T,Int> PDCode()
 {
     TOOLS_PTIMER(timer,ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
@@ -47,19 +46,18 @@ Tensor2<T,Int> PDCode()
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
 
-    this->WritePDCode<T,one_basedQ,method>(pd_code.data());
+    this->WritePDCode<T,method>(pd_code.data());
     
     return pd_code;
 }
 
-template<typename T, bool one_basedQ = false, int method = DefaultTraversalMethod>
+template<typename T, int method = DefaultTraversalMethod>
 void WritePDCode( mptr<T> pd_code )
 {
     static_assert( IntQ<T>, "" );
     
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
-        + "," + ToString(one_basedQ)
         + "," + ToString(method)
         + ">");
     
@@ -78,16 +76,6 @@ void WritePDCode( mptr<T> pd_code )
             (void)lc;
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
-            
-//            // DEBUGGING
-//            if( !ValidIndexQ(a  ) ) { eprint("!ValidIndexQ(a)"); }
-//            
-//            // DEBUGGING
-//            if( !ValidIndexQ(c_0) ) { eprint("!ValidIndexQ(c_0)"); }
-//            if( !CrossingActiveQ(c_0) ) { eprint("Inactive crossing!"); }
-//            // DEBUGGING
-//            if( !ValidIndexQ(c_1) ) { eprint("!ValidIndexQ(c_1)"); }
-//            if( !CrossingActiveQ(c_1) ) { eprint("Inactive crossing!"); }
             
             // Tell c_0 that arc a_counter goes out of it.
             {
@@ -133,7 +121,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[3]           X[0]
                          */
                         
-                        pd[1] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[1] = static_cast<T>(a_pos);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -155,7 +143,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[0]           X[1]
                          */
                         
-                        pd[3] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[3] = static_cast<T>(a_pos);
                     }
                     else // if( side == Right )
                     {
@@ -172,7 +160,7 @@ void WritePDCode( mptr<T> pd_code )
                          *    X[0]           X[1]
                          */
                         
-                        pd[2] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[2] = static_cast<T>(a_pos);
                     }
                 }
             }
@@ -203,7 +191,7 @@ void WritePDCode( mptr<T> pd_code )
                          *   a_pos
                          */
                         
-                        pd[3] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[3] = static_cast<T>(a_pos);
                     }
                     else // if( side == Right )
                     {
@@ -220,7 +208,7 @@ void WritePDCode( mptr<T> pd_code )
                          *                  a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[0] = static_cast<T>(a_pos);
                     }
                 }
                 else if( LeftHandedQ(state) )
@@ -242,7 +230,7 @@ void WritePDCode( mptr<T> pd_code )
                          *   a_pos
                          */
                         
-                        pd[0] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[0] = static_cast<T>(a_pos);
                     }
                     else // if( lr == Right )
                     {
@@ -259,7 +247,7 @@ void WritePDCode( mptr<T> pd_code )
                          *                  a_pos
                          */
                         
-                        pd[1] = static_cast<T>(a_pos) + T(one_basedQ);
+                        pd[1] = static_cast<T>(a_pos);
                     }
                 }
             }
@@ -268,7 +256,7 @@ void WritePDCode( mptr<T> pd_code )
 }
 
 
-template<typename T = Int, bool  one_basedQ = false, int method = DefaultTraversalMethod>
+template<typename T = Int, int method = DefaultTraversalMethod>
 std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
 {
     Tensor2<T,Int> pd_code  = this->template PDCode<T,true,method>();
@@ -300,10 +288,9 @@ public:
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is irreducible and terminate early. Caution: Set this to `true` only if you know what you are doing!
  *
- *  @tparam one_basedQ Whether the input PD code is be to be interpreted as 1-indexed (`true`) or 0-indexed (`false`).
  */
 
-template<bool one_basedQ = false, typename ExtInt, typename ExtInt2, typename ExtInt3>
+template<typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
@@ -312,7 +299,7 @@ static PlanarDiagram<Int> FromSignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<true,one_basedQ>(
+    return PlanarDiagram<Int>::FromPDCode<true>(
         pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
@@ -332,10 +319,9 @@ static PlanarDiagram<Int> FromSignedPDCode(
  *
  *  @param proven_minimalQ_ If this is set to `true`, then simplification routines may assume that this diagram is minimal and terminate early. Caution: Set this to `true` only if you know what you are doing!
  *
- *  @tparam one_basedQ Whether the input PD code is be to be interpreted as 1-indexed (`true`) or 0-indexed (`false`).
  */
 
-template<bool one_basedQ = false, typename ExtInt, typename ExtInt2, typename ExtInt3>
+template<typename ExtInt, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
@@ -344,7 +330,7 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<false,one_basedQ>(
+    return PlanarDiagram<Int>::FromPDCode<false>(
         pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
@@ -352,7 +338,7 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
 private:
 
 template<
-    bool PDsignedQ, bool one_basedQ = false,
+    bool PDsignedQ,
     typename ExtInt, typename ExtInt2, typename ExtInt3
 >
 static PlanarDiagram<Int> FromPDCode(
@@ -374,8 +360,6 @@ static PlanarDiagram<Int> FromPDCode(
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     
-    constexpr Int s = one_basedQ ? Int(1) : Int(0);
-    
     static_assert( IntQ<ExtInt>, "" );
     static_assert( IntQ<ExtInt2>, "" );
     static_assert( IntQ<ExtInt3>, "" );
@@ -395,23 +379,7 @@ static PlanarDiagram<Int> FromPDCode(
     {
         Int X [d];
         
-        
-        if constexpr ( one_basedQ )
-        {
-            X[0] = pd_codes_[d*c + Int(0)] - s;
-            X[1] = pd_codes_[d*c + Int(1)] - s;
-            X[2] = pd_codes_[d*c + Int(2)] - s;
-            X[3] = pd_codes_[d*c + Int(3)] - s;
-            
-            if constexpr ( PDsignedQ )
-            {
-                X[4] = pd_codes_[d*c + Int(4)];
-            }
-        }
-        else
-        {
-            copy_buffer<d>( &pd_codes_[d*c], &X[0] );
-        }
+        copy_buffer<d>( &pd_codes_[d*c], &X[0] );
 
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
@@ -528,6 +496,7 @@ static PlanarDiagram<Int> FromPDCode(
             {
                 eprint(ClassName()+"::FromPDCode: Unclear crossing state.");
                 TOOLS_DUMP(pd.C_state[c]);
+                TOOLS_LOGDUMP(pd.C_state[c]);
                 // Do nothing;
                 break;
             }

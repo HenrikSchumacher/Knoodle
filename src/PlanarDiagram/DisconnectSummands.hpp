@@ -26,8 +26,8 @@ bool DisconnectSummands(
     
     std::vector<Int> f_faces;
 
-    cptr<Int> F_A_ptr  = FaceDirectedArcPointers().data();
-    cptr<Int> F_A_idx  = FaceDirectedArcIndices().data();
+    cptr<Int> F_A_ptr  = FaceDarcs().Pointers().data();
+    cptr<Int> F_A_idx  = FaceDarcs().Elements().data();
     cptr<Int> A_face   = ArcFaces().data();
     
     bool changedQ = false;
@@ -76,9 +76,9 @@ bool DisconnectSummand(
     TwoArraySort<Int,Int,Int> & sort,
     std::vector<Int> & f_arcs,
     std::vector<Int> & f_faces,
-    cptr<Int> F_A_ptr,
-    cptr<Int> F_A_idx,
-    cptr<Int> A_face,
+    cptr<Int> F_dA_ptr,
+    cptr<Int> F_dA_idx,
+    cptr<Int> dA_face,
     const Int max_dist,
     const bool compressQ,
     const Int  simplify3_level,
@@ -86,28 +86,28 @@ bool DisconnectSummand(
     const bool strand_R_II_Q = true
 )
 {
-    // TODO: Introduce some tracking of from where the components are split off.
+    // TODO: Introduce some tracking so that we can tell where the components are split off.
     
-    const Int i_begin = F_A_ptr[f  ];
-    const Int i_end   = F_A_ptr[f+1];
+    const Int i_begin = F_dA_ptr[f  ];
+    const Int i_end   = F_dA_ptr[f+1];
 
     f_arcs.clear();
     f_faces.clear();
     
     for( Int i = i_begin; i < i_end; ++i )
     {
-        const Int A = F_A_idx[i];
+        const Int da = F_dA_idx[i];
         
-        const Int a = (A >> 1);
+        auto [a,d] = FromDarc(da);
         
-        PD_ASSERT( f == A_face[A] );
+        PD_ASSERT( f == dA_face[da] );
         
         if( ArcActiveQ(a) )
         {
-            f_arcs.push_back(A);
+            f_arcs.push_back(da);
             
             // Tell `f` that it is neighbor of the face that belongs to the twin of `A`.
-            f_faces.push_back( A_face[A ^ Int(1)] );
+            f_faces.push_back( dA_face[FlipDarc(da)] );
         }
     }
         
@@ -117,7 +117,7 @@ bool DisconnectSummand(
     {
         const Int a = (f_arcs[0] >> 1);
 
-        // Warning: This alters the diagram but preserves the Cache -- which is important to not invalidate `FaceDirectedArcPointers` and `FaceDirectedArcIndices`, etc. I don't think that this will ever happen because `DisconnectSummand` is called only in a very controlled context when all possible Reidemeister I moves have been performed already.
+        // Warning: This alters the diagram but preserves the Cache -- which is important to not invalidate `FaceDarcs()`, etc. I don't think that this will ever happen because `DisconnectSummand` is called only in a very controlled context when all possible Reidemeister I moves have been performed already.
         
         if( Private_Reidemeister_I<true,true>(a) )
         {

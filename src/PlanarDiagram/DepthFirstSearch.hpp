@@ -2,38 +2,38 @@
 //##    Some Auxiliaries
 //###############################################
 
-struct DirectedArcNode
+struct DarcNode
 {
     Int tail = Uninitialized;
     Int da   = Uninitialized;
     Int head = Uninitialized;
 };
 
-constexpr static auto TrivialArcFunction = []( cref<DirectedArcNode> A )
+constexpr static auto TrivialArcFunction = []( cref<DarcNode> A )
 {
     (void)A;
 };
 
-constexpr static auto PrintDiscover = []( cref<DirectedArcNode> A )
+constexpr static auto PrintDiscover = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
     print("Discovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintRediscover = []( cref<DirectedArcNode> A )
+constexpr static auto PrintRediscover = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
 
     print("Rediscovering crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintPreVisit = []( cref<DirectedArcNode> A )
+constexpr static auto PrintPreVisit = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
     print("Pre-visiting crossing " + ToString(A.head) + " from crossing " + ToString(A.tail) + " along arc " + ToString(a) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
-constexpr static auto PrintPostVisit = []( cref<DirectedArcNode> A )
+constexpr static auto PrintPostVisit = []( cref<DarcNode> A )
 {
     auto [a,d] = FromDarc(A.da);
     
@@ -51,10 +51,10 @@ public:
  */
 
 template<
-    class Discover_T,   // f( const DirectedArcNode & da )
-    class Rediscover_T, // f( const DirectedArcNode & da )
-    class PreVisit_T,   // f( const DirectedArcNode & da )
-    class PostVisit_T   // f( const DirectedArcNode & da )
+    class Discover_T,   // f( const DarcNode & da )
+    class Rediscover_T, // f( const DarcNode & da )
+    class PreVisit_T,   // f( const DarcNode & da )
+    class PostVisit_T   // f( const DarcNode & da )
 >
 void DepthFirstSearch(
     Discover_T   && discover,
@@ -78,14 +78,14 @@ void DepthFirstSearch(
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,arc_count);
 
-    Stack<DirectedArcNode,Int> stack ( arc_count );
+    Stack<DarcNode,Int> stack ( arc_count );
 
     auto conditional_push = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover,this](
-        const DirectedArcNode & A, const Int db
+        const DarcNode & A, const Int db
     )
     {
         // We never walk back the same arc.
-        if( this->ValidIndexQ(A.da) && (db == FlipDiArc(A.da)) )
+        if( this->ValidIndexQ(A.da) && (db == FlipDarc(A.da)) )
         {
             return;
         }
@@ -104,7 +104,7 @@ void DepthFirstSearch(
         {
             C_flag[head] = UInt8(1);
             A_visitedQ[b] = true;
-            DirectedArcNode B {A.head,db,head};
+            DarcNode B {A.head,db,head};
 //            logprint("discover crossing " + ToString(head) + "; arc = " + ToString(b_ud));
             discover( B );
             stack.Push( std::move(B) );
@@ -134,7 +134,7 @@ void DepthFirstSearch(
         
         {
             C_flag[c_0] = UInt8(1);
-            DirectedArcNode A {Uninitialized, Uninitialized, c_0};
+            DarcNode A {Uninitialized, Uninitialized, c_0};
             discover( A );
 //            logprint("discover crossing " + ToString(c_0));
             stack.Push( std::move(A) );
@@ -142,7 +142,7 @@ void DepthFirstSearch(
         
         while( !stack.EmptyQ() )
         {
-            DirectedArcNode & A = stack.Top();
+            DarcNode & A = stack.Top();
             const Int c = A.head;
             
             if( C_flag[c] == UInt8(0) )
@@ -189,7 +189,7 @@ void DepthFirstSearch( PreVisitVertex_T && pre_visit )
     DepthFirstSearch(
         TrivialArcFunction,    //discover
         TrivialArcFunction,    //rediscover
-        pre_visit,             // f( const DirectedArcNode & da )
+        pre_visit,             // f( const DarcNode & da )
         TrivialArcFunction     //postvisit
     );
 }

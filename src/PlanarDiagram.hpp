@@ -774,7 +774,7 @@ namespace Knoodle
             return Int(2) * a + d;
         }
         
-        static constexpr Int FlipDiArc( const Int da )
+        static constexpr Int FlipDarc( const Int da )
         {
             return da ^ Int(1);
         }

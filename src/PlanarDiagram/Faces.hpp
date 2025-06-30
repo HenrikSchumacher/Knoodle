@@ -2,13 +2,13 @@ public:
 
 Int FaceCount() const
 {
-    return FaceDirectedArcPointers().Size()-1;
+    return FaceDarcs().SublistCount();
 }
 
 std::string FaceString( const Int f ) const
 {
-    cptr<Int> F_dA_ptr = FaceDirectedArcPointers().data();
-    cptr<Int> F_dA_idx = FaceDirectedArcIndices().data();
+    cptr<Int> F_dA_ptr = FaceDarcs().Pointers().data();
+    cptr<Int> F_dA_idx = FaceDarcs().Indices().data();
     
     const Int i_begin = F_dA_ptr[f  ];
     const Int i_end   = F_dA_ptr[f+1];
@@ -18,16 +18,10 @@ std::string FaceString( const Int f ) const
     return "face " + ToString(f) + " = " + ArrayToString( &F_dA_idx[i_begin], { f_size } );
 }
 
-cref<Tensor1<Int,Int>> FaceDirectedArcIndices() const
+cref<RaggedList<Int,Int>> FaceDarcs() const
 {
-    if(!this->InCacheQ("FaceDirectedArcIndices")) { RequireFaces(); }
-    return this->template GetCache<Tensor1<Int,Int>>("FaceDirectedArcIndices");
-}
-
-cref<Tensor1<Int,Int>> FaceDirectedArcPointers() const
-{
-    if(!this->InCacheQ("FaceDirectedArcPointers")) { RequireFaces(); }
-    return this->template GetCache<Tensor1<Int,Int>>("FaceDirectedArcPointers");
+    if(!this->InCacheQ("FaceDarcs")) { RequireFaces(); }
+    return this->template GetCache<RaggedList<Int,Int>>("FaceDarcs");
 }
 
 cref<ArcContainer_T> ArcFaces()  const
@@ -91,10 +85,10 @@ void RequireFaces() const
     
     const Int dA_count = 2 * max_arc_count;
     
-    Int dA_counter = 0;
+//    Int dA_counter = 0;
     
     // Each arc will appear in two faces.
-    Tensor1<Int,Int> F_dA_idx ( dA_count );
+//    Tensor1<Int,Int> F_dA_idx ( dA_count );
     // By Euler's polyhedra formula we have crossing_count - arc_count + face_count = 2.
     // Moreover, we have arc_count = 2 * crossing_count, hence face_count = crossing_count + 2.
     //    
@@ -110,8 +104,10 @@ void RequireFaces() const
     // expandable Aggregator<Int,Int>  here -- with default length that will always do for knots.
 
     Int expected_face_count = crossing_count + Int(2);
-    Aggregator<Int,Int> F_dA_ptr_agg ( expected_face_count + Int(1) );
-    F_dA_ptr_agg.Push(Int(0));
+//    Aggregator<Int,Int> F_dA_ptr_agg ( expected_face_count + Int(1) );
+//    F_dA_ptr_agg.Push(Int(0));
+    
+    RaggedList<Int,Int> F_dA ( expected_face_count + Int(1), dA_count );
     
     Int max_f    = 0;
     Int max_size = 0;
@@ -120,29 +116,29 @@ void RequireFaces() const
     {
         if( dA_F[da_0] != Uninitialized ) { continue; }
         
-        const Int count_0 = dA_counter;
+        const Int count_0 = F_dA.ElementCount();
+        
+        const Int f = F_dA.SublistCount();
         
         Int da = da_0;
         do
         {
             // Declare current face to be a face of this directed arc.
-            dA_F[da] = F_dA_ptr_agg.Size() - Int(1);
+//            dA_F[da] = F_dA_ptr_agg.Size() - Int(1);
+            dA_F[da] = f;
             
             // Declare this arc to belong to the current face.
-            F_dA_idx[dA_counter] = da;
+//            F_dA_idx[dA_counter] = da;
+            F_dA.Push(da);
             
             // Move to next arc.
             da = dA_left_dA[da];
             
-            ++dA_counter;
+//            ++dA_counter;
         }
         while( da != da_0 );
         
-        const Int f = F_dA_ptr_agg.Size() - Int(1);
-        
-        F_dA_ptr_agg.Push(dA_counter);
-        
-        const Int count_1 = dA_counter;
+        const Int count_1 = F_dA.ElementCount();
         const Int f_size = count_1 - count_0;
         
         if( f_size > max_size )
@@ -150,13 +146,14 @@ void RequireFaces() const
             max_f = f;
             max_size = f_size;
         }
+        
+        F_dA.FinishSublist();
     }
     
-    this->SetCache( "FaceDirectedArcPointers", std::move(F_dA_ptr_agg.Get()) );
-    this->SetCache( "FaceDirectedArcIndices" , std::move(F_dA_idx)           );
-    this->SetCache( "ArcFaces",                std::move(dA_F_buffer)        );
-    this->SetCache( "MaxFaceSize",             max_size                      );
-    this->SetCache( "MaximumFace",             max_f                         );
+    this->SetCache( "FaceDarcs"  , std::move(F_dA)        );
+    this->SetCache( "ArcFaces"   , std::move(dA_F_buffer) );
+    this->SetCache( "MaxFaceSize", max_size               );
+    this->SetCache( "MaximumFace", max_f                  );
     
     TOOLS_PTOC(ClassName()+"::RequireFaces");
 }

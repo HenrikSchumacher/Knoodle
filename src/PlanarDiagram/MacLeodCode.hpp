@@ -169,36 +169,16 @@ static PlanarDiagram<Int> FromMacLeodCode(
     
     Int crossing_counter = 0;
     
-//    TOOLS_DUMP(m);
-    
     for( Int a = 0; a < m; ++a )
     {
         if( !A_visitedQ[a] )
         {
-//            print("===============================");
             const T    v               = code[a];
             const Int  a_leap          = static_cast<Int>(v >> 2);
             const bool a_right_handedQ = (v & T(1)) == T(1);
             const bool a_overQ         = (v & T(2)) == T(2);
             
-//            TOOLS_DUMP(a);
-//            TOOLS_DUMP(a_leap);
-//            TOOLS_DUMP(a_right_handedQ);
-//            TOOLS_DUMP(a_overQ);
-            
             const Int  b               = a + a_leap;
-//            const T    w               = code[b];
-//            const Int  b_leap          = static_cast<Int>(w >> 2)   ;
-//            const bool b_right_handedQ = (w & T(1)) == T(1);
-//            const bool b_overQ         = (w & T(2)) == T(2);
-            
-//            TOOLS_DUMP(b);
-//            TOOLS_DUMP(b_leap);
-//            TOOLS_DUMP(b_right_handedQ);
-//            TOOLS_DUMP(b_overQ);
-//            
-//            TOOLS_DUMP(b + b_leap - m);
-//            TOOLS_DUMP(a_leap + b_leap);
             
             A_visitedQ[a] = true;
             A_visitedQ[b] = true;
@@ -264,12 +244,6 @@ static PlanarDiagram<Int> FromMacLeodCode(
             ++crossing_counter;
         }
     }
-    
-//    TOOLS_DUMP(crossing_counter);
-//    TOOLS_DUMP(pd.A_scratch);
-//    
-//    TOOLS_DUMP(pd.C_arcs);
-//    TOOLS_DUMP(pd.A_cross);
     
     pd.crossing_count = crossing_counter;
     pd.arc_count      = int_cast<Int>(arc_count_);
