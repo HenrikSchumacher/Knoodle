@@ -115,10 +115,7 @@ int main( int argc, char** argv )
     
     Tensor1<Real,Int> solution_2( LP.getNumCols() );
     
-    solution_2.Read( LP.primalColumnSolution() );
-    
-    LP.checkSolution(0);
-    
+    solution_2.Read( LP.primalColumnSolution() );    
     valprint("solution_2",ToString(solution_2,fp_formatter));
     return 0;
 }

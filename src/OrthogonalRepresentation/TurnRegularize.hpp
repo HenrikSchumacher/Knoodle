@@ -1,225 +1,105 @@
 public:
 
-void TurnRegularize( bool regularizeQ = true )
+
+Int LastActiveEdge() const
 {
-    TOOLS_PTIC(ClassName()+"::TurnRegularize");
+    Int last_active_edge = E_V.Dim(0) - Int(1);
     
-    Int TRE_max_count = Int(2) * edge_count;
-    
-    V_dTRE        = V_dE;
-    TRE_V         = EdgeContainer_T    ( TRE_max_count, Uninitialized );
-    TRE_left_dTRE = EdgeContainer_T    ( TRE_max_count, Uninitialized );
-    TRE_turn      = EdgeTurnContainer_T( TRE_max_count, Turn_T(0) );
-    TRE_dir       = Tensor1<Dir_T,Int> ( TRE_max_count, East );
-    
-    mptr<Int> dTRE_V         = TRE_V.data();
-    mptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
-    mptr<Int> dTRE_turn      = TRE_turn.data();
-    
-    E_V.Write( dTRE_V );
-    E_left_dE.Write( dTRE_left_dTRE );
-    E_turn.Write( dTRE_turn );
-    E_dir.Write( TRE_dir.data() );
-    
-    TRE_count = edge_count;
-
-    TRE_flag = Tiny::VectorList_AoS<2,UInt8,Int>( TRE_max_count );
-    
-//    print("Mark active edges.");
-    for( Int e = 0; e < edge_count; ++e )
+    for( Int e = E_V.Dim(0); e --> Int(0);  )
     {
-        if( EdgeActiveQ(e) )
+        if( DedgeActiveQ(ToDedge<Head>(e)) )
         {
-            TRE_flag(e,Tail) = ActiveMask;
-            TRE_flag(e,Head) = ActiveMask;
-        }
-        else
-        {
-            TRE_flag(e,Tail) = UInt8(0);
-            TRE_flag(e,Head) = UInt8(0);
-        }
-    }
-    for( Int e = edge_count; e < Int(2) * TRE_max_count; ++e )
-    {
-        TRE_flag(e,Tail) = UInt8(0);
-        TRE_flag(e,Head) = UInt8(0);
-    }
-
-    // TODO: This seems to be the only place where we need face information F_dE_ptr and F_dE_idx. We can avoid this by marking the edges already in LoadPlanarDiagram.
-    
-    ;
-    
-    TRF_MarkAsExterior( F_dE_idx[F_dE_ptr[exterior_face]] );
-
-    if( regularizeQ )
-    {
-        for( Int de_ptr = 0; de_ptr < Int(2) * edge_count; ++de_ptr )
-        {
-            TurnRegularizeFace(de_ptr);
+            last_active_edge = e;
+            break;
         }
     }
     
-    Compute_TRF();
+    return last_active_edge;
+}
+
+void TurnRegularize()
+{
+    TOOLS_PTIMER(timer,ClassName()+"::TurnRegularize");
+
+    if( proven_turn_regularQ ) { return; }
     
-    TOOLS_PTOC(ClassName()+"::TurnRegularize");
+    this->ClearCache();
+    
+    // We need two reflex corners per virtual edge.
+    const Int old_max_edge_count = E_V.Dim(0);
+    const Int max_edge_count = max_arc_count + bend_count + bend_count/Int(2);
+    
+
+    if( max_edge_count > old_max_edge_count )
+    {
+        Resize(max_edge_count);
+    }
+    
+    for( Int de_ptr = 0; de_ptr < Int(2) * E_V.Dim(0); ++de_ptr )
+    {
+        TurnRegularizeFace(de_ptr);
+    }
+    
+    Resize(LastActiveEdge() + Int(1));
+
+    proven_turn_regularQ = true;
 }
 
 
-/*! @brief Cycle around `de_ptr`'s left face and evaluate `edge_fun` on each directed edge.
- */
-
-template<typename EdgeFun_T>
-void TRF_Traverse( const Int de_ptr, EdgeFun_T && edge_fun )
+Turn_T FaceTurns( const Int de_ptr ) const
 {
+    if( !DedgeActiveQ(de_ptr) ) { return Turn_T(0); }
+    
+    cptr<Turn_T> dE_left_dE = E_left_dE.data();
+    cptr<Turn_T> dE_turn    = E_turn.data();
+    Turn_T rot = 0;
+    
     Int de = de_ptr;
+    
     do
     {
-        edge_fun(de);
-        de = TRE_left_dTRE.data()[de];
+        rot += dE_turn[de];
+        de = dE_left_dE[de];
     }
     while( de != de_ptr );
-}
-
-
-/*! @brief Cycle around `de_ptr`'s and count the number of edges.
- */
-
-Int TRF_TRE_Count( const  Int de_ptr )
-{
-    Int de_counter = 0;
     
-    TRF_Traverse(
-        de_ptr,
-        [&de_counter]( const Int de ) { ++de_counter; }
-    );
+    return rot;
+}
+
+bool CheckFaceTurns( const Int de_ptr ) const
+{
+    if( !DedgeActiveQ(de_ptr) ) { return true; }
     
-    return de_counter;
-}
-
-
-void TRF_MarkAsExterior( const Int de_ptr )
-{
-    TRF_Traverse(
-        de_ptr,
-        [this]( const Int de ) { TRE_flag.data()[de] |= BoundaryMask; }
-    );
-}
-
-void TRF_MarkAsInterior( const Int de_ptr )
-{
-    TRF_Traverse(
-        de_ptr,
-        [this]( const Int de ) { TRE_flag.data()[de] ^= (~BoundaryMask); }
-    );
-}
-
-void TRF_MarkAsVisited( const Int de_ptr )
-{
-    TRF_Traverse(
-        de_ptr,
-        [this]( const Int de ) { TRE_flag.data()[de] |= VisitedMask; }
-    );
-}
-
-
-
-// TODO: This routine has runtime quadradic in the number of arcs of the face.
-// TODO: Improve this by implementing the method that has linear runtime.
-
-/*!@brief Find the next best kitty corner. Start the search at `de_0` and then cycle counterclockwise around its left face. Return `{Uninitialized,Uninitialized}` if no kitty corner is found.
- *
- */
-
-std::tuple<Int,Int> FindKittyCorner_Naive( const Int de_ptr ) const
-{
-//    print("FindKittyCorner_Naive("+ToString(de_ptr)+")");
-    
-    if( !ValidIndexQ(de_ptr) )
+    const Turn_T rot = FaceTurns(de_ptr);
+        
+    if( DedgeExteriorQ(de_ptr) )
     {
-        return {Uninitialized,Uninitialized};
-    }
-    
-    cptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
-    cptr<Int>   dTRE_turn      = TRE_turn.data();
-    
-    mptr<Int>   rotations      = V_scratch.data();
-    mptr<Int>   reflex_edges   = E_scratch.data();
-    
-//    std::unordered_map<Turn_T,std::vector<Int>> rotation_lut;
-
-    const bool exteriorQ = TRE_BoundaryQ(de_ptr);
-    
-    Int reflex_counter = 0;
-    
-    // Compute rotations.
-    {
-        Int rot = 0;
-        Int de = de_ptr;
-        do
+        if( rot != Turn_T(-4) )
         {
-            if( dTRE_turn[de] == Turn_T(-1) )
-            {
-                reflex_edges[reflex_counter] = de;
-                rotations[reflex_counter] = rot;
-                reflex_counter++;
-                
-                // DEBUGGING
-                if( exteriorQ != TRE_BoundaryQ(de) )
-                {
-                    eprint(ClassName()+"::FindKittyCorner_Naive: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
-                }
-            }
-            rot += dTRE_turn[de];
-            de = dTRE_left_dTRE[de];
-        }
-        while( (de != de_ptr) && reflex_counter < edge_count );
-        // TODO: The checks on reflex_counter should be irrelevant if the graph structure is intact.
-
-        if( (de != de_ptr) && (reflex_counter >= edge_count) )
-        {
-            eprint(ClassName()+"::FindKittyCorner_Naive: Aborted because two many elements were collected. The data structure is probably corrupted.");
-
-            return {Uninitialized,Uninitialized};
-        }
-    }
-
-//    valprint("rotation", ArrayToString(rotation,{reflex_counter}));
-
-//    const Int target_turn = exteriorQ ? Turn_T(2) : Turn_T(-6);
-    
-    if( exteriorQ )
-    {
-        for( Int i = 0; i < reflex_counter; ++i )
-        {
-            for( Int j = i; j < reflex_counter; ++j )
-            {
-                const Int rot = rotations[j] - rotations[i];
-                
-                if( (rot == Turn_T(2)) || (rot == Turn_T(-6)) )
-                {
-                    return {reflex_edges[i],reflex_edges[j]};
-                }
-            }
+            eprint(ClassName() + "::CheckFaceTurns: found exterior face with incorrect rotation number.");
+            TOOLS_DDUMP(rot);
+            TOOLS_DDUMP(de_ptr);
+            
+            return false;
         }
     }
     else
     {
-        for( Int i = 0; i < reflex_counter; ++i )
+        if( rot != Turn_T(4) )
         {
-            for( Int j = i; j < reflex_counter; ++j )
-            {
-                const Int rot = rotations[j] - rotations[i];
-                
-                if( rot == Turn_T(2) )
-                {
-                    return {reflex_edges[i],reflex_edges[j]};
-                }
-            }
+            eprint(ClassName() + "::CheckFaceTurns: found interior face with incorrect rotation number.");
+            TOOLS_DDUMP(rot);
+            TOOLS_DDUMP(de_ptr);
+            
+            return false;
         }
     }
     
-    return {Uninitialized,Uninitialized};
+    return true;
 }
+
+private:
+
 
 template<bool verboseQ = false>
 std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
@@ -234,8 +114,8 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
         return {Uninitialized,Uninitialized};
     }
     
-    cptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
-    cptr<Int>   dTRE_turn      = TRE_turn.data();
+    cptr<Int>   dE_left_dE = E_left_dE.data();
+    cptr<Int>   dE_turn    = E_turn.data();
     
     // RE = reflex edge
     mptr<Int>   RE_rot = V_scratch.data();
@@ -244,7 +124,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
     
     std::unordered_map<Turn_T,std::vector<Int>> rot_lut;
 
-    const bool exteriorQ = TRE_BoundaryQ(de_ptr);
+    const bool exteriorQ = DedgeExteriorQ(de_ptr);
     
     Int dE_counter = 0;
     Int RE_counter = 0;
@@ -255,7 +135,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
         Int de = de_ptr;
         do
         {
-            if( dTRE_turn[de] == Turn_T(-1) )
+            if( dE_turn[de] == Turn_T(-1) )
             {
                 RE_de [RE_counter] = de;
                 RE_d  [RE_counter] = dE_counter;
@@ -264,17 +144,18 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
                 
                 RE_counter++;
                 
-                // DEBUGGING
-                if( exteriorQ != TRE_BoundaryQ(de) )
-                {
-                    eprint(ClassName()+"::FindKittyCorner: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
-                }
+//                // DEBUGGING
+//                if( exteriorQ != DedgeExteriorQ(de) )
+//                {
+//                    eprint(ClassName()+"::FindKittyCorner: dedge " + ToString(de) + " has bounday flag set to " + ToString(DedgeExteriorQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
+//                }
             }
             ++dE_counter;
-            rot += dTRE_turn[de];
-            de = dTRE_left_dTRE[de];
+            rot += dE_turn[de];
+            de = dE_left_dE[de];
         }
         while( (de != de_ptr) && dE_counter < edge_count );
+        
         // TODO: The checks on reflex_counter should be irrelevant if the graph structure is intact.
 
         if( (de != de_ptr) && (dE_counter >= edge_count) )
@@ -285,16 +166,11 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
         }
     }
     
-    
     if( RE_counter <= Int(1) )
     {
         return {Uninitialized,Uninitialized};
     }
 
-//    valprint("rotation", ArrayToString(rotation,{reflex_counter}));
-
-//    const Int target_turn = exteriorQ ? Turn_T(2) : Turn_T(-6);
-    
     if constexpr ( verboseQ )
     {
         TOOLS_DUMP(dE_counter);
@@ -310,7 +186,6 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
     for( Int q = 0; q < RE_counter; ++q )
     {
         const Int rot = RE_rot[q];
-        
         
         for( Int k = 0; k < Int(1) + exteriorQ; ++k )
         {
@@ -397,34 +272,46 @@ private:
 /*!@brief Check whether directed edge `de_ptr` is active and invisited. If affirmative, check whether the left face of `de_ptr` is turn-regular. If yes, return false (nothing changed); otherwise split the face by inserting a virtual edge and apply `TurnRegularizeFace` to both directed edges of the inserted virtual edge.
  *
  */
+
+template<bool debugQ = false>
 bool TurnRegularizeFace( const Int de_ptr )
 {
-    if( !TRE_ActiveQ(de_ptr) || TRE_VisitedQ(de_ptr) ) { return false; }
- 
-    mptr<Int>   dTRE_V         = TRE_V.data();
-    mptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
-    mptr<Int>   dTRE_turn      = TRE_turn.data();
-    mptr<UInt8> dTRE_flag      = TRE_flag.data();
+    if( !DedgeActiveQ(de_ptr) || DedgeVisitedQ(de_ptr) ) { return false; }
+    
+    
+    if constexpr ( debugQ )
+    {
+        if( !CheckFaceTurns(de_ptr) )
+        {
+            eprint(ClassName()+"TurnRegularize(): CheckFaceTurns failed on entry of TurnRegularizeFace on de_ptr = " + ToString(de_ptr) + ".");
+        }
+    }
+    
+    mptr<Int>   dE_V       = E_V.data();
+    mptr<Int>   dE_left_dE = E_left_dE.data();
+    mptr<Int>   dE_turn    = E_turn.data();
+    mptr<UInt8> dE_flag    = E_flag.data();
 
     // TODO: We should cycle around the face just once and collect all directed edges.
     
 //    print("FindKittyCorner...");
     auto [da_0,db_0] = this->template FindKittyCorner<false>(de_ptr);
 //    print("FindKittyCorner done.");
+    
 
     if( !ValidIndexQ(da_0) )
     {
-        TRF_MarkAsVisited(de_ptr);
+        MarkFaceAsVisited(de_ptr);
         return false;
     }
     
-    const bool externalQ = TRE_BoundaryQ(de_ptr);
+    const bool exteriorQ = DedgeExteriorQ(de_ptr);
 
-    const Int db_1 = dTRE_left_dTRE[db_0];
-    const Int da_1 = dTRE_left_dTRE[da_0];
+    const Int db_1 = dE_left_dE[db_0];
+    const Int da_1 = dE_left_dE[da_0];
     
-    const Int c_0 = dTRE_V[da_0];
-    const Int c_1 = dTRE_V[db_0];
+    const Int c_0 = dE_V[da_0];
+    const Int c_1 = dE_V[db_0];
     
 //      This situation, up to orientation preserving rotations:
 //      the edge a_0, a_1, b_0, b_1 must be pairwise distinct.
@@ -447,20 +334,22 @@ bool TurnRegularizeFace( const Int de_ptr )
     
     
     // Create new edge.
-    const Int e = TRE_count;
-    ++TRE_count;
+    const Int e = edge_count;
+    ++edge_count;
+    ++virtual_edge_count;
+    ++face_count;
 
     // The new edge; de_0 in forward direction; de_1 in reverse direction.
     Int de_0 = ToDarc(e,Tail);
     Int de_1 = ToDarc(e,Head);
-    dTRE_V[de_0] = c_0;
-    dTRE_V[de_1] = c_1;
+    dE_V[de_0] = c_0;
+    dE_V[de_1] = c_1;
 
     // See image above.
-    dTRE_left_dTRE[da_0] = de_1;
-    dTRE_left_dTRE[db_0] = de_0;
-    dTRE_left_dTRE[de_0] = da_1;
-    dTRE_left_dTRE[de_1] = db_1;
+    dE_left_dE[da_0] = de_1;
+    dE_left_dE[db_0] = de_0;
+    dE_left_dE[de_0] = da_1;
+    dE_left_dE[de_1] = db_1;
 
     // TODO: Randomize this?
     bool e_parallel_to_da_0 = true;
@@ -469,10 +358,7 @@ bool TurnRegularizeFace( const Int de_ptr )
     
     auto [a_0,d_0] = FromDarc(da_0);
     
-//        TOOLS_DUMP(a_0);
-//        TOOLS_DUMP(TRE_dir[a_0]);
-    
-    Dir_T s_0 = (TRE_dir[a_0] + !e_parallel_to_da_0) % Dir_T(4);
+    Dir_T s_0 = (E_dir[a_0] + !e_parallel_to_da_0) % Dir_T(4);
     // s_1 is always the opposite slot of s_0.
     Dir_T s_1 = (s_0 + Dir_T(2)) % Dir_T(4);
     
@@ -480,262 +366,277 @@ bool TurnRegularizeFace( const Int de_ptr )
     {
         std::swap(s_0,s_1);
     }
-
-//        TOOLS_DUMP(s_0);
-//        TOOLS_DUMP(s_1);
-//
-//        TOOLS_DUMP(V_dTRE(c_0,s_0));
-//        TOOLS_DUMP(V_dTRE(c_1,s_1));
     
-    V_dTRE(c_0,s_0) = de_1;
-    V_dTRE(c_1,s_1) = de_0;
-    
-//        TOOLS_DUMP(V_dTRE(c_0,s_0));
-//        TOOLS_DUMP(V_dTRE(c_1,s_1));
+    V_dE(c_0,s_0) = de_1;
+    V_dE(c_1,s_1) = de_0;
      
-    TRE_dir[e] = s_0;
-    dTRE_turn[de_0] = Turn_T( e_parallel_to_da_0);
-    dTRE_turn[de_1] = Turn_T( e_parallel_to_da_0);
-    dTRE_turn[da_0] = Turn_T(!e_parallel_to_da_0);
-    dTRE_turn[db_0] = Turn_T(!e_parallel_to_da_0);
+    E_dir[e] = s_0;
+    dE_turn[de_0] = Turn_T( e_parallel_to_da_0);
+    dE_turn[de_1] = Turn_T( e_parallel_to_da_0);
+    dE_turn[da_0] = Turn_T(!e_parallel_to_da_0);
+    dE_turn[db_0] = Turn_T(!e_parallel_to_da_0);
     
-    dTRE_flag[de_0] = ( ActiveMask | VirtualMask );
-    dTRE_flag[de_1] = ( ActiveMask | VirtualMask );
+    dE_flag[de_0] = ( EdgeActiveMask | EdgeVirtualMask );
+    dE_flag[de_1] = ( EdgeActiveMask | EdgeVirtualMask );
     
     // After splitting the face, we mark the bigger of the two residual faces as exterior face.
-    if( externalQ )
+    if( exteriorQ )
     {
-        const Int edge_count_0 = TRF_TRE_Count(de_0);
-        const Int edge_count_1 = TRF_TRE_Count(de_1);
+        const Int t_0 = FaceTurns(de_0);
+        const Int t_1 = FaceTurns(de_1);
         
-        if( edge_count_0 < edge_count_1 )
+        if( (t_0 == Turn_T(4)) && (t_1 == Turn_T(-4)) )
         {
-            TRF_MarkAsInterior(de_0);
-            TRF_MarkAsExterior(de_1);
+            MarkFaceAsInterior(de_0);
+            MarkFaceAsExterior(de_1);
+        }
+        else if( (t_0 == Turn_T(-4)) && (t_1 == Turn_T(4)) )
+        {
+            MarkFaceAsExterior(de_0);
+            MarkFaceAsInterior(de_1);
         }
         else
         {
-            TRF_MarkAsExterior(de_0);
-            TRF_MarkAsInterior(de_1);
+            eprint(MethodName("TurnRegularizeFace") + ": Inconsistent split of exterior face detected.");
         }
     }
     
     bool de_0_split = TurnRegularizeFace(de_0);
     bool de_1_split = TurnRegularizeFace(de_1);
+
+    if constexpr ( debugQ )
+    {
+        if( !de_0_split )
+        {
+            if( !CheckFaceTurns(de_0) )
+            {
+                eprint(ClassName()+"TurnRegularize(): CheckFaceTurns failed after calling TurnRegularizeFace on de_0 = " + ToString(de_0) + ".");
+            }
+        }
+        if( !de_1_split )
+        {
+            if( !CheckFaceTurns(de_1) )
+            {
+                eprint(ClassName()+"TurnRegularize(): CheckFaceTurns failed after calling TurnRegularizeFace on de_1 = " + ToString(de_1) + ".");
+            }
+        }
+    }
     
     return de_0_split || de_1_split;
 }
 
 public:
 
-bool CheckTurnRegularity()
-{
-    for( Int de = 0; de < Int(2) * TRE_count; ++de )
-    {
-        TRE_Unvisit(de);
-    }
-    
-    bool okayQ = true;
-    
-    for( Int de_ptr = 0; de_ptr < Int(2) * TRE_count; ++de_ptr )
-    {
-        if( !TRE_ActiveQ(de_ptr) || TRE_VisitedQ(de_ptr) ) { continue; }
-        
-        auto [da,db] = FindKittyCorner_Naive(de_ptr);
-        
-        if( da != Uninitialized )
-        {
-            okayQ = false;
-            
-            eprint(ClassName()+"::CheckTurnRegularity: Face containing TRE " + ToString(de_ptr) + " is not regular.");
-            
-            TOOLS_DUMP(da);
-            TOOLS_DUMP(db);
-        }
-    }
-    
-    return okayQ;
-}
+// TODO: Reimplement this.
+//bool CheckTurnRegularity()
+//{
+//    for( Int de = 0; de < Int(2) * TRE_count; ++de )
+//    {
+//        TRE_Unvisit(de);
+//    }
+//    
+//    bool okayQ = true;
+//    
+//    for( Int de_ptr = 0; de_ptr < Int(2) * TRE_count; ++de_ptr )
+//    {
+//        if( !TRE_ActiveQ(de_ptr) || TRE_VisitedQ(de_ptr) ) { continue; }
+//        
+//        auto [da,db] = FindKittyCorner_Naive(de_ptr);
+//        
+//        if( da != Uninitialized )
+//        {
+//            okayQ = false;
+//            
+//            eprint(ClassName()+"::CheckTurnRegularity: Face containing TRE " + ToString(de_ptr) + " is not regular.");
+//            
+//            TOOLS_DUMP(da);
+//            TOOLS_DUMP(db);
+//        }
+//    }
+//    
+//    return okayQ;
+//}
+
+// TODO: Reimplement this.
+//template<bool bound_checkQ = true,bool verboseQ = true>
+//bool CheckTreDirection( Int e )
+//{
+//    if constexpr( bound_checkQ )
+//    {
+//        if ( (e < Int(0)) || (e >= TRE_count) )
+//        {
+//            eprint(ClassName()+"::CheckTreDirection: Index " + ToString(e) + " is out of bounds.");
+//            
+//            return false;
+//        }
+//    }
+//    
+//    if ( (e < edge_count) && !EdgeActiveQ(e) )
+//    {
+//        return true;
+//    }
+//       
+//    const Int tail = TRE_V(e,Tail);
+//    const Int head = TRE_V(e,Head);
+//    
+//    const Dir_T dir       = TRE_dir[e];
+//    const Dir_T tail_port = TRE_dir[e];
+//    const Dir_T head_port = static_cast<Dir_T>(
+//        (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4)
+//    );
+//    
+//    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDedge<Head>(e));
+//    const bool head_okayQ = (V_dTRE(head,head_port) == ToDedge<Tail>(e));
+//    
+//    if constexpr( verboseQ )
+//    {
+//        if( !tail_okayQ )
+//        {
+//            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
+//        }
+//        if( !head_okayQ )
+//        {
+//            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
+//        }
+//    }
+//    return tail_okayQ && head_okayQ;
+//}
+
+// TODO: Reimplement this.
+//template<bool verboseQ = true>
+//bool CheckTreDirections()
+//{
+//    bool okayQ = true;
+//    
+//    for( Int e = 0; e < TRE_count; ++e )
+//    {
+//        if ( !this->template CheckTreDirection<false,verboseQ>(e) )
+//        {
+//            okayQ = false;
+//        }
+//    }
+//    return okayQ;
+//}
 
 
-template<bool bound_checkQ = true,bool verboseQ = true>
-bool CheckTreDirection( Int e )
-{
-    if constexpr( bound_checkQ )
-    {
-        if ( (e < Int(0)) || (e >= TRE_count) )
-        {
-            eprint(ClassName()+"::CheckTreDirection: Index " + ToString(e) + " is out of bounds.");
-            
-            return false;
-        }
-    }
-    
-    if ( (e < edge_count) && !EdgeActiveQ(e) )
-    {
-        return true;
-    }
-       
-    const Int tail = TRE_V(e,Tail);
-    const Int head = TRE_V(e,Head);
-    
-    const Dir_T dir       = TRE_dir[e];
-    const Dir_T tail_port = TRE_dir[e];
-    const Dir_T head_port = static_cast<Dir_T>(
-        (static_cast<UInt>(dir) + Dir_T(2) ) % Dir_T(4)
-    );
-    
-    const bool tail_okayQ = (V_dTRE(tail,tail_port) == ToDedge<Head>(e));
-    const bool head_okayQ = (V_dTRE(head,head_port) == ToDedge<Tail>(e));
-    
-    if constexpr( verboseQ )
-    {
-        if( !tail_okayQ )
-        {
-            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its tail " + ToString(tail) + ".");
-        }
-        if( !head_okayQ )
-        {
-            eprint(ClassName()+"::CheckTreDirection: edge " + ToString(e) + " points " + DirectionString(dir) + ", but it is not docked to the " + DirectionString(tail_port) + "ern port of its head " + ToString(head) + ".");
-        }
-    }
-    return tail_okayQ && head_okayQ;
-}
+//private:
+//
+//// Turn-regularized edges (TRE)
+//
+//bool TRE_ActiveQ( const Int de ) const
+//{
+//    return (TRE_flag.data()[de] & ActiveMask) != UInt(0);
+//}
+//
+//bool TRE_VisitedQ( const Int de ) const
+//{
+//    return (TRE_flag.data()[de] & VisitedMask) != UInt(0);
+//}
+//
+//void TRE_Visit( const Int de ) const
+//{
+//    TRE_flag.data()[de] |= VisitedMask;
+//}
+//
+//void TRE_Unvisit( const Int de ) const
+//{
+//    TRE_flag.data()[de] &= (~VisitedMask);
+//}
+//
+//bool TRE_BoundaryQ( const Int de ) const
+//{
+//    return (TRE_flag.data()[de] & BoundaryMask) != UInt(0);
+//}
+//
+//bool TRE_VirtualQ( const Int de ) const
+//{
+//    return (TRE_flag.data()[de] & VirtualMask) != UInt(0);
+//}
 
-template<bool verboseQ = true>
-bool CheckTreDirections()
-{
-    bool okayQ = true;
-    
-    for( Int e = 0; e < TRE_count; ++e )
-    {
-        if ( !this->template CheckTreDirection<false,verboseQ>(e) )
-        {
-            okayQ = false;
-        }
-    }
-    return okayQ;
-}
+//public:
+//
+//
+//template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
+//void TRF_TraverseAll(
+//    PreVisit_T  && pre_visit,
+//    EdgeFun_T   && edge_fun,
+//    PostVisit_T && post_visit
+//)
+//{
+//    TOOLS_PTIC(ClassName()+"::TRF_TraverseAll");
+//    
+//    cptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
+//    
+//    for( Int de = 0; de < Int(2) * TRE_count; ++de )
+//    {
+//        TRE_Unvisit(de);
+//    }
+//    
+//    for( Int de_0 = 0; de_0 < Int(2) * TRE_count; ++de_0 )
+//    {
+//        if( !TRE_ActiveQ(de_0) || TRE_VisitedQ(de_0) ) { continue; }
+//        
+//        pre_visit();
+//        
+//        Int de = de_0;
+//        do
+//        {
+//            edge_fun(de);
+//            TRE_Visit(de);
+//            de = dTRE_left_dTRE[de];
+//        }
+//        while( de != de_0 );
+//        
+//        post_visit();
+//    }
+//    
+//    TOOLS_PTOC(ClassName()+"::TRF_TraverseAll");
+//}
 
-
-private:
-
-// Turn-regularized edges (TRE)
-
-bool TRE_ActiveQ( const Int de ) const
-{
-    return (TRE_flag.data()[de] & ActiveMask) != UInt(0);
-}
-
-bool TRE_VisitedQ( const Int de ) const
-{
-    return (TRE_flag.data()[de] & VisitedMask) != UInt(0);
-}
-
-void TRE_Visit( const Int de ) const
-{
-    TRE_flag.data()[de] |= VisitedMask;
-}
-
-void TRE_Unvisit( const Int de ) const
-{
-    TRE_flag.data()[de] &= (~VisitedMask);
-}
-
-bool TRE_BoundaryQ( const Int de ) const
-{
-    return (TRE_flag.data()[de] & BoundaryMask) != UInt(0);
-}
-
-bool TRE_VirtualQ( const Int de ) const
-{
-    return (TRE_flag.data()[de] & VirtualMask) != UInt(0);
-}
-
-public:
-
-
-template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
-void TRF_TraverseAll(
-    PreVisit_T  && pre_visit,
-    EdgeFun_T   && edge_fun,
-    PostVisit_T && post_visit
-)
-{
-    TOOLS_PTIC(ClassName()+"::TRF_TraverseAll");
-    
-    cptr<Int> dTRE_left_dTRE = TRE_left_dTRE.data();
-    
-    for( Int de = 0; de < Int(2) * TRE_count; ++de )
-    {
-        TRE_Unvisit(de);
-    }
-    
-    for( Int de_0 = 0; de_0 < Int(2) * TRE_count; ++de_0 )
-    {
-        if( !TRE_ActiveQ(de_0) || TRE_VisitedQ(de_0) ) { continue; }
-        
-        pre_visit();
-        
-        Int de = de_0;
-        do
-        {
-            edge_fun(de);
-            TRE_Visit(de);
-            de = dTRE_left_dTRE[de];
-        }
-        while( de != de_0 );
-        
-        post_visit();
-    }
-    
-    TOOLS_PTOC(ClassName()+"::TRF_TraverseAll");
-}
-
-void Compute_TRF()
-{
-    TOOLS_PTIC(ClassName()+"::Compute_TRF");
-    
-    
-    print("Compute_TRF");
-    // This is only an initial guess.
-    TRF_count = TRE_count;
-    
-    Aggregator<Int,Int> TRF_dTRE_ptr_agg ( TRF_count );
-    TRF_dTRE_ptr_agg.Push(Int(0));
-    
-    TRF_dTRE_idx = Tensor1<Int,Int>( Int(2) * TRE_count );
-    
-    TRE_TRF = EdgeContainer_T( TRE_count );
-    mptr<Int> dTRE_TRF = TRE_TRF.data();
-        
-    Int dE_counter = 0;
-    
-    TRF_TraverseAll(
-        [](){},
-        [&TRF_dTRE_ptr_agg,&dE_counter,dTRE_TRF,this]( const Int de )
-        {
-            const Int f = TRF_dTRE_ptr_agg.Size();
-            dTRE_TRF[de] = f - Int(1);
-            TRF_dTRE_idx[dE_counter] = de;
-            
-            ++dE_counter;
-        },
-        [&TRF_dTRE_ptr_agg,&dE_counter]()
-        {
-            TRF_dTRE_ptr_agg.Push(dE_counter);
-        }
-    );
-    
-    TRF_dTRE_ptr = TRF_dTRE_ptr_agg.Get();
-    TRF_count = TRF_dTRE_ptr.Size() - Int(1);
-    
-    
-    TOOLS_DUMP(TRF_dTRE_ptr.Size());
-    TOOLS_DUMP(TRF_dTRE_idx.Size());
-    
-    TOOLS_PTOC(ClassName()+"::Compute_TRF");
-}
+//void Compute_TRF()
+//{
+//    TOOLS_PTIC(ClassName()+"::Compute_TRF");
+//    
+//    
+//    print("Compute_TRF");
+//    // This is only an initial guess.
+//    TRF_count = TRE_count;
+//    
+//    Aggregator<Int,Int> TRF_dTRE_ptr_agg ( TRF_count );
+//    TRF_dTRE_ptr_agg.Push(Int(0));
+//    
+//    TRF_dTRE_idx = Tensor1<Int,Int>( Int(2) * TRE_count );
+//    
+//    TRE_TRF = EdgeContainer_T( TRE_count );
+//    mptr<Int> dTRE_TRF = TRE_TRF.data();
+//        
+//    Int dE_counter = 0;
+//    
+//    TRF_TraverseAll(
+//        [](){},
+//        [&TRF_dTRE_ptr_agg,&dE_counter,dTRE_TRF,this]( const Int de )
+//        {
+//            const Int f = TRF_dTRE_ptr_agg.Size();
+//            dTRE_TRF[de] = f - Int(1);
+//            TRF_dTRE_idx[dE_counter] = de;
+//            
+//            ++dE_counter;
+//        },
+//        [&TRF_dTRE_ptr_agg,&dE_counter]()
+//        {
+//            TRF_dTRE_ptr_agg.Push(dE_counter);
+//        }
+//    );
+//    
+//    TRF_dTRE_ptr = TRF_dTRE_ptr_agg.Get();
+//    TRF_count = TRF_dTRE_ptr.Size() - Int(1);
+//    
+//    
+//    TOOLS_DUMP(TRF_dTRE_ptr.Size());
+//    TOOLS_DUMP(TRF_dTRE_idx.Size());
+//    
+//    TOOLS_PTOC(ClassName()+"::Compute_TRF");
+//}
 
 
 

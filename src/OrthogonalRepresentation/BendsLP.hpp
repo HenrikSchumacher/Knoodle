@@ -9,101 +9,108 @@ public:
  *
  * @param pd Planar diagram whose bends we want to compute.
  *
- * @param ext_f Specify which face shall be treated as exterior face. If `ext_f < 0` or `ext_f > pd.FaceCount()`, then a face with maximum number of arcs is chosen.
+ * @param ext_region Specify which face shall be treated as exterior region. If `ext_region < 0` or `ext_region > pd.FaceCount()`, then a face with maximum number of arcs is chosen.
  */
 
 template<typename ExtInt, typename ExtInt2>
-Tensor1<Turn_T,Int> Bends(
-    mref<PlanarDiagram<ExtInt>> pd, const ExtInt2 ext_f = -1, bool dualQ = false
+Tensor1<Turn_T,Int> ComputeBends(
+    mref<PlanarDiagram<ExtInt>> pd,
+    const ExtInt2 ext_region = -1,
+    bool dualQ = false
 )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER( timer, ClassName()+"::Bends");
+    TOOLS_PTIMER( timer, ClassName()+"::ComputeBends");
     
-    ExtInt ext_f_ = int_cast<ExtInt>(ext_f);
-    
+    ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
+            
     {
         Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dim(0));
         Size_T nnz     = Size_T(4) * static_cast<Size_T>(pd.ArcCount());
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
         {
-            eprint(ClassName()+"::Bends: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
+            eprint(ClassName()+"::ComputeBends: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
             return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
         {
-            eprint(ClassName()+"::Bends: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
+            eprint(ClassName()+"::ComputeBends: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
             return Tensor1<Turn_T,Int>();
         }
     }
     
-
     ClpSimplex LP;
     LP.setMaximumIterations(1000000);
     LP.setOptimizationDirection(1); // +1 -> minimize; -1 -> maximize
-    
+    LP.setLogLevel(0);
     
     using R = COIN_Real;
     using I = COIN_Int;
     using J = COIN_LInt;
     
-    auto A             = Bends_ConstraintMatrix<R,I,J>(pd);
-    auto var_lower_bnd = Bends_LowerBoundsOnVariables<R,I>(pd);
-    auto var_upper_bnd = Bends_UpperBoundsOnVariables<R,I>(pd);
-    auto constr_eq_vec = Bends_EqualityConstraintVector<R,I>(pd,ext_f_);
-    auto obj_vec       = Bends_ObjectiveVector<R,I>(pd);
+    auto AT     = Bends_ConstraintMatrix<R,I,J>(pd);
+    auto var_lb = Bends_LowerBoundsOnVariables<R,I>(pd);
+    auto var_ub = Bends_UpperBoundsOnVariables<R,I>(pd);
+    auto con_eq = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
+    auto c      = Bends_ObjectiveVector<R,I>(pd);
     
-    LP.loadProblem(
-        A.RowCount(), A.ColCount(),
-        A.Outer().data(), A.Inner().data(), A.Values().data(),
-        var_lower_bnd.data(), var_upper_bnd.data(),
-        obj_vec.data(),
-        constr_eq_vec.data(), constr_eq_vec.data()
-    );
+    if( settings.pm_matrixQ )
+    {
+        ClpPlusMinusOneMatrix A (
+            MatrixCSR_transpose_to_CoinPackedMatrix(AT)
+        );
+        
+        LP.loadProblem(
+            A,
+            var_lb.data(), var_ub.data(),
+            c.data(),
+            con_eq.data(), con_eq.data()
+        );
+    }
+    else
+    {
+        LP.loadProblem(
+            AT.RowCount(), AT.ColCount(),
+            AT.Outer().data(), AT.Inner().data(), AT.Values().data(),
+            var_lb.data(), var_ub.data(),
+            c.data(),
+            con_eq.data(), con_eq.data()
+        );
+    }
 
     if( dualQ )
     {
         LP.dual();
-        
-        if( !LP.statusOfProblem() )
-        {
-            eprint(ClassName()+"::Bends: Clp::Simplex::dual reports a problem in the solve phase. The returned solution may be incorrect.");
-            
-    //        valprint("Primal problem feasible" BoolString(LP.primalFeasible()) );
-    //        valprint("Dual   problem feasible" BoolString(LP.dualFeasible()) );
-            
-            TOOLS_DUMP(LP.getIterationCount());
-            TOOLS_DUMP(LP.primalFeasible());
-            TOOLS_DUMP(LP.dualFeasible());
-            TOOLS_DUMP(LP.largestPrimalError());
-            TOOLS_DUMP(LP.largestDualError());
-        }
     }
     else
     {
         LP.primal();
-        
-        if( !LP.statusOfProblem() )
-        {
-            eprint(ClassName()+"::Bends: Clp::Simplex::primal reports a problem in the solve phase. The returned solution may be incorrect.");
-            
-    //        valprint("Primal problem feasible" BoolString(LP.primalFeasible()) );
-    //        valprint("Dual   problem feasible" BoolString(LP.dualFeasible()) );
-            
-            TOOLS_DUMP(LP.getIterationCount());
-            TOOLS_DUMP(LP.primalFeasible());
-            TOOLS_DUMP(LP.dualFeasible());
-            TOOLS_DUMP(LP.largestPrimalError());
-            TOOLS_DUMP(LP.largestDualError());
-        }
     }
     
-
+    
+    if( !LP.statusOfProblem() )
+    {
+        eprint(ClassName()+"::ComputeBends: Clp::Simplex::" + (settings.use_dual_simplexQ ? "dual" : "primal" )+ " reports a problem in the solve phase. The returned solution may be incorrect.");
+        
+        TOOLS_DDUMP(LP.statusOfProblem());
+        TOOLS_DDUMP(LP.getIterationCount());
+        
+        TOOLS_DDUMP(LP.numberPrimalInfeasibilities());
+        TOOLS_DDUMP(LP.largestPrimalError());
+        TOOLS_DDUMP(LP.sumPrimalInfeasibilities());
+        
+        TOOLS_DDUMP(LP.numberDualInfeasibilities());
+        TOOLS_DDUMP(LP.largestDualError());
+        TOOLS_DDUMP(LP.sumDualInfeasibilities());
+        
+        TOOLS_DDUMP(LP.objectiveValue());
+    }
+    
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     mptr<Int> bends_ptr = bends.data();
     
@@ -111,9 +118,16 @@ Tensor1<Turn_T,Int> Bends(
 
     for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
-        const ExtInt head = pd.ToDarc(a,Head);
-        const ExtInt tail = pd.ToDarc(a,Tail);
-        bends_ptr[a] = static_cast<Turn_T>(std::round(sol[head] - sol[tail]));
+        if( pd.ArcActiveQ(a) )
+        {
+            const ExtInt head = pd.ToDarc(a,Head);
+            const ExtInt tail = pd.ToDarc(a,Tail);
+            bends_ptr[a] = static_cast<Turn_T>(std::round(sol[head] - sol[tail]));
+        }
+        else
+        {
+            bends_ptr[a] = Turn_T(0);
+        }
     }
 
     return bends;
@@ -138,6 +152,7 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
     for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
+        
         const I da_0 = static_cast<I>( pd.template ToDarc<Tail>(a) );
         const I da_1 = static_cast<I>( pd.template ToDarc<Head>(a) );
         
@@ -150,7 +165,7 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
         agg.Push( da_1, f_1,  S(1) );
     }
     
-    const I var_count        = I(2) *static_cast<I>(pd.ArcCount());
+    const I var_count        = I(2) * static_cast<I>(pd.Arcs().Dim(0));
     const I constraint_count = static_cast<I>(pd.FaceCount());
     
     Sparse::MatrixCSR<S,I,J> A ( agg, var_count, constraint_count, true, false );
@@ -165,7 +180,7 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
 template<typename S, typename I, typename ExtInt>
 static Tensor1<S,I> Bends_LowerBoundsOnVariables( mref<PlanarDiagram<ExtInt>> pd )
 {
-    const I var_count = I(2) *static_cast<I>(pd.ArcCount());
+    const I var_count = I(2) *static_cast<I>(pd.Arcs().Dim(0));
     
     // All bends must be nonnegative.
     return Tensor1<S,I>( var_count, S(0) );
@@ -176,14 +191,14 @@ static Tensor1<S,I> Bends_UpperBoundsOnVariables( mref<PlanarDiagram<ExtInt>> pd
 {
     TOOLS_MAKE_FP_STRICT();
     
-    const I var_count = I(2) *static_cast<I>(pd.ArcCount());
+    const I var_count = I(2) * static_cast<I>(pd.Arcs().Dim(0));
     
     return Tensor1<S,I>( var_count, Scalar::Infty<S> );
 }
 
 template<typename S, typename I, typename ExtInt>
 static Tensor1<S,I> Bends_EqualityConstraintVector(
-    mref<PlanarDiagram<ExtInt>> pd, const ExtInt ext_f = -1
+    mref<PlanarDiagram<ExtInt>> pd, const ExtInt ext_region = -1
 )
 {
     const I constraint_count = int_cast<I>(pd.FaceCount());
@@ -191,14 +206,18 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     Tensor1<S,I> v ( constraint_count );
     mptr<S> v_ptr = v.data();
     
-    cptr<ExtInt> F_dA_ptr = pd.FaceDirectedArcPointers().data();
+//    cptr<ExtInt> F_dA_ptr = pd.FaceDarcs().Pointers().data();
 
+    auto & F_dA = pd.FaceDarcs();
+    
     ExtInt max_f_size = 0;
     ExtInt max_f      = 0;
     
-    for( ExtInt f = 0; f < pd.FaceCount(); ++f )
+    for( ExtInt f = 0; f < F_dA.SublistCount(); ++f )
     {
-        const ExtInt f_size = F_dA_ptr[f+1] - F_dA_ptr[f];
+//        const ExtInt f_size = F_dA_ptr[f+1] - F_dA_ptr[f];
+        
+        const ExtInt f_size = F_dA.SublistSize(f);
         
         if( f_size > max_f_size )
         {
@@ -209,13 +228,13 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
         v_ptr[f] = S(4) - S(f_size);
     }
     
-    if( (ExtInt(0) <= ext_f) && (ext_f < pd.FaceCount()) )
+    if( (ExtInt(0) <= ext_region) && (ext_region < F_dA.SublistCount()) )
     {
-        v_ptr[ext_f] -= S(8);
+        v_ptr[ext_region] -= S(8);
     }
     else
     {
-        v_ptr[max_f] -= S(8);
+        v_ptr[ext_region] -= S(8);
     }
     
     return v;
@@ -224,7 +243,406 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
 template<typename S, typename I, typename ExtInt>
 static Tensor1<S,I> Bends_ObjectiveVector( mref<PlanarDiagram<ExtInt>> pd )
 {
-    const I var_count = I(2) *static_cast<I>(pd.ArcCount());
+    const I var_count = I(2) * static_cast<I>(pd.Arcs().Dim(0));
     
     return Tensor1<S,I>( var_count, S(1) );
+}
+
+
+//template<typename ExtInt>
+//void RedistributeBends1(
+//    cref<PlanarDiagram<ExtInt>> pd,
+//    mref<Tensor1<Turn_T,Int>> bends
+//)
+//{
+//    TOOLS_PTIMER(timer,ClassName()+"::RedistributeBends1");
+//    
+////    print(ClassName()+"::RedistributeBends1");
+//    auto & C_A = pd.Crossings();
+//    
+//    Int counter = 0;
+//    
+//    for( ExtInt c = 0; c < C_A.Dim(0); ++c )
+//    {
+//        if( !pd.CrossingActiveQ(c) ) { continue; }
+//
+//        Tiny::Matrix<2,2,ExtInt,ExtInt> C ( C_A.data(c) );
+//        
+//        Tiny::Matrix<2,2,Turn_T,ExtInt> B = {
+//            { bends[C(Out,Left)], bends[C(Out,Right)] },
+//            { bends[C(In ,Left)], bends[C(In ,Right)] },
+//        };
+//        
+//        // Checking whether there are two neighboring arcs without any bends.
+//        
+//        if      ( (B(Out,Left ) == Turn_T(0)) && (B(Out,Right) == Turn_T(0)) )
+//        {
+//            Turn_T score = B(In ,Left ) + B(In ,Right) ;
+//            
+//            if( score >= Turn_T(4) )
+//            {
+//                print("Redistributing bends at crossing " + ToString(c) + " (case A.1)");
+//                
+//                // Before:             X C(Out,Right)
+//                //                     ^
+//                //                     |
+//                //                     |
+//                //      C(Out,Left )   |c
+//                // ?         X<--------X<--------+ C(In ,Right)
+//                // |                   ^         ^
+//                // |                   |         |
+//                // |                   |         |
+//                // v     C(In ,Left )  |         |
+//                // X------------------>+         |
+//                //                               |
+//                //                               |
+//                //                               |
+//                //                               |
+//                //                     ?-------->+
+//                
+//                // After:
+//                //
+//                // ?         X<--------+         X C(Out,Right)
+//                // |     C(Out,Left )  |         ^
+//                // |                   |         |
+//                // |                   |         |
+//                // v    C(In ,Left )   |c        |
+//                // X------------------>X-------->+
+//                //                     ^
+//                //                     |
+//                //                     |
+//                //                     |
+//                //           ?-------->+ C(In ,Right)
+//                
+//                bends[C(Out,Left )] += Turn_T(1);
+//                bends[C(Out,Right)] += Turn_T(1);
+//                bends[C(In ,Left )] -= Turn_T(1);
+//                bends[C(In ,Right)] -= Turn_T(1);
+//                ++counter;
+//            }
+//            else if ( score <= Turn_T(-4) )
+//            {
+//                print("Redistributing bends at crossing " + ToString(c) + " (case A.2)");
+//                
+//                bends[C(Out,Left )] -= Turn_T(1);
+//                bends[C(Out,Right)] -= Turn_T(1);
+//                bends[C(In ,Left )] += Turn_T(1);
+//                bends[C(In ,Right)] += Turn_T(1);
+//                ++counter;
+//            }
+//        }
+//        else if ( (B(Out,Left ) == Turn_T(0)) && (B(In ,Left ) == Turn_T(0)) )
+//        {
+//
+//            Turn_T score = B(In ,Right) - B(Out,Right) ;
+//            
+//            if( score >= Turn_T(4) )
+//            {
+//                // Before:             X C(Out,Left )
+//                //                     ^
+//                //                     |
+//                //                     |
+//                //      C(In ,Left )   |c         C(Out,Right)
+//                // ?         X-------->X-------->+
+//                // |                   ^         |
+//                // |                   |         |
+//                // |                   |         |
+//                // |                   |         |
+//                // X------------------>+         |
+//                //           C(In ,Right)        |
+//                //                               |
+//                //                               |
+//                //                               v
+//                //                     ?<--------+
+//                
+//                // After:
+//                //             C(In ,Left )
+//                // ?         ?---------+         ?
+//                // |                   |         ^
+//                // |                   |         |
+//                // |                   |         |
+//                // |                   vc        | C(Out,Left )
+//                // X------------------>X-------->+
+//                //       C(In ,Right)  |
+//                //                     |
+//                //                     |
+//                //                     v
+//                //           ?<--------+ C(Out,Right)
+//                
+//                print("Redistributing bends at crossing " + ToString(c) + " (case B.1)");
+//                
+//                bends[C(Out,Left )] += Turn_T(1);
+//                bends[C(Out,Right)] += Turn_T(1);
+//                bends[C(In ,Left )] -= Turn_T(1);
+//                bends[C(In ,Right)] -= Turn_T(1);
+//                ++counter;
+//            }
+//            else if ( score <= Turn_T(-4) )
+//            {
+//                print("Redistributing bends at crossing " + ToString(c) + " (case B.2)");
+//                bends[C(Out,Left )] -= Turn_T(1);
+//                bends[C(Out,Right)] -= Turn_T(1);
+//                bends[C(In ,Left )] += Turn_T(1);
+//                bends[C(In ,Right)] += Turn_T(1);
+//                ++counter;
+//            }
+//        }
+//        else if ( (B(In ,Left ) == Turn_T(0)) && (B(In ,Right) == Turn_T(0)) )
+//        {
+//            Turn_T score = - B(Out,Left ) - B(Out,Right);
+//            
+//            if( score >= Turn_T(4) )
+//            {
+//                // Before:             X C(In ,Left )
+//                //                     |
+//                //                     |
+//                //                     |
+//                //      C(In ,Right)   vc
+//                // ?         X-------->X-------->+ C(Out,Left )
+//                // ^                   |         |
+//                // |                   |         |
+//                // |                   |         |
+//                // |                   v         |
+//                // X-------------------+         |
+//                //      C(Out,Rigjt)             |
+//                //                               |
+//                //                               |
+//                //                               v
+//                //                     ?<--------+
+//                
+//                // After:
+//                //           C(In ,Right)
+//                // ?         X---------+         X
+//                // ^                   |         |
+//                // |                   |         |
+//                // |                   |         |
+//                // |     C(Out,Right)  vc        v
+//                // X<------------------X<--------+ C(In ,Left )
+//                //                     |
+//                //                     |
+//                //                     |
+//                //                     v C(Out,Left )
+//                //           ?<--------+
+//                
+//                print("Redistributing bends at crossing " + ToString(c) + " (case C.1)");
+//                
+//                bends[C(Out,Left )] += Turn_T(1);
+//                bends[C(Out,Right)] += Turn_T(1);
+//                bends[C(In ,Left )] -= Turn_T(1);
+//                bends[C(In ,Right)] -= Turn_T(1);
+//                ++counter;
+//            }
+//            else if ( score <= Turn_T(-4) )
+//            {
+//                print("Redistributing bends at crossing " + ToString(c) + " (case C.2)");
+//                
+//                bends[C(Out,Left )] -= Turn_T(1);
+//                bends[C(Out,Right)] -= Turn_T(1);
+//                bends[C(In ,Left )] += Turn_T(1);
+//                bends[C(In ,Right)] += Turn_T(1);
+//                ++counter;
+//            }
+//        }
+//        else if ( (B(In ,Right) == Turn_T(0)) && (B(Out,Right) == Turn_T(0)) )
+//        {
+//            Turn_T score = B(In ,Left ) - B(Out,Left );
+//            
+//            if( score >= Turn_T(4) )
+//            {
+//                // Before:             X C(In ,Right)
+//                //                     |
+//                //                     |
+//                //                     |
+//                //      C(Out,Right)   vc         C(In ,Left )
+//                // ?         X<--------X<--------+
+//                // ^                   |         ^
+//                // |                   |         |
+//                // |                   |         |
+//                // |                   v         |
+//                // X<------------------+         |
+//                //           C(Out,Left )        |
+//                //                               |
+//                //                               |
+//                //                               |
+//                //                     ?-------->+
+//                
+//                // After:
+//                //             C(Out,Right)
+//                // ?         ?<--------+         ?
+//                // ^                   |         |
+//                // |                   |         |
+//                // |                   |         |
+//                // |                   |c        v C(In ,Right)
+//                // X<------------------X<--------+
+//                //       C(Out,Left )  |
+//                //                     |
+//                //                     |
+//                //                     v
+//                //           ?<--------+ C(Out,Left )
+//                
+//                print("Redistributing bends at crossing " + ToString(c) + " (case D.1)");
+//                
+//                bends[C(Out,Left )] += Turn_T(1);
+//                bends[C(Out,Right)] += Turn_T(1);
+//                bends[C(In ,Left )] -= Turn_T(1);
+//                bends[C(In ,Right)] -= Turn_T(1);
+//                ++counter;
+//            }
+//            else if ( score <= Turn_T(-4) )
+//            {
+//                print("Redistributing bends at crossing " + ToString(c) + " (case D.2)");
+//                bends[C(Out,Left )] -= Turn_T(1);
+//                bends[C(Out,Right)] -= Turn_T(1);
+//                bends[C(In ,Left )] += Turn_T(1);
+//                bends[C(In ,Right)] += Turn_T(1);
+//                ++counter;
+//            }
+//        }
+//    }
+//    
+//    if( counter > Int(0) )
+//    {
+//        RedistributeBends1(pd,bends);
+//    }
+//}
+
+
+template<typename ExtInt>
+void RedistributeBends(
+    cref<PlanarDiagram<ExtInt>> pd,
+    mref<Tensor1<Turn_T,Int>> bends,
+    Int iter = Int(0)
+)
+{
+    TOOLS_PTIMER(timer,ClassName()+"::RedistributeBends");
+    
+    constexpr Turn_T one = Turn_T(1);
+    
+//    print("RedistributeBends");
+    auto & C_A = pd.Crossings();
+    
+    Int counter = 0;
+    
+    for( ExtInt c = 0; c < C_A.Dim(0); ++c )
+    {
+        if( !pd.CrossingActiveQ(c) ) { continue; }
+
+        Tiny::Matrix<2,2,ExtInt,ExtInt> C ( C_A.data(c) );
+        
+        // We better do not touch Reidemeiter I loops as we would count the bends in a redundant way.
+        if( (C(Out,Left ) == C(In,Left )) || (C(Out,Right) == C(In,Right)) )
+        {
+            continue;
+        }
+    
+        Tiny::Matrix<2,2,Turn_T,ExtInt> B = {
+            { bends[C(Out,Left)], bends[C(Out,Right)] },
+            { bends[C(In ,Left)], bends[C(In ,Right)] },
+        };
+        
+        const Turn_T total_bends_before = B.AbsTotal();
+        
+        Turn_T in_score    = B(In ,Left ) + B(In ,Right) ;
+        Turn_T out_score   = B(Out,Left ) + B(Out,Right);
+        
+        if( in_score >= out_score + Turn_T(3) )
+        {
+            const Turn_T total_bends_after =
+              Abs(B(Out,Left )+one) + Abs(B(Out,Right)+one)
+            + Abs(B(In ,Left )-one) + Abs(B(In ,Right)-one);
+
+            if( total_bends_after == total_bends_before)
+            {
+                
+                ++bends[C(Out,Left )]; ++bends[C(Out,Right)];
+                --bends[C(In ,Left )]; --bends[C(In ,Right)];
+                
+                Tiny::Matrix<2,2,Turn_T,ExtInt> Bnew = {
+                    { bends[C(Out,Left)], bends[C(Out,Right)] },
+                    { bends[C(In ,Left)], bends[C(In ,Right)] },
+                };
+                
+                ++counter;
+                continue;
+            }
+        }
+        
+        if( in_score + Turn_T(3) <= out_score )
+        {
+            const Turn_T total_bends_after =
+              Abs(B(Out,Left )-one) + Abs(B(Out,Right)-one)
+            + Abs(B(In ,Left )+one) + Abs(B(In ,Right)+one);
+            
+            if( total_bends_after == total_bends_before)
+            {
+                --bends[C(Out,Left )]; --bends[C(Out,Right)];
+                ++bends[C(In ,Left )]; ++bends[C(In ,Right)];
+                
+                Tiny::Matrix<2,2,Turn_T,ExtInt> Bnew = {
+                    { bends[C(Out,Left)], bends[C(Out,Right)] },
+                    { bends[C(In ,Left)], bends[C(In ,Right)] },
+                };
+
+                ++counter;
+                continue;
+            }
+        }
+        
+        Turn_T left_score  =   B(Out,Left ) - B(In ,Left ) ;
+        Turn_T right_score =   B(In ,Right) - B(Out,Right);
+        
+        if( left_score >= right_score + Turn_T(3) )
+        {
+            const Turn_T total_bends_after =
+              Abs(B(Out,Left )-one) + Abs(B(Out,Right)-one)
+            + Abs(B(In ,Left )+one) + Abs(B(In ,Right)+one);
+            
+            if( total_bends_after == total_bends_before)
+            {
+                --bends[C(Out,Left )]; --bends[C(Out,Right)];
+                ++bends[C(In ,Left )]; ++bends[C(In ,Right)];
+                
+                Tiny::Matrix<2,2,Turn_T,ExtInt> Bnew = {
+                    { bends[C(Out,Left)], bends[C(Out,Right)] },
+                    { bends[C(In ,Left)], bends[C(In ,Right)] },
+                };
+                
+                ++counter;
+                continue;
+            }
+        }
+        
+        if( left_score + Turn_T(3) <= right_score  )
+        {
+            const Turn_T total_bends_after =
+              Abs(B(Out,Left )+one) + Abs(B(Out,Right)+one)
+            + Abs(B(In ,Left )-one) + Abs(B(In ,Right)-one);
+            
+            if( total_bends_after == total_bends_before)
+            {
+                ++bends[C(Out,Left )]; ++bends[C(Out,Right)];
+                --bends[C(In ,Left )]; --bends[C(In ,Right)];
+                
+                Tiny::Matrix<2,2,Turn_T,ExtInt> Bnew = {
+                    { bends[C(Out,Left)], bends[C(Out,Right)] },
+                    { bends[C(In ,Left)], bends[C(In ,Right)] },
+                };
+                
+                ++counter;
+                continue;
+            }
+        }
+    }
+    
+    if( (iter < 6) && (counter > Int(0)) )
+    {
+        RedistributeBends(pd,bends,iter+Int(1));
+    }
+//    else
+//    {
+//        if( counter > Int(0) )
+//        {
+//            print("!!! ABORTED !!!");
+//        }
+//    }
 }

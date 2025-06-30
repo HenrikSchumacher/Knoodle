@@ -83,6 +83,54 @@ cref<Variant2_Dimensions_T> Variant2_Dimensions() const
 }
 
 
+Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
+{
+    cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
+    
+    Tensor1<COIN_Real,COIN_Int> c ( d.var_count, COIN_Real(0) );
+    
+    mptr<COIN_Real> c_ptr = c.data();
+    
+    // objective =
+    //  \sum_{e \in E(Dv)} DvE_cost[e] * (x[Dv.Edges()(e,1)] - x[Dv.Edges()(e,0)])
+    //  +
+    //  \sum_{e \in E(Dh)} DhE_cost[e] * (y[Dh.Edges()(e,1)] - y[Dh.Edges()(e,0)])
+
+    {
+        auto & E      = Dv().Edges();
+        auto & E_cost = DvEdgeCosts();
+        Int    offset = d.DvV_offset;
+        
+        for( Int e = 0; e < E.Dim(0); ++e )
+        {
+            const Int  v_0    = E(e,Tail);
+            const Int  v_1    = E(e,Head);
+            const COIN_Real w = E_cost[e];
+            
+            c_ptr[ v_0 + offset ] += -w;
+            c_ptr[ v_1 + offset ] +=  w;
+        }
+    }
+    
+    {
+        auto & E      = Dh().Edges();
+        auto & E_cost = DhEdgeCosts();
+        Int    offset = d.DhV_offset;
+        
+        for( Int e = 0; e < E.Dim(0); ++e )
+        {
+            const Int  v_0    = E(e,Tail);
+            const Int  v_1    = E(e,Head);
+            const COIN_Real w = E_cost[e];
+            
+            c_ptr[ v_0 + offset ] += -w;
+            c_ptr[ v_1 + offset ] +=  w;
+        }
+    }
+
+    return c;
+}
+
 Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant2()
 {
     TOOLS_PTIMER(timer,ClassName()+"::Lengths_ConstraintMatrix_Variant2"
@@ -177,54 +225,6 @@ Tensor1<COIN_Real,COIN_Int> Lengths_UpperBoundsOnConstraints_Variant2()
     return Tensor1<COIN_Real,COIN_Int>(d.con_count,Scalar::Infty<COIN_Real>);
 }
 
-Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
-{
-    cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
-    
-    Tensor1<COIN_Real,COIN_Int> c ( d.var_count );
-    
-    mptr<COIN_Real> c_ptr = c.data();
-    
-    // objective =
-    //  \sum_{e \in E(Dv)} DvE_cost[e] * (x[Dv.Edges()(e,1)] - x[Dv.Edges()(e,0)])
-    //  +
-    //  \sum_{e \in E(Dh)} DhE_cost[e] * (y[Dh.Edges()(e,1)] - y[Dh.Edges()(e,0)])
-
-    {
-        auto & E      = Dv().Edges();
-        auto & E_cost = DvEdgeCosts();
-        Int    offset = d.DvV_offset;
-        
-        for( Int e = 0; e < E.Dim(0); ++e )
-        {
-            const Int  v_0    = E(e,Tail);
-            const Int  v_1    = E(e,Head);
-            const COIN_Real w = E_cost[e];
-            
-            c_ptr[ v_0 + offset ] = -w;
-            c_ptr[ v_1 + offset ] =  w;
-        }
-    }
-    
-    {
-        auto & E      = Dh().Edges();
-        auto & E_cost = DhEdgeCosts();
-        Int    offset = d.DhV_offset;
-        
-        for( Int e = 0; e < E.Dim(0); ++e )
-        {
-            const Int  v_0    = E(e,Tail);
-            const Int  v_1    = E(e,Head);
-            const COIN_Real w = E_cost[e];
-            
-            c_ptr[ v_0 + offset ] = -w;
-            c_ptr[ v_1 + offset ] =  w;
-        }
-    }
-
-    return c;
-}
-
 void ComputeVertexCoordinates_ByLengths_Variant2()
 {
     TOOLS_MAKE_FP_STRICT();
@@ -281,129 +281,30 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
     }
     
     cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
-//
-//    TOOLS_DUMP(LP.statusOfProblem());
-//    TOOLS_DUMP(LP.getIterationCount());
-//    TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.largestPrimalError());
-//    TOOLS_DUMP(LP.sumPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.numberDualInfeasibilities());
-//    TOOLS_DUMP(LP.largestDualError());
-//    TOOLS_DUMP(LP.sumDualInfeasibilities());
-//    
-//    valprint(
-//        "solution",
-//        ArrayToString(
-//            LP.primalColumnSolution(),{d.var_count},
-//            [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        )
-//    );
-//    
-//    print("LP.checkSolution(0);");
-//    LP.checkSolution(0);
-//
-//    TOOLS_DUMP(LP.statusOfProblem());
-//    TOOLS_DUMP(LP.getIterationCount());
-//    TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.largestPrimalError());
-//    TOOLS_DUMP(LP.sumPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.numberDualInfeasibilities());
-//    TOOLS_DUMP(LP.largestDualError());
-//    TOOLS_DUMP(LP.sumDualInfeasibilities());
-//    
-//    valprint(
-//        "solution",
-//        ArrayToString(
-//            LP.primalColumnSolution(),{d.var_count},
-//            [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        )
-//    );
-    
-    
-    print("LP.checkSolution(1);");
-    LP.checkSolution(1);
-
-    TOOLS_DUMP(LP.statusOfProblem());
-    TOOLS_DUMP(LP.getIterationCount());
-    TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-    TOOLS_DUMP(LP.largestPrimalError());
-    TOOLS_DUMP(LP.sumPrimalInfeasibilities());
-    TOOLS_DUMP(LP.numberDualInfeasibilities());
-    TOOLS_DUMP(LP.largestDualError());
-    TOOLS_DUMP(LP.sumDualInfeasibilities());
-    
-//    valprint(
-//        "solution",
-//        ArrayToString(
-//            LP.primalColumnSolution(),{d.var_count},
-//            [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        )
-//    );
-//    
-//    print("LP.checkSolution(2);");
-//    LP.checkSolution(2);
-//
-//    TOOLS_DUMP(LP.statusOfProblem());
-//    TOOLS_DUMP(LP.getIterationCount());
-//    TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.largestPrimalError());
-//    TOOLS_DUMP(LP.sumPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.numberDualInfeasibilities());
-//    TOOLS_DUMP(LP.largestDualError());
-//    TOOLS_DUMP(LP.sumDualInfeasibilities());
-//    
-//    valprint(
-//        "solution",
-//        ArrayToString(
-//            LP.primalColumnSolution(),{d.var_count},
-//            [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        )
-//    );
-//    
-//    LP.primal(1);
-////    LP.checkSolution(2);
-//    
-//    TOOLS_DUMP(LP.statusOfProblem());
-//    TOOLS_DUMP(LP.getIterationCount());
-//    TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.largestPrimalError());
-//    TOOLS_DUMP(LP.sumPrimalInfeasibilities());
-//    TOOLS_DUMP(LP.numberDualInfeasibilities());
-//    TOOLS_DUMP(LP.largestDualError());
-//    TOOLS_DUMP(LP.sumDualInfeasibilities());
-//    
-//    valprint(
-//        "solution",
-//        ArrayToString(
-//            LP.primalColumnSolution(),{d.var_count},
-//            [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        )
-//    );
-//    
 
     
     if( !LP.statusOfProblem() )
     {
         eprint(ClassName()+"::ComputeVertexCoordinates_ByLengths_Variant2: Clp::Simplex::" + (settings.use_dual_simplexQ ? "dual" : "primal" )+ " reports a problem in the solve phase. The returned solution may be incorrect.");
         
-        TOOLS_DUMP(LP.statusOfProblem());
-        TOOLS_DUMP(LP.getIterationCount());
+        TOOLS_DDUMP(LP.statusOfProblem());
+        TOOLS_DDUMP(LP.getIterationCount());
         
-        TOOLS_DUMP(LP.numberPrimalInfeasibilities());
-        TOOLS_DUMP(LP.largestPrimalError());
-        TOOLS_DUMP(LP.sumPrimalInfeasibilities());
+        TOOLS_DDUMP(LP.numberPrimalInfeasibilities());
+        TOOLS_DDUMP(LP.largestPrimalError());
+        TOOLS_DDUMP(LP.sumPrimalInfeasibilities());
         
-        TOOLS_DUMP(LP.numberDualInfeasibilities());
-        TOOLS_DUMP(LP.largestDualError());
-        TOOLS_DUMP(LP.sumDualInfeasibilities());
+        TOOLS_DDUMP(LP.numberDualInfeasibilities());
+        TOOLS_DDUMP(LP.largestDualError());
+        TOOLS_DDUMP(LP.sumDualInfeasibilities());
         
         
-        TOOLS_DUMP(LP.objectiveValue());
+        TOOLS_DDUMP(LP.objectiveValue());
         
-        TOOLS_DUMP(d.var_count);
-        TOOLS_DUMP(Dv().VertexCount()+Dh().VertexCount());
+        TOOLS_DDUMP(d.var_count);
+        TOOLS_DDUMP(Dv().VertexCount()+Dh().VertexCount());
         
-        valprint(
+        logvalprint(
             "solution",
             ArrayToString(
                 LP.primalColumnSolution(),{d.var_count},
@@ -412,13 +313,13 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
         );
     }
     
-    auto v_str = []( const Tensor1<COIN_Real,I> & v )
-    {
-        return ArrayToString(
-          v.data(),{v.Dim(0)},
-          [](COIN_Real x){ return ToStringFPGeneral(x); }
-        );
-    };
+//    auto v_str = []( const Tensor1<COIN_Real,I> & v )
+//    {
+//        return ArrayToString(
+//          v.data(),{v.Dim(0)},
+//          [](COIN_Real x){ return ToStringFPGeneral(x); }
+//        );
+//    };
     
     Tensor1<Int,Int> x ( static_cast<Int>(d.DvV_count) );
     Tensor1<Int,Int> y ( static_cast<Int>(d.DhV_count) );
@@ -429,8 +330,9 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
 
     // Checking whether solution is an integer solution.
     
-    constexpr COIN_Real integer_tol = 0.000000001;
+    constexpr COIN_Real integer_tol = 0.000'1;
     COIN_Real diff_max = 0;
+    COIN_Real diff_sum = 0;
     
     Int var_lb_infeasible_count = 0;
     Int var_ub_infeasible_count = 0;
@@ -440,8 +342,11 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
         
         for( I i = 0; i < d.var_count; ++i )
         {
-            COIN_Real r_i = std::round(sol[i]);
-            diff_max = Max( diff_max, Abs(sol[i] - r_i) );
+            COIN_Real r_i  = std::round(sol[i]);
+            COIN_Real diff = Abs(sol[i] - r_i);
+            
+            diff_max = Max( diff_max, diff );
+            diff_sum += diff;
             s[i] = r_i;
             
             var_lb_infeasible_count += (r_i < var_lb[i]);
@@ -449,38 +354,40 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
         }
     }
     
-    valprint("s",v_str(s));
-    {
-        auto A_ = AT.Transpose();
-        A_.Dot(COIN_Real(1),s.data(),COIN_Real(0),b.data());
-    }
-    
-    valprint("b",v_str(b));
-    
     if( diff_max > integer_tol )
     {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: CLP returned noninteger solution vector. Greatest deviation = " + ToStringFPGeneral(diff_max) + ".");
+        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: CLP returned noninteger solution vector. Greatest deviation = " + ToStringFPGeneral(diff_max) + ". Sum of deviations = " + ToString(diff_sum) + "." );
     }
     
     if( var_lb_infeasible_count > Int(0) )
     {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for lower box constraints: " + ToString(var_lb_infeasible_count) +".");
+        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for lower box constraints: " + ToString(var_lb_infeasible_count) + ".");
         
-        valprint("var_lb",v_str(var_lb));
+//        valprint("var_lb",v_str(var_lb));
     }
     
     if( var_ub_infeasible_count > Int(0) )
     {
         eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for upper box constraints: " + ToString(var_ub_infeasible_count) +".");
         
-        valprint("var_ub",v_str(var_ub));
+//        valprint("var_ub",v_str(var_ub));
     }
+    
+//    {
+//        auto A = AT.Transpose();
+//        A.Dot( COIN_Real(1), s.data(), COIN_Real(0), b.data() );
+//    }
+    
+    // Using CLP's matrix-vector product so that I do not have to transpose A.
+    // Also, I do not want to pull in all that code from SparseBLAS.
+    LP.matrix()->times(s.data(),b.data());
     
     Int con_lb_infeasible_count = 0;
     Int con_ub_infeasible_count = 0;
     
     for( I j = 0; j < static_cast<Int>(d.con_count); ++j )
     {
+        b[j] = std::round(b[j]);
         con_lb_infeasible_count += (b[j] < con_lb[j]);
         con_ub_infeasible_count += (b[j] > con_ub[j]);
     }
@@ -489,14 +396,16 @@ void ComputeVertexCoordinates_ByLengths_Variant2()
     {
         eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for lower matrix constraints: " + ToString(con_lb_infeasible_count) + ".");
         
-        valprint("con_lb",v_str(con_lb));
+//        valprint("b",v_str(b));
+//        valprint("con_lb",v_str(con_lb));
     }
     
     if( con_ub_infeasible_count > Int(0) )
     {
         eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for upper matrix constraints: " + ToString(con_ub_infeasible_count) + ".");
 
-        valprint("con_ub",v_str(con_ub));
+//        valprint("b",v_str(b));
+//        valprint("con_ub",v_str(con_ub));
     }
     
     // The integer conversion is safe as we have rounded s correctly already.

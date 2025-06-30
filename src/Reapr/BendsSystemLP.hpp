@@ -65,7 +65,7 @@ Tensor1<Real,Int> BendsRowEqualityVector(
 {
     Tensor1<Real,Int> v ( pd.FaceCount() );
     
-    cptr<Int> f_da_ptr = pd.FaceDirectedArcPointers().data();
+    cptr<Int> f_da_ptr = pd.FaceDarcs().Pointers().data();
 
     Int max_arc_count = 0;
     Int max_face      = 0;

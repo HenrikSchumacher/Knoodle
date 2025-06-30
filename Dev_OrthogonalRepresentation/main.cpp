@@ -8,7 +8,7 @@
 #include "../Knoodle.hpp"
 //#include "../submodules/Tensors/Clp.hpp"
 //#include "../src/OrthogonalRepresentation.hpp"
-#include "../src/OrthogonalRepresentation2.hpp"
+#include "../src/OrthogonalRepresentation.hpp"
 //#include "ClpSimplex.hpp"
 //#include "ClpSimplexDual.hpp"
 //#include "CoinHelperFunctions.hpp"
@@ -26,7 +26,7 @@ using BReal = double;          // scalar type used for bounding boxes
 using Int   = Int64;           // integer type used, e.g., for indices
 using LInt  = Int64;           // integer type used, e.g., for indices
 
-using OR_T = OrthogonalRepresentation2<Int>;
+using OR_T = OrthogonalRepresentation<Int>;
 
 int main( int argc, char** argv )
 {
@@ -159,7 +159,7 @@ int main( int argc, char** argv )
     print("");
     
     TOOLS_DUMP(H.CheckEdgeDirections());
-    TOOLS_DUMP(H.CheckFaceTurns());
+    TOOLS_DUMP(H.CheckAllFaceTurns());
     
     print("");
     print("Diagram -- ByTopologicalTightening");
@@ -191,7 +191,7 @@ int main( int argc, char** argv )
     
     
 
-    H.ComputeVertexCoordinates_ByLengths_Variant1();
+    H.ComputeVertexCoordinates_ByLengths_Variant2();
     TOOLS_DUMP(H.Width());
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
@@ -251,6 +251,31 @@ int main( int argc, char** argv )
     
     TOOLS_DUMP(Gr_saturating_edges);
 
+    
+    TOOLS_DUMP(H.VerticalSegmentVertices());
+    TOOLS_DUMP(H.HorizontalSegmentVertices());
+    
+    H.SeparationConstraints();
+    
+    H.Dv().DirectedAdjacencyMatrix();
+    
+    {
+        auto A = H.Dv().CreateAdjacencyMatrix<true,int>( (int*)nullptr, 8 );
+     
+        TOOLS_DUMP(A.ToTensor2());
+    }
+    
+    {
+        auto A = H.Dv().Laplacian();
+     
+        TOOLS_DUMP(A.ToTensor2());
+        
+        TOOLS_DUMP(A.NonzeroPositions_AoS());
+        
+        TOOLS_DUMP(H.Dv().Edges());
+    }
+    
+    H.PrintSettings();
     
     return EXIT_SUCCESS;
 }

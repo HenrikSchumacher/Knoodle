@@ -93,8 +93,10 @@ void FindIntersections(
         print("FindIntersections("+ToString(f)+")");
     }
     
-    const Int face_begin = F_dE_ptr[f    ];
-    const Int face_end   = F_dE_ptr[f + 1];
+    auto & F_dE = FaceDedges();
+    
+    const Int face_begin = F_dE.Pointers()[f    ];
+    const Int face_end   = F_dE.Pointers()[f + 1];
     
     const Int n = face_end - face_begin;
     
@@ -110,7 +112,7 @@ void FindIntersections(
     
     for( Int i = 0; i < n; ++i )
     {
-        const Int de_i = F_dE_idx[face_begin + i];
+        const Int de_i = F_dE.Elements()[face_begin + i];
         auto [e_i,d_i] = FromDarc(de_i);
         
         Int da = Uninitialized;
@@ -126,7 +128,7 @@ void FindIntersections(
 //            TOOLS_DUMP(delta);
 //            TOOLS_DUMP(i + delta);
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
-            const Int de_j = F_dE_idx[face_begin + j];
+            const Int de_j = F_dE.Elements()[face_begin + j];
             auto [e_j,d_j] = FromDarc(de_j);
             
 //            TOOLS_DUMP(j);
@@ -158,7 +160,7 @@ void FindIntersections(
 //            TOOLS_DUMP(i + delta);
             
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
-            const Int de_j = F_dE_idx[face_begin + j];
+            const Int de_j = F_dE.Elements()[face_begin + j];
             auto [e_j,d_j] = FromDarc(de_j);
             
 //            TOOLS_DUMP(delta);
@@ -207,151 +209,3 @@ void FindIntersections(
         
     } // for( Int i = face_begin; i < face_end; ++i )
 }
-
-//template<bool verboseQ = false>
-//std::tuple<Int,Int> FindCollisions(
-//    cref<CoordsContainer_T> coords,
-//    const Int de_ptr
-//) const
-//{
-//    if constexpr ( verboseQ )
-//    {
-//        print("FindCollisions("+ToString(de_ptr)+")");
-//    }
-//    
-//    if( !ValidIndexQ(de_ptr) )
-//    {
-//        return {Uninitialized,Uninitialized};
-//    }
-//    
-//    cptr<Int>   dTRE_left_dTRE = TRE_left_dTRE.data();
-//    cptr<Int>   dTRE_turn      = TRE_turn.data();
-//    
-//    // RE = reflex edge
-//    mptr<Int>   RE_rot = V_scratch.data();
-//    mptr<Int>   RE_de  = E_scratch.data();
-//    mptr<Int>   RE_d   = E_scratch.data() + edge_count;
-//    
-//    std::unordered_map<Turn_T,std::vector<Int>> rot_lut;
-//
-//    const bool exteriorQ = TRE_BoundaryQ(de_ptr);
-//    
-//    Int dE_counter = 0;
-//    Int RE_counter = 0;
-//    
-//    // Compute rotations.
-//    {
-//        Int rot = 0;
-//        Int de = de_ptr;
-//        do
-//        {
-//            if( dTRE_turn[de] == Turn_T(-1) )
-//            {
-//                RE_de [RE_counter] = de;
-//                RE_d  [RE_counter] = dE_counter;
-//                RE_rot[RE_counter] = rot;
-//                rot_lut[rot].push_back(RE_counter);
-//                
-//                RE_counter++;
-//                
-//                // DEBUGGING
-//                if( exteriorQ != TRE_BoundaryQ(de) )
-//                {
-//                    eprint(ClassName()+"::FindCollisions: TREdge " + ToString(de) + " has bounday flag set to " + ToString(TRE_BoundaryQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
-//                }
-//            }
-//            ++dE_counter;
-//            rot += dTRE_turn[de];
-//            de = dTRE_left_dTRE[de];
-//        }
-//        while( (de != de_ptr) && dE_counter < edge_count );
-//        // TODO: The checks on reflex_counter should be irrelevant if the graph structure is intact.
-//
-//        if( (de != de_ptr) && (dE_counter >= edge_count) )
-//        {
-//            eprint(ClassName()+"::FindCollisions: Aborted because two many elements were collected. The data structure is probably corrupted.");
-//
-//            return {Uninitialized,Uninitialized};
-//        }
-//    }
-//
-//
-////    valprint("rotation", ArrayToString(rotation,{reflex_counter}));
-//
-////    const Int target_turn = exteriorQ ? Turn_T(2) : Turn_T(-6);
-//    
-//    if constexpr ( verboseQ )
-//    {
-//        TOOLS_DUMP(dE_counter);
-//        TOOLS_DUMP(RE_counter);
-//    }
-//    
-//    Int p_min = 0;
-//    Int q_min = 0;
-//    Int d_min = Scalar::Max<Int>;
-//    
-//    constexpr Turn_T targets [2] = { Turn_T(2), Turn_T(-6) };
-//    
-//    for( Int q = 0; q < RE_counter; ++q )
-//    {
-//        const Int rot = RE_rot[q];
-//        
-//        const Int de_q = RE_de[q];
-//        auto [e_q,d_q] = FromDirEdge(de_q);
-//        const Dir_T s_q = TRE_dir[e_q];
-//        const bool verticalQ  = s_q % Dir_T(2);
-//        const bool reverse_qQ = ((s_q >> Dir_T(2)) == Dir_T(1));
-//        
-//        Tiny::Vector<2,Int,Int> Y_0 = coords.data(TRE_V(e_q, reverse_qQ));
-//        Tiny::Vector<2,Int,Int> Y_1 = coords.data(TRE_V(e_q,!reverse_qQ));
-//        
-//        // Y_1 is either to the east or to the north of Y_0.
-//        
-//        for( Int k = 0; k < Int(1) + exteriorQ; ++k )
-//        {
-//            const Int target = rot - targets[k];
-//            
-//            if( rot_lut.count(target) <= Size_T(0) ) { continue; }
-//            
-//            auto & list = rot_lut[target];
-//            
-//            for( Int p : list )
-//            {
-//                const Int de_p = RE_de[p];
-//                auto [e_p,d_p]  = FromDirEdge(de_p);
-//                const Dir_T s_p = TRE_dir[e_q];
-//                const bool reverse_pQ = ((s_p >> Dir_T(2)) == Dir_T(1));
-//                Tiny::Vector<2,Int,Int> X_0 = coords.data(TRE_V(e_p, reverse_pQ));
-//                Tiny::Vector<2,Int,Int> X_1 = coords.data(TRE_V(e_p,!reverse_pQ));
-//                
-//                // X_1 is either to the east or to the north of Y_0.
-//                
-//                bool collisionQ;
-//                
-//                if( verticalQ )
-//                {
-//                    if(
-//                        (X_0[0] == Y_0[0])
-//                        &&
-//                        !( (Y_1[1] < X_0[1]) || (X_1[1] < Y_0[1]))
-//                    )
-//                    {
-//                        print("collision {" + ToString(de_p) + "," + ToString(de_q) + "}");
-//                        return {de_p,de_q}
-//                    }
-//                else
-//                {
-//                    if(
-//                        (X_0[1] == Y_0[1])
-//                        &&
-//                        collisionQ = !( (Y_1[0] < X_0[0]) || (X_1[0] < Y_0[0])) )
-//                    )
-//                    {
-//                        print("collision {" + ToString(de_p) + "," + ToString(de_q) + "}");
-//                        return {de_p,de_q}
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}

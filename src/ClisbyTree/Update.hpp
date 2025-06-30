@@ -12,13 +12,6 @@ void Update( Int start_node )
         PullTransforms(Root(), start_node);
     }
     
-//    // DEBUGGING
-//    
-//    if( !TransformsPulledQ(start_node) )
-//    {
-//        eprint(ClassName()+ "::Update: Path to root is not cleansed, yet.");
-//    }
-    
     if constexpr ( manual_stackQ )
     {
         UpdateSubtree_ManualStack(start_node);

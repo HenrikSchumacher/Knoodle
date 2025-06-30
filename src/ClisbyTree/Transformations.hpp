@@ -119,9 +119,9 @@ bool TransformsPulledQ( const Int node ) const
     {
         eprint(ClassName() + "AllTransformsAboveTrivialQ: node = " + Tools::ToString(node) + " has ancestor = " + Tools::ToString(ancestor) + " with nontrivial transformation.");
         
-        TOOLS_LOGDUMP( NodeTransform(ancestor));
-        TOOLS_LOGDUMP( NodeCenter(ancestor));
-        TOOLS_LOGDUMP( NodeFlag(ancestor));
+        TOOLS_DDUMP( NodeTransform(ancestor));
+        TOOLS_DDUMP( NodeCenter(ancestor));
+        TOOLS_DDUMP( NodeFlag(ancestor));
     }
     
     return trivialQ;

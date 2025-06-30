@@ -1,10 +1,13 @@
 public:
 
-static constexpr UInt East  =  0;
-static constexpr UInt North =  1;
-static constexpr UInt West  =  2;
-static constexpr UInt South =  3;
-static constexpr UInt NoDir = 15;
+static constexpr Dir_T East  =  0;
+static constexpr Dir_T North =  1;
+static constexpr Dir_T West  =  2;
+static constexpr Dir_T South =  3;
+static constexpr Dir_T NoDir = 15;
+
+// The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
+static constexpr Dir_T dir_lut [2][2] = { {North,East}, {West,South} };
 
 static constexpr bool Left  = PlanarDiagram<Int>::Left;
 static constexpr bool Right = PlanarDiagram<Int>::Right;
@@ -14,12 +17,12 @@ static constexpr bool Tail  = PlanarDiagram<Int>::Tail;
 static constexpr bool Head  = PlanarDiagram<Int>::Head;
 
 
-static constexpr UInt8 ActiveBit   = 0;
-static constexpr UInt8 VisitedBit  = 1;
-static constexpr UInt8 BoundaryBit = 2;
-static constexpr UInt8 VirtualBit  = 3;
+static constexpr int EdgeActiveBit   = 0;
+static constexpr int EdgeVisitedBit  = 1;
+static constexpr int EdgeExteriorBit = 2;
+static constexpr int EdgeVirtualBit  = 3;
 
-static constexpr UInt8 ActiveMask   = UInt8(1) << ActiveBit;
-static constexpr UInt8 VisitedMask  = UInt8(1) << VisitedBit;
-static constexpr UInt8 BoundaryMask = UInt8(1) << BoundaryBit;
-static constexpr UInt8 VirtualMask  = UInt8(1) << VirtualBit;
+static constexpr EdgeFlag_T EdgeActiveMask   = EdgeFlag_T(1) << EdgeActiveBit;
+static constexpr EdgeFlag_T EdgeVisitedMask  = EdgeFlag_T(1) << EdgeVisitedBit;
+static constexpr EdgeFlag_T EdgeExteriorMask = EdgeFlag_T(1) << EdgeExteriorBit;
+static constexpr EdgeFlag_T EdgeVirtualMask  = EdgeFlag_T(1) << EdgeVirtualBit;

@@ -138,10 +138,10 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         {
             wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
             
-            TOOLS_DUMP( iter );
-            TOOLS_DUMP( u.FrobeniusNorm() );
-            TOOLS_DUMP( b_iter );
-            TOOLS_DUMP( tau );
+            TOOLS_DDUMP( iter );
+            TOOLS_DDUMP( u.FrobeniusNorm() );
+            TOOLS_DDUMP( b_iter );
+            TOOLS_DDUMP( tau );
         }
         
         phi_0 = phi_tau;
