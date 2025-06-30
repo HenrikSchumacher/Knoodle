@@ -9,7 +9,9 @@ namespace Knoodle
     // TODO: Create a constructor that eliminates all duplicated edges. (Use the adjacency matrix for that.)
     
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
+        typename VInt_   = Int64,
+        typename EInt_   = VInt_,
+        typename Sign_T_ = Int8
     >
     class alignas( ObjectAlignment ) MultiGraphBase : public CachedObject
     {
@@ -137,7 +139,7 @@ namespace Knoodle
 
     protected:
         
-        VInt vertex_count;
+        VInt vertex_count = 0;
         EdgeContainer_T edges;
         
         // Multiple purpose helper buffer, e.g., for marking visited vertices or edges or for storing labels.
@@ -190,9 +192,17 @@ namespace Knoodle
 #include "MultiGraphBase/VertexDegree.hpp"
 #include "MultiGraphBase/DepthFirstSearch.hpp"
 #include "MultiGraphBase/SpanningForest.hpp"
+        
+#include "MultiGraphBase/AdjacencyMatrix.hpp"
+#include "MultiGraphBase/Laplacian.hpp"
 
     public:
                 
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("MultiGraphBase")

@@ -5,7 +5,9 @@ namespace Knoodle
     // TODO: Make this ready for unsigned integers.
 
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
+        typename VInt_   = Int64,
+        typename EInt_   = VInt_,
+        typename Sign_T_ = Int8
     >
     class alignas( ObjectAlignment ) MultiDiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
     {
@@ -109,6 +111,26 @@ namespace Knoodle
         
     public:
         
+        template<typename Scal = std::make_signed_t<EInt>>
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
+        {
+            return this->template DirectedAdjacencyMatrix<Scal>();
+        }
+        
+        template<typename Scal = std::make_signed_t<EInt>>
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
+        {
+            const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";
+            
+            if(!this->InCacheQ(tag))
+            {
+                this->SetCache(tag,this->template CreateLaplacian<false,Scal>());
+            }
+            
+            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+        }
+        
+        
         bool ProvenAcyclicQ() const
         {
             return proven_acyclicQ;
@@ -123,6 +145,11 @@ namespace Knoodle
         
         
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
                 
         static std::string ClassName()
         {

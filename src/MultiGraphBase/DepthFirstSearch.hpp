@@ -4,38 +4,38 @@
 
 public:
 
-struct DirectedEdge
+struct DedgeNode
 {
     VInt tail = -1; // vertex we came from
     EInt de   = -1; // direction is stored in lowest bit.
     VInt head = -1; // vertex we go to
 };
 
-constexpr static auto TrivialEdgeFunction = []( cref<DirectedEdge> E )
+constexpr static auto TrivialEdgeFunction = []( cref<DedgeNode> E )
 {
     (void)E;
 };
 
-constexpr static auto PrintDiscover = []( cref<DirectedEdge> E )
+constexpr static auto PrintDiscover = []( cref<DedgeNode> E )
 {
     auto [e,d] = FromDedge(E.de);
     
     print("Discovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintRediscover = []( cref<DirectedEdge> E )
+constexpr static auto PrintRediscover = []( cref<DedgeNode> E )
 {
     auto [e,d] = FromDedge(E.de);
 
     print("Rediscovering vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
-constexpr static auto PrintPreVisit = []( cref<DirectedEdge> E )
+constexpr static auto PrintPreVisit = []( cref<DedgeNode> E )
 {
     auto [e,d] = FromDedge(E.de);
     
     print("Pre-visiting vertex " + ToString(E.head) + " from vertex " + ToString(E.tail) + " along edge " + ToString(e) + " in " + (d == Head ? "forward" : "backward" ) + " direction." );
 };
 
-constexpr static auto PrintPostVisit = []( cref<DirectedEdge> E )
+constexpr static auto PrintPostVisit = []( cref<DedgeNode> E )
 {
     auto [e,d] = FromDedge(E.de);
     
@@ -54,10 +54,10 @@ public:
 
 template<
     InOut dir = InOut::Undirected,
-    class DiscoverVertex_T,   // f( const DirectedEdge & E )
-    class RediscoverVertex_T, // f( const DirectedEdge & E )
-    class PreVisitVertex_T,   // f( const DirectedEdge & E )
-    class PostVisitVertex_T   // f( const DirectedEdge & E )
+    class DiscoverVertex_T,   // f( const DedgeNode & E )
+    class RediscoverVertex_T, // f( const DedgeNode & E )
+    class PreVisitVertex_T,   // f( const DedgeNode & E )
+    class PostVisitVertex_T   // f( const DedgeNode & E )
 >
 void DepthFirstSearch(
     DiscoverVertex_T   && discover,
@@ -105,10 +105,10 @@ void DepthFirstSearch(
     // In the worst case (2 vertices, n edges), we push a stack_node for every edge before we ever can pop a node.
     // Note: We could mark every newly discovered vertex w as "discovered, not visited"  and push only {v,e,w,d} with undiscovered vertex w.
     // The problem with this approach is that we have to do the marking in the order of discovery, but the pushing to stack in reverse order. That would take roughly twice as long. In constrast, memory is cheap nowadays. And we use a stack, so we interesting stuff will stay in hot memory. So we can afford allocating a potentially oversized stack in favor of faster execution.
-    Stack<DirectedEdge,EInt> stack ( EdgeCount() );
+    Stack<DedgeNode,EInt> stack ( EdgeCount() );
 
     auto conditional_push = [V_flag,E_visitedQ,dE_V,&stack,&discover,&rediscover](
-        const DirectedEdge & E, const EInt de
+        const DedgeNode & E, const EInt de
     )
     {
         if constexpr ( dir == InOut::Undirected )
@@ -135,7 +135,7 @@ void DepthFirstSearch(
         {
             V_flag[w] = UInt8(1);
             E_visitedQ[e] = true;
-            DirectedEdge de_next {E.head,de,w};
+            DedgeNode de_next {E.head,de,w};
 //            logprint("discover vertex " + ToString(w) + "; edge = " + ToString(e));
             discover( de_next );
             stack.Push( std::move(de_next) );
@@ -162,7 +162,7 @@ void DepthFirstSearch(
         
         {
             V_flag[v_0] = UInt8(1);
-            DirectedEdge E {UninitializedVertex, UninitializedEdge, v_0};
+            DedgeNode E {UninitializedVertex, UninitializedEdge, v_0};
             discover( E );
 //            logprint("discover vertex " + ToString(v_0));
             stack.Push( std::move(E) );
@@ -170,7 +170,7 @@ void DepthFirstSearch(
 
         while( !stack.EmptyQ() )
         {
-            DirectedEdge & E = stack.Top();
+            DedgeNode & E = stack.Top();
             const VInt v = E.head;
             
             if( V_flag[v] == UInt8(0) )
@@ -235,7 +235,7 @@ void DepthFirstSearch( PreVisitVertex_T && pre_visit )
     this->template DepthFirstSearch<dir>(
         TrivialEdgeFunction,    //discover
         TrivialEdgeFunction,    //rediscover
-        pre_visit,              // f( const DirectedEdge & E )
+        pre_visit,              // f( const DedgeNode & E )
         TrivialEdgeFunction     //postvisit
     );
 }

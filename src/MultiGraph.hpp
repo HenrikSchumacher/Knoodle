@@ -6,7 +6,9 @@ namespace Knoodle
 
     
     template<
-        typename VInt_ = Int64, typename EInt_ = VInt_, typename Sign_T_ = Int8
+        typename VInt_   = Int64,
+        typename EInt_   = VInt_,
+        typename Sign_T_ = Int8
     >
     class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
     {
@@ -109,6 +111,26 @@ namespace Knoodle
         using Base_T::VertexOutDegrees;
         
     public:
+        
+        template<typename Scal = std::make_signed_t<EInt>>
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
+        {
+            return this->template UndirectedAdjacencyMatrix<Scal>();
+        }
+        
+        template<typename Scal = std::make_signed_t<EInt>>
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
+        {
+            const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";
+            
+            if(!this->InCacheQ(tag))
+            {
+                this->SetCache(tag,this->template CreateLaplacian<true,Scal>());
+            }
+            
+            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+        }
+        
         
         // TODO: This function is not correct, I think. It does not account for single-vertex components!
         
@@ -518,6 +540,11 @@ namespace Knoodle
         }
         
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
                 
         static std::string ClassName()
         {

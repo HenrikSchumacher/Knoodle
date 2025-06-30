@@ -11,15 +11,15 @@ void ComputeSpanningForest()
     Tensor1<VInt,VInt>    V_parent_A      ( VertexCount() );
 
     DepthFirstSearch(
-        [&discovered_arcs]( cref<DirectedEdge> E )
+        [&discovered_arcs]( cref<DedgeNode> E )
         {
             discovered_arcs.Push(E.de >> 1);
         },
-        [&discovered_arcs]( cref<DirectedEdge> E )
+        [&discovered_arcs]( cref<DedgeNode> E )
         {
             discovered_arcs.Push(E.de >> 1);
         },
-        [&V_pre,&V_parent_A,&roots]( cref<DirectedEdge> E )
+        [&V_pre,&V_parent_A,&roots]( cref<DedgeNode> E )
         {
             V_pre.Push(E.head);
             V_parent_A[E.head] = E.de;
@@ -29,18 +29,18 @@ void ComputeSpanningForest()
                 roots.Push(E.head);
             }
         },
-        [&V_post]( cref<DirectedEdge> E )
+        [&V_post]( cref<DedgeNode> E )
         {
             V_post.Push(E.head);
         }
     );
     
-    this->SetCache( "DiagramComponentCount",       roots.Size()            );
-    this->SetCache( "VertexPreOrdering",           std::move(V_pre.Get())  );
-    this->SetCache( "VertexPostOrdering",          std::move(V_post.Get()) );
-    this->SetCache( "SpanningForestDirectedEdges", std::move(V_parent_A)   );
-    this->SetCache( "SpanningForestRoots",         std::move(roots.Get())  );
-    this->SetCache( "DFSEdgeOrdering",   std::move(discovered_arcs.Get())  );
+    this->SetCache( "DiagramComponentCount", roots.Size()            );
+    this->SetCache( "VertexPreOrdering",     std::move(V_pre.Get())  );
+    this->SetCache( "VertexPostOrdering",    std::move(V_post.Get()) );
+    this->SetCache( "SpanningForestDedges",  std::move(V_parent_A)   );
+    this->SetCache( "SpanningForestRoots",   std::move(roots.Get())  );
+    this->SetCache( "DFSEdgeOrdering",       std::move(discovered_arcs.Get())  );
     
     TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }
@@ -70,12 +70,12 @@ VV_Vector_T VertexPostOrdering()
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
-/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDirectedEdges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `UninitializedEdge` is returned instead.
+/*! @brief Returns a spanning forest in the following format: For every vertex `v` the entry `e = SpanningForestDedges()[v]` is the _oriented_ edge of the spanning tree that points to `v`. If `v` is a root crossing, then `UninitializedEdge` is returned instead.
  */
 
-EE_Vector_T SpanningForestDirectedEdges()
+EE_Vector_T SpanningForestDedges()
 {
-    std::string tag ("SpanningForestDirectedEdges");
+    std::string tag ("SpanningForestDedges");
     TOOLS_PTIC(ClassName()+"::"+tag);
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
     TOOLS_PTOC(ClassName()+"::"+tag);

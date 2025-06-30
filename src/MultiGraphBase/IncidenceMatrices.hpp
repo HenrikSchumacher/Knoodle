@@ -40,7 +40,7 @@ private:
 template<bool undirQ, bool inQ, bool outQ>
 void ComputeIncidenceMatrices() const
 {
-    TOOLS_PTIC( ClassName()+"::ComputeIncidenceMatrices"
+    TOOLS_PTIMER(timer,ClassName()+"::ComputeIncidenceMatrices"
         + "<" + ToString(undirQ)
         + "," + ToString(inQ)
         + "," + ToString(outQ)
@@ -113,51 +113,41 @@ void ComputeIncidenceMatrices() const
 //                           No compression needed because here. ------+
         );
     }
-
-    TOOLS_PTOC( ClassName()+"::ComputeIncidenceMatrices"
-        + "<" + ToString(undirQ)
-        + "," + ToString(inQ)
-        + "," + ToString(outQ)
-        + ">"
-    );
 }
 
 public:
 
 cref<SignedMatrix_T<EInt,1>> OrientedIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName()+"::OrientedIncidenceMatrix" );
     std::string tag ("OrientedIncidenceMatrix");
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) )
     {
         // TODO: It should actually be faster to merge OrientedIncidenceMatrix from InIncidenceMatrix and OutIncidenceMatrix.
         this->template ComputeIncidenceMatrices<1,0,0>();
     }
-    TOOLS_PTOC( ClassName()+"::OrientedIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,1>>(tag);
 }
 
 
 cref<SignedMatrix_T<EInt,0>> InIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName()+"::InIncidenceMatrix" );
     std::string tag ("InIncidenceMatrix");
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,1,0>();
     }
-    TOOLS_PTOC( ClassName()+"::InIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,0>>(tag);
 }
 
 cref<SignedMatrix_T<EInt,0>> OutIncidenceMatrix() const
 {
-    TOOLS_PTIC( ClassName()+"::OutIncidenceMatrix" );
     std::string tag ("OutIncidenceMatrix");
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) )
     {
         this->template ComputeIncidenceMatrices<0,0,1>();
     }
-    TOOLS_PTOC( ClassName()+"::OutIncidenceMatrix" );
     return this->template GetCache<SignedMatrix_T<EInt,0>>(tag);
 }
