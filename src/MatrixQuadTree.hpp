@@ -228,8 +228,6 @@ namespace Knoodle
         
         bool DeactivateReactangle( Int x_a, Int x_b, Int y_a, Int y_b )
         {
-//            TOOLS_PTIC(ClassName()+"::DeactivateReactangle");
-            
             // Don't do anything if the input rectangle is trivial.
             if( (x_b <= x_a) || (y_b <= y_a) )
             {
@@ -242,8 +240,6 @@ namespace Knoodle
             TOOLS_LOGDUMP(root);
             
             TouchNode(root);
-            
-//            TOOLS_PTOC(ClassName()+"::DeactivateReactangle");
             
             return (root != nullptr);
         }

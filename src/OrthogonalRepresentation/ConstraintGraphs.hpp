@@ -107,7 +107,8 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DvV[c_0];
                 const Int s_1 = V_DvV[c_1];
                 E_DvE_from[e] = DvE_agg.Size();
-                DvE_agg.Push(s_0,s_1,Cost_T(1));
+                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
+                DvE_agg.Push(s_0,s_1,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
                 {
@@ -120,7 +121,8 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DhV[c_0];
                 const Int s_1 = V_DhV[c_1];
                 E_DhE_from[e] = DhE_agg.Size();
-                DhE_agg.Push(s_0,s_1,Cost_T(1));
+                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
+                DhE_agg.Push(s_0,s_1,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
                 {
@@ -133,7 +135,8 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DvV[c_0];
                 const Int s_1 = V_DvV[c_1];
                 E_DvE_from[e] = DvE_agg.Size();
-                DvE_agg.Push(s_1,s_0,Cost_T(1));
+                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
+                DvE_agg.Push(s_1,s_0,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
                 {
@@ -146,7 +149,8 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DhV[c_0];
                 const Int s_1 = V_DhV[c_1];
                 E_DhE_from[e] = DhE_agg.Size();
-                DhE_agg.Push(s_1,s_0,Cost_T(1));
+                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
+                DhE_agg.Push(s_1,s_0,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
                 {
@@ -223,7 +227,6 @@ void ComputeConstraintGraphs() const
             
             DvE_agg.Push( V_DvV[v_0], V_DvV[v_1], Cost_T(0) );
             DhE_agg.Push( V_DhV[v_0], V_DhV[v_1], Cost_T(0) );
-            
             
             if constexpr ( verboseQ )
             {

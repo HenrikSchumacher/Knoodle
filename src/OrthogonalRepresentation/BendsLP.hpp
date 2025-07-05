@@ -44,77 +44,25 @@ Tensor1<Turn_T,Int> ComputeBends(
         }
     }
     
-    ClpSimplex LP;
-    LP.setMaximumIterations(1000000);
-    LP.setOptimizationDirection(1); // +1 -> minimize; -1 -> maximize
-    LP.setLogLevel(0);
-    
     using R = COIN_Real;
     using I = COIN_Int;
     using J = COIN_LInt;
     
-    auto AT     = Bends_ConstraintMatrix<R,I,J>(pd);
-    auto var_lb = Bends_LowerBoundsOnVariables<R,I>(pd);
-    auto var_ub = Bends_UpperBoundsOnVariables<R,I>(pd);
     auto con_eq = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
-    auto c      = Bends_ObjectiveVector<R,I>(pd);
     
-    if( settings.pm_matrixQ )
-    {
-        ClpPlusMinusOneMatrix A (
-            MatrixCSR_transpose_to_CoinPackedMatrix(AT)
-        );
-        
-        LP.loadProblem(
-            A,
-            var_lb.data(), var_ub.data(),
-            c.data(),
-            con_eq.data(), con_eq.data()
-        );
-    }
-    else
-    {
-        LP.loadProblem(
-            AT.RowCount(), AT.ColCount(),
-            AT.Outer().data(), AT.Inner().data(), AT.Values().data(),
-            var_lb.data(), var_ub.data(),
-            c.data(),
-            con_eq.data(), con_eq.data()
-        );
-    }
-
-    if( dualQ )
-    {
-        LP.dual();
-    }
-    else
-    {
-        LP.primal();
-    }
-    
-    
-    if( !LP.statusOfProblem() )
-    {
-        eprint(ClassName()+"::ComputeBends: Clp::Simplex::" + (settings.use_dual_simplexQ ? "dual" : "primal" )+ " reports a problem in the solve phase. The returned solution may be incorrect.");
-        
-        TOOLS_DDUMP(LP.statusOfProblem());
-        TOOLS_DDUMP(LP.getIterationCount());
-        
-        TOOLS_DDUMP(LP.numberPrimalInfeasibilities());
-        TOOLS_DDUMP(LP.largestPrimalError());
-        TOOLS_DDUMP(LP.sumPrimalInfeasibilities());
-        
-        TOOLS_DDUMP(LP.numberDualInfeasibilities());
-        TOOLS_DDUMP(LP.largestDualError());
-        TOOLS_DDUMP(LP.sumDualInfeasibilities());
-        
-        TOOLS_DDUMP(LP.objectiveValue());
-    }
+    ClpWrapper<double,Int> clp(
+        Bends_ObjectiveVector<R,I>(pd),
+        Bends_LowerBoundsOnVariables<R,I>(pd),
+        Bends_UpperBoundsOnVariables<R,I>(pd),
+        Bends_ConstraintMatrix<R,I,J>(pd),
+        con_eq,
+        con_eq,
+        { .dualQ = settings.use_dual_simplexQ }
+    );
     
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
-    mptr<Int> bends_ptr = bends.data();
     
-    cptr<COIN_Real> sol = LP.primalColumnSolution();
+    auto s = clp.template IntegralPrimalSolution<Turn_T>();
 
     for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
@@ -122,11 +70,11 @@ Tensor1<Turn_T,Int> ComputeBends(
         {
             const ExtInt head = pd.ToDarc(a,Head);
             const ExtInt tail = pd.ToDarc(a,Tail);
-            bends_ptr[a] = static_cast<Turn_T>(std::round(sol[head] - sol[tail]));
+            bends[a] = s[head] - s[tail];
         }
         else
         {
-            bends_ptr[a] = Turn_T(0);
+            bends[a] = Turn_T(0);
         }
     }
 

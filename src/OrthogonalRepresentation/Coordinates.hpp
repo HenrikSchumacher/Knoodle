@@ -340,41 +340,6 @@ std::string DiagramString() const
     return s;
 }
 
-
-//void ComputeArcLines()
-//{
-//    if( A_line_coords.Dimension(0) != A_V_ptr[arc_count] )
-//    {
-//        A_line_coords = CoordsContainer_T( A_V_ptr[arc_count] );
-//    }
-//    
-//    for( Int a = 0; a < arc_count; ++a )
-//    {
-//        const Int k_begin = A_V_ptr[a    ];
-//        const Int k_end   = A_V_ptr[a + 1];
-//        
-//        for( Int k = k_begin; k < k_end; ++k )
-//        {
-//            const Int v = A_V_idx[k];
-//            
-//            copy_buffer<2>( V_coords.data(v), A_line_coords.data(k) );
-//        }
-//    }
-//}
-
-
-//mref<CoordsContainer_T> ArcLines() const
-//{
-//    if( !this->InCacheQ("ArcLines") )
-//    {
-//        this->SetCache(
-//            "ArcLines", CoordsContainer_T ( A_V.ElementCount(), Uninitialized )
-//        );
-//    };
-//    
-//    return this->GetCache<CoordsContainer_T>("ArcLines");
-//}
-
 cref<ArcSplineContainer_T> ArcLines()
 {
     TOOLS_PTIMER(timer,ClassName()+"::ArcLines");
@@ -382,8 +347,6 @@ cref<ArcSplineContainer_T> ArcLines()
     if( !this->InCacheQ("ArcLines") )
     {
         const CoordsContainer_T & V_coords = VertexCoordinates();
-        
-//        CoordsContainer_T A_line_coords ( A_V.ElementCount() );
         
         ArcSplineContainer_T A_lines ( arc_count, A_V.ElementCount() );
         
@@ -415,8 +378,6 @@ cref<ArcSplineContainer_T> ArcLines()
             {
                 const Int v = A_V.Elements()[k];
                 
-//                copy_buffer<2>( V_coords.data(v), A_line_coords.data(k) );
-                
                 A_lines.Push( A_T{V_coords(v,0),V_coords(v,1)} );
             }
             
@@ -434,9 +395,6 @@ cref<ArcSplineContainer_T> ArcLines()
                     p_1[1] -= settings.y_gap_size * Sign<Int>(p_1[1] - p_0[1]);
                 }
                 
-//                A_line_coords(k,0) = p_1[0];
-//                A_line_coords(k,1) = p_1[1];
-                
                 A_lines.Push( A_T{p_1[0],p_1[1]} );
             }
             
@@ -448,20 +406,6 @@ cref<ArcSplineContainer_T> ArcLines()
     
     return this->GetCache<ArcSplineContainer_T>("ArcLines");
 }
-
-
-
-//mref<ArcSplineContainer_T> ArcSplines() const
-//{
-//    if( !this->InCacheQ("ArcSplines") )
-//    {
-//        return ArcSplineContainer_T();
-//    }
-//    else
-//    {
-//        return this->GetCache<ArcSplineContainer_T>("ArcSplines");
-//    }
-//}
 
 cref<ArcSplineContainer_T> ArcSplines()
 {

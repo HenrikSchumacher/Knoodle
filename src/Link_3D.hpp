@@ -183,8 +183,6 @@ namespace Knoodle
         template<bool inputSortedQ, typename R>
         void ReadVertexCoordinates( cptr<R> V, mref<EContainer_T> E ) const
         {
-//            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (AoS)");
-
             if( inputSortedQ || preorderedQ )
             {
                 for( Int e = 0; e < edge_count; ++e )
@@ -210,8 +208,6 @@ namespace Knoodle
                     copy_buffer<3>( &V[3*j] , E.data(e,1,0) );
                 }
             }
-
-//            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS)");
         }
         
         template<bool inputSortedQ, typename R>

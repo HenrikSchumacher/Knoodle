@@ -243,7 +243,7 @@ namespace Knoodle
         
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             
             Vector3_T lo;
             Vector3_T hi;
@@ -315,8 +315,6 @@ namespace Knoodle
             }
             
 //            logvalprint("edge_coords",edge_coords);
-            
-            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         }
         
         void ComputeBoundingBoxes()

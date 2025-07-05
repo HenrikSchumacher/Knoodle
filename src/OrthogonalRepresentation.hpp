@@ -4,13 +4,7 @@
 
 namespace Knoodle
 {
-    // TODO: check EdgeTurns;
     // TODO: What to do with multiple diagram components?
-    
-    // TODO: Child class TurnRegularOrthogonalRepresentation?
-    // Or just use a flag for that?
-    
-
     
     template<typename Int_>
     class OrthogonalRepresentation final : CachedObject
@@ -47,10 +41,11 @@ namespace Knoodle
             bool redistribute_bendsQ      = false;
             bool use_dual_simplexQ        = false;
             bool turn_regularizeQ         = true;
+            bool randomizeQ               = false;
             bool saturate_facesQ          = true;
             bool saturate_exterior_faceQ  = false;
+            bool parallelizeQ             = true;
             int  compaction_method        = 0;
-            
             
             Int  x_grid_size              = 20;
             Int  y_grid_size              = 20;
@@ -100,7 +95,9 @@ namespace Knoodle
             return PlanarDiagram_T::ValidIndexQ(i);
         }
         
+        // TODO: Maybe replace by pcg32?
         
+        using PRNG_T = std::mt19937_64;
         
 #include "OrthogonalRepresentation/Constants.hpp"
 
@@ -163,7 +160,7 @@ namespace Knoodle
             {
                 case 0:
                 {
-                    ComputeVertexCoordinates_ByLengths_Variant2();
+                    ComputeVertexCoordinates_ByLengths_Variant3(false);
                     break;
                 }
                 case 1:
@@ -181,10 +178,30 @@ namespace Knoodle
                     ComputeVertexCoordinates_ByTopologicalOrdering();
                     break;
                 }
+                case 10:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant2(false);
+                    break;
+                }
+                case 11:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant2(true);
+                    break;
+                }
+                case 20:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant3(false);
+                    break;
+                }
+                case 21:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant3(true);
+                    break;
+                }
                 default:
                 {
                     wprint(ClassName() + "(): Unknown compaction method. Using default (0).");
-                    ComputeVertexCoordinates_ByLengths_Variant2();
+                    ComputeVertexCoordinates_ByLengths_Variant3(false);
                     break;
                 }
             }
@@ -325,12 +342,15 @@ namespace Knoodle
 #include "OrthogonalRepresentation/Faces.hpp"
 #include "OrthogonalRepresentation/TurnRegularize.hpp"
         
-#include "OrthogonalRepresentation/Plotting.hpp"
-        
 #include "OrthogonalRepresentation/SaturateFaces.hpp"
 #include "OrthogonalRepresentation/ConstraintGraphs.hpp"
 #include "OrthogonalRepresentation/LengthsLP_Variant2.hpp"
+#include "OrthogonalRepresentation/LengthsLP_Variant3.hpp"
+
+#include "OrthogonalRepresentation/PostProcessing.hpp"
+
 #include "OrthogonalRepresentation/Coordinates.hpp"
+#include "OrthogonalRepresentation/Plotting.hpp"
 #include "OrthogonalRepresentation/FindIntersections.hpp"
 
 

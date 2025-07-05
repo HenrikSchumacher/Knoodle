@@ -3,6 +3,8 @@
 
 // Hashemi, Tahmasbi - A better heuristic for area-compaction of orthogonal representations
 
+public:
+
 bool SaturateFacesQ() const
 {
     return settings.saturate_facesQ;

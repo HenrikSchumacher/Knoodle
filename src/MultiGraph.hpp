@@ -138,7 +138,7 @@ namespace Knoodle
         
         void RequireTopology() const
         {
-            TOOLS_PTIC( ClassName()+ "::RequireTopology" );
+            TOOLS_PTIMER(timer,ClassName()+"::RequireTopology");
             // v stands for "vertex"
             // e stands for "edge"
             // d stands for "direction"
@@ -380,8 +380,6 @@ namespace Knoodle
             C.SortInner();
             
             this->SetCache( std::string("ComponentEdgeMatrix"), std::move(C) );
-            
-            TOOLS_PTOC( ClassName()+ "::RequireTopology" );
         }
         
     public:
@@ -427,7 +425,7 @@ namespace Knoodle
                     return this->template GetCache<ComponentMatrix_T>(tag);
                 }
                 
-                TOOLS_PTIC( ClassName()+ "::ComponentVertexMatrix" );
+                TOOLS_PTIMER(timer,ClassName()+"::ComponentVertexMatrix");
                 
                 // Stores the graph's components.
                 // c_v_ptr contains a counter for the number of components.
@@ -532,8 +530,6 @@ namespace Knoodle
                 C.SortInner();
                 
                 this->SetCache( std::string(tag), std::move(C) );
-                
-                TOOLS_PTOC( ClassName()+ "::ComponentVertexMatrix" );
             }
 
             return this->template GetCache<ComponentMatrix_T>(tag);

@@ -133,12 +133,7 @@ Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
 
 Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant2()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::Lengths_ConstraintMatrix_Variant2"
-//        + "<" + TypeName<S>
-//        + "," + TypeName<I>
-//        + "," + TypeName<J>
-//        + ">"
-    );
+    TOOLS_PTIMER(timer,ClassName()+"::Lengths_ConstraintMatrix_Variant2");
     
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
@@ -195,15 +190,30 @@ Tensor1<COIN_Real,COIN_Int> Lengths_LowerBoundsOnVariables_Variant2()
     return Tensor1<COIN_Real,COIN_Int>(d.var_count,COIN_Real(0));
 }
 
-Tensor1<COIN_Real,COIN_Int> Lengths_UpperBoundsOnVariables_Variant2()
+Tensor1<COIN_Real,COIN_Int> Lengths_UpperBoundsOnVariables_Variant2(
+    bool minimize_areaQ = false
+)
 {
     TOOLS_MAKE_FP_STRICT();
     
     cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
     
-    // TODO: Add height and width constraints.
+    Tensor1<COIN_Real,COIN_Int> v (d.var_count);
     
-    return Tensor1<COIN_Real,COIN_Int>(d.var_count,Scalar::Infty<COIN_Real>);
+    
+    COIN_Real w  = minimize_areaQ
+                 ? Dv().TopologicalNumbering().Max()
+                 : Scalar::Infty<COIN_Real>;
+    
+    COIN_Real h  = minimize_areaQ
+                 ? Dh().TopologicalNumbering().Max()
+                 : Scalar::Infty<COIN_Real>;
+    
+    
+    fill_buffer( v.data(d.DvV_offset), w, d.DvV_count );
+    fill_buffer( v.data(d.DhV_offset), h, d.DhV_count );
+    
+    return v;
 }
 
 Tensor1<COIN_Real,COIN_Int> Lengths_LowerBoundsOnConstraints_Variant2()
@@ -225,192 +235,29 @@ Tensor1<COIN_Real,COIN_Int> Lengths_UpperBoundsOnConstraints_Variant2()
     return Tensor1<COIN_Real,COIN_Int>(d.con_count,Scalar::Infty<COIN_Real>);
 }
 
-void ComputeVertexCoordinates_ByLengths_Variant2()
+void ComputeVertexCoordinates_ByLengths_Variant2( bool minimize_areaQ = false )
 {
     TOOLS_MAKE_FP_STRICT();
     
     TOOLS_PTIMER( timer, ClassName()+"::ComputeVertexCoordinates_ByLengths_Variant2");
     
-    // TODO: Try ClpPlusMinusOneMatrix.
-    // TODO: Try ClpNetworkMatrix.
-    ClpSimplex LP;
-    LP.setMaximumIterations(1000000);
-    LP.setOptimizationDirection(1); // +1 -> minimize; -1 -> maximize
-    LP.setLogLevel(0);
+    ClpWrapper<double,Int> clp(
+        Lengths_ObjectiveVector_Variant2(),
+        Lengths_LowerBoundsOnVariables_Variant2(),
+        Lengths_UpperBoundsOnVariables_Variant2(minimize_areaQ),
+        Lengths_ConstraintMatrix_Variant2(),
+        Lengths_LowerBoundsOnConstraints_Variant2(),
+        Lengths_UpperBoundsOnConstraints_Variant2(),
+        { .dualQ = settings.use_dual_simplexQ }
+    );
     
-    using I = COIN_Int;
-
-    auto AT     = Lengths_ConstraintMatrix_Variant2();
-    auto var_lb = Lengths_LowerBoundsOnVariables_Variant2();
-    auto var_ub = Lengths_UpperBoundsOnVariables_Variant2();
-    auto con_lb = Lengths_LowerBoundsOnConstraints_Variant2();
-    auto con_ub = Lengths_UpperBoundsOnConstraints_Variant2();
-    auto c      = Lengths_ObjectiveVector_Variant2();
-    
-    if( settings.pm_matrixQ )
-    {
-        ClpPlusMinusOneMatrix A (
-            MatrixCSR_transpose_to_CoinPackedMatrix(AT)
-        );
-        
-        LP.loadProblem(
-            A,
-            var_lb.data(), var_ub.data(),
-            c.data(),
-            con_lb.data(), con_ub.data()
-        );
-    }
-    else
-    {
-        LP.loadProblem(
-            AT.RowCount(), AT.ColCount(),
-            AT.Outer().data(), AT.Inner().data(), AT.Values().data(),
-            var_lb.data(), var_ub.data(),
-            c.data(),
-            con_lb.data(), con_ub.data()
-        );
-    }
-    
-    if( settings.use_dual_simplexQ )
-    {
-        LP.dual();
-    }
-    else
-    {
-        LP.primal();
-    }
+    auto s = clp.IntegralPrimalSolution();
     
     cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
 
-    
-    if( !LP.statusOfProblem() )
-    {
-        eprint(ClassName()+"::ComputeVertexCoordinates_ByLengths_Variant2: Clp::Simplex::" + (settings.use_dual_simplexQ ? "dual" : "primal" )+ " reports a problem in the solve phase. The returned solution may be incorrect.");
-        
-        TOOLS_DDUMP(LP.statusOfProblem());
-        TOOLS_DDUMP(LP.getIterationCount());
-        
-        TOOLS_DDUMP(LP.numberPrimalInfeasibilities());
-        TOOLS_DDUMP(LP.largestPrimalError());
-        TOOLS_DDUMP(LP.sumPrimalInfeasibilities());
-        
-        TOOLS_DDUMP(LP.numberDualInfeasibilities());
-        TOOLS_DDUMP(LP.largestDualError());
-        TOOLS_DDUMP(LP.sumDualInfeasibilities());
-        
-        
-        TOOLS_DDUMP(LP.objectiveValue());
-        
-        TOOLS_DDUMP(d.var_count);
-        TOOLS_DDUMP(Dv().VertexCount()+Dh().VertexCount());
-        
-        logvalprint(
-            "solution",
-            ArrayToString(
-                LP.primalColumnSolution(),{d.var_count},
-                [](COIN_Real x){ return ToStringFPGeneral(x); }
-            )
-        );
-    }
-    
-//    auto v_str = []( const Tensor1<COIN_Real,I> & v )
-//    {
-//        return ArrayToString(
-//          v.data(),{v.Dim(0)},
-//          [](COIN_Real x){ return ToStringFPGeneral(x); }
-//        );
-//    };
-    
-    Tensor1<Int,Int> x ( static_cast<Int>(d.DvV_count) );
-    Tensor1<Int,Int> y ( static_cast<Int>(d.DhV_count) );
-    
-    Tensor1<COIN_Real,I> s ( d.var_count );
-    Tensor1<COIN_Real,I> b ( d.con_count );
-    
-
-    // Checking whether solution is an integer solution.
-    
-    constexpr COIN_Real integer_tol = 0.000'1;
-    COIN_Real diff_max = 0;
-    COIN_Real diff_sum = 0;
-    
-    Int var_lb_infeasible_count = 0;
-    Int var_ub_infeasible_count = 0;
-    
-    {
-        cptr<COIN_Real> sol = LP.primalColumnSolution();
-        
-        for( I i = 0; i < d.var_count; ++i )
-        {
-            COIN_Real r_i  = std::round(sol[i]);
-            COIN_Real diff = Abs(sol[i] - r_i);
-            
-            diff_max = Max( diff_max, diff );
-            diff_sum += diff;
-            s[i] = r_i;
-            
-            var_lb_infeasible_count += (r_i < var_lb[i]);
-            var_ub_infeasible_count += (r_i > var_ub[i]);
-        }
-    }
-    
-    if( diff_max > integer_tol )
-    {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: CLP returned noninteger solution vector. Greatest deviation = " + ToStringFPGeneral(diff_max) + ". Sum of deviations = " + ToString(diff_sum) + "." );
-    }
-    
-    if( var_lb_infeasible_count > Int(0) )
-    {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for lower box constraints: " + ToString(var_lb_infeasible_count) + ".");
-        
-//        valprint("var_lb",v_str(var_lb));
-    }
-    
-    if( var_ub_infeasible_count > Int(0) )
-    {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for upper box constraints: " + ToString(var_ub_infeasible_count) +".");
-        
-//        valprint("var_ub",v_str(var_ub));
-    }
-    
-//    {
-//        auto A = AT.Transpose();
-//        A.Dot( COIN_Real(1), s.data(), COIN_Real(0), b.data() );
-//    }
-    
-    // Using CLP's matrix-vector product so that I do not have to transpose A.
-    // Also, I do not want to pull in all that code from SparseBLAS.
-    LP.matrix()->times(s.data(),b.data());
-    
-    Int con_lb_infeasible_count = 0;
-    Int con_ub_infeasible_count = 0;
-    
-    for( I j = 0; j < static_cast<Int>(d.con_count); ++j )
-    {
-        b[j] = std::round(b[j]);
-        con_lb_infeasible_count += (b[j] < con_lb[j]);
-        con_ub_infeasible_count += (b[j] > con_ub[j]);
-    }
-    
-    if( con_lb_infeasible_count > Int(0) )
-    {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for lower matrix constraints: " + ToString(con_lb_infeasible_count) + ".");
-        
-//        valprint("b",v_str(b));
-//        valprint("con_lb",v_str(con_lb));
-    }
-    
-    if( con_ub_infeasible_count > Int(0) )
-    {
-        eprint(ClassName() + "::ComputeVertexCoordinates_ByLengths_Variant2: violations for upper matrix constraints: " + ToString(con_ub_infeasible_count) + ".");
-
-//        valprint("b",v_str(b));
-//        valprint("con_ub",v_str(con_ub));
-    }
-    
     // The integer conversion is safe as we have rounded s correctly already.
-    x.Read( s.data(d.DvV_offset) );
-    y.Read( s.data(d.DhV_offset) );
+    Tensor1<Int,Int> x ( s.data(d.DvV_offset), d.DvV_count );
+    Tensor1<Int,Int> y ( s.data(d.DhV_offset), d.DhV_count );
 
     ComputeVertexCoordinates(x,y);
 }

@@ -100,10 +100,11 @@ int main( int argc, char** argv )
         {
             .redistribute_bendsQ     = true,
             .use_dual_simplexQ       = false,
-            .turn_regularizeQ        = false,
+            .turn_regularizeQ        = true,
+            .randomizeQ              = false,
             .saturate_facesQ         = true,
-            .saturate_exterior_faceQ = false,
-            .compaction_method       = 4,
+            .saturate_exterior_faceQ = true,
+            .compaction_method       = 0,
         
             .x_grid_size             = 8,
             .y_grid_size             = 4,
@@ -162,15 +163,9 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.CheckAllFaceTurns());
     
     print("");
-    print("Diagram -- ByTopologicalTightening");
+    print("Diagram -- Default");
     print("");
-    
-//    TOOLS_DUMP(H.Dv().VertexCount());
-//    TOOLS_DUMP(H.Dv().EdgeCount());
-//    TOOLS_DUMP(H.Dh().VertexCount());
-//    TOOLS_DUMP(H.Dh().EdgeCount());
-    
-    H.ComputeVertexCoordinates_ByTopologicalTightening();
+
     TOOLS_DUMP(H.Width());
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
@@ -187,61 +182,13 @@ int main( int argc, char** argv )
     print("Diagram -- ByLengthVariant1");
     print("");
 
-    
-    
-    
 
-    H.ComputeVertexCoordinates_ByLengths_Variant2();
+    H.ComputeVertexCoordinates_ByLengths_Variant2(true);
     TOOLS_DUMP(H.Width());
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
     TOOLS_DUMP(H.Length());
     print(H.DiagramString());
-
-    
-    
-//    auto switch_to_string = []( const UInt8 x )
-//    {
-//        return OR_T::SwitchString(OR_T::Switch_T(x));
-//    };
-//    
-//    print("\nFaceGlSwitchTypes");
-//    {
-//        auto F_types = H.template FaceSwitchTypes<0>();
-//        
-//        TOOLS_DUMP(F_types.ElementCount());
-//        
-//        for( Int f = 0; f < F_types.SublistCount(); ++f )
-//        {
-//            valprint(
-//                "face " + ToString(f),
-//                 ArrayToString(
-//                    F_types.Sublist(f).begin(),
-//                    {F_types.Sublist(f).Size()},
-//                    switch_to_string
-//                 )
-//            );
-//        }
-//    }
-//    
-//    print("\nFaceGrSwitchTypes");
-//    {
-//        auto F_types = H.template FaceSwitchTypes<1>();
-//        
-//        TOOLS_DUMP(F_types.ElementCount());
-//        
-//        for( Int f = 0; f < F_types.SublistCount(); ++f )
-//        {
-//            valprint(
-//                "face " + ToString(f),
-//                 ArrayToString(
-//                    F_types.Sublist(f).begin(),
-//                    {F_types.Sublist(f).Size()},
-//                    switch_to_string
-//                 )
-//            );
-//        }
-//    }
     
     auto Gl_saturating_edges = H.template SaturatingEdges<0>();
     
@@ -276,6 +223,8 @@ int main( int argc, char** argv )
     }
     
     H.PrintSettings();
+    
+    H.SegmentsInfluencedByVirtualEdges();
     
     return EXIT_SUCCESS;
 }

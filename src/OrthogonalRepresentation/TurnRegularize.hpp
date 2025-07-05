@@ -23,6 +23,27 @@ void TurnRegularize()
 
     if( proven_turn_regularQ ) { return; }
     
+    using SD_T = std::random_device;
+    
+    PRNG_T engine;
+    
+    if( settings.randomizeQ )
+    {
+        using SD_UInt = SD_T::result_type;
+        using MT_UInt = PRNG_T::result_type;
+        
+        constexpr Size_T seed_size = (PRNG_T::state_size * sizeof(MT_UInt)) / sizeof(SD_UInt);
+        
+        std::vector<SD_UInt> seed_array ( seed_size );
+        
+        std::generate( seed_array.begin(), seed_array.end(), SD_T() );
+        
+        std::seed_seq seed ( seed_array.begin(), seed_array.end() );
+        
+        engine = PRNG_T( seed );
+    }
+    
+    
     this->ClearCache();
     
     // We need two reflex corners per virtual edge.
@@ -37,7 +58,7 @@ void TurnRegularize()
     
     for( Int de_ptr = 0; de_ptr < Int(2) * E_V.Dim(0); ++de_ptr )
     {
-        TurnRegularizeFace(de_ptr);
+        TurnRegularizeFace(engine,de_ptr);
     }
     
     Resize(LastActiveEdge() + Int(1));
@@ -55,7 +76,6 @@ Turn_T FaceTurns( const Int de_ptr ) const
     Turn_T rot = 0;
     
     Int de = de_ptr;
-    
     do
     {
         rot += dE_turn[de];
@@ -274,7 +294,7 @@ private:
  */
 
 template<bool debugQ = false>
-bool TurnRegularizeFace( const Int de_ptr )
+bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
 {
     if( !DedgeActiveQ(de_ptr) || DedgeVisitedQ(de_ptr) ) { return false; }
     
@@ -351,8 +371,14 @@ bool TurnRegularizeFace( const Int de_ptr )
     dE_left_dE[de_0] = da_1;
     dE_left_dE[de_1] = db_1;
 
-    // TODO: Randomize this?
-    bool e_parallel_to_da_0 = true;
+//    // TODO: Randomize this?
+//    bool e_parallel_to_da_0 = true;
+    
+    std::uniform_int_distribution<int> dist (0,1);
+    
+    bool e_parallel_to_da_0 = settings.randomizeQ
+                            ? dist(engine)
+                            : true;
     
     // If e_parallel_to_da_0 == true, then s_0 = TRE_dir[a_0]; otherwise we turn by 90 degrees.
     
@@ -401,8 +427,8 @@ bool TurnRegularizeFace( const Int de_ptr )
         }
     }
     
-    bool de_0_split = TurnRegularizeFace(de_0);
-    bool de_1_split = TurnRegularizeFace(de_1);
+    bool de_0_split = TurnRegularizeFace(engine,de_0);
+    bool de_1_split = TurnRegularizeFace(engine,de_1);
 
     if constexpr ( debugQ )
     {

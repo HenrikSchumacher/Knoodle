@@ -59,7 +59,7 @@ void Traverse(
     LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
 )  const
 {
-    TOOLS_PTIC(ClassName()+"::Traverse"
+    TOOLS_PTIMER(timer,ClassName()+"::Traverse"
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
         + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
         + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
@@ -96,14 +96,6 @@ void Traverse(
             "Unknown traversal method. Using default method."
         );
     }
-    
-
-    TOOLS_PTOC(ClassName()+"::Traverse"
-        + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
-        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
-        + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
-        + "," + ToString(method)
-        + ">");
 }
 
 

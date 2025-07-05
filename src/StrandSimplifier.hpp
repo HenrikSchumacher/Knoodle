@@ -812,7 +812,7 @@ namespace Knoodle
             
             SetStrandMode(overQ_);
             
-            TOOLS_PTIC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            TOOLS_PTIMER(timer,ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
@@ -888,7 +888,6 @@ namespace Knoodle
                         
                         Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
-                        PD_TOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
                         
                         // Return a positive number to encourage that this function is called again upstream.
                         return change_counter+1;
@@ -1201,8 +1200,6 @@ namespace Knoodle
 #endif
             
             Cleanup();
-            
-            TOOLS_PTOC(ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
             
             return change_counter;
             
