@@ -37,7 +37,7 @@ namespace Knoodle
         
         struct Settings_T
         {
-            bool pm_matrixQ               = true;
+            bool network_matrixQ          = true;
             bool redistribute_bendsQ      = false;
             bool use_dual_simplexQ        = false;
             bool turn_regularizeQ         = true;
@@ -55,7 +55,7 @@ namespace Knoodle
             
             void PrintInfo() const
             {
-                TOOLS_DDUMP(pm_matrixQ);
+                TOOLS_DDUMP(network_matrixQ);
                 TOOLS_DDUMP(redistribute_bendsQ);
                 TOOLS_DDUMP(use_dual_simplexQ);
                 TOOLS_DDUMP(turn_regularizeQ);
@@ -515,14 +515,14 @@ namespace Knoodle
             return A_bends;
         }
   
-        bool PlusMinusMatrixQ() const
+        bool NetworkMatrixQ() const
         {
-            return settings.pm_matrixQ;
+            return settings.network_matrixQ;
         }
 
-        void SetPlusMinusMatrixQ( const bool val )
+        void SetNetworkMatrixQ( const bool val )
         {
-            settings.pm_matrixQ = val;
+            settings.network_matrixQ = val;
         }
         
         

@@ -50,6 +50,7 @@ void WriteMacLeodCode( mptr<T> code )  const
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )
         {
+            (void)a;
             (void)lc;
             (void)c_0;
             (void)c_0_visitedQ;

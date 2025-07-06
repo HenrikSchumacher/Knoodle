@@ -47,23 +47,70 @@ Tensor1<Turn_T,Int> ComputeBends(
     using R = COIN_Real;
     using I = COIN_Int;
     using J = COIN_LInt;
+    using Clp_T = ClpWrapper<double,Int,Int>;
+    using Settings_T = Clp_T::Settings_T;
     
     auto con_eq = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
-    ClpWrapper<double,Int> clp(
-        Bends_ObjectiveVector<R,I>(pd),
-        Bends_LowerBoundsOnVariables<R,I>(pd),
-        Bends_UpperBoundsOnVariables<R,I>(pd),
-        Bends_ConstraintMatrix<R,I,J>(pd),
-        con_eq,
-        con_eq,
-        { .dualQ = settings.use_dual_simplexQ }
-    );
+    std::shared_ptr<Clp_T> clp;
     
+    Settings_T param { .dualQ = settings.use_dual_simplexQ };
+    
+    if( settings.network_matrixQ )
+    {
+        cptr<ExtInt> dA_F = pd.ArcFaces().data();
+        
+        const I n = I(2) * int_cast<I>(pd.Arcs().Dim(0));
+//        const I m = int_cast<I>(pd.FaceCount());
+        
+        Tensor1<COIN_Int,I> tails ( n );
+        Tensor1<COIN_Int,I> heads ( n );
+
+        for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+        {
+            if( !pd.ArcActiveQ(a) ) { continue; };
+            
+            const I da_0 = static_cast<I>( pd.template ToDarc<Tail>(a) );
+            const I da_1 = static_cast<I>( pd.template ToDarc<Head>(a) );
+            
+            const I f_0  = static_cast<I>(dA_F[da_0]); // right face of a
+            const I f_1  = static_cast<I>(dA_F[da_1]); // left  face of a
+
+            // Clp seems to work with different sign than I.
+            
+            tails[da_0] = f_0;
+            heads[da_0] = f_1;
+            
+            tails[da_1] = f_1;
+            heads[da_1] = f_0;
+        }
+                
+        clp = std::make_shared<Clp_T>(
+            tails, heads,
+            Bends_ObjectiveVector<R,I>(pd),
+            Bends_LowerBoundsOnVariables<R,I>(pd),
+            Bends_UpperBoundsOnVariables<R,I>(pd),
+            con_eq,
+            param
+        );
+    }
+    else
+    {
+        clp = std::make_shared<Clp_T>(
+            Bends_ObjectiveVector<R,I>(pd),
+            Bends_LowerBoundsOnVariables<R,I>(pd),
+            Bends_UpperBoundsOnVariables<R,I>(pd),
+            Bends_ConstraintMatrix<R,I,J>(pd),
+            con_eq,
+            con_eq,
+            param
+        );
+    }
+    
+    auto s = clp->template IntegralPrimalSolution<Turn_T>();
+
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     
-    auto s = clp.template IntegralPrimalSolution<Turn_T>();
-
     for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
     {
         if( pd.ArcActiveQ(a) )
@@ -182,7 +229,7 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     }
     else
     {
-        v_ptr[ext_region] -= S(8);
+        v_ptr[max_f] -= S(8);
     }
     
     return v;

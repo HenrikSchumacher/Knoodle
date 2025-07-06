@@ -98,6 +98,7 @@ int main( int argc, char** argv )
     
     OR_T H (pd, Int(-1),
         {
+            .network_matrixQ         = true,
             .redistribute_bendsQ     = true,
             .use_dual_simplexQ       = false,
             .turn_regularizeQ        = true,
