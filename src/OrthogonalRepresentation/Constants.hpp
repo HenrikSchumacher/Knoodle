@@ -17,12 +17,19 @@ static constexpr bool Tail  = PlanarDiagram<Int>::Tail;
 static constexpr bool Head  = PlanarDiagram<Int>::Head;
 
 
-static constexpr int EdgeActiveBit   = 0;
-static constexpr int EdgeVisitedBit  = 1;
-static constexpr int EdgeExteriorBit = 2;
-static constexpr int EdgeVirtualBit  = 3;
+static constexpr int EdgeActiveBit        = 0;
+static constexpr int EdgeVisitedBit       = 1;
+static constexpr int EdgeExteriorBit      = 2;
+static constexpr int EdgeVirtualBit       = 3;
+static constexpr int EdgeUnconstrainedBit = 4;
 
-static constexpr EdgeFlag_T EdgeActiveMask   = EdgeFlag_T(1) << EdgeActiveBit;
-static constexpr EdgeFlag_T EdgeVisitedMask  = EdgeFlag_T(1) << EdgeVisitedBit;
-static constexpr EdgeFlag_T EdgeExteriorMask = EdgeFlag_T(1) << EdgeExteriorBit;
-static constexpr EdgeFlag_T EdgeVirtualMask  = EdgeFlag_T(1) << EdgeVirtualBit;
+static constexpr EdgeFlag_T EdgeActiveMask
+                            = EdgeFlag_T(1) << EdgeActiveBit;
+static constexpr EdgeFlag_T EdgeVisitedMask
+                            = EdgeFlag_T(1) << EdgeVisitedBit;
+static constexpr EdgeFlag_T EdgeExteriorMask
+                            = EdgeFlag_T(1) << EdgeExteriorBit;
+static constexpr EdgeFlag_T EdgeVirtualMask
+                            = EdgeFlag_T(1) << EdgeVirtualBit;
+static constexpr EdgeFlag_T EdgeUnconstrainedMask
+                            = EdgeFlag_T(1) << EdgeUnconstrainedBit;

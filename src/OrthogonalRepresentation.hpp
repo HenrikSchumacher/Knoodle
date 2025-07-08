@@ -1,10 +1,22 @@
 #pragma once
 
+// TODO: Make this optional.
 #include "../submodules/Tensors/Clp.hpp"
+
+// TODO: We have to put the following directories onto the search path:
+// TODO:    "../submodules/Min-Cost-Flow-Class/OPTUtils/",
+// TODO:    "../submodules/Min-Cost-Flow-Class/MCFClass/",
+// TODO:    "../submodules/Min-Cost-Flow-Class/MCFSimplex/
+
+namespace MCF
+{
+    #include "MCFSimplex.C"
+}
 
 namespace Knoodle
 {
     // TODO: What to do with multiple diagram components?
+    // TODO: Get/setters for all settings.
     
     template<typename Int_>
     class OrthogonalRepresentation final : CachedObject
@@ -17,9 +29,11 @@ namespace Knoodle
         static_assert(SignedIntQ<Int_>,"");
         
         using Int        = Int_;
+        
         using COIN_Real  = double;
         using COIN_Int   = int;
         using COIN_LInt  = CoinBigIndex;
+        
         using UInt       = UInt32;
         using Dir_T      = UInt8;
         using EdgeFlag_T = UInt8;
@@ -37,6 +51,7 @@ namespace Knoodle
         
         struct Settings_T
         {
+            int  bend_min_method          = 0;
             bool network_matrixQ          = true;
             bool redistribute_bendsQ      = false;
             bool use_dual_simplexQ        = false;
@@ -44,6 +59,7 @@ namespace Knoodle
             bool randomizeQ               = false;
             bool saturate_facesQ          = true;
             bool saturate_exterior_faceQ  = false;
+            bool filter_saturating_edgesQ = true;
             bool parallelizeQ             = true;
             int  compaction_method        = 0;
             
@@ -55,6 +71,7 @@ namespace Knoodle
             
             void PrintInfo() const
             {
+                TOOLS_DDUMP(bend_min_method);
                 TOOLS_DDUMP(network_matrixQ);
                 TOOLS_DDUMP(redistribute_bendsQ);
                 TOOLS_DDUMP(use_dual_simplexQ);
@@ -81,6 +98,8 @@ namespace Knoodle
         using EdgeFlagContainer_T   = Tiny::VectorList_AoS<2,EdgeFlag_T,Int>;
         using Vector_T              = Tiny::Vector<2,Int,Int>;
         using PlanarDiagram_T       = PlanarDiagram<Int>;
+        using CrossingContainer_T   = PlanarDiagram_T::CrossingContainer_T;
+        using ArcContainer_T        = PlanarDiagram_T::ArcContainer_T;
         
         using ArcSplineContainer_T  = RaggedList<std::array<Int,2>,Int>;
         
@@ -90,14 +109,17 @@ namespace Knoodle
         static constexpr Int Uninitialized = PlanarDiagram_T::Uninitialized;
         static constexpr Int MaxValidIndex = PlanarDiagram_T::MaxValidIndex;
         
+
+        
         static constexpr bool ValidIndexQ( const Int i )
         {
             return PlanarDiagram_T::ValidIndexQ(i);
         }
         
         // TODO: Maybe replace by pcg32?
+        // TODO: However, it is used rather seldomly. We prefer our graph drawer to be deterministic.
         
-        using PRNG_T = std::mt19937_64;
+        using PRNG_T = std::mt19937;
         
 #include "OrthogonalRepresentation/Constants.hpp"
 
@@ -225,29 +247,27 @@ namespace Knoodle
         Int crossing_count      = 0; // number of active crossings
         Int arc_count           = 0; // number of active arcs
         
-        Int max_crossing_count  = 0; // number of active + inactive crossings
-        Int max_arc_count       = 0; // number of active + inactive arcs
-        
         Int bend_count          = 0;
         Int vertex_count        = 0;
         Int edge_count          = 0;
         Int virtual_edge_count  = 0;
-        Int face_count          = 0; // number of number of faces
         
         Int exterior_region     = 0;
-//        Int maximum_face        = 0;
         Int max_face_size       = 0;
+        
+        CrossingContainer_T C_A;
+        ArcContainer_T A_C;
         
         Tiny::VectorList_AoS<2,bool,Int> A_overQ;
         
-        Tensor1<Int,Int>    A_bends;
+        Tensor1<Turn_T,Int> A_bends;
 
         RaggedList<Int,Int> R_dA;
         
         RaggedList<Int,Int> A_V;
         RaggedList<Int,Int> A_E;
         
-        // Entries are _outgoing_ directed edge indices. Do /2 to get actual arc index.
+        // Entries are _outgoing_ directed edge indices. Use FromDedge to get actual arc index and direction.
         VertexContainer_T   V_dE;
         mutable VertexFlagContainer_T V_flag;
         // General purpose buffers. May be used in all routines as temporary space.
@@ -257,7 +277,7 @@ namespace Knoodle
         // Undirected edge indices to undirected arc indices.
         Tensor1<Int,Int>    E_A;
         EdgeContainer_T     E_V;
-        // Entries are _directed_ edge indices. Do /2 to get actual arc indes.
+        // Entries are _directed_ edge indices. Use FromDedge to get actual arc index and direction.
         EdgeContainer_T     E_left_dE;
         EdgeTurnContainer_T E_turn;
         Tensor1<Dir_T,Int>  E_dir; // Cardinal direction of _undirected_ edges.
@@ -269,25 +289,6 @@ namespace Knoodle
         Settings_T settings;
         
         mutable bool proven_turn_regularQ = false;
-        
-        // Plotting
-        
-//        Int width       = 0;
-//        Int height      = 0;
-//        
-//        Int x_grid_size = 20;
-//        Int y_grid_size = 20;
-//        Int x_gap_size  = 4;
-//        Int y_gap_size  = 4;
-        
-//        CoordsContainer_T V_coords;
-//        CoordsContainer_T A_line_coords;
-//        
-//        Tensor1<Int,Int>  A_spline_ptr;
-//        CoordsContainer_T A_spline_coords;
-//        
-//        std::vector<std::array<Int,2>> Dh_edge_agg;
-//        std::vector<std::array<Int,2>> Dv_edge_agg;
         
     public:
         
@@ -337,6 +338,8 @@ namespace Knoodle
     private:
 
 #include "OrthogonalRepresentation/BendsLP.hpp"
+#include "OrthogonalRepresentation/BendsLP_Clp.hpp"
+#include "OrthogonalRepresentation/BendsLP_MCFClass.hpp"
 #include "OrthogonalRepresentation/LoadPlanarDiagram.hpp"
 #include "OrthogonalRepresentation/Edges.hpp"
 #include "OrthogonalRepresentation/Faces.hpp"
@@ -365,9 +368,19 @@ namespace Knoodle
             return crossing_count;
         }
         
+        cref<CrossingContainer_T> Crossings() const
+        {
+            return C_A;
+        }
+        
         Int ArcCount() const
         {
             return arc_count;
+        }
+        
+        cref<ArcContainer_T> Arcs() const
+        {
+            return A_C;
         }
         
         bool VertexActiveQ( const Int v ) const
@@ -510,7 +523,12 @@ namespace Knoodle
             return E_dir;
         }
         
-        cref<Tensor1<Int,Int>> Bends() const
+        Int BendCount() const
+        {
+            return bend_count;
+        }
+        
+        cref<Tensor1<Turn_T,Int>> Bends() const
         {
             return A_bends;
         }
@@ -526,100 +544,26 @@ namespace Knoodle
         }
         
         
-//        // Horizontal and vertical constaint graph
-//
-//        cref<DiGraph_T> DhConstraintGraph() const
-//        {
-//            return Dh;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> DhVertexEdgePointers() const
-//        {
-//            return DhV_E_ptr;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> DhVertexEdgeIndices() const
-//        {
-//            return DhV_E_idx;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> VertexDhVertex() const
-//        {
-//            return V_DhV;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> EdgeDhVertex() const
-//        {
-//            return E_DhV;
-//        }
-//        
-//        
-//        cref<DiGraph_T> DvConstraintGraph() const
-//        {
-//            return Dv;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> DvVertexEdgePointers() const
-//        {
-//            return DvV_E_ptr;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> DvVertexEdgeIndices() const
-//        {
-//            return DvV_E_idx;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> VertexDvVertex() const
-//        {
-//            return V_DvV;
-//        }
-//        
-//        cref<Tensor1<Int,Int>> EdgeDvVertices() const
-//        {
-//            return E_DvV;
-//        }
-        
-        
-//        cref<Tensor1<Int,Int>> DhTopologicalNumbering() const
-//        {
-//            return Dh.TopologicalNumbering();
-//        }
-//
-//        cref<Tensor1<Int,Int>> DhTopologicalOrdering() const
-//        {
-//            return Dh.TopologicalOrdering();
-//        }
-//
-//        cref<Tensor1<Int,Int>> DvTopologicalNumbering() const
-//        {
-//            return Dv.TopologicalNumbering();
-//        }
-//
-//        cref<Tensor1<Int,Int>> DvTopologicalOrdering() const
-//        {
-//            return Dv.TopologicalOrdering();
-//        }
-        
-        
-//        cref<CoordsContainer_T> VertexCoordinates() const
-//        {
-//            return V_coords;
-//        }
-//        
-//        cref<CoordsContainer_T> ArcLineCoordinates() const
-//        {
-//            return A_line_coords;
-//        }
-//
-//        cref<Tensor1<Int,Int>> ArcSplinePointers() const
-//        {
-//            return A_spline_ptr;
-//        }
-//        
-//        cref<CoordsContainer_T> ArcSplineCoordinates() const
-//        {
-//            return A_spline_coords;
-//        }
+        cref<Tensor1<Int,Int>> ArcNextArc() const
+        {
+            std::string tag ("ArcNextArc");
+            TOOLS_PTIMER(timer,MethodName(tag));
+            if( !this->InCacheQ(tag) )
+            {
+                Tensor1<Int,Int> A_next ( A_C.Dim(0), Uninitialized );
+                
+                for( Int c = 0; c < C_A.Dim(0); ++c )
+                {
+                    if( VertexActiveQ(c) )
+                    {
+                        A_next(C_A(c,In,Left )) = C_A(c,Out,Right);
+                        A_next(C_A(c,In,Right)) = C_A(c,Out,Left );
+                    }
+                }
+                this->SetCache(tag,std::move(A_next));
+            }
+            return this->GetCache<Tensor1<Int,Int>>(tag);
+        }
 
 
     public:

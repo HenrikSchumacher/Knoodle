@@ -197,7 +197,7 @@ void ComputeConstraintGraphs() const
     
     if ( settings.saturate_facesQ )
     {
-        const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
+        const EdgeContainer_T Gl_edges = this->template SaturatingEdges2<0>();
         
         for( Int e = 0; e < Gl_edges.Dim(0); ++e )
         {
@@ -218,7 +218,7 @@ void ComputeConstraintGraphs() const
     
     if ( settings.saturate_facesQ )
     {
-        const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
+        const EdgeContainer_T Gr_edges = this->template SaturatingEdges2<1>();
         
         for( Int e = 0; e < Gr_edges.Dim(0); ++e )
         {
@@ -333,115 +333,119 @@ void ComputeConstraintGraphs() const
 
 cref<DiGraph_T> Dv() const
 {
-    if( !this->InCacheQ("Dv") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<DiGraph_T>("Dv");
+    std::string tag ("Dv");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<DiGraph_T>(tag);
 }
 
 cref<Tensor1<Cost_T,Int>> DvEdgeCosts() const
 {
-    if( !this->InCacheQ("DvE_costs") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Cost_T,Int>>("DvE_costs");
+    std::string tag ("DvE_costs");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Cost_T,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> VertexToDvVertex() const
 {
-    if( !this->InCacheQ("V_DvV") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("V_DvV");
+    std::string tag ("V_DvV");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> EdgeToDvEdge() const
 {
-    if( !this->InCacheQ("E_DvE") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("E_DvE");
+    std::string tag ("E_DvE");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> EdgeToDvVertex() const
 {
-    if( !this->InCacheQ("E_DvV") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("E_DvV");
+    std::string tag ("E_DvV");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 
 cref<DiGraph_T> Dh() const
 {
-    if( !this->InCacheQ("Dh") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<DiGraph_T>("Dh");
+    std::string tag ("Dh");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<DiGraph_T>(tag);
 }
 
 cref<Tensor1<Cost_T,Int>> DhEdgeCosts() const
 {
-    if( !this->InCacheQ("DhE_costs") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Cost_T,Int>>("DhE_costs");
+    std::string tag ("DhE_costs");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Cost_T,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> VertexToDhVertex() const
 {
-    if( !this->InCacheQ("V_DhV") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("V_DhV");
+    std::string tag ("V_DhV");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> EdgeToDhEdge() const
 {
-    if( !this->InCacheQ("E_DhE") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("E_DhE");
+    std::string tag ("E_DhE");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> EdgeToDhVertex() const
 {
-    if( !this->InCacheQ("E_DhV") ) { ComputeConstraintGraphs(); }
-    
-    return this->GetCache<Tensor1<Int,Int>>("E_DhV");
+    std::string tag ("E_DhV");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { ComputeConstraintGraphs(); }
+    return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
 
 cref<RaggedList<Int,Int>> VerticalSegmentEdges() const
 {
     if( !this->InCacheQ("DvV_E") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<RaggedList<Int,Int>>("DvV_E");
 }
 
 cref<RaggedList<Int,Int>> HorizontalSegmentEdges() const
 {
     if( !this->InCacheQ("DhV_E") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<RaggedList<Int,Int>>("DhV_E");
 }
 
 cref<RaggedList<Int,Int>> VerticalSegmentVertices() const
 {
     if( !this->InCacheQ("DvV_V") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<RaggedList<Int,Int>>("DvV_V");
 }
 
 cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 {
     if( !this->InCacheQ("DhV_V") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<RaggedList<Int,Int>>("DhV_V");
 }
 
 cref<EdgeContainer_T> DvVBottomTop() const
 {
     if( !this->InCacheQ("DvV_bottomtop_DhV") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<EdgeContainer_T>("DvV_bottomtop_DhV");
 }
 
 cref<EdgeContainer_T> DhVLeftRight() const
 {
     if( !this->InCacheQ("DhV_leftright_DvV") ) { ComputeConstraintGraphs(); }
-    
     return this->GetCache<EdgeContainer_T>("DhV_leftright_DvV");
 }
 
@@ -554,142 +558,129 @@ cref<RaggedList<Int,Int>> FaceSegments() const
 }
 
 
-//EdgeContainer_T DhV_left_DvV()
+//// This collects the "column indices" for the constraint matrix for the system
+////
+////  x_{r_i,l_j} + x_{r_j,l_i} + x_{t_j,b_i} + x_ {t_i,b_j} \geq 0,
+////
+////  for (i,j) \in S \times S.
+////
+//// We filter out some cases that would lead to infeasible systems.
+//// We also try to cull equations that are automatically fulfilled by the edges in Dv() and Dh().
+//// TODO: It would be even nice if we could cull also those equations that are implicitly enforced by paths in the graph.
+//
+//// TODO: It would be even nice if we could delete duplicated equations, too. It happens quite frequently that a face touches a line segment more than once.
+//
+//Tiny::MatrixList_AoS<4,2,Int,Int> SeparationConstraints() const
 //{
-//    EdgeContainer_T a (Dh().VertexCount());
+//    using A_T = std::array<Int,2>;
 //    
-//    auto DhV_V =
+//    auto & F_DvV = FaceDvVertices();
+//    auto & F_DhV = FaceDhVertices();
 //    
-//    for( Int s = 0; s < Dh().VertexCount(); ++s )
+//    auto & DvV_bt = DvVBottomTop();
+//    auto & DhV_lr = DhVLeftRight();
+//    
+//    // TODO: Better size prediction.
+//    Aggregator<A_T,Int> agg ( FaceCount() * Int(2) );
+//    
+//    // Index shifts/offsets
+//    const Int h = Dv().VertexCount();
+//
+//    for( Int f = 0; f < FaceCount(); ++f )
 //    {
+//        auto f_DvV = F_DvV.Sublist(f);
+//        auto f_DhV = F_DhV.Sublist(f);
 //        
+//        // There is no way in which a 4-, 5- or 6-face can give us any new information.
+//        if( (f_DvV.Size() <= Int(3)) || (f_DhV.Size() <= Int(3)) )
+//        {
+//            continue;
+//        }
+//        
+//        // Beware, we have to check _both_ f_DvV.Size() and f_DhV.Size() since they are not always equal when we inserted edges by turn regularization. We can get two horizontal edges or two verticals edges next to each other.
+//
+//        
+//        auto DvV_load = [&DvV_bt]( Int i )
+//        {
+//            return std::array<Int,4>{ i, i, DvV_bt(i,Tail), DvV_bt(i,Head) };
+//        };
+//        
+//        auto DhV_load = [&DhV_lr]( Int i )
+//        {
+//            return std::array<Int,4>{ DhV_lr(i,Tail), DhV_lr(i,Head), i, i };
+//        };
+//        
+//        auto push = [&agg,h](
+//            Int l_i, Int r_i, Int b_i, Int t_i,
+//            Int l_j, Int r_j, Int b_j, Int t_j
+//        )
+//        {
+//            
+//            // TODO: Cull constraints that are already satisfied or already excluded by directed paths in Dv() and Dh().
+//            
+//            agg.Push( A_T{ r_i    , l_j    } );
+//            agg.Push( A_T{ r_j    , l_i    } );
+//            agg.Push( A_T{ t_j + h, b_i + h} );
+//            agg.Push( A_T{ t_i + h, b_j + h} );
+//        };
+//        
+//        for( Int i : f_DvV )
+//        {
+//            auto [l_i,r_i,b_i,t_i] = DvV_load(i);
+//            
+//            for( Int j : f_DvV )
+//            {
+//                if( i == j ) { continue; };
+//                // This also excludes the cases l_i == r_j and r_i == l_j as both segments are vertical.
+//
+//                auto [l_j,r_j,b_j,t_j] = DvV_load(j);
+//                
+//                // In these cases there is an edge between i and j in Dv.
+//                // So this constraint will be satisfied anyways.
+//                if( (t_j == b_i) || (t_i == b_j) ) { continue; }
+//                
+//                
+//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
+//            }
+//            
+//            for( Int j : f_DhV )
+//            {
+//                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
+//                
+//                // In each of these 4 cases these segments touch each other.
+//                // We might get infeasible systems if we include this constraint.
+//                if( (r_i == l_j) || (r_j == l_i) || (t_j == b_i) || (t_i == b_j) )
+//                {
+//                    continue;
+//                }
+//
+//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
+//            }
+//        }
+//     
+//        for( Int i : f_DhV )
+//        {
+//            auto [l_i,r_i,b_i,t_i] = DhV_load(i);
+//            
+//            for( Int j : f_DhV )
+//            {
+//                if( i == j ) { continue; }
+//                // This also excludes the cases b_i == t_j and t_i == b_j as both segments are horizontal.
+//                
+//                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
+//                
+//                // In these cases there is an edge between i and j in Dh.
+//                // So this constraint will be satisfied anyways.
+//                if( (r_i == l_j) || (r_j == l_i) ) { continue; }
+//                
+//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
+//            }
+//        }
 //    }
+//    
+//    Tiny::MatrixList_AoS<4,2,Int,Int> a ( agg.Size() / Int(8) );
+//    
+//    a.Read( &agg.data()[0][0] );
+//        
+//    return a;
 //}
-
-
-// This collects the "column indices" for the constraint matrix for the system
-//
-//  x_{r_i,l_j} + x_{r_j,l_i} + x_{t_j,b_i} + x_ {t_i,b_j} \geq 0,
-//
-//  for (i,j) \in S \times S.
-//
-// We filter out some cases that would lead to infeasible systems.
-// We also try to cull equations that are automatically fulfilled by the edges in Dv() and Dh().
-// TODO: It would be even nice if we could cull also those equations that are implicitly enforced by paths in the graph.
-
-// TODO: It would be even nice if we could delete duplicated equations, too. It happens quite frequently that a face touches a line segment more than once.
-
-Tiny::MatrixList_AoS<4,2,Int,Int> SeparationConstraints() const
-{
-    using A_T = std::array<Int,2>;
-    
-    auto & F_DvV = FaceDvVertices();
-    auto & F_DhV = FaceDhVertices();
-    
-    auto & DvV_bt = DvVBottomTop();
-    auto & DhV_lr = DhVLeftRight();
-    
-    // TODO: Better size prediction.
-    Aggregator<A_T,Int> agg ( FaceCount() * Int(2) );
-    
-    // Index shifts/offsets
-    const Int h = Dv().VertexCount();
-
-    for( Int f = 0; f < FaceCount(); ++f )
-    {
-        auto f_DvV = F_DvV.Sublist(f);
-        auto f_DhV = F_DhV.Sublist(f);
-        
-        // There is no way in which a 4-, 5- or 6-face can give us any new information.
-        if( (f_DvV.Size() <= Int(3)) || (f_DhV.Size() <= Int(3)) )
-        {
-            continue;
-        }
-        
-        // Beware, we have to check _both_ f_DvV.Size() and f_DhV.Size() since they are not always equal when we inserted edges by turn regularization. We can get two horizontal edges or two verticals edges next to each other.
-
-        
-        auto DvV_load = [&DvV_bt]( Int i )
-        {
-            return std::array<Int,4>{ i, i, DvV_bt(i,Tail), DvV_bt(i,Head) };
-        };
-        
-        auto DhV_load = [&DhV_lr]( Int i )
-        {
-            return std::array<Int,4>{ DhV_lr(i,Tail), DhV_lr(i,Head), i, i };
-        };
-        
-        auto push = [&agg,h](
-            Int l_i, Int r_i, Int b_i, Int t_i,
-            Int l_j, Int r_j, Int b_j, Int t_j
-        )
-        {
-            
-            // TODO: Cull constraints that are already satisfied or already excluded by directed paths in Dv() and Dh().
-            
-            agg.Push( A_T{ r_i    , l_j    } );
-            agg.Push( A_T{ r_j    , l_i    } );
-            agg.Push( A_T{ t_j + h, b_i + h} );
-            agg.Push( A_T{ t_i + h, b_j + h} );
-        };
-        
-        for( Int i : f_DvV )
-        {
-            auto [l_i,r_i,b_i,t_i] = DvV_load(i);
-            
-            for( Int j : f_DvV )
-            {
-                if( i == j ) { continue; };
-                // This also excludes the cases l_i == r_j and r_i == l_j as both segments are vertical.
-
-                auto [l_j,r_j,b_j,t_j] = DvV_load(j);
-                
-                // In these cases there is an edge between i and j in Dv.
-                // So this constraint will be satisfied anyways.
-                if( (t_j == b_i) || (t_i == b_j) ) { continue; }
-                
-                
-                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-            }
-            
-            for( Int j : f_DhV )
-            {
-                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
-                
-                // In each of these 4 cases these segments touch each other.
-                // We might get infeasible systems if we include this constraint.
-                if( (r_i == l_j) || (r_j == l_i) || (t_j == b_i) || (t_i == b_j) )
-                {
-                    continue;
-                }
-
-                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-            }
-        }
-     
-        for( Int i : f_DhV )
-        {
-            auto [l_i,r_i,b_i,t_i] = DhV_load(i);
-            
-            for( Int j : f_DhV )
-            {
-                if( i == j ) { continue; }
-                // This also excludes the cases b_i == t_j and t_i == b_j as both segments are horizontal.
-                
-                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
-                
-                // In these cases there is an edge between i and j in Dh.
-                // So this constraint will be satisfied anyways.
-                if( (r_i == l_j) || (r_j == l_i) ) { continue; }
-                
-                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-            }
-        }
-    }
-    
-    Tiny::MatrixList_AoS<4,2,Int,Int> a ( agg.Size() / Int(8) );
-    
-    a.Read( &agg.data()[0][0] );
-        
-    return a;
-}

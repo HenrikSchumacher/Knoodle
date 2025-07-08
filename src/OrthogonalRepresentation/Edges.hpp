@@ -41,16 +41,6 @@ bool DedgeVisitedQ( const Int de ) const
     return (E_flag.data()[de] & EdgeVisitedMask) != EdgeFlag_T(0);
 }
 
-void DedgeVisit( const Int de ) const
-{
-    E_flag.data()[de] |= EdgeVisitedMask;
-}
-
-void DedgeUnvisit( const Int de ) const
-{
-    E_flag.data()[de] &= (~EdgeVisitedMask);
-}
-
 bool DedgeExteriorQ( const Int de ) const
 {
     return (E_flag.data()[de] & EdgeExteriorMask) != EdgeFlag_T(0);
@@ -59,6 +49,11 @@ bool DedgeExteriorQ( const Int de ) const
 bool DedgeVirtualQ( const Int de ) const
 {
     return (E_flag.data()[de] & EdgeVirtualMask) != EdgeFlag_T(0);
+}
+
+bool DedgeUnconstrainedQ( const Int de ) const
+{
+    return (E_flag.data()[de] & EdgeUnconstrainedMask) != EdgeFlag_T(0);
 }
 
 private:
@@ -101,8 +96,19 @@ void ComputeEdgeLeftDedges()
         const Dir_T  s_1  = static_cast<Dir_T>(t_1 +           + e_dir) % Dir_T(4);
         const Int    c_0  = dE_V[de_0];
         const Int    c_1  = dE_V[de_1];
-        dE_left_dE[de_0]  = V_dE(c_0,s_0);
-        dE_left_dE[de_1]  = V_dE(c_1,s_1);
+        
+        const Int df_0 = dE_left_dE[de_0] = V_dE(c_0,s_0);
+        const Int df_1 = dE_left_dE[de_1] = V_dE(c_1,s_1);
+        
+        if( (t_0 == Turn_T(-1)) && (dE_turn[df_0] == Turn_T(-1)) )
+        {
+            MarkDedgeAsUnconstrained(df_0);
+        }
+        
+        if( (t_1 == Turn_T(-1)) && (dE_turn[df_1] == Turn_T(-1)) )
+        {
+            MarkDedgeAsUnconstrained(df_1);
+        }
     }
 }
 

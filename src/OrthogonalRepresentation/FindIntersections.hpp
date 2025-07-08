@@ -66,7 +66,9 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
 {
     std::vector<std::array<Int,3>> agg;
 
-    for( Int f = 0; f < face_count; ++f )
+    // TODO: Better use TraverseAllFaces!
+    
+    for( Int f = 0; f < FaceCount(); ++f )
     {
         this->template FindIntersections<verboseQ>(coords,agg,f);
     }
@@ -80,6 +82,9 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
 /*!@brief Cycles around the face ` f` and finds the first directed edge `de` that has at least one intersection with another edge. Then it returns the triple `{de,da,db}`, where `da` and `db` are the first edge and the last edge of the face that `de` intersects.
  *
  */
+
+// TODO: Make this independent of RequireFaces.
+
 template<bool verboseQ = false>
 void FindIntersections(
     cref<CoordsContainer_T> coords,

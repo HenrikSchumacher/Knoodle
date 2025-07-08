@@ -48,7 +48,7 @@ void TurnRegularize()
     
     // We need two reflex corners per virtual edge.
     const Int old_max_edge_count = E_V.Dim(0);
-    const Int max_edge_count = max_arc_count + bend_count + bend_count/Int(2);
+    const Int max_edge_count = A_C.Dim(0) + bend_count + bend_count/Int(2);
     
 
     if( max_edge_count > old_max_edge_count )
@@ -351,13 +351,32 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
 //                    |
 //                    v
 //                    X
+
+    // No matter how we orient e, all the dedges da_0, da_1, db_0, db_1 become constrained:
+    // If we make e is vertical, then:
+    // - e is fused with da_1; fused dedge is constrained by da_0 and db_0
+    // - e is fused with db_1; fused dedge is constrained by da_0 and db_0
+    // - da_0 is constrained by db_1 and e
+    // - db_0 is constrained by db_1 and e
     
+    // If we make e is horizontal, then:
+    // - e is fused with db_1; fused dedge is constrained by da_1 and db_1
+    // - e is fused with da_1; fused dedge is constrained by da_1 and db_1
+    // - da_1 is constrained by db_0 and e
+    // - db_1 is constrained by db_0 and e
+
+    MarkDedgeAsConstrained(da_0);
+    MarkDedgeAsConstrained(da_1);
+    MarkDedgeAsConstrained(db_0);
+    MarkDedgeAsConstrained(db_1);
     
     // Create new edge.
     const Int e = edge_count;
     ++edge_count;
     ++virtual_edge_count;
-    ++face_count;
+    
+    // Counting the faces might be unreliable as we add further faces in the saturation pass.
+//    ++face_count;
 
     // The new edge; de_0 in forward direction; de_1 in reverse direction.
     Int de_0 = ToDarc(e,Tail);

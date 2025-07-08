@@ -9,33 +9,13 @@ void LoadPlanarDiagram(
 {
     TOOLS_PTIMER(timer,ClassName()+"::LoadPlanarDiagram");
     
-    // If ExtInt == Int, then we take references; otherwise we copy.
+    C_A  = pd.Crossings(); // copy data
+    A_C  = pd.Arcs();      // copy data
     
-    using C_A_T = std::conditional_t<
-        SameQ<ExtInt,Int>,
-        const typename PlanarDiagram_T::CrossingContainer_T &,
-        const typename PlanarDiagram_T::CrossingContainer_T
-    >;
-
-    using A_C_T = std::conditional_t<
-        SameQ<ExtInt,Int>,
-        const typename PlanarDiagram_T::ArcContainer_T &,
-        const typename PlanarDiagram_T::ArcContainer_T
-    >;
-
-    C_A_T C_A  = pd.Crossings(); // temporary data
-    A_C_T A_C  = pd.Arcs();      // temporary data
+    R_dA = pd.FaceDarcs();
     
-    R_dA                = pd.FaceDarcs();
-    
-    max_crossing_count  = C_A.Dim(0);
-    max_arc_count       = A_C.Dim(0);
-    
-    crossing_count      = int_cast<Int>(pd.CrossingCount());
-    arc_count           = int_cast<Int>(pd.ArcCount());
-    face_count          = R_dA.SublistCount();
-    max_face_size       = int_cast<Int>(pd.MaxFaceSize());
-
+    crossing_count = int_cast<Int>(pd.CrossingCount());
+    arc_count      = int_cast<Int>(pd.ArcCount());
     
     // TODO: Allow more general bend sequences.
     
@@ -43,11 +23,28 @@ void LoadPlanarDiagram(
     
     const Int maximum_region = int_cast<Int>(pd.MaximumFace());
     
-    exterior_region = ((exterior_region < Int(0)) || (exterior_region >= face_count))
+    exterior_region = ((exterior_region < Int(0)) || (exterior_region >= R_dA.SublistCount()))
                     ? maximum_region
                     : exterior_region;
     
-    A_bends = ComputeBends(pd,exterior_region);
+    switch( settings.bend_min_method )
+    {
+        case 1:
+        {
+            A_bends = ComputeBends_Clp(pd,exterior_region);
+            break;
+        }
+        case 0:
+        {
+            A_bends = ComputeBends_MCF(pd,exterior_region);
+            break;
+        }
+        default:
+        {
+            A_bends = ComputeBends_MCF(pd,exterior_region);
+            break;
+        }
+    }
     
     if( A_bends.Size() <= Int(0) )
     {
@@ -60,20 +57,43 @@ void LoadPlanarDiagram(
         RedistributeBends(pd,A_bends);
     }
     
-    bend_count = 0;
-    
-    // TODO: Should be part of the info received from BendsByLP.
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        bend_count += Abs(A_bends[a]);
-    }
+//    bend_count = 0;
+//    
+//    // TODO: Should be part of the info received from BendsByLP.
+//    for( Int a = 0; a < A_C.Dim(0); ++a )
+//    {
+//        bend_count += Abs(A_bends[a]);
+//    }
 
+    
+    // Compute maximum face size as that will be useful for later allocations.
+    // This also gives us the opportunity to compute the total number of bends.
+    max_face_size = 0;
+    bend_count    = 0;
+    
+    for( ExtInt r = 0; r < R_dA.SublistCount(); ++r )
+    {
+        Int r_size = R_dA.SublistSize(r);
+        
+        for( auto da : R_dA.Sublist(r) )
+        {
+            auto [a,d] = FromDarc(da);
+            const Int b = int_cast<Int>(Abs(A_bends[a]));
+            bend_count += b;
+            r_size     += b;
+        }
+        
+        max_face_size = Max( max_face_size, r_size );
+    }
+    
+    // We walk through each undirected arc twice, therefore, we divide by 2.
+    bend_count /= Int(2);
     
     // Prepare vertices and edges.
     
     // This counts all vertices and edges, not only the active ones.
-    const Int max_vertex_count = max_crossing_count + bend_count;
-    const Int max_edge_count   = max_arc_count      + bend_count + (settings.turn_regularizeQ ? bend_count/Int(2) : Int(0) );
+    const Int max_vertex_count = C_A.Dim(0) + bend_count;
+    const Int max_edge_count   = A_C.Dim(0) + bend_count + (settings.turn_regularizeQ ? bend_count/Int(2) : Int(0) );
     
     vertex_count = crossing_count + bend_count;
     edge_count   = arc_count      + bend_count;
@@ -83,7 +103,7 @@ void LoadPlanarDiagram(
     E_scratch    = Tensor1<Int,Int> ( Int(2) * max_edge_count   );
     
     mptr<Dir_T> C_dir = reinterpret_cast<Dir_T *>(V_scratch.data());
-    fill_buffer( C_dir, NoDir, max_crossing_count);
+    fill_buffer( C_dir, NoDir, C_A.Dim(0));
     
     
     using DarcNode = PlanarDiagram<ExtInt>::DarcNode;
@@ -91,7 +111,7 @@ void LoadPlanarDiagram(
     // Tell each crossing what its absolute orientation is.
     // This would be hard to parallelize
     pd.DepthFirstSearch(
-        [&C_dir,&C_A,this]( cref<DarcNode> A )
+        [&C_dir,/*&C_A,*/this]( cref<DarcNode> A )
         {
             if( A.da < ExtInt(0) )
             {
@@ -143,20 +163,20 @@ void LoadPlanarDiagram(
     E_dir  = Tensor1<Dir_T,Int>     ( max_edge_count, NoDir );
     E_A    = Tensor1<Int,Int>       ( max_edge_count, Uninitialized );
     
-    A_V    = RaggedList<Int,Int>(max_arc_count+Int(1), max_edge_count+arc_count);
-    A_E    = RaggedList<Int,Int>(max_arc_count+Int(1), max_edge_count);
+    A_V    = RaggedList<Int,Int>(A_C.Dim(0)+Int(1), max_edge_count+arc_count);
+    A_E    = RaggedList<Int,Int>(A_C.Dim(0)+Int(1), max_edge_count);
 
     cptr<CrossingState> C_state = pd.CrossingStates().data();
     
     A_overQ = Tiny::VectorList_AoS<2,bool,Int>(arc_count);
     
-    for( Int c = 0; c < max_crossing_count; ++c )
+    for( Int c = 0; c < C_A.Dim(0); ++c )
     {
         V_flag[c] = VertexFlag_T(ToUnderlying(C_state[c])); // pd needed
     }
 
     // Load remaining data from pd.
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < A_C.Dim(0); ++a )
     {
         ExtInt a_ = static_cast<ExtInt>(a);
         
@@ -174,11 +194,11 @@ void LoadPlanarDiagram(
     
     
     // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
-    Int V_counter = max_crossing_count;
-    Int E_counter = max_arc_count;
+    Int V_counter = C_A.Dim(0);
+    Int E_counter = A_C.Dim(0);
     
     // Subdivide each arc.
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < A_C.Dim(0); ++a )
     {
         if( !DedgeActiveQ(ToDedge<Tail>(a)) ) { continue; }
         
@@ -240,7 +260,6 @@ void LoadPlanarDiagram(
             
             e_dir = static_cast<Dir_T>(e_dir + sign_b) % Dir_T(4);
             E_dir(e) = e_dir;
-            
             
             V_dE(v,e_dir) = ToDedge<Head>(e);
             E_A(e) = a;
