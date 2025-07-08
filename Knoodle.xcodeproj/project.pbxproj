@@ -648,9 +648,21 @@
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
 					"/usr/local/include/coin-or",
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+					"-Wall",
+				);
 				OTHER_LDFLAGS = (
 					"-lamd",
 					"-lCoinUtils",
@@ -672,9 +684,21 @@
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
 					"/usr/local/include/coin-or",
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-pthread",
+					"-fenable-matrix",
+					"-mcpu=native",
+					"-mtune=native",
+					"-flto",
+					"-Wall",
+				);
 				OTHER_LDFLAGS = (
 					"-lamd",
 					"-lCoinUtils",

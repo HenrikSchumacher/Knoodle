@@ -472,6 +472,11 @@ namespace Knoodle
 //            return intersection_counts;
 //        }
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("PlanarLineSegmentIntersector")

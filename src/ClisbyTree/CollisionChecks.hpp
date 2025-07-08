@@ -9,7 +9,7 @@ public:
 template<bool full_checkQ = false>
 bool CollisionQ()
 {
-    TOOLS_PTIC(ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
     
     witness[0] = -1;
     witness[1] = -1;
@@ -60,8 +60,6 @@ bool CollisionQ()
 //        }
 //    }
 
-    TOOLS_PTOC(ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
-    
     return result;
 }
 

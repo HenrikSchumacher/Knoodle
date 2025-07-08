@@ -447,6 +447,11 @@ namespace Knoodle
         
     public:
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         /*!
          * @brief Returns the name of the class, including template parameters.
          *

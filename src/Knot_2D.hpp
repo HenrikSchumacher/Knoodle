@@ -301,6 +301,11 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("Knot_2D")

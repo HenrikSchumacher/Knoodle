@@ -921,6 +921,11 @@ namespace Knoodle
             return sizeof(CompleteBinaryTree) + AllocatedByteCount();
         }
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("CompleteBinaryTree")

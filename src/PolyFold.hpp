@@ -247,6 +247,11 @@ print(R"(
 
     public:
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("PolyFold")

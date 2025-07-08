@@ -3,6 +3,8 @@
 // TODO: Use the state flag of arcs to mark changedQ/unchanged arcs.
 // TODO: In particular after applying this to a connected summand that was recently split-off from another diagram, often only very few positions are to be checked on the first (and often last) run.
 
+// TODO: Move into PlanarDiagram class.
+
 namespace Knoodle
 {
     template<typename Int_,
@@ -434,6 +436,11 @@ namespace Knoodle
 #include "ArcSimplifier/R_IIa_diff_o_diff_u.hpp"
         
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
         
         static std::string ClassName()
         {

@@ -2,11 +2,8 @@ public:
 
 bool CollideQ()
 {
-    TOOLS_PTIC(ClassName()+"::CollideQ");
-    bool result = SubtreesCollideQ( Root() );
-    TOOLS_PTOC(ClassName()+"::CollideQ");
-    
-    return result;
+    TOOLS_PTIMER(timer,MethodName("CollideQ"));
+    return SubtreesCollideQ(Root());
 }
 
 private:

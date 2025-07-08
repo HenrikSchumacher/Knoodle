@@ -892,7 +892,7 @@ Int NextArc( const Int a, const Int c ) const
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");
-    
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) )
     {
         Tensor1<Int,Int> A_next ( max_arc_count, Uninitialized );
@@ -905,10 +905,8 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
                 A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
             }
         }
-        
         this->SetCache(tag,std::move(A_next));
     }
-    
     return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 

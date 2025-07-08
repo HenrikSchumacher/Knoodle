@@ -15,11 +15,9 @@ public:
 
         void FindCollisions()
         {
-            TOOLS_PTIC(ClassName()+"::FindCollisions");
+            TOOLS_PTIMER(timer,MethodName("FindCollisions"));
             
             FindCollisions_implementation();
-            
-            TOOLS_PTOC(ClassName()+"::FindCollisions");
         }
 
         void FindCollisions_implementation()

@@ -26,7 +26,6 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
 )
 {
     TOOLS_PTIMER(timer, ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
-//    TOOLS_PTIC(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();

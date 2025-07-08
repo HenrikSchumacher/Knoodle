@@ -370,6 +370,11 @@ namespace Knoodle
         
     public:
 
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
         static std::string ClassName()
         {
             return ct_string("Link_3D")

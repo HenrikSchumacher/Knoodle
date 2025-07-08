@@ -5,6 +5,8 @@
 
 // DONE: Speed this up by reducing the redirecting in NextLeftArc by using and maintaining ArcLeftArc.
 
+// TODO: Move into PlanarDiagram class.
+
 // TODO: It might also be worthwhile to do the overstrand and the understrand pass in the same loop. (But I doubt it.)
 
 namespace Knoodle
@@ -2151,6 +2153,11 @@ namespace Knoodle
         }
     
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
         
         static std::string ClassName()
         {

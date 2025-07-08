@@ -319,9 +319,8 @@ namespace Knoodle
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
+            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
-            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
     private:
@@ -377,6 +376,11 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_overQ)
                 + ( "\n" + ct_tabs<t0> + "|>");
+        }
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
         }
         
         static std::string ClassName()

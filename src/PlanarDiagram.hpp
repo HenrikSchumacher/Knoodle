@@ -902,13 +902,15 @@ namespace Knoodle
         
         Int EulerCharacteristic() const
         {
+            TOOLS_PTIMER(timer,MethodName("EulerCharacteristic"));
             return CrossingCount() - ArcCount() + FaceCount();
         }
         
         template<bool verboseQ = true>
         bool EulerCharacteristicValidQ()
         {
-            const Int euler_char  = (CrossingCount() + FaceCount()) - ArcCount();
+            TOOLS_PTIMER(timer,MethodName("EulerCharacteristicValidQ"));
+            const Int euler_char  = EulerCharacteristic();
             const Int euler_char0 = Int(2) * DiagramComponentCount();
             
             const bool validQ = (euler_char == euler_char0);
@@ -917,7 +919,7 @@ namespace Knoodle
             {
                 if( !validQ )
                 {
-                    wprint(ClassName()+"::RequireFaces: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
+                    wprint(ClassName()+"::EulerCharacteristicValidQ: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
                 }
             }
             
@@ -1100,6 +1102,11 @@ namespace Knoodle
         cref<Tensor1<Int,Int>> ArcScratchBuffer() const
         {
             return A_scratch;
+        }
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
         }
         
 /*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.

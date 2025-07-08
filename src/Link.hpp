@@ -137,7 +137,7 @@ namespace Knoodle
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {
-//            TOOLS_PTIC(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
+//            TOOLS_PTIMER(timer,ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             
             static_assert(IntQ<I_0>,"");
             
@@ -158,8 +158,6 @@ namespace Knoodle
             edges     [1][n-1] = 0;
             
             next_edge [n-1] = 0;
-            
-//            TOOLS_PTOC(ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
         }
         
 //        template<typename J, typename K>
@@ -173,12 +171,10 @@ namespace Knoodle
 //            static_assert(IntQ<K>,"");
         
 //            // AoS = array of structures, i.e., loading data in interleaved form
-////            TOOLS_PTIC(ClassName()+"() (preordered)");
 //            
 //            cyclicQ     = (component_count == Int(1));
 //            preorderedQ = true;
 //            
-////            TOOLS_PTOC(ClassName()+"() (preordered)");
 //        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -583,6 +579,11 @@ namespace Knoodle
         
         
     public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
         
         /*! @brief Returns the name of the class, including template parameters.
          *

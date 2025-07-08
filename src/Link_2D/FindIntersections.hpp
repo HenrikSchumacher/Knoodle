@@ -3,8 +3,7 @@ public:
     template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
-//        TOOLS_PTIC(ClassName()+"FindIntersections");
-        TOOLS_PTIMER(timer,ClassName()+"FindIntersections");
+        TOOLS_PTIMER(timer,MethodName("FindIntersections"));
         
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
@@ -20,7 +19,7 @@ public:
         {
             if constexpr ( verboseQ )
             {
-                eprint(ClassName()+"::FindIntersections: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(MethodName("FindIntersections")+": Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
             }
             return 9;
         }
@@ -39,7 +38,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
+                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
                 }
                 return 7;
             }
@@ -51,7 +50,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where line segments intersected in 3D.");
+                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where line segments intersected in 3D.");
                 }
                 return 6;
             }
@@ -63,7 +62,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    eprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
@@ -76,7 +75,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
+                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
                 return 4;
             }
@@ -91,7 +90,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
+                    wprint(MethodName("FindIntersections")+": Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
                 }
                 return 3;
             }
@@ -104,7 +103,7 @@ public:
             )
         )
         {
-            eprint(ClassName()+"::FindIntersections: More intersections found than can be handled by integer type " + TypeName<Int> + "." );
+            eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
         const Int intersection_count = static_cast<Int>(intersections.size());

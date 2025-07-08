@@ -98,6 +98,7 @@ int main( int argc, char** argv )
     
     OR_T H (pd, Int(-1),
         {
+            .bend_min_method         = 0,
             .network_matrixQ         = true,
             .redistribute_bendsQ     = true,
             .use_dual_simplexQ       = false,
@@ -203,8 +204,6 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.VerticalSegmentVertices());
     TOOLS_DUMP(H.HorizontalSegmentVertices());
     
-    H.SeparationConstraints();
-    
     H.Dv().DirectedAdjacencyMatrix();
     
     {
@@ -226,6 +225,12 @@ int main( int argc, char** argv )
     H.PrintSettings();
     
     H.SegmentsInfluencedByVirtualEdges();
+    
+    TOOLS_DUMP(H.template SaturatingEdges <0>());
+    TOOLS_DUMP(H.template SaturatingEdges2<0>());
+    
+    TOOLS_DUMP(H.template SaturatingEdges <1>());
+    TOOLS_DUMP(H.template SaturatingEdges2<1>());
     
     return EXIT_SUCCESS;
 }

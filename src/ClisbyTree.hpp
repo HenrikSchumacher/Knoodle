@@ -201,58 +201,6 @@ namespace Knoodle
         ClisbyTree( ClisbyTree && other ) = default;
         // Move assignment operator
         ClisbyTree & operator=( ClisbyTree && other ) = default;
-        
-//        friend void swap( ClisbyTree & A, ClisbyTree & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-//            
-//            swap( A.N_transform                 , B.N_transform                 );
-//            swap( A.N_state                     , B.N_state                     );
-//            swap( A.N_ball                      , B.N_ball                      );
-//            
-//            swap( A.hard_sphere_diam            , B.hard_sphere_diam            );
-//            swap( A.hard_sphere_squared_diam    , B.hard_sphere_squared_diam    );
-//            swap( A.prescribed_edge_length      , B.prescribed_edge_length      );
-//            
-//            swap( A.p                           , B.p                           );
-//            swap( A.q                           , B.q                           );
-//            swap( A.p_shifted                   , B.p_shifted                   );
-//            swap( A.q_shifted                   , B.q_shifted                   );
-//            swap( A.witness                     , B.witness                     );
-//            
-//            swap( A.theta                       , B.theta                       );
-//            swap( A.X_p                         , B.X_p                         );
-//            swap( A.X_q                         , B.X_q                         );
-//            swap( A.transform                   , B.transform                   );
-//            
-//            swap( A.seed                        , B.seed                        );
-//            swap( A.random_engine               , B.random_engine               );
-//            
-//            swap( A.call_counters               , B.call_counters               );
-//            swap( A.mid_changedQ                , B.mid_changedQ                );
-//            swap( A.reflectQ                    , B.reflectQ                    );
-//
-//            swap( A.level_moves_per_node        , B.level_moves_per_node        );
-//            swap( A.pivot_collector             , B.pivot_collector             );
-//            swap( A.witness_collector           , B.witness_collector           );
-//        }
-//        
-//        // Copy assignment operator
-//        ClisbyTree & operator=( ClisbyTree other ) noexcept
-//        {
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        ClisbyTree( ClisbyTree && other ) noexcept
-//        :   ClisbyTree()
-//        {
-//            swap(*this, other);
-//        }
     
     public:
         
@@ -522,6 +470,11 @@ namespace Knoodle
                 + "\t" + TOOLS_MEM_DUMP_STRING(Base_T::N_ranges.AllocatedByteCount());
         }
         
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+    
         static std::string ClassName()
         {
             return ct_string("ClisbyTree")

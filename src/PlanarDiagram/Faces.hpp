@@ -20,31 +20,35 @@ std::string FaceString( const Int f ) const
 
 cref<RaggedList<Int,Int>> FaceDarcs() const
 {
+    TOOLS_PTIMER(timer,MethodName("FaceDarcs"));
     if(!this->InCacheQ("FaceDarcs")) { RequireFaces(); }
     return this->template GetCache<RaggedList<Int,Int>>("FaceDarcs");
 }
 
 cref<ArcContainer_T> ArcFaces()  const
 {
+    TOOLS_PTIMER(timer,MethodName("ArcFaces"));
     if(!this->InCacheQ("ArcFaces")) { RequireFaces(); }
     return this->template GetCache<ArcContainer_T>("ArcFaces");
 }
 
 Int MaximumFace() const
 {
+    TOOLS_PTIMER(timer,MethodName("MaximumFace"));
     if(!this->InCacheQ("MaximumFace")) { RequireFaces(); }
     return this->template GetCache<Int>("MaximumFace");
 }
 
 Int MaxFaceSize() const
 {
+    TOOLS_PTIMER(timer,MethodName("MaxFaceSize"));
     if(!this->InCacheQ("MaxFaceSize")) { RequireFaces(); }
     return this->template GetCache<Int>("MaxFaceSize");
 }
 
 void RequireFaces() const
 {
-    TOOLS_PTIC(ClassName()+"::RequireFaces");
+    TOOLS_PTIMER(timer,MethodName("RequireFaces"));
     
     cptr<Int> dA_left_dA = ArcLeftArc().data();
 
@@ -154,6 +158,55 @@ void RequireFaces() const
     this->SetCache( "ArcFaces"   , std::move(dA_F_buffer) );
     this->SetCache( "MaxFaceSize", max_size               );
     this->SetCache( "MaximumFace", max_f                  );
+}
+
+
+cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
+{
+    using Container_T =  Tiny::VectorList_AoS<4,Int,Int>;
     
-    TOOLS_PTOC(ClassName()+"::RequireFaces");
+    std::string tag = "CrossingFaces";
+    
+    TOOLS_PTIMER(timer,MethodName(tag));
+    
+    if(!this->InCacheQ(tag))
+    {
+        Container_T C_faces ( C_arcs.Dim(0) );
+        
+        const auto & A_F = ArcFaces();
+        
+        for( Int c = 0; c < C_arcs.Dim(0); ++c )
+        {
+            if( !CrossingActiveQ(c) )
+            {
+                C_faces(c,0) = Uninitialized;
+                C_faces(c,1) = Uninitialized;
+                C_faces(c,2) = Uninitialized;
+                C_faces(c,3) = Uninitialized;
+            }
+            else
+            {
+
+//                              O       O C_arcs(c,Out,Right)
+//                               ^     ^
+//                                \   /
+//                                 \ /
+//    A_F(C_arcs(c,In,Left),Head)   X   A_F(C_arcs(c,Out,Right),Tail)
+//                                 ^ ^
+//                                /   \
+//                               /     \
+//                              O       O
+                const Int a_1 = C_arcs(c,Out,Right);
+                const Int a_0 = C_arcs(c,In ,Left );
+                
+                C_faces(c,0) = A_F(a_1,Tail);
+                C_faces(c,1) = A_F(a_1,Head);
+                C_faces(c,2) = A_F(a_0,Head);
+                C_faces(c,3) = A_F(a_0,Tail);
+            }
+        }
+        
+        this->SetCache(tag,std::move(C_faces));
+    }
+    return this->template GetCache<Container_T>(tag);
 }
