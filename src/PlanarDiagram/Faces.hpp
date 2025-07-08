@@ -210,3 +210,35 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
     }
     return this->template GetCache<Container_T>(tag);
 }
+
+
+Tensor1<Int8,Int> CheckerBoardColoring()
+{
+    TOOLS_PTIMER(timer,MethodName("CheckerBoardColoring"));
+    MultiGraph_T G ( FaceCount(), ArcFaces() );
+    
+    using DedgeNode = MultiGraph_T::DedgeNode;
+    
+    Tensor1<Int8,Int> color( FaceCount(), Int8(0) );
+    
+    G.DepthFirstSearch(
+        MultiGraph_T::TrivialEdgeFunction,     // discover
+        MultiGraph_T::TrivialEdgeFunction,     // rediscover
+        [&color]( cref<DedgeNode> E )          // previsit
+        {
+            if( E.tail == MultiGraph_T::UninitializedVertex )
+            {
+                color[E.head] = Int8(1);
+            }
+            else
+            {
+                color[E.head] = -color[E.tail];
+            }
+        },
+        MultiGraph_T::TrivialEdgeFunction      // postvisit
+    );
+    
+    return color;
+}
+
+

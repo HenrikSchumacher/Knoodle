@@ -55,36 +55,18 @@ VInt VertexOutDegree( const VInt v ) const
 
 VV_Vector_T VertexDegrees() const
 {
-    TOOLS_PTIC(this->ClassName()+"::VertexDegrees");
-    
-    VV_Vector_T result =
-    this->template VertexDegrees_impl<InOut::Undirected>();
-    
-    TOOLS_PTOC(this->ClassName()+"::VertexDegrees");
-    
-    return result;
+    TOOLS_PTIMER(timer,MethodName("VertexDegrees"));
+    return this->template VertexDegrees_impl<InOut::Undirected>();
 }
 
 VV_Vector_T VertexInDegrees() const
 {
-    TOOLS_PTIC(this->ClassName()+"::VertexInDegrees");
-    
-    VV_Vector_T result
-    = this->template VertexDegrees_impl<InOut::In>();
-    
-    TOOLS_PTOC(this->ClassName()+"::VertexInDegrees");
-    
-    return result;
+    TOOLS_PTIMER(timer,MethodName("VertexInDegrees"));
+    return this->template VertexDegrees_impl<InOut::In>();
 }
 
 VV_Vector_T VertexOutDegrees() const
 {
-    TOOLS_PTIC(this->ClassName()+"::VertexOutDegrees");
-    
-    VV_Vector_T result
-    = this->template VertexDegrees_impl<InOut::Out>();
-    
-    TOOLS_PTOC(this->ClassName()+"::VertexOutDegrees");
-    
-    return result;
+    TOOLS_PTIMER(timer,MethodName("VertexOutDegrees"));
+    return this->template VertexDegrees_impl<InOut::Out>();
 }

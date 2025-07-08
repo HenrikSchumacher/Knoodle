@@ -60,15 +60,17 @@ template<
     class PostVisitVertex_T   // f( const DedgeNode & E )
 >
 void DepthFirstSearch(
-    DiscoverVertex_T   && discover,
-    RediscoverVertex_T && rediscover,
-    PreVisitVertex_T   && pre_visit,
-    PostVisitVertex_T  && post_visit
+    DiscoverVertex_T     && discover,
+    RediscoverVertex_T   && rediscover,
+    PreVisitVertex_T     && pre_visit,
+    PostVisitVertex_T    && post_visit
 )
 {
     if( vertex_count <= VInt(0) ) { return; }
     
-    TOOLS_PTIC( ClassName()+"::DepthFirstSearch<" + ToString(dir) + ">");
+    std::string tag = ClassName()+"::DepthFirstSearch<" + ToString(dir) + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     cptr<EInt> dE_V = edges.data();
     
@@ -107,7 +109,7 @@ void DepthFirstSearch(
     // The problem with this approach is that we have to do the marking in the order of discovery, but the pushing to stack in reverse order. That would take roughly twice as long. In constrast, memory is cheap nowadays. And we use a stack, so we interesting stuff will stay in hot memory. So we can afford allocating a potentially oversized stack in favor of faster execution.
     Stack<DedgeNode,EInt> stack ( EdgeCount() );
 
-    auto conditional_push = [V_flag,E_visitedQ,dE_V,&stack,&discover,&rediscover](
+    auto conditional_push = [V_flag,E_visitedQ,dE_V,&stack,&discover,&rediscover,&tag](
         const DedgeNode & E, const EInt de
     )
     {
@@ -124,7 +126,7 @@ void DepthFirstSearch(
         // E.de may be virtual, but e may not.
         if( de < EInt(0) )
         {
-            eprint(ClassName()+"::DepthFirstSearch: Virtual edge on stack.");
+            eprint(tag + ": Virtual edge on stack.");
             return;
         }
         
@@ -155,7 +157,7 @@ void DepthFirstSearch(
             }
         }
     };
-
+    
     for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
     {
         if( V_flag[v_0] != UInt8(0) ) { continue; }
@@ -175,7 +177,7 @@ void DepthFirstSearch(
             
             if( V_flag[v] == UInt8(0) )
             {
-                eprint(ClassName()+"::DepthFirstSearch: Undiscovered vertex on stack!");
+                eprint(tag + ": Undiscovered vertex on stack!");
                 (void)stack.Pop();
             }
             else if( V_flag[v] == UInt8(1) )
@@ -225,11 +227,9 @@ void DepthFirstSearch(
         } // while( !stack.EmptyQ() )
         
     } // for( VInt v_0 = 0; v_0 < vertex_count; ++v_0 )
-    
-    TOOLS_PTOC( ClassName()+"::DepthFirstSearch<" + ToString(dir) + ">");
 }
 
-template< InOut dir = 0, class PreVisitVertex_T >
+template< InOut dir = InOut::Undirected, class PreVisitVertex_T >
 void DepthFirstSearch( PreVisitVertex_T && pre_visit )
 {
     this->template DepthFirstSearch<dir>(

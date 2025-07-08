@@ -62,9 +62,9 @@ namespace Knoodle
         using EV_Vector_T       = Tensor1<EInt,VInt>;
         using VE_Vector_T       = Tensor1<VInt,EInt>;
          
-        VInt UninitializedVertex = SignedIntQ<VInt> ? VInt(-1) : std::numeric_limits<VInt>::max();
+        static constexpr VInt UninitializedVertex = SignedIntQ<VInt> ? VInt(-1) : std::numeric_limits<VInt>::max();
         
-        EInt UninitializedEdge = SignedIntQ<EInt> ? EInt(-1) : std::numeric_limits<EInt>::max();
+        static constexpr EInt UninitializedEdge = SignedIntQ<EInt> ? EInt(-1) : std::numeric_limits<EInt>::max();
 
     public:
         
@@ -97,6 +97,39 @@ namespace Knoodle
             CheckInputs();
         }
         
+        // Provide list of edges in noninterleaved form.
+        template<typename I_0, typename I_1>
+        MultiGraphBase(
+            const I_0 vertex_count_,
+            cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
+        )
+        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
+        ,   edges        ( int_cast<EInt>(edge_count_)      )
+        ,   V_scratch    ( vertex_count                     )
+        ,   E_scratch    ( edges.Dim(0)                     )
+        {
+            static_assert(IntQ<I_0>,"");
+            static_assert(IntQ<I_1>,"");
+            
+            for( EInt e = 0; e < edges.Dim(0); ++e )
+            {
+                edges(e,Tail) = tails[e];
+                edges(e,Head) = heads[e];
+            }
+
+            CheckInputs();
+        }
+
+        // Provide a list of edges in interleaved form.
+        template<typename I_0>
+        MultiGraphBase( const I_0 vertex_count_, cref<EdgeContainer_T> edges_ )
+        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
+        ,   edges        ( edges_                           )
+        ,   V_scratch    ( vertex_count                     )
+        ,   E_scratch    ( edges.Dim(0)                     )
+        {
+            CheckInputs();
+        }
         
         // Provide a list of edges in interleaved form.
         template<typename I_0>
@@ -115,25 +148,30 @@ namespace Knoodle
         MultiGraphBase(
             const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
         )
-        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
-        ,   edges        ( int_cast<EInt>(pairs.Size())     )
-        ,   V_scratch    ( vertex_count                     )
-        ,   E_scratch    ( edges.Dim(0)                     )
-        {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-            
-            cptr<I_0> i = pairs.Get_0().data();
-            cptr<I_0> j = pairs.Get_1().data();
-            
-            for( EInt e = 0; e < edges.Dim(0); ++e )
-            {
-                edges(e,Tail) = i[e];
-                edges(e,Head) = j[e];
-            }
-
-            CheckInputs();
-        }
+        :   MultiGraphBase(
+               vertex_count_,
+               pairs.Get_0().data(), pairs.Get_1().data(), pairs.Size()
+            )
+        {}
+//        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
+//        ,   edges        ( int_cast<EInt>(pairs.Size())     )
+//        ,   V_scratch    ( vertex_count                     )
+//        ,   E_scratch    ( edges.Dim(0)                     )
+//        {
+//            static_assert(IntQ<I_0>,"");
+//            static_assert(IntQ<I_1>,"");
+//            
+//            cptr<I_0> i = pairs.Get_0().data();
+//            cptr<I_0> j = pairs.Get_1().data();
+//            
+//            for( EInt e = 0; e < edges.Dim(0); ++e )
+//            {
+//                edges(e,Tail) = i[e];
+//                edges(e,Head) = j[e];
+//            }
+//
+//            CheckInputs();
+//        }
 
 
 

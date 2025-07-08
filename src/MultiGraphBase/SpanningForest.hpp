@@ -2,7 +2,7 @@ public:
 
 void ComputeSpanningForest()
 {
-    TOOLS_PTIC(ClassName()+"::ComputeSpanningForest");
+    TOOLS_PTIMER(timer,MethodName("ComputeSpanningForest"));
     
     Aggregator<VInt,VInt> V_pre           ( VertexCount() );
     Aggregator<VInt,VInt> V_post          ( VertexCount() );
@@ -41,8 +41,6 @@ void ComputeSpanningForest()
     this->SetCache( "SpanningForestDedges",  std::move(V_parent_A)   );
     this->SetCache( "SpanningForestRoots",   std::move(roots.Get())  );
     this->SetCache( "DFSEdgeOrdering",       std::move(discovered_arcs.Get())  );
-    
-    TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }
 
 
@@ -52,9 +50,8 @@ void ComputeSpanningForest()
 VV_Vector_T VertexPreOrdering()
 {
     std::string tag ("VertexPreOrdering");
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
@@ -64,9 +61,8 @@ VV_Vector_T VertexPreOrdering()
 VV_Vector_T VertexPostOrdering()
 {
     std::string tag ("VertexPostOrdering");
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
@@ -76,9 +72,8 @@ VV_Vector_T VertexPostOrdering()
 EE_Vector_T SpanningForestDedges()
 {
     std::string tag ("SpanningForestDedges");
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<EE_Vector_T>(tag);
 }
 
@@ -86,17 +81,15 @@ EE_Vector_T SpanningForestDedges()
 VV_Vector_T SpanningForestRoots()
 {
     std::string tag ("SpanningForestRoots");
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<VV_Vector_T>(tag);
 }
 
 EE_Vector_T DFSEdgeOrdering()
 {
     std::string tag ("DFSEdgeOrdering");
-    TOOLS_PTIC(ClassName()+"::"+tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { ComputeSpanningForest(); }
-    TOOLS_PTOC(ClassName()+"::"+tag);
     return this->template GetCache<EE_Vector_T>(tag);
 }

@@ -75,6 +75,21 @@ namespace Knoodle
         :   Base_T( vertex_count_, edges_, edge_count_ )
         {}
         
+        // Provide list of edges in noninterleaved form.
+        template<typename I_0, typename I_1>
+        MultiGraph(
+            const I_0 vertex_count_,
+            cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
+        )
+        :   Base_T( vertex_count_, tails, heads, edge_count_ )
+        {}
+        
+
+        // Copy an EdgeContainer_T.
+        template<typename I_0>
+        MultiGraph( const I_0 vertex_count_, cref<EdgeContainer_T> edges_ )
+        :   Base_T( vertex_count_, edges_ )
+        {}
         
         // Provide an EdgeContainer_T. Caution: this destroys the container.
         template<typename I_0>
@@ -400,7 +415,7 @@ namespace Knoodle
         
         cref<Tensor1<VInt,VInt>> SpanningTree() const
         {
-            std::string tag ( "SpanningTree" );
+            std::string tag ("SpanningTree");
             if(!this->InCacheQ(tag)) { RequireTopology(); }
             return this->template GetCache<Tensor1<VInt,VInt>>(tag);
         }

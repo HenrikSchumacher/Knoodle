@@ -2,7 +2,8 @@ private:
     
 void CheckInputs() const
 {
-    TOOLS_PTIMER( timer, ClassName()+"::CheckInputs" );
+    std::string tag (MethodName("CheckInputs"));
+    TOOLS_PTIMER(timer,tag);
     
     const EInt edge_count = edges.Dim(0);
     
@@ -14,27 +15,27 @@ void CheckInputs() const
 
         if( e_0 < VInt(0) )
         {
-            eprint("MultiGraphBase:  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is negative.");
+            eprint(tag + ":  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is negative.");
 
             return;
         }
         
         if( e_0 >= vertex_count )
         {
-            eprint("MultiGraphBase:  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
+            eprint(tag + ":  first entry " + ToString(e_0) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
 
             return;
         }
 
         if( e_1 < VInt(0) )
         {
-            eprint("MultiGraphBase: second entry " + ToString(e_1) + " of edge " + ToString(e) + " is negative.");
+            eprint(tag + ": second entry " + ToString(e_1) + " of edge " + ToString(e) + " is negative.");
             return;
         }
         
         if( e_1 >= vertex_count )
         {
-            eprint("MultiGraphBase: second entry " + ToString(e_1) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
+            eprint(tag + ": second entry " + ToString(e_1) + " of edge " + ToString(e) + " is greater or equal to vertex_count = " + ToString(vertex_count) + ".");
 
             return;
         }

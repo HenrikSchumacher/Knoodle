@@ -7,8 +7,8 @@
 
 #include "../Knoodle.hpp"
 //#include "../submodules/Tensors/Clp.hpp"
-//#include "../src/OrthogonalRepresentation.hpp"
-#include "../src/OrthogonalRepresentation.hpp"
+//#include "../src/OrthoDrawing.hpp"
+#include "../src/OrthoDrawing.hpp"
 //#include "ClpSimplex.hpp"
 //#include "ClpSimplexDual.hpp"
 //#include "CoinHelperFunctions.hpp"
@@ -26,7 +26,7 @@ using BReal = double;          // scalar type used for bounding boxes
 using Int   = Int64;           // integer type used, e.g., for indices
 using LInt  = Int64;           // integer type used, e.g., for indices
 
-using OR_T = OrthogonalRepresentation<Int>;
+using OR_T = OrthoDrawing<Int>;
 
 int main( int argc, char** argv )
 {
@@ -226,11 +226,7 @@ int main( int argc, char** argv )
     
     H.SegmentsInfluencedByVirtualEdges();
     
-    TOOLS_DUMP(H.template SaturatingEdges <0>());
-    TOOLS_DUMP(H.template SaturatingEdges2<0>());
-    
-    TOOLS_DUMP(H.template SaturatingEdges <1>());
-    TOOLS_DUMP(H.template SaturatingEdges2<1>());
+    TOOLS_DUMP(pd.CheckerBoardColoring());
     
     return EXIT_SUCCESS;
 }
