@@ -93,7 +93,16 @@ private:
             
             const Real d2 = SquaredDistance(x,y);
             
-            counter += (d2 <= Real(0));
+            const bool degenerateQ = (d2 <= Real(0));
+            counter += degenerateQ;
+            
+            if( degenerateQ )
+            {
+                wprint(ClassName()+"::DegenerateEdges: Detected degenerate edge " + ToString(edge) +".");
+                logvalprint("x", x);
+                logvalprint("y", y);
+                logvalprint("edge data", EdgeData(edge));
+            }
         }
         
         return counter;

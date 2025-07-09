@@ -2,7 +2,7 @@ private:
 
 void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 {
-    PD_PRINT("\n" + ClassName() + "::Reidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
+    PD_PRINT("\n" + ClassName()+"::Reidemeister_II_Horizontal( c_0 = "+CrossingString(c_0)+", c_1 = "+CrossingString(c_1)+", "+ ToString(side) +" )");
     
     // c_0 == c_1  should be made impossible by the way we call this function.
     PD_ASSERT(c_0 != c_1);

@@ -53,10 +53,14 @@ namespace Knoodle
         Real target_overlap_factor = 0.005;
         Real step_size             = 0.25; // No idea what a good value would be.
         Real shrink_factor         = 0.999;
+        Real node_diam_gap         = 0.001;
+        Real node_diam_tolerance   = 0.0;
         
         Int  shift_iter_count      = 30;
         Int  length_iter_count     = 3;
         Int  collision_iter_count  = 1;
+        
+        bool  repel_allQ      = false;
         
         static constexpr Real node_diam = 2.;
 
@@ -176,6 +180,31 @@ namespace Knoodle
             shrink_factor = value;
         }
         
+        Real NodeDiameterGap() const
+        {
+            return node_diam_gap;
+        }
+        
+        void SetNodeDiameterGap( const Real value )
+        {
+            node_diam_gap = value;
+        }
+        
+        bool RepelAllQ() const
+        {
+            return  repel_allQ;
+        }
+        
+        void SetRepelAllQ( const bool value )
+        {
+             repel_allQ = value;
+        }
+        
+        
+        Real NodeDiameter() const
+        {
+            return node_diam;
+        }
         
     public:
         
@@ -193,7 +222,7 @@ namespace Knoodle
                     vertex_coords.data(), Int(3) * vertex_count, vertex_buffer.data()
                 );
                 
-                // TODO: What would best order of these operations?
+                // TODO: What would be the best order of these operations?
                 for( Int iter = 0; iter < collision_iter_count; ++iter )
                 {
                     UpdateCollisions( vertex_buffer.data(), vertex_count );
@@ -202,11 +231,13 @@ namespace Knoodle
                 {
                     UpdateEdgeLengths( vertex_buffer.data(), vertex_count );
                 }
-                for( Int iter = 0; iter < shift_iter_count; ++iter )
+                if( ! repel_allQ )
                 {
-                    Shift( shift, vertex_buffer.data(), vertex_count );
+                    for( Int iter = 0; iter < shift_iter_count; ++iter )
+                    {
+                        Shift( shift, vertex_buffer.data(), vertex_count );
+                    }
                 }
-                
                 // if there's not much overlap remaining, shrink the curve
                 // and target curve length (but not the diameter)
                 if( average_overlap < target_overlap_factor * node_diam )
@@ -264,7 +295,7 @@ namespace Knoodle
         static void Shift( const Real alpha, mptr<Real> x, const Int n )
         {
             // Remember the position of the first node so that it is not overwritten
-            const Real x_0[3] = {x[0],x[1],x[2]};
+            const Real x_0 [3] = {x[0],x[1],x[2]};
             
             for( Int j = 1; j < n; ++j )
             {
@@ -319,9 +350,10 @@ namespace Knoodle
             Int i = uniform_dist( random_engine ); // starting node
             const Int dir = (coin_flip( random_engine ) ? Int(1) : n - Int(1) ); // direction of traversal
             
-            const Real curve_length = CurveLength(x,n);
 
-            const Real target_length = curve_length / static_cast<Real>(n);
+            const Real target_length = (  repel_allQ
+                ? node_diam
+                : CurveLength(x,n) / static_cast<Real>(n) );
 
             // iterate over curve, projecting each edge onto the correct length
             // (essentially via nonlinear Gauss-Seidel)
@@ -370,20 +402,21 @@ namespace Knoodle
             Real alpha = Real(1.) - collision_damping;
             Real beta  = collision_damping;
             
-            constexpr Real delta   = 0.001; // "wiggle factor" between hard spheres
-            constexpr Real epsilon = 0.0;
+            const Real node_diam_eps = node_diam + node_diam_tolerance;
             
-            constexpr Real D_eps = node_diam + epsilon;
+            Int skip = 0;
             
-            const Real curve_length = CurveLength(x,n);
-            
-            // Determine how many neighboring nodes to skip.
-            const Real l = curve_length / static_cast<Real>(n);
-            const Real D = node_diam;
-            
-            // TODO: Using the average edge length is a bit fishy as the polygona is never really equilateral.
-            // TODO: One should rather employ the true arc distance here, which can be done efficiently, at least if we "freeze" the edge lengths before the loop.
-            const Int skip = static_cast<Int>( std::ceil( M_PI * D / (Real(2) * l) ) );
+            if( ! repel_allQ )
+            {
+                // Determine how many neighboring nodes to skip.
+                const Real av_edge_length = CurveLength(x,n) / static_cast<Real>(n);
+                
+                // TODO: Using the average edge length is a bit fishy as the polygon is never really equilateral.
+                // TODO: One should rather employ the true arc distance here, which can be done efficiently, at least if we "freeze" the edge lengths before the loop.
+                skip = static_cast<Int>(
+                    std::ceil( M_PI * node_diam / (Real(2) * av_edge_length) )
+                );
+            }
             
             std::uniform_int_distribution<Int> uniform_dist( Int(0), n - Int(1) );
             Int i = uniform_dist( random_engine ); // starting node
@@ -416,9 +449,9 @@ namespace Knoodle
                     // current distance
                     const Real d = std::sqrt( u[0] * u[0] + u[1] * u[1] + u[2] * u[2] );
                     
-                    if( d < D_eps )
+                    if( d < node_diam_eps )
                     {
-                        average_overlap += std::max(Real(0),D - d);
+                        average_overlap += std::max(Real(0),node_diam - d);
                         ++overlap_count;
                         
                         // move the vertices to the target length
@@ -430,7 +463,7 @@ namespace Knoodle
                             Real(0.5) * x[3 * i + 2] + Real(0.5) * x[3 * j + 2]
                         };
                         
-                        const Real scale = (0.5*(D+delta)) / d;
+                        const Real scale = (0.5*(node_diam+node_diam_gap)) / d;
                         
                         const Real c_i [3] = {
                             m[0] - scale * u[0],
@@ -475,7 +508,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("SONO")
+            return std::string("SONO")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";

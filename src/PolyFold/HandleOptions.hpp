@@ -245,7 +245,7 @@ void HandleOptions( int argc, char** argv )
     if( !Profiler::log )
     {
         throw std::runtime_error(
-             ClassName() + "::Initialize: Failed to create file \"" + Profiler::log_file.string() + "\"."
+             ClassName()+"::Initialize: Failed to create file \"" + Profiler::log_file.string() + "\"."
         );
     }
     
@@ -260,7 +260,7 @@ void HandleOptions( int argc, char** argv )
         if( flag != 0 )
         {
             throw std::invalid_argument(
-                ClassName() + "::HandleOptions: Failed to read input file."
+                ClassName()+"::HandleOptions: Failed to read input file."
             );
         }
         

@@ -63,13 +63,13 @@ bool CheckAllCrossings() const
 
     if( max_crossing_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllCrossings: max_crossing_count < 0.");
+        eprint(ClassName()+"::CheckAllCrossings: max_crossing_count < 0.");
         passedQ = false;
     }
     
     if( crossing_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllCrossings: crossing_count < 0.");
+        eprint(ClassName()+"::CheckAllCrossings: crossing_count < 0.");
         passedQ = false;
     }
     
@@ -80,11 +80,11 @@ bool CheckAllCrossings() const
     
     if( passedQ )
     {
-        logprint(ClassName() + "::CheckAllCrossings: passed.");
+        logprint(ClassName()+"::CheckAllCrossings: passed.");
     }
     else
     {
-        eprint(ClassName() + "::CheckAllCrossings: failed.");
+        eprint(ClassName()+"::CheckAllCrossings: failed.");
     }
     return passedQ;
 }
@@ -141,7 +141,7 @@ bool CheckArc( const Int a ) const
     
 //    if( !A_passedQ )
 //    {
-//        eprint( ClassName() + "::CheckArc: Arc "+ToString(a)+" failed to pass.");
+//        eprint( ClassName()+"::CheckArc: Arc "+ToString(a)+" failed to pass.");
 //    }
     
     return A_passedQ;
@@ -153,13 +153,13 @@ bool CheckAllArcs() const
     
     if( max_arc_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllArcs: max_arc_count < 0.");
+        eprint(ClassName()+"::CheckAllArcs: max_arc_count < 0.");
         passedQ = false;
     }
     
     if( arc_count < Int(0) )
     {
-        eprint(ClassName() + "::CheckAllArcs: arc_count < 0.");
+        eprint(ClassName()+"::CheckAllArcs: arc_count < 0.");
         passedQ = false;
     }
     
@@ -202,7 +202,7 @@ bool CheckVertexDegrees() const
             if( d[c] != Int(4) )
             {
                 passed = false;
-                eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 4.");
+                eprint( ClassName()+"::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 4.");
             }
         }
         else
@@ -210,7 +210,7 @@ bool CheckVertexDegrees() const
             if( d[c] != Int(0) )
             {
                 passed = false;
-                eprint( ClassName() + "::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 0.");
+                eprint( ClassName()+"::CheckVertexDegrees: degree of " + CrossingString(c) + " is " + Tools::ToString(d[c]) + " != 0.");
             }
         }
     }
@@ -242,7 +242,7 @@ bool CheckArcDegrees() const
             if( d[a] != Int(2) )
             {
                 passed = false;
-                eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 2.");
+                eprint( ClassName()+"::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 2.");
             }
         }
         else
@@ -250,7 +250,7 @@ bool CheckArcDegrees() const
             if( d[a] != Int(0) )
             {
                 passed = false;
-                eprint( ClassName() + "::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 0.");
+                eprint( ClassName()+"::CheckArcDegrees: degree of " + ArcString(a) + " is " + Tools::ToString(d[a]) + " != 0.");
             }
         }
     }

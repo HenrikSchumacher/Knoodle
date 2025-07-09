@@ -13,7 +13,10 @@ void kv( const std::string & key, std::string && value )
 template<Size_T t, bool appendQ = true>
 void kv( const std::string & key, cref<Tiny::Vector<AmbDim,Real,Int>> value )
 {
-    log << (appendQ ? ",\n" : "\n") + ct_tabs<t> + "\"" + key + "\" -> " + ArrayToString( value.data(), {AmbDim}, "", [](Real x){ return ToMathematicaString(x); });
+    log << (appendQ ? ",\n" : "\n") + ct_tabs<t> + "\"" + key + "\" -> " + ArrayToString(
+            value.data(), {AmbDim},
+            [](Real x){ return ToMathematicaString(x); }
+        );
 }
 
 template<Size_T t, bool appendQ = true>

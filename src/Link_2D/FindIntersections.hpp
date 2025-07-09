@@ -20,7 +20,7 @@ public:
         {
             if constexpr ( verboseQ )
             {
-                eprint(ClassName() + "::FindIntersections: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
+                eprint(ClassName()+"::FindIntersections: Detected " + ToString(degenerate_edge_count) + " degenerate edges.");
             }
             return 9;
         }
@@ -39,7 +39,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
+                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where line segments intersection times were out of bounds.");
                 }
                 return 7;
             }
@@ -51,7 +51,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where line segments intersected in 3D.");
+                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where line segments intersected in 3D.");
                 }
                 return 6;
             }
@@ -63,7 +63,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
+                    eprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was degenerate (the intersection set was an interval). Try to randomly rotate the input coordinates.");
                 }
                 return 5;
             }
@@ -76,7 +76,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
+                    wprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in the corners of two line segments. Try to randomly rotate the input coordinates.");
                 }
                 return 4;
             }
@@ -91,7 +91,7 @@ public:
             {
                 if constexpr ( verboseQ )
                 {
-                    wprint(ClassName() + "::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
+                    wprint(ClassName()+"::FindIntersections: Detected " + ToString(count) + " cases where the line-line intersection was a point in a corner of a line segment. Try to randomly rotate the input coordinates.");
                 }
                 return 3;
             }
@@ -104,7 +104,7 @@ public:
             )
         )
         {
-            eprint(ClassName() + "::FindIntersections: More intersections found than can be handled by integer type " + TypeName<Int> + "." );
+            eprint(ClassName()+"::FindIntersections: More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
         const Int intersection_count = static_cast<Int>(intersections.size());
@@ -128,6 +128,7 @@ public:
             return 0;
         }
         
+        
         TOOLS_PTIC("Counting sort");
         for( Int k = intersection_count; k --> Int(0);  )
         {
@@ -150,7 +151,7 @@ public:
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
         
-        Int close_counter = 0;
+        Size_T close_counter = 0;
         
         for( Int i = 0; i < edge_count; ++i )
         {
@@ -178,17 +179,24 @@ public:
                     {
                         ++close_counter;
                         
-                        if constexpr ( verboseQ )
-                        {
-                            auto inter_0 = intersections[edge_intersections[l-1]];
-                            auto inter_1 = intersections[edge_intersections[l  ]];
+                        // TODO: For the moment we _want_ to see this warning.
+                        // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+                        
+//                        if constexpr ( verboseQ )
+//                        {
+                            auto inter_0 = intersections[
+                                static_cast<Size_T>(edge_intersections[l-1])
+                            ];
+                            auto inter_1 = intersections[
+                                static_cast<Size_T>(edge_intersections[l  ])
+                            ];
                             
                             const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
                             
                             const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
                             wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToStringFPGeneral(delta) + " < " + ToStringFPGeneral(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
-                        }
+//                        }
                     }
                 }
             }
@@ -201,10 +209,12 @@ public:
         
         if( intersection_flag_counts[8] )
         {
-            if constexpr ( verboseQ )
-            {
+            // TODO: For the moment we _want_ to see this warning.
+            // TODO: On the long run we need a more precise detector for the ordering of the intersection times.
+//            if constexpr ( verboseQ )
+//            {
                 wprint(ClassName()+"::FindIntersections: Detected " + ToString(close_counter) + " case(s) of tiny difference between intersection times." );
-            }
+//            }
             return 8;
         }
         
@@ -247,6 +257,7 @@ private:
     {
         const Int int_node_count = T.InternalNodeCount();
 
+        static_assert(SignedIntQ<Int>,"");
         Int stack [4 * max_depth][2];
         Int stack_ptr = -1;
 
@@ -520,7 +531,7 @@ protected:
     {
         if constexpr ( verboseQ )
         {
-            print(ClassName() + "::ComputeEdgeEdgeIntersection in verbose mode.");
+            print(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
             TOOLS_DUMP(k);
             TOOLS_DUMP(l);
         }
@@ -638,32 +649,35 @@ protected:
         {
             case LineSegmentsIntersectionFlag::AtCorner0:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
                 break;
             }
             case LineSegmentsIntersectionFlag::AtCorner1:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
                 break;
             }
             case LineSegmentsIntersectionFlag::CornerCorner:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
                 break;
             }
             case LineSegmentsIntersectionFlag::Interval:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
                 break;
             }
             case LineSegmentsIntersectionFlag::Spatial:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+                
+                logvalprint( "edge " + ToString(k), x );
+                logvalprint( "edge " + ToString(l), y );
                 break;
             }
             case LineSegmentsIntersectionFlag::OOBounds:
             {
-                wprint(ClassName() + "::ComputeEdgeIntersection: Intersection times of intetsection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
+                wprint(ClassName()+"::ComputeEdgeIntersection: Intersection times of intersection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
                 break;
             }
             default:
@@ -671,10 +685,6 @@ protected:
                 break;
             }
         }
-        
-//        if( t[0] < Real(0) )
-//        {
-//        }
     }
 
 

@@ -3,9 +3,7 @@ public:
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Int>(tag);
 }
 
@@ -16,48 +14,38 @@ Int LinkComponentSize( const Int lc ) const
     return (lc_arc_ptr[lc+1] - lc_arc_ptr[lc]);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcIndices() const
+cref<Tensor1<Int,Int>> LinkComponentArcIndices() const
 {
     const std::string tag = "LinkComponentArcIndices";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & LinkComponentArcPointers() const
+cref<Tensor1<Int,Int>> LinkComponentArcPointers() const
 {
     const std::string tag = "LinkComponentArcPointers";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcLinkComponents() const
+cref<Tensor1<Int,Int>> ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor1<Int,Int> & ArcPositions() const
+cref<Tensor1<Int,Int>> ArcPositions() const
 {
     const std::string tag = "ArcPositions";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-const Tensor2<Int,Int> & ArcTraversalFlags() const
+cref<Tensor2<Int,Int>> ArcTraversalFlags() const
 {
     const std::string tag = "ArcTraversalFlags";
-    
-    if( !this->InCacheQ(tag) ){ RequireLinkComponents(); }
-    
+    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
     return this->template GetCache<Tensor2<Int,Int>>(tag);
 }
 
@@ -81,7 +69,7 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
     }
     else
     {
-        return Int(-1);
+        return Uninitialized;
     }
 }
 
@@ -93,16 +81,17 @@ void RequireLinkComponents() const
     const Int m = A_cross.Dimension(0);
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int> A_lc ( m, Int(-1) );
+    Tensor1<Int,Int> A_lc ( m, Uninitialized );
     
     // Also, each arc should know its position within the component.
-    Tensor1<Int,Int> A_pos  ( m, Int(-1) );
+    Tensor1<Int,Int> A_pos  ( m, Uninitialized );
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
     Tensor1<Int,Int> lc_arc_idx ( ArcCount() );
-    Tensor1<Int,Int> lc_arc_ptr ( CrossingCount() + 1 );
-    Tensor2<Int,Int> A_flags    ( ArcCount(), 2 );
+    Tensor1<Int,Int> lc_arc_ptr ( CrossingCount() + Int(1) );
+    Tensor2<Int,Int> A_flags    ( ArcCount(), Int(2) );
+    
     
     lc_arc_ptr[0]  = 0;
     
@@ -113,7 +102,7 @@ void RequireLinkComponents() const
             (void)lc_begin;
         },
         [&A_lc,&A_pos,&lc_arc_idx,&A_flags](
-            const Int a, const Int a_label, const Int lc,
+            const Int a,   const Int a_label, const Int lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
         )
@@ -134,31 +123,15 @@ void RequireLinkComponents() const
             lc_arc_ptr[lc+1] = lc_end;
         }
      );
-
-//    TraverseWithoutCrossings(
-//        []( const Int lc, const Int lc_begin ){},
-//        [&A_lc,&A_pos,&lc_arc_idx](
-//            const Int a, const Int a_label, const Int lc
-//        )
-//        {
-//            A_lc[a]  = lc;
-//            A_pos[a] = a_label;
-//            lc_arc_idx[a_label] = a;
-//        },
-//        [&lc_arc_ptr]( const Int lc, const Int lc_begin, const Int lc_end )
-//        {
-//            lc_arc_ptr[lc+1] = lc_end;
-//        }
-//     );
     
-    // LinkComponentCount is set by TraverseWithoutCrossings.
+    // LinkComponentCount is set by `Traverse`.
     lc_arc_ptr.template Resize<true>(LinkComponentCount()+1);
     
     this->SetCache( "LinkComponentArcIndices",   std::move(lc_arc_idx) );
     this->SetCache( "LinkComponentArcPointers",  std::move(lc_arc_ptr) );
     this->SetCache( "ArcLinkComponents",         std::move(A_lc)       );
     this->SetCache( "ArcPositions",              std::move(A_pos)      );
-    this->SetCache( "ArcTraversalFlags",                  std::move(A_flags)    );
+    this->SetCache( "ArcTraversalFlags",         std::move(A_flags)    );
 //    this->SetCache( "LinkComponentCount",        lc_count              );
     
     TOOLS_PTOC(ClassName()+"::RequireLinkComponents");
@@ -172,10 +145,10 @@ void RequireLinkComponents_Legacy()
     const Int m = A_cross.Dimension(0);
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int> A_lc ( m, Int(-1) );
+    Tensor1<Int,Int> A_lc ( m, Uninitialized );
     
     // Also, each arc should know its position within the link.
-    Tensor1<Int,Int> A_pos  ( m, Int(-1) );
+    Tensor1<Int,Int> A_pos ( m, Uninitialized );
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
@@ -191,7 +164,7 @@ void RequireLinkComponents_Legacy()
     while( a_ptr < m )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < m ) && ( (A_pos[a_ptr] >= Int(0))  || (!ArcActiveQ(a_ptr)) ) )
+        while( ( a_ptr < m ) && ( ValidIndexQ(A_pos[a_ptr])  || (!ArcActiveQ(a_ptr)) ) )
         {
             ++a_ptr;
         }

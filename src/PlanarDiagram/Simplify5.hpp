@@ -6,11 +6,11 @@ public:
 
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`.
  *
- * @param PD_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
+ * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
  * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
  *
- * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
+ * @param canonicalizeQ Whether the `PlanarDiagram` shall be recanonicalized between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
  *
  * @param simplify3_level Optimization level for `Simplify3`. Level `0` deactivates it entirely, levels greater or equal to `2` check only patterns that involve as many crossings as specified by this variable.
  *
@@ -18,22 +18,22 @@ public:
  */
 
 bool Simplify5(
-    std::vector<PlanarDiagram<Int>> & PD_list,
+    PD_List_T & pd_list,
     const Int  max_dist = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
+    const bool canonicalizeQ = true,
     const Int  simplify3_level = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q = true
 )
 {
-    if( provably_minimalQ )
+    if( proven_minimalQ || InvalidQ() )
     {
         return false;
     }
     
     TOOLS_PTIC(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
@@ -44,12 +44,18 @@ bool Simplify5(
     
     do
     {
-        changedQ = Simplify4(max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q);
+        changedQ = Simplify4(
+            max_dist, canonicalizeQ,
+            simplify3_level, simplify3_max_iter, strand_R_II_Q
+        );
         
         if( CrossingCount() >= 6 )
         {
-            changedQ = changedQ || DisconnectSummands(PD_list,
-                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+            changedQ = changedQ
+            ||
+            DisconnectSummands(
+                pd_list, max_dist, canonicalizeQ,
+                simplify3_level, simplify3_max_iter, strand_R_II_Q
             );
         }
         
@@ -60,35 +66,29 @@ bool Simplify5(
     
     if( globally_changedQ )
     {
-        if( compressQ )
+        if( canonicalizeQ )
         {
-            *this = this->CreateCompressed();   // This also erases the Cache.
+            CanonicalizeInPlace();   // This also erases the Cache.
         }
         else
         {
             this->ClearCache();
         }
     }
-    
-    
-//    print("Checking minimality");
-//    TOOLS_DUMP(AlternatingQ());
-//    TOOLS_DUMP(CrossingCount());
-//    TOOLS_DUMP(DiagramComponentCount());
-//
+
     if( AlternatingQ() && (LinkComponentCount() <= 1) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     TOOLS_PTOC(ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)

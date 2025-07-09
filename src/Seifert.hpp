@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Multigraph.hpp"
+#include "MultiGraph.hpp"
 #include "../submodules/Tensors/Sparse.hpp"
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 //#include "../submodules/Tensors/src/Sparse/Metis.hpp"
@@ -35,7 +35,7 @@ namespace Knoodle
         
         using SeifertIncidenceMatrix_T = Sparse::MatrixCSR<Int,Int,Int>;
         
-        using Graph_T = Multigraph<Int>;
+        using Graph_T = MultiGraph<Int>;
     
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -81,7 +81,7 @@ namespace Knoodle
             auto & C_arcs  = pd.Crossings();
             auto & A_cross = pd.Arcs();
             
-            Tensor2<Int,Int>  C_disks ( n, 2 );
+            typename Graph_T::EdgeContainer_T C_disks ( n, 2 );
             
             Tensor1<SInt,Int> A_flag  ( m, 0 );
             
@@ -135,9 +135,10 @@ namespace Knoodle
             
             logprint("Finished while loop.");
 
-            
             SeifertIncidenceMatrix_T S (
-                std::move(s_rp.Get()), std::move(s_ci.Get()), std::move(s_val.Get()),
+                std::move(s_rp.Get()),
+                std::move(s_ci.Get()),
+                std::move(s_val.Get()),
                 s_rp.Size()-1, n, Int(1)
             );
             
@@ -145,10 +146,9 @@ namespace Knoodle
             
             pd.SetCache( std::string("SeifertIncidenceMatrix"), std::move(S) );
             
-            pd.SetCache(
-                std::string("SeifertGraph"),
-                std::make_any<Graph_T>( s_rp.Size()-1, std::move(C_disks) )
-            );
+            Graph_T G ( s_rp.Size()-1, std::move(C_disks) );
+            
+            pd.SetCache( std::string("SeifertGraph"), std::move(G) );
                     
         }
         

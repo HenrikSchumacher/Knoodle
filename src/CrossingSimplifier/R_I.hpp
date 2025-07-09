@@ -5,7 +5,7 @@
 
 bool Reidemeister_I( const Int c )
 {
-    PD_PRINT("\n" + ClassName() + "::Reidemeister_I( c = " + CrossingString(c) + " )");
+    PD_PRINT("\n" + ClassName()+"::Reidemeister_I( c = " + CrossingString(c) + " )");
     
     if( !CrossingActiveQ(c) )
     {

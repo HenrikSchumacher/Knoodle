@@ -5,7 +5,7 @@ bool TwistMove( const Int c_0, const Int c_1, const bool side )
     // TODO: Actually, this is an indicator for a connect sum.
     // TODO: Can we detect this, instead?
     
-    PD_PRINT("\t" + ClassName() + "::TwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
+    PD_PRINT("\t" + ClassName()+"::TwistMove( \n\t\tc_0 = "+CrossingString(c_0)+", \n\t\tc_1 = "+CrossingString(c_1)+", \n\t\tside = " + ((side==Left)? "left" : "right" ) + " \n\t)");
         
     // We can resolve both crossings in any case of sign distribution.
     // See the commented-out code below for an explanation

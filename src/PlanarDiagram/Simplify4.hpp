@@ -8,33 +8,32 @@ public:
 
 Int Simplify4(
     const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
+    const bool canonicalizeQ      = true,
     const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q      = true
 )
 {
-    if( provably_minimalQ )
+    if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
     
     TOOLS_PTIC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
          + ")");
     
-    Int old_counter = -1;
+    static_assert(SignedIntQ<Int>,"");
+    Int old_counter = 0;
     Int counter = 0;
     Int iter = 0;
     
-    // TODO: Toggle this Boolean for multi-component links.
+    // TODO: Toggle this Boolean for multi/single-component links.
     StrandSimplifier<Int,true> S(*this);
-    
-    // TODO: Maybe we should recompress only in the first pass of this?
     
 //    const Int c_count = CrossingCount();
 //
@@ -55,9 +54,9 @@ Int Simplify4(
             
             counter += simpl3_changes;
             
-            if( compressQ && (simpl3_changes > Int(0)) )
+            if( canonicalizeQ && (simpl3_changes > Int(0)) )
             {
-                (*this) = CreateCompressed();
+                CanonicalizeInPlace();
             }
         }
         
@@ -67,9 +66,9 @@ Int Simplify4(
         
         counter += o_changes;
         
-        if( compressQ && (o_changes > Int(0)) )
+        if( canonicalizeQ && (o_changes > Int(0)) )
         {
-            (*this) = CreateCompressed();
+            CanonicalizeInPlace();
         }
         
         PD_ASSERT(CheckAll());
@@ -80,9 +79,9 @@ Int Simplify4(
         
         counter += u_changes;
         
-        if( compressQ && (u_changes > Int(0)) )
+        if( canonicalizeQ && (u_changes > Int(0)) )
         {
-            (*this) = CreateCompressed();
+            CanonicalizeInPlace();
         }
         
         PD_ASSERT(CheckAll());
@@ -97,14 +96,14 @@ Int Simplify4(
     
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
-        provably_minimalQ = true;
+        proven_minimalQ = true;
     }
     
     PD_ASSERT(CheckAll());
 
     TOOLS_PTOC(ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
+         + "," + ToString(canonicalizeQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)

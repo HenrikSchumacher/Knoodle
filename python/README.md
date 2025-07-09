@@ -57,12 +57,17 @@ import knoodle
 import numpy as np
 
 # Create a 3D curve representing a knot
-points = np.array([
+coordinates = np.array([
     # Your 3D points here
     [1.0, 0.0, 0.0],
     [0.0, 1.0, 0.0],
     # ... more points
 ])
+
+print("Shape", coordinates.shape)
+
+# Convert the NumPy array to a list as Knoodle expects
+points = coordinates.flatten().tolist()
 
 # Analyze the curve
 result = knoodle.analyze_curve(points)
@@ -88,5 +93,6 @@ If you encounter import errors, ensure:
 1. The installed package matches your Python version
 2. Your C++ compiler supports C++20 features
 3. All submodules are properly initialized if installing from source
+4. Try to use the latest versions of conda to avoid error with dependencies, like boost. 
 
 For Linux users, if you see `GLIBCXX` version errors, ensure your GCC version is compatible.

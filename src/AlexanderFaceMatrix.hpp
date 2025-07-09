@@ -38,7 +38,7 @@ namespace Knoodle
         template<bool fullQ = false>
         cref<Pattern_T> Pattern( cref<PD_T> pd ) const
         {
-            std::string tag ( ClassName() + "::Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
+            std::string tag ( ClassName()+"::Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
             );
             
             if( !pd.InCacheQ(tag) )
@@ -88,7 +88,7 @@ namespace Knoodle
                     const Int a_out = C_arcs(c,Out,Right);
                     const Int a_in  = C_arcs(c,In ,Left);
                     
-                    // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
+                    // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
                     // Then these are consecutive reads.
 
                     // Caution: In A_faces the _right_ face comes first!
@@ -206,7 +206,7 @@ namespace Knoodle
                 pd.SetCache( tag, std::move(A) );
             }
             
-            return pd.template GetCache<Pattern_T>( tag );
+            return pd.template GetCache<Pattern_T>(tag);
         }
         
         template<bool fullQ>
@@ -312,7 +312,7 @@ namespace Knoodle
                 const Int a_out = C_arcs(c,Out,Right);
                 const Int a_in  = C_arcs(c,In ,Left);
                 
-                // With a high probability (certainly after recompression of the diagram), a_in and a_out are adjacent in memory.
+                // With a high probability (certainly after recanonicalization of the diagram), a_in and a_out are adjacent in memory.
                 // Then these are consecutive reads.
                 
                 // Caution: In A_faces the _right_ face comes first!

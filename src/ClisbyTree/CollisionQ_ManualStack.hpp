@@ -3,6 +3,7 @@ private:
 template<bool mQ, bool full_checkQ = false>
 bool CollisionQ_ManualStack()
 {
+    static_assert(SignedIntQ<Int>,"");
     Int stack [Int(4) * max_depth][2];
     Int stack_ptr = -1;
 

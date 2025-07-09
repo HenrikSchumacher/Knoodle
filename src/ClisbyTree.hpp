@@ -305,7 +305,7 @@ namespace Knoodle
         
         void ReadVertexCoordinates( cptr<Real> x )
         {
-            TOOLS_PTIC(ClassName() + "::ReadVertexCoordinates");
+            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates");
             
             this->PostOrderScan(
                 [this]( const Int node )                // internal node postvisit
@@ -321,7 +321,7 @@ namespace Knoodle
                 }
             );
             
-            TOOLS_PTOC(ClassName() + "::ReadVertexCoordinates");
+            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates");
         }
 
         

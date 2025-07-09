@@ -16,7 +16,7 @@ std::string PDCodeString( mref<PD_T> P ) const
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(P.ProvablyMinimalQ());
+    s+= ToString(P.ProvenMinimalQ());
     
     for( Int i = 0; i < pdcode.Dimension(0); ++i )
     {
@@ -35,7 +35,7 @@ std::string GaussCodeString( mref<PD_T> P ) const
     
     std::string s;
     s+= "\ns ";
-    s+= ToString(P.ProvablyMinimalQ());
+    s+= ToString(P.ProvenMinimalQ());
     s+= " | ";
     auto gauss_code = P.ExtendedGaussCode();
     
@@ -158,7 +158,8 @@ void Analyze( const LInt i )
             log << "\n" + ct_tabs<t1> + "|>";
         }
         
-        if( err != 0 )
+        // TODO: This lets the simulation continue if closeby intersection times have been detected. Should should make this check more robust in the future.
+        if( (err != 0) && (err != 8) )
         {
             kv<t1>("FindIntersections Error Flag", err);
             log << std::flush;
@@ -196,10 +197,10 @@ void Analyze( const LInt i )
             log << std::flush;
         }
         
-        std::vector<PD_T> PD_list;
+        std::vector<PD_T> pd_list;
         
         T_simplify.Tic<V2Q>();
-        PD.Simplify5( PD_list );
+        PD.Simplify5( pd_list );
         T_simplify.Toc<V2Q>();
         
         if constexpr ( V2Q )
@@ -228,7 +229,7 @@ void Analyze( const LInt i )
             
             pd_stream << PDCodeString(PD);
             
-            for( auto & P : PD_list )
+            for( auto & P : pd_list )
             {
                 pd_stream << PDCodeString(P);
                 crossing_count += P.CrossingCount();
@@ -241,7 +242,7 @@ void Analyze( const LInt i )
             if( !pd_stream )
             {
                 throw std::runtime_error(
-                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
+                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
                 );
             }
             
@@ -265,7 +266,7 @@ void Analyze( const LInt i )
             
             gauss_stream << GaussCodeString(PD);
             
-            for( auto & P : PD_list )
+            for( auto & P : pd_list )
             {
                 gauss_stream << GaussCodeString(P);
                 crossing_count += P.CrossingCount();
@@ -278,7 +279,7 @@ void Analyze( const LInt i )
             if( !gauss_stream )
             {
                 throw std::runtime_error(
-                    ClassName() + "::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
+                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
                 );
             }
             
