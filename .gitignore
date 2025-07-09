@@ -47,3 +47,13 @@ python/pyknoodle.egg-info/PKG-INFO
 python/pyknoodle.egg-info/SOURCES.txt
 python/pyknoodle.egg-info/top_level.txt
 submodules/Tensors
+python/demo_absolute_value.py
+python/example_determinants.py
+python/robust_determinants.py
+python/README_determinants.md
+python/SUMMARY_determinants.md
+python/test_determinants_pytest.py
+python/test_determinants_simple.py
+python/test_determinants.py
+python/test_precision_fix.py
+python/test_suitesparse.py
