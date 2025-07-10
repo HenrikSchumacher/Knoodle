@@ -68,9 +68,15 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
 
     // TODO: Better use TraverseAllFaces!
     
-    for( Int f = 0; f < FaceCount(); ++f )
+    
+    // If we soften the virtual edges, then we should walk along the faces of the turn-nonregularized facs. Otherwise we risk detecting some intersections. (And the Manhattan distance won't work on the virtual edges are they might be diagonal.)
+    cref<RaggedList<Int,Int>> F_dE = FaceDedges(settings.soften_virtual_edgesQ);
+    
+    const Int f_count = F_dE.SublistCount();
+    
+    for( Int f = 0; f < f_count; ++f )
     {
-        this->template FindIntersections<verboseQ>(coords,agg,f);
+        this->template FindIntersections<verboseQ>(coords,F_dE,agg,f);
     }
     
     Tiny::VectorList_AoS<3,Int,Int> result ( int_cast<Int>( agg.size() ) );
@@ -88,6 +94,7 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
 template<bool verboseQ = false>
 void FindIntersections(
     cref<CoordsContainer_T> coords,
+    cref<RaggedList<Int,Int>> F_dE,
     mref<std::vector<std::array<Int,3>>> agg,
     const Int f
 )
@@ -97,8 +104,6 @@ void FindIntersections(
     {
         print("FindIntersections("+ToString(f)+")");
     }
-    
-    auto & F_dE = FaceDedges();
     
     const Int face_begin = F_dE.Pointers()[f    ];
     const Int face_end   = F_dE.Pointers()[f + 1];
@@ -120,6 +125,12 @@ void FindIntersections(
         const Int de_i = F_dE.Elements()[face_begin + i];
         auto [e_i,d_i] = FromDarc(de_i);
         
+        if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_i) )
+        {
+            print("!");
+            continue;
+        }
+        
         Int da = Uninitialized;
         Int db = Uninitialized;
         
@@ -134,6 +145,13 @@ void FindIntersections(
 //            TOOLS_DUMP(i + delta);
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
             const Int de_j = F_dE.Elements()[face_begin + j];
+            
+            if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_j) )
+            {
+                print("!");
+                continue;
+            }
+            
             auto [e_j,d_j] = FromDarc(de_j);
             
 //            TOOLS_DUMP(j);
@@ -166,6 +184,13 @@ void FindIntersections(
             
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
             const Int de_j = F_dE.Elements()[face_begin + j];
+            
+            if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_j) )
+            {
+                print("!");
+                continue;
+            }
+            
             auto [e_j,d_j] = FromDarc(de_j);
             
 //            TOOLS_DUMP(delta);

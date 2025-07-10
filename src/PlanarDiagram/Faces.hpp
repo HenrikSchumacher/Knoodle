@@ -1,10 +1,5 @@
 public:
 
-Int FaceCount() const
-{
-    return FaceDarcs().SublistCount();
-}
-
 std::string FaceString( const Int f ) const
 {
     cptr<Int> F_dA_ptr = FaceDarcs().Pointers().data();
@@ -16,6 +11,13 @@ std::string FaceString( const Int f ) const
     const Int f_size = i_end - i_begin;
     
     return "face " + ToString(f) + " = " + ArrayToString( &F_dA_idx[i_begin], { f_size } );
+}
+
+
+Int FaceCount() const
+{
+    TOOLS_PTIMER(timer,MethodName("FaceCount"));
+    return FaceDarcs().SublistCount();
 }
 
 cref<RaggedList<Int,Int>> FaceDarcs() const

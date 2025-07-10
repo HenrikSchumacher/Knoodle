@@ -103,9 +103,11 @@ int main( int argc, char** argv )
             .redistribute_bendsQ     = true,
             .use_dual_simplexQ       = false,
             .turn_regularizeQ        = true,
+            .soften_virtual_edgesQ   = false,
             .randomizeQ              = false,
             .saturate_facesQ         = true,
             .saturate_exterior_faceQ = true,
+            .parallelizeQ            = false,
             .compaction_method       = 0,
         
             .x_grid_size             = 8,
@@ -172,7 +174,7 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
     TOOLS_DUMP(H.Length());
-    print(H.DiagramString());
+//    print(H.DiagramString());
     
 //    H.ArcLines();
 //    H.ArcSplines();

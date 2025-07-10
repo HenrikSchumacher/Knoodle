@@ -373,9 +373,9 @@ namespace Knoodle
             // Store cycle matrix.
             
             CycleMatrix_T Z (
-                std::move(z_ptr.Get()), 
-                std::move(z_idx.Get()),
-                std::move(z_val.Get()),
+                z_ptr.Disband(),
+                z_idx.Disband(),
+                z_val.Disband(),
                 z_ptr.Size()-EInt(1), edge_count, EInt(1)
             );
             
@@ -387,8 +387,8 @@ namespace Knoodle
             // Store component matrix.
             
             ComponentMatrix_T C (
-                std::move(c_ptr.Get()), 
-                std::move(c_idx.Get()), 
+                c_ptr.Disband(),
+                c_idx.Disband(),
                 c_ptr.Size()-1, edge_count, VInt(1)
             );
 
@@ -537,8 +537,8 @@ namespace Knoodle
                 c_v_ptr.Push(c_v_idx.Size());
                 
                 ComponentMatrix_T C (
-                    std::move(c_v_ptr.Get()),
-                    std::move(c_v_idx.Get()),
+                    c_v_ptr.Disband(),
+                    c_v_idx.Disband(),
                     c_v_ptr.Size()-VInt(1), vertex_count, VInt(1)
                 );
 

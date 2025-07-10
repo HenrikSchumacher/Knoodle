@@ -2,9 +2,9 @@
 
 #include "../submodules/Tensors/UMFPACK.hpp"
 
-#ifdef REAPR_USE_CLP
+//#ifdef REAPR_USE_CLP
     #include "../submodules/Tensors/Clp.hpp"
-#endif
+//#endif
 
 namespace Knoodle
 {
@@ -26,14 +26,14 @@ namespace Knoodle
 
         using UMF_Int   = Int64;
         
-#ifdef  REAPR_USE_CLP
+//#ifdef REAPR_USE_CLP
         using COIN_Int  = int;
         using COIN_LInt = CoinBigIndex;
         
         static constexpr bool CLP_enabledQ = true;
-#else
-        static constexpr bool CLP_enabledQ = false;
-#endif
+//#else
+//        static constexpr bool CLP_enabledQ = false;
+//#endif
 
         using Flag_T = Scalar::Flag;
         
@@ -82,7 +82,7 @@ namespace Knoodle
         template<typename Int>
         EnergyFlag_T EnergyFlag( mref<PlanarDiagram<Int>> pd ) const
         {
-            const std::string tag = ClassName() + "EnergyFlag";
+            const std::string tag = MethodName("EnergyFlag");
             
             return pd.GetCache(tag);
         }
@@ -97,7 +97,7 @@ namespace Knoodle
         template<typename Int>
         void SetEnergyFlag( mref<PlanarDiagram<Int>> pd )
         {
-            const std::string tag = ClassName() + "EnergyFlag";
+            const std::string tag = MethodName("EnergyFlag");
             
             return pd.SetCache(tag,en_flag);
         }
@@ -184,10 +184,10 @@ namespace Knoodle
 #include "Reapr/LevelsSystemLP.hpp"
 #include "Reapr/BendsSystemLP.hpp"
         
-#ifdef REAPR_USE_CLP
+//#ifdef REAPR_USE_CLP
     #include "Reapr/LevelsByLP.hpp"
     #include "Reapr/BendsByLP.hpp"
-#endif
+//#endif
         
     public:
         
@@ -206,7 +206,7 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(ClassName()+"::Hessian: Unknown or invalid energy flag. Returning empty matrix" );
+                    wprint(MethodName("Hessian")+": Unknown or invalid energy flag. Returning empty matrix" );
                     
                     return Sparse::MatrixCSR<Real,I,J>();
                 }
@@ -227,7 +227,7 @@ namespace Knoodle
                     }
                     else
                     {
-                        eprint(ClassName()+"::Levels: Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
+                        eprint(MethodName("Levels")+": Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
                         return Tensor1<Real,Int>();
                     }
                 }
@@ -239,6 +239,74 @@ namespace Knoodle
                 {
                     return LevelsBySSN(pd);
                 }
+            }
+        }
+        
+//        template<typename Int>
+//        Link_2D<Real,Int,BReal> Embedding( mref<PlanarDiagram<Int>> pd ) const
+//        {
+//        }
+        
+        template<typename Int>
+        std::vector<PlanarDiagram<Int>> Rattle(
+            mref<PlanarDiagram<Int>> pd, Int iter_
+        ) const
+        {
+            std::vector<PlanarDiagram<Int>> result;
+            
+            rattle( pd, result, iter_ );
+            
+            return result;
+        }
+        
+        template<typename Int>
+        std::vector<PlanarDiagram<Int>> Rattle(
+            mref<std::vector<PlanarDiagram<Int>>> pd_list, Int iter_
+        ) const
+        {
+            std::vector<PlanarDiagram<Int>> result;
+            
+            for( auto & pd : pd_list )
+            {
+                rattle( pd, result, iter_ );
+            }
+            
+            return result;
+        }
+        
+        template<typename Int>
+        void rattle(
+            mref<std::vector<PlanarDiagram<Int>>> input,
+            mref<std::vector<std::pair<PlanarDiagram<Int>,Int>>> stack,
+            mref<std::vector<PlanarDiagram<Int>>> output,
+            Int iter_
+        ) const
+        {
+            using PD_T = PlanarDiagram<Int>;
+            
+            if( iter_ <= Int(0) )
+            {
+                return;
+            }
+            
+            for( auto & pd_0 : input )
+            {
+                PD_T pd_1 ( Embedding(pd_0) );
+                
+                // TODO: Rotate!
+                
+                std::vector<PD_T> summands;
+                
+                pd_1.Simplify5(summands);
+                
+                for( auto & pd_2 : summands )
+                {
+                    stack.push_back( std::move(pd_2) );
+                }
+                
+                stack.push_back( std::move(pd_1) );
+                
+                rattle( stack, output, iter_-1 );
             }
         }
         

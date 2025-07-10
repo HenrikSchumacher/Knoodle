@@ -12,6 +12,8 @@ public:
  * @param ext_region Specify which face shall be treated as exterior region. If `ext_region < 0` or `ext_region > pd.FaceCount()`, then a face with maximum number of arcs is chosen.
  */
 
+// TODO: I have to filter out inactive crossings and inactive arcs!
+
 template<typename ExtInt, typename ExtInt2>
 Tensor1<Turn_T,Int> ComputeBends_Clp(
     mref<PlanarDiagram<ExtInt>> pd,

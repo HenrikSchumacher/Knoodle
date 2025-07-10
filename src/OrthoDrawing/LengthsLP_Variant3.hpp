@@ -61,7 +61,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsx_ConstraintMatrix()
     
     const auto & E = G.Edges();
     
-    for( Int e = 0; e < E.Dim(0); ++e )
+    for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
     {
         const I v_0 = static_cast<I>(E(e,Tail));
         const I v_1 = static_cast<I>(E(e,Head));
@@ -198,7 +198,7 @@ Tensor1<COIN_Real,COIN_Int> Lengthsy_ObjectiveVector()
 
 Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsy_ConstraintMatrix()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::Lengthsy_ConstraintMatrix");
+    TOOLS_PTIMER(timer,MethodName("Lengthsy_ConstraintMatrix"));
     
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
@@ -214,7 +214,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsy_ConstraintMatrix()
     {
         const auto & E = G.Edges();
         
-        for( Int e = 0; e < E.Dim(0); ++e )
+        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));
@@ -228,7 +228,15 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsy_ConstraintMatrix()
     const COIN_Int n = static_cast<COIN_Int>(G.VertexCount());
     const COIN_Int m = static_cast<COIN_Int>(G.EdgeCount());
     
+    // DEBUGGING
+    print("Lengthsy_ConstraintMatrix");
+    
     Sparse::MatrixCSR<S,I,J> A (agg,n,m,true,false);
+    
+    
+    // DEBUGGING
+    TOOLS_DUMP(A.ToTensor2().Max());
+//    TOOLS_DUMP(A.ToTensor2());
     
     return A;
 }

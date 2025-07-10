@@ -37,7 +37,7 @@ Tensor1<T,Int> MacLeodCode()  const
 template<typename T, int method = DefaultTraversalMethod>
 void WriteMacLeodCode( mptr<T> code )  const
 {
-    TOOLS_PTIC(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
     
     static_assert( IntQ<T>, "" );
     
@@ -127,8 +127,6 @@ void WriteMacLeodCode( mptr<T> code )  const
     this->template SetCache<false>("MacLeodComparisonCount", counter );
     
     rotate_buffer<Side::Left>( code, s, m );
-    
-    TOOLS_PTOC(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
 }
 
 Size_T MacLeodComparisonCount()

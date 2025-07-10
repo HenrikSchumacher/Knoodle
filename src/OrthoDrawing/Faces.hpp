@@ -9,6 +9,14 @@ void TraverseFace( const Int de_ptr, EdgeFun_T && edge_fun ) const
     Int de = de_ptr;
     do
     {
+        // DEBUGGING
+        if( (de == Uninitialized) || !DedgeActiveQ(de) )
+        {
+            eprint(MethodName("TraverseFace") + ": attempting to traverse inactive dedge " + ToString(de) + ".");
+            
+            return;
+        }
+        
         edge_fun(de);
         de = E_left_dE.data()[de];
     }
@@ -29,38 +37,6 @@ Int FaceEdgeCount( const  Int de_ptr )
     
     return de_counter;
 }
-
-
-void MarkDedgeAsExterior( const Int de ) const
-{
-    E_flag.data()[de] |= EdgeExteriorMask;
-}
-
-void MarkDedgeAsInterior( const Int de ) const
-{
-    E_flag.data()[de] &= ~EdgeExteriorMask;
-}
-
-void MarkDedgeAsVisited( const Int de ) const
-{
-    E_flag.data()[de] |= EdgeVisitedMask;
-}
-
-void MarkDedgeAsUnvisited( const Int de ) const
-{
-    E_flag.data()[de] &= ~EdgeVisitedMask;
-}
-
-void MarkDedgeAsUnconstrained( const Int de ) const
-{
-    E_flag.data()[de] |= EdgeUnconstrainedMask;
-}
-
-void MarkDedgeAsConstrained( const Int de ) const
-{
-    E_flag.data()[de] &= ~EdgeUnconstrainedMask;
-}
-
 
 
 void MarkFaceAsExterior( const Int de_ptr ) const
@@ -96,9 +72,9 @@ void MarkFaceAsUnvisited( const Int de_ptr ) const
     );
 }
 
-void RequireFaces() const
+void RequireFaces( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::RequireFaces");
+    TOOLS_PTIMER(timer,ClassName()+"::RequireFaces("+ ToString(ignore_virtual_edgesQ)+")");
     
     cptr<Int> dE_left_dE = E_left_dE.data();
     
@@ -145,16 +121,29 @@ void RequireFaces() const
         {
             continue;
         }
+        
+        if( ignore_virtual_edgesQ && DedgeVirtualQ(de_ptr) )
+        {
+            continue;
+        }
+        
         const Int f = F_dE.SublistCount();
         Int de = de_ptr;
         do
         {
-            // Declare current face to be a face of this directed arc.
-            dE_F[de] = f;
-            // Declare this arc to belong to the current face.
-            F_dE.Push(de);
-            // Move to next arc.
-            de = dE_left_dE[de];
+            if( ignore_virtual_edgesQ && DedgeVirtualQ(de) )
+            {
+                de = dE_left_dE[FlipDedge(de)];
+            }
+            else
+            {
+                // Declare current face to be a face of this directed arc.
+                dE_F[de] = f;
+                // Declare this arc to belong to the current face.
+                F_dE.Push(de);
+                // Move to next arc.
+                de = dE_left_dE[de];
+            }
         }
         while( de != de_ptr );
         
@@ -175,47 +164,54 @@ void RequireFaces() const
         }
     }
     
-    this->SetCache( "FaceCount"  , F_dE.SublistCount() );
-    this->SetCache( "MaxFace"    , f_max               );
-    this->SetCache( "MaxFaceSize", max_f_size          );
-    this->SetCache( "FaceDedges" , std::move(F_dE)     );
-    this->SetCache( "EdgeFaces"  , std::move(E_F)      );
+    std::string tag = "(" + ToString(ignore_virtual_edgesQ) + ")";
+    
+    this->SetCache( "FaceCount"   + tag, F_dE.SublistCount() );
+    this->SetCache( "MaxFace"     + tag, f_max               );
+    this->SetCache( "MaxFaceSize" + tag, max_f_size          );
+    this->SetCache( "FaceDedges"  + tag, std::move(F_dE)     );
+    this->SetCache( "EdgeFaces"   + tag, std::move(E_F)      );
     
 }
 
-Int FaceCount() const
+Int FaceCount( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceCount"));
-    if( !this->InCacheQ("FaceCount") ) { RequireFaces(); }
-    return this->GetCache<Int>("FaceCount");
+    std::string tag = "FaceCount(" + ToString(ignore_virtual_edgesQ) + ")";
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    return this->GetCache<Int>(tag);
 }
 
-Int MaxFace() const
+Int MaxFace( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,MethodName("MaxFace"));
-    if( !this->InCacheQ("MaxFace") ) { RequireFaces(); }
-    return this->GetCache<Int>("MaxFace");
+    std::string tag = "MaxFace(" + ToString(ignore_virtual_edgesQ) + ")";
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    return this->GetCache<Int>(tag);
 }
 
-Int MaxFaceSize() const
+Int MaxFaceSize( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,MethodName("MaxFaceSize"));
-    if( !this->InCacheQ("MaxFaceSize") ) { RequireFaces(); }
-    return this->GetCache<Int>("MaxFaceSize");
+    std::string tag = "MaxFaceSize(" + ToString(ignore_virtual_edgesQ) + ")";
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    return this->GetCache<Int>(tag);
 }
 
-cref<RaggedList<Int,Int>> FaceDedges() const
+cref<RaggedList<Int,Int>> FaceDedges( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceDedges"));
-    if( !this->InCacheQ("FaceDedges") ) { RequireFaces(); }
-    return this->GetCache<RaggedList<Int,Int>>("FaceDedges");
+    std::string tag = "FaceDedges(" + ToString(ignore_virtual_edgesQ) + ")";
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    return this->GetCache<RaggedList<Int,Int>>(tag);
 }
 
-cref<EdgeContainer_T> EdgeFaces() const
+cref<EdgeContainer_T> EdgeFaces( bool ignore_virtual_edgesQ ) const
 {
-    TOOLS_PTIMER(timer,MethodName("EdgeFaces"));
-    if( !this->InCacheQ("EdgeFaces") ) { RequireFaces(); }
-    return this->GetCache<EdgeContainer_T>("EdgeFaces");
+    std::string tag = "EdgeFaces(" + ToString(ignore_virtual_edgesQ) + ")";
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    return this->GetCache<EdgeContainer_T>(tag);
 }
 
 //template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
@@ -252,10 +248,11 @@ template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
 void TraverseAllFaces(
     PreVisit_T  && pre_visit,
     EdgeFun_T   && edge_fun,
-    PostVisit_T && post_visit
+    PostVisit_T && post_visit,
+    bool ignore_virtual_edgesQ
 ) const
 {
-    TOOLS_PTIMER(timer,MethodName("TraverseAllFaces"));
+    TOOLS_PTIMER(timer,MethodName("TraverseAllFaces(" + ToString(ignore_virtual_edgesQ) + ")"));
     
     cptr<Int> dE_left_dE = E_left_dE.data();
     
@@ -275,17 +272,29 @@ void TraverseAllFaces(
         {
             continue;
         }
+        
+        if( ignore_virtual_edgesQ && DedgeVirtualQ(de_ptr) )
+        {
+            continue;
+        }
            
         pre_visit(f);
            
         Int de = de_ptr;
         do
         {
-            edge_fun(f,k,de);
-            MarkDedgeAsVisited(de);
-            ++k;
-            // Move to next arc.
-            de = dE_left_dE[de];
+            if( ignore_virtual_edgesQ && DedgeVirtualQ(de) )
+            {
+                de = dE_left_dE[FlipDedge(de)];
+            }
+            else
+            {
+                edge_fun(f,k,de);
+                MarkDedgeAsVisited(de);
+                ++k;
+                // Move to next arc.
+                de = dE_left_dE[de];
+            }
         }
         while( de != de_ptr );
         
@@ -295,33 +304,38 @@ void TraverseAllFaces(
 }
 
 // Only for debugging, I guess.
-Tensor1<Turn_T,Int> FaceDedgeRotations() const
+Aggregator<Turn_T,Int> FaceDedgeRotations() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceDedgeRotations"));
+    TOOLS_PTIMER(timer,MethodName("FaceDedgeRotations()"));
     
     Turn_T rot = 0;
-    Tensor1<Turn_T,Int> rotations ( FaceDedges().ElementCount() );
+    Aggregator<Turn_T,Int> rotations ( Int(2) * E_V.Dim(0) );
+//    Tensor1<Turn_T,Int> rotations ( FaceDedges(false).ElementCount() );
     cptr<Turn_T> dE_turn = E_turn.data();
     
     TraverseAllFaces(
         [&rot]( const Int f ){ (void)f; rot = Turn_T(0); },
         [&rotations,dE_turn,&rot]( const Int f, const Int k, const Int de )
         {
-            rotations[k] = rot;
+            (void)f;
+            (void)k;
+            rotations.Push(rot);
             rot += dE_turn[de];
         },
-        []( const Int f ){ (void)f; }
+        []( const Int f ){ (void)f; },
+        false
     );
     
     return rotations;
 }
 
-Tensor1<Turn_T,Int> FaceRotations() const
+Aggregator<Turn_T,Int> FaceRotations() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceRotations"));
+    TOOLS_PTIMER(timer,MethodName("FaceRotations()"));
     
     Turn_T rot = 0;
-    Tensor1<Turn_T,Int> rotations ( FaceCount() );
+    Aggregator<Turn_T,Int> rotations ( Int(2) * E_V.Dim(0) );
+    
     cptr<Turn_T> dE_turn = E_turn.data();
     
     TraverseAllFaces(
@@ -330,14 +344,18 @@ Tensor1<Turn_T,Int> FaceRotations() const
         {
             rot += dE_turn[de];
         },
-        [&rotations,&rot]( const Int f ){ rotations[f] = rot; }
+        [&rotations,&rot]( const Int f )
+        {
+            rotations.Push(rot);
+        },
+        false
     );
     
     return rotations;
 }
 
 
-// This one requires precomputation of faces and thus should better not called during turn regularization.
+
 bool CheckAllFaceTurns() const
 {
     bool okayQ = true;
@@ -386,7 +404,8 @@ bool CheckAllFaceTurns() const
                 }
                 okayQ = okayQ && this_okayQ;
             }
-        }
+        },
+        false
     );
     
     return okayQ;

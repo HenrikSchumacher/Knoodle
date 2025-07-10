@@ -19,7 +19,7 @@ Int Simplify4(
         return 0;
     }
     
-    TOOLS_PTIC(ClassName()+"::Simplify4"
+    TOOLS_PTIMER(timer,ClassName()+"::Simplify4"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
@@ -100,14 +100,6 @@ Int Simplify4(
     }
     
     PD_ASSERT(CheckAll());
-
-    TOOLS_PTOC(ClassName()+"::Simplify4"
-         + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
-         + "," + ToString(simplify3_level)
-         + "," + ToString(simplify3_max_iter)
-         + "," + ToString(strand_R_II_Q)
-         + ")");
     
     return counter;
 }

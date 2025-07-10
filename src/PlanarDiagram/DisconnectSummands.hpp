@@ -26,8 +26,9 @@ bool DisconnectSummands(
     
     std::vector<Int> f_faces;
 
-    cptr<Int> F_A_ptr  = FaceDarcs().Pointers().data();
-    cptr<Int> F_A_idx  = FaceDarcs().Elements().data();
+    const auto & F_dA  = FaceDarcs();
+    cptr<Int> F_A_ptr  = F_dA.Pointers().data();
+    cptr<Int> F_A_idx  = F_dA.Elements().data();
     cptr<Int> A_face   = ArcFaces().data();
     
     bool changedQ = false;
@@ -38,7 +39,7 @@ bool DisconnectSummands(
     {
         changedQ = false;
         
-        for( Int f = 0; f < FaceCount(); ++f )
+        for( Int f = 0; f < F_dA.SublistCount(); ++f )
         {
             changedQ = changedQ || DisconnectSummand(
                 f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,

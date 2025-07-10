@@ -7,7 +7,7 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER(timer,ClassName()+"::ComputeBends_MCF");
+    TOOLS_PTIMER(timer,MethodName("ComputeBends_MCF"));
     
     ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
     
@@ -23,14 +23,14 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
         
         if( std::cmp_greater( max_idx, std::numeric_limits<I>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_MCF: Too many arcs to fit into type " + TypeName<I> + ".");
+            eprint(MethodName("ComputeBends_MCF")+": Too many arcs to fit into type " + TypeName<I> + ".");
             
             return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<I>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_MCF: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<I> + "  ).");
+            eprint(MethodName("ComputeBends_MCF")+": System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<I> + "  ).");
             
             return Tensor1<Turn_T,Int>();
         }

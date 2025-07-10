@@ -36,12 +36,12 @@ void ComputeSpanningForest()
         }
     );
     
-    this->SetCache( "DiagramComponentCount", roots.Size()            );
-    this->SetCache( "CrossingPreOrdering",   std::move(C_pre.Get())  );
-    this->SetCache( "CrossingPostOrdering",  std::move(C_post.Get()) );
-    this->SetCache( "SpanningForestDarcs",   std::move(C_parent_A)   );
-    this->SetCache( "SpanningForestRoots",   std::move(roots.Get())  );
-    this->SetCache( "DFSArcOrdering",        std::move(discovered_arcs.Get())  );
+    this->SetCache( "DiagramComponentCount", roots.Size()               );
+    this->SetCache( "CrossingPreOrdering",   C_pre.Disband()            );
+    this->SetCache( "CrossingPostOrdering",  C_post.Disband()           );
+    this->SetCache( "SpanningForestDarcs",   std::move(C_parent_A)      );
+    this->SetCache( "SpanningForestRoots",   roots.Disband()            );
+    this->SetCache( "DFSArcOrdering",        discovered_arcs.Disband()  );
     
     TOOLS_PTOC(ClassName()+"::ComputeSpanningForest");
 }

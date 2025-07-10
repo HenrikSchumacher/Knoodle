@@ -1,10 +1,16 @@
 public:
 
-static constexpr Dir_T East  =  0;
-static constexpr Dir_T North =  1;
-static constexpr Dir_T West  =  2;
-static constexpr Dir_T South =  3;
-static constexpr Dir_T NoDir = 15;
+static constexpr Dir_T East      =  0;
+static constexpr Dir_T North     =  1;
+static constexpr Dir_T West      =  2;
+static constexpr Dir_T South     =  3;
+
+static constexpr Dir_T NorthEast =  4;  // only for softened virtual edges
+static constexpr Dir_T NorthWest =  5;  // only for softened virtual edges
+static constexpr Dir_T SouthWest =  6;  // only for softened virtual edges
+static constexpr Dir_T SouthEast =  7;  // only for softened virtual edges
+
+static constexpr Dir_T NoDir     = 15;
 
 // The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
 static constexpr Dir_T dir_lut [2][2] = { {North,East}, {West,South} };

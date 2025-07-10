@@ -150,7 +150,7 @@ namespace Knoodle
         )
         :   MultiGraphBase(
                vertex_count_,
-               pairs.Get_0().data(), pairs.Get_1().data(), pairs.Size()
+               pairs.data_0(), pairs.data_1(), pairs.Size()
             )
         {}
 //        :   vertex_count ( int_cast<VInt>(vertex_count_)    )
@@ -161,8 +161,8 @@ namespace Knoodle
 //            static_assert(IntQ<I_0>,"");
 //            static_assert(IntQ<I_1>,"");
 //            
-//            cptr<I_0> i = pairs.Get_0().data();
-//            cptr<I_0> j = pairs.Get_1().data();
+//            cptr<I_0> i = pairs.data_0();
+//            cptr<I_0> j = pairs.data_1();
 //            
 //            for( EInt e = 0; e < edges.Dim(0); ++e )
 //            {

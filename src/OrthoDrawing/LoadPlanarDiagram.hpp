@@ -7,8 +7,8 @@ void LoadPlanarDiagram(
     bool use_dual_simplexQ = false
 )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LoadPlanarDiagram");
-    
+    TOOLS_PTIMER(timer,MethodName("LoadPlanarDiagram"));
+
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
     
@@ -26,7 +26,8 @@ void LoadPlanarDiagram(
     exterior_region = ((exterior_region < Int(0)) || (exterior_region >= R_dA.SublistCount()))
                     ? maximum_region
                     : exterior_region;
-    
+
+    // TODO: I have to filter out inactive crossings and inactive arcs!
     switch( settings.bend_min_method )
     {
         case 1:
@@ -45,18 +46,18 @@ void LoadPlanarDiagram(
             break;
         }
     }
-    
+
     if( A_bends.Size() <= Int(0) )
     {
-        eprint(ClassName()+"::LoadPlanarDiagram: Bend optimization failed. Aborting.");
+        eprint(MethodName("LoadPlanarDiagram") + ": Bend optimization failed. Aborting.");
         return;
     }
-    
+
     if( settings.redistribute_bendsQ )
     {
         RedistributeBends(pd,A_bends);
     }
-    
+
 //    bend_count = 0;
 //    
 //    // TODO: Should be part of the info received from BendsByLP.
@@ -70,7 +71,7 @@ void LoadPlanarDiagram(
     // This also gives us the opportunity to compute the total number of bends.
     max_face_size = 0;
     bend_count    = 0;
-    
+
     for( ExtInt r = 0; r < R_dA.SublistCount(); ++r )
     {
         Int r_size = R_dA.SublistSize(r);
@@ -104,7 +105,6 @@ void LoadPlanarDiagram(
     
     mptr<Dir_T> C_dir = reinterpret_cast<Dir_T *>(V_scratch.data());
     fill_buffer( C_dir, NoDir, C_A.Dim(0));
-    
     
     using DarcNode = PlanarDiagram<ExtInt>::DarcNode;
     
@@ -148,7 +148,7 @@ void LoadPlanarDiagram(
             }
         }
     );
-    
+
     V_dE   = VertexContainer_T      ( max_vertex_count, Uninitialized );
     E_V    = EdgeContainer_T        ( max_edge_count,   Uninitialized );
     
@@ -174,7 +174,7 @@ void LoadPlanarDiagram(
     {
         V_flag[c] = VertexFlag_T(ToUnderlying(C_state[c])); // pd needed
     }
-
+    
     // Load remaining data from pd.
     for( Int a = 0; a < A_C.Dim(0); ++a )
     {
@@ -189,14 +189,13 @@ void LoadPlanarDiagram(
         A_overQ(a,Head) = pd.template ArcOverQ<Head>(a_); // pd needed
     }
     
-    
     // From here on we do not need pd itself anymore. But we need the temporarily created E_dir buffer whose initialization requires a pd object (because DepthFirstScan).
     
     
     // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
     Int V_counter = C_A.Dim(0);
     Int E_counter = A_C.Dim(0);
-    
+
     // Subdivide each arc.
     for( Int a = 0; a < A_C.Dim(0); ++a )
     {
@@ -291,15 +290,21 @@ void LoadPlanarDiagram(
         A_V.FinishSublist();
         A_E.FinishSublist();
     };
-    
+
     // We can compute this only after E_V and V_dE have been computed completed.
     ComputeEdgeLeftDedges();
-    
+
     {
-        const Int de_ptr = R_dA.Elements()[
+        const Int da_ptr = R_dA.Elements()[
             R_dA.Pointers()[exterior_region]
         ];
         
-        MarkFaceAsExterior( de_ptr );
+        // DEBUGGING
+        if( da_ptr == Uninitialized )
+        {
+            eprint(MethodName("LoadPlanarDiagram") + ": first darc if exterior region " + ToString(exterior_region) + " is not initialized.");
+        }
+        
+        MarkFaceAsExterior( da_ptr );
     }
 }

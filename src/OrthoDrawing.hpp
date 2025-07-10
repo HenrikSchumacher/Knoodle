@@ -56,6 +56,7 @@ namespace Knoodle
             bool redistribute_bendsQ      = false;
             bool use_dual_simplexQ        = false;
             bool turn_regularizeQ         = true;
+            bool soften_virtual_edgesQ    = false;
             bool randomizeQ               = false;
             bool saturate_facesQ          = true;
             bool saturate_exterior_faceQ  = false;
@@ -180,7 +181,7 @@ namespace Knoodle
 //            }
             
             ComputeConstraintGraphs();
-
+            
             switch( settings.compaction_method)
             {
                 case 0:
@@ -203,24 +204,34 @@ namespace Knoodle
                     ComputeVertexCoordinates_ByTopologicalOrdering();
                     break;
                 }
-                case 10:
+                case 20:
                 {
                     ComputeVertexCoordinates_ByLengths_Variant2(false);
                     break;
                 }
-                case 11:
+                case 21:
                 {
                     ComputeVertexCoordinates_ByLengths_Variant2(true);
                     break;
                 }
-                case 20:
+                case 30:
                 {
                     ComputeVertexCoordinates_ByLengths_Variant3(false);
                     break;
                 }
-                case 21:
+                case 31:
                 {
                     ComputeVertexCoordinates_ByLengths_Variant3(true);
+                    break;
+                }
+                case 40:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant4(false);
+                    break;
+                }
+                case 41:
+                {
+                    ComputeVertexCoordinates_ByLengths_Variant4(true);
                     break;
                 }
                 default:
@@ -352,6 +363,7 @@ namespace Knoodle
 #include "OrthoDrawing/ConstraintGraphs.hpp"
 #include "OrthoDrawing/LengthsLP_Variant2.hpp"
 #include "OrthoDrawing/LengthsLP_Variant3.hpp"
+#include "OrthoDrawing/LengthsLP_Variant4.hpp"
 
 #include "OrthoDrawing/PostProcessing.hpp"
 
@@ -427,21 +439,19 @@ namespace Knoodle
         {
             return virtual_edge_count;
         }
-//        
-//        EdgeContainer_T VirtualEdges() const
-//        {
-//            const Int virtual_edge_count = VirtualEdgeCount();
-//            
-//            EdgeContainer_T virtual_edges ( virtual_edge_count );
-//            
-//            copy_buffer(
-//                TRE_V.data( edge_count ),
-//                virtual_edges.data(),
-//                Int(2) * virtual_edge_count
-//            );
-//            
-//            return virtual_edges;
-//        }
+        
+        EdgeContainer_T VirtualEdges() const
+        {
+            EdgeContainer_T virtual_edges ( virtual_edge_count );
+            
+            copy_buffer(
+                E_V.data( E_V.Dim(0) - virtual_edge_count ),
+                virtual_edges.data(),
+                Int(2) * virtual_edge_count
+            );
+            
+            return virtual_edges;
+        }
         
         Int ExteriorRegion() const
         {
@@ -457,16 +467,6 @@ namespace Knoodle
         {
             return R_dA;
         }
-        
-//        cref<VertexContainer_T> TrvDtre() const
-//        {
-//            return V_dTRE;
-//        }
-//        
-//        cref<EdgeContainer_T> TreTrv() const
-//        {
-//            return TRE_V;
-//        }
         
         
         cref<Tensor1<Int,Int>> EdgeArcs() const
@@ -575,11 +575,17 @@ namespace Knoodle
         {
             switch ( dir )
             {
-                case East:  return "east";
-                case North: return "north";
-                case West:  return "west";
-                case South: return "south";
-                default:    return "invalid";
+                case East:      return "east";
+                case North:     return "north";
+                case West:      return "west";
+                case South:     return "south";
+                    
+                case NorthEast: return "north-east";
+                case NorthWest: return "north-west";
+                case SouthWest: return "south-west";
+                case SouthEast: return "south-east";
+                    
+                default:        return "invalid";
             }
         }
         

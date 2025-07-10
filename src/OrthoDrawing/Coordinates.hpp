@@ -419,11 +419,15 @@ cref<ArcSplineContainer_T> ArcSplines()
         
         using A_T = std::array<Int,2>;
 
-        Int x_gap = Min(settings.x_gap_size,settings.x_grid_size/2);
-        Int y_gap = Min(settings.y_gap_size,settings.y_grid_size/2);
+        const Int x_gap = Min(settings.x_gap_size,settings.x_grid_size/2);
+        const Int y_gap = Min(settings.y_gap_size,settings.y_grid_size/2);
         
-        Int x_round = Min(settings.x_rounding_radius,settings.x_grid_size/2);
-        Int y_round = Min(settings.y_rounding_radius,settings.y_grid_size/2);
+//        Int x_round = Min(settings.x_rounding_radius,settings.x_grid_size/2);
+//        Int y_round = Min(settings.y_rounding_radius,settings.y_grid_size/2);
+
+        const Int x_round = settings.x_rounding_radius;
+        const Int y_round = settings.y_rounding_radius;
+
         
         for( Int a = 0; a < arc_count; ++a )
         {

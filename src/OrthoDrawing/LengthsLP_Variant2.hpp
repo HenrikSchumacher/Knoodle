@@ -133,7 +133,7 @@ Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
 
 Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant2()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::Lengths_ConstraintMatrix_Variant2");
+    TOOLS_PTIMER(timer,MethodName("Lengths_ConstraintMatrix_Variant2"));
     
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
@@ -151,7 +151,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant
         const I v_offset = d.DvV_offset;
         const I e_offset = d.DvE_offset;
         
-        for( Int e = 0; e < E.Dim(0); ++e )
+        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));
@@ -167,7 +167,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant
         const I v_offset = d.DhV_offset;
         const I e_offset = d.DhE_offset;
         
-        for( Int e = 0; e < E.Dim(0); ++e )
+        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));
@@ -239,7 +239,7 @@ void ComputeVertexCoordinates_ByLengths_Variant2( bool minimize_areaQ = false )
 {
     TOOLS_MAKE_FP_STRICT();
     
-    TOOLS_PTIMER( timer, ClassName()+"::ComputeVertexCoordinates_ByLengths_Variant2");
+    TOOLS_PTIMER(timer, MethodName("ComputeVertexCoordinates_ByLengths_Variant2"));
     
     ClpWrapper<double,Int> clp(
         Lengths_ObjectiveVector_Variant2(),

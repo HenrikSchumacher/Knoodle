@@ -17,7 +17,7 @@ Int Simplify2()
         return 0;
     }
     
-    TOOLS_PTIC(ClassName()+"::Simplify2");
+    TOOLS_PTIMER(timer,ClassName()+"::Simplify2");
 
     CrossingSimplifier<Int,true> S(*this);
     
@@ -73,8 +73,6 @@ Int Simplify2()
     {
         proven_minimalQ = true;
     }
-    
-    TOOLS_PTOC(ClassName()+"::Simplify2");
     
     return counter;
 }

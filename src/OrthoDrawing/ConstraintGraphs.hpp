@@ -3,9 +3,9 @@ public:
 template<bool verboseQ = false>
 void ComputeConstraintGraphs() const
 {
-    TOOLS_PTIMER(timer,MethodName("ComputeConstraintGraphs"));
+    TOOLS_PTIMER(timer,MethodName("ComputeConstraintGraphs<" + ToString(verboseQ) +  ">"));
     
-    const Int V_count = VertexCount();
+    const Int V_count = V_dE.Dim(0);
     const Int E_count = E_V.Dim(0);
 
     RaggedList<Int,Int> DhV_E ( E_count, E_count );
@@ -14,21 +14,34 @@ void ComputeConstraintGraphs() const
     RaggedList<Int,Int> DhV_V ( E_count, V_count );
     RaggedList<Int,Int> DvV_V ( E_count, V_count );
     
-    Tensor1<Int,Int> E_DhV ( E_count     , Uninitialized );
-    Tensor1<Int,Int> E_DvV ( E_count     , Uninitialized );
+    Tensor1<Int,Int> E_DhV ( E_count, Uninitialized );
+    Tensor1<Int,Int> E_DvV ( E_count, Uninitialized );
     
     // We need these in the edge loop below.
-    Tensor1<Int,Int> V_DhV ( vertex_count, Uninitialized );
-    Tensor1<Int,Int> V_DvV ( vertex_count, Uninitialized );
+    Tensor1<Int,Int> V_DhV ( V_count, Uninitialized );
+    Tensor1<Int,Int> V_DvV ( V_count, Uninitialized );
     
 //    EdgeContainer_T DhV_leftright_V ( vertex_count );
 //    EdgeContainer_T DvV_bottomtop_V ( vertex_count );
-
     
-    for( Int v_0 = 0; v_0 < vertex_count; ++v_0 )
+    
+    auto invalid_dedgeQ = [this]( const Int de )
     {
+        return  (de == Uninitialized)
+                ||
+                (   this->settings.soften_virtual_edgesQ
+                    &&
+                    this->DedgeVirtualQ(de)
+                );
+    };
+    
+    // We can start the loop at v_0 = crossing_count, as crossings have valence 4 and cannot be start or end of a segment.
+    for( Int v_0 = crossing_count; v_0 < V_count; ++v_0 )
+    {
+        if( !VertexActiveQ(v_0) ) { continue; }
+            
         // TODO: Segments are also allowed to contain exactly one vertex.
-        if( V_dE(v_0,West) == Uninitialized )
+        if( invalid_dedgeQ(V_dE(v_0,West)) )
         {
             // Collect horizontal segment.
             const Int s = DhV_E.SublistCount();
@@ -38,7 +51,7 @@ void ComputeConstraintGraphs() const
             V_DhV[w] = s;
             DhV_V.Push(w);
             
-            while( de != Uninitialized )
+            while( !invalid_dedgeQ(de) )
             {
                 auto [e,dir] = FromDedge(de);
                 DhV_E.Push(e);
@@ -55,7 +68,7 @@ void ComputeConstraintGraphs() const
             DhV_V.FinishSublist();
         }
         
-        if( V_dE(v_0,South) == Uninitialized )
+        if( invalid_dedgeQ(V_dE(v_0,South)) )
         {
             // Collect vertical segment.
             const Int s = DvV_E.SublistCount();
@@ -65,7 +78,7 @@ void ComputeConstraintGraphs() const
             V_DvV[w] = s;
             DvV_V.Push(w);
             
-            while( de != Uninitialized )
+            while( !invalid_dedgeQ(de) )
             {
                 auto [e,dir] = FromDedge(de);
                 DvV_E.Push(e);
@@ -89,6 +102,8 @@ void ComputeConstraintGraphs() const
     
     Tensor1<Int,Int> E_DhE_from ( E_count, Uninitialized );
     Tensor1<Int,Int> E_DvE_from ( E_count, Uninitialized );
+    
+    cptr<Int> dE_V = E_V.data();
 
     for( Int e = 0; e < E_count; ++e )
     {
@@ -97,8 +112,13 @@ void ComputeConstraintGraphs() const
         
         if( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
         
-        const Int c_0 = E_V(e,Tail);
-        const Int c_1 = E_V(e,Head);
+        
+        const bool virtualQ = DedgeVirtualQ(de_0) || DedgeVirtualQ(de_1);
+        
+        if ( settings.soften_virtual_edgesQ && virtualQ ) { continue; }
+        
+        const Int c_0 = dE_V[de_0];
+        const Int c_1 = dE_V[de_1];
         
         switch( E_dir[e] )
         {
@@ -107,7 +127,6 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DvV[c_0];
                 const Int s_1 = V_DvV[c_1];
                 E_DvE_from[e] = DvE_agg.Size();
-                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
                 DvE_agg.Push(s_0,s_1,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
@@ -121,7 +140,6 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DhV[c_0];
                 const Int s_1 = V_DhV[c_1];
                 E_DhE_from[e] = DhE_agg.Size();
-                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
                 DhE_agg.Push(s_0,s_1,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
@@ -135,7 +153,6 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DvV[c_0];
                 const Int s_1 = V_DvV[c_1];
                 E_DvE_from[e] = DvE_agg.Size();
-                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
                 DvE_agg.Push(s_1,s_0,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
@@ -149,7 +166,6 @@ void ComputeConstraintGraphs() const
                 const Int s_0 = V_DhV[c_0];
                 const Int s_1 = V_DhV[c_1];
                 E_DhE_from[e] = DhE_agg.Size();
-                bool virtualQ = DedgeVirtualQ(ToDedge<Tail>(e));
                 DhE_agg.Push(s_1,s_0,Cost_T(!virtualQ));
                 
                 if constexpr ( verboseQ )
@@ -160,7 +176,7 @@ void ComputeConstraintGraphs() const
             }
             default:
             {
-                eprint( MethodName("ComputeConstraintGraphs") + ": Invalid entry of edge direction array TRE_dir detected.");
+                eprint( MethodName("ComputeConstraintGraphs") + ": Invalid entry of edge direction array E_dir detected.");
                 break;
             }
         }
@@ -197,13 +213,14 @@ void ComputeConstraintGraphs() const
     
     if ( settings.saturate_facesQ )
     {
-        const EdgeContainer_T Gl_edges = this->template SaturatingEdges2<0>();
+        const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
         
         for( Int e = 0; e < Gl_edges.Dim(0); ++e )
         {
             const Int v_0 = Gl_edges(e,Tail);
             const Int v_1 = Gl_edges(e,Head);
 
+            // BEWARE: we have to reverse the direction of edges here!
             DvE_agg.Push( V_DvV[v_1], V_DvV[v_0], Cost_T(0) );
             DhE_agg.Push( V_DhV[v_0], V_DhV[v_1], Cost_T(0) );
 
@@ -218,7 +235,7 @@ void ComputeConstraintGraphs() const
     
     if ( settings.saturate_facesQ )
     {
-        const EdgeContainer_T Gr_edges = this->template SaturatingEdges2<1>();
+        const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
         
         for( Int e = 0; e < Gr_edges.Dim(0); ++e )
         {
@@ -457,8 +474,10 @@ void ComputeFaceVHSegments() const
 {
     TOOLS_PTIMER(timer,MethodName("ComputeFaceVHSegments"));
     
-    RaggedList<Int,Int> F_DvV ( FaceCount(), E_V.Dim(0) );
-    RaggedList<Int,Int> F_DhV ( FaceCount(), E_V.Dim(0) );
+    const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
+    
+    RaggedList<Int,Int> F_DvV ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
+    RaggedList<Int,Int> F_DhV ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
     
     auto & E_DvV = EdgeToDvVertex();
     auto & E_DhV = EdgeToDhVertex();
@@ -488,7 +507,8 @@ void ComputeFaceVHSegments() const
             (void)f;
             F_DvV.FinishSublist();
             F_DhV.FinishSublist();
-        }
+        },
+        soften_virtual_edgesQ
     );
     
     this->SetCache( "F_DvV", std::move(F_DvV) );
@@ -517,7 +537,9 @@ cref<RaggedList<Int,Int>> FaceSegments() const
 {
     if( !this->InCacheQ("FaceSegments") )
     {
-        RaggedList<Int,Int> F_segments ( FaceCount(), E_V.Dim(0) );
+        const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
+        
+        RaggedList<Int,Int> F_segments ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
         
         auto & E_DvV = EdgeToDvVertex();
         auto & E_DhV = EdgeToDhVertex();
@@ -548,7 +570,8 @@ cref<RaggedList<Int,Int>> FaceSegments() const
             {
                 (void)f;
                 F_segments.FinishSublist();
-            }
+            },
+            soften_virtual_edgesQ
         );
         
         this->SetCache( "FaceSegments", std::move(F_segments) );

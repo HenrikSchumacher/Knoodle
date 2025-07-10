@@ -31,7 +31,7 @@ bool Simplify5(
         return false;
     }
     
-    TOOLS_PTIC(ClassName()+"::Simplify5"
+    TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
          + "(" + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
@@ -86,13 +86,5 @@ bool Simplify5(
         proven_minimalQ = true;
     }
     
-    TOOLS_PTOC(ClassName()+"::Simplify5"
-         + "(" + ToString(max_dist)
-         + "," + ToString(compressQ)
-         + "," + ToString(simplify3_level)
-         + "," + ToString(simplify3_max_iter)
-         + "," + ToString(strand_R_II_Q)
-         + ")");
-
     return globally_changedQ;
 }

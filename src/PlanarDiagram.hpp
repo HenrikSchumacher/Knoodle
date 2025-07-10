@@ -248,6 +248,9 @@ namespace Knoodle
             A_cross.Read(arcs);
             A_state.Read(arc_states);
             proven_minimalQ = proven_minimalQ_;
+            
+            crossing_count = CountActiveCrossings();
+            arc_count      = CountActiveArcs();
         }
         
         /*!@brief Construction from `Knot_2D` object.

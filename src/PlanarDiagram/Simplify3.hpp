@@ -98,7 +98,7 @@ private:
 template<Int optimization_level, bool multi_compQ>
 Int simplify3( Int max_iter )
 {
-    TOOLS_PTIC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
+    TOOLS_PTIMER(timer,ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     ArcSimplifier<Int,optimization_level,multi_compQ> arc_simplifier (*this);
 
@@ -130,9 +130,7 @@ Int simplify3( Int max_iter )
     if( ValidQ() && (CrossingCount() == Int(0)) )
     {
         proven_minimalQ = true;
-    }   
-    
-    TOOLS_PTOC(ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
+    }
     
     return counter;
 }

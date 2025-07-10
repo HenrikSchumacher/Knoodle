@@ -147,9 +147,9 @@ namespace Knoodle
             logprint("Finished while loop.");
 
             SeifertIncidenceMatrix_T S (
-                std::move(s_rp.Get()),
-                std::move(s_ci.Get()),
-                std::move(s_val.Get()),
+                s_rp.Disband(),
+                s_ci.Disband(),
+                s_val.Disband(),
                 s_rp.Size()-1, n, Int(1)
             );
             

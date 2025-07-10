@@ -235,8 +235,6 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
                 print(s);
             }
             
-
-            
             const Int p = BinarySearch( list.data(), RE_d, int_cast<Int>(list.size()), j );
 
             const Int i = RE_d[p];
@@ -365,10 +363,14 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     // - da_1 is constrained by db_0 and e
     // - db_1 is constrained by db_0 and e
 
-    MarkDedgeAsConstrained(da_0);
-    MarkDedgeAsConstrained(da_1);
-    MarkDedgeAsConstrained(db_0);
-    MarkDedgeAsConstrained(db_1);
+    // TODO: Do we have to switch this off if settings.soften_virtual_edgesQ?
+    if( !settings.soften_virtual_edgesQ )
+    {
+        MarkDedgeAsConstrained(da_0);
+        MarkDedgeAsConstrained(da_1);
+        MarkDedgeAsConstrained(db_0);
+        MarkDedgeAsConstrained(db_1);
+    }
     
     // Create new edge.
     const Int e = edge_count;
@@ -673,7 +675,7 @@ public:
 //        }
 //    );
 //    
-//    TRF_dTRE_ptr = TRF_dTRE_ptr_agg.Get();
+//    TRF_dTRE_ptr = TRF_dTRE_ptr_agg.Disband();
 //    TRF_count = TRF_dTRE_ptr.Size() - Int(1);
 //    
 //    

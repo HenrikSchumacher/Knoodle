@@ -56,6 +56,41 @@ bool DedgeUnconstrainedQ( const Int de ) const
     return (E_flag.data()[de] & EdgeUnconstrainedMask) != EdgeFlag_T(0);
 }
 
+
+
+
+void MarkDedgeAsExterior( const Int de ) const
+{
+    E_flag.data()[de] |= EdgeExteriorMask;
+}
+
+void MarkDedgeAsInterior( const Int de ) const
+{
+    E_flag.data()[de] &= ~EdgeExteriorMask;
+}
+
+void MarkDedgeAsVisited( const Int de ) const
+{
+    E_flag.data()[de] |= EdgeVisitedMask;
+}
+
+void MarkDedgeAsUnvisited( const Int de ) const
+{
+    E_flag.data()[de] &= ~EdgeVisitedMask;
+}
+
+void MarkDedgeAsUnconstrained( const Int de ) const
+{
+    E_flag.data()[de] |= EdgeUnconstrainedMask;
+}
+
+void MarkDedgeAsConstrained( const Int de ) const
+{
+    E_flag.data()[de] &= ~EdgeUnconstrainedMask;
+}
+
+
+
 private:
 
 //Int DiEdgeLeftDiEdge( const Int de )
@@ -73,7 +108,7 @@ private:
 
 void ComputeEdgeLeftDedges()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::ComputeEdgeLeftDedges" );
+    TOOLS_PTIMER(timer,MethodName("ComputeEdgeLeftDedges"));
     
     E_left_dE = EdgeContainer_T ( E_V.Dim(0), Int(-1) );
     
@@ -99,6 +134,17 @@ void ComputeEdgeLeftDedges()
         
         const Int df_0 = dE_left_dE[de_0] = V_dE(c_0,s_0);
         const Int df_1 = dE_left_dE[de_1] = V_dE(c_1,s_1);
+        
+        // DEBUGGING
+        if( df_0 == Uninitialized )
+        {
+            eprint(MethodName("ComputeEdgeLeftDedges") + ": dE_left_dE[de_0] of dedge " + ToString(de_0) + " is ill-defined.");
+        }
+        // DEBUGGING
+        if( df_1 == Uninitialized )
+        {
+            eprint(MethodName("ComputeEdgeLeftDedges") + ": dE_left_dE[de_1] of dedge " + ToString(de_1) + " is ill-defined.");
+        }
         
         if( (t_0 == Turn_T(-1)) && (dE_turn[df_0] == Turn_T(-1)) )
         {

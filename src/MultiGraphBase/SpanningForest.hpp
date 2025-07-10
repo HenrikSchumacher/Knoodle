@@ -35,12 +35,12 @@ void ComputeSpanningForest()
         }
     );
     
-    this->SetCache( "DiagramComponentCount", roots.Size()            );
-    this->SetCache( "VertexPreOrdering",     std::move(V_pre.Get())  );
-    this->SetCache( "VertexPostOrdering",    std::move(V_post.Get()) );
-    this->SetCache( "SpanningForestDedges",  std::move(V_parent_A)   );
-    this->SetCache( "SpanningForestRoots",   std::move(roots.Get())  );
-    this->SetCache( "DFSEdgeOrdering",       std::move(discovered_arcs.Get())  );
+    this->SetCache( "DiagramComponentCount", roots.Size()               );
+    this->SetCache( "VertexPreOrdering",     V_pre.Disband()            );
+    this->SetCache( "VertexPostOrdering",    V_post.Disband()           );
+    this->SetCache( "SpanningForestDedges",  V_parent_A.Disband()       );
+    this->SetCache( "SpanningForestRoots",   roots.Disband()            );
+    this->SetCache( "DFSEdgeOrdering",       discovered_arcs.Disband()  );
 }
 
 

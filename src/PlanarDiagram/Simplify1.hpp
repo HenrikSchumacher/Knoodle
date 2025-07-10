@@ -12,12 +12,9 @@ public:
 
 Int Simplify1()
 {
-    if( proven_minimalQ || InvalidQ() )
-    {
-        return 0;
-    }
+    if( proven_minimalQ || InvalidQ() ) { return 0; }
     
-    TOOLS_PTIC(ClassName()+"::Simplify1");
+    TOOLS_PTIMER(timer,ClassName()+"::Simplify1");
     
     Int test_counter = 0;
     Int counter = 0;
@@ -66,8 +63,6 @@ Int Simplify1()
     {
         proven_minimalQ = true;
     }
-    
-    TOOLS_PTOC(ClassName()+"::Simplify1");
     
     return counter;
 }
