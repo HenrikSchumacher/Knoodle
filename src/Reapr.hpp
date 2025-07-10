@@ -246,69 +246,69 @@ namespace Knoodle
 //        Link_2D<Real,Int,BReal> Embedding( mref<PlanarDiagram<Int>> pd ) const
 //        {
 //        }
-        
-        template<typename Int>
-        std::vector<PlanarDiagram<Int>> Rattle(
-            mref<PlanarDiagram<Int>> pd, Int iter_
-        ) const
-        {
-            std::vector<PlanarDiagram<Int>> result;
-            
-            rattle( pd, result, iter_ );
-            
-            return result;
-        }
-        
-        template<typename Int>
-        std::vector<PlanarDiagram<Int>> Rattle(
-            mref<std::vector<PlanarDiagram<Int>>> pd_list, Int iter_
-        ) const
-        {
-            std::vector<PlanarDiagram<Int>> result;
-            
-            for( auto & pd : pd_list )
-            {
-                rattle( pd, result, iter_ );
-            }
-            
-            return result;
-        }
-        
-        template<typename Int>
-        void rattle(
-            mref<std::vector<PlanarDiagram<Int>>> input,
-            mref<std::vector<std::pair<PlanarDiagram<Int>,Int>>> stack,
-            mref<std::vector<PlanarDiagram<Int>>> output,
-            Int iter_
-        ) const
-        {
-            using PD_T = PlanarDiagram<Int>;
-            
-            if( iter_ <= Int(0) )
-            {
-                return;
-            }
-            
-            for( auto & pd_0 : input )
-            {
-                PD_T pd_1 ( Embedding(pd_0) );
-                
-                // TODO: Rotate!
-                
-                std::vector<PD_T> summands;
-                
-                pd_1.Simplify5(summands);
-                
-                for( auto & pd_2 : summands )
-                {
-                    stack.push_back( std::move(pd_2) );
-                }
-                
-                stack.push_back( std::move(pd_1) );
-                
-                rattle( stack, output, iter_-1 );
-            }
-        }
+//        
+//        template<typename Int>
+//        std::vector<PlanarDiagram<Int>> Rattle(
+//            mref<PlanarDiagram<Int>> pd, Int iter_
+//        ) const
+//        {
+//            std::vector<PlanarDiagram<Int>> result;
+//            
+//            rattle( pd, result, iter_ );
+//            
+//            return result;
+//        }
+//        
+//        template<typename Int>
+//        std::vector<PlanarDiagram<Int>> Rattle(
+//            mref<std::vector<PlanarDiagram<Int>>> pd_list, Int iter_
+//        ) const
+//        {
+//            std::vector<PlanarDiagram<Int>> result;
+//            
+//            for( auto & pd : pd_list )
+//            {
+//                rattle( pd, result, iter_ );
+//            }
+//            
+//            return result;
+//        }
+//        
+//        template<typename Int>
+//        void rattle(
+//            mref<std::vector<PlanarDiagram<Int>>> input,
+//            mref<std::vector<std::pair<PlanarDiagram<Int>,Int>>> stack,
+//            mref<std::vector<PlanarDiagram<Int>>> output,
+//            Int iter_
+//        ) const
+//        {
+//            using PD_T = PlanarDiagram<Int>;
+//            
+//            if( iter_ <= Int(0) )
+//            {
+//                return;
+//            }
+//            
+//            for( auto & pd_0 : input )
+//            {
+//                PD_T pd_1 ( Embedding(pd_0) );
+//                
+//                // TODO: Rotate!
+//                
+//                std::vector<PD_T> summands;
+//                
+//                pd_1.Simplify5(summands);
+//                
+//                for( auto & pd_2 : summands )
+//                {
+//                    stack.push_back( std::move(pd_2) );
+//                }
+//                
+//                stack.push_back( std::move(pd_1) );
+//                
+//                rattle( stack, output, iter_-1 );
+//            }
+//        }
         
         
     public:
