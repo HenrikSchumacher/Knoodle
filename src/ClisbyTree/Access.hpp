@@ -65,42 +65,42 @@ bool NodeActiveQ( const Int node ) const
 
 cptr<Real> NodeTransformPtr( const Int node ) const
 {
-    return &N_transform.data()[TransformDim * node];
+    return N_transform.data(node);
 }
 
 mptr<Real> NodeTransformPtr( const Int node )
 {
-    return &N_transform.data()[TransformDim * node];
+    return N_transform.data(node);
 }
 
 cptr<Real> NodeCenterPtr( const Int node ) const
 {
-    return &N_ball.data()[BallDim * node];
+    return N_ball.data(node);
 }
 
 mptr<Real> NodeCenterPtr( const Int node )
 {
-    return &N_ball.data()[BallDim * node];
+    return N_ball.data(node);
 }
 
 cptr<Real> NodeBallPtr( const Int node ) const
 {
-    return &N_ball.data()[(AmbDim+1) * node];
+    return N_ball.data(node);
 }
 
 mptr<Real> NodeBallPtr( const Int node )
 {
-    return &N_ball.data()[(AmbDim+1) * node];
+    return N_ball.data(node);
 }
 
 Real NodeRadius( const Int node ) const
 {
-    return N_ball.data()[(AmbDim + 1) * node + AmbDim];
+    return N_ball(node,AmbDim);
 }
 
 mref<Real> NodeRadius( const Int node )
 {
-    return N_ball.data()[(AmbDim + 1) * node + AmbDim];
+    return N_ball(node,AmbDim);
 }
 
 

@@ -7,7 +7,7 @@
 //#endif
 
 #include "../submodules/Tensors/Clp.hpp"
-#include "OrthoDrawing.hpp"
+//#include "OrthoDrawing.hpp"
 
 namespace Knoodle
 {
@@ -247,24 +247,24 @@ namespace Knoodle
             }
         }
         
-        template<typename Int>
-    std::pair<Tensor1<Int,Int>,Tensor1<Real,Int>> Embedding(
-            mref<PlanarDiagram<Int>> pd
-        ) const
-        {
-            OrthoDrawing<Int> H (pd);
-            Tensor1<Real,Int> L = Levels(pd);
-            
-            const Int comp_count = pd.ComponentCount();
-            Tensor1<Int,Int> ptr (comp_count+Int(0),Int(0));
-
-            
-            pd.Components()
-            
-            for( Int comp = 0; comp < comp_count; ++comp )
-            {
-            }
-        }
+//        template<typename Int>
+//    std::pair<Tensor1<Int,Int>,Tensor1<Real,Int>> Embedding(
+//            mref<PlanarDiagram<Int>> pd
+//        ) const
+//        {
+//            OrthoDrawing<Int> H (pd);
+//            Tensor1<Real,Int> L = Levels(pd);
+//            
+//            const Int comp_count = pd.ComponentCount();
+//            Tensor1<Int,Int> ptr (comp_count+Int(0),Int(0));
+//
+//            
+//            pd.Components()
+//            
+//            for( Int comp = 0; comp < comp_count; ++comp )
+//            {
+//            }
+//        }
 //        
 //        template<typename Int>
 //        std::vector<PlanarDiagram<Int>> Rattle(

@@ -183,6 +183,17 @@ namespace Knoodle
 
     public:
         
+        
+        bool PreorderedQ() const
+        {
+            return preorderedQ;
+        }
+        
+        bool CyclicQ() const
+        {
+            return cyclicQ;
+        }
+        
         /*! @brief Reads edges from the array `edges_`.
          *
          *  @param edges_ Integer array of length `2 * EdgeCount()`.
@@ -191,6 +202,7 @@ namespace Knoodle
         template<typename ExtInt>
         void ReadEdges( cptr<ExtInt> edges_ )
         {
+            TOOLS_PTIMER(timer,MethodName("ReadEdges"));
             static_assert(IntQ<ExtInt>,"");
             
             // Finding for each e its next e.
@@ -269,7 +281,7 @@ namespace Knoodle
 
                 next_edge[e] = tail_of_edge[tip];
             }
-
+            
             FindComponents();
             
             // using edge_ptr temporarily as scratch space.
@@ -293,14 +305,16 @@ namespace Knoodle
         
         void FindComponents()
         {
-            // Finding components.
+            TOOLS_PTIMER(timer,MethodName("FindComponents"));
+            
+            
+            // TODO: FindComponents goes nuts if we supply a 1D simplicial complex that is not a closed. Add some tests and error messages here!
             
             // using edge_ptr temporarily as scratch space.
             mptr<Int> perm = edge_ptr.data();
             
-            std::vector<Int> comp_ptr;
-            
-            comp_ptr.push_back(0);
+            Aggregator<Int,Int> agg ( Int(2) );
+            agg.Push(0);
 
             Int visited_edge_counter = 0;
 
@@ -308,48 +322,35 @@ namespace Knoodle
             
             for( Int e = 0; e < edge_count; ++e )
             {
-                if( edge_visited[e] )
-                {
-                    continue;
-                }
-                else
-                {
-                    const Int start_edge = e;
+                if( edge_visited[e] ) { continue; }
 
-                    Int current_edge = e;
+                const Int start_edge = e;
 
+                Int current_edge = e;
+                
+                do
+                {
                     edge_visited[current_edge] = true;
                     perm[visited_edge_counter] = current_edge;
                     ++visited_edge_counter;
                     current_edge = next_edge[current_edge];
-
-                    bool finished = current_edge == start_edge;
-
-                    while( !finished )
-                    {
-                        edge_visited[current_edge] = true;
-                        perm[visited_edge_counter] = current_edge;
-                        ++visited_edge_counter;
-
-                        current_edge = next_edge[current_edge];
-
-                        finished = current_edge == start_edge;
-                    }
-
-                    comp_ptr.push_back( visited_edge_counter );
                 }
+                while( current_edge != start_edge );
+                    
+                agg.Push( visited_edge_counter );
             }
-            
-            component_count = Max(
-                Int(0),
-                static_cast<Int>(comp_ptr.size()) - Int(1)
-            );
-            
-            component_ptr = Tensor1<Int,Int>( &comp_ptr[0], component_count+1 );
+
+            component_ptr = agg.Disband();
+
+            component_count = component_ptr.Size() > Int(0)
+                            ? component_ptr.Size() - Int(1)
+                            : Int(0);
         }
         
         void FinishPreparations()
         {
+            TOOLS_PTIMER(timer,MethodName("FinishPreparations"));
+            
             cyclicQ = (component_count == Int(1));
             
             bool b = true;
@@ -496,7 +497,9 @@ namespace Knoodle
         
         Tensor2<Int,Int> ExportEdges() const
         {
-            Tensor2<Int,Int> e ( edge_count, 2 );
+            TOOLS_PTIMER(timer,MethodName("ExportEdges"));
+            
+            Tensor2<Int,Int> e ( edge_count, Int(2) );
             
             for( Int i = 0; i < edge_count; ++i )
             {
@@ -509,7 +512,9 @@ namespace Knoodle
         
         Tensor2<Int,Int> ExportSortedEdges() const
         {
-            Tensor2<Int,Int> e ( edge_count, 2 );
+            TOOLS_PTIMER(timer,MethodName("ExportSortedEdges"));
+            
+            Tensor2<Int,Int> e ( edge_count, Int(2) );
             
             for( Int c = 0; c < component_count; ++c )
             {

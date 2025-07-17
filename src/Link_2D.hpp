@@ -87,7 +87,7 @@ namespace Knoodle
         
         Tree2_T T;
         
-        BContainer_T  box_coords;
+        BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
         std::vector<Intersection_T> intersections;
@@ -124,15 +124,15 @@ namespace Knoodle
         :   Base_T      { int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                 }
         ,   T           { edge_count                 }
-        ,   box_coords  { T.AllocateBoxes()          }
+        ,   box_coords  { T.NodeCount()              }
         {}
         
         template<typename J, typename K>
         explicit Link_2D( Tensor1<J,K> & component_ptr_ )
-        :   Base_T      { component_ptr_                       }
-        ,   edge_coords { component_ptr.Last()                 }
-        ,   T           { component_ptr.Last()                 }
-        ,   box_coords  { T.AllocateBoxes()                    }
+        :   Base_T      { component_ptr_             }
+        ,   edge_coords { component_ptr.Last()       }
+        ,   T           { component_ptr.Last()       }
+        ,   box_coords  { T.NodeCount()              }
         {
             static_assert(IntQ<J>,"");
             static_assert(IntQ<K>,"");
@@ -144,7 +144,7 @@ namespace Knoodle
         :   Base_T      { edges_, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                         }
         ,   T           { edge_count                         }
-        ,   box_coords  { T.AllocateBoxes()                  }
+        ,   box_coords  { T.NodeCount()                      }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -156,7 +156,7 @@ namespace Knoodle
         :   Base_T      { edge_tails_, edge_tips_, edge_count_ }
         ,   edge_coords { edge_count                           }
         ,   T           { edge_count                           }
-        ,   box_coords  { T.AllocateBoxes()                    }
+        ,   box_coords  { T.NodeCount()                        }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -196,21 +196,6 @@ namespace Knoodle
             return Vector2_T( edge_coords.data(edge,k) );
         }
         
-//        E_T EdgeData( const Int edge) const
-//        {
-//            return E_T( &edge_coords.data()[2 * AmbDim * edge] );
-//        }
-//        
-//        Vector2_T EdgeVector2( const Int edge, const bool k ) const
-//        {
-//            return Vector2_T( &edge_coords.data()[AmbDim * ( 2 * edge + k)] );
-//        }
-//        
-//        Vector3_T EdgeVector3( const Int edge, const bool k ) const
-//        {
-//            return Vector2_T( &edge_coords.data()[AmbDim * ( 2 * edge + k)] );
-//        }
-        
         void ReadVertexCoordinates( cptr<Real> v )
         {
             TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
@@ -234,11 +219,11 @@ namespace Knoodle
                 {
                     const Int i_begin = component_ptr[c  ];
                     const Int i_end   = component_ptr[c+1];
-                    
+                                        
                     for( Int i = i_begin; i < i_end-1; ++i )
                     {
                         const Int j = i+1;
-                        
+
                         mptr<Real> target_0 = edge_coords.data(i,1);
                         mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
                         
@@ -290,7 +275,11 @@ namespace Knoodle
         void ComputeBoundingBoxes()
         {
             TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
-            T.template ComputeBoundingBoxes<2,3>( edge_coords, box_coords );
+            
+            T.template ComputeBoundingBoxes<2,3>(
+                edge_coords.data(),
+                box_coords.data()
+            );
         }
         
     private:

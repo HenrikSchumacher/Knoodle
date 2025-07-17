@@ -26,23 +26,23 @@ namespace Knoodle
 //        using LInt  = Int64;
         using BReal = BReal_;
         
+        static constexpr Int AmbDim = 3;
+        
+        
         using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
 //        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
         using Vector2_T      = Tiny::Vector<2,Real,Int>;
-        using Vector3_T      = Tiny::Vector<3,Real,Int>;
-        using E_T            = Tiny::Matrix<2,3,Real,Int>;
+        using Vector3_T      = Tiny::Vector<AmbDim,Real,Int>;
+        using E_T            = Tiny::Matrix<2,AmbDim,Real,Int>;
         
-        using VContainer_T   = Tensor2<Real,Int>;
-        
+        using VContainer_T   = Tiny::VectorList_AoS<AmbDim,Real,Int>;
         using BContainer_T   = typename Tree2_T::BContainer_T;
         
         using Intersection_T = Intersection<Real,Int>;
         
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
-        
-        static constexpr Int AmbDim = 3;
         
         template<typename Int>
         friend class PlanarDiagram;
@@ -72,7 +72,7 @@ namespace Knoodle
         
         Tree2_T T;
         
-        BContainer_T  box_coords;
+        BContainer_T box_coords;
         
         // Containers that might have to be reallocated after calls to ReadVertexCoordinates.
         std::vector<Intersection_T> intersections;
@@ -109,11 +109,11 @@ namespace Knoodle
         template<typename I>
         explicit Knot_2D( const I edge_count_ )
         :   edge_count      { int_cast<Int>(edge_count_) }
-        ,   vertex_coords   { edge_count + 1, Int(3)     }
+        ,   vertex_coords   { edge_count + 1             }
         ,   edge_ptr        { edge_count + 1             }
         ,   component_ptr   { 1                          }
         ,   T               { edge_count                 }
-        ,   box_coords      { T.AllocateBoxes()          }
+        ,   box_coords      { T.NodeCount()              }
         {
             component_ptr[0] = 0;
             component_ptr[1] = edge_count;
@@ -157,22 +157,22 @@ namespace Knoodle
         
         E_T EdgeData( const Int edge) const
         {
-            return E_T( &vertex_coords.data()[AmbDim * edge] );
+            return E_T( vertex_coords.data(edge) );
         }
         
         Vector2_T EdgeVector2( const Int edge, const bool k ) const
         {
-            return Vector2_T( &vertex_coords.data()[AmbDim * (edge + k)] );
+            return Vector2_T( vertex_coords.data(edge + k) );
         }
         
         Vector3_T EdgeVector3( const Int edge, const bool k ) const
         {
-            return Vector3_T( &vertex_coords.data()[AmbDim * (edge + k)] );
+            return Vector3_T( vertex_coords.data(edge + k) );
         }
         
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            TOOLS_PTIC(ClassName()+"::ReadVertexCoordinates");
+            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates"));
             
             Vector3_T lo;
             Vector3_T hi;
@@ -189,26 +189,23 @@ namespace Knoodle
             for( Int edge = 0; edge < edge_count; ++edge )
             {
                 cptr<Real> source = &v[AmbDim * edge];
-                mptr<Real> target = &vertex_coords.data()[AmbDim * edge];
+                mptr<Real> target = vertex_coords.data(edge);
                 
                 target[0] = source[0] + Sterbenz_shift[0];
                 target[1] = source[1] + Sterbenz_shift[1];
                 target[2] = source[2] + Sterbenz_shift[2];
             }
 
-            copy_buffer<AmbDim>( vertex_coords.data(), &vertex_coords.data()[AmbDim * edge_count]);
-            
-            TOOLS_PTOC(ClassName()+"::ReadVertexCoordinates");
+            copy_buffer<AmbDim>(vertex_coords.data(),vertex_coords.data(edge_count));
         }
         
 
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
+            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             T.template ComputeBoundingBoxes<2,AmbDim,AmbDim>(
                 vertex_coords.data(), box_coords.data()
             );
-            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
     private:

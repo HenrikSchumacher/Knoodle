@@ -38,7 +38,7 @@ void ComputeSpanningForest()
     this->SetCache( "DiagramComponentCount", roots.Size()               );
     this->SetCache( "VertexPreOrdering",     V_pre.Disband()            );
     this->SetCache( "VertexPostOrdering",    V_post.Disband()           );
-    this->SetCache( "SpanningForestDedges",  V_parent_A.Disband()       );
+    this->SetCache( "SpanningForestDedges",  V_parent_A                 );
     this->SetCache( "SpanningForestRoots",   roots.Disband()            );
     this->SetCache( "DFSEdgeOrdering",       discovered_arcs.Disband()  );
 }

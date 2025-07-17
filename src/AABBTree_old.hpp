@@ -34,7 +34,12 @@ namespace Knoodle
         
         using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
-        using BContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
+        using BContainer_T = Tensor3<BReal,Int>;
+        
+//        using EContainer_T = Tensor3<Real,Int>;
+        
+//        using BContainer_T = Tiny::MatrixList_AoS<AmbDim,2,Real,Int>;
+        
         using EContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
         
         using UInt = Scalar::Unsigned<Int>;
@@ -84,8 +89,6 @@ namespace Knoodle
         
     private:
         
-        // TODO: Transpose this in description.
-        
         /*!
          * @brief Computes the bounding boxes from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points. Only the leading `AmbDim` entries of each point are used.
          *
@@ -110,7 +113,7 @@ namespace Knoodle
             // TODO: If we store upper and lower bounds as vectors, then this can be vectorized?
             
             columnwise_minmax<point_count,AmbDim>(
-                P, dimP, &B[0], Int(1), &B[AmbDim], Int(1)
+                P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
             );
             
             // If we have round, make sure that the boxes become a little bit bigger, so that it still contains all primitives.
@@ -118,11 +121,8 @@ namespace Knoodle
             {
                 for( Int k = 0; k < AmbDim; ++k )
                 {
-                    B[AmbDim * 0 + k] = PrevFloat(B[AmbDim * 0 + k]);
-                    B[AmbDim * 1 + k] = NextFloat(B[AmbDim * 1 + k]);
-                    
-//                    B[2 * k + 0] = PrevFloat(B[2 * k + 0]);
-//                    B[2 * k + 1] = NextFloat(B[2 * k + 1]);
+                    B[2 * k + 0] = PrevFloat(B[2 * k + 0]);
+                    B[2 * k + 1] = NextFloat(B[2 * k + 1]);
                 }
             }
         }
@@ -131,18 +131,18 @@ namespace Knoodle
             cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
         )
         {
-            // TODO: Vectorize this.
+            // TODO: Can this be vectorized?
+            // Yes, if we store upper and lower bounds as vectors!
             
             for( Int k = 0; k < AmbDim; ++k )
             {
-                B_N[AmbDim * 0 + k] = Min( B_L[AmbDim * 0 + k], B_R[AmbDim * 0 + k] );
-                B_N[AmbDim * 1 + k] = Max( B_L[AmbDim * 1 + k], B_R[AmbDim * 1 + k] );
+                B_N[2 * k + 0] = Min( B_L[2 * k + 0], B_R[2 * k + 0] );
+                B_N[2 * k + 1] = Max( B_L[2 * k + 1], B_R[2 * k + 1] );
             }
         }
         
     public:
         
-        // TODO: Transpose this in the description.
         /*!
          * @brief Computes the bounding boxes of the whole tree from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points.
          *
@@ -154,34 +154,35 @@ namespace Knoodle
          *
          * @param P Array that represents the primitive coordinates. It is assumed to have size `prim_count x point_count x dimP`.
          *
-         * @param B Represents the container for the boxes. It is assumed to be an 3D array of dimensions `prim_count x 2 x AmbDim`.
+         * @param B Represents the container for the boxes. It is assumed to be a `Tensor3` of dimensions `prim_count x AmbDim x 2`.
          */
         
         template<Int point_count, Int dimP, Int inc = point_count * dimP>
         void ComputeBoundingBoxes( cptr<Real> P, mptr<BReal> B ) const
         {
-            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+            TOOLS_PTIC(ClassName()+"::ComputeBoundingBoxes");
             
             static_assert(dimP >= AmbDim,"");
             
-            TOOLS_PTIC(timer.tag + " - Compute bounding boxes of leave nodes.");
-            
+            TOOLS_PTIC("Compute bounding boxes of leave nodes.");
             // Compute bounding boxes of leave nodes (last row of tree).
             for( Int N = last_row_begin; N < node_count; ++N )
             {
                 const Int i = N - last_row_begin;
+                
                 PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
             }
-
+            
             // Compute bounding boxes of leave nodes (penultimate row of tree).
             for( Int N = int_node_count; N < last_row_begin; ++N )
             {
                 const Int i = N + offset;
+
                 PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
             }
-            TOOLS_PTOC(timer.tag + " - Compute bounding boxes of leave nodes.");
-
-            TOOLS_PTIC(timer.tag + " - Compute bounding boxes of internal nodes.");
+            TOOLS_PTOC("Compute bounding boxes of leave nodes.");
+            
+            TOOLS_PTIC("Compute bounding boxes of internal nodes.");
             // Compute bounding boxes of internal nodes.
             for( Int N = int_node_count; N --> Int(0);  )
             {
@@ -189,12 +190,18 @@ namespace Knoodle
                 
                 BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
             }
-            TOOLS_PTOC(timer.tag + " - Compute bounding boxes of internal nodes.");
+            TOOLS_PTOC("Compute bounding boxes of internal nodes.");
+            
+            TOOLS_PTOC(ClassName()+"::ComputeBoundingBoxes");
         }
         
-        static constexpr bool BoxesIntersectQ(
-            const cptr<BReal> B_i, const cptr<BReal> B_j
-        )
+        template<Int point_count, Int dimP>
+        void ComputeBoundingBoxes( cref<EContainer_T> E, mref<BContainer_T> B )
+        {
+            ComputeBoundingBoxes<point_count,dimP,point_count*dimP>( E.data(), B.data() );
+        }
+        
+        static constexpr bool BoxesIntersectQ( const cptr<BReal> B_i, const cptr<BReal> B_j )
         {
             // B_i and B_j are assumed to have size AmbDim x 2.
             
@@ -217,18 +224,10 @@ namespace Knoodle
             {
                 for( Int k = 0; k < AmbDim; ++k )
                 {
-//                    if(
-//                       (B_i[2 * k + 0] > B_j[2 * k + 1])
-//                       ||
-//                       (B_j[2 * k + 0] > B_i[2 * k + 1])
-//                    )
-//                    {
-//                        return false;
-//                    }
                     if(
-                       (B_i[AmbDim * 0 + k] > B_j[AmbDim * 1 + k])
+                       (B_i[2 * k + 0] > B_j[2 * k + 1])
                        ||
-                       (B_j[AmbDim * 0 + k] > B_i[AmbDim * 1 + k])
+                       (B_j[2 * k + 0] > B_i[2 * k + 1])
                     )
                     {
                         return false;
@@ -239,14 +238,6 @@ namespace Knoodle
             }
         }
         
-        Real BoxesIntersectQ(
-            cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
-        )
-        {
-            return BoxesIntersectQ( B_0.data(i), B_1.data(j) );
-        }
-        
-        
         static constexpr Real BoxBoxSquaredDistance(
             const cptr<Real> B_i, const cptr<Real> B_j
         )
@@ -255,16 +246,10 @@ namespace Knoodle
             
             for( Int k = 0; k < AmbDim; ++k )
             {
-//                const Real x = Ramp(
-//                    Max( B_i[2 * k + 0], B_j[2 * k + 0] )
-//                    -
-//                    Min( B_i[2 * k + 1], B_j[2 * k + 1] )
-//                );
-                
                 const Real x = Ramp(
-                    Max( B_i[AmbDim * 0 + k], B_j[AmbDim * 0 + k] )
+                    Max( B_i[2 * k + 0], B_j[2 * k + 0] )
                     -
-                    Min( B_i[AmbDim * 1 + k], B_j[AmbDim * 1 + k] )
+                    Min( B_i[2 * k + 1], B_j[2 * k + 1] )
                 );
                 
                 d2 += x * x;
@@ -276,7 +261,20 @@ namespace Knoodle
             cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
         )
         {
-            return BoxBoxSquaredDistance( B_0.data(i), B_1.data(j) );
+            return BoxBoxSquaredDistance(
+                &B_0.data()[BoxDim * i], &B_1.data()[BoxDim * j]
+            );
+        }
+        
+        BContainer_T AllocateBoxes()
+        {
+            TOOLS_PTIC(ClassName()+"::AllocateBoxes");
+            
+            BContainer_T B (NodeCount(),AmbDim,2);
+            
+            TOOLS_PTOC(ClassName()+"::AllocateBoxes");
+            
+            return B;
         }
         
     public:

@@ -94,8 +94,14 @@ namespace Knoodle
         
         
         using NodeFlagContainer_T      = Tensor1<NodeFlag_T,Int>;
-        using NodeTransformContainer_T = Tensor2<Real,Int>;
-        using NodeBallContainer_T      = Tensor2<Real,Int>;
+    
+        // For rotation and translation.
+        static constexpr Int TransfDim = Transform_T::Size();
+        using NodeTransformContainer_T = Tiny::VectorList_AoS<TransfDim,Real,Int>;
+    
+        // For center and radius.
+        static constexpr Int BallDim   = AmbDim + 1;
+        using NodeBallContainer_T      = Tiny::VectorList_AoS<BallDim,Real,Int>;
     
         using NodeSplitFlagVector_T    = Tiny::Vector<2,bool,Int>;
         using NodeSplitFlagMatrix_T    = Tiny::Matrix<2,2,bool,Int>;
@@ -109,9 +115,7 @@ namespace Knoodle
     
         using Seed_T = std::array<RNG_T::result_type,seed_size>;
         
-        // For center, radius, rotation, and translation.
-        static constexpr Int TransformDim = Transform_T::Size();
-        static constexpr Int BallDim      = AmbDim + 1;
+
         
         static constexpr bool countersQ = targs.countersQ;
         
@@ -138,9 +142,9 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_
         )
         :   Base_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   N_ball                      { NodeCount()                          }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
@@ -157,9 +161,9 @@ namespace Knoodle
             const ExtReal hard_sphere_diam_
         )
         :   Base_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   N_ball                      { NodeCount()                          }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
@@ -177,9 +181,9 @@ namespace Knoodle
             PRNG_T prng
         )
         :   Base_T                      { int_cast<Int>(vertex_count_)         }
-        ,   N_transform                 { InternalNodeCount(), TransformDim    }
+        ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
-        ,   N_ball                      { NodeCount(), BallDim                 }
+        ,   N_ball                      { NodeCount()                          }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   random_engine               { prng                                 }
