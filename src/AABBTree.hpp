@@ -34,8 +34,8 @@ namespace Knoodle
         
         using Vector_T     = Tiny::Vector<AmbDim_,Real,Int>;
         
-        using BContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
         using EContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
+        using BContainer_T = Tiny::MatrixList_AoS<2,AmbDim,BReal,Int>;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -164,32 +164,33 @@ namespace Knoodle
             
             static_assert(dimP >= AmbDim,"");
             
-            TOOLS_PTIC(timer.tag + " - Compute bounding boxes of leave nodes.");
-            
-            // Compute bounding boxes of leave nodes (last row of tree).
-            for( Int N = last_row_begin; N < node_count; ++N )
             {
-                const Int i = N - last_row_begin;
-                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
-            }
-
-            // Compute bounding boxes of leave nodes (penultimate row of tree).
-            for( Int N = int_node_count; N < last_row_begin; ++N )
-            {
-                const Int i = N + offset;
-                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
-            }
-            TOOLS_PTOC(timer.tag + " - Compute bounding boxes of leave nodes.");
-
-            TOOLS_PTIC(timer.tag + " - Compute bounding boxes of internal nodes.");
-            // Compute bounding boxes of internal nodes.
-            for( Int N = int_node_count; N --> Int(0);  )
-            {
-                const auto [L,R] = Children(N);
+                TOOLS_PTIMER(timer2, timer.tag + " - Compute bounding boxes of leave nodes.");
+                // Compute bounding boxes of leave nodes (last row of tree).
+                for( Int N = last_row_begin; N < node_count; ++N )
+                {
+                    const Int i = N - last_row_begin;
+                    PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
+                }
                 
-                BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
+                // Compute bounding boxes of leave nodes (penultimate row of tree).
+                for( Int N = int_node_count; N < last_row_begin; ++N )
+                {
+                    const Int i = N + offset;
+                    PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
+                }
             }
-            TOOLS_PTOC(timer.tag + " - Compute bounding boxes of internal nodes.");
+            
+            {
+                TOOLS_PTIMER(timer2, timer.tag + " - Compute bounding boxes of internal nodes.");
+                // Compute bounding boxes of internal nodes.
+                for( Int N = int_node_count; N --> Int(0);  )
+                {
+                    const auto [L,R] = Children(N);
+                    
+                    BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
+                }
+            }
         }
         
         static constexpr bool BoxesIntersectQ(
