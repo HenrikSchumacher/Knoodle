@@ -101,8 +101,9 @@ void ComputeVertexCoordinates(
         auto & DvE_DvV  = Dv().Edges();
         auto & DvE_cost = DvEdgeCosts();
         
+        const Int e_count = DvE_DvV.Dim(0);
         
-        for( Int e = 0; e < DvE_DvV.Dim(0); ++e )
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int v_0 = DvE_DvV(e,Tail);
             const Int v_1 = DvE_DvV(e,Head);
@@ -114,8 +115,9 @@ void ComputeVertexCoordinates(
         auto & DhE_DhV  = Dh().Edges();
         auto & DhE_cost = DhEdgeCosts();
         
+        const Int e_count = DhE_DhV.Dim(0);
         
-        for( Int e = 0; e < DhE_DhV.Dim(0); ++e )
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int v_0 = DhE_DhV(e,Tail);
             const Int v_1 = DhE_DhV(e,Head);

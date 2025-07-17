@@ -3,8 +3,11 @@
 #include "../submodules/Tensors/UMFPACK.hpp"
 
 //#ifdef REAPR_USE_CLP
-    #include "../submodules/Tensors/Clp.hpp"
+//    #include "../submodules/Tensors/Clp.hpp"
 //#endif
+
+#include "../submodules/Tensors/Clp.hpp"
+#include "OrthoDrawing.hpp"
 
 namespace Knoodle
 {
@@ -135,7 +138,9 @@ namespace Knoodle
             Int b      = 0;
             Real sign  = 1;
             
-            for( Int comp = 0; comp < pd.LinkComponentCount(); ++comp )
+            const Int comp_count = pd.LinkComponentCount();
+            
+            for( Int comp = 0; comp < comp_count; ++comp )
             {
                 const Int a_begin = comp_ptr[a  ];
                 const Int a_end   = comp_ptr[a+1];
@@ -242,10 +247,24 @@ namespace Knoodle
             }
         }
         
-//        template<typename Int>
-//        Link_2D<Real,Int,BReal> Embedding( mref<PlanarDiagram<Int>> pd ) const
-//        {
-//        }
+        template<typename Int>
+    std::pair<Tensor1<Int,Int>,Tensor1<Real,Int>> Embedding(
+            mref<PlanarDiagram<Int>> pd
+        ) const
+        {
+            OrthoDrawing<Int> H (pd);
+            Tensor1<Real,Int> L = Levels(pd);
+            
+            const Int comp_count = pd.ComponentCount();
+            Tensor1<Int,Int> ptr (comp_count+Int(0),Int(0));
+
+            
+            pd.Components()
+            
+            for( Int comp = 0; comp < comp_count; ++comp )
+            {
+            }
+        }
 //        
 //        template<typename Int>
 //        std::vector<PlanarDiagram<Int>> Rattle(

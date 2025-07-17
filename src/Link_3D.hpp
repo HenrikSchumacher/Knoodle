@@ -144,7 +144,7 @@ namespace Knoodle
         }
         
         
-        // This constructor makes the link assume to be a simply cycle and that the vertices are sorted accordingly.
+        // This constructor makes the link assume to be a simple cycle and that the vertices are sorted accordingly.
         template< typename I>
         Link_3D( cptr<Real> V_coords_, const I edge_count_ )
         :   Base_T   { edge_count_             }
@@ -249,7 +249,9 @@ namespace Knoodle
         template<typename R>
         void WriteEdgeCoordinates( cref<EContainer_T> E_coords_, mptr<R> E ) const
         {
-            for( Int e = 0; e < EdgeCount(); ++e )
+            const Int m = EdgeCount();
+            
+            for( Int e = 0; e < m; ++e )
             {
 //                copy_buffer<3>( E_coords_.data(e,0,0), &E[6 * e + 0] );
 //                copy_buffer<3>( E_coords_.data(e,1,0), &E[6 * e + 3] );

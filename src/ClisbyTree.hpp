@@ -275,7 +275,9 @@ namespace Knoodle
             Transform_T id;
             id.SetIdentity();
             
-            for( Int node = 0; node < InternalNodeCount(); ++node )
+            const Int n_count = InternalNodeCount();
+            
+            for( Int node = 0; node < n_count; ++node )
             {
                 id.ForceWrite( NodeTransformPtr(node), NodeFlag(node) );
             }
@@ -411,7 +413,9 @@ namespace Knoodle
         {
             Int counter = 0;
             
-            for(Int node = 0; node < InternalNodeCount(); ++node )
+            const Int n_count = InternalNodeCount();
+            
+            for( Int node = 0; node < n_count; ++node )
             {
                 counter += (N_state[node] == NodeFlag_T::NonId);
             }

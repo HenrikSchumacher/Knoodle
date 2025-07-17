@@ -22,30 +22,34 @@ Int FaceCount() const
 
 cref<RaggedList<Int,Int>> FaceDarcs() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceDarcs"));
-    if(!this->InCacheQ("FaceDarcs")) { RequireFaces(); }
-    return this->template GetCache<RaggedList<Int,Int>>("FaceDarcs");
+    std::string tag ("FaceDarcs");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
 cref<ArcContainer_T> ArcFaces()  const
 {
-    TOOLS_PTIMER(timer,MethodName("ArcFaces"));
-    if(!this->InCacheQ("ArcFaces")) { RequireFaces(); }
-    return this->template GetCache<ArcContainer_T>("ArcFaces");
+    std::string tag ("ArcFaces");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<ArcContainer_T>(tag);
 }
 
 Int MaximumFace() const
 {
-    TOOLS_PTIMER(timer,MethodName("MaximumFace"));
-    if(!this->InCacheQ("MaximumFace")) { RequireFaces(); }
-    return this->template GetCache<Int>("MaximumFace");
+    std::string tag ("MaximumFace");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<Int>(tag);
 }
 
 Int MaxFaceSize() const
 {
-    TOOLS_PTIMER(timer,MethodName("MaxFaceSize"));
-    if(!this->InCacheQ("MaxFaceSize")) { RequireFaces(); }
-    return this->template GetCache<Int>("MaxFaceSize");
+    std::string tag ("MaximumFace");
+    TOOLS_PTIMER(timer,MethodName(tag));
+    if(!this->InCacheQ(tag)) { RequireFaces(); }
+    return this->template GetCache<Int>(tag);
 }
 
 void RequireFaces() const
@@ -177,7 +181,9 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
         
         const auto & A_F = ArcFaces();
         
-        for( Int c = 0; c < C_arcs.Dim(0); ++c )
+        const Int c_count = C_arcs.Dim(0);
+        
+        for( Int c = 0; c < c_count; ++c )
         {
             if( !CrossingActiveQ(c) )
             {
@@ -217,6 +223,7 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
 Tensor1<Int8,Int> CheckerBoardColoring()
 {
     TOOLS_PTIMER(timer,MethodName("CheckerBoardColoring"));
+    
     MultiGraph_T G ( FaceCount(), ArcFaces() );
     
     using DedgeNode = MultiGraph_T::DedgeNode;

@@ -58,6 +58,9 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
     
     Settings_T param { .dualQ = settings.use_dual_simplexQ };
     
+    
+    const ExtInt a_count = pd.Arcs().Dim(0);
+    
     if( settings.network_matrixQ )
     {
         cptr<ExtInt> dA_F = pd.ArcFaces().data();
@@ -67,8 +70,8 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
         
         Tensor1<COIN_Int,I> tails ( n );
         Tensor1<COIN_Int,I> heads ( n );
-
-        for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+ 
+        for( ExtInt a = 0; a < a_count; ++a )
         {
             if( !pd.ArcActiveQ(a) ) { continue; };
             
@@ -113,7 +116,7 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     
-    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+    for( ExtInt a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {

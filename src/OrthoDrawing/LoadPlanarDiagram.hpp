@@ -58,21 +58,15 @@ void LoadPlanarDiagram(
         RedistributeBends(pd,A_bends);
     }
 
-//    bend_count = 0;
-//    
-//    // TODO: Should be part of the info received from BendsByLP.
-//    for( Int a = 0; a < A_C.Dim(0); ++a )
-//    {
-//        bend_count += Abs(A_bends[a]);
-//    }
-
     
     // Compute maximum face size as that will be useful for later allocations.
     // This also gives us the opportunity to compute the total number of bends.
     max_face_size = 0;
     bend_count    = 0;
 
-    for( ExtInt r = 0; r < R_dA.SublistCount(); ++r )
+    const Int r_count = R_dA.SublistCount();
+    
+    for( ExtInt r = 0; r < r_count; ++r )
     {
         Int r_size = R_dA.SublistSize(r);
         
@@ -170,13 +164,17 @@ void LoadPlanarDiagram(
     
     A_overQ = Tiny::VectorList_AoS<2,bool,Int>(arc_count);
     
-    for( Int c = 0; c < C_A.Dim(0); ++c )
+    const Int c_count = C_A.Dim(0);
+    
+    for( Int c = 0; c < c_count; ++c )
     {
         V_flag[c] = VertexFlag_T(ToUnderlying(C_state[c])); // pd needed
     }
     
+    const Int a_count = A_C.Dim(0);
+    
     // Load remaining data from pd.
-    for( Int a = 0; a < A_C.Dim(0); ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         ExtInt a_ = static_cast<ExtInt>(a);
         
@@ -195,9 +193,9 @@ void LoadPlanarDiagram(
     // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
     Int V_counter = C_A.Dim(0);
     Int E_counter = A_C.Dim(0);
-
+    
     // Subdivide each arc.
-    for( Int a = 0; a < A_C.Dim(0); ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( !DedgeActiveQ(ToDedge<Tail>(a)) ) { continue; }
         

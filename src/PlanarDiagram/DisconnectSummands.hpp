@@ -9,27 +9,31 @@ public:
 
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
+    const Int  min_dist           = 6,
     const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ      = true,
+    const bool compressQ          = true,
     const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
     const bool strand_R_II_Q      = true
 )
 {
-    TOOLS_PTIC(ClassName()+"::DisconnectSummands");
+    TOOLS_PTIMER(timer,MethodName("DisconnectSummands"));
     
     // TODO: Introduce some tracking of from where the components are split off.
     
     TwoArraySort<Int,Int,Int> sort ( max_arc_count );
     
-    std::vector<Int> f_arcs;
+    const Int f_max_size = MaxFaceSize();
     
-    std::vector<Int> f_faces;
-
+    Aggregator<Int,Int> f_arcs  (f_max_size);
+    Aggregator<Int,Int> f_faces (f_max_size);
+    
     const auto & F_dA  = FaceDarcs();
     cptr<Int> F_A_ptr  = F_dA.Pointers().data();
     cptr<Int> F_A_idx  = F_dA.Elements().data();
     cptr<Int> A_face   = ArcFaces().data();
+    
+    const Int face_count = F_dA.SublistCount();
     
     bool changedQ = false;
     
@@ -39,11 +43,12 @@ bool DisconnectSummands(
     {
         changedQ = false;
         
-        for( Int f = 0; f < F_dA.SublistCount(); ++f )
+        for( Int f = 0; f < face_count; ++f )
         {
             changedQ = changedQ || DisconnectSummand(
                 f,pd_list,sort,f_arcs,f_faces,F_A_ptr,F_A_idx,A_face,
-                max_dist,compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
+                min_dist,max_dist,
+                compressQ,simplify3_level,simplify3_max_iter,strand_R_II_Q
             );
         }
         
@@ -55,8 +60,6 @@ bool DisconnectSummands(
     {
         this->ClearCache();
     }
-    
-    TOOLS_PTOC(ClassName()+"::DisconnectSummands");
     
     return changed_at_least_onceQ;
 }
@@ -75,11 +78,12 @@ bool DisconnectSummand(
     const Int f,
     mref<PD_List_T> pd_list,
     TwoArraySort<Int,Int,Int> & sort,
-    std::vector<Int> & f_arcs,
-    std::vector<Int> & f_faces,
+    mref<Aggregator<Int,Int>> f_arcs,
+    mref<Aggregator<Int,Int>> & f_faces,
     cptr<Int> F_dA_ptr,
     cptr<Int> F_dA_idx,
     cptr<Int> dA_face,
+    const Int min_dist,
     const Int max_dist,
     const bool compressQ,
     const Int  simplify3_level,
@@ -92,8 +96,8 @@ bool DisconnectSummand(
     const Int i_begin = F_dA_ptr[f  ];
     const Int i_end   = F_dA_ptr[f+1];
 
-    f_arcs.clear();
-    f_faces.clear();
+    f_arcs.Clear();
+    f_faces.Clear();
     
     for( Int i = i_begin; i < i_end; ++i )
     {
@@ -105,16 +109,16 @@ bool DisconnectSummand(
         
         if( ArcActiveQ(a) )
         {
-            f_arcs.push_back(da);
+            f_arcs.Push(da);
             
             // Tell `f` that it is neighbor of the face that belongs to the twin of `A`.
-            f_faces.push_back( dA_face[FlipDarc(da)] );
+            f_faces.Push( dA_face[FlipDarc(da)] );
         }
     }
         
-    const Size_T f_size = f_arcs.size();
+    const Int f_size = f_arcs.Size();
     
-    if( f_size == Size_T(1) ) [[unlikely]]
+    if( f_size == Int(1) ) [[unlikely]]
     {
         const Int a = (f_arcs[0] >> 1);
 
@@ -134,13 +138,13 @@ bool DisconnectSummand(
         }
     }
     
-    sort( &f_faces[0], &f_arcs[0], static_cast<Int>(f_size) );
+    sort( &f_faces[0], &f_arcs[0], f_size );
     
     auto conditional_push = [&]( PlanarDiagram<Int> && pd )
     {
         pd.Simplify5(
             pd_list,
-            max_dist,
+            min_dist, max_dist,
             compressQ,
             simplify3_level,
             simplify3_max_iter,
@@ -153,7 +157,7 @@ bool DisconnectSummand(
         }
     };
     
-    Size_T i = 0;
+    Int i = 0;
     
     while( i+1 < f_size )
     {
@@ -232,7 +236,9 @@ bool DisconnectSummand(
                 }
                 else
                 {
-                    conditional_push( std::move(ExportSmallerComponent(a_prev,a_next)) );
+                    conditional_push(
+                        std::move(ExportSmallerComponent(a_prev,a_next))
+                    );
                     return true;
                 }
             }

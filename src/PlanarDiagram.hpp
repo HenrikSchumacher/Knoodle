@@ -888,7 +888,9 @@ namespace Knoodle
         {
             Int writhe = 0;
             
-            for( Int c = 0; c < C_state.Size(); ++c )
+            const Int n = C_state.Size();
+            
+            for( Int c = 0; c < n; ++c )
             {
                 if( CrossingRightHandedQ(c) )
                 {

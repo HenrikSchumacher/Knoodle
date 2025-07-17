@@ -13,7 +13,9 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
     
-    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+    const ExtInt a_count = pd.Arcs().Dim(0);
+    
+    for( ExtInt a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
@@ -68,17 +70,14 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     Tensor1<S,I> v ( constraint_count );
     mptr<S> v_ptr = v.data();
     
-//    cptr<ExtInt> F_dA_ptr = pd.FaceDarcs().Pointers().data();
-
     auto & F_dA = pd.FaceDarcs();
     
     ExtInt max_f_size = 0;
     ExtInt max_f      = 0;
+    const ExtInt f_count = F_dA.SublistCount();
     
-    for( ExtInt f = 0; f < F_dA.SublistCount(); ++f )
+    for( ExtInt f = 0; f < f_count; ++f )
     {
-//        const ExtInt f_size = F_dA_ptr[f+1] - F_dA_ptr[f];
-        
         const ExtInt f_size = F_dA.SublistSize(f);
         
         if( f_size > max_f_size )
@@ -127,7 +126,9 @@ void RedistributeBends(
     
     Int counter = 0;
     
-    for( ExtInt c = 0; c < C_A_loc.Dim(0); ++c )
+    const ExtInt c_count = C_A_loc.Dim(0);
+    
+    for( ExtInt c = 0; c < c_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
 

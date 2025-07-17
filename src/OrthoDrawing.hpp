@@ -553,9 +553,11 @@ namespace Knoodle
             TOOLS_PTIMER(timer,MethodName(tag));
             if( !this->InCacheQ(tag) )
             {
-                Tensor1<Int,Int> A_next ( A_C.Dim(0), Uninitialized );
+                const Int m = A_C.Dim(0);
                 
-                for( Int c = 0; c < C_A.Dim(0); ++c )
+                Tensor1<Int,Int> A_next ( m, Uninitialized );
+                
+                for( Int c = 0; c < m; ++c )
                 {
                     if( VertexActiveQ(c) )
                     {

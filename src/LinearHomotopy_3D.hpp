@@ -271,8 +271,9 @@ namespace Knoodle
             
             const Real Delta_x = Frac<Real>(1,EdgeCount());
             
-            
-            for( Size_T k = 0; k < CollisionCount(); ++k )
+            const Size_T k_count = CollisionCount();
+             
+            for( Size_T k = 0; k < k_count; ++k )
             {
                 cref<Collision_T> C = collisions[k];
                 
@@ -305,11 +306,11 @@ namespace Knoodle
         {
             Real time = Scalar::Infty<Real>;
             
-            for( Size_T k = 0; k < CollisionCount(); ++k )
+            const Size_T k_count = CollisionCount();
+            
+            for( Size_T k = 0; k < k_count; ++k )
             {
-                cref<Collision_T> C = collisions[k];
-                
-                time = Min( time, C.time );
+                time = Min( time, collisions[k].time );
             }
             
             return time;

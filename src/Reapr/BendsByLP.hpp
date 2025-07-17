@@ -69,8 +69,10 @@ Tensor1<Int,Int> BendsByLP(
     Tensor1<Int,Int> bends ( pd.ArcCount() );
     
     cptr<Real> sol = LP.primalColumnSolution();
+    
+    const Int a_count = pd.ArcCount();
 
-    for( Int a = 0; a < pd.ArcCount(); ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         bends[a] = static_cast<Int>(std::round(sol[2 * a] - sol[2 * a + 1]));
     }

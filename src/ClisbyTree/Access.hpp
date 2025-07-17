@@ -110,7 +110,10 @@ void WriteVertexCoordinates( mptr<Real> X )
     PushAllTransforms();
     
     // Copy leave nodes.
-    for( Int vertex = 0; vertex < VertexCount(); ++vertex )
+    
+    const Int v_count = VertexCount();
+    
+    for( Int vertex = 0; vertex < v_count; ++vertex )
     {
         const Int node = PrimitiveNode(vertex);
 

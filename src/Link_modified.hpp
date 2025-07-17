@@ -3,23 +3,33 @@
 namespace Knoodle
 {
     template<typename Int>
-    Tensor2<Int,Int> CircleEdges( const Int n )
+    void WriteCircleEdges( mref<Int> edges, const Int first_edge, const Int n )
     {
-        Tensor2<Int,Int> e ( n, Int(2) );
-        
-        if( n >= Int(1) )
-        {
-            for( Int i = 0; i < n-1; ++i )
-            {
-                e(i,0) = i  ;
-                e(i,1) = i+1;
-            }
+        if( n < Int(1) ) { return; }
             
-            e(n-1,0) = n-1;
-            e(n-1,1) = 0;
+        const Int last_edge = first_edge + n - Int(1);
+        
+        
+        for( Int i = 0; i < n; ++i )
+        {
+            edges( Int(2) * i + Int(0) ) = first_edge + i         ;
+            edges( Int(2) * i + Int(1) ) = first_edge + i + Int(1);
         }
         
-        return e;
+        edges( Int(2) * n - Int(2) ) = last_edge;
+        edges( Int(2) * n - Int(1) ) = first_edge;
+    }
+    
+    template<typename Int>
+    Tensor2<Int,Int> CircleEdges( const Int n )
+    {
+        if( n < Int(1) ) { return Tensor2<Int,Int>(); }
+        
+        Tensor2<Int,Int> edges ( n, Int(2) );
+        
+        WriteCircleEdges( edges.data(), Int(0), n );
+        
+        return edges;
     }
     
     template<typename Int_ = Int64>
@@ -63,41 +73,6 @@ namespace Knoodle
         Link( Link && other ) = default;
         // Move assignment operator
         Link & operator=( Link && other ) = default;
-        
-        
-//        friend void swap( Link & A, Link & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( A.edge_count          , B.edge_count          );
-//            swap( A.edges               , B.edges               );
-//            swap( A.next_edge           , B.next_edge           );
-//            swap( A.edge_ptr            , B.edge_ptr            );
-//            
-//            swap( A.component_count     , B.component_count     );
-//            swap( A.component_ptr       , B.component_ptr       );
-//            swap( A.component_lookup    , B.component_lookup    );
-//            swap( A.cyclicQ             , B.cyclicQ             );
-//            swap( A.preorderedQ         , B.preorderedQ         );
-//        }
-//        
-//        // Copy assignment operator
-//        Link & operator=( Link other ) noexcept
-//        {   //                                   ^
-//            //                                   |
-//            // Use the copy constructor   -------+
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        Link( Link && other ) noexcept
-//        :   Link()
-//        {
-//            swap(*this, other);
-//        }
-        
         
     private:
         
@@ -144,8 +119,9 @@ namespace Knoodle
             const Int n = edge_count;
             
             component_ptr[0] = 0;
-            
             component_ptr[1] = n;
+            
+            if( n <= Int(0) ) { return; }
             
             for( Int i = 0; i < n-1; ++i )
             {
@@ -160,22 +136,24 @@ namespace Knoodle
             next_edge [n-1] = 0;
         }
         
-//        template<typename J, typename K>
-//        explicit Link( Tensor1<J,K> & component_ptr_ )
-//        :   Link(
-//                (component_ptr_.Size() == 0) ? 0 : component_ptr_.Last()
-//            )
-//        ,   component_ptr( component_ptr_.data(), component_ptr_.Size() )
-//        {
-//            static_assert(IntQ<J>,"");
-//            static_assert(IntQ<K>,"");
+        template<typename J, typename K>
+        explicit Link( Tensor1<J,K> & component_ptr_ )
+        :   Link(
+                (component_ptr_.Size() == J(0))
+                ? Int(0)
+                : int_cast<Int>(component_ptr_.Last())
+            )
+        ,   component_ptr( component_ptr_ )
+        {
+            static_assert(IntQ<J>,"");
+            static_assert(IntQ<K>,"");
         
-//            // AoS = array of structures, i.e., loading data in interleaved form
-//            
-//            cyclicQ     = (component_count == Int(1));
-//            preorderedQ = true;
-//            
-//        }
+            // AoS = array of structures, i.e., loading data in interleaved form
+            
+            cyclicQ     = (component_count == Int(1));
+            preorderedQ = true;
+            
+        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         
@@ -333,54 +311,35 @@ namespace Knoodle
             // using edge_ptr temporarily as scratch space.
             mptr<Int> perm = edge_ptr.data();
             
-            std::vector<Int> comp_ptr;
+            Aggregator<Int,Int> agg (2);
             
-            comp_ptr.push_back(0);
+            agg.Push(0);
 
             Int visited_edge_counter = 0;
 
-            Tensor1<bool,Int> edge_visited( edge_count, false );
+            Tensor1<bool,Int> e_visitedQ( edge_count, false );
             
-            for( Int e = 0; e < edge_count; ++e )
+            for( Int e_0 = 0; e_0 < edge_count; ++e_0 )
             {
-                if( edge_visited[e] )
+                if( e_visitedQ[e_0] ) { continue; }
+                
+                Int e = e_0;
+                do
                 {
-                    continue;
-                }
-                else
-                {
-                    const Int start_edge = e;
-
-                    Int current_edge = e;
-
-                    edge_visited[current_edge] = true;
-                    perm[visited_edge_counter] = current_edge;
+                    e_visitedQ[e] = true;
+                    perm[visited_edge_counter] = e;
                     ++visited_edge_counter;
-                    current_edge = next_edge[current_edge];
-
-                    bool finished = current_edge == start_edge;
-
-                    while( !finished )
-                    {
-                        edge_visited[current_edge] = true;
-                        perm[visited_edge_counter] = current_edge;
-                        ++visited_edge_counter;
-
-                        current_edge = next_edge[current_edge];
-
-                        finished = current_edge == start_edge;
-                    }
-
-                    comp_ptr.push_back( visited_edge_counter );
+                    e = next_edge[e];
                 }
+                while( e != e_0 );
+
+                agg.Push( visited_edge_counter );
+                
             }
             
-            component_count = Max(
-                Int(0),
-                static_cast<Int>(comp_ptr.size()) - Int(1)
-            );
+            component_count = Max( Int(0), agg.Size() - Int(1) );
             
-            component_ptr = Tensor1<Int,Int>( &comp_ptr[0], component_count+1 );
+            component_ptr = agg.Disband();
         }
         
         void FinishPreparations()

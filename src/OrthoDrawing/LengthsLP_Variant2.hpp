@@ -97,11 +97,12 @@ Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
     //  \sum_{e \in E(Dh)} DhE_cost[e] * (y[Dh.Edges()(e,1)] - y[Dh.Edges()(e,0)])
 
     {
-        auto & E      = Dv().Edges();
-        auto & E_cost = DvEdgeCosts();
-        Int    offset = d.DvV_offset;
+        auto &    E       = Dv().Edges();
+        auto &    E_cost  = DvEdgeCosts();
+              Int offset  = d.DvV_offset;
+        const Int e_count = E.Dim(0);
         
-        for( Int e = 0; e < E.Dim(0); ++e )
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int  v_0    = E(e,Tail);
             const Int  v_1    = E(e,Head);
@@ -113,11 +114,12 @@ Tensor1<COIN_Real,COIN_Int> Lengths_ObjectiveVector_Variant2()
     }
     
     {
-        auto & E      = Dh().Edges();
-        auto & E_cost = DhEdgeCosts();
-        Int    offset = d.DhV_offset;
+        auto &    E       = Dh().Edges();
+        auto &    E_cost  = DhEdgeCosts();
+        Int       offset  = d.DhV_offset;
+        const Int e_count = E.Dim(0);
         
-        for( Int e = 0; e < E.Dim(0); ++e )
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int  v_0    = E(e,Tail);
             const Int  v_1    = E(e,Head);
@@ -150,8 +152,9 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant
         const auto & E   = Dv().Edges();
         const I v_offset = d.DvV_offset;
         const I e_offset = d.DvE_offset;
+        const I e_count  = int_cast<I>(E.Dim(0));
         
-        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
+        for( I e = 0; e < e_count; ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));
@@ -166,8 +169,9 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant
         const auto & E   = Dh().Edges();
         const I v_offset = d.DhV_offset;
         const I e_offset = d.DhE_offset;
+        const I e_count  = int_cast<I>(E.Dim(0));
         
-        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
+        for( I e = 0; e < e_count; ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));

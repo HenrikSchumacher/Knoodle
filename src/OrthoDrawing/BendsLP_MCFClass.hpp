@@ -44,7 +44,9 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
     Tensor1<I,I> tails ( m );
     Tensor1<I,I> heads ( m );
 
-    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+    const ExtInt a_count = pd.Arcs().Dim(0);
+    
+    for( ExtInt a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
@@ -95,13 +97,13 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
     
     mcf.SolveMCF();
 
-    Tensor1<R,ExtInt> s ( ExtInt(2) * pd.Arcs().Dim(0) );
+    Tensor1<R,ExtInt> s ( ExtInt(2) * a_count );
 
     mcf.MCFGetX(s.data());
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
 
-    for( ExtInt a = 0; a < pd.Arcs().Dim(0); ++a )
+    for( ExtInt a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {

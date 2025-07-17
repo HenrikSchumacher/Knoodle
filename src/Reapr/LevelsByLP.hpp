@@ -62,16 +62,18 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
     
     Real minimum = std::round( sol[0] );
     
-    for( Int i = 0; i < pd.ArcCount(); ++i )
-    {
-        L[i] = std::round( sol[i] );
+    const Int a_count = pd.ArcCount();
         
-        minimum = Min( minimum, L[i] );
+    for( Int a = 0; a < a_count; ++a )
+    {
+        L[a] = std::round( sol[a] );
+        
+        minimum = Min( minimum, L[a] );
     }
     
-    for( Int i = 0; i < pd.ArcCount(); ++i )
+    for( Int a = 0; a < a_count; ++a )
     {
-        L[i] -= minimum;
+        L[a] -= minimum;
     }
     
     return L;

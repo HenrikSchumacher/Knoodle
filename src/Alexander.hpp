@@ -142,12 +142,11 @@ namespace Knoodle
 
             Int counter = 0;
             
-            for( Int c = 0; c < C_arcs.Dim(0); ++c )
+            const Int c_count = C_arcs.Dim(0);
+            
+            for( Int c = 0; c < c_count; ++c )
             {
-                if( counter >= n )
-                {
-                    break;
-                }
+                if( counter >= n ) { break; }
                 
                 const CrossingState s = C_state[c];
 
@@ -258,12 +257,11 @@ namespace Knoodle
             
             Int counter = 0;
             
-            for( Int c = 0; c < C_arcs.Dim(0); ++c )
+            const Int c_count = C_arcs.Dim(0);
+            
+            for( Int c = 0; c < c_count; ++c )
             {
-                if( counter >= n )
-                {
-                    break;
-                }
+                if( counter >= n ) { break; }
                 
                 const CrossingState s = C_state[c];
 
@@ -383,12 +381,11 @@ namespace Knoodle
                 
                 Int counter = 0;
                 
-                for( Int c = 0; c < C_arcs.Dim(0); ++c )
+                const Int c_count = C_arcs.Dim(0);
+                
+                for( Int c = 0; c < c_count; ++c )
                 {
-                    if( counter >= n )
-                    {
-                        break;
-                    }
+                    if( counter >= n ) { break; }
                     
                     const CrossingState s = C_state[c];
                     

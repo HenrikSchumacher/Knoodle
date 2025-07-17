@@ -116,7 +116,9 @@ void ComputeEdgeLeftDedges()
     cptr<Turn_T> dE_turn    = E_turn.data();
     cptr<Int>    dE_V       = E_V.data();
     
-    for( Int e = 0; e < E_V.Dim(0); ++e )
+    const Int e_count = E_V.Dim(0);
+    
+    for( Int e = 0; e < e_count; ++e )
     {
         const Int de_0 = ToDedge<Tail>(e);
         const Int de_1 = ToDedge<Head>(e);
@@ -217,7 +219,9 @@ bool CheckEdgeDirection( Int e )
 template<bool verboseQ = true>
 bool CheckEdgeDirections()
 {
-    for( Int e = 0; e < E_V.Dim(0); ++e )
+    const Int e_count = E_V.Dim(0);
+    
+    for( Int e = 0; e < e_count; ++e )
     {
         if ( !this->template CheckEdgeDirection<false,verboseQ>(e) )
         {

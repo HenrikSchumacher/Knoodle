@@ -4,9 +4,11 @@ public:
         {
             ClearCollisionData();
             
-            for( Int k = 0; k < EdgeCount(); ++k )
+            const Int e_count = EdgeCount();
+            
+            for( Int k = 0; k < e_count; ++k )
             {
-                for( Int l = k+1; l < EdgeCount(); ++l )
+                for( Int l = k+1; l < e_count; ++l )
                 {
                     MovingEdgeCollisions(k,l);
                 }

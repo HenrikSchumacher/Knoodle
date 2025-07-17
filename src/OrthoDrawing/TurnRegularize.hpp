@@ -56,7 +56,9 @@ void TurnRegularize()
         Resize(max_edge_count);
     }
     
-    for( Int de_ptr = 0; de_ptr < Int(2) * E_V.Dim(0); ++de_ptr )
+    const Int dE_count = Int(2) * E_V.Dim(0);
+    
+    for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
     {
         TurnRegularizeFace(engine,de_ptr);
     }

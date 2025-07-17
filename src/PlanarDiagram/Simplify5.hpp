@@ -8,6 +8,8 @@ public:
  *
  * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
+ * @param min_dist This is the maximum distance used in Dijkstra's algorithm for the first rerouting pass. Further rerouting passes will use increasing values until `max_dist` is reached. For large diagrams a small value like `min_dist = 6` might increase performance as Dijkstra's algorithm is not allowed to grow large frontiers and because more frequent recompression might improve cache locality.
+ *
  * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
  *
  * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
@@ -17,13 +19,87 @@ public:
  * @param simplify3_max_iter If `simplify3_level > 0`, then this set the maximal number of times to cycle through the list of all arcs to look for local patterns.
  */
 
+//bool Simplify5(
+//    PD_List_T & pd_list,
+//    const Int  max_dist = std::numeric_limits<Int>::max(),
+//    const bool compressQ = true,
+//    const Int  simplify3_level = 4,
+//    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
+//    const bool strand_R_II_Q = true
+//)
+//{
+//    if( proven_minimalQ || InvalidQ() )
+//    {
+//        return false;
+//    }
+//    
+//    TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
+//         + "(" + ToString(max_dist)
+//         + "," + ToString(compressQ)
+//         + "," + ToString(simplify3_level)
+//         + "," + ToString(simplify3_max_iter)
+//         + "," + ToString(strand_R_II_Q)
+//         + ")");
+//
+//    bool globally_changedQ = false;
+//    bool changedQ = false;
+//    
+//    do
+//    {
+//        changedQ = Simplify4(
+//            max_dist, compressQ,
+//            simplify3_level, simplify3_max_iter, strand_R_II_Q
+//        );
+//        
+//        if( CrossingCount() >= 6 )
+//        {
+//            changedQ = changedQ
+//            ||
+//            DisconnectSummands(
+//                pd_list, max_dist, compressQ,
+//                simplify3_level, simplify3_max_iter, strand_R_II_Q
+//            );
+//        }
+//        
+//        globally_changedQ = globally_changedQ || changedQ;
+//    }
+//    while( changedQ );
+//
+//    
+//    if( globally_changedQ )
+//    {
+//        if( compressQ )
+//        {
+//            Compress();   // This also erases the Cache.
+//        }
+//        else
+//        {
+//            this->ClearCache();
+//        }
+//    }
+//
+//    if( AlternatingQ() && (LinkComponentCount() <= 1) )
+//    {
+//        proven_minimalQ = true;
+//    }
+//    
+//    if( ValidQ() && (CrossingCount() == Int(0)) )
+//    {
+//        proven_minimalQ = true;
+//    }
+//    
+//    return globally_changedQ;
+//}
+
+
 bool Simplify5(
     PD_List_T & pd_list,
-    const Int  max_dist = std::numeric_limits<Int>::max(),
-    const bool compressQ = true,
-    const Int  simplify3_level = 4,
+    const Int  min_dist           = 6,
+    const Int  max_dist           = std::numeric_limits<Int>::max(),
+    const bool compressQ          = true,
+    const Int  simplify3_level    = 4,
     const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q = true
+    const bool strand_R_II_Q      = true
 )
 {
     if( proven_minimalQ || InvalidQ() )
@@ -32,7 +108,8 @@ bool Simplify5(
     }
     
     TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
-         + "(" + ToString(max_dist)
+         + "(" + ToString(min_dist)
+         + "," + ToString(max_dist)
          + "," + ToString(compressQ)
          + "," + ToString(simplify3_level)
          + "," + ToString(simplify3_max_iter)
@@ -45,7 +122,7 @@ bool Simplify5(
     do
     {
         changedQ = Simplify4(
-            max_dist, compressQ,
+            min_dist, max_dist, compressQ,
             simplify3_level, simplify3_max_iter, strand_R_II_Q
         );
         
@@ -54,7 +131,7 @@ bool Simplify5(
             changedQ = changedQ
             ||
             DisconnectSummands(
-                pd_list, max_dist, compressQ,
+                pd_list, min_dist, max_dist, compressQ,
                 simplify3_level, simplify3_max_iter, strand_R_II_Q
             );
         }

@@ -187,7 +187,9 @@ void ComputeConstraintGraphs() const
     {
         EdgeContainer_T DvV_bottomtop_DhV ( DvV_E.SublistCount() );
         
-        for( Int s = 0; s < DvV_E.SublistCount(); ++s )
+        const Int s_count = DvV_E.SublistCount();
+        
+        for( Int s = 0; s < s_count; ++s )
         {
             DvV_bottomtop_DhV(s,Tail ) = V_DhV[ DvV_V.Sublist(s).begin()[0] ];
             DvV_bottomtop_DhV(s,Head ) = V_DhV[ DvV_V.Sublist(s).end()[-1]  ];
@@ -199,7 +201,9 @@ void ComputeConstraintGraphs() const
     {
         EdgeContainer_T DhV_leftright_DvV ( DhV_E.SublistCount() );
         
-        for( Int s = 0; s < DhV_E.SublistCount(); ++s )
+        const Int s_count = DhV_E.SublistCount();
+        
+        for( Int s = 0; s < s_count; ++s )
         {
             DhV_leftright_DvV(s,Left ) = V_DvV[ DhV_V.Sublist(s).begin()[0] ];
             DhV_leftright_DvV(s,Right) = V_DvV[ DhV_V.Sublist(s).end()[-1]  ];
@@ -215,7 +219,9 @@ void ComputeConstraintGraphs() const
     {
         const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
         
-        for( Int e = 0; e < Gl_edges.Dim(0); ++e )
+        const Int e_count = Gl_edges.Dim(0);
+        
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int v_0 = Gl_edges(e,Tail);
             const Int v_1 = Gl_edges(e,Head);
@@ -237,7 +243,9 @@ void ComputeConstraintGraphs() const
     {
         const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
         
-        for( Int e = 0; e < Gr_edges.Dim(0); ++e )
+        const Int e_count = Gr_edges.Dim(0);
+        
+        for( Int e = 0; e < e_count; ++e )
         {
             const Int v_0 = Gr_edges(e,Tail);
             const Int v_1 = Gr_edges(e,Head);
@@ -609,7 +617,9 @@ cref<RaggedList<Int,Int>> FaceSegments() const
 //    // Index shifts/offsets
 //    const Int h = Dv().VertexCount();
 //
-//    for( Int f = 0; f < FaceCount(); ++f )
+//    const Int f_count = FaceCount();
+//
+//    for( Int f = 0; f < f_count; ++f )
 //    {
 //        auto f_DvV = F_DvV.Sublist(f);
 //        auto f_DhV = F_DhV.Sublist(f);

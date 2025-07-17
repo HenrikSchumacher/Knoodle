@@ -111,7 +111,9 @@ namespace Knoodle
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
             
-            for( EInt e = 0; e < edges.Dim(0); ++e )
+            const EInt m = edges.Dim(0);
+            
+            for( EInt e = 0; e < m; ++e )
             {
                 edges(e,Tail) = tails[e];
                 edges(e,Head) = heads[e];
@@ -163,8 +165,10 @@ namespace Knoodle
 //            
 //            cptr<I_0> i = pairs.data_0();
 //            cptr<I_0> j = pairs.data_1();
-//            
-//            for( EInt e = 0; e < edges.Dim(0); ++e )
+//
+//            EInt e_count = edges.Dim(0);
+//
+//            for( EInt e = 0; e < e_count; ++e )
 //            {
 //                edges(e,Tail) = i[e];
 //                edges(e,Head) = j[e];

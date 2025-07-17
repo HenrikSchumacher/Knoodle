@@ -152,8 +152,9 @@ void RequireFaces( bool ignore_virtual_edgesQ ) const
     
     Int f_max = 0;
     Int max_f_size = F_dE.SublistSize(f_max);
+    const Int f_count = F_dE.SublistCount();
     
-    for( Int f = 1; f < F_dE.SublistCount(); ++f )
+    for( Int f = 1; f < f_count; ++f )
     {
         const Int f_size = F_dE.SublistSize(f);
         
@@ -222,11 +223,12 @@ cref<EdgeContainer_T> EdgeFaces( bool ignore_virtual_edgesQ ) const
 //) const
 //{
 //    TOOLS_PTIMER(timer,ClassName()+"::TraverseAllFaces");
-//    
+//
 //    auto & F_dE_ptr = FaceDedges().Pointers();
 //    auto & F_dE_idx = FaceDedges().Elements();
-//    
-//    for( Int f = 0; f < FaceCount(); ++f )
+//    const Int f_count = FaceCount();
+//
+//    for( Int f = 0; f < f_count; ++f )
 //    {
 //        const Int k_begin = F_dE_ptr[f    ];
 //        const Int k_end   = F_dE_ptr[f + 1];

@@ -10,7 +10,9 @@ Aggregator<Int,Int> SegmentsInfluencedByVirtualEdges()
     const Int v_offset = 0;
     const Int h_offset = Dv().VertexCount();
     
-    for( Int e = E_V.Dim(0) - virtual_edge_count; e < E_V.Dim(0); ++ e )
+    const Int e_count = E_V.Dim(0);
+    
+    for( Int e = e_count - virtual_edge_count; e < e_count; ++ e )
     {
         const Int v_0 = E_V(e,Tail);
         const Int v_1 = E_V(e,Head);

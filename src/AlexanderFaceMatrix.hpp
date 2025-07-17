@@ -2,6 +2,8 @@
 
 namespace Knoodle
 {
+    // TODO: Some care has to be taken in cases where not all crossings or arcs are active.
+    
     template<typename Scal_, typename Int_, typename LInt_>
     class AlexanderFaceMatrix final
     {
@@ -71,7 +73,9 @@ namespace Knoodle
                 Int row_counter     = 0;
                 Int nonzero_counter = 0;
                 
-                for( Int c = 0; c < C_arcs.Dim(0); ++c )
+                const Int c_count = C_arcs.Dim(0);
+                
+                for( Int c = 0; c < c_count; ++c )
                 {
                     if( row_counter >= m )
                     {
@@ -289,12 +293,11 @@ namespace Knoodle
             
             const Scal T = scalar_cast<Scal>(t);
             
-            for( Int c = 0; c < C_arcs.Dim(0); ++c )
+            const Int c_count = C_arcs.Dim(0);
+            
+            for( Int c = 0; c < c_count; ++c )
             {
-                if( row_counter >= m )
-                {
-                    break;
-                }
+                if( row_counter >= m ) { break; }
                 
                 const CrossingState s = C_state[c];
 

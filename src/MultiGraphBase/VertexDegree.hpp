@@ -6,7 +6,9 @@ VV_Vector_T VertexDegrees_impl() const
     // We have to initialize by to account for disconnected vertices.
     VV_Vector_T degree (vertex_count,VInt(0));
 
-    for( EInt e = 0; e < EdgeCount(); ++e )
+    const EInt e_count = EdgeCount();
+    
+    for( EInt e = 0; e < e_count; ++e )
     {
         switch( inout )
         {

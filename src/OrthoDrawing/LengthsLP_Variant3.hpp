@@ -31,7 +31,9 @@ Tensor1<COIN_Real,COIN_Int> Lengthsx_ObjectiveVector()
     // objective =
     //  \sum_{e \in E(Dv)} DvE_cost[e] * (x[Dv.Edges()(e,1)] - x[Dv.Edges()(e,0)])
     
-    for( Int e = 0; e < E.Dim(0); ++e )
+    const Int e_count = E.Dim(0);
+    
+    for( Int e = 0; e < e_count; ++e )
     {
         const Int  v_0    = E(e,Tail);
         const Int  v_1    = E(e,Head);
@@ -60,8 +62,9 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsx_ConstraintMatrix()
     TripleAggregator<I,I,S,J> agg ( J(3) * static_cast<J>(G.EdgeCount()) );
     
     const auto & E = G.Edges();
+    const I e_count = int_cast<I>(E.Dim(0));
     
-    for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
+    for( I e = 0; e < e_count; ++e )
     {
         const I v_0 = static_cast<I>(E(e,Tail));
         const I v_1 = static_cast<I>(E(e,Head));
@@ -183,7 +186,9 @@ Tensor1<COIN_Real,COIN_Int> Lengthsy_ObjectiveVector()
     // objective =
     //  \sum_{e \in E(Dv)} DvE_cost[e] * (x[Dv.Edges()(e,1)] - x[Dv.Edges()(e,0)])
 
-    for( Int e = 0; e < E.Dim(0); ++e )
+    const Int e_count = E.Dim(0);
+    
+    for( Int e = 0; e < e_count; ++e )
     {
         const Int  v_0    = E(e,Tail);
         const Int  v_1    = E(e,Head);
@@ -214,7 +219,9 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsy_ConstraintMatrix()
     {
         const auto & E = G.Edges();
         
-        for( I e = 0; e < int_cast<I>(E.Dim(0)); ++e )
+        const I e_count = int_cast<I>(E.Dim(0));
+        
+        for( I e = 0; e < e_count; ++e )
         {
             const I v_0 = static_cast<I>(E(e,Tail));
             const I v_1 = static_cast<I>(E(e,Head));

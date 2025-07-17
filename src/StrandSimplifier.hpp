@@ -327,7 +327,9 @@ namespace Knoodle
         {
             duds.clear();
             
-            for( Int a = 0; a < A_cross.Dim(0); ++a )
+            const Int m = A_cross.Dim(0);
+            
+            for( Int a = 0; a < m; ++a )
             {
                 if( pd.ArcActiveQ(a) )
                 {
@@ -814,12 +816,15 @@ namespace Knoodle
             
             SetStrandMode(overQ_);
             
-            TOOLS_PTIMER(timer,ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands");
+            TOOLS_PTIMER(timer,ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands<" + ToString(R_II_Q) + ">(" + ToString(max_dist) + ")" );
             
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
-
+//            if( max_dist <= Int(0) ) { return 0; }
+            
+            if( max_dist <= Int(0) ) { return 0; }
+            
             Prepare();
             
             const Int m = A_cross.Dim(0);
@@ -847,10 +852,7 @@ namespace Knoodle
                     ++a_ptr;
                 }
                 
-                if( a_ptr >= m )
-                {
-                    break;
-                }
+                if( a_ptr >= m ) { break; }
                 
                 // Find the beginning of first strand.
                 Int a_begin = WalkBackToStrandStart(a_ptr);
@@ -1002,9 +1004,7 @@ namespace Knoodle
                              */
 
 
-                            if(
-                               !strand_completeQ || (A_color(a_next) != color)
-                            )
+                            if( !strand_completeQ || (A_color(a_next) != color) )
                             {
                                 RemoveLoop(a,c_1);
                                 RepairArcLeftArcs();
@@ -1140,7 +1140,7 @@ namespace Knoodle
                     if( strand_completeQ )
                     {
                         bool changedQ = false;
-                        
+
                         if( (strand_length > Int(1)) && (max_dist > Int(0)) )
                         {
                             changedQ = RerouteToShortestPath_impl(
@@ -1149,19 +1149,13 @@ namespace Knoodle
                                 color
                             );
                             
-                            if( changedQ )
-                            {
-                                RepairArcLeftArcs();
-                            }
+                            if( changedQ ) { RepairArcLeftArcs(); }
                         }
                         
                         // TODO: Check this.
-//                        if( changedQ && (!ActiveQ(a_0_state)) )
-                        if( changedQ || (!ActiveQ(a_0_state)) )
-                        {
-                            // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence we rather break the while loop here.
-                            break;
-                        }
+
+                        // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence we rather break the while loop here.
+                        if( changedQ || (!ActiveQ(a_0_state)) ) { break; }
                         
                         // Create a new strand.
                         strand_length = 0;

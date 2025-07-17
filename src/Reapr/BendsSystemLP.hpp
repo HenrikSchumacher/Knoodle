@@ -70,7 +70,9 @@ Tensor1<Real,Int> BendsRowEqualityVector(
     Int max_arc_count = 0;
     Int max_face      = 0;
     
-    for( Int f = 0; f < pd.FaceCount(); ++f )
+    const Int f_count = pd.FaceCount();
+    
+    for( Int f = 0; f < f_count; ++f )
     {
         const Int arc_count = f_da_ptr[f+1] - f_da_ptr[f];
         
@@ -83,7 +85,7 @@ Tensor1<Real,Int> BendsRowEqualityVector(
         v[f] = Real(4) - Real( f_da_ptr[f+1] - f_da_ptr[f] );
     }
     
-    if( (Int(0) <= ext_face) && (ext_face < pd.FaceCount()) )
+    if( (Int(0) <= ext_face) && (ext_face < f_count) )
     {
         v[ext_face] -= Real(8);
     }

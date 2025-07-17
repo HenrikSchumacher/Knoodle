@@ -36,11 +36,11 @@ namespace Knoodle
         :   n       { int_cast<Int>(vertex_count_) }
         ,   hard_sphere_diam { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam { hard_sphere_diam * hard_sphere_diam }
-        ,   X       { n, AmbDim                    }
-        ,   Y       { n, AmbDim                    }
-        ,   P_tree  { n                            } // for allocating P_boxes and Q_boxes.
-        ,   P_boxes { P_tree.AllocateBoxes()       }
-        ,   Q_boxes { P_tree.AllocateBoxes()       }
+        ,   X       { n, AmbDim }
+        ,   Y       { n, AmbDim }
+        ,   P_tree  { n         } // for allocating P_boxes and Q_boxes.
+        ,   P_boxes { n         }
+        ,   Q_boxes { n         }
         {
             P_tree = Tree_T();
             
