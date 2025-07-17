@@ -36,7 +36,11 @@ namespace Knoodle
         
         using BContainer_T = Tensor3<BReal,Int>;
         
-        using EContainer_T = Tensor3<Real,Int>;
+//        using EContainer_T = Tensor3<Real,Int>;
+        
+//        using BContainer_T = Tiny::MatrixList_AoS<AmbDim,2,Real,Int>;
+        
+        using EContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
         
         using UInt = Scalar::Unsigned<Int>;
         
@@ -56,29 +60,7 @@ namespace Knoodle
         AABBTree( AABBTree && other ) = default;
         // Move assignment operator
         AABBTree & operator=( AABBTree && other ) = default;
-        
-//        friend void swap( AABBTree & A, AABBTree & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-//        }
-//        
-//        // Copy assignment operator
-//        AABBTree & operator=( AABBTree other ) noexcept
-//        {
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        AABBTree( AABBTree && other ) noexcept
-//        :   AABBTree()
-//        {
-//            swap(*this, other);
-//        }
-        
+
     protected:
         
         // Integer data for the combinatorics of the tree.
@@ -128,6 +110,8 @@ namespace Knoodle
         {
             static_assert(point_count > Int(0), "");
             
+            // TODO: If we store upper and lower bounds as vectors, then this can be vectorized?
+            
             columnwise_minmax<point_count,AmbDim>(
                 P, dimP, &B[0], Size_T(2), &B[1], Size_T(2)
             );
@@ -137,20 +121,23 @@ namespace Knoodle
             {
                 for( Int k = 0; k < AmbDim; ++k )
                 {
-                    B[2 * 0 + k] = PrevFloat(B[2 * 0 + k]);
-                    B[2 * 1 + k] = NextFloat(B[2 * 1 + k]);
+                    B[2 * k + 0] = PrevFloat(B[2 * k + 0]);
+                    B[2 * k + 1] = NextFloat(B[2 * k + 1]);
                 }
             }
         }
         
-        static constexpr void BoxesToBox(cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N)
+        static constexpr void BoxesToBox(
+            cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
+        )
         {
             // TODO: Can this be vectorized?
+            // Yes, if we store upper and lower bounds as vectors!
             
             for( Int k = 0; k < AmbDim; ++k )
             {
-                B_N[2*k+0] = Min( B_L[2*k+0], B_R[2*k+0] );
-                B_N[2*k+1] = Max( B_L[2*k+1], B_R[2*k+1] );
+                B_N[2 * k + 0] = Min( B_L[2 * k + 0], B_R[2 * k + 0] );
+                B_N[2 * k + 1] = Max( B_L[2 * k + 1], B_R[2 * k + 1] );
             }
         }
         

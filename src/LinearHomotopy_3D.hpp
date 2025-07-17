@@ -125,8 +125,8 @@ namespace Knoodle
         ,   T_0         { T_0_                          }
         ,   T_1         { T_1_                          }
         ,   DeltaT      { T_1 - T_0                     }
-        ,   E_0_buffer  { L.EdgeCount(), 2, 3           }
-        ,   E_1_buffer  { L.EdgeCount(), 2, 3           }
+        ,   E_0_buffer  { L.EdgeCount()                 }
+        ,   E_1_buffer  { L.EdgeCount()                 }
         ,   B_0_buffer  { L.Tree().NodeCount(), 3, 2    }
         ,   B_1_buffer  { L.Tree().NodeCount(), 3, 2    }
         ,   E_0         { E_0_buffer                    }

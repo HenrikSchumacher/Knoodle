@@ -37,8 +37,6 @@ namespace Knoodle
         using EContainer_T   = typename Tree_T::EContainer_T;
         using BContainer_T   = typename Tree_T::BContainer_T;
         
-//        using EContainer_T = std::vector<std::array<Vector3_T,2>>;
-        
         using BinaryMatrix_T   = Sparse::BinaryMatrixCSR<Int,Size_T>;
         
     protected:
@@ -57,8 +55,7 @@ namespace Knoodle
         using Base_T::preorderedQ;
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
-        
-//        VContainer_T V_coords;
+
         EContainer_T E_coords;
         
         Tree_T T;
@@ -88,37 +85,12 @@ namespace Knoodle
         // Move assignment operator
         Link_3D & operator=( Link_3D && other ) = default;
         
-//        friend void swap( Link_3D & A, Link_3D & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<Base_T &>(A), static_cast<Base_T &>(B) );
-//            
-//            swap( A.E_coords                , B.E_coords                    );
-//            swap( A.T                       , B.T                           );
-//        }
-//        
-//        // Copy assignment operator
-//        Link_3D & operator=( Link_3D other ) noexcept
-//        {
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        Link_3D( Link_3D && other ) noexcept
-//        :   Link_3D()
-//        {
-//            swap(*this, other);
-//        }
-        
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
         explicit Link_3D( const I edge_count_ )
         :   Base_T   { int_cast<Int>(edge_count_) }
-        ,   E_coords { this->EdgeCount(), 2, 3    }
+        ,   E_coords { this->EdgeCount()          }
         ,   T        { this->EdgeCount()          }
         {}
         
@@ -126,7 +98,7 @@ namespace Knoodle
         template< typename I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
         :   Base_T   { edges_, edge_count_     }
-        ,   E_coords { this->EdgeCount(), 2, 3 }
+        ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
             static_assert(IntQ<I>,"");
@@ -135,7 +107,7 @@ namespace Knoodle
         template< typename I>
         Link_3D( cptr<Real> V_coords_, cptr<Int> edges_, const I edge_count_ )
         :   Base_T   { edges_, edge_count_     }
-        ,   E_coords { this->EdgeCount(), 2, 3 }
+        ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
             static_assert(IntQ<I>,"");
@@ -148,7 +120,7 @@ namespace Knoodle
         template< typename I>
         Link_3D( cptr<Real> V_coords_, const I edge_count_ )
         :   Base_T   { edge_count_             }
-        ,   E_coords { this->EdgeCount(), 2, 3 }
+        ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
             static_assert(IntQ<I>,"");
@@ -158,7 +130,7 @@ namespace Knoodle
         
         Link_3D( cref<Base_T> link )
         :   Base_T   { link                    }
-        ,   E_coords { this->EdgeCount(), 2, 3 }
+        ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {}
 
@@ -190,8 +162,8 @@ namespace Knoodle
                     const Int i = e;
                     const Int j = next_edge[e];
 
-                    copy_buffer<3>( &V[3*i] , E.data(e,0,0) );
-                    copy_buffer<3>( &V[3*j] , E.data(e,1,0) );
+                    copy_buffer<3>( &V[3*i] , E.data(e,0) );
+                    copy_buffer<3>( &V[3*j] , E.data(e,1) );
                 }
             }
             else
@@ -204,8 +176,8 @@ namespace Knoodle
                     const Int i = tails[e];
                     const Int j = heads[e];
 
-                    copy_buffer<3>( &V[3*i] , E.data(e,0,0) );
-                    copy_buffer<3>( &V[3*j] , E.data(e,1,0) );
+                    copy_buffer<3>( &V[3*i] , E.data(e,0) );
+                    copy_buffer<3>( &V[3*j] , E.data(e,1) );
                 }
             }
         }
@@ -223,7 +195,7 @@ namespace Knoodle
             {
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    copy_buffer<3>( E.data(e,0,0), &V[3*e] );
+                    copy_buffer<3>( E.data(e,0), &V[3*e] );
                 }
             }
             else
@@ -234,7 +206,7 @@ namespace Knoodle
                 {
                     const Int i = tails[e];
                     
-                    copy_buffer<3>( E.data(e,0,0), &V[3*i] );
+                    copy_buffer<3>( E.data(e,0), &V[3*i] );
                 }
             }
         }
@@ -256,7 +228,7 @@ namespace Knoodle
 //                copy_buffer<3>( E_coords_.data(e,0,0), &E[6 * e + 0] );
 //                copy_buffer<3>( E_coords_.data(e,1,0), &E[6 * e + 3] );
                 
-                copy_buffer<6>( E_coords_.data(e,0,0), &E[6 * e] );
+                copy_buffer<6>( E_coords_.data(e,0), &E[6 * e] );
             }
         }
         

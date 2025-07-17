@@ -103,45 +103,6 @@ namespace Knoodle
         // Move assignment operator
         Knot_2D & operator=( Knot_2D && other ) = default;
         
-//        friend void swap( Knot_2D & A, Knot_2D & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( A.edge_count              , B.edge_count                  );
-//            swap( A.vertex_coords           , B.vertex_coords               );
-//            swap( A.edge_ptr                , B.edge_ptr                    );
-//            swap( A.component_ptr           , B.component_ptr               );
-//            
-//            
-//            swap( A.R                       , B.R                           );
-//            swap( A.T                       , B.T                           );
-//            swap( A.box_coords              , B.box_coords                  );
-//            
-//            swap( A.intersections           , B.intersections               );
-//            swap( A.edge_intersections      , B.edge_intersections          );
-//            swap( A.edge_times              , B.edge_times                  );
-//            swap( A.edge_overQ              , B.edge_overQ                  );
-//            swap( A.Sterbenz_shift          , B.Sterbenz_shift              );
-//
-//            swap( A.S                       , B.S                           );
-//            swap( A.intersection_flag_counts, B.intersection_flag_counts    );
-//            swap( A.intersection_count_3D   , B.intersection_count_3D       );
-//        }
-//        
-//        // Copy assignment operator
-//        Knot_2D & operator=( Knot_2D other ) noexcept
-//        {
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        Knot_2D( Knot_2D && other ) noexcept
-//        :   Knot_2D()
-//        {
-//            swap(*this, other);
-//        }
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */

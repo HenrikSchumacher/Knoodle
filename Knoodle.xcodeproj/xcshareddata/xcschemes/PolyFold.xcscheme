@@ -58,15 +58,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d1.0 -n100000 -b25000 -s10000 -N1000 /Users/Henrik/PolyFoldExperiments/XCode -cgemaG -v1 -P-1"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d1.0 -n16000000 -b1 -s100000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgemaG -v0 -P-1 -R1"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d1.0 -n1000 -b1 -s100000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R1"
-            isEnabled = "NO">
+            argument = "-d1.0 -n1000 -b100 -s100 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R1"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
