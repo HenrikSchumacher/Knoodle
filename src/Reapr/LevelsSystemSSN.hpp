@@ -1,12 +1,12 @@
 public:
 
 template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
+Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd ) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC(ClassName()+"::LevelsSystemMatrix<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsSystemMatrix<" + TypeName<Int> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
@@ -47,8 +47,6 @@ Sparse::MatrixCSR<Real,I,J> LevelsSystemMatrix( mref<PlanarDiagram<Int>> pd )
     }
     
     Sparse::MatrixCSR<Real,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
-
-    TOOLS_PTOC(ClassName()+"::LevelsSystemMatrix<" + TypeName<Int> + ">");
     
     return L;
 }
@@ -61,12 +59,12 @@ void WriteLevelsSystemMatrixModifiedValues(
     cref<Sparse::MatrixCSR<Real,I,J>> L,
     cptr<Real> y,
     mptr<Real> mod_vals
-)
+) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC( ClassName()+"::WriteLevelsSystemMatrixModifiedValues"
+    TOOLS_PTIMER(timer,ClassName()+"::WriteLevelsSystemMatrixModifiedValues"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>
@@ -102,11 +100,4 @@ void WriteLevelsSystemMatrixModifiedValues(
         // But this _is_ what the semi-smooth Newton algorithm requires!
         mod_vals[k_end - 1] = (mask - Real(1));
     }
-    
-    TOOLS_PTOC( ClassName()+"::WriteLevelsSystemMatrixModifiedValues"
-       + "<" + TypeName<I>
-       + "," + TypeName<J>
-       + "," + TypeName<Int>
-       + ">"
-    );
 }

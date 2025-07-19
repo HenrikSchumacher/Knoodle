@@ -168,13 +168,10 @@ namespace Knoodle
             }
             else
             {
-                cptr<Int> tails =  edges[0].data();
-                cptr<Int> heads =  edges[1].data();
-                
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    const Int i = tails[e];
-                    const Int j = heads[e];
+                    const Int i = edges(e,0);
+                    const Int j = edges(e,1);
 
                     copy_buffer<3>( &V[3*i] , E.data(e,0) );
                     copy_buffer<3>( &V[3*j] , E.data(e,1) );
@@ -195,18 +192,16 @@ namespace Knoodle
             {
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    copy_buffer<3>( E.data(e,0), &V[3*e] );
+                    copy_buffer<3>( E.data(e,0), &V[Int(3) * e] );
                 }
             }
             else
             {
-                cptr<Int> tails =  edges[0].data();
-                
                 for( Int e = 0; e < edge_count; ++e )
                 {
-                    const Int i = tails[e];
+                    const Int i = edges(e,0);
                     
-                    copy_buffer<3>( E.data(e,0), &V[3*i] );
+                    copy_buffer<3>( E.data(e,0), &V[Int(3) * i] );
                 }
             }
         }

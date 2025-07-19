@@ -167,11 +167,11 @@ void RequireFaces( bool ignore_virtual_edgesQ ) const
     
     std::string tag = "(" + ToString(ignore_virtual_edgesQ) + ")";
     
-    this->SetCache( "FaceCount"   + tag, F_dE.SublistCount() );
-    this->SetCache( "MaxFace"     + tag, f_max               );
-    this->SetCache( "MaxFaceSize" + tag, max_f_size          );
-    this->SetCache( "FaceDedges"  + tag, std::move(F_dE)     );
-    this->SetCache( "EdgeFaces"   + tag, std::move(E_F)      );
+    this->template SetCache<false>( "FaceCount"   + tag, F_dE.SublistCount() );
+    this->template SetCache<false>( "MaxFace"     + tag, f_max               );
+    this->template SetCache<false>( "MaxFaceSize" + tag, max_f_size          );
+    this->template SetCache<false>( "FaceDedges"  + tag, std::move(F_dE)     );
+    this->template SetCache<false>( "EdgeFaces"   + tag, std::move(E_F)      );
     
 }
 

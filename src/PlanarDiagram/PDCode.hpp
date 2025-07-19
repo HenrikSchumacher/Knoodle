@@ -495,8 +495,7 @@ static PlanarDiagram<Int> FromPDCode(
             default:
             {
                 eprint(ClassName()+"::FromPDCode: Unclear crossing state.");
-                TOOLS_DUMP(pd.C_state[c]);
-                TOOLS_LOGDUMP(pd.C_state[c]);
+                TOOLS_DDUMP(pd.C_state[c]);
                 // Do nothing;
                 break;
             }

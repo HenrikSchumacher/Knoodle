@@ -7,17 +7,13 @@
 //#endif
 
 #include "../submodules/Tensors/Clp.hpp"
-//#include "OrthoDrawing.hpp"
+#include "OrthoDrawing.hpp"
 
 namespace Knoodle
 {
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
     // TODO: Call COIN-OR for height regularizer.
-    
-    
-    
-    
     
     // DONE: Allow use of Dirichlet energy as well as bending energy.
     // DONE: Call COIN-OR for TV regularizer -> simplex? interior point?
@@ -32,6 +28,8 @@ namespace Knoodle
 //#ifdef REAPR_USE_CLP
         using COIN_Int  = int;
         using COIN_LInt = CoinBigIndex;
+        
+        using PRNG_T    = pcg64;
         
         static constexpr bool CLP_enabledQ = true;
 //#else
@@ -57,14 +55,19 @@ namespace Knoodle
         Real backtracking_factor = Real(0.25);
         Real armijo_slope        = Real(0.001);
         Real tolerance           = Real(0.00000001);
-        int  max_b_iter          = 20;
-        int  max_iter            = 1000;
-        
-        int  iter                = 0;
-        
+        int  SSN_max_b_iter      = 20;
+        int  SSN_max_iter        = 1000;
+        int  SSN_iter            = 0;
+                
         Real initial_time_step   = Real(1.0) / backtracking_factor;
         
         EnergyFlag_T en_flag     = CLP_enabledQ ? EnergyFlag_T::TV: EnergyFlag_T::Dirichlet;
+        
+        int  rattle_counter      = 0;
+        Real rattle_timing       = 0;
+
+        
+        PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
     public:
         
@@ -76,9 +79,6 @@ namespace Knoodle
         void SetScaling( Real scal ) { scaling = scal; }
 
         Real Scaling() const { return scaling; }
-
-        
-
         
     private:
         
@@ -127,8 +127,11 @@ namespace Knoodle
             const Int m        = pd.ArcCount();
             auto & C_arcs      = pd.Crossings();
             auto & A_cross     = pd.Arcs();
-            cptr<Int> comp_ptr = pd.LinkComponentArcPointers().data();
             
+            const auto & lc_arcs  = pd.LinkComponentArcs();
+            const Int lc_count  = lc_arcs.SublistCount();
+            cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+//
             Tensor1<bool,Int> visitedQ ( m, false );
 
             // TODO: We need a feasible initialization of x!
@@ -138,12 +141,10 @@ namespace Knoodle
             Int b      = 0;
             Real sign  = 1;
             
-            const Int comp_count = pd.LinkComponentCount();
-            
-            for( Int comp = 0; comp < comp_count; ++comp )
+            for( Int lc = 0; lc < lc_count; ++lc )
             {
-                const Int a_begin = comp_ptr[a  ];
-                const Int a_end   = comp_ptr[a+1];
+                const Int a_begin = lc_arc_ptr[lc         ];
+                const Int a_end   = lc_arc_ptr[lc + Int(1)];
                 
                 a = a_begin;
                 
@@ -185,14 +186,10 @@ namespace Knoodle
 #include "Reapr/LevelsConstraintMatrix.hpp"
 #include "Reapr/LevelsSystemSSN.hpp"
 #include "Reapr/LevelsBySSN.hpp"
-        
 #include "Reapr/LevelsSystemLP.hpp"
-#include "Reapr/BendsSystemLP.hpp"
-        
-//#ifdef REAPR_USE_CLP
-    #include "Reapr/LevelsByLP.hpp"
-    #include "Reapr/BendsByLP.hpp"
-//#endif
+#include "Reapr/LevelsByLP.hpp"
+#include "Reapr/Embedding.hpp"
+#include "Reapr/Rattle.hpp"
         
     public:
         
@@ -218,9 +215,8 @@ namespace Knoodle
             }
         }
         
-        
         template<typename Int>
-        Tensor1<Real,Int> Levels( mref<PlanarDiagram<Int>> pd ) const
+        Tensor1<Real,Int> Levels( mref<PlanarDiagram<Int>> pd )
         {
             switch ( en_flag )
             {
@@ -246,88 +242,6 @@ namespace Knoodle
                 }
             }
         }
-        
-//        template<typename Int>
-//    std::pair<Tensor1<Int,Int>,Tensor1<Real,Int>> Embedding(
-//            mref<PlanarDiagram<Int>> pd
-//        ) const
-//        {
-//            OrthoDrawing<Int> H (pd);
-//            Tensor1<Real,Int> L = Levels(pd);
-//            
-//            const Int comp_count = pd.ComponentCount();
-//            Tensor1<Int,Int> ptr (comp_count+Int(0),Int(0));
-//
-//            
-//            pd.Components()
-//            
-//            for( Int comp = 0; comp < comp_count; ++comp )
-//            {
-//            }
-//        }
-//        
-//        template<typename Int>
-//        std::vector<PlanarDiagram<Int>> Rattle(
-//            mref<PlanarDiagram<Int>> pd, Int iter_
-//        ) const
-//        {
-//            std::vector<PlanarDiagram<Int>> result;
-//            
-//            rattle( pd, result, iter_ );
-//            
-//            return result;
-//        }
-//        
-//        template<typename Int>
-//        std::vector<PlanarDiagram<Int>> Rattle(
-//            mref<std::vector<PlanarDiagram<Int>>> pd_list, Int iter_
-//        ) const
-//        {
-//            std::vector<PlanarDiagram<Int>> result;
-//            
-//            for( auto & pd : pd_list )
-//            {
-//                rattle( pd, result, iter_ );
-//            }
-//            
-//            return result;
-//        }
-//        
-//        template<typename Int>
-//        void rattle(
-//            mref<std::vector<PlanarDiagram<Int>>> input,
-//            mref<std::vector<std::pair<PlanarDiagram<Int>,Int>>> stack,
-//            mref<std::vector<PlanarDiagram<Int>>> output,
-//            Int iter_
-//        ) const
-//        {
-//            using PD_T = PlanarDiagram<Int>;
-//            
-//            if( iter_ <= Int(0) )
-//            {
-//                return;
-//            }
-//            
-//            for( auto & pd_0 : input )
-//            {
-//                PD_T pd_1 ( Embedding(pd_0) );
-//                
-//                // TODO: Rotate!
-//                
-//                std::vector<PD_T> summands;
-//                
-//                pd_1.Simplify5(summands);
-//                
-//                for( auto & pd_2 : summands )
-//                {
-//                    stack.push_back( std::move(pd_2) );
-//                }
-//                
-//                stack.push_back( std::move(pd_1) );
-//                
-//                rattle( stack, output, iter_-1 );
-//            }
-//        }
         
         
     public:

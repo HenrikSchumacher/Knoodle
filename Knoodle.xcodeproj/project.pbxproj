@@ -426,6 +426,9 @@
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
@@ -516,6 +519,9 @@
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
 					/opt/homebrew/include/suitesparse,
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,

@@ -1,9 +1,9 @@
 public:
 
 template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
+Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd ) const
 {
-    TOOLS_PTIC(ClassName()+"::LevelsMatrixLP");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsMatrixLP");
     
 //    if( !IntFitsIntoTypeQ<I>(??) )
 //    {
@@ -82,8 +82,6 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
     Sparse::MatrixCSR<Real,I,J> A (
         agg, I(2) * m, n + I(2) * m + I(1), I(1), true, false
     );
-
-    TOOLS_PTOC(ClassName()+"::LevelsMatrixLP");
     
     return A;
 }
@@ -91,21 +89,21 @@ Sparse::MatrixCSR<Real,I,J> LevelsMatrixLP( mref<PlanarDiagram<Int>> pd )
 
 
 template<typename Int>
-Tensor1<Real,Int> LevelsColLowerBounds( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsColLowerBounds( mref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<Real,Int>( Int(2) * pd.ArcCount(), -Scalar::Infty<Real> );
 }
 
 template<typename Int>
-Tensor1<Real,Int> LevelsColUpperBounds( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsColUpperBounds( mref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<Real,Int>( Int(2) * pd.ArcCount(), +Scalar::Infty<Real> );
 }
 
 template<typename Int>
-Tensor1<Real,Int> LevelsRowLowerBounds( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsRowLowerBounds( mref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -119,7 +117,7 @@ Tensor1<Real,Int> LevelsRowLowerBounds( mref<PlanarDiagram<Int>> pd )
 }
 
 template<typename Int>
-Tensor1<Real,Int> LevelsRowUpperBounds( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsRowUpperBounds( mref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -135,7 +133,7 @@ Tensor1<Real,Int> LevelsRowUpperBounds( mref<PlanarDiagram<Int>> pd )
 
 
 template<typename Int>
-Tensor1<Real,Int> LevelsObjectiveVector( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsObjectiveVector( mref<PlanarDiagram<Int>> pd ) const
 {
     const Int m = pd.ArcCount();
     Tensor1<Real,Int> v ( Int(2) * m );

@@ -19,79 +19,6 @@ public:
  * @param simplify3_max_iter If `simplify3_level > 0`, then this set the maximal number of times to cycle through the list of all arcs to look for local patterns.
  */
 
-//bool Simplify5(
-//    PD_List_T & pd_list,
-//    const Int  max_dist = std::numeric_limits<Int>::max(),
-//    const bool compressQ = true,
-//    const Int  simplify3_level = 4,
-//    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-//    const bool strand_R_II_Q = true
-//)
-//{
-//    if( proven_minimalQ || InvalidQ() )
-//    {
-//        return false;
-//    }
-//    
-//    TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
-//         + "(" + ToString(max_dist)
-//         + "," + ToString(compressQ)
-//         + "," + ToString(simplify3_level)
-//         + "," + ToString(simplify3_max_iter)
-//         + "," + ToString(strand_R_II_Q)
-//         + ")");
-//
-//    bool globally_changedQ = false;
-//    bool changedQ = false;
-//    
-//    do
-//    {
-//        changedQ = Simplify4(
-//            max_dist, compressQ,
-//            simplify3_level, simplify3_max_iter, strand_R_II_Q
-//        );
-//        
-//        if( CrossingCount() >= 6 )
-//        {
-//            changedQ = changedQ
-//            ||
-//            DisconnectSummands(
-//                pd_list, max_dist, compressQ,
-//                simplify3_level, simplify3_max_iter, strand_R_II_Q
-//            );
-//        }
-//        
-//        globally_changedQ = globally_changedQ || changedQ;
-//    }
-//    while( changedQ );
-//
-//    
-//    if( globally_changedQ )
-//    {
-//        if( compressQ )
-//        {
-//            Compress();   // This also erases the Cache.
-//        }
-//        else
-//        {
-//            this->ClearCache();
-//        }
-//    }
-//
-//    if( AlternatingQ() && (LinkComponentCount() <= 1) )
-//    {
-//        proven_minimalQ = true;
-//    }
-//    
-//    if( ValidQ() && (CrossingCount() == Int(0)) )
-//    {
-//        proven_minimalQ = true;
-//    }
-//    
-//    return globally_changedQ;
-//}
-
-
 bool Simplify5(
     PD_List_T & pd_list,
     const Int  min_dist           = 6,
@@ -102,10 +29,7 @@ bool Simplify5(
     const bool strand_R_II_Q      = true
 )
 {
-    if( proven_minimalQ || InvalidQ() )
-    {
-        return false;
-    }
+    if( proven_minimalQ || InvalidQ() ) { return false; }
     
     TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
          + "(" + ToString(min_dist)

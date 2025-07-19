@@ -13,7 +13,7 @@ Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
     }
     else
     {
-        Tensor1<Real,Int>();
+        return Tensor1<Real,Int>();
     }
 }
 
@@ -47,7 +47,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     fill_buffer(&z[m], jump,    n );
     
     // Update direction.
-    Tensor1<Real,Int> u     (m+n);
+    Tensor1<Real,Int> u (m+n);
     
     auto L = this->template LevelsSystemMatrix<UMF_Int,UMF_Int>(pd);
     auto mod_values = L.Values();
@@ -60,7 +60,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     // TODO: Is this a good value for the tolerance?
     const Real threshold = Power(m * tolerance,2);
     
-    iter = 0;
+    SSN_iter = 0;
 //    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
@@ -70,7 +70,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     
     do
     {
-        ++iter;
+        ++SSN_iter;
         
         WriteLevelsSystemMatrixModifiedValues(
             pd, L, y.data(), mod_values.data()
@@ -93,11 +93,11 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         Real phi_tau;
         Real tau    = initial_time_step;
-        int  b_iter = 0;
+        int  SSN_b_iter = 0;
         
         // Armijo line search.
         do{
-            ++b_iter;
+            ++SSN_b_iter;
             
             tau = backtracking_factor * tau;
             
@@ -130,16 +130,16 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         while(
             (phi_tau > (Real(1) - armijo_slope * tau) * phi_0)
             &&
-            (b_iter < max_b_iter)
+            (SSN_b_iter < SSN_max_b_iter)
         );
         
-        if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (b_iter >= max_b_iter) )
+        if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
         {
             wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
             
-            TOOLS_DDUMP( iter );
+            TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
-            TOOLS_DDUMP( b_iter );
+            TOOLS_DDUMP( SSN_b_iter );
             TOOLS_DDUMP( tau );
         }
         
@@ -149,14 +149,12 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         swap( x, x_tau );
     }
-    while( (phi_0 > threshold) && (iter < max_iter) );
+    while( (phi_0 > threshold) && (SSN_iter < SSN_max_iter) );
     
-    if( (phi_0 > threshold) && (iter >= max_iter))
+    if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
     {
         wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
     }
-    
-//    TOOLS_PTOC(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     return x;
 }

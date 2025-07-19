@@ -10,6 +10,8 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
         
         // Using a hash map to delete duplicates.
         // TODO: We could also use a Sparse::BinaryMatrix here.
+        // TODO: But using an associative container might be faster because it uses much less memory.
+        
         std::unordered_set<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
         
         for( Int c = 0; c < max_crossing_count; ++c )
@@ -28,7 +30,7 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
                 }
             }
         }
-                                                                 
+        
         typename MultiGraph_T::EdgeContainer_T comp_edges (
             static_cast<Int>(aggregator.size())
         );
@@ -63,7 +65,7 @@ Int DiagramComponentCount()
 
 void RequireDiagramComponents()
 {
-    TOOLS_PTIC(ClassName()+"::RequireDiagramComponents");
+    TOOLS_PTIMER(timer,MethodName("RequireDiagramComponents"));
     
     cref<ComponentMatrix_T> A = DiagramComponentLinkComponentMatrix();
     
@@ -75,20 +77,16 @@ void RequireDiagramComponents()
     
     const Int dc_count  = A.RowCount();
     
-    Tensor1<Int,Int> dc_arc_ptr ( dc_count + 1 );
-    Tensor1<Int,Int> dc_arc_idx ( ArcCount() );
+    RaggedList<Int,Int> dc_arcs ( dc_count + 1, ArcCount() );
     
-    dc_arc_ptr[0] = 0;
-    
-    cptr<Int> lc_arc_ptr = LinkComponentArcPointers().data();
-    cptr<Int> lc_arc_idx = LinkComponentArcIndices().data();
+    const auto & lc_arcs  = LinkComponentArcs();
+    cptr<Int> lc_arc_ptr   = lc_arcs.Pointers().data();
+    cptr<Int> lc_arc_idx   = lc_arcs.Elements().data();
     
     for( Int dc = 0; dc < dc_count; ++dc )
     {
         const Int i_begin = dc_lc_ptr[dc    ];
         const Int i_end   = dc_lc_ptr[dc + 1];
-        
-        Int p = dc_arc_ptr[dc];
         
         for( Int i = i_begin; i < i_end; ++i )
         {
@@ -98,33 +96,35 @@ void RequireDiagramComponents()
             const Int j_end   = lc_arc_ptr[lc + 1];
             const Int size    = j_end - j_begin;
             
-            copy_buffer( &lc_arc_idx[j_begin], &dc_arc_idx[p], size );
-            
-            p += size;
+            dc_arcs.Push( &lc_arc_idx[j_begin], size );
         }
         
-        dc_arc_ptr[dc+1] = p;
+        dc_arcs.FinishSublist();
     }
-    
-    this->SetCache( "DiagramComponentArcPointers", std::move(dc_arc_ptr) );
-    this->SetCache( "DiagramComponentArcIndices" , std::move(dc_arc_idx) );
-    
-    TOOLS_PTOC(ClassName()+"::RequireDiagramComponents");
+
+    this->SetCache( "DiagramComponentArcs", std::move(dc_arcs) );
 }
 
-cref<Tensor1<Int,Int>> DiagramComponentArcPointers()
+cref<RaggedList<Int,Int>> DiagramComponentArcs()
 {
-    const std::string tag ("DiagramComponentArcPointers");
+    const std::string tag ("DiagramComponentArcs");
     if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
-    return this->template GetCache<Tensor1<Int,Int>>(tag);
+    return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
-cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
-{
-    const std::string tag ("DiagramComponentArcIndices");
-    if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
-    return this->template GetCache<Tensor1<Int,Int>>(tag);
-}
+//cref<Tensor1<Int,Int>> DiagramComponentArcPointers()
+//{
+//    const std::string tag ("DiagramComponentArcPointers");
+//    if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
+//    return this->template GetCache<Tensor1<Int,Int>>(tag);
+//}
+//
+//cref<Tensor1<Int,Int>> DiagramComponentArcIndices()
+//{
+//    const std::string tag ("DiagramComponentArcIndices");
+//    if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }
+//    return this->template GetCache<Tensor1<Int,Int>>(tag);
+//}
 
 
 void Split( mref<PD_List_T> pd_list )
@@ -145,8 +145,9 @@ void Split( mref<PD_List_T> pd_list )
     
     if( dc_count <= 1 ) { return; }
     
-    cptr<Int> lc_arc_ptr = LinkComponentArcPointers().data();
-    cptr<Int> lc_arc_idx = LinkComponentArcIndices().data();
+    const auto & lc_arcs = LinkComponentArcs();
+    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
     
     C_scratch.Fill(Uninitialized);
     

@@ -6,9 +6,9 @@ public:
 
 struct DedgeNode
 {
-    VInt tail = -1; // vertex we came from
-    EInt de   = -1; // direction is stored in lowest bit.
-    VInt head = -1; // vertex we go to
+    VInt tail = UninitializedVertex; // vertex we came from
+    EInt de   = UninitializedEdge;   // direction is stored in lowest bit.
+    VInt head = UninitializedVertex; // vertex we go to
 };
 
 constexpr static auto TrivialEdgeFunction = []( cref<DedgeNode> E )
@@ -64,7 +64,7 @@ void DepthFirstSearch(
     RediscoverVertex_T   && rediscover,
     PreVisitVertex_T     && pre_visit,
     PostVisitVertex_T    && post_visit
-)
+) const
 {
     if( vertex_count <= VInt(0) ) { return; }
     
@@ -107,7 +107,9 @@ void DepthFirstSearch(
     // In the worst case (2 vertices, n edges), we push a stack_node for every edge before we ever can pop a node.
     // Note: We could mark every newly discovered vertex w as "discovered, not visited"  and push only {v,e,w,d} with undiscovered vertex w.
     // The problem with this approach is that we have to do the marking in the order of discovery, but the pushing to stack in reverse order. That would take roughly twice as long. In constrast, memory is cheap nowadays. And we use a stack, so we interesting stuff will stay in hot memory. So we can afford allocating a potentially oversized stack in favor of faster execution.
-    Stack<DedgeNode,EInt> stack ( EdgeCount() );
+    
+    // The stack size must be at least one bigger than EdgeCount() as we push a  "dummy" edge for the root of each spanning tree.
+    Stack<DedgeNode,EInt> stack ( EdgeCount() + EInt(1) );
 
     auto conditional_push = [V_flag,E_visitedQ,dE_V,&stack,&discover,&rediscover,&tag](
         const DedgeNode & E, const EInt de
@@ -166,7 +168,6 @@ void DepthFirstSearch(
             V_flag[v_0] = UInt8(1);
             DedgeNode E {UninitializedVertex, UninitializedEdge, v_0};
             discover( E );
-//            logprint("discover vertex " + ToString(v_0));
             stack.Push( std::move(E) );
         }
 
@@ -183,7 +184,6 @@ void DepthFirstSearch(
             else if( V_flag[v] == UInt8(1) )
             {
                 V_flag[v] = UInt8(2);
-//                logprint("pre-visit vertex " + ToString(v) + "; edge = " + ((E.de < 0) ? "-1" : ToString(E.de/2)) );
                 pre_visit( E );
                 // Process outgoing edges first.
                 if constexpr ( dir != InOut::In )
@@ -215,12 +215,10 @@ void DepthFirstSearch(
             {
                 V_flag[v] = UInt8(3);
                 post_visit( E );
-//                logprint("post-visit vertex " + ToString(v) + "; edge = " + ((E.de < 0) ? "-1" : ToString(E.de/2)) );
                 (void)stack.Pop();
             }
             else // if( V_flag[v] == UInt8(3) )
             {
-//                logprint("pop garbage edge " + ((E.de < 0) ? "-1" : ToString(E.de/2)));
                 (void)stack.Pop();
             }
             
@@ -230,7 +228,7 @@ void DepthFirstSearch(
 }
 
 template< InOut dir = InOut::Undirected, class PreVisitVertex_T >
-void DepthFirstSearch( PreVisitVertex_T && pre_visit )
+void DepthFirstSearch( PreVisitVertex_T && pre_visit ) const
 {
     this->template DepthFirstSearch<dir>(
         TrivialEdgeFunction,    //discover

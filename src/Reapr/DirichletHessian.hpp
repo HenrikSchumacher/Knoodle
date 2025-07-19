@@ -27,20 +27,21 @@ void DirichletHessian_CollectTriples(
     // Caution: This creates only the triples for the essentially upper triangle.
     // ("Essentially", because few off-diagonal triples lie in the lower triangle.)
 
-    const Int comp_count   = pd.LinkComponentCount();
-    cptr<Int> comp_arc_ptr = pd.LinkComponentArcPointers().data();
-    cptr<Int> comp_arc_idx = pd.LinkComponentArcIndices().data();
-    cptr<Int> next_arc     = pd.ArcNextArc().data();
+    const auto & lc_arcs = pd.LinkComponentArcs();
+    const Int lc_count   = lc_arcs.SublistCount();
+    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
+    cptr<Int> next_arc   = pd.ArcNextArc().data();
     
     const Real val_0 = Real(2) + bending_reg;
     const Real val_1 = Real(-1);
 
-    for( Int comp = 0; comp < comp_count; ++comp )
+    for( Int lc = 0; lc < lc_count; ++lc )
     {
-        const Int k_begin   = comp_arc_ptr[comp    ];
-        const Int k_end     = comp_arc_ptr[comp + 1];
+        const Int k_begin   = lc_arc_ptr[lc    ];
+        const Int k_end     = lc_arc_ptr[lc + 1];
         
-        I a   = static_cast<I>(comp_arc_idx[k_begin]);
+        I a   = static_cast<I>(lc_arc_idx[k_begin]);
         I ap1 = static_cast<I>(next_arc[a  ]);
         
         for( Int k = k_begin; k < k_end; ++k )

@@ -1465,7 +1465,7 @@ namespace Knoodle
             while( (d < max_dist) && (!next_front.EmptyQ()) )
             {
                 // Actually, next_front must never become empty. Otherwise something is wrong.
-                swap( prev_front, next_front );
+                std::swap( prev_front, next_front );
                 
                 next_front.Reset();
                 

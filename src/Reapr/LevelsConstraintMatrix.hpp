@@ -6,12 +6,12 @@ void LevelsConstraintMatrix_CollectTriples(
     mref<TripleAggregator<I,I,Real,J>> agg,
     const I row_offset,
     const I col_offset
-)
+) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC( ClassName()+"::LevelsConstraintMatrix_CollectTriples"
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsConstraintMatrix_CollectTriples"
         + "<" + ToString(op)
         + "," + TypeName<I>
         + "," + TypeName<J>
@@ -62,14 +62,6 @@ void LevelsConstraintMatrix_CollectTriples(
             agg.Push( row, a_1 + col_offset, -s );
         }
     }
-    
-    TOOLS_PTOC( ClassName()+"::LevelsConstraintMatrix_CollectTriples"
-        + "<" + ToString(op)
-        + "," + TypeName<I>
-        + "," + TypeName<J>
-        + "," + TypeName<Int>
-        + ">"
-    );
 }
 
 public:

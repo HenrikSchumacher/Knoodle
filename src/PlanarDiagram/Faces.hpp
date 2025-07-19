@@ -46,7 +46,7 @@ Int MaximumFace() const
 
 Int MaxFaceSize() const
 {
-    std::string tag ("MaximumFace");
+    std::string tag ("MaxFaceSize");
     TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Int>(tag);

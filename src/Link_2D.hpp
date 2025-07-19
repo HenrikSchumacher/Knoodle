@@ -43,7 +43,10 @@ namespace Knoodle
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
         
+        
         static constexpr Int AmbDim = 3;
+        
+        using Matrix3x3_T = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         
         template<typename Int>
         friend class PlanarDiagram;
@@ -83,7 +86,7 @@ namespace Knoodle
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         EContainer_T edge_coords;
         
-        Tiny::Matrix<3,3,Real,Int> R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
+        Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
         
         Tree2_T T;
         
@@ -125,13 +128,15 @@ namespace Knoodle
         ,   edge_coords { edge_count                 }
         ,   T           { edge_count                 }
         ,   box_coords  { T.NodeCount()              }
-        {}
+        {
+            static_assert(IntQ<I>,"");
+        }
         
         template<typename J, typename K>
-        explicit Link_2D( Tensor1<J,K> & component_ptr_ )
+        explicit Link_2D( cref<Tensor1<J,K>> component_ptr_ )
         :   Base_T      { component_ptr_             }
-        ,   edge_coords { component_ptr.Last()       }
-        ,   T           { component_ptr.Last()       }
+        ,   edge_coords { edge_count                 }
+        ,   T           { edge_count                 }
         ,   box_coords  { T.NodeCount()              }
         {
             static_assert(IntQ<J>,"");
@@ -175,42 +180,65 @@ namespace Knoodle
             return edge_coords;
         }
         
-        Int NextEdge( const Int edge) const
+        Int NextEdge( const Int e ) const
         {
-            return next_edge[edge];
+            return next_edge[e];
         }
         
         
-        E_T EdgeData( const Int edge) const
+        E_T EdgeData( const Int e ) const
         {
-            return E_T( edge_coords.data(edge) );
+            return E_T( edge_coords.data(e) );
         }
         
-        Vector2_T EdgeVector2( const Int edge, const bool k ) const
+        Vector2_T EdgeVector2( const Int e, const bool k ) const
         {
-            return Vector2_T( edge_coords.data(edge,k) );
+            return Vector2_T( edge_coords.data(e,k) );
         }
         
-        Vector3_T EdgeVector3( const Int edge, const bool k ) const
+        Vector3_T EdgeVector3( const Int e, const bool k ) const
         {
-            return Vector2_T( edge_coords.data(edge,k) );
+            return Vector2_T( edge_coords.data(e,k) );
         }
         
+        void SetTransformationMatrix( cref<Matrix3x3_T> A )
+        {
+            R = A;
+        }
+        
+        void SetTransformationMatrix( Matrix3x3_T && A )
+        {
+            R = A;
+        }
+        
+        cref<Matrix3x3_T> TransformationMatrix() const
+        {
+            return R;
+        }
+        
+        template<bool transformQ = false,bool shiftQ = true>
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             
             Vector3_T lo;
             Vector3_T hi;
 
-            ComputeBoundingBox( v, lo, hi );
+//            ComputeBoundingBox( v, lo, hi );
             
-            constexpr Real margin = static_cast<Real>(1.01);
-            constexpr Real two = 2;
-
-            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
-            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
-            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
+            if constexpr ( shiftQ )
+            {
+                lo.Read( v );
+                hi.Read( v );
+            }
+            else
+            {
+                (void)lo;
+                (void)hi;
+            }
+            
+            Vector3_T x;
+            Vector3_T y;
             
             if( preorderedQ )
             {
@@ -224,53 +252,204 @@ namespace Knoodle
                     {
                         const Int j = i+1;
 
-                        mptr<Real> target_0 = edge_coords.data(i,1);
-                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
+                        mptr<Real> target_i = edge_coords.data(i,1);
+                        mptr<Real> target_j = &target_i[3];  // = edge_coords.data(j,0)
                         
-                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+                        if constexpr ( transformQ )
+                        {
+                            y.Read( &v[3*j] );
+                            x = Dot(R,y);
+                        }
+                        else
+                        {
+                            x.Read( &v[3*j] );
+                        }
+                        
+                        if constexpr ( shiftQ )
+                        {
+                            lo.ElementwiseMin(x);
+                            hi.ElementwiseMax(x);
+                        }
+
+                        x.Write(target_i);
+                        x.Write(target_j);
                     }
 
                     {
                         const Int i = i_end-1;
                         const Int j = i_begin;
 
-                        mptr<Real> target_0 = edge_coords.data(i,1);
-                        mptr<Real> target_1 = edge_coords.data(j,0);
+                        mptr<Real> target_i = edge_coords.data(i,1);
+                        mptr<Real> target_j = edge_coords.data(j,0);
                       
-                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+                        if constexpr ( transformQ )
+                        {
+                            y.Read( &v[3*j] );
+                            x = Dot(R,y);
+                        }
+                        else
+                        {
+                            x.Read( &v[3*j] );
+                        }
+                        
+                        if constexpr ( shiftQ )
+                        {
+                            lo.ElementwiseMin(x);
+                            hi.ElementwiseMax(x);
+                        }
+                        
+                        x.Write(target_i);
+                        x.Write(target_j);
                     }
                 }
             }
             else
             {
 //                logprint("not preordered");
-                cptr<Int> edge_tails = edges.data(0);
-                cptr<Int> edge_tips  = edges.data(1);
                 
-                for( Int edge = 0; edge < edge_count; ++edge )
+                for( Int e = 0; e < edge_count; ++e )
                 {
-                    const Int i = edge_tails[edge];
-                    const Int j = edge_tips [edge];
+                    const Int i = edges(e,0);
+                    const Int j = edges(e,1);
 
-                    mptr<Real> target_0 = edge_coords.data(edge,0);
-                    mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(edge,1);
+                    mptr<Real> target_i = edge_coords.data(e,0);
+                    mptr<Real> target_j = &target_i[3]; // = edge_coords.data(e,1);
                   
-                    target_0[0] = v[3 * i + 0] + Sterbenz_shift[0];
-                    target_0[1] = v[3 * i + 1] + Sterbenz_shift[1];
-                    target_0[2] = v[3 * i + 2] + Sterbenz_shift[2];
+                    if constexpr ( transformQ )
+                    {
+                        y.Read( &v[3*i] );
+                        x = Dot(R,y);
+                    }
+                    else
+                    {
+                        x.Read( &v[3*i] );
+                    }
                     
-                    target_1[0] = v[3 * j + 0] + Sterbenz_shift[0];
-                    target_1[1] = v[3 * j + 1] + Sterbenz_shift[1];
-                    target_1[2] = v[3 * j + 2] + Sterbenz_shift[2];
+                    if constexpr ( shiftQ )
+                    {
+                        lo.ElementwiseMin(x);
+                        hi.ElementwiseMax(x);
+                    }
+                    
+                    x.Write(target_i);
+                    
+                    if constexpr ( transformQ )
+                    {
+                        y.Read( &v[3*j] );
+                        x = Dot(R,y);
+                    }
+                    else
+                    {
+                        x.Read( &v[3*j] );
+                    }
+                    
+                    // We can skip the ElementwiseMin/ElementwiseMax here because every vertex is supposed to appear precisely once as a tail of an edge.
+                    
+                    x.Write(target_j);
                 }
+            }
+            
+            if constexpr ( shiftQ )
+            {
+                // Apply Sterbenz shift.
+                constexpr Real margin = static_cast<Real>(1.01);
+                Sterbenz_shift[0] = margin * ( hi[0] - Real(2) * lo[0] );
+                Sterbenz_shift[1] = margin * ( hi[1] - Real(2) * lo[1] );
+                Sterbenz_shift[2] = margin * ( hi[2] - Real(2) * lo[2] );
+                
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    edge_coords(e,0,0) += Sterbenz_shift[0];
+                    edge_coords(e,0,1) += Sterbenz_shift[1];
+                    edge_coords(e,0,2) += Sterbenz_shift[2];
+                    edge_coords(e,1,0) += Sterbenz_shift[0];
+                    edge_coords(e,1,1) += Sterbenz_shift[1];
+                    edge_coords(e,1,2) += Sterbenz_shift[2];
+                }
+            }
+            else
+            {
+                Sterbenz_shift[0] = 0;
+                Sterbenz_shift[1] = 0;
+                Sterbenz_shift[2] = 0;
             }
             
 //            logvalprint("edge_coords",edge_coords);
         }
+        
+//        void ReadVertexCoordinates( cptr<Real> v )
+//        {
+//            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+//            
+//            Vector3_T lo;
+//            Vector3_T hi;
+//
+//            ComputeBoundingBox( v, lo, hi );
+//            
+//            constexpr Real margin = static_cast<Real>(1.01);
+//            constexpr Real two = 2;
+//
+//            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
+//            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
+//            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
+//            
+//            if( preorderedQ )
+//            {
+////                logprint("preordered");
+//                for( Int c = 0; c < component_count; ++c )
+//                {
+//                    const Int i_begin = component_ptr[c  ];
+//                    const Int i_end   = component_ptr[c+1];
+//                                        
+//                    for( Int i = i_begin; i < i_end-1; ++i )
+//                    {
+//                        const Int j = i+1;
+//
+//                        mptr<Real> target_0 = edge_coords.data(i,1);
+//                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
+//                        
+//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+//                    }
+//
+//                    {
+//                        const Int i = i_end-1;
+//                        const Int j = i_begin;
+//
+//                        mptr<Real> target_0 = edge_coords.data(i,1);
+//                        mptr<Real> target_1 = edge_coords.data(j,0);
+//                      
+//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
+//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
+//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
+//                    }
+//                }
+//            }
+//            else
+//            {
+////                logprint("not preordered");
+//                
+//                for( Int e = 0; e < edge_count; ++e )
+//                {
+//                    const Int i = edges(e,0);
+//                    const Int j = edges(e,1);
+//
+//                    mptr<Real> target_0 = edge_coords.data(e,0);
+//                    mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(e,1);
+//                  
+//                    target_0[0] = v[3 * i + 0] + Sterbenz_shift[0];
+//                    target_0[1] = v[3 * i + 1] + Sterbenz_shift[1];
+//                    target_0[2] = v[3 * i + 2] + Sterbenz_shift[2];
+//                    
+//                    target_1[0] = v[3 * j + 0] + Sterbenz_shift[0];
+//                    target_1[1] = v[3 * j + 1] + Sterbenz_shift[1];
+//                    target_1[2] = v[3 * j + 2] + Sterbenz_shift[2];
+//                }
+//            }
+//            
+////            logvalprint("edge_coords",edge_coords);
+//        }
         
         void ComputeBoundingBoxes()
         {

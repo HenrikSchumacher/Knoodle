@@ -11,14 +11,15 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
         Size_T max_idx = n + Size_T(2) * m + Size_T(1);
         Size_T nnz     = Size_T(7) * m + Size_T(1);
         
-        if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
+
+        if( !std::in_range<COIN_Int>(max_idx) )
         {
             eprint(ClassName()+"::LevelsByLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
             return Tensor1<Real,Int>();
         }
         
-        if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
+        if( !std::in_range<COIN_Int>(nnz) )
         {
             eprint(ClassName()+"::LevelsByLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
@@ -53,8 +54,6 @@ Tensor1<Real,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
     );
 
     LP.primal();
-    
-    iter = LP.getIterationCount();
 
     Tensor1<Real,Int> L ( pd.ArcCount() );
     

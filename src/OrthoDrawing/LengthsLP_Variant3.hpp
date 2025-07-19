@@ -235,15 +235,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengthsy_ConstraintMatrix()
     const COIN_Int n = static_cast<COIN_Int>(G.VertexCount());
     const COIN_Int m = static_cast<COIN_Int>(G.EdgeCount());
     
-    // DEBUGGING
-    print("Lengthsy_ConstraintMatrix");
-    
     Sparse::MatrixCSR<S,I,J> A (agg,n,m,true,false);
-    
-    
-    // DEBUGGING
-    TOOLS_DUMP(A.ToTensor2().Max());
-//    TOOLS_DUMP(A.ToTensor2());
     
     return A;
 }

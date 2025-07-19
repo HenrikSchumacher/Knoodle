@@ -2,26 +2,6 @@
 
 namespace Knoodle
 {
-    template<typename Int>
-    Tensor2<Int,Int> CircleEdges( const Int n )
-    {
-        Tensor2<Int,Int> e ( n, Int(2) );
-        
-        if( n >= Int(1) )
-        {
-            for( Int i = 0; i < n-1; ++i )
-            {
-                e(i,0) = i  ;
-                e(i,1) = i+1;
-            }
-            
-            e(n-1,0) = n-1;
-            e(n-1,1) = 0;
-        }
-        
-        return e;
-    }
-    
     template<typename Int_ = Int64>
     class alignas( ObjectAlignment ) Link
     {
@@ -29,15 +9,19 @@ namespace Knoodle
         
         static_assert(IntQ<Int_>,"");
 
-    protected:
+    public:
         
         using Int = Int_;
+        
+        using EdgeContainer_T = Tiny::VectorList_AoS<2,Int,Int>;
+        
+    protected:
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
 
         Int edge_count = 0;
 
-        Tiny::VectorList<2,Int,Int> edges;
+        EdgeContainer_T edges;
         Tensor1<Int,Int> next_edge;
         Tensor1<Int,Int> edge_ptr;
 
@@ -114,33 +98,68 @@ namespace Knoodle
             
             for( Int i = 0; i < n-1; ++i )
             {
-                edges     [0][i] = i;
-                edges     [1][i] = i+1;
-                next_edge [i]    = i+1;
+                edges(i,0)   = i;
+                edges(i,1)   = i+1;
+                next_edge[i] = i+1;
             }
             
-            edges     [0][n-1] = n-1;
-            edges     [1][n-1] = 0;
-            
-            next_edge [n-1] = 0;
+            edges(n-1,0)   = n-1;
+            edges(n-1,1)   = 0;
+            next_edge[n-1] = 0;
         }
         
-//        template<typename J, typename K>
-//        explicit Link( Tensor1<J,K> & component_ptr_ )
-//        :   Link(
-//                (component_ptr_.Size() == 0) ? 0 : component_ptr_.Last()
-//            )
-//        ,   component_ptr( component_ptr_.data(), component_ptr_.Size() )
-//        {
-//            static_assert(IntQ<J>,"");
-//            static_assert(IntQ<K>,"");
+        /*! @brief Initialize from component pointers.
+         *
+         * @param component_ptr_ An array that indicates how many connected components there are which vertices are contained in each component. In the case of k components the array must have size `k+1`. The entries must be increasing integers starting at 0. Then the vertices of the i-th component are `component_ptr_[i],...,component_ptr_[i-1]-1`.
+         */
         
-//            // AoS = array of structures, i.e., loading data in interleaved form
-//            
-//            cyclicQ     = (component_count == Int(1));
-//            preorderedQ = true;
-//            
-//        }
+        template<typename J, typename K>
+        explicit Link( cref<Tensor1<J,K>> component_ptr_ )
+        :   Link{
+                (component_ptr_.Size() < Int(2)) ? 0 : component_ptr_.Last(),
+                false // Just allocate buffers. We fill them manually.
+            }
+        {
+            static_assert(IntQ<J>,"");
+            static_assert(IntQ<K>,"");
+            
+            component_ptr = component_ptr_;
+            
+            if( component_ptr.Size() < Int(2) ) { return; }
+            
+            component_count = component_ptr.Size() - Int(1);
+            cyclicQ         = (component_count == Int(1));
+            preorderedQ     = true;
+            
+            for( Int comp = 0; comp < component_count; ++comp )
+            {
+                const Int v_begin = component_ptr[comp         ];
+                const Int v_end   = component_ptr[comp + Int(1)];
+                
+                const Int comp_size = v_end - v_begin;
+                
+                WriteCircleEdges(&edges(v_begin,0),v_begin,comp_size);
+                
+                for( Int v = v_begin; v < v_end; ++v )
+                {
+                    component_lookup[v] = comp;
+                    
+                    // DEBUGGING
+                    if( v != edges(v,0) )
+                    {
+                        eprint("!!!");
+                        TOOLS_DDUMP(v);
+                        TOOLS_DDUMP(edges(v,0));
+                        TOOLS_DDUMP(edges(v,1));
+                        
+                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
+                        );
+                    }
+                    next_edge[v] = edges(v,1);
+                }
+            }
+            
+        }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         
@@ -210,16 +229,16 @@ namespace Knoodle
             
             bool in_rangeQ = true;
             
-            // using edges.data(0) temporarily as scratch space.
-            mptr<Int> tail_of_edge = edges.data(0);
+            // using edges(...,0) temporarily as scratch space.
+//            mptr<Int> tail_of_edge = edges.data(0);
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const ExtInt tail = edges_[2*e];
+                const ExtInt tail = edges_[Int(2) * e];
                 
                 in_rangeQ = in_rangeQ && std::in_range<Int>(tail);
 
-                tail_of_edge[tail] = static_cast<Int>(tail);
+                edges(tail,0) = static_cast<Int>(tail);
             }
             
             if( !in_rangeQ )
@@ -229,25 +248,23 @@ namespace Knoodle
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tip = edges_[2*e+1];
+                const Int tip = edges_[Int(2) * e + Int(1)];
 
-                next_edge[e] = tail_of_edge[tip];
+                next_edge[e] = edges(tip,0);
             }
             
             FindComponents();
 
             // using edge_ptr temporarily as scratch space.
-            cptr<Int> perm       = edge_ptr.data();
-            mptr<Int> edge_tails = edges.data(0);
-            mptr<Int> edge_tips  = edges.data(1);
+            cptr<Int> perm = edge_ptr.data();
             
             // Reordering edges.
             for( Int e = 0; e < edge_count; ++e )
             {
                 const Int from = Int(2) * perm[e];
 
-                edge_tails[e] = edges_[from  ];
-                edge_tips [e] = edges_[from+1];
+                edges(e,0) = edges_[from  ];
+                edges(e,1) = edges_[from+1];
             }
             
             FinishPreparations();
@@ -355,11 +372,11 @@ namespace Knoodle
             
             bool b = true;
             
-            cptr<Int> edge_tails = edges.data(0);
+//            cptr<Int> edge_tails = edges.data(0);
             
             for( Int i = 0; i < edge_count; ++i )
             {
-                b = b && (edge_tails[i] == i);
+                b = b && (edges(i,0) == i);
             }
             
             preorderedQ = b;
@@ -494,58 +511,87 @@ namespace Knoodle
         {
             return next_edge[i];
         }
+
+//        EdgeContainer_T ExportEdges() const
+//        {
+//            TOOLS_PTIMER(timer,MethodName("ExportEdges"));
+//            
+//            EdgeContainer_T e ( edge_count, Int(2) );
+//
+//            for( Int i = 0; i < edge_count; ++i )
+//            {
+//                e(i,0) = edges[0][i];
+//                e(i,1) = edges[1][i];
+//            }
+//            
+//            return e;
+//        }
         
-        Tensor2<Int,Int> ExportEdges() const
-        {
-            TOOLS_PTIMER(timer,MethodName("ExportEdges"));
-            
-            Tensor2<Int,Int> e ( edge_count, Int(2) );
-            
-            for( Int i = 0; i < edge_count; ++i )
-            {
-                e(i,0) = edges[0][i];
-                e(i,1) = edges[1][i];
-            }
-            
-            return e;
-        }
-        
-        Tensor2<Int,Int> ExportSortedEdges() const
-        {
-            TOOLS_PTIMER(timer,MethodName("ExportSortedEdges"));
-            
-            Tensor2<Int,Int> e ( edge_count, Int(2) );
-            
-            for( Int c = 0; c < component_count; ++c )
-            {
-                const Int i_begin = component_ptr[c  ];
-                const Int i_end   = component_ptr[c+1];
-                
-                for( Int i = i_begin; i < i_end-1; ++i )
-                {
-                    e(i,0) = i  ;
-                    e(i,1) = i+1;
-                }
-                
-                e(i_end-1,0) = i_end-1;
-                e(i_end-1,1) = i_begin;
-            }
-            
-            return e;
-        }
+//        EdgeContainer_T ExportSortedEdges() const
+//        {
+//            TOOLS_PTIMER(timer,MethodName("ExportSortedEdges"));
+//            
+//            EdgeContainer_T e ( edge_count );
+//            
+//            for( Int c = 0; c < component_count; ++c )
+//            {
+//                const Int i_begin = component_ptr[c  ];
+//                const Int i_end   = component_ptr[c+1];
+//                
+//                for( Int i = i_begin; i < i_end-1; ++i )
+//                {
+//                    e(i,0) = i  ;
+//                    e(i,1) = i+1;
+//                }
+//                
+//                e(i_end-1,0) = i_end-1;
+//                e(i_end-1,1) = i_begin;
+//            }
+//            
+//            return e;
+//        }
 
     
         /*! @brief Returns a reference to the list of edges.
          *
-         *  The tail of the edge `i` is given by `Edges()[0][i]`.
-         *  The tip  of the edge `i` is given by `Edges()[1][i]`.
+         *  The tail of the edge `i` is given by `Edges()(i,0)`.
+         *  The head of the edge `i` is given by `Edges()(i,1)`.
          */
         
-        cref<Tiny::VectorList<2,Int,Int>> Edges() const
+        cref<EdgeContainer_T> Edges() const
         {
             return edges;
         }
         
+        template<typename Int>
+        static void WriteCircleEdges(
+            mptr<Int> e_ptr, const Int first_edge, const Int n
+        )
+        {
+            if( n <= Int(0) ) { return; }
+            
+            const Int last_edge = first_edge + n - Int(1);
+            
+            for( Int i = 0; i < n - Int(1); ++i )
+            {
+                e_ptr[Int(2) * i + Int(0)] = first_edge + i         ;
+                e_ptr[Int(2) * i + Int(1)] = first_edge + i + Int(1);
+            }
+            
+            e_ptr[Int(2) * n - Int(2)] = last_edge;
+            e_ptr[Int(2) * n - Int(1)] = first_edge;
+        }
+        
+        
+//        template<typename Int>
+//        static EdgeContainer_T CircleEdges( const Int n )
+//        {
+//            EdgeContainer_T edges ( n );
+//            
+//            WriteCircleEdges(edges.data(),Int(0),n);
+//            
+//            return edges;
+//        }
         
     public:
         

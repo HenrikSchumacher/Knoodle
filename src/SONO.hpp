@@ -22,12 +22,11 @@ namespace Knoodle
         static_assert(FloatQ<Real>,"");
         
         explicit SONO( cptr<Real> vertex_coords_, const Int vertex_count_ )
-        :   vertex_count  ( vertex_count_ )
-        ,   vertex_coords ( vertex_coords_, vertex_count, AmbDim )
-        ,   vertex_buffer ( vertex_count, AmbDim )
-        {
-            InitializeRandomEngine();
-        }
+        :   vertex_count  { vertex_count_ }
+        ,   vertex_coords { vertex_coords_, vertex_count, AmbDim }
+        ,   vertex_buffer { vertex_count, AmbDim }
+        ,   random_engine { InitializedRandomEngine<PRNG_T>() }
+        {}
         
         // Default constructor
         SONO() = default;

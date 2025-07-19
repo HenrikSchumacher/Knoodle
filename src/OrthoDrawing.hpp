@@ -53,13 +53,13 @@ namespace Knoodle
         {
             int  bend_min_method          = 0;
             bool network_matrixQ          = true;
-            bool redistribute_bendsQ      = false;
+            bool redistribute_bendsQ      = true;
             bool use_dual_simplexQ        = false;
             bool turn_regularizeQ         = true;
             bool soften_virtual_edgesQ    = false;
             bool randomizeQ               = false;
             bool saturate_facesQ          = true;
-            bool saturate_exterior_faceQ  = false;
+            bool saturate_exterior_faceQ  = true;
             bool filter_saturating_edgesQ = true;
             bool parallelizeQ             = true;
             int  compaction_method        = 0;
@@ -553,19 +553,20 @@ namespace Knoodle
             TOOLS_PTIMER(timer,MethodName(tag));
             if( !this->InCacheQ(tag) )
             {
+                const Int n = C_A.Dim(0);
                 const Int m = A_C.Dim(0);
                 
-                Tensor1<Int,Int> A_next ( m, Uninitialized );
+                Tensor1<Int,Int> A_next_A ( m, Uninitialized );
                 
-                for( Int c = 0; c < m; ++c )
+                for( Int c = 0; c < n; ++c )
                 {
                     if( VertexActiveQ(c) )
                     {
-                        A_next(C_A(c,In,Left )) = C_A(c,Out,Right);
-                        A_next(C_A(c,In,Right)) = C_A(c,Out,Left );
+                        A_next_A(C_A(c,In,Left )) = C_A(c,Out,Right);
+                        A_next_A(C_A(c,In,Right)) = C_A(c,Out,Left );
                     }
                 }
-                this->SetCache(tag,std::move(A_next));
+                this->SetCache(tag,std::move(A_next_A));
             }
             return this->GetCache<Tensor1<Int,Int>>(tag);
         }
