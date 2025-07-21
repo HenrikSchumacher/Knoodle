@@ -7,8 +7,6 @@ namespace Knoodle
     template<typename Scal_, typename Int_, typename LInt_>
     class AlexanderFaceMatrix final
     {
-        static_assert(SignedIntQ<Int_>,"");
-        
     public:
         
         using Scal    = Scal_;
@@ -34,16 +32,6 @@ namespace Knoodle
 
         // Default constructor
         AlexanderFaceMatrix() = default;
-        // Destructor
-        ~AlexanderFaceMatrix() = default;
-        // Copy constructor
-        AlexanderFaceMatrix( const AlexanderFaceMatrix & other ) = default;
-        // Copy assignment operator
-        AlexanderFaceMatrix & operator=( const AlexanderFaceMatrix & other ) = default;
-        // Move constructor
-        AlexanderFaceMatrix( AlexanderFaceMatrix && other ) = default;
-        // Move assignment operator
-        AlexanderFaceMatrix & operator=( AlexanderFaceMatrix && other ) = default;
     
     public:
         

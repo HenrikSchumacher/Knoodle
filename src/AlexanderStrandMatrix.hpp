@@ -7,8 +7,6 @@ namespace Knoodle
     template<typename Scal_, typename Int_, typename LInt_>
     class AlexanderStrandMatrix final
     {
-        static_assert(SignedIntQ<Int_>,"");
-        
     public:
         
         using Scal    = Scal_;
@@ -33,16 +31,6 @@ namespace Knoodle
 
         // Default constructor
         AlexanderStrandMatrix() = default;
-        // Destructor
-        ~AlexanderStrandMatrix() = default;
-        // Copy constructor
-        AlexanderStrandMatrix( const AlexanderStrandMatrix & other ) = default;
-        // Copy assignment operator
-        AlexanderStrandMatrix & operator=( const AlexanderStrandMatrix & other ) = default;
-        // Move constructor
-        AlexanderStrandMatrix( AlexanderStrandMatrix && other ) = default;
-        // Move assignment operator
-        AlexanderStrandMatrix & operator=( AlexanderStrandMatrix && other ) = default;
         
     public:
         
