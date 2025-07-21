@@ -127,13 +127,13 @@ namespace Knoodle
         
     public:
         
-        template<typename Scal = std::make_signed_t<EInt>>
+        template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
         {
             return this->template DirectedAdjacencyMatrix<Scal>();
         }
         
-        template<typename Scal = std::make_signed_t<EInt>>
+        template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
         {
             const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";

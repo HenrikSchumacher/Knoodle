@@ -1,5 +1,5 @@
 template<
-    bool undirQ, typename Scal = std::make_signed<EInt>,
+    bool undirQ, typename Scal = ToSigned<EInt>,
     typename ExtScal = Scal
 >
 Sparse::MatrixCSR<Scal,VInt,EInt> CreateLaplacian(

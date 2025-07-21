@@ -257,5 +257,3 @@ namespace Knoodle
     };
     
 } // namespace Knoodle
-
-

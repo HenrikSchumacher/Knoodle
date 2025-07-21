@@ -1,5 +1,5 @@
 template<
-    bool undirQ, typename Scal = std::make_signed<EInt>, typename ExtScal = Scal
+    bool undirQ, typename Scal = ToSigned<EInt>, typename ExtScal = Scal
 >
 Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
     const ExtScal * edge_weights = nullptr,
@@ -74,7 +74,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
 }
 
 
-template<typename Scal = std::make_signed_t<EInt>>
+template<typename Scal = ToSigned<EInt>>
 cref<Sparse::MatrixCSR<Scal,VInt,EInt>> DirectedAdjacencyMatrix() const
 {
     const std::string tag = std::string("DirectedAdjacencyMatrix<") + TypeName<Scal> + ">";
@@ -87,7 +87,7 @@ cref<Sparse::MatrixCSR<Scal,VInt,EInt>> DirectedAdjacencyMatrix() const
     return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
 }
 
-template<typename Scal = std::make_signed_t<EInt>>
+template<typename Scal = ToSigned<EInt>>
 cref<Sparse::MatrixCSR<Scal,VInt,EInt>> UndirectedAdjacencyMatrix() const
 {
     const std::string tag = std::string("UndirectedAdjacencyMatrix<") + TypeName<Scal> + ">";

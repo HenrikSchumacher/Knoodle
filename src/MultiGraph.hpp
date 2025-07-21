@@ -133,7 +133,7 @@ namespace Knoodle
         
     public:
         
-        template<typename Scal = std::make_signed_t<EInt>>
+        template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
         {
             TOOLS_PTIMER(timer,MethodName(std::string("AdjacencyMatrix<") + TypeName<Scal> + ">"));
@@ -141,7 +141,7 @@ namespace Knoodle
             return this->template UndirectedAdjacencyMatrix<Scal>();
         }
         
-        template<typename Scal = std::make_signed_t<EInt>>
+        template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
         {
             const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";
@@ -225,5 +225,3 @@ namespace Knoodle
     };
     
 } // namespace Knoodle
-
-

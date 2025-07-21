@@ -17,17 +17,21 @@ void RequireTopology() const
     
     // TODO: Make it work with unsigned integers.
     // TODO: Make this consistent with Sparse::Tree?
+    
+    constexpr VInt InvalidVertex =  UninitializedVertex - VInt(1);
+    constexpr EInt InvalidEdge   =  UninitializedEdge   - EInt(1);
+    
     // v_parent[v] stores the parent vertex in the spanning forest.
-    // v_parent[v] == -2 means that vertex v does not exist.
-    // v_parent[v] == -1 means that vertex v is a root vertex.
-    // v_parent[v] >=  0 means that vertex v_parent[v] is v's parent.
-    Tensor1<VInt,VInt> v_parents ( vertex_count, -2 );
+    // v_parent[v] == InvalidVertex means that vertex v does not exist.
+    // v_parent[v] == UninitializedVertex means that vertex v is a root vertex.
+    // v_parent[v] >= 0 means that vertex v_parent[v] is v's parent.
+    Tensor1<VInt,VInt> v_parents ( vertex_count, UninitializedVertex - VInt(1) );
     
     
     // Stores the graph's components.
     // c_ptr contains a counter for the number of components.
-    Aggregator<VInt,EInt> c_ptr ( edge_count + 1 );
-    Aggregator<VInt,EInt> c_idx ( edge_count     );
+    Aggregator<VInt,EInt> c_ptr ( edge_count + EInt(1) );
+    Aggregator<VInt,EInt> c_idx ( edge_count           );
     
     c_ptr.Push(0);
     
@@ -44,7 +48,7 @@ void RequireTopology() const
     // v_flags[v] == 0 means vertex v is unvisited.
     // v_flags[v] == 1 means vertex v is explored.
     
-    Tensor1<UInt8,VInt> v_flags ( vertex_count, 0 );
+    Tensor1<UInt8,VInt> v_flags ( vertex_count, UInt8(0) );
     
     // Tracks which edges have been visited.
     // e_flags[e] == 0 means edge e is unvisited.
@@ -52,17 +56,15 @@ void RequireTopology() const
     // e_flags[e] == 2 means edge e is visited (and completed).
     Tensor1<Sign_T,EInt> e_flags ( edge_count, Sign_T(0) );
     
-    static_assert(SignedIntQ<EInt>,"");
-    
     // TODO: I can keep e_stack, path, and d_stack uninitialized.
     // Keeps track of the edges we have to process.
-    // Every edge can be only explored in two ways: from its two vertices.
-    // Thus, the stack does not have to be bigger than 2 * edge_count.
-    Tensor1<EInt,EInt> e_stack ( EInt(2) * edge_count, EInt(-2) );
+    // Every edge can be explored only in two ways: from its two vertices.
+    // Thus, the stack does not have to be bigger than 2 * edge_count. We add one element for the dummy element in the beginning.
+    Tensor1<EInt,EInt> e_stack ( EInt(2) * edge_count + EInt(1), InvalidEdge );
     // Keeps track of the edges we travelled through.
-    Tensor1<EInt,EInt> e_path ( edge_count + EInt(2), EInt(-2) );
+    Tensor1<EInt,EInt> e_path ( edge_count + EInt(2), InvalidEdge );
     // Keeps track of the vertices we travelled through.
-    Tensor1<VInt,EInt> v_path ( edge_count + EInt(2), VInt(-2) );
+    Tensor1<VInt,EInt> v_path ( edge_count + EInt(2), InvalidVertex );
     // Keeps track of the directions we travelled through the edges.
     Tensor1<Sign_T,EInt> d_path ( edge_count + EInt(2), Sign_T(-2) );
     
@@ -77,10 +79,7 @@ void RequireTopology() const
             ++e_ptr;
         }
         
-        if( e_ptr == edge_count )
-        {
-            break;
-        }
+        if( e_ptr == edge_count ) { break; }
         
         // Now e_ptr is an unvisited edge.
         // We can start a new component.
@@ -89,16 +88,15 @@ void RequireTopology() const
         
         v_parents[root] = UninitializedVertex;
         
-        static_assert(SignedIntQ<EInt>,"");
-        EInt stack_ptr = -1;
-        EInt path_ptr  = -1;
+        EInt stack_ptr = 0;
+        EInt path_ptr  = 0;
         
         // Tell vertex root that it is explored and put it onto the path.
         v_flags[root] = 1;
         v_path[0] = root;
         
         // Push all edges incident to v onto the stack.
-        for( EInt k = B.Outer(root+1); k --> B.Outer(root);  )
+        for( EInt k = B.Outer(root+VInt(1)); k --> B.Outer(root);  )
         {
             const EInt n_e = B.Inner(k); // new edge
             
@@ -107,13 +105,12 @@ void RequireTopology() const
         
         
         // Start spanning tree.
-        static_assert(SignedIntQ<EInt>,"");
-        while( stack_ptr > EInt(-1) )
+        while( stack_ptr > EInt(0) )
         {
             // Top
             const EInt e = e_stack[stack_ptr];
             
-            if( e_flags[e] == 1 )
+            if( e_flags[e] == Sign_T(1) )
             {
                 // Mark as visited and track back.
                 e_flags[e] = 2;
@@ -129,7 +126,7 @@ void RequireTopology() const
                 
                 continue;
             }
-            else if( e_flags[e] == 2 )
+            else if( e_flags[e] == Sign_T(2) )
             {
                 // Pop from stack.
                 --stack_ptr;
@@ -208,7 +205,7 @@ void RequireTopology() const
                 // TODO: I could pop the stack right now.
             }
             
-        } // while( stack_ptr > -1 )
+        } // while( stack_ptr > 0 )
         
         c_ptr.Push( c_idx.Size() );
         
