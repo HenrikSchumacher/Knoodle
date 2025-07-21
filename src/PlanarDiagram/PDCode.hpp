@@ -83,7 +83,7 @@ void WritePDCode( mptr<T> pd_code )
                 
                 const bool side = (C_arcs(c_0,Out,Right) == a);
                 
-                mptr<Int> pd = &pd_code[Int(5) * c_0_pos];
+                mptr<T> pd = &pd_code[Int(5) * c_0_pos];
                 
                 if( RightHandedQ(state) )
                 {
@@ -170,7 +170,7 @@ void WritePDCode( mptr<T> pd_code )
                 const CrossingState state = C_state[c_1];
                 const bool side  = (C_arcs(c_1,In,Right)) == a;
                 
-                mptr<Int> pd = &pd_code[Int(5) * c_1_pos];
+                mptr<T> pd = &pd_code[Int(5) * c_1_pos];
                 
                 if( RightHandedQ(state) )
                 {
@@ -355,7 +355,7 @@ static PlanarDiagram<Int> FromPDCode(
 //    constexpr F_T TailOver  = F_T(1) | ( F_T(1) >> 1);
 //    constexpr F_T HeadUnder = F_T(1) | ( F_T(0) >> 2);
 //    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
-        
+
     PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
@@ -364,7 +364,7 @@ static PlanarDiagram<Int> FromPDCode(
     static_assert( IntQ<ExtInt2>, "" );
     static_assert( IntQ<ExtInt3>, "" );
     
-    if( crossing_count_ <= Int(0) )
+    if( crossing_count_ <= ExtInt2(0) )
     {
         pd.proven_minimalQ = true;
         return pd;
@@ -377,9 +377,19 @@ static PlanarDiagram<Int> FromPDCode(
     
     for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
-        Int X [d];
+        Int X [4];
+        ExtInt state;
         
-        copy_buffer<d>( &pd_codes_[d*c], &X[0] );
+        copy_buffer<4>( &pd_codes_[d*c], &X[0] );
+        
+        if constexpr ( PDsignedQ )
+        {
+            state = pd_codes_[d*c + 4];
+        }
+        else
+        {
+            (void)state;
+        }
 
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
@@ -397,7 +407,7 @@ static PlanarDiagram<Int> FromPDCode(
         
         if constexpr( PDsignedQ )
         {
-            pd.C_state[c] = (X[4] > Int(0))
+            pd.C_state[c] = (state > ExtInt(0))
                           ? CrossingState::RightHanded
                           : CrossingState::LeftHanded;
         }

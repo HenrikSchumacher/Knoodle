@@ -1,6 +1,6 @@
 public:
 
-template<typename T = std::make_unsigned_t<Int>, int method = DefaultTraversalMethod>
+template<typename T = ToUnsigned<Int>, int method = DefaultTraversalMethod>
 Tensor1<T,Int> MacLeodCode()  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+","+ToString(method)+">");
@@ -149,17 +149,18 @@ static PlanarDiagram<Int> FromMacLeodCode(
 )
 {
     static_assert( IntQ<T>, "" );
-    
-    const Int n = int_cast<Int>(arc_count_/2);
-    const Int m = int_cast<Int>(arc_count_);
-    
-    PlanarDiagram<Int> pd (n,int_cast<Int>(unlink_count_) );
-    
-    if( arc_count_ <= Int(0) )
+
+    if( arc_count_ <= ExtInt2(0) )
     {
+        PlanarDiagram<Int> pd( Int(0), int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
+    
+    const Int n = int_cast<Int>(arc_count_/2);
+    const Int m = int_cast<Int>(arc_count_);
+
+    PlanarDiagram<Int> pd (n,int_cast<Int>(unlink_count_) );
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
     fill_buffer(A_visitedQ,false,m);

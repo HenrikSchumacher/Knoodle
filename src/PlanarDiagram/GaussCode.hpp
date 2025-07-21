@@ -1,6 +1,6 @@
 public:
 
-template<typename T = Int, int method = DefaultTraversalMethod>
+template<typename T = ToSigned<Int>, int method = DefaultTraversalMethod>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
@@ -74,21 +74,22 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
 {
     static_assert( SignedIntQ<T>, "" );
     
-    PlanarDiagram<Int> pd (
-        int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
-    );
-
-    if( arc_count_ <= Int(0) )
+    if( arc_count_ <= ExtInt2(0) )
     {
+        PlanarDiagram<Int> pd ( Int(0) , int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
     
+    PlanarDiagram<Int> pd (
+        int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
+    );
+
     pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
     
-    auto fun = [&gauss_code, &pd,&crossing_counter]( const Int a_prev, const Int a )
+    auto fun = [&gauss_code,&pd,&crossing_counter](const Int a_prev,const Int a)
     {
         const T g = gauss_code[a];
         if( g == T(0) )
@@ -105,7 +106,6 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         // TODO: Handle over/under in ArcState.
         pd.A_state[a] = ArcState::Active;
         
-        static_assert(SignedIntQ<Int>);
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
@@ -174,13 +174,13 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         }
     }
     
-    if( fun( arc_count_-Int(1), Int(0) ) )
+    if( fun( int_cast<Int>(arc_count_)-Int(1), Int(0) ) )
     {
         return PlanarDiagram();
     }
     
     pd.crossing_count = crossing_counter;
-    pd.arc_count      = int_cast<Int>(arc_count_);
+    pd.arc_count      = int_cast<Int>(arc_count_);  
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
@@ -200,7 +200,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
 }
 
 
-template<typename T = Int>
+template<typename T = ToSigned<Int>>
 Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCodeByLinkTraversal<" + TypeName<T> + ">" );
