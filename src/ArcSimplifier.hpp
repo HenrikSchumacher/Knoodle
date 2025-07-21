@@ -15,8 +15,6 @@ namespace Knoodle
     {
     public:
         
-        static_assert(SignedIntQ<Int_>,"");
-        
         using Int  = Int_;
         
         using PD_T = PlanarDiagram<Int>;
@@ -103,16 +101,6 @@ namespace Knoodle
         
         // Default constructor
         ArcSimplifier() = delete;
-        // Destructor
-        ~ArcSimplifier() = default;
-        // Copy constructor
-        ArcSimplifier( const ArcSimplifier & other ) = default;
-        // Copy assignment operator
-        ArcSimplifier & operator=( const ArcSimplifier & other ) = default;
-        // Move constructor
-        ArcSimplifier( ArcSimplifier && other ) = default;
-        // Move assignment operator
-        ArcSimplifier & operator=( ArcSimplifier && other ) = default;
 
     private:
         
