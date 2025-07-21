@@ -23,8 +23,11 @@ using namespace Tools;
 
 using Real  = double;          // scalar type used for positions of polygon
 using BReal = double;          // scalar type used for bounding boxes
-using Int   = Int64;           // integer type used, e.g., for indices
-using LInt  = Int64;           // integer type used, e.g., for indices
+//using Int   = Int64;           // integer type used, e.g., for indices
+//using LInt  = Int64;           // integer type used, e.g., for indices
+
+using Int   = UInt64;           // integer type used, e.g., for indices
+using LInt  = UInt64;           // integer type used, e.g., for indices
 
 using OR_T = OrthoDrawing<Int>;
 
@@ -59,8 +62,8 @@ int main( int argc, char** argv )
 //     +<----------+           +<----------+
 //  v_8     a_1     v_7     v_4     a_5     v_3
 
-//    constexpr Int c_count = 9;
-//    Int pd_code [c_count][5] = {
+//    constexpr int c_count = 9;
+//    int pd_code [c_count][5] = {
 //        {17, 16, 0, 17, -1},
 //        {0, 16, 1, 15, 1},
 //        {1, 7, 2, 6, 1},
@@ -72,8 +75,8 @@ int main( int argc, char** argv )
 //        {13, 12, 14, 13, -1}
 //    };
     
-    constexpr Int c_count = 14;
-    Int pd_code [c_count][5] = {
+    constexpr int c_count = 14;
+    int pd_code [c_count][5] = {
         {27, 11, 0, 10, 1},
         {11, 1, 12, 0, 1},
         {1, 9, 2, 8, 1},
@@ -91,8 +94,14 @@ int main( int argc, char** argv )
     };
     
     PlanarDiagram<Int> pd = PlanarDiagram<Int>::FromSignedPDCode(
-        &pd_code[0][0], c_count, 0, false, false
+        &pd_code[0][0], c_count, int(0), false, false
     );
+    
+    TOOLS_DUMP(pd.Crossings());
+    TOOLS_DUMP(pd.Arcs());
+    
+    
+    pd.Simplify4();
     
     Profiler::Clear();
     

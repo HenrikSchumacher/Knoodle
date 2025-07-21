@@ -10,29 +10,33 @@ double RattleTiming() const
     return rattle_timing;
 }
 
-template<bool verboseQ = false, typename Int>
-std::vector<PlanarDiagram<Int>> Rattle( cref<PlanarDiagram<Int>> pd, const Int target_iter )
+template<bool verboseQ = false, typename Int, typename ExtInt>
+std::vector<PlanarDiagram<Int>> Rattle( cref<PlanarDiagram<Int>> pd, const ExtInt target_iter )
 {
+    static_assert(IntQ<ExtInt>,"");
     std::vector<PlanarDiagram<Int>> input;
     input.push_back(pd); // Using copy constructor here!
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename Int>
-std::vector<PlanarDiagram<Int>> Rattle( PlanarDiagram<Int> && pd, const Int target_iter )
+template<bool verboseQ = false, typename Int, typename ExtInt>
+std::vector<PlanarDiagram<Int>> Rattle( PlanarDiagram<Int> && pd, const ExtInt target_iter )
 {
+    static_assert(IntQ<ExtInt>,"");
     std::vector<PlanarDiagram<Int>> input;
     input.push_back(std::move(pd));
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename Int>
+template<bool verboseQ = false, typename Int, typename ExtInt>
 std::vector<PlanarDiagram<Int>> Rattle(
-    mref<std::vector<PlanarDiagram<Int>>> input, const Int target_iter
+    mref<std::vector<PlanarDiagram<Int>>> input, const ExtInt target_iter
 )
 {
+    static_assert(IntQ<ExtInt>,"");
+    
     TOOLS_PTIMER(timer,MethodName("Rattle"));
     
     TimeInterval rattle_timer;
@@ -40,8 +44,8 @@ std::vector<PlanarDiagram<Int>> Rattle(
     rattle_timer.Tic();
     
     rattle_counter = 0;
-    
-    if( target_iter <= Int(0) ) { return input; }
+
+    if( target_iter <= ExtInt(0) ) { return input; }
     
     using PD_T = PlanarDiagram<Int>;
     
@@ -120,7 +124,7 @@ std::vector<PlanarDiagram<Int>> Rattle(
         
         bool successQ = false;
         
-        for( Int iter = 0; iter < target_iter; ++iter )
+        for( ExtInt iter = 0; iter < target_iter; ++iter )
         {
             if constexpr ( verboseQ )
             {

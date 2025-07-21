@@ -12,7 +12,7 @@ namespace Knoodle
     {
     public:
         
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         
         using Int  = Int_;
         

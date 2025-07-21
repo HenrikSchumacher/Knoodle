@@ -87,6 +87,7 @@ void Traverse(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
             ArcNextArc().data(), A_data, C_data
         );
+        
         this->ClearCache("ArcNextArc");
     }
     else
@@ -138,9 +139,9 @@ void Traverse_impl(
 )  const
 {
     static_assert(
-        (method==0) || (method==1),
-        "Unknown traversal method. Using default method."
-    );
+                  (method==0) || (method==1),
+                  "Unknown traversal method. Using default method."
+                  );
     
     if constexpr ( method != 1 )
     {
@@ -150,11 +151,11 @@ void Traverse_impl(
     if( InvalidQ() )
     {
         eprint(ClassName() + "Traverse_impl"
-            + "<" + BoolString(crossingsQ)
-            + "," + BoolString(arclabelsQ)
-            + "," + ToString(start_arc_ou)
-            + "," + ToString(method)
-            + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+               + "<" + BoolString(crossingsQ)
+               + "," + BoolString(arclabelsQ)
+               + "," + ToString(start_arc_ou)
+               + "," + ToString(method)
+               + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
         
         // Other methods might assume that this is set.
         // In particular, calls to `LinkComponentCount` might go into a infinite loop.
@@ -162,10 +163,10 @@ void Traverse_impl(
         
         return;
     }
-
+    
     const Int m = A_cross.Dim(0);
     const Int n = C_arcs.Dim(0);
-
+    
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )
     {
@@ -180,37 +181,29 @@ void Traverse_impl(
     {
         fill_buffer( C_pos, Uninitialized, n );
     }
-                      
+    
     Int lc_counter = 0; // counter for the link components.
     Int a_counter  = 0; // counter for the arcs.
     Int c_counter  = 0; // counter for the crossings.
-    Int a_ptr      = 0;
-
+    
     constexpr bool ou_flag = (start_arc_ou != 0) ;
     constexpr bool overQ   = (start_arc_ou >  0) ;
     
-    // TODO: Simply do a loop?
-
-    while( a_ptr < m )
+    // TODO: Simply to a for-loop?
+    
+    for( Int a_0 = 0; a_0 < m; ++a_0 )
     {
-        // Search for next active, unvisited arc.
-        while(
-            ( a_ptr < m )
-            &&
-            (
-                ( arclabelsQ ? ValidIndexQ(A_flag[a_ptr]) : A_flag[a_ptr] )
-                ||
-                (!this->ArcActiveQ(a_ptr))
-            )
+        if(
+           ( arclabelsQ ? ValidIndexQ(A_flag[a_0]) : A_flag[a_0] )
+           ||
+           (!this->ArcActiveQ(a_0))
         )
         {
-            ++a_ptr;
+            continue;
         }
         
-        if( a_ptr >= m ) { break; };
-        
-        // Now a_ptr points to the beginning of a link component.
-        Int a = a_ptr;
+        // Now a_0 points to the beginning of a link component.
+        Int a = a_0;
         
         if constexpr ( ou_flag )
         {
@@ -230,13 +223,13 @@ void Traverse_impl(
                         a = A_next[a];
                     }
                 }
-                while( (a != a_ptr) && (ArcOverQ<Tail>(a) != overQ) );
+                while( (a != a_0) && (ArcOverQ<Tail>(a) != overQ) );
             }
             
-            a_ptr = a;
+            a_0 = a;
         }
         
-        // Now we are at the first arc of an over/understrand or we have `a = a_ptr`.
+        // Now we are at the first arc of an over/understrand or we have `a = a_0`.
         // The latter can only happen if `ou_flag == true` and if the whole link component is a single over/understrand.
         
         // In any case, we just have to traverse forward through all arcs in the link component.
@@ -329,13 +322,12 @@ void Traverse_impl(
 
             ++a_counter;
         }
-        while( a != a_ptr );
+        while( a != a_0 );
 
         const Int lc_end = a_counter;
 
         lc_post( lc_counter, lc_begin, lc_end );
-        ++lc_counter;
-        ++a_ptr;
+        ++lc_counter; 
     }
 
     this->template SetCache<false>("LinkComponentCount",lc_counter);

@@ -6,7 +6,7 @@ namespace Knoodle
     template<typename Int_>
     class alignas( ObjectAlignment ) MatrixQuadTree final
     {
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -51,11 +51,6 @@ namespace Knoodle
             :   box { box_ }
             {}
             
-//            ~Node() = default;
-//            
-//            Node( Node & N ) = delete;
-//            Node( const Node & N ) = delete;
-            
         public:
             
             bool NoChildrenQ() const
@@ -74,16 +69,6 @@ namespace Knoodle
         
         // Default constructor
         MatrixQuadTree() = default;
-        // Destructor
-        ~MatrixQuadTree() = default;
-        // Copy constructor
-        MatrixQuadTree( const MatrixQuadTree & other ) = default;
-        // Copy assignment operator
-        MatrixQuadTree & operator=( const MatrixQuadTree & other ) = default;
-        // Move constructor
-        MatrixQuadTree( MatrixQuadTree && other ) = default;
-        // Move assignment operator
-        MatrixQuadTree & operator=( MatrixQuadTree && other ) = default;
 
         
     private:

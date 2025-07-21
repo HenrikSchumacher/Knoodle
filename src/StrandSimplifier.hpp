@@ -17,11 +17,14 @@ namespace Knoodle
     {
     public:
         
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         
         using Int  = Int_;
         
         using PD_T = PlanarDiagram<Int>;
+        
+        // We need a signed integer type for Color_T because we use "negative" color values to indicate directions in the dual graph.
+        using Color_T = ToSigned<Int>;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
@@ -37,6 +40,8 @@ namespace Knoodle
         static constexpr bool In    = PD_T::In;
         static constexpr bool Out   = PD_T::Out;
         
+        static constexpr bool Uninitialized = PD_T::Uninitialized;
+        
     private:
         
         PD_T & restrict pd;
@@ -47,18 +52,22 @@ namespace Knoodle
         ArcContainer_T           & restrict A_cross;
         ArcStateContainer_T      & restrict A_state;
 
-        Tensor1<Int,Int>         & restrict A_visited_from;
+        Tensor1<Int,Int>         & restrict A_source;
         
     private:
         
-        Tensor2<Int,Int> C_data;
+        // Colors for the crossings and arcs to mark the current strand.
+        // We use this to detect loop strands.
+        Tensor1<Color_T,Int> C_color;
+        Tensor1<Color_T,Int> A_color;
         
-        Tensor2<Int,Int> A_data;
-        Tensor1<Int,Int> A_colors;
+        Tensor1<Color_T,Int> A_ccolor;  // colors for the dual arcs
+        // A_from[a] is the dual arc from which we visited dual arc a in the pass with color A_ccolor[a].
+        Tensor1<Int,Int> A_from;
         
-        Int * restrict A_left;
+        Int * restrict dA_left;
         
-        Int color = 1; // We start with 1 so that we can store things in the sign bit of color.
+        Color_T color = 1; // We start with 1 so that we can store things in the sign bit of color.
         Int a_ptr = 0;
 
         Int strand_length  = 0;
@@ -86,20 +95,22 @@ namespace Knoodle
     public:
         
         StrandSimplifier( PD_T & pd_ )
-        :   pd             { pd_                  }
-        ,   C_arcs         { pd.C_arcs            }
-        ,   C_state        { pd.C_state           }
-        ,   A_cross        { pd.A_cross           }
-        ,   A_state        { pd.A_state           }
-        ,   A_visited_from { pd.A_scratch         }
-        ,   C_data         { C_arcs.Dim(0), 2, -1 }
+        :   pd         { pd_                             }
+        ,   C_arcs     { pd.C_arcs                       }  
+        ,   C_state    { pd.C_state                      }
+        ,   A_cross    { pd.A_cross                      }
+        ,   A_state    { pd.A_state                      }
+        ,   A_source   { pd.A_scratch                    }
         // We initialize by 0 because actual colors will have to be positive to use sign bit.
-        ,   A_data         { A_cross.Dim(0), 2, 0 }
+        ,   C_color    { C_arcs.Dim(0),  Color_T(0)      }
         // We initialize by 0 because actual colors will have to be positive to use sign bit.
-        ,   A_colors       { A_cross.Dim(0),  0   }
-        ,   next_front     { A_cross.Dim(0)       }
-        ,   prev_front     { A_cross.Dim(0)       }
-        ,   path           { A_cross.Dim(0), -1   }
+        ,   A_color    { A_cross.Dim(0), Color_T(0)      }
+        // We initialize by 0 because actual colors will have to be positive to use sign bit.
+        ,   A_ccolor   { A_cross.Dim(0), Color_T(0)      }
+        ,   A_from     { A_cross.Dim(0), Uninitialized   }
+        ,   next_front { A_cross.Dim(0)                  }
+        ,   prev_front { A_cross.Dim(0)                  }
+        ,   path       { A_cross.Dim(0), Uninitialized   }
         {}
         
         // No default constructor
@@ -256,8 +267,8 @@ namespace Knoodle
                 ++i;
                 a = pd.template NextArc<Head>(a);
                 s += ToString(i  ) + " : " +  ArcString(a)
-                   + " (" << (pd.template ArcOverQ<Head>(a) ? "over" : "under") + ")\n";
-                    +ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
+                   + " (" + (pd.template ArcOverQ<Head>(a) ? "over" : "under") + ")\n"
+                    + ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
             }
             while( a != a_end );
             
@@ -278,18 +289,18 @@ namespace Knoodle
                 const Int a = path[p];
 
                 s += ToString(p  ) + " : " +  ArcString(a)
-                   + " (" + ToString( Sign(A_data(a,0)) ) + ")\n";
+                   + " (" + ToString( Sign(A_ccolor(a)) ) + ")\n";
             }
             
             return s;
         }
         
         template<bool must_be_activeQ = true, bool silentQ = false>
-        bool CheckArcLeftArc( const Int A )
+        bool CheckArcLeftArc( const Int da )
         {
             bool passedQ = true;
             
-            const Int a = (A >> 1);
+            auto [a,dir] = PD_T::FromDarc(da);
             
             if( !pd.ArcActiveQ(a) )
             {
@@ -304,16 +315,20 @@ namespace Knoodle
                 }
             }
             
-            const Int A_l_true = pd.NextLeftArc(A);
-            const Int A_l      = A_left[A];
+            const Int da_l_true = pd.NextLeftArc(da);
+            const Int da_l      = dA_left[da];
             
-            if( A_l != A_l_true )
+            if( da_l != da_l_true )
             {
                 if constexpr (!silentQ)
                 {
                     eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
-                    logprint("Head is        {" + ToString(A_l >> 1)   + "," +  ToString(A_l & Int(1))  + "}.");
-                    logprint("Head should be {" + ToString(A_l_true >> 1) + "," +  ToString(A_l_true & Int(1)) + "}.");
+                    
+                    auto [a_l_true,dir_l_true] = PD_T::FromDarc(da_l_true);
+                    auto [a_l     ,dir_l     ] = PD_T::FromDarc(da_l);
+                    
+                    logprint("Head is        {" + ToString(a_l)   + "," +  ToString(dir_l)  + "}.");
+                    logprint("Head should be {" + ToString(a_l_true) + "," +  ToString(dir_l_true) + "}.");
                 }
                 passedQ = false;
             }
@@ -333,18 +348,18 @@ namespace Knoodle
             {
                 if( pd.ArcActiveQ(a) )
                 {
-                    const Int A = (a << 1) | Int(Head);
+                    const Int da = PD_T::template ToDarc<Head>(a);
                     
-                    if( !CheckArcLeftArc<false,true>(A) )
+                    if( !CheckArcLeftArc<false,true>(da) )
                     {
-                        duds.push_back(A);
+                        duds.push_back(da);
                     }
                     
-                    const Int B = (a << 1) | Int(Tail);
+                    const Int db = PD_T::template ToDarc<Tail>(a);
                     
-                    if( !CheckArcLeftArc<false,true>(B) )
+                    if( !CheckArcLeftArc<false,true>(db) )
                     {
-                        duds.push_back(B);
+                        duds.push_back(db);
                     }
                 }
             }
@@ -375,54 +390,60 @@ namespace Knoodle
 
     private:
         
-        mref<Int> C_color( const Int c )
-        {
-            return C_data(c,0);
-        }
+//        mref<Color_T> C_color( const Int c )
+//        {
+//            return C_colors(c);
+//        }
+//        
+//        cref<Color_T> C_color( const Int c ) const
+//        {
+//            return C_colors(c);
+//        }
         
-        cref<Int> C_color( const Int c ) const
-        {
-            return C_data(c,0);
-        }
-        
-        mref<Int> A_color( const Int a )
-        {
-            return A_colors[a];
-        }
-        
-        cref<Int> A_color( const Int a ) const
-        {
-            return A_colors[a];
-        }
-
-        
-        mref<Int> C_len( const Int c )
-        {
-            return C_data(c,1);
-        }
+//        mref<Int> C_len( const Int c )
+//        {
+//            return C_colors(c,1);
+//        }
+//        
+//        cref<Int> C_len( const Int c ) const
+//        {
+//            return C_colors(c,1);
+//        }
+//        
+//        
+//        mref<Color_T> A_color( const Int a )
+//        {
+//            return A_colors[a];
+//        }
+//        
+//        cref<Color_T> A_color( const Int a ) const
+//        {
+//            return A_colors[a];
+//        }
 
         void MarkCrossing( const Int c )
         {
-            C_data(c,0) = color;
-            C_data(c,1) = strand_length;
+            C_color(c) = color;
         }
         
     private:
 
         
-        void RepairArcLeftArc( const Int A )
+        void RepairArcLeftArc( const Int da )
         {
-            if( pd.ArcActiveQ(A >> 1) )
+            auto [a,dir ] = PD_T::FromDarc(da);
+            
+            if( pd.ArcActiveQ(a) )
             {
-                const Int A_l = pd.NextLeftArc(A);
-                const Int A_r = pd.NextRightArc(A) ^ Int(1);
+                const Int da_l = pd.NextLeftArc(da);
+                const Int da_r = PD_T::FlipDarc(pd.NextRightArc(da));
                 
-//                PD_DPRINT("RepairArcLeftArc touched a   = " + ArcString(A   >> 1) + ".");
-//                PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(A_l >> 1) + ".");
-//                PD_DPRINT("RepairArcLeftArc touched a_r = " + ArcString(A_r >> 1) + ".");
+//                PD_DPRINT("RepairArcLeftArc touched a   = " + ArcString(a) + ".");
+//                PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(a_l) + ".");
+//                PD_DPRINT("RepairArcLeftArc touched a_r = " + ArcString(a_r) + ".");
                 
-                A_left[A]   = A_l;
-                A_left[A_r] = A ^ Int(1);
+                dA_left[da]   = da_l;
+                dA_left[da_r] = PD_T::FlipDarc(da);
             }
         }
         
@@ -433,14 +454,10 @@ namespace Knoodle
 #ifdef PD_TIMINGQ
             const Time start_time = Clock::now();
 #endif
-//            for( Int A = 0; A < 2 * pd.max_arc_count; ++A )
-//            {
-//                RepairArcLeftArc(A);
-//            }
             
-            for( Int A : touched )
+            for( Int da : touched )
             {
-                RepairArcLeftArc(A);
+                RepairArcLeftArc(da);
             }
             
             PD_ASSERT(CheckArcLeftArcs());
@@ -458,15 +475,10 @@ namespace Knoodle
         template<bool headtail>
         void TouchArc( const Int a )
         {
-
-            const Int A = (a << 1) | Int(headtail);
+            const Int da = PD_T::ToDarc(a,headtail);
             
-            touched.push_back(A);
-            touched.push_back(pd.NextRightArc(A) ^ Int(1));
-            
-//            const Int B = A ^ Int(1);
-//            touched.push_back(B);
-//            touched.push_back( pd.NextRightArc(B) ^ Int(1));
+            touched.push_back(da);
+            touched.push_back(PD_T::FlipDarc(pd.NextRightArc(da)));
         }
         
         void TouchArc( const Int a, const bool headtail )
@@ -493,7 +505,7 @@ namespace Knoodle
         void Reconnect( const Int a, const Int b )
         {
 #ifdef PD_DEBUG
-            std::string tag  (ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+            std::string tag  (ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
 #endif
             
             PD_TIC(tag);
@@ -764,16 +776,20 @@ namespace Knoodle
             PD_ASSERT(pd.CheckNextLeftArc());
             PD_ASSERT(pd.CheckNextRightArc());
             
-            if( color >= std::numeric_limits<Int>::max()/2 )
+            if( color >= std::numeric_limits<Color_T>::max()/2 )
             {
-                C_data.Fill(-1);
-                A_data.Fill(0);
-                A_colors.Fill(0);
+                C_color.Fill(Color_T(0));
+                A_color.Fill(Color_T(0));
                 
-                color = 0;
+                A_ccolor.Fill(Color_T(0));
+                A_from.Fill(Int(0));
+
+                color = Color_T(0);
             }
             
-            A_left = pd.ArcLeftArc().data();
+            // We do not have to erase A_source, because it is only written from when a A_ccolor check is successful.
+//            pd.A_source.Fill(Uninitialized);
+            dA_left = pd.ArcLeftArc().data();
             
             PD_ASSERT(CheckArcLeftArcs());
 
@@ -784,7 +800,7 @@ namespace Knoodle
         {
             PD_TIC(ClassName()+"::Cleanup");
             
-            A_left = nullptr;
+            dA_left = nullptr;
             
             pd.ClearCache("ArcLeftArc");
             
@@ -829,13 +845,13 @@ namespace Knoodle
             
             const Int m = A_cross.Dim(0);
             
-            // We increase `color` for each strand. This ensures that all entries of A_data, A_colors, C_data etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
+            // We increase `color` for each strand. This ensures that all entries of A_ccolor,A_from, A_visited_from, A_color, C_color etc. are invalidated. In addition, `Prepare` resets these whenever color is at least half of the maximal integer of type Int (rounded down).
             // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `SimplifyStrands`. That should really be enough for all feasible applications.
             
             ++color;
             a_ptr = 0;
             
-            const Int color_0 = color;
+            const Color_T color_0 = color;
 
             strand_length = 0;
             change_counter = 0;
@@ -885,7 +901,7 @@ namespace Knoodle
                     ++strand_length;
                     
                     // Safe guard against integer overflow.
-                    if( color == std::numeric_limits<Int>::max() )
+                    if( color == std::numeric_limits<Color_T>::max() )
                     {
 #ifdef PD_TIMINGQ
                         const Time stop_time = Clock::now();
@@ -1426,12 +1442,12 @@ namespace Knoodle
          *
          * @param max_dist Maximal distance we want to travel
          *
-         * @param color_    Indicator that is written to first column of `A_data`; this avoids having to erase the whole matrix `A_data` for each new search. When we call this, we assume that `A_data` contains only values different from `color`.
+         * @param color_    Indicator that is written to `A_ccolor`; this avoids having to erase the whole vector `A_from` for each new search. When we call this, we assume that `A_ccolor` contains only values different from `color`.
          *
          */
         
         Int FindShortestPath_impl(
-            const Int a_begin, const Int a_end, const Int max_dist, const Int color_
+            const Int a_begin, const Int a_end, const Int max_dist, const Color_T color_
         )
         {
             PD_TIC(ClassName()+"::FindShortestPath_impl");
@@ -1440,7 +1456,7 @@ namespace Knoodle
             const Time start_time = Clock::now();
 #endif
             
-            PD_ASSERT( color_ > Int(0) );
+            PD_ASSERT( color_ > Color_T(0) );
             
             PD_ASSERT( a_begin != a_end );
             
@@ -1450,15 +1466,15 @@ namespace Knoodle
             
             // Push the arc `a_begin` twice onto the stack: once with forward orientation, once with backward orientation.
             
-            next_front.Push( (a_begin << 1) | Int(Head) );
-            next_front.Push( (a_begin << 1) | Int(Tail) );
+            next_front.Push( PD_T::template ToDarc<Head>(a_begin) );
+            next_front.Push( PD_T::template ToDarc<Tail>(a_begin) );
             
-            A_data(a_begin,0) = color_;
-            A_data(a_begin,1) = a_begin;
+            A_ccolor(a_begin) = color_;
+            A_from(a_begin)   = a_begin;
             
             // This is needed to prevent us from running in circles when cycling around faces.
             // See comments below.
-            A_visited_from[a_begin] = a_begin;
+            A_source[a_begin] = a_begin;
             
             Int d = 0;
             
@@ -1477,36 +1493,35 @@ namespace Knoodle
 
                 while( !prev_front.EmptyQ() )
                 {
-                    const Int A_0 = prev_front.Pop();
+                    const Int da_0 = prev_front.Pop();
                     
-                    const Int a_0 = (A_0 >> 1);
+                    auto [a_0,d_0] = PD_T::FromDarc(da_0);
                     
-                    // Now we run through the boundary arcs of the face using `A_left` to turn always left.
+                    // Now we run through the boundary arcs of the face using `dA_left` to turn always left.
                     // There is only one exception and that is when the arc we get to is part of the strand (which is when `A_color(a) == color_`).
                     // Then we simply go straight through the crossing.
 
                     // arc a_0 itself does not have to be processed because that's where we are coming from.
-                    Int A = A_left[A_0];
+                    Int da = dA_left[da_0];
 
                     do
                     {
-                        Int  a   = (A >> 1);
-                        bool dir = (A & Int(1));
+                        auto [a,dir] = PD_T::FromDarc(da);
                         
                         AssertArc<1>(a);
                         
                         const bool part_of_strandQ = (A_color(a) == color_);
 
                         // Check whether `a` has not been visited, yet.
-                        if( Abs(A_data(a,0)) != color_ )
+                        if( Abs(A_ccolor(a)) != color_ )
                         {
                             if( a == a_end )
                             {
                                 // Mark as visited.
-                                A_data(a,0) = color_;
+                                A_ccolor(a) = color_;
                                 
                                 // Remember from which arc we came
-                                A_data(a,1) = a_0;
+                                A_from(a) = a_0;
                                 
                                 goto Exit;
                             }
@@ -1519,14 +1534,14 @@ namespace Knoodle
                             }
                             else
                             {
-                                // We make A_data(a,0) positive if we cross arc `a` from left to right. Otherwise it is negative.
+                                // We make A_ccolor(a) positive if we cross arc `a` from left to right. Otherwise it is negative.
                                 
-                                A_data(a,0) = dir ? color_ : -color_;
+                                A_ccolor(a) = dir ? color_ : -color_;
                                 
                                 // Remember the arc we came from.
-                                A_data(a,1) = a_0;
+                                A_from(a) = a_0;
 
-                                next_front.Push(A ^ Int(1));
+                                next_front.Push(PD_T::FlipDarc(da));
                             }
                         }
                         else if constexpr ( mult_compQ )
@@ -1550,7 +1565,7 @@ namespace Knoodle
                             //   ------+                        +---
                             
                             // TODO: Maybe this is needed only with multiple components?
-                            if( A_visited_from[a] == a_0 )
+                            if( A_source[a] == a_0 )
                             {
                                 break;
                             }
@@ -1559,19 +1574,20 @@ namespace Knoodle
                         // TODO: Maybe this is needed only with multiple components?
                         if constexpr ( mult_compQ )
                         {
-                            A_visited_from[a] = a_0;
+                            A_source[a] = a_0;
                         }
 
                         if( part_of_strandQ )
                         {
-                            A = A_left[A ^ Int(1)];
+                            // If da is part of the current strand, we ignore i
+                            da = dA_left[PD_T::FlipDarc(da)];
                         }
                         else
                         {
-                            A = A_left[A];
+                            da = dA_left[da];
                         }
                     }
-                    while( A != A_0 );
+                    while( da != da_0 );
                 }
             }
             
@@ -1594,7 +1610,7 @@ namespace Knoodle
             {
                 // The only way to get here with `d <= max_dist` is the `goto` above.
                 
-                if( Abs(A_data(a_end,0)) != color_ )
+                if( Abs(A_ccolor(a_end)) != color_ )
                 {
                     pd_eprint(ClassName()+"::FindShortestPath_impl");
                     TOOLS_LOGDUMP(d);
@@ -1602,8 +1618,8 @@ namespace Knoodle
                     TOOLS_LOGDUMP(a_end);
                     TOOLS_LOGDUMP(color_);
                     TOOLS_LOGDUMP(color);
-                    TOOLS_LOGDUMP(A_data(a_end,0));
-                    TOOLS_LOGDUMP(A_data(a_end,1));
+                    TOOLS_LOGDUMP(A_ccolor(a_end));
+                    TOOLS_LOGDUMP(A_from(a_end));
                 }
                 
                 Int a = a_end;
@@ -1614,7 +1630,7 @@ namespace Knoodle
                 {
                     path[path_length-1-i] = a;
                     
-                    a = A_data(a,1);
+                    a = A_from(a);
                 }
             }
             else
@@ -1717,7 +1733,7 @@ namespace Knoodle
         
         bool RerouteToShortestPath_impl(
             const Int a_first, mref<Int> a_last,
-            const Int max_dist, const Int color_
+            const Int max_dist, const Color_T color_
         )
         {
             PD_ASSERT(CheckArcLeftArcs());
@@ -1788,9 +1804,10 @@ namespace Knoodle
                 
                 const Int a_2 = C_arcs(c_0,Out,side);
                 
+                // TODO: Use FromDarc
                 const Int b = path[p];
-                
-                const bool dir = (A_data(b,0) > Int(0));
+
+                const bool dir = (A_ccolor(b) > Color_T(0));
                 
                 const Int c_1 = A_cross(b,Head);
                 
@@ -1948,10 +1965,11 @@ namespace Knoodle
                 
 //                // Mark arcs so that they will be repaired by `RepairArcLeftArcs`;
                 TouchArc<Head>(a_0);
-                touched.push_back( (a   << 1) | Int(Head) );
-                touched.push_back( (b   << 1) | Int(Head) );
-                touched.push_back( (a_1 << 1) | Int(Tail) );
-                touched.push_back( (a_2 << 1) | Int(Tail) );
+
+                touched.push_back( PD_T::template ToDarc<Head>(a)   );
+                touched.push_back( PD_T::template ToDarc<Head>(b)   );
+                touched.push_back( PD_T::template ToDarc<Tail>(a_1) );
+                touched.push_back( PD_T::template ToDarc<Tail>(a_2) );
                 
                 AssertCrossing<1>(c_0);
                 AssertCrossing<1>(c_1);
@@ -2043,7 +2061,7 @@ namespace Knoodle
             static_assert( IntQ<Int_0>, "" );
             static_assert( IntQ<Int_1>, "" );
             
-            const Int c   = int_cast<Int>(color_ );
+            const Color_T c   = int_cast<Color_T>(color_ );
             const Int a_begin = int_cast<Int>(a_first);
             const Int a_end   = int_cast<Int>(pd.template NextArc<Head>(a_last));
             Int a = a_begin;
@@ -2068,10 +2086,10 @@ namespace Knoodle
             static_assert( IntQ<Int_1>, "" );
             static_assert( IntQ<Int_2>, "" );
             
-            const Int n = int_cast<Int>(strand_length_);
-            const Int c = int_cast<Int>(color_);
+            const Int n     = int_cast<Int>(strand_length_);
+            const Color_T c = int_cast<Color_T>(color_);
             
-            if( c <= 0 )
+            if( c <= Color_T(0) )
             {
                 pd_eprint("Argument color_ is <= 0. This is an illegal color.");
                 

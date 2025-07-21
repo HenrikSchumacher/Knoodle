@@ -271,7 +271,7 @@ namespace Knoodle
     template<typename Int, typename Int_2>
     CrossingState PDCodeHandedness( mptr<Int_2> X )
     {
-        static_assert( SignedIntQ<Int>, "" );
+        static_assert( IntQ<Int>, "" );
         static_assert( IntQ<Int_2>, "" );
         
         const Int i = int_cast<Int>(X[0]);

@@ -251,11 +251,15 @@ private:
     void FindIntersectingEdges_DFS_ManualStack()
     {
         const Int int_node_count = T.InternalNodeCount();
-
-        static_assert(SignedIntQ<Int>,"");
-        Int stack [4 * max_depth][2];
-        Int stack_ptr = -1;
-
+        
+        constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
+        constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
+        
+        Int stack [stack_max_size][2];
+        Int stack_ptr = 0;
+        stack[stack_ptr][0] = 0;  // Dummy node.
+        stack[stack_ptr][1] = 0;  // Dummy node.
+        
         // Helper routine to manage the pair_stack.
         auto push = [&stack,&stack_ptr]( const Int i, const Int j )
         {
@@ -283,9 +287,9 @@ private:
         
         auto continueQ = [&stack_ptr,this]()
         {
-            const bool overflowQ = (stack_ptr >= Int(4) * max_depth - Int(4));
+            const bool overflowQ = (stack_ptr >= stack_limit);
             
-            if( (Int(0) <= stack_ptr) && (!overflowQ) ) [[likely]]
+            if( (Int(0) < stack_ptr) && (!overflowQ) ) [[likely]]
             {
                 return true;
             }
@@ -371,7 +375,7 @@ private:
                 }
             }
             else
-            {
+            {   
     //                    Time edge_start_time = Clock::now();
     //                    ++edge_call_count;
                 ComputeEdgeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );

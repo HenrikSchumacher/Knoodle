@@ -6,7 +6,7 @@ namespace Knoodle
     template<typename Int_>
     class alignas( ObjectAlignment ) MatrixQuadTree final
     {
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -86,7 +86,7 @@ namespace Knoodle
         // Default constructor
         MatrixQuadTree() = default;
         
-        // TODO: A nast class this is!
+        // TODO: A nasty class this is!
         // Destructor
         ~MatrixQuadTree()
         {

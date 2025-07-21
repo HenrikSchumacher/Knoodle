@@ -52,6 +52,8 @@ namespace Knoodle
         
     protected:
         
+        static_assert(std::in_range<Int>(4 * 64 + 1),"");
+        
         static constexpr Int max_depth = 64;
         
         static constexpr Real one     = 1;

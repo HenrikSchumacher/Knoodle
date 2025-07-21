@@ -19,7 +19,7 @@ namespace Knoodle
         static constexpr Int i_0 = - 1;
         static constexpr Int j_0 = - 1;
         
-        using UInt         = Scalar::Unsigned<Int>;
+        using UInt         = ToUnsigned<Int>;
         
         using Link_T       = Link_3D<Real,Int>;
         using Tree_T       = typename Link_T::Tree_T;
@@ -37,6 +37,8 @@ namespace Knoodle
         // The idea here is that at a splice we will have an immediate collision by construction.
         // But we want to ignore this!
         static constexpr Real first_collision_tolerance = 8 * Scalar::eps<Real>;
+        
+        static_assert(std::in_range<Int>(4 * 128 + 1),"");
         
         // Maximal depth of block cluster tree.
         static constexpr Int max_depth = 128;

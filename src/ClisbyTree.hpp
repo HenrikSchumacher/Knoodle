@@ -49,8 +49,8 @@ namespace Knoodle
     //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
     {
         static_assert(FloatQ<Real_>,"");
-        static_assert(SignedIntQ<Int_>,"");
-        static_assert(SignedIntQ<LInt_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<LInt_>,"");
         static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
         
     public:

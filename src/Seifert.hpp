@@ -19,7 +19,7 @@ namespace Knoodle
         using Int  = Int_;
 //        using LInt = LInt_;
         
-        static_assert(SignedIntQ<Int>,"");
+//        static_assert(SignedIntQ<Int>,"");
 
                 
 //        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;

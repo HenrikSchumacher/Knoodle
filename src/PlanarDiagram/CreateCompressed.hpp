@@ -153,10 +153,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
             ++a_ptr;
         }
         
-        if( a_ptr >= m )
-        {
-            break;
-        }
+        if( a_ptr >= m ) { break; }
         
         Int a = a_ptr;
         

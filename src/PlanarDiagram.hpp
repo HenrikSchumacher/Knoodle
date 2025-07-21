@@ -16,12 +16,13 @@ namespace Knoodle
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram final : public CachedObject
     {
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
+        static_assert(IntQ<Int_>,"");
 
     public:
             
         using Int     = Int_;
-        using UInt    = Scalar::Unsigned<Int>;
+        using UInt    = ToUnsigned<Int>;
 
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
@@ -134,78 +135,7 @@ namespace Knoodle
         PlanarDiagram( PlanarDiagram && other ) = default;
         // Move assignment operator
         PlanarDiagram & operator=( PlanarDiagram && other ) = default;
-        
-        
-//        // Copy constructor
-//        PlanarDiagram( const PlanarDiagram & other )
-//        :   Base_T( other )
-//        ,   crossing_count          { other.crossing_count          }
-//        ,   arc_count               { other.arc_count               }
-//        ,   unlink_count            { other.unlink_count            }
-//        ,   max_crossing_count      { other.max_crossing_count      }
-//        ,   max_arc_count           { other.max_arc_count           }
-//        ,   C_arcs                  { other.C_arcs                  }
-//        ,   C_state                 { other.C_state                 }
-//        ,   A_cross                 { other.A_cross                 }
-//        ,   A_state                 { other.A_state                 }
-//        ,   R_I_counter             { other.R_I_counter             }
-//        ,   R_Ia_counter            { other.R_Ia_counter            }
-//        ,   R_II_counter            { other.R_II_counter            }
-//        ,   R_IIa_counter           { other.R_IIa_counter           }
-//        ,   twist_counter           { other.twist_counter           }
-//        ,   four_counter            { other.four_counter            }
-//        ,   C_scratch               { other.C_scratch               }
-//        ,   A_scratch               { other.A_scratch               }
-//        ,   proven_minimalQ         { other.proven_minimalQ         }
-//        {}
-//            
-//        
-//        friend void swap(PlanarDiagram & A, PlanarDiagram & B ) noexcept
-//        {
-//            // see https://stackoverflow.com/questions/5695548/public-friend-swap-member-function for details
-//            using std::swap;
-//            
-//            swap( static_cast<CachedObject &>(A), static_cast<CachedObject &>(B) );
-//            
-//            swap( A.crossing_count      , B.crossing_count      );
-//            swap( A.arc_count           , B.arc_count           );
-//            swap( A.unlink_count        , B.unlink_count        );
-//            swap( A.max_crossing_count  , B.max_crossing_count  );
-//            swap( A.max_arc_count       , B.max_arc_count       );
-//            
-//            swap( A.C_arcs              , B.C_arcs              );
-//            swap( A.C_state             , B.C_state             );
-//            swap( A.A_cross             , B.A_cross             );
-//            swap( A.A_state             , B.A_state             );
-//            
-//            swap( A.R_I_counter         , B.R_I_counter         );
-//            swap( A.R_Ia_counter        , B.R_Ia_counter        );
-//            swap( A.R_II_counter        , B.R_II_counter        );
-//            swap( A.R_IIa_counter       , B.R_IIa_counter       );
-//            swap( A.twist_counter       , B.twist_counter       );
-//            swap( A.four_counter        , B.four_counter        );
-//            
-//            swap( A.C_scratch           , B.C_scratch           );
-//            swap( A.A_scratch           , B.A_scratch           );
-//            swap( A.proven_minimalQ     , B.proven_minimalQ     );
-//        }
-//        
-//        // Copy assignment operator
-//        PlanarDiagram & operator=( PlanarDiagram other ) noexcept
-//        {   //                                     ^
-//            //                                     |
-//            // Use the copy constructor     -------+
-//            swap( *this, other );
-//            return *this;
-//        }
-//        
-//        // Move constructor
-//        PlanarDiagram( PlanarDiagram && other ) noexcept
-//        :   PlanarDiagram()
-//        {
-//            swap(*this, other);
-//        }
-        
+ 
     private:
         
         /*! @brief This constructor is supposed to only allocate all relevant buffers.

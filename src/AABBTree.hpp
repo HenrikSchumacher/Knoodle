@@ -37,7 +37,7 @@ namespace Knoodle
         using EContainer_T = Tiny::MatrixList_AoS<2,AmbDim,Real,Int>;
         using BContainer_T = Tiny::MatrixList_AoS<2,AmbDim,BReal,Int>;
         
-        using UInt = Scalar::Unsigned<Int>;
+        using UInt = ToUnsigned<Int>;
         
         explicit AABBTree( const Int prim_count_  )
         :   Base_T  ( prim_count_ )

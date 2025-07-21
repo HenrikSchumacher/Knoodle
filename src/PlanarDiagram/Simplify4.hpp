@@ -30,7 +30,7 @@ Int Simplify4(
          + "," + ToString(strand_R_II_Q)
          + ")");
     
-    static_assert(SignedIntQ<Int>,"");
+//    static_assert(SignedIntQ<Int>,"");
     Int old_counter = 0;
     Int counter = 0;
     

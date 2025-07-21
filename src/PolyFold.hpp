@@ -15,8 +15,8 @@ namespace Knoodle
     class PolyFold final
     {
         static_assert(FloatQ<Real_>,"");
-        static_assert(SignedIntQ<Int_>,"");
-        static_assert(SignedIntQ<LInt_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<LInt_>,"");
         static_assert(FloatQ<BReal_>,"");
         
     public:

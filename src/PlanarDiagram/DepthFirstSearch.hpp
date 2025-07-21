@@ -54,7 +54,8 @@ template<
     class Discover_T,   // f( const DarcNode & da )
     class Rediscover_T, // f( const DarcNode & da )
     class PreVisit_T,   // f( const DarcNode & da )
-    class PostVisit_T   // f( const DarcNode & da )
+    class PostVisit_T,   // f( const DarcNode & da )
+    bool verboseQ = true
 >
 void DepthFirstSearch(
     Discover_T   && discover,
@@ -63,12 +64,9 @@ void DepthFirstSearch(
     PostVisit_T  && post_visit
 )
 {
-    if( crossing_count <= Int(0) )
-    {
-        return;
-    }
+    if( crossing_count <= Int(0) ) { return; }
     
-    TOOLS_PTIC(ClassName()+"::DepthFirstSearch");
+    TOOLS_PTIMER(timer,MethodName("DepthFirstSearch"));
     
     cptr<Int> A_C = A_cross.data();
     
@@ -105,7 +103,11 @@ void DepthFirstSearch(
             C_flag[head] = UInt8(1);
             A_visitedQ[b] = true;
             DarcNode B {A.head,db,head};
-//            logprint("discover crossing " + ToString(head) + "; arc = " + ToString(b_ud));
+            if constexpr ( verboseQ )
+            {
+                logprint("discover crossing " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                );
+            }
             discover( B );
             stack.Push( std::move(B) );
         }
@@ -115,12 +117,20 @@ void DepthFirstSearch(
             if( !A_visitedQ[b] )
             {
                 A_visitedQ[b] = true;
-//                logprint("rediscover crossing " + ToString(head) + "; arc = " + ToString(b_ud));
+                if constexpr ( verboseQ )
+                {
+                    logprint("rediscover crossing " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                    );
+                }
                 rediscover({A.head,db,head});
             }
             else
             {
-//                logprint("skip rediscover vertex " + ToString(head) + "; edge = " + ToString(b_ud));
+                if constexpr ( verboseQ )
+                {
+                    logprint("skip rediscover vertex " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                    );
+                }
             }
         }
     };
@@ -136,7 +146,10 @@ void DepthFirstSearch(
             C_flag[c_0] = UInt8(1);
             DarcNode A {Uninitialized, Uninitialized, c_0};
             discover( A );
-//            logprint("discover crossing " + ToString(c_0));
+            if constexpr ( verboseQ )
+            {
+                logprint("discover crossing " + ToString(c_0));
+            }
             stack.Push( std::move(A) );
         }
         
@@ -145,16 +158,26 @@ void DepthFirstSearch(
             DarcNode & A = stack.Top();
             const Int c = A.head;
             
+            TOOLS_LOGDUMP(A.da);
+            TOOLS_LOGDUMP(A.tail);
+            TOOLS_LOGDUMP(A.head);
+            
             if( C_flag[c] == UInt8(0) )
             {
-//                eprint("Undiscovered crossing " + ToString(c) + " on stack!");
+                if constexpr ( verboseQ )
+                {
+                    eprint("Undiscovered crossing " + ToString(c) + " on stack!");
+                }
                 (void)stack.Pop();
             }
             else if( C_flag[c] == UInt8(1) )
             {
                 
                 C_flag[c] = UInt8(2);
-//                logprint("pre-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(da.a) ? "Uninitialized" : ToString(da.a/2)) );
+                if constexpr ( verboseQ )
+                {
+                    logprint("pre-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(A.da) ? "Uninitialized" : ToString(A.da/2)) );
+                }
                 pre_visit( A );
 
                 // We process the arcs in reverse order so that they appear in correct order on the stack.
@@ -167,20 +190,25 @@ void DepthFirstSearch(
             else if( C_flag[c] == UInt8(2) )
             {
                 C_flag[c] = UInt8(3);
+                if constexpr ( verboseQ )
+                {
+                    logprint("post-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(A.da) ? "Uninitialized" : ToString(A.da/2)) );
+                }
                 post_visit( A );
-//                logprint("post-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(da.a) ? "Uninitialized" : ToString(A.da/2)) );
                 (void)stack.Pop();
             }
             else // if( C_flag[c] == UInt8(3) )
             {
+                if constexpr ( verboseQ )
+                {
+                    logprint("popping stack");
+                }
                 (void)stack.Pop();
             }
 
         } // while( !stack.EmptyQ() )
         
     } // for( Int c_0 = 0; c_0 < crossing_count; ++c_0 )
-    
-    TOOLS_PTOC( ClassName()+"::DepthFirstSearch");
 }
 
 template<class PreVisitVertex_T>

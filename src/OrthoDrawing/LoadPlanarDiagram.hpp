@@ -102,12 +102,14 @@ void LoadPlanarDiagram(
     
     using DarcNode = PlanarDiagram<ExtInt>::DarcNode;
     
+    constexpr ExtInt UninitializedArc = PlanarDiagram<ExtInt>::Uninitialized;
+    
     // Tell each crossing what its absolute orientation is.
     // This would be hard to parallelize
     pd.DepthFirstSearch(
         [&C_dir,/*&C_A,*/this]( cref<DarcNode> A )
         {
-            if( A.da < ExtInt(0) )
+            if( A.da == UninitializedArc )
             {
                 C_dir[A.head] = Dir_T(0);
             }

@@ -630,7 +630,8 @@ namespace Knoodle
             const Int Q_end   = n;
             
             const Int k = Min( Q_ts, n - q - 1 );
-            const Int l = Ramp( Q_ts - p );
+            const Int l = Q_ts >= p ? Q_ts - p : Int(0);
+            
             
             // Test end of P against front of Q.
             if( tail_checkQ )
