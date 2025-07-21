@@ -16,7 +16,7 @@ namespace Knoodle
     template<typename Scal_, typename Int_>
     class Alexander_UMFPACK final
     {
-        static_assert(SignedIntQ<Int_>,"");
+        static_assert(IntQ<Int_>,"");
         
     public:
         
@@ -24,6 +24,9 @@ namespace Knoodle
         using Real    = Scalar::Real<Scal>;
         using Int     = Int_;
         using LInt    = Int_;
+        
+        using Int_UMF  = ToSigned<Int>;
+
         
         using Complex = Scalar::Complex<Real>;
 
@@ -34,12 +37,10 @@ namespace Knoodle
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
         using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
-        
-        using Factorization_T   = UMFPACK<Scal,LInt>;
-        using Factorization_Ptr = std::shared_ptr<Factorization_T>;
+
         using PD_T              = PlanarDiagram<Int>;
         
-        using UMFPACK_T         = UMFPACK<Scal,Int>;
+        using UMFPACK_T         = UMFPACK<Scal,Int_UMF>;
         using UMFPACK_Ptr       = std::shared_ptr<UMFPACK_T>;
         
         static constexpr bool Tail  = PD_T::Tail;
@@ -67,18 +68,6 @@ namespace Knoodle
         ,   LU_buffer ( sparsity_threshold * sparsity_threshold )
         ,   LU_ipiv   ( sparsity_threshold )
         {}
-      
-        // Destructor
-        ~Alexander_UMFPACK() = default;
-        // Copy constructor
-        Alexander_UMFPACK( const Alexander_UMFPACK & other ) = default;
-        // Copy assignment operator
-        Alexander_UMFPACK & operator=( const Alexander_UMFPACK & other ) = default;
-        // Move constructor
-        Alexander_UMFPACK( Alexander_UMFPACK && other ) = default;
-        // Move assignment operator
-        Alexander_UMFPACK & operator=( Alexander_UMFPACK && other ) = default;
-        
         
     private:
         
@@ -98,9 +87,9 @@ namespace Knoodle
             return sparsity_threshold;
         }
         
-#include "Alexander/Alexander_Strands_Dense.hpp"
-#include "Alexander/Alexander_Strands_Sparse.hpp"
-#include "Alexander/Alexander_Strands.hpp"
+#include "Alexander_UMFPACK/Alexander_Strands_Dense.hpp"
+#include "Alexander_UMFPACK/Alexander_Strands_Sparse.hpp"
+#include "Alexander_UMFPACK/Alexander_Strands.hpp"
         
     public:
 

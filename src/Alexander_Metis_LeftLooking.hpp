@@ -9,7 +9,7 @@ namespace Knoodle
     template<typename Scal_, typename Int_, typename LInt_>
     class Alexander_Metis_LeftLooking final
     {
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         static_assert(IntQ<LInt_>,"");
         
     public:
