@@ -15,7 +15,7 @@ namespace Knoodle
     template<typename Scal_, typename Int_, typename LInt_>
     class Alexander final
     {
-        static_assert(SignedIntQ<Int_>,"");
+        static_assert(IntQ<Int_>,"");
         static_assert(IntQ<LInt_>,"");
         
     public:
@@ -62,17 +62,6 @@ namespace Knoodle
         ,   LU_perm   ( sparsity_threshold )
         {}
         
-        // Destructor
-        ~Alexander() = default;
-        // Copy constructor
-        Alexander( const Alexander & other ) = default;
-        // Copy assignment operator
-        Alexander & operator=( const Alexander & other ) = default;
-        // Move constructor
-        Alexander( Alexander && other ) = default;
-        // Move assignment operator
-        Alexander & operator=( Alexander && other ) = default;
-        
     private:
         
         Int sparsity_threshold;
@@ -80,11 +69,6 @@ namespace Knoodle
         mutable Tensor1<Scal,Int> LU_buffer;
         
         mutable Tensor1<LAPACK::Int,Int> LU_perm;
-        
-        
-//        mutable Factorization_Ptr  herm_alex_fact;
-//        
-//        mutable Tensor2<Scal,LInt> herm_alex_help;
         
         mutable Tensor1<Scal,LInt> herm_alex_vals;
 
@@ -114,7 +98,7 @@ namespace Knoodle
             
             const Int n = pd.CrossingCount() - 1 + fullQ;
             
-            if( n <= 0 )
+            if( n <= Int(0) )
             {
                 TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
                 
@@ -123,7 +107,7 @@ namespace Knoodle
 
             std::vector<Aggregator_T> Agg;
 
-            Agg.emplace_back(3 * n);
+            Agg.emplace_back(Int(3) * n);
 
             mref<Aggregator_T> agg = Agg[0];
 
