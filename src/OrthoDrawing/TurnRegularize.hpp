@@ -73,7 +73,7 @@ Turn_T FaceTurns( const Int de_ptr ) const
 {
     if( !DedgeActiveQ(de_ptr) ) { return Turn_T(0); }
     
-    cptr<Turn_T> dE_left_dE = E_left_dE.data();
+    cptr<Int>    dE_left_dE = E_left_dE.data();
     cptr<Turn_T> dE_turn    = E_turn.data();
     Turn_T rot = 0;
     
@@ -136,8 +136,8 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
         return {Uninitialized,Uninitialized};
     }
     
-    cptr<Int>   dE_left_dE = E_left_dE.data();
-    cptr<Int>   dE_turn    = E_turn.data();
+    cptr<Int>    dE_left_dE = E_left_dE.data();
+    cptr<Turn_T> dE_turn    = E_turn.data();
     
     // RE = reflex edge
     mptr<Int>   RE_rot = V_scratch.data();
@@ -307,10 +307,10 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
         }
     }
     
-    mptr<Int>   dE_V       = E_V.data();
-    mptr<Int>   dE_left_dE = E_left_dE.data();
-    mptr<Int>   dE_turn    = E_turn.data();
-    mptr<UInt8> dE_flag    = E_flag.data();
+    mptr<Int>    dE_V       = E_V.data();
+    mptr<Int>    dE_left_dE = E_left_dE.data();
+    mptr<Turn_T> dE_turn    = E_turn.data();
+    mptr<UInt8>  dE_flag    = E_flag.data();
 
     // TODO: We should cycle around the face just once and collect all directed edges.
     
@@ -431,8 +431,8 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     // After splitting the face, we mark the bigger of the two residual faces as exterior face.
     if( exteriorQ )
     {
-        const Int t_0 = FaceTurns(de_0);
-        const Int t_1 = FaceTurns(de_1);
+        const Turn_T t_0 = FaceTurns(de_0);
+        const Turn_T t_1 = FaceTurns(de_1);
         
         if( (t_0 == Turn_T(4)) && (t_1 == Turn_T(-4)) )
         {

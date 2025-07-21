@@ -483,12 +483,12 @@ void ComputeVertexCoordinates_ByLengths_Variant4( bool minimize_areaQ = false )
     Tensor1<Int,Int> y ( dim.DhV_count );
 
     
-    for( Int i = 0; i < dim.DvV_count; ++i )
+    for( COIN_Int i = 0; i < dim.DvV_count; ++i )
     {
         x[i] = static_cast<Int>(std::round(COIN_Real(4) * s[i + dim.DvV_offset]));
     }
     
-    for( Int i = 0; i < dim.DhV_count; ++i )
+    for( COIN_Int i = 0; i < dim.DhV_count; ++i )
     {
         y[i] = static_cast<Int>(std::round(COIN_Real(4) * s[i + dim.DhV_offset]));
     }

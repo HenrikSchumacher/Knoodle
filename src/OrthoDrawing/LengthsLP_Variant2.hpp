@@ -259,9 +259,9 @@ void ComputeVertexCoordinates_ByLengths_Variant2( bool minimize_areaQ = false )
     
     cref<Variant2_Dimensions_T> d = Variant2_Dimensions();
 
-    // The integer conversion is safe as we have rounded s correctly already.
-    Tensor1<Int,Int> x ( s.data(d.DvV_offset), d.DvV_count );
-    Tensor1<Int,Int> y ( s.data(d.DhV_offset), d.DhV_count );
+    // The float-point-to-integer conversion is safe as we have rounded s correctly already.
+    Tensor1<Int,Int> x ( s.data(d.DvV_offset), static_cast<Int>(d.DvV_count) );
+    Tensor1<Int,Int> y ( s.data(d.DhV_offset), static_cast<Int>(d.DhV_count) );
 
     ComputeVertexCoordinates(x,y);
 }

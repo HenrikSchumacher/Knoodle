@@ -26,7 +26,7 @@ namespace Knoodle
         using Base_T = CachedObject;
         
     public:
-        static_assert(SignedIntQ<Int_>,"");
+//        static_assert(SignedIntQ<Int_>,"");
         
         using Int        = Int_;
         
@@ -37,8 +37,8 @@ namespace Knoodle
         using UInt       = UInt32;
         using Dir_T      = UInt8;
         using EdgeFlag_T = UInt8;
-        using Turn_T     = std::make_signed_t<Int>;
-        using Cost_T     = std::make_signed_t<Int>;
+        using Turn_T     = ToSigned<Int>;
+        using Cost_T     = ToSigned<Int>;
         
         
         enum class VertexFlag_T : Int8
