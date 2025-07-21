@@ -107,7 +107,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
             );
             
             // y = L.x_tau
-            L.Dot( Scalar::One<Real>, x_tau, Scalar::Zero<Real>, y );
+            L.Dot( Scalar::One<Real>, x_tau.data(), Scalar::Zero<Real>, y.data() );
             
             phi_tau = 0;
 
