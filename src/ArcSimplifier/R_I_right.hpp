@@ -124,7 +124,7 @@ bool R_I_right()
         {
             PD_PRINT("\t\ts_0 != s_1");
             
-            /* A second Reidemeister I move can be performed.
+            /*
              *
              *                 n_0
              *               ^           +---+
@@ -147,7 +147,7 @@ bool R_I_right()
             AssertArc<0>(n_1);
             AssertArc<0>(e_1);
             AssertArc<1>(s_1);
-            AssertCrossing<0>(c_0);
+            AssertCrossing<1>(c_0);
             AssertCrossing<0>(c_1);
             
             return true;
@@ -161,7 +161,9 @@ bool R_I_right()
         {
             PD_PRINT("\t\t\tw_0 != n_0");
             
-            /*                n_0
+            /* A second Reidemeister I move can be performed.
+             *
+             *                n_0
              *               ^           +---+
              *               |     a     |   |
              *        w_0 -->X---------->X-->+ e_1
