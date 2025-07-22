@@ -10,7 +10,7 @@ static constexpr Dir_T NorthWest =  5;  // only for softened virtual edges
 static constexpr Dir_T SouthWest =  6;  // only for softened virtual edges
 static constexpr Dir_T SouthEast =  7;  // only for softened virtual edges
 
-static constexpr Dir_T NoDir     = 15;
+static constexpr Dir_T NoDir     = Scalar::Max<Dir_T>;
 
 // The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
 static constexpr Dir_T dir_lut [2][2] = { {North,East}, {West,South} };

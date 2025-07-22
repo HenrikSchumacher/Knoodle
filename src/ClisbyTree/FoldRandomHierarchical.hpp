@@ -315,7 +315,7 @@ void FoldRandomHierarchicalWave(
         
         if constexpr ( dir == Down )
         {
-            this->template DepthFirstScan<DFS::BreakEarly>(
+            this->template DepthFirstSearch<DFS::BreakEarly>(
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
@@ -329,7 +329,7 @@ void FoldRandomHierarchicalWave(
         }
         else if constexpr ( dir == Up )
         {
-            this->template DepthFirstScan<DFS::PostVisitAlways>(
+            this->template DepthFirstSearch<DFS::PostVisitAlways>(
                 [max_level,this]( Int node )
                 {
                     return (this->Depth(node) < max_level );
@@ -345,7 +345,7 @@ void FoldRandomHierarchicalWave(
         }
         else if constexpr ( dir == VCycle )
         {
-            this->template DepthFirstScan<DFS::PostVisitAlways>(
+            this->template DepthFirstSearch<DFS::PostVisitAlways>(
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(

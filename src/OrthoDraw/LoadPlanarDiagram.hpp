@@ -9,6 +9,11 @@ void LoadPlanarDiagram(
 {
     TOOLS_PTIMER(timer,MethodName("LoadPlanarDiagram"));
 
+    TOOLS_DUMP(pd.CountActiveCrossings());
+    TOOLS_DUMP(pd.CrossingCount());
+    TOOLS_DUMP(pd.CountActiveArcs());
+    TOOLS_DUMP(pd.ArcCount());
+    
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
     
@@ -72,7 +77,7 @@ void LoadPlanarDiagram(
         
         for( auto da : R_dA.Sublist(r) )
         {
-            auto [a,d] = FromDarc(da);
+            auto [a,d]  = FromDarc(da);
             const Int b = int_cast<Int>(Abs(A_bends[a]));
             bend_count += b;
             r_size     += b;
@@ -92,6 +97,12 @@ void LoadPlanarDiagram(
     
     vertex_count = crossing_count + bend_count;
     edge_count   = arc_count      + bend_count;
+    
+    TOOLS_LOGDUMP(crossing_count);
+    TOOLS_LOGDUMP(vertex_count);
+    
+    TOOLS_LOGDUMP(A_bends);
+    TOOLS_LOGDUMP(pd.ArcStates());
     
     // General purpose buffers. May be used in all routines as temporary space.
     V_scratch    = Tensor1<Int,Int> ( Int(2) * max_vertex_count );
@@ -144,6 +155,9 @@ void LoadPlanarDiagram(
             }
         }
     );
+    
+    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
+    TOOLS_LOGDUMP(pd.CrossingStates())
 
     V_dE   = VertexContainer_T      ( max_vertex_count, Uninitialized );
     E_V    = EdgeContainer_T        ( max_edge_count,   Uninitialized );
@@ -180,7 +194,7 @@ void LoadPlanarDiagram(
     {
         ExtInt a_ = static_cast<ExtInt>(a);
         
-        if( !pd.ArcActiveQ(a_) ) { continue; }  // pd needed
+        if( !pd.ArcActiveQ(a_) ) { continue; }
         
         E_flag(a,Tail) = EdgeActiveMask;
         E_flag(a,Head) = EdgeActiveMask;
@@ -189,23 +203,36 @@ void LoadPlanarDiagram(
         A_overQ(a,Head) = pd.template ArcOverQ<Head>(a_); // pd needed
     }
     
-    // From here on we do not need pd itself anymore. But we need the temporarily created E_dir buffer whose initialization requires a pd object (because DepthFirstScan).
-    
+    // From here on we do not need pd itself anymore. But we need the temporarily created C_dir buffer whose initialization requires a pd object (because of DepthFirstSearch).
     
     // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
     Int V_counter = C_A.Dim(0);
     Int E_counter = A_C.Dim(0);
     
+    TOOLS_LOGDUMP(V_counter);
+    TOOLS_LOGDUMP(E_counter);
+    
+    logprint("for( Int a = 0; a < a_count; ++a )");
+    
     // Subdivide each arc.
     for( Int a = 0; a < a_count; ++a )
     {
-        if( !DedgeActiveQ(ToDedge<Tail>(a)) ) { continue; }
+        if( !DedgeActiveQ(ToDedge<Tail>(a)) )
+        {
+            A_V.FinishSublist();
+            A_E.FinishSublist();
+            continue;
+        }
         
         const Turn_T b       = A_bends(a);
         const Int    abs_b   = static_cast<Int>(Abs(b));
         const Turn_T sign_b  = Sign<Turn_T>(b);     // bend per turn.
         const Int    c_0     = A_C(a,Tail);
         const Int    c_1     = A_C(a,Head);
+        
+        TOOLS_LOGDUMP(a);
+        TOOLS_LOGDUMP(c_0);
+        TOOLS_LOGDUMP(c_1);
         
         // We have to subdivde the arc a into abs_b + 1 edges.
 
@@ -291,20 +318,45 @@ void LoadPlanarDiagram(
         A_E.FinishSublist();
     };
 
+
+
+    
+    TOOLS_LOGDUMP(V_dE.Dim(0));
+    TOOLS_LOGDUMP(V_counter);
+    
+    
+    TOOLS_LOGDUMP(arc_count);
+    TOOLS_LOGDUMP(edge_count);
+    TOOLS_LOGDUMP(E_V.Dim(0));
+    TOOLS_LOGDUMP(E_counter);
+    
+//    logvalprint("V_dE form crossings", ArrayToString() );
+    TOOLS_LOGDUMP(C_A);
+    TOOLS_LOGDUMP(A_C);
+    
+    TOOLS_LOGDUMP(V_dE);
+    TOOLS_LOGDUMP(V_flag);
+    TOOLS_LOGDUMP(E_V);
+    TOOLS_LOGDUMP(E_flag);
+    
+    TOOLS_LOGDUMP(A_V);
+    TOOLS_LOGDUMP(A_E);
+    TOOLS_LOGDUMP(E_A);
+    
     // We can compute this only after E_V and V_dE have been computed completed.
     ComputeEdgeLeftDedges();
 
     {
-        const Int da_ptr = R_dA.Elements()[
+        const Int da = R_dA.Elements()[
             R_dA.Pointers()[exterior_region]
         ];
         
         // DEBUGGING
-        if( da_ptr == Uninitialized )
+        if( da == Uninitialized )
         {
             eprint(MethodName("LoadPlanarDiagram") + ": first darc if exterior region " + ToString(exterior_region) + " is not initialized.");
         }
         
-        MarkFaceAsExterior( da_ptr );
+        MarkFaceAsExterior( da );
     }
 }

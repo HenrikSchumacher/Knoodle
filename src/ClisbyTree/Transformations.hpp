@@ -240,7 +240,7 @@ void PushAllTransforms()
 {
 //    SubtreePushAllTransforms(Root());
     
-    this->BreadthFirstScan(
+    this->BreadthFirstSearch(
         [this]( const Int node )                   // internal node visit
         {
             const auto [L,R] = Children( node );
@@ -275,7 +275,7 @@ void SubtreePushAllTransforms( const Int start_node )
 
 //void SubtreePushAllTransforms_ManualStack( const Int start_node )
 //{
-//    this->template DepthFirstScan_ManualStack<Tree_T::DFS::BreakNever>(
+//    this->template DepthFirstSearch_ManualStack<Tree_T::DFS::BreakNever>(
 //        [this]( const Int node )                    // internal node previsit
 //        {
 //            const auto [L,R] = Children( node );

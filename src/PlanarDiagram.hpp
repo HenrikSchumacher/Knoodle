@@ -71,13 +71,14 @@ namespace Knoodle
         
         static constexpr bool ValidIndexQ( const Int i )
         {
-            if constexpr (  SignedIntQ<Int> )
+//            logprint("ValidIndexQ(" + ToString(i) + ")");
+            if constexpr ( SignedIntQ<Int> )
             {
-                return i >= Int(0);
+                return (i >= Int(0));
             }
             else
             {
-                return i <= MaxValidIndex;
+                return (i <= MaxValidIndex);
             }
         }
         

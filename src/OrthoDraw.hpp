@@ -19,7 +19,7 @@ namespace Knoodle
     // TODO: Get/setters for all settings.
     
     template<typename Int_>
-    class OrthoDrawing final : CachedObject
+    class OrthoDraw final : CachedObject
     {
     private:
         
@@ -125,7 +125,7 @@ namespace Knoodle
         
         using PRNG_T = std::mt19937;
         
-#include "OrthoDrawing/Constants.hpp"
+#include "OrthoDraw/Constants.hpp"
 
         
     private:
@@ -138,7 +138,7 @@ namespace Knoodle
         template<bool d>
         static constexpr Int ToDarc( const Int a )
         {
-            return PlanarDiagram_T::ToDarc<d>(a);
+            return PlanarDiagram_T::template ToDarc<d>(a);
         }
         
         static constexpr std::pair<Int,bool> FromDarc( const Int da )
@@ -155,7 +155,7 @@ namespace Knoodle
         // TODO: move assignment
 
         template<typename ExtInt>
-        OrthoDrawing(
+        OrthoDraw(
             mref<PlanarDiagram<ExtInt>> pd,
             const ExtInt exterior_region_ = ExtInt(-1),
             Settings_T settings_ = Settings_T()
@@ -165,6 +165,8 @@ namespace Knoodle
             if( !pd.ValidQ() ) { return; }
             
             LoadPlanarDiagram( pd, exterior_region_, settings.use_dual_simplexQ );
+            
+            this->template CheckEdgeDirections<true>();
             
             if( settings.turn_regularizeQ )
             {
@@ -244,17 +246,17 @@ namespace Knoodle
         }
                                  
         // Default constructor
-        OrthoDrawing() = default;
+        OrthoDraw() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~OrthoDrawing() override = default;
+        virtual ~OrthoDraw() override = default;
         // Copy constructor
-        OrthoDrawing( const OrthoDrawing & other ) = default;
+        OrthoDraw( const OrthoDraw & other ) = default;
         // Copy assignment operator
-        OrthoDrawing & operator=( const OrthoDrawing & other ) = default;
+        OrthoDraw & operator=( const OrthoDraw & other ) = default;
         // Move constructor
-        OrthoDrawing( OrthoDrawing && other ) = default;
+        OrthoDraw( OrthoDraw && other ) = default;
         // Move assignment operator
-        OrthoDrawing & operator=( OrthoDrawing && other ) = default;
+        OrthoDraw & operator=( OrthoDraw && other ) = default;
         
     private:
         
@@ -351,25 +353,25 @@ namespace Knoodle
         
     private:
 
-#include "OrthoDrawing/BendsLP.hpp"
-#include "OrthoDrawing/BendsLP_Clp.hpp"
-#include "OrthoDrawing/BendsLP_MCFClass.hpp"
-#include "OrthoDrawing/LoadPlanarDiagram.hpp"
-#include "OrthoDrawing/Edges.hpp"
-#include "OrthoDrawing/Faces.hpp"
-#include "OrthoDrawing/TurnRegularize.hpp"
+#include "OrthoDraw/BendsLP.hpp"
+#include "OrthoDraw/BendsLP_Clp.hpp"
+#include "OrthoDraw/BendsLP_MCFClass.hpp"
+#include "OrthoDraw/LoadPlanarDiagram.hpp"
+#include "OrthoDraw/Edges.hpp"
+#include "OrthoDraw/Faces.hpp"
+#include "OrthoDraw/TurnRegularize.hpp"
         
-#include "OrthoDrawing/SaturateFaces.hpp"
-#include "OrthoDrawing/ConstraintGraphs.hpp"
-#include "OrthoDrawing/LengthsLP_Variant2.hpp"
-#include "OrthoDrawing/LengthsLP_Variant3.hpp"
-#include "OrthoDrawing/LengthsLP_Variant4.hpp"
+#include "OrthoDraw/SaturateFaces.hpp"
+#include "OrthoDraw/ConstraintGraphs.hpp"
+#include "OrthoDraw/LengthsLP_Variant2.hpp"
+#include "OrthoDraw/LengthsLP_Variant3.hpp"
+#include "OrthoDraw/LengthsLP_Variant4.hpp"
 
-#include "OrthoDrawing/PostProcessing.hpp"
+#include "OrthoDraw/PostProcessing.hpp"
 
-#include "OrthoDrawing/Coordinates.hpp"
-#include "OrthoDrawing/Plotting.hpp"
-#include "OrthoDrawing/FindIntersections.hpp"
+#include "OrthoDraw/Coordinates.hpp"
+#include "OrthoDraw/Plotting.hpp"
+#include "OrthoDraw/FindIntersections.hpp"
 
 
 //###########################################################
@@ -383,6 +385,11 @@ namespace Knoodle
             return crossing_count;
         }
         
+        Int MaxCrossingCount() const
+        {
+            return C_A.Dim(0);
+        }
+        
         cref<CrossingContainer_T> Crossings() const
         {
             return C_A;
@@ -391,6 +398,11 @@ namespace Knoodle
         Int ArcCount() const
         {
             return arc_count;
+        }
+        
+        Int MaxArcCount() const
+        {
+            return A_C.Dim(0);
         }
         
         cref<ArcContainer_T> Arcs() const
@@ -408,6 +420,11 @@ namespace Knoodle
             return vertex_count;
         }
         
+        Int MaxVertexCount() const
+        {
+            return V_dE.Dim(0);
+        }
+        
         cref<VertexFlagContainer_T> VertexFlags() const
         {
             return V_flag;
@@ -423,6 +440,11 @@ namespace Knoodle
         Int EdgeCount() const
         {
             return edge_count;
+        }
+        
+        Int MaxEdgeCount() const
+        {
+            return E_V.Dim(0);
         }
         
         cref<EdgeContainer_T> Edges() const
@@ -607,10 +629,10 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("OrthoDrawing<") + TypeName<Int> + ">";
+            return std::string("OrthoDraw<") + TypeName<Int> + ">";
         }
         
-    }; // class OrthoDrawing
+    }; // class OrthoDraw
     
 } // namespace Knoodle
 

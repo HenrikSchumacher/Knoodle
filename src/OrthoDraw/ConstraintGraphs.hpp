@@ -36,6 +36,7 @@ void ComputeConstraintGraphs() const
     };
     
     // We can start the loop at v_0 = crossing_count, as crossings have valence 4 and cannot be start or end of a segment.
+    logprint("for( Int v_0 = crossing_count; v_0 < V_count; ++v_0 )");
     for( Int v_0 = crossing_count; v_0 < V_count; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
@@ -105,13 +106,13 @@ void ComputeConstraintGraphs() const
     
     cptr<Int> dE_V = E_V.data();
 
+    logprint("for( Int e = 0; e < E_count; ++e )");
     for( Int e = 0; e < E_count; ++e )
     {
         const Int de_0 = ToDedge(e,Tail);
         const Int de_1 = ToDedge(e,Head);
         
         if( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
-        
         
         const bool virtualQ = DedgeVirtualQ(de_0) || DedgeVirtualQ(de_1);
         
@@ -219,9 +220,9 @@ void ComputeConstraintGraphs() const
     {
         const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
         
-        const Int e_count = Gl_edges.Dim(0);
+        const Int Gl_E_count = Gl_edges.Dim(0);
         
-        for( Int e = 0; e < e_count; ++e )
+        for( Int e = 0; e < Gl_E_count; ++e )
         {
             const Int v_0 = Gl_edges(e,Tail);
             const Int v_1 = Gl_edges(e,Head);
@@ -243,9 +244,9 @@ void ComputeConstraintGraphs() const
     {
         const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
         
-        const Int e_count = Gr_edges.Dim(0);
+        const Int Gr_E_count = Gr_edges.Dim(0);
         
-        for( Int e = 0; e < e_count; ++e )
+        for( Int e = 0; e < Gr_E_count; ++e )
         {
             const Int v_0 = Gr_edges(e,Tail);
             const Int v_1 = Gr_edges(e,Head);
@@ -292,6 +293,8 @@ void ComputeConstraintGraphs() const
             
             for( Int e = 0; e < E_count; ++e )
             {
+                if( !EdgeActiveQ(e) ) { continue; }
+                
                 const Int i = E_DhE_from[e];
                 
                 if( i != Uninitialized )
@@ -331,6 +334,8 @@ void ComputeConstraintGraphs() const
             
             for( Int e = 0; e < E_count; ++e )
             {
+                if( !EdgeActiveQ(e) ) { continue; }
+                
                 const Int i = E_DvE_from[e];
                 
                 if( i != Uninitialized )

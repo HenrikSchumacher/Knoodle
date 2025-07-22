@@ -55,7 +55,7 @@ template<
     class Rediscover_T, // f( const DarcNode & da )
     class PreVisit_T,   // f( const DarcNode & da )
     class PostVisit_T,   // f( const DarcNode & da )
-    bool verboseQ = true
+    bool verboseQ = false
 >
 void DepthFirstSearch(
     Discover_T   && discover,
@@ -68,17 +68,19 @@ void DepthFirstSearch(
     
     TOOLS_PTIMER(timer,MethodName("DepthFirstSearch"));
     
-    cptr<Int> A_C = A_cross.data();
+    cptr<Int> dA_C = A_cross.data();
     
     mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
     fill_buffer(C_flag,UInt8(0),crossing_count);
+    
+    TOOLS_DUMP(crossing_count);
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,arc_count);
 
     Stack<DarcNode,Int> stack ( arc_count );
 
-    auto conditional_push = [A_visitedQ,C_flag,A_C,&stack,&discover,&rediscover,this](
+    auto conditional_push = [A_visitedQ,C_flag,dA_C,&stack,&discover,&rediscover,this](
         const DarcNode & A, const Int db
     )
     {
@@ -96,7 +98,7 @@ void DepthFirstSearch(
         }
         
         auto [b,dir] = this->FromDarc(db);
-        const Int head = A_C[db];
+        const Int head = dA_C[db];
 
         if( C_flag[head] <= UInt8(0) )
         {
@@ -105,7 +107,7 @@ void DepthFirstSearch(
             DarcNode B {A.head,db,head};
             if constexpr ( verboseQ )
             {
-                logprint("discover crossing " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                logprint("discover crossing " + ToString(head) + ";  darc = " + ToString(db)
                 );
             }
             discover( B );
@@ -119,7 +121,7 @@ void DepthFirstSearch(
                 A_visitedQ[b] = true;
                 if constexpr ( verboseQ )
                 {
-                    logprint("rediscover crossing " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                    logprint("rediscover crossing " + ToString(head) + ";  darc = " + ToString(db)
                     );
                 }
                 rediscover({A.head,db,head});
@@ -128,15 +130,24 @@ void DepthFirstSearch(
             {
                 if constexpr ( verboseQ )
                 {
-                    logprint("skip rediscover vertex " + ToString(head) + "; arc = " + (ValidIndexQ(db) ? "Uninitialized" : ToString(db/2))
+                    logprint("skip rediscover vertex " + ToString(head) + ";  darc = " + ToString(db)
                     );
                 }
             }
         }
     };
 
-    for( Int c_0 = 0; c_0 < crossing_count; ++c_0 )
+    const Int c_count = C_arcs.Dim(0);
+    
+    TOOLS_LOGDUMP(c_count);
+    TOOLS_LOGDUMP(crossing_count);
+    
+    for( Int c_0 = 0; c_0 < c_count; ++c_0 )
     {
+        TOOLS_LOGDUMP(c_0);
+        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
+        TOOLS_LOGDUMP(C_flag[c_0]);
+        
         if( !CrossingActiveQ(c_0) || (C_flag[c_0] != UInt8(0)) )
         {
             continue;
@@ -158,10 +169,6 @@ void DepthFirstSearch(
             DarcNode & A = stack.Top();
             const Int c = A.head;
             
-            TOOLS_LOGDUMP(A.da);
-            TOOLS_LOGDUMP(A.tail);
-            TOOLS_LOGDUMP(A.head);
-            
             if( C_flag[c] == UInt8(0) )
             {
                 if constexpr ( verboseQ )
@@ -176,7 +183,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(2);
                 if constexpr ( verboseQ )
                 {
-                    logprint("pre-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(A.da) ? "Uninitialized" : ToString(A.da/2)) );
+                    logprint("pre-visit crossing " + ToString(c) + "; darc = " + ToString(A.da) );
                 }
                 pre_visit( A );
 
@@ -192,7 +199,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(3);
                 if constexpr ( verboseQ )
                 {
-                    logprint("post-visit crossing " + ToString(c) + "; edge = " + (ValidIndexQ(A.da) ? "Uninitialized" : ToString(A.da/2)) );
+                    logprint("post-visit crossing " + ToString(c) + ";  darc = " + ToString(A.da) );
                 }
                 post_visit( A );
                 (void)stack.Pop();

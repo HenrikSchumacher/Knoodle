@@ -61,7 +61,7 @@
 		AF6C85DC2E29315B0051B919 /* WorkBench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WorkBench; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold_Parallel; sourceTree = BUILT_PRODUCTS_DIR; };
-		AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDrawing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthoDrawing; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthoDraw; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Reapr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
@@ -74,7 +74,7 @@
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Parallel; sourceTree = "<group>"; };
-		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDrawing */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDrawing; sourceTree = "<group>"; };
+		AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_Ortho; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -136,7 +136,7 @@
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
 				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
 				AF5FF6AE2DD27DCA0076AB0E /* DevCLP */,
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDrawing */,
+				AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */,
 				AF6C85DD2E29315B0051B919 /* WorkBench */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
@@ -149,7 +149,7 @@
 				AF7FD1D52D87464900D802C0 /* PolyFold */,
 				AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */,
 				AF5FF6AD2DD27DCA0076AB0E /* DevCLP */,
-				AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDrawing */,
+				AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DC2E29315B0051B919 /* WorkBench */,
 			);
 			name = Products;
@@ -246,9 +246,9 @@
 			productReference = AFBA756A2D90CA82008F2EB1 /* PolyFold_Parallel */;
 			productType = "com.apple.product-type.tool";
 		};
-		AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDrawing */ = {
+		AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDraw */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthoDrawing" */;
+			buildConfigurationList = AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthoDraw" */;
 			buildPhases = (
 				AFBDADA32DECE2D9004BCA41 /* Sources */,
 				AFBDADA42DECE2D9004BCA41 /* Frameworks */,
@@ -259,13 +259,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDrawing */,
+				AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */,
 			);
-			name = Dev_OrthoDrawing;
+			name = Dev_OrthoDraw;
 			packageProductDependencies = (
 			);
 			productName = Dev_OrthogonalRepresentation;
-			productReference = AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDrawing */;
+			productReference = AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -310,7 +310,7 @@
 				AF7FD1D42D87464900D802C0 /* PolyFold */,
 				AFBA75692D90CA82008F2EB1 /* PolyFold_Parallel */,
 				AF5FF6AC2DD27DCA0076AB0E /* DevCLP */,
-				AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDrawing */,
+				AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DB2E29315B0051B919 /* WorkBench */,
 			);
 		};
@@ -843,7 +843,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthoDrawing" */ = {
+		AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthoDraw" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AFBDADAB2DECE2D9004BCA41 /* Debug */,

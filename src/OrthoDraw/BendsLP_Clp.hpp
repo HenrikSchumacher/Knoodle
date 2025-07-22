@@ -1,9 +1,5 @@
 public:
 
-// TODO: Try some of the suggestions from https://stackoverflow.com/a/63254942/8248900:
-// TODO: Coin-OR's Lemon library
-// TODO: Coin-OR's Network Simplex
-
 /*! @brief Computes a vector `bends` whose entries are signed integers. For each arc `a` the entry `bends[a]` is the number of 90-degree bends for that arc. Positive numbers mean bends to the left; positive numbers mean bend to the right. The l^1 norm of `bends` subject to the constraints that for each face `f` the sum of bends along bounday arcs of `d` and of the number of corners of `f` have to sum to 4, which corresponds to winding number 1. These constraints are linear, so that this is a linearly constraint and l^1 optimization problem. It is reformulated as linear programming problem and solved with a simplex-based method to obtain a basis solution `bend`. By the structure of this problem, all entries of `bends` are guaranteed to be integers.
  *  This approach is similar to Tamassia, On embedding a graph in the grid with the minimum number of bends. Siam J. Comput. 16 (1987) http://dx.doi.org/10.1137/0216030. The main difference is that we can assume that each vertex in the graph underlying the planar diagram has valence 4. Moreover, we do not use the elaborate formulation as min cost flow problem, which would allow us to use a potentially faster network solver. Instead, we use a CLP, a generic solver for linear problems.
  *
@@ -58,6 +54,7 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
     
     Settings_T param { .dualQ = settings.use_dual_simplexQ };
     
+    auto & A_idx = Bends_ArcIndices(pd);
     
     const ExtInt a_count = pd.Arcs().Dim(0);
     
@@ -65,8 +62,9 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
     {
         cptr<ExtInt> dA_F = pd.ArcFaces().data();
         
-        const I n = I(2) * int_cast<I>(pd.Arcs().Dim(0));
-//        const I m = int_cast<I>(pd.FaceCount());
+        
+        const I n = Bends_VarCount<I>(pd);
+//        const I m = Bends_ConCount<I>(pd);
         
         Tensor1<COIN_Int,I> tails ( n );
         Tensor1<COIN_Int,I> heads ( n );
@@ -75,19 +73,21 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
         {
             if( !pd.ArcActiveQ(a) ) { continue; };
             
-            const I da_0 = static_cast<I>( pd.template ToDarc<Tail>(a) );
-            const I da_1 = static_cast<I>( pd.template ToDarc<Head>(a) );
-            
-            const I f_0  = static_cast<I>(dA_F[da_0]); // right face of a
-            const I f_1  = static_cast<I>(dA_F[da_1]); // left  face of a
+            // right face of a
+            const I f_0  = static_cast<I>( dA_F[pd.template ToDarc<Tail>(a)] );
+            // left  face of a
+            const I f_1  = static_cast<I>( dA_F[pd.template ToDarc<Head>(a)] );
 
             // Clp seems to work with different sign than I.
             
-            tails[da_0] = f_0;
-            heads[da_0] = f_1;
+            const I di_0 = static_cast<I>( A_idx(a,0) );
+            const I di_1 = static_cast<I>( A_idx(a,1) );
+
+            tails[di_0] = f_0;
+            heads[di_0] = f_1;
             
-            tails[da_1] = f_1;
-            heads[da_1] = f_0;
+            tails[di_1] = f_1;
+            heads[di_1] = f_0;
         }
                 
         clp = std::make_shared<Clp_T>(
@@ -120,8 +120,8 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
     {
         if( pd.ArcActiveQ(a) )
         {
-            const ExtInt head = pd.ToDarc(a,Head);
-            const ExtInt tail = pd.ToDarc(a,Tail);
+            const ExtInt tail = A_idx(a,0);
+            const ExtInt head = A_idx(a,1);
             bends[a] = s[head] - s[tail];
         }
         else
@@ -129,6 +129,8 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
             bends[a] = Turn_T(0);
         }
     }
+    
+    pd.ClearCache(MethodName("Bends_ArcIndices"));
 
     return bends;
 }

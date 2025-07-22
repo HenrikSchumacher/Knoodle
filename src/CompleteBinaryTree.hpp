@@ -460,12 +460,12 @@ namespace Knoodle
          */
         
         template< class Internal_T, class Leaf_T >
-        void BreadthFirstScan(
+        void BreadthFirstSearch(
             Internal_T  && int_visit,
             Leaf_T      && leaf_visit
         )
         {
-            TOOLS_PTIC(ClassName()+"::BreadthFirstScan");
+            TOOLS_PTIC(ClassName()+"::BreadthFirstSearch");
             
             
             for( Int node = Int(0); node < int_node_count; ++node )
@@ -478,7 +478,7 @@ namespace Knoodle
                 leaf_visit(node);
             }
             
-            TOOLS_PTOC(ClassName()+"::BreadthFirstScan");
+            TOOLS_PTOC(ClassName()+"::BreadthFirstSearch");
         }
         
         // Pointless, but useful for debugging and performance estimation.
@@ -493,7 +493,7 @@ namespace Knoodle
                 
                 mptr<Int> p_ptr = p.data();
                 
-                BreadthFirstScan(
+                BreadthFirstSearch(
                     [p_ptr,&counter]( Int node )  // node visit
                     {
                         p_ptr[counter++] = node;
@@ -520,12 +520,12 @@ namespace Knoodle
         
         
         template< class Internal_T, class Leaf_T >
-        void ReverseBreadthFirstScan(
+        void ReverseBreadthFirstSearch(
             Internal_T  && int_visit,
             Leaf_T      && leaf_visit
         )
         {
-            TOOLS_PTIC(ClassName()+"::ReverseBreadthFirstScan");
+            TOOLS_PTIC(ClassName()+"::ReverseBreadthFirstSearch");
 
             for( Int node = leaf_node_count; node --> int_node_count; )
             {
@@ -537,7 +537,7 @@ namespace Knoodle
                 int_visit(node);
             }
             
-            TOOLS_PTOC(ClassName()+"::ReverseBreadthFirstScan");
+            TOOLS_PTOC(ClassName()+"::ReverseBreadthFirstSearch");
         }
         
         // Pointless, but useful for debugging and performance estimation.
@@ -552,7 +552,7 @@ namespace Knoodle
                 
                 mptr<Int> p_ptr = p.data();
                 
-                BreadthFirstScan(
+                BreadthFirstSearch(
                     [p_ptr,&counter]( Int node )  // node visit
                     {
                         p_ptr[counter++] = node;
@@ -615,39 +615,39 @@ namespace Knoodle
         */
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
-        void DepthFirstScan(
+        void DepthFirstSearch(
             IntPre_T  && int_pre_visit,
             IntPost_T && int_post_visit,
             Leaf_T    && leaf_visit,
             const Int start_node = Uninitialized
         )
         {
-            TOOLS_PTIC(ClassName()+"::DepthFirstScan"
+            TOOLS_PTIC(ClassName()+"::DepthFirstSearch"
                 + "<" + ToString(mode)
                 + ">" );
             
             if constexpr ( use_manual_stackQ )
             {
-                DepthFirstScan_ManualStack<mode>(
+                DepthFirstSearch_ManualStack<mode>(
                     int_pre_visit, int_post_visit, leaf_visit,
                     (start_node < Int(0)) ? Root() : start_node
                 );
             }
             else
             {
-                DepthFirstScan_Recursive<mode>(
+                DepthFirstSearch_Recursive<mode>(
                     int_pre_visit, int_post_visit, leaf_visit,
                     (start_node < Int(0)) ? Root() : start_node
                 );
             }
             
-            TOOLS_PTOC(ClassName()+"::DepthFirstScan"
+            TOOLS_PTOC(ClassName()+"::DepthFirstSearch"
                 + "<" + ToString(mode)
                 + ">" );
         }
         
         template< DFS mode, class IntPre_T, class IntPost_T, class Leaf_T >
-        void DepthFirstScan_Recursive(
+        void DepthFirstSearch_Recursive(
             IntPre_T  && int_pre_visit,
             IntPost_T && int_post_visit,
             Leaf_T    && leaf_visit,
@@ -663,10 +663,10 @@ namespace Knoodle
                     
                     auto [L,R] = Children(node);
                     
-                    DepthFirstScan_Recursive<mode>(
+                    DepthFirstSearch_Recursive<mode>(
                         int_pre_visit, int_post_visit, leaf_visit, L
                     );
-                    DepthFirstScan_Recursive<mode>(
+                    DepthFirstSearch_Recursive<mode>(
                         int_pre_visit, int_post_visit, leaf_visit, R
                     );
                     
@@ -680,10 +680,10 @@ namespace Knoodle
                     {
                         auto [L,R] = Children(node);
                         
-                        DepthFirstScan_Recursive<mode>(
+                        DepthFirstSearch_Recursive<mode>(
                             int_pre_visit, int_post_visit, leaf_visit, L
                         );
-                        DepthFirstScan_Recursive<mode>(
+                        DepthFirstSearch_Recursive<mode>(
                             int_pre_visit, int_post_visit, leaf_visit, R
                         );
                     }
@@ -709,7 +709,7 @@ namespace Knoodle
         }
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
-        void DepthFirstScan_ManualStack(
+        void DepthFirstSearch_ManualStack(
             IntPre_T  && int_pre_visit,
             IntPost_T && int_post_visit,
             Leaf_T    && leaf_visit,
@@ -789,7 +789,7 @@ namespace Knoodle
             
             if( stack_ptr >= stack_max_size )
             {
-                eprint(ClassName()+"::DepthFirstScan_ManualStack: Stack overflow.");
+                eprint(ClassName()+"::DepthFirstSearch_ManualStack: Stack overflow.");
             }
         }
         
@@ -805,7 +805,7 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            DepthFirstScan<DFS::BreakNever>(
+            DepthFirstSearch<DFS::BreakNever>(
                [&int_visit]( Int node )   // pre visit
                {
                    int_visit(node);
@@ -861,7 +861,7 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            DepthFirstScan<DFS::BreakNever>(
+            DepthFirstSearch<DFS::BreakNever>(
                []( Int node )             // pre visit
                {
                    (void)node;

@@ -30,10 +30,11 @@ bool DedgeActiveQ( const Int de ) const
     return (E_flag.data()[de] & EdgeActiveMask) != EdgeFlag_T(0);
 }
 
-//bool EdgeActiveQ( const Int e ) const
-//{
+bool EdgeActiveQ( const Int e ) const
+{
+    return DedgeActiveQ(ToDedge<Tail>(e));
 //    return DedgeActiveQ(ToDedge<Tail>(e)) && DedgeActiveQ(ToDedge<Head>(e));
-//}
+}
 
 
 bool DedgeVisitedQ( const Int de ) const
@@ -110,14 +111,14 @@ void ComputeEdgeLeftDedges()
 {
     TOOLS_PTIMER(timer,MethodName("ComputeEdgeLeftDedges"));
     
-    E_left_dE = EdgeContainer_T ( E_V.Dim(0), Int(-1) );
+    const Int e_count = E_V.Dim(0);
+    
+    E_left_dE = EdgeContainer_T ( e_count, Uninitialized );
     
     mptr<Int>    dE_left_dE = E_left_dE.data();
     cptr<Turn_T> dE_turn    = E_turn.data();
     cptr<Int>    dE_V       = E_V.data();
-    
-    const Int e_count = E_V.Dim(0);
-    
+
     for( Int e = 0; e < e_count; ++e )
     {
         const Int de_0 = ToDedge<Tail>(e);
@@ -125,6 +126,10 @@ void ComputeEdgeLeftDedges()
         
         if( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
 
+        TOOLS_LOGDUMP(e);
+        TOOLS_LOGDUMP(de_0);
+        TOOLS_LOGDUMP(de_1);
+        
         const Dir_T e_dir = E_dir(e);
         
         const Turn_T t_0  = dE_turn[de_0];
@@ -136,6 +141,14 @@ void ComputeEdgeLeftDedges()
         
         const Int df_0 = dE_left_dE[de_0] = V_dE(c_0,s_0);
         const Int df_1 = dE_left_dE[de_1] = V_dE(c_1,s_1);
+        
+        TOOLS_LOGDUMP(c_0);
+        TOOLS_LOGDUMP(c_1);
+        logvalprint( "V_dE(c_0)", ArrayToString(V_dE.data(c_0), {4}) );
+        logvalprint( "V_dE(c_1)", ArrayToString(V_dE.data(c_1), {4}) );
+        
+        TOOLS_LOGDUMP(df_0);
+        TOOLS_LOGDUMP(df_1);
         
         // DEBUGGING
         if( df_0 == Uninitialized )
@@ -158,6 +171,8 @@ void ComputeEdgeLeftDedges()
             MarkDedgeAsUnconstrained(df_1);
         }
     }
+    
+    TOOLS_LOGDUMP(E_left_dE);
 }
 
 
@@ -219,10 +234,12 @@ bool CheckEdgeDirection( Int e )
 template<bool verboseQ = true>
 bool CheckEdgeDirections()
 {
-    const Int e_count = E_V.Dim(0);
+    const Int E_count = E_V.Dim(0);
     
-    for( Int e = 0; e < e_count; ++e )
+    for( Int e = 0; e < E_count; ++e )
     {
+        if( !EdgeActiveQ(e) ) { continue; }
+        
         if ( !this->template CheckEdgeDirection<false,verboseQ>(e) )
         {
             return false;

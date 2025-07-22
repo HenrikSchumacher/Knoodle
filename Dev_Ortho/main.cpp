@@ -7,8 +7,7 @@
 
 #include "../Knoodle.hpp"
 //#include "../submodules/Tensors/Clp.hpp"
-//#include "../src/OrthoDrawing.hpp"
-#include "../src/OrthoDrawing.hpp"
+#include "../src/OrthoDraw.hpp"
 //#include "ClpSimplex.hpp"
 //#include "ClpSimplexDual.hpp"
 //#include "CoinHelperFunctions.hpp"
@@ -29,7 +28,7 @@ using BReal = double;          // scalar type used for bounding boxes
 using Int   = UInt64;           // integer type used, e.g., for indices
 using LInt  = UInt64;           // integer type used, e.g., for indices
 
-using OR_T = OrthoDrawing<Int>;
+using OR_T = OrthoDraw<Int>;
 
 int main( int argc, char** argv )
 {

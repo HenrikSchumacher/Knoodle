@@ -46,8 +46,10 @@ mref<CoordsContainer_T> VertexCoordinates() const
 {
     if( !this->InCacheQ("VertexCoordinates") )
     {
+        const Int V_count = V_dE.Dim(0);
+        
         this->SetCache(
-            "VertexCoordinates", CoordsContainer_T ( vertex_count, Uninitialized )
+            "VertexCoordinates", CoordsContainer_T ( V_count, Uninitialized )
         );
         
         this->ClearCache("Height");
@@ -101,9 +103,9 @@ void ComputeVertexCoordinates(
         auto & DvE_DvV  = Dv().Edges();
         auto & DvE_cost = DvEdgeCosts();
         
-        const Int e_count = DvE_DvV.Dim(0);
+        const Int DvE_count = DvE_DvV.Dim(0);
         
-        for( Int e = 0; e < e_count; ++e )
+        for( Int e = 0; e < DvE_count; ++e )
         {
             const Int v_0 = DvE_DvV(e,Tail);
             const Int v_1 = DvE_DvV(e,Head);
@@ -115,9 +117,9 @@ void ComputeVertexCoordinates(
         auto & DhE_DhV  = Dh().Edges();
         auto & DhE_cost = DhEdgeCosts();
         
-        const Int e_count = DhE_DhV.Dim(0);
+        const Int DhE_count = DhE_DhV.Dim(0);
         
-        for( Int e = 0; e < e_count; ++e )
+        for( Int e = 0; e < DhE_count; ++e )
         {
             const Int v_0 = DhE_DhV(e,Tail);
             const Int v_1 = DhE_DhV(e,Head);
@@ -130,7 +132,9 @@ void ComputeVertexCoordinates(
     auto & V_DvV = this->GetCache<Tensor1<Int,Int>>("V_DvV");
     auto & V_DhV = this->GetCache<Tensor1<Int,Int>>("V_DhV");
     
-    for( Int v = 0; v < vertex_count; ++v )
+    const Int V_count = V_dE.Dim(0);
+    
+    for( Int v = 0; v < V_count; ++v )
     {
         if( VertexActiveQ(v) )
         {
@@ -220,8 +224,11 @@ std::string DiagramString() const
         s[ x + n_x * (n_y - Int(1) - y) ] = c;
     };
     
+    const Int C_count = C_A.Dim(0);
+    const Int V_count = V_dE.Dim(0);
+    
     // Draw the corners.
-    for( Int v = crossing_count; v < vertex_count; ++v )
+    for( Int v = C_count; v < V_count; ++v )
     {
         if( !VertexActiveQ(v) ) { continue; }
         
@@ -235,10 +242,8 @@ std::string DiagramString() const
     for( Int e = 0; e < edge_count; ++e )
     {
         const Int de_0 = ToDedge(e,Tail);
-        const Int de_1 = ToDedge(e,Head);
         
-        if( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
-        
+        if( !DedgeActiveQ(de_0) ) { continue; }
         
         char v_symbol = '|';
         char h_symbol = '-';
@@ -247,7 +252,7 @@ std::string DiagramString() const
         char u_symbol = '^';
         char d_symbol = 'v';
         
-        if( DedgeVirtualQ(de_0) || DedgeVirtualQ(de_1) )
+        if( DedgeVirtualQ(de_0) )
         {
             v_symbol = '.';
             h_symbol = '.';
@@ -257,12 +262,11 @@ std::string DiagramString() const
             d_symbol = '.';
         }
         
-        const Int v_0 = E_V.data()[de_0];
-        const Int v_1 = E_V.data()[de_1];
+        const Int v_0 = E_V(e,0);
+        const Int v_1 = E_V(e,1);
         
         Tiny::Vector<2,Int,Int> p_0 ( V_coords.data(v_0) );
         Tiny::Vector<2,Int,Int> p_1 ( V_coords.data(v_1) );
-        
 
         switch( E_dir[e] )
         {
@@ -327,8 +331,13 @@ std::string DiagramString() const
     }
     
     // Draw the crossings.
-    for( Int a = 0; a < arc_count; ++a )
+    
+    const Int A_count = A_C.Dim(0);
+    
+    for( Int a = 0; a < A_count; ++a )
     {
+        if( !EdgeActiveQ(a) ) { continue; }
+           
         if( A_overQ(a,Tail) )
         {
             const Int v = E_V(a,Tail);
@@ -350,12 +359,27 @@ cref<ArcSplineContainer_T> ArcLines()
     {
         const CoordsContainer_T & V_coords = VertexCoordinates();
         
-        ArcSplineContainer_T A_lines ( arc_count, A_V.ElementCount() );
+        const Int v_count = V_dE.Dim(0);
+        const Int a_count = A_C.Dim(0);
+        
+        TOOLS_DUMP(v_count);
+        TOOLS_DUMP(V_coords.Dim(0));
+        
+        ArcSplineContainer_T A_lines ( a_count, A_V.ElementCount() );
         
         using A_T = std::array<Int,2>;
         
-        for( Int a = 0; a < arc_count; ++a )
+        TOOLS_LOGDUMP(A_V.Pointers());
+        TOOLS_LOGDUMP(A_V.Elements());
+        
+        for( Int a = 0; a < a_count; ++a )
         {
+            if( !DedgeActiveQ(ToDarc<Tail>(a)) )
+            {
+                A_lines.FinishSublist();
+                continue;
+            }
+            
             const Int k_begin = A_V.Pointers()[a  ];
             const Int k_end   = A_V.Pointers()[a+1];
             
@@ -363,6 +387,15 @@ cref<ArcSplineContainer_T> ArcLines()
                 const Int k = k_begin;
                 const Int v_0 = A_V.Elements()[k  ];
                 const Int v_1 = A_V.Elements()[k+1];
+                                
+                if( !InIntervalQ(v_0,Int(0),v_count) )
+                {
+                    eprint("v_0 = " + ToString(v_0) + " out of bounds.");
+                }
+                if( !InIntervalQ(v_1,Int(0),v_count) )
+                {
+                    eprint("v_1 = " + ToString(v_1) + " out of bounds.");
+                }
                 
                 Tiny::Vector<2,Int,Int> p_0 ( V_coords.data(v_0) );
                 Tiny::Vector<2,Int,Int> p_1 ( V_coords.data(v_1) );
@@ -388,6 +421,15 @@ cref<ArcSplineContainer_T> ArcLines()
                 const Int v_0 = A_V.Elements()[k-1];
                 const Int v_1 = A_V.Elements()[k  ];
                 
+                if( !InIntervalQ(v_0,Int(0),v_count) )
+                {
+                    eprint("v_0 = " + ToString(v_0) + " out of bounds.");
+                }
+                if( !InIntervalQ(v_1,Int(0),v_count) )
+                {
+                    eprint("v_1 = " + ToString(v_1) + " out of bounds.");
+                }
+                
                 Tiny::Vector<2,Int,Int> p_0 ( V_coords.data(v_0) );
                 Tiny::Vector<2,Int,Int> p_1 ( V_coords.data(v_1) );
                 
@@ -401,6 +443,18 @@ cref<ArcSplineContainer_T> ArcLines()
             }
             
             A_lines.FinishSublist();
+        }
+        
+        TOOLS_LOGDUMP(A_lines.Pointers());
+//        TOOLS_LOGDUMP(A_lines.Elements());
+        
+        
+        for( Int i = 0; i < A_lines.ElementCount(); ++i )
+        {
+            logvalprint(
+                "A_lines.Elements()["+ToString(i)+"]",
+                A_lines.Elements()[i]
+            );
         }
         
         this->SetCache( "ArcLines", std::move(A_lines) );
@@ -417,7 +471,9 @@ cref<ArcSplineContainer_T> ArcSplines()
     {
         const CoordsContainer_T & V_coords = VertexCoordinates();
         
-        ArcSplineContainer_T A_splines ( arc_count, Int(5) * E_V.Dim(0) );
+        const Int a_count = A_C.Dim(0);
+        
+        ArcSplineContainer_T A_splines ( a_count, Int(5) * E_V.Dim(0) );
         
         using A_T = std::array<Int,2>;
 
@@ -430,9 +486,14 @@ cref<ArcSplineContainer_T> ArcSplines()
         const Int x_round = settings.x_rounding_radius;
         const Int y_round = settings.y_rounding_radius;
 
-        
-        for( Int a = 0; a < arc_count; ++a )
+        for( Int a = 0; a < a_count; ++a )
         {
+            if( !DedgeActiveQ(ToDarc<Tail>(a)) )
+            {
+                A_splines.FinishSublist();
+                continue;
+            }
+            
             const Int k_begin = A_E.Pointers()[a  ];
             const Int k_end   = A_E.Pointers()[a+1];
             

@@ -17,7 +17,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
     }
     
 //    TOOLS_PDUMP( pd.PDCode() );
-    OrthoDrawing<Int> H (pd);
+    OrthoDraw<Int> H (pd);
 
     Tensor1<Real,Int> L = Levels(pd);
 
@@ -29,7 +29,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
     const Real scale = scaling * Min(w,h) / (L_max - L_min);
     
     // TODO: Check whether I have to erase cache of PlanarDiagram pd.
-    // TODO: Or maybe better: give OrthoDrawing a full copy of PlanarDiagram.
+    // TODO: Or maybe better: give OrthoDraw a full copy of PlanarDiagram.
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     

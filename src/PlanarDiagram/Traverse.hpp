@@ -17,7 +17,7 @@ static constexpr int DefaultTraversalMethod = 1;
  * If arc `a` is inactive, then `A_scratch[a] = Uninitialized`.
  * Otherwise, if `arclabelsQ == false`, then `A_scratch` containes garbage do not use it.
  *
- * Typically, `A_scratch` and `C_scratch` need not and should not be used externally, because the values `A_scratch[a]`, `C_scratch[c_0]`, and `C_scratch[c_1]` are fed to `fun` as `a_pos`, `c_0_pos`, and `c_1_pos`.
+ * Typically, `A_scratch` and `C_scratch` need not and should not be used externally, because the values `A_scratch[a]`, `C_scratch[c_0]`, and `C_scratch[c_1]` are fed to `fun` as `a_idx`, `c_0_idx`, and `c_1_idx`.
  *
  * @tparam crossingsQ A `bool` that controls whether the information of the crossings at the tip of tail of the current arc shall be fed to `arc_fun`.
  *
@@ -32,18 +32,18 @@ static constexpr int DefaultTraversalMethod = 1;
  *
  * @param arc_fun A function to apply to every visited arc. Its require argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
- *      `arc_fun( Int a, Int a_pos, Int lc )`.
+ *      `arc_fun( Int a, Int a_idx, Int lc )`.
  * If `crossingsQ == false`, then it must be of the pattern
- *      `arc_fun( Int a, Int a_pos, Int lc, Int c_0, Int c_0_pos, bool c_0_visited, Int c_1, Int c_1_pos, bool c_1_visitedQ )`.
+ *      `arc_fun( Int a, Int a_idx, Int lc, Int c_0, Int c_0_idx, bool c_0_visited, Int c_1, Int c_1_idx, bool c_1_visitedQ )`.
  * Here the arguments mean the following:
  *      - `a` is the current arc within the link;
- *      - `a_pos` is the position of the current arc `a` within the traversal;
+ *      - `a_idx` is the position of the current arc `a` within the traversal;
  *      - `lc` is the index of a's link component.
  *      - `c_0` is the crossing at the _tail_ of arc `a`;
- *      - `c_0_pos` is the position of `c_0` within the traversal;
+ *      - `c_0_idx` is the position of `c_0` within the traversal;
  *      - `c_0_visited` is a `bool` that indicates whether crossing `c_0` is visited for the first (`false`) or the second (`true`) time.
  *      - `c_1` is the crossing at the _tip_ of arc `a`;
- *      - `c_1_pos` is the position of `c_1` within the traversal.
+ *      - `c_1_idx` is the position of `c_1` within the traversal.
  *      - `c_1_visited` is a `bool` that indicates whether crossing `c_0` is visited for the first (`false`) or the second (`true`) time.
  *
  * @param lc_post A lambda function that is executed at the end of every link component. Must have the following signature:
@@ -68,7 +68,7 @@ void Traverse(
     
 //    cptr<Int>  A_next,
 //    mptr<std::conditional_t<arclabelsQ,Int,bool>> A_flag,
-//    mptr<Int>  C_pos
+//    mptr<Int>  C_idx
     
     auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
     
@@ -135,7 +135,7 @@ void Traverse_impl(
     LinkCompPost_T && lc_post,
     cptr<Int>  A_next,
     mptr<std::conditional_t<arclabelsQ,Int,bool>> A_flag,
-    mptr<Int>  C_pos
+    mptr<Int>  C_idx
 )  const
 {
     static_assert(
@@ -179,7 +179,7 @@ void Traverse_impl(
     
     if constexpr ( crossingsQ )
     {
-        fill_buffer( C_pos, Uninitialized, n );
+        fill_buffer( C_idx, Uninitialized, n );
     }
     
     Int lc_counter = 0; // counter for the link components.
@@ -239,7 +239,7 @@ void Traverse_impl(
 
         Int  c_1 = 0;
         bool c_1_visitedQ = 0;
-        Int  c_1_pos = 0;
+        Int  c_1_idx = 0;
 
         if constexpr ( crossingsQ )
         {
@@ -248,12 +248,12 @@ void Traverse_impl(
 
             AssertCrossing(c_1);
 
-            c_1_pos = C_pos[c_1];
-            c_1_visitedQ = ValidIndexQ(c_1_pos);
+            c_1_idx = C_idx[c_1];
+            c_1_visitedQ = ValidIndexQ(c_1_idx);
 
             if( !c_1_visitedQ )
             {
-                c_1_pos = C_pos[c_1] = c_counter;
+                c_1_idx = C_idx[c_1] = c_counter;
                 ++c_counter;
             }
         }
@@ -277,23 +277,23 @@ void Traverse_impl(
                 // Get the crossing labels right.
                 const Int c_0          = c_1;
                 const Int c_0_visitedQ = c_1_visitedQ;
-                const Int c_0_pos    = c_1_pos;
+                const Int c_0_idx      = c_1_idx;
 
                 c_1 = A_cross(a,Head);
                 AssertCrossing(c_1);
 
-                c_1_pos = C_pos[c_1];
-                c_1_visitedQ = ValidIndexQ(c_1_pos);
+                c_1_idx = C_idx[c_1];
+                c_1_visitedQ = ValidIndexQ(c_1_idx);
                 if( !c_1_visitedQ )
                 {
-                    c_1_pos = C_pos[c_1] = c_counter;
+                    c_1_idx = C_idx[c_1] = c_counter;
                     ++c_counter;
                 }
 
                 arc_fun(
                     a,   a_counter, lc_counter,
-                    c_0, c_0_pos,   c_0_visitedQ,
-                    c_1, c_1_pos,   c_1_visitedQ
+                    c_0, c_0_idx,   c_0_visitedQ,
+                    c_1, c_1_idx,   c_1_visitedQ
                 );
             }
             else
