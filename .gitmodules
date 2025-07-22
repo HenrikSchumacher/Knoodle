@@ -4,3 +4,6 @@
 [submodule "submodules/Min-Cost-Flow-Class"]
 	path = submodules/Min-Cost-Flow-Class
 	url = https://github.com/frangio68/Min-Cost-Flow-Class
+[submodule "Tensors"]
+	path = Tensors
+	url = https://github.com/HenrikSchumacher/Tensors
