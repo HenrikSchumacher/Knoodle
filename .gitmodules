@@ -1,6 +1,0 @@
-[submodule "submodules/Tensors"]
-	path = submodules/Tensors
-	url = git@github.com:HenrikSchumacher/Tensors.git
-[submodule "submodules/Min-Cost-Flow-Class"]
-	path = submodules/Min-Cost-Flow-Class
-	url = https://github.com/frangio68/Min-Cost-Flow-Class
