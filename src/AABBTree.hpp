@@ -142,6 +142,11 @@ namespace Knoodle
         
     public:
         
+        BContainer_T AllocateBoxes() const
+        {
+            return BContainer_T(NodeCount());
+        }
+        
         // TODO: Transpose this in the description.
         /*!
          * @brief Computes the bounding boxes of the whole tree from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points.

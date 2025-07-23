@@ -11,7 +11,7 @@ void FinalReport()
     std::string s ( "<|" );
         
     const LInt sample_attempt_count = total_attempt_count - burn_in_attempt_count;
-    const LInt sample_accept_count = skip * N;
+    const LInt sample_accept_count = total_accept_count - burn_in_accept_count;
 
     kv<t1,0>("Total Seconds Elapsed", total_timing );
     log << ",\n" + ct_tabs<t1> + "\"Total Time Details\" -> <|";

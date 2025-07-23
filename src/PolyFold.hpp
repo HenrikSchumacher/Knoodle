@@ -2,6 +2,8 @@
 
 #define KNOODLE_POLYFOLD_HPP
 
+#include "ClisbyTree.hpp"
+
 // Fix for some warnings because boost uses std::numeric_limits<T>::infinity;  compiler migth throw warnings if we are in -ffast-math mode.
 #pragma float_control(precise, on, push)
 #include <boost/program_options.hpp>
@@ -76,7 +78,7 @@ namespace Knoodle
         
         Int  n = 1;
         LInt N = 1;
-        LInt burn_in_accept_count = 1;
+        LInt burn_in = 1;
         LInt skip = 1;
 
         int verbosity = 1;
@@ -103,6 +105,7 @@ namespace Knoodle
         LInt total_attempt_count = 0;
         LInt total_accept_count = 0;
         LInt burn_in_attempt_count = 0;
+        LInt burn_in_accept_count = 0;
         LInt steps_between_print = -1;
         LInt print_ctr = 0;
         Int  bin_count = 0;
@@ -131,13 +134,14 @@ namespace Knoodle
         bool force_deallocQ     = false;
         bool checksQ            = true;
         bool check_jointsQ      = false;
+        bool hierarchicalQ      = false;
+        
         bool anglesQ            = false;
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool gaussQ             = false;
         bool printQ             = false;
         bool inputQ             = false;
-        bool hierarchicalQ      = false;
         bool bounding_boxesQ    = false;
         bool shiftQ             = false;
         bool recenterQ          = false;

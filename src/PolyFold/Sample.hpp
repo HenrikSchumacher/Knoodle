@@ -83,9 +83,11 @@ void Sample( const LInt i )
             allocation_time += T_clisby.Duration();
             
             T_fold.Tic<V2Q>();
-            // Do polygon folds until we have done at least `skip` accepted steps.
+            
+            // Do `skip` attempts of folding.
             if( hierarchicalQ )
             {
+                // Experimental; not guaranteed to sample correctly.
                 counts = T.HierarchicalMove( skip, reflection_probability, checksQ, check_jointsQ );
             }
             else

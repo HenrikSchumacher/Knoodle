@@ -240,6 +240,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
             const Int p = BinarySearch( list.data(), RE_d, int_cast<Int>(list.size()), j );
 
             const Int i = RE_d[p];
+            
             const Int d = ModDistance(dE_counter,i,j);
 
             if constexpr ( verboseQ )

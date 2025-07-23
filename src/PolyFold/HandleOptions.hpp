@@ -7,40 +7,40 @@ void HandleOptions( int argc, char** argv )
     // Declare all possible options with type information and a documentation string that will be printed when calling this routine with the -h [--help] option.
     po::options_description desc("Allowed options");
     desc.add_options()
-    ("help,h", "produce help message")
-    ("diam,d", po::value<Real>()->default_value(1), "set hard sphere diameter")
-    ("edge-count,n", po::value<Int>(), "set number of edges")
-    ("burn-in,b", po::value<LInt>(), "set number of burn-in steps")
-    ("skip,s", po::value<LInt>(), "set number of steps skipped between samples")
-    ("sample-count,N", po::value<Int>(), "set number of samples")
-    ("output,o", po::value<std::string>(), "set output directory")
-    ("input,i", po::value<std::string>(), "set input file")
-    ("tag,T", po::value<std::string>(), "set a tag to append to output directory")
-    ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option")
-    ("verbosity,v", po::value<int>()->default_value(1), "how much information should be printed to Log.txt file.")
-    ("pcg-multiplier", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"multiplier\" (implementation dependent -- better not touch it unless you really know what you do)")
-    ("pcg-increment", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own)")
-    ("pcg-state", po::value<std::string>(), "specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding)")
-    ("low-mem,m", "force deallocation of large data structures; this will be a bit slower but peak memory will be less")
-    ("angles,a", "compute statistics on curvature and torsion angles and report them in file \"Info.m\"")
-    ("squared-gyradius,g", "compute squared radius of gyration and report in file \"Info.m\"")
-    ("pd-code,c", "compute pd codes and print them to file \"PDCodes.tsv\"")
-    ("gauss-code,G", "compute extended Gauss codes and them print to file \"GaussCodes.txt\"")
-    ("bounding-boxes,B", "compute statistics of bounding boxes and report them in file \"Info.m\"")
-    ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file")
-    ("histograms", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
-    ("checks,C", po::value<bool>()->default_value(true), "whether to perform hard sphere collision checks")
-    ("check-joints,j", po::value<bool>()->default_value(false), "check the joints before the pivot move (this can increase performance)")
-    ("reflections,R", po::value<Real>()->default_value(0.5), "probability that a pivot move is orientation reversing")
-    ("hierarchical,H", po::value<bool>()->default_value(false), "whether to use hierarchical moves for burn-in and sampling")
-    ("shift,S", po::value<bool>()->default_value(true), "shift vertex indices randomly in each sample")
-    ("recenter,Z", po::value<bool>()->default_value(true), "translate each sample so that its barycenter is the origin")
-    ("edge-length-tol", po::value<Real>()->default_value(0.00000000001), "relative tolerance for the edge lengths")
+    ("help,h", "Produce help message.")
+    ("diam,d", po::value<Real>()->default_value(1), "Set hard sphere diameter.")
+    ("edge-count,n", po::value<Int>(), "Set number of edges.")
+    ("burn-in,b", po::value<LInt>(), "Set number attempts made for burn-in.")
+    ("skip,s", po::value<LInt>(), "Set number of attempts made between samples.")
+    ("sample-count,N", po::value<Int>(), "Set number of samples.")
+    ("output,o", po::value<std::string>(), "Set output directory.")
+    ("input,i", po::value<std::string>(), "Set input file.")
+    ("tag,T", po::value<std::string>(), "Set a tag to append to output directory")
+    ("extend,e", "extend name of output directory by information about the experiment, then append value of --tag option.")
+    ("verbosity,v", po::value<int>()->default_value(1), "Set how much information should be printed to Log.txt file.")
+    ("pcg-multiplier", po::value<std::string>(), "Specify 128 bit unsigned integer used by pcg64 for the \"multiplier\" (implementation dependent -- better not touch it unless you really know what you do).")
+    ("pcg-increment", po::value<std::string>(), "Specify 128 bit unsigned integer used by pcg64 for the \"increment\" (every processor should have its own).")
+    ("pcg-state", po::value<std::string>(), "Specify 128 bit unsigned integer used by pcg64 for the state (use this for seeding).")
+    ("low-mem,m", "Force deallocation of large data structures; this will be a bit slower but peak memory will be less.")
+    ("angles,a", "Compute statistics on curvature and torsion angles and report them in file \"Info.m\".")
+    ("squared-gyradius,g", "Compute squared radius of gyration and report in file \"Info.m\".")
+    ("pd-code,c", "Compute pd codes and print them to file \"PDCodes.tsv\".")
+    ("gauss-code,G", "Compute extended Gauss codes and them print to file \"GaussCodes.txt\".")
+    ("bounding-boxes,B", "Compute statistics of bounding boxes and report them in file \"Info.m\".")
+    ("polygons,P", po::value<LInt>()->default_value(-1), "Print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file.")
+    ("histograms", po::value<Int>()->default_value(0), "Create histograms for curvature and torsion angles with [arg] bins.")
+    ("checks,C", po::value<bool>()->default_value(true), "Set whether to perform hard sphere collision checks.")
+    ("check-joints,j", po::value<bool>()->default_value(true), "Set whether to check the joints before the pivot move (this can increase performance).")
+    ("reflections,R", po::value<Real>()->default_value(0.5), "Set probability that a pivot move is orientation reversing.")
+    ("hierarchical,H", po::value<bool>()->default_value(false), "Set whether to use hierarchical moves for burn-in and sampling (caution: this is a very experimental feature.")
+    ("shift,S", po::value<bool>()->default_value(true), "Shift vertex indices randomly in each sample.")
+    ("recenter,Z", po::value<bool>()->default_value(true), "Translate each sample so that its barycenter is the origin.")
+    ("edge-length-tol", po::value<Real>()->default_value(0.00000000001), "Set relative tolerance for the edge lengths.")
     ;
     
     
     
-    // Declare that arguments without option prefixe are reinterpreted as if they were assigned to -o [--output].
+    // Declare that arguments without option prefix are reinterpreted as if they were assigned to -o [--output].
     po::positional_options_description p;
     p.add("output", -1);
     
@@ -83,9 +83,9 @@ void HandleOptions( int argc, char** argv )
     
     if( vm.count("burn-in") )
     {
-        burn_in_accept_count = vm["burn-in"].as<LInt>();
+        burn_in = vm["burn-in"].as<LInt>();
         
-        valprint<a>("Burn-in Count b", burn_in_accept_count);
+        valprint<a>("Burn-in Count b", burn_in);
     }
     else
     {
@@ -219,7 +219,7 @@ void HandleOptions( int argc, char** argv )
                     + "-H" + ToString(hierarchicalQ)
                     + "-d" + ToStringFPGeneral(hard_sphere_diam)
                     + "-n" + ToString(n)
-                    + "-b" + ToString(burn_in_accept_count)
+                    + "-b" + ToString(burn_in)
                     + "-s" + ToString(skip)
                     + "-N" + ToString(N)
                     + (vm.count("tag") ? ("_" + vm["tag"].as<std::string>()) : "")
@@ -242,15 +242,6 @@ void HandleOptions( int argc, char** argv )
     std::filesystem::create_directories(path);
     
     valprint<a>("Output Path", path.string());
-    
-    print("");
-    
-    if( check_jointsQ )
-    {
-        wprint(MethodName("HandleOptions") + ": feature --check-joints might be buggy at the moment; better do not use it.");
-    }
-    
-    print("");
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);

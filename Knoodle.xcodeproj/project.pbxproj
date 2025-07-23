@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AF2D42502E3118C7004C6CE0 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AF5FF6AB2DD27DCA0076AB0E /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -55,6 +64,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AF5FF6AD2DD27DCA0076AB0E /* DevCLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DevCLP; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -69,15 +79,22 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
+		AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AF5FF6AE2DD27DCA0076AB0E /* DevCLP */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DevCLP; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
-		AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Parallel; sourceTree = "<group>"; };
 		AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_Ortho; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AF2D424F2E3118C7004C6CE0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF5FF6AA2DD27DCA0076AB0E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -134,10 +151,10 @@
 				AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
-				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
 				AF5FF6AE2DD27DCA0076AB0E /* DevCLP */,
 				AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */,
 				AF6C85DD2E29315B0051B919 /* WorkBench */,
+				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -151,6 +168,7 @@
 				AF5FF6AD2DD27DCA0076AB0E /* DevCLP */,
 				AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DC2E29315B0051B919 /* WorkBench */,
+				AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -158,6 +176,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */;
+			buildPhases = (
+				AF2D424E2E3118C7004C6CE0 /* Sources */,
+				AF2D424F2E3118C7004C6CE0 /* Frameworks */,
+				AF2D42502E3118C7004C6CE0 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
+			);
+			name = Dev_ClisbyTree;
+			packageProductDependencies = (
+			);
+			productName = Dev_ClisbyTree;
+			productReference = AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */;
+			productType = "com.apple.product-type.tool";
+		};
 		AF5FF6AC2DD27DCA0076AB0E /* DevCLP */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF5FF6B32DD27DCA0076AB0E /* Build configuration list for PBXNativeTarget "DevCLP" */;
@@ -236,9 +276,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AFBA756B2D90CA82008F2EB1 /* PolyFold_Parallel */,
-			);
 			name = PolyFold_Parallel;
 			packageProductDependencies = (
 			);
@@ -277,6 +314,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1640;
 				TargetAttributes = {
+					AF2D42512E3118C7004C6CE0 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					AF5FF6AC2DD27DCA0076AB0E = {
 						CreatedOnToolsVersion = 16.3;
 					};
@@ -312,11 +352,19 @@
 				AF5FF6AC2DD27DCA0076AB0E /* DevCLP */,
 				AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DB2E29315B0051B919 /* WorkBench */,
+				AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AF2D424E2E3118C7004C6CE0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF5FF6A92DD27DCA0076AB0E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -355,6 +403,32 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		AF2D42572E3118C7004C6CE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AF2D42582E3118C7004C6CE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.5;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AF5BC0B829D1AF1C008CA8B7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -549,7 +623,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_FLOAT_CONVERSION = NO;
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
@@ -576,7 +649,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_FLOAT_CONVERSION = NO;
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
@@ -603,7 +675,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -617,7 +688,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -631,7 +701,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LIBRARY_SEARCH_PATHS = (
@@ -663,7 +732,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LIBRARY_SEARCH_PATHS = (
@@ -798,6 +866,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF2D42572E3118C7004C6CE0 /* Debug */,
+				AF2D42582E3118C7004C6CE0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AF5BC0AE29D1AF1C008CA8B7 /* Build configuration list for PBXProject "Knoodle" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

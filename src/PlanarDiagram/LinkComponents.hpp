@@ -121,6 +121,7 @@ void RequireLinkComponents() const
         {
             (void)lc;
             (void)lc_begin;
+            (void)lc_end;
             lc_arcs.FinishSublist();
         }
      );

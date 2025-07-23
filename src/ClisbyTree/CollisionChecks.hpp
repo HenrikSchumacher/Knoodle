@@ -6,7 +6,7 @@
 public:
 
 
-template<bool full_checkQ = false>
+template<bool full_checkQ = false, bool debugQ = false>
 bool CollisionQ()
 {
     TOOLS_PTIMER(timer,ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
@@ -36,6 +36,25 @@ bool CollisionQ()
         else
         {
             result = SubtreesCollideQ_Recursive<false,full_checkQ>( Root() );
+        }
+    }
+    
+    // DEBUGGING
+    
+    if constexpr ( debugQ )
+    {
+        auto [result_debug,witness_debug] = CollisionQ_Debug();
+        
+        if( result != result_debug )
+        {
+            eprint(MethodName("CollisionQ") + ": Incorrect collision result.");
+            TOOLS_DDUMP(result);
+            TOOLS_DDUMP(result_debug);
+            
+            if( result_debug )
+            {
+                TOOLS_DDUMP(witness_debug);
+            }
         }
     }
     

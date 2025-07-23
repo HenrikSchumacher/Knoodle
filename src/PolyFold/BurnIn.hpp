@@ -36,16 +36,19 @@ void BurnIn()
 //        pre_state = FullState( T.RandomEngine() );
         
         T_fold.Tic<V2Q>();
+        
+        // Do `burn_in` attempts of folding.
         if( hierarchicalQ )
         {
+            // Experimental; not guaranteed to sample correctly.
             counts = T.HierarchicalMove(
-                burn_in_accept_count, reflection_probability, checksQ, check_jointsQ
+                burn_in, reflection_probability, checksQ, check_jointsQ
             );
         }
         else
         {
             counts = T.FoldRandom(
-                burn_in_accept_count, reflection_probability, checksQ, check_jointsQ
+                burn_in, reflection_probability, checksQ, check_jointsQ
             );
         }
         T_fold.Toc<V2Q>();

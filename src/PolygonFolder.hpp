@@ -224,38 +224,38 @@ namespace Knoodle
             s = X_p - Dot(A,X_p);
         }
 
-        void Rotate_Naive( cptr<Real> from, mptr<Real> to, const Int count )
+        void Rotate_Naive( cptr<Real> source, mptr<Real> target, const Int count )
         {
             Vector_T v;
             Vector_T w;
 
             for( Int i = 0; i < count; ++i )
             {
-                v.Read( &from[AmbDim * i] );
+                v.Read( &source[AmbDim * i] );
                 v -= X_p;
                 Dot<Overwrite>(A,v,w);
                 w += X_p;
-                w.Write( &to[AmbDim * i] );
+                w.Write( &target[AmbDim * i] );
             }
         }
         
-        void Rotate_Naive_Shift( cptr<Real> from, mptr<Real> to, const Int count )
+        void Rotate_Naive_Shift( cptr<Real> source, mptr<Real> target, const Int count )
         {
             Vector_T v;
             Vector_T w;
 
             for( Int i = 0; i < count; ++i )
             {
-                v.Read( &from[AmbDim * i] );
+                v.Read( &source[AmbDim * i] );
                 w = s;
                 Dot<AddTo>(A,v,w);
-                w.Write(  &to[AmbDim * i] );
+                w.Write(  &target[AmbDim * i] );
             }
         }
         
         // Definitely slow.
         template<Int chunk_step>
-        void Rotate_Shift( cptr<Real> from, mptr<Real> to, const Int count )
+        void Rotate_Shift( cptr<Real> source, mptr<Real> target, const Int count )
         {
             constexpr Int chunk_size = chunk_step * AmbDim;
 
@@ -276,25 +276,25 @@ namespace Knoodle
 
             for( Int chunk = 0; chunk < chunk_count; ++chunk )
             {
-                S.Write(&to[chunk_size * chunk]);
+                S.Write(&target[chunk_size * chunk]);
 
                 Tiny::fixed_dot_mm<chunk_step,AmbDim,AmbDim,AddTo>(
-                    &from[chunk_size * chunk], &B[0][0], &to[chunk_size * chunk]
+                    &source[chunk_size * chunk], &B[0][0], &target[chunk_size * chunk]
                 );
             }
 
             for( Int i = chunk_count * chunk_step; i < count; ++i )
             {
-                s.Write(&to[AmbDim * i]);
+                s.Write(&target[AmbDim * i]);
 
                 Tiny::fixed_dot_mm<1,AmbDim,AmbDim,AddTo>(
-                    &from[AmbDim * i], &B[0][0], &to[AmbDim * i]
+                    &source[AmbDim * i], &B[0][0], &target[AmbDim * i]
                 );
             }
         }
         
         // Definitely slow.
-//        void Rotate_gemm( cptr<Real> from, mptr<Real> to, const Int count )
+//        void Rotate_gemm( cptr<Real> source, mptr<Real> target, const Int count )
 //        {
 //            constexpr Int chunk_step = 64;
 //            
@@ -317,13 +317,13 @@ namespace Knoodle
 //            
 //            for( Int chunk = 0; chunk < chunk_count; ++chunk )
 //            {
-//                S.Write( &to[ chunk_size * chunk ] );
+//                S.Write( &target[ chunk_size * chunk ] );
 //                
 //                BLAS::gemm<Layout::RowMajor,Op::Id,Op::Id>(
 //                    chunk_step, AmbDim, AmbDim,
-//                    Scalar::One<Real>, &from[ chunk_size * chunk ], AmbDim,
-//                                       B.data()                   , AmbDim,
-//                    Scalar::One<Real>, &to  [ chunk_size * chunk ], AmbDim
+//                    Scalar::One<Real>, &source[ chunk_size * chunk ], AmbDim,
+//                                       B.data()                     , AmbDim,
+//                    Scalar::One<Real>, &target[ chunk_size * chunk ], AmbDim
 //                );
 //            }
 //            
@@ -333,15 +333,15 @@ namespace Knoodle
 //
 //            for( Int i = chunk_count * chunk_step; i < count; ++i )
 //            {
-//                v.Read( &from[AmbDim * i] );
+//                v.Read( &source[AmbDim * i] );
 //                w = s;
 //                Dot<AddTo>(A,v,w);
-//                w.Write( &to[AmbDim * i] );
+//                w.Write( &target[AmbDim * i] );
 //            }
 //        }
         
         
-        void Rotate_Homogeneous( cptr<Real> from, mptr<Real> to, const Int count )
+        void Rotate_Homogeneous( cptr<Real> source, mptr<Real> target, const Int count )
         {
             // Definitely slow.
             
@@ -373,14 +373,14 @@ namespace Knoodle
             for( Int chunk = 0; chunk < chunk_count; ++chunk )
             {
                 copy_matrix<4,3,Sequential>(
-                    &from[ chunk_size * chunk ], 3,
+                    &source[ chunk_size * chunk ], 3,
                     &V[0][0],                    4,
                     4, 3, 1
                 );
 
                 Dot<Overwrite>(V,T,W);
                 
-                copy_buffer<12>( &W[0][0], &to[ chunk_size * chunk ] );
+                copy_buffer<12>( &W[0][0], &target[ chunk_size * chunk ] );
             }
 
             Vector_T v;
@@ -388,15 +388,15 @@ namespace Knoodle
 
             for( Int i = chunk_count * chunk_step; i < count; ++i )
             {
-                v.Read( &from[AmbDim * i] );
+                v.Read( &source[AmbDim * i] );
                 w = s;
                 Dot<AddTo>(A,v,w);
-                w.Write( &to[AmbDim * i] );
+                w.Write( &target[AmbDim * i] );
             }
         }
         
         template<Int chunk_step>
-        void Rotate_Tiny_Mat( cptr<Real> from, mptr<Real> to, const Int count )
+        void Rotate_Tiny_Mat( cptr<Real> source, mptr<Real> target, const Int count )
         {
             constexpr Int chunk_size = chunk_step * AmbDim;
 
@@ -418,10 +418,10 @@ namespace Knoodle
 
             for( Int chunk = 0; chunk < chunk_count; ++chunk )
             {
-                V.template Read <Op::Id>( &from[chunk_size * chunk] );
+                V.template Read <Op::Id>( &source[chunk_size * chunk] );
                 W = S;
                 Dot<AddTo>(V,B,W);
-                W.template Write<Op::Id>( &to  [chunk_size * chunk] );
+                W.template Write<Op::Id>( &target[chunk_size * chunk] );
             }
 
             Vector_T v;
@@ -429,35 +429,35 @@ namespace Knoodle
 
             for( Int i = chunk_count * chunk_step; i < count; ++i )
             {
-                v.Read( &from[AmbDim * i] );
+                v.Read( &source[AmbDim * i] );
                 w = s;
                 Dot<AddTo>(A,v,w);
-                w.Write( &to[AmbDim * i] );
+                w.Write( &target[AmbDim * i] );
             }
         }
         
         
-        void LoadArc( cptr<Real> from, mptr<Real> to, const Int count, const bool rotateQ )
+        void LoadArc( cptr<Real> source, mptr<Real> target, const Int count, const bool rotateQ )
         {
             if ( rotateQ )
             {
-//                Rotate_Naive( from, to, count );
+//                Rotate_Naive( source, target, count );
                 
-                Rotate_Naive_Shift( from, to, count );
+                Rotate_Naive_Shift( source, target, count );
                 
-//                Rotate_Shift<4>( from, to, count );
+//                Rotate_Shift<4>( source, target, count );
 
-//                  Rotate_Homogeneous( from, to, count );
+//                  Rotate_Homogeneous( source, target, count );
                 
-//                Rotate_Homogeneous_Mat( from, to, count );
+//                Rotate_Homogeneous_Mat( source, target, count );
                 
-//                Rotate_gemm( from, to, count );
+//                Rotate_gemm( source, target, count );
                 
-//                Rotate_Tiny_Mat<4>( from, to, count );
+//                Rotate_Tiny_Mat<4>( source, target, count );
             }
             else
             {
-                copy_buffer( from, to, AmbDim * count );
+                copy_buffer( source, target, AmbDim * count );
             }
         }
         
@@ -891,7 +891,7 @@ namespace Knoodle
                     else
                     {
                         // split only larger cluster
-                        if ( i_internalQ ) // !j_internalQ follows from this.
+                        if ( i_internalQ ) // !j_internalQ follows source this.
                         {
                             // Split node i.
                             

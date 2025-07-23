@@ -15,7 +15,7 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         if constexpr( fcQ )
         {
-            F[0][0] = true; F[0][1] = true; F[1][0] = true; F[1][1] = true;
+            F.Fill(true);
         }
         else
         {
@@ -192,7 +192,7 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         // So we enforce the collision checks right now.
         const bool subdivideQ [2] = { subdQ(0), subdQ(1) };
 
-        // TODO: We could exploit here that we now that i, c_j[0], and c_j[1] are all leaf nodes.
+        // TODO: We could exploit here that we know that i, c_j[0], and c_j[1] are all leaf nodes.
         
         if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],j) )
         {

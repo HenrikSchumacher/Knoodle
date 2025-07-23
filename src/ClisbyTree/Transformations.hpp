@@ -127,6 +127,10 @@ bool TransformsPulledQ( const Int node ) const
     return trivialQ;
 }
 
+/*!@brief This computes the current coordinates of the center of node `node` by traversing the tree towards the root and by collecting all updates on its way. It does not alter the state of the Clisby tree.
+ * This is rather slow if many or all nodes' coordinates shall be computed, but it is also useful for debugging.
+ */
+
 Vector_T NodeCenterAbsoluteCoordinates( const Int node ) const
 {
     Int ancestor = node;
@@ -153,6 +157,10 @@ Vector_T NodeCenterAbsoluteCoordinates( const Int node ) const
     
     return x;
 }
+
+/*!@brief This computes the current coordinates of vertex `vertex` by traversing the tree towards the root and by collecting all updates on its way. It does not alter the state of the Clisby tree. Used, e.g., to compute the current coordinates of the pivot vertices without updating the whole tree.
+ * This routine is rather slow if many or all vertices' coordinates shall be computed, but it is also useful for debugging.
+ */
 
 Vector_T VertexCoordinates( const Int vertex ) const
 {

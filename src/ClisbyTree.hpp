@@ -2,6 +2,13 @@
 
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 
+#include "AffineTransforms/AffineTransformFlag.hpp"
+#include "AffineTransforms/AffineTransform.hpp"
+#include "AffineTransforms/ClangMatrix.hpp"
+#include "AffineTransforms/ClangAffineTransform.hpp"
+#include "AffineTransforms/ClangQuaternionTransform.hpp"
+
+
 // TODO: Rotate DOFs on load or write.
 // TODO: Recenter polygon on load or write.
 // TODO: 2:1 Subdivision.
@@ -368,6 +375,7 @@ namespace Knoodle
 #include "ClisbyTree/Transformations.hpp"
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionChecks.hpp"
+#include "ClisbyTree/CollisionChecks_Debug.hpp"
 #include "ClisbyTree/Fold.hpp"
 #include "ClisbyTree/FoldRandomHierarchical.hpp"
 //#include "ClisbyTree/Subdvide.hpp"

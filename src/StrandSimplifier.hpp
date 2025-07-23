@@ -493,14 +493,6 @@ namespace Knoodle
             }
         }
         
-        /*! @brief Checks whether arc `a` is a loop arc. In the affirmative case it performs a Reidemeister I move and returns `true`. Otherwise, it returns `false`.
-         *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Reidemeister_I`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
-         *
-         * @param a The arc to check as possibly, to remove.
-         *
-         * @tparam checkQ Whether the check for `a` being a loop is activated (`true`), which is the default.
-         */
-        
         template<bool headtail, bool deactivateQ = true>
         void Reconnect( const Int a, const Int b )
         {

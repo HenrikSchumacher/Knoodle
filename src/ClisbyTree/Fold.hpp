@@ -121,45 +121,19 @@ FoldFlag_T Fold(
 //
 //    return std::pair<Int,Int>(i,j);
 //}
-    
-//template<bool only_oddQ = false>
-//std::pair<Int,Int> RandomPivots()
-//{
-//    const Int n = VertexCount();
-//    
-//    Int i;
-//    Int j;
-//    
-//    do
-//    {
-//        if constexpr ( only_oddQ )
-//        {
-//            i = Int(2) * RandomInteger(Int(0),n/2) + Int(1);
-//            j = Int(2) * RandomInteger(Int(0),n/2) + Int(1);
-//        }
-//        
-//        else
-//        {
-//            i = RandomInteger(Int(0),n);
-//            j = RandomInteger(Int(0),n);
-//        }
-//    }
-//    while( ModDistance(n,i,j) < Int(2) );
-//    
-//    return MinMax(i,j);
-//}
 
 
-// Chosse i, j randomly in [begin,end[ so that circular distance of i and j is greater than 1.
+// Choose i, j randomly in [begin,end[ so that circular distance of i and j is greater than 1.
 // Also, i < j is guaranteed.
-template<bool only_oddQ = false>
 std::pair<Int,Int> RandomPivots( Int begin, Int end )
 {
     const Int n = VertexCount();
     
-    assert( (begin + Int(2) < end) );
-    assert( Int(0) <= begin );
-    assert( end <= n );
+    assert( (begin + Int(0) <  end  ) );
+    assert( (begin + Int(1) <  end  ) );
+    assert( (begin + Int(2) <  end  ) );
+    assert( (Int(0)         <= begin) );
+    assert( (end            <= n    ) );
     
     Int i;
     Int j;
@@ -185,42 +159,42 @@ std::pair<Int,Int> RandomPivots( Int begin, Int end )
     return std::pair<Int,Int>( i, j );
 }
 
+/*!@brief Makes `attempt_count` attempts of random pivot moves.
+ */
 
-
-template<bool only_oddQ = false>
 FoldFlagCounts_T FoldRandom(
-    const LInt accept_count,
+    const LInt attempt_count,
     const Real reflectP,
     const bool check_collisionsQ = true,
     const bool check_jointsQ = false
 )
 {
-    FoldFlagCounts_T flat_ctrs ( LInt(0) );
+    FoldFlagCounts_T flag_ctrs ( LInt(0) );
     ClearWitnesses();
     
     const Real P = Clamp(reflectP,Real(0),Real(1));
     
-    while( flat_ctrs[0] < accept_count )
+    for( Int attempt = 0; attempt < attempt_count; ++attempt )
     {
         FoldFlag_T flag = Fold(
-            RandomPivots<only_oddQ>( Int(0), VertexCount() ),
+            RandomPivots( Int(0), VertexCount() ),
             RandomAngle(),
             RandomReflectionFlag(P),
             check_collisionsQ,
             check_jointsQ
         );
         
-        ++flat_ctrs[flag];
+        ++flag_ctrs[flag];
     }
     
-    return flat_ctrs;
+    return flag_ctrs;
 }
 
 
 
-//####################################################################################
+//###########################################################
 //####          From here on it gets a bit experimental
-//####################################################################################
+//###########################################################
 
 //std::pair<Int,Int> SubtreeRandomPivots( Int start_node )
 //{
@@ -239,31 +213,6 @@ FoldFlagCounts_T FoldRandom(
 //    while( ModDistance(n,pivot_0,pivot_1) < Int(2) ); // distance check is redundant
 //    
 //    return MinMax(pivot_0,pivot_1); // Is redudant if root_0 < root_1 and if the subtrees are disjoint.
-//}
-
-
-
-
-//std::pair<Int,Int> RandomPivots( const Int begin, const Int end )
-//{
-//    const Int n = VertexCount();
-//    
-//    unif_int u_int ( begin, end - Int(1) );
-//    
-////    Int i;
-////    Int j;
-////    
-////    do
-////    {
-////        i = u_int(random_engine);
-////        j = u_int(random_engine);
-////    }
-////    while( ModDistance(n,i,j) < Int(2) );
-//    
-//    const Int i = u_int(random_engine);
-//    const Int j = u_int(random_engine);
-//    
-//    return MinMax(i,j);
 //}
 
 
@@ -327,8 +276,10 @@ std::pair<Int,Int> RandomPivots( const Int begin, const Int mid, const Int end )
     
     if constexpr ( splitQ )
     {
-        assert( (begin < mid) );
-        assert( (mid   < end) );
+        assert( (begin  <  mid  ) );
+        assert( (mid    <  end  ) );
+        assert( (Int(0) <= begin) );
+        assert( (end    <= n    ) );
         
         Int i;
         Int j;
@@ -344,15 +295,18 @@ std::pair<Int,Int> RandomPivots( const Int begin, const Int mid, const Int end )
     }
     else
     {
-        return this->RandomPivots<false>(begin,end);
+        return this->RandomPivots(begin,end);
     }
 }
+
+/*!@brief Makes `attempt_count` attempts of random pivot moves restricted to the subtree with root `start_node`.
+ */
 
 template<bool pull_transformsQ = true, bool splitQ = false>
 void SubtreeFoldRandom(
     const Int start_node,
     mref<FoldFlagCounts_T> flag_ctr,
-    const LInt accept_count,
+    const LInt attempt_count,
     const Real reflectP,
     const bool check_collisionsQ,
     const bool check_jointsQ
@@ -368,46 +322,8 @@ void SubtreeFoldRandom(
     const Int begin = NodeBegin(start_node);
     const Int mid   = NodeBegin(RightChild(start_node));
     const Int end   = NodeEnd  (start_node);
-
-//    // DEBUGGING
-//    
-//    // Checking feasiblity for RandomPivots.
-//    if constexpr ( splitQ )
-//    {
-//        if( begin >= mid )
-//        {
-//            eprint(ClassName()+"::SubtreeFoldRandom: left node " + Tools::ToString(LeftChild(start_node)) + " is too small.");
-//            
-//            TOOLS_DUMP(begin);
-//            TOOLS_DUMP(mid);
-//            
-//            return;
-//        }
-//        
-//        if( mid>= end )
-//        {
-//            eprint(ClassName()+"::SubtreeFoldRandom: right node " + Tools::ToString(RightChild(start_node)) + " is too small.");
-//            
-//            TOOLS_DUMP(mid);
-//            TOOLS_DUMP(end);
-//            
-//            return;
-//        }
-//    }
-//
-//    if( begin + Int(2) >= end )
-//    {
-//        eprint(ClassName()+"::SubtreeFoldRandom: node " + Tools::ToString(start_node) + " is too small.");
-//        
-//        TOOLS_DUMP(begin);
-//        TOOLS_DUMP(end);
-//        
-//        return;
-//    }
     
-    const LInt target = flag_ctr[0] + accept_count;
-    
-    while( flag_ctr[0] < target )
+    for( Int attempt = 0; attempt < attempt_count; ++attempt )
     {
         FoldFlag_T flag = this->template SubtreeFold<false>(
             start_node,
@@ -421,9 +337,6 @@ void SubtreeFoldRandom(
         ++flag_ctr[flag];
     }
 }
-
-
-
 
 
 // Samples i uniformly in [a,b[ and j uniformly in [c,d[.
@@ -454,10 +367,14 @@ std::pair<Int,Int> RandomPivots(
 }
 
 
+
+/*!@brief Makes `attempt_count` attempts of random pivot moves restricted to the pivots in the subtrees with roots `root_0` and `root_1`.
+ */
+
 void RectangleFoldRandom(
     const Int root_0, const Int root_1,
     mref<FoldFlagCounts_T> flag_ctr,
-    const LInt accept_count,
+    const LInt attempt_count,
     const Real reflectP,
     const bool check_collisionsQ = true,
     const bool check_jointsQ = false
@@ -470,9 +387,7 @@ void RectangleFoldRandom(
     const Int c = NodeBegin(root_1);
     const Int d = NodeEnd  (root_1);
     
-    const LInt target = flag_ctr[0] + accept_count;
-    
-    while( flag_ctr[0] < target )
+    for( Int attempt = 0; attempt < attempt_count; ++attempt )
     {
         auto pivots = RandomPivots(a,b,c,d);
         
@@ -480,36 +395,10 @@ void RectangleFoldRandom(
             std::move(pivots),
             RandomAngle(),
             RandomReflectionFlag(P),
-            check_collisionsQ
+            check_collisionsQ,
+            check_jointsQ
         );
         
         ++flag_ctr[flag];
     }
 }
-
-
-//FoldFlagCounts_T ExperimentalMove(
-//    const Int  level,
-//    const LInt accept_count_per_node,
-//    const Real reflectP,
-//    const bool check_collisionsQ = true
-//)
-//{
-//    FoldFlagCounts_T flag_ctr ( LInt(0) );
-//    
-//    const Int begin = this->LevelBegin(level);
-//    const Int end   = this->LevelEnd  (level);
-//    
-//    for( Int node_0 = begin; node_0 < end; ++node_0 )
-//    {
-//        for( Int node_1 = begin; node_1 < end; ++node_1 )
-//        {
-//            RectangleFoldRandom(
-//                node_0, node_1, flag_ctr, accept_count_per_node,
-//                reflectP, check_collisionsQ
-//            );
-//        }
-//    }
-//    
-//    return flag_ctr;
-//}

@@ -69,12 +69,20 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d1.0 -n64 -b16000 -s128 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0"
+            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5  -j1 -T&quot;R0.5_j1&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d1.0 -n64 -b16000 -s128 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5 -T&quot;R&quot;"
+            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0  -j1 -T&quot;R0_j1&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5 -j0 -T&quot;R0.5_j0&quot;"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0 -j0 -T&quot;R0_j0&quot;"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

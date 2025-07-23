@@ -129,7 +129,7 @@ namespace Knoodle
         :   Base_T      { int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                 }
         ,   T           { edge_count                 }
-        ,   box_coords  { T.NodeCount()              }
+        ,   box_coords  { T.AllocateBoxes()          }
         {
             static_assert(IntQ<I>,"");
         }
@@ -139,7 +139,7 @@ namespace Knoodle
         :   Base_T      { component_ptr_             }
         ,   edge_coords { edge_count                 }
         ,   T           { edge_count                 }
-        ,   box_coords  { T.NodeCount()              }
+        ,   box_coords  { T.AllocateBoxes()          }
         {
             static_assert(IntQ<J>,"");
             static_assert(IntQ<K>,"");
@@ -151,7 +151,7 @@ namespace Knoodle
         :   Base_T      { edges_, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                         }
         ,   T           { edge_count                         }
-        ,   box_coords  { T.NodeCount()                      }
+        ,   box_coords  { T.AllocateBoxes()                  }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -163,7 +163,7 @@ namespace Knoodle
         :   Base_T      { edge_tails_, edge_tips_, edge_count_ }
         ,   edge_coords { edge_count                           }
         ,   T           { edge_count                           }
-        ,   box_coords  { T.NodeCount()                        }
+        ,   box_coords  { T.AllocateBoxes()                    }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");

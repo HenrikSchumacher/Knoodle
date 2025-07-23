@@ -428,12 +428,5 @@ namespace Knoodle
 #include "src/AlexanderFaceMatrix.hpp"
 
 
-#include "src/PolygonFolder.hpp"
-
-#include "src/AffineTransforms/AffineTransformFlag.hpp"
-#include "src/AffineTransforms/AffineTransform.hpp"
-#include "src/AffineTransforms/ClangMatrix.hpp"
-#include "src/AffineTransforms/ClangAffineTransform.hpp"
-#include "src/AffineTransforms/ClangQuaternionTransform.hpp"
-#include "src/ClisbyTree.hpp"
+//#include "src/PolygonFolder.hpp"
 
