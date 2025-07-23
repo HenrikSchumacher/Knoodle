@@ -66,7 +66,8 @@ FoldFlag_T Fold(
     std::pair<Int,Int> && pivots,
     const Real theta_,
     const bool reflectQ_,
-    const bool check_collisionsQ
+    const bool check_collisionsQ,
+    const bool check_jointsQ
 )
 {
     int pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
@@ -78,7 +79,7 @@ FoldFlag_T Fold(
         return pivot_flag;
     }
     
-    if ( check_collisionsQ )
+    if ( check_collisionsQ && check_jointsQ )
     {
         int joint_flag = CheckJoints();
 
@@ -154,9 +155,11 @@ FoldFlag_T Fold(
 template<bool only_oddQ = false>
 std::pair<Int,Int> RandomPivots( Int begin, Int end )
 {
-    assert( (begin + Int(2) < end) );
-    
     const Int n = VertexCount();
+    
+    assert( (begin + Int(2) < end) );
+    assert( Int(0) <= begin );
+    assert( end <= n );
     
     Int i;
     Int j;
@@ -188,7 +191,8 @@ template<bool only_oddQ = false>
 FoldFlagCounts_T FoldRandom(
     const LInt accept_count,
     const Real reflectP,
-    const bool check_collisionsQ = true
+    const bool check_collisionsQ = true,
+    const bool check_jointsQ = false
 )
 {
     FoldFlagCounts_T flat_ctrs ( LInt(0) );
@@ -202,7 +206,8 @@ FoldFlagCounts_T FoldRandom(
             RandomPivots<only_oddQ>( Int(0), VertexCount() ),
             RandomAngle(),
             RandomReflectionFlag(P),
-            check_collisionsQ
+            check_collisionsQ,
+            check_jointsQ
         );
         
         ++flat_ctrs[flag];
@@ -268,7 +273,8 @@ FoldFlag_T SubtreeFold(
     std::pair<Int,Int> && pivots,
     const Real theta_,
     const bool reflectQ_,
-    const bool check_collisionsQ
+    const bool check_collisionsQ,
+    const bool check_jointsQ
 )
 {
     int pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
@@ -280,7 +286,7 @@ FoldFlag_T SubtreeFold(
         return pivot_flag;
     }
     
-    if ( check_collisionsQ )
+    if ( check_collisionsQ && check_jointsQ )
     {
         int joint_flag = CheckJoints();
 
@@ -348,7 +354,8 @@ void SubtreeFoldRandom(
     mref<FoldFlagCounts_T> flag_ctr,
     const LInt accept_count,
     const Real reflectP,
-    const bool check_collisionsQ
+    const bool check_collisionsQ,
+    const bool check_jointsQ
 )
 {
     const Real P = Clamp(reflectP,Real(0),Real(1));
@@ -407,7 +414,8 @@ void SubtreeFoldRandom(
             RandomPivots<splitQ>(begin,mid,end),
             RandomAngle(),
             RandomReflectionFlag(P),
-            check_collisionsQ
+            check_collisionsQ,
+            check_jointsQ
         );
         
         ++flag_ctr[flag];
@@ -451,7 +459,8 @@ void RectangleFoldRandom(
     mref<FoldFlagCounts_T> flag_ctr,
     const LInt accept_count,
     const Real reflectP,
-    const bool check_collisionsQ = true
+    const bool check_collisionsQ = true,
+    const bool check_jointsQ = false
 )
 {
     const Real P = Clamp(reflectP,Real(0),Real(1));

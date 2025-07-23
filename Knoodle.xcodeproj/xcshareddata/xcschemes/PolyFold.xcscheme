@@ -70,6 +70,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d1.0 -n64 -b16000 -s128 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d1.0 -n64 -b16000 -s128 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0.5 -T&quot;R&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

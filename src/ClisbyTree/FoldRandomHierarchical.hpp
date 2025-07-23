@@ -199,7 +199,8 @@ void FoldRandomHierarchical(
     const Int  wave_count_,
     const Int  max_level_,
     const Real reflectP_,
-    const bool checkQ
+    const bool checkQ,
+    const bool check_jointsQ
 )
 {
 //    const LInt success_count = Ramp(success_count_);
@@ -247,7 +248,7 @@ void FoldRandomHierarchical(
     {
 //        TOOLS_LOGDUMP(wave);
         this->template FoldRandomHierarchicalWave<traversal,dir,splitQ>(
-            flag_ctr, f, max_level, node_count, reflectP, checkQ
+            flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
         );
     }
     
@@ -262,7 +263,8 @@ void FoldRandomHierarchicalWave(
     const Int  max_level,
     const Int  node_count,
     const Real reflectP,
-    const bool checkQ
+    const bool checkQ,
+    const bool check_jointsQ
 )
 {
     constexpr Direction Up          = Direction::Up;
@@ -286,7 +288,7 @@ void FoldRandomHierarchicalWave(
             for( Int node = node_count; node --> Int(0);  )
             {
                 this->template SubtreeFoldRandom<true,splitQ>(
-                    node, flag_ctr, f(node), reflectP, checkQ
+                    node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
                 );
             }
         }
@@ -381,7 +383,8 @@ public:
 FoldFlagCounts_T HierarchicalMove(
     const LInt iter_count,
     const Real reflectP,
-    const bool checkQ
+    const bool checkQ,
+    const bool check_jointsQ
 )
 {
     const Traversal traversal = Traversal::BFS;
@@ -398,7 +401,7 @@ FoldFlagCounts_T HierarchicalMove(
                 (void)node;
                 return LInt(1);
             },
-            Int(1), Int(-1), reflectP, checkQ
+            Int(1), Int(-1), reflectP, checkQ, check_jointsQ
         );
     }
     

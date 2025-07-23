@@ -86,11 +86,11 @@ void Sample( const LInt i )
             // Do polygon folds until we have done at least `skip` accepted steps.
             if( hierarchicalQ )
             {
-                counts = T.HierarchicalMove( skip, reflection_probability, checksQ );
+                counts = T.HierarchicalMove( skip, reflection_probability, checksQ, check_jointsQ );
             }
             else
             {
-                counts = T.FoldRandom      ( skip, reflection_probability, checksQ );
+                counts = T.FoldRandom( skip, reflection_probability, checksQ, check_jointsQ );
             }
             
             T_fold.Toc<V2Q>();

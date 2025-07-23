@@ -30,7 +30,7 @@ void HandleOptions( int argc, char** argv )
     ("polygons,P", po::value<LInt>()->default_value(-1), "print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file")
     ("histograms", po::value<Int>()->default_value(0), "create histograms for curvature and torsion angles with [arg] bins")
     ("checks,C", po::value<bool>()->default_value(true), "whether to perform hard sphere collision checks")
-    ("check-joints,j", po::value<bool>()->default_value(true), "check the joints before the pivot move (this can increase performance)")
+    ("check-joints,j", po::value<bool>()->default_value(false), "check the joints before the pivot move (this can increase performance)")
     ("reflections,R", po::value<Real>()->default_value(0.5), "probability that a pivot move is orientation reversing")
     ("hierarchical,H", po::value<bool>()->default_value(false), "whether to use hierarchical moves for burn-in and sampling")
     ("shift,S", po::value<bool>()->default_value(true), "shift vertex indices randomly in each sample")
@@ -176,6 +176,9 @@ void HandleOptions( int argc, char** argv )
     checksQ = vm["checks"].as<bool>();
     valprint<a>("Hard Sphere Checks", BoolString(checksQ) );
     
+    check_jointsQ = vm["check-joints"].as<bool>();
+    valprint<a>("Joint Checks", BoolString(check_jointsQ) );
+    
     if( vm.count("pcg-multiplier") )
     {
         prng_multiplierQ = true;
@@ -239,6 +242,15 @@ void HandleOptions( int argc, char** argv )
     std::filesystem::create_directories(path);
     
     valprint<a>("Output Path", path.string());
+    
+    print("");
+    
+    if( check_jointsQ )
+    {
+        wprint(MethodName("HandleOptions") + ": feature --check-joints might be buggy at the moment; better do not use it.");
+    }
+    
+    print("");
     
     // Use this path for profiles and general log files.
     Profiler::Clear(path,true);

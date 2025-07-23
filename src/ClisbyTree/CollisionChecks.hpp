@@ -196,50 +196,53 @@ int CheckJoints()
 {
     const Int n = VertexCount();
     
-    const Int p_prev = (p == 0)     ? (n - 1) : (p - 1);
-    const Int p_next = (p + 1 == n) ? Int(0)  : (p + 1);
-
-    Vector_T X_p_prev = VertexCoordinates(p_prev);
-    Vector_T X_p_next = VertexCoordinates(p_next);
-    
-    if( mid_changedQ )
     {
-        X_p_next = transform(X_p_next);
-    }
-    else
-    {
-        X_p_prev = transform(X_p_prev);
-    }
-    
-    if( SquaredDistance(X_p_next,X_p_prev) <= hard_sphere_squared_diam )
-    {
-        witness[0] = p_prev;
-        witness[1] = p_next;
-        return 2;
-    }
-    
-    const Int q_prev = (q == 0)     ? (n - 1) : (q - 1);
-    const Int q_next = (q + 1 == n) ? Int(0)  : (q + 1);
-    
-    Vector_T X_q_prev = VertexCoordinates(q_prev);
-    Vector_T X_q_next = VertexCoordinates(q_next);
-    
-    if( mid_changedQ )
-    {
-        X_q_prev = transform(X_q_prev);
-    }
-    else
-    {
-        X_q_next = transform(X_q_next);
+        const Int p_prev = (p == Int(0))     ? (n - Int(1)) : (p - Int(1));
+        const Int p_next = (p + Int(1) == n) ? Int(0)       : (p + Int(1));
+        
+        Vector_T X_p_prev = VertexCoordinates(p_prev);
+        Vector_T X_p_next = VertexCoordinates(p_next);
+        
+        if( mid_changedQ )
+        {
+            X_p_next = transform(X_p_next);
+        }
+        else
+        {
+            X_p_prev = transform(X_p_prev);
+        }
+        
+        if( SquaredDistance(X_p_next,X_p_prev) <= hard_sphere_squared_diam )
+        {
+            witness[0] = p_prev;
+            witness[1] = p_next;
+            return 2;
+        }
     }
     
-    if( SquaredDistance(X_q_next,X_q_prev) <= hard_sphere_squared_diam )
     {
-        witness[0] = q_prev;
-        witness[1] = q_next;
-        return 3;
+        const Int q_prev = (q == Int(0))     ? (n - Int(1)) : (q - Int(1));
+        const Int q_next = (q + Int(1) == n) ? Int(0)       : (q + Int(1));
+        
+        Vector_T X_q_prev = VertexCoordinates(q_prev);
+        Vector_T X_q_next = VertexCoordinates(q_next);
+        
+        if( mid_changedQ )
+        {
+            X_q_prev = transform(X_q_prev);
+        }
+        else
+        {
+            X_q_next = transform(X_q_next);
+        }
+        
+        if( SquaredDistance(X_q_next,X_q_prev) <= hard_sphere_squared_diam )
+        {
+            witness[0] = q_prev;
+            witness[1] = q_next;
+            return 3;
+        }
     }
-    
     return 0;
 }
 

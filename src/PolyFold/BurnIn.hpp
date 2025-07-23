@@ -39,13 +39,13 @@ void BurnIn()
         if( hierarchicalQ )
         {
             counts = T.HierarchicalMove(
-                burn_in_accept_count, reflection_probability, checksQ
+                burn_in_accept_count, reflection_probability, checksQ, check_jointsQ
             );
         }
         else
         {
             counts = T.FoldRandom(
-                burn_in_accept_count, reflection_probability, checksQ
+                burn_in_accept_count, reflection_probability, checksQ, check_jointsQ
             );
         }
         T_fold.Toc<V2Q>();

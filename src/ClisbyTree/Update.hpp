@@ -109,10 +109,10 @@ int LoadPivots(
     reflectQ = reflectQ_;
     
     const Int n = VertexCount() ;
-    const Int mid_size = q - p - 1;
-    const Int rem_size = n - mid_size - 2;
+    const Int mid_size = q - p - Int(1);
+    const Int rem_size = n - mid_size - Int(2);
     
-    if( (mid_size <= 0) || (rem_size <= 0) ) [[unlikely]]
+    if( (mid_size <= Int(0)) || (rem_size <= Int(0)) ) [[unlikely]]
     {
         return 1;
     }
