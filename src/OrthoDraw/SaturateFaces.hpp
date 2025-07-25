@@ -713,18 +713,18 @@ EdgeContainer_T SaturatingEdges() const
             {
                 if( f_size <= Int(7) ) { return; }
             }
-            
-            // DEBUGGING
-            if( f_n < Int(2) )
-            {
-                eprint(this->MethodName("SaturatingEdges") + ": f_n < Int(2)!");
-            }
-            
-            // DEBUGGING
-            if( f_size > max_face_size )
-            {
-                eprint(this->MethodName("SaturatingEdges") + ": f_size > max_face_size !");
-            }
+//            
+//            // DEBUGGING
+//            if( f_n < Int(2) )
+//            {
+//                eprint(this->MethodName("SaturatingEdges") + ": f_n < Int(2)!");
+//            }
+//            
+//            // DEBUGGING
+//            if( f_size > max_face_size )
+//            {
+//                eprint(this->MethodName("SaturatingEdges") + ": f_size > max_face_size !");
+//            }
             
             // Make a complete copy to emulate a cyclic list.
             copy_buffer(&f_dE[0],&f_dE[f_n],f_n);

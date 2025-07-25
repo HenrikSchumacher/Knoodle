@@ -379,11 +379,11 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     ++edge_count;
     ++virtual_edge_count;
     
-    // DEBUGGING
-    if( edge_count >= E_V.Dim(0) )
-    {
-        eprint("Edge overflow!");
-    }
+//    // DEBUGGING
+//    if( edge_count >= E_V.Dim(0) )
+//    {
+//        eprint("Edge overflow!");
+//    }
     
     // Counting the faces might be unreliable as we add further faces in the saturation pass.
 //    ++face_count;

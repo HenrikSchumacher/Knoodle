@@ -212,7 +212,7 @@ Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt> Lengths_ConstraintMatrix_Variant
             // DEBUGGING
             if( !DedgeVirtualQ(de) )
             {
-                wprint("Nonvirtual dedge " + ToString(de) + " detected where only virtual edges should be.");
+                wprint(MethodName("Lengths_ConstraintMatrix_Variant4")+": Nonvirtual dedge " + ToString(de) + " detected where only virtual edges should be.");
             }
             
             const Int v_0 = E_V(e,Tail);
