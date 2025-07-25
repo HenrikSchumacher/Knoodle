@@ -26,7 +26,7 @@ namespace Knoodle
         using Base_T = CachedObject;
         
     public:
-//        static_assert(SignedIntQ<Int_>,"");
+        static_assert(SignedIntQ<Int_>,"");
         
         using Int        = Int_;
         
