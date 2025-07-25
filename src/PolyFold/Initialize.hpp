@@ -1,5 +1,51 @@
 private:
 
+
+Clisby_T CreateClisbyTree( bool load_data = false )
+{
+    Clisby_T T;
+    
+    if( load_data )
+    {
+        T = Clisby_T( x.data(), n, hard_sphere_diam, prng );
+    }
+    else
+    {
+        // This initialized the polygonal line _and_ the prng.
+        T = Clisby_T( n, hard_sphere_diam );
+    }
+
+    switch( angle_method )
+    {
+        case AngleRandomMethod_T::Uniform:
+        {
+            T.UseUniformAngles();
+            break;
+        }
+        case AngleRandomMethod_T::WrappedNormal:
+        {
+            T.UseWrappedNormalAngles(angle_sigma);
+            break;
+        }
+    }
+    
+    switch( pivot_method )
+    {
+        case PivotRandomMethod_T::Uniform:
+        {
+            T.UseUniformPivots();
+            break;
+        }
+        case PivotRandomMethod_T::DiscreteWrappedNormal:
+        {
+            T.UseDiscreteWrappedNormalPivots(pivot_sigma);
+            break;
+        }
+    }
+    
+    return T;
+}
+
 template<Size_T t0>
 void Initialize()
 {
@@ -125,11 +171,10 @@ void Initialize()
     log << std::flush;
     
     {
-        Clisby_T T ( n, hard_sphere_diam );
+        Clisby_T T = CreateClisbyTree(false);
         
         if( inputQ )
         {
-            
             T.ReadVertexCoordinates(x.data());
             
             e_dev = T.MinMaxEdgeLengthDeviation( x.data() );
@@ -157,6 +202,56 @@ void Initialize()
                 {
                     kv<t3>("Hard Sphere Constraint Satisfied", "True" );
                 }
+            }
+        }
+        
+        if( test_angles > LInt(0) )
+        {
+            std::filesystem::path angle_test_file = path / "TestAngles.tsv";
+            std::ofstream angle_test_stream ( angle_test_file, std::ios_base::out );
+            
+            if( !angle_test_stream )
+            {
+                throw std::runtime_error(
+                    ClassName()+"::Initialize: Failed to create file \"" + angle_test_file.string() + "\"."
+                );
+            }
+            
+            print("Exporting test angles to file " + angle_test_file.string() + ".");
+            
+            {
+                const Real angle = T.RandomAngle();
+                angle_test_stream << Tools::ToString(angle);
+            }
+            for( LInt i = 1; i < test_angles; ++i )
+            {
+                const Real angle = T.RandomAngle();
+                angle_test_stream  << ("\n" + Tools::ToString(angle));
+            }
+        }
+        
+        if( test_pivots > LInt(0) )
+        {
+            std::filesystem::path pivot_test_file = path / "TestPivots.tsv";
+            std::ofstream pivot_test_stream ( pivot_test_file, std::ios_base::out );
+            
+            if( !pivot_test_stream )
+            {
+                throw std::runtime_error(
+                    ClassName()+"::Initialize: Failed to create file \"" + pivot_test_file.string() + "\"."
+                );
+            }
+            
+            print("Exporting test pivots to file " + pivot_test_file.string() + ".");
+            
+            {
+                const auto [p,q] = T.RandomPivots();
+                pivot_test_stream << (Tools::ToString(p) + "\t" + Tools::ToString(q));
+            }
+            for( LInt i = 1; i < test_pivots; ++i )
+            {
+                const auto [p,q] = T.RandomPivots();
+                pivot_test_stream << ("\n" + Tools::ToString(p) + "\t" + Tools::ToString(q));
             }
         }
         

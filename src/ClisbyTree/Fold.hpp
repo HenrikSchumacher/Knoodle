@@ -1,38 +1,5 @@
 public:
 
-using unif_int = std::uniform_int_distribution<Int>;
-using unif_real = std::uniform_real_distribution<Real>;
-
-private:
-
-unif_real unif_angle { -Scalar::Pi<Real>,Scalar::Pi<Real> };
-unif_real unif_prob  { Real(0), Real(1) };
-
-public:
-
-// Generates a random integer in [a,b[.
-Int RandomInteger( const Int a, const Int b )
-{
-    return unif_int(a,b)(random_engine);
-}
-
-Real RandomAngle()
-{
-    return unif_angle(random_engine);
-}
-
-bool RandomReflectionFlag( Real P )
-{
-    if ( P > Real(0) )
-    {
-        return (unif_prob(random_engine) <= P);
-    }
-    else
-    {
-        return false;
-    }
-}
-
 void ClearWitnesses()
 {
     if constexpr ( witnessesQ )
@@ -107,57 +74,6 @@ FoldFlag_T Fold(
         return 0;
     }
 }
-    
-    
-//// Defect routine!!! Does not sample uniformly!
-//std::pair<Int,Int> RandomPivots_Legacy()
-//{
-//    const Int n = VertexCount();
-//
-//    unif_int  u_int ( Int(0), n-3 );
-//
-//    const Int i = u_int                        (random_engine);
-//    const Int j = unif_int(i+2,n-1-(i==Int(0)))(random_engine);
-//
-//    return std::pair<Int,Int>(i,j);
-//}
-
-
-// Choose i, j randomly in [begin,end[ so that circular distance of i and j is greater than 1.
-// Also, i < j is guaranteed.
-std::pair<Int,Int> RandomPivots( Int begin, Int end )
-{
-    const Int n = VertexCount();
-    
-    assert( (begin + Int(0) <  end  ) );
-    assert( (begin + Int(1) <  end  ) );
-    assert( (begin + Int(2) <  end  ) );
-    assert( (Int(0)         <= begin) );
-    assert( (end            <= n    ) );
-    
-    Int i;
-    Int j;
-    do
-    {
-        Int i_ = RandomInteger( begin, end - Int(1) );
-        Int j_ = RandomInteger( begin, end - Int(2) );
-        
-        if( i_ > j_ )
-        {
-            i = j_;
-            j = i_ + Int(1);
-
-        }
-        else
-        {
-            i = i_;
-            j = j_ + Int(2);
-        }
-    }
-    while( ModDistance(n,i,j) <= Int(1) );
-
-    return std::pair<Int,Int>( i, j );
-}
 
 /*!@brief Makes `attempt_count` attempts of random pivot moves.
  */
@@ -177,7 +93,7 @@ FoldFlagCounts_T FoldRandom(
     for( Int attempt = 0; attempt < attempt_count; ++attempt )
     {
         FoldFlag_T flag = Fold(
-            RandomPivots( Int(0), VertexCount() ),
+            RandomPivots(),
             RandomAngle(),
             RandomReflectionFlag(P),
             check_collisionsQ,
@@ -295,7 +211,7 @@ std::pair<Int,Int> RandomPivots( const Int begin, const Int mid, const Int end )
     }
     else
     {
-        return this->RandomPivots(begin,end);
+        return this->RandomPivots_Box(begin,end);
     }
 }
 
@@ -350,8 +266,8 @@ std::pair<Int,Int> RandomPivots(
     assert( b <= c );
     assert( c <  d );
     
-    unif_int u_int_i ( a, b - Int(1) );
-    unif_int u_int_j ( c, d - Int(1) );
+    int_unif int_u_i ( a, b - Int(1) );
+    int_unif int_u_j ( c, d - Int(1) );
     
     Int i;
     Int j;

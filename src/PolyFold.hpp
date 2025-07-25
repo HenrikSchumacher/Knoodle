@@ -63,6 +63,10 @@ namespace Knoodle
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
         using PRNG_T                    = typename Clisby_T::PRNG_T;
         
+        
+        using AngleRandomMethod_T       = typename Clisby_T::AngleRandomMethod_T;
+        using PivotRandomMethod_T       = typename Clisby_T::PivotRandomMethod_T;
+        
         struct PRNG_State_T
         {
             std::string multiplier;
@@ -145,6 +149,14 @@ namespace Knoodle
         bool bounding_boxesQ    = false;
         bool shiftQ             = false;
         bool recenterQ          = false;
+        
+        LInt test_angles        = 10000;
+        LInt test_pivots        = 10000;
+        
+        AngleRandomMethod_T angle_method = AngleRandomMethod_T::Uniform;
+        Real angle_sigma   = 0;
+        PivotRandomMethod_T pivot_method = PivotRandomMethod_T::Uniform;
+        double pivot_sigma = 0;
         
         // Witness checking
         std::ofstream witness_stream;

@@ -122,6 +122,18 @@ namespace Knoodle
     
         using Seed_T = std::array<RNG_T::result_type,seed_size>;
         
+        enum class AngleRandomMethod_T
+        {
+            Uniform,
+            WrappedNormal
+        };
+        
+        enum class PivotRandomMethod_T
+        {
+            Uniform,
+//            Triangular,
+            DiscreteWrappedNormal
+        };
 
         
         static constexpr bool countersQ = targs.countersQ;
@@ -262,11 +274,13 @@ namespace Knoodle
     
         bool mid_changedQ       = false;
         bool reflectQ           = false; // Whether we multiply the pivot move with -1.
-//        bool transforms_pushedQ = false;
         
-        Tensor1<LInt,Int>  level_moves_per_node;
         PivotCollector_T   pivot_collector;
         WitnessCollector_T witness_collector;
+    
+        
+        // For the experimental samplers.
+        Tensor1<LInt,Int>  level_moves_per_node;
         
     private:
         
@@ -376,6 +390,7 @@ namespace Knoodle
 #include "ClisbyTree/Update.hpp"
 #include "ClisbyTree/CollisionChecks.hpp"
 #include "ClisbyTree/CollisionChecks_Debug.hpp"
+#include "ClisbyTree/Random.hpp"
 #include "ClisbyTree/Fold.hpp"
 #include "ClisbyTree/FoldRandomHierarchical.hpp"
 //#include "ClisbyTree/Subdvide.hpp"

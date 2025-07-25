@@ -78,7 +78,7 @@ void Sample( const LInt i )
         
         {
             T_clisby.Tic<V2Q>();
-            Clisby_T T( x.data(), n, hard_sphere_diam, prng );
+            Clisby_T T = CreateClisbyTree(true);
             T_clisby.Toc<V2Q>();
             allocation_time += T_clisby.Duration();
             
