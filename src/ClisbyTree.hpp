@@ -125,14 +125,14 @@ namespace Knoodle
         enum class AngleRandomMethod_T
         {
             Uniform,
-            WrappedNormal
+            WrappedGaussian
         };
         
         enum class PivotRandomMethod_T
         {
             Uniform,
 //            Triangular,
-            DiscreteWrappedNormal
+            DiscreteWrappedGaussian
         };
 
         

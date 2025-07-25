@@ -22,11 +22,11 @@ using namespace Tools;
 
 using Real  = double;          // scalar type used for positions of polygon
 using BReal = double;          // scalar type used for bounding boxes
-//using Int   = Int64;           // integer type used, e.g., for indices
-//using LInt  = Int64;           // integer type used, e.g., for indices
+using Int   = Int64;           // integer type used, e.g., for indices
+using LInt  = Int64;           // integer type used, e.g., for indices
 
-using Int   = UInt64;           // integer type used, e.g., for indices
-using LInt  = UInt64;           // integer type used, e.g., for indices
+//using Int   = UInt64;           // integer type used, e.g., for indices
+//using LInt  = UInt64;           // integer type used, e.g., for indices
 
 using OR_T = OrthoDraw<Int>;
 

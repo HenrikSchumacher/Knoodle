@@ -32,7 +32,11 @@ Int FaceEdgeCount( const  Int de_ptr )
     
     TraverseFace(
         de_ptr,
-        [&de_counter]( const Int de ) { ++de_counter; }
+        [&de_counter]( const Int de )
+        {
+            (void)de;
+            ++de_counter;
+        }
     );
     
     return de_counter;
@@ -341,13 +345,20 @@ Aggregator<Turn_T,Int> FaceRotations() const
     cptr<Turn_T> dE_turn = E_turn.data();
     
     TraverseAllFaces(
-        [&rot]( const Int f ){ rot = Turn_T(0); },
+        [&rot]( const Int f )
+        {
+            (void)f;
+            rot = Turn_T(0);
+        },
         [dE_turn,&rot]( const Int f, const Int k, const Int de )
         {
+            (void)f;
+            (void)k;
             rot += dE_turn[de];
         },
         [&rotations,&rot]( const Int f )
         {
+            (void)f;
             rotations.Push(rot);
         },
         false
@@ -369,12 +380,16 @@ bool CheckAllFaceTurns() const
     bool exteriorQ = false;
     
     TraverseAllFaces(
-        [&face,&rot]( const Int f ){
+        [&face,&rot]( const Int f )
+        {
+            (void)f;
             face.Clear();
             rot = Turn_T(0);
         },
         [&face,dE_turn,&rot,&exteriorQ,this]( const Int f, const Int k, const Int de )
         {
+            (void)f;
+            (void)k;
             face.Push(de);
             rot += dE_turn[de];
             exteriorQ = DedgeExteriorQ(de);

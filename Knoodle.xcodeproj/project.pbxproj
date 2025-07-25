@@ -84,7 +84,7 @@
 		AF5FF6AE2DD27DCA0076AB0E /* DevCLP */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = DevCLP; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
-		AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_Ortho; sourceTree = "<group>"; };
+		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDraw; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -152,7 +152,7 @@
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
 				AF5FF6AE2DD27DCA0076AB0E /* DevCLP */,
-				AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */,
+				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DD2E29315B0051B919 /* WorkBench */,
 				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
@@ -296,7 +296,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AFBDADA82DECE2D9004BCA41 /* Dev_Ortho */,
+				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
 			);
 			name = Dev_OrthoDraw;
 			packageProductDependencies = (

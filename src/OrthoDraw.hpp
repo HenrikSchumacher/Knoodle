@@ -164,7 +164,7 @@ namespace Knoodle
         {
             if( !pd.ValidQ() ) { return; }
             
-            LoadPlanarDiagram( pd, exterior_region_, settings.use_dual_simplexQ );
+            LoadPlanarDiagram( pd, exterior_region_ );
             
             this->template CheckEdgeDirections<true>();
             

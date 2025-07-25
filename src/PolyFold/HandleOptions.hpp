@@ -32,9 +32,9 @@ void HandleOptions( int argc, char** argv )
     ("checks,C", po::value<bool>()->default_value(true), "Set whether to perform hard sphere collision checks.")
     ("check-joints,j", po::value<bool>()->default_value(true), "Set whether to check the joints before the pivot move (this can increase performance).")
     ("reflections,R", po::value<Real>()->default_value(0.5), "Set probability that a pivot move is orientation reversing.")
-    ("normal-angles", po::value<Real>(), "Use the wrapped normal distribution on [0,2 * pi) with standard deviation [arg] and center 0 - pi to generate pivot angles.")
+    ("gaussian-angles", po::value<Real>(), "Use the wrapped Gaussian distribution on [0,2 * pi) with standard deviation [arg] and center 0 - pi to generate pivot angles.")
     ("test-angles", po::value<LInt>()->default_value(0), "Create [arg] samples of the angle distribution and write them to TestAngles.tsv")
-    ("normal-pivots", po::value<double>(), "Sample pivots by picking the first pivot p uniformly in {0,1,2,..,n-1}; then pick q = p + delta mod n, where delta is sampled according to the discretized wrapped normal distribution on {0,1,2,..,n-1} with standard deviation [arg] and center 0. This is repeated until the distance of p to q mod n is greater than 1.")
+    ("gaussian-pivots", po::value<double>(), "Sample pivots by picking the first pivot p uniformly in {0,1,2,..,n-1}; then pick q = p + delta mod n, where delta is sampled according to the discretized wrapped Gaussian distribution on {0,1,2,..,n-1} with standard deviation [arg] and center 0. This is repeated until the distance of p to q mod n is greater than 1.")
     ("test-pivots", po::value<LInt>()->default_value(0), "Create [arg] samples of the pivot distribution and write them to TestPivots.tsv")
     ("hierarchical,H", po::value<bool>()->default_value(false), "Set whether to use hierarchical moves for burn-in and sampling (caution: this is a very experimental feature.")
     ("shift,S", po::value<bool>()->default_value(true), "Shift vertex indices randomly in each sample.")
@@ -168,12 +168,12 @@ void HandleOptions( int argc, char** argv )
     edge_length_tolerance = vm["edge-length-tol"].as<Real>() * Real(n);
     valprint<a>("Edge Length Tolerance", edge_length_tolerance);
     
-    if( vm.count("normal-angles") )
+    if( vm.count("gaussian-angles") )
     {
-        Real sigma = vm["normal-angles"].as<Real>();
+        Real sigma = vm["gaussian-angles"].as<Real>();
         
-        valprint<a>("Angle Random Method", "Wrapped Normal ( SD = " + ToStringFPGeneral(sigma) +")");
-        angle_method = AngleRandomMethod_T::WrappedNormal;
+        valprint<a>("Angle Random Method", "Wrapped Gaussian ( SD = " + ToStringFPGeneral(sigma) +")");
+        angle_method = AngleRandomMethod_T::WrappedGaussian;
         angle_sigma = sigma;
     }
     else
@@ -184,12 +184,12 @@ void HandleOptions( int argc, char** argv )
     test_angles = vm["test-angles"].as<LInt>();
     
     
-    if( vm.count("normal-pivots") )
+    if( vm.count("gaussian-pivots") )
     {
-        double sigma = vm["normal-pivots"].as<double>();
+        double sigma = vm["gaussian-pivots"].as<double>();
         
-        valprint<a>("Pivot Random Method", "Discrete Wrapped Normal ( SD = " + ToStringFPGeneral(sigma) +")");
-        pivot_method = PivotRandomMethod_T::DiscreteWrappedNormal;
+        valprint<a>("Pivot Random Method", "Discrete Wrapped Gaussian ( SD = " + ToStringFPGeneral(sigma) +")");
+        pivot_method = PivotRandomMethod_T::DiscreteWrappedGaussian;
         pivot_sigma = sigma;
     }
     else

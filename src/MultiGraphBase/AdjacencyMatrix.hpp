@@ -27,7 +27,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
                 const EInt e_begin = JobPointer(E_count,thread_count_,thread  );
                 const EInt e_end   = JobPointer(E_count,thread_count_,thread+1);
                 
-                Agg_T a ( ToSize_T(e_end - e_begin) );
+                Agg_T a ( e_end - e_begin );
                 
                 for( EInt e = e_begin; e < e_end; ++e )
                 {
@@ -52,7 +52,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
                 const EInt e_begin = JobPointer(E_count,thread_count_,thread  );
                 const EInt e_end   = JobPointer(E_count,thread_count_,thread+1);
                 
-                Agg_T a ( ToSize_T(e_end - e_begin) );
+                Agg_T a ( e_end - e_begin );
                 
                 for( EInt e = e_begin; e < e_end; ++e )
                 {

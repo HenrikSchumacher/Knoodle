@@ -77,12 +77,16 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d1.0 -n256 -b1000000 -s1000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 --normal-angles 1.5707963267948966 --test-angles 10000000 --normal-pivots 64 --test-pivots 10000000"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
             argument = "-d1.0 -n64 -b1000000 -s1000 -N100000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 -R0 -j0 -T&quot;R0_j0&quot;"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d1.0 -n256 -b1000000 -s1000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 --gaussian-angles 1.5707963267948966 --test-angles 10000000 --gaussian-pivots 64 --test-pivots 10000000"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-d1.0 -n256 -b1000000 -s1000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1 --gaussian-angles 0.5 --gaussian-pivots 32"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

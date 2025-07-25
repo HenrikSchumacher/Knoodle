@@ -213,15 +213,16 @@ std::string DiagramString() const
     const Int n_x = Width()  * settings.x_grid_size + 2;
     const Int n_y = Height() * settings.y_grid_size + 1;
     
-    std::string s ( n_x * n_y + 100, ' ');
+    std::string s ( ToSize_T(n_x * n_y + 100), ' ');
+    
     for( Int y = 0; y < n_y; ++y )
     {
-        s[n_x-1 + n_x * y] = '\n';
+        s[ToSize_T(n_x - Int(1) + n_x * y)] = '\n';
     }
     
     auto set = [&s,n_x,n_y]( Int x, Int y, char c )
     {
-        s[ x + n_x * (n_y - Int(1) - y) ] = c;
+        s[ToSize_T(x + n_x * (n_y - Int(1) - y))] = c;
     };
     
     const Int C_count = C_A.Dim(0);

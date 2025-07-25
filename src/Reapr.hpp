@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../deps/pcg-cpp/include/pcg_random.hpp"
 #include "../submodules/Tensors/UMFPACK.hpp"
 
 //#ifdef REAPR_USE_CLP

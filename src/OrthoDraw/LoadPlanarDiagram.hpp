@@ -3,8 +3,7 @@ private:
 template<typename ExtInt>
 void LoadPlanarDiagram(
     mref<PlanarDiagram<ExtInt>> pd,
-    const ExtInt exterior_region_,
-    bool use_dual_simplexQ = false
+    const ExtInt exterior_region_
 )
 {
     TOOLS_PTIMER(timer,MethodName("LoadPlanarDiagram"));

@@ -13,8 +13,7 @@ public:
 template<typename ExtInt, typename ExtInt2>
 Tensor1<Turn_T,Int> ComputeBends_Clp(
     mref<PlanarDiagram<ExtInt>> pd,
-    const ExtInt2 ext_region = -1,
-    bool dualQ = false
+    const ExtInt2 ext_region = -1
 )
 {
     TOOLS_MAKE_FP_STRICT();

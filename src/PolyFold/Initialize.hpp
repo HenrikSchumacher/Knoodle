@@ -22,9 +22,9 @@ Clisby_T CreateClisbyTree( bool load_data = false )
             T.UseUniformAngles();
             break;
         }
-        case AngleRandomMethod_T::WrappedNormal:
+        case AngleRandomMethod_T::WrappedGaussian:
         {
-            T.UseWrappedNormalAngles(angle_sigma);
+            T.UseWrappedGaussianAngles(angle_sigma);
             break;
         }
     }
@@ -36,9 +36,9 @@ Clisby_T CreateClisbyTree( bool load_data = false )
             T.UseUniformPivots();
             break;
         }
-        case PivotRandomMethod_T::DiscreteWrappedNormal:
+        case PivotRandomMethod_T::DiscreteWrappedGaussian:
         {
-            T.UseDiscreteWrappedNormalPivots(pivot_sigma);
+            T.UseDiscreteWrappedGaussianPivots(pivot_sigma);
             break;
         }
     }
