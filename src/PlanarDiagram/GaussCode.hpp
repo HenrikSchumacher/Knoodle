@@ -1,9 +1,9 @@
 public:
 
-template<typename T = ToSigned<Int>, int method = DefaultTraversalMethod>
+template<typename T = ToSigned<Int>>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">");
     
     static_assert( SignedIntQ<T>, "" );
     
@@ -11,32 +11,44 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::ExtendedGaussCode: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
+        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
         
         return code;
     }
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCode: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        throw std::runtime_error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+    }
+    
+    if( LinkComponentCount() > Int(1) )
+    {
+        eprint(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components.");
+        
+        return Tensor1<T,Int>();
     }
     
     code = Tensor1<T,Int>( arc_count );
     
-    this->WriteExtendedGaussCode<T,method>(code.data());
+    this->WriteExtendedGaussCode<T>(code.data());
 
     return code;
 }
 
 
-template<typename T, int method = DefaultTraversalMethod>
+template<typename T>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
-    TOOLS_PTIC(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+">");
     
     static_assert( SignedIntQ<T>, "" );
     
-    this->template Traverse<true,false,0,method>(
+    if( LinkComponentCount() > Int(1) )
+    {
+        eprint(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+    }
+    
+    this->template Traverse<true,false,0>(
         [&gauss_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -45,7 +57,6 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
         {
             (void)lc;
             (void)c_0;
-            (void)c_0_visitedQ;
             (void)c_1;
             (void)c_1_pos;
             (void)c_1_visitedQ;
@@ -59,9 +70,8 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
                 : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
         }
     );
-    
-    TOOLS_PTOC(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+","+ToString(method)+">");
 }
+
 
 template<typename T, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromExtendedGaussCode(
@@ -187,7 +197,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    // TODO: Is this really meaningful?
+    // Compression is not really meaningful because the traversal ordering is crucial for the extended Gauss code.
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

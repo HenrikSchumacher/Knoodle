@@ -73,7 +73,7 @@ void DepthFirstSearch(
     mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
     fill_buffer(C_flag,UInt8(0),crossing_count);
     
-    TOOLS_DUMP(crossing_count);
+//    TOOLS_DUMP(crossing_count);
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,arc_count);
@@ -139,14 +139,14 @@ void DepthFirstSearch(
 
     const Int c_count = C_arcs.Dim(0);
     
-    TOOLS_LOGDUMP(c_count);
-    TOOLS_LOGDUMP(crossing_count);
+//    TOOLS_LOGDUMP(c_count);
+//    TOOLS_LOGDUMP(crossing_count);
     
     for( Int c_0 = 0; c_0 < c_count; ++c_0 )
     {
-        TOOLS_LOGDUMP(c_0);
-        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
-        TOOLS_LOGDUMP(C_flag[c_0]);
+//        TOOLS_LOGDUMP(c_0);
+//        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
+//        TOOLS_LOGDUMP(C_flag[c_0]);
         
         if( !CrossingActiveQ(c_0) || (C_flag[c_0] != UInt8(0)) )
         {

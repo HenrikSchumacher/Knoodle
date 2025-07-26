@@ -22,10 +22,10 @@ public:
  *
  */
     
-template<typename T = Int, int method = DefaultTraversalMethod>
+template<typename T = Int>
 Tensor2<T,Int> PDCode()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::PDCode<" + TypeName<T> + "," + ToString(method) +  ">" );
+    TOOLS_PTIMER(timer,ClassName()+"::PDCode<"+TypeName<T>+">");
     
     static_assert( IntQ<T>, "" );
     
@@ -39,26 +39,25 @@ Tensor2<T,Int> PDCode()
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::PDCode: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        throw std::runtime_error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
         return pd_code;
     }
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
 
-    this->WritePDCode<T,method>(pd_code.data());
+    this->WritePDCode<T>(pd_code.data());
     
     return pd_code;
 }
 
-template<typename T, int method = DefaultTraversalMethod>
+template<typename T>
 void WritePDCode( mptr<T> pd_code )
 {
     static_assert( IntQ<T>, "" );
     
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
-        + "," + ToString(method)
         + ">");
     
     constexpr bool crossingsQ = true;
@@ -66,7 +65,7 @@ void WritePDCode( mptr<T> pd_code )
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
     constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
-    this->template Traverse<crossingsQ,true,0,method>(
+    this->template Traverse<crossingsQ,true,0>(
         [&pd_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -256,10 +255,10 @@ void WritePDCode( mptr<T> pd_code )
 }
 
 
-template<typename T = Int, int method = DefaultTraversalMethod>
+template<typename T = Int>
 std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
 {
-    Tensor2<T,Int> pd_code  = this->template PDCode<T,true,method>();
+    Tensor2<T,Int> pd_code  = this->template PDCode<T,true>();
     Tensor1<T,Int> C_pos    = C_scratch;
     Tensor1<T,Int> A_pos    = A_scratch;
     
@@ -586,7 +585,7 @@ static PlanarDiagram<Int> FromPDCode(
         return PlanarDiagram<Int>();
     }
     
-    // TODO: Is this really meaningful?
+    // Compression is meaningful because PD code stay valid under reordering.
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

@@ -30,7 +30,7 @@ PlanarDiagram CreateCompressed()
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState>            A_state_new = pd.A_state.data();
     
-    this->template Traverse<true,false,0,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0>(
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -84,7 +84,7 @@ bool CompressedOrderQ()
     
     bool orderedQ = true;
     
-    this->template Traverse<true,false,0,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0>(
         [&orderedQ](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,

@@ -36,7 +36,7 @@ Tensor1<Int,Int> ArcStrands() const
     Tensor1<Int,Int> A_colors ( A_cross.Dim(0), Uninitialized );
     Int color = 0;
     
-    this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(
+    this->template Traverse<false,false,overQ?-1:1>(
         [&color,&A_colors,this]( const Int a, const Int a_pos, const Int  lc )
         {
             (void)a_pos;
@@ -95,7 +95,7 @@ Tensor3<Int,Int> CrossingStrands() const
     
     Int strand_counter = 0;
     
-    this->template Traverse<false,false,overQ?-1:1,DefaultTraversalMethod>(
+    this->template Traverse<false,false,overQ?-1:1>(
         [&strand_counter,&C_strands,this]( const Int a, const Int a_pos, const Int  lc )
         {
             (void)a_pos;

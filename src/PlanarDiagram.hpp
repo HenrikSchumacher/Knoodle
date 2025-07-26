@@ -863,7 +863,9 @@ namespace Knoodle
         }
         
         
-        PlanarDiagram ChiralityTransform( const bool mirrorQ, const bool reverseQ )
+        PlanarDiagram ChiralityTransform(
+            const bool mirrorQ, const bool reverseQ
+        )
         {
             PlanarDiagram pd ( crossing_count, unlink_count );
             
@@ -878,8 +880,8 @@ namespace Knoodle
             const bool i0 = reverseQ;
             const bool i1 = !reverseQ;
             
-            const bool j0 = mirrorQ != reverseQ;
-            const bool j1 = mirrorQ == reverseQ;
+            const bool j0 = (mirrorQ != reverseQ);
+            const bool j1 = (mirrorQ == reverseQ);
 
             for( Int c = 0; c < max_crossing_count; ++c )
             {
@@ -943,8 +945,10 @@ namespace Knoodle
         
 #include "PlanarDiagram/PDCode.hpp"
 #include "PlanarDiagram/GaussCode.hpp"
+//#include "PlanarDiagram/GaussCode2.hpp"
 #include "PlanarDiagram/MacLeodCode.hpp"
-
+//#include "PlanarDiagram/MacLeodCode2.hpp"
+        
 #include "PlanarDiagram/ResolveCrossing.hpp"
 #include "PlanarDiagram/SwitchCrossing.hpp"
         

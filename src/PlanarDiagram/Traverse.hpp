@@ -1,7 +1,5 @@
 public:
 
-static constexpr int DefaultTraversalMethod = 1;
-
 // TODO: Precompute ArcOverQ -- or actually pack that into A_state.
 
 // TODO: Use this for ArcOverStrands and ArcUnderStrands.
@@ -52,7 +50,7 @@ static constexpr int DefaultTraversalMethod = 1;
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = 0, int method = DefaultTraversalMethod,
+    int start_arc_ou = 0, bool use_lutQ = true,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse(
@@ -63,7 +61,7 @@ void Traverse(
         + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
         + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
         + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
-        + "," + ToString(method)
+        + "," + ToString(use_lutQ)
         + ">");
     
 //    cptr<Int>  A_next,
@@ -73,17 +71,10 @@ void Traverse(
     auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
     
     auto * C_data = C_scratch.data();
-    
-    if constexpr ( method == 0 )
+
+    if constexpr ( use_lutQ )
     {
-        this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
-            nullptr, A_data, C_data
-        );
-    }
-    else if constexpr ( method == 1 )
-    {
-        this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,method>(
+        this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
             ArcNextArc().data(), A_data, C_data
         );
@@ -92,9 +83,9 @@ void Traverse(
     }
     else
     {
-        static_assert(
-            Tools::DependentFalse<LinkCompPre_T>,
-            "Unknown traversal method. Using default method."
+        this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
+            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
+            nullptr, A_data, C_data
         );
     }
 }
@@ -102,12 +93,12 @@ void Traverse(
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = 0, int method = DefaultTraversalMethod,
+    int start_arc_ou = 0, bool use_lutQ = true,
     typename ArcFun_T
 >
 void Traverse( ArcFun_T && arc_fun )  const
 {
-    this->template Traverse<crossingsQ,arclabelsQ,start_arc_ou,method>(
+    this->template Traverse<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
         []( const Int lc, const Int lc_begin )
         {
             (void)lc;
@@ -126,7 +117,7 @@ void Traverse( ArcFun_T && arc_fun )  const
 private:
 
 template<
-    bool crossingsQ, bool arclabelsQ, int start_arc_ou, int method,
+    bool crossingsQ, bool arclabelsQ, int start_arc_ou, bool use_lutQ,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse_impl(
@@ -138,12 +129,8 @@ void Traverse_impl(
     mptr<Int>  C_idx
 )  const
 {
-    static_assert(
-                  (method==0) || (method==1),
-                  "Unknown traversal method. Using default method."
-                  );
-    
-    if constexpr ( method != 1 )
+
+    if constexpr ( !use_lutQ )
     {
         (void)A_next;
     }
@@ -154,7 +141,7 @@ void Traverse_impl(
                + "<" + BoolString(crossingsQ)
                + "," + BoolString(arclabelsQ)
                + "," + ToString(start_arc_ou)
-               + "," + ToString(method)
+               + "," + ToString(use_lutQ)
                + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
         
         // Other methods might assume that this is set.
@@ -214,13 +201,13 @@ void Traverse_impl(
                 do
                 {
                     // Move to next arc.
-                    if constexpr ( method == 0 )
-                    {
-                        a = NextArc<Head>(a);
-                    }
-                    else if constexpr ( method == 1 )
+                    if constexpr ( use_lutQ )
                     {
                         a = A_next[a];
+                    }
+                    else
+                    {
+                        a = NextArc<Head>(a);
                     }
                 }
                 while( (a != a_0) && (ArcOverQ<Tail>(a) != overQ) );
@@ -302,7 +289,11 @@ void Traverse_impl(
             }
             
             // Move to next arc.
-            if constexpr ( method == 0 )
+            if constexpr ( use_lutQ )
+            {
+                a = A_next[a];
+            }
+            else
             {
                 if constexpr ( crossingsQ )
                 {
@@ -313,11 +304,7 @@ void Traverse_impl(
                     a = NextArc<Head>(a);
                 }
             }
-            else if constexpr ( method == 1 )
-            {
-                a = A_next[a];
-            }
-
+            
             AssertArc(a);
 
             ++a_counter;
@@ -332,3 +319,72 @@ void Traverse_impl(
 
     this->template SetCache<false>("LinkComponentCount",lc_counter);
 }
+
+public:
+
+template<bool use_lutQ = true, typename ArcFun_T>
+void TraverseComponent(const Int a_0, ArcFun_T && arc_fun)  const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::Traverse"
+        + "<" + ToString(use_lutQ)
+        + ">");
+    
+
+    if constexpr ( use_lutQ )
+    {
+        this->template TraverseComponent_impl<use_lutQ>(
+            a_0, std::move(arc_fun),ArcNextArc().data()
+        );
+        
+        this->ClearCache("ArcNextArc");
+    }
+    else
+    {
+        this->template Traverse_impl<use_lutQ>(
+            a_0, std::move(arc_fun), nullptr
+        );
+    }
+}
+
+private:
+
+template< bool use_lutQ, typename ArcFun_T>
+void TraverseComponent_impl(
+    const Int a_0,
+    ArcFun_T && arc_fun,
+    cptr<Int> A_next
+)  const
+{
+    
+    if constexpr ( !use_lutQ )
+    {
+        (void)A_next;
+    }
+    
+    if( InvalidQ() )
+    {
+        eprint(ClassName() + "TraverseComponent_impl"
+               + "<" + ToString(use_lutQ)
+               + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+        return;
+    }
+    
+    Int a = a_0;
+    
+    do
+    {
+        arc_fun(a);
+        
+        // Move to next arc.
+        if constexpr ( use_lutQ )
+        {
+            a = A_next[a];
+        }
+        else
+        {
+            a = NextArc<Head>(a);
+        }
+    }
+    while( a != a_0 );
+}
+

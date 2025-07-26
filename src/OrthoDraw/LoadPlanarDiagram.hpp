@@ -8,10 +8,10 @@ void LoadPlanarDiagram(
 {
     TOOLS_PTIMER(timer,MethodName("LoadPlanarDiagram"));
 
-    TOOLS_DUMP(pd.CountActiveCrossings());
-    TOOLS_DUMP(pd.CrossingCount());
-    TOOLS_DUMP(pd.CountActiveArcs());
-    TOOLS_DUMP(pd.ArcCount());
+//    TOOLS_DUMP(pd.CountActiveCrossings());
+//    TOOLS_DUMP(pd.CrossingCount());
+//    TOOLS_DUMP(pd.CountActiveArcs());
+//    TOOLS_DUMP(pd.ArcCount());
     
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
@@ -97,11 +97,11 @@ void LoadPlanarDiagram(
     vertex_count = crossing_count + bend_count;
     edge_count   = arc_count      + bend_count;
     
-    TOOLS_LOGDUMP(crossing_count);
-    TOOLS_LOGDUMP(vertex_count);
-    
-    TOOLS_LOGDUMP(A_bends);
-    TOOLS_LOGDUMP(pd.ArcStates());
+//    TOOLS_LOGDUMP(crossing_count);
+//    TOOLS_LOGDUMP(vertex_count);
+//    
+//    TOOLS_LOGDUMP(A_bends);
+//    TOOLS_LOGDUMP(pd.ArcStates());
     
     // General purpose buffers. May be used in all routines as temporary space.
     V_scratch    = Tensor1<Int,Int> ( Int(2) * max_vertex_count );
@@ -155,8 +155,8 @@ void LoadPlanarDiagram(
         }
     );
     
-    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
-    TOOLS_LOGDUMP(pd.CrossingStates())
+//    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
+//    TOOLS_LOGDUMP(pd.CrossingStates())
 
     V_dE   = VertexContainer_T      ( max_vertex_count, Uninitialized );
     E_V    = EdgeContainer_T        ( max_edge_count,   Uninitialized );
@@ -208,10 +208,10 @@ void LoadPlanarDiagram(
     Int V_counter = C_A.Dim(0);
     Int E_counter = A_C.Dim(0);
     
-    TOOLS_LOGDUMP(V_counter);
-    TOOLS_LOGDUMP(E_counter);
-    
-    logprint("for( Int a = 0; a < a_count; ++a )");
+//    TOOLS_LOGDUMP(V_counter);
+//    TOOLS_LOGDUMP(E_counter);
+//    
+//    logprint("for( Int a = 0; a < a_count; ++a )");
     
     // Subdivide each arc.
     for( Int a = 0; a < a_count; ++a )
@@ -320,27 +320,27 @@ void LoadPlanarDiagram(
 
 
     
-    TOOLS_LOGDUMP(V_dE.Dim(0));
-    TOOLS_LOGDUMP(V_counter);
-    
-    
-    TOOLS_LOGDUMP(arc_count);
-    TOOLS_LOGDUMP(edge_count);
-    TOOLS_LOGDUMP(E_V.Dim(0));
-    TOOLS_LOGDUMP(E_counter);
-    
-//    logvalprint("V_dE form crossings", ArrayToString() );
-    TOOLS_LOGDUMP(C_A);
-    TOOLS_LOGDUMP(A_C);
-    
-    TOOLS_LOGDUMP(V_dE);
-    TOOLS_LOGDUMP(V_flag);
-    TOOLS_LOGDUMP(E_V);
-    TOOLS_LOGDUMP(E_flag);
-    
-    TOOLS_LOGDUMP(A_V);
-    TOOLS_LOGDUMP(A_E);
-    TOOLS_LOGDUMP(E_A);
+//    TOOLS_LOGDUMP(V_dE.Dim(0));
+//    TOOLS_LOGDUMP(V_counter);
+//    
+//    
+//    TOOLS_LOGDUMP(arc_count);
+//    TOOLS_LOGDUMP(edge_count);
+//    TOOLS_LOGDUMP(E_V.Dim(0));
+//    TOOLS_LOGDUMP(E_counter);
+//    
+////    logvalprint("V_dE form crossings", ArrayToString() );
+//    TOOLS_LOGDUMP(C_A);
+//    TOOLS_LOGDUMP(A_C);
+//    
+//    TOOLS_LOGDUMP(V_dE);
+//    TOOLS_LOGDUMP(V_flag);
+//    TOOLS_LOGDUMP(E_V);
+//    TOOLS_LOGDUMP(E_flag);
+//    
+//    TOOLS_LOGDUMP(A_V);
+//    TOOLS_LOGDUMP(A_E);
+//    TOOLS_LOGDUMP(E_A);
     
     // We can compute this only after E_V and V_dE have been computed completed.
     ComputeEdgeLeftDedges();

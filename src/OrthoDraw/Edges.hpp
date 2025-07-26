@@ -126,9 +126,9 @@ void ComputeEdgeLeftDedges()
         
         if( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
 
-        TOOLS_LOGDUMP(e);
-        TOOLS_LOGDUMP(de_0);
-        TOOLS_LOGDUMP(de_1);
+//        TOOLS_LOGDUMP(e);
+//        TOOLS_LOGDUMP(de_0);
+//        TOOLS_LOGDUMP(de_1);
         
         const Dir_T e_dir = E_dir(e);
         
@@ -142,13 +142,12 @@ void ComputeEdgeLeftDedges()
         const Int df_0 = dE_left_dE[de_0] = V_dE(c_0,s_0);
         const Int df_1 = dE_left_dE[de_1] = V_dE(c_1,s_1);
         
-        TOOLS_LOGDUMP(c_0);
-        TOOLS_LOGDUMP(c_1);
-        logvalprint( "V_dE(c_0)", ArrayToString(V_dE.data(c_0), {4}) );
-        logvalprint( "V_dE(c_1)", ArrayToString(V_dE.data(c_1), {4}) );
-        
-        TOOLS_LOGDUMP(df_0);
-        TOOLS_LOGDUMP(df_1);
+//        TOOLS_LOGDUMP(c_0);
+//        TOOLS_LOGDUMP(c_1);
+//        logvalprint( "V_dE(c_0)", ArrayToString(V_dE.data(c_0), {4}) );
+//        logvalprint( "V_dE(c_1)", ArrayToString(V_dE.data(c_1), {4}) );
+//        TOOLS_LOGDUMP(df_0);
+//        TOOLS_LOGDUMP(df_1);
         
         // DEBUGGING
         if( df_0 == Uninitialized )
@@ -172,7 +171,7 @@ void ComputeEdgeLeftDedges()
         }
     }
     
-    TOOLS_LOGDUMP(E_left_dE);
+//    TOOLS_LOGDUMP(E_left_dE);
 }
 
 

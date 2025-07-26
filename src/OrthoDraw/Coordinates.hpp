@@ -64,7 +64,7 @@ mref<CoordsContainer_T> VertexCoordinates() const
 
 
 void ComputeVertexCoordinates(
-    cref<Tensor1<Int,Int>> x, cref<Tensor1<Int,Int>> y
+    mref<Tensor1<Int,Int>> x, mref<Tensor1<Int,Int>> y
 )  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::ComputeVertexCoordinates");
@@ -92,12 +92,17 @@ void ComputeVertexCoordinates(
     }
     CoordsContainer_T & V_coords = VertexCoordinates();
     
-    auto [x_min,x_max] = x.MinMax();
-    auto [y_min,y_max] = y.MinMax();
-    
-    this->template SetCache<false>( "Width",  x_max - x_min );
-    this->template SetCache<false>( "Height", y_max - y_min );
-    
+    {
+        auto [x_min,x_max] = x.MinMax();
+        auto [y_min,y_max] = y.MinMax();
+        
+        Int w = static_cast<Int>(x_max - x_min);
+        Int h = static_cast<Int>(y_max - y_min);
+        
+        this->template SetCache<false>("Width" ,w);
+        this->template SetCache<false>("Height",h);
+    }
+
     Int L = 0;
     {
         auto & DvE_DvV  = Dv().Edges();
@@ -127,7 +132,7 @@ void ComputeVertexCoordinates(
             L += DhE_cost[e] * Abs( y[v_1] - y[v_0] );
         }
     }
-    this->template SetCache<false>( "Length", L );
+    this->template SetCache<false>("Length",L);
     
     auto & V_DvV = this->GetCache<Tensor1<Int,Int>>("V_DvV");
     auto & V_DhV = this->GetCache<Tensor1<Int,Int>>("V_DhV");
@@ -363,15 +368,15 @@ cref<ArcSplineContainer_T> ArcLines()
         const Int v_count = V_dE.Dim(0);
         const Int a_count = A_C.Dim(0);
         
-        TOOLS_DUMP(v_count);
-        TOOLS_DUMP(V_coords.Dim(0));
+//        TOOLS_DUMP(v_count);
+//        TOOLS_DUMP(V_coords.Dim(0));
         
         ArcSplineContainer_T A_lines ( a_count, A_V.ElementCount() );
         
         using A_T = std::array<Int,2>;
         
-        TOOLS_LOGDUMP(A_V.Pointers());
-        TOOLS_LOGDUMP(A_V.Elements());
+//        TOOLS_LOGDUMP(A_V.Pointers());
+//        TOOLS_LOGDUMP(A_V.Elements());
         
         for( Int a = 0; a < a_count; ++a )
         {

@@ -1,9 +1,9 @@
 public:
 
-template<typename T = ToUnsigned<Int>, int method = DefaultTraversalMethod>
+template<typename T = ToUnsigned<Int>>
 Tensor1<T,Int> MacLeodCode()  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+">");
     
     static_assert( IntQ<T>, "" );
     
@@ -11,40 +11,52 @@ Tensor1<T,Int> MacLeodCode()  const
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::MacLeodCode<"+TypeName<T>+","+ToString(method)+": This diagram has several link components. And, you know, there can be only one.>");
+        eprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: This diagram has several link components. And, you know, there can be only one.>");
         return code;
     }
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::MacLeodCode: Trying to compute extended  code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Trying to compute extended  code of invalid PlanarDiagram. Returning empty vector.");
         return code;
     }
     
     if( std::cmp_greater( Size_T(crossing_count) * Size_T(4) + Size_T(3) , std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::MacLeodCode: Requested type " + TypeName<T> + " cannot store extended  code for this diagram.");
+        throw std::runtime_error(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended  code for this diagram.");
+    }
+    
+    if( LinkComponentCount() > Int(1) )
+    {
+        eprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components.");
+        
+        return Tensor1<T,Int>();
     }
     
     code = Tensor1<T,Int>( arc_count );
     
-    this->WriteMacLeodCode<T,method>(code.data());
+    this->WriteMacLeodCode<T>(code.data());
     
     return code;
 }
 
 
-template<typename T, int method = DefaultTraversalMethod>
+template<typename T>
 void WriteMacLeodCode( mptr<T> code )  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+","+ToString(method)+">");
+    TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
     
     static_assert( IntQ<T>, "" );
     
-    Tensor1<Int,Int> buffer ( ArcCount() );
+    if( LinkComponentCount() > Int(1) )
+    {
+        eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+    }
+    
+    Tensor1<Int,Int> buffer ( ArcCount(), Uninitialized );
 
-    this->template Traverse<true,false,0,method>(
-        [&buffer](
+    this->template Traverse<true,false,0>(
+        [&buffer,code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -53,39 +65,34 @@ void WriteMacLeodCode( mptr<T> code )  const
             (void)a;
             (void)lc;
             (void)c_0;
-            (void)c_0_visitedQ;
             (void)c_1;
             (void)c_1_pos;
             (void)c_1_visitedQ;
             
-            buffer[T(2) * c_0_pos + c_0_visitedQ] = a_pos;
+            buffer[Int(2) * c_0_pos + c_0_visitedQ] = a_pos;
+            
+            code[a_pos] = (static_cast<T>(this->ArcOverQ<Tail>(a)) << T(1)) | static_cast<T>(this->CrossingRightHandedQ(c_0));
         }
     );
     
     const Int n = CrossingCount();
     const T   m = static_cast<T>(ArcCount());
     
-    for( Int c = 0; c < n; ++c )
+    for( Int i = 0; i < n; ++i )
     {
-        if( !CrossingActiveQ(c) ) { continue; }
-        
-        const T a = buffer[Int(2) * c + Tail];
-        const T b = buffer[Int(2) * c + Head];
-        
+        const T a = buffer[Int(2) * i + Tail];
+        const T b = buffer[Int(2) * i + Head];
+
         const T a_leap = b - a;
         const T b_leap = (m + a) - b;
         
-        const T right_handed_Q = T(CrossingRightHandedQ(c));
-        const T a_overQ = ArcOverQ<Tail>(a);
-        const T b_overQ = !a_overQ;
-        
-        code[a] = (a_leap << 2) | (a_overQ << 1) | right_handed_Q;
-        code[b] = (b_leap << 2) | (b_overQ << 1) | right_handed_Q;
+        code[a] |= (a_leap << T(2));
+        code[b] |= (b_leap << T(2));
     }
     
     // Now `buffer` contains the unrotated  code.
     
-    // Now e are looking for the rotation that makes the code lexicographical maximal.
+    // Now we are looking for the rotation that makes the code lexicographically maximal.
         
     Size_T counter = 0;
     
@@ -118,10 +125,7 @@ void WriteMacLeodCode( mptr<T> code )  const
     
     for( T t = 0; t < m; ++t )
     {
-        if( greaterQ( t, s ) )
-        {
-            s = t;
-        }
+        if( greaterQ( t, s ) ) { s = t; }
     }
     
     this->template SetCache<false>("MacLeodComparisonCount", counter );
@@ -139,6 +143,94 @@ Size_T MacLeodComparisonCount()
 }
 
 
+template<typename S, typename ExtInt>
+static Tensor1<ToSigned<Int>,Int> MacLeodCodeToExtendedGaussCode(
+    cptr<S> code,
+    const ExtInt arc_count_
+)
+{
+    using T = ToSigned<Int>;
+    
+    const Int m = int_cast<Int>(arc_count_);
+
+    Tensor1<T,Int> gauss ( m );
+
+    Tensor1<bool,Int> visitedQ (m,false);
+    
+    // We need 1-based integers for extended Gauss code.
+    T counter = 1;
+    
+    for( Int i = 0; i < m; ++i )
+    {
+        if( !visitedQ[i] )
+        {
+            const T    v               = code[i];
+            const Int  i_leap          = static_cast<Int>(v >> T(2));
+            const bool i_overQ         = get_bit(v,T(1));
+            const bool i_right_handedQ = get_bit(v,T(0));
+//            const bool i_overQ         = (v & T(2)) == T(2);
+//            const bool i_right_handedQ = (v & T(1)) == T(1);
+            
+            Int  j = i + i_leap;
+            if( j >= m ) { j-=m; };
+            
+            if( !InIntervalQ(i,Int(0),m) )
+            {
+                eprint("!InIntervalQ(i,Int(0),m)");
+            }
+            
+            const T    w               = code[j];
+            const Int  j_leap          = static_cast<Int>(w >> T(2));
+            const bool j_overQ         = get_bit(w,T(1));
+            const bool j_right_handedQ = get_bit(w,T(0));
+//            const bool j_overQ         = (w & T(2)) == T(2);
+//            const bool j_right_handedQ = (w & T(1)) == T(1);
+            
+            if( i_overQ == j_overQ )
+            {
+                eprint("i_overQ == j_overQ");
+            }
+            
+            if( i_right_handedQ != j_right_handedQ )
+            {
+                eprint("i_right_handedQ != j_right_handedQ");
+            }
+            
+            if( i_leap + j_leap != m )
+            {
+                eprint("i_leap + j_leap != m");
+            }
+            
+            if( i >= j )
+            {
+                eprint("i >= j");
+            }
+            
+            visitedQ[i] = true;
+            visitedQ[j] = true;
+            
+            TOOLS_LOGDUMP(i);
+            TOOLS_LOGDUMP(j);
+            TOOLS_LOGDUMP(counter);
+            if( i < j )
+            {
+                logprint("A");
+                gauss[i] = (i_overQ         ? counter : -counter );
+                gauss[j] = (j_right_handedQ ? counter : -counter );
+            }
+            else
+            {
+                logprint("B");
+                gauss[j] = (j_overQ         ? counter : -counter );
+                gauss[i] = (i_right_handedQ ? counter : -counter );
+            }
+            
+            ++counter;
+        }
+    }
+    
+    return gauss;
+}
 template<typename T, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram<Int> FromMacLeodCode(
     cptr<T>       code,
@@ -157,8 +249,8 @@ static PlanarDiagram<Int> FromMacLeodCode(
         return pd;
     }
     
-    const Int n = int_cast<Int>(arc_count_/2);
     const Int m = int_cast<Int>(arc_count_);
+    const Int n = m / Int(2);
 
     PlanarDiagram<Int> pd (n,int_cast<Int>(unlink_count_) );
     
@@ -175,10 +267,17 @@ static PlanarDiagram<Int> FromMacLeodCode(
         {
             const T    v               = code[a];
             const Int  a_leap          = static_cast<Int>(v >> 2);
-            const bool a_right_handedQ = (v & T(1)) == T(1);
-            const bool a_overQ         = (v & T(2)) == T(2);
+            const bool a_right_handedQ = get_bit(v,T(0));
+            const bool a_overQ         = get_bit(v,T(1));
             
-            const Int  b               = a + a_leap;
+            Int b = a + a_leap;
+            if( b >= m ) { b -= m; }
+            
+//            TOOLS_LOGDUMP(v);
+//            TOOLS_LOGDUMP(a_leap);
+//            TOOLS_LOGDUMP(a_right_handedQ);
+//            TOOLS_LOGDUMP(a_overQ);
+//            TOOLS_LOGDUMP(b);
             
             A_visitedQ[a] = true;
             A_visitedQ[b] = true;
@@ -202,7 +301,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
             
             if( a_overQ == a_right_handedQ )
             {
-                /* Situation in case of CrossingRightHandedQ(c) = overQ
+                /* Situation in case of a_overQ == a_right_handedQ
                  *
                  *         b       a          b       a
                  *          ^     ^            ^     ^
@@ -222,7 +321,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
             }
             else
             {
-                /* Situation in case of CrossingRightHandedQ(c) != overQ
+                /* Situation in case of a_overQ != a_right_handedQ
                  *
                  *         a       b          a       b
                  *          ^     ^            ^     ^
@@ -253,7 +352,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    // TODO: Is this really meaningful?
+    // Compression is not really meaningful because the traversal ordering is crucial for the MacLeod code.
     if(compressQ)
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

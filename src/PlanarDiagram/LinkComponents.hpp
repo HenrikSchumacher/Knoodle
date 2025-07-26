@@ -96,7 +96,7 @@ void RequireLinkComponents() const
     RaggedList<Int,Int> lc_arcs ( ArcCount(), CrossingCount() + Int(1) );
     Tensor2<Int,Int>    A_flags ( ArcCount(), Int(2) );
     
-    this->template Traverse<true,false,0,DefaultTraversalMethod>(
+    this->template Traverse<true,false,0>(
         []( const Int lc, const Int lc_begin )
         {
             (void)lc;
