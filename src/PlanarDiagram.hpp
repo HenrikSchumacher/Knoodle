@@ -957,6 +957,8 @@ namespace Knoodle
 #include "PlanarDiagram/DepthFirstSearch.hpp"
 #include "PlanarDiagram/SpanningForest.hpp"
         
+#include "PlanarDiagram/Permute.hpp"
+        
     public:
         
         bool ProvenMinimalQ() const
