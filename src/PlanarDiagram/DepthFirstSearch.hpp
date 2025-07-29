@@ -51,11 +51,11 @@ public:
  */
 
 template<
+    bool verboseQ = false,
     class Discover_T,   // f( const DarcNode & da )
     class Rediscover_T, // f( const DarcNode & da )
     class PreVisit_T,   // f( const DarcNode & da )
-    class PostVisit_T,   // f( const DarcNode & da )
-    bool verboseQ = false
+    class PostVisit_T   // f( const DarcNode & da )
 >
 void DepthFirstSearch(
     Discover_T   && discover,
@@ -71,19 +71,25 @@ void DepthFirstSearch(
     cptr<Int> dA_C = A_cross.data();
     
     mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
-    fill_buffer(C_flag,UInt8(0),crossing_count);
+    fill_buffer(C_flag,UInt8(0),max_crossing_count);
+    
+    // C_flag[c] == 0 means undiscovered.
+    // C_flag[c] == 1 means discovered, not visited.
+    // C_flag[c] == 2 means discovered and pre-visited, not post-visited.
+    // C_flag[c] == 3 means discovered and post-visited.
     
 //    TOOLS_DUMP(crossing_count);
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
-    fill_buffer(A_visitedQ,false,arc_count);
+    fill_buffer(A_visitedQ,false,max_arc_count);
 
-    Stack<DarcNode,Int> stack ( arc_count );
+    Stack<DarcNode,Int> stack ( max_arc_count );
 
     auto conditional_push = [A_visitedQ,C_flag,dA_C,&stack,&discover,&rediscover,this](
         const DarcNode & A, const Int db
     )
     {
+        AssertDarc(db);
         // We never walk back the same arc.
         if( this->ValidIndexQ(A.da) && (db == FlipDarc(A.da)) )
         {
@@ -93,12 +99,14 @@ void DepthFirstSearch(
         // da.a may be virtual, but b may not.
         if( !this->ValidIndexQ(db) )
         {
-            eprint(ClassName()+"::DepthFirstSearch: Virtual arc on stack.");
+            eprint(MethodName("DepthFirstSearch")+": Virtual arc on stack.");
             return;
         }
         
         auto [b,dir] = this->FromDarc(db);
         const Int head = dA_C[db];
+        
+        AssertCrossing(head);
 
         if( C_flag[head] <= UInt8(0) )
         {
@@ -107,7 +115,7 @@ void DepthFirstSearch(
             DarcNode B {A.head,db,head};
             if constexpr ( verboseQ )
             {
-                logprint("discover crossing " + ToString(head) + ";  darc = " + ToString(db)
+                logprint("Discovering " + CrossingString(head) + " from " + DarcString(db) + "."
                 );
             }
             discover( B );
@@ -115,13 +123,13 @@ void DepthFirstSearch(
         }
         else
         {
-            // We need this check here to prevent loop arc being traversed more than once!
+            // We need this check here to prevent loop arcs being traversed more than once!
             if( !A_visitedQ[b] )
             {
                 A_visitedQ[b] = true;
                 if constexpr ( verboseQ )
                 {
-                    logprint("rediscover crossing " + ToString(head) + ";  darc = " + ToString(db)
+                    logprint("Rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
                     );
                 }
                 rediscover({A.head,db,head});
@@ -130,19 +138,17 @@ void DepthFirstSearch(
             {
                 if constexpr ( verboseQ )
                 {
-                    logprint("skip rediscover vertex " + ToString(head) + ";  darc = " + ToString(db)
+                    logprint("Skipping rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
                     );
                 }
             }
         }
     };
 
-    const Int c_count = C_arcs.Dim(0);
-    
 //    TOOLS_LOGDUMP(c_count);
 //    TOOLS_LOGDUMP(crossing_count);
     
-    for( Int c_0 = 0; c_0 < c_count; ++c_0 )
+    for( Int c_0 = 0; c_0 < max_crossing_count; ++c_0 )
     {
 //        TOOLS_LOGDUMP(c_0);
 //        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
@@ -153,14 +159,16 @@ void DepthFirstSearch(
             continue;
         }
         
+        AssertCrossing(c_0);
+        
         {
             C_flag[c_0] = UInt8(1);
             DarcNode A {Uninitialized, Uninitialized, c_0};
-            discover( A );
             if constexpr ( verboseQ )
             {
-                logprint("discover crossing " + ToString(c_0));
+                logprint("Discovering " + CrossingString(c_0) + ", starting new spanning tree.");
             }
+            discover( A );
             stack.Push( std::move(A) );
         }
         
@@ -169,11 +177,13 @@ void DepthFirstSearch(
             DarcNode & A = stack.Top();
             const Int c = A.head;
             
+            AssertCrossing(c);
+            
             if( C_flag[c] == UInt8(0) )
             {
                 if constexpr ( verboseQ )
                 {
-                    eprint("Undiscovered crossing " + ToString(c) + " on stack!");
+                    eprint(MethodName("DepthFirstSearch")+": Undiscovered crossing " + CrossingString(c) + " on stack!");
                 }
                 (void)stack.Pop();
             }
@@ -183,7 +193,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(2);
                 if constexpr ( verboseQ )
                 {
-                    logprint("pre-visit crossing " + ToString(c) + "; darc = " + ToString(A.da) );
+                    logprint("Pre-visiting " + CrossingString(c) + " along " + DarcString(A.da) + ".");
                 }
                 pre_visit( A );
 
@@ -199,7 +209,7 @@ void DepthFirstSearch(
                 C_flag[c] = UInt8(3);
                 if constexpr ( verboseQ )
                 {
-                    logprint("post-visit crossing " + ToString(c) + ";  darc = " + ToString(A.da) );
+                    logprint("Post-visiting " + CrossingString(c) + " along  " + DarcString(A.da) + ".");
                 }
                 post_visit( A );
                 (void)stack.Pop();
@@ -208,14 +218,14 @@ void DepthFirstSearch(
             {
                 if constexpr ( verboseQ )
                 {
-                    logprint("popping stack");
+                    logprint("Popping stack.");
                 }
                 (void)stack.Pop();
             }
 
         } // while( !stack.EmptyQ() )
         
-    } // for( Int c_0 = 0; c_0 < crossing_count; ++c_0 )
+    } // for( Int c_0 = 0; c_0 < max_crossing_count; ++c_0 )
 }
 
 template<class PreVisitVertex_T>
