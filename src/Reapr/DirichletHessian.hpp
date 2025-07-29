@@ -17,7 +17,7 @@ void DirichletHessian_CollectTriples(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIC(ClassName()+"::DirichletHessian_CollectTriples"
+    TOOLS_PTIMER(timer,ClassName()+"::DirichletHessian_CollectTriples"
        + "<" + TypeName<I>
        + "," + TypeName<J>
        + "," + TypeName<Int>
@@ -54,15 +54,7 @@ void DirichletHessian_CollectTriples(
             a   = ap1;
             ap1 = next_arc[a];
         }
-    }
-
-    TOOLS_PTOC(ClassName()+"::DirichletHessian_CollectTriples"
-       + "<" + TypeName<I>
-       + "," + TypeName<J>
-       + "," + TypeName<Int>
-       + ">"
-    );
-    
+    }    
 } // DirichletHessian_CollectTriples
 
 

@@ -25,7 +25,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     mref<PlanarDiagram<Int>> pd
 )
 {
-    TOOLS_PTIMER(timer, ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
