@@ -183,7 +183,7 @@ void Deactivate( mref<CrossingView> C )
             
             if( ArcActiveQ(a) && (A_cross(a,io) == C.Idx()) )
             {
-                pd_eprint(ClassName()+"DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
+                pd_eprint(ClassName()+"::DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + ToString(C) + ".");
             }
         }
     }

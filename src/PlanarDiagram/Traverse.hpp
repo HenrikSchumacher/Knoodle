@@ -151,22 +151,19 @@ void Traverse_impl(
         return;
     }
     
-    const Int m = A_cross.Dim(0);
-    const Int n = C_arcs.Dim(0);
-    
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )
     {
-        fill_buffer( A_flag, Uninitialized, m );
+        fill_buffer( A_flag, Uninitialized, max_arc_count );
     }
     else
     {
-        fill_buffer( A_flag, false, m );
+        fill_buffer( A_flag, false, max_arc_count );
     }
     
     if constexpr ( crossingsQ )
     {
-        fill_buffer( C_idx, Uninitialized, n );
+        fill_buffer( C_idx, Uninitialized, max_crossing_count );
     }
     
     Int lc_counter = 0; // counter for the link components.
@@ -178,7 +175,7 @@ void Traverse_impl(
     
     // TODO: Simply to a for-loop?
     
-    for( Int a_0 = 0; a_0 < m; ++a_0 )
+    for( Int a_0 = 0; a_0 < max_arc_count; ++a_0 )
     {
         if(
            ( arclabelsQ ? ValidIndexQ(A_flag[a_0]) : A_flag[a_0] )

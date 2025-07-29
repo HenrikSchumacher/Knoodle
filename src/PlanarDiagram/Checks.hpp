@@ -1,6 +1,11 @@
 bool CheckCrossing( const Int c  ) const
 {
-    if( (c < Int(0)) || (c > max_crossing_count) )
+    if( c == Uninitialized )
+    {
+        return true;
+    }
+    
+    if( !InIntervalQ(c,Int(0),max_crossing_count) )
     {
         eprint(ClassName()+"::CheckCrossing: Crossing index c = " + Tools::ToString(c) + " is out of bounds.");
         TOOLS_LOGDUMP(max_crossing_count);
@@ -20,8 +25,8 @@ bool CheckCrossing( const Int c  ) const
         for( bool lr : { Left, Right } )
         {
             const Int a = C_arcs(c,io,lr);
-            
-            if( (a < Int(0)) || (a > max_arc_count) )
+
+            if( !InIntervalQ(a,Int(0),max_arc_count) )
             {
                 eprint(ClassName()+"::CheckCrossing: Arc index a = " + Tools::ToString(a) + " in " + CrossingString(c) + " is out of bounds.");
                 TOOLS_LOGDUMP(max_arc_count);
@@ -92,7 +97,12 @@ bool CheckAllCrossings() const
 
 bool CheckArc( const Int a ) const
 {
-    if( (a < Int(0)) || (a > max_arc_count) )
+    if( a == Uninitialized )
+    {
+        return true;
+    }
+    
+    if( !InIntervalQ(a,Int(0),max_arc_count) )
     {
         eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " is out of bounds.");
         TOOLS_LOGDUMP(max_arc_count);
@@ -112,7 +122,7 @@ bool CheckArc( const Int a ) const
     {
         const Int c = A_cross(a,headtail);
         
-        if( (c < Int(0)) || (c > max_crossing_count) )
+        if( !InIntervalQ(c,Int(0),max_crossing_count) )
         {
             eprint(ClassName()+"::CheckArc: Crossing index c = " + Tools::ToString(c) + " in arc " + ArcString(a) + " is out of bounds.");
             TOOLS_LOGDUMP(max_crossing_count);
@@ -269,10 +279,19 @@ bool CheckAll() const
 
 public:
 
+void AssertDarc( const Int da ) const
+{
+    PD_ASSERT(CheckArc  (FromDarc(da).first));
+    PD_ASSERT(ArcActiveQ(FromDarc(da).first));
+#ifndef PD_DEBUG
+    (void)da;
+#endif
+}
+
 void AssertArc( const Int a ) const
 {
-    PD_ASSERT(ArcActiveQ(a));
     PD_ASSERT(CheckArc  (a));
+    PD_ASSERT(ArcActiveQ(a));
 #ifndef PD_DEBUG
     (void)a;
 #endif
@@ -280,6 +299,7 @@ void AssertArc( const Int a ) const
 
 void AssertCrossing( const Int c ) const
 {
+    PD_ASSERT(InIntervalQ(c,Int(0),max_crossing_count));
     PD_ASSERT(CrossingActiveQ(c));
     PD_ASSERT(CheckCrossing(c));
 #ifndef PD_DEBUG

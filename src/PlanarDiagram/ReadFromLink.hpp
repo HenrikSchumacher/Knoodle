@@ -27,6 +27,8 @@ void ReadFromLink(
     }
     
     unlink_count = 0;
+    crossing_count = int_cast<Int>(intersections.size());
+    arc_count = Int(2) * crossing_count;
     
     C_scratch.Fill(Uninitialized);
     

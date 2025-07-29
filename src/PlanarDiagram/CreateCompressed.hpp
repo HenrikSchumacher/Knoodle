@@ -107,13 +107,11 @@ bool CompressedOrderQ()
 
 PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
 {
-    TOOLS_PTIC( ClassName()+"::Canonicalize_Legacy");
+    TOOLS_PTIMER(timer,MethodName("Canonicalize_Legacy"));
     
     PD_ASSERT(CheckAll());
     
     PlanarDiagram pd ( crossing_count, unlink_count );
-    
-    const Int m = A_cross.Dim(0);
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState>       C_state_new = pd.C_state.data();
@@ -125,7 +123,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     mptr<Int> C_pos = C_scratch.data();
     
     mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
-    fill_buffer(A_visited,false,m);
+    fill_buffer(A_visited,false,max_arc_count);
     
     Int a_counter = 0;
     Int c_counter = 0;
@@ -133,12 +131,12 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     
     Int lc_counter = 0;
     
-    while( a_ptr < m )
+    while( a_ptr < max_arc_count )
     {
         // Search for next arc that is active and has not yet been handled.
-//        while( ( a_ptr < m ) && ( A_visited[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
+//        while( ( a_ptr < max_arc_count ) && ( A_visited[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
         while(
-            ( a_ptr < m )
+            ( a_ptr < max_arc_count )
             &&
             (
                 A_visited[a_ptr]
@@ -153,7 +151,7 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
             ++a_ptr;
         }
         
-        if( a_ptr >= m ) { break; }
+        if( a_ptr >= max_arc_count ) { break; }
         
         Int a = a_ptr;
         
@@ -248,8 +246,6 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     
     pd.proven_minimalQ = proven_minimalQ;
     pd.template SetCache<false>("LinkComponentCounter",lc_counter);
-    
-    TOOLS_PTOC( ClassName()+"::Canonicalize_Legacy");
     
     return pd;
 }

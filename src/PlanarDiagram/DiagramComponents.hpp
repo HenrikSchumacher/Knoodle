@@ -129,7 +129,7 @@ cref<RaggedList<Int,Int>> DiagramComponentArcs()
 
 void Split( mref<PD_List_T> pd_list )
 {
-    TOOLS_PTIC(ClassName()+"::Split");
+    TOOLS_PTIMER(timer,MethodName("Split"));
     
     if( CrossingCount() <= Int(0) ) { return; }
     
@@ -143,7 +143,7 @@ void Split( mref<PD_List_T> pd_list )
     
     const Int dc_count  = A.RowCount();
     
-    if( dc_count <= 1 ) { return; }
+    if( dc_count <= Int(1) ) { return; }
     
     const auto & lc_arcs = LinkComponentArcs();
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
@@ -170,7 +170,7 @@ void Split( mref<PD_List_T> pd_list )
             dc_arc_count += j_end - j_begin;
         }
 
-        PlanarDiagram<Int> pd (dc_arc_count/2,0);
+        PlanarDiagram<Int> pd (dc_arc_count/Int(2),Int(0));
         
         Int a_counter = 0;
         Int c_counter = 0;
@@ -245,6 +245,4 @@ void Split( mref<PD_List_T> pd_list )
     } // for( Int dc = 0; dc < dc_count; ++dc )
     
     Compress();
-    
-    TOOLS_PTOC(ClassName()+"::Split");
 }

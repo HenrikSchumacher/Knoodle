@@ -24,11 +24,14 @@ int main( int argc, char** argv )
 {
     TOOLS_MAKE_FP_STRICT();
     
+    (void)argc;
+    (void)argv;
+    
     TOOLS_DUMP(TypeName<CoinBigIndex>);
     
     auto fp_formatter = [](double x){ return ToStringFPGeneral(x); };
     
-    if( sizeof(CoinBigIndex) != 8 )
+    if ( sizeof(CoinBigIndex) != 8 )
     {
         wprint("COIN-OR does not use 64 bit integers for CoinBigIndex!");
     }

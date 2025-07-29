@@ -151,14 +151,12 @@ namespace Knoodle
         
         bool DeactivateReactangle( Int x_a, Int x_b, Int y_a, Int y_b )
         {
-            TOOLS_PTIC(ClassName()+"::DeactivateReactangle");
+            TOOLS_PTIMER(timer,MethodName("DeactivateReactangle"));
             
             R[0][0] = x_a; R[0][1] = x_b;
             R[1][0] = y_a; R[1][1] = y_b;
             
             TouchNode(root);
-            
-            TOOLS_PTOC(ClassName()+"::DeactivateReactangle");
             
             return (root != NoNode);
         }
@@ -285,7 +283,7 @@ namespace Knoodle
         
         cref<EntryContainer_T> ValidEntries( Int dist_ = Int(0) )
         {
-            TOOLS_PTIC(ClassName()+"::ValidEntries");
+            TOOLS_PTIMER(timer,MethodName("ValidEntries"));
          
             dist = dist_;
             
@@ -299,8 +297,6 @@ namespace Knoodle
             {
                 FindValidEntries( root );
             }
-            
-            TOOLS_PTOC(ClassName()+"::ValidEntries");
             
             return valid_entries;
         }
@@ -365,13 +361,11 @@ namespace Knoodle
         
         cref<BoxContainer_T> NodeBoxes() const
         {
-            TOOLS_PTIC(ClassName()+"::NodeBoxes");
+            TOOLS_PTIMER(timer,MethodName("NodeBoxes"));
             
             boxes.clear();
             
             FindNodeBoxes( root );
-            
-            TOOLS_PTOC(ClassName()+"::NodeBoxes");
             
             return boxes;
         }
@@ -399,13 +393,11 @@ namespace Knoodle
         
         cref<BoxContainer_T> LeafBoxes() const
         {
-            TOOLS_PTIC(ClassName()+"::LeafBoxes");
+            TOOLS_PTIMER(timer,MethodName("LeafBoxes"));
             
             boxes.clear();
             
             FindLeafBoxes( root );
-            
-            TOOLS_PTOC(ClassName()+"::LeafBoxes");
             
             return boxes;
         }

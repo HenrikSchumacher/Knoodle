@@ -297,7 +297,7 @@ namespace Knoodle
         
         // I "stole" this pretty neat code snippet from the KnotTheory Mathematica package by Dror Bar-Natan.
         
-        if( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
+        if ( (i == j) || (k == l) || (j == l + 1) || (l > j + 1) )
         {
             /* These are right-handed:
              *
@@ -324,7 +324,7 @@ namespace Knoodle
             
             return CrossingState::RightHanded;
         }
-        else if( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
+        else if ( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
         {
             /* These are left-handed:
              *

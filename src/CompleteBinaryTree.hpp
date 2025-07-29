@@ -465,8 +465,7 @@ namespace Knoodle
             Leaf_T      && leaf_visit
         )
         {
-            TOOLS_PTIC(ClassName()+"::BreadthFirstSearch");
-            
+            TOOLS_PTIMER(timer,MethodName("BreadthFirstSearch"));
             
             for( Int node = Int(0); node < int_node_count; ++node )
             {
@@ -477,8 +476,6 @@ namespace Knoodle
             {
                 leaf_visit(node);
             }
-            
-            TOOLS_PTOC(ClassName()+"::BreadthFirstSearch");
         }
         
         // Pointless, but useful for debugging and performance estimation.
@@ -525,7 +522,7 @@ namespace Knoodle
             Leaf_T      && leaf_visit
         )
         {
-            TOOLS_PTIC(ClassName()+"::ReverseBreadthFirstSearch");
+            TOOLS_PTIMER(timer,MethodName("ReverseBreadthFirstSearch"));
 
             for( Int node = leaf_node_count; node --> int_node_count; )
             {
@@ -536,8 +533,6 @@ namespace Knoodle
             {
                 int_visit(node);
             }
-            
-            TOOLS_PTOC(ClassName()+"::ReverseBreadthFirstSearch");
         }
         
         // Pointless, but useful for debugging and performance estimation.
@@ -622,7 +617,7 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            TOOLS_PTIC(ClassName()+"::DepthFirstSearch"
+            TOOLS_PTIMER(timer,ClassName()+"::DepthFirstSearch"
                 + "<" + ToString(mode)
                 + ">" );
             
@@ -640,10 +635,6 @@ namespace Knoodle
                     (start_node < Int(0)) ? Root() : start_node
                 );
             }
-            
-            TOOLS_PTOC(ClassName()+"::DepthFirstSearch"
-                + "<" + ToString(mode)
-                + ">" );
         }
         
         template< DFS mode, class IntPre_T, class IntPost_T, class Leaf_T >

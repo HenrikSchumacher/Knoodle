@@ -1,5 +1,88 @@
 public:
 
+ArcState GetArcState( const Int a ) const
+{
+    return A_state[a];
+}
+
+/*!
+ * @brief Checks whether arc `a` is still active.
+ */
+
+bool ArcActiveQ( const Int a ) const
+{
+    return Knoodle::ActiveQ(A_state[a]);
+}
+
+
+std::string ArcString( const Int a ) const
+{
+    return "arc " +Tools::ToString(a) +" = { "
+        + Tools::ToString(A_cross(a,Tail)) + ", "
+        + Tools::ToString(A_cross(a,Head)) + " } ("
+        + Knoodle::ToString(A_state[a]) + ")";
+}
+
+std::string DarcString( const Int da ) const
+{
+    auto [a,d] = FromDarc(da);
+    
+    return "darc " + Tools::ToString(da) + " = { "
+        + Tools::ToString(A_cross.data()[FlipDarc(da)]) + ", "
+        + Tools::ToString(A_cross.data()[da]) + " } ("
+        + Knoodle::ToString(A_state[a]) + ")";
+}
+
+
+
+Int CountActiveArcs() const
+{
+    Int counter = 0;
+    
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        counter += ArcActiveQ(a);
+    }
+    
+    return counter;
+}
+
+
+/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
+ */
+cref<Tensor1<Int,Int>> ArcScratchBuffer() const
+{
+    return A_scratch;
+}
+
+private:
+    
+/*!
+ * @brief Deactivates arc `a`. Only for internal use.
+ */
+
+void DeactivateArc( const Int a )
+{
+    if( ArcActiveQ(a) )
+    {
+        PD_PRINT("Deactivating " + ArcString(a) + "." );
+        
+        --arc_count;
+        A_state[a] = ArcState::Inactive;
+    }
+    else
+    {
+#if defined(PD_DEBUG)
+        wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
+#endif
+    }
+    
+    PD_ASSERT( arc_count >= Int(0) );
+}
+
+
+public:
+
 /*!
  * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
  *
@@ -745,10 +828,6 @@ bool CheckNextRightArc() const
     
     return passedQ;
 }
-
-
-
-
 
 
 

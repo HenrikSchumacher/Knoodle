@@ -177,13 +177,11 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
     
     if(!this->InCacheQ(tag))
     {
-        Container_T C_faces ( C_arcs.Dim(0) );
+        Container_T C_faces ( max_crossing_count );
         
         const auto & A_F = ArcFaces();
         
-        const Int c_count = C_arcs.Dim(0);
-        
-        for( Int c = 0; c < c_count; ++c )
+        for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( !CrossingActiveQ(c) )
             {

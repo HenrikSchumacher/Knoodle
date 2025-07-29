@@ -81,15 +81,13 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
 // TODO: Test this.
 void RequireLinkComponents() const
 {
-    TOOLS_PTIC(ClassName()+"::RequireLinkComponents");
-    
-    const Int m = A_cross.Dim(0);
+    TOOLS_PTIMER(timer,MethodName("RequireLinkComponents"));
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int> A_lc ( m, Uninitialized );
+    Tensor1<Int,Int> A_lc ( max_arc_count, Uninitialized );
     
     // Also, each arc should know its position within the component.
-    Tensor1<Int,Int> A_pos  ( m, Uninitialized );
+    Tensor1<Int,Int> A_pos  ( max_arc_count, Uninitialized );
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
@@ -131,8 +129,6 @@ void RequireLinkComponents() const
     this->SetCache( "ArcLinkComponents", std::move(A_lc)    );
     this->SetCache( "ArcPositions",      std::move(A_pos)   );
     this->SetCache( "ArcTraversalFlags", std::move(A_flags) );
-    
-    TOOLS_PTOC(ClassName()+"::RequireLinkComponents");
 }
 
 

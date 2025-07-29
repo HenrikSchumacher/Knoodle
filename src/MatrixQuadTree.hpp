@@ -308,7 +308,7 @@ namespace Knoodle
         
         cref<EntryContainer_T> ValidEntries()
         {
-            TOOLS_PTIC(ClassName()+"::ValidEntries");
+            TOOLS_PTIMER(timer,MethodName("ValidEntries"));
          
             valid_entries.clear();
             
@@ -320,8 +320,6 @@ namespace Knoodle
             {
                 FindValidEntries(root);
             }
-            
-            TOOLS_PTOC(ClassName()+"::ValidEntries");
             
             return valid_entries;
         }
@@ -382,13 +380,11 @@ namespace Knoodle
         
         cref<BoxContainer_T> NodeBoxes() const
         {
-            TOOLS_PTIC(ClassName()+"::NodeBoxes");
+            TOOLS_PTIMER(timer,MethodName("NodeBoxes"));
             
             boxes.clear();
             
             FindNodeBoxes(root);
-            
-            TOOLS_PTOC(ClassName()+"::NodeBoxes");
             
             return boxes;
         }
@@ -414,13 +410,11 @@ namespace Knoodle
         
         cref<BoxContainer_T> LeafBoxes() const
         {
-            TOOLS_PTIC(ClassName()+"::LeafBoxes");
+            TOOLS_PTIMER(timer,MethodName("LeafBoxes"));
             
             boxes.clear();
             
             FindLeafBoxes(root);
-            
-            TOOLS_PTOC(ClassName()+"::LeafBoxes");
             
             return boxes;
         }

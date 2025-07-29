@@ -56,7 +56,7 @@ void WriteExtendedGaussCode2( const Int a_0, mptr<T> code )  const
     
     mptr<Int>  C_pos = C_scratch.data();
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
-    fill_buffer(A_visitedQ,false,A_cross.Dim(0));
+    fill_buffer(A_visitedQ,false,max_arc_count);
     
     Int c_counter = 0;
     Int a_counter = 0;

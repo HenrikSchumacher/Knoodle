@@ -6,7 +6,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
     const EInt      thread_count = EInt(1)
 ) const
 {
-    TOOLS_PTIMER(timer, ClassName()+"::CreateAdjacencyMatrix"
+    TOOLS_PTIMER(timer,ClassName()+"::CreateAdjacencyMatrix"
         + "<" + ToString(undirQ)
         + "," + TypeName<Scal>
         + ">"

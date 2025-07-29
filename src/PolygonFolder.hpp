@@ -492,7 +492,7 @@ namespace Knoodle
         // Returns 0 when an actual change has been made.
         Flag_T Fold_Reference( const Int i, const Int j, const Real angle )
         {
-            TOOLS_PTIC(ClassName()+"::Fold_Reference");
+            TOOLS_PTIMER(timer,MethodName("Fold_Reference"));
             
             std::tie(p,q) = MinMax(i,j);
             
@@ -503,7 +503,6 @@ namespace Knoodle
 
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                TOOLS_PTOC(ClassName()+"::Fold_Reference");
                 return 1;
             }
             
@@ -562,8 +561,6 @@ namespace Knoodle
             
         Exit:
             
-            TOOLS_PTOC(ClassName()+"::Fold_Reference");
-            
             return flag;
         }
         
@@ -597,7 +594,7 @@ namespace Knoodle
         // Returns 0 when an actual change has been made.
         UInt32 Fold( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            TOOLS_PTIC(ClassName()+"::Fold");
+            TOOLS_PTIMER(timer,MethodName("Fold"));
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -608,7 +605,6 @@ namespace Knoodle
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                TOOLS_PTOC(ClassName()+"::Fold");
                 return 1;
             }
             
@@ -694,8 +690,6 @@ namespace Knoodle
             
         Exit:
             
-            TOOLS_PTOC(ClassName()+"::Fold");
-            
             return flag;
         }
         
@@ -732,7 +726,7 @@ namespace Knoodle
         // Returns 0 when an actual change has been made.
         UInt32 Fold_WithoutCheck( const Int pivot_0, const Int pivot_1, const Real angle )
         {
-            TOOLS_PTIC(ClassName()+"::Fold_WithoutCheck");
+            TOOLS_PTIMER(timer,MethodName("Fold_WithoutCheck"));
             
             std::tie(p,q) = MinMax(pivot_0,pivot_1);
             
@@ -743,7 +737,6 @@ namespace Knoodle
             
             if( (P_size <= 0) || (Q_size <= 0) )
             {
-                TOOLS_PTOC(ClassName()+"::Fold_WithoutCheck");
                 return 1;
             }
             
@@ -775,20 +768,16 @@ namespace Knoodle
             LoadArc( X.data(0  ), Y.data(Q_end-p), p       ,  Q_shorterQ );
             
             swap(X,Y);
-                        
-            TOOLS_PTOC(ClassName()+"::Fold_WithoutCheck");
-            
+
             return 0;
         }
         
         
         bool OverlapQ( const Int P_begin, const Int P_n, const Int Q_begin, const Int Q_n )
         {
-            TOOLS_PTIC(ClassName()+"::OverlapQ");
+            TOOLS_PTIMER(timer,MethodName("OverlapQ"));
             
             bool result = OverlapQ_implementation(P_begin, P_n, Q_begin, Q_n);
-            
-            TOOLS_PTOC(ClassName()+"::OverlapQ");
             
             return result;
         }

@@ -31,9 +31,9 @@ private:
 template<bool overQ>
 Tensor1<Int,Int> ArcStrands() const
 {
-    TOOLS_PTIC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
+    TOOLS_PTIMER(timer,ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    Tensor1<Int,Int> A_colors ( A_cross.Dim(0), Uninitialized );
+    Tensor1<Int,Int> A_colors ( max_arc_count, Uninitialized );
     Int color = 0;
     
     this->template Traverse<false,false,overQ?-1:1>(
@@ -48,9 +48,7 @@ Tensor1<Int,Int> ArcStrands() const
             color += (ArcOverQ<Head>(a) != overQ);
         }
     );
-    
-    TOOLS_PTOC(ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
-    
+
     return A_colors;
 }
 
@@ -89,9 +87,9 @@ Tensor3<Int,Int> CrossingUnderStrands() const
 template<bool overQ>
 Tensor3<Int,Int> CrossingStrands() const
 {
-    TOOLS_PTIC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
+    TOOLS_PTIMER(timer,ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
-    Tensor3<Int,Int> C_strands ( C_arcs.Dim(0), 2, 2, -1 );
+    Tensor3<Int,Int> C_strands ( max_arc_count, 2, 2, -1 );
     
     Int strand_counter = 0;
     
@@ -112,8 +110,6 @@ Tensor3<Int,Int> CrossingStrands() const
             strand_counter += (ArcUnderQ<Head>(a) == overQ);
         }
     );
-    
-    TOOLS_PTOC(ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
     return C_strands;
 }

@@ -4,11 +4,8 @@ PlanarDiagram PermuteRandom() const
 {
     TOOLS_PTIMER(timer,MethodName("PermuteRandom"));
                  
-    const Int n = this->C_arcs.Dim(0);
-    const Int m = this->A_cross.Dim(0);
-    
-    auto c_perm = Permutation<Int>::RandomPermutation(n,Int(1));
-    auto a_perm = Permutation<Int>::RandomPermutation(m,Int(1));
+    auto c_perm = Permutation<Int>::RandomPermutation(max_crossing_count,Int(1));
+    auto a_perm = Permutation<Int>::RandomPermutation(max_arc_count,Int(1));
     
     return Permute(c_perm,a_perm);
 }
@@ -19,32 +16,29 @@ PlanarDiagram Permute(
 )  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::Permute<"+TypeName<ExtInt>+">");
-                 
-    const Int n = this->C_arcs.Dim(0);
-    const Int m = this->A_cross.Dim(0);
     
-    if( std::cmp_not_equal(n,c_perm.Size()) )
+    if( std::cmp_not_equal(max_crossing_count,c_perm.Size()) )
     {
-        eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(n) + " in Crossings(). Aborting.");
+        eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Aborting.");
         return PlanarDiagram();
     }
     
-    if( std::cmp_not_equal(m,a_perm.Size()) )
+    if( std::cmp_not_equal(max_arc_count,a_perm.Size()) )
     {
-        eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(m) + " in Arcs(). Aborting.");
+        eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Aborting.");
         return  PlanarDiagram();
     }
     
     cptr<Int> c_p = c_perm.GetPermutation().data();
     cptr<Int> a_p = a_perm.GetPermutation().data();
     
-    PlanarDiagram pd ( n, this->UnlinkCount() );
+    PlanarDiagram pd ( max_crossing_count, this->UnlinkCount() );
     
     pd.proven_minimalQ = this->proven_minimalQ;
     pd.crossing_count  = this->crossing_count;
     pd.arc_count       = this->arc_count;
     
-    for( Int s = 0; s < n; ++s )
+    for( Int s = 0; s < max_crossing_count; ++s )
     {
         const Int t = c_p[s];
 
@@ -67,7 +61,7 @@ PlanarDiagram Permute(
         C_t.Write( pd.C_arcs.data(t) );
     }
     
-    for( Int s = 0; s < m; ++s )
+    for( Int s = 0; s < max_arc_count; ++s )
     {
         const Int t = a_p[s];
         

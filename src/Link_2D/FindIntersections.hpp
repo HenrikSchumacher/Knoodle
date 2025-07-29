@@ -222,7 +222,7 @@ private:
 
     void FindIntersectingEdges_DFS()
     {
-        TOOLS_PTIC(ClassName()+"::FindIntersectingEdges_DFS");
+        TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
         
         intersections.clear();
         
@@ -241,9 +241,6 @@ private:
 //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
         edge_ptr.Accumulate();
-
-        TOOLS_PTOC(ClassName()+"::FindIntersectingEdges_DFS");
-        
     } // FindIntersectingClusters_DFS
 
 

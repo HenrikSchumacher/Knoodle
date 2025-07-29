@@ -348,7 +348,7 @@ private:
 
 PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
 {
-    TOOLS_PTIC(ClassName()+"::ExportSmallerComponent");
+    TOOLS_PTIMER(timer,MethodName("ExportSmallerComponent"));
     
     Int length = 0;
     Int a = a_0;
@@ -371,8 +371,6 @@ PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
     
     PlanarDiagram<Int> pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
     
-    TOOLS_PTOC(ClassName()+"::ExportSmallerComponent");
-    
     return pd;
 }
 
@@ -390,9 +388,9 @@ private:
 
 PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
 {
-    TOOLS_PTIC(ClassName()+"::ExportComponent");
+    TOOLS_PTIMER(timer,MethodName("ExportComponent"));
     
-    PlanarDiagram<Int> pd (comp_size/2,0);
+    PlanarDiagram<Int> pd (comp_size/Int(2),Int(0));
     
     Int a_counter = 0;
     Int c_counter = 0;
@@ -460,8 +458,6 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
     // TODO: Compute crossing_count and arc_count!
     
     PD_ASSERT( pd.CheckAll() );
-    
-    TOOLS_PTOC(ClassName()+"::ExportComponent");
     
     return pd;
 }

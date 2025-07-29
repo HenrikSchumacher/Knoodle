@@ -2,6 +2,9 @@
 
 #include <unordered_set>
 
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/boyer_myrvold_planar_test.hpp>
+
 namespace Knoodle
 {
     template<typename Int_, Size_T optimization_level, bool mult_compQ_>
@@ -65,7 +68,7 @@ namespace Knoodle
         
         static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
         
-        // For the faces I need at least ine invalid value that is different from `Uninitialized`. So we consider (Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
+        // For the faces I need at least one invalid value that is different from `Uninitialized`. So we consider (Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
         
         static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
         
@@ -117,8 +120,6 @@ namespace Knoodle
         
         mutable Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
         mutable Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
-
-//        Stack<Int,Int> stack;
         
         bool proven_minimalQ = false;
         
@@ -143,22 +144,24 @@ namespace Knoodle
          *  Data has to be filled in manually. Only for internal use.
          */
         
-        PlanarDiagram( const Int crossing_count_, const Int unlink_count_ )
-        : crossing_count     { crossing_count_                             }
-        , arc_count          { Int(2) * crossing_count                     }
-        // TODO: Make this zero.
-//        : crossing_count     { Int(0)                                      }
-//        , arc_count          { Int(0)                                      }
-        , unlink_count       { unlink_count_                               }
-        , max_crossing_count { crossing_count_                             }
-        , max_arc_count      { Int(2) * crossing_count                     }
+        template<typename ExtInt>
+        PlanarDiagram( const ExtInt crossing_count_, const ExtInt unlink_count_ )
+//        : crossing_count     { crossing_count_                             }
+//        , arc_count          { Int(2) * crossing_count                     }
+        : crossing_count     { Int(0)                                      }
+        , arc_count          { Int(0)                                      }
+        , unlink_count       { int_cast<Int>(unlink_count_)                }
+        , max_crossing_count { int_cast<Int>(crossing_count_)              }
+        , max_arc_count      { Int(2) * max_crossing_count                 }
         , C_arcs             { max_crossing_count, Uninitialized           }
         , C_state            { max_crossing_count, CrossingState::Inactive }
         , A_cross            { max_arc_count,      Uninitialized           }
         , A_state            { max_arc_count,      ArcState::Inactive      }
         , C_scratch          { max_crossing_count                          }
         , A_scratch          { max_arc_count                               }
-        {}
+        {
+            static_assert(IntQ<ExtInt>,"");
+        }
 
     public:
         
@@ -316,7 +319,7 @@ namespace Knoodle
          * @brief Returns how many crossings there were in the original planar diagram, before any simplifications.
          */
         
-        Int InitialCrossingCount() const
+        Int MaxCrossingCount() const
         {
             return max_crossing_count;
         }
@@ -430,16 +433,11 @@ namespace Knoodle
             return C_state;
         }
         
-        CrossingState GetCrossingState( const Int c ) const
-        {
-            return C_state[c];
-        }
-        
         /*!
          * @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
          */
         
-        Int InitialArcCount() const
+        Int MaxArcCount() const
         {
             return max_arc_count;
         }
@@ -508,187 +506,10 @@ namespace Knoodle
         {
             return A_state;
         }
-        
-        ArcState GetArcState( const Int a ) const
-        {
-            return A_state[a];
-        }
-        
-        
-//        void SanitizeArcStates()
-//        {
-//            for( Int a = 0; a < max_arc_count; ++a )
-//            {
-//                if( ArcActiveQ(a) )
-//                {
-//                    A_state[a] = ArcState::Active;
-//                }
-//            }
-//        }
 
         
     public:
-        
-        std::string CrossingString( const Int c ) const
-        {
-            return "crossing " + Tools::ToString(c) +" = { { "
-                + Tools::ToString(C_arcs(c,Out,Left )) + ", "
-                + Tools::ToString(C_arcs(c,Out,Right)) + " }, { "
-                + Tools::ToString(C_arcs(c,In ,Left )) + ", "
-                + Tools::ToString(C_arcs(c,In ,Right)) + " } } ("
-                + Knoodle::ToString(C_state[c])      +")";
-        }
-        
-        /*!
-         * @brief Checks whether crossing `c` is still active.
-         */
-        
-        bool CrossingActiveQ( const Int c ) const
-        {
-            return Knoodle::ActiveQ(C_state[c]);
-        }
-        
-//        bool CrossingUnchangedQ( const Int c ) const
-//        {
-//            return Knoodle::UnchangedQ(C_state[c]);
-//        }
-//        
-//        bool CrossingChangedQ( const Int c ) const
-//        {
-//            return Knoodle::ChangedQ(C_state[c]);
-//        }
-        
-        bool CrossingRightHandedQ( const Int c ) const
-        {
-            return Knoodle::RightHandedQ(C_state[c]);
-        }
-        
-        bool CrossingLeftHandedQ( const Int c ) const
-        {
-            return Knoodle::LeftHandedQ(C_state[c]);
-        }
 
-        bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
-        {
-            return Knoodle::OppositeHandednessQ(C_state[c_0],C_state[c_1]);
-        }
-        
-        bool SameHandednessQ( const Int c_0, const Int c_1 ) const
-        {
-            return Knoodle::SameHandednessQ(C_state[c_0],C_state[c_1]);
-        }
-        
-        void RotateCrossing( const Int c, const bool dir )
-        {
-//            Int C [2][2];
-//            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-            
-        /* Before:
-         *
-         *   C[Out][Left ] O       O C[Out][Right]
-         *                  ^     ^
-         *                   \   /
-         *                    \ /
-         *                     X
-         *                    / \
-         *                   /   \
-         *                  /     \
-         *   C[In ][Left ] O       O C[In ][Right]
-         */
-            
-            if( dir == Right )
-            {
-        /* After:
-         *
-         *   C[Out][Left ] O       O C[Out][Right]
-         *                  \     ^
-         *                   \   /
-         *                    \ /
-         *                     X
-         *                    / \
-         *                   /   \
-         *                  /     v
-         *   C[In ][Left ] O       O C[In ][Right]
-         */
-
-                const Int buffer = C_arcs(c,Out,Left );
-                
-                C_arcs(c,Out,Left ) = C_arcs(c,Out,Right);
-                C_arcs(c,Out,Right) = C_arcs(c,In ,Right);
-                C_arcs(c,In ,Right) = C_arcs(c,In ,Left );
-                C_arcs(c,In ,Left ) = buffer;
-            }
-            else
-            {
-        /* After:
-         *
-         *   C[Out][Left ] O       O C[Out][Right]
-         *                  ^     /
-         *                   \   /
-         *                    \ /
-         *                     X
-         *                    / \
-         *                   /   \
-         *                  v     \
-         *   C[In ][Left ] O       O C[In ][Right]
-         */
-                
-                const Int buffer = C_arcs(c,Out,Left );
-                
-                C_arcs(c,Out,Left ) = C_arcs(c,In ,Left );
-                C_arcs(c,In ,Left ) = C_arcs(c,In ,Right);
-                C_arcs(c,In ,Right) = C_arcs(c,Out,Right);
-                C_arcs(c,Out,Right) = buffer;
-            }
-        }
-        
-        std::string ArcString( const Int a ) const
-        {
-            return "arc " +Tools::ToString(a) +" = { "
-                + Tools::ToString(A_cross(a,Tail)) + ", "
-                + Tools::ToString(A_cross(a,Head)) + " } ("
-                + Knoodle::ToString(A_state[a]) + ")";
-        }
-        
-        /*!
-         * @brief Checks whether arc `a` is still active.
-         */
-        
-        bool ArcActiveQ( const Int a ) const
-        {
-            return Knoodle::ActiveQ(A_state[a]);
-        }
-        
-//        bool ArcUnchangedQ( const Int a ) const
-//        {
-//            return Knoodle::UnchangedQ(A_state[a]);
-//        }
-//        
-//        bool ArcChangedQ( const Int a ) const
-//        {
-//            return Knoodle::ChangedQ(A_state[a]);
-//        }
-        
-        /*!
-         * @brief Returns the crossing you would get to by starting at crossing `c` and
-         * leaving trough the
-         */
-        
-        Int NextCrossing( const Int c, bool io, bool side ) const
-        {
-            AssertCrossing(c);
-
-            const Int a = C_arcs(c,io,side);
-
-            AssertArc(a);
-            
-//            const Int c_next = A_cross( a, ( io == Out ) ? Head : Tail );
-            const Int c_next = A_cross( a, !io );
-
-            AssertCrossing(c_next);
-            
-            return c_next;
-        }
         
         // TODO: These things would be way faster if Int where unsigned.
         
@@ -712,104 +533,8 @@ namespace Knoodle
         {
             return da ^ Int(1);
         }
-
-        
-    private:
-        
-        /*!
-         * @brief Deactivates crossing `c`. Only for internal use.
-         */
-        
-        template<bool assertsQ = true>
-        void DeactivateCrossing( const Int c )
-        {
-            if( CrossingActiveQ(c) )
-            {
-                PD_PRINT("Deactivating " + CrossingString(c) + "." );
-                --crossing_count;
-                C_state[c] = CrossingState::Inactive;
-            }
-            else
-            {
-                
-#ifdef PD_DEBUG
-                if constexpr ( assertsQ )
-                {
-                    wprint(ClassName()+"::Attempted to deactivate already inactive " + CrossingString(c) + ".");
-                }
-#endif
-            }
-            
-            PD_ASSERT( crossing_count >= Int(0) );
-            
-            
-#ifdef PD_DEBUG
-            if constexpr ( assertsQ )
-            {
-                for( bool io : { In, Out } )
-                {
-                    for( bool side : { Left, Right } )
-                    {
-                        const Int a  = C_arcs(c,io,side);
-                        
-                        if( ArcActiveQ(a) && (A_cross(a,io) == c) )
-                        {
-                            pd_eprint(ClassName()+"::DeactivateCrossing: active " + ArcString(a) + " is still attached to deactivated " + CrossingString(c) + ".");
-                        }
-                    }
-                }
-            }
-#endif
-        }
-        
-        /*!
-         * @brief Deactivates arc `a`. Only for internal use.
-         */
-        
-        void DeactivateArc( const Int a )
-        {
-            if( ArcActiveQ(a) )
-            {
-                PD_PRINT("Deactivating " + ArcString(a) + "." );
-                
-                --arc_count;
-                A_state[a] = ArcState::Inactive;
-            }
-            else
-            {
-#if defined(PD_DEBUG)
-                wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
-#endif
-            }
-            
-            PD_ASSERT( arc_count >= Int(0) );
-        }
         
     public:
-        
-        Int CountActiveCrossings() const
-        {
-            Int counter = 0;
-            
-            for( Int c = 0; c < max_crossing_count; ++c )
-            {
-                counter += CrossingActiveQ(c);
-            }
-            
-            return counter;
-        }
-        
-        Int CountActiveArcs() const
-        {
-            Int counter = 0;
-            
-            for( Int a = 0; a < max_arc_count; ++a )
-            {
-                counter += ArcActiveQ(a);
-            }
-            
-            return counter;
-        }
         
         /*!
          * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
@@ -819,9 +544,7 @@ namespace Knoodle
         {
             Int writhe = 0;
             
-            const Int n = C_state.Size();
-            
-            for( Int c = 0; c < n; ++c )
+            for( Int c = 0; c < max_crossing_count; ++c )
             {
                 if( CrossingRightHandedQ(c) )
                 {
@@ -918,6 +641,29 @@ namespace Knoodle
             return pd;
         }
         
+        
+        /*!@ Sets all entries of all deactivated crossings and arcs to `Uninitialized`.
+         */
+        
+        void CleanseDeactivated()
+        {
+            for( Int c = 0; c < max_crossing_count; ++c )
+            {
+                if( !CrossingActiveQ(c) )
+                {
+                    fill_buffer<4>(C_arcs.data(c),Uninitialized);
+                }
+            }
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                if( !ArcActiveQ(a) )
+                {
+                    fill_buffer<2>(A_cross.data(a),Uninitialized);
+                }
+            }
+        }
+        
     public:
 
 #include "PlanarDiagram/ReadFromLink.hpp"
@@ -926,10 +672,8 @@ namespace Knoodle
 #include "PlanarDiagram/Reconnect.hpp"
 #include "PlanarDiagram/Checks.hpp"
 #include "PlanarDiagram/R_I.hpp"
-//#include "PlanarDiagram/R_II.hpp"
-//#include "PlanarDiagram/R_IIa_Vertical.hpp"
-//#include "PlanarDiagram/R_IIa_Horizontal.hpp"
-        
+
+#include "PlanarDiagram/Crossings.hpp"
 #include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/LinkComponents.hpp"
@@ -958,6 +702,7 @@ namespace Knoodle
 #include "PlanarDiagram/SpanningForest.hpp"
         
 #include "PlanarDiagram/Permute.hpp"
+#include "PlanarDiagram/Planarity.hpp"
         
     public:
         
@@ -1032,20 +777,6 @@ namespace Knoodle
             return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
-/*!@brief Returns the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use with caution as its content depends heavily on which routines have been called before.
- */
-        cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
-        {
-            return C_scratch;
-        }
-        
-/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
- */
-        cref<Tensor1<Int,Int>> ArcScratchBuffer() const
-        {
-            return A_scratch;
-        }
-        
         static std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
@@ -1059,8 +790,7 @@ namespace Knoodle
             return ct_string("PlanarDiagram")
                 + "<" + TypeName<Int>
                 + ">";
-        }
-        
+        } 
     };
 
 } // namespace Knoodle

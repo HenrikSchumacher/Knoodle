@@ -34,6 +34,9 @@ Int Simplify4(
     Int old_counter = 0;
     Int counter = 0;
     
+    // It is very likely that we change the diagram. Also, a stale cache might spoil the simplification. Thus, we proactively delete the cache.
+    this->ClearCache();
+    
     // TODO: Toggle this Boolean for multi/single-component links.
     StrandSimplifier<Int,true> S(*this);
     
@@ -97,7 +100,6 @@ Int Simplify4(
         do_simplify3Q = (o_changes + u_changes > Int(0));
         
         PD_ASSERT(CheckAll());
-
     }
     while(
           (counter > old_counter)
