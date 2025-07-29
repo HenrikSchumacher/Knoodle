@@ -12,7 +12,7 @@ void Alexander_Strands(
     bool          multiply_toQ
 ) const
 {
-    TOOLS_PTIC(ClassName()+"::Alexander_Strands" + "<" + ToString(sparseQ) + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::Alexander_Strands" + "<" + ToString(sparseQ) + ">");
     
     if( pd.CrossingCount() <= 1 )
     {
@@ -31,8 +31,6 @@ void Alexander_Strands(
             );
         }
     }
-
-    TOOLS_PTOC(ClassName()+"::Alexander_Strands" + "<" + ToString(sparseQ) + ">");
 }
 
     

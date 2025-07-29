@@ -77,7 +77,7 @@ namespace Knoodle
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            TOOLS_PTIC(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTIMER(timer,MethodName("DenseAlexanderMatrix"));
             
             // Assemble dense Alexander matrix, skipping last row and last column.
 
@@ -169,13 +169,11 @@ namespace Knoodle
             }
             
 //            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
-            
-            TOOLS_PTOC(ClassName()+"::DenseAlexanderMatrix");
         }
         
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
         {
-            TOOLS_PTIC(ClassName()+"::SparseAlexanderMatrix");
+            TOOLS_PTIMER(timer,MethodName("SparseAlexanderMatrix"));
             
             // TODO: Insert shortcut for crossing_count <= 1.
             
@@ -265,8 +263,6 @@ namespace Knoodle
             
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
             
-            TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix");
-            
             return A;
         }
         
@@ -275,7 +271,7 @@ namespace Knoodle
             std::string tag ( "AlexanderFactorization" );
             tag += TypeName<Scal>;
             
-            TOOLS_PTIC(ClassName()+"::AlexanderFactorization");
+            TOOLS_PTIMER(timer,MethodName("AlexanderFactorization"));
             
             auto A = SparseAlexanderMatrix( pd, t ) ;
             
@@ -318,8 +314,6 @@ namespace Knoodle
                 S->NumericFactorization_LeftLooking( B.Values().data(), Scal(0) );
             }
             
-            TOOLS_PTOC(ClassName()+"::AlexanderFactorization");
-            
             return S;
         }
         
@@ -344,7 +338,7 @@ namespace Knoodle
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTIMER(timer,MethodName("LogAlexanderModuli_Dense"));
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -383,8 +377,6 @@ namespace Knoodle
                     results[idx] = log_det;
                 }
             }
-        
-            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Dense");
         }
         
         
@@ -392,7 +384,7 @@ namespace Knoodle
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTIMER(timer,MethodName("LogAlexanderModuli_Sparse"));
             
             if( pd.CrossingCount() <= 1 )
             {
@@ -424,8 +416,6 @@ namespace Knoodle
                     
                 }
             }
-
-            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Sparse");
         }
         
 //    public:

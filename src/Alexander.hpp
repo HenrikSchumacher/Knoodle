@@ -85,13 +85,11 @@ namespace Knoodle
         template<bool fullQ = false>
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const int degree ) const
         {
-            TOOLS_PTIC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
+            TOOLS_PTIMER(timer,ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
 
             if( (degree != 0) && (degree!= 1) )
             {
                 eprint(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+"): degree "+ToString(degree)+" is not a valid degree. Only 0 and 1 are allowed.");
-                
-                TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
                 
                 return SparseMatrix_T();
             }
@@ -100,8 +98,6 @@ namespace Knoodle
             
             if( n <= Int(0) )
             {
-                TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
-                
                 return SparseMatrix_T();
             }
 
@@ -216,8 +212,6 @@ namespace Knoodle
 
             SparseMatrix_T A ( Agg, n, n, Int(1), true, false );
 
-            TOOLS_PTOC(ClassName()+"::SparseAlexanderMatrix("+ToString(degree)+")");
-
             return A;
         }
         
@@ -225,7 +219,7 @@ namespace Knoodle
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            TOOLS_PTIC(ClassName()+"::DenseAlexanderMatrix");
+            TOOLS_PTIMER(timer,MethodName("DenseAlexanderMatrix"));
             
             // Assemble dense Alexander matrix, skipping last row and last column.
 
@@ -330,16 +324,12 @@ namespace Knoodle
                     ++counter;
                 }
             }
-            
-//            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
-            
-            TOOLS_PTOC(ClassName()+"::DenseAlexanderMatrix");
         }
 
         
         void RequireSparseHermitianAlexanderMatrix( cref<PD_T> pd ) const
         {
-            TOOLS_PTIC(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
+            TOOLS_PTIMER(timer,MethodName("RequireSparseHermitianAlexanderMatrix"));
             
             std::string tag_help ( std::string( "SparseHermitianAlexanderHelpers_" ) + TypeName<Scal>);
             std::string tag_fact ( std::string( "SparseHermitianAlexanderFactorization_" ) + TypeName<Scal> );
@@ -511,17 +501,15 @@ namespace Knoodle
                 
                 pd.SetCache( tag_help, std::move(herm_alex_help) );
             }
-
-            TOOLS_PTOC(ClassName()+"::RequireSparseHermitianAlexanderMatrix");
         }
         
         void LogAlexanderModuli_Sparse(
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Sparse");
+            TOOLS_PTIMER(timer,MethodName("LogAlexanderModuli_Sparse"));
             
-            if( pd.CrossingCount() <= 1 )
+            if( pd.CrossingCount() <= Int(1) )
             {
                 zerofy_buffer( results, arg_count );
             }
@@ -573,8 +561,6 @@ namespace Knoodle
                     }
                 }
             }
-
-            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Sparse");
         }
 
         void LogAlexanderModuli(
@@ -597,15 +583,15 @@ namespace Knoodle
             cref<PD_T> pd, cptr<Scal> args, Int arg_count, mptr<Real> results
         ) const
         {
-            TOOLS_PTIC(ClassName()+"::LogAlexanderModuli_Dense");
+            TOOLS_PTIMER(timer,MethodName("LogAlexanderModuli_Dense"));
             
-            if( pd.CrossingCount() <= 1 )
+            if( pd.CrossingCount() <= Int(1) )
             {
                 zerofy_buffer( results, arg_count );
             }
             else
             {
-                const Int n = pd.CrossingCount() - 1;
+                const Int n = pd.CrossingCount() - Int(1);
                 
                 for( Int idx = 0; idx < arg_count; ++idx )
                 {
@@ -636,8 +622,6 @@ namespace Knoodle
                     results[idx] = log_det;
                 }
             }
-        
-            TOOLS_PTOC(ClassName()+"::LogAlexanderModuli_Dense");
         }
         
         

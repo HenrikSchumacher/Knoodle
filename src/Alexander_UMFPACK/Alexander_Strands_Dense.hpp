@@ -6,12 +6,8 @@ Multiplier_T Alexander_Strands_Det_Dense(
     cref<Scal> arg
 ) const
 {
-//    tic(ClassName()+"Alexander_Strands_Det_Dense");
-    
     if( pd.CrossingCount() <= 1 )
     {
-//        toc(ClassName()+"Alexander_Strands_Det_Dense");
-        
         return Multiplier_T();
     }
     else
@@ -51,10 +47,7 @@ Multiplier_T Alexander_Strands_Det_Dense(
         {
             det *= Scal(0);
         }
-        
-//        TOOLS_DUMP(det);
-        
-//        toc(ClassName()+"Alexander_Strands_Det_Dense");
+
         return det;
     }
 
