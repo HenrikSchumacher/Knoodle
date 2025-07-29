@@ -46,10 +46,8 @@ mref<CoordsContainer_T> VertexCoordinates() const
 {
     if( !this->InCacheQ("VertexCoordinates") )
     {
-        const Int V_count = V_dE.Dim(0);
-        
         this->SetCache(
-            "VertexCoordinates", CoordsContainer_T ( V_count, Uninitialized )
+            "VertexCoordinates", CoordsContainer_T ( V_dE.Dim(0), Uninitialized )
         );
         
         this->ClearCache("Height");
@@ -137,9 +135,7 @@ void ComputeVertexCoordinates(
     auto & V_DvV = this->GetCache<Tensor1<Int,Int>>("V_DvV");
     auto & V_DhV = this->GetCache<Tensor1<Int,Int>>("V_DhV");
     
-    const Int V_count = V_dE.Dim(0);
-    
-    for( Int v = 0; v < V_count; ++v )
+    for( Int v = 0; v < V_end; ++v )
     {
         if( VertexActiveQ(v) )
         {
@@ -230,11 +226,10 @@ std::string DiagramString() const
         s[ToSize_T(x + n_x * (n_y - Int(1) - y))] = c;
     };
     
-    const Int C_count = C_A.Dim(0);
-    const Int V_count = V_dE.Dim(0);
+    const Int C_end = C_A.Dim(0);
     
     // Draw the corners.
-    for( Int v = C_count; v < V_count; ++v )
+    for( Int v = C_end; v < V_end; ++v )
     {
         if( !VertexActiveQ(v) ) { continue; }
         
@@ -245,11 +240,11 @@ std::string DiagramString() const
     }
     
     // Draw the edges.
-    for( Int e = 0; e < edge_count; ++e )
+    for( Int e = 0; e < E_end; ++e )
     {
         const Int de_0 = ToDedge(e,Tail);
         
-        if( !DedgeActiveQ(de_0) ) { continue; }
+        if( !DedgeActiveQ(e) ) { continue; }
         
         char v_symbol = '|';
         char h_symbol = '-';
@@ -380,7 +375,7 @@ cref<ArcSplineContainer_T> ArcLines()
         
         for( Int a = 0; a < a_count; ++a )
         {
-            if( !DedgeActiveQ(ToDarc<Tail>(a)) )
+            if( !EdgeActiveQ(a) )
             {
                 A_lines.FinishSublist();
                 continue;
@@ -393,6 +388,10 @@ cref<ArcSplineContainer_T> ArcLines()
                 const Int k = k_begin;
                 const Int v_0 = A_V.Elements()[k  ];
                 const Int v_1 = A_V.Elements()[k+1];
+                
+//                // DEBUGGING
+//                this->template CheckVertex<1,true>(v_0);
+//                this->template CheckVertex<1,true>(v_1);
                                 
                 if( !InIntervalQ(v_0,Int(0),v_count) )
                 {
@@ -451,17 +450,26 @@ cref<ArcSplineContainer_T> ArcLines()
             A_lines.FinishSublist();
         }
         
-        TOOLS_LOGDUMP(A_lines.Pointers());
-//        TOOLS_LOGDUMP(A_lines.Elements());
-        
-        
-        for( Int i = 0; i < A_lines.ElementCount(); ++i )
+        if( A_lines.SublistCount() != a_count )
         {
-            logvalprint(
-                "A_lines.Elements()["+ToString(i)+"]",
-                A_lines.Elements()[i]
-            );
+            eprint(MethodName("ArcLines")+": A_lines.SublistCount() != a_count.");
+            TOOLS_DDUMP(A_lines.SublistCount());
+            TOOLS_DDUMP(a_count);
         }
+        
+        
+//        // DEBUGGING
+//        
+//        TOOLS_LOGDUMP(A_lines.Pointers());
+////        TOOLS_LOGDUMP(A_lines.Elements());
+//
+//        for( Int i = 0; i < A_lines.ElementCount(); ++i )
+//        {
+//            logvalprint(
+//                "A_lines.Elements()["+ToString(i)+"]",
+//                A_lines.Elements()[i]
+//            );
+//        }
         
         this->SetCache( "ArcLines", std::move(A_lines) );
     }

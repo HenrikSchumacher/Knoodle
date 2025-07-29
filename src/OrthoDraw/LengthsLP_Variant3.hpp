@@ -131,7 +131,7 @@ Tensor1<Int,Int> Compute_x_ByLengths_Variant3( bool minimize_widthQ = false )
 {
     TOOLS_MAKE_FP_STRICT();
     
-    TOOLS_PTIMER( timer, ClassName()+"::Compute_x_ByLengths_Variant3");
+    TOOLS_PTIMER(timer,MethodName("Compute_x_ByLengths_Variant3"));
     
     ClpWrapper<double,Int> clp(
         Lengthsx_ObjectiveVector(),
@@ -289,7 +289,7 @@ Tensor1<Int,Int> Compute_y_ByLengths_Variant3( bool minimize_heightQ = false )
 {
     TOOLS_MAKE_FP_STRICT();
     
-    TOOLS_PTIMER( timer, ClassName()+"::Compute_y_ByLengths_Variant3");
+    TOOLS_PTIMER(timer,MethodName("Compute_y_ByLengths_Variant3"));
     
     ClpWrapper<double,Int> clp(
         Lengthsy_ObjectiveVector(),
@@ -308,7 +308,7 @@ Tensor1<Int,Int> Compute_y_ByLengths_Variant3( bool minimize_heightQ = false )
 
 void ComputeVertexCoordinates_ByLengths_Variant3( bool minimize_areaQ = false )
 {
-    TOOLS_PTIMER( timer, ClassName()+"::ComputeVertexCoordinates_ByLengths_Variant3");
+    TOOLS_PTIMER(timer,MethodName("ComputeVertexCoordinates_ByLengths_Variant3"));
     
     Tensor1<Int,Int> x;
     Tensor1<Int,Int> y;

@@ -21,9 +21,6 @@ void ComputeConstraintGraphs() const
     Tensor1<Int,Int> V_DhV ( V_count, Uninitialized );
     Tensor1<Int,Int> V_DvV ( V_count, Uninitialized );
     
-//    EdgeContainer_T DhV_leftright_V ( vertex_count );
-//    EdgeContainer_T DvV_bottomtop_V ( vertex_count );
-    
     
     auto invalid_dedgeQ = [this]( const Int de )
     {
@@ -34,10 +31,13 @@ void ComputeConstraintGraphs() const
                     this->DedgeVirtualQ(de)
                 );
     };
+
     
-    // We can start the loop at v_0 = crossing_count, as crossings have valence 4 and cannot be start or end of a segment.
-    logprint("for( Int v_0 = crossing_count; v_0 < V_count; ++v_0 )");
-    for( Int v_0 = crossing_count; v_0 < V_count; ++v_0 )
+    const Int C_end = C_A.Dim(0);
+
+    // We can start the loop at v_0 = C_end, as crossings have valence 4 and cannot be start or end of a segment.
+    
+    for( Int v_0 = C_end; v_0 < V_end; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
             
@@ -106,8 +106,7 @@ void ComputeConstraintGraphs() const
     
     cptr<Int> dE_V = E_V.data();
 
-    logprint("for( Int e = 0; e < E_count; ++e )");
-    for( Int e = 0; e < E_count; ++e )
+    for( Int e = 0; e < E_end; ++e )
     {
         const Int de_0 = ToDedge(e,Tail);
         const Int de_1 = ToDedge(e,Head);
@@ -489,8 +488,10 @@ void ComputeFaceVHSegments() const
     
     const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
     
-    RaggedList<Int,Int> F_DvV ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
-    RaggedList<Int,Int> F_DhV ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
+    Int f_count = FaceCount(soften_virtual_edgesQ);
+    
+    RaggedList<Int,Int> F_DvV ( f_count, E_V.Dim(0) );
+    RaggedList<Int,Int> F_DhV ( f_count, E_V.Dim(0) );
     
     auto & E_DvV = EdgeToDvVertex();
     auto & E_DhV = EdgeToDhVertex();

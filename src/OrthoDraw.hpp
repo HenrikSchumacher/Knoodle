@@ -166,21 +166,12 @@ namespace Knoodle
             
             LoadPlanarDiagram( pd, exterior_region_ );
             
-            this->template CheckEdgeDirections<true>();
-            
             if( settings.turn_regularizeQ )
             {
                 TurnRegularize();
             }
             
-//            if( !CheckEdgeDirections() )
-//            {
-//                eprint(ClassName()+"(): CheckEdgeDirections failed after calling TurnRegularize.");
-//            }
-//            if( !CheckAllFaceTurns() )
-//            {
-//                eprint(ClassName()+"(): CheckAllFaceTurns failed after calling TurnRegularize.");
-//            }
+//            this->template CheckEdgeDirections<true>();
             
             ComputeConstraintGraphs();
             
@@ -271,6 +262,10 @@ namespace Knoodle
         Int exterior_region     = 0;
         Int max_face_size       = 0;
         
+        // Indices to the last active vertex and edge.
+        Int V_end               = 0;
+        Int E_end               = 0;
+        
         CrossingContainer_T C_A;
         ArcContainer_T A_C;
         
@@ -357,6 +352,7 @@ namespace Knoodle
 #include "OrthoDraw/BendsLP_Clp.hpp"
 #include "OrthoDraw/BendsLP_MCFClass.hpp"
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
+#include "OrthoDraw/Vertices.hpp"
 #include "OrthoDraw/Edges.hpp"
 #include "OrthoDraw/Faces.hpp"
 #include "OrthoDraw/TurnRegularize.hpp"
@@ -408,11 +404,6 @@ namespace Knoodle
         cref<ArcContainer_T> Arcs() const
         {
             return A_C;
-        }
-        
-        bool VertexActiveQ( const Int v ) const
-        {
-            return V_flag[v] != VertexFlag_T::Inactive;
         }
         
         Int VertexCount() const

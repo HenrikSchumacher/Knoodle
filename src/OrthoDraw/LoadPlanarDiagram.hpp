@@ -1,12 +1,15 @@
 private:
 
-template<typename ExtInt>
+// DEBUGGING
+template<bool debugQ = false, bool verboseQ = false, typename ExtInt>
 void LoadPlanarDiagram(
     mref<PlanarDiagram<ExtInt>> pd,
     const ExtInt exterior_region_
 )
 {
-    TOOLS_PTIMER(timer,MethodName("LoadPlanarDiagram"));
+    std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<ExtInt> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
 
 //    TOOLS_DUMP(pd.CountActiveCrossings());
 //    TOOLS_DUMP(pd.CrossingCount());
@@ -20,6 +23,18 @@ void LoadPlanarDiagram(
     
     crossing_count = int_cast<Int>(pd.CrossingCount());
     arc_count      = int_cast<Int>(pd.ArcCount());
+
+    const Int C_count = C_A.Dim(0);
+    const Int A_count = A_C.Dim(0);
+    
+    if constexpr ( verboseQ )
+    {
+        TOOLS_LOGDUMP(C_count);
+        TOOLS_LOGDUMP(A_count);
+        
+        TOOLS_LOGDUMP(crossing_count);
+        TOOLS_LOGDUMP(arc_count);
+    }
     
     // TODO: Allow more general bend sequences.
     
@@ -53,7 +68,7 @@ void LoadPlanarDiagram(
 
     if( A_bends.Size() <= Int(0) )
     {
-        eprint(MethodName("LoadPlanarDiagram") + ": Bend optimization failed. Aborting.");
+        eprint(tag + ": Bend optimization failed. Aborting.");
         return;
     }
 
@@ -91,21 +106,24 @@ void LoadPlanarDiagram(
     // Prepare vertices and edges.
     
     // This counts all vertices and edges, not only the active ones.
-    const Int max_vertex_count = C_A.Dim(0) + bend_count;
-    const Int max_edge_count   = A_C.Dim(0) + bend_count + (settings.turn_regularizeQ ? bend_count/Int(2) : Int(0) );
+    const Int V_count = C_count + bend_count;
+    const Int E_count = A_count + bend_count + (settings.turn_regularizeQ ? bend_count/Int(2) : Int(0) );
     
-    vertex_count = crossing_count + bend_count;
-    edge_count   = arc_count      + bend_count;
+    vertex_count    = crossing_count + bend_count;
+    edge_count      = arc_count      + bend_count;
     
-//    TOOLS_LOGDUMP(crossing_count);
-//    TOOLS_LOGDUMP(vertex_count);
-//    
-//    TOOLS_LOGDUMP(A_bends);
-//    TOOLS_LOGDUMP(pd.ArcStates());
+    if constexpr ( verboseQ )
+    {
+        TOOLS_LOGDUMP(V_count);
+        TOOLS_LOGDUMP(E_count);
+        TOOLS_LOGDUMP(vertex_count);
+        TOOLS_LOGDUMP(edge_count);
+        TOOLS_LOGDUMP(bend_count);
+    }
     
     // General purpose buffers. May be used in all routines as temporary space.
-    V_scratch    = Tensor1<Int,Int> ( Int(2) * max_vertex_count );
-    E_scratch    = Tensor1<Int,Int> ( Int(2) * max_edge_count   );
+    V_scratch    = Tensor1<Int,Int> ( Int(2) * V_count );
+    E_scratch    = Tensor1<Int,Int> ( Int(2) * E_count );
     
     mptr<Dir_T> C_dir = reinterpret_cast<Dir_T *>(V_scratch.data());
     fill_buffer( C_dir, NoDir, C_A.Dim(0));
@@ -158,38 +176,64 @@ void LoadPlanarDiagram(
 //    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
 //    TOOLS_LOGDUMP(pd.CrossingStates())
 
-    V_dE   = VertexContainer_T      ( max_vertex_count, Uninitialized );
-    E_V    = EdgeContainer_T        ( max_edge_count,   Uninitialized );
+    V_dE   = VertexContainer_T      ( V_count, Uninitialized );
+    E_V    = EdgeContainer_T        ( E_count, Uninitialized );
     
-    V_flag = VertexFlagContainer_T  ( max_vertex_count, VertexFlag_T::Inactive );
-    E_flag = EdgeFlagContainer_T    ( max_edge_count, EdgeFlag_T(0) );
+    V_flag = VertexFlagContainer_T  ( V_count, VertexFlag_T::Inactive );
+    E_flag = EdgeFlagContainer_T    ( E_count, EdgeFlag_T(0) );
 
     // Needed for turn regularity and for building E_left_dE.
-    E_turn = EdgeTurnContainer_T    ( max_edge_count, Turn_T(0) );
+    E_turn = EdgeTurnContainer_T    ( E_count, Turn_T(0) );
     // E_turn(a,Head) = turn between a and E_left_dE(a,Head);
     // E_turn(a,Tail) = turn between a and E_left_dE(a,Tail);
 
-    E_dir  = Tensor1<Dir_T,Int>     ( max_edge_count, NoDir );
-    E_A    = Tensor1<Int,Int>       ( max_edge_count, Uninitialized );
+    E_dir  = Tensor1<Dir_T,Int>     ( E_count, NoDir );
+    E_A    = Tensor1<Int,Int>       ( E_count, Uninitialized );
     
-    A_V    = RaggedList<Int,Int>(A_C.Dim(0)+Int(1), max_edge_count+arc_count);
-    A_E    = RaggedList<Int,Int>(A_C.Dim(0)+Int(1), max_edge_count);
+    A_V    = RaggedList<Int,Int>(A_count + Int(1), E_count + arc_count);
+    A_E    = RaggedList<Int,Int>(A_count + Int(1), E_count );
 
     cptr<CrossingState> C_state = pd.CrossingStates().data();
     
-    A_overQ = Tiny::VectorList_AoS<2,bool,Int>(arc_count);
+    A_overQ = Tiny::VectorList_AoS<2,bool,Int>(A_count);
+
     
-    const Int c_count = C_A.Dim(0);
-    
-    for( Int c = 0; c < c_count; ++c )
+    if constexpr ( verboseQ )
     {
-        V_flag[c] = VertexFlag_T(ToUnderlying(C_state[c])); // pd needed
+        logprint("Assigning vertex flags to crossings.");
     }
     
-    const Int a_count = A_C.Dim(0);
+    // Cycle only over the crossings.
+    for( Int c = 0; c < C_count; ++c )
+    {
+        switch(C_state[c])
+        {
+            case CrossingState::Inactive:
+            {
+                V_flag[c] = VertexFlag_T::Inactive;
+                break;
+            }
+            case CrossingState::LeftHanded:
+            {
+                V_flag[c] = VertexFlag_T::LeftHanded;
+                break;
+            }
+            case CrossingState::RightHanded:
+            {
+                V_flag[c] = VertexFlag_T::RightHanded;
+                break;
+            }
+            default:
+            {
+                eprint(tag + ": Invalid crossing state " + ToString(C_state[c]) +".");
+                break;
+            }
+        }
+    }
     
-    // Load remaining data from pd.
-    for( Int a = 0; a < a_count; ++a )
+    if constexpr ( verboseQ ) { logprint("Loading edge flags for arcs."); }
+    
+    for( Int a = 0; a < A_count; ++a )
     {
         ExtInt a_ = static_cast<ExtInt>(a);
         
@@ -204,19 +248,16 @@ void LoadPlanarDiagram(
     
     // From here on we do not need pd itself anymore. But we need the temporarily created C_dir buffer whose initialization requires a pd object (because of DepthFirstSearch).
     
-    // Vertices, 0,...,max_crossing_count-1 correspond to crossings 0,...,max_crossing_count-1. The rest is newly inserted vertices.
-    Int V_counter = C_A.Dim(0);
-    Int E_counter = A_C.Dim(0);
+    // Vertices, 0,...,C_count-1 correspond to crossings 0,...,C_count-1. The rest is newly inserted vertices.
     
-//    TOOLS_LOGDUMP(V_counter);
-//    TOOLS_LOGDUMP(E_counter);
-//    
-//    logprint("for( Int a = 0; a < a_count; ++a )");
+    V_end = C_count;
+    E_end = A_count;
     
-    // Subdivide each arc.
-    for( Int a = 0; a < a_count; ++a )
+    if constexpr ( verboseQ ) { logprint("Subdividing arcs."); }
+    
+    for( Int a = 0; a < A_count; ++a )
     {
-        if( !DedgeActiveQ(ToDedge<Tail>(a)) )
+        if( !EdgeActiveQ(a) )
         {
             A_V.FinishSublist();
             A_E.FinishSublist();
@@ -229,9 +270,9 @@ void LoadPlanarDiagram(
         const Int    c_0     = A_C(a,Tail);
         const Int    c_1     = A_C(a,Head);
         
-        TOOLS_LOGDUMP(a);
-        TOOLS_LOGDUMP(c_0);
-        TOOLS_LOGDUMP(c_1);
+//        TOOLS_LOGDUMP(a);
+//        TOOLS_LOGDUMP(c_0);
+//        TOOLS_LOGDUMP(c_1);
         
         // We have to subdivde the arc a into abs_b + 1 edges.
 
@@ -269,9 +310,9 @@ void LoadPlanarDiagram(
         // Inserting additional corners and edges
         for( Int k = 1; k <= abs_b; ++k )
         {
-            v = V_counter++;
-            e = E_counter++;
-            V_flag[v]  = VertexFlag_T::Corner;
+            v = V_end++;
+            e = E_end++;
+            V_flag[v] = VertexFlag_T::Corner;
             E_flag(e,Tail) = EdgeActiveMask;
             E_flag(e,Head) = EdgeActiveMask;
 //                                 + ??
@@ -316,31 +357,84 @@ void LoadPlanarDiagram(
         A_V.FinishSublist();
         A_E.FinishSublist();
     };
-
-
-
     
-//    TOOLS_LOGDUMP(V_dE.Dim(0));
-//    TOOLS_LOGDUMP(V_counter);
-//    
-//    
-//    TOOLS_LOGDUMP(arc_count);
-//    TOOLS_LOGDUMP(edge_count);
-//    TOOLS_LOGDUMP(E_V.Dim(0));
-//    TOOLS_LOGDUMP(E_counter);
-//    
-////    logvalprint("V_dE form crossings", ArrayToString() );
-//    TOOLS_LOGDUMP(C_A);
-//    TOOLS_LOGDUMP(A_C);
-//    
-//    TOOLS_LOGDUMP(V_dE);
-//    TOOLS_LOGDUMP(V_flag);
-//    TOOLS_LOGDUMP(E_V);
-//    TOOLS_LOGDUMP(E_flag);
-//    
-//    TOOLS_LOGDUMP(A_V);
-//    TOOLS_LOGDUMP(A_E);
-//    TOOLS_LOGDUMP(E_A);
+    
+    if constexpr ( verboseQ )
+    {
+        TOOLS_LOGDUMP(V_end);
+        TOOLS_LOGDUMP(V_count);
+        
+        TOOLS_LOGDUMP(A_count);
+        TOOLS_LOGDUMP(E_end);
+        TOOLS_LOGDUMP(E_count);
+        
+        TOOLS_LOGDUMP(A_V.SublistCount());
+        TOOLS_LOGDUMP(A_E.SublistCount());
+    }
+    
+    if( V_end != V_count )
+    {
+        eprint(tag + ": V_end != V_count.");
+        TOOLS_LOGDUMP(V_count);
+        TOOLS_LOGDUMP(V_end);
+    }
+    
+    if( E_end > E_count )
+    {
+        eprint(tag + ": E_end > E_count.");
+        TOOLS_LOGDUMP(E_count);
+        TOOLS_LOGDUMP(E_end);
+    }
+    
+    if( A_V.SublistCount() != A_count )
+    {
+        eprint(tag + ": A_V.SublistCount() != A_count.");
+        TOOLS_LOGDUMP(E_count);
+        TOOLS_LOGDUMP(A_V.SublistCount());
+    }
+    
+    if( A_E.SublistCount() != A_count )
+    {
+        eprint(tag + ": A_E.SublistCount() != A_count.");
+        TOOLS_LOGDUMP(E_count);
+        TOOLS_LOGDUMP(A_E.SublistCount());
+    }
+    
+    if constexpr ( debugQ )
+    {
+        logprint("Checking all edges.");
+        
+        for( Int e = 0; e < E_end; ++e )
+        {
+            if( EdgeActiveQ(e) )
+            {
+                this->template CheckEdge<1,true>(e);
+            }
+            else
+            {
+                this->template CheckEdge<0,true>(e);
+            }
+        }
+        
+        logprint("Checking all vertices.");
+        
+        for( Int v = 0; v < V_end; ++v )
+        {
+            if( VertexActiveQ(v) )
+            {
+                this->template CheckVertex<1,true>(v);
+            }
+            else
+            {
+                this->template CheckVertex<0,true>(v);
+            }
+        }
+
+        if( !this->template CheckEdgeDirections<verboseQ>() )
+        {
+            eprint(tag + ": CheckEdgeDirections() failed.");
+        }
+    }
     
     // We can compute this only after E_V and V_dE have been computed completed.
     ComputeEdgeLeftDedges();
@@ -353,7 +447,7 @@ void LoadPlanarDiagram(
         // DEBUGGING
         if( da == Uninitialized )
         {
-            eprint(MethodName("LoadPlanarDiagram") + ": first darc if exterior region " + ToString(exterior_region) + " is not initialized.");
+            eprint(tag + ": first darc if exterior region " + ToString(exterior_region) + " is not initialized.");
         }
         
         MarkFaceAsExterior( da );
