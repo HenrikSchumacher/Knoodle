@@ -251,8 +251,8 @@ void RedistributeBends(
             }
         }
         
-        Turn_T left_score  =   B(Out,Left ) - B(In ,Left ) ;
-        Turn_T right_score =   B(In ,Right) - B(Out,Right);
+        Turn_T left_score  = B(Out,Left ) - B(In ,Left ) ;
+        Turn_T right_score = B(In ,Right) - B(Out,Right);
         
         if( left_score >= right_score + Turn_T(3) )
         {

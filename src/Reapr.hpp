@@ -3,10 +3,6 @@
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 #include "../submodules/Tensors/UMFPACK.hpp"
 
-//#ifdef REAPR_USE_CLP
-//    #include "../submodules/Tensors/Clp.hpp"
-//#endif
-
 #include "../submodules/Tensors/Clp.hpp"
 #include "OrthoDraw.hpp"
 
@@ -16,28 +12,21 @@ namespace Knoodle
     // TODO: Add type checks everywhere.
     // TODO: Call COIN-OR for height regularizer.
     
-    // DONE: Allow use of Dirichlet energy as well as bending energy.
-    // DONE: Call COIN-OR for TV regularizer -> simplex? interior point?
-//    template<typename Int_>
     class Reapr
     {
     public:
         using Real      = Real64;
 
         using UMF_Int   = Int64;
-        
-//#ifdef REAPR_USE_CLP
+
+        using COIN_Real = double;
         using COIN_Int  = int;
         using COIN_LInt = CoinBigIndex;
         
-        using PRNG_T    = pcg64;
-        
         static constexpr bool CLP_enabledQ = true;
-//#else
-//        static constexpr bool CLP_enabledQ = false;
-//#endif
 
-        using Flag_T = Scalar::Flag;
+        using PRNG_T    = pcg64;
+        using Flag_T    = Scalar::Flag;
         
         enum class EnergyFlag_T : Int32
         {
@@ -72,7 +61,19 @@ namespace Knoodle
         
     public:
         
-        void SetEnergyFlag( EnergyFlag_T flag ){ en_flag = flag; }
+        void SetEnergyFlag( EnergyFlag_T flag )
+        {
+            if ( (flag == EnergyFlag_T::TV) && !CLP_enabledQ )
+            {
+                eprint(MethodName("SetEnergyFlag")+": Energy flag is set to " + ToString(EnergyFlag_T::TV) + " (TV energy), but linear programming features are deactivated. Setting to fallback value " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet energy).");
+                
+                en_flag = EnergyFlag_T::Dirichlet;
+            }
+            else
+            {
+                en_flag = flag;
+            }
+        }
 
         EnergyFlag_T EnergyFlag() const { return en_flag; }
         
@@ -209,9 +210,9 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(MethodName("Hessian")+": Unknown or invalid energy flag. Returning empty matrix" );
+                    wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid. Using default flag = " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet enery) instead.");
                     
-                    return Sparse::MatrixCSR<Real,I,J>();
+                    return this->DirichletHessian<I,J>(pd);
                 }
             }
         }
@@ -229,8 +230,10 @@ namespace Knoodle
                     }
                     else
                     {
-                        eprint(MethodName("Levels")+": Energy flag is set to TV, but linear programming features are deactivated. Returning empty vector.");
-                        return Tensor1<Real,Int>();
+                        // We should never reach this piece of code.
+                        eprint(MethodName("Levels")+": Energy flag is set to " + ToString(EnergyFlag_T::TV) + " (TV energy), but linear programming features are deactivated. Returning levels computed by Dirichlet energy (energy flag = " + ToString(EnergyFlag_T::Dirichlet) + ") as fallback.");
+                        en_flag = EnergyFlag_T::Dirichlet;
+                        return LevelsBySSN(pd);
                     }
                 }
                 case EnergyFlag_T::Bending:

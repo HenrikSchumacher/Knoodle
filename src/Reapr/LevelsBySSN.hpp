@@ -5,11 +5,24 @@ public:
 template<typename Int>
 Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
 {
-    auto x_mu = this->LevelsAndLagrangeMultipliersBySSN(pd);
+    auto x_mu = this->LevelsBySSN_LevelsAndLagrangeMultipliers(pd);
+    
+    // We have to read the levels values through pd.LinkComponentArcs().Elements()
+    
+    cptr<Int> perm = pd.LinkComponentArcs().Elements().data();
     
     if( x_mu.Size() > 0 )
     {
-        return Tensor1<Real,Int>(x_mu.data(),pd.ArcCount());
+        const Int n = pd.ArcCount();
+        
+        Tensor1<Real,Int> L (n,Real(0));
+        
+        for( Int k = 0; k < n; ++k )
+        {
+            L[perm[k]] = x_mu[k];
+        }
+                                    
+        return L;
     }
     else
     {
@@ -21,11 +34,11 @@ Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
 // Returns a vector that contains the levels _and_ the Lagrange multipliers.
 
 template<typename Int>
-Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
+Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     mref<PlanarDiagram<Int>> pd
 )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
@@ -49,7 +62,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     // Update direction.
     Tensor1<Real,Int> u (m+n);
     
-    auto L = this->template LevelsSystemMatrix<UMF_Int,UMF_Int>(pd);
+    auto L = this->template LevelsBySSN_Matrix<UMF_Int,UMF_Int>(pd);
     auto mod_values = L.Values();
     
     // Symbolic factorization
@@ -72,7 +85,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     {
         ++SSN_iter;
         
-        WriteLevelsSystemMatrixModifiedValues(
+        LevelsBySSN_WriteMatrixModifiedValues(
             pd, L, y.data(), mod_values.data()
         );
         
@@ -81,7 +94,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         if( umfpack.NumericStatus() != UMFPACK_OK )
         {
-            eprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN: Aborting because numeric factorization failed.");
+            eprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers: Aborting because numeric factorization failed.");
             
             return Tensor1<Real,Int>();
         }
@@ -135,7 +148,7 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
         
         if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
         {
-            wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
+            wprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
             
             TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
@@ -153,8 +166,113 @@ Tensor1<Real,Int> LevelsAndLagrangeMultipliersBySSN(
     
     if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
     {
-        wprint(ClassName()+"::LevelsAndLagrangeMultipliersBySSN<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
+        wprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
     }
     
     return x;
 }
+
+public:
+
+template<typename I, typename J, typename Int>
+Sparse::MatrixCSR<Real,I,J> LevelsBySSN_Matrix( mref<PlanarDiagram<Int>> pd ) const
+{
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
+    
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_Matrix<" + TypeName<Int> + ">");
+    
+    const I n = int_cast<I>(pd.CrossingCount());
+    const I m = int_cast<I>(pd.ArcCount());
+    
+    using Aggregator_T = TripleAggregator<I,I,Real,J>;
+    
+    Aggregator_T agg;
+    
+    switch ( en_flag )
+    {
+        case EnergyFlag_T::Bending:
+        {
+            agg = Aggregator_T( J(3) * m + J(3) * n );
+            BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
+            break;
+        }
+        case EnergyFlag_T::Dirichlet:
+        {
+            agg = Aggregator_T( J(2) * m + J(3) * n );
+            DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
+            break;
+        }
+        default:
+        {
+            wprint(ClassName()+"::LevelsBySSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid. Using default energy flag " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet energy) instead." );
+            
+            agg = Aggregator_T( J(2) * m + J(3) * n );
+            DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
+            break;
+        }
+    }
+    
+    LevelsConstraintMatrix_CollectTriples<Op::Id>( pd, agg, m, I(0) );
+    
+    for( I i = m; i < m + n; ++i )
+    {
+        agg.Push( i, i, Scalar::One<Real> );
+    }
+    
+    Sparse::MatrixCSR<Real,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
+    
+    return L;
+}
+
+// TODO: Test this!
+
+template<typename I, typename J, typename Int>
+void LevelsBySSN_WriteMatrixModifiedValues(
+    mref<PlanarDiagram<Int>> pd,
+    cref<Sparse::MatrixCSR<Real,I,J>> L,
+    cptr<Real> y,
+    mptr<Real> mod_vals
+) const
+{
+    static_assert(IntQ<I>,"");
+    static_assert(IntQ<J>,"");
+    
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_WriteMatrixModifiedValues"
+       + "<" + TypeName<I>
+       + "," + TypeName<J>
+       + "," + TypeName<Int>
+       + ">"
+    );
+    
+    cptr<J>    outer      = L.Outer().data();
+    cptr<Real> fixed_vals = L.Values().data();
+    
+    const I n = int_cast<I>(pd.CrossingCount());
+    const I m = int_cast<I>(pd.ArcCount());
+    
+    constexpr Real eps = Scalar::eps<Real>;
+    
+    for( I i = m; i < m + n; ++i )
+    {
+        const J k_begin = outer[i    ];
+        const J k_end   = outer[i + 1];
+        
+        PD_ASSERT( k_end > k_begin );
+        
+        Real mask = static_cast<Real>(y[i] + jump >= eps) + eps;
+        
+        // Modify lower left block in system matrix.
+        for( J k = k_begin; k < k_end - 1; ++k )
+        {
+            mod_vals[k] = mask * fixed_vals[k];
+        }
+        
+        // Modify lower right block in system matrix.
+        
+        // Caution, this looks weird as we would expect (Real(1)-mask) here.
+        // But this _is_ what the semi-smooth Newton algorithm requires!
+        mod_vals[k_end - 1] = (mask - Real(1));
+    }
+}
+

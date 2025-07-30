@@ -17,44 +17,67 @@ void DirichletHessian_CollectTriples(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::DirichletHessian_CollectTriples"
-       + "<" + TypeName<I>
-       + "," + TypeName<J>
-       + "," + TypeName<Int>
-       + ">"
-    );
+    std::string tag = ClassName()+"::DirichletHessian_CollectTriples"
+    + "<" + TypeName<I>
+    + "," + TypeName<J>
+    + "," + TypeName<Int>
+    + ">";
     
-    // Caution: This creates only the triples for the essentially upper triangle.
-    // ("Essentially", because few off-diagonal triples lie in the lower triangle.)
+    TOOLS_PTIMER(timer,tag);
+    
+    const Int m = pd.ArcCount();
+    
+    Size_T max_index = ToSize_T(m) + ToSize_T(Max(row_offset,col_offset));
+
+    if( !std::in_range<I>(max_index) )
+    {
+        eprint(tag + ": Type " + TypeName<I> + " is too small to store maximum index = " + ToString(max_index) + ". Aborting.");
+        return;
+    }
+    
+    Size_T nnz = ToSize_T(2 * agg.Size()) + ToSize_T(3 * pd.ArcCount());
+    
+    if( !std::in_range<J>(nnz) )
+    {
+        eprint(tag + ": Type " + TypeName<J> + " is too small to store number of nonzero elements = " + ToString(nnz) + ". Aborting.");
+        return;
+    }
+    
+    // Caution: This creates only the triples for essentially the  upper triangle, so the matrix has to be symmetrized when assimilated.
+    // ("Essentially", because a few off-diagonal triples lie in the lower triangle.)
 
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
-    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
-    cptr<Int> next_arc   = pd.ArcNextArc().data();
+//    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
     
-    const Real val_0 = Real(2) + bending_reg;
+    const Real val_0 = Real(2) + dirichlet_reg;
     const Real val_1 = Real(-1);
 
     for( Int lc = 0; lc < lc_count; ++lc )
     {
-        const Int k_begin   = lc_arc_ptr[lc    ];
-        const Int k_end     = lc_arc_ptr[lc + 1];
+        const I k_begin = static_cast<I>(lc_arc_ptr[lc         ]);
+        const I k_end   = static_cast<I>(lc_arc_ptr[lc + Int(1)]);
         
-        I a   = static_cast<I>(lc_arc_idx[k_begin]);
-        I ap1 = static_cast<I>(next_arc[a  ]);
-        
-        for( Int k = k_begin; k < k_end; ++k )
+        if( k_end > k_begin)
         {
-            const I row = static_cast<I>(a + row_offset);
+            const I k_last = k_end - I(1);
             
-            agg.Push( row, a   + col_offset, val_0 );
-            agg.Push( row, ap1 + col_offset, val_1 );
-
-            a   = ap1;
-            ap1 = next_arc[a];
+            for( I k = k_begin; k < k_last; ++k )
+            {
+                const I k_next = k + I(1);
+                agg.Push( k + row_offset, k      + col_offset, val_0 );
+                agg.Push( k + row_offset, k_next + col_offset, val_1 );
+            }
+            // Wrap-around - I really want it to happen last.
+            {
+                const I k      = k_last;
+                const I k_next = k_begin;
+                agg.Push( k + row_offset, k      + col_offset, val_0 );
+                agg.Push( k + row_offset, k_next + col_offset, val_1 );
+            }
         }
-    }    
+    }
 } // DirichletHessian_CollectTriples
 
 

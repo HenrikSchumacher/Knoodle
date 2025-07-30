@@ -19,20 +19,6 @@ cref<RaggedList<Int,Int>> LinkComponentArcs() const
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
-//cref<Tensor1<Int,Int>> LinkComponentArcIndices() const
-//{
-//    const std::string tag = "LinkComponentArcIndices";
-//    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
-//    return this->template GetCache<Tensor1<Int,Int>>(tag);
-//}
-//
-//cref<Tensor1<Int,Int>> LinkComponentArcPointers() const
-//{
-//    const std::string tag = "LinkComponentArcPointers";
-//    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
-//    return this->template GetCache<Tensor1<Int,Int>>(tag);
-//}
-
 cref<Tensor1<Int,Int>> ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
@@ -47,11 +33,11 @@ cref<Tensor1<Int,Int>> ArcPositions() const
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-cref<Tensor2<Int,Int>> ArcTraversalFlags() const
+cref<ArcContainer_T> ArcTraversalFlags() const
 {
     const std::string tag = "ArcTraversalFlags";
     if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
-    return this->template GetCache<Tensor2<Int,Int>>(tag);
+    return this->template GetCache<ArcContainer_T>(tag);
 }
 
 
@@ -82,17 +68,23 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
 void RequireLinkComponents() const
 {
     TOOLS_PTIMER(timer,MethodName("RequireLinkComponents"));
-    
-    // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int> A_lc ( max_arc_count, Uninitialized );
-    
-    // Also, each arc should know its position within the component.
-    Tensor1<Int,Int> A_pos  ( max_arc_count, Uninitialized );
+
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
-    RaggedList<Int,Int> lc_arcs ( ArcCount(), CrossingCount() + Int(1) );
-    Tensor2<Int,Int>    A_flags ( ArcCount(), Int(2) );
+    RaggedList<Int,Int> lc_arcs ( CrossingCount() + Int(1), ArcCount() );
+    // Records for each arc with crossings {c_0,c_1} the data
+    //      {2 * c_0 + c_0_visitedQ, 2 * c_1 + c_1_visitedQ},
+    // where c_0_visitedQ is true if c_0 is visited as tail for the second time
+    // and   c_1_visitedQ is true if c_1 is visited as head for the second time.
+    
+    ArcContainer_T      A_flags ( ArcCount() );
+    
+    // Maybe not required, but it would be nice if each arc can tell in which component it lies.
+    Tensor1<Int,Int>    A_lc    ( max_arc_count, Uninitialized );
+    
+    // Also, each arc should know its position within the lc_arcs.
+    Tensor1<Int,Int>    A_pos   ( max_arc_count, Uninitialized );
     
     this->template Traverse<true,false,0>(
         []( const Int lc, const Int lc_begin )
