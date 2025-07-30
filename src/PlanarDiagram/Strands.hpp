@@ -36,8 +36,9 @@ Tensor1<Int,Int> ArcStrands() const
     Tensor1<Int,Int> A_colors ( max_arc_count, Uninitialized );
     Int color = 0;
     
-    this->template Traverse<false,false,overQ?-1:1>(
-        [&color,&A_colors,this]( const Int a, const Int a_pos, const Int  lc )
+    this->template Traverse<false,false,(overQ ? -1 : 1 )>(
+        [&color,&A_colors,this]
+        ( const Int a, const Int a_pos, const Int lc )
         {
             (void)a_pos;
             (void)lc;
@@ -89,12 +90,13 @@ Tensor3<Int,Int> CrossingStrands() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
-    Tensor3<Int,Int> C_strands ( max_arc_count, 2, 2, -1 );
+    Tensor3<Int,Int> C_strands ( max_crossing_count, 2, 2, -1 );
     
     Int strand_counter = 0;
     
-    this->template Traverse<false,false,overQ?-1:1>(
-        [&strand_counter,&C_strands,this]( const Int a, const Int a_pos, const Int  lc )
+    this->template Traverse<false,false,(overQ ? -1 : 1)>(
+        [&strand_counter,&C_strands,this]
+        ( const Int a, const Int a_pos, const Int lc )
         {
             (void)a_pos;
             (void)lc;

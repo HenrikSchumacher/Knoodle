@@ -232,7 +232,7 @@ static Tensor1<ToSigned<Int>,Int> MacLeodCodeToExtendedGaussCode(
     return gauss;
 }
 template<typename T, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram<Int> FromMacLeodCode(
+static PlanarDiagram FromMacLeodCode(
     cptr<T>       code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
@@ -244,7 +244,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
 
     if( arc_count_ <= ExtInt2(0) )
     {
-        PlanarDiagram<Int> pd( Int(0), int_cast<Int>(unlink_count_) );
+        PlanarDiagram pd( Int(0), int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
@@ -252,7 +252,7 @@ static PlanarDiagram<Int> FromMacLeodCode(
     const Int m = int_cast<Int>(arc_count_);
     const Int n = m / Int(2);
 
-    PlanarDiagram<Int> pd (n,int_cast<Int>(unlink_count_) );
+    PlanarDiagram pd ( n, int_cast<Int>(unlink_count_) );
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
     fill_buffer(A_visitedQ,false,m);
@@ -343,11 +343,11 @@ static PlanarDiagram<Int> FromMacLeodCode(
             ++crossing_counter;
         }
     }
-    
+
     pd.crossing_count = crossing_counter;
-    pd.arc_count      = int_cast<Int>(arc_count_);
+    pd.arc_count      = pd.CountActiveArcs();
     
-    if( pd.arc_count != Int(2) * pd.crossing_count )
+    if( pd.arc_count != arc_count_ )
     {
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }

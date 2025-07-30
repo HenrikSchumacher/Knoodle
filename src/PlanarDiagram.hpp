@@ -39,7 +39,7 @@ namespace Knoodle
         using MultiGraph_T              = MultiGraph<Int,Int>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
 
-        using PD_List_T                 = std::vector<PlanarDiagram<Int>>;
+        using PD_List_T                 = std::vector<PlanarDiagram>;
 
         template<typename I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
@@ -145,13 +145,13 @@ namespace Knoodle
          */
         
         template<typename ExtInt>
-        PlanarDiagram( const ExtInt crossing_count_, const ExtInt unlink_count_ )
-//        : crossing_count     { crossing_count_                             }
-//        , arc_count          { Int(2) * crossing_count                     }
+        PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_ )
+//        : crossing_count     { int_cast<Int>(max_crossing_count_)          }
+//        , arc_count          { Int(2) * int_cast<Int>(max_crossing_count_) }
         : crossing_count     { Int(0)                                      }
         , arc_count          { Int(0)                                      }
         , unlink_count       { int_cast<Int>(unlink_count_)                }
-        , max_crossing_count { int_cast<Int>(crossing_count_)              }
+        , max_crossing_count { int_cast<Int>(max_crossing_count_)          }
         , max_arc_count      { Int(2) * max_crossing_count                 }
         , C_arcs             { max_crossing_count, Uninitialized           }
         , C_state            { max_crossing_count, CrossingState::Inactive }
@@ -590,8 +590,10 @@ namespace Knoodle
             const bool mirrorQ, const bool reverseQ
         )
         {
-            PlanarDiagram pd ( crossing_count, unlink_count );
+            PlanarDiagram pd ( max_crossing_count, unlink_count );
             
+            pd.crossing_count  = crossing_count;
+            pd.arc_count       = arc_count;
             pd.proven_minimalQ = proven_minimalQ;
 
             auto & pd_C_arcs  = pd.C_arcs;

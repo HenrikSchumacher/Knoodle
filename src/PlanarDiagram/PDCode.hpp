@@ -290,7 +290,7 @@ public:
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram<Int> FromSignedPDCode(
+static PlanarDiagram FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
@@ -298,7 +298,7 @@ static PlanarDiagram<Int> FromSignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<true>(
+    return FromPDCode<true>(
         pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
@@ -321,7 +321,7 @@ static PlanarDiagram<Int> FromSignedPDCode(
  */
 
 template<typename ExtInt, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram<Int> FromUnsignedPDCode(
+static PlanarDiagram FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const ExtInt3 unlink_count,
@@ -329,7 +329,7 @@ static PlanarDiagram<Int> FromUnsignedPDCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PlanarDiagram<Int>::FromPDCode<false>(
+    return FromPDCode<false>(
         pd_codes, crossing_count, unlink_count, compressQ, proven_minimalQ_
     );
 }
@@ -340,7 +340,7 @@ template<
     bool PDsignedQ,
     typename ExtInt, typename ExtInt2, typename ExtInt3
 >
-static PlanarDiagram<Int> FromPDCode(
+static PlanarDiagram FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_,
@@ -355,7 +355,7 @@ static PlanarDiagram<Int> FromPDCode(
 //    constexpr F_T HeadUnder = F_T(1) | ( F_T(0) >> 2);
 //    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
 
-    PlanarDiagram<Int> pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
+    PlanarDiagram pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     
@@ -394,14 +394,14 @@ static PlanarDiagram<Int> FromPDCode(
         {
             eprint( ClassName()+"FromPDCode(): There is a PD code entry with negative entries. Returning invalid PlanarDiagram." );
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
-            return PlanarDiagram<Int>();
+            return PlanarDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
             eprint( ClassName()+"FromPDCode(): There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
-            return PlanarDiagram<Int>();
+            return PlanarDiagram();
         }
         
         if constexpr( PDsignedQ )
@@ -511,14 +511,14 @@ static PlanarDiagram<Int> FromPDCode(
         }
     }
 
-    pd.crossing_count = int_cast<Int>(crossing_count_);
+    pd.crossing_count = pd.max_crossing_count;
     pd.arc_count      = pd.CountActiveArcs();
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
         eprint(ClassName()+"::FromPDCode: Input PD code is invalid because number of active arcs is not equal to twice the number of active crossings. Returning invalid PlanarDiagram.");
         
-        return PlanarDiagram<Int>();
+        return PlanarDiagram();
     }
     
     bool all_crossings_initializedQ  = true;
@@ -582,7 +582,7 @@ static PlanarDiagram<Int> FromPDCode(
     {
         eprint(ClassName()+"::FromPDCode: Input PD code is invalid. Returning invalid PlanarDiagram.");
         
-        return PlanarDiagram<Int>();
+        return PlanarDiagram();
     }
     
     // Compression is meaningful because PD code stay valid under reordering.

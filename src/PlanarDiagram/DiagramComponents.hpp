@@ -170,8 +170,7 @@ void Split( mref<PD_List_T> pd_list )
             dc_arc_count += j_end - j_begin;
         }
 
-        PlanarDiagram<Int> pd (dc_arc_count/Int(2),Int(0));
-        
+        PlanarDiagram pd (dc_arc_count/Int(2),Int(0));        
         Int a_counter = 0;
         Int c_counter = 0;
         
@@ -240,6 +239,19 @@ void Split( mref<PD_List_T> pd_list )
                 ++a_counter;
             }
         }
+        
+        //DEBUGGING
+        if( pd.max_crossing_count != c_counter )
+        {
+            wprint(MethodName("Split") + ": pd.max_crossing_count != c_counter.");
+        }
+        if( pd.max_arc_count != a_counter )
+        {
+            wprint(MethodName("Split") + ": pd.max_arc_count != a_counter.");
+        }
+        
+        pd.crossing_count = c_counter;
+        pd.arc_count      = a_counter;
         
         pd_list.push_back( std::move(pd) );
     } // for( Int dc = 0; dc < dc_count; ++dc )

@@ -140,7 +140,7 @@ bool DisconnectSummand(
     
     sort( &f_faces[0], &f_arcs[0], f_size );
     
-    auto conditional_push = [&]( PlanarDiagram<Int> && pd )
+    auto conditional_push = [&]( PlanarDiagram && pd )
     {
         pd.Simplify5(
             pd_list,
@@ -346,7 +346,7 @@ private:
 /*! @brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
  */
 
-PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
+PlanarDiagram ExportSmallerComponent( const Int a_0, const Int b_0 )
 {
     TOOLS_PTIMER(timer,MethodName("ExportSmallerComponent"));
     
@@ -369,7 +369,7 @@ PlanarDiagram<Int> ExportSmallerComponent( const Int a_0, const Int b_0 )
     }
     while( (a != a_0) && (b != b_0) );
     
-    PlanarDiagram<Int> pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
+    PlanarDiagram pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
     
     return pd;
 }
@@ -386,11 +386,11 @@ private:
  *
  */
 
-PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
+PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
 {
     TOOLS_PTIMER(timer,MethodName("ExportComponent"));
     
-    PlanarDiagram<Int> pd (comp_size/Int(2),Int(0));
+    PlanarDiagram pd (comp_size/Int(2),Int(0));
     
     Int a_counter = 0;
     Int c_counter = 0;
@@ -453,6 +453,19 @@ PlanarDiagram<Int> ExportComponent( const Int a_0, const Int comp_size )
         a = a_next;
     }
     while( a != a_0 );
+    
+    //DEBUGGING
+    if( pd.max_crossing_count != c_counter )
+    {
+        wprint(MethodName("ExportComponent") + ": pd.max_crossing_count != c_counter.");
+    }
+    if( pd.max_arc_count != a_counter )
+    {
+        wprint(MethodName("ExportComponent") + ": pd.max_arc_count != a_counter.");
+    }
+    
+    pd.crossing_count = c_counter;
+    pd.arc_count      = a_counter;
     
     // TODO: Should we recompress here?
     // TODO: Compute crossing_count and arc_count!

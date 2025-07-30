@@ -20,8 +20,8 @@ PlanarDiagram CreateCompressed()
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.
-    pd.crossing_count    = crossing_count;
-    pd.arc_count         = arc_count;
+    pd.crossing_count  = crossing_count;
+    pd.arc_count       = arc_count;
     pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
@@ -112,6 +112,9 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
     PD_ASSERT(CheckAll());
     
     PlanarDiagram pd ( crossing_count, unlink_count );
+    pd.crossing_count  = crossing_count;
+    pd.arc_count       = arc_count;
+    pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState>       C_state_new = pd.C_state.data();
@@ -244,7 +247,6 @@ PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
         
     }
     
-    pd.proven_minimalQ = proven_minimalQ;
     pd.template SetCache<false>("LinkComponentCounter",lc_counter);
     
     return pd;

@@ -74,7 +74,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 
 
 template<typename T, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram<Int> FromExtendedGaussCode(
+static PlanarDiagram FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
@@ -86,26 +86,25 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
     
     if( arc_count_ <= ExtInt2(0) )
     {
-        PlanarDiagram<Int> pd ( Int(0) , int_cast<Int>(unlink_count_) );
+        PlanarDiagram pd ( Int(0), int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
     
-    PlanarDiagram<Int> pd (
+    PlanarDiagram pd (
         int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
     );
-
     pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
     
-    auto fun = [&gauss_code,&pd,&crossing_counter](const Int a_prev,const Int a)
+    auto fun = [&gauss_code,&pd,&crossing_counter]
+    ( const Int a_prev, const Int a )
     {
         const T g = gauss_code[a];
         if( g == T(0) )
         {
             eprint(ClassName()+"::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
-            
             return 1;
         }
         
@@ -190,7 +189,7 @@ static PlanarDiagram<Int> FromExtendedGaussCode(
     }
     
     pd.crossing_count = crossing_counter;
-    pd.arc_count      = int_cast<Int>(arc_count_);  
+    pd.arc_count      = pd.CountActiveArcs();
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
