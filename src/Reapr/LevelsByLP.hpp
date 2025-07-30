@@ -62,25 +62,13 @@ Tensor1<T,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
     using I = COIN_Int;
     using J = COIN_LInt;
     
-    auto var_lb = this->template LevelsByLP_LowerBoundsOnVariables<R,I>(pd);
-    auto var_ub = this->template LevelsByLP_UpperBoundsOnVariables<R,I>(pd);
-    
-    auto con_lb = this->template LevelsByLP_LowerBoundsOnConstraints<R,I>(pd);
-    auto con_ub = this->template LevelsByLP_UpperBoundsOnConstraints<R,I>(pd);
-    
-    TOOLS_LOGDUMP(var_lb);
-    TOOLS_LOGDUMP(var_ub);
-    
-    TOOLS_LOGDUMP(con_lb);
-    TOOLS_LOGDUMP(con_ub);
-    
     ClpWrapper<R,I,J> clp(
         this->template LevelsByLP_ObjectiveVector<R,I>(pd),
-        var_lb,
-        var_ub,
+        this->template LevelsByLP_LowerBoundsOnVariables<R,I>(pd),
+        this->template LevelsByLP_UpperBoundsOnVariables<R,I>(pd),
         this->template LevelsByLP_Matrix<R,I,J>(pd),
-        con_lb,
-        con_ub
+        this->template LevelsByLP_LowerBoundsOnConstraints<R,I>(pd),
+        this->template LevelsByLP_UpperBoundsOnConstraints<R,I>(pd)
     );
     
     auto s = clp.template IntegralPrimalSolution<R>();
