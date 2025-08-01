@@ -1,20 +1,20 @@
 private:
 
 template<typename I, typename ExtInt>
-static I Bends_VarCount( mref<PlanarDiagram<ExtInt>> pd )
+static I Bends_VarCount( cref<PlanarDiagram<ExtInt>> pd )
 {
     return I(2) * static_cast<I>(pd.ArcCount());
 }
 
 template<typename I, typename ExtInt>
-static I Bends_ConCount( mref<PlanarDiagram<ExtInt>> pd )
+static I Bends_ConCount( cref<PlanarDiagram<ExtInt>> pd )
 {
     return static_cast<I>(pd.FaceCount());
 }
 
 
 template<typename ExtInt>
-static cref<Tiny::VectorList_AoS<2,ExtInt,ExtInt>> Bends_ArcIndices( mref<PlanarDiagram<ExtInt>> pd )
+static cref<Tiny::VectorList_AoS<2,ExtInt,ExtInt>> Bends_ArcIndices( cref<PlanarDiagram<ExtInt>> pd )
 {
     std::string tag (MethodName("Bends_ArcIndices"));
     
@@ -52,7 +52,8 @@ static cref<Tiny::VectorList_AoS<2,ExtInt,ExtInt>> Bends_ArcIndices( mref<Planar
 public:
 
 template<typename S, typename I, typename J, typename ExtInt>
-static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtInt>> pd
+static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
+    cref<PlanarDiagram<ExtInt>> pd
 )
 {
     TOOLS_PTIMER(timer,MethodName("Bends_ConstraintMatrix"));
@@ -96,14 +97,14 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix( mref<PlanarDiagram<ExtIn
 
 
 template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_LowerBoundsOnVariables( mref<PlanarDiagram<ExtInt>> pd )
+static Tensor1<S,I> Bends_LowerBoundsOnVariables( cref<PlanarDiagram<ExtInt>> pd )
 {
     // All bends must be nonnegative.
     return Tensor1<S,I>( Bends_VarCount<I>(pd), S(0) );
 }
 
 template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_UpperBoundsOnVariables( mref<PlanarDiagram<ExtInt>> pd )
+static Tensor1<S,I> Bends_UpperBoundsOnVariables( cref<PlanarDiagram<ExtInt>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -112,7 +113,7 @@ static Tensor1<S,I> Bends_UpperBoundsOnVariables( mref<PlanarDiagram<ExtInt>> pd
 
 template<typename S, typename I, typename ExtInt>
 static Tensor1<S,I> Bends_EqualityConstraintVector(
-    mref<PlanarDiagram<ExtInt>> pd,
+    cref<PlanarDiagram<ExtInt>> pd,
     const ExtInt ext_region = PlanarDiagram<ExtInt>::Uninitialized
 )
 {
@@ -156,7 +157,7 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
 }
 
 template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_ObjectiveVector( mref<PlanarDiagram<ExtInt>> pd )
+static Tensor1<S,I> Bends_ObjectiveVector( cref<PlanarDiagram<ExtInt>> pd )
 {
     return Tensor1<S,I>( Bends_VarCount<I>(pd), S(1) );
 }

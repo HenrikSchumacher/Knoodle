@@ -10,7 +10,7 @@ double RattleTiming() const
     return rattle_timing;
 }
 
-template<bool verboseQ = false, typename Int, typename ExtInt>
+template<bool verboseQ = false, typename ExtInt>
 std::vector<PlanarDiagram<Int>> Rattle( cref<PlanarDiagram<Int>> pd, const ExtInt target_iter )
 {
     static_assert(IntQ<ExtInt>,"");
@@ -20,7 +20,7 @@ std::vector<PlanarDiagram<Int>> Rattle( cref<PlanarDiagram<Int>> pd, const ExtIn
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename Int, typename ExtInt>
+template<bool verboseQ = false, typename ExtInt>
 std::vector<PlanarDiagram<Int>> Rattle( PlanarDiagram<Int> && pd, const ExtInt target_iter )
 {
     static_assert(IntQ<ExtInt>,"");
@@ -30,7 +30,7 @@ std::vector<PlanarDiagram<Int>> Rattle( PlanarDiagram<Int> && pd, const ExtInt t
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename Int, typename ExtInt>
+template<bool verboseQ = false, typename ExtInt>
 std::vector<PlanarDiagram<Int>> Rattle(
     mref<std::vector<PlanarDiagram<Int>>> input, const ExtInt target_iter
 )
@@ -46,8 +46,6 @@ std::vector<PlanarDiagram<Int>> Rattle(
     rattle_counter = 0;
 
     if( target_iter <= ExtInt(0) ) { return input; }
-    
-    using PD_T = PlanarDiagram<Int>;
     
     std::vector<PD_T> summands;
     std::vector<PD_T> stack;
@@ -132,7 +130,7 @@ std::vector<PlanarDiagram<Int>> Rattle(
             }
             
             ++rattle_counter;
-            L.SetTransformationMatrix( RandomRotation<Int>() );
+            L.SetTransformationMatrix( RandomRotation() );
             L.template ReadVertexCoordinates<1,0>( &x.data()[0][0] );
 
             int flag = L.FindIntersections();
@@ -213,53 +211,4 @@ std::vector<PlanarDiagram<Int>> Rattle(
     rattle_timing = rattle_timer.Duration();
     
     return output;
-}
-
-
-// This rotation must be orientation preserving.
-template<typename Int>
-Tiny::Matrix<3,3,Real,Int> RandomRotation()
-{
-    using Vector_T = Tiny::Vector<3,Real,Int>;
-    using Matrix_T = Tiny::Matrix<3,3,Real,Int>;
-    
-    std::normal_distribution<Real> gaussian {Real(0),Real(1)};
-    std::uniform_real_distribution<Real> angle_dist {Real(0), Scalar::Pi<Real>};
-    
-    Vector_T u;
-    Real u_squared;
-    do
-    {
-        u[0] = gaussian(random_engine);
-        u[1] = gaussian(random_engine);
-        u[2] = gaussian(random_engine);
-        u_squared = u.NormSquared();
-    }
-    while( u_squared <= Real(0) );
-        
-    u /= Sqrt(u_squared);
-    
-    // Code copied from ClisbyTree.
-    const Real angle = angle_dist(random_engine);
-    
-    const Real cos = std::cos(angle);
-    const Real sin = std::sin(angle);
-    
-    Matrix_T A;
-    
-    const Real d = Real(1) - cos;
-    
-    A[0][0] = u[0] * u[0] * d + cos       ;
-    A[0][1] = u[0] * u[1] * d - sin * u[2];
-    A[0][2] = u[0] * u[2] * d + sin * u[1];
-    
-    A[1][0] = u[1] * u[0] * d + sin * u[2];
-    A[1][1] = u[1] * u[1] * d + cos       ;
-    A[1][2] = u[1] * u[2] * d - sin * u[0];
-    
-    A[2][0] = u[2] * u[0] * d - sin * u[1];
-    A[2][1] = u[2] * u[1] * d + sin * u[0];
-    A[2][2] = u[2] * u[2] * d + cos       ;
- 
-    return A;
 }

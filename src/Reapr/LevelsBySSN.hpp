@@ -2,10 +2,9 @@ public:
 
 // Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
 
-template<typename Int>
-Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsBySSN( cref<PlanarDiagram<Int>> pd )
 {
-    auto x_mu = this->LevelsBySSN_LevelsAndLagrangeMultipliers(pd);
+    auto x_mu = LevelsBySSN_LevelsAndLagrangeMultipliers(pd);
     
     // We have to read the levels values through pd.LinkComponentArcs().Elements()
     
@@ -33,12 +32,11 @@ Tensor1<Real,Int> LevelsBySSN( mref<PlanarDiagram<Int>> pd )
 // Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
 // Returns a vector that contains the levels _and_ the Lagrange multipliers.
 
-template<typename Int>
 Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
-    mref<PlanarDiagram<Int>> pd
+    cref<PlanarDiagram<Int>> pd
 )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
@@ -62,7 +60,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     // Update direction.
     Tensor1<Real,Int> u (m+n);
     
-    auto L = this->template LevelsBySSN_Matrix<UMF_Int,UMF_Int>(pd);
+    auto L = this->template LevelsBySSN_Matrix<Real,UMF_Int,UMF_Int>(pd);
     auto mod_values = L.Values();
     
     // Symbolic factorization
@@ -94,13 +92,13 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
         
         if( umfpack.NumericStatus() != UMFPACK_OK )
         {
-            eprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers: Aborting because numeric factorization failed.");
+            eprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Aborting because numeric factorization failed.");
             
             return Tensor1<Real,Int>();
         }
 
         // u = - L^{-1} . z = -DF(x)^{-1} . F(x);
-        umfpack.Solve<Op::Id,Flag_T::Minus,Flag_T::Zero>(
+        umfpack.template Solve<Op::Id,Flag_T::Minus,Flag_T::Zero>(
             -Scalar::One<Real>, z.data(), Scalar::Zero<Real>, u.data()
         );
         
@@ -148,7 +146,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
         
         if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
         {
-            wprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">" + ": Maximal number of backtrackings reached.");
+            wprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Maximal number of backtrackings reached.");
             
             TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
@@ -166,7 +164,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     
     if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
     {
-        wprint(ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers<" + TypeName<Int> + ">" + ": Maximal number of iterations reached without reaching the stopping criterion.");
+        wprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Maximal number of iterations reached without reaching the stopping criterion.");
     }
     
     return x;
@@ -174,18 +172,19 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
 
 public:
 
-template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> LevelsBySSN_Matrix( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = Int, typename J = Int>
+Sparse::MatrixCSR<R,I,J> LevelsBySSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_Matrix<" + TypeName<Int> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_Matrix<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
     
-    using Aggregator_T = TripleAggregator<I,I,Real,J>;
+    using Aggregator_T = TripleAggregator<I,I,R,J>;
     
     Aggregator_T agg;
     
@@ -217,32 +216,33 @@ Sparse::MatrixCSR<Real,I,J> LevelsBySSN_Matrix( mref<PlanarDiagram<Int>> pd ) co
     
     for( I i = m; i < m + n; ++i )
     {
-        agg.Push( i, i, Scalar::One<Real> );
+        agg.Push( i, i, Scalar::One<R> );
     }
     
-    Sparse::MatrixCSR<Real,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
+    Sparse::MatrixCSR<R,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
     
     return L;
 }
 
 // TODO: Test this!
 
-template<typename I, typename J, typename Int>
+template<typename R = Real, typename I = Int, typename J = Int>
 void LevelsBySSN_WriteMatrixModifiedValues(
-    mref<PlanarDiagram<Int>> pd,
-    cref<Sparse::MatrixCSR<Real,I,J>> L,
-    cptr<Real> y,
-    mptr<Real> mod_vals
+    cref<PlanarDiagram<Int>> pd,
+    mref<Sparse::MatrixCSR<R,I,J>> L,
+    cptr<R> y,
+    mptr<R> mod_vals
 ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_WriteMatrixModifiedValues"
-       + "<" + TypeName<I>
-       + "," + TypeName<J>
-       + "," + TypeName<Int>
-       + ">"
+        + "<" + TypeName<R>
+        + "," + TypeName<I>
+        + "," + TypeName<J>
+        + ">"
     );
     
     cptr<J>    outer      = L.Outer().data();
@@ -251,7 +251,7 @@ void LevelsBySSN_WriteMatrixModifiedValues(
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
     
-    constexpr Real eps = Scalar::eps<Real>;
+    constexpr R eps = Scalar::eps<R>;
     
     for( I i = m; i < m + n; ++i )
     {
@@ -260,7 +260,7 @@ void LevelsBySSN_WriteMatrixModifiedValues(
         
         PD_ASSERT( k_end > k_begin );
         
-        Real mask = static_cast<Real>(y[i] + jump >= eps) + eps;
+        R mask = static_cast<R>(y[i] + jump >= eps) + eps;
         
         // Modify lower left block in system matrix.
         for( J k = k_begin; k < k_end - 1; ++k )
@@ -270,9 +270,9 @@ void LevelsBySSN_WriteMatrixModifiedValues(
         
         // Modify lower right block in system matrix.
         
-        // Caution, this looks weird as we would expect (Real(1)-mask) here.
+        // Caution, this looks weird as we would expect (R(1)-mask) here.
         // But this _is_ what the semi-smooth Newton algorithm requires!
-        mod_vals[k_end - 1] = (mask - Real(1));
+        mod_vals[k_end - 1] = (mask - R(1));
     }
 }
 

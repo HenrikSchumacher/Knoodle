@@ -1,6 +1,6 @@
 public:
 
-cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
+cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
 {
     const std::string tag ("DiagramComponentLinkComponentGraph");
     
@@ -52,18 +52,18 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph()
     return this->template GetCache<MultiGraph_T>(tag);
 }
 
-cref<ComponentMatrix_T> DiagramComponentLinkComponentMatrix()
+cref<ComponentMatrix_T> DiagramComponentLinkComponentMatrix() const
 {
     return DiagramComponentLinkComponentGraph().ComponentVertexMatrix();
 }
 
-Int DiagramComponentCount()
+Int DiagramComponentCount() const
 {
     return DiagramComponentLinkComponentMatrix().RowCount();
 }
 
 
-void RequireDiagramComponents()
+void RequireDiagramComponents() const
 {
     TOOLS_PTIMER(timer,MethodName("RequireDiagramComponents"));
     
@@ -105,7 +105,7 @@ void RequireDiagramComponents()
     this->SetCache( "DiagramComponentArcs", std::move(dc_arcs) );
 }
 
-cref<RaggedList<Int,Int>> DiagramComponentArcs()
+cref<RaggedList<Int,Int>> DiagramComponentArcs() const
 {
     const std::string tag ("DiagramComponentArcs");
     if(!this->InCacheQ(tag)) { RequireDiagramComponents(); }

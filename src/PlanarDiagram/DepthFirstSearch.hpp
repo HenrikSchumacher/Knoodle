@@ -62,7 +62,7 @@ void DepthFirstSearch(
     Rediscover_T && rediscover,
     PreVisit_T   && pre_visit,
     PostVisit_T  && post_visit
-)
+) const
 {
     if( crossing_count <= Int(0) ) { return; }
     
@@ -229,7 +229,7 @@ void DepthFirstSearch(
 }
 
 template<class PreVisitVertex_T>
-void DepthFirstSearch( PreVisitVertex_T && pre_visit )
+void DepthFirstSearch( PreVisitVertex_T && pre_visit ) const
 {
     DepthFirstSearch(
         TrivialArcFunction,    //discover

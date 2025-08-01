@@ -1,11 +1,17 @@
 public:
 
-PlanarDiagram PermuteRandom() const
+template<typename PRNGT_T>
+PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
 {
     TOOLS_PTIMER(timer,MethodName("PermuteRandom"));
                  
-    auto c_perm = Permutation<Int>::RandomPermutation(max_crossing_count,Int(1));
-    auto a_perm = Permutation<Int>::RandomPermutation(max_arc_count,Int(1));
+    auto c_perm = Permutation<Int>::RandomPermutation(
+        max_crossing_count, Int(1), random_engine
+    );
+    
+    auto a_perm = Permutation<Int>::RandomPermutation(
+        max_arc_count, Int(1), random_engine
+    );
     
     return Permute(c_perm,a_perm);
 }

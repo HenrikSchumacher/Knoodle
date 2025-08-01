@@ -6,21 +6,22 @@ Real BendingRegularization() const { return bending_reg; }
 
 private:
 
-template<typename I, typename J, typename Int>
+template<typename R = Real, typename I = Int, typename J = Int>
 void BendingHessian_CollectTriples(
-    mref<PlanarDiagram<Int>> pd,
-    mref<TripleAggregator<I,I,Real,J>> agg,
+    cref<PlanarDiagram<Int>> pd,
+    mref<TripleAggregator<I,I,R,J>> agg,
     const I row_offset,
     const I col_offset
 ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     std::string tag = ClassName()+"::BendingHessian_CollectTriples"
-    + "<" + TypeName<I>
+    + "<" + TypeName<R>
+    + "," + TypeName<I>
     + "," + TypeName<J>
-    + "," + TypeName<Int>
     + ">";
     
     TOOLS_PTIMER(timer,tag);
@@ -49,9 +50,10 @@ void BendingHessian_CollectTriples(
     const Int lc_count   = lc_arcs.SublistCount();
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
     
-    const Real val_0 = 2 + (2 + bending_reg) * (2 + bending_reg);
-    const Real val_1 = -4 - 2 * bending_reg;
-    const Real val_2 = 1;
+    const R reg   = static_cast<R>(bending_reg);
+    const R val_0 = R(2) + (R(2) + reg) * (R(2) + reg);
+    const R val_1 = -R(4) - R(2) * reg;
+    const R val_2 = R(1);
 
     for( Int lc = 0; lc < lc_count; ++lc )
     {
@@ -108,15 +110,16 @@ void BendingHessian_CollectTriples(
 
 public:
 
-template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> BendingHessian( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = Int, typename J = Int>
+Sparse::MatrixCSR<R,I,J> BendingHessian( cref<PlanarDiagram<Int>> pd ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     const I m = static_cast<I>(pd.ArcCount());
     
-    TripleAggregator<I,I,Real,J> agg( J(3) * static_cast<J>(m) );
+    TripleAggregator<I,I,R,J> agg( J(3) * static_cast<J>(m) );
     
     BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
     

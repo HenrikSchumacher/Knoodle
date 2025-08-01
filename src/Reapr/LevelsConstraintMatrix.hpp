@@ -1,21 +1,22 @@
 private:
 
-template<Op op, typename I, typename J, typename Int>
+template<Op op = Op::Id, typename R = Real, typename I = Int, typename J = Int>
 void LevelsConstraintMatrix_CollectTriples(
-    mref<PlanarDiagram<Int>> pd,
-    mref<TripleAggregator<I,I,Real,J>> agg,
+    cref<PlanarDiagram<Int>> pd,
+    mref<TripleAggregator<I,I,R,J>> agg,
     const I row_offset,
     const I col_offset
 ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     std::string tag = ClassName()+"::LevelsConstraintMatrix_CollectTriples"
     + "<" + ToString(op)
+    + "," + TypeName<R>
     + "," + TypeName<I>
     + "," + TypeName<J>
-    + "," + TypeName<Int>
     + ">";
     
     TOOLS_PTIMER(timer,tag);
@@ -57,7 +58,7 @@ void LevelsConstraintMatrix_CollectTriples(
         const I a_0_pos = static_cast<I>(A_pos[a_0]);
         const I a_1_pos = static_cast<I>(A_pos[a_1]);
                                   
-        const Real s = static_cast<Real>(ToUnderlying(C_states[c]));
+        const R s = static_cast<R>(ToUnderlying(C_states[c]));
         
         //  Case: right-handed.
         //
@@ -96,16 +97,17 @@ void LevelsConstraintMatrix_CollectTriples(
 
 public:
 
-template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> LevelsConstraintMatrix( mref<PlanarDiagram<Int>> pd )
+template<typename R = Real, typename I = Int, typename J = Int>
+Sparse::MatrixCSR<R,I,J> LevelsConstraintMatrix( cref<PlanarDiagram<Int>> pd ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
     
-    TripleAggregator<I,I,Real,J> agg( J(2) * n );
+    TripleAggregator<I,I,R,J> agg( J(2) * n );
     
     LevelsConstraintMatrix_CollectTriples<Op::Id>( pd, agg, I(0), I(0) );
     

@@ -6,21 +6,21 @@ Real DirichletRegularization() const { return dirichlet_reg; }
 
 private:
 
-template<typename I, typename J, typename Int>
+template<typename R = Real, typename I = Int, typename J = Int>
 void DirichletHessian_CollectTriples(
-    mref<PlanarDiagram<Int>> pd,
-    mref<TripleAggregator<I,I,Real,J>> agg,
+    cref<PlanarDiagram<Int>> pd,
+    mref<TripleAggregator<I,I,R,J>> agg,
     const I row_offset,
     const I col_offset
 ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
     std::string tag = ClassName()+"::DirichletHessian_CollectTriples"
     + "<" + TypeName<I>
     + "," + TypeName<J>
-    + "," + TypeName<Int>
     + ">";
     
     TOOLS_PTIMER(timer,tag);
@@ -51,8 +51,8 @@ void DirichletHessian_CollectTriples(
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
 //    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
     
-    const Real val_0 = Real(2) + dirichlet_reg;
-    const Real val_1 = Real(-1);
+    const Real val_0 = R(2) + static_cast<R>(dirichlet_reg);
+    const Real val_1 = R(-1);
 
     for( Int lc = 0; lc < lc_count; ++lc )
     {
@@ -83,15 +83,16 @@ void DirichletHessian_CollectTriples(
 
 public:
 
-template<typename I, typename J, typename Int>
-Sparse::MatrixCSR<Real,I,J> DirichletHessian( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = Int, typename J = Int>
+Sparse::MatrixCSR<R,I,J> DirichletHessian( cref<PlanarDiagram<Int>> pd ) const
 {
+    static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
 
     const I m = static_cast<I>(pd.ArcCount());
     
-    TripleAggregator<I,I,Real,J> agg( I(2) * m );
+    TripleAggregator<I,I,R,J> agg( I(2) * m );
     
     DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
     

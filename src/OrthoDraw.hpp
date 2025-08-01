@@ -156,7 +156,7 @@ namespace Knoodle
 
         template<typename ExtInt>
         OrthoDraw(
-            mref<PlanarDiagram<ExtInt>> pd,
+            cref<PlanarDiagram<ExtInt>> pd,
             const ExtInt exterior_region_ = ExtInt(-1),
             Settings_T settings_ = Settings_T()
         )

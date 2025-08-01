@@ -1,19 +1,15 @@
 public:
 
-template<typename T = Real, typename Int>
-Tensor1<T,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
+template<typename T = Real>
+Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
 
     std::string tag = ClassName()+"::LevelsByLP"
-    + "<" + TypeName<Int>
+    + "<" + TypeName<T>
     + ">";
     
-    
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsByLP"
-        + "<" + TypeName<Int>
-        + ">"
-    );
+    TOOLS_PTIMER(timer,tag);
     
     {
         Size_T n       = ToSize_T(pd.CrossingCount());
@@ -120,10 +116,9 @@ Tensor1<T,Int> LevelsByLP( mref<PlanarDiagram<Int>> pd )
 public:
 
 template<
-    typename R = Real, typename I = COIN_Int, typename J = COIN_LInt,
-    typename Int
+    typename R = Real, typename I = COIN_Int, typename J = COIN_LInt
 >
-Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( mref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
@@ -132,7 +127,6 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( mref<PlanarDiagram<Int>> pd ) const
     + "<" + TypeName<R>
     + "," + TypeName<I>
     + "," + TypeName<J>
-    + "," + TypeName<Int>
     + ">";
     
     TOOLS_PTIMER(timer,tag);
@@ -244,22 +238,22 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( mref<PlanarDiagram<Int>> pd ) const
     return A;
 }
 
-template<typename R = Real, typename I = COIN_Int, typename Int>
-Tensor1<R,I> LevelsByLP_LowerBoundsOnVariables( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = COIN_Int>
+Tensor1<R,I> LevelsByLP_LowerBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), -Scalar::Infty<R> );
 }
 
-template<typename R = Real, typename I = COIN_Int, typename Int>
-Tensor1<R,I> LevelsByLP_UpperBoundsOnVariables( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = COIN_Int>
+Tensor1<R,I> LevelsByLP_UpperBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), +Scalar::Infty<R> );
 }
 
-template<typename R = Real, typename I = COIN_Int, typename Int>
-Tensor1<R,I> LevelsByLP_LowerBoundsOnConstraints( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = COIN_Int>
+Tensor1<R,I> LevelsByLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -272,8 +266,8 @@ Tensor1<R,I> LevelsByLP_LowerBoundsOnConstraints( mref<PlanarDiagram<Int>> pd ) 
     return v;
 }
 
-template<typename R = Real, typename I = COIN_Int, typename Int>
-Tensor1<R,I> LevelsByLP_UpperBoundsOnConstraints( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = COIN_Int>
+Tensor1<R,I> LevelsByLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -287,8 +281,8 @@ Tensor1<R,I> LevelsByLP_UpperBoundsOnConstraints( mref<PlanarDiagram<Int>> pd ) 
     return v;
 }
 
-template<typename R = Real, typename I = COIN_Int, typename Int>
-Tensor1<R,I> LevelsByLP_ObjectiveVector( mref<PlanarDiagram<Int>> pd ) const
+template<typename R = Real, typename I = COIN_Int>
+Tensor1<R,I> LevelsByLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
 {
     const Size_T m = ToSize_T(pd.ArcCount());
     Tensor1<R,I> v ( Size_T(2) * m );

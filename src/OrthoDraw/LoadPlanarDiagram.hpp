@@ -3,7 +3,7 @@ private:
 // DEBUGGING
 template<bool debugQ = false, bool verboseQ = false, typename ExtInt>
 void LoadPlanarDiagram(
-    mref<PlanarDiagram<ExtInt>> pd,
+    cref<PlanarDiagram<ExtInt>> pd,
     const ExtInt exterior_region_
 )
 {

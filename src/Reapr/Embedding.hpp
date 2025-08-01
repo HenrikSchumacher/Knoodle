@@ -1,23 +1,36 @@
 public:
 
-template<
-    typename Int, typename V_T = std::array<Real,3>
->
-RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
+Embedding_T Embedding( cref<PD_T> pd, bool randomizeQ = false )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding"));
     
-    if( pd.CrossingCount() <= Int(0) ) { return RaggedList<V_T,Int>(); }
+    if( pd.CrossingCount() <= Int(0) ) { return RaggedList<Point_T,Int>(); }
     
     // TODO: Improve handling of split links!
     if( pd.DiagramComponentCount() > Int(1) )
     {
         eprint(MethodName("Embedding") + ": input PlanarDiagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
-        return RaggedList<V_T,Int>();
+        return RaggedList<Point_T,Int>();
     }
     
-//    TOOLS_PDUMP( pd.PDCode() );
-    OrthoDraw<Int> H (pd);
+    if( randomizeQ )
+    {
+        PD_T pd_ = pd.PermuteRandom(random_engine);
+        
+        return Embedding_impl( pd_, true );
+    }
+    else
+    {
+        return Embedding_impl( pd, false );
+    }
+}
+
+
+private:
+
+Embedding_T Embedding_impl( cref<PD_T> pd, bool randomizeQ = false )
+{
+    OrthoDraw<Int> H ( pd, PD_T::Uninitialized, { .randomizeQ = randomizeQ } );
 
     Tensor1<Real,Int> L = Levels(pd);
 
@@ -33,7 +46,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     
-    RaggedList<V_T,Int> V_agg ( lc_count, H.VertexCount() + H.ArcCount() );
+    RaggedList<Point_T,Int> V_agg ( lc_count, H.VertexCount() + H.ArcCount() );
 
     const auto & A_V  = H.ArcVertices();
     cptr<Int> A_V_ptr = A_V.Pointers().data();
@@ -72,7 +85,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( V_T{x,y,L_a} );
+                V_agg.Push( Point_T{x,y,L_a} );
             }
             
             if( n % Int(2) )
@@ -84,7 +97,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
                     const Int v = V[k_half];
                     const Real x = static_cast<Real>(V_coords(v,0));
                     const Real y = static_cast<Real>(V_coords(v,1));
-                    V_agg.Push( V_T{x,y,L_a} );
+                    V_agg.Push( Point_T{x,y,L_a} );
                 }
             }
             else
@@ -96,12 +109,12 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
                 
                 const Real x = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,0) + V_coords(v_1,0));
                 const Real y = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,1) + V_coords(v_1,1));
-                V_agg.Push( V_T{x,y,L_a} );
+                V_agg.Push( Point_T{x,y,L_a} );
                 
                 if( L_b != L_a )
                 {
                     // In the case of a jump we need a duplicate.
-                    V_agg.Push( V_T{x,y,L_b} );
+                    V_agg.Push( Point_T{x,y,L_b} );
                 }
             }
             
@@ -110,7 +123,7 @@ RaggedList<V_T,Int> Embedding( mref<PlanarDiagram<Int>> pd )
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( V_T{x,y,L_b} ); // Caution: Here we use the level of next arc's tail.
+                V_agg.Push( Point_T{x,y,L_b} ); // Caution: Here we use the level of next arc's tail.
             }
         }
         

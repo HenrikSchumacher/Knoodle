@@ -12,22 +12,35 @@ namespace Knoodle
     // TODO: Add type checks everywhere.
     // TODO: Call COIN-OR for height regularizer.
     
+    template<typename Real_, typename Int_>
     class Reapr
     {
     public:
-        using Real      = Real64;
-
-        using UMF_Int   = Int64;
-
-        using COIN_Real = double;
-        using COIN_Int  = int;
-        using COIN_LInt = CoinBigIndex;
+        static_assert(FloatQ<Real_>,"");
+        static_assert(Scalar::RealQ<Real_>,"");
+        static_assert(IntQ<Int_>,"");
         
+        using Real        = Real_;
+        using Int         = Int_;
+
+        using UMF_Int     = Int64;
+
+        using COIN_Real   = double;
+        using COIN_Int    = int;
+        using COIN_LInt   = CoinBigIndex;
+        
+        using Link_T      = Link_2D<Real,Int>;
+        using PD_T        = PlanarDiagram<Int>;
+        using Point_T     = std::array<Real,3>;
+        using Embedding_T = RaggedList<Point_T,Int>;
+        
+        using PRNG_T      = pcg64;
+//        using PRNG_T    = std::mt19937_64;
+        using Flag_T      = Scalar::Flag;
+
         static constexpr bool CLP_enabledQ = true;
 
-        using PRNG_T    = pcg64;
-        using Flag_T    = Scalar::Flag;
-        
+
         enum class EnergyFlag_T : Int32
         {
             TV        = 0,
@@ -55,7 +68,6 @@ namespace Knoodle
         
         int  rattle_counter      = 0;
         Real rattle_timing       = 0;
-
         
         PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
@@ -84,7 +96,6 @@ namespace Knoodle
         
     private:
         
-        template<typename Int>
         EnergyFlag_T EnergyFlag( mref<PlanarDiagram<Int>> pd ) const
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -92,14 +103,11 @@ namespace Knoodle
             return pd.GetCache(tag);
         }
         
-        template<typename Int>
-        bool EnergyFlagOutdatedQ( mref<PlanarDiagram<Int>> pd ) const
+        bool EnergyFlagOutdatedQ( cref<PlanarDiagram<Int>> pd ) const
         {
             return EnergyFlag(pd) != en_flag;
         }
         
-        
-        template<typename Int>
         void SetEnergyFlag( mref<PlanarDiagram<Int>> pd )
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -111,10 +119,7 @@ namespace Knoodle
         
     public:
         
-        template<typename Int>
-        void WriteReaprFeasibleLevels(
-            mref<PlanarDiagram<Int>> pd,
-            mptr<Real> x )
+        void WriteReaprFeasibleLevels( cref<PlanarDiagram<Int>> pd, mptr<Real> x )
         {
             
             constexpr bool Tail  = PlanarDiagram<Int>::Tail;
@@ -186,39 +191,38 @@ namespace Knoodle
 #include "Reapr/DirichletHessian.hpp"
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/LevelsConstraintMatrix.hpp"
-#include "Reapr/LevelsSystemSSN.hpp"
 #include "Reapr/LevelsBySSN.hpp"
-#include "Reapr/LevelsSystemLP.hpp"
 #include "Reapr/LevelsByLP.hpp"
 #include "Reapr/Embedding.hpp"
+#include "Reapr/RandomRotation.hpp"
 #include "Reapr/Rattle.hpp"
+#include "Reapr/Generate.hpp"
         
     public:
         
-        template<typename I, typename J, typename Int>
-        Sparse::MatrixCSR<Real,I,J> Hessian( mref<PlanarDiagram<Int>> pd ) const
+        template<typename R = Real, typename I = Int, typename J = Int>
+        Sparse::MatrixCSR<R,I,J> Hessian( cref<PlanarDiagram<Int>> pd ) const
         {
             switch ( en_flag )
             {
                 case EnergyFlag_T::Bending:
                 {
-                    return this->BendingHessian<I,J>(pd);
+                    return this->BendingHessian<R,I,J>(pd);
                 }
                 case EnergyFlag_T::Dirichlet:
                 {
-                    return this->DirichletHessian<I,J>(pd);
+                    return this->DirichletHessian<R,I,J>(pd);
                 }
                 default:
                 {
                     wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid. Using default flag = " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet enery) instead.");
                     
-                    return this->DirichletHessian<I,J>(pd);
+                    return this->DirichletHessian<R,I,J>(pd);
                 }
             }
         }
         
-        template<typename Int>
-        Tensor1<Real,Int> Levels( mref<PlanarDiagram<Int>> pd )
+        Tensor1<Real,Int> Levels( cref<PD_T> pd )
         {
             switch ( en_flag )
             {
@@ -257,7 +261,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return "Reapr";
+            return std::string("Reapr<") + TypeName<Real> + "," + TypeName<Int> + ">";
         }
         
     }; // class Reapr
