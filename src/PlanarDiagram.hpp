@@ -165,10 +165,10 @@ namespace Knoodle
 
     public:
         
-        template<typename ExtInt>
+        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
         PlanarDiagram(
-            cptr<ExtInt> crossings, cptr<ExtInt> crossing_states,
-            cptr<ExtInt> arcs     , cptr<ExtInt> arc_states,
+            cptr<ExtInt> crossings, cptr<ExtInt2> crossing_states,
+            cptr<ExtInt> arcs     , cptr<ExtInt3> arc_states,
             const ExtInt crossing_count_,
             const ExtInt unlink_count_,
             const bool proven_minimalQ_ = false
@@ -176,6 +176,8 @@ namespace Knoodle
         :   PlanarDiagram( crossing_count_, unlink_count_ )
         {
             static_assert(IntQ<ExtInt>,"");
+            static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState>,"");
+            static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState>,"");
             
             C_arcs.Read(crossings);
             C_state.Read(crossing_states);
@@ -566,7 +568,7 @@ namespace Knoodle
         }
         
         template<bool verboseQ = true>
-        bool EulerCharacteristicValidQ()
+        bool EulerCharacteristicValidQ() const
         {
             TOOLS_PTIMER(timer,MethodName("EulerCharacteristicValidQ"));
             const Int euler_char  = EulerCharacteristic();
@@ -588,7 +590,7 @@ namespace Knoodle
         
         PlanarDiagram ChiralityTransform(
             const bool mirrorQ, const bool reverseQ
-        )
+        ) const
         {
             PlanarDiagram pd ( max_crossing_count, unlink_count );
             

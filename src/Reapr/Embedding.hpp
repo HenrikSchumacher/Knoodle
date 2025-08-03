@@ -1,6 +1,6 @@
 public:
 
-Embedding_T Embedding( cref<PD_T> pd, bool randomizeQ = false )
+Embedding_T Embedding( cref<PD_T> pd )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding"));
     
@@ -13,24 +13,24 @@ Embedding_T Embedding( cref<PD_T> pd, bool randomizeQ = false )
         return RaggedList<Point_T,Int>();
     }
     
-    if( randomizeQ )
+    if( permute_randomQ )
     {
         PD_T pd_ = pd.PermuteRandom(random_engine);
         
-        return Embedding_impl( pd_, true );
+        return Embedding_impl(pd_);
     }
     else
     {
-        return Embedding_impl( pd, false );
+        return Embedding_impl(pd);
     }
 }
 
 
 private:
 
-Embedding_T Embedding_impl( cref<PD_T> pd, bool randomizeQ = false )
+Embedding_T Embedding_impl( cref<PD_T> pd)
 {
-    OrthoDraw<Int> H ( pd, PD_T::Uninitialized, { .randomizeQ = randomizeQ } );
+    OrthoDraw_T H ( pd, PD_T::Uninitialized, ortho_draw_settings );
 
     Tensor1<Real,Int> L = Levels(pd);
 

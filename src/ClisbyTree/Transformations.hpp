@@ -48,6 +48,7 @@ static Transform_T PivotTransform(
         
         if( reflectQ_ )
         {
+            // TODO: If we use nonuniform angle distributions, then we should change this or turn off the reflection.
             Tiny::Vector<3,Real,Int> v;
             u.Write( v.data() );
             

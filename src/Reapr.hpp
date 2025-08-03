@@ -20,23 +20,25 @@ namespace Knoodle
         static_assert(Scalar::RealQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
         
-        using Real        = Real_;
-        using Int         = Int_;
+        using Real                = Real_;
+        using Int                 = Int_;
 
-        using UMF_Int     = Int64;
+        using UMF_Int             = Int64;
 
-        using COIN_Real   = double;
-        using COIN_Int    = int;
-        using COIN_LInt   = CoinBigIndex;
+        using COIN_Real           = double;
+        using COIN_Int            = int;
+        using COIN_LInt           = CoinBigIndex;
         
-        using Link_T      = Link_2D<Real,Int>;
-        using PD_T        = PlanarDiagram<Int>;
-        using Point_T     = std::array<Real,3>;
-        using Embedding_T = RaggedList<Point_T,Int>;
+        using Link_T              = Link_2D<Real,Int>;
+        using PD_T                = PlanarDiagram<Int>;
+        using Point_T             = std::array<Real,3>;
+        using OrthoDraw_T         = OrthoDraw<Int>;
+        using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
+        using Embedding_T         = RaggedList<Point_T,Int>;
+
         
-        using PRNG_T      = pcg64;
-//        using PRNG_T    = std::mt19937_64;
-        using Flag_T      = Scalar::Flag;
+        using PRNG_T              = pcg64;
+        using Flag_T              = Scalar::Flag;
 
         static constexpr bool CLP_enabledQ = true;
 
@@ -66,12 +68,21 @@ namespace Knoodle
         
         EnergyFlag_T en_flag     = CLP_enabledQ ? EnergyFlag_T::TV: EnergyFlag_T::Dirichlet;
         
+        
+        bool permute_randomQ     = false;
+        OrthoDrawSettings_T ortho_draw_settings;
+        
         int  rattle_counter      = 0;
         Real rattle_timing       = 0;
         
         PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
     public:
+        
+        void Reseed()
+        {
+            random_engine = InitializedRandomEngine<PRNG_T>();
+        }
         
         void SetEnergyFlag( EnergyFlag_T flag )
         {
@@ -90,9 +101,30 @@ namespace Knoodle
         EnergyFlag_T EnergyFlag() const { return en_flag; }
         
         
-        void SetScaling( Real scal ) { scaling = scal; }
-
         Real Scaling() const { return scaling; }
+        
+        void SetScaling( Real val ) { scaling = val; }
+        
+        
+        bool PermuteRandomQ() const { return permute_randomQ; }
+        
+        void SetPermuteRandomQ( bool val ) { permute_randomQ = val; }
+
+        
+        cref<OrthoDrawSettings_T> OrthoDrawSettings() const
+        {
+            return ortho_draw_settings;
+        }
+        
+        void SetOrthoDrawSettings( OrthoDrawSettings_T && val )
+        {
+            ortho_draw_settings = val;
+        }
+        void SetOrthoDrawSettings( cref<OrthoDrawSettings_T> val )
+        {
+            ortho_draw_settings = val;
+        }
+        
         
     private:
         

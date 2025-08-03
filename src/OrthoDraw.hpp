@@ -61,7 +61,7 @@ namespace Knoodle
             bool saturate_facesQ          = true;
             bool saturate_exterior_faceQ  = true;
             bool filter_saturating_edgesQ = true;
-            bool parallelizeQ             = true;
+            bool parallelizeQ             = false;
             int  compaction_method        = 0;
             
             Int  x_grid_size              = 20;
