@@ -110,15 +110,15 @@ std::vector<PlanarDiagram<Int>> Rattle(
             continue;
         }
 
-        auto [comp_ptr,x] = Embedding(pd_0).Disband();
+        Tensor1<Int,Int> comp_ptr;
+        Tensor1<Point_T,Int> x;
+        Link_T L;
         
-//                // DEBUGGING
-//                Tiny::VectorList_AoS<3,Real,Int> x_;
-//                x_.Read( &x.data()[0][0] );
-//                TOOLS_PDUMP(comp_ptr);
-//                TOOLS_PDUMP(x_);
-        
-        Link_2D<Real,Int> L ( comp_ptr );
+        if ( !(permute_randomQ || ortho_draw_settings.randomizeQ) )
+        {
+            std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
+            L = Link_2D<Real,Int> ( comp_ptr );
+        }
         
         bool successQ = false;
         
@@ -129,6 +129,12 @@ std::vector<PlanarDiagram<Int>> Rattle(
                 logvalprint(MethodName("Rattle") + ": Starting iteration",iter);
             }
             
+            if ( (permute_randomQ || ortho_draw_settings.randomizeQ) )
+            {
+                std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
+                L = Link_2D<Real,Int> ( comp_ptr );
+            }
+
             ++rattle_counter;
             L.SetTransformationMatrix( RandomRotation() );
             L.template ReadVertexCoordinates<1,0>( &x.data()[0][0] );

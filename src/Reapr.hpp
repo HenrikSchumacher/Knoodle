@@ -47,7 +47,8 @@ namespace Knoodle
         {
             TV        = 0,
             Dirichlet = 1,
-            Bending   = 2
+            Bending   = 2,
+            Height    = 3,
         };
 
         static constexpr Real jump = 1;
@@ -69,8 +70,8 @@ namespace Knoodle
         EnergyFlag_T en_flag     = CLP_enabledQ ? EnergyFlag_T::TV: EnergyFlag_T::Dirichlet;
         
         
-        bool permute_randomQ     = false;
-        OrthoDrawSettings_T ortho_draw_settings;
+        bool permute_randomQ     = true;
+        OrthoDrawSettings_T ortho_draw_settings = { .randomizeQ = true };
         
         int  rattle_counter      = 0;
         Real rattle_timing       = 0;
@@ -110,6 +111,10 @@ namespace Knoodle
         
         void SetPermuteRandomQ( bool val ) { permute_randomQ = val; }
 
+        mref<OrthoDrawSettings_T> OrthoDrawSettings()
+        {
+            return ortho_draw_settings;
+        }
         
         cref<OrthoDrawSettings_T> OrthoDrawSettings() const
         {
@@ -225,6 +230,7 @@ namespace Knoodle
 #include "Reapr/LevelsConstraintMatrix.hpp"
 #include "Reapr/LevelsBySSN.hpp"
 #include "Reapr/LevelsByLP.hpp"
+#include "Reapr/LevelsByHeight.hpp"
 #include "Reapr/Embedding.hpp"
 #include "Reapr/RandomRotation.hpp"
 #include "Reapr/Rattle.hpp"
@@ -247,9 +253,9 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid. Using default flag = " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet enery) instead.");
+                    wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
                     
-                    return this->DirichletHessian<R,I,J>(pd);
+                    return Sparse::MatrixCSR<R,I,J>();
                 }
             }
         }
@@ -279,6 +285,10 @@ namespace Knoodle
                 case EnergyFlag_T::Dirichlet:
                 {
                     return LevelsBySSN(pd);
+                }
+                case EnergyFlag_T::Height:
+                {
+                    return LevelsByHeight(pd);
                 }
             }
         }

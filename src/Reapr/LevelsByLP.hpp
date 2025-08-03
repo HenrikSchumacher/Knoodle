@@ -5,9 +5,7 @@ Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    std::string tag = ClassName()+"::LevelsByLP"
-    + "<" + TypeName<T>
-    + ">";
+    std::string tag = ClassName() + "::LevelsByLP" + "<" + TypeName<T> + ">";
     
     TOOLS_PTIMER(timer,tag);
     

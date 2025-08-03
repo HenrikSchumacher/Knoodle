@@ -148,57 +148,61 @@ namespace Knoodle
             
             if( n > Int(64) )
             {
-                eprint(MethodName("Process")+": Only works for 64 crossings or less.");
+                eprint(MethodName("Process")+": Only works for 64 crossings or less. Aborting");
+                return;
             }
             
             const UInt64 i_max = (UInt64(1) << n );
             
             Tensor1<CrossingState,Int> C_state ( n );
-            
-            for( bool mirrorQ : {false,true} )
-            {
-                for( bool reverseQ : {false,true} )
-                {
-                    PD_T pd_1 = pd_0.ChiralityTransform(mirrorQ,reverseQ);
                     
-                    for( UInt64 i = 0; i < i_max; ++i )
+            for( UInt64 i = 0; i < i_max; ++i )
+            {
+                for( Int j = 0; j < n; ++j )
+                {
+                    C_state [j] = get_bit(i,j)
+                                ? CrossingState::RightHanded
+                                : CrossingState::LeftHanded;
+                }
+
+                PD_T pd (
+                    pd_0.Crossings().data(),
+                    C_state.data(),
+                    pd_0.Arcs().data(),
+                    pd_0.ArcStates().data(),
+                    n,
+                    Int(0),
+                    pd_0.ProvenMinimalQ()
+                );
+                
+                auto pd_list = reapr.Rattle(pd,rattle_iter);
+
+                if(
+                    (pd_list.size() == Size_T(1))
+                    &&
+                    (pd_list[0].CrossingCount() == n)
+                )
+                {
+                    bool proven_minimalQ = pd_list[0].ProvenMinimalQ();
+                    
+                    for( bool mirrorQ : {false,true} )
                     {
-                        for( Int j = 0; j < n; ++j )
+                        for( bool reverseQ : {false,true} )
                         {
-                            C_state [j] = get_bit(i,j)
-                                        ? CrossingState::RightHanded
-                                        : CrossingState::LeftHanded;
-                        }
-
-                        PD_T pd (
-                            pd_1.Crossings().data(),
-                            C_state.data(),
-                            pd_1.Arcs().data(),
-                            pd_1.ArcStates().data(),
-                            n,
-                            Int(0),
-                            pd_1.ProvenMinimalQ()
-                        );
-                        
-                        auto pd_list = reapr.Rattle(pd,rattle_iter);
-
-                        if(
-                            (pd_list.size() == Size_T(1))
-                            &&
-                            (pd_list[0].CrossingCount() == n)
-                        )
-                        {
-                            // We collect the original diagram, not the simplified one.
-                            if( pd_list[0].ProvenMinimalQ() )
+                            // We collect the chirality transforms of the _original_ diagram, not the simplified one.
+                            
+                            PD_T pd_1 = pd.ChiralityTransform(mirrorQ,reverseQ);
+                            
+                            if( proven_minimalQ )
                             {
                                 global_minimal_codes.insert(
-                                    pd.template MacLeodCode<CodeInt>()
+                                    pd_1.template MacLeodCode<CodeInt>()
                                 );
                             }
                             else
                             {
                                 global_other_codes.insert(
-                                    pd.template MacLeodCode<CodeInt>()
+                                    pd_1.template MacLeodCode<CodeInt>()
                                 );
                             }
                         }

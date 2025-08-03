@@ -204,11 +204,10 @@ Sparse::MatrixCSR<R,I,J> LevelsBySSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
         }
         default:
         {
-            wprint(ClassName()+"::LevelsBySSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid. Using default energy flag " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet energy) instead." );
+            wprint(ClassName()+"::LevelsBySSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsBySSN_Matrix. Returning empty matrix." );
             
-            agg = Aggregator_T( J(2) * m + J(3) * n );
-            DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
-            break;
+
+            return Sparse::MatrixCSR<R,I,J>();
         }
     }
     
