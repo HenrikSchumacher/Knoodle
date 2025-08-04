@@ -132,7 +132,8 @@ namespace Knoodle
         {
             Uniform,
 //            Triangular,
-            DiscreteWrappedGaussian
+            DiscreteWrappedGaussian,
+            DiscreteWrappedLaplace
         };
 
         

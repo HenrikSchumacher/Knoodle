@@ -41,6 +41,11 @@ Clisby_T CreateClisbyTree( bool load_data = false )
             T.UseDiscreteWrappedGaussianPivots(pivot_sigma);
             break;
         }
+        case PivotRandomMethod_T::DiscreteWrappedLaplace:
+        {
+            T.UseDiscreteWrappedLaplacePivots(pivot_beta);
+            break;
+        }
     }
     
     return T;
@@ -133,6 +138,43 @@ void Initialize()
     kv<t1>  ("Burn-in Count",burn_in);
     kv<t1>  ("Skip Count",skip);
     kv<t1>  ("Reflection Probability",reflection_probability);
+    
+    switch (angle_method)
+    {
+        case AngleRandomMethod_T::WrappedGaussian:
+        {
+            kv<t1>  ("Angle Random Method","Wrapped Gaussian ( SD = " + ToStringFPGeneral(angle_sigma) +")");
+            break;
+            
+        }
+        default:
+        {
+            kv<t1>  ("Angle Random Method","Uniform");
+            break;
+        }
+    }
+    
+    switch (pivot_method)
+    {
+        case PivotRandomMethod_T::DiscreteWrappedGaussian:
+        {
+            kv<t1>  ("Pivot Random Method","Discrete Wrapped Gaussian ( SD = " + ToStringFPGeneral(pivot_sigma) +")");
+            break;
+            
+        }
+        case PivotRandomMethod_T::DiscreteWrappedLaplace:
+        {
+            kv<t1>  ("Pivot Random Method","Discrete Wrapped Laplace ( beta = " + ToStringFPGeneral(pivot_beta) +")");
+            break;
+            
+        }
+        default:
+        {
+            kv<t1>  ("Angle Random Method","Uniform");
+            break;
+        }
+    }
+    
     kv<t1>  ("Hierarchical Moves",BoolString(hierarchicalQ));
     kv<t1>  ("Shift Indices",BoolString(shiftQ));
     kv<t1>  ("Recenter",BoolString(recenterQ));

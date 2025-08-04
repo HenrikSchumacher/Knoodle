@@ -5,19 +5,21 @@ using real_unif = std::uniform_real_distribution<Real>;
 
 using wrapped_gaussian       = WrappedGaussianDistribution<Real>;
 using discr_wrapped_gaussian = DiscreteWrappedGaussianDistribution<Int,double>;
+using discr_wrapped_laplace  = DiscreteWrappedLaplaceDistribution<Int,double>;
 
 private:
 
-real_unif            prob_unif{ Real(0), Real(1) };
+real_unif              prob_unif      { Real(0), Real(1) };
 
-AngleRandomMethod_T  angle_rand_method = AngleRandomMethod_T::Uniform;
+AngleRandomMethod_T    angle_rand_method = AngleRandomMethod_T::Uniform;
 
-real_unif            angle_unif     { Real(0), Scalar::TwoPi<Real> };
-wrapped_gaussian     angle_gaussian { Real(0), Real(1), Scalar::TwoPi<Real> };
+real_unif              angle_unif     { Real(0), Scalar::TwoPi<Real> };
+wrapped_gaussian       angle_gaussian { Real(0), Real(1), Scalar::TwoPi<Real> };
 
-PivotRandomMethod_T  pivot_rand_method = PivotRandomMethod_T::Uniform;
+PivotRandomMethod_T    pivot_rand_method = PivotRandomMethod_T::Uniform;
 
 discr_wrapped_gaussian pivot_gaussian { double(0), double(1), Int(1) };
+discr_wrapped_laplace  pivot_laplace  { double(0), double(1), Int(1) };
 
 public:
 
@@ -130,11 +132,22 @@ void UseDiscreteWrappedGaussianPivots( const double sigma )
 {
     if( sigma <= double(0) )
     {
-        eprint(MethodName("UseDiscreteWrappedGaussianPivots") + " argument sigma = " + Tools::ToString(sigma) + " is invalid. Continue to use the present random method \"" + ToString(pivot_rand_method) +"\".");
+        eprint(MethodName("UseDiscreteWrappedGaussianPivots") + " argument sigma = " + Tools::ToString(sigma) + " must be positive. Using the present random method \"" + ToString(pivot_rand_method) +"\" instead.");
     }
     
     pivot_rand_method = PivotRandomMethod_T::DiscreteWrappedGaussian;
     pivot_gaussian = discr_wrapped_gaussian { double(0), sigma, VertexCount() };
+}
+
+void UseDiscreteWrappedLaplacePivots( const double beta )
+{
+    if( beta <= double(0) )
+    {
+        eprint(MethodName("UseDiscreteWrappedLaplacePivots") + " argument beta = " + Tools::ToString(beta) + " must be positive. Using the present random method \"" + ToString(pivot_rand_method) +"\" instead.");
+    }
+    
+    pivot_rand_method = PivotRandomMethod_T::DiscreteWrappedLaplace;
+    pivot_laplace     = discr_wrapped_laplace { double(0), beta, VertexCount() };
 }
 
 PivotRandomMethod_T PivotRandomMethod()
@@ -203,6 +216,26 @@ std::pair<Int,Int> RandomPivots_DiscreteWrappedGaussian()
     return std::pair<Int,Int>( i, j );
 }
 
+std::pair<Int,Int> RandomPivots_DiscreteWrappedLaplace()
+{
+    const Int n = VertexCount();
+    Int i;
+    Int j;
+    do
+    {
+        i = RandomInteger( Int(0), n - Int(1) );
+        
+        j = i + pivot_laplace(random_engine);
+        
+        // j now lies in [0,n) + [0,n) = [0,2 * n - 1)
+        
+        if( j >= n ) { j -= n; }
+    }
+    while( ModDistance(n,i,j) <= Int(1) );
+
+    return std::pair<Int,Int>( i, j );
+}
+
 
 std::pair<Int,Int> RandomPivots()
 {
@@ -215,6 +248,10 @@ std::pair<Int,Int> RandomPivots()
         case PivotRandomMethod_T::DiscreteWrappedGaussian:
         {
             return RandomPivots_DiscreteWrappedGaussian();
+        }
+        case PivotRandomMethod_T::DiscreteWrappedLaplace:
+        {
+            return RandomPivots_DiscreteWrappedLaplace();
         }
         default:
         {

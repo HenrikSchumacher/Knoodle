@@ -157,6 +157,7 @@ namespace Knoodle
         Real angle_sigma   = 0;
         PivotRandomMethod_T pivot_method = PivotRandomMethod_T::Uniform;
         double pivot_sigma = 0;
+        double pivot_beta  = 0;
         
         // Witness checking
         std::ofstream witness_stream;
