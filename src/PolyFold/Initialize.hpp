@@ -149,7 +149,7 @@ void Initialize()
         }
         default:
         {
-            kv<t1>  ("Angle Random Method","Uniform");
+            kv<t1>  ("Angle Random Method",std::string("Uniform"));
             break;
         }
     }
@@ -170,7 +170,7 @@ void Initialize()
         }
         default:
         {
-            kv<t1>  ("Angle Random Method","Uniform");
+            kv<t1>  ("Angle Random Method",std::string("Uniform"));
             break;
         }
     }
