@@ -83,12 +83,14 @@ std::vector<PlanarDiagram<Int>> Rattle(
     // First we simplify all inputs...
     for( auto & pd : input )
     {
+        // TODO: Why not directly pushing to stack?
         pd.Simplify5( summands );
         summands.push_back( std::move(pd) );
     }
     // ... and push them to the stack (or to output).
     for( auto & pd : summands )
     {
+        // We should delete pd from summands.
         rattle_push( std::move(pd) );
     }
     
