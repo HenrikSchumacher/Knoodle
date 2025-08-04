@@ -266,10 +266,8 @@ std::pair<Int,Int> RandomPivots(
     assert( b <= c );
     assert( c <  d );
     
-    int_unif int_u_i ( a, b - Int(1) );
-    int_unif u_int_i ( a, b - Int(1) ); // experimental! maybe bad!
-    int_unif int_u_j ( c, d - Int(1) );
-    int_unif u_int_j ( c, d - Int(1) ); // same here!
+    int_unif u_int_i ( a, b - Int(1) );
+    int_unif u_int_j ( c, d - Int(1) );
     
     Int i;
     Int j;

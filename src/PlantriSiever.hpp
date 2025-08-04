@@ -97,15 +97,7 @@ namespace Knoodle
             
             const Int iter = int_cast<Int>(rattle_iter);
             
-            if( !Reset(crossing_count_) )
-            {
-                return;
-            }
-            
-            
-            TOOLS_DUMP(rattle_iter);
-            TOOLS_DUMP(input_count);
-            TOOLS_DUMP(crossing_count);
+            if( !Reset(crossing_count_) ) { return; }
             
             for( Size_T i = 0; i < input_count; ++i )
             {
@@ -171,8 +163,7 @@ namespace Knoodle
                     pd_0.Arcs().data(),
                     pd_0.ArcStates().data(),
                     n,
-                    Int(0),
-                    pd_0.ProvenMinimalQ()
+                    Int(0), false
                 );
                 
                 auto pd_list = reapr.Rattle(pd,rattle_iter);
