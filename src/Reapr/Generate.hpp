@@ -103,7 +103,15 @@ Size_T Generate_Recursive(
     Tensor1<Point_T,Int> x;
     Link_T L;
     
-    if ( !(permute_randomQ || ortho_draw_settings.randomizeQ) )
+    const bool randomizeQ = (
+        permute_randomQ
+        ||
+        ortho_draw_settings.randomize_virtual_edgesQ
+        ||
+        (ortho_draw_settings.randomize_bends > 0)
+    );
+    
+    if ( !randomizeQ )
     {
         std::tie(comp_ptr,x) = Embedding(pd).Disband();
         L = Link_T( comp_ptr );
@@ -111,7 +119,7 @@ Size_T Generate_Recursive(
     
     for( Int branch = 0; branch < branch_count; ++branch )
     {
-        if ( permute_randomQ || ortho_draw_settings.randomizeQ )
+        if ( randomizeQ )
         {
             std::tie(comp_ptr,x) = Embedding(pd).Disband();
             L = Link_T( comp_ptr );
@@ -366,7 +374,15 @@ void Generate2_impl(
         Tensor1<Point_T,Int> x;
         Link_T L;
         
-        if ( !(permute_randomQ || ortho_draw_settings.randomizeQ) )
+        const bool randomizeQ = (
+            permute_randomQ
+            ||
+            ortho_draw_settings.randomize_virtual_edgesQ
+            ||
+            (ortho_draw_settings.randomize_bends > 0)
+        );
+        
+        if ( !randomizeQ )
         {
             std::tie(comp_ptr,x) = Embedding(pd).Disband();
             L = Link_T( comp_ptr );
@@ -374,7 +390,7 @@ void Generate2_impl(
         
         for( Int attempt = 0; attempt < attempt_count; ++attempt )
         {
-            if ( permute_randomQ || ortho_draw_settings.randomizeQ )
+            if ( randomizeQ )
             {
                 std::tie(comp_ptr,x) = Embedding(pd).Disband();
                 L = Link_T( comp_ptr );
@@ -428,7 +444,8 @@ GenerateMany2(
 //    TOOLS_DUMP(simplification_threshold);
 //    TOOLS_DUMP(attempt_count);
 //    TOOLS_DUMP(permute_randomQ);
-//    TOOLS_DUMP(ortho_draw_settings.randomizeQ);
+//    TOOLS_DUMP(ortho_draw_settings.randomize_bends);
+//    TOOLS_DUMP(ortho_draw_settings.randomize_virtual_edgesQ);
     
     JobPointers<Size_T> job_ptr ( input_code_count, thread_count );
                

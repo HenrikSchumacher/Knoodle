@@ -71,12 +71,15 @@ namespace Knoodle
         
         
         bool permute_randomQ     = true;
-        OrthoDrawSettings_T ortho_draw_settings = { .randomizeQ = true };
+        OrthoDrawSettings_T ortho_draw_settings = {
+            .randomize_virtual_edgesQ = true,
+            .randomize_bends  = 4
+        };
         
         int  rattle_counter      = 0;
         Real rattle_timing       = 0;
         
-        PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
+        mutable PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
     public:
         

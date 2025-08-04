@@ -1,5 +1,65 @@
 public:
 
+cref<Tensor1<Int,Int>> LevelsByLP_ArcIndices(
+    cref<PlanarDiagram<Int>> pd
+) const
+{
+    std::string tag (MethodName("LevelsByLP_ArcIndices"));
+    
+    if(!pd.InCacheQ(tag))
+    {
+        const Int a_count = pd.Arcs().Dim(0);
+        
+        Tensor1<Int,Int> A_idx ( a_count );
+        Permutation<Int> perm;
+        
+        
+        Int a_idx = 0;
+        
+        if( permute_randomQ )
+        {
+            perm = Permutation<Int>::RandomPermutation(
+               a_count, Int(1), random_engine
+            );
+            
+            cptr<Int> p = perm.GetPermutation().data();
+            
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = p[a_idx];
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        else
+        {
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = a_idx;
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        
+        pd.SetCache(tag,std::move(A_idx));
+    }
+    
+    return pd.template GetCache<Tensor1<Int,Int>>(tag);
+}
+
+
 template<typename T = Real>
 Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
 {
@@ -30,28 +90,6 @@ Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
         }
     }
     
-//    ClpSimplex LP;
-//    LP.setMaximumIterations(1000000);
-//    LP.setOptimizationDirection(1); // +1 - minimize; -1 - maximize
-//    
-//    auto A = this->template LevelsByLP_Matrix<COIN_Int,COIN_LInt>(pd);
-//    
-//    auto col_lower_bnd = LevelsByLP_LowerBoundsOnVariables(pd);
-//    auto col_upper_bnd = LevelsByLP_UpperBoundsOnVariables(pd);
-//    auto row_lower_bnd = LevelsByLP_LowerBoundsOnConstraints(pd);
-//    auto row_upper_bnd = LevelsByLP_UpperBoundsOnConstraints(pd);
-//    auto obj_vec       = LevelsByLP_ObjectiveVector(pd);
-//    
-//    LP.loadProblem(
-//        A.RowCount(), A.ColCount(),
-//        A.Outer().data(), A.Inner().data(), A.Values().data(),
-//        col_lower_bnd.data(), col_upper_bnd.data(),
-//        obj_vec.data(),
-//        row_lower_bnd.data(), row_upper_bnd.data()
-//    );
-//
-//    LP.primal();
-    
     using R = COIN_Real;
     using I = COIN_Int;
     using J = COIN_LInt;
@@ -67,7 +105,9 @@ Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
     
     auto s = clp.template IntegralPrimalSolution<R>();
     
-    cptr<Int> A_pos = pd.ArcPositions().data();
+//    cptr<Int> A_pos = pd.ArcPositions().data();
+    
+    cptr<Int> A_pos = LevelsByLP_ArcIndices(pd).data();
     
     const Int A_count = pd.MaxArcCount();
     
@@ -149,7 +189,8 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
     
     cptr<Int>           C_arcs   = pd.Crossings().data();
     cptr<CrossingState> C_states = pd.CrossingStates().data();
-    cptr<Int>           A_pos    = pd.ArcPositions().data();
+//    cptr<Int>           A_pos    = pd.ArcPositions().data();
+    cptr<Int>           A_pos    = LevelsByLP_ArcIndices(pd).data();
     
     TripleAggregator<I,I,R,J> agg ( nnz );
     
@@ -287,6 +328,8 @@ Tensor1<R,I> LevelsByLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
     
     fill_buffer( &v[0], R(0), m );
     fill_buffer( &v[m], R(1), m );
+    
+    pd.ClearCache(MethodName("LevelsByLP_ArcIndices"));
     
     return v;
 }

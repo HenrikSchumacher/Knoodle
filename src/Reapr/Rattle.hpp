@@ -116,7 +116,15 @@ std::vector<PlanarDiagram<Int>> Rattle(
         Tensor1<Point_T,Int> x;
         Link_T L;
         
-        if ( !(permute_randomQ || ortho_draw_settings.randomizeQ) )
+        const bool randomizeQ = (
+            permute_randomQ
+            ||
+            ortho_draw_settings.randomize_virtual_edgesQ
+            ||
+            (ortho_draw_settings.randomize_bends > 0)
+        );
+        
+        if ( !randomizeQ )
         {
             std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
             L = Link_2D<Real,Int> ( comp_ptr );
@@ -131,7 +139,7 @@ std::vector<PlanarDiagram<Int>> Rattle(
                 logvalprint(MethodName("Rattle") + ": Starting iteration",iter);
             }
             
-            if ( (permute_randomQ || ortho_draw_settings.randomizeQ) )
+            if ( randomizeQ )
             {
                 std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
                 L = Link_2D<Real,Int> ( comp_ptr );

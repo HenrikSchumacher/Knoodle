@@ -25,7 +25,7 @@ void TurnRegularize()
     
     PRNG_T engine;
     
-    if( settings.randomizeQ )
+    if( settings.randomize_virtual_edgesQ )
     {
         engine = InitializedRandomEngine<PRNG_T>();
     }
@@ -477,7 +477,7 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     
     std::uniform_int_distribution<int> dist (0,1);
     
-    bool e_parallel_to_da_0 = settings.randomizeQ
+    bool e_parallel_to_da_0 = settings.randomize_virtual_edgesQ
                             ? dist(engine)
                             : true;
     

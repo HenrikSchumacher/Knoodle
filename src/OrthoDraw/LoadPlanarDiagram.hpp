@@ -72,9 +72,16 @@ void LoadPlanarDiagram(
         return;
     }
 
-    if( settings.redistribute_bendsQ )
+    if( settings.randomize_bends > 0 )
     {
-        RedistributeBends(pd,A_bends);
+        RandomizeBends(pd,A_bends,settings.randomize_bends);
+    }
+    else
+    {
+        if ( settings.redistribute_bendsQ )
+        {
+            RedistributeBends(pd,A_bends);
+        }
     }
 
     

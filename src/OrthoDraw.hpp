@@ -53,11 +53,12 @@ namespace Knoodle
         {
             int  bend_min_method          = 0;
             bool network_matrixQ          = true;
-            bool redistribute_bendsQ      = true;
             bool use_dual_simplexQ        = false;
+            int  randomize_bends          = 0;
+            bool redistribute_bendsQ      = true;
             bool turn_regularizeQ         = true;
             bool soften_virtual_edgesQ    = false;
-            bool randomizeQ               = false;
+            bool randomize_virtual_edgesQ = false;
             bool saturate_facesQ          = true;
             bool saturate_exterior_faceQ  = true;
             bool filter_saturating_edgesQ = true;
@@ -351,6 +352,7 @@ namespace Knoodle
 #include "OrthoDraw/BendsLP.hpp"
 #include "OrthoDraw/BendsLP_Clp.hpp"
 #include "OrthoDraw/BendsLP_MCFClass.hpp"
+#include "OrthoDraw/Bends.hpp"
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"
 #include "OrthoDraw/Edges.hpp"
