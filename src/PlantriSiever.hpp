@@ -4,22 +4,99 @@
 
 namespace Knoodle
 {
-    template<typename Real_, typename Int_>
+    template<typename Real_, typename Int_, typename CodeInt_>
     class PlantriSiever final
     {
+    public:
+        
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
+        static_assert(UnsignedIntQ<CodeInt_>,"");
         
         using Real      = Real_;
         using Int       = Int_;
+        using CodeInt   = CodeInt_;
         
         using PD_T      = PlanarDiagram<Int>;
         using Reapr_T   = Reapr<Real,Int>;
         
-        using CodeInt   = Reapr_T::CodeInt;
-        using Code_T    = Reapr_T::Code_T;
-        using CodeSet_T = Reapr_T::CodeSet_T;
         
+        template<typename T>
+        struct hash
+        {
+            inline Size_T operator()( cref<T> x_0 ) const
+            {
+                Size_T x = static_cast<Size_T>(x_0);
+                x = (x ^ (x >> 30)) * Size_T(0xbf58476d1ce4e5b9);
+                x = (x ^ (x >> 27)) * Size_T(0x94d049bb133111eb);
+                x =  x ^ (x >> 31);
+                return static_cast<Size_T>(x);
+            }
+        };
+
+        static constexpr int max_crossing_count = 16;
+        static constexpr int code_length        = 2 * max_crossing_count;
+        
+        using Code_T  = std::array<CodeInt,code_length>;
+//        using Code_T  = Tensor1<CodeInt,Size_T>;
+        
+        static_assert(max_crossing_count <= 64, "");
+        static_assert(
+            (max_crossing_count * sizeof(CodeInt)) % sizeof(Size_T) == 0, ""
+        );
+
+        struct CodeHash
+        {
+            TOOLS_FORCE_INLINE Size_T operator()( cref<Code_T> v )  const
+            {
+                using namespace std;
+                
+                constexpr Size_T n = code_length * sizeof(CodeInt) / sizeof(Size_T);
+                
+                cptr<Size_T> w = reinterpret_cast< const Size_T *>(&v[0]);
+                
+                Size_T seed = 0;
+                
+                for( Size_T i = 0; i < n; ++i )
+                {
+                    Tools::hash_combine(seed,w[i]);
+                }
+                
+                return seed;
+            }
+        };
+        
+        struct CodeLess
+        {
+            TOOLS_FORCE_INLINE bool operator()( cref<Code_T> v, cref<Code_T> w )  const
+            {
+                using namespace std;
+                
+                constexpr Size_T n = code_length * sizeof(CodeInt) / sizeof(Size_T);
+                
+                cptr<Size_T> v_ = reinterpret_cast< const Size_T *>(&v[0]);
+                cptr<Size_T> w_ = reinterpret_cast< const Size_T *>(&w[0]);
+                
+                for( Size_T i = n; i --> Size_T(0); )
+                {
+                    if( v_[i] < w_[i] )
+                    {
+                        return true;
+                    }
+                    else if ( v_[i] > w_[i]  )
+                    {
+                        return false;
+                    }
+                }
+                
+                return false;
+            }
+        };
+        
+//        using CodeSet_T = std::unordered_set<Code_T,CodeHash>;
+        using CodeSet_T = std::set<Code_T,CodeLess>;
+        
+    
     private:
         
         Int crossing_count = 0;
@@ -28,28 +105,32 @@ namespace Knoodle
         CodeSet_T global_other_codes;
         
         Size_T thread_count;
-        std::vector<CodeSet_T> thread_code_set;
         
-//        Reapr_T reapr;
+        std::vector<CodeSet_T> thread_minimal_codes;
+        std::vector<CodeSet_T> thread_other_codes;
         
     public:
         
         PlantriSiever()
-        :   thread_count    { Size_T(1) }
-        ,   thread_code_set { Size_T(1) }
+        :   thread_count         { Size_T(1) }
         {}
         
         PlantriSiever( const Size_T thread_count_ )
         :   thread_count    { thread_count_   }
-        ,   thread_code_set { thread_count    }
         {}
+        
+        
+        Int CrossingCount() const
+        {
+            return crossing_count;
+        }
         
         template<typename ExtInt>
         bool Reset( ExtInt crossing_count_ )
         {
             static_assert(IntQ<ExtInt>);
          
-            if( int_cast<Int>(crossing_count_) > Int(64) )
+            if( std::cmp_greater(crossing_count_,max_crossing_count) )
             {
                 eprint(MethodName("Reset")+": Only works for 64 crossings or less. Aborting.");
                 
@@ -65,49 +146,21 @@ namespace Knoodle
             return true;
         }
         
-        
-//        template<typename ExtInt, typename ExtInt2>
-//        void LoadSignedPDCodes(
-//             cptr<ExtInt> input, Size_T input_count, ExtInt2 crossing_count_
-//        )
-//        {
-//            this->template LoadPDCodes<true>(input,input_count,crossing_count_);
-//        }
-//        
-//        template<typename ExtInt, typename ExtInt2>
-//        void LoadUnsignedPDCodes(
-//             cptr<ExtInt> input, Size_T input_count, ExtInt2 crossing_count_
-//        )
-//        {
-//            this->template LoadPDCodes<false>(input,input_count,crossing_count_);
-//        }
-        
-        template<
-            bool signed_pd_codeQ,
-            typename ExtInt, typename ExtInt2, typename ExtInt3
-        >
-        void LoadPDCodes(
-             mref<Reapr_T> reapr, ExtInt2 rattle_iter,
-             cptr<ExtInt> input, Size_T input_count, ExtInt3 crossing_count_
-        )
+        Size_T ThreadCount() const
         {
-            static_assert(IntQ<ExtInt>);
-            static_assert(IntQ<ExtInt2>);
-            static_assert(IntQ<ExtInt3>);
-            
-            const Int iter = int_cast<Int>(rattle_iter);
-            
-            if( !Reset(crossing_count_) ) { return; }
-            
-            for( Size_T i = 0; i < input_count; ++i )
-            {
-                PD_T pd;
-                
-                pd = this->template FromPDCode<signed_pd_codeQ>(input,i);
-                
-                Process(pd,reapr,iter);
-            }
+            return thread_count;
         }
+        
+        template<typename ExtInt>
+        void SetThreadCount( const ExtInt val )
+        {
+            static_assert(IntQ<ExtInt>,"");
+            thread_count = Max(Size_T(1),ToSize_T(val));
+            
+            thread_minimal_codes = std::vector<CodeSet_T>(thread_count);
+            thread_other_codes   = std::vector<CodeSet_T>(thread_count);
+        }
+        
         
     private:
         
@@ -133,82 +186,175 @@ namespace Knoodle
             }
         }
         
+    public:
         
-        void Process( cref<PD_T> pd_0, mref<Reapr_T> reapr, const Int rattle_iter )
+        template<
+            bool signed_pd_codeQ,
+            typename ExtInt,  typename ExtInt2,
+            typename ExtInt3, typename ExtInt4, typename ExtInt5
+        >
+        void LoadPDCodes(
+            mref<Reapr_T> reapr,
+            ExtInt        rattle_iter_,
+            cptr<ExtInt2> input,
+            ExtInt3       input_count_,
+            ExtInt4       crossing_count_,
+            ExtInt5       thread_count_
+        )
         {
-            const Int n = pd_0.CrossingCount();
+            TOOLS_PTIMER(timer,MethodName("LoadPDCodes"));
             
-            if( n > Int(64) )
-            {
-                eprint(MethodName("Process")+": Only works for 64 crossings or less. Aborting");
-                return;
-            }
+            static_assert(IntQ<ExtInt>);
+            static_assert(IntQ<ExtInt2>);
+            static_assert(IntQ<ExtInt3>);
+            static_assert(IntQ<ExtInt4>);
+            static_assert(IntQ<ExtInt5>);
             
-            const UInt64 i_max = (UInt64(1) << n );
+            if( !Reset(crossing_count_) ) { return; }
             
-            Tensor1<CrossingState,Int> C_state ( n );
-                    
-            for( UInt64 i = 0; i < i_max; ++i )
-            {
-                for( Int j = 0; j < n; ++j )
+            SetThreadCount(thread_count_);
+            
+            const Size_T input_count = ToSize_T(input_count_);
+            const Int rattle_iter = int_cast<Int>(rattle_iter_);
+            
+            const JobPointers job_ptr ( ToSize_T(input_count), thread_count );
+            
+            ParallelDo(
+                [&reapr, &job_ptr, rattle_iter, input, this]
+                ( Size_T thread )
                 {
-                    C_state [j] = get_bit(i,j)
-                                ? CrossingState::RightHanded
-                                : CrossingState::LeftHanded;
-                }
-
-                PD_T pd (
-                    pd_0.Crossings().data(),
-                    C_state.data(),
-                    pd_0.Arcs().data(),
-                    pd_0.ArcStates().data(),
-                    n,
-                    Int(0), false
-                );
-                
-                auto pd_list = reapr.Rattle(pd,rattle_iter);
-
-                if(
-                    (pd_list.size() == Size_T(1))
-                    &&
-                    (pd_list[0].CrossingCount() == n)
-                )
-                {
-                    bool proven_minimalQ = pd_list[0].ProvenMinimalQ();
+                    TimeInterval thread_timer;
+                    thread_timer.Tic();
                     
-                    for( bool mirrorQ : {false,true} )
+                    Reapr_T local_reapr = reapr;
+                    local_reapr.Reseed();
+                    
+                    const Size_T job_begin = job_ptr[thread    ];
+                    const Size_T job_end   = job_ptr[thread + 1];
+                    
+                    const UInt64 i_max = (UInt64(1) << crossing_count );
+                    
+                    Tensor1<CrossingState,Int> C_state (crossing_count);
+                    
+                    CodeSet_T local_minimal_codes;
+                    CodeSet_T local_other_codes;
+                    
+                    for( Size_T job = job_begin; job < job_end; ++job )
                     {
-                        for( bool reverseQ : {false,true} )
+                        PD_T pd_0 = this->template FromPDCode<signed_pd_codeQ>(input,job);
+                        
+                        for( UInt64 i = 0; i < i_max; ++i )
                         {
-                            // We collect the chirality transforms of the _original_ diagram, not the simplified one.
-                            
-                            PD_T pd_1 = pd.ChiralityTransform(mirrorQ,reverseQ);
-                            
-                            if( proven_minimalQ )
+                            for( Int j = 0; j < crossing_count; ++j )
                             {
-                                global_minimal_codes.insert(
-                                    pd_1.template MacLeodCode<CodeInt>()
-                                );
+                                C_state [j] = get_bit(i,j)
+                                            ? CrossingState::RightHanded
+                                            : CrossingState::LeftHanded;
                             }
-                            else
+
+                            PD_T pd (
+                                pd_0.Crossings().data(),
+                                C_state.data(),
+                                pd_0.Arcs().data(),
+                                pd_0.ArcStates().data(),
+                                crossing_count,
+                                Int(0), false
+                            );
+                            
+                            auto pd_list = local_reapr.Rattle(pd,rattle_iter);
+                            
+                            if(
+                                (pd_list.size() == Size_T(1))
+                                &&
+                                (pd_list[0].CrossingCount() == crossing_count)
+                            )
                             {
-                                global_other_codes.insert(
-                                    pd_1.template MacLeodCode<CodeInt>()
-                                );
+                                bool proven_minimalQ = pd_list[0].ProvenMinimalQ();
+                                
+                                for( bool mirrorQ : {false,true} )
+                                {
+                                    for( bool reverseQ : {false,true} )
+                                    {
+                                        // We collect the chirality transforms of the _original_ diagram, not the simplified one.
+                                        
+                                        PD_T pd_1 = pd.ChiralityTransform(mirrorQ,reverseQ);
+                                        
+                                        if( proven_minimalQ )
+                                        {
+                                            local_minimal_codes.insert(Code(pd_1));
+                                        }
+                                        else
+                                        {
+                                            local_other_codes.insert(Code(pd_1));
+                                        }
+                                    }
+                                }
                             }
                         }
+                        
+                    } // for( Size_T job = job_begin; job < job_end; ++job )
+                    
+                    thread_minimal_codes[thread] = std::move(local_minimal_codes);
+                    thread_other_codes[thread]   = std::move(local_other_codes);
+                    
+                    thread_timer.Toc();
+                    logprint(MethodName("LoadPDCode") + ": thread " + ToString(thread) + " time = " + ToStringFPGeneral(thread_timer.Duration()) + "." );
+                },
+                thread_count
+            );
+            
+            // Take the union of all code sets of of proven minimal codes.
+            global_minimal_codes = thread_minimal_codes[0];
+            for( Size_T thread = 1; thread < thread_count; ++thread )
+            {
+                global_minimal_codes.merge(thread_minimal_codes[thread]);
+//                for( auto & code : thread_minimal_codes[thread] )
+//                {
+//                    global_minimal_codes.insert(code);
+//                }
+            }
+            thread_minimal_codes = std::vector<CodeSet_T>();
+            
+            // Some threads might not have proven minimality of some code, but other might. Thus, we check for each code whether it is proven minimal here.
+            for( Size_T thread = 0; thread < thread_count; ++thread )
+            {
+                for( auto & code : thread_other_codes[thread] )
+                {
+                    if( global_minimal_codes.count(code) )
+                    {
+                        // Ignore the code.
+                    }
+                    else
+                    {
+                        global_other_codes.insert(code);
                     }
                 }
             }
-        }
-        
-    public:
+            thread_other_codes = std::vector<CodeSet_T>();
 
-        
+        }
+
+
+        Size_T InputCodeSize() const
+        {
+            return Size_T(4) * Size_T(crossing_count);
+        }
         Size_T OutputCodeSize() const
         {
             return Size_T(2) * Size_T(crossing_count);
         }
+        
+        
+        static Code_T Code( cref<PD_T> pd )
+        {
+            Code_T code = { Scalar::Max<CodeInt> };
+//            Code_T code ( code_length, Scalar::Max<CodeInt> );
+            
+            pd.template WriteMacLeodCode<CodeInt>( &code[0] );
+            
+            return code;
+        }
+        
         
         Size_T ProvenMinimalCodeCount() const
         {
@@ -226,13 +372,20 @@ namespace Knoodle
             
             for( const auto & code : global_minimal_codes )
             {
-                code.Write( &output[output_code_size * i] );
+                
+                copy_buffer(
+                    &code[0],
+                    &output[output_code_size * i],
+                    output_code_size
+                );
                 ++i;
             }
         }
         
         Tensor2<CodeInt,Size_T> ProvenMinimalCodes() const
         {
+            TOOLS_PTIMER(timer,MethodName("ProvenMinimalCodes"));
+            
             Tensor2<CodeInt,Size_T> output (
                 global_minimal_codes.size(), OutputCodeSize()
             );
@@ -242,6 +395,13 @@ namespace Knoodle
             return output;
         }
         
+        
+        
+        Size_T OtherCodeCount() const
+        {
+            return global_other_codes.size();
+        }
+
         template<typename ExtInt>
         void WriteOtherCodes( mptr<ExtInt> output ) const
         {
@@ -253,19 +413,19 @@ namespace Knoodle
             
             for( const auto & code : global_other_codes )
             {
-                code.Write( &output[output_code_size * i] );
+                copy_buffer<code_length>(
+                    &code[0],
+                    &output[output_code_size * i],
+                    output_code_size
+                );
                 ++i;
             }
         }
-        
-        
-        Size_T OtherCodeCount() const
-        {
-            return global_other_codes.size();
-        }
-        
+
         Tensor2<CodeInt,Size_T> OtherCodes() const
         {
+            TOOLS_PTIMER(timer,MethodName("OtherCodes"));
+            
             Tensor2<CodeInt,Size_T> output (
                 global_other_codes.size(), OutputCodeSize()
             );
@@ -274,7 +434,7 @@ namespace Knoodle
             
             return output;
         }
-
+        
         
     public:
         
@@ -285,7 +445,11 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("PlantriSiever<") + TypeName<Real> + "," + TypeName<Int> + ">";
+            return std::string("PlantriSiever")
+            + "<" + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<CodeInt>
+            + ">";
         }
         
     }; // class PlantriSiever

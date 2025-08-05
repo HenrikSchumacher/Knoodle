@@ -103,25 +103,27 @@ int main( int argc, char** argv )
     pd.Simplify4();
     
     Profiler::Clear();
+
     
     OR_T H (pd, Int(-1),
         {
-            .bend_min_method         = 0,
-            .network_matrixQ         = true,
-            .redistribute_bendsQ     = true,
-            .use_dual_simplexQ       = false,
-            .turn_regularizeQ        = true,
-            .soften_virtual_edgesQ   = false,
-            .randomizeQ              = false,
-            .saturate_facesQ         = true,
-            .saturate_exterior_faceQ = true,
-            .parallelizeQ            = false,
-            .compaction_method       = 0,
+            .bend_min_method          = 0,
+            .network_matrixQ          = true,
+            .use_dual_simplexQ        = false,
+            .randomize_bends          = 0,
+            .redistribute_bendsQ      = true,
+            .turn_regularizeQ         = true,
+            .soften_virtual_edgesQ    = false,
+            .randomize_virtual_edgesQ = false,
+            .saturate_facesQ          = true,
+            .saturate_exterior_faceQ  = true,
+            .parallelizeQ             = false,
+            .compaction_method        = 0,
         
-            .x_grid_size             = 8,
-            .y_grid_size             = 4,
-            .x_gap_size              = 1,
-            .y_gap_size              = 1
+            .x_grid_size              = 8,
+            .y_grid_size              = 4,
+            .x_gap_size               = 1,
+            .y_gap_size               = 1
         }
     );
     

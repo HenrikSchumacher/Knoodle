@@ -306,7 +306,11 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("Reapr<") + TypeName<Real> + "," + TypeName<Int> + ">";
+            return std::string("Reapr")
+            + "<" + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<CodeInt>
+            + ">";
         }
         
     }; // class Reapr

@@ -152,7 +152,7 @@ namespace Knoodle
         , arc_count          { Int(0)                                      }
         , unlink_count       { int_cast<Int>(unlink_count_)                }
         , max_crossing_count { int_cast<Int>(max_crossing_count_)          }
-        , max_arc_count      { Int(2) * max_crossing_count                 }
+        , max_arc_count      { Int(Int(2) * max_crossing_count)            }
         , C_arcs             { max_crossing_count, Uninitialized           }
         , C_state            { max_crossing_count, CrossingState::Inactive }
         , A_cross            { max_arc_count,      Uninitialized           }

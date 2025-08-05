@@ -153,10 +153,7 @@ void RandomizeBends(
 
     PRNG_T random_engine = InitializedRandomEngine<PRNG_T>();
     
-    for( int iter = 0; iter < iter_count; ++iter )
-    {
-        RandomizeBends_impl(pd,bends,random_engine);
-    }
+    RandomizeBends_impl(pd,bends,iter_count,random_engine);
 }
 
 private:
@@ -165,6 +162,7 @@ template<typename ExtInt>
 void RandomizeBends_impl(
     cref<PlanarDiagram<ExtInt>> pd,
     mref<Tensor1<Turn_T,Int>> bends,
+    int iter_count,
     mref<PRNG_T> random_engine
 )
 {
@@ -180,24 +178,27 @@ void RandomizeBends_impl(
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
         
-        Int8 x = dice(random_engine);
-        
-        if( x == Int8(0) )
-        {
-            continue;
-        }
-        
         CrossingMatrix_T C ( C_A_loc.data(c) );
         
-        if( x == Int8(1) )
+        for( int iter = 0; iter < iter_count; ++iter )
         {
-            --bends[C(Out,Left )]; --bends[C(Out,Right)];
-            ++bends[C(In ,Left )]; ++bends[C(In ,Right)];
-        }
-        else if( x == Int8(-2) )
-        {
-            ++bends[C(Out,Left )]; ++bends[C(Out,Right)];
-            --bends[C(In ,Left )]; --bends[C(In ,Right)];
+            Int8 x = dice(random_engine);
+            
+            if( x == Int8(0) )
+            {
+                continue;
+            }
+
+            if( x == Int8(1) )
+            {
+                --bends[C(Out,Left )]; --bends[C(Out,Right)];
+                ++bends[C(In ,Left )]; ++bends[C(In ,Right)];
+            }
+            else if( x == Int8(-2) )
+            {
+                ++bends[C(Out,Left )]; ++bends[C(Out,Right)];
+                --bends[C(In ,Left )]; --bends[C(In ,Right)];
+            }
         }
     }
 }
