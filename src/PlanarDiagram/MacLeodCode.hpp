@@ -363,3 +363,31 @@ static PlanarDiagram FromMacLeodCode(
         return pd;
     }
 }
+
+
+
+//std::string MacLeodCodeString() const
+//{
+//    TOOLS_PTIMER(timer,MethodName("MacLeodCodeString"));
+//    
+//    auto code = this->template MacLeodCode<UInt>();
+//    
+//    const auto digit_count = Binarizer::DigitCount(code.Size() * 4);
+//    
+//    return Binarizer::ToString(
+//        code.data(), code.Size(), digit_count
+//    );
+//}
+//
+//Tensor1<Binarizer::Char,Int> BinaryMacLeodCode() const
+//{
+//    TOOLS_PTIMER(timer,MethodName("BinaryMacLeodCode"));
+//    
+//    auto code = this->template MacLeodCode<UInt>();
+//    
+//    const auto digit_count = Binarizer::DigitCount(code.Size() * 4);
+//    
+//    return Binarizer::ToCharSequence(
+//        code.data(), code.Size(), digit_count
+//    );
+//}

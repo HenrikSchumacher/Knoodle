@@ -407,16 +407,14 @@ namespace Knoodle
 #include "src/MultiDiGraph.hpp"
 
 #include "src/Debugging.hpp"
+#include "src/Binarizer.hpp"
 #include "src/PlanarDiagram.hpp"
 #include "src/CrossingSimplifier.hpp"
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"
 
-//#include "src/Reapr.hpp"
-
-//#include "src/Alexander.hpp"
 //
-//#include "src/Seifert.hpp"
+//#include "src/Seifert.hpp"    // TODO: Needs debugging.
 
 #include "src/Link_3D.hpp"
 
@@ -427,6 +425,7 @@ namespace Knoodle
 #include "src/AlexanderStrandMatrix.hpp"
 #include "src/AlexanderFaceMatrix.hpp"
 
+//#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
+                                // Not favorable compared to Alexander_UMFPACK.hpp
 
-//#include "src/PolygonFolder.hpp"
-
+//#include "src/Alexander_UMFPACK.hpp" // Improved version of the former.
