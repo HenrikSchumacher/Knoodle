@@ -44,13 +44,13 @@ void Alexander_Strands(
 ) const
 {
     const Scal t = scalar_cast<Scal>(arg);
-    
+
     auto [factor,exp] = Alexander_Strands_Normalization<sparseQ>(pd);
     
     Multiplier_T det = Alexander_Strands_Det<sparseQ>(pd,t);
     
     Multiplier_T pow = Multiplier_T::Power(t,exp);
-
+    
     Multiplier_T alex = factor * det * pow;
 
     if ( multiply_toQ )
@@ -80,6 +80,9 @@ Multiplier_T Alexander_Strands_Det( cref<PD_T> pd, cref<Scal> arg) const
     }
 }
 
+
+// TODO: Document this! I don't understand this anymore.
+
 template<bool sparseQ>
 std::pair<Multiplier_T,E_T> &
 Alexander_Strands_Normalization( cref<PD_T> pd ) const
@@ -90,33 +93,40 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
     
     if( !pd.InCacheQ(tag) )
     {
-        const Multiplier_T unit;
-        
-        const Multiplier_T a = Alexander_Strands_Det<sparseQ>( pd, Complex(1) );
-        
-        Multiplier_T factor ( unit / a );
-        
-        constexpr Real eval_0 = cSqrt(Real(2));
-        Real eval = eval_0;
-        Int sqrt_count = 1;
-        Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Complex(eval) );
-        
-        while( c.Mantissa2() == Scalar::Zero<Complex> )
+        if( pd.LinkComponentCount() > Int(1) )
         {
-            ++sqrt_count;
-            eval = std::sqrt(eval);
-            c = Alexander_Strands_Det<sparseQ>( pd, eval );
+            pd.SetCache( tag, std::pair(Multiplier_T(),E_T(0)) );
         }
-        
-        Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Complex(Inv(eval)) );
-        
-        const Multiplier_T d = b / c; // Should be a power of eval * eval.
-        
-        auto e = ( std::log2(Re(d.Mantissa2())) + d.Exponent2()  ) / std::log2(eval * eval);
-        
-        E_T exp = static_cast<Int>( std::round(e) );
-        
-        pd.SetCache( tag, std::pair(factor,exp) );
+        else
+        {
+            const Multiplier_T unit;
+            
+            const Multiplier_T a = Alexander_Strands_Det<sparseQ>( pd, Complex(1) );
+            
+            Multiplier_T factor ( unit / a );
+            
+            constexpr Real eval_0 = cSqrt(Real(2));
+            Real eval = eval_0;
+            Int sqrt_count = 1;
+            Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Complex(eval) );
+            
+            while( c.Mantissa2() == Scalar::Zero<Complex> )
+            {
+                ++sqrt_count;
+                eval = std::sqrt(eval);
+                c = Alexander_Strands_Det<sparseQ>( pd, eval );
+            }
+            
+            Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Complex(Inv(eval)) );
+            
+            const Multiplier_T d = b / c; // Should be a power of eval * eval.
+            
+            auto e = ( std::log2(Re(d.Mantissa2())) + d.Exponent2()  ) / std::log2(eval * eval);
+            
+            E_T exp = static_cast<Int>( std::round(e) );
+            
+            pd.SetCache( tag, std::pair(factor,exp) );
+        }
     }
         
     return pd.template GetCache<T>(tag);

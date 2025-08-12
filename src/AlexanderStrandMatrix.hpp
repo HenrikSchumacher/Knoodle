@@ -44,13 +44,9 @@ namespace Knoodle
             {
                 const Int n = pd.CrossingCount() - Int(1) + fullQ;
                 
-                Tensor1<LInt,Int > rp( n + Int(1) );
-                rp[0] = 0;
-                Tensor1<Int ,LInt> ci( LInt(3) * n );
-                
                 // Using complex numbers to assemble two matrices at once.
-                
-                Tensor1<Complex,LInt> a ( 3 * n );
+                // We must use additive assembly; otherwise, Reidemeister-I loops may break things.
+                TripleAggregator<Int,Int,Complex,LInt> agg (LInt(3) * n);
                 
                 const auto arc_strands = pd.ArcOverStrands();
                 
@@ -59,16 +55,15 @@ namespace Knoodle
                 cptr<CrossingState> C_state = pd.CrossingStates().data();
                 
                 Int row_counter     = 0;
-                Int nonzero_counter = 0;
                 
                 const Int c_count = C_arcs.Dim(0);
                 
                 for( Int c = 0; c < c_count; ++c )
                 {
-                    if( row_counter >= n )  { break; }
+                    if( row_counter >= n ) { break; } // Needed to break early, when we strike out a row.
                     
                     const CrossingState s = C_state[c];
-                    
+
                     // Convention:
                     // i is incoming over-strand that goes over.
                     // j is incoming over-strand that goes under.
@@ -84,43 +79,36 @@ namespace Knoodle
                         const Int j = arc_strands[C_arcs(c,In ,Right)];
                         
                         /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                         *
-                         *    k -> t O     O
+                         *           O     O  k -> -1
                          *            ^   ^
                          *             \ /
-                         *              /
+                         *              \
                          *             / \
                          *            /   \
-                         *  i -> 1-t O     O j -> -1
+                         *   j  -> t O     O i -> 1-t
                          */
 
                         if( fullQ || (i < n) )
                         {
-                            // 1 - t
-                            ci[nonzero_counter] = i;
-                            a [nonzero_counter] = Complex( 1,-1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,i,Complex( 1,-1)); // 1 - t
                         }
-
                         if( fullQ || (j < n) )
                         {
-                            // -1
-                            ci[nonzero_counter] = j;
-                            a [nonzero_counter] = Complex(-1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,j,Complex(-1, 0)); // -1
                         }
-
                         if( fullQ || (k < n) )
                         {
-                            // t
-                            ci[nonzero_counter] = k;
-                            a [nonzero_counter] = Complex( 0, 1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,k,Complex( 0, 1)); // t
                         }
+                        
+                        // Beware: We may increment row_counter only if crossing c is active.
+                        ++row_counter;
                     }
                     else if( LeftHandedQ(s) )
                     {
                         pd.AssertCrossing(c);
+                        
+                        // Reading in order of appearance in C_arcs.
                         
                         const Int k = arc_strands[C_arcs(c,Out,Right)];
                         const Int j = arc_strands[C_arcs(c,In ,Left )];
@@ -135,45 +123,28 @@ namespace Knoodle
                          *            /   \
                          *   j  -> t O     O i -> 1-t
                          */
-                        
-                        
-                        // Reading in order of appearance in C_arcs.
-                        
+
                         if( fullQ || (i < n) )
                         {
-                            // 1 - t
-                            ci[nonzero_counter] = i;
-                            a [nonzero_counter] = Complex( 1,-1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,i,Complex( 1,-1)); // 1 - t
                         }
-
                         if( fullQ || (j < n) )
                         {
-                            // t
-                            ci[nonzero_counter] = j;
-                            a [nonzero_counter] = Complex( 0, 1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,j,Complex( 0, 1)); // t
                         }
-
                         if( fullQ || (k < n) )
                         {
-                            
-                            // -1
-                            ci[nonzero_counter] = k;
-                            a [nonzero_counter] = Complex(-1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,k,Complex(-1, 0)); // -1
                         }
+                        
+                        // Beware: We may increment row_counter only if crossing c is active.
+                        ++row_counter;
                     }
-                                    
-                    ++row_counter;
                     
-                    rp[row_counter] = nonzero_counter;
+                    // We do nothing if crossing c is not active.
                 }
-
-                // Caution: We do not use move-constructors here because the Tensor1 objects `ci` and `a` might be a bit too long. Only `rp` knows how long they really ought to be.
-                Pattern_T A (
-                    rp.data(), ci.data(), a.data(), n, n, Int(1)
-                );
+                
+                Pattern_T A ( agg, n, n, Int(1), true, false, false );
                 
                 pd.SetCache( tag, std::move(A) );
             }
@@ -257,10 +228,7 @@ namespace Knoodle
             
             for( Int c = 0; c < c_count; ++c )
             {
-                if( row_counter >= n )
-                {
-                    break;
-                }
+                if( row_counter >= n ) { break; }
                 
                 const CrossingState s = C_state[c];
 
@@ -307,6 +275,8 @@ namespace Knoodle
                     {
                         row[k] += v[2]; // t
                     }
+                    
+                    ++row_counter;
                 }
                 else if( LeftHandedQ(s) )
                 {
@@ -341,9 +311,9 @@ namespace Knoodle
                     {
                         row[k] += v[1]; // -1
                     }
+                    
+                    ++row_counter;
                 }
-                
-                ++row_counter;
             }
         }
         

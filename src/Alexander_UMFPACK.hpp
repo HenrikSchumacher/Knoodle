@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../submodules/Tensors/UMFPACK.hpp"
-// This requires linking agains libumfpack
+// This requires linking against libumfpack
 
 //#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 ////#include "../submodules/Tensors/src/Sparse/Metis.hpp"
@@ -102,6 +102,12 @@ namespace Knoodle
             bool multiply_toQ
         ) const
         {
+            if( pd.LinkComponentCount() > Int(1) )
+            {
+                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
+                return;
+            }
+            
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
                 // Use sparse code path.
@@ -124,6 +130,12 @@ namespace Knoodle
             bool multiply_toQ
         ) const
         {
+            if( pd.LinkComponentCount() > Int(1) )
+            {
+                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
+                return;
+            }
+            
             if( pd.CrossingCount() > sparsity_threshold + 1 )
             {
                 // Use sparse code path.

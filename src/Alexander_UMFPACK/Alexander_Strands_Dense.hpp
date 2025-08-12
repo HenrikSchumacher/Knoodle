@@ -17,10 +17,6 @@ Multiplier_T Alexander_Strands_Det_Dense(
 
         A.template WriteDenseMatrix<false>( pd, static_cast<Scal>(arg), LU_buffer.data() );
         
-//        DenseAlexanderStrandMatrix<false>( pd, static_cast<Scal>(arg), LU_buffer.data() );
-//        
-//        print( ArrayToString( LU_buffer.data(), {n,n} ) );
-
         // Factorize dense Alexander matrix.
         
         int info = LAPACK::getrf<Layout::RowMajor>(

@@ -45,30 +45,22 @@ namespace Knoodle
             {
                 const Int m = pd.CrossingCount();
                 
-                Tensor1<LInt,Int > rp( m + 1 );
-                rp[0] = 0;
-                Tensor1<Int ,LInt> ci( 4 * m );
-                
                 // Using complex numbers to assemble two matrices at once.
-                
-                Tensor1<Complex,LInt> a ( 4 * m );
+                // We must use additive assembly; otherwise, istmuses might cause problems.
+                TripleAggregator<Int,Int,Complex,LInt> agg (LInt(4) * m);
                 
                 const auto & C_arcs  = pd.Crossings();
                 const auto & A_faces = pd.ArcFaces();
                 
                 cptr<CrossingState> C_state = pd.CrossingStates().data();
                 
-                Int row_counter     = 0;
-                Int nonzero_counter = 0;
+                Int row_counter = 0;
                 
                 const Int c_count = C_arcs.Dim(0);
                 
                 for( Int c = 0; c < c_count; ++c )
                 {
-                    if( row_counter >= m )
-                    {
-                        break;
-                    }
+                    if( row_counter >= m ) { break; }
                     
                     /* N, E, S, W are the regions to the North, East, South, West
                      * of crossing c.
@@ -86,7 +78,7 @@ namespace Knoodle
                      *        O         O
                      */
                     
-                    // We take these to arcs because C_arcs(c,Out,Right) and C_arcs(c,In ,Left) lie adjacent in memory.
+                    // We read these two arcs a_in and a_out because C_arcs(c,Out,Right) and C_arcs(c,In ,Left) lie often adjacent in memory.
                     const Int a_out = C_arcs(c,Out,Right);
                     const Int a_in  = C_arcs(c,In ,Left);
                     
@@ -122,31 +114,23 @@ namespace Knoodle
                         
                         if( fullQ || (N < m) )
                         {
-                            ci[nonzero_counter] = N;
-                            a [nonzero_counter] = Complex(-1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,N,Complex(-1, 0)); // -1
                         }
-                        
                         if( fullQ || (W < m) )
                         {
-                            ci[nonzero_counter] = W;
-                            a [nonzero_counter] = Complex( 0, 1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,W,Complex( 0, 1)); // T
                         }
-
                         if( fullQ || (S < m) )
                         {
-                            ci[nonzero_counter] = S;
-                            a [nonzero_counter] = Complex( 0,-1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,S,Complex( 0,-1)); // -T
                         }
-
                         if( fullQ || (E < m) )
                         {
-                            ci[nonzero_counter] = E;
-                            a [nonzero_counter] = Complex( 1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,E,Complex( 1, 0)); // 1
                         }
+                        
+                        // Beware: We may increment row_counter only if crossing c is active.
+                        ++row_counter;
                     }
                     else if( LeftHandedQ(s) )
                     {
@@ -169,42 +153,29 @@ namespace Knoodle
                         
                         if( fullQ || (N < m) )
                         {
-                            ci[nonzero_counter] = N;
-                            a [nonzero_counter] = Complex( 0, 1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,N,Complex( 0, 1)); // T
                         }
-                        
                         if( fullQ || (W < m) )
                         {
-                            ci[nonzero_counter] = W;
-                            a [nonzero_counter] = Complex( 0,-1);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,W,Complex( 0,-1)); // -T
                         }
-
                         if( fullQ || (S < m) )
                         {
-                            ci[nonzero_counter] = S;
-                            a [nonzero_counter] = Complex( 1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,S,Complex( 1, 0)); // 1
                         }
-
                         if( fullQ || (E < m) )
                         {
-                            ci[nonzero_counter] = E;
-                            a [nonzero_counter] = Complex(-1, 0);
-                            ++nonzero_counter;
+                            agg.Push(row_counter,E,Complex(-1, 0)); // -1
                         }
+                        
+                        // Beware: We may increment row_counter only if crossing c is active.
+                        ++row_counter;
                     }
-                                    
-                    ++row_counter;
                     
-                    rp[row_counter] = nonzero_counter;
+                    // We do nothing if crossing c is not active.
                 }
-
-                // Caution: We do not use move-constructors here because the Tensor1 objects `ci` and `a` might be a bit too long. Only `rp` knows how long they really ought to be.
-                Pattern_T A (
-                    rp.data(), ci.data(), a.data(), m, m, Int(1)
-                );
+                
+                Pattern_T A ( agg, m, m, Int(1), true, false, false );
                 
                 pd.SetCache( tag, std::move(A) );
             }
