@@ -91,6 +91,7 @@ namespace Knoodle
         std::filesystem::path log_file;
         std::filesystem::path pd_file;
         std::filesystem::path gauss_file;
+        std::filesystem::path macleod_file;
         std::filesystem::path input_file;
         std::filesystem::path witness_file;
         std::filesystem::path pivot_file;
@@ -98,22 +99,30 @@ namespace Knoodle
         std::ofstream log;
         std::ofstream pd_stream;
         std::ofstream gauss_stream;
+        std::ofstream macleod_stream;
         
         PolygonContainer_T x;
         
         Tensor1<LInt,Int> curvature_hist;
         Tensor1<LInt,Int> torsion_hist;
         
-        Real edge_length_tolerance = 0;
+        Real edge_length_tolerance  = 0;
         Real reflection_probability = 1;
-        LInt total_attempt_count = 0;
-        LInt total_accept_count = 0;
-        LInt burn_in_attempt_count = 0;
-        LInt burn_in_accept_count = 0;
-        LInt steps_between_print = -1;
-        LInt print_ctr = 0;
-        Int  bin_count = 0;
+        LInt total_attempt_count    = 0;
+        LInt total_accept_count     = 0;
+        LInt burn_in_attempt_count  = 0;
+        LInt burn_in_accept_count   = 0;
+        LInt steps_between_print    = -1;
+        LInt print_ctr              = 0;
+        Int  bin_count              = 0;
+        
+        
+        LInt unknot_counter         = 0; // counts the current run of unknots.
+        LInt T_p_counter            = 0; // counts right-handed trefoils
+        LInt T_m_counter            = 0; // counts right-handed trefoils
+        LInt F8_counter             = 0; // counts figure-eight knots
 
+        
         std::pair<Real,Real> e_dev;
 
         IntersectionFlagCounts_T acc_intersec_counts;
@@ -144,11 +153,16 @@ namespace Knoodle
         bool squared_gyradiusQ  = false;
         bool pdQ                = false;
         bool gaussQ             = false;
+        bool macleodQ           = false;
         bool printQ             = false;
         bool inputQ             = false;
         bool bounding_boxesQ    = false;
         bool shiftQ             = false;
         bool recenterQ          = false;
+        
+        bool tally_unknotsQ     = false;
+        bool tally_trefoilsQ    = false;
+        bool tally_F8Q          = false;
         
         LInt test_angles        = 10000;
         LInt test_pivots        = 10000;

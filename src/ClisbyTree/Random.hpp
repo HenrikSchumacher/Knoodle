@@ -21,6 +21,10 @@ PivotRandomMethod_T    pivot_rand_method = PivotRandomMethod_T::Uniform;
 discr_wrapped_gaussian pivot_gaussian { double(0), double(1), Int(1) };
 discr_wrapped_laplace  pivot_laplace  { double(0), double(1), Int(1) };
 
+real_unif              pivot_clisby   { Real(1), Real(2) };
+
+int_unif               coin { Int(0), Int(1) };
+
 public:
 
 
@@ -150,6 +154,18 @@ void UseDiscreteWrappedLaplacePivots( const double beta )
     pivot_laplace     = discr_wrapped_laplace { double(0), beta, VertexCount() };
 }
 
+void UseClisbyPivots()
+{
+    pivot_rand_method = PivotRandomMethod_T::Clisby;
+    
+    // Caution: We really have to _integer_-divide (rounded down) here!
+    const Real max_dist = static_cast<Real>(VertexCount()/Int(2));
+    
+    pivot_clisby  = real_unif {
+        Real(1), std::log2(max_dist + Real(1))
+    };
+}
+
 PivotRandomMethod_T PivotRandomMethod()
 {
     return pivot_rand_method;
@@ -236,6 +252,55 @@ std::pair<Int,Int> RandomPivots_DiscreteWrappedLaplace()
     return std::pair<Int,Int>( i, j );
 }
 
+std::pair<Int,Int> RandomPivots_Clisby()
+{
+    const Int n = VertexCount();
+    
+    Int i = RandomInteger( Int(0), n - Int(1) );
+    Int j;
+    
+    Real d = std::floor(std::exp2(pivot_clisby(random_engine)));
+    
+    // If n is even and if d is the maximal distance, we reject with 50% and sample again.
+    while( (n % Int(2) == Int(0)) && (d == n/Int(2)) && coin(random_engine) )
+    {
+        
+        d = std::floor(std::exp2(pivot_clisby(random_engine)));
+    }
+        
+//    j = i + static_cast<Int>(d);
+//    if( j >= n )
+//    {
+//        j -= n;
+//        std::swap(i,j);
+//    }
+    
+    if( coin(random_engine) )
+    {
+        j = i + static_cast<Int>(d);
+        if( j >= n )
+        {
+            j -= n;
+        }
+    }
+    else
+    {
+        j = i + n - static_cast<Int>(d);
+        if( j >= n )
+        {
+            j -= n;
+        }
+    }
+    
+    // DEBUGGING
+    if( ModDistance(n,i,j) <= Int(1) )
+    {
+        eprint("!!!");
+    }
+
+    return std::pair<Int,Int>( i, j );
+}
+
 
 std::pair<Int,Int> RandomPivots()
 {
@@ -252,6 +317,10 @@ std::pair<Int,Int> RandomPivots()
         case PivotRandomMethod_T::DiscreteWrappedLaplace:
         {
             return RandomPivots_DiscreteWrappedLaplace();
+        }
+        case PivotRandomMethod_T::Clisby:
+        {
+            return RandomPivots_Clisby();
         }
         default:
         {

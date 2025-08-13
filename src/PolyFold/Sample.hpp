@@ -27,6 +27,13 @@ void Sample()
             Sample<t0+1,2>(N);
         }
         
+        // Make sure that the last unknots are correctly recorded.
+        if( tally_unknotsQ && (unknot_counter > LInt(0)) )
+        {
+            WriteUnknots();
+            unknot_counter = 0;
+        }
+        
     }
     catch ( const std::exception & e )
     {

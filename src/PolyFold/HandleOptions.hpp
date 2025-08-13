@@ -25,7 +25,11 @@ void HandleOptions( int argc, char** argv )
     ("angles,a", "Compute statistics on curvature and torsion angles and report them in file \"Info.m\".")
     ("squared-gyradius,g", "Compute squared radius of gyration and report in file \"Info.m\".")
     ("pd-code,c", "Compute pd codes and print them to file \"PDCodes.tsv\".")
-    ("gauss-code,G", "Compute extended Gauss codes and them print to file \"GaussCodes.txt\".")
+    ("gauss-code,G", "Compute extended Gauss codes and print them to file \"GaussCodes.txt\".")
+    ("macleod-code,M", "Compute MacLeod codes and print them to file \"MacLeodCodes.txt\".")
+    ("tally-unknots,u", po::value<bool>()->default_value(true), "Abbreviate runs of unknots when reporting PD/extended Gauss/MacLeod codes. If X is the number of unknots, write \"u X\" unstead of X consecutive \"k\"s.")
+    ("tally-trefoils", po::value<bool>()->default_value(true), "Instead of writing out PD/extended Gauss/MacLeod codes for all trefoils in a connected sum just write \"T+ X\" and \"T- Y\", where X is the number of right-handed trefoils and Y is the number of left-handed trefoils.")
+    ("tally-f8", po::value<bool>()->default_value(true), "Instead of writing out PD/extended Gauss/MacLeod codes for all figure-eight knots in a connected sum just write \"F8 X\", where X is the number of figure-eight knots.")
     ("bounding-boxes,B", "Compute statistics of bounding boxes and report them in file \"Info.m\".")
     ("polygons,P", po::value<LInt>()->default_value(-1), "Print every [arg] sample to file; if [arg] is negative, no samples are written to file ; if [arg] is 0, then only the polygon directly after burn-in and the final sample are written to file.")
     ("histograms", po::value<Int>()->default_value(0), "Create histograms for curvature and torsion angles with [arg] bins.")
@@ -36,6 +40,7 @@ void HandleOptions( int argc, char** argv )
     ("test-angles", po::value<LInt>()->default_value(0), "Create [arg] samples of the angle distribution and write them to TestAngles.tsv")
     ("gaussian-pivots", po::value<double>(), "Sample pivots by picking the first pivot p uniformly in {0,1,2,..,n-1}; then pick q = p + delta mod n, where delta is sampled according to the discretized wrapped Gaussian distribution on {0,1,2,..,n-1} with standard deviation [arg] and center 0. This is repeated until the distance of p to q mod n is greater than 1.")
     ("laplace-pivots", po::value<double>(), "Sample pivots by picking the first pivot p uniformly in {0,1,2,..,n-1}; then pick q = p + delta mod n, where delta is sampled according to the discretized wrapped Laplace distribution on {0,1,2,..,n-1} with scale parameter beta = [arg] and center 0. This is repeated until the distance of p to q mod n is greater than 1.")
+    ("clisby-pivots", "Sample u uniformly on [1,n/2], then take pivot distance d = floor(2^u.")
     ("test-pivots", po::value<LInt>()->default_value(0), "Create [arg] samples of the pivot distribution and write them to TestPivots.tsv")
     ("hierarchical,H", po::value<bool>()->default_value(false), "Set whether to use hierarchical moves for burn-in and sampling (caution: this is a very experimental feature.")
     ("shift,S", po::value<bool>()->default_value(true), "Shift vertex indices randomly in each sample.")
@@ -142,6 +147,18 @@ void HandleOptions( int argc, char** argv )
     gaussQ = (vm.count("gauss-code") != 0);
     valprint<a>("Compute Gauss Codes", BoolString(gaussQ) );
     
+    macleodQ = (vm.count("macleod-code") != 0);
+    valprint<a>("Compute MacLeod Codes", BoolString(macleodQ) );
+    
+    tally_unknotsQ = vm["tally-unknots"].as<bool>();
+    valprint<a>("Tally Unknots", BoolString(tally_unknotsQ) );
+    
+    tally_trefoilsQ = vm["tally-trefoils"].as<bool>();
+    valprint<a>("Tally Trefoils", BoolString(tally_trefoilsQ) );
+    
+    tally_F8Q = vm["tally-f8"].as<bool>();
+    valprint<a>("Tally Figure Eights", BoolString(tally_F8Q) );
+    
     steps_between_print = vm["polygons"].as<LInt>();
     printQ = (steps_between_print > LInt(0));
     valprint<a>("Polygon Snapshot Skip", ToString(steps_between_print) );
@@ -195,6 +212,16 @@ void HandleOptions( int argc, char** argv )
         throw std::invalid_argument("The options \"--gaussian-pivots\" and \"--laplace-pivots\" are mutually exclusive.");
     }
     
+    if( vm.count("gaussian-pivots") && vm.count("clisby-pivots") )
+    {
+        throw std::invalid_argument("The options \"--gaussian-pivots\" and \"--clisby-pivots\" are mutually exclusive.");
+    }
+    
+    if( vm.count("laplace-pivots") && vm.count("clisby-pivots") )
+    {
+        throw std::invalid_argument("The options \"--laplace-pivots\" and \"--clisby-pivots\" are mutually exclusive.");
+    }
+    
     if( vm.count("gaussian-pivots") )
     {
         pivot_sigma = vm["gaussian-pivots"].as<double>();
@@ -206,6 +233,11 @@ void HandleOptions( int argc, char** argv )
         pivot_beta = vm["laplace-pivots"].as<Real>();
         valprint<a>("Pivot Random Method", "Wrapped Laplace ( beta = " + ToStringFPGeneral(pivot_beta) + " )");
         pivot_method = PivotRandomMethod_T::DiscreteWrappedLaplace;
+    }
+    if( vm.count("clisby-pivots") )
+    {
+        valprint<a>("Pivot Random Method", "Clisby");
+        pivot_method = PivotRandomMethod_T::Clisby;
     }
     else
     {
@@ -330,7 +362,7 @@ void HandleOptions( int argc, char** argv )
     print("");
     
     
-    if( !(squared_gyradiusQ || pdQ || gaussQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
+    if( !(squared_gyradiusQ || pdQ || gaussQ || macleodQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
     {
         throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -P, -a, -B, or -histograms to define outputs.");
     }

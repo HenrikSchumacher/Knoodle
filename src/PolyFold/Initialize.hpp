@@ -46,6 +46,11 @@ Clisby_T CreateClisbyTree( bool load_data = false )
             T.UseDiscreteWrappedLaplacePivots(pivot_beta);
             break;
         }
+        case PivotRandomMethod_T::Clisby:
+        {
+            T.UseClisbyPivots();
+            break;
+        }
     }
     
     return T;
@@ -98,6 +103,19 @@ void Initialize()
         {
             throw std::runtime_error(
                 ClassName()+"::Initialize: Failed to create file \"" + gauss_file.string() + "\"."
+            );
+        }
+    }
+    
+    if( macleodQ )
+    {
+        macleod_file = path / "MacLeod.txt";
+        macleod_stream.open( macleod_file, std::ios_base::out );
+        
+        if( !macleod_stream )
+        {
+            throw std::runtime_error(
+                ClassName()+"::Initialize: Failed to create file \"" + macleod_file.string() + "\"."
             );
         }
     }
@@ -168,9 +186,14 @@ void Initialize()
             break;
             
         }
+        case PivotRandomMethod_T::Clisby:
+        {
+            kv<t1>  ("Pivot Random Method","Clisby");
+            break;
+        }
         default:
         {
-            kv<t1>  ("Angle Random Method",std::string("Uniform"));
+            kv<t1>  ("Pivot Random Method",std::string("Uniform"));
             break;
         }
     }

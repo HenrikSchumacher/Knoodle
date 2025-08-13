@@ -103,8 +103,9 @@ int LoadPivots(
     std::pair<Int,Int> && pivots, const Real angle_theta, const bool reflectQ_
 )
 {
-    p = Min(pivots.first,pivots.second);
-    q = Max(pivots.first,pivots.second);
+//    p = Min(pivots.first,pivots.second);
+//    q = Max(pivots.first,pivots.second);
+    std::tie(p,q) = MinMax(pivots);
     theta = angle_theta;
     reflectQ = reflectQ_;
     

@@ -9,6 +9,14 @@ std::string PDCodeString( mref<PD_T> P ) const
     {
         return std::string();
     }
+    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
+    {
+        return std::string();
+    }
+    if( tally_F8Q && P.ProvenFigureEightQ() )
+    {
+        return std::string();
+    }
     
     auto pdcode = P.PDCode();
     
@@ -34,6 +42,14 @@ std::string GaussCodeString( mref<PD_T> P ) const
     {
         return std::string();
     }
+    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
+    {
+        return std::string();
+    }
+    if( tally_F8Q && P.ProvenFigureEightQ() )
+    {
+        return std::string();
+    }
     
     std::string s;
     s+= "\ns ";
@@ -45,6 +61,83 @@ std::string GaussCodeString( mref<PD_T> P ) const
     
     return s;
 }
+
+std::string MacLeodCodeString( mref<PD_T> P ) const
+{
+    if( P.CrossingCount() <= 0 )
+    {
+        return std::string();
+    }
+    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
+    {
+        return std::string();
+    }
+    if( tally_F8Q && P.ProvenFigureEightQ() )
+    {
+        return std::string();
+    }
+    
+    std::string s;
+    s+= "\ns ";
+    s+= ToString(P.ProvenMinimalQ());
+    s+= " | ";
+    auto macleod_code = P.MacLeodCode();
+    
+    s+= VectorString( macleod_code.data(), "", " ", "", macleod_code.Size() );
+    
+    return s;
+}
+
+void WriteUnknots()
+{
+    if( pdQ )
+    {
+        pd_stream << "u " << unknot_counter << "\n";
+        pd_stream << std::flush;
+    }
+    
+    if( gaussQ )
+    {
+        gauss_stream << "u " << unknot_counter << "\n";
+        gauss_stream << std::flush;
+    }
+    
+    if( macleodQ )
+    {
+        macleod_stream << "u " << unknot_counter << "\n";
+        macleod_stream << std::flush;
+    }
+    
+}
+
+std::string TrefoilString() const
+{
+    std::string s;
+    if( T_p_counter > LInt(0) )
+    {
+        s += "\nT+ ";
+        s += ToString(T_p_counter);
+    }
+    if( T_m_counter > LInt(0) )
+    {
+        s += "\nT- ";
+        s += ToString(T_m_counter);
+    }
+    return s;
+}
+
+std::string FigureEightString() const
+{
+    std::string s;
+    if( F8_counter > LInt(0) )
+    {
+        s += "\nF8 ";
+        s += ToString(F8_counter);
+    }
+    return s;
+}
+
+
 
 template<Size_T t0, int my_verbosity>
 void Analyze( const LInt i )
@@ -65,6 +158,7 @@ void Analyze( const LInt i )
     TimeInterval T_simplify;
     TimeInterval T_pd_write;
     TimeInterval T_gauss_write;
+    TimeInterval T_macleod_write;
     TimeInterval T_pd_dealloc;
     TimeInterval T_gyradius;
     TimeInterval T_curvature_torsion;
@@ -122,7 +216,7 @@ void Analyze( const LInt i )
         kv<t1>("Bounding Box Upper Corner",upper);
     }
     
-    if( pdQ || gaussQ )
+    if( pdQ || gaussQ || macleodQ )
     {
         T_link.Tic<V2Q>();
         Link_T L ( n );
@@ -205,12 +299,56 @@ void Analyze( const LInt i )
         
         T_simplify.Tic<V2Q>();
         PD.Simplify5( pd_list );
+        pd_list.push_back(std::move(PD));
         T_simplify.Toc<V2Q>();
+        
+
+        Size_T byte_count  = 0;
+        Int crossing_count = 0;
+        
+        if( pdQ || gaussQ || macleodQ )
+        {
+            T_p_counter = 0;
+            T_m_counter = 0;
+            F8_counter  = 0;
+            
+            for( auto & P : pd_list )
+            {
+                byte_count     += P.ByteCount();
+                crossing_count += P.CrossingCount();
+                
+                if( tally_trefoilsQ && P.ProvenTrefoilQ() )
+                {
+                    if( P.CrossingRightHandedQ(Int(0)) )
+                    {
+                        ++T_p_counter;
+                    }
+                    else
+                    {
+                        ++T_m_counter;
+                    }
+                }
+                
+                if( tally_F8Q && P.ProvenFigureEightQ() )
+                {
+                    ++F8_counter;
+                }
+            }
+        }
+        else
+        {
+            for( auto & P : pd_list )
+            {
+                byte_count     += P.ByteCount();
+                crossing_count += P.CrossingCount();
+            }
+        }
+                
         
         if constexpr ( V2Q )
         {
-            kv<t2>("Byte Count (After Simplification)", PD.ByteCount() );
-            kv<t2>("Crossing Count (After Simplification)", PD.CrossingCount() );
+            kv<t2>("Byte Count (After Simplification)", byte_count );
+            kv<t2>("Crossing Count (After Simplification)", crossing_count );
         }
         
         if constexpr ( V1Q )
@@ -219,84 +357,109 @@ void Analyze( const LInt i )
             log << std::flush;
         }
         
-        if( pdQ )
+        if( !tally_unknotsQ || (crossing_count > Int(0)) )
         {
-            if constexpr ( V2Q )
+            if( tally_unknotsQ && (unknot_counter > LInt(0)) )
             {
-                T_pd_write.Tic();
-            }
-
-            // Writing the PD codes to file.
-            pd_stream << "k";
-            
-            Int crossing_count = PD.CrossingCount();
-            
-            pd_stream << PDCodeString(PD);
-            
-            for( auto & P : pd_list )
-            {
-                pd_stream << PDCodeString(P);
-                crossing_count += P.CrossingCount();
+                WriteUnknots();
+                unknot_counter = 0;
             }
             
-            pd_stream << "\n";
-            pd_stream << std::flush;
-            
-            
-            if( !pd_stream )
+            if( pdQ )
             {
-                throw std::runtime_error(
-                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\"."
-                );
+                if constexpr ( V2Q ) { T_pd_write.Tic(); }
+                
+                // Writing the PD codes to file.
+                pd_stream << "k";
+                if( tally_trefoilsQ )
+                {
+                    pd_stream << TrefoilString();
+                }
+                if( tally_F8Q )
+                {
+                    pd_stream << FigureEightString();
+                }
+                for( auto & P : pd_list )
+                {
+                    pd_stream << PDCodeString(P);
+                }
+                
+                pd_stream << "\n";
+                pd_stream << std::flush;
+                if( !pd_stream )
+                {
+                    throw std::runtime_error(ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + pd_file.string() + "\".");
+                }
+                
+                if constexpr ( V2Q ) { T_pd_write.Toc(); }
             }
             
-            if constexpr ( V2Q )
+            if ( gaussQ )
             {
-                T_pd_write.Toc();
+                if constexpr ( V2Q ) { T_gauss_write.Tic(); }
+                
+                // Writing the PD codes to file.
+                gauss_stream << "k";
+                if( tally_trefoilsQ )
+                {
+                    gauss_stream << TrefoilString();
+                }
+                if( tally_F8Q )
+                {
+                    gauss_stream << FigureEightString();
+                }
+                for( auto & P : pd_list )
+                {
+                    gauss_stream << GaussCodeString(P);
+                }
+                gauss_stream << "\n";
+                gauss_stream << std::flush;
+                if( !gauss_stream )
+                {
+                    throw std::runtime_error( ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\".");
+                }
+                
+                if constexpr ( V2Q ) { T_gauss_write.Toc(); }
+            }
+            
+            if ( macleodQ )
+            {
+                if constexpr ( V2Q ) { T_macleod_write.Tic(); }
+                
+                // Writing the PD codes to file.
+                macleod_stream << "k";
+                if( tally_trefoilsQ )
+                {
+                    macleod_stream << TrefoilString();
+                }
+                if( tally_F8Q )
+                {
+                    macleod_stream << FigureEightString();
+                }
+                for( auto & P : pd_list )
+                {
+                    macleod_stream << MacLeodCodeString(P);
+                }
+                macleod_stream << "\n";
+                macleod_stream << std::flush;
+                if( !macleod_stream )
+                {
+                    throw std::runtime_error( ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + macleod_file.string() + "\".");
+                }
+                
+                if constexpr ( V2Q ) { T_macleod_write.Toc(); }
             }
         }
-        
-        if ( gaussQ )
+        else
         {
-            if constexpr ( V2Q )
-            {
-                T_gauss_write.Tic();
-            }
-
-            // Writing the PD codes to file.
-            gauss_stream << "k";
-                
-            Int crossing_count = PD.CrossingCount();
-            
-            gauss_stream << GaussCodeString(PD);
-            
-            for( auto & P : pd_list )
-            {
-                gauss_stream << GaussCodeString(P);
-                crossing_count += P.CrossingCount();
-            }
-            
-            gauss_stream << "\n";
-            gauss_stream << std::flush;
-            
-            
-            if( !gauss_stream )
-            {
-                throw std::runtime_error(
-                    ClassName()+"::Analyze(" + ToString(i) + "): Failed to write to file \"" + gauss_file.string() + "\"."
-                );
-            }
-            
-            if constexpr ( V2Q )
-            {
-                T_gauss_write.Toc();
-            }
+            ++unknot_counter;
         }
         
         if( force_deallocQ )
         {
             T_pd_dealloc.Tic<V2Q>();
             PD = PD_T();
+            pd_list = std::vector<PD_T>();
             T_pd_dealloc.Toc<V2Q>();
             deallocation_time += T_pd_dealloc.Duration();
         }
@@ -343,6 +506,10 @@ void Analyze( const LInt i )
             if( gaussQ )
             {
                 kv<t2>("Write Gauss Code", T_gauss_write.Duration());
+            }
+            if( macleodQ )
+            {
+                kv<t2>("Write MacLeod Code", T_macleod_write.Duration());
             }
         }
         log << "\n" + ct_tabs<t1> + "|>";
