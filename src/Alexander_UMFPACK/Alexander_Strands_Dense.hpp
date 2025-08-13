@@ -13,7 +13,6 @@ Multiplier_T Alexander_Strands_Det_Dense(
     else
     {
         const LAPACK::Int n = int_cast<LAPACK::Int>(pd.CrossingCount() - Int(1));
-        
 
         A.template WriteDenseMatrix<false>( pd, static_cast<Scal>(arg), LU_buffer.data() );
         
