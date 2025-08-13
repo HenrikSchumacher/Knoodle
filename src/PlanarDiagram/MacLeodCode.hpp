@@ -53,7 +53,7 @@ void WriteMacLeodCode( mptr<T> code )  const
         eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
     }
     
-    Tensor1<Int,Int> buffer ( ArcCount(), Uninitialized );
+    Tensor1<T,Int> buffer ( ArcCount(), static_cast<T>(Uninitialized) );
 
     this->template Traverse<true,false,0>(
         [&buffer,code,this](
@@ -69,7 +69,7 @@ void WriteMacLeodCode( mptr<T> code )  const
             (void)c_1_pos;
             (void)c_1_visitedQ;
             
-            buffer[Int(2) * c_0_pos + c_0_visitedQ] = a_pos;
+            buffer[Int(2) * c_0_pos + c_0_visitedQ] = static_cast<T>(a_pos);
             
             code[a_pos] = (static_cast<T>(this->ArcOverQ<Tail>(a)) << T(1)) | static_cast<T>(this->CrossingRightHandedQ(c_0));
         }
@@ -231,6 +231,7 @@ static Tensor1<ToSigned<Int>,Int> MacLeodCodeToExtendedGaussCode(
     
     return gauss;
 }
+
 template<typename T, typename ExtInt2, typename ExtInt3>
 static PlanarDiagram FromMacLeodCode(
     cptr<T>       code,
@@ -347,7 +348,7 @@ static PlanarDiagram FromMacLeodCode(
     pd.crossing_count = crossing_counter;
     pd.arc_count      = pd.CountActiveArcs();
     
-    if( pd.arc_count != arc_count_ )
+    if( !std::cmp_equal(pd.arc_count, arc_count_) )
     {
         eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
@@ -365,27 +366,77 @@ static PlanarDiagram FromMacLeodCode(
 }
 
 
+template<typename T, typename ExtInt>
+static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> code )
+{
+    static_assert(UnsignedIntQ<T>,"");
+    static_assert(IntQ<ExtInt>,"");
+    return FromMacLeodCode( code.data(), code.Size(), Int(0), false, false );
+}
 
-//std::string MacLeodCodeString() const
-//{
-//    TOOLS_PTIMER(timer,MethodName("MacLeodCodeString"));
-//    
-//    auto code = this->template MacLeodCode<UInt>();
-//    
-//    const auto digit_count = Binarizer::DigitCount(code.Size() * 4);
-//    
-//    return Binarizer::ToString(
-//        code.data(), code.Size(), digit_count
-//    );
-//}
-//
+
+
+
+
+
+template<typename Int>
+static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
+{
+    static_assert(IntQ<Int>);
+    
+    Size_T n   = ToSize_T(string_length);
+    Size_T d   = 1;
+    Size_T pow = 8;
+    
+    while( n > pow )
+    {
+        ++d;
+        pow = (pow << Binarizer::digit_bit_count);
+    }
+    
+    return d;
+}
+
+std::string MacLeodString() const
+{
+    TOOLS_PTIMER(timer,MethodName("MacLeodString"));
+    
+    auto code = this->template MacLeodCode<UInt>();
+    
+    const UInt   m = int_cast<UInt>(ArcCount());
+    const Size_T d = Binarizer::DigitCountFromMaxNumber(UInt(4) * m);
+    
+    auto s = Binarizer::ToString( code.data(), m, d );
+    
+    return s;
+}
+
+static PlanarDiagram FromMacLeodString( cref<std::string> s )
+{
+    TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
+    
+    Size_T L = ToSize_T(s.size());
+    Size_T d = 1;   // current digit count that we try
+    Size_T m = 16;  // the maximal arc count possible with current d.
+    
+    while( L > d * m )
+    {
+        ++d;
+        m = (m << Binarizer::digit_bit_count);
+    }
+
+    auto code = Binarizer::template FromString<UInt>(s,d);
+    
+    return FromMacLeodCode(code);
+}
+
 //Tensor1<Binarizer::Char,Int> BinaryMacLeodCode() const
 //{
 //    TOOLS_PTIMER(timer,MethodName("BinaryMacLeodCode"));
 //    
 //    auto code = this->template MacLeodCode<UInt>();
 //    
-//    const auto digit_count = Binarizer::DigitCount(code.Size() * 4);
+//    const auto digit_count = Binarizer::DigitCountFromMaxNumber(code.Size() * 4);
 //    
 //    return Binarizer::ToCharSequence(
 //        code.data(), code.Size(), digit_count

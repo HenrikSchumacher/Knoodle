@@ -730,6 +730,16 @@ namespace Knoodle
             return (CrossingCount() > Int(0)) || (UnlinkCount() > Int(1));
         }
         
+        bool ProvenTrefoilQ() const
+        {
+            return proven_minimalQ && (CrossingCount() == Int(3)) && (LinkComponentCount() == Int(1));
+        }
+        
+        bool ProvenFigureEightQ() const
+        {
+            return proven_minimalQ && (CrossingCount() == Int(4)) && (LinkComponentCount() == Int(1));
+        }
+        
         
     public:
         

@@ -85,7 +85,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-d1.0 -n256 -b10000 -s1000 -N100 /Users/Henrik/PolyFoldExperiments/XCode -cgema -v0 -P-1  --laplace-pivots 32 -R0 --test-pivots 1000000"
+            argument = "-d1.0 -n10000 -b10000 -s1000 -N10000 /Users/Henrik/PolyFoldExperiments/XCode -cMGgema -v0 -P-1  -R0 --clisby-pivots --tally-unknots 1"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

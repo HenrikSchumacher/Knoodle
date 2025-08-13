@@ -241,22 +241,17 @@ int main( int argc, char** argv )
     TOOLS_DUMP(pd.CheckerBoardColoring());
     
     
-    const auto digit_count = Binarizer::DigitCount(4 * pd.MacLeodCode().Size());
     
-    TOOLS_DUMP(digit_count);
+    auto code = pd.MacLeodCode();
+    TOOLS_DUMP(code);
     
-    TOOLS_DUMP(pd.MacLeodCode());
+    auto code_string = pd.MacLeodString();
     
-    auto char_seq = pd.MacLeodCodeString();
+    TOOLS_DUMP(code_string);
     
-    TOOLS_DUMP(char_seq);
+    auto pd_decoded = PlanarDiagram<Int>::FromMacLeodString(code_string);
     
-    
-    auto int_seq = Binarizer::template FromCharSequence<PlanarDiagram<Int>::UInt>(
-        char_seq.data(), char_seq.size()/digit_count, digit_count
-    );
-    
-    TOOLS_DUMP(int_seq);
+    TOOLS_DUMP(pd_decoded.MacLeodCode());
     
     return EXIT_SUCCESS;
 }
