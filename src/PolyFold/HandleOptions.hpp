@@ -364,7 +364,7 @@ void HandleOptions( int argc, char** argv )
     
     if( !(squared_gyradiusQ || pdQ || gaussQ || macleodQ || anglesQ || bounding_boxesQ || (bin_count > Int(1)) || (steps_between_print > LInt(0)) ) )
     {
-        throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -P, -a, -B, or -histograms to define outputs.");
+        throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -M, -P, -a, -B, or -histograms to define outputs.");
     }
     
 }
