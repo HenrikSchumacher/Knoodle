@@ -4,7 +4,6 @@ namespace Knoodle
 {
     class PrimeKnotLookupTable
     {
-        //        static_assert(UnsignedIntQ<KeyEntry_T>,"");
     public:
         
         using E_T     = char;
@@ -215,18 +214,18 @@ namespace Knoodle
         {
             // TODO: Check size of max_crossing_count!
             
-            for( Size_T c = 1; c <= std::min(max_c_count,crossing_count); ++c )
+            Size_T c_count = std::min(max_c_count,crossing_count);
+            
+            subtables = std::vector<Subtable>( c_count + Size_T(1) );
+            
+            for( Size_T c = 1; c <= c_count; ++c )
             {
                 if( c >= Size_T(3) )
                 {
                     std::string s = StringWithLeadingZeroes(c,Size_T(2));
-                    Path_T k_file = path / (std::string("KLUT_Keys_") + s + ".bin");
-                    Path_T v_file = path / (std::string("KLUT_Values_") + s + ".tsv");
-                    subtables.push_back( Subtable(c, k_file, v_file) );
-                }
-                else
-                {
-                    subtables.push_back( Subtable() );
+                    Path_T k_file = path / (std::string("Klut_Keys_") + s + ".bin");
+                    Path_T v_file = path / (std::string("Klut_Values_") + s + ".tsv");
+                    subtables[c] = Subtable(c, k_file, v_file);
                 }
             }
         }
