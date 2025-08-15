@@ -363,15 +363,9 @@ cref<ArcSplineContainer_T> ArcLines()
         const Int v_count = V_dE.Dim(0);
         const Int a_count = A_C.Dim(0);
         
-//        TOOLS_DUMP(v_count);
-//        TOOLS_DUMP(V_coords.Dim(0));
-        
         ArcSplineContainer_T A_lines ( a_count, A_V.ElementCount() );
         
         using A_T = std::array<Int,2>;
-        
-//        TOOLS_LOGDUMP(A_V.Pointers());
-//        TOOLS_LOGDUMP(A_V.Elements());
         
         for( Int a = 0; a < a_count; ++a )
         {
@@ -388,10 +382,6 @@ cref<ArcSplineContainer_T> ArcLines()
                 const Int k = k_begin;
                 const Int v_0 = A_V.Elements()[k  ];
                 const Int v_1 = A_V.Elements()[k+1];
-                
-//                // DEBUGGING
-//                this->template CheckVertex<1,true>(v_0);
-//                this->template CheckVertex<1,true>(v_1);
                                 
                 if( !InIntervalQ(v_0,Int(0),v_count) )
                 {
@@ -456,20 +446,6 @@ cref<ArcSplineContainer_T> ArcLines()
             TOOLS_DDUMP(A_lines.SublistCount());
             TOOLS_DDUMP(a_count);
         }
-        
-        
-//        // DEBUGGING
-//        
-//        TOOLS_LOGDUMP(A_lines.Pointers());
-////        TOOLS_LOGDUMP(A_lines.Elements());
-//
-//        for( Int i = 0; i < A_lines.ElementCount(); ++i )
-//        {
-//            logvalprint(
-//                "A_lines.Elements()["+ToString(i)+"]",
-//                A_lines.Elements()[i]
-//            );
-//        }
         
         this->SetCache( "ArcLines", std::move(A_lines) );
     }

@@ -104,22 +104,10 @@ namespace Knoodle
             {
                 UInt64 k = static_cast<UInt64>(a[i]);
                 
-//                TOOLS_DUMP(k);
-                
                 for( Size_T j = 0; j < digit_count; ++j )
                 {
                     Digit d = static_cast<Digit>(k & digit_mask);
-
-                    Char c  = ToChar(d);
-                    
-                    if( FromChar(c) != d )
-                    {
-                        eprint("A!");
-                        TOOLS_DUMP(d);
-                        TOOLS_DUMP(c);
-                        print(std::string("c  = ") + c);
-                        TOOLS_DUMP(FromChar(c));
-                    }
+                    Char  c = ToChar(d);
                     
                     s[digit_count * i + j] = c;
                     
@@ -144,7 +132,7 @@ namespace Knoodle
                 for( Size_T j = digit_count; j -->Size_T(0); )
                 {
                     k = (k << digit_bit_count);
-                    
+
                     Digit d = FromChar(s[digit_count * i + j]);
                     
                     k = k | d;
@@ -251,8 +239,6 @@ namespace Knoodle
 //            );
 //        }
 
-
-        
     }; // class Binarizer
     
 }

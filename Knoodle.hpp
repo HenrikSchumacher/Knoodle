@@ -429,3 +429,6 @@ namespace Knoodle
                                 // Not favorable compared to Alexander_UMFPACK.hpp
 
 //#include "src/Alexander_UMFPACK.hpp" // Improved version of the former.
+
+
+//#include "src/KnotLookupTable.hpp"

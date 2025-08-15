@@ -1,11 +1,11 @@
 public:
 
 template<typename T = ToUnsigned<Int>>
-Tensor1<T,Int> MacLeodCode()  const
+Tensor1<T,Int> MacLeodCode() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+">");
     
-    static_assert( IntQ<T>, "" );
+    static_assert(IntQ<T>,"");
     
     Tensor1<T,Int> code;
     
@@ -40,23 +40,22 @@ Tensor1<T,Int> MacLeodCode()  const
     return code;
 }
 
-
 template<typename T>
-void WriteMacLeodCode( mptr<T> code )  const
+void WriteMacLeodCode( mptr<T> code ) const
 {
     TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
     
-    static_assert( IntQ<T>, "" );
+    static_assert(IntQ<T>,"");
     
     if( LinkComponentCount() > Int(1) )
     {
         eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
     }
     
-    Tensor1<T,Int> buffer ( ArcCount(), static_cast<T>(Uninitialized) );
+    Tensor1<Int,Int> workspace ( arc_count );
 
     this->template Traverse<true,false,0>(
-        [&buffer,code,this](
+        [&workspace,code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -69,9 +68,12 @@ void WriteMacLeodCode( mptr<T> code )  const
             (void)c_1_pos;
             (void)c_1_visitedQ;
             
-            buffer[Int(2) * c_0_pos + c_0_visitedQ] = static_cast<T>(a_pos);
+            workspace[Int(2) * c_0_pos + c_0_visitedQ] = a_pos;
             
-            code[a_pos] = (static_cast<T>(this->ArcOverQ<Tail>(a)) << T(1)) | static_cast<T>(this->CrossingRightHandedQ(c_0));
+            code[a_pos] = (
+                static_cast<T>(this->ArcOverQ<Tail>(a)) << T(1))
+                | static_cast<T>(this->CrossingRightHandedQ(c_0)
+            );
         }
     );
     
@@ -80,8 +82,8 @@ void WriteMacLeodCode( mptr<T> code )  const
     
     for( Int i = 0; i < n; ++i )
     {
-        const T a = buffer[Int(2) * i + Tail];
-        const T b = buffer[Int(2) * i + Head];
+        const T a = static_cast<T>(workspace[Int(2) * i + Tail]);
+        const T b = static_cast<T>(workspace[Int(2) * i + Head]);
 
         const T a_leap = b - a;
         const T b_leap = (m + a) - b;
@@ -125,12 +127,12 @@ void WriteMacLeodCode( mptr<T> code )  const
     
     for( T t = 0; t < m; ++t )
     {
-        if( greaterQ( t, s ) ) { s = t; }
+        if( greaterQ(t,s) ) { s = t; }
     }
     
     this->template SetCache<false>("MacLeodComparisonCount", counter );
     
-    rotate_buffer<Side::Left>( code, s, m );
+    rotate_buffer<Side::Left>(code,s,m);
 }
 
 Size_T MacLeodComparisonCount()
@@ -153,7 +155,7 @@ static Tensor1<ToSigned<Int>,Int> MacLeodCodeToExtendedGaussCode(
     
     const Int m = int_cast<Int>(arc_count_);
 
-    Tensor1<T,Int> gauss ( m );
+    Tensor1<T,Int> gauss (m);
 
     Tensor1<bool,Int> visitedQ (m,false);
     
@@ -241,7 +243,15 @@ static PlanarDiagram FromMacLeodCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    static_assert( IntQ<T>, "" );
+    TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
+        + "<" + TypeName<T>
+        + "," + TypeName<ExtInt2>
+        + "," + TypeName<ExtInt3>
+        + ">");
+    
+    static_assert(IntQ<T>,"");
+    
+    // TODO: We should check whether 2 * arc_count_ fits into Int.
 
     if( arc_count_ <= ExtInt2(0) )
     {
@@ -350,7 +360,7 @@ static PlanarDiagram FromMacLeodCode(
     
     if( !std::cmp_equal(pd.arc_count, arc_count_) )
     {
-        eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(MethodName("FromPDCode") + ": Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
     // Compression is not really meaningful because the traversal ordering is crucial for the MacLeod code.
@@ -365,48 +375,186 @@ static PlanarDiagram FromMacLeodCode(
     }
 }
 
-
 template<typename T, typename ExtInt>
 static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> code )
 {
-    static_assert(UnsignedIntQ<T>,"");
+    static_assert(IntQ<T>,"");
     static_assert(IntQ<ExtInt>,"");
     return FromMacLeodCode( code.data(), code.Size(), Int(0), false, false );
 }
 
 
-
-
-
-
-template<typename Int>
-static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
+template<typename T = ToUnsigned<Int>>
+static void ShortenMacLeadCode(
+    cptr<T> mac_leod, mptr<T> short_mac_leod, Int c_count
+)
 {
-    static_assert(IntQ<Int>);
+    TOOLS_PTIMER(timer,MethodName("ShortenMacLeadCode")
+        + "<" + TypeName<T>
+        + ">");
     
-    Size_T n   = ToSize_T(string_length);
-    Size_T d   = 1;
-    Size_T pow = 8;
+    static_assert(IntQ<T>,"");
     
-    while( n > pow )
+    const T n = static_cast<T>(c_count);
+    const T m = T(2) * n;
+    
+    T j = 0; // where to write in short_mac_leod
+    
+    for( T a = 0; a < m; ++a )
     {
-        ++d;
-        pow = (pow << Binarizer::digit_bit_count);
+        T code = mac_leod[a];
+        T leap = (code >> 2);
+        if( a + leap < m )
+        {
+            short_mac_leod[j] = code;
+            ++j;
+        }
     }
-    
-    return d;
 }
+
+template<typename T = ToUnsigned<Int>>
+static void ExpandMacLeadCode(
+    cptr<T> short_mac_leod, mptr<T> mac_leod, Int c_count
+)
+{
+    TOOLS_PTIMER(timer,MethodName("ExpandMacLeadCode")
+        + "<" + TypeName<T>
+        + ">");
+    
+    static_assert(IntQ<T>,"");
+    
+    const T n = static_cast<T>(c_count);
+    const T m = T(2) * n;
+    
+    constexpr T undefined = 0;
+    
+    // 0 cannot occur in a MacLeod code, so we can use it to signal "undefined".
+    fill_buffer( mac_leod, undefined, n );
+    
+    T a = 0; // where to write in mac_leod
+    
+    for( T j = 0; j < n; ++j )
+    {
+        // Move to next empty position.
+        while( mac_leod[a] != undefined ) { ++a; }
+            
+        const T    a_code   = short_mac_leod[j];
+        const T    a_leap   = (a_code >> 2);
+        const bool a_overQ  = (a_code & T(2));
+        const bool a_rightQ = (a_code & T(1));
+
+        const T    b        = a + a_leap;
+        const T    b_leap   = m - a_leap;
+        const bool b_overQ  = !a_overQ;
+        const bool b_rightQ = a_rightQ;
+        const T    b_code   = (b_leap << 2) | (b_overQ << 1) | b_rightQ;
+        
+        mac_leod[a] = a_code;
+        mac_leod[b] = b_code;
+        ++a;
+        
+//        valprint("code",ArrayToString(mac_leod,{m}));
+    }
+}
+
+
+template<typename T = ToUnsigned<Int>>
+void WriteShortMacLeodCode( mptr<T> short_mac_leod ) const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::WriteShortMacLeodCode<"+TypeName<T>+">");
+    
+    static_assert(IntQ<T>,"");
+    
+    auto mac_leod = this->template MacLeodCode<T>();
+    ShortenMacLeadCode( mac_leod.data(), short_mac_leod, crossing_count );
+}
+
+template<typename T = ToUnsigned<Int>>
+Tensor1<T,Int> ShortMacLeodCode() const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::ShortMacLeodCode<"+TypeName<T>+">");
+    
+    static_assert(IntQ<T>,"");
+    
+    Tensor1<T,Int> short_mac_leod ( crossing_count );
+    WriteShortMacLeodCode( short_mac_leod.data() );
+    
+    return short_mac_leod;
+}
+
+template<typename T, typename ExtInt2, typename ExtInt3>
+static PlanarDiagram FromShortMacLeodCode(
+    cptr<T>       short_mac_leod,
+    const ExtInt2 crossing_count_,
+    const ExtInt3 unlink_count_,
+    const bool    compressQ = false,
+    const bool    proven_minimalQ_ = false
+)
+{
+    TOOLS_PTIMER(timer,MethodName("FromShortMacLeodCode")
+        + "<" + TypeName<T>
+        + "," + TypeName<ExtInt2>
+        + "," + TypeName<ExtInt3>
+        + ">");
+    
+    static_assert(IntQ<T>,"");
+    
+    Int c_count = int_cast<Int>(crossing_count_);
+    Int a_count = Int(2) * c_count;
+    
+    Tensor1<T,Int> mac_leod ( a_count );
+    
+    // TODO: We could cut out this step and reimplement FromMacLeodCode.
+    ExpandMacLeadCode( short_mac_leod, mac_leod.data(), c_count );
+    
+    return FromMacLeodCode(
+       mac_leod.data(), a_count, unlink_count_, compressQ, proven_minimalQ_
+    );
+}
+
+
+template<typename T, typename ExtInt>
+static PlanarDiagram FromShortMacLeodCode( cref<Tensor1<T,ExtInt>> code )
+{
+    static_assert(IntQ<T>,"");
+    static_assert(IntQ<ExtInt>,"");
+    return FromShortMacLeodCode( code.data(), code.Size(), Int(0), false, false );
+}
+
+
+
+
+
+
+
+//template<typename Int>
+//static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
+//{
+//    static_assert(IntQ<Int>);
+//    
+//    Size_T L   = ToSize_T(2) * ToSize_T(string_length);
+//    Size_T d   = 1;
+//    Size_T pow = 8;
+//    
+//    while( L > pow )
+//    {
+//        ++d;
+//        pow = (pow << Binarizer::digit_bit_count);
+//    }
+//    
+//    return d;
+//}
 
 std::string MacLeodString() const
 {
     TOOLS_PTIMER(timer,MethodName("MacLeodString"));
     
-    auto code = this->template MacLeodCode<UInt>();
+    auto code = this->template ShortMacLeodCode<UInt>();
     
-    const UInt   m = int_cast<UInt>(ArcCount());
-    const Size_T d = Binarizer::DigitCountFromMaxNumber(UInt(4) * m);
+    const UInt   n = int_cast<UInt>(CrossingCount());
+    const Size_T d = Binarizer::DigitCountFromMaxNumber(UInt(8) * n);
     
-    auto s = Binarizer::ToString( code.data(), m, d );
+    auto s = Binarizer::ToString( code.data(), n, d );
     
     return s;
 }
@@ -417,28 +565,19 @@ static PlanarDiagram FromMacLeodString( cref<std::string> s )
     
     Size_T L = ToSize_T(s.size());
     Size_T d = 1;   // current digit count that we try
-    Size_T m = 16;  // the maximal arc count possible with current d.
     
-    while( L > d * m )
+    // The maximal crossing count possible with current d.
+    // We lose three bits:
+    // One for over/under; one for handedness, one because max leap can be 2 * n.
+    Size_T n = Size_T(1) << (Binarizer::digit_bit_count - Size_T(3));
+
+    while( L > d * n )
     {
         ++d;
-        m = (m << Binarizer::digit_bit_count);
+        n = (n << Binarizer::digit_bit_count);
     }
 
     auto code = Binarizer::template FromString<UInt>(s,d);
     
-    return FromMacLeodCode(code);
+    return FromShortMacLeodCode(code);
 }
-
-//Tensor1<Binarizer::Char,Int> BinaryMacLeodCode() const
-//{
-//    TOOLS_PTIMER(timer,MethodName("BinaryMacLeodCode"));
-//    
-//    auto code = this->template MacLeodCode<UInt>();
-//    
-//    const auto digit_count = Binarizer::DigitCountFromMaxNumber(code.Size() * 4);
-//    
-//    return Binarizer::ToCharSequence(
-//        code.data(), code.Size(), digit_count
-//    );
-//}
