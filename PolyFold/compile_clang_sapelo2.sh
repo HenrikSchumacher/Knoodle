@@ -4,7 +4,6 @@ clang++                                         \
     -std=c++20                                  \
     -lc++                                       \
     -O3                                         \
-    -ffast-math                                 \
     -fenable-matrix                             \
     -pthread                                    \
     -march=native                               \
