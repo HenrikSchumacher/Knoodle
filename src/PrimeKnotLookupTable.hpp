@@ -19,6 +19,10 @@ namespace Knoodle
 //        };
         
 //        using Key_T = std::string;
+        
+//        using Key_T  = std::array<UInt64,2>; // keys have length of 16 bytes
+//        using Hash_T = array_hash<UInt64,2>;
+        
         using Key_T  = std::pair<UInt64,UInt64>; // keys have length of 16 bytes
         using Hash_T = pair_hash<UInt64,UInt64>;
         // Will work only up to 13-crossing knots!
