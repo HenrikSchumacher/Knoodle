@@ -320,6 +320,7 @@ void Initialize()
             }
         }
         
+        // Remember random engine for later use.
         prng = T.RandomEngine();
         
         PRNG_State_T state = State( prng );
@@ -328,12 +329,10 @@ void Initialize()
         {
             prng_init.multiplier = state.multiplier;
         }
-        
         if( !prng_incrementQ )
         {
             prng_init.increment = state.increment;
         }
-        
         if( !prng_stateQ )
         {
             prng_init.state = state.state;
@@ -367,9 +366,6 @@ void Initialize()
         log << std::flush;
         
         T.WriteVertexCoordinates( x.data() );
-        
-        // Remember random engine for later use.
-        prng = T.RandomEngine();
         
         if( force_deallocQ )
         {

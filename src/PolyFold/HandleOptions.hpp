@@ -267,7 +267,7 @@ void HandleOptions( int argc, char** argv )
         
         prng_init.multiplier = vm["pcg-multiplier"].as<std::string>();
         
-        valprint("PCG Multiplier", prng_init.multiplier);
+        valprint<a>("PCG Multiplier", prng_init.multiplier);
     }
     
     if( vm.count("pcg-increment") )
