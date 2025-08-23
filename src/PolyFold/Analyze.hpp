@@ -81,7 +81,7 @@ std::string MacLeodCodeString( mref<PD_T> P ) const
     s+= "\ns ";
     s+= ToString(P.ProvenMinimalQ());
     s+= " | ";
-    auto macleod_code = P.MacLeodCode();
+    auto macleod_code = P.ShortMacLeodCode();
     
     s+= VectorString( macleod_code.data(), "", " ", "", macleod_code.Size() );
     
@@ -95,19 +95,16 @@ void WriteUnknots()
         pd_stream << "u " << unknot_counter << "\n";
         pd_stream << std::flush;
     }
-    
     if( gaussQ )
     {
         gauss_stream << "u " << unknot_counter << "\n";
         gauss_stream << std::flush;
     }
-    
     if( macleodQ )
     {
         macleod_stream << "u " << unknot_counter << "\n";
         macleod_stream << std::flush;
     }
-    
 }
 
 std::string TrefoilString() const
@@ -328,7 +325,6 @@ void Analyze( const LInt i )
                         ++T_m_counter;
                     }
                 }
-                
                 if( tally_F8Q && P.ProvenFigureEightQ() )
                 {
                     ++F8_counter;
