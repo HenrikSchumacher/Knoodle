@@ -9,36 +9,26 @@ namespace Knoodle
     {
     public:
         
-        using E_T     = char;
-
         using Value_T = std::string;
         
-//        struct Key_T    // keys have length of 16 bytes
-//        {
-//            UInt64 a[2] = {0};
-//        };
-        
-//        using Key_T = std::string;
-        
-//        using Key_T  = std::array<UInt64,2>; // keys have length of 16 bytes
-//        using Hash_T = array_hash<UInt64,2>;
-        
-        using Key_T  = std::pair<UInt64,UInt64>; // keys have length of 16 bytes
-        using Hash_T = pair_hash<UInt64,UInt64>;
         // Will work only up to 13-crossing knots!
         using ID_T   = UInt16; // TODO: Is this big/small enough?
         
-//        using LUT_T  = std::map<Key_T,ID_T>;
-//        using LUT_T  = std::unordered_map<Key_T,ID_T,Hash_T>;
-//        using LUT_T  = ankerl::unordered_dense::map<Key_T,ID_T>;
-//        using LUT_T  = boost::unordered_flat_map<Key_T,ID_T>;
-        using LUT_T =  boost::unordered_flat_map<Key_T,ID_T,Hash_T>;
-        
-        
-        using Path_T  = std::filesystem::path;
-        
         static constexpr Size_T max_c_count = 13;
         static constexpr ID_T   not_found   = std::numeric_limits<ID_T>::max();
+        
+//        using Key_T  = std::string;
+//        using Hash_T = std::hash<Key_T>;
+        
+        using Key_T  = std::array<UInt64,2>; // keys have length of 16 bytes
+        using Hash_T = array_hash;
+        
+//        using LUT_T  = std::map<Key_T,ID_T>;
+//        using LUT_T  = std::unordered_map<Key_T,ID_T,Hash_T>;
+//        using LUT_T  = ankerl::unordered_dense::map<Key_T,ID_T,Hash_T>;
+        using LUT_T =  boost::unordered_flat_map<Key_T,ID_T,Hash_T>;
+
+        using Path_T  = std::filesystem::path;
         
         // Stores and looks up data for a fixed number of crossings.
         class Subtable
@@ -125,12 +115,12 @@ namespace Knoodle
                         }
                         
 //                        Key_T key ( c_count, '\0' );
-                        // Read c_count bytes from the stream.
+//                        // Read c_count bytes from the stream.
 //                        k_stream.read( &key[0], c_count );
                         
-                        Key_T key;
+                        Key_T key = {};
                         // Read c_count bytes from the stream.
-                        k_stream.read( reinterpret_cast<char *>(&key), c_count );
+                        k_stream.read( reinterpret_cast<char *>(&key[0]), c_count );
 
                         // TODO:
                         
@@ -162,14 +152,7 @@ namespace Knoodle
             ID_T LookupID( cref<Key_T> key ) const
             {
                 auto it = lut.find(key);
-                
-//                if( key.size() != c_count )
-//                {
-//                    wprint(MethodName("LookupID") + ": key \"" + ToString(key) + "\" is longer than crossing count = " + ToString(c_count) + " of this lookup table. Returning not_found.");
-//                    
-//                    return not_found;
-//                }
-                
+
                 if( it == lut.end() )
                 {
                     wprint(MethodName("LookupID") + ": key \"" + ToString(key) + "\" could not be found. Returning not_found.");
@@ -290,86 +273,83 @@ namespace Knoodle
         
         
         template<typename T, typename Int>
-        static Key_T KeyFromShortMacLeodCode( cptr<T> short_mac_leod, Int n )
+        static Key_T KeyFromShortMacLeodCode( cptr<T> s_mac_leod, Int n )
         {
             static_assert(IntQ<T>,"");
             static_assert(IntQ<Int>,"");
+            
 //            const Size_T n_ = ToSize_T(n);
 //            Key_T key (n_,'\0');
-//            copy_buffer(short_mac_leod,&key[0],n_);
+//            copy_buffer(s_mac_leod,&key[0],n_);
             
-            Key_T key;
-            copy_buffer(short_mac_leod,reinterpret_cast<char *>(&key),n);
+            Key_T key = {};
+            copy_buffer(s_mac_leod,reinterpret_cast<char *>(&key[0]),n);
             
             return key;
         }
         
         template<typename T, typename Int>
-        static Key_T KeyFromShortMacLeodCode( cref<Tensor1<T,Int>> short_mac_leod )
+        static Key_T KeyFromShortMacLeodCode( cref<Tensor1<T,Int>> s_mac_leod )
         {
-            return KeyFromShortMacLeodCode(
-               &short_mac_leod[0], short_mac_leod.Size()
-            );
+            return KeyFromShortMacLeodCode( &s_mac_leod[0], s_mac_leod.Size() );
         }
         
         template<typename T>
-        static Key_T KeyFromShortMacLeodCode( cref<std::vector<T>> short_mac_leod )
+        static Key_T KeyFromShortMacLeodCode( cref<std::vector<T>> s_mac_leod )
         {
-            return KeyFromShortMacLeodCode(
-               &short_mac_leod[0], short_mac_leod.size()
-            );
+            return KeyFromShortMacLeodCode( &s_mac_leod[0], s_mac_leod.size() );
         }
 
 
         
        
        template<typename T, typename Int>
-       std::pair<ID_T,ID_T> LookupID( cptr<T> short_mac_leod, Int n ) const
+       std::pair<ID_T,ID_T> LookupID( cptr<T> s_mac_leod, Int n ) const
        {
-           return LookupID( KeyFromShortMacLeodCode(short_mac_leod,n), n );
+           return LookupID( KeyFromShortMacLeodCode(s_mac_leod,n), n );
        }
 
        template<typename T, typename Int>
-       std::string LookupName( cptr<T> short_mac_leod, Int n ) const
+       std::string LookupName( cptr<T> s_mac_leod, Int n ) const
        {
-           return LookupName( KeyFromShortMacLeodCode(short_mac_leod,n), n );
+           return LookupName( KeyFromShortMacLeodCode(s_mac_leod,n), n );
        }
         
         
         template<typename T, typename Int>
-        std::pair<ID_T,ID_T> LookupID( cref<Tensor1<T,Int>> short_mac_leod ) const
+        std::pair<ID_T,ID_T> LookupID( cref<Tensor1<T,Int>> s_mac_leod ) const
         {
-            return LookupID( &short_mac_leod[0], short_mac_leod.Size() );
+            return LookupID( &s_mac_leod[0], s_mac_leod.Size() );
         }
 
         template<typename T, typename Int>
-        std::string LookupName( cref<Tensor1<T,Int>> short_mac_leod ) const
+        std::string LookupName( cref<Tensor1<T,Int>> s_mac_leod ) const
         {
-            return LookupName( &short_mac_leod[0], short_mac_leod.Size() );
+            return LookupName( &s_mac_leod[0], s_mac_leod.Size() );
         }
         
         
         template<typename T, typename Int>
-        std::pair<ID_T,ID_T> LookupID( cref<std::vector<T,Int>> short_mac_leod ) const
+        std::pair<ID_T,ID_T> LookupID( cref<std::vector<T,Int>> s_mac_leod ) const
         {
-            return LookupID( &short_mac_leod[0], short_mac_leod.size() );
+            return LookupID( &s_mac_leod[0], s_mac_leod.size() );
         }
 
         template<typename T, typename Int>
-        std::string LookupName( cref<std::vector<T,Int>> short_mac_leod ) const
+        std::string LookupName( cref<std::vector<T,Int>> s_mac_leod ) const
         {
-            return LookupName( &short_mac_leod[0], short_mac_leod.size() );
+            return LookupName( &s_mac_leod[0], s_mac_leod.size() );
         }
         
         
-        std::pair<ID_T,ID_T> LookupID( cref<std::string> short_mac_leod ) const
+        std::pair<ID_T,ID_T> LookupID( cref<std::string> s_mac_leod ) const
         {
-            return LookupID( &short_mac_leod[0],short_mac_leod.size() );
+            return LookupID( &s_mac_leod[0], s_mac_leod.size() );
         }
 
-        std::string LookupName( cref<std::string> short_mac_leod ) const
+        std::string LookupName( cref<std::string> s_mac_leod ) const
         {
-            return LookupName( &short_mac_leod[0], short_mac_leod.size() );
+            return LookupName( &s_mac_leod[0], s_mac_leod.size() );
         }
         
     public:

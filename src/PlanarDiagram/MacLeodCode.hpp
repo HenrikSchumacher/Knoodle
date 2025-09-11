@@ -146,7 +146,7 @@ Size_T MacLeodComparisonCount()
 
 
 template<typename S, typename ExtInt>
-static Tensor1<ToSigned<Int>,Int> MacLeodCodeToExtendedGaussCode(
+static Tensor1<ToSigned<Int>,Int> MacLeodCode_to_ExtendedGaussCode(
     cptr<S> code,
     const ExtInt arc_count_
 )
@@ -385,11 +385,11 @@ static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> code )
 
 
 template<typename T = ToUnsigned<Int>>
-static void ShortenMacLeadCode(
+static void MacLeodCode_to_ShortMacLeodCode(
     cptr<T> mac_leod, mptr<T> short_mac_leod, Int c_count
 )
 {
-    TOOLS_PTIMER(timer,MethodName("ShortenMacLeadCode")
+    TOOLS_PTIMER(timer,MethodName("MacLeodCode_to_ShortMacLeodCode")
         + "<" + TypeName<T>
         + ">");
     
@@ -413,11 +413,11 @@ static void ShortenMacLeadCode(
 }
 
 template<typename T = ToUnsigned<Int>>
-static void ExpandMacLeadCode(
+static void ShortMacLeodCode_to_MacLeodCode(
     cptr<T> short_mac_leod, mptr<T> mac_leod, Int c_count
 )
 {
-    TOOLS_PTIMER(timer,MethodName("ExpandMacLeadCode")
+    TOOLS_PTIMER(timer,MethodName("ShortMacLeodCode_to_MacLeodCode")
         + "<" + TypeName<T>
         + ">");
     
@@ -452,8 +452,6 @@ static void ExpandMacLeadCode(
         mac_leod[a] = a_code;
         mac_leod[b] = b_code;
         ++a;
-        
-//        valprint("code",ArrayToString(mac_leod,{m}));
     }
 }
 
@@ -466,7 +464,9 @@ void WriteShortMacLeodCode( mptr<T> short_mac_leod ) const
     static_assert(IntQ<T>,"");
     
     auto mac_leod = this->template MacLeodCode<T>();
-    ShortenMacLeadCode( mac_leod.data(), short_mac_leod, crossing_count );
+    MacLeodCode_to_ShortMacLeodCode(
+        mac_leod.data(), short_mac_leod, crossing_count
+    );
 }
 
 template<typename T = ToUnsigned<Int>>
@@ -498,6 +498,8 @@ static PlanarDiagram FromShortMacLeodCode(
         + ">");
     
     static_assert(IntQ<T>,"");
+    static_assert(IntQ<ExtInt2>,"");
+    static_assert(IntQ<ExtInt3>,"");
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
@@ -505,7 +507,7 @@ static PlanarDiagram FromShortMacLeodCode(
     Tensor1<T,Int> mac_leod ( a_count );
     
     // TODO: We could cut out this step and reimplement FromMacLeodCode.
-    ExpandMacLeadCode( short_mac_leod, mac_leod.data(), c_count );
+    ShortMacLeodCode_to_MacLeodCode( short_mac_leod, mac_leod.data(), c_count );
     
     return FromMacLeodCode(
        mac_leod.data(), a_count, unlink_count_, compressQ, proven_minimalQ_

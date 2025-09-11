@@ -1,15 +1,15 @@
-template<typename T>
-struct hash
-{
-    inline Size_T operator()( cref<T> x_0 ) const
-    {
-        Size_T x = static_cast<Size_T>(x_0);
-        x = (x ^ (x >> 30)) * Size_T(0xbf58476d1ce4e5b9);
-        x = (x ^ (x >> 27)) * Size_T(0x94d049bb133111eb);
-        x =  x ^ (x >> 31);
-        return static_cast<Size_T>(x);
-    }
-};
+//template<typename T>
+//struct hash
+//{
+//    inline Size_T operator()( cref<T> x_0 ) const
+//    {
+//        Size_T x = static_cast<Size_T>(x_0);
+//        x = (x ^ (x >> 30)) * Size_T(0xbf58476d1ce4e5b9);
+//        x = (x ^ (x >> 27)) * Size_T(0x94d049bb133111eb);
+//        x =  x ^ (x >> 31);
+//        return static_cast<Size_T>(x);
+//    }
+//};
 
 template<typename T, typename I>
 struct Tensor1Hash
