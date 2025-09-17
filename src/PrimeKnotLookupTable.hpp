@@ -21,7 +21,7 @@ namespace Knoodle
 //        using Hash_T = std::hash<Key_T>;
         
         using Key_T  = std::array<UInt64,2>; // keys have length of 16 bytes
-        using Hash_T = array_hash;
+        using Hash_T = Tools::array_hash;
         
 //        using LUT_T  = std::map<Key_T,ID_T>;
 //        using LUT_T  = std::unordered_map<Key_T,ID_T,Hash_T>;
@@ -184,7 +184,7 @@ namespace Knoodle
 //
 //                std::string key (c_count, '\0');
 //
-//                pd.template WriteShortMacLeodCode<UInt8>(
+//                pd.template WriteMacLeodCode<UInt8>(
 //                    reinterpret_cast<UInt8 *>(&key[0])
 //                );
 //
@@ -273,7 +273,7 @@ namespace Knoodle
         
         
         template<typename T, typename Int>
-        static Key_T KeyFromShortMacLeodCode( cptr<T> s_mac_leod, Int n )
+        static Key_T KeyFromMacLeodCode( cptr<T> s_mac_leod, Int n )
         {
             static_assert(IntQ<T>,"");
             static_assert(IntQ<Int>,"");
@@ -289,15 +289,15 @@ namespace Knoodle
         }
         
         template<typename T, typename Int>
-        static Key_T KeyFromShortMacLeodCode( cref<Tensor1<T,Int>> s_mac_leod )
+        static Key_T KeyFromMacLeodCode( cref<Tensor1<T,Int>> s_mac_leod )
         {
-            return KeyFromShortMacLeodCode( &s_mac_leod[0], s_mac_leod.Size() );
+            return KeyFromMacLeodCode( &s_mac_leod[0], s_mac_leod.Size() );
         }
         
         template<typename T>
-        static Key_T KeyFromShortMacLeodCode( cref<std::vector<T>> s_mac_leod )
+        static Key_T KeyFromMacLeodCode( cref<std::vector<T>> s_mac_leod )
         {
-            return KeyFromShortMacLeodCode( &s_mac_leod[0], s_mac_leod.size() );
+            return KeyFromMacLeodCode( &s_mac_leod[0], s_mac_leod.size() );
         }
 
 
@@ -306,13 +306,13 @@ namespace Knoodle
        template<typename T, typename Int>
        std::pair<ID_T,ID_T> LookupID( cptr<T> s_mac_leod, Int n ) const
        {
-           return LookupID( KeyFromShortMacLeodCode(s_mac_leod,n), n );
+           return LookupID( KeyFromMacLeodCode(s_mac_leod,n), n );
        }
 
        template<typename T, typename Int>
        std::string LookupName( cptr<T> s_mac_leod, Int n ) const
        {
-           return LookupName( KeyFromShortMacLeodCode(s_mac_leod,n), n );
+           return LookupName( KeyFromMacLeodCode(s_mac_leod,n), n );
        }
         
         
