@@ -31,6 +31,16 @@
 *.out
 *.app
 
+# Emacs backup files
+*~
+
+# MacOS cruft
+.DS_Store
+
+# More executables
+
 PolyFold/Polyfold
+PolyFold/PolyFold
+PolyFold/polyfold
 PolyFold_Kyoto/Polyfold
 Dev_OrthoDraw/TestOrthoDraw
