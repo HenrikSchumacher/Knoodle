@@ -8,7 +8,9 @@ using namespace Knoodle;
 using Real = double;
 using Int  = Int64;
 using LInt = Int64;
-using NaivePolygonFolder_T = NaivePolygonFolder<3,Real,Int,Int>;
+//using NaivePolygonFolder_T = NaivePolygonFolder<3,Real,Int,Int>;
+
+using Clisby_T = ClisbyTree<3,Real,Int,LInt>;
 
 int main(int argc, const char * argv[]) {
     // insert code here...
@@ -17,13 +19,11 @@ int main(int argc, const char * argv[]) {
     const Int  n    = 64;
     const Real diam = 1;
     
-    NaivePolygonFolder_T F (n,diam);
+    Clisby_T T (n,diam);
     
-    auto flags = F.FoldRandom(10000,true);
+    auto result = T.Fold({1,16},1.2,false,true,true);
     
-    TOOLS_DUMP(flags);
-    
-//    TOOLS_DUMP(F.VertexCoordinates());
+    TOOLS_DUMP(result);
     
     return 0;
 }

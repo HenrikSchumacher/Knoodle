@@ -28,7 +28,6 @@ using LInt  = Int64;           // integer type used, e.g., for indices
 //using Int   = UInt64;           // integer type used, e.g., for indices
 //using LInt  = UInt64;           // integer type used, e.g., for indices
 
-using OR_T = OrthoDraw<Int>;
 
 int main( int argc, char** argv )
 {
@@ -96,8 +95,8 @@ int main( int argc, char** argv )
         &pd_code[0][0], c_count, int(0), false, false
     );
     
-    TOOLS_DUMP(pd.Crossings());
-    TOOLS_DUMP(pd.Arcs());
+//    TOOLS_DUMP(pd.Crossings());
+//    TOOLS_DUMP(pd.Arcs());
     
     
     pd.Simplify4();
@@ -105,7 +104,7 @@ int main( int argc, char** argv )
     Profiler::Clear();
 
     
-    OR_T H (pd, Int(-1),
+    OrthoDraw<Int> H (pd, Int(-1),
         {
             .bend_min_method          = 0,
             .network_matrixQ          = true,
@@ -133,42 +132,6 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.EdgeCount());
     TOOLS_DUMP(H.VirtualEdgeCount());
     
-//    TOOLS_DUMP(H.VertexFlags());
-//    TOOLS_DUMP(H.VertexDedges());
-//    TOOLS_DUMP(H.Edges());
-//    TOOLS_DUMP(H.EdgeFlags());
-//    TOOLS_DUMP(H.Bends());
-//    TOOLS_DUMP(H.EdgeTurns());
-    
-
-//    print("\nArcs (vertices)");
-//    {
-//        auto & A_V = H.ArcVertices();
-//        for( Int a = 0; a < A_V.SublistCount(); ++a )
-//        {
-//            valprint( "arc " + ToString(a), ToString(A_V.Sublist(a)) );
-//        }
-//    }
-//    
-//    print("\nArcs (edges)");
-//    {
-//        auto & A_E = H.ArcEdges();
-//        for( Int a = 0; a < A_E.SublistCount(); ++a )
-//        {
-//            valprint( "arc " + ToString(a), ToString(A_E.Sublist(a)) );
-//        }
-//    }
-//    
-//    print("\nFaces (dedges)");
-//    {
-//        auto & F_dE = H.FaceDedges();
-//        
-//        for( Int f = 0; f < F_dE.SublistCount(); ++f )
-//        {
-//            valprint( "face " + ToString(f), ToString(F_dE.Sublist(f)) );
-//        }
-//    }
-  
     print("");
     print("Checks");
     print("");
@@ -184,13 +147,6 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
     TOOLS_DUMP(H.Length());
-//    print(H.DiagramString());
-    
-//    H.ArcLines();
-//    H.ArcSplines();
-
-//    TOOLS_DUMP(H.FindAllIntersections(H.VertexCoordinates()));
-
     
     print("");
     print("Diagram -- ByLengthVariant1");
@@ -204,35 +160,7 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.Length());
     print(H.DiagramString());
     
-    auto Gl_saturating_edges = H.template SaturatingEdges<0>();
     
-    TOOLS_DUMP(Gl_saturating_edges);
-    
-    auto Gr_saturating_edges = H.template SaturatingEdges<1>();
-    
-    TOOLS_DUMP(Gr_saturating_edges);
-
-    
-    TOOLS_DUMP(H.VerticalSegmentVertices());
-    TOOLS_DUMP(H.HorizontalSegmentVertices());
-    
-    H.Dv().DirectedAdjacencyMatrix();
-    
-    {
-        auto A = H.Dv().CreateAdjacencyMatrix<true,int>( (int*)nullptr, 8 );
-     
-        TOOLS_DUMP(A.ToTensor2());
-    }
-    
-    {
-        auto A = H.Dv().Laplacian();
-     
-        TOOLS_DUMP(A.ToTensor2());
-        
-        TOOLS_DUMP(A.NonzeroPositions_AoS());
-        
-        TOOLS_DUMP(H.Dv().Edges());
-    }
     
     H.PrintSettings();
     
@@ -241,9 +169,9 @@ int main( int argc, char** argv )
     TOOLS_DUMP(pd.CheckerBoardColoring());
     
     
+    TOOLS_DUMP(pd.PDCode());
     
-    auto code = pd.MacLeodCode();
-    TOOLS_DUMP(code);
+    TOOLS_DUMP(pd.MacLeodCode());
     
     auto code_string = pd.MacLeodString();
     

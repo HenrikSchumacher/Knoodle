@@ -694,8 +694,8 @@ namespace Knoodle
 #include "PlanarDiagram/PDCode.hpp"
 #include "PlanarDiagram/GaussCode.hpp"
 //#include "PlanarDiagram/GaussCode2.hpp"
+#include "PlanarDiagram/LongMacLeodCode.hpp"
 #include "PlanarDiagram/MacLeodCode.hpp"
-//#include "PlanarDiagram/MacLeodCode2.hpp"
         
 #include "PlanarDiagram/ResolveCrossing.hpp"
 #include "PlanarDiagram/SwitchCrossing.hpp"

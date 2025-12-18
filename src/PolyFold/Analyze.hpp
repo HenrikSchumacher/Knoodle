@@ -81,7 +81,7 @@ std::string MacLeodCodeString( mref<PD_T> P ) const
     s+= "\ns ";
     s+= ToString(P.ProvenMinimalQ());
     s+= " | ";
-    auto macleod_code = P.ShortMacLeodCode();
+    auto macleod_code = P.MacLeodCode();
     
     s+= VectorString( macleod_code.data(), "", " ", "", macleod_code.Size() );
     

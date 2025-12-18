@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Reapr.hpp"
+#include <boost/unordered/unordered_set.hpp>
+#include <boost/container/flat_set.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 
 namespace Knoodle
 {
@@ -20,20 +23,6 @@ namespace Knoodle
         using PD_T      = PlanarDiagram<Int>;
         using Reapr_T   = Reapr<Real,Int>;
         
-        
-        template<typename T>
-        struct hash
-        {
-            inline Size_T operator()( cref<T> x_0 ) const
-            {
-                Size_T x = static_cast<Size_T>(x_0);
-                x = (x ^ (x >> 30)) * Size_T(0xbf58476d1ce4e5b9);
-                x = (x ^ (x >> 27)) * Size_T(0x94d049bb133111eb);
-                x =  x ^ (x >> 31);
-                return static_cast<Size_T>(x);
-            }
-        };
-
         static constexpr int max_crossing_count = 16;
         static constexpr int code_length        = 2 * max_crossing_count;
         
@@ -45,9 +34,13 @@ namespace Knoodle
             (max_crossing_count * sizeof(CodeInt)) % sizeof(Size_T) == 0, ""
         );
 
+//        using CodeHash = array_hash<CodeInt,code_length>;
+        
         struct CodeHash
         {
-            TOOLS_FORCE_INLINE Size_T operator()( cref<Code_T> v )  const
+        using is_avalanching [[maybe_unused]] = std::true_type; // instruct Boost.Unordered to not use post-mixing
+            
+            inline Size_T operator()( cref<Code_T> v )  const
             {
                 using namespace std;
                 
@@ -68,7 +61,7 @@ namespace Knoodle
         
         struct CodeLess
         {
-            TOOLS_FORCE_INLINE bool operator()( cref<Code_T> v, cref<Code_T> w )  const
+            inline bool operator()( cref<Code_T> v, cref<Code_T> w )  const
             {
                 using namespace std;
                 
@@ -93,9 +86,16 @@ namespace Knoodle
             }
         };
         
-//        using CodeSet_T = std::unordered_set<Code_T,CodeHash>;
-        using CodeSet_T = std::set<Code_T,CodeLess>;
+//        using CodeSet_T = std::set<Code_T,CodeLess>;
+//        using CodeSet_T = boost::container::flat_set<Code_T,CodeLess>;
+//        using CodeSet_T = boost::container::set<Code_T,CodeLess>;
         
+//        using CodeSet_T = std::unordered_set<Code_T,CodeHash>;
+//        using CodeSet_T = boost::unordered_set<Code_T,CodeHash>;
+        using CodeSet_T = boost::unordered_flat_set<Code_T,CodeHash>;
+        
+        
+        // TODO: Find faster alternative.
     
     private:
         
@@ -141,7 +141,6 @@ namespace Knoodle
             
             global_minimal_codes = CodeSet_T();
             global_other_codes   = CodeSet_T();
-            
             
             return true;
         }
@@ -219,6 +218,7 @@ namespace Knoodle
             
             const JobPointers job_ptr ( ToSize_T(input_count), thread_count );
             
+//            tic("Main loop");
             ParallelDo(
                 [&reapr, &job_ptr, rattle_iter, input, this]
                 ( Size_T thread )
@@ -302,7 +302,9 @@ namespace Knoodle
                 },
                 thread_count
             );
+//            toc("Main loop");
             
+//            tic("Merge global_minimal_codes");
             // Take the union of all code sets of of proven minimal codes.
             global_minimal_codes = thread_minimal_codes[0];
             for( Size_T thread = 1; thread < thread_count; ++thread )
@@ -314,7 +316,9 @@ namespace Knoodle
 //                }
             }
             thread_minimal_codes = std::vector<CodeSet_T>();
+//            toc("Merge global_minimal_codes");
             
+//            tic("Merge global_other_codes");
             // Some threads might not have proven minimality of some code, but other might. Thus, we check for each code whether it is proven minimal here.
             for( Size_T thread = 0; thread < thread_count; ++thread )
             {
@@ -331,7 +335,7 @@ namespace Knoodle
                 }
             }
             thread_other_codes = std::vector<CodeSet_T>();
-
+//            toc("Merge global_other_codes");
         }
 
 
@@ -341,7 +345,7 @@ namespace Knoodle
         }
         Size_T OutputCodeSize() const
         {
-            return Size_T(2) * Size_T(crossing_count);
+            return Size_T(crossing_count);
         }
         
         

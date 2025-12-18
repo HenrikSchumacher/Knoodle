@@ -6,6 +6,8 @@
 #include "../submodules/Tensors/Clp.hpp"
 #include "OrthoDraw.hpp"
 
+#include <boost/unordered/unordered_flat_set.hpp>
+
 namespace Knoodle
 {
     // TODO: Only process _active_ crossings and _active_ arcs!
