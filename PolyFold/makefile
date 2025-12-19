@@ -11,7 +11,7 @@ ifdef KNOODLE_VERSION
 else
     # Fallback for non-brew builds
     GIT_VERSION := $(shell git describe --abbrev=100 --dirty --always --tags 2>/dev/null || echo "unknown")
-    CXXFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+    CXXFLAGS += -DGIT_VERSION=\"\\\"$(GIT_VERSION)\\\"\"
 endif
 
 PREFIX ?= /usr/local

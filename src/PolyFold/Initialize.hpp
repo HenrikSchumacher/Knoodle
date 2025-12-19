@@ -188,7 +188,7 @@ void Initialize()
         }
         case PivotRandomMethod_T::Clisby:
         {
-            kv<t1>  ("Pivot Random Method","Clisby");
+	    kv<t1>  ("Pivot Random Method",std::string("Clisby"));
             break;
         }
         default:
