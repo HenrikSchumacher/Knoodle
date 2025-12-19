@@ -18,6 +18,8 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
 polyfold: main.cpp
+	@echo "=== Actual compilation command ==="
+	@echo "$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) main.cpp -o $@ $<"
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) main.cpp -o $@ $
 
 install: polyfold
