@@ -1,9 +1,9 @@
 # Makefile for PolyFold
 CXX ?= clang++
 CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-           -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
+           -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options 
 
 # Version handling - use KNOODLE_VERSION from environment, or fallback
 ifdef KNOODLE_VERSION
@@ -20,7 +20,7 @@ BINDIR = $(PREFIX)/bin
 polyfold: main.cpp
 	@echo "=== Actual compilation command ==="
 	@echo "$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) main.cpp -o $@ $<"
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) main.cpp -o $@ $
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) main.cpp -o $@ 
 
 install: polyfold
 	install -d $(DESTDIR)$(BINDIR)
