@@ -78,7 +78,7 @@ static void MacLeodCode_to_LongMacLeodCode(
         const T    b_leap   = m - a_leap;
         const bool b_overQ  = !a_overQ;
         const bool b_rightQ = a_rightQ;
-        const T    b_code   = (b_leap << 2) | (b_overQ << 1) | b_rightQ;
+        const T    b_code   = (b_leap << 2) | (T(b_overQ) << 2) | T(b_rightQ);
         
         l_mac_leod[a] = a_code;
         l_mac_leod[b] = b_code;

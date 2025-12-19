@@ -15,7 +15,7 @@ namespace Knoodle
     template<typename Int_, bool mult_compQ_> class StrandSimplifier;
 
     
-    // TODO: Enable unsigned integers because they should be about 15% faster in tasks heavy bit manipulations.
+    // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram final : public CachedObject
     {

@@ -17,7 +17,7 @@ public:
  */
 
 Int Simplify3(
-    const Int  optimization_level,
+    const Int  optimization_level = 4,
     const Int  max_iter    = std::numeric_limits<Int>::max(),
     const bool multi_compQ = true
 )

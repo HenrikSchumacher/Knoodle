@@ -85,7 +85,7 @@ namespace Knoodle
         template<bool must_be_activeQ>
         void AssertArc( const Int a_ )
         {
-#ifdef DEBUG
+#ifdef PD_DEBUG
             if constexpr( must_be_activeQ )
             {
                 if( !ArcActiveQ(a_) )

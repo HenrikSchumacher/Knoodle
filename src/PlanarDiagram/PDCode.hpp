@@ -585,7 +585,7 @@ static PlanarDiagram FromPDCode(
         return PlanarDiagram();
     }
     
-    // Compression is meaningful because PD code stay valid under reordering.
+    // Compression is meaningful because PD code stays valid under reordering.
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
