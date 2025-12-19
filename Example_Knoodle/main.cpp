@@ -158,14 +158,14 @@ int main()
     
     Tools::print( "" );
     Tools::print( "== Demonstration of Reapr (Rotate-embed and path reroute) ==" );
-    Tools::print( "Reapr applies Simplify5 and then make a number of attempts to embed, rotate, project and run Simplify5 again. Typically, the output of Simplify5 is already as good as it gets. You need a fairly hard knot for Reapr to make a difference." );
+    Tools::print( "Reapr applies Simplify5 and then make a number of attempts to embed, randomly rotate, project, and run Simplify5 again. Typically, the output of Simplify5 is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. In contrast to the other methods, this routine is _not_ deterministic.." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
         Tools::print( "Writing diagram to file " + filename + "." );
         
         Reapr_T reapr;
 
-        Int target_iter = 10;
+        Int target_iter = 20;
         
         // Make target_iter attempts to embed, rotate, and simplify.
         // The output of Simplify5 is often as good as it gets. You need a fairly hard knot for this to make a difference.
