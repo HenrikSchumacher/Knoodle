@@ -24,6 +24,11 @@
 			<key>orderHint</key>
 			<integer>4</integer>
 		</dict>
+		<key>Example_Knoodle.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>7</integer>
+		</dict>
 		<key>KnotTools.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -83,6 +88,11 @@
 			<true/>
 		</dict>
 		<key>AFBA75692D90CA82008F2EB1</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>AFBB9A992EF54467000CA528</key>
 		<dict>
 			<key>primary</key>
 			<true/>

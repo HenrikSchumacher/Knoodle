@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AFBA75692D90CA82008F2EB1"
-               BuildableName = "PolyFold_Parallel"
-               BlueprintName = "PolyFold_Parallel"
+               BlueprintIdentifier = "AFBB9A992EF54467000CA528"
+               BuildableName = "Example_Knoodle"
+               BlueprintName = "Example_Knoodle"
                ReferencedContainer = "container:Knoodle.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,9 +45,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AFBA75692D90CA82008F2EB1"
-            BuildableName = "PolyFold_Parallel"
-            BlueprintName = "PolyFold_Parallel"
+            BlueprintIdentifier = "AFBB9A992EF54467000CA528"
+            BuildableName = "Example_Knoodle"
+            BlueprintName = "Example_Knoodle"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,9 +62,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "AFBA75692D90CA82008F2EB1"
-            BuildableName = "PolyFold_Parallel"
-            BlueprintName = "PolyFold_Parallel"
+            BlueprintIdentifier = "AFBB9A992EF54467000CA528"
+            BuildableName = "Example_Knoodle"
+            BlueprintName = "Example_Knoodle"
             ReferencedContainer = "container:Knoodle.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

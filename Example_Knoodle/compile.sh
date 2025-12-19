@@ -1,0 +1,24 @@
+ clang++                                                \
+    -Wall                                               \
+    -Wextra                                             \
+    -std=c++20                                          \
+    -O3                                                 \
+    -march=native                                       \
+    -mtune=native                                       \
+    -fenable-matrix                                     \
+    -pthread                                            \
+    -lCoinUtils                                         \
+    -lClp                                               \
+    -lumfpack                                           \
+    -I/opt/homebrew/include                             \
+    -I/opt/homebrew/include/suitesparse                 \
+    -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
+    -I./../submodules/Min-Cost-Flow-Class/MCFClass      \
+    -I./../submodules/Min-Cost-Flow-Class/MCFSimplex    \
+    -I./../submodules/Tensors                           \
+    -I/usr/local/include/coin-or                        \
+    -L/usr/local/lib                                    \
+    -L/opt/homebrew/lib                                 \
+    -o Knoodle                                          \
+    main.cpp                                            \
+    -flto                                               \

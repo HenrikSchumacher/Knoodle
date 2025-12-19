@@ -52,6 +52,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		AFBB9A982EF54467000CA528 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AFBDADA52DECE2D9004BCA41 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -71,6 +80,7 @@
 		AF5FF6AD2DD27DCA0076AB0E /* Dev_CLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_CLP; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF6C85DC2E29315B0051B919 /* WorkBench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WorkBench; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
+		AFBB9A9A2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Example_Knoodle; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthoDraw; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Reapr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
@@ -85,6 +95,7 @@
 		AF5FF6AE2DD27DCA0076AB0E /* Dev_CLP */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_CLP; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
+		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
 		AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_OrthoDraw; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -124,6 +135,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AFBB9A972EF54467000CA528 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFBDADA42DECE2D9004BCA41 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -157,6 +175,7 @@
 				AF6C85DD2E29315B0051B919 /* WorkBench */,
 				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AF3B5BD92E36499C00A14D16 /* Dev_PlanarityChecker */,
+				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 			);
@@ -171,6 +190,7 @@
 				AF6C85DC2E29315B0051B919 /* WorkBench */,
 				AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AF3B5BD82E36499C00A14D16 /* Dev_PlanarityChecker */,
+				AFBB9A9A2EF54467000CA528 /* Example_Knoodle */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -288,6 +308,28 @@
 			productReference = AF7FD1D52D87464900D802C0 /* PolyFold */;
 			productType = "com.apple.product-type.tool";
 		};
+		AFBB9A992EF54467000CA528 /* Example_Knoodle */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AFBB9A9E2EF54467000CA528 /* Build configuration list for PBXNativeTarget "Example_Knoodle" */;
+			buildPhases = (
+				AFBB9A962EF54467000CA528 /* Sources */,
+				AFBB9A972EF54467000CA528 /* Frameworks */,
+				AFBB9A982EF54467000CA528 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
+			);
+			name = Example_Knoodle;
+			packageProductDependencies = (
+			);
+			productName = Example_Knoodle;
+			productReference = AFBB9A9A2EF54467000CA528 /* Example_Knoodle */;
+			productType = "com.apple.product-type.tool";
+		};
 		AFBDADA62DECE2D9004BCA41 /* Dev_OrthoDraw */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AFBDADAD2DECE2D9004BCA41 /* Build configuration list for PBXNativeTarget "Dev_OrthoDraw" */;
@@ -317,7 +359,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					AF2D42512E3118C7004C6CE0 = {
 						CreatedOnToolsVersion = 16.4;
@@ -333,6 +375,9 @@
 					};
 					AF7FD1D42D87464900D802C0 = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					AFBB9A992EF54467000CA528 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 					AFBDADA62DECE2D9004BCA41 = {
 						CreatedOnToolsVersion = 16.4;
@@ -358,6 +403,7 @@
 				AF6C85DB2E29315B0051B919 /* WorkBench */,
 				AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AF3B5BD72E36499C00A14D16 /* Dev_PlanarityChecker */,
+				AFBB9A992EF54467000CA528 /* Example_Knoodle */,
 			);
 		};
 /* End PBXProject section */
@@ -398,6 +444,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AFBB9A962EF54467000CA528 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AFBDADA32DECE2D9004BCA41 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -413,6 +466,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -426,6 +480,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -440,6 +495,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -454,6 +510,7 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -502,6 +559,7 @@
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -560,8 +618,10 @@
 					"-lamd",
 					"-lCoinUtils",
 					"-lClp",
+					"-lumfpack",
 				);
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Debug;
 		};
@@ -605,6 +665,7 @@
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -657,8 +718,10 @@
 					"-lamd",
 					"-lCoinUtils",
 					"-lClp",
+					"-lumfpack",
 				);
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 			};
 			name = Release;
 		};
@@ -670,6 +733,7 @@
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -691,6 +755,7 @@
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = NO;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -709,6 +774,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -722,6 +788,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = Y6DQ749ZRT;
 				ENABLE_HARDENED_RUNTIME = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
@@ -735,6 +802,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = NO;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
@@ -771,6 +839,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				ENABLE_HARDENED_RUNTIME = NO;
 				HEADER_SEARCH_PATHS = (
 					/opt/homebrew/include,
@@ -802,6 +871,36 @@
 			};
 			name = Release;
 		};
+		AFBB9A9F2EF54467000CA528 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AFBB9AA02EF54467000CA528 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AFBDADAB2DECE2D9004BCA41 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -810,6 +909,7 @@
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				OTHER_LDFLAGS = (
@@ -829,6 +929,7 @@
 				CLANG_WARN_IMPLICIT_FALLTHROUGH = NO;
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				OTHER_LDFLAGS = (
@@ -893,6 +994,15 @@
 			buildConfigurations = (
 				AF7FD1DA2D87464900D802C0 /* Debug */,
 				AF7FD1DB2D87464900D802C0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AFBB9A9E2EF54467000CA528 /* Build configuration list for PBXNativeTarget "Example_Knoodle" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AFBB9A9F2EF54467000CA528 /* Debug */,
+				AFBB9AA02EF54467000CA528 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
