@@ -4,7 +4,7 @@ public:
 
 /*! @brief This just splits off connected summands and appends them to the supplied `pd_list`.
  *
- * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
+ * Caution: At the moment it does not track from which connected component it was split off. Hence, this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummands(
@@ -71,7 +71,7 @@ private:
  *
  * If a nontrivial connect-sum decomposition is found, this routine splits off the smaller component, pushes it to `pd_list`, and then tries to simplify it further with `Simplify5` (which may push further connected summands to `pd_list`).
  *
- * Caution: At the moment it does not track from which connected component it was split off. Hence this is useful only for knots, not for multi-component links.
+ * Caution: At the moment it does not track from which connected component it was split off. Hence, this is useful only for knots, not for multi-component links.
  */
 
 bool DisconnectSummand(

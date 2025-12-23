@@ -1162,7 +1162,7 @@ namespace Knoodle
                         
                         // TODO: Check this.
 
-                        // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence we rather break the while loop here.
+                        // RerouteToShortestPath might deactivate `a_0`, so that we could never return to it. Hence, we rather break the while loop here.
                         if( changedQ || (!ActiveQ(a_0_state)) ) { break; }
                         
                         // Create a new strand.
@@ -1277,20 +1277,20 @@ namespace Knoodle
                 {
                     a_prev = C_arcs(c,In,Left);
                     
-                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
+                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus, we suppress some asserts here.
                     Reconnect<Head>( C_arcs(c,In,Right),C_arcs(c,Out,Left) );
                 }
                 else
                 {
                     a_prev = C_arcs(c,In,Right);
                     
-                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus we suppress some asserts here.
+                    // Sometimes we cannot guarantee that the crossing at the intersection of `a_begin` and `a_end` is still active. But that crossing will be deleted anyways. Thus, we suppress some asserts here.
                     Reconnect<Head>( C_arcs(c,In,Left),C_arcs(c,Out,Right) );
                 }
                 
                 pd.DeactivateArc(a);
                 
-                // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus we suppress some asserts here.
+                // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus, we suppress some asserts here.
                 pd.template DeactivateCrossing<false>(c);
                 
                 a = a_prev;

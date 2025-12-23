@@ -768,9 +768,9 @@ namespace Knoodle
                 else
                 {
                     // We visit this node for the second time.
-                    // Thus it cannot be a leave node.
+                    // Thus, it cannot be a leave node.
                     // We are moving in direction towards the root.
-                    // Hence all children have already been visited.
+                    // Hence, all children have already been visited.
                     int_post_visit(node);
 
                     // Popping current node from the stack.

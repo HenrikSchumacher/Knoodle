@@ -390,7 +390,7 @@ public:
                 // and
                 //          eta  (r,t) = y_0 + t * y_1 + s * (v_0 + t * v_1).
                 //
-                // Hence we have
+                // Hence, we have
                 //
                 //  F(r,s,t) = w_0 + t * w_1 + s * (v_0 + t * v_1) - r * (u_0 + t * u_1).
                 //
