@@ -11,14 +11,14 @@ public:
 // TODO: I have to filter out inactive crossings and inactive arcs!
 
 template<typename ExtInt, typename ExtInt2>
-Tensor1<Turn_T,Int> ComputeBends_Clp(
+Tensor1<Turn_T,Int> ComputeBends_CLP(
     cref<PlanarDiagram<ExtInt>> pd,
     const ExtInt2 ext_region = -1
 )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER(timer,ClassName()+"::ComputeBends_Clp");
+    TOOLS_PTIMER(timer,ClassName()+"::ComputeBends_CLP");
     
     ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
             
@@ -28,14 +28,14 @@ Tensor1<Turn_T,Int> ComputeBends_Clp(
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_Clp: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
+            eprint(ClassName()+"::ComputeBends_CLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
             return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_Clp: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
+            eprint(ClassName()+"::ComputeBends_CLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
             return Tensor1<Turn_T,Int>();
         }

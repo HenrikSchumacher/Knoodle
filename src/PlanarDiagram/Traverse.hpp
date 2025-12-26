@@ -23,8 +23,6 @@ public:
  *
  * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `0` (default), then just the next unvisited arc is chosen. If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. This feature is useful to traverse over/understrands.
  *
- * @tparam method The method used for traversal. You should typically use the default method.
- *
  * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
  *    `lc_pre( const Int lc, const Int lc_begin )`.
  *

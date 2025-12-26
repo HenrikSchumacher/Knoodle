@@ -6,7 +6,9 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER(timer,MethodName("ComputeBends_MCF"));
+    std::string tag = MethodName("ComputeBends_MCF") + "<" + TypeName<ExtInt> + "," + TypeName<ExtInt2> + ">";
+    
+    TOOLS_PTIMER(timer,tag);
     
     ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
     
@@ -14,6 +16,11 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
     using R = MCFSimplex_T::FNumber;
     using I = MCFSimplex_T::Index;
 //    using J = MCFSimplex_T::Index;
+    
+    if( (pd.CrossingCount() != pd.MaxCrossingCount()) || (pd.ArcCount() != pd.MaxArcCount()) )
+    {
+        wprint(tag + ": Input diagram is not compressed.");
+    }
             
     {
         // TODO: Replace pd.Arcs().Dim(0) by pd.ArcCount().
@@ -22,14 +29,14 @@ Tensor1<Turn_T,Int> ComputeBends_MCF(
         
         if( std::cmp_greater( max_idx, std::numeric_limits<I>::max() ) )
         {
-            eprint(MethodName("ComputeBends_MCF")+": Too many arcs to fit into type " + TypeName<I> + ".");
+            eprint(tag+": Too many arcs to fit into type " + TypeName<I> + ".");
             
             return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<I>::max() ) )
         {
-            eprint(MethodName("ComputeBends_MCF")+": System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<I> + "  ).");
+            eprint(tag+": System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<I> + "  ).");
             
             return Tensor1<Turn_T,Int>();
         }

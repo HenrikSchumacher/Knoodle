@@ -51,7 +51,7 @@ void LoadPlanarDiagram(
     {
         case 1:
         {
-            A_bends = ComputeBends_Clp(pd,exterior_region);
+            A_bends = ComputeBends_CLP(pd,exterior_region);
             break;
         }
         case 0:

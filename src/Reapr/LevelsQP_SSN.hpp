@@ -2,9 +2,9 @@ public:
 
 // Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
 
-Tensor1<Real,Int> LevelsBySSN( cref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsQP_SSN( cref<PlanarDiagram<Int>> pd )
 {
-    auto x_mu = LevelsBySSN_LevelsAndLagrangeMultipliers(pd);
+    auto x_mu = LevelsQP_SSN_LevelsAndLagrangeMultipliers(pd);
     
     // We have to read the levels values through pd.LinkComponentArcs().Elements()
     
@@ -32,11 +32,11 @@ Tensor1<Real,Int> LevelsBySSN( cref<PlanarDiagram<Int>> pd )
 // Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
 // Returns a vector that contains the levels _and_ the Lagrange multipliers.
 
-Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
+Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     cref<PlanarDiagram<Int>> pd
 )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_LevelsAndLagrangeMultipliers");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_LevelsAndLagrangeMultipliers");
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
@@ -60,7 +60,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     // Update direction.
     Tensor1<Real,Int> u (m+n);
     
-    auto L = this->template LevelsBySSN_Matrix<Real,UMF_Int,UMF_Int>(pd);
+    auto L = this->template LevelsQP_SSN_Matrix<Real,UMF_Int,UMF_Int>(pd);
     auto mod_values = L.Values();
     
     // Symbolic factorization
@@ -83,7 +83,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     {
         ++SSN_iter;
         
-        LevelsBySSN_WriteMatrixModifiedValues(
+        LevelsQP_SSN_WriteMatrixModifiedValues(
             pd, L, y.data(), mod_values.data()
         );
         
@@ -146,7 +146,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
         
         if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
         {
-            wprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Maximal number of backtrackings reached.");
+            wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of backtrackings reached.");
             
             TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
@@ -164,7 +164,7 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
     
     if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
     {
-        wprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Maximal number of iterations reached without reaching the stopping criterion.");
+        wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of iterations reached without reaching the stopping criterion.");
     }
     
     return x;
@@ -173,13 +173,13 @@ Tensor1<Real,Int> LevelsBySSN_LevelsAndLagrangeMultipliers(
 public:
 
 template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> LevelsBySSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
 {
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_Matrix<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_Matrix<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsBySSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
         }
         default:
         {
-            wprint(ClassName()+"::LevelsBySSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsBySSN_Matrix. Returning empty matrix." );
+            wprint(ClassName()+"::LevelsQP_SSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsBySSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();
@@ -226,7 +226,7 @@ Sparse::MatrixCSR<R,I,J> LevelsBySSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
 // TODO: Test this!
 
 template<typename R = Real, typename I = Int, typename J = Int>
-void LevelsBySSN_WriteMatrixModifiedValues(
+void LevelsQP_SSN_WriteMatrixModifiedValues(
     cref<PlanarDiagram<Int>> pd,
     mref<Sparse::MatrixCSR<R,I,J>> L,
     cptr<R> y,
@@ -237,7 +237,7 @@ void LevelsBySSN_WriteMatrixModifiedValues(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsBySSN_WriteMatrixModifiedValues"
+    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_WriteMatrixModifiedValues"
         + "<" + TypeName<R>
         + "," + TypeName<I>
         + "," + TypeName<J>

@@ -1,18 +1,15 @@
 public:
 
-cref<Tensor1<Int,Int>> LevelsByLP_ArcIndices(
-    cref<PlanarDiagram<Int>> pd
-) const
+cref<Tensor1<Int,Int>> LevelsLP_CLP_ArcIndices( cref<PlanarDiagram<Int>> pd ) const
 {
-    std::string tag (MethodName("LevelsByLP_ArcIndices"));
+    std::string tag (MethodName("LevelsLP_CLP_ArcIndices"));
     
     if(!pd.InCacheQ(tag))
     {
-        const Int a_count = pd.Arcs().Dim(0);
+        const Int a_count = pd.MaxArcCount();
         
         Tensor1<Int,Int> A_idx ( a_count );
         Permutation<Int> perm;
-        
         
         Int a_idx = 0;
         
@@ -61,11 +58,11 @@ cref<Tensor1<Int,Int>> LevelsByLP_ArcIndices(
 
 
 template<typename T = Real>
-Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
+Tensor1<T,Int> LevelsLP_CLP( cref<PlanarDiagram<Int>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    std::string tag = ClassName() + "::LevelsByLP" + "<" + TypeName<T> + ">";
+    std::string tag = ClassName() + "::LevelsLP_CLP" + "<" + TypeName<T> + ">";
     
     TOOLS_PTIMER(timer,tag);
     
@@ -89,25 +86,19 @@ Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
             return Tensor1<T,Int>();
         }
     }
-    
-    using R = COIN_Real;
-    using I = COIN_Int;
-    using J = COIN_LInt;
-    
-    ClpWrapper<R,I,J> clp(
-        this->template LevelsByLP_ObjectiveVector<R,I>(pd),
-        this->template LevelsByLP_LowerBoundsOnVariables<R,I>(pd),
-        this->template LevelsByLP_UpperBoundsOnVariables<R,I>(pd),
-        this->template LevelsByLP_Matrix<R,I,J>(pd),
-        this->template LevelsByLP_LowerBoundsOnConstraints<R,I>(pd),
-        this->template LevelsByLP_UpperBoundsOnConstraints<R,I>(pd)
+
+    ClpWrapper<COIN_Real,COIN_Int,COIN_LInt> clp(
+        this->template LevelsLP_CLP_ObjectiveVector         <COIN_Real,COIN_Int          >(pd),
+        this->template LevelsLP_CLP_LowerBoundsOnVariables  <COIN_Real,COIN_Int          >(pd),
+        this->template LevelsLP_CLP_UpperBoundsOnVariables  <COIN_Real,COIN_Int          >(pd),
+        this->template LevelsLP_CLP_Matrix                  <COIN_Real,COIN_Int,COIN_LInt>(pd),
+        this->template LevelsLP_CLP_LowerBoundsOnConstraints<COIN_Real,COIN_Int          >(pd),
+        this->template LevelsLP_CLP_UpperBoundsOnConstraints<COIN_Real,COIN_Int          >(pd)
     );
     
-    auto s = clp.template IntegralPrimalSolution<R>();
+    auto s = clp.template IntegralPrimalSolution<COIN_Real>();
     
-//    cptr<Int> A_pos = pd.ArcPositions().data();
-    
-    cptr<Int> A_pos = LevelsByLP_ArcIndices(pd).data();
+    cptr<Int> A_pos = LevelsLP_CLP_ArcIndices(pd).data();
     
     const Int A_count = pd.MaxArcCount();
     
@@ -117,35 +108,13 @@ Tensor1<T,Int> LevelsByLP( cref<PlanarDiagram<Int>> pd )
     {
         if( pd.ArcActiveQ(a) )
         {
-            L[a] = s[A_pos[a]];
+            L[a] = s.data()[A_pos[a]];
         }
         else
         {
             L[a] = 0;
         }
     }
-
-////    Tensor1<Real,Int> L ( pd.ArcCount() );
-////    
-////    cptr<Real> sol = LP.primalColumnSolution();
-////    
-////    Real minimum = std::round( sol[0] );
-//    
-//    const Int m = pd.ArcCount();
-        
-    // TODO: Check integrality.
-    
-//    for( Int a = 0; a < m; ++a )
-//    {
-//        L[a] = std::round( sol[a] );
-//        
-//        minimum = Min( minimum, L[a] );
-//    }
-//    
-//    for( Int a = 0; a < m; ++a )
-//    {
-//        L[a] -= minimum;
-//    }
     
     return L;
 }
@@ -156,12 +125,12 @@ public:
 template<
     typename R = Real, typename I = COIN_Int, typename J = COIN_LInt
 >
-Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    std::string tag = ClassName() + "::LevelsByLP_Matrix"
+    std::string tag = ClassName() + "::LevelsLP_CLP_Matrix"
     + "<" + TypeName<R>
     + "," + TypeName<I>
     + "," + TypeName<J>
@@ -169,8 +138,8 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
     
     TOOLS_PTIMER(timer,tag);
     
-    const Int row_count = Size_T(2) * ToSize_T(pd.ArcCount());
-    const Int col_count = ToSize_T(pd.CrossingCount()) + Size_T(2) * ToSize_T(pd.ArcCount()) + Size_T(1);
+    const Size_T row_count = Size_T(2) * ToSize_T(pd.ArcCount());
+    const Size_T col_count = ToSize_T(pd.CrossingCount()) + Size_T(2) * ToSize_T(pd.ArcCount()) + Size_T(1);
     
     Size_T max_index = Max(row_count,col_count);
     if( !std::in_range<I>(max_index) )
@@ -190,9 +159,9 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
     cptr<Int>           C_arcs   = pd.Crossings().data();
     cptr<CrossingState> C_states = pd.CrossingStates().data();
 //    cptr<Int>           A_pos    = pd.ArcPositions().data();
-    cptr<Int>           A_pos    = LevelsByLP_ArcIndices(pd).data();
+    cptr<Int>           A_pos    = LevelsLP_CLP_ArcIndices(pd).data();
     
-    TripleAggregator<I,I,R,J> agg ( nnz );
+    TripleAggregator<I,I,R,J> agg ( int_cast<J>(nnz) );
     
     const Int C_count = pd.MaxCrossingCount();
     
@@ -232,10 +201,10 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
         //        /     \
         //      b_1     b_0
         //
-        // If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
-        // x[a_1] >= x[a_0] + 1
-        // - x[a_0] + x[a_1] >= 1
-        //   x[a_0] - x[a_1] <= -1
+        // If s == 1 (right-handed), then the levels `z` have to satisfy the following inequalities:
+        // z[a_1] >= z[a_0] + 1
+        // - z[a_0] + z[a_1] >= 1
+        //   z[a_0] - z[a_1] <= -1
         
         // Over/under constraints
         agg.Push( a_0_pos, c_pos,  s );
@@ -271,28 +240,28 @@ Sparse::MatrixCSR<R,I,J> LevelsByLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
     agg.Push( I(0), n + I(2) * m,  one );
     
     Sparse::MatrixCSR<R,I,J> A (
-        agg, row_count, col_count, I(1), true, false
+        agg, int_cast<I>(row_count), int_cast<I>(col_count), I(1), true, false
     );
     
     return A;
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsByLP_LowerBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), -Scalar::Infty<R> );
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsByLP_UpperBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), +Scalar::Infty<R> );
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsByLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -306,7 +275,7 @@ Tensor1<R,I> LevelsByLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) 
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsByLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -321,7 +290,7 @@ Tensor1<R,I> LevelsByLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) 
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsByLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
 {
     const Size_T m = ToSize_T(pd.ArcCount());
     Tensor1<R,I> v ( Size_T(2) * m );
@@ -329,7 +298,7 @@ Tensor1<R,I> LevelsByLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
     fill_buffer( &v[0], R(0), m );
     fill_buffer( &v[m], R(1), m );
     
-    pd.ClearCache(MethodName("LevelsByLP_ArcIndices"));
+    pd.ClearCache(MethodName("LevelsLP_CLP_ArcIndices"));
     
     return v;
 }

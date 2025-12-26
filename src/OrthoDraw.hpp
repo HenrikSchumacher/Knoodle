@@ -350,8 +350,8 @@ namespace Knoodle
     private:
 
 #include "OrthoDraw/BendsLP.hpp"
-#include "OrthoDraw/BendsLP_Clp.hpp"
-#include "OrthoDraw/BendsLP_MCFClass.hpp"
+#include "OrthoDraw/BendsLP_CLP.hpp"
+#include "OrthoDraw/BendsLP_MCF.hpp"
 #include "OrthoDraw/Bends.hpp"
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"

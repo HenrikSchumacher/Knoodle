@@ -51,6 +51,8 @@ namespace Knoodle
             Dirichlet = 1,
             Bending   = 2,
             Height    = 3,
+            TV_CLP    = 4,
+            TV_MCF    = 5,
         };
 
         static constexpr Real jump = 1;
@@ -233,9 +235,10 @@ namespace Knoodle
 #include "Reapr/DirichletHessian.hpp"
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/LevelsConstraintMatrix.hpp"
-#include "Reapr/LevelsBySSN.hpp"
-#include "Reapr/LevelsByLP.hpp"
-#include "Reapr/LevelsByHeight.hpp"
+#include "Reapr/LevelsQP_SSN.hpp"
+#include "Reapr/LevelsLP_CLP.hpp"
+#include "Reapr/LevelsLP_MCF.hpp"
+#include "Reapr/LevelsMinHeight.hpp"
 #include "Reapr/Embedding.hpp"
 #include "Reapr/RandomRotation.hpp"
 #include "Reapr/Rattle.hpp"
@@ -271,9 +274,13 @@ namespace Knoodle
             {
                 case EnergyFlag_T::TV:
                 {
+                    return LevelsLP_MCF(pd);
+                }
+                case EnergyFlag_T::TV_CLP:
+                {
                     if constexpr( CLP_enabledQ )
                     {
-                        return LevelsByLP(pd);
+                        return LevelsLP_CLP(pd);
                     }
                     else
                     {
@@ -283,17 +290,21 @@ namespace Knoodle
                         return LevelsBySSN(pd);
                     }
                 }
+                case EnergyFlag_T::TV_MCF:
+                {
+                    return LevelsLP_MCF(pd);
+                }
                 case EnergyFlag_T::Bending:
                 {
-                    return LevelsBySSN(pd);
+                    return LevelsQP_SSN(pd);
                 }
                 case EnergyFlag_T::Dirichlet:
                 {
-                    return LevelsBySSN(pd);
+                    return LevelsQP_SSN(pd);
                 }
                 case EnergyFlag_T::Height:
                 {
-                    return LevelsByHeight(pd);
+                    return LevelsMinHeight(pd);
                 }
             }
         }
