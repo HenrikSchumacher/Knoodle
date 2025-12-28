@@ -10,15 +10,20 @@
     -lCoinUtils                                         \
     -lClp                                               \
     -lumfpack                                           \
-    -I/opt/homebrew/include                             \
-    -I/opt/homebrew/include/suitesparse                 \
     -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
     -I./../submodules/Min-Cost-Flow-Class/MCFClass      \
     -I./../submodules/Min-Cost-Flow-Class/MCFSimplex    \
     -I./../submodules/Tensors                           \
-    -I/usr/local/include/coin-or                        \
-    -L/usr/local/lib                                    \
+    -I/opt/homebrew/include                             \
+    -I/opt/homebrew/include/suitesparse                 \
+    -I/opt/homebrew/include/coin-or                     \
+    -I/opt/homebrew/include/coinutils                   \
     -L/opt/homebrew/lib                                 \
+    -I/usr/local/include                                \
+    -I/usr/local/include/suitesparse                    \
+    -I/usr/local/include/coin-or                        \
+    -I/usr/local/include/coinutils                      \
+    -L/usr/local/lib                                    \
     -o Knoodle                                          \
     main.cpp                                            \
     -flto                                               \
