@@ -77,7 +77,7 @@ namespace Knoodle
                 
         Real initial_time_step   = Real(1.0) / backtracking_factor;
         
-        EnergyFlag_T en_flag     = CLP_enabledQ ? EnergyFlag_T::TV: EnergyFlag_T::Dirichlet;
+        EnergyFlag_T en_flag     = EnergyFlag_T::TV;
         
         
         bool permute_randomQ     = true;
@@ -100,16 +100,7 @@ namespace Knoodle
         
         void SetEnergyFlag( EnergyFlag_T flag )
         {
-            if ( (flag == EnergyFlag_T::TV) && !CLP_enabledQ )
-            {
-                eprint(MethodName("SetEnergyFlag")+": Energy flag is set to " + ToString(EnergyFlag_T::TV) + " (TV energy), but linear programming features are deactivated. Setting to fallback value " + ToString(EnergyFlag_T::Dirichlet) + " (Dirichlet energy).");
-                
-                en_flag = EnergyFlag_T::Dirichlet;
-            }
-            else
-            {
-                en_flag = flag;
-            }
+            en_flag = flag;
         }
 
         EnergyFlag_T EnergyFlag() const { return en_flag; }
@@ -284,20 +275,12 @@ namespace Knoodle
                 {
                     return LevelsLP_MCF(pd);
                 }
+#ifdef KNOODLE_USE_CLP
                 case EnergyFlag_T::TV_CLP:
                 {
-                    if constexpr( CLP_enabledQ )
-                    {
-                        return LevelsLP_CLP(pd);
-                    }
-                    else
-                    {
-                        // We should never reach this piece of code.
-                        eprint(MethodName("Levels")+": Energy flag is set to " + ToString(EnergyFlag_T::TV) + " (TV energy), but linear programming features are deactivated. Returning levels computed by Dirichlet energy (energy flag = " + ToString(EnergyFlag_T::Dirichlet) + ") as fallback.");
-                        en_flag = EnergyFlag_T::Dirichlet;
-                        return LevelsQP_SSN(pd);
-                    }
+                    return LevelsLP_CLP(pd);
                 }
+#endif
                 case EnergyFlag_T::TV_MCF:
                 {
                     return LevelsLP_MCF(pd);
@@ -313,6 +296,11 @@ namespace Knoodle
                 case EnergyFlag_T::Height:
                 {
                     return LevelsMinHeight(pd);
+                }
+                default:
+                {
+                    wprint(ClassName() + "(): Unknown energy flag " + ToString(en_flag) + ". Using default (EnergyFlag_T::TV).");
+                    return LevelsLP_MCF(pd);
                 }
             }
         }

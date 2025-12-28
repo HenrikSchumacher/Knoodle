@@ -7,7 +7,6 @@
     -mtune=native                                       \
     -fenable-matrix                                     \
     -pthread                                            \
-    -lamd                                               \
     -lumfpack                                           \
     -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
     -I./../submodules/Min-Cost-Flow-Class/MCFClass      \
