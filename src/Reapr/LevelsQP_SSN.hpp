@@ -92,7 +92,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         
         if( umfpack.NumericStatus() != UMFPACK_OK )
         {
-            eprint(MethodName("LevelsBySSN_LevelsAndLagrangeMultipliers")+": Aborting because numeric factorization failed.");
+            eprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Aborting because numeric factorization failed.");
             
             return Tensor1<Real,Int>();
         }
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PlanarDiagram<Int>> pd ) cons
         }
         default:
         {
-            wprint(ClassName()+"::LevelsQP_SSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsBySSN_Matrix. Returning empty matrix." );
+            wprint(ClassName()+"::LevelsQP_SSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();

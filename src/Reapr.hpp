@@ -3,7 +3,10 @@
 #include "../deps/pcg-cpp/include/pcg_random.hpp"
 #include "../submodules/Tensors/UMFPACK.hpp"
 
+#ifdef KNOODLE_USE_CLP
 #include "../submodules/Tensors/Clp.hpp"
+#endif
+
 #include "OrthoDraw.hpp"
 
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -27,9 +30,14 @@ namespace Knoodle
 
         using UMF_Int             = Int64;
 
+#ifdef KNOODLE_USE_CLP
         using COIN_Real           = double;
         using COIN_Int            = int;
         using COIN_LInt           = CoinBigIndex;
+        static constexpr bool CLP_enabledQ = true;
+#else
+        static constexpr bool CLP_enabledQ = false;
+#endif
         
         using Link_T              = Link_2D<Real,Int>;
         using PD_T                = PlanarDiagram<Int>;
@@ -41,8 +49,7 @@ namespace Knoodle
         
         using PRNG_T              = pcg64;
         using Flag_T              = Scalar::Flag;
-
-        static constexpr bool CLP_enabledQ = true;
+        
 
         enum class EnergyFlag_T : Int32
         {
@@ -235,7 +242,9 @@ namespace Knoodle
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/LevelsConstraintMatrix.hpp"
 #include "Reapr/LevelsQP_SSN.hpp"
+#ifdef KNOODLE_USE_CLP
 #include "Reapr/LevelsLP_CLP.hpp"
+#endif
 #include "Reapr/LevelsLP_MCF.hpp"
 #include "Reapr/LevelsMinHeight.hpp"
 #include "Reapr/Embedding.hpp"
@@ -286,7 +295,7 @@ namespace Knoodle
                         // We should never reach this piece of code.
                         eprint(MethodName("Levels")+": Energy flag is set to " + ToString(EnergyFlag_T::TV) + " (TV energy), but linear programming features are deactivated. Returning levels computed by Dirichlet energy (energy flag = " + ToString(EnergyFlag_T::Dirichlet) + ") as fallback.");
                         en_flag = EnergyFlag_T::Dirichlet;
-                        return LevelsBySSN(pd);
+                        return LevelsQP_SSN(pd);
                     }
                 }
                 case EnergyFlag_T::TV_MCF:

@@ -25,9 +25,9 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
         }
     }
     
-    // We use LevelsLP_CLP_ArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active.
+    // We use LevelsLP_ArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active.
     
-    cptr<Int> A_pos   = LevelsLP_CLP_ArcIndices(pd).data();
+    cptr<Int> A_pos   = LevelsLP_ArcIndices(pd).data();
     cptr<Int> A_next  = pd.ArcNextArc().data();
     
     const I n = I(4) * static_cast<I>(pd.CrossingCount());
@@ -131,4 +131,60 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
     }
     
     return L;
+}
+
+cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PlanarDiagram<Int>> pd ) const
+{
+    std::string tag (MethodName("LevelsLP_ArcIndices"));
+    
+    if(!pd.InCacheQ(tag))
+    {
+        const Int a_count = pd.MaxArcCount();
+        
+        Tensor1<Int,Int> A_idx ( a_count );
+        Permutation<Int> perm;
+        
+        Int a_idx = 0;
+        
+        if( permute_randomQ )
+        {
+            perm = Permutation<Int>::RandomPermutation(
+               a_count, Int(1), random_engine
+            );
+            
+            cptr<Int> p = perm.GetPermutation().data();
+            
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = p[a_idx];
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        else
+        {
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = a_idx;
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        
+        pd.SetCache(tag,std::move(A_idx));
+    }
+    
+    return pd.template GetCache<Tensor1<Int,Int>>(tag);
 }

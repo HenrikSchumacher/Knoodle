@@ -7,8 +7,6 @@
     -mtune=native                                       \
     -fenable-matrix                                     \
     -pthread                                            \
-    -lCoinUtils                                         \
-    -lClp                                               \
     -lamd                                               \
     -lumfpack                                           \
     -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
@@ -17,15 +15,9 @@
     -I./../submodules/Tensors                           \
     -I/opt/homebrew/include                             \
     -I/opt/homebrew/include/suitesparse                 \
-    -I/opt/homebrew/include/coin-or                     \
-    -I/opt/homebrew/include/clp/coin                    \
-    -I/opt/homebrew/include/coinutils                   \
-    -I/opt/homebrew/include/coinutils/coin              \
     -L/opt/homebrew/lib                                 \
     -I/usr/local/include                                \
     -I/usr/local/include/suitesparse                    \
-    -I/usr/local/include/coin-or                        \
-    -I/usr/local/include/coinutils                      \
     -L/usr/local/lib                                    \
     -o Knoodle                                          \
     main.cpp                                            \
