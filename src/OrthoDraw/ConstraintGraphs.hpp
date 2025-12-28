@@ -1,5 +1,13 @@
 public:
 
+// Trying to construct the graphs D_x and D_y from Brideman, Battista, Didimo,Liotta, Tamassia, Vismara - Turn-regularity and optimal area drawings of orthogonal.
+// We use slightly different notation:
+//      Dv := D_x   (graph for the maximal _v_ertical segments)
+//      Dh := D_y   (graph for the maximal _h_orizontal segments)
+//
+// Alas, our graphs Dv and Dh might be slightly different from the ones defined by Brideman et al. because we might put in a few too many edges. In particular, Dv and Dh might not be planar.
+// But the optimization problem is a minimum cost tension problem and its dual will be a minimum cost flow, no matter whether Dv or Dh are planar. And even better: we do not need their planar structure to write down the dual problems.
+
 template<bool verboseQ = false>
 void ComputeConstraintGraphs() const
 {
@@ -35,13 +43,16 @@ void ComputeConstraintGraphs() const
     
     const Int C_end = C_A.Dim(0);
 
-    // We can start the loop at v_0 = C_end, as crossings have valence 4 and cannot be start or end of a segment.
-    
+    // For each segment we record which vertices and edges are part of it (DhV_V,DhV_E,DvV_V,DvV_E).
+    // And vice versa: we record for each vertex or edge to which segment it belongs (V_DhV, V_DvV, E_DhV, E_DvV).
+    // We do this by finding vertices that have no edge to the west or south; then we can simply walk to the east or north, until we hit a vertex that has no edge in that direction.
+    // We can skip all crossings, since crossings have valence 4 thus cannot be the start or end of any segment.
+    // Thus, we start at v_0 = C_end.
     for( Int v_0 = C_end; v_0 < V_end; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
             
-        // TODO: Segments are also allowed to contain exactly one vertex.
+        // TODO: Does this work also for segments with precisely one vertex?
         if( invalid_dedgeQ(V_dE(v_0,West)) )
         {
             // Collect horizontal segment.
@@ -69,6 +80,7 @@ void ComputeConstraintGraphs() const
             DhV_V.FinishSublist();
         }
         
+        // TODO: Does this work also for segments with precisely one vertex?
         if( invalid_dedgeQ(V_dE(v_0,South)) )
         {
             // Collect vertical segment.
@@ -97,6 +109,7 @@ void ComputeConstraintGraphs() const
         }
     }
     
+    // Very likely, we have many duplicate edges in Dv and Dh.
     // We use TripleAggregator to let Sparse::MatrixCSR tally the duplicate edges.
     TripleAggregator<Int,Int,Cost_T,Int> DhE_agg ( E_count );
     TripleAggregator<Int,Int,Cost_T,Int> DvE_agg ( E_count );
@@ -106,6 +119,8 @@ void ComputeConstraintGraphs() const
     
     cptr<Int> dE_V = E_V.data();
 
+    // For each edge (virtual or not) in the PD, we record which horizontal/vertical segments it connects.
+    // These will become some of the edges in the graphs Dv and Dh.
     for( Int e = 0; e < E_end; ++e )
     {
         const Int de_0 = ToDedge(e,Tail);
@@ -182,39 +197,39 @@ void ComputeConstraintGraphs() const
         }
     }
     
-    // Computing DvV_limit_DhV and DhV_limit_DvV
+//    // Computing DvV_limit_DhV. (For every vertical segment, record the two horizontal segments at its ends.)
+//    // TODO: Potential candidate for erasure.
+//    {
+//        EdgeContainer_T DvV_bottomtop_DhV ( DvV_E.SublistCount() );
+//        
+//        const Int s_count = DvV_E.SublistCount();
+//        
+//        for( Int s = 0; s < s_count; ++s )
+//        {
+//            DvV_bottomtop_DhV(s,Tail ) = V_DhV[ DvV_V.Sublist(s).begin()[0] ];
+//            DvV_bottomtop_DhV(s,Head ) = V_DhV[ DvV_V.Sublist(s).end()[-1]  ];
+//        }
+//        
+//        this->SetCache( "DvV_bottomtop_DhV", std::move(DvV_bottomtop_DhV) );
+//    }
+//    
+//    // Computing DhV_limit_DvV. (For every vertical segment, record the two horizontal segments at its ends.)
+//    // TODO: Potential candidate for erasure.
+//    {
+//        EdgeContainer_T DhV_leftright_DvV ( DhV_E.SublistCount() );
+//        
+//        const Int s_count = DhV_E.SublistCount();
+//        
+//        for( Int s = 0; s < s_count; ++s )
+//        {
+//            DhV_leftright_DvV(s,Left ) = V_DvV[ DhV_V.Sublist(s).begin()[0] ];
+//            DhV_leftright_DvV(s,Right) = V_DvV[ DhV_V.Sublist(s).end()[-1]  ];
+//        }
+//        
+//        this->SetCache( "DhV_leftright_DvV", std::move(DhV_leftright_DvV) );
+//    }
     
-    {
-        EdgeContainer_T DvV_bottomtop_DhV ( DvV_E.SublistCount() );
-        
-        const Int s_count = DvV_E.SublistCount();
-        
-        for( Int s = 0; s < s_count; ++s )
-        {
-            DvV_bottomtop_DhV(s,Tail ) = V_DhV[ DvV_V.Sublist(s).begin()[0] ];
-            DvV_bottomtop_DhV(s,Head ) = V_DhV[ DvV_V.Sublist(s).end()[-1]  ];
-        }
-        
-        this->SetCache( "DvV_bottomtop_DhV", std::move(DvV_bottomtop_DhV) );
-    }
-    
-    {
-        EdgeContainer_T DhV_leftright_DvV ( DhV_E.SublistCount() );
-        
-        const Int s_count = DhV_E.SublistCount();
-        
-        for( Int s = 0; s < s_count; ++s )
-        {
-            DhV_leftright_DvV(s,Left ) = V_DvV[ DhV_V.Sublist(s).begin()[0] ];
-            DhV_leftright_DvV(s,Right) = V_DvV[ DhV_V.Sublist(s).end()[-1]  ];
-        }
-        
-        this->SetCache( "DhV_leftright_DvV", std::move(DhV_leftright_DvV) );
-    }
-    
-    // Pushing some additional edges here.
-    // They come at no cost.
-    
+    // Collecting the saturating edges of Gl. They have zero costs.
     if ( settings.saturate_facesQ )
     {
         const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
@@ -226,8 +241,11 @@ void ComputeConstraintGraphs() const
             const Int v_0 = Gl_edges(e,Tail);
             const Int v_1 = Gl_edges(e,Head);
 
+            // TODO: To get the same graph Dv = D_x as in We ought to collect a saturating edge into Dv only if one of the vertical segments it connects is _unconstrained_.
             // BEWARE: we have to reverse the direction of edges here!
             DvE_agg.Push( V_DvV[v_1], V_DvV[v_0], Cost_T(0) );
+            
+            // TODO: We ought to collect a saturating edge into Dv only if one of the horizontal segments it connects is _unconstrained_.
             DhE_agg.Push( V_DhV[v_0], V_DhV[v_1], Cost_T(0) );
 
             if constexpr ( verboseQ )
@@ -239,6 +257,7 @@ void ComputeConstraintGraphs() const
         }
     }
     
+    // Collecting the saturating edges of Gr. They have zero costs.
     if ( settings.saturate_facesQ )
     {
         const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
@@ -250,7 +269,9 @@ void ComputeConstraintGraphs() const
             const Int v_0 = Gr_edges(e,Tail);
             const Int v_1 = Gr_edges(e,Head);
             
+            // TODO: We ought to collect a saturating edge into Dv only if one of the vertical segments it connects is _unconstrained_.
             DvE_agg.Push( V_DvV[v_0], V_DvV[v_1], Cost_T(0) );
+            // TODO: We ought to collect a saturating edge into Dv only if one of the horizontal segments it connects is _unconstrained_.
             DhE_agg.Push( V_DhV[v_0], V_DhV[v_1], Cost_T(0) );
             
             if constexpr ( verboseQ )
@@ -263,9 +284,8 @@ void ComputeConstraintGraphs() const
     }
 
     
-    // We use Sparse::MatrixCSR to tally the duplicates.
-    // The counts are stored in D*E_costs for the TopologicalTightening.
-    // TODO: I could generate a DiGraph_T from DhE_agg and use DiGraph_T::AdjacencyMatrix to tally the edges and to delete duplicates...
+    // We use Sparse::MatrixCSR to tally the duplicate edge in Dh.
+    // The counts are stored in DhE_costs for the TopologicalTightening.
     {
         const Int n = DhV_E.SublistCount();
 
@@ -307,6 +327,8 @@ void ComputeConstraintGraphs() const
         this->SetCache( "E_DhE", std::move(E_DhE) );
     }
     
+    // We use Sparse::MatrixCSR to tally the duplicate edge in Dv.
+    // The counts are stored in DvE_costs for the TopologicalTightening.
     {
         const Int n = DvV_E.SublistCount();
         
@@ -466,260 +488,139 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
     return this->GetCache<RaggedList<Int,Int>>("DhV_V");
 }
 
-cref<EdgeContainer_T> DvVBottomTop() const
-{
-    if( !this->InCacheQ("DvV_bottomtop_DhV") ) { ComputeConstraintGraphs(); }
-    return this->GetCache<EdgeContainer_T>("DvV_bottomtop_DhV");
-}
-
-cref<EdgeContainer_T> DhVLeftRight() const
-{
-    if( !this->InCacheQ("DhV_leftright_DvV") ) { ComputeConstraintGraphs(); }
-    return this->GetCache<EdgeContainer_T>("DhV_leftright_DvV");
-}
-
-
-private:
-
-
-void ComputeFaceVHSegments() const
-{
-    TOOLS_PTIMER(timer,MethodName("ComputeFaceVHSegments"));
-    
-    const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
-    
-    Int f_count = FaceCount(soften_virtual_edgesQ);
-    
-    RaggedList<Int,Int> F_DvV ( f_count, E_V.Dim(0) );
-    RaggedList<Int,Int> F_DhV ( f_count, E_V.Dim(0) );
-    
-    auto & E_DvV = EdgeToDvVertex();
-    auto & E_DhV = EdgeToDhVertex();
-    
-    TraverseAllFaces(
-        []( const Int f ){ (void)f; },
-        [&E_DvV,&E_DhV,&F_DvV,&F_DhV,this](
-            const Int f, const Int k, const Int de
-        )
-        {
-            (void)f;
-            (void)k;
-            
-            auto [e,d] = FromDedge(de);
-            
-            if( (E_dir[e] == North) || (E_dir[e] == South) )
-            {
-                F_DvV.Push( E_DvV[e] );
-            }
-            else
-            {
-                F_DhV.Push( E_DhV[e] );
-            }
-        },
-        [&F_DvV,&F_DhV]( const Int f )
-        {
-            (void)f;
-            F_DvV.FinishSublist();
-            F_DhV.FinishSublist();
-        },
-        soften_virtual_edgesQ
-    );
-    
-    this->SetCache( "F_DvV", std::move(F_DvV) );
-    this->SetCache( "F_DhV", std::move(F_DhV) );
-}
-
-
-public:
-
-
-cref<RaggedList<Int,Int>> FaceDvVertices() const
-{
-    if( !this->InCacheQ("F_DvV") ) { ComputeFaceVHSegments(); }
-    
-    return this->GetCache<RaggedList<Int,Int>>("F_DvV");
-}
-
-cref<RaggedList<Int,Int>> FaceDhVertices() const
-{
-    if( !this->InCacheQ("F_DhV") ) { ComputeFaceVHSegments(); }
-    
-    return this->GetCache<RaggedList<Int,Int>>("F_DhV");
-}
-
-cref<RaggedList<Int,Int>> FaceSegments() const
-{
-    if( !this->InCacheQ("FaceSegments") )
-    {
-        const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
-        
-        RaggedList<Int,Int> F_segments ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
-        
-        auto & E_DvV = EdgeToDvVertex();
-        auto & E_DhV = EdgeToDhVertex();
-        
-        const Int h = Dv().VertexCoordinates();
-        
-        TraverseAllFaces(
-            []( const Int f ){ (void)f; },
-            [&E_DvV,&E_DhV,&F_segments,h,this](
-                const Int f, const Int k, const Int de
-            )
-            {
-                (void)f;
-                (void)k;
-                
-                auto [e,d] = FromDedge(de);
-                
-                if( (E_dir[e] == North) || (E_dir[e] == South) )
-                {
-                    F_segments.Push( E_DvV[e] );
-                }
-                else
-                {
-                    F_segments.Push( E_DhV[e] + h );
-                }
-            },
-            [&F_segments]( const Int f )
-            {
-                (void)f;
-                F_segments.FinishSublist();
-            },
-            soften_virtual_edgesQ
-        );
-        
-        this->SetCache( "FaceSegments", std::move(F_segments) );
-    }
-    
-    return this->GetCache<RaggedList<Int,Int>>("FaceSegments");
-}
-
-
-//// This collects the "column indices" for the constraint matrix for the system
-////
-////  x_{r_i,l_j} + x_{r_j,l_i} + x_{t_j,b_i} + x_ {t_i,b_j} \geq 0,
-////
-////  for (i,j) \in S \times S.
-////
-//// We filter out some cases that would lead to infeasible systems.
-//// We also try to cull equations that are automatically fulfilled by the edges in Dv() and Dh().
-//// TODO: It would be even nice if we could cull also those equations that are implicitly enforced by paths in the graph.
-//
-//// TODO: It would be even nice if we could delete duplicated equations, too. It happens quite frequently that a face touches a line segment more than once.
-//
-//Tiny::MatrixList_AoS<4,2,Int,Int> SeparationConstraints() const
+//// TODO: Potential candidate for erasure.
+//cref<EdgeContainer_T> DvVBottomTop() const
 //{
-//    using A_T = std::array<Int,2>;
-//    
-//    auto & F_DvV = FaceDvVertices();
-//    auto & F_DhV = FaceDhVertices();
-//    
-//    auto & DvV_bt = DvVBottomTop();
-//    auto & DhV_lr = DhVLeftRight();
-//    
-//    // TODO: Better size prediction.
-//    Aggregator<A_T,Int> agg ( FaceCount() * Int(2) );
-//    
-//    // Index shifts/offsets
-//    const Int h = Dv().VertexCount();
+//    if( !this->InCacheQ("DvV_bottomtop_DhV") ) { ComputeConstraintGraphs(); }
+//    return this->GetCache<EdgeContainer_T>("DvV_bottomtop_DhV");
+//}
 //
-//    const Int f_count = FaceCount();
+//// TODO: Potential candidate for erasure.
+//cref<EdgeContainer_T> DhVLeftRight() const
+//{
+//    if( !this->InCacheQ("DhV_leftright_DvV") ) { ComputeConstraintGraphs(); }
+//    return this->GetCache<EdgeContainer_T>("DhV_leftright_DvV");
+//}
 //
-//    for( Int f = 0; f < f_count; ++f )
-//    {
-//        auto f_DvV = F_DvV.Sublist(f);
-//        auto f_DhV = F_DhV.Sublist(f);
-//        
-//        // There is no way in which a 4-, 5- or 6-face can give us any new information.
-//        if( (f_DvV.Size() <= Int(3)) || (f_DhV.Size() <= Int(3)) )
-//        {
-//            continue;
-//        }
-//        
-//        // Beware, we have to check _both_ f_DvV.Size() and f_DhV.Size() since they are not always equal when we inserted edges by turn regularization. We can get two horizontal edges or two verticals edges next to each other.
 //
-//        
-//        auto DvV_load = [&DvV_bt]( Int i )
-//        {
-//            return std::array<Int,4>{ i, i, DvV_bt(i,Tail), DvV_bt(i,Head) };
-//        };
-//        
-//        auto DhV_load = [&DhV_lr]( Int i )
-//        {
-//            return std::array<Int,4>{ DhV_lr(i,Tail), DhV_lr(i,Head), i, i };
-//        };
-//        
-//        auto push = [&agg,h](
-//            Int l_i, Int r_i, Int b_i, Int t_i,
-//            Int l_j, Int r_j, Int b_j, Int t_j
+//private:
+//
+//// Not what I need, I guess. This cycles around faces of the PD with the virtual edges added.
+//// But we need to cycle around faces in Dv and Dh to create the flow networks.
+//void ComputeFaceVHSegments() const
+//{
+//    TOOLS_PTIMER(timer,MethodName("ComputeFaceVHSegments"));
+//    
+//    const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
+//    
+//    Int f_count = FaceCount(soften_virtual_edgesQ);
+//    
+//    RaggedList<Int,Int> F_DvV ( f_count, E_V.Dim(0) );
+//    RaggedList<Int,Int> F_DhV ( f_count, E_V.Dim(0) );
+//    
+//    auto & E_DvV = EdgeToDvVertex();
+//    auto & E_DhV = EdgeToDhVertex();
+//    
+//    TraverseAllFaces(
+//        []( const Int f ){ (void)f; },
+//        [&E_DvV,&E_DhV,&F_DvV,&F_DhV,this](
+//            const Int f, const Int k, const Int de
 //        )
 //        {
+//            (void)f;
+//            (void)k;
 //            
-//            // TODO: Cull constraints that are already satisfied or already excluded by directed paths in Dv() and Dh().
+//            auto [e,d] = FromDedge(de);
 //            
-//            agg.Push( A_T{ r_i    , l_j    } );
-//            agg.Push( A_T{ r_j    , l_i    } );
-//            agg.Push( A_T{ t_j + h, b_i + h} );
-//            agg.Push( A_T{ t_i + h, b_j + h} );
-//        };
+//            if( (E_dir[e] == North) || (E_dir[e] == South) )
+//            {
+//                F_DvV.Push( E_DvV[e] );
+//            }
+//            else
+//            {
+//                F_DhV.Push( E_DhV[e] );
+//            }
+//        },
+//        [&F_DvV,&F_DhV]( const Int f )
+//        {
+//            (void)f;
+//            F_DvV.FinishSublist();
+//            F_DhV.FinishSublist();
+//        },
+//        soften_virtual_edgesQ
+//    );
+//    
+//    this->SetCache( "F_DvV", std::move(F_DvV) );
+//    this->SetCache( "F_DhV", std::move(F_DhV) );
+//}
+//
+//
+//public:
+//
+//
+//// Not what I need, I guess as this does not respect saturating edges.
+//// TODO: Potential candidate for erasure.
+//cref<RaggedList<Int,Int>> FaceDvVertices() const
+//{
+//    if( !this->InCacheQ("F_DvV") ) { ComputeFaceVHSegments(); }
+//    
+//    return this->GetCache<RaggedList<Int,Int>>("F_DvV");
+//}
+//
+//// Not what I need, I guess as this does not respect saturating edges.
+//// TODO: Potential candidate for erasure.
+//cref<RaggedList<Int,Int>> FaceDhVertices() const
+//{
+//    if( !this->InCacheQ("F_DhV") ) { ComputeFaceVHSegments(); }
+//    
+//    return this->GetCache<RaggedList<Int,Int>>("F_DhV");
+//}
+//
+//// Not what I need, I guess as this does not respect saturating edges.
+//// TODO: Potential candidate for erasure.
+//cref<RaggedList<Int,Int>> FaceSegments() const
+//{
+//    if( !this->InCacheQ("FaceSegments") )
+//    {
+//        const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
 //        
-//        for( Int i : f_DvV )
-//        {
-//            auto [l_i,r_i,b_i,t_i] = DvV_load(i);
-//            
-//            for( Int j : f_DvV )
+//        RaggedList<Int,Int> F_segments ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
+//        
+//        auto & E_DvV = EdgeToDvVertex();
+//        auto & E_DhV = EdgeToDhVertex();
+//        
+//        const Int h = Dv().VertexCoordinates();
+//        
+//        TraverseAllFaces(
+//            []( const Int f ){ (void)f; },
+//            [&E_DvV,&E_DhV,&F_segments,h,this](
+//                const Int f, const Int k, const Int de
+//            )
 //            {
-//                if( i == j ) { continue; };
-//                // This also excludes the cases l_i == r_j and r_i == l_j as both segments are vertical.
-//
-//                auto [l_j,r_j,b_j,t_j] = DvV_load(j);
+//                (void)f;
+//                (void)k;
 //                
-//                // In these cases there is an edge between i and j in Dv.
-//                // So this constraint will be satisfied anyways.
-//                if( (t_j == b_i) || (t_i == b_j) ) { continue; }
+//                auto [e,d] = FromDedge(de);
 //                
-//                
-//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-//            }
-//            
-//            for( Int j : f_DhV )
-//            {
-//                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
-//                
-//                // In each of these 4 cases these segments touch each other.
-//                // We might get infeasible systems if we include this constraint.
-//                if( (r_i == l_j) || (r_j == l_i) || (t_j == b_i) || (t_i == b_j) )
+//                if( (E_dir[e] == North) || (E_dir[e] == South) )
 //                {
-//                    continue;
+//                    F_segments.Push( E_DvV[e] );
 //                }
-//
-//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-//            }
-//        }
-//     
-//        for( Int i : f_DhV )
-//        {
-//            auto [l_i,r_i,b_i,t_i] = DhV_load(i);
-//            
-//            for( Int j : f_DhV )
+//                else
+//                {
+//                    F_segments.Push( E_DhV[e] + h );
+//                }
+//            },
+//            [&F_segments]( const Int f )
 //            {
-//                if( i == j ) { continue; }
-//                // This also excludes the cases b_i == t_j and t_i == b_j as both segments are horizontal.
-//                
-//                auto [l_j,r_j,b_j,t_j] = DhV_load(j);
-//                
-//                // In these cases there is an edge between i and j in Dh.
-//                // So this constraint will be satisfied anyways.
-//                if( (r_i == l_j) || (r_j == l_i) ) { continue; }
-//                
-//                push( l_i, r_i, b_i, t_i,  l_j, r_j, b_j, t_j );
-//            }
-//        }
+//                (void)f;
+//                F_segments.FinishSublist();
+//            },
+//            soften_virtual_edgesQ
+//        );
+//        
+//        this->SetCache( "FaceSegments", std::move(F_segments) );
 //    }
 //    
-//    Tiny::MatrixList_AoS<4,2,Int,Int> a ( agg.Size() / Int(8) );
-//    
-//    a.Read( &agg.data()[0][0] );
-//        
-//    return a;
+//    return this->GetCache<RaggedList<Int,Int>>("FaceSegments");
 //}

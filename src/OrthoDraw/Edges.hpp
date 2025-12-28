@@ -177,11 +177,13 @@ void ComputeEdgeLeftDedges()
             eprint(MethodName("ComputeEdgeLeftDedges") + ": dE_left_dE[de_1] of dedge " + ToString(de_1) + " is ill-defined.");
         }
         
+        
+        // TODO: I think this ought to be removed.
         if ( (t_0 == Turn_T(-1)) && (dE_turn[df_0] == Turn_T(-1)) )
         {
             MarkDedgeAsUnconstrained(df_0);
         }
-        
+        // TODO: I think this ought to be removed.
         if ( (t_1 == Turn_T(-1)) && (dE_turn[df_1] == Turn_T(-1)) )
         {
             MarkDedgeAsUnconstrained(df_1);

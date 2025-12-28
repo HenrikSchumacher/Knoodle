@@ -30,9 +30,24 @@ private:
 
 Embedding_T Embedding_impl( cref<PD_T> pd)
 {
-    OrthoDraw_T H ( pd, PD_T::Uninitialized, ortho_draw_settings );
-
-    Tensor1<Real,Int> L = Levels(pd);
+    OrthoDraw_T H;
+    Tensor1<Real,Int> L;
+    
+    ParallelDo(
+        [&H,&L,&pd,this](const Int thread)
+        {
+            if( thread == Int(0) )
+            {
+                H = OrthoDraw_T( pd, PD_T::Uninitialized, ortho_draw_settings );
+            }
+            else if( thread == Int(1) )
+            {
+                L = Levels(pd);
+            }
+        },
+        Int(2),
+        (ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
+    );
 
     auto [L_min,L_max] = L.MinMax();
     

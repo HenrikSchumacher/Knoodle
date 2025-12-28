@@ -11,14 +11,14 @@ public:
 // TODO: I have to filter out inactive crossings and inactive arcs!
 
 template<typename ExtInt, typename ExtInt2>
-Tensor1<Turn_T,Int> ComputeBends_CLP(
+Tensor1<Turn_T,Int> Bends_CLP(
     cref<PlanarDiagram<ExtInt>> pd,
     const ExtInt2 ext_region = -1
 )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    TOOLS_PTIMER(timer,ClassName()+"::ComputeBends_CLP");
+    TOOLS_PTIMER(timer,MethodName("Bends_CLP"));
     
     ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
             
@@ -28,14 +28,14 @@ Tensor1<Turn_T,Int> ComputeBends_CLP(
         
         if( std::cmp_greater( max_idx, std::numeric_limits<COIN_Int>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_CLP: Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
+            eprint(MethodName("Bends_CLP")+": Too many arcs to fit into type " + TypeName<COIN_Int> + ".");
             
             return Tensor1<Turn_T,Int>();
         }
         
         if( std::cmp_greater( nnz, std::numeric_limits<COIN_LInt>::max() ) )
         {
-            eprint(ClassName()+"::ComputeBends_CLP: System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
+            eprint(MethodName("Bends_CLP")+": System matrix has more nonzeroes than can be counted by type `CoinBigIndex` ( a.k.a. " + TypeName<COIN_LInt> + "  ).");
             
             return Tensor1<Turn_T,Int>();
         }
@@ -53,14 +53,13 @@ Tensor1<Turn_T,Int> ComputeBends_CLP(
     
     Settings_T param { .dualQ = settings.use_dual_simplexQ };
     
-    auto & A_idx = Bends_ArcIndices(pd);
+    auto A_idx = Bends_ArcIndices(pd);
     
     const ExtInt a_count = pd.Arcs().Dim(0);
     
     if( settings.network_matrixQ )
     {
         cptr<ExtInt> dA_F = pd.ArcFaces().data();
-        
         
         const I n = Bends_VarCount<I>(pd);
 //        const I m = Bends_ConCount<I>(pd);
@@ -104,7 +103,7 @@ Tensor1<Turn_T,Int> ComputeBends_CLP(
             Bends_ObjectiveVector<R,I>(pd),
             Bends_LowerBoundsOnVariables<R,I>(pd),
             Bends_UpperBoundsOnVariables<R,I>(pd),
-            Bends_ConstraintMatrix<R,I,J>(pd),
+            Bends_ConstraintMatrix<R,I,J>(pd,A_idx),
             con_eq,
             con_eq,
             param
@@ -129,7 +128,5 @@ Tensor1<Turn_T,Int> ComputeBends_CLP(
         }
     }
     
-    pd.ClearCache(MethodName("Bends_ArcIndices"));
-
     return bends;
 }

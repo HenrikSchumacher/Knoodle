@@ -150,62 +150,25 @@ void ComputeVertexCoordinates(
     }
 }
 
-void ComputeVertexCoordinates_ByTopologicalOrdering()
-{
-    auto x = Dv().TopologicalOrdering();
-    
-    if( x.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalOrdering") + ": Graph Dv() is cyclic.");
-    }
-    
-    auto y = Dh().TopologicalOrdering();
-    
-    if( y.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalOrdering") + ": Graph Dh() is cyclic.");
-    }
-
-    ComputeVertexCoordinates(x,y);
-}
-
-void ComputeVertexCoordinates_ByTopologicalNumbering()
-{
-    auto x = Dv().TopologicalNumbering();
-    
-    if( x.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalNumbering") + ": Graph Dv() is cyclic.");
-    }
-    
-    auto y = Dh().TopologicalNumbering();
-    
-    if( y.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalNumbering") + ": Graph Dh() is cyclic.");
-    }
-
-    ComputeVertexCoordinates(x,y);
-}
-
-void ComputeVertexCoordinates_ByTopologicalTightening()
-{
-    auto x = Dv().TopologicalTightening(DvEdgeCosts().data());
-    
-    if( x.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dv() is cyclic.");
-    }
-    
-    auto y = Dh().TopologicalTightening(DvEdgeCosts().data());
-    
-    if( y.Size() <= Int(0) )
-    {
-        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dh() is cyclic.");
-    }
-    
-    ComputeVertexCoordinates(x,y);
-}
+// Does not prevent self-intersections.
+//void ComputeVertexCoordinates_ByTopologicalTightening()
+//{
+//    auto x = Dv().TopologicalTightening(DvEdgeCosts().data());
+//    
+//    if( x.Size() <= Int(0) )
+//    {
+//        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dv() is cyclic.");
+//    }
+//    
+//    auto y = Dh().TopologicalTightening(DvEdgeCosts().data());
+//    
+//    if( y.Size() <= Int(0) )
+//    {
+//        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dh() is cyclic.");
+//    }
+//    
+//    ComputeVertexCoordinates(x,y);
+//}
 
 std::string DiagramString() const
 {

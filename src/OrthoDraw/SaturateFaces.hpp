@@ -67,8 +67,6 @@ Switch_T GlSwitchType( Int da ) const
 {
     cptr<Turn_T> dE_turn = E_turn.data();
     
-    // Int db = E_left_dE_reg.data()[da];
-    
     auto [a,d] = FromDedge(da);
     
     Dir_T a_dir = E_dir[a];
@@ -77,21 +75,6 @@ Switch_T GlSwitchType( Int da ) const
     {
         a_dir = (a_dir + Dir_T(2)) % Dir_T(4);
     }
-    
-//    constexpr Switch_T None = Switch_T::None;
-//    constexpr Switch_T s_S  = Switch_T::s_S;
-//    constexpr Switch_T s_L  = Switch_T::s_L;
-//    constexpr Switch_T t_S  = Switch_T::t_S;
-//    constexpr Switch_T t_L  = Switch_T::t_L;
-//
-//    constexpr Switch_T lut [4][4] = {
-//    //        East  North West  South
-//    /* 0*/  { None, None, None, None },
-//    /* 1*/  { s_S , None, t_S,  None },
-//    /* 2*/  { None, None, None, None },
-//    /*-1*/  { None, t_L , None, s_L  }
-//    };
-    
     
     if( dE_turn[da] == Turn_T(-1) )
     {
@@ -238,20 +221,6 @@ Switch_T GrSwitchType( Int da ) const
         a_dir = (a_dir + Dir_T(2)) % Dir_T(4);
     }
     
-//    constexpr Switch_T None = Switch_T::None;
-//    constexpr Switch_T s_S  = Switch_T::s_S;
-//    constexpr Switch_T s_L  = Switch_T::s_L;
-//    constexpr Switch_T t_S  = Switch_T::t_S;
-//    constexpr Switch_T t_L  = Switch_T::t_L;
-//
-//    constexpr Switch_T lut [4][4] = {
-//    //        East  North West  South
-//    /* 0*/  { None, None, None, None },
-//    /* 1*/  { None, t_S , None, s_S  },
-//    /* 2*/  { None, None, None, None },
-//    /*-1*/  { t_L,  None, s_L , None }
-//    };
-    
     if( dE_turn[da] == Turn_T(-1) )
     {
         if( a_dir == East )
@@ -383,6 +352,7 @@ Switch_T GrSwitchType( Int da ) const
 
 public:
 
+// This function exists only for debugging purposes.
 template<bool GrQ>
 RaggedList<UInt8,Int> FaceSwitchTypes()
 {
@@ -411,16 +381,27 @@ RaggedList<UInt8,Int> FaceSwitchTypes()
 
 
 template<bool GrQ, bool verboseQ = false>
-EdgeContainer_T SaturatingEdges() const
+cref<EdgeContainer_T> SaturatingEdges() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::SaturatingEdges<" + ToString(GrQ) + ">");
+    if( !this->InCacheQ("SaturatingEdges<" + ToString(GrQ) + ">") )
+    {
+        this->template SaturateFaces<GrQ,verboseQ>();
+    }
+    
+    return this->template GetCache<EdgeContainer_T>("SaturatingEdges<" + ToString(GrQ) + ">");
+}
 
+
+template<bool GrQ, bool verboseQ = false>
+void SaturateFaces() const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::SaturateFaces<" + ToString(GrQ) + ">");
+    
     Aggregator<std::array<Int,2>,Int> edge_agg (EdgeCount());
     
     // We make these buffers two steps longer to emulate a cyclic buffer.
     Tensor1<Int,Int>      f_dE( max_face_size * Int(2) );
     Tensor1<Switch_T,Int> f_S ( max_face_size * Int(2) );
-    
     
     Int f_size = 0;
     Int f_n = 0; // count of labels
@@ -458,23 +439,11 @@ EdgeContainer_T SaturatingEdges() const
             if( !settings.saturate_exterior_faceQ && exteriorQ ){ return; }
             
             // No saturating edges are needed in sufficiently small faces.
-            // BEWARE: This might exploit something specific to knot-diagram!
+            // BEWARE: This might exploit something specific to knot-diagrams!
             if( settings.filter_saturating_edgesQ )
             {
                 if( f_size <= Int(7) ) { return; }
             }
-//            
-//            // DEBUGGING
-//            if( f_n < Int(2) )
-//            {
-//                eprint(this->MethodName("SaturatingEdges") + ": f_n < Int(2)!");
-//            }
-//            
-//            // DEBUGGING
-//            if( f_size > max_face_size )
-//            {
-//                eprint(this->MethodName("SaturatingEdges") + ": f_size > max_face_size !");
-//            }
             
             // Make a complete copy to emulate a cyclic list.
             copy_buffer(&f_dE[0],&f_dE[f_n],f_n);
@@ -486,12 +455,14 @@ EdgeContainer_T SaturatingEdges() const
     );
 
     EdgeContainer_T saturating_edges ( edge_agg.Size() );
-    
     saturating_edges.Read(&edge_agg[0][0]);
-    
-    return saturating_edges;
+    this->SetCache("SaturatingEdges<" + ToString(GrQ) + ">", std::move(saturating_edges));
 }
 
+
+// Not only do I need the saturating edges themselves.
+// I also need to know their next left edge and the edge whose next left edge they are.
+// From this I should be able to build the faces in Dv and Dh.
 
 template<bool GrQ, bool verboseQ>
 void SaturateFace(
@@ -604,7 +575,7 @@ void SaturateFace(
             
             if( settings.filter_saturating_edgesQ )
             {
-                // BEWARE: Here we exploit that out orthogonal representation
+                // BEWARE: Here we exploit that our orthogonal representation
                 // comes from a link diagram. Otherwise, we could have
                 // T-junctions like this:
                 //

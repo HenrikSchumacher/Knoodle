@@ -62,7 +62,7 @@ Tensor1<T,Int> LevelsLP_CLP( cref<PlanarDiagram<Int>> pd )
 {
     TOOLS_MAKE_FP_STRICT();
 
-    std::string tag = ClassName() + "::LevelsLP_CLP" + "<" + TypeName<T> + ">";
+    std::string tag = ClassName() + "::LevelsLP_CLP";
     
     TOOLS_PTIMER(timer,tag);
     
@@ -136,7 +136,7 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) cons
     + "," + TypeName<J>
     + ">";
     
-    TOOLS_PTIMER(timer,tag);
+//    TOOLS_PTIMER(timer,tag);
     
     const Size_T row_count = Size_T(2) * ToSize_T(pd.ArcCount());
     const Size_T col_count = ToSize_T(pd.CrossingCount()) + Size_T(2) * ToSize_T(pd.ArcCount()) + Size_T(1);

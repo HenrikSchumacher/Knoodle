@@ -2,19 +2,12 @@
 #define TENSORS_BOUND_CHECKS
 #define TENSORS_ALLOCATION_LOGS
 
-#define dump(x) TOOLS_DUMP(x);
-#define mem_dump(x) TOOLS_MEM_DUMP(x);
+//#define dump(x) TOOLS_DUMP(x);
+//#define mem_dump(x) TOOLS_MEM_DUMP(x);
 
 #include "../Knoodle.hpp"
-//#include "../submodules/Tensors/Clp.hpp"
+
 #include "../src/OrthoDraw.hpp"
-//#include "ClpSimplex.hpp"
-//#include "ClpSimplexDual.hpp"
-//#include "CoinHelperFunctions.hpp"
-
-//#include "../Reapr.hpp"
-
-//#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
 
 using namespace Knoodle;
 using namespace Tensors;
@@ -106,7 +99,7 @@ int main( int argc, char** argv )
     
     OrthoDraw<Int> H (pd, Int(-1),
         {
-            .bend_min_method          = 0,
+            .bend_method              = OrthoDraw<Int>::BendMethod_T::Bends_MCF,
             .network_matrixQ          = true,
             .use_dual_simplexQ        = false,
             .randomize_bends          = 0,
@@ -117,7 +110,7 @@ int main( int argc, char** argv )
             .saturate_facesQ          = true,
             .saturate_exterior_faceQ  = true,
             .parallelizeQ             = false,
-            .compaction_method        = 0,
+            .compaction_method        = OrthoDraw<Int>::CompactionMethod_T::TopologicalNumbering,
         
             .x_grid_size              = 8,
             .y_grid_size              = 4,
@@ -149,17 +142,16 @@ int main( int argc, char** argv )
     TOOLS_DUMP(H.Length());
     
     print("");
-    print("Diagram -- ByLengthVariant1");
+    print("Diagram -- ComputeVertexCoordinates_Length_MCF");
     print("");
 
 
-    H.ComputeVertexCoordinates_ByLengths_Variant2(true);
+    H.ComputeVertexCoordinates_Compaction_MCF();
     TOOLS_DUMP(H.Width());
     TOOLS_DUMP(H.Height());
     TOOLS_DUMP(H.Area());
     TOOLS_DUMP(H.Length());
     print(H.DiagramString());
-    
     
     
     H.PrintSettings();

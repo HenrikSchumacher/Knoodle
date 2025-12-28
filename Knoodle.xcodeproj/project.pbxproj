@@ -896,6 +896,15 @@
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
+					"submodules/Min-Cost-Flow-Class/RelaxIV",
+					"/usr/local/include/coin-or",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				OTHER_LDFLAGS = (
 					"-lamd",
@@ -915,6 +924,15 @@
 				CLANG_WARN_IMPLICIT_SIGN_CONVERSION = NO;
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				HEADER_SEARCH_PATHS = (
+					/opt/homebrew/include,
+					/opt/homebrew/include/suitesparse,
+					"submodules/Min-Cost-Flow-Class/OPTUtils",
+					"submodules/Min-Cost-Flow-Class/MCFClass",
+					"submodules/Min-Cost-Flow-Class/MCFSimplex",
+					"submodules/Min-Cost-Flow-Class/RelaxIV",
+					"/usr/local/include/coin-or",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				OTHER_LDFLAGS = (
 					"-lamd",

@@ -1,17 +1,34 @@
 #pragma once
 
 // TODO: Make this optional.
+#ifdef KNOODLE_USE_CLP
 #include "../submodules/Tensors/Clp.hpp"
+#endif
 
-// TODO: We have to put the following directories onto the search path:
-// TODO:    "../submodules/Min-Cost-Flow-Class/OPTUtils/",
-// TODO:    "../submodules/Min-Cost-Flow-Class/MCFClass/",
-// TODO:    "../submodules/Min-Cost-Flow-Class/MCFSimplex/
 
+// For this, the user has to put the following directories onto the search path:
+//      "../submodules/Min-Cost-Flow-Class/OPTUtils/",
+//      "../submodules/Min-Cost-Flow-Class/MCFClass/",
+//      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
 namespace MCF
 {
     #include "MCFSimplex.C"
 }
+
+// For this, the user has to put the following directory onto the search path:
+//      "../submodules/Min-Cost-Flow-Class/RelaxIV/
+#ifdef KNOODLE_USE_RELAXIV
+namespace RelaxIV
+{
+    using namespace MCF;
+    
+    #include "RelaxIV.C"
+}
+#endif
+
+#ifdef KNOODLE_USE_OR
+#include "ortools/graph/min_cost_flow.h"
+#endif
 
 namespace Knoodle
 {
@@ -30,10 +47,6 @@ namespace Knoodle
         
         using Int        = Int_;
         
-        using COIN_Real  = double;
-        using COIN_Int   = int;
-        using COIN_LInt  = CoinBigIndex;
-        
         using UInt       = UInt32;
         using Dir_T      = UInt8;
         using EdgeFlag_T = UInt8;
@@ -48,35 +61,56 @@ namespace Knoodle
             LeftHanded  = -1,
             Corner      =  2
         };
+
+        enum class BendMethod_T : Int8
+        {
+            Unknown         = -1
+            , Bends_MCF     =  0
+            , Bends_CLP     =  1
+            , Bends_RelaxIV =  2
+            , Bends_OR      =  3
+        };
+        
+        enum class CompactionMethod_T : Int8
+        {
+            Unknown                = -1
+            , TopologicalNumbering =  0
+            , TopologicalOrdering  =  1
+            , Length_MCF           =  2
+            , Length_CLP           =  3
+            , AreaAndLength_CLP    =  4
+            , Length_RelaxIV       =  5
+            , Length_OR            =  6
+        };
         
         struct Settings_T
         {
-            int  bend_min_method          = 0;
-            bool network_matrixQ          = true;
-            bool use_dual_simplexQ        = false;
-            int  randomize_bends          = 0;
-            bool redistribute_bendsQ      = true;
-            bool turn_regularizeQ         = true;
-            bool soften_virtual_edgesQ    = false;
-            bool randomize_virtual_edgesQ = false;
-            bool saturate_facesQ          = true;
-            bool saturate_exterior_faceQ  = true;
-            bool filter_saturating_edgesQ = true;
-            bool parallelizeQ             = false;
-            int  compaction_method        = 0;
+            BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
+            bool network_matrixQ                    = true;
+            bool use_dual_simplexQ                  = false;
+            int  randomize_bends                    = 0;
+            bool redistribute_bendsQ                = true;
+            bool turn_regularizeQ                   = true;
+            bool soften_virtual_edgesQ              = false;
+            bool randomize_virtual_edgesQ           = false;
+            bool saturate_facesQ                    = true;
+            bool saturate_exterior_faceQ            = true;
+            bool filter_saturating_edgesQ           = true;
+            bool parallelizeQ                       = false;
+            CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
             
-            Int  x_grid_size              = 20;
-            Int  y_grid_size              = 20;
+            Int  x_grid_size                        = 20;
+            Int  y_grid_size                        = 20;
             
-            Int  x_gap_size               =  4;
-            Int  y_gap_size               =  4;
+            Int  x_gap_size                         =  4;
+            Int  y_gap_size                         =  4;
             
-            Int  x_rounding_radius        =  4;
-            Int  y_rounding_radius        =  4;
+            Int  x_rounding_radius                  =  4;
+            Int  y_rounding_radius                  =  4;
             
             void PrintInfo() const
             {
-                TOOLS_DDUMP(bend_min_method);
+                TOOLS_DDUMP(bend_method);
                 TOOLS_DDUMP(network_matrixQ);
                 TOOLS_DDUMP(redistribute_bendsQ);
                 TOOLS_DDUMP(use_dual_simplexQ);
@@ -108,13 +142,17 @@ namespace Knoodle
         
         using ArcSplineContainer_T  = RaggedList<std::array<Int,2>,Int>;
         
+        
+#ifdef KNOODLE_USE_CLP
+        using COIN_Real  = double;
+        using COIN_Int   = int;
+        using COIN_LInt  = CoinBigIndex;
         using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
+#endif
         
         static constexpr Int Uninitialized = PlanarDiagram_T::Uninitialized;
         static constexpr Int MaxValidIndex = PlanarDiagram_T::MaxValidIndex;
-        
-
         
         static constexpr bool ValidIndexQ( const Int i )
         {
@@ -127,7 +165,6 @@ namespace Knoodle
         using PRNG_T = std::mt19937;
         
 #include "OrthoDraw/Constants.hpp"
-
         
     private:
         
@@ -172,66 +209,55 @@ namespace Knoodle
                 TurnRegularize();
             }
             
-//            this->template CheckEdgeDirections<true>();
-            
             ComputeConstraintGraphs();
             
-            switch( settings.compaction_method)
+            switch( settings.compaction_method )
             {
-                case 0:
+                case CompactionMethod_T::TopologicalNumbering:
                 {
-                    ComputeVertexCoordinates_ByLengths_Variant3(false);
+                    ComputeVertexCoordinates_TopologicalNumbering();
                     break;
                 }
-                case 1:
+                case CompactionMethod_T::TopologicalOrdering:
                 {
-                    ComputeVertexCoordinates_ByTopologicalTightening();
+                    ComputeVertexCoordinates_TopologicalOrdering();
                     break;
                 }
-                case 2:
+                case CompactionMethod_T::Length_MCF:
                 {
-                    ComputeVertexCoordinates_ByTopologicalNumbering();
+                    ComputeVertexCoordinates_Compaction_MCF();
                     break;
                 }
-                case 3:
+#ifdef KNOODLE_USE_CLP
+                case CompactionMethod_T::Length_CLP:
                 {
-                    ComputeVertexCoordinates_ByTopologicalOrdering();
+                    ComputeVertexCoordinates_Compaction_CLP(false);
                     break;
                 }
-                case 20:
+                case CompactionMethod_T::AreaAndLength_CLP:
                 {
-                    ComputeVertexCoordinates_ByLengths_Variant2(false);
+                    ComputeVertexCoordinates_Compaction_CLP(true);
                     break;
                 }
-                case 21:
+#endif
+#ifdef KNOODLE_USE_RELAXIV
+                case CompactionMethod_T::Length_RelaxIV:
                 {
-                    ComputeVertexCoordinates_ByLengths_Variant2(true);
+                    ComputeVertexCoordinates_Compaction_RelaxIV();
                     break;
                 }
-                case 30:
-                {
-                    ComputeVertexCoordinates_ByLengths_Variant3(false);
-                    break;
-                }
-                case 31:
-                {
-                    ComputeVertexCoordinates_ByLengths_Variant3(true);
-                    break;
-                }
-                case 40:
-                {
-                    ComputeVertexCoordinates_ByLengths_Variant4(false);
-                    break;
-                }
-                case 41:
-                {
-                    ComputeVertexCoordinates_ByLengths_Variant4(true);
-                    break;
-                }
+#endif
+//#ifdef KNOODLE_USE_OR
+//                case CompactionMethod_T::Length_OR:
+//                {
+//                    ComputeVertexCoordinates_Compaction_OR();
+//                    break;
+//                }
+//#endif
                 default:
                 {
-                    wprint(ClassName() + "(): Unknown compaction method. Using default (0).");
-                    ComputeVertexCoordinates_ByLengths_Variant3(false);
+                    wprint(ClassName() + "(): Unknown compaction method " + ToString(settings.compaction_method) + ". Using default (CompactionMethod_T::Length_MCF).");
+                    ComputeVertexCoordinates_Compaction_MCF();
                     break;
                 }
             }
@@ -338,21 +364,29 @@ namespace Knoodle
                 const Int p = old_max_edge_count;
                 const Int d = max_edge_count - old_max_edge_count;
                 
-                fill_buffer( E_A.data(p)        , Uninitialized, d );
+                fill_buffer( E_A.data(p)        , Uninitialized, d          );
                 fill_buffer( E_V.data(p)        , Uninitialized, d * Int(2) );
                 fill_buffer( E_left_dE.data(p)  , Uninitialized, d * Int(2) );
                 fill_buffer( E_turn.data(p)     , Turn_T(0)    , d * Int(2) );
-                fill_buffer( E_dir.data(p)      , NoDir        , d );
+                fill_buffer( E_dir.data(p)      , NoDir        , d          );
                 fill_buffer( E_flag.data(p)     , EdgeFlag_T(0), d * Int(2) );
             }
         }
         
     private:
 
-#include "OrthoDraw/BendsLP.hpp"
-#include "OrthoDraw/BendsLP_CLP.hpp"
-#include "OrthoDraw/BendsLP_MCF.hpp"
+#include "OrthoDraw/Bends_MCF.hpp"
 #include "OrthoDraw/Bends.hpp"
+#ifdef KNOODLE_USE_CLP
+#include "OrthoDraw/Bends_CLP.hpp"
+#endif
+#ifdef KNOODLE_USE_RELAXIV
+#include "OrthoDraw/Bends_RelaxIV.hpp"
+#endif
+#ifdef KNOODLE_USE_OR
+#include "OrthoDraw/Bends_OR.hpp"
+#endif
+
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"
 #include "OrthoDraw/Edges.hpp"
@@ -361,10 +395,19 @@ namespace Knoodle
         
 #include "OrthoDraw/SaturateFaces.hpp"
 #include "OrthoDraw/ConstraintGraphs.hpp"
-#include "OrthoDraw/LengthsLP_Variant2.hpp"
-#include "OrthoDraw/LengthsLP_Variant3.hpp"
-#include "OrthoDraw/LengthsLP_Variant4.hpp"
-
+#include "OrthoDraw/Compaction_TopologicalOrdering.hpp"
+#include "OrthoDraw/Compaction_TopologicalNumbering.hpp"
+#include "OrthoDraw/Compaction_MCF.hpp"
+#ifdef KNOODLE_USE_CLP
+#include "OrthoDraw/Compaction_CLP.hpp"
+#endif
+#ifdef KNOODLE_USE_RELAXIV
+#include "OrthoDraw/Compaction_RelaxIV.hpp"
+#endif
+//#ifdef KNOODLE_USE_OR
+//#include "OrthoDraw/Compaction_OR.hpp"
+//#endif
+        
 #include "OrthoDraw/PostProcessing.hpp"
 
 #include "OrthoDraw/Coordinates.hpp"

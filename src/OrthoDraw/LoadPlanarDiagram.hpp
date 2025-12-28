@@ -1,6 +1,5 @@
 private:
 
-// DEBUGGING
 template<bool debugQ = false, bool verboseQ = false, typename ExtInt>
 void LoadPlanarDiagram(
     cref<PlanarDiagram<ExtInt>> pd,
@@ -10,11 +9,9 @@ void LoadPlanarDiagram(
     std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<ExtInt> + ">";
     
     TOOLS_PTIMER(timer,tag);
-
-//    TOOLS_DUMP(pd.CountActiveCrossings());
-//    TOOLS_DUMP(pd.CrossingCount());
-//    TOOLS_DUMP(pd.CountActiveArcs());
-//    TOOLS_DUMP(pd.ArcCount());
+    
+//    TOOLS_DUMP(ToUnderlying(settings.bend_method));
+//    TOOLS_DUMP(ToUnderlying(settings.compaction_method));
     
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
@@ -47,21 +44,38 @@ void LoadPlanarDiagram(
                     : exterior_region;
 
     // TODO: I have to filter out inactive crossings and inactive arcs!
-    switch( settings.bend_min_method )
+    switch( settings.bend_method )
     {
-        case 1:
+        case BendMethod_T::Bends_MCF:
         {
-            A_bends = ComputeBends_CLP(pd,exterior_region);
+            A_bends = Bends_MCF(pd,exterior_region);
             break;
         }
-        case 0:
+#ifdef KNOODLE_USE_CLP
+        case BendMethod_T::Bends_CLP:
         {
-            A_bends = ComputeBends_MCF(pd,exterior_region);
+            A_bends = Bends_CLP(pd,exterior_region);
             break;
         }
+#endif
+#ifdef KNOODLE_USE_RELAXIV
+        case BendMethod_T::Bends_RelaxIV:
+        {
+            A_bends = Bends_RelaxIV(pd,exterior_region);
+            break;
+        }
+#endif
+#ifdef KNOODLE_USE_OR
+        case BendMethod_T::Bends_OR:
+        {
+            A_bends = Bends_OR(pd,exterior_region);
+            break;
+        }
+#endif
         default:
         {
-            A_bends = ComputeBends_MCF(pd,exterior_region);
+            wprint(ClassName() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
+            A_bends = Bends_MCF(pd,exterior_region);
             break;
         }
     }

@@ -10,7 +10,7 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
     using R = MCFSimplex_T::FNumber;
     using I = MCFSimplex_T::Index;
     
-    std::string tag = MethodName("LevelsLP_MCF") + "<" + TypeName<T> + ">";
+    std::string tag = MethodName("LevelsLP_MCF");
     
     TOOLS_PTIMER(timer,tag);
     
@@ -25,7 +25,7 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
         }
     }
     
-    // We use LevelsLP_CLP_ArcIndices takes care of gaps in the data structure. Moreover, it faciiltates random permutation if this feature is active.
+    // We use LevelsLP_CLP_ArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active.
     
     cptr<Int> A_pos   = LevelsLP_CLP_ArcIndices(pd).data();
     cptr<Int> A_next  = pd.ArcNextArc().data();
@@ -112,10 +112,8 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
     
     mcf.SolveMCF();
 
-    Tensor1<R,Int> flow       ( m );
     Tensor1<R,Int> potentials ( n );
 
-    mcf.MCFGetX (flow.data());
     mcf.MCFGetPi(potentials.data());
     
     Tensor1<T,Int> L ( pd.ArcCount() );

@@ -44,7 +44,6 @@ namespace Knoodle
 
         static constexpr bool CLP_enabledQ = true;
 
-
         enum class EnergyFlag_T : Int32
         {
             TV        = 0,
