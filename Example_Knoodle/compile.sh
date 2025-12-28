@@ -17,7 +17,9 @@
     -I/opt/homebrew/include                             \
     -I/opt/homebrew/include/suitesparse                 \
     -I/opt/homebrew/include/coin-or                     \
+    -I/opt/homebrew/include/clp/coin                    \
     -I/opt/homebrew/include/coinutils                   \
+    -I/opt/homebrew/include/coinutils/coin              \
     -L/opt/homebrew/lib                                 \
     -I/usr/local/include                                \
     -I/usr/local/include/suitesparse                    \
