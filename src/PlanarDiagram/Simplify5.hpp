@@ -2,9 +2,9 @@ public:
 
 // TODO: A connected summand split off by `Simplify5` should be irreducible if `AlternatingQ` evaluates to `true`. We should set a flag to shield such a summand from further simplification attempts.
 
-// TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only changes something around the seam. We should really do a local search that is sensitive to this.
+// TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only change something around the seam. We should really do a local search that is sensitive to this.
 
-/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`.
+/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`. Splitting off connected summands works only for knots, i.e., for links with a single component.
  *
  * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
@@ -31,7 +31,7 @@ bool Simplify5(
 {
     if( proven_minimalQ || InvalidQ() ) { return false; }
     
-    TOOLS_PTIMER(timer,ClassName()+"::Simplify5"
+    TOOLS_PTIMER(timer,MethodName("Simplify5")
          + "(" + ToString(min_dist)
          + "," + ToString(max_dist)
          + "," + ToString(compressQ)
@@ -39,6 +39,16 @@ bool Simplify5(
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
          + ")");
+    
+    if( LinkComponentCount() > Int(1) )
+    {
+        wprint(MethodName("Simplify5") + ": This diagram has " + ToString(LinkComponentCount()) + " > 1 link components. Simplify5 is supposed to work for knots (i.e., diagram with exactly 1 link component) only. Calling Simplify4 instead.");
+        
+        return Simplify4(
+            min_dist, max_dist, compressQ,
+            simplify3_level, simplify3_max_iter, strand_R_II_Q
+        );
+    }
 
     bool globally_changedQ = false;
     bool changedQ = false;
