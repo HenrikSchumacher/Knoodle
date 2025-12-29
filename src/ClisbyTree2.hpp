@@ -12,12 +12,12 @@
 // This is mostly for finding out whether this is suitable for Rhoslyn
 
 
-// TODO: Use edge_length != 1.
+// TODO: Use edge_length > 1.
 // TODO: For allowing thickness checks:
 // TODO:    - skip collision checks between nodes with
 // TODO:      edge_length * node_distance < hard_sphere_radius
 // TODO:    - rework the checking of joints
-// TODO: Fold for a specific number of attempts vs. fold for a specific number of successes.
+// DONE: Fold for a specific number of attempts vs. fold for a specific number of successes.
 
 
 // Far future goals (maybe)
@@ -32,7 +32,6 @@ namespace Knoodle
         bool quaternionsQ             = true;
         bool countersQ                = false;   // debugging flag
         bool witnessesQ               = false;   // debugging flag
-        bool manual_stackQ            = false;   // debugging flag
     };
     
     
@@ -58,7 +57,6 @@ namespace Knoodle
         
         static constexpr bool clang_matrixQ = targs.clang_matrixQ && MatrixizableQ<Real>;
         static constexpr bool quaternionsQ  = clang_matrixQ && targs.quaternionsQ;
-        static constexpr bool manual_stackQ = targs.manual_stackQ;
         static constexpr bool witnessesQ    = targs.witnessesQ;
         
         using Base_T = CompleteBinaryTree<Int,true,true>;
@@ -168,8 +166,8 @@ namespace Knoodle
         ,   N_ball                      { NodeCount()                          }
         ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         {
+            InitializeConstants();
             InitializeTransforms();
             SetToCircle();
             InitializePRNG();
@@ -188,8 +186,8 @@ namespace Knoodle
         ,   N_ball                      { NodeCount()                          }
         ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         {
+            InitializeConstants();
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
             InitializePRNG();
@@ -209,9 +207,9 @@ namespace Knoodle
         ,   N_ball                      { NodeCount()                          }
         ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
-        ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   random_engine               { prng                                 }
         {
+            InitializeConstants();
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
         }
@@ -260,6 +258,7 @@ namespace Knoodle
         Real hard_sphere_diam           = 1;
         Real hard_sphere_squared_diam   = 1;
         
+        Int gap                         = 0;
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
         Int p_shifted = 0;              // Lower pivot index.
@@ -293,6 +292,12 @@ namespace Knoodle
         {
             copy_buffer<AmbDim>( x, NodeCenterPtr(node) );
             NodeRadius(node) = 0;
+        }
+        
+        void InitializeConstants()
+        {
+            hard_sphere_squared_diam = hard_sphere_diam * hard_sphere_diam;
+            gap = Int(std::ceil(Frac<Real>(hard_sphere_diam,edge_length))) - Int(1);
         }
         
         void InitializeTransforms()
@@ -508,7 +513,6 @@ namespace Knoodle
                 + "," + Tools::ToString(clang_matrixQ)
                 + "," + Tools::ToString(quaternionsQ)
                 + "," + Tools::ToString(countersQ)
-                + "," + Tools::ToString(manual_stackQ)
                 + "," + Tools::ToString(witnessesQ)
                 + ">";
         }

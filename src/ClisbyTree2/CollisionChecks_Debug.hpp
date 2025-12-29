@@ -25,7 +25,13 @@ std::tuple<bool,WitnessVector_T> CollisionQ_Debug() const
         {
             Vector_T x_j ( x.data(j) );
             
-            if( SquaredDistance(x_i,x_j) < hard_sphere_squared_diam )
+            
+            
+            if(
+                (ChordDistance(i,j) > gap)
+                &&
+                (SquaredDistance(x_i,x_j) < hard_sphere_squared_diam)
+            )
             {
                 w[0] = i;
                 w[1] = j;
