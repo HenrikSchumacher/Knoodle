@@ -21,6 +21,8 @@ bool DisconnectSummands(
     
     // TODO: Introduce some tracking of from where the components are split off.
     
+    // TODO: Funelling the whole simplification pipeline through this is a bit awkward.
+    
     TwoArraySort<Int,Int,Int> sort ( max_arc_count );
     
     const Int f_max_size = MaxFaceSize();
@@ -91,6 +93,8 @@ bool DisconnectSummand(
     const bool strand_R_II_Q = true
 )
 {
+    // TODO: If the diagram is disconnected, then this might raise problems here. We need to prevent that!
+    
     // TODO: Introduce some tracking so that we can tell where the components are split off.
     
     const Int i_begin = F_dA_ptr[f  ];
@@ -338,9 +342,6 @@ bool DisconnectSummand(
 }
 
 
-
-
-
 private:
 
 /*! @brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
@@ -396,11 +397,11 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
     Int c_counter = 0;
     
     // Using C_scratch to keep track of the new labels of crossings.
-    
     mptr<Int> C_color = C_scratch.data();
     
     Int a = a_0;
     
+    print("ExportComponent");
     do
     {
         const Int t = A_cross(a,Tail);
@@ -454,13 +455,17 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
     }
     while( a != a_0 );
     
-    //DEBUGGING
+    // This might fail if the diagram has more than one connected component.
     if( pd.max_crossing_count != c_counter )
     {
         wprint(MethodName("ExportComponent") + ": pd.max_crossing_count != c_counter.");
+        TOOLS_LOGDUMP(pd.max_crossing_count);
+        TOOLS_LOGDUMP(c_counter);
     }
     if( pd.max_arc_count != a_counter )
     {
+        TOOLS_LOGDUMP(pd.max_arc_count);
+        TOOLS_LOGDUMP(a_counter);
         wprint(MethodName("ExportComponent") + ": pd.max_arc_count != a_counter.");
     }
     
