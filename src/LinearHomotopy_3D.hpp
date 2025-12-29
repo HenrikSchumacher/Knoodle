@@ -27,9 +27,6 @@ namespace Knoodle
         using BContainer_T = typename Tree_T::BContainer_T;
         using EContainer_T = typename Link_T::EContainer_T;
         
-        using Collision_T  = Collision<Real,Int>;
-        
-        
         using Vector2_T    = typename Tiny::Vector<2,Real,Int>;
         using Vector3_T    = typename Tiny::Vector<3,Real,Int>;
         
@@ -51,6 +48,34 @@ namespace Knoodle
         static constexpr Real infty   = Scalar::Max<Real>;
         
         static constexpr Int max_disk_pts = 8;
+        
+//        using Collision_T  = Collision<Real,Int>;
+        
+        struct Collision_T
+        {
+            Real time;
+            Vector3_T point;
+            Vector2_T z;
+            Int  i;
+            Int  j;
+            Int  flag;
+            
+            Collision_T(
+                cref<Real> time_,
+                Vector3_T && point_,
+                Vector2_T && z_,
+                cref<Int> i_,
+                cref<Int> j_,
+                cref<Int> flag_
+            )
+            :   time        ( time_             )
+            ,   point       ( std::move(point_) )
+            ,   z           ( std::move(z_)     )
+            ,   i           ( i_                )
+            ,   j           ( j_                )
+            ,   flag        ( flag_             )
+            {}
+        };
         
     protected:
         

@@ -1,41 +1,33 @@
-#include "CollisionQ_Reference.hpp"
-#include "CollisionQ_ManualStack.hpp"
 #include "SubtreesCollideQ_Recursive.hpp"
 
 
 public:
 
+
+/*!@brief Checks for collisions in the tree.
+ *
+ * @tparam full_checkQ If `full_checkQ == false` (default), then this assumes that the tree has been collision-free before the last pivot move i.e., before the last call to `Fold`. If `full_checkQ == true`, then a full check is run on the whole tree. Note that this will take siginificantly longer.
+ *
+ * @tparam debugQ If `debugQ == true`, then the debugging mode is active: The result will be checked against the very thorough, but also very slow collision checker `CollisionQ_Debug`.
+ */
+
 template<bool full_checkQ = true, bool debugQ = false>
 bool CollisionQ()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::CollisionQ<" + BoolString(full_checkQ) + ">");
+    TOOLS_PTIMER(timer,MethodName("CollisionQ")+"<" + BoolString(full_checkQ) + "," + BoolString(debugQ) + ">");
     
     witness[0] = -1;
     witness[1] = -1;
         
     bool result;
     
-    if constexpr ( manual_stackQ )
+    if( mid_changedQ )
     {
-        if( mid_changedQ )
-        {
-            result = CollisionQ_ManualStack<true,full_checkQ>();
-        }
-        else
-        {
-            result = CollisionQ_ManualStack<false,full_checkQ>();
-        }
+        result = SubtreesCollideQ_Recursive<true,full_checkQ>( Root() );
     }
     else
     {
-        if( mid_changedQ )
-        {
-            result = SubtreesCollideQ_Recursive<true,full_checkQ>( Root() );
-        }
-        else
-        {
-            result = SubtreesCollideQ_Recursive<false,full_checkQ>( Root() );
-        }
+        result = SubtreesCollideQ_Recursive<false,full_checkQ>( Root() );
     }
     
     if constexpr ( debugQ )
@@ -44,7 +36,7 @@ bool CollisionQ()
         
         if( result != result_debug )
         {
-            eprint(MethodName("CollisionQ") + ": Incorrect collision result.");
+            eprint(MethodName("CollisionQ")+"<" + BoolString(full_checkQ) + "," + BoolString(debugQ) + ">" + ": Incorrect collision result.");
             TOOLS_DDUMP(result);
             TOOLS_DDUMP(result_debug);
             
@@ -58,27 +50,12 @@ bool CollisionQ()
     return result;
 }
 
-
-template<bool full_checkQ = false>
-bool SubtreesCollideQ( Int start_node )
-{
-    witness[0] = -1;
-    witness[1] = -1;
-        
-    bool result;
-    
-    if( mid_changedQ )
-    {
-        result = SubtreesCollideQ_Recursive<true,full_checkQ>( start_node );
-    }
-    else
-    {
-        result = SubtreesCollideQ_Recursive<false,full_checkQ>( start_node );
-    }
-    
-    return result;
-}
-
+/*!@brief Merges two input node into a third one. This computes the smallest ball wth center is on the line segment between the two nodes's centers that contains both node's bounding balls.
+ *
+ * @param N_L Pointer to data of first node to merge.
+ * @param N_R Pointer to data of second node to merge.
+ * @param N  Pointer to data of target node; the result will be written there.
+ */
 
 static constexpr void MergeBalls( cptr<Real> N_L, cptr<Real> N_R, mptr<Real> N )
 {
@@ -238,67 +215,6 @@ FoldFlag_T CheckJoints()
 }
 
 
-// 1st Boolean: whether first node contains unchanged vertices.
-// 2nd Boolean: whether first node contains changed vertices.
-std::pair<bool,bool> NodeSplitFlags( const Int node ) const
-{
-    auto [begin,end] = NodeRange(node);
-    
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    const bool not_only_midQ = (begin < p_) || (end   > q_);
-    const bool not_no_midQ   = (end   > p_) && (begin < q_);
-    
-    return mid_changedQ
-            ? std::pair( not_only_midQ, not_no_midQ    )
-            : std::pair( not_no_midQ  , not_only_midQ );
-    
-//    const bool only_midQ = (begin >= p_) && (end   <= q_);
-//    const bool no_midQ   = (end   <= p_) || (begin >= q_);
-//
-//    if( mid_changedQ )
-//    {
-//        // Vertices [p+1,...,q-2,q-1] are changed.
-//        return { !only_midQ, !no_midQ };
-//    }
-//    else
-//    {
-//        // Vertices [0,1,..,p-2,p-1] U [q+1,q+2..,n-1] are changed.
-//        return { !no_midQ, !only_midQ };
-//    }
-}
-
-// 1st Boolean: whether first node contains unchanged vertices.
-// 2nd Boolean: whether first node contains changed vertices.
-void NodeSplitFlagVector( const Int node, mptr<bool> f ) const
-{
-    auto [begin,end] = NodeRange(node);
-    
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-
-    const bool not_only_midQ = (begin < p_) || (end   > q_);
-    const bool not_no_midQ   = (end   > p_) && (begin < q_);
-
-    if( mid_changedQ )
-    {
-        f[0] = not_only_midQ;
-        f[1] = not_no_midQ;
-    }
-    else
-    {
-        f[0] = not_no_midQ;
-        f[1] = not_only_midQ;
-    }
-}
-
 // First Boolean: whether node contains unchanged vertices.
 // Second Boolean: whether node contains changed vertices.
 template<bool mQ>
@@ -319,42 +235,6 @@ NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
     }
 }
 
-
-// 1st Boolean: whether first node contains unchanged vertices.
-// 2nd Boolean: whether first node contains changed vertices.
-// 3rd Boolean: whether second node contains unchanged vertices.
-// 4th Boolean: whether second node contains changed vertices.
-void NodeSplitFlagMatrix( const Int i, const Int j, mptr<bool> F ) const
-{
-    const bool a =  mid_changedQ;
-    const bool b = !mid_changedQ;
-
-    auto [begin_i,end_i] = NodeRange(i);
-    auto [begin_j,end_j] = NodeRange(j);
-    
-    const Int p_ = p + a;
-    const Int q_ = q + b;
-    
-    const bool i_not_only_midQ = (begin_i < p_) || (end_i   > q_);
-    const bool i_not_no_midQ   = (end_i   > p_) && (begin_i < q_);
-    const bool j_not_only_midQ = (begin_j < p_) || (end_j   > q_);
-    const bool j_not_no_midQ   = (end_j   > p_) && (begin_j < q_);
-    
-    if( mid_changedQ )
-    {
-        F[0] = i_not_only_midQ;
-        F[1] = i_not_no_midQ;
-        F[2] = j_not_only_midQ;
-        F[3] = j_not_no_midQ;
-    }
-    else
-    {
-        F[0] = i_not_no_midQ;
-        F[1] = i_not_only_midQ;
-        F[2] = j_not_no_midQ;
-        F[3] = j_not_only_midQ;
-    }
-}
 
 // 1st Boolean: whether first node contains unchanged vertices.
 // 2nd Boolean: whether first node contains changed vertices.

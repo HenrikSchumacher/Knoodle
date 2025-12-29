@@ -28,6 +28,6 @@ namespace Knoodle
         ,   handedness  { handedness_                       }
         {}
 
-    };
+    }; // struct Intersection
 
-}
+} // namespace Knoodle

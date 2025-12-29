@@ -15,28 +15,24 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         NodeSplitFlagMatrix_T F;
         
-        if constexpr( fcQ )
-        {
-            F.Fill(true);
-        }
-        else
+        if constexpr( !fcQ )
         {
             F = NodeSplitFlagMatrix<mQ>(L,R);
         }
         
         // TODO: We should prioritize SubtreesCollideQ_Recursive(i) if NodeBegin(i) is closer to a pivot than NodeEnd(i)-1.
         
-        if( (F[0][0] && F[0][1]) && SubtreesCollideQ_Recursive<mQ,fcQ>(L) )
+        if( COND( fcQ, true, F[0][0] && F[0][1] ) && SubtreesCollideQ_Recursive<mQ,fcQ>(L) )
         {
             return true;
         }
         
-        if( (F[1][0] && F[1][1]) && SubtreesCollideQ_Recursive<mQ,fcQ>(R) )
+        if( COND( fcQ, true, F[1][0] && F[1][1] ) && SubtreesCollideQ_Recursive<mQ,fcQ>(R) )
         {
             return true;
         }
         
-        if( ( (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ,fcQ>(L,R) )
+        if( COND( fcQ, true, (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ,fcQ>(L,R) )
         {
             return true;
         }
@@ -67,12 +63,7 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagMatrix_T F_i;
         NodeSplitFlagMatrix_T F_j;
         
-        if constexpr( fcQ )
-        {
-            F_i.Fill(true);
-            F_j.Fill(true);
-        }
-        else
+        if constexpr( !fcQ )
         {
             F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
             F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
@@ -80,8 +71,14 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         auto subdQ = [&c_i,&c_j,&F_i,&F_j,this]( const bool k, const bool l )
         {
+            if constexpr( fcQ )
+            {
+                (void)F_i;
+                (void)F_j;
+            }
+            
             return
-            ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) )
+            COND( fcQ, true, ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) ) )
             &&
             this->BallsCollideQ(c_i[k],c_j[l]);
         };
@@ -98,7 +95,7 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         // TODO: E.g., we should first check nodes that contain a pivot.
 
         
-        // Doing (c_i[0],c_j[1]) and (c_i[1],c_j[0]) should take us closer to the pivots, where many collisions happen.
+        // Visiting (c_i[0],c_j[1]) and (c_i[1],c_j[0]) first should take us closer to the pivots, where many collisions happen.
         if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],c_j[1]) )
         {
             return true;
@@ -128,12 +125,7 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagVector_T f_i;
         NodeSplitFlagMatrix_T F_j;
         
-        if constexpr( fcQ )
-        {
-            f_i.Fill(true);
-            F_j.Fill(true);
-        }
-        else
+        if constexpr( !fcQ )
         {
             f_i = NodeSplitFlagVector<mQ>(j);
             F_j = NodeSplitFlagMatrix<mQ>(c_j[0],c_j[1]);
@@ -141,8 +133,14 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         auto subdQ = [i,&c_j,&f_i,&F_j,this]( const bool l )
         {
+            if constexpr( fcQ )
+            {
+                (void)f_i;
+                (void)F_j;
+            }
+            
             return
-                ( (f_i[0] && F_j[l][1]) || (f_i[1] && F_j[l][0]) )
+                COND( fcQ, true, (f_i[0] && F_j[l][1]) || (f_i[1] && F_j[l][0]) )
                 &&
                 this->BallsCollideQ(i,c_j[l]);
         };
@@ -173,12 +171,7 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         NodeSplitFlagMatrix_T F_i;
         NodeSplitFlagVector_T f_j;
         
-        if constexpr( fcQ )
-        {
-            F_i.Fill(true);
-            f_j.Fill(true);
-        }
-        else
+        if constexpr( !fcQ )
         {
             F_i = NodeSplitFlagMatrix<mQ>(c_i[0],c_i[1]);
             f_j = NodeSplitFlagVector<mQ>(j);
@@ -186,8 +179,13 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         auto subdQ = [&c_i,&F_i,j,&f_j,this]( const bool k )
         {
+            if constexpr( fcQ )
+            {
+                (void)F_i;
+                (void)f_j;
+            }
             return
-                ( (F_i[k][0] && f_j[1]) || (F_i[k][1] && f_j[0]) )
+                COND( fcQ, true, (F_i[k][0] && f_j[1]) || (F_i[k][1] && f_j[0]) )
                 &&
                 this->BallsCollideQ(c_i[k],j);
         };

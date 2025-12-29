@@ -8,27 +8,25 @@
 #include "AffineTransforms/ClangAffineTransform.hpp"
 #include "AffineTransforms/ClangQuaternionTransform.hpp"
 
+// This is a fork of ClisbyTree2 to experiment with thickness conditions.
+// This is mostly for finding out whether this is suitable for Rhoslyn
 
-// TODO: Rotate DOFs on load or write.
-// TODO: Recenter polygon on load or write.
-// TODO: 1:2 Subdivision.
-// TODO: BurnIn routine.
-// TODO: Sample routine.
 
-// TODO: _Compute_ NodeRange more efficiently.
+// TODO: Use edge_length != 1.
+// TODO: For allowing thickness checks:
+// TODO:    - skip collision checks between nodes with
+// TODO:      edge_length * node_distance < hard_sphere_radius
+// TODO:    - rework the checking of joints
+// TODO: Fold for a specific number of attempts vs. fold for a specific number of successes.
 
-// TODO: Update(p,q) -- Could this be faster?
-// TODO:    1. Start at the pivots, walk up to the root and track all the touched nodes;
-// TODO:       We can also learn this way which nodes need an update.
-// TODO:    2. Go down again and push the transforms out of the visited nodes.
-// TODO:    3. Grab the pivot vertex positions and compute the transform.
-// TODO:    4. Walk once again top down through the visited nodes and update their transforms.
-// TODO:    5. Walk from the pivots upwards and update the balls.
 
+// Far future goals (maybe)
+// TODO: Make this available also for open curves.
+// TODO: Use capsule shapes, too.
 
 namespace Knoodle
 {
-    struct ClisbyTree_TArgs
+    struct ClisbyTree2_TArgs
     {
         bool clang_matrixQ            = true;
         bool quaternionsQ             = true;
@@ -41,11 +39,9 @@ namespace Knoodle
     template<
         Size_T AmbDim_,
         typename Real_, typename Int_, typename LInt_,
-        ClisbyTree_TArgs targs = ClisbyTree_TArgs()
+        ClisbyTree2_TArgs targs = ClisbyTree2_TArgs()
     >
-    class alignas( ObjectAlignment ) ClisbyTree final
-    : public CompleteBinaryTree<Int_,true,true>
-    //    class alignas( ObjectAlignment ) ClisbyTree : public CompleteBinaryTree_Precomp<Int_>
+    class alignas(ObjectAlignment) ClisbyTree2 final : public CompleteBinaryTree<Int_,true,true>
     {
         static_assert(FloatQ<Real_>,"");
         static_assert(IntQ<Int_>,"");
@@ -84,6 +80,8 @@ namespace Knoodle
         using NodeFlag_T               = AffineTransformFlag_T;
         using Vector_T                 = typename Transform_T::Vector_T;
         using Matrix_T                 = typename Transform_T::Matrix_T;
+//        using FoldFlag_T               = Int32;
+        
         
         enum struct FoldFlag_T : Int32
         {
@@ -93,7 +91,7 @@ namespace Knoodle
             RejectedByJoint1 = 3,
             RejectedByTree   = 4
         };
-    
+        
         using FoldFlagCounts_T         = Tiny::Vector<5,LInt,std::underlying_type_t<FoldFlag_T>>;
         
         using WitnessVector_T          = Tiny::Vector<2,Int,Int>;
@@ -159,17 +157,18 @@ namespace Knoodle
         };
         
         template<typename ExtReal, typename ExtInt>
-        ClisbyTree(
+        ClisbyTree2(
             const ExtInt vertex_count_,
+            const ExtReal edge_length_,
             const ExtReal hard_sphere_diam_
         )
         :   Base_T                      { int_cast<Int>(vertex_count_)         }
         ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount()                          }
+        ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
-        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             SetToCircle();
@@ -177,18 +176,19 @@ namespace Knoodle
         }
         
         template<typename ExtReal, typename ExtInt>
-        ClisbyTree(
+        ClisbyTree2(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,
+            const ExtReal edge_length_,
             const ExtReal hard_sphere_diam_
         )
         :   Base_T                      { int_cast<Int>(vertex_count_)         }
         ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount()                          }
+        ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
-        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
@@ -196,9 +196,10 @@ namespace Knoodle
         }
     
         template<typename ExtReal, typename ExtInt>
-        ClisbyTree(
+        ClisbyTree2(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,
+            const ExtReal edge_length_,
             const ExtReal hard_sphere_diam_,
             PRNG_T prng
         )
@@ -206,27 +207,27 @@ namespace Knoodle
         ,   N_transform                 { InternalNodeCount()                  }
         ,   N_state                     { InternalNodeCount(), NodeFlag_T::Id  }
         ,   N_ball                      { NodeCount()                          }
+        ,   edge_length                 { static_cast<Real>(edge_length_)      }
         ,   hard_sphere_diam            { static_cast<Real>(hard_sphere_diam_) }
         ,   hard_sphere_squared_diam    { hard_sphere_diam * hard_sphere_diam  }
         ,   random_engine               { prng                                 }
-        ,   level_moves_per_node        { this->ActualDepth() + Int(1)         }
         {
             InitializeTransforms();
             ReadVertexCoordinates( vertex_coords_ );
         }
 
         // Default constructor
-        ClisbyTree() = default;
+        ClisbyTree2() = default;
         // Destructor
-        virtual ~ClisbyTree() override = default;
+        virtual ~ClisbyTree2() override = default;
         // Copy constructor
-        ClisbyTree( const ClisbyTree & other ) = default;
+        ClisbyTree2( const ClisbyTree2 & other ) = default;
         // Copy assignment operator
-        ClisbyTree & operator=( const ClisbyTree & other ) = default;
+        ClisbyTree2 & operator=( const ClisbyTree2 & other ) = default;
         // Move constructor
-        ClisbyTree( ClisbyTree && other ) = default;
+        ClisbyTree2( ClisbyTree2 && other ) = default;
         // Move assignment operator
-        ClisbyTree & operator=( ClisbyTree && other ) = default;
+        ClisbyTree2 & operator=( ClisbyTree2 && other ) = default;
     
     public:
         
@@ -255,9 +256,9 @@ namespace Knoodle
         NodeFlagContainer_T      N_state;
         NodeBallContainer_T      N_ball;
         
-        Real hard_sphere_diam           = 0;
-        Real hard_sphere_squared_diam   = 0;
-        Real prescribed_edge_length     = 1;
+        Real edge_length                = 1;
+        Real hard_sphere_diam           = 1;
+        Real hard_sphere_squared_diam   = 1;
         
         Int p = 0;                      // Lower pivot index.
         Int q = 0;                      // Greater pivot index.
@@ -280,10 +281,6 @@ namespace Knoodle
         
         PivotCollector_T   pivot_collector;
         WitnessCollector_T witness_collector;
-    
-        
-        // For the experimental samplers.
-        Tensor1<LInt,Int>  level_moves_per_node;
         
     private:
         
@@ -369,7 +366,7 @@ namespace Knoodle
             mptr<Real> x = X.data();
             
             const double delta  = Frac<double>( Scalar::TwoPi<double>, n );
-            const double radius = Frac<double>( 1, 2 * std::sin( Frac<double>(delta,2) ) );
+            const double radius = Frac<double>( edge_length, 2 * std::sin( Frac<double>(delta,2) ) );
             
             Tiny::Vector<AmbDim,double,Int> v (double(0));
             
@@ -386,15 +383,13 @@ namespace Knoodle
             ReadVertexCoordinates(x);
         }
 
-#include "ClisbyTree/Access.hpp"
-#include "ClisbyTree/Transformations.hpp"
-#include "ClisbyTree/Update.hpp"
-#include "ClisbyTree/CollisionChecks.hpp"
-#include "ClisbyTree/CollisionChecks_Debug.hpp"
-#include "ClisbyTree/Random.hpp"
-#include "ClisbyTree/Fold.hpp"
-#include "ClisbyTree/FoldRandomHierarchical.hpp"
-//#include "ClisbyTree/Subdvide.hpp"
+#include "ClisbyTree2/Access.hpp"
+#include "ClisbyTree2/Transformations.hpp"
+#include "ClisbyTree2/Update.hpp"
+#include "ClisbyTree2/CollisionChecks.hpp"
+#include "ClisbyTree2/CollisionChecks_Debug.hpp"
+#include "ClisbyTree2/Random.hpp"
+#include "ClisbyTree2/Fold.hpp"
     
     public:
     
@@ -407,7 +402,7 @@ namespace Knoodle
             Real min;
             Real max;
             
-            const Real ell_inv = Inv(prescribed_edge_length);
+            const Real ell_inv = Inv(edge_length);
             
             {
                 const V_T u ( &vertex_coordinates[0]              );
@@ -485,7 +480,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(ClisbyTree) + AllocatedByteCount();
+            return sizeof(ClisbyTree2) + AllocatedByteCount();
         }
         
         std::string AllocatedByteCountString() const
@@ -505,7 +500,7 @@ namespace Knoodle
     
         static std::string ClassName()
         {
-            return ct_string("ClisbyTree")
+            return ct_string("ClisbyTree2")
                 + "<" + Tools::ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>
@@ -518,6 +513,6 @@ namespace Knoodle
                 + ">";
         }
         
-    }; // ClisbyTree
+    }; // ClisbyTree2
     
 } // namespace Knoodle
