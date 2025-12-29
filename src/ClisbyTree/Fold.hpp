@@ -37,9 +37,9 @@ FoldFlag_T Fold(
     const bool check_jointsQ
 )
 {
-    int pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
+    FoldFlag_T pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
     
-    if( pivot_flag != 0 )
+    if( pivot_flag != FoldFlag_T::Accepted )
     {
         // Folding step aborted because pivots indices are too close.
         CollectWitnesses();
@@ -48,9 +48,9 @@ FoldFlag_T Fold(
     
     if ( check_collisionsQ && check_jointsQ )
     {
-        int joint_flag = CheckJoints();
+        FoldFlag_T joint_flag = CheckJoints();
 
-        if( joint_flag != 0 )
+        if( joint_flag != FoldFlag_T::Accepted )
         {
             // Folding step failed because neighbors of pivot touch.
             CollectWitnesses();
@@ -60,18 +60,18 @@ FoldFlag_T Fold(
     
     Update();
 
-    if( check_collisionsQ && CollisionQ() )
+    if( check_collisionsQ && this->template CollisionQ<false>() )
     {
         // Folding step failed; undo the modifications.
         UndoUpdate();
         CollectWitnesses();
-        return 4;
+        return FoldFlag_T::RejectedByTree;
     }
     else
     {
         // Folding step succeeded.
         CollectPivots();
-        return 0;
+        return FoldFlag_T::Accepted;
     }
 }
 
@@ -82,7 +82,7 @@ FoldFlagCounts_T FoldRandom(
     const LInt attempt_count,
     const Real reflectP,
     const bool check_collisionsQ = true,
-    const bool check_jointsQ = false
+    const bool check_jointsQ     = true
 )
 {
     FoldFlagCounts_T flag_ctrs ( LInt(0) );
@@ -100,12 +100,35 @@ FoldFlagCounts_T FoldRandom(
             check_jointsQ
         );
         
-        ++flag_ctrs[flag];
+        ++flag_ctrs[ToUnderlying(flag)];
     }
     
     return flag_ctrs;
 }
 
+std::string FoldFlagCounts_ToString( cref<FoldFlagCounts_T> counts )
+{
+    std::string s;
+    
+    const LInt accepted = counts[ ToUnderlying(FoldFlag_T::Accepted)];
+    const LInt total    = counts.Total();
+    const LInt rejected = total - accepted;
+    
+    s += "Fold flag counts: \n";
+    
+    double value = Percentage<double>(accepted,total);
+    s += "\t accepted:                  " + Tools::ToString(accepted) + " (" + std::format("{:.4g}",value) + " %)\n";
+    
+    value = Percentage<double>(rejected,total);
+    s += "\t rejected:                  " + Tools::ToString(rejected) + " (" + std::format("{:.4g}",value) + " %)\n";
+    s += "\t total:                     " + Tools::ToString(total)+ "\n";
+    s += "Rejection reasons: \n";
+    s += "\t pivots invalid:            " + Tools::ToString(counts[ToUnderlying(FoldFlag_T::RejectedByPivots)]) + "\n";
+    s += "\t collision at first joint:  " + Tools::ToString(counts[ToUnderlying(FoldFlag_T::RejectedByJoint0)]) + "\n";
+    s += "\t collision at second joint: " + Tools::ToString(counts[ToUnderlying(FoldFlag_T::RejectedByJoint1)]) + "\n";
+    s += "\t other collisions:          " + Tools::ToString(counts[ToUnderlying(FoldFlag_T::RejectedByTree)]) + "\n";
+    return s;
+}
 
 
 //###########################################################
@@ -165,7 +188,7 @@ FoldFlag_T SubtreeFold(
 
     this->template Update<pull_transformsQ>(start_node);
 
-    if( check_collisionsQ && CollisionQ() )
+    if( check_collisionsQ && this->template CollisionQ<false>() )
     {
         // Folding step failed; undo the modifications.
         // TODO: Here it should be safe to use pull_transformsQ = false?

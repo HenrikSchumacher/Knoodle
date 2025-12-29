@@ -112,11 +112,11 @@ namespace Knoodle
     public:
         
         PlantriSiever()
-        :   thread_count         { Size_T(1) }
+        :   thread_count { Size_T(1) }
         {}
         
         PlantriSiever( const Size_T thread_count_ )
-        :   thread_count    { thread_count_   }
+        :   thread_count { thread_count_   }
         {}
         
         

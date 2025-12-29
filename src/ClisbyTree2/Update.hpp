@@ -2,46 +2,17 @@
 
 private:
 
-template<bool pull_transformsQ = true>
-void Update( Int start_node )
-{
-    if constexpr( pull_transformsQ )
-    {
-        PullTransforms(Root(), start_node);
-    }
-    
-    UpdateSubtree_Recursive(start_node);
-}
-
 void Update()
 {
-    this->template Update<false>(Root());
+    UpdateSubtree_Recursive(Root());
 }
-
-
-private:
 
 // TODO: It would be nice if there were a fast way to set node flags back to NodeFlag::Id, if applicable.
 void UndoUpdate()
 {
-    this->template UndoUpdate<false>(Root());
-}
-
-template<bool pull_transformsQ = true>
-void UndoUpdate( Int start_node )
-{
     InvertTransform( transform );
-    
-    this->template Update<pull_transformsQ>(start_node);
+    UpdateSubtree_Recursive(Root());
 }
-
-//template<bool pull_transformsQ = true>
-//void UndoUpdate( Int start_node_0, Int start_node_1 )
-//{
-//    InvertTransform( transform );
-//    
-//    this->template Update<pull_transformsQ>(start_node_0,start_node_1);
-//}
 
 public:
 

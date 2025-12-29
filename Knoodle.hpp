@@ -418,8 +418,6 @@ namespace Knoodle
 
 #include "src/Link_3D.hpp"
 
-#include "src/Collision.hpp"
-
 #include "src/LinearHomotopy_3D.hpp"
 
 #include "src/AlexanderStrandMatrix.hpp"

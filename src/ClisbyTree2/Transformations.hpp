@@ -101,33 +101,6 @@ static void InvertTransform( mref<Transform_T> f )
     }
 }
 
-
-bool TransformsPulledQ( const Int node ) const
-{
-    Int ancestor = node;
-    
-    const Int root = Root();
-    
-    bool trivialQ = true;
-    
-    while( trivialQ && (ancestor != root) )
-    {
-        ancestor = Parent(ancestor);
-        trivialQ = trivialQ && ( N_state[ancestor] == NodeFlag_T::Id );
-    }
-    
-    if( !trivialQ )
-    {
-        eprint(ClassName() + "AllTransformsAboveTrivialQ: node = " + Tools::ToString(node) + " has ancestor = " + Tools::ToString(ancestor) + " with nontrivial transformation.");
-        
-        TOOLS_DDUMP( NodeTransform(ancestor));
-        TOOLS_DDUMP( NodeCenter(ancestor));
-        TOOLS_DDUMP( NodeFlag(ancestor));
-    }
-    
-    return trivialQ;
-}
-
 /*!@brief This computes the current coordinates of the center of node `node` by traversing the tree towards the root and by collecting all updates on its way. It does not alter the state of the Clisby tree.
  * This is rather slow if many or all nodes' coordinates shall be computed, but it is also useful for debugging.
  */
@@ -167,16 +140,6 @@ Vector_T VertexCoordinates( const Int vertex ) const
 {
     return NodeCenterAbsoluteCoordinates( VertexNode(vertex) );
 }
-
-// This version is measurably slower than the previous one.
-//Vector_T VertexCoordinates( const Int vertex )
-//{
-//    Int node = VertexNode(vertex);
-//
-//    PullTransforms( Root(), node );
-//
-//    return NodeCenter(node);
-//}
 
 /*!
  * @brief Loads the transformation stored in node `node` into a `Transform_T` object.
@@ -255,111 +218,4 @@ void PushAllTransforms()
         },
         []( const Int node ) { (void)node; }       // leaf node visit
     );
-}
-
-void SubtreePushAllTransforms( const Int start_node )
-{
-    this->PreOrderScan(
-        [this]( const Int node )                    // internal node previsit
-        {
-            const auto [L,R] = Children( node );
-            PushTransform( node, L, R );
-        },
-        []( const Int node ) { (void)node; },       // leaf node visit
-        start_node
-    );
-
-    
-//    if constexpr ( manual_stackQ )
-//    {
-//        SubtreePushAllTransforms_ManualStack(start_node);
-//    }
-//    else
-//    {
-//        SubtreePushAllTransforms_Recursive(start_node);
-//    }
-}
-
-//void SubtreePushAllTransforms_ManualStack( const Int start_node )
-//{
-//    this->template DepthFirstSearch_ManualStack<Tree_T::DFS::BreakNever>(
-//        [this]( const Int node )                    // internal node previsit
-//        {
-//            const auto [L,R] = Children( node );
-//            PushTransform( node, L, R );
-//        },
-//        []( const Int node ) { (void)node; },       // internal node postvisit
-//        []( const Int node ) { (void)node; },       // leaf node visit
-//        start_node
-//    );
-//}
-//
-//void SubtreePushAllTransforms_Recursive( const Int node )
-//{
-//    if( InternalNodeQ(node) )
-//    {
-//        const auto [L,R] = Children( node );
-//        PushTransform( node, L, R );
-//        SubtreePushAllTransforms_Recursive( L );
-//        SubtreePushAllTransforms_Recursive( R );
-//    }
-//}
-
-void PullTransforms( const Int from, const Int to )
-{
-    if constexpr ( manual_stackQ )
-    {
-        PullTransforms_ManualStack(from,to);
-    }
-    else
-    {
-        if( to != from )
-        {
-            PullTransforms_Recursive(from,Parent(to));
-        }
-    }
-}
-
-// TODO: Test this. And try whether it improves the computation of the pivots.
-void PullTransforms_Recursive( const Int from, const Int node )
-{
-    if( node != from )
-    {
-        PullTransforms_Recursive( from, Parent(node) );
-        
-        const auto [L,R] = Children( node );
-        
-        PushTransform( node, L, R );
-    }
-}
-
-// TODO: Test this. And try whether it improves the computation of the pivots.
-void PullTransforms_ManualStack( const Int from, const Int to )
-{
-    static_assert(SignedIntQ<Int>,"");
-    
-    Int stack [max_depth];
-    
-    Int node = to;
-    
-    Int stack_ptr = -1;
-    
-    while( (node != from) && (stack_ptr < max_depth) )
-    {
-        node = Parent(node);
-        stack[++stack_ptr] = node;
-    }
-    
-    if( stack_ptr >= max_depth )
-    {
-        eprint(ClassName()+"::PullTransforms_ManualStack: Stack overflow.");
-        return;
-    }
-    
-    while( stack_ptr >= Int(0) )
-    {
-        node = stack[stack_ptr--];
-        const auto [L,R] = Children( node );
-        PushTransform( node, L, R );
-    }
 }
