@@ -78,6 +78,7 @@ struct Config
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
     bool output_ascii_drawing = false;       ///< Generate ASCII art drawings
+    bool quiet               = false;        ///< Suppress per-knot reports, show counter only
     
     // Derived state
     bool help_requested      = false;  ///< User requested help
@@ -353,6 +354,7 @@ void PrintUsage()
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
     Log("  --output-ascii-drawing      Generate ASCII art diagrams");
+    Log("  -q, --quiet                 Suppress per-knot reports, show counter only");
     Log("");
     Log("Other:");
     Log("  -h, --help                  Show this help message");
@@ -476,6 +478,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--output-ascii-drawing")
         {
             config.output_ascii_drawing = true;
+        }
+        // Quiet mode
+        else if (arg == "--quiet" || arg == "-q")
+        {
+            config.quiet = true;
         }
         // Unknown option
         else if (arg.starts_with("-"))
@@ -1277,7 +1284,15 @@ bool ProcessSource(std::istream& input,
         }
         
         // Reporting phase
-        WriteKnotReport(*input_knot, simplified, config, input_time, output_time);
+        if (config.quiet)
+        {
+            // In quiet mode, just print a counter that updates in place
+            *g_log_stream << "\r" << (stats.files_processed + 1) << " knots processed" << std::flush;
+        }
+        else
+        {
+            WriteKnotReport(*input_knot, simplified, config, input_time, output_time);
+        }
         
         // Update stats
         stats.input_crossings  += input_knot->total_crossings;
@@ -1407,6 +1422,12 @@ int main(int argc, char* argv[])
     }
     
     // Final report for multiple files
+    if (config.quiet && stats.files_processed > 0)
+    {
+        // End the counter line before final report
+        *g_log_stream << "\n";
+    }
+    
     if (stats.files_processed > 1)
     {
         WriteFinalReport(stats);
