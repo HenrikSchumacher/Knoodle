@@ -173,13 +173,14 @@ struct ProcessingStats
 {
     Int      input_crossings  = 0;
     Int      output_crossings = 0;
-    Int      total_summands   = 0;           ///< Total summands across all files
-    Int      proven_minimal_summands = 0;    ///< Summands with ProvenMinimalQ() == true
-    Int      fully_simplified_knots = 0;     ///< Knots where all summands are proven minimal
+    Int      total_knots      = 0;              ///< Total knots across all files
+    Int      total_summands   = 0;              ///< Total summands across all knots
+    Int      proven_minimal_summands = 0;       ///< Summands with ProvenMinimalQ() == true
+    Int      fully_simplified_knots = 0;        ///< Knots where all summands are proven minimal
     Duration input_time{0};
     Duration simplify_time{0};
     Duration output_time{0};
-    int      files_processed  = 0;
+    int      files_processed  = 0;              ///< Number of files successfully processed
 };
 
 //==============================================================================
@@ -1125,6 +1126,18 @@ void WriteFinalReport(const ProcessingStats& stats)
     Log("========================================");
     Log("");
     Log("Files processed: " + std::to_string(stats.files_processed));
+    Log("Knots processed: " + std::to_string(stats.total_knots));
+    Log("Summands processed: " + std::to_string(stats.total_summands));
+    
+    // Average input crossing number per summand
+    if (stats.total_summands > 0)
+    {
+        double avg_crossings = static_cast<double>(stats.input_crossings) / 
+                               static_cast<double>(stats.total_summands);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << avg_crossings;
+        Log("Average input summand crossing number: " + oss.str());
+    }
     
     auto format_time = [](Duration d) {
         std::ostringstream oss;
@@ -1137,6 +1150,16 @@ void WriteFinalReport(const ProcessingStats& stats)
     Log("  Input:          " + format_time(stats.input_time) + " s");
     Log("  Simplification: " + format_time(stats.simplify_time) + " s");
     Log("  Output:         " + format_time(stats.output_time) + " s");
+    
+    // Average simplification time per summand
+    if (stats.total_summands > 0)
+    {
+        double avg_simplify_time = stats.simplify_time.count() / 
+                                   static_cast<double>(stats.total_summands);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(6) << avg_simplify_time;
+        Log("  Average summand simplification time: " + oss.str() + " s");
+    }
     
     if (stats.output_crossings > 0)
     {
@@ -1163,11 +1186,11 @@ void WriteFinalReport(const ProcessingStats& stats)
         Log(oss.str());
     }
     {
-        int p = stats.fully_simplified_knots;
-        int q = stats.files_processed;
+        Int p = stats.fully_simplified_knots;
+        Int q = stats.total_knots;
         double pct = (q > 0) ? (100.0 * static_cast<double>(p) / static_cast<double>(q)) : 0.0;
         std::ostringstream oss;
-        oss << "Fully simplified files: " << p << "/" << q << " (";
+        oss << "Fully simplified knots: " << p << "/" << q << " (";
         oss << std::fixed << std::setprecision(1) << pct << " %)";
         Log(oss.str());
     }
@@ -1233,7 +1256,7 @@ bool ProcessSource(std::istream& input,
         
         if (!input_knot)
         {
-            if (reached_eof && stats.files_processed == 0)
+            if (reached_eof && stats.total_knots == 0)
             {
                 // No data at all
                 continue;
@@ -1287,7 +1310,7 @@ bool ProcessSource(std::istream& input,
         if (config.quiet)
         {
             // In quiet mode, just print a counter that updates in place
-            *g_log_stream << "\r" << (stats.files_processed + 1) << " knots processed" << std::flush;
+            *g_log_stream << "\r" << (stats.total_knots + 1) << " knots processed" << std::flush;
         }
         else
         {
@@ -1306,7 +1329,7 @@ bool ProcessSource(std::istream& input,
         stats.input_time       += input_time;
         stats.simplify_time    += simplified.simplify_time;
         stats.output_time      += output_time;
-        ++stats.files_processed;
+        ++stats.total_knots;
     }
     
     return true;
@@ -1376,6 +1399,10 @@ int main(int argc, char* argv[])
         // Read from stdin
         success = ProcessSource(std::cin, "stdin", output_stream, config, rng, 
                                 stats, first_knot_in_output);
+        if (success)
+        {
+            ++stats.files_processed;
+        }
     }
     else if (config.input_files.empty())
     {
@@ -1393,6 +1420,10 @@ int main(int argc, char* argv[])
         
         success = ProcessSource(file, default_file, output_stream, config, rng,
                                 stats, first_knot_in_output);
+        if (success)
+        {
+            ++stats.files_processed;
+        }
     }
     else
     {
@@ -1418,17 +1449,21 @@ int main(int argc, char* argv[])
             {
                 success = false;
             }
+            else
+            {
+                ++stats.files_processed;
+            }
         }
     }
     
     // Final report for multiple files
-    if (config.quiet && stats.files_processed > 0)
+    if (config.quiet && stats.total_knots > 0)
     {
         // End the counter line before final report
         *g_log_stream << "\n";
     }
     
-    if (stats.files_processed > 1)
+    if (stats.total_knots > 1)
     {
         WriteFinalReport(stats);
     }
