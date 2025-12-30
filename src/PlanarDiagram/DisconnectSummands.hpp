@@ -400,8 +400,7 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
     mptr<Int> C_color = C_scratch.data();
     
     Int a = a_0;
-    
-    print("ExportComponent");
+
     do
     {
         const Int t = A_cross(a,Tail);
