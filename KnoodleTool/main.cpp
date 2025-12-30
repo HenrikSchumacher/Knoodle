@@ -1182,12 +1182,40 @@ void WriteKnotReport(const InputKnot& input,
 /**
  * @brief Write the final aggregate report for multiple files.
  */
-void WriteFinalReport(const ProcessingStats& stats)
+void WriteFinalReport(const ProcessingStats& stats, const Config& config)
 {
     Log("");
     Log("========================================");
     Log("=== Final Report ===");
     Log("========================================");
+    Log("");
+    
+    // Simplification settings
+    std::string level_str;
+    if (config.simplify_level == 3) level_str = "Simplify3";
+    else if (config.simplify_level == 4) level_str = "Simplify4";
+    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else
+    {
+        level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
+        
+        if (config.reapr_energy.has_value())
+        {
+            static const char* energy_names[] = {
+                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
+            };
+            int e = *config.reapr_energy;
+            if (e >= 0 && e <= 5)
+            {
+                level_str += ", energy: ";
+                level_str += energy_names[e];
+            }
+        }
+        
+        level_str += ")";
+    }
+    
+    Log("Simplification: " + level_str);
     Log("");
     Log("Files processed: " + std::to_string(stats.files_processed));
     Log("Knots processed: " + std::to_string(stats.total_knots));
@@ -1529,7 +1557,7 @@ int main(int argc, char* argv[])
     
     if (stats.total_knots > 1)
     {
-        WriteFinalReport(stats);
+        WriteFinalReport(stats, config);
     }
     
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
