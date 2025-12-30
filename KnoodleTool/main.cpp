@@ -69,6 +69,7 @@ struct Config
     int  simplify_level      = 6;      ///< Simplification level (3, 4, 5, or 6+)
     Int  max_reapr_attempts  = 25;     ///< Max iterations for Reapr::Rattle
     bool no_compaction       = false;  ///< Skip compaction in OrthoDraw (Reapr only)
+    std::optional<int> reapr_energy;   ///< Energy flag for Reapr (if set)
     
     // Input options
     std::vector<std::string> input_files;  ///< Input file paths
@@ -173,13 +174,14 @@ struct ProcessingStats
 {
     Int      input_crossings  = 0;
     Int      output_crossings = 0;
-    Int      total_summands   = 0;           ///< Total summands across all files
-    Int      proven_minimal_summands = 0;    ///< Summands with ProvenMinimalQ() == true
-    Int      fully_simplified_knots = 0;     ///< Knots where all summands are proven minimal
+    Int      total_knots      = 0;              ///< Total knots across all files
+    Int      total_summands   = 0;              ///< Total summands across all knots
+    Int      proven_minimal_summands = 0;       ///< Summands with ProvenMinimalQ() == true
+    Int      fully_simplified_knots = 0;        ///< Knots where all summands are proven minimal
     Duration input_time{0};
     Duration simplify_time{0};
     Duration output_time{0};
-    int      files_processed  = 0;
+    int      files_processed  = 0;              ///< Number of files successfully processed
 };
 
 //==============================================================================
@@ -345,6 +347,8 @@ void PrintUsage()
     Log("                                           Full Reapr pipeline (default)");
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
+    Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
+    Log("                                TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
@@ -447,6 +451,42 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--no-compaction")
         {
             config.no_compaction = true;
+        }
+        // Reapr energy flag
+        else if (arg.starts_with("--reapr-energy="))
+        {
+            std::string energy_str = ToLower(arg.substr(15));
+            
+            if (energy_str == "tv")
+            {
+                config.reapr_energy = 0;  // TV
+            }
+            else if (energy_str == "dirichlet")
+            {
+                config.reapr_energy = 1;  // Dirichlet
+            }
+            else if (energy_str == "bending")
+            {
+                config.reapr_energy = 2;  // Bending
+            }
+            else if (energy_str == "height")
+            {
+                config.reapr_energy = 3;  // Height
+            }
+            else if (energy_str == "tv_clp")
+            {
+                config.reapr_energy = 4;  // TV_CLP
+            }
+            else if (energy_str == "tv_mcf")
+            {
+                config.reapr_energy = 5;  // TV_MCF
+            }
+            else
+            {
+                LogError("Unknown reapr energy: '" + std::string(arg.substr(15)) + "'");
+                LogError("Valid options: TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
+                return std::nullopt;
+            }
         }
         // Input file
         else if (arg.starts_with("--input="))
@@ -894,6 +934,13 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                     reapr.SetOrthoDrawSettings(settings);
                 }
                 
+                if (config.reapr_energy.has_value())
+                {
+                    reapr.SetEnergyFlag(
+                        static_cast<Reapr_T::EnergyFlag_T>(*config.reapr_energy)
+                    );
+                }
+                
                 std::vector<PD_T> pd_list = reapr.Rattle(pd_in, config.max_reapr_attempts);
                 
                 if (pd_list.empty())
@@ -1026,7 +1073,25 @@ void WriteKnotReport(const InputKnot& input,
     if (config.simplify_level == 3) level_str = "Simplify3";
     else if (config.simplify_level == 4) level_str = "Simplify4";
     else if (config.simplify_level == 5) level_str = "Simplify5";
-    else level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts) + ")";
+    else
+    {
+        level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
+        
+        if (config.reapr_energy.has_value())
+        {
+            static const char* energy_names[] = {
+                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
+            };
+            int e = *config.reapr_energy;
+            if (e >= 0 && e <= 5)
+            {
+                level_str += ", energy: ";
+                level_str += energy_names[e];
+            }
+        }
+        
+        level_str += ")";
+    }
     
     Log("Simplification: " + level_str);
     
@@ -1117,14 +1182,54 @@ void WriteKnotReport(const InputKnot& input,
 /**
  * @brief Write the final aggregate report for multiple files.
  */
-void WriteFinalReport(const ProcessingStats& stats)
+void WriteFinalReport(const ProcessingStats& stats, const Config& config)
 {
     Log("");
     Log("========================================");
     Log("=== Final Report ===");
     Log("========================================");
     Log("");
+    
+    // Simplification settings
+    std::string level_str;
+    if (config.simplify_level == 3) level_str = "Simplify3";
+    else if (config.simplify_level == 4) level_str = "Simplify4";
+    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else
+    {
+        level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
+        
+        if (config.reapr_energy.has_value())
+        {
+            static const char* energy_names[] = {
+                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
+            };
+            int e = *config.reapr_energy;
+            if (e >= 0 && e <= 5)
+            {
+                level_str += ", energy: ";
+                level_str += energy_names[e];
+            }
+        }
+        
+        level_str += ")";
+    }
+    
+    Log("Simplification: " + level_str);
+    Log("");
     Log("Files processed: " + std::to_string(stats.files_processed));
+    Log("Knots processed: " + std::to_string(stats.total_knots));
+    Log("Summands processed: " + std::to_string(stats.total_summands));
+    
+    // Average input crossing number per summand
+    if (stats.total_summands > 0)
+    {
+        double avg_crossings = static_cast<double>(stats.input_crossings) / 
+                               static_cast<double>(stats.total_summands);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << avg_crossings;
+        Log("Average input summand crossing number: " + oss.str());
+    }
     
     auto format_time = [](Duration d) {
         std::ostringstream oss;
@@ -1137,6 +1242,16 @@ void WriteFinalReport(const ProcessingStats& stats)
     Log("  Input:          " + format_time(stats.input_time) + " s");
     Log("  Simplification: " + format_time(stats.simplify_time) + " s");
     Log("  Output:         " + format_time(stats.output_time) + " s");
+    
+    // Average simplification time per summand
+    if (stats.total_summands > 0)
+    {
+        double avg_simplify_time = stats.simplify_time.count() / 
+                                   static_cast<double>(stats.total_summands);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(6) << avg_simplify_time;
+        Log("  Average summand simplification time: " + oss.str() + " s");
+    }
     
     if (stats.output_crossings > 0)
     {
@@ -1163,11 +1278,11 @@ void WriteFinalReport(const ProcessingStats& stats)
         Log(oss.str());
     }
     {
-        int p = stats.fully_simplified_knots;
-        int q = stats.files_processed;
+        Int p = stats.fully_simplified_knots;
+        Int q = stats.total_knots;
         double pct = (q > 0) ? (100.0 * static_cast<double>(p) / static_cast<double>(q)) : 0.0;
         std::ostringstream oss;
-        oss << "Fully simplified files: " << p << "/" << q << " (";
+        oss << "Fully simplified knots: " << p << "/" << q << " (";
         oss << std::fixed << std::setprecision(1) << pct << " %)";
         Log(oss.str());
     }
@@ -1233,7 +1348,7 @@ bool ProcessSource(std::istream& input,
         
         if (!input_knot)
         {
-            if (reached_eof && stats.files_processed == 0)
+            if (reached_eof && stats.total_knots == 0)
             {
                 // No data at all
                 continue;
@@ -1287,7 +1402,7 @@ bool ProcessSource(std::istream& input,
         if (config.quiet)
         {
             // In quiet mode, just print a counter that updates in place
-            *g_log_stream << "\r" << (stats.files_processed + 1) << " knots processed" << std::flush;
+            *g_log_stream << "\r" << (stats.total_knots + 1) << " knots processed" << std::flush;
         }
         else
         {
@@ -1306,7 +1421,7 @@ bool ProcessSource(std::istream& input,
         stats.input_time       += input_time;
         stats.simplify_time    += simplified.simplify_time;
         stats.output_time      += output_time;
-        ++stats.files_processed;
+        ++stats.total_knots;
     }
     
     return true;
@@ -1376,6 +1491,10 @@ int main(int argc, char* argv[])
         // Read from stdin
         success = ProcessSource(std::cin, "stdin", output_stream, config, rng, 
                                 stats, first_knot_in_output);
+        if (success)
+        {
+            ++stats.files_processed;
+        }
     }
     else if (config.input_files.empty())
     {
@@ -1393,6 +1512,10 @@ int main(int argc, char* argv[])
         
         success = ProcessSource(file, default_file, output_stream, config, rng,
                                 stats, first_knot_in_output);
+        if (success)
+        {
+            ++stats.files_processed;
+        }
     }
     else
     {
@@ -1418,19 +1541,23 @@ int main(int argc, char* argv[])
             {
                 success = false;
             }
+            else
+            {
+                ++stats.files_processed;
+            }
         }
     }
     
     // Final report for multiple files
-    if (config.quiet && stats.files_processed > 0)
+    if (config.quiet && stats.total_knots > 0)
     {
         // End the counter line before final report
         *g_log_stream << "\n";
     }
     
-    if (stats.files_processed > 1)
+    if (stats.total_knots > 1)
     {
-        WriteFinalReport(stats);
+        WriteFinalReport(stats, config);
     }
     
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
