@@ -69,6 +69,7 @@ struct Config
     int  simplify_level      = 6;      ///< Simplification level (3, 4, 5, or 6+)
     Int  max_reapr_attempts  = 25;     ///< Max iterations for Reapr::Rattle
     bool no_compaction       = false;  ///< Skip compaction in OrthoDraw (Reapr only)
+    std::optional<int> reapr_energy;   ///< Energy flag for Reapr (if set)
     
     // Input options
     std::vector<std::string> input_files;  ///< Input file paths
@@ -346,6 +347,8 @@ void PrintUsage()
     Log("                                           Full Reapr pipeline (default)");
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
+    Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
+    Log("                                TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
@@ -448,6 +451,42 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--no-compaction")
         {
             config.no_compaction = true;
+        }
+        // Reapr energy flag
+        else if (arg.starts_with("--reapr-energy="))
+        {
+            std::string energy_str = ToLower(arg.substr(15));
+            
+            if (energy_str == "tv")
+            {
+                config.reapr_energy = 0;  // TV
+            }
+            else if (energy_str == "dirichlet")
+            {
+                config.reapr_energy = 1;  // Dirichlet
+            }
+            else if (energy_str == "bending")
+            {
+                config.reapr_energy = 2;  // Bending
+            }
+            else if (energy_str == "height")
+            {
+                config.reapr_energy = 3;  // Height
+            }
+            else if (energy_str == "tv_clp")
+            {
+                config.reapr_energy = 4;  // TV_CLP
+            }
+            else if (energy_str == "tv_mcf")
+            {
+                config.reapr_energy = 5;  // TV_MCF
+            }
+            else
+            {
+                LogError("Unknown reapr energy: '" + std::string(arg.substr(15)) + "'");
+                LogError("Valid options: TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
+                return std::nullopt;
+            }
         }
         // Input file
         else if (arg.starts_with("--input="))
@@ -895,6 +934,13 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                     reapr.SetOrthoDrawSettings(settings);
                 }
                 
+                if (config.reapr_energy.has_value())
+                {
+                    reapr.SetEnergyFlag(
+                        static_cast<Reapr_T::EnergyFlag_T>(*config.reapr_energy)
+                    );
+                }
+                
                 std::vector<PD_T> pd_list = reapr.Rattle(pd_in, config.max_reapr_attempts);
                 
                 if (pd_list.empty())
@@ -1027,7 +1073,25 @@ void WriteKnotReport(const InputKnot& input,
     if (config.simplify_level == 3) level_str = "Simplify3";
     else if (config.simplify_level == 4) level_str = "Simplify4";
     else if (config.simplify_level == 5) level_str = "Simplify5";
-    else level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts) + ")";
+    else
+    {
+        level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
+        
+        if (config.reapr_energy.has_value())
+        {
+            static const char* energy_names[] = {
+                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
+            };
+            int e = *config.reapr_energy;
+            if (e >= 0 && e <= 5)
+            {
+                level_str += ", energy: ";
+                level_str += energy_names[e];
+            }
+        }
+        
+        level_str += ")";
+    }
     
     Log("Simplification: " + level_str);
     
