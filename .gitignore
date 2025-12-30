@@ -30,6 +30,8 @@
 *.exe
 *.out
 *.app
+PolyFold/polyfold
+KnoodleTool/knoodletool
 
 # Emacs backup files
 *~
