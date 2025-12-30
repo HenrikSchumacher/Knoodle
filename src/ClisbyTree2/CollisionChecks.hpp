@@ -3,7 +3,6 @@
 
 public:
 
-
 /*!@brief Checks for collisions in the tree.
  *
  * @tparam full_checkQ If `full_checkQ == false` (default), then this assumes that the tree has been collision-free before the last pivot move i.e., before the last call to `Fold`. If `full_checkQ == true`, then a full check is run on the whole tree. Note that this will take siginificantly longer.
@@ -11,7 +10,7 @@ public:
  * @tparam debugQ If `debugQ == true`, then the debugging mode is active: The result will be checked against the very thorough, but also very slow collision checker `CollisionQ_Debug`.
  */
 
-template<bool full_checkQ = true, bool debugQ = false>
+template<bool full_checkQ = true,bool debugQ = false>
 bool CollisionQ()
 {
     TOOLS_PTIMER(timer,MethodName("CollisionQ")+"<" + BoolString(full_checkQ) + "," + BoolString(debugQ) + ">");
@@ -21,13 +20,27 @@ bool CollisionQ()
         
     bool result;
     
-    if( mid_changedQ )
+    if( gap > 0 )
     {
-        result = SubtreesCollideQ_Recursive<true,full_checkQ>( Root() );
+        if( mid_changedQ )
+        {
+            result = SubtreesCollideQ_Recursive<true,true,full_checkQ>( Root() );
+        }
+        else
+        {
+            result = SubtreesCollideQ_Recursive<false,true,full_checkQ>( Root() );
+        }
     }
     else
     {
-        result = SubtreesCollideQ_Recursive<false,full_checkQ>( Root() );
+        if( mid_changedQ )
+        {
+            result = SubtreesCollideQ_Recursive<true,false,full_checkQ>( Root() );
+        }
+        else
+        {
+            result = SubtreesCollideQ_Recursive<false,false,full_checkQ>( Root() );
+        }
     }
     
     if constexpr ( debugQ )
@@ -215,12 +228,12 @@ FoldFlag_T CheckJoints()
 }
 
 
-// First Boolean: whether node contains unchanged vertices.
-// Second Boolean: whether node contains changed vertices.
+// 1st Boolean: whether node contains unchanged vertices.
+// 2nd Boolean: whether node contains changed vertices.
 template<bool mQ>
-NodeSplitFlagVector_T NodeSplitFlagVector( const Int node ) const
+NodeSplitFlagVector_T NodeSplitFlagVector( const Int i ) const
 {
-    auto [begin,end] = NodeRange(node);
+    auto [begin,end] = NodeRange(i);
     
     const bool not_only_midQ = (begin < p_shifted) || (end   > q_shifted);
     const bool not_no_midQ   = (end   > p_shifted) && (begin < q_shifted);
@@ -254,15 +267,15 @@ NodeSplitFlagMatrix_T NodeSplitFlagMatrix( const Int i, const Int j ) const
     if constexpr ( mQ )
     {
         return NodeSplitFlagMatrix_T({
-            {i_not_only_midQ,i_not_no_midQ},
-            {j_not_only_midQ,j_not_no_midQ},
+            { i_not_only_midQ, i_not_no_midQ },
+            { j_not_only_midQ, j_not_no_midQ },
         });
     }
     else
     {
         return NodeSplitFlagMatrix_T({
-            {i_not_no_midQ,i_not_only_midQ},
-            {j_not_no_midQ,j_not_only_midQ},
+            { i_not_no_midQ, i_not_only_midQ },
+            { j_not_no_midQ, j_not_only_midQ },
         });
     }
 }

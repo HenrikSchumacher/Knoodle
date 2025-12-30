@@ -37,10 +37,18 @@ int main()
     // By default, a convex regular equilateral n-gon in the x-y-plane is used for initialization.
     Clisby_T T ( n, edge_length, hard_sphere_diam );
     
+    TOOLS_DUMP(T.Gap());
+    
     // Do a thorough and relatively quick collision check.
     if( T.CollisionQ() )
     {
-        throw std::runtime_error("Initial polygon has self-intersections.");
+        auto [collosionQ,witnesses] = T.CollisionQ_Debug();
+        
+        TOOLS_DUMP(collosionQ);
+        TOOLS_DUMP(witnesses);
+        
+        eprint("Initial polygon has self-intersections.");
+        exit(1);
     }
     // Note: During sampling the tree runs a more cost efficient collisions check because it may exploit that the polygon before a move is already collision-free.
     
@@ -53,7 +61,7 @@ int main()
         // Make attempt_count attempts of pivot moves.
         auto flag_counts = T.FoldRandom(attempt_count,reflection_prob);
         // The return value is a short vector with counts of certain events during sampling.
-        // The sampled polygon is still stored implicitly in T. 
+        // The sampled polygon is still stored implicitly in T.
     t.Toc(); // stop timer
     TOOLS_DUMP(t.Duration());
 
@@ -92,7 +100,13 @@ int main()
     // Do a thorough and relatively quick collision check.
     if( T.CollisionQ() )
     {
-        throw std::runtime_error("Initial polygon has self-intersections.");
+        auto [collosionQ,witnesses] = T.CollisionQ_Debug();
+        
+        TOOLS_DUMP(collosionQ);
+        TOOLS_DUMP(witnesses);
+        
+        eprint("Initial polygon has self-intersections.");
+        exit(1);
     }
     
     return 0;

@@ -690,6 +690,7 @@ namespace Knoodle
 #include "PlanarDiagram/Simplify3.hpp"
 #include "PlanarDiagram/Simplify4.hpp"
 #include "PlanarDiagram/Simplify5.hpp"
+#include "PlanarDiagram/Simplify6.hpp"
         
 #include "PlanarDiagram/PDCode.hpp"
 #include "PlanarDiagram/GaussCode.hpp"

@@ -4,7 +4,7 @@ public:
 
 // TODO: It lies in the nature of the way we detect connected summands that the local simplifications can only change something around the seam. We should really do a local search that is sensitive to this.
 
-/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected summands with `DisconnectSummands`. Splitting off connected summands works only for knots, i.e., for links with a single component.
+/*! @brief This repeatedly applies `Simplify4` and attempts to split off connected components with `Split`. This works also for multiple component links.
  *
  * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
  *
@@ -19,7 +19,7 @@ public:
  * @param simplify3_max_iter If `simplify3_level > 0`, then this set the maximal number of times to cycle through the list of all arcs to look for local patterns.
  */
 
-bool Simplify5(
+bool Simplify6(
     PD_List_T & pd_list,
     const Int  min_dist           = 6,
     const Int  max_dist           = std::numeric_limits<Int>::max(),
@@ -31,7 +31,7 @@ bool Simplify5(
 {
     if( proven_minimalQ || InvalidQ() ) { return false; }
     
-    TOOLS_PTIMER(timer,MethodName("Simplify5")
+    TOOLS_PTIMER(timer,MethodName("Simplify6")
          + "(" + ToString(min_dist)
          + "," + ToString(max_dist)
          + "," + ToString(compressQ)
@@ -39,16 +39,6 @@ bool Simplify5(
          + "," + ToString(simplify3_max_iter)
          + "," + ToString(strand_R_II_Q)
          + ")");
-    
-    if( LinkComponentCount() > Int(1) )
-    {
-        wprint(MethodName("Simplify5") + ": This diagram has " + ToString(LinkComponentCount()) + " > 1 link components. Simplify5 is supposed to work for knots (i.e., diagram with exactly 1 link component) only. Calling Simplify4 instead.");
-        
-        return Simplify4(
-            min_dist, max_dist, compressQ,
-            simplify3_level, simplify3_max_iter, strand_R_II_Q
-        );
-    }
 
     bool globally_changedQ = false;
     bool changedQ = false;
@@ -60,14 +50,26 @@ bool Simplify5(
             simplify3_level, simplify3_max_iter, strand_R_II_Q
         );
         
-        if( CrossingCount() >= 6 )
+        if( LinkComponentCount() > Int(1) )
         {
-            changedQ = changedQ
-            ||
-            DisconnectSummands(
-                pd_list, min_dist, max_dist, compressQ,
-                simplify3_level, simplify3_max_iter, strand_R_II_Q
-            );
+            PD_List_T pd_local_list;
+            
+            Split(pd_local_list);
+            
+            changedQ = changedQ || (pd_local_list.size() > Size_T(0));
+            
+            while( !pd_local_list.empty() )
+            {
+                PlanarDiagram pd_loc = std::move(pd_local_list.back());
+                pd_local_list.pop_back();
+                
+                pd_loc.Simplify6(
+                    pd_list, min_dist, max_dist, compressQ,
+                    simplify3_level, simplify3_max_iter, strand_R_II_Q
+                );
+                
+                pd_list.push_back(std::move(pd_loc));
+            }
         }
         
         globally_changedQ = globally_changedQ || changedQ;

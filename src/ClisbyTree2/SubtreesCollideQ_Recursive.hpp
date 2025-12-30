@@ -1,14 +1,59 @@
+public:
+
+Int Gap() const
+{
+    return gap;
+}
+
+
+// Distance between two vertices (in units of edge_length).
+Int ChordDistance( const Int v, const Int w ) const
+{
+    return ModDistance(VertexCount(),v,w);
+}
+
+// Chord distance between two nodes (in units of edge_length).
+Int NodeChordDistance( const Int i, const Int j ) const
+{
+    auto [v_begin,v_end] = NodeRange(i);
+    auto [w_begin,w_end] = NodeRange(j);
+    
+    const Int n = VertexCount();
+    
+//    return Min(
+//        Ramp( Max(v_begin,w_begin) - Min(v_end,w_end) + Int(1) ),
+//        n + Int(1) + Min(v_begin,w_begin) - Max(v_end,v_end)
+//    );
+    
+    auto [a,b] = MinMax(v_begin      ,w_begin      );
+    auto [c,d] = MinMax(v_end -Int(1),v_end -Int(1));
+    
+    return Min( Ramp(b - c), n + a - d);
+}
+
 private:
 
 // mQ ("mid changed?"): true if the middle part (the part between p and q) has moved.
-// fcQ ("fill check?"): if true, then the node split flags won't be computed.
-template<bool mQ, bool fcQ = false>
+// cgQ ("check gaps?"): true if we ought to check whether nodes are sufficiently far apart in vertex distance.
+// fcQ ("full check?"): if true, then the node split flags won't be computed.
+template<bool mQ, bool cgQ, bool fcQ = false>
 bool SubtreesCollideQ_Recursive( const Int i )
 {
     const bool internalQ = InternalNodeQ(i);
     
     if( internalQ )
     {
+        if constexpr( cgQ )
+        {
+            auto[begin,end] = NodeRange(i);
+            
+            // If the node has too small a diameter, we can stop checking right now.
+            if( ChordDistance(begin, end - Int(1)) < gap )
+            {
+                return false;
+            }
+        }
+
         auto [L,R] = Children(i);
         
         PushTransform(i,L,R);
@@ -22,17 +67,17 @@ bool SubtreesCollideQ_Recursive( const Int i )
         
         // TODO: We should prioritize SubtreesCollideQ_Recursive(i) if NodeBegin(i) is closer to a pivot than NodeEnd(i)-1.
         
-        if( COND( fcQ, true, F[0][0] && F[0][1] ) && SubtreesCollideQ_Recursive<mQ,fcQ>(L) )
+        if( COND( fcQ, true, F[0][0] && F[0][1] ) && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(L) )
         {
             return true;
         }
         
-        if( COND( fcQ, true, F[1][0] && F[1][1] ) && SubtreesCollideQ_Recursive<mQ,fcQ>(R) )
+        if( COND( fcQ, true, F[1][0] && F[1][1] ) && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(R) )
         {
             return true;
         }
         
-        if( COND( fcQ, true, (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ,fcQ>(L,R) )
+        if( COND( fcQ, true, (F[0][0] && F[1][1]) || (F[0][1] && F[1][0]) ) && BallsCollideQ(L,R) &&SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(L,R) )
         {
             return true;
         }
@@ -45,11 +90,16 @@ bool SubtreesCollideQ_Recursive( const Int i )
 
 // mQ ("mid changed?"): true if the middle part (the part between p and q) has moved.
 // fcQ ("fill check?"): if true, then the node split flags won't be computed.
-template<bool mQ, bool fcQ = false>
+template<bool mQ, bool cgQ, bool fcQ = false>
 bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 {
     const bool i_internalQ = InternalNodeQ(i);
     const bool j_internalQ = InternalNodeQ(j);
+    
+    if( cgQ )
+    {
+        print(".");
+    }
     
     if( i_internalQ && j_internalQ )
     {
@@ -77,6 +127,15 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
                 (void)F_j;
             }
             
+            if constexpr( cgQ )
+            {
+                // If the nodes are too close in vertex distance, then we have to subdivide anyway.
+                if( NodeChordDistance(c_i[k],c_j[l]) < gap )
+                {
+                    return true;
+                }
+            }
+            
             return
             COND( fcQ, true, ( (F_i[k][0] && F_j[l][1]) || (F_i[k][1] && F_j[l][0]) ) )
             &&
@@ -96,22 +155,22 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 
         
         // Visiting (c_i[0],c_j[1]) and (c_i[1],c_j[0]) first should take us closer to the pivots, where many collisions happen.
-        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],c_j[1]) )
+        if( subdivideQ[0][1] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[0],c_j[1]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],c_j[0]) )
+        if( subdivideQ[1][0] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[1],c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],c_j[0]) )
+        if( subdivideQ[0][0] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[0],c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],c_j[1]) )
+        if( subdivideQ[1][1] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[1],c_j[1]) )
         {
             return true;
         }
@@ -152,12 +211,12 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         
         // TODO: We could exploit here that we now that i, c_j[0], and c_j[1] are all leaf nodes.
         
-        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,fcQ>(i,c_j[0]) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(i,c_j[0]) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,fcQ>(i,c_j[1]) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(i,c_j[1]) )
         {
             return true;
         }
@@ -197,12 +256,12 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
 
         // TODO: We could exploit here that we know that i, c_j[0], and c_j[1] are all leaf nodes.
         
-        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[0],j) )
+        if( subdivideQ[0] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[0],j) )
         {
             return true;
         }
         
-        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,fcQ>(c_i[1],j) )
+        if( subdivideQ[1] && SubtreesCollideQ_Recursive<mQ,cgQ,fcQ>(c_i[1],j) )
         {
             return true;
         }
@@ -215,14 +274,21 @@ bool SubtreesCollideQ_Recursive( const Int i, const Int j )
         const Int k = NodeBegin(i);
         const Int l = NodeBegin(j);
         
-        const Int delta = Abs(k-l);
+        // TODO: We need something similar if gcQ == true and if hard_sphere_radius is an integer multiple of edge_length.
         
-        if( Min( delta, VertexCount() - delta ) > Int(1) )
+        if constexpr ( cgQ )
         {
-            witness[0] = k;
-            witness[1] = l;
-            
             return true;
+        }
+        else
+        {
+            if( ChordDistance(k,l) > Int(1) )
+            {
+                witness[0] = k;
+                witness[1] = l;
+                
+                return true;
+            }
         }
     }
     

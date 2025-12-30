@@ -151,22 +151,6 @@ cref<WitnessVector_T> Witness() const
     return witness;
 }
 
-
-//Size_T MatrixMatrixCounter() const
-//{
-//    return call_counters.mm;
-//}
-//
-//Size_T MatrixVectorCounter() const
-//{
-//    return call_counters.mv;
-//}
-//
-//Size_T TransformLoadCounter() const
-//{
-//    return call_counters.load_transform;
-//}
-
 CallCounters_T CallCounters()
 {
     return call_counters;
