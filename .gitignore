@@ -30,8 +30,8 @@
 *.exe
 *.out
 *.app
-PolyFold/polyfold
-KnoodleTool/knoodletool
+
+
 
 # Emacs backup files
 *~
@@ -56,3 +56,6 @@ Example_Knoodle/Diagram_Simplify5.txt
 Example_Knoodle/Diagram_unsimplified.txt
 
 Dev_ClisbyTree2/Example_ClisbyTree2
+
+KnoodleTool/ExampleKnot_simplified.tsv
+KnoodleTool/knoodletool
