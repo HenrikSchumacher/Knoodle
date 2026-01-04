@@ -19,7 +19,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 
 
 
-/*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care about that.
+/*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care of that.
  *
  * Arc `a` is assumed to be active, but the state of `b` can be anything.
  * (But the state `a` won't be checked explicitly for performance reasons and it is also not really exploited here in any way).

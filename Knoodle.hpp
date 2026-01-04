@@ -2,11 +2,15 @@
 
 #define KNOODLE_H
 
+#include "deps/pcg-cpp/include/pcg_random.hpp"
+
 #include "submodules/Tensors/Tensors.hpp"
 #include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
 namespace Knoodle
 {
+    using PRNG_T = pcg64;
+    
     using namespace Tensors;
     using namespace Tools;
     
@@ -37,7 +41,7 @@ namespace Knoodle
                 
             default:
             {
-                eprint( "ToOpString: Argument s = " + ToString(s) + " is invalid." );
+                eprint( "ToString: Argument s = " + ToString(s) + " is invalid." );
                 return "Inactive";
             }
         }
@@ -245,15 +249,7 @@ namespace Knoodle
         switch( s )
         {
             case ArcState::Active    : return "Active";
-            // TODO: Handle over/under in ArcState.
-//            case ArcState::ActiveOverOver   : return "ActiveOO";
-//            case ArcState::ActiveUnderOver  : return "ActiveUO";
-//            case ArcState::ActiveOverUnder  : return "ActiveOU";
-//            case ArcState::ActiveUnderUnder : return "ActiveUU";
-                
             case ArcState::Inactive  : return "Inactive";
-                
-//            case ArcState::Unchanged : return "Unchanged";
         }
     }
     

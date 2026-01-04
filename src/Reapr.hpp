@@ -15,7 +15,6 @@ namespace Knoodle
 {
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
-    // TODO: Call COIN-OR for height regularizer.
     
     template<typename Real_, typename Int_>
     class Reapr

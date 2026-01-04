@@ -4,19 +4,22 @@ public:
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
  * Relabeling is done in order of traversal by routine `Traverse<true,false,0,DefaultTraversalMethod>`.
+ *
+ * @tparam recolorQ Whether the arc colors shall be recomputed.
  */
 
-PlanarDiagram CreateCompressed()
+template<bool recolorQ = false>
+PlanarDiagram_T CreateCompressed()
 {
     if( !ValidQ() )
     {
         wprint( ClassName()+"::CreateCompressed: Input diagram is invalid. Returning invalid diagram.");
-        return PlanarDiagram();
+        return PlanarDiagram_T();
     }
     
     TOOLS_PTIMER(timer,ClassName()+"::CreateCompressed");
     
-    PlanarDiagram pd ( crossing_count, unlink_count );
+    PlanarDiagram_T pd ( crossing_count );
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.
@@ -25,13 +28,14 @@ PlanarDiagram CreateCompressed()
     pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-    mptr<CrossingState>       C_state_new = pd.C_state.data();
+    mptr<CrossingState_T>     C_state_new = pd.C_state.data();
     
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-    mptr<ArcState>            A_state_new = pd.A_state.data();
+    mptr<ArcState_T>          A_state_new = pd.A_state.data();
+    mptr<Int       >          A_color_new = pd.A_color.data();
     
     this->template Traverse<true,false,0>(
-        [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
+        [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,A_color_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -41,26 +45,33 @@ PlanarDiagram CreateCompressed()
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
 
-            // TODO: Handle over/under in ArcState.
-            A_state_new[a_pos] = ArcState::Active;
-//             A_state_new[a_pos] = A_state[a];
-
+            A_state_new[a_pos] = this->A_state[a];
+            if constexpr( recolorQ )
+            {
+                A_color_new[a_pos] = lc;
+            }
+            else
+            {
+                A_color_new[a_pos] = this->A_color[a];
+            }
+            
             if( !c_0_visitedQ )
             {
                 C_state_new[c_0_pos] = this->C_state[c_0];
             }
 
-            const bool side_0 = (this->C_arcs(c_0,Out,Right) == a);
+            const bool side_0 = this->A_state[a].template Side<Tail>();
             C_arcs_new(c_0_pos,Out,side_0) = a_pos;
             A_cross_new(a_pos,Tail) = c_0_pos;
 
-            const bool side_1 = (this->C_arcs(c_1,In ,Right) == a);
+            const bool side_1 = this->A_state[a].template Side<Head>();
             C_arcs_new(c_1_pos,In,side_1) = a_pos;
             A_cross_new(a_pos,Head) = c_1_pos;
         }
     );
     
-    // `Traverse` computes `LinkComponentCount`. That is definitely a useful quantity, even after relabeling.
+    // `Traverse` computes `LinkComponentCount`.
+    // That is definitely a useful quantity, even after relabeling.
     if( this->InCacheQ("LinkComponentCount") )
     {
         pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
