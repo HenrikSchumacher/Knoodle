@@ -276,6 +276,38 @@ bool CheckAll() const
 }
 
 
+
+/*! @brief Checks the arc states, assuming that the activity status of each arc is correct.
+ */
+
+bool CheckArcStates() const
+{
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) )
+        {
+            const Int c_0 = A_cross(a,Tail);
+            const Int c_1 = A_cross(a,Head);
+            
+            const bool side_0 = (C_arcs(c_0,Out,Right) == a);
+            const bool side_1 = (C_arcs(c_1,In ,Right) == a);
+            
+            ArcState_T a_state = ArcState_T::Inactive();
+            
+            a_state.template Set<Tail>( side_0, C_state[c_0] );
+            a_state.template Set<Head>( side_1, C_state[c_1] );
+            
+            if( A_state[a] != a_state )
+            {
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+
 public:
 
 void AssertDarc( const Int da ) const

@@ -237,7 +237,7 @@ void RequireFaces( bool ignore_virtual_edgesQ = false ) const
         
     RaggedList<Int,Int> F_dE ( dE_count + Int(1),  dE_count );
     
-    // Same traversal as in PlanarDiagram_T::RequireFaces in the sense that the faces are traversed in the same order.
+    // Same traversal as in PD_T::RequireFaces in the sense that the faces are traversed in the same order.
     
     for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
     {

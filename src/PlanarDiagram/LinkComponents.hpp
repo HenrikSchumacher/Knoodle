@@ -3,7 +3,7 @@ public:
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
-    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
+    if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<Int>(tag);
 }
 
@@ -15,28 +15,28 @@ Int LinkComponentSize( const Int lc ) const
 cref<RaggedList<Int,Int>> LinkComponentArcs() const
 {
     const std::string tag = "LinkComponentArcs";
-    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
+    if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> ArcLinkComponents() const
 {
     const std::string tag = "ArcLinkComponents";
-    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
+    if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<Tensor1<Int,Int>> ArcPositions() const
 {
     const std::string tag = "ArcPositions";
-    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
+    if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
 cref<ArcContainer_T> ArcTraversalFlags() const
 {
     const std::string tag = "ArcTraversalFlags";
-    if(!this->InCacheQ(tag)){ RequireLinkComponents(); }
+    if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<ArcContainer_T>(tag);
 }
 
@@ -64,11 +64,34 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
     }
 }
 
-// TODO: Test this.
+
 void RequireLinkComponents() const
 {
-    TOOLS_PTIMER(timer,MethodName("RequireLinkComponents"));
+    if(
+        this->InCacheQ("LinkComponentCount")
+        &&
+        this->InCacheQ("LinkComponentArcs")
+        &&
+        this->InCacheQ("ArcLinkComponents")
+        &&
+        this->InCacheQ("ArcPositions")
+        &&
+        this->InCacheQ("ArcTraversalFlags")
+    )
+    {
+        return;
+    }
+    else
+    {
+        ComputeLinkComponents();
+    }
+}
 
+private:
+
+void ComputeLinkComponents() const
+{
+    TOOLS_PTIMER(timer,MethodName("ComputeLinkComponents"));
     
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
@@ -124,6 +147,9 @@ void RequireLinkComponents() const
 }
 
 
+public:
+
+// TODO: Maybe this is redundant?
 template<typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T>
 void TraverseLinkComponentsWithCrossings(
     LinkCompPre_T  && lc_pre,

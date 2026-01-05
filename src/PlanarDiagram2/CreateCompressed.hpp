@@ -3,23 +3,23 @@ public:
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
- * Relabeling is done in order of traversal by routine `Traverse<true,false,0,DefaultTraversalMethod>`.
+ * Relabeling is done in order of traversal by routine `Traverse`.
  *
  * @tparam recolorQ Whether the arc colors shall be recomputed.
  */
 
 template<bool recolorQ = false>
-PlanarDiagram_T CreateCompressed()
+PD_T CreateCompressed()
 {
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::CreateCompressed: Input diagram is invalid. Returning invalid diagram.");
-        return PlanarDiagram_T();
+        wprint(MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
+        return InvalidDiagram();
     }
     
-    TOOLS_PTIMER(timer,ClassName()+"::CreateCompressed");
+    TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
     
-    PlanarDiagram_T pd ( crossing_count );
+    PD_T pd ( crossing_count );
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.
@@ -34,7 +34,7 @@ PlanarDiagram_T CreateCompressed()
     mptr<ArcState_T>          A_state_new = pd.A_state.data();
     mptr<Int       >          A_color_new = pd.A_color.data();
     
-    this->template Traverse<true,false,0>(
+    this->template Traverse<true>(
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,A_color_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -42,10 +42,8 @@ PlanarDiagram_T CreateCompressed()
         )
         {
             (void)lc;
-            (void)c_0_visitedQ;
             (void)c_1_visitedQ;
 
-            A_state_new[a_pos] = this->A_state[a];
             if constexpr( recolorQ )
             {
                 A_color_new[a_pos] = lc;
@@ -59,14 +57,15 @@ PlanarDiagram_T CreateCompressed()
             {
                 C_state_new[c_0_pos] = this->C_state[c_0];
             }
-
-            const bool side_0 = this->A_state[a].template Side<Tail>();
-            C_arcs_new(c_0_pos,Out,side_0) = a_pos;
+            
             A_cross_new(a_pos,Tail) = c_0_pos;
-
-            const bool side_1 = this->A_state[a].template Side<Head>();
-            C_arcs_new(c_1_pos,In,side_1) = a_pos;
             A_cross_new(a_pos,Head) = c_1_pos;
+            
+            const ArcState_T a_state = this->A_state[a];
+            
+            A_state_new[a_pos] = a_state;
+            C_arcs_new(c_0_pos,Out,a_state.template Side<Tail>()) = a_pos;
+            C_arcs_new(c_1_pos,In ,a_state.template Side<Head>()) = a_pos;
         }
     );
     
@@ -95,7 +94,7 @@ bool CompressedOrderQ()
     
     bool orderedQ = true;
     
-    this->template Traverse<true,false,0>(
+    this->template Traverse<true>(
         [&orderedQ](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,

@@ -21,11 +21,19 @@ public:
  * @tparam T Integer type to be used for the returned code.
  *
  */
-    
-template<typename T = Int>
+
+template<typename T = Int, bool labelsQ = false>
 Tensor2<T,Int> PDCode()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::PDCode<"+TypeName<T>+">");
+    auto tag = []()
+    {
+        return MethodName("PDCode")
+        + "<" + TypeName<T>
+        + "," + (labelsQ ? "w/ labels" : "w/o labels")
+        + ">";
+    };
+    
+    TOOLS_PTIMER(timer,tag());
     
     static_assert( IntQ<T>, "" );
     
@@ -39,33 +47,32 @@ Tensor2<T,Int> PDCode()
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        throw std::runtime_error(tag() + ": Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
         return pd_code;
     }
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
 
-    this->WritePDCode<T>(pd_code.data());
+    this->WritePDCode<T,true,labelsQ>(pd_code.data());
     
     return pd_code;
 }
 
-template<typename T>
+template<typename T, bool labelsQ = false>
 void WritePDCode( mptr<T> pd_code )
 {
     static_assert( IntQ<T>, "" );
     
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
+        + "," + (labelsQ ? "w/ labels" : "w/o labels")
         + ">");
-    
-    constexpr bool crossingsQ = true;
     
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
     constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
-    this->template Traverse<crossingsQ,true,0>(
+    this->template Traverse<true,labelsQ>(
         [&pd_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -82,11 +89,12 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_0_pos that arc a_pos goes out of it.
             {
-                const bool side = a_state.template Side<Tail>();
+                const bool side          = a_state.template Side<Tail>();
+                const bool right_handedQ = a_state.template RightHandedQ<Tail>();
 
                 mptr<T> X = &pd_code[Int(5) * c_0_pos];
 
-                if(  a_state.template RightHandedQ<Tail>() )
+                if( right_handedQ )
                 {
                     X[4] = T_RightHanded;
                     
@@ -125,7 +133,7 @@ void WritePDCode( mptr<T> pd_code )
                         X[1] = static_cast<T>(a_pos);
                     }
                 }
-                else // if(  a_state.template LeftHandedQ<Tail>() )
+                else // if( !right_handedQ )
                 {
                     X[4] = T_LeftHanded;
                     
@@ -168,11 +176,12 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_1_pos that arc a_pos goes into it.
             {
-                const bool side = a_state.template Side<Head>();
+                const bool right_handedQ = a_state.template RightHandedQ<Head>();
+                const bool side          = a_state.template Side<Head>();
                 
                 mptr<T> X = &pd_code[Int(5) * c_1_pos];
 
-                if( a_state.template RightHandedQ<Head>() )
+                if( right_handedQ )
                 {
                     X[4] = T_RightHanded;
                     
@@ -211,7 +220,7 @@ void WritePDCode( mptr<T> pd_code )
                         X[0] = static_cast<T>(a_pos);
                     }
                 }
-                else // if( a_state.template LeftHandedQ<Head>() )
+                else // if( !right_handedQ )
                 {
                     X[4] = T_LeftHanded;
                     
@@ -259,7 +268,7 @@ void WritePDCode( mptr<T> pd_code )
 template<typename T = Int>
 std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
 {
-    Tensor2<T,Int> pd_code  = this->template PDCode<T,true>();
+    Tensor2<T,Int> pd_code  = this->template PDCode<T,true,true>();
     Tensor1<T,Int> C_pos    = C_scratch;
     Tensor1<T,Int> A_pos    = A_scratch;
     
@@ -290,7 +299,7 @@ public:
  */
 
 template<bool checksQ = true, typename ExtInt, typename ExtInt2>
-static PlanarDiagram_T FromSignedPDCode(
+static PD_T FromSignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const bool    compressQ = true,
@@ -319,7 +328,7 @@ static PlanarDiagram_T FromSignedPDCode(
  */
 
 template<bool checksQ = true, typename ExtInt, typename ExtInt2>
-static PlanarDiagram_T FromUnsignedPDCode(
+static PD_T FromUnsignedPDCode(
     cptr<ExtInt> pd_codes,
     const ExtInt2 crossing_count,
     const bool    compressQ = true,
@@ -426,7 +435,7 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
 private:
 
 template<bool PDsignedQ, bool checksQ = true, typename ExtInt, typename ExtInt2>
-static PlanarDiagram_T FromPDCode(
+static PD_T FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
     const bool compressQ,
@@ -438,14 +447,13 @@ static PlanarDiagram_T FromPDCode(
     
     std::string tag = MethodName("FromPDCode") + "<" + ToString(PDsignedQ) + "," + ToString(checksQ) + ">";
 
-    PlanarDiagram_T pd (int_cast<Int>(crossing_count_));
+    PD_T pd (int_cast<Int>(crossing_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
     
     if( crossing_count_ <= ExtInt2(0) )
     {
-        pd.proven_minimalQ = true;
-        return pd;
+        return Unknot();
     }
     
     pd.proven_minimalQ = proven_minimalQ_;
@@ -473,14 +481,14 @@ static PlanarDiagram_T FromPDCode(
         {
             eprint(tag + ": There is a PD code entry with negative entries. Returning invalid planar diagram.");
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
-            return PlanarDiagram_T();
+            return InvalidDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
             eprint(tag + ": There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid planar diagram.");
             valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
-            return PlanarDiagram_T();
+            return InvalidDiagram();
         }
         
         CrossingState_T c_state;
@@ -574,7 +582,7 @@ static PlanarDiagram_T FromPDCode(
     {
         eprint(tag + ": Input PD code is invalid because number of active arcs (" + ToString(pd.arc_count)+ ") is not equal to twice the number of active crossings (" + ToString(pd.crossing_count)+ ") . Returning invalid planar diagram.");
         
-        return PlanarDiagram_T();
+        return InvalidDiagram();
     }
     
     if constexpr( checksQ )
@@ -640,7 +648,7 @@ static PlanarDiagram_T FromPDCode(
         {
             eprint(tag + ": Input PD code is invalid. Returning invalid planar diagram.");
             
-            return PlanarDiagram_T();
+            return InvalidDiagram();
         }
     }
     
@@ -654,7 +662,6 @@ static PlanarDiagram_T FromPDCode(
     else
     {
         pd.ComputeArcColors();
-        
         return pd;
     }
 }

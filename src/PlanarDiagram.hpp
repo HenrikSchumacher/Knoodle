@@ -1,7 +1,5 @@
 #pragma  once
 
-//#include <unordered_set>
-
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/boyer_myrvold_planar_test.hpp>
 
@@ -29,7 +27,8 @@ namespace Knoodle
 
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
-
+        using PD_T    = PlanarDiagram<Int>;
+        
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
 
@@ -140,7 +139,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -162,6 +161,29 @@ namespace Knoodle
         {
             static_assert(IntQ<ExtInt>,"");
         }
+        
+        
+        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+         *  Data has to be filled in manually. Only for internal use.
+         */
+        
+        template<typename ExtInt>
+        PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_, bool dummy )
+        : crossing_count     { Int(0)                                       }
+        , arc_count          { Int(0)                                       }
+        , unlink_count       { int_cast<Int>(unlink_count_)                 }
+        , max_crossing_count { int_cast<Int>(max_crossing_count_)           }
+        , max_arc_count      { Int(Int(2) * max_crossing_count)             }
+        , C_arcs             { max_crossing_count                           }
+        , C_state            { max_crossing_count                           }
+        , A_cross            { max_arc_count                                }
+        , A_state            { max_arc_count                                }
+        , C_scratch          { max_crossing_count                           }
+        , A_scratch          { max_arc_count                                }
+        {
+            (void)dummy;
+            static_assert(IntQ<ExtInt>,"");
+        }
 
     public:
         
@@ -173,7 +195,7 @@ namespace Knoodle
             const ExtInt unlink_count_,
             const bool proven_minimalQ_ = false
         )
-        :   PlanarDiagram( crossing_count_, unlink_count_ )
+        :   PlanarDiagram( crossing_count_, unlink_count_, true )
         {
             static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState>,"");
@@ -187,6 +209,25 @@ namespace Knoodle
             
             crossing_count = CountActiveCrossings();
             arc_count      = CountActiveArcs();
+        }
+        
+        /*! @brief Make a copy without copying cache and persistent cache.
+         */
+        PD_T CachelessCopy() const
+        {
+            PD_T pd ( max_crossing_count, unlink_count, true ); // Allocate, but do not fill.
+            pd.crossing_count  = crossing_count;
+            pd.arc_count       = arc_count;
+            pd.max_arc_count   = max_arc_count;
+            pd.proven_minimalQ = proven_minimalQ;
+
+            pd.C_arcs .Read(C_arcs .data());
+            pd.C_state.Read(C_state.data());
+            
+            pd.A_cross.Read(A_cross.data());
+            pd.A_state.Read(A_state.data());
+            
+            return pd;
         }
         
         /*!@brief Construction from `Knot_2D` object.
@@ -588,21 +629,14 @@ namespace Knoodle
         }
         
         
-        PlanarDiagram ChiralityTransform(
-            const bool mirrorQ, const bool reverseQ
-        ) const
+        void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
-            PlanarDiagram pd ( max_crossing_count, unlink_count );
+            if( !mirrorQ && !reverseQ )
+            {
+                return;
+            }
             
-            pd.crossing_count  = crossing_count;
-            pd.arc_count       = arc_count;
-            pd.proven_minimalQ = proven_minimalQ;
-
-            auto & pd_C_arcs  = pd.C_arcs;
-            auto & pd_C_state = pd.C_state;
-            auto & pd_A_cross = pd.A_cross;
-            auto & pd_A_state = pd.A_state;
-            
+            ClearCache();
             
             const bool i0 = reverseQ;
             const bool i1 = !reverseQ;
@@ -610,39 +644,34 @@ namespace Knoodle
             const bool j0 = (mirrorQ != reverseQ);
             const bool j1 = (mirrorQ == reverseQ);
 
+            Int C [2][2] = {};
+            
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                pd_C_arcs(c,0,0) = C_arcs(c,i0,j0);
-                pd_C_arcs(c,0,1) = C_arcs(c,i0,j1);
-                pd_C_arcs(c,1,0) = C_arcs(c,i1,j0);
-                pd_C_arcs(c,1,1) = C_arcs(c,i1,j1);
+                copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                C_arcs(c,0,0) = C[i0][j0];
+                C_arcs(c,0,1) = C[i0][j1];
+                C_arcs(c,1,0) = C[i1][j0];
+                C_arcs(c,1,1) = C[i1][j1];
             }
             
             if( mirrorQ )
             {
                 for( Int c = 0; c < max_crossing_count; ++c )
                 {
-                    pd_C_state(c) = Flip(C_state(c));
+                    C_state(c) = Flip(C_state(c));
                 }
             }
-            else
+            
+            if( reverseQ )
             {
-                pd_C_state.Read(C_state.data());
+                using std::swap;
+                
+                for( Int a = 0; a < max_arc_count; ++a )
+                {
+                    swap(A_cross(a,Tail),A_cross(a,Head));
+                }
             }
-            
-            
-            const bool k0 = reverseQ;
-            const bool k1 = !reverseQ;
-            
-            for( Int a = 0; a < max_arc_count; ++a )
-            {
-                pd_A_cross(a,0) = A_cross(a,k0);
-                pd_A_cross(a,1) = A_cross(a,k1);
-            }
-            
-            pd_A_state.Read(A_state.data());
-            
-            return pd;
         }
         
         

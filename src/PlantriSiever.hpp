@@ -277,7 +277,8 @@ namespace Knoodle
                                     {
                                         // We collect the chirality transforms of the _original_ diagram, not the simplified one.
                                         
-                                        PD_T pd_1 = pd.ChiralityTransform(mirrorQ,reverseQ);
+                                        PD_T pd_1 = pd.CachelessCopy();
+                                        pd_1.ChiralityTransform(mirrorQ,reverseQ);
                                         
                                         if( proven_minimalQ )
                                         {

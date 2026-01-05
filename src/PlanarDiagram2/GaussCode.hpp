@@ -3,7 +3,7 @@ public:
 template<typename T = ToSigned<Int>>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">");
+    TOOLS_PTIMER(timer,MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">");
     
     static_assert( SignedIntQ<T>, "" );
     
@@ -11,19 +11,19 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid planar diagram. Returning empty vector.");
         
         return code;
     }
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        throw std::runtime_error(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components.");
+        eprint(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Not defined for links with multiple components.");
         
         return Tensor1<T,Int>();
     }
@@ -39,16 +39,16 @@ Tensor1<T,Int> ExtendedGaussCode()  const
 template<typename T>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+">");
+    TOOLS_PTIMER(timer,MethodName("WriteExtendedGaussCode")+"<"+TypeName<T>+">");
     
     static_assert( SignedIntQ<T>, "" );
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::WriteExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
+        eprint(MethodName("WriteExtendedGaussCode")+"<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
     }
     
-    this->template Traverse<true,false,0>(
+    this->template Traverse<true>(
         [&gauss_code,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -61,50 +61,50 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             (void)c_1_pos;
             (void)c_1_visitedQ;
             
+            const ArcState_T a_state = A_state[a];
+
             // We need 1-based integers to be able to use signs.
             const T c_pos = static_cast<T>(c_0_pos) + T(1);
             
             gauss_code[a_pos] =
                 c_0_visitedQ
-                ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                ? ( a_state.template RightHandedQ<Tail>() ? c_pos : -c_pos )
+                : ( a_state.template OverQ<Tail>()        ? c_pos : -c_pos );
         }
     );
 }
 
 
-template<typename T, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram FromExtendedGaussCode(
-    cptr<T>       gauss_code,
-    const ExtInt2 arc_count_,
-    const ExtInt3 unlink_count_,
-    const bool    compressQ = true,
-    const bool    proven_minimalQ_ = false
+template<typename T, typename ExtInt>
+static PD_T FromExtendedGaussCode(
+    cptr<T>      gauss_code,
+    const ExtInt arc_count_,
+    const bool   compressQ = true,
+    const bool   proven_minimalQ_ = false
 )
 {
     static_assert( SignedIntQ<T>, "" );
+    static_assert( SignedIntQ<ExtInt>, "" );
     
-    if( arc_count_ <= ExtInt2(0) )
+    TOOLS_PTIMER(timer,MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">");
+    
+    if( arc_count_ <= ExtInt(0) )
     {
-        PlanarDiagram pd ( Int(0), int_cast<Int>(unlink_count_) );
-        pd.proven_minimalQ = true;
-        return pd;
+        return Unknot();
     }
     
-    PlanarDiagram pd (
-        int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
-    );
+    PD_T pd ( int_cast<Int>(arc_count_/2) );
     pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
     
     auto fun = [&gauss_code,&pd,&crossing_counter]
-    ( const Int a_prev, const Int a )
+    ( const Int a_prev, const Int a ) -> int
     {
         const T g = gauss_code[a];
         if( g == T(0) )
         {
-            eprint(ClassName()+"::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
+            eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input code is invalid as it contains a crossing with label 0. Returning invalid planar diagram.");
             return 1;
         }
         
@@ -112,28 +112,30 @@ static PlanarDiagram FromExtendedGaussCode(
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
-        // TODO: Handle over/under in ArcState.
-        pd.A_state[a] = ArcState::Active;
         
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
         {
             pd.C_state[c] = (g > T(0))
-                          ? CrossingState::RightHanded
-                          : CrossingState::LeftHanded;
+                          ? CrossingState_T::RightHanded()
+                          : CrossingState_T::LeftHanded();
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
+            
+            // We cannot assign states, yet because we do not know whether a and a_prev are already stored in the right slot!
         }
         else
         {
             const bool overQ = (g > T(0));
             
-            if( overQ == pd.CrossingRightHandedQ(c) )
+            const CrossingState_T c_state = pd.C_state[c];
+            
+            if( overQ == c_state.RightHandedQ() )
             {
                 /*
-                 * Situation in case of CrossingRightHandedQ(c) = overQ
+                 * Situation in case of CrossingRightHandedQ(c) == overQ
                  *
                  *                 a                  a
                  *          ^     ^            ^     ^
@@ -170,6 +172,14 @@ static PlanarDiagram FromExtendedGaussCode(
                 pd.C_arcs(c,Out,Left ) = a;
                 pd.C_arcs(c,In ,Right) = a_prev;
             }
+            
+            // This seems out of order, but pd.C_arcs(c,Out,Right) will typically be the arc stored right after pd.C_arcs(c,In ,Left ).
+            pd.A_state[pd.C_arcs(c,In ,Left )].template Set<Head>(Left ,c_state);
+            pd.A_state[pd.C_arcs(c,Out,Right)].template Set<Tail>(Right,c_state);
+            
+            // This seems out of order, but pd.C_arcs(c,Out,Left ) will typically be the arc stored right after pd.C_arcs(c,In ,Right).
+            pd.A_state[pd.C_arcs(c,In ,Right)].template Set<Head>(Right,c_state);
+            pd.A_state[pd.C_arcs(c,Out,Left )].template Set<Tail>(Left ,c_state);
         }
         
         return 0;
@@ -179,13 +189,13 @@ static PlanarDiagram FromExtendedGaussCode(
     {
         if( fun( a-Int(1), a ) )
         {
-            return PlanarDiagram();
+            return InvalidDiagram();
         }
     }
     
     if( fun( int_cast<Int>(arc_count_)-Int(1), Int(0) ) )
     {
-        return PlanarDiagram();
+        return InvalidDiagram();
     }
     
     pd.crossing_count = crossing_counter;
@@ -193,78 +203,19 @@ static PlanarDiagram FromExtendedGaussCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
     // Compression is not really meaningful because the traversal ordering is crucial for the extended Gauss code.
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-        return pd.CreateCompressed();
+        // This also applies the coloring to the arcs.
+        return pd.template CreateCompressed<true>();
     }
     else
     {
+        pd.ComputeArcColors();
         return pd;
     }
-}
-
-
-template<typename T = ToSigned<Int>>
-Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
-{
-    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCodeByLinkTraversal<" + TypeName<T> + ">" );
-    
-    static_assert( SignedIntQ<T>, "" );
-    
-    Tensor1<T,Int> gauss_code;
-    
-    if( !ValidQ() )
-    {
-        wprint( ClassName()+"::ExtendedGaussCodeByLinkTraversal: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
-        
-        return gauss_code;
-    }
-    
-    if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
-    {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCodeByLinkTraversal: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
-    }
-    
-    gauss_code = Tensor1<T,Int>( arc_count );
-    
-    TraverseLinkComponentsWithCrossings(
-        []( const Int lc, const Int lc_begin )
-        {
-            (void)lc;
-            (void)lc_begin;
-        },
-        [&gauss_code,this](
-            const Int a,   const Int a_pos,   const Int  lc,
-            const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
-            const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
-        )
-        {
-            (void)lc;
-            (void)c_0;
-            (void)c_1;
-            (void)c_1_pos;
-            (void)c_1_visitedQ;
-            
-            // We need 1-based integers to be able to use signs.
-            const T c_pos = static_cast<T>(c_0_pos) + T(1);
-            
-            gauss_code[a_pos] =
-                c_0_visitedQ
-                ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
-        },
-        []( const Int lc, const Int lc_begin, const Int lc_end )
-        {
-            (void)lc;
-            (void)lc_begin;
-            (void)lc_end;
-        }
-    );
-    
-    return gauss_code;
 }

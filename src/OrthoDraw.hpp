@@ -136,9 +136,9 @@ namespace Knoodle
         using VertexFlagContainer_T = Tensor1<VertexFlag_T,Int>;
         using EdgeFlagContainer_T   = Tiny::VectorList_AoS<2,EdgeFlag_T,Int>;
         using Vector_T              = Tiny::Vector<2,Int,Int>;
-        using PlanarDiagram_T       = PlanarDiagram<Int>;
-        using CrossingContainer_T   = PlanarDiagram_T::CrossingContainer_T;
-        using ArcContainer_T        = PlanarDiagram_T::ArcContainer_T;
+        using PD_T                  = PlanarDiagram<Int>;
+        using CrossingContainer_T   = PD_T::CrossingContainer_T;
+        using ArcContainer_T        = PD_T::ArcContainer_T;
         
         using ArcSplineContainer_T  = RaggedList<std::array<Int,2>,Int>;
         
@@ -151,12 +151,12 @@ namespace Knoodle
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
 #endif
         
-        static constexpr Int Uninitialized = PlanarDiagram_T::Uninitialized;
-        static constexpr Int MaxValidIndex = PlanarDiagram_T::MaxValidIndex;
+        static constexpr Int Uninitialized = PD_T::Uninitialized;
+        static constexpr Int MaxValidIndex = PD_T::MaxValidIndex;
         
         static constexpr bool ValidIndexQ( const Int i )
         {
-            return PlanarDiagram_T::ValidIndexQ(i);
+            return PD_T::ValidIndexQ(i);
         }
         
         // TODO: Maybe replace by pcg32?
@@ -170,18 +170,18 @@ namespace Knoodle
         
         static constexpr Int ToDarc( const Int a, const bool d )
         {
-            return PlanarDiagram_T::ToDarc(a,d);
+            return PD_T::ToDarc(a,d);
         }
         
         template<bool d>
         static constexpr Int ToDarc( const Int a )
         {
-            return PlanarDiagram_T::template ToDarc<d>(a);
+            return PD_T::template ToDarc<d>(a);
         }
         
         static constexpr std::pair<Int,bool> FromDarc( const Int da )
         {
-            return PlanarDiagram_T::FromDarc(da);
+            return PD_T::FromDarc(da);
         }
 
     public:

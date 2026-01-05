@@ -3,7 +3,7 @@ public:
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
- * Relabeling is done in order of traversal by routine `Traverse<true,false,0,DefaultTraversalMethod>`.
+ * Relabeling is done in order of traversal by routine `Traverse<true,false,0>`.
  */
 
 PlanarDiagram CreateCompressed()

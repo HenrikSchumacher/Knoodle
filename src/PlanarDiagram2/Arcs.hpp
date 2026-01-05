@@ -149,120 +149,9 @@ bool ArcUnderQ( const Int a, const bool headtail )  const
 }
 
 template<bool headtail>
-bool ArcUnderQ_Reference( const Int a )  const
+bool ArcUnderQ( const Int a )  const
 {
-    AssertArc(a);
-
-    const Int c = A_cross(a,headtail);
-
-    AssertCrossing(c);
-    
-    // Tail == 0 == Out
-    // Head == 1 == In
-    // const side = C_arcs(c_0,headtail,Right) == a ? Right : Left;
-//            const bool side = (C_arcs(c,headtail,Right) == a);
-    
-//            // Long version of code for documentation and debugging.
-//            if( headtail == Head )
-//            {
-//
-//                PD_ASSERT( A_cross(a,Head) == c );
-//                PD_ASSERT( C_arcs(c,In,side) == a );
-//
-//                return (side == CrossingRightHandedQ(c));
-//
-    
-                /* (side == Right) && CrossingRightHandedQ(c)
-                 *
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            / c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *                ^
-                 *                 \
-                 *                  \ a
-                 *                   \
-                 *                    X
-                 *
-                 *  (side == Left) && CrossingLeftHandedQ(c)
-                 *
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            \ c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *        ^
-                 *       /
-                 *      / a
-                 *     /
-                 *    X
-                 */
-    
-//            }
-//            else // if( headtail == Tail )
-//            {
-//                PD_ASSERT( A_cross(a,Tail) == c );
-//                PD_ASSERT( C_arcs(c,Out,side) == a );
-//
-//                return (side == CrossingLeftHandedQ(c));
-//
-    
-                /* Positive cases:
-                 *
-                 * (side == Right) && CrossingLeftHandedQ(c)
-                 *
-                 *
-                 *                   ^
-                 *                  /
-                 *                 / a
-                 *                /
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            \ c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *
-                 * (side == Left) && CrossingRightHandedQ(c)
-                 *
-                 *     ^
-                 *      \
-                 *       \ a
-                 *        \
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            / c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 */
-    
-//            }
-    
-//            // Short version of code for performance.
-    return (
-        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-    );
-}
-
-bool ArcUnderQ_Reference( const Int a, const bool headtail )  const
-{
-    AssertArc(a);
-
-    const Int c = A_cross(a,headtail);
-
-    AssertCrossing(c);
-    
-    return (
-        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-    );
+    return A_state[a].template UnderQQ<headtail>();
 }
 
 /*!
@@ -282,17 +171,6 @@ template<bool headtail>
 bool ArcOverQ( const Int a )  const
 {
     return A_state[a].template OverQ<headtail>();
-}
-
-template<bool headtail>
-bool ArcOverQ_Reference( const Int a ) const
-{
-    return !ArcUnderQ<headtail>(a);
-}
-
-bool ArcOverQ_Reference( const Int a, const bool headtail )  const
-{
-    return !ArcUnderQ(a,headtail);
 }
 
 bool AlternatingQ() const
@@ -451,4 +329,30 @@ Arrow_T NextRightArc( const Int a, const bool headtail ) const
     AssertArc(b);
     
     return Arrow_T(b,side);
+}
+
+
+
+
+/*! @brief Computes the arc states, assuming that the activity status of each arc is correct.
+ */
+
+void ComputeArcStates()
+{
+    ClearCache();
+    
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) )
+        {
+            const Int c_0 = A_cross(a,Tail);
+            const Int c_1 = A_cross(a,Head);
+            
+            const bool side_0 = (C_arcs(c_0,Out,Right) == a);
+            const bool side_1 = (C_arcs(c_1,In ,Right) == a);
+            
+            A_state[a].template Set<Tail>( side_0, C_state[c_0] );
+            A_state[a].template Set<Head>( side_1, C_state[c_1] );
+        }
+    }
 }

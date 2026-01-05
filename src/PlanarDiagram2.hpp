@@ -1,15 +1,11 @@
 #pragma  once
 
-//#include <unordered_set>
-
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/boyer_myrvold_planar_test.hpp>
-
 
 namespace Knoodle
 {
 
-    
 //    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
 //    
 //    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
@@ -39,15 +35,15 @@ namespace Knoodle
         static constexpr bool countQ           = false;
         static constexpr bool debugQ           = false;
             
-        using Int                       = Int_;
-        using UInt                      = ToUnsigned<Int>;
+        using Int                   = Int_;
+        using UInt                  = ToUnsigned<Int>;
 
-        using Base_T                    = CachedObject;
-        using Class_T                   = PlanarDiagram2<Int>;
-        using PlanarDiagram_T           = PlanarDiagram2<Int>;
+        using Base_T                = CachedObject;
+        using Class_T               = PlanarDiagram2<Int>;
+        using PD_T                  = PlanarDiagram2<Int>;
 
-        using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
-        using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
+        using CrossingContainer_T   = Tiny::MatrixList_AoS<2,2,Int,Int>;
+        using ArcContainer_T        = Tiny::VectorList_AoS<2,  Int,Int>;
 
 #include "PlanarDiagram2/CrossingState.hpp"
 #include "PlanarDiagram2/ArcState.hpp"
@@ -153,7 +149,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -168,9 +164,32 @@ namespace Knoodle
         , C_scratch          { max_crossing_count                              }
         , A_cross            { max_arc_count,      Uninitialized               }
         , A_state            { max_arc_count,      ArcState_T::Inactive()      }
-        , A_color            { max_arc_count,      Int(0)                      }
+        , A_color            { max_arc_count,      Uninitialized               }
         , A_scratch          { max_arc_count                                   }
         {
+            static_assert(IntQ<ExtInt>,"");
+        }
+        
+        
+        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+         *  Data has to be filled in manually. Only for internal use.
+         */
+        
+        template<typename ExtInt>
+        PlanarDiagram2( const ExtInt max_crossing_count_, bool dummy )
+        : crossing_count     { Int(0)                                          }
+        , arc_count          { Int(0)                                          }
+        , max_crossing_count { int_cast<Int>(max_crossing_count_)              }
+        , max_arc_count      { Int(Int(2) * max_crossing_count)                }
+        , C_arcs             { max_crossing_count                              }
+        , C_state            { max_crossing_count                              }
+        , C_scratch          { max_crossing_count                              }
+        , A_cross            { max_arc_count                                   }
+        , A_state            { max_arc_count                                   }
+        , A_color            { max_arc_count                                   }
+        , A_scratch          { max_arc_count                                   }
+        {
+            (void)dummy;
             static_assert(IntQ<ExtInt>,"");
         }
 
@@ -186,13 +205,13 @@ namespace Knoodle
             const ExtInt crossing_count_,
             const bool proven_minimalQ_ = false
         )
-        :   PlanarDiagram2( crossing_count_ )
+        :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
         {
             static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
             
-            C_arcs.Read(crossings);
+            C_arcs .Read(crossings);
             C_state.Read(crossing_states);
             A_cross.Read(arcs);
             A_state.Read(arc_states);
@@ -201,6 +220,41 @@ namespace Knoodle
             
             crossing_count = CountActiveCrossings();
             arc_count      = CountActiveArcs();
+        }
+        
+        /*! @brief Make a copy without copying cache and persistent cache.
+         */
+        PD_T CachelessCopy() const
+        {
+            PD_T pd ( max_crossing_count, true ); // Allocate, but do not fill.
+            pd.crossing_count  = crossing_count;
+            pd.arc_count       = arc_count;
+            pd.max_arc_count   = max_arc_count;
+            pd.proven_minimalQ = proven_minimalQ;
+            pd.color_flag      = color_flag;
+            
+            pd.C_arcs .Read(C_arcs .data());
+            pd.C_state.Read(C_state.data());
+            
+            pd.A_cross.Read(A_cross.data());
+            pd.A_state.Read(A_state.data());
+            pd.A_color.Read(A_color.data());
+            
+            return pd;
+        }
+        
+        
+        static PD_T Unknot()
+        {
+            PD_T pd ( Int(0) );
+            pd.proven_minimalQ = true;
+            pd.color_flag      = Int(0);
+            return pd;
+        }
+        
+        static PD_T InvalidDiagram()
+        {
+            return PD_T();
         }
         
     public:
@@ -224,10 +278,10 @@ namespace Knoodle
 //#include "PlanarDiagram2/R_I.hpp"
 
 
-//#include "PlanarDiagram2/Faces.hpp"
+#include "PlanarDiagram2/Faces.hpp"
 
 //#include "PlanarDiagram2/DiagramComponents.hpp"
-//#include "PlanarDiagram2/Strands.hpp"
+#include "PlanarDiagram2/Strands.hpp"
 //#include "PlanarDiagram2/DisconnectSummands.hpp"
         
 //#include "PlanarDiagram2/Simplify1.hpp"
@@ -238,7 +292,7 @@ namespace Knoodle
 //#include "PlanarDiagram2/Simplify6.hpp"
         
 
-//#include "PlanarDiagram2/GaussCode.hpp"
+#include "PlanarDiagram2/GaussCode.hpp"
 #include "PlanarDiagram2/LongMacLeodCode.hpp"
 #include "PlanarDiagram2/MacLeodCode.hpp"
         
@@ -279,6 +333,162 @@ namespace Knoodle
         {
             return proven_minimalQ && (CrossingCount() == Int(4)) && (LinkComponentCount() == Int(1));
         }
+        
+    public:
+        
+        /*!@brief Sets all entries of all deactivated crossings and arcs to `Uninitialized`.
+         */
+
+        void CleanseDeactivated()
+        {
+            for( Int c = 0; c < max_crossing_count; ++c )
+            {
+                if( !CrossingActiveQ(c) )
+                {
+                    fill_buffer<4>(C_arcs.data(c),Uninitialized);
+                }
+            }
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                if( !ArcActiveQ(a) )
+                {
+                    fill_buffer<2>(A_cross.data(a),Uninitialized);
+                }
+            }
+        }
+        
+    /*!
+     * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+     */
+
+    Int Writhe() const
+    {
+        Int writhe = 0;
+        
+        for( Int c = 0; c < max_crossing_count; ++c )
+        {
+            if( CrossingRightHandedQ(c) )
+            {
+                ++writhe;
+            }
+            else if ( CrossingLeftHandedQ(c) )
+            {
+                --writhe;
+            }
+        }
+        
+        return writhe;
+    }
+
+    Int EulerCharacteristic() const
+    {
+        TOOLS_PTIMER(timer,MethodName("EulerCharacteristic"));
+        return CrossingCount() - ArcCount() + FaceCount();
+    }
+
+//    template<bool verboseQ = true>
+//    bool EulerCharacteristicValidQ() const
+//    {
+//        TOOLS_PTIMER(timer,MethodName("EulerCharacteristicValidQ"));
+//        const Int euler_char  = EulerCharacteristic();
+//        const Int euler_char0 = Int(2) * DiagramComponentCount();
+//        
+//        const bool validQ = (euler_char == euler_char0);
+//        
+//        if constexpr ( verboseQ )
+//        {
+//            if( !validQ )
+//            {
+//                wprint(ClassName()+"::EulerCharacteristicValidQ: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
+//            }
+//        }
+//        
+//        return validQ;
+//    }
+        
+        
+    // Applies the transformation in-place.
+    void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
+    {
+        if( !mirrorQ && !reverseQ )
+        {
+            return;
+        }
+        
+        ClearCache();
+        
+        const bool i0 = reverseQ;
+        const bool i1 = !reverseQ;
+        
+        const bool j0 = (mirrorQ != reverseQ);
+        const bool j1 = (mirrorQ == reverseQ);
+        
+        Int C [2][2] = {};
+        
+        for( Int c = 0; c < max_crossing_count; ++c )
+        {
+            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+            
+            C_arcs(c,0,0) = C[i0][j0];
+            C_arcs(c,0,1) = C[i0][j1];
+            C_arcs(c,1,0) = C[i1][j0];
+            C_arcs(c,1,1) = C[i1][j1];
+        }
+        
+        if( mirrorQ )
+        {
+            mptr<CrossingState_T> C_state_ptr = C_state.data();
+            
+            for( Int c = 0; c < max_crossing_count; ++c )
+            {
+                C_state_ptr[c] = C_state_ptr[c].Reflect();
+            }
+        }
+        
+        mptr<ArcState_T> A_state_ptr = A_state.data();
+        
+        if( mirrorQ )
+        {
+            if( reverseQ )
+            {
+                using std::swap;
+                
+                for( Int a = 0; a < max_arc_count; ++a )
+                {
+                    swap(A_cross(a,Tail),A_cross(a,Head));
+                    A_state_ptr[a] = A_state_ptr[a].ReflectReverse();
+                }
+            }
+            else
+            {
+                for( Int a = 0; a < max_arc_count; ++a )
+                {
+                    A_state_ptr[a] = A_state_ptr[a].Reflect();
+                }
+            }
+        }
+        else
+        {
+            if( reverseQ )
+            {
+                using std::swap;
+                
+                for( Int a = 0; a < max_arc_count; ++a )
+                {
+                    swap(A_cross(a,Tail),A_cross(a,Head));
+                    A_state_ptr[a] = A_state_ptr[a].Reverse();
+                }
+            }
+            else
+            {
+                // Do nothing;
+            }
+        }
+        
+        // A_color remains as it was.
+    }
+
         
         
     public:

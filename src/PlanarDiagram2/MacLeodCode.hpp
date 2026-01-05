@@ -98,7 +98,6 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
     if( LinkComponentCount() > Int(1) )
     {
         eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
-        
         return;
     }
 
@@ -141,7 +140,7 @@ Tensor1<T,Int> MacLeodCode() const
 }
 
 template<typename T, typename ExtInt>
-static PlanarDiagram_T FromMacLeodCode(
+static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
     const bool    compressQ = false,
@@ -169,7 +168,7 @@ static PlanarDiagram_T FromMacLeodCode(
 
 
 template<typename T, typename ExtInt>
-static PlanarDiagram_T FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
+static PD_T FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 {
     static_assert(IntQ<T>,"");
     static_assert(IntQ<ExtInt>,"");
@@ -215,7 +214,7 @@ std::string MacLeodString() const
     return s;
 }
 
-static PlanarDiagram_T FromMacLeodString( cref<std::string> s )
+static PD_T FromMacLeodString( cref<std::string> s )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
     

@@ -1,7 +1,7 @@
 public:
 
 template<typename PRNGT_T>
-PlanarDiagram_T PermuteRandom( mref<PRNGT_T> random_engine ) const
+PD_T PermuteRandom( mref<PRNGT_T> random_engine ) const
 {
     TOOLS_PTIMER(timer,MethodName("PermuteRandom"));
                  
@@ -17,28 +17,26 @@ PlanarDiagram_T PermuteRandom( mref<PRNGT_T> random_engine ) const
 }
 
 template<typename ExtInt>
-PlanarDiagram_T Permute(
-    mref<Permutation<ExtInt>> c_perm, mref<Permutation<ExtInt>> a_perm
-)  const
+PD_T Permute( mref<Permutation<ExtInt>> c_perm, mref<Permutation<ExtInt>> a_perm )  const
 {
     TOOLS_PTIMER(timer,MethodName("Permute")+"<"+TypeName<ExtInt>+">");
     
     if( std::cmp_not_equal(max_crossing_count,c_perm.Size()) )
     {
-        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Aborting.");
-        return PlanarDiagram_T();
+        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Returning invalid diagram.");
+        return InvalidDiagram();
     }
     
     if( std::cmp_not_equal(max_arc_count,a_perm.Size()) )
     {
-        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Aborting.");
-        return  PlanarDiagram_T();
+        eprint(MethodName("Permute")+"<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Returning invalid diagram.");
+        return  InvalidDiagram();
     }
     
     cptr<Int> c_p = c_perm.GetPermutation().data();
     cptr<Int> a_p = a_perm.GetPermutation().data();
     
-    PlanarDiagram_T pd ( max_crossing_count );
+    PD_T pd ( max_crossing_count );
     
     pd.proven_minimalQ = this->proven_minimalQ;
     pd.crossing_count  = this->crossing_count;

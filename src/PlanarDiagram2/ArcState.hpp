@@ -64,10 +64,10 @@ public:
         const Int s = (Int(1)                                    << ActiveBit    <headtail>)
                     | (Int(side)                                 << SideBit      <headtail>)
                     | (Int(right_handedQ)                        << HandednessBit<headtail>)
-                    | (Int((side == right_handedQ) == headtail)  << OverUnderBit <headtail>);
+                    | (Int((side == right_handedQ) != headtail)  << OverUnderBit <headtail>);
         
         /*
-         *          ^     ^         headtail      = Tail  == 0
+         *          ^     ^         headtail      = Tail  == 1
          *           \   /          side          = Right == 1
          *            \ /           right_handedQ = True  == 1
          *             / <--- c     overQ         = False == 0
@@ -111,6 +111,50 @@ public:
         }
     }
     
+    // Swap Head and Tail
+    ArcState_T Reverse() const
+    {
+        // Head/tail  swap.
+        // Handedness stays fixed.
+        // Left/right flips.
+        // Over/under stays fixed.
+        
+        constexpr Int trafo_mask = SideMask<Tail> | SideMask<Head>;
+        
+        const Int s = state ^ trafo_mask;
+        
+        return ArcState_T( ((s & mask<Head>) >> 4) | ((s & mask<Tail>) << 4) );
+    }
+    
+    // Reflect the arrow in the coordinate plane
+    ArcState_T Reflect() const
+    {
+        // Head/tail  stays fixed.
+        // Handedness flips!
+        // Left/right flips!
+        // Over/under stays fixed?
+        
+        constexpr Int trafo_mask = SideMask<Tail> | HandednessMask<Tail>
+                                 | SideMask<Head> | HandednessMask<Head>;
+
+        return ArcState_T( state ^ trafo_mask );
+    }
+    
+    // Reflect the arrow in the coordinate plane and reverse at the same time.
+    ArcState_T ReflectReverse() const
+    {
+        // Head/tail  swap.
+        // Handedness flips.
+        // Left/right stay fixed?
+        // Over/under flips?
+        
+        constexpr Int trafo_mask = HandednessMask<Tail> | OverUnderMask<Tail>
+                                 | HandednessMask<Head> | OverUnderMask<Head>;
+        
+        const Int s = state ^ trafo_mask;
+        
+        return ArcState_T( ((s & mask<Head>) >> 4) | ((s & mask<Tail>) << 4) );
+    }
 
     template<bool headtail>
     constexpr bool Side()  const
@@ -213,6 +257,16 @@ public:
     friend constexpr Int ToUnderlying( ArcState_T a_state )
     {
         return a_state.state;
+    }
+    
+    friend constexpr bool operator==( ArcState_T a_state, ArcState_T b_state )
+    {
+        return (a_state.state == b_state.state);
+    }
+    
+    friend constexpr bool operator!=( ArcState_T a_state, ArcState_T b_state )
+    {
+        return (a_state.state != b_state.state);
     }
     
 }; // ArcState_T

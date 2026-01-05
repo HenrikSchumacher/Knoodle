@@ -33,6 +33,11 @@ public:
         return CrossingState_T(Int(-1));
     }
     
+    CrossingState_T Reflect() const
+    {
+        return CrossingState_T(-state);
+    }
+    
 //    static constexpr CrossingState_T Inactive    = CrossingState_T(Int( 0));
 //    static constexpr CrossingState_T RightHanded = CrossingState_T(Int( 1));
 //    static constexpr CrossingState_T LeftHanded  = CrossingState_T(Int(-1));
