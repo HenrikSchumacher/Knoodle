@@ -453,7 +453,7 @@ static PD_T FromPDCode(
     
     if( crossing_count_ <= ExtInt2(0) )
     {
-        return Unknot();
+        return Unknot(Int(0));
     }
     
     pd.proven_minimalQ = proven_minimalQ_;

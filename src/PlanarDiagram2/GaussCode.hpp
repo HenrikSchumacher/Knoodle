@@ -90,7 +90,7 @@ static PD_T FromExtendedGaussCode(
     
     if( arc_count_ <= ExtInt(0) )
     {
-        return Unknot();
+        return Unknot(Int(0));
     }
     
     PD_T pd ( int_cast<Int>(arc_count_/2) );
@@ -117,9 +117,7 @@ static PD_T FromExtendedGaussCode(
         
         if( !visitedQ )
         {
-            pd.C_state[c] = (g > T(0))
-                          ? CrossingState_T::RightHanded()
-                          : CrossingState_T::LeftHanded();
+            pd.C_state[c] = (g > T(0)) ? CrossingState_T::RightHanded() : CrossingState_T::LeftHanded();
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;

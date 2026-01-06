@@ -226,9 +226,10 @@ static PD_T FromLongMacLeodCode(
             
             const Int c = crossing_counter;
             
-            const CrossingState_T c_state = pd.C_state[c] = a_right_handedQ
-                                                          ? CrossingState_T::RightHanded()
-                                                          : CrossingState_T::LeftHanded();
+            const CrossingState_T c_state = a_right_handedQ
+                                          ? CrossingState_T::RightHanded()
+                                          : CrossingState_T::LeftHanded();
+            pd.C_state[c] = c_state;
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));
             pd.A_cross(a_prev,Head) = c;

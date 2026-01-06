@@ -104,10 +104,8 @@ Tensor3<Int,Int> CrossingStrands() const
             const Int c_0 = A_cross(a,Tail);
             const Int c_1 = A_cross(a,Head);
             
-            // TODO: Putting side information into A_state would be very useful here.
-
-            C_strand(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = strand;
-            C_strand(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = strand;
+            C_strand(c_0,Out,ArcSide<Tail>(a)) = strand;
+            C_strand(c_1,In ,ArcSide<Head>(a)) = strand;
 
             strand += (ArcUnderQ<Head>(a) == overQ);
         }

@@ -405,6 +405,7 @@ namespace Knoodle
 #include "src/Debugging.hpp"
 #include "src/Binarizer.hpp"
 #include "src/PlanarDiagram.hpp"
+#include "src/PlanarDiagram2.hpp"
 #include "src/CrossingSimplifier.hpp"
 #include "src/ArcSimplifier.hpp"
 #include "src/StrandSimplifier.hpp"

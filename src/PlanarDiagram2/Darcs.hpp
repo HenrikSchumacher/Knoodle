@@ -68,10 +68,12 @@ mref<ArcContainer_T> ArcLeftDarc() const
 {
     // Return value needs to be mutable so that StrandSimplifier can update it.
     
-    std::string tag ("ArcLeftArc");
+    std::string tag ("ArcLeftDarc");
     
     if( !this->InCacheQ(tag) )
     {
+        TOOLS_PTIMER(timer,tag);
+        
         ArcContainer_T A_left ( max_arc_count );
         
         for( Int c = 0; c < max_crossing_count; ++c )
@@ -85,11 +87,9 @@ mref<ArcContainer_T> ArcLeftDarc() const
                 const Int darcs [2][2] =
                 {
                     {
-                        ToDarc<Head>(A[Out][Left ]),
-                        ToDarc<Head>(A[Out][Right])
+                        ToDarc<Head>(A[Out][Left ]), ToDarc<Head>(A[Out][Right])
                     },{
-                        ToDarc<Tail>(A[In ][Left ]),
-                        ToDarc<Tail>(A[In ][Right])
+                        ToDarc<Tail>(A[In ][Left ]), ToDarc<Tail>(A[In ][Right])
                     }
                 };
                 

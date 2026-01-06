@@ -136,30 +136,113 @@ void DeactivateArc( const Int a )
 public:
 
 /*!
- * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+ * @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
  *
- *  @param a The index of the arc in equations.
+ *  @param a The index of the arc in question.
  *
  *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
-bool ArcUnderQ( const Int a, const bool headtail )  const
+template<bool headtail>
+bool ArcSide( const Int a )  const
 {
-    return A_state[a].UnderQ(headtail);
+    return A_state[a].template Side<headtail>();
 }
 
-template<bool headtail>
-bool ArcUnderQ( const Int a )  const
+/*!
+ * @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcSide( const Int a, const bool headtail )  const
 {
-    return A_state[a].template UnderQQ<headtail>();
+    return A_state[a].Side(headtail);
+}
+
+
+
+
+/*!
+ * @brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+template<bool headtail>
+bool ArcRightHandedQ( const Int a )  const
+{
+    return A_state[a].template RightHandedQ<headtail>();
+}
+
+/*!
+ * @brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcRightHandedQ( const Int a, const bool headtail )  const
+{
+    return A_state[a].RightHandedQ(headtail);
+}
+
+
+
+
+/*!
+ * @brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+template<bool headtail>
+bool ArcLeftHandedQ( const Int a )  const
+{
+    return A_state[a].template LeftHandedQ<headtail>();
+}
+
+/*!
+ * @brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcLeftHandedQ( const Int a, const bool headtail )  const
+{
+    return A_state[a].LeftHandedQ(headtail);
+}
+
+
+/*!
+ * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+template<bool headtail>
+bool ArcOverQ( const Int a )  const
+{
+    return A_state[a].template OverQ<headtail>();
 }
 
 /*!
  * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
  *
- *  @param a The index of the arc in equations.
+ *  @param a The index of the arc in question.
  *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
 bool ArcOverQ( const Int a, const bool headtail )  const
@@ -167,11 +250,36 @@ bool ArcOverQ( const Int a, const bool headtail )  const
     return A_state[a].OverQ(headtail);
 }
 
+
+
+/*!
+ * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
 template<bool headtail>
-bool ArcOverQ( const Int a )  const
+bool ArcUnderQ( const Int a )  const
 {
-    return A_state[a].template OverQ<headtail>();
+    return A_state[a].template UnderQ<headtail>();
 }
+
+/*!
+ * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcUnderQ( const Int a, const bool headtail )  const
+{
+    return A_state[a].UnderQ(headtail);
+}
+
+
 
 bool AlternatingQ() const
 {
@@ -190,6 +298,10 @@ bool AlternatingQ() const
 
 /*!
  * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
+ *
+ *  @param a The index of the arc in question.
+ *
+ *  @tparam headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
  */
 
 template<bool headtail>
@@ -197,10 +309,6 @@ Int NextArc( const Int a ) const
 {
     return this->template NextArc<headtail>(a,A_cross(a,headtail));
 }
-
-/*!
- * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. This function exploits that `c` is already known; so it saves one memory lookup.
- */
 
 template<bool headtail>
 Int NextArc( const Int a, const Int c ) const

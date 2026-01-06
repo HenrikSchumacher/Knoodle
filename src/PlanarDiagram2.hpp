@@ -5,14 +5,10 @@
 
 namespace Knoodle
 {
-
 //    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
 //    
 //    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
 //    class ArcSimplifier;
-    
-    // TODO: Checking routine for arc states.
-    // TODO: Test ArcOverQ and ArcUnderQ.
     
     // TODO: Test NextArc, NextLeftArc, and NextRightArc.
     // TODO: Make Arrow_T obsolete. It is used in NextLeftArc, NextRightArc, etc.
@@ -20,10 +16,7 @@ namespace Knoodle
     
     // TODO: Port the methods in Unported.hpp
     // TODO: Port methods in Counters.hpp?
-    
-    // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
 
-    
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagram2 final : public CachedObject
     {
@@ -243,21 +236,9 @@ namespace Knoodle
             return pd;
         }
         
-        
-        static PD_T Unknot()
-        {
-            PD_T pd ( Int(0) );
-            pd.proven_minimalQ = true;
-            pd.color_flag      = Int(0);
-            return pd;
-        }
-        
-        static PD_T InvalidDiagram()
-        {
-            return PD_T();
-        }
-        
     public:
+        
+#include "PlanarDiagram2/Constructors.hpp"
         
 #include "PlanarDiagram2/Crossings.hpp"
 #include "PlanarDiagram2/Arcs.hpp"
@@ -272,7 +253,7 @@ namespace Knoodle
         
 #include "PlanarDiagram2/PDCode.hpp"
         
-//#include "PlanarDiagram2/ReadFromLink.hpp"
+
 
 
 //#include "PlanarDiagram2/R_I.hpp"
@@ -314,9 +295,14 @@ namespace Knoodle
             return proven_minimalQ;
         }
         
+        static PD_T InvalidDiagram()
+        {
+            return PD_T();
+        }
+        
         bool InvalidQ() const
         {
-            return (max_crossing_count == Int(0)) && ValidIndexQ(color_flag);
+            return (max_crossing_count == Int(0)) && !ValidIndexQ(color_flag);
         }
         
         bool ValidQ() const
@@ -324,14 +310,28 @@ namespace Knoodle
             return !InvalidQ();
         }
         
+        
+        static PD_T Unknot( const Int color )
+        {
+            PD_T pd ( Int(0) );
+            pd.proven_minimalQ = true;
+            pd.color_flag      = color;
+            return pd;
+        }
+        
+        bool ProvenUnknotQ() const
+        {
+            return proven_minimalQ && (crossing_count == Int(0)) && ValidIndexQ(color_flag);
+        }
+        
         bool ProvenTrefoilQ() const
         {
-            return proven_minimalQ && (CrossingCount() == Int(3)) && (LinkComponentCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(3)) && (LinkComponentCount() == Int(1));
         }
         
         bool ProvenFigureEightQ() const
         {
-            return proven_minimalQ && (CrossingCount() == Int(4)) && (LinkComponentCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(4)) && (LinkComponentCount() == Int(1));
         }
         
     public:
@@ -493,7 +493,7 @@ namespace Knoodle
         
     public:
         
-        void PrintInfo()
+        void PrintInfo() const
         {
             logprint(ClassName()+"::PrintInfo");
             
@@ -507,16 +507,15 @@ namespace Knoodle
 
 /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.
 */
-        Size_T AllocatedByteCount()
+        Size_T AllocatedByteCount() const
         {
-            Size_T byte_count =
-                  C_arcs.AllocatedByteCount()
-                + C_state.AllocatedByteCount()
-                + C_scratch.AllocatedByteCount()
-                + A_cross.AllocatedByteCount()
-                + A_state.AllocatedByteCount()
-                + A_color.AllocatedByteCount()
-                + A_scratch.AllocatedByteCount();
+            Size_T byte_count = C_arcs.AllocatedByteCount()
+                              + C_state.AllocatedByteCount()
+                              + C_scratch.AllocatedByteCount()
+                              + A_cross.AllocatedByteCount()
+                              + A_state.AllocatedByteCount()
+                              + A_color.AllocatedByteCount()
+                              + A_scratch.AllocatedByteCount();
             
             // TODO: This does not account for Cache and PersistentCache.
             
@@ -538,7 +537,7 @@ namespace Knoodle
         
 /*!@brief A coarse estimator of memory in use for this class instance. Does not account for quantities stored in the class' cache.
 */
-        Size_T ByteCount()
+        Size_T ByteCount() const
         {
             return sizeof(PlanarDiagram2) + AllocatedByteCount();
         }

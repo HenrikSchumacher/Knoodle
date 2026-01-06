@@ -42,6 +42,7 @@ PD_T CreateCompressed()
         )
         {
             (void)lc;
+            (void)c_1;
             (void)c_1_visitedQ;
 
             if constexpr( recolorQ )
@@ -79,9 +80,10 @@ PD_T CreateCompressed()
     return pd;
 }
 
+template<bool recolorQ = false>
 void Compress()
 {
-    (*this) = this->CreateCompressed();
+    (*this) = this->template CreateCompressed<recolorQ>();
 }
 
 bool CompressedOrderQ()

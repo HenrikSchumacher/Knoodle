@@ -119,7 +119,7 @@ void Traverse( ArcFun_T && arc_fun )  const
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = 0, bool use_lutQ = true,
+    int start_arc_ou = 0, bool lutQ = true,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse_ByNextArc(
@@ -130,25 +130,26 @@ void Traverse_ByNextArc(
                  + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
                  + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
                  + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
-                 + "," + ToString(use_lutQ)
+                 + "," + ToString(lutQ)
                  + ">");
     
     auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
     
     auto * C_data = C_scratch.data();
 
-    if constexpr ( use_lutQ )
+    if constexpr ( lutQ )
     {
-        this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
+        this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
             ArcNextArc().data(), A_data, C_data
         );
         
-        this->ClearCache("ArcNextArc");
+        // TODO: Is it really necessary to delete this cache?
+//        this->ClearCache("ArcNextArc");
     }
     else
     {
-        this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
+        this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
             nullptr, A_data, C_data
         );
@@ -161,12 +162,12 @@ void Traverse_ByNextArc(
 
 template<
     bool crossingsQ, bool arclabelsQ,
-    int start_arc_ou = 0, bool use_lutQ = true,
+    int start_arc_ou = 0, bool lutQ = true,
     typename ArcFun_T
 >
 void Traverse_ByNextArc( ArcFun_T && arc_fun )  const
 {
-    this->template Traverse_ByNextArc<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
+    this->template Traverse_ByNextArc<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
         []( const Int lc, const Int lc_begin )
         {
             (void)lc;
@@ -185,7 +186,7 @@ void Traverse_ByNextArc( ArcFun_T && arc_fun )  const
 private:
 
 template<
-    bool crossingsQ, bool arclabelsQ, int start_arc_ou, bool use_lutQ,
+    bool crossingsQ, bool arclabelsQ, int start_arc_ou, bool lutQ,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse_ByNextArc_impl(
@@ -198,7 +199,7 @@ void Traverse_ByNextArc_impl(
 )  const
 {
 
-    if constexpr ( !use_lutQ )
+    if constexpr ( !lutQ )
     {
         (void)A_next;
     }
@@ -209,7 +210,7 @@ void Traverse_ByNextArc_impl(
                + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
                + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
                + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
-               + "," + ToString(use_lutQ)
+               + "," + ToString(lutQ)
                + " >: Trying to traverse an invalid planar diagram. Aborting.");
         
         // Other methods might assume that this is set.
@@ -263,7 +264,7 @@ void Traverse_ByNextArc_impl(
                 do
                 {
                     // Move to next arc.
-                    if constexpr ( use_lutQ )
+                    if constexpr ( lutQ )
                     {
                         a = A_next[a];
                     }
@@ -351,7 +352,7 @@ void Traverse_ByNextArc_impl(
             }
             
             // Move to next arc.
-            if constexpr ( use_lutQ )
+            if constexpr ( lutQ )
             {
                 a = A_next[a];
             }
