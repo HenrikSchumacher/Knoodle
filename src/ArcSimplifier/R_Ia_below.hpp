@@ -190,10 +190,8 @@ bool R_Ia_below()
             AssertArc<1>(n_0);
             AssertArc<0>(s_0);
             AssertArc<1>(w_0);
-            AssertArc<0>(n_1);
             AssertArc<1>(e_1);
             AssertArc<0>(s_1);
-            AssertArc<0>(e_2);
             AssertArc<1>(s_2);
             AssertArc<1>(w_2);
             AssertCrossing<1>(c_0);
@@ -243,7 +241,7 @@ bool R_Ia_below()
             
             if(e_2 == s_2)
             {
-                PD_PRINT("\t\t\t\e_2 == s_2");
+                PD_PRINT("\t\t\te_2 == s_2");
                 
                 /*           +-----------+             +-----------+
                  *           |           |             |           |
@@ -264,7 +262,7 @@ bool R_Ia_below()
                 return true;
             }
             
-            PD_DPRINT("\t\t\t\e_2 != s_2");
+            PD_DPRINT("\t\t\te_2 != s_2");
             
             /* Two further interesting cases.
              *

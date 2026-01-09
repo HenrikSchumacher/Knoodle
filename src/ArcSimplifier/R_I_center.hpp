@@ -69,7 +69,7 @@ bool R_I_center()
         else
         {
             PD_PRINT("\t\tn_0 == a");
-            PD_ASSERT("n_0 == a");
+            PD_ASSERT(n_0 == a);
             
             if(w_0 != s_0)
             {
