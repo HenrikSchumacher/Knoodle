@@ -15,7 +15,7 @@ Tensor1<T,Int> LevelsMinHeight( cref<PlanarDiagram<Int>> pd )
     {
         if( pd.ArcActiveQ(a) )
         {
-            L[a] = pd.template ArcOverQ<PD_T::Tail>(a);
+            L[a] = pd.ArcOverQ(a,PD_T::Tail);
         }
         else
         {

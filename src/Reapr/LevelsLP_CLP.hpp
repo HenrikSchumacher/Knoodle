@@ -99,10 +99,10 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) cons
         return Sparse::MatrixCSR<Real,I,J>();
     }
     
-    cptr<Int>           C_arcs   = pd.Crossings().data();
-    cptr<CrossingState> C_states = pd.CrossingStates().data();
+    cptr<Int>             C_arcs   = pd.Crossings().data();
+    cptr<CrossingState_T> C_states = pd.CrossingStates().data();
 //    cptr<Int>           A_pos    = pd.ArcPositions().data();
-    cptr<Int>           A_pos    = LevelsLP_ArcIndices(pd).data();
+    cptr<Int>             A_pos    = LevelsLP_ArcIndices(pd).data();
     
     TripleAggregator<I,I,R,J> agg ( int_cast<J>(nnz) );
     

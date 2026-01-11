@@ -40,9 +40,9 @@ void LevelsConstraintMatrix_CollectTriples(
         return;
     }
     
-    cptr<Int>           C_arcs   = pd.Crossings().data();
-    cptr<CrossingState> C_states = pd.CrossingStates().data();
-    cptr<Int>           A_pos    = pd.ArcPositions().data();
+    cptr<Int>             C_arcs   = pd.Crossings().data();
+    cptr<CrossingState_T> C_states = pd.CrossingStates().data();
+    cptr<Int>             A_pos    = pd.ArcPositions().data();
     
     const Int C_count = pd.MaxCrossingCount();
     

@@ -223,7 +223,7 @@ namespace Knoodle
                     
                     x[a] = level;
                  
-                    a = pd.template NextArc<1>(a);
+                    a = pd.NextArc(a,PD_T::Head);
                 }
             }
         }

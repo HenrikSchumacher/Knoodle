@@ -70,8 +70,8 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
     const Int c_count = pd.MaxCrossingCount();
           Int c_pos   = n;
     
-    cptr<Int>           C_arcs   = pd.Crossings().data();
-    cptr<CrossingState> C_states = pd.CrossingStates().data();
+    cptr<Int>             C_arcs   = pd.Crossings().data();
+    cptr<CrossingState_T> C_states = pd.CrossingStates().data();
     
     for( Int c = 0; c < c_count; ++c )
     {
