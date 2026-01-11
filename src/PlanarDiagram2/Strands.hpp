@@ -102,9 +102,9 @@ Tensor3<Int,Int> CrossingStrands() const
             (void)lc;
             
             const Int  c_0    = A_cross(a,Tail);
-            const bool side_0 = ArcSide(a,Tail);
+            const bool side_0 = ArcSide(a,Tail,c_0);
             const Int  c_1    = A_cross(a,Head);
-            const bool side_1 = ArcSide(a,Head);
+            const bool side_1 = ArcSide(a,Head,c_0);
             
             C_strand(c_0,Out,side_0) = strand;
             C_strand(c_1,In ,side_1) = strand;

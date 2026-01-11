@@ -75,13 +75,13 @@ bool R_IIa_diff_o_diff_u()
     // TODO: Implement counters.
 //    ++pd.R_IIa_counter;
     
-    RecomputeArcState(a  );
-    RecomputeArcState(w_0);
-    RecomputeArcState(e_1);
-    RecomputeArcState(s_2);
-    RecomputeArcState(w_2);
-    RecomputeArcState(n_3);
-    RecomputeArcState(w_3);
+//    RecomputeArcState(a  );
+//    RecomputeArcState(w_0);
+//    RecomputeArcState(e_1);
+//    RecomputeArcState(s_2);
+//    RecomputeArcState(w_2);
+//    RecomputeArcState(n_3);
+//    RecomputeArcState(w_3);
     
     AssertArc<1>(a  );
     AssertArc<0>(n_0);

@@ -68,6 +68,25 @@ std::string ArcString( const Int a_ )  const
     return pd.ArcString(a_) + " (mark = " + ToString(A_mark(a_)) + ")";
 }
 
+bool ArcUnderQ( const Int a, const bool headtail, const Int c ) const
+{
+    return pd.ArcUnderQ(a,headtail,c);
+}
+
+bool ArcUnderQ( const Int a, const bool headtail ) const
+{
+    return pd.ArcUnderQ(a,headtail);
+}
+
+bool ArcOverQ( const Int a, const bool headtail, const Int c ) const
+{
+    return pd.ArcOverQ(a,headtail,c);
+}
+
+bool ArcOverQ( const Int a, const bool headtail ) const
+{
+    return pd.ArcOverQ(a,headtail);
+}
 
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {

@@ -113,7 +113,7 @@ Size_T SimplifyGlobal_impl(
             if( !simplify_strandsQ ) { break; }
             
             // Reroute overstrands.
-            const Size_T o_changes = S.ReroutePasses(true,dist);
+            const Size_T o_changes = S.SimplifyStrands(true,dist);
             counter += o_changes;
             
             if( compressQ && (o_changes > Int(0)) ) { pd.Compress(); }
@@ -121,7 +121,7 @@ Size_T SimplifyGlobal_impl(
             PD_ASSERT(pd.CheckAll());
             
             // Reroute overstrands.
-            const Size_T u_changes = S.ReroutePasses(false,dist);
+            const Size_T u_changes = S.SimplifyStrands(false,dist);
             counter += u_changes;
             
             if( compressQ && (u_changes > Int(0)) ) { pd.Compress(); }

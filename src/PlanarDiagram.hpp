@@ -47,6 +47,9 @@ namespace Knoodle
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
         
+        using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
+        using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
+        
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
         using ArcColorContainer_T       = Tensor1<Int,Int>;

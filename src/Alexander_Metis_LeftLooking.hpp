@@ -108,8 +108,7 @@ namespace Knoodle
                 
                 if( LeftHandedQ(C_state[c]) )
                 {
-                    Int C [2][2];
-                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    const C_Arc_T C = CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -138,8 +137,7 @@ namespace Knoodle
                 }
                 else if( RightHandedQ(C_state[c]) )
                 {
-                    Int C [2][2];
-                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    const C_Arc_T C = CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];
@@ -206,8 +204,7 @@ namespace Knoodle
                 
                 if( LeftHandedQ( C_state[c] ) )
                 {
-                    Int C [2][2];
-                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    const C_Arc_T C = CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -232,8 +229,7 @@ namespace Knoodle
                 }
                 else if( RightHandedQ(C_state[c]) )
                 {
-                    Int C [2][2];
-                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    const C_Arc_T C = CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];

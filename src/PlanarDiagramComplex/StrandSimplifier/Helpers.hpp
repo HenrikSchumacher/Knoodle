@@ -37,13 +37,11 @@ void AssertCrossing( const Int c_ ) const
     (void)c_;
 #endif
 }
-
+    
 std::string CrossingString( const Int c_ ) const
 {
     return pd.CrossingString(c_) + " (mark = " + ToString(C_mark(c_)) + ")";
 }
-
-
 
 bool ArcActiveQ( const Int a_ ) const
 {
@@ -55,11 +53,6 @@ void DeactivateArc( const Int a_ ) const
     pd.DeactivateArc(a_);
 }
 
-void RecomputeArcState( const Int a_ )
-{
-    pd.RecomputeArcState(a_);
-}
-    
 template<bool must_be_activeQ>
 void AssertArc( const Int a_ ) const
 {
@@ -75,34 +68,42 @@ std::string ArcString( const Int a_ )  const
     return pd.ArcString(a_) + " (mark = " + ToString(A_mark(a_)) + ")";
 }
 
-bool ArcSide( const Int a, const bool headtail ) const
+bool ArcUnderQ( const Int a, const bool headtail, const Int c ) const
 {
-    // TODO: We do it conservatively for now. Change this to ArcSide later.
-    return pd.ArcSide_Reference(a,headtail);
-}
-
-bool ArcOverQ( const Int a, const bool headtail ) const
-{
-    // TODO: We do it conservatively for now. Change this to ArcSide later.
-    return pd.ArcOverQ_Reference(a,headtail);
+    return pd.ArcUnderQ(a,headtail,c);
 }
 
 bool ArcUnderQ( const Int a, const bool headtail ) const
 {
-    // TODO: We do it conservatively for now. Change this to ArcSide later.
-    return pd.ArcUnderQ_Reference(a,headtail);
+    return pd.ArcUnderQ(a,headtail);
+}
+
+bool ArcOverQ( const Int a, const bool headtail, const Int c ) const
+{
+    return pd.ArcOverQ(a,headtail,c);
+}
+
+bool ArcOverQ( const Int a, const bool headtail ) const
+{
+    return pd.ArcOverQ(a,headtail);
 }
 
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
-    // TODO: We do it conservatively for now. Change this to ArcSide later.
-    return pd.NextArc_Reference(a,headtail,c);
+    // TODO: We do it conservatively for now. We can accelerate it later.
+    const Int a_next = pd.NextArc(a,headtail,c);
+    PD_ASSERT(a != a_next);
+    AssertArc<1>(a_next);
+    return a_next;
 }
 
 Int NextArc( const Int a, const bool headtail ) const
 {
-    // TODO: We do it conservatively for now. Change this to ArcSide later.
-    return pd.NextArc_Reference(a,headtail);
+    // TODO: We do it conservatively for now. We can accelerate it later.
+    const Int a_next = pd.NextArc(a,headtail);
+    PD_ASSERT(a != a_next);
+    AssertArc<1>(a_next);
+    return a_next;
 }
 
 
@@ -116,3 +117,5 @@ static constexpr Int FlipDarc( Int da )
 {
     return PD_T::FlipDarc(da);
 }
+
+

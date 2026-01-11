@@ -1,4 +1,5 @@
 public:
+
 /*! @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
  */
 
@@ -73,6 +74,11 @@ cref<ArcStateContainer_T> ArcStates() const
 cref<Tensor1<Int,Int>> ArcScratchBuffer() const
 {
     return A_scratch;
+}
+
+A_Cross_T CopyArc( const Int a ) const
+{
+    return A_Cross_T( A_cross.data(a) );
 }
 
 ArcState_T ArcState( const Int a ) const
@@ -179,19 +185,6 @@ bool ArcOverQ( const Int a, const bool headtail )  const
     return !ArcUnderQ(a,headtail);
 }
 
-bool AlternatingQ() const
-{
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 
 /*! @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
  */
@@ -219,6 +212,19 @@ Int NextArc( const Int a, const bool headtail, const Int c ) const
     AssertArc(a_next);
     
     return a_next;
+}
+
+bool AlternatingQ() const
+{
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 cref<Tensor1<Int,Int>> ArcNextArc() const

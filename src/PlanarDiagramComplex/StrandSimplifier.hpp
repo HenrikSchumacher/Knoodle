@@ -19,7 +19,8 @@ namespace Knoodle
         
         using Int  = Int_;
         
-        using PD_T = PlanarDiagram<Int>;
+        using PDC_T      = PlanarDiagramComplex<Int>;
+        using PD_T       = PDC_T::PD_T;
         
         // We need a signed integer type for Mark_T because we use negative marks to indicate directions in the dual graph.
         // TODO: We could do that also with the least significant bit as we do it for darcs...
@@ -73,7 +74,7 @@ namespace Knoodle
         Int a_ptr = 0;
 
         Int strand_length  = 0;
-        Size_T change_counter = 0;
+        Int change_counter = 0;
         
         bool overQ;
         bool strand_completeQ;
@@ -177,28 +178,17 @@ namespace Knoodle
             C_mark(c) = current_mark;
         }
         
-        void CreateUnlinkFromArc( const Int a_ )
-        {
-            ++pd.unlink_count;
-            (void)a_;
-            
-//            pdc.CreateUnlink(pd.A_color[a_]);
-        }
+    public:
         
-        void CountReidemeister_I()
+        void SetStrandMode( const bool overQ_ )
         {
-            ++pd.R_I_counter;
-        }
-        
-        void CountReidemeister_II()
-        {
-            ++pd.R_II_counter;
+            overQ = overQ_;
         }
         
     public:
         
         template<typename Int_0, typename Int_1>
-        Size_T MarkArcs(
+        Int MarkArcs(
             const Int_0 a_first, const Int_0 a_last, const Int_1 mark
         )
         {
@@ -210,7 +200,7 @@ namespace Knoodle
             const Int a_end   = NextArc(int_cast<Int>(a_last),Head);
             Int a = a_begin;
             
-            Size_T counter = 0;
+            Int counter = 0;
             
             do
             {
@@ -257,7 +247,7 @@ namespace Knoodle
             AssertArc<1>(a);
 
             // Take a first step in any case.
-            if( ArcUnderQ(a,Tail) != overQ  )
+            if( pd.ArcUnderQ(a,Tail) != overQ  )
             {
                 a = NextArc(a,Tail);
             }
@@ -265,7 +255,7 @@ namespace Knoodle
             // If the link has multiple components, it can also happen that the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well. So we need a guard against cycling around this unlink forever!                                   ----------------+
             //                                            |
             //                                            V
-            while( (ArcUnderQ(a,Tail) != overQ) && (a != a_0) )
+            while( (pd.ArcUnderQ(a,Tail) != overQ) && (a != a_0) )
             {
                 a = NextArc(a,Tail);
             }

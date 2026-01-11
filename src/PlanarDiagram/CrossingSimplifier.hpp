@@ -22,6 +22,8 @@ namespace Knoodle
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
+        using C_Arc_T                   = typename PD_T::C_Arc_T;
+        using A_Cross_T                 = typename PD_T::A_Cross_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
         

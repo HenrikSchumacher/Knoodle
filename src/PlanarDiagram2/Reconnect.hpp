@@ -59,8 +59,10 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    C_arcs(c,headtail,A_state[b].Side(headtail)) = a;
-    A_state[a].Copy(headtail,A_state[b]);
+    SetMatchingPortTo(c,headtail,b,a);
+    
+//    C_arcs(c,headtail,ArcSide(b,headtail,c)) = a;
+//    A_state[a].Copy(headtail,A_state[b]);
     DeactivateArc(b);
 }
 
@@ -85,8 +87,10 @@ void Reconnect( const Int a, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    C_arcs(c,headtail,A_state[b].Side(headtail)) = a;
-    A_state[a].Copy(headtail,A_state[b]);
+    SetMatchingPortTo<headtail>(c,b,a);
+    
+//    C_arcs(c,headtail,A_state[b].Side(headtail)) = a;
+//    A_state[a].Copy(headtail,A_state[b]);
 
     if constexpr ( deactivateQ )
     {

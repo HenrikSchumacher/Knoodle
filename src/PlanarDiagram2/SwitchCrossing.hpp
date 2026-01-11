@@ -34,17 +34,17 @@ private:
 template<bool warningQ = false>
 bool Private_SwitchCrossing( const Int c )
 {
-    if( C_state[c].InactiveQ() )
+    if( !ActiveQ(C_state[c]) )
     {
         if constexpr ( warningQ )
         {
-            wprint(ClassName()+"::Private_SwitchCrossing: Crossing " + CrossingString(c) + " was already deactivated. Doing nothing.");
+            wprint(MethodName("Private_SwitchCrossing")+": Crossing " + CrossingString(c) + " was already deactivated. Doing nothing.");
         }
         return false;
     }
     else
     {
-        C_state[c] = C_state[c].Switch();
+        C_state[c] = Switch(C_state[c]);
         return true;
     }
 }

@@ -21,7 +21,8 @@ bool Reidemeister_II( const Int c_0 )
     
     //    bool is_switch_candidate = false;
     
-    const Int C [2][2] = {
+//    const Int C [2][2]
+    const C_Arc_T C = {
         { pd.NextCrossing(c_0,Out,Left), pd.NextCrossing(c_0,Out,Right) },
         { pd.NextCrossing(c_0,In ,Left), pd.NextCrossing(c_0,In ,Right) }
     };

@@ -20,10 +20,9 @@ void RemoveLoop( const Int e, const Int c_0 )
         {
             const bool u_0 = (C_arcs(c_0,Out,Right) == a);
             
-            ++pd.unlink_count;
+            CreateUnlinkFromArc(a);
             CollapseArcRange(a,e,strand_length);
-            
-            pd.DeactivateArc(a);
+            DeactivateArc(a);
             
             // overQ == true;
             //                   n_0
@@ -43,8 +42,8 @@ void RemoveLoop( const Int e, const Int c_0 )
 
             if( s_0 == n_0 )
             {
-                ++pd.unlink_count;
-                pd.DeactivateArc(s_0);
+                CreateUnlinkFromArc(s_0);
+                DeactivateArc(s_0);
                 
             }
             else
@@ -59,7 +58,7 @@ void RemoveLoop( const Int e, const Int c_0 )
                 }
             }
             
-            pd.DeactivateCrossing(c_0);
+            DeactivateCrossing(c_0);
             
             ++change_counter;
             

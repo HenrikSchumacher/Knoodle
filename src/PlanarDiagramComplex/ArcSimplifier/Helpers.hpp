@@ -51,10 +51,10 @@ void DeactivateArc( const Int a_ ) const
     return pd.DeactivateArc(a_);
 }
 
-void RecomputeArcState( const Int a_ )
-{
-    pd.RecomputeArcState(a_);
-}
+//void RecomputeArcState( const Int a_ )
+//{
+//    pd.RecomputeArcState(a_);
+//}
 
 template<bool must_be_activeQ>
 void AssertArc( const Int a_ )

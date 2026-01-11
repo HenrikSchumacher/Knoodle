@@ -60,7 +60,6 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     }
 
     A_cross(a,headtail) = c;
-
     SetMatchingPortTo(c,headtail,b,a);
     
     DeactivateArc(b);
@@ -105,7 +104,6 @@ void Reconnect( const Int a, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    
     SetMatchingPortTo<headtail>(c,b,a);
 
     if constexpr( deactivateQ )

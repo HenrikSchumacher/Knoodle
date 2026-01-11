@@ -69,6 +69,10 @@ cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
     return C_scratch;
 }
 
+C_Arc_T CopyCrossing( const Int c ) const
+{
+    return C_Arc_T( C_arcs.data(c) );
+}
 
 CrossingState_T CrossingState( const Int c ) const
 {
@@ -81,7 +85,7 @@ CrossingState_T CrossingState( const Int c ) const
 
 bool CrossingActiveQ( const Int c ) const
 {
-    return C_state[c].ActiveQ();
+    return ActiveQ(C_state[c]);
 }
 
 std::string CrossingString( const Int c ) const
@@ -97,12 +101,12 @@ std::string CrossingString( const Int c ) const
 
 bool CrossingRightHandedQ( const Int c ) const
 {
-    return C_state[c].RightHandedQ();
+    return RightHandedQ(C_state[c]);
 }
 
 bool CrossingLeftHandedQ( const Int c ) const
 {
-    return C_state[c].LeftHandedQ();
+    return LeftHandedQ(C_state[c]);
 }
 
 bool OppositeHandednessQ( const Int c_0, const Int c_1 ) const
@@ -140,7 +144,7 @@ void DeactivateCrossing( const Int c )
     {
         PD_PRINT("Deactivating " + CrossingString(c) + "." );
         --crossing_count;
-        C_state[c] = CrossingState_T::Inactive();
+        C_state[c] = CrossingState_T::Inactive;
     }
     else
     {

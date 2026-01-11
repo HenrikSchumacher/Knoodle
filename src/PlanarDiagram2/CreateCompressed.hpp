@@ -75,11 +75,15 @@ PD_T CreateCompressed()
             A_cross_new(a_pos,Tail) = c_0_pos;
             A_cross_new(a_pos,Head) = c_1_pos;
             
-            const ArcState_T a_state = this->A_state[a];
+//            const ArcState_T a_state = this->A_state[a];
+//            A_state_new[a_pos] = a_state;
+//            C_arcs_new(c_0_pos,Out,a_state.Side(Tail)) = a_pos;
+//            C_arcs_new(c_1_pos,In ,a_state.Side(Head)) = a_pos;
             
-            A_state_new[a_pos] = a_state;
-            C_arcs_new(c_0_pos,Out,a_state.Side(Tail)) = a_pos;
-            C_arcs_new(c_1_pos,In ,a_state.Side(Head)) = a_pos;
+            A_state_new[a_pos] = ArcState_T::Active;
+            C_arcs_new(c_0_pos,Out,ArcSide(a,Tail,c_0)) = a_pos;
+            C_arcs_new(c_1_pos,In ,ArcSide(a,Head,c_1)) = a_pos;
+
         },
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {

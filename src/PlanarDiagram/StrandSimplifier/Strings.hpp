@@ -10,7 +10,7 @@ std::string ArcRangeString( const Int a_begin, const Int a_end ) const
     
     s += ToString(0) + " : " + CrossingString(A_cross(a,Tail)) + ")\n"
        + ToString(0) + " : " + ArcString(a)
-       + " (" + (pd.ArcOverQ(a,Head) ? "over" : "under") + ")\n"
+       + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
     + ToString(1) + " : " + CrossingString(A_cross(a,Head)) + "\n";
 
     do
@@ -18,7 +18,7 @@ std::string ArcRangeString( const Int a_begin, const Int a_end ) const
         ++i;
         a = NextArc(a,Head);
         s += ToString(i  ) + " : " +  ArcString(a)
-           + " (" + (pd.ArcOverQ(a,Head) ? "over" : "under") + ")\n"
+           + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
             + ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
     }
     while( a != a_end );

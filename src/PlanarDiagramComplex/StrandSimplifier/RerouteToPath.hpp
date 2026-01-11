@@ -1,21 +1,16 @@
 private:
-
-/*! @brief Attempts to reroute the strand. It is typically not safe to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct marking of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
- *  This is why we make this function private.
+            
+/*!
+ * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
+ * This is why we make this function private.
  *
- *  This implicitly _assumes_ that we can travel from `a_first` to `a_last` by `NextArc(-,Head)`. Otherwise, the behavior is undefined.
+ * @param a_first The first arc of the strand on entry as well as as on return.
  *
- *  Moreover, this assumes that a valid path is set, e.g., by `FindShortestPath_impl`. Otherwise, the behavior is undefined.
- *
- *  @param a_first The first arc of the strand on entry as well as as on return.
- *
- *  @param a_last The last arc of the strand (included) on entry as well as on return. Note that this value is a reference and that the passed variable will likely be changedQ!
+ * @param a_last The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
  */
 
 bool RerouteToPath( const Int a_first, mref<Int> a_last )
 {
-   PD_TIMER(timer,MethodName("RerouteToPath"));
-   
 #ifdef PD_TIMINGQ
    const Time start_time = Clock::now();
 #endif
@@ -25,287 +20,286 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     TOOLS_LOGDUMP(Cr_0);
 #endif
    
-   PD_TIC("Prepare rerouting");
-   
-   // path[0] == a_first. This is not to be crossed.
-   
-   Int p = 1;
-   Int a = a_first;
-   
-   // At the beginning of the strand we want to avoid inserting a crossing on arc `b` if `b` branches directly off from the current strand.
-   //
-   //      |         |        |        |
-   //      |    a    |        |        |    current strand
-   //    --|-------->-------->-------->-------->
-   //      |         |        |        |
-   //      |         |        |        |
-   //            b = path[p]?
-   //
+    // path[0] == a_first. This is not to be crossed.
+    
+    Int p = 1;
+    Int a = a_first;
+    
+    // At the beginning of the strand we want to avoid inserting a crossing on arc `b` if `b` branches directly off from the current strand.
+    //
+    //      |         |        |        |
+    //      |    a    |        |        |    current strand
+    //    --|-------->-------->-------->-------->
+    //      |         |        |        |
+    //      |         |        |        |
+    //            b = path[p]?
+    //
 
-   WalkToBranch<Head>(a,p);
-   
-   // Now `a` is the first arc to be rerouted.
-   
-   // Same at the end.
-   
-   Int q = path_length - Int(1);
-   Int e = a_last;
-
+    WalkToBranch<Head>(a,p);
+    
+    // Now `a` is the first arc to be rerouted.
+    
+    // Same at the end.
+    
+    Int q = path_length - Int(1);
+    Int e = a_last;
+    
     WalkToBranch<Tail>(e,q);
 
-   // Now e is the last arc to be rerouted.
-   
-   // Handle the rerouted arcs.
-   PD_TOC("Prepare rerouting");
-   
-   PD_TIC("Rerouting");
+    // Now e is the last arc to be rerouted.
+    
+    // Handle the rerouted arcs.
+    
+    PD_TIC("While loop for rerouting");
 
-   while( p < q )
-   {
-       const Int c_0 = A_cross(a,Head);
-       
-       // Warning: This is not(!) the side at which a is attached! It is the side of a_0.
-       const bool side = !ArcSide(a,Head);
-//       const bool side = (C_arcs(c_0,Head,Right) != a);
-       
-       // a_0 is the horizontal outgoing arc.
-       const Int a_2 = C_arcs(c_0,Out,side);
-       
-       const Int b = path[p];
+    while( p < q )
+    {
+        const Int c_0 = A_cross(a,Head);
+        
+        const bool side = (C_arcs(c_0,In,Right) != a);
+        
+        const Int a_2 = C_arcs(c_0,Out,side);
+        
+        const Int b = path[p];
 
-       const bool dir = (D_mark(b) > Mark_T(0));
-       
-       const Int c_1 = A_cross(b,Head);
-       
-       // This is the situation for `a` before rerouting for `side == Right`;
-       //
-       //
-       //                ^a_1
-       //      |         |        |        |
-       //      |    a    |  a_2   |        |   e
-       //    --|-------->-------->--......-->-------->
-       //      |         ^c_0     |        |
-       //      |         |        |        |
-       //                |a_0
-       //
-       
-       // a_0 is the vertical incoming arc.
-       const Int a_0 = C_arcs(c_0,In , side);
-       // a_1 is the vertical outgoing arc.
-       const Int a_1 = C_arcs(c_0,Out,!side);
-       
-       if constexpr ( !mult_compQ )
-       {
-           PD_ASSERT( a_0 != a_1 );
-       }
-       else
-       {
-           // DEBUGGING
-           if( a_0 == a_1 )
-           {
-               eprint(MethodName("RerouteToPath")+": a_0 == a_1, so we are doing something wrong here.");
-           }
-       }
-       
-       PD_ASSERT( b != a_2 )    // Why?
-       PD_ASSERT( b != a )      // Why?
-       
-       // In the cases b == a_0 and b == a_1, we can simply leave everything as it is!
-       if( (b == a_0) || (b == a_1) )
-       {
-           // Go to next arc.
-           a = a_2;
-           ++p;
-           
-           continue;
-       }
-       
-       // The case `dir == true`.
-       // We cross arc `b` from left to right.
-       //
-       // Situation of `b` before rerouting:
-       //
-       //             ^
-       //             | b_next
-       //             |
-       //             O
-       //             ^
-       //             |
-       //  ------O----X----O------
-       //             |c_1
-       //             |
-       //             O
-       //             ^
-       //  >>>>>>     | b
-       //             |
-       //             X
-       //
-       // We want to change this into the following:
-       //
-       //             ^
-       //             | b_next
-       //             |
-       //             O
-       //             ^
-       //             |
-       //  ------O----X----O------
-       //             |c_1
-       //             |
-       //             O
-       //             ^
-       //             | a_1
-       //             |
-       //             O
-       //             ^
-       //    a        |     a_2
-       //  ----->O----X----O----->
-       //             |c_0
-       //             |
-       //             O
-       //             ^
-       //             | b
-       //             |
-       //             X
+        const bool dir = (D_mark(b) > Mark_T(0));
+        
+        const Int c_1 = A_cross(b,Head);
+        
+        // This is the situation for `a` before rerouting for `side == Right`;
+        //
+        //
+        //                ^a_1
+        //      |         |        |        |
+        //      |    a    | a_2    |        |   e
+        //    --|-------->-------->--......-->-------->
+        //      |         ^c_0     |        |
+        //      |         |        |        |
+        //                |a_0
+        //
+        
+        // a_0 is the vertical incoming arc.
+        const Int a_0 = C_arcs(c_0,In , side);
+        
+        // a_1 is the vertical outgoing arc.
+        const Int a_1 = C_arcs(c_0,Out,!side);
+        
+        // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
+        PD_ASSERT( b != a_2 )
+        PD_ASSERT( b != a )
+        
+        if( (b == a_0) || (b == a_1) )
+        {
+            // Go to next arc.
+            a = a_2;
+            ++p;
+            
+            continue;
+        }
+        
+        PD_ASSERT( a_0 != a_1 );
+        
+        
+        // The case `dir == true`.
+        // We cross arc `b` from left to right.
+        //
+        // Situation of `b` before rerouting:
+        //
+        //             ^
+        //             | b_next
+        //             |
+        //             O
+        //             ^
+        //             |
+        //  ------O----X----O------
+        //             |c_1
+        //             |
+        //             O
+        //             ^
+        //  >>>>>>     | b
+        //             |
+        //             X
+        //
+        // We want to change this into the following:
+        //
+        //             ^
+        //             | b_next
+        //             |
+        //             O
+        //             ^
+        //             |
+        //  ------O----X----O------
+        //             |c_1
+        //             |
+        //             O
+        //             ^
+        //             | a_1
+        //             |
+        //             O
+        //             ^
+        //    a        |     a_2
+        //  ----->O----X----O----->
+        //             |c_0
+        //             |
+        //             O
+        //             ^
+        //             | b
+        //             |
+        //             X
+        
+        Reconnect<Head,false>(a_0,a_1);
+        Reconnect<Head,false>(a_1,b  );
+        
+        // We have to reconnect the head of b to c_0 manually, since a_0 has forgotten that it is connected to c_0.
+        
+        A_cross(b,Head) = c_0;
+        
+        const Int da   = ToDarc(a  ,Head);
+        const Int db   = ToDarc(b  ,Head);
+        const Int da_1 = ToDarc(a_1,Tail);
+        const Int da_2 = ToDarc(a_2,Tail);
+        
+        // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
+        if( dir )
+        {
+            C_state[c_0] = overQ
+                         ? CrossingState_T::RightHanded
+                         : CrossingState_T::LeftHanded;
+            
+            // overQ == true
+            //
+            //             O
+            //             ^
+            //             | a_1
+            //             |
+            //             O
+            //             ^
+            //    a        |     a_2
+            //  ----->O---------O----->
+            //             |c_0
+            //             |
+            //             O
+            //             ^
+            //             | b == path[p]
+            //             |
+            //             X
+            
+            // Fortunately, this does not depend on overQ.
+            const Int buffer [4] = { a_1,a_2,a,b };
+            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
+            
+            dA_left[da  ] = FlipDarc(da_1);
+            dA_left[da_2] = FlipDarc(db  );
+            dA_left[db  ] = FlipDarc(da  );
+            dA_left[da_1] = FlipDarc(da_2);
+        }
+        else // if ( !dir )
+        {
+            C_state[c_0] = overQ
+                         ? CrossingState_T::LeftHanded
+                         : CrossingState_T::RightHanded;
+            
+            // overQ == true
+            //
+            //             O
+            //             ^
+            //             | a_1
+            //             |
+            //             O
+            //             ^
+            //    a_2      |        a
+            //  <-----O---------O<-----
+            //             |c_0
+            //             |
+            //             O
+            //             ^
+            //             | b == path[p]
+            //             |
+            //             X
+            
+            // Fortunately, this does not depend on overQ.
+            const Int buffer [4] = { a_2,a_1,b,a };
+            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
+            
+            dA_left[da  ] = FlipDarc(db  );
+            dA_left[da_2] = FlipDarc(da_1);
+            dA_left[db  ] = FlipDarc(da_2);
+            dA_left[da_1] = FlipDarc(da  );
+        }
+        
+        AssertCrossing<1>(c_0);
+        AssertCrossing<1>(c_1);
+        AssertArc<1>(a);
+        AssertArc<1>(a_0);
+        AssertArc<1>(a_1);
+        AssertArc<1>(a_2);
+        AssertArc<1>(b);
 
-       
-       const ArcState_T a_0_state = A_state[a_0];
-       Reconnect<Head,false>(a_0,a_1);
-       Reconnect<Head,false>(a_1,b  );
-       
-       // We have to reconnect the head of b to c_0 manually, since a_0 has forgotten that it is connected to c_0.
-       
-       A_cross(b,Head) = c_0;
-       
-       const Int da   = ToDarc(a  ,Head);
-       const Int db   = ToDarc(b  ,Head);
-       const Int da_1 = ToDarc(a_1,Tail);
-       const Int da_2 = ToDarc(a_2,Tail);
-       
-       A_cross(b,Head) = c_0;
-       A_state[b].Copy(Head,a_0_state);
-       
-       // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
-       
-       if( dir )
-       {
-           C_state[c_0] = overQ
-                        ? PD_T::CrossingState_T::RightHanded()
-                        : PD_T::CrossingState_T::LeftHanded();
-           
-           // overQ == true
-           //
-           //             O
-           //             ^
-           //             | a_1
-           //             |
-           //             O
-           //             ^
-           //    a        |     a_2
-           //  ----->O---------O----->
-           //             |c_0
-           //             |
-           //             O
-           //             ^
-           //             | b == path[p]
-           //             |
-           //             X
-           
-           // Fortunately, this does not depend on overQ.
-           const Int buffer [4] = { a_1,a_2,a,b };
-           copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
-           
-           dA_left[da  ] = FlipDarc(da_1);
-           dA_left[da_2] = FlipDarc(db  );
-           dA_left[db  ] = FlipDarc(da  );
-           dA_left[da_1] = FlipDarc(da_2);
-       }
-       else // if ( !dir )
-       {
-           C_state[c_0] = overQ
-                        ? PD_T::CrossingState_T::LeftHanded()
-                        : PD_T::CrossingState_T::RightHanded();
-           
-           // overQ == true
-           //
-           //             O
-           //             ^
-           //             | a_1
-           //             |
-           //             O
-           //             ^
-           //    a_2      |        a
-           //  <-----O---------O<-----
-           //             |c_0
-           //             |
-           //             O
-           //             ^
-           //             | b == path[p]
-           //             |
-           //             X
-           
-           // Fortunately, this does not depend on overQ.
-           const Int buffer [4] = { a_2,a_1,b,a };
-           copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
-           
-           dA_left[da  ] = FlipDarc(db  );
-           dA_left[da_2] = FlipDarc(da_1);
-           dA_left[db  ] = FlipDarc(da_2);
-           dA_left[da_1] = FlipDarc(da  );
-       }
+        // Go to next of arc.
+        a = a_2;
+        ++p;
+    }
+    PD_TOC("While loop for rerouting");
 
-       // TODO: Test this!
-       // TODO: Optimize this! Is this necessary at all?
-       // We have to recompute the arc states immediately, or the traversal will break.
-       pd.RecomputeArcState(a_0);
-       pd.RecomputeArcState(a);
-       pd.RecomputeArcState(b);
-       pd.RecomputeArcState(a_1);
-       pd.RecomputeArcState(a_2);
-       
-       AssertCrossing<1>(c_0);
-       AssertCrossing<1>(c_1);
-       AssertArc<1>(a);
-       AssertArc<1>(a_0);
-       AssertArc<1>(a_1);
-       AssertArc<1>(a_2);
-       AssertArc<1>(b);
+    
+    // strand_length is just an upper bound to prevent infinite loops.
+    CollapseArcRange(a,e,strand_length);
 
-       // Go to next arc.
-       a = a_2;
-       ++p;
-   }
-   
-   PD_TOC("Rerouting");
-
-   
-   // strand_length is just an upper bound to prevent infinite loops.
-   CollapseArcRange(a,e,strand_length);
-
-   AssertArc<1>(a);
-   AssertArc<0>(e);
-   
+    AssertArc<1>(a);
+    AssertArc<0>(e);
+    
     // TODO: Is this necessary? If yes, why?
-    RepairArcLeftArc(ToDarc(a,Head));
+    RepairDarcLeftDarc(ToDarc(a,Head));
 
-   a_last = a;
+    a_last = a;
 
 #ifdef PD_DEBUG
-   const Int Cr_1 = pd.CrossingCount();
+    const Int Cr_1 = pd.CrossingCount();
 #endif
-   
-   PD_ASSERT(Cr_1 < Cr_0);
-   
-   PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
-   
+    
+    PD_ASSERT(Cr_1 < Cr_0);
+    
+    PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
+    
 #ifdef PD_TIMINGQ
-   const Time stop_time = Clock::now();
-   
+    const Time stop_time = Clock::now();
+    
     Time_RerouteToPath += Tools::Duration(start_time,stop_time);
 #endif
-   
-   ++change_counter;
-   
-   return true;
+    
+    ++change_counter;
+    
+    return true;
+}
+
+/*! @brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
+ */
+
+template<bool headtail>
+void WalkToBranch( mref<Int> a, mref<Int> p ) const
+{
+    PD_TIMER(timer,MethodName("WalkToBranch")+"<" + (headtail ? "Head" : "Tail") + ">");
+    // `a` is an arc.
+    // `p` points to a position in `path`.
+    
+    Int c = A_cross(a,headtail);
+    Int side = (C_arcs(c,headtail,Right) == a);
+    Int b = path[p];
+    
+    while(
+        (C_arcs(c,headtail,!side) == b)
+        ||
+        (C_arcs(c,!headtail,side) == b)
+    )
+    {
+        a = C_arcs(c,!headtail,!side);
+        c = A_cross(a,headtail);
+        side = (C_arcs(c,headtail,Right) == a);
+        
+        p = headtail ? p + Int(1) : p - Int(1);
+        
+        b = path[p];
+    }
 }
 
 
@@ -328,8 +322,6 @@ bool RerouteToShortestPath_impl(
 )
 {
     PD_TIMER(timer,MethodName("RerouteToShortestPath_impl"));
-    
-    PD_ASSERT(CheckDarcLeftDarc());
 
     const Int d = FindShortestPath_impl( a_first, a_last, max_dist, mark );
 
@@ -341,11 +333,6 @@ bool RerouteToShortestPath_impl(
     
     bool successQ =  RerouteToPath( a_first, a_last );
     
-    // DEBUGGING
-    
-    pd.RecomputeArcStates();
-    PD_ASSERT(pd.CheckArcStates());
-    
     return successQ;
     
 }
@@ -356,36 +343,35 @@ bool RerouteToShortestPath_impl(
 
 
 
-
-public:
-
-///*!
-//* @brief Attempts to reroute the input strand. It returns the first and last arcs of the rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
-//*
-//* @param a_first The first arc of the input strand.
-//*
-//* @param a_last The last arc of the input strand (included).
-//*
-//* @param overQ_ Whether the input strand is over (`true`) or under (`true`). Caution: The routine won't work correctly, if the input arc range is not a over/understrand according to this flag!
-//*/
-//
-//std::array<Int,2> RerouteToShortestPath(
-//   const Int a_first, const Int a_last, bool overQ_
-//)
-//{
-//   Prepare();
-//   SetStrandMode(overQ_);
-//
-//   current_mark = 1;
-//
-//   Int a = a_first;
-//   Int b = a_last;
-//
-//   strand_length = MarkArcs(a,b,current_mark);
-//
-//   RerouteToShortestPath_impl(a,b,strand_length-Int(1),current_mark);
-//
-//   Cleanup();
-//
-//   return {a,b};
-//}
+//public:
+//    
+//    /*!
+//     * @brief Attempts to reroute the input strand. It returns the first and last arcs of the rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+//     *
+//     * @param a_first The first arc of the input strand.
+//     *
+//     * @param a_last The last arc of the input strand (included).
+//     *
+//     * @param overQ_ Whether the input strand is over (`true`) or under (`true`). Caution: The routine won't work correctly, if the input arc range is not a over/understrand according to this flag!
+//     */
+//    
+//    std::array<Int,2> RerouteToShortestPath(
+//        const Int a_first, const Int a_last, bool overQ_
+//    )
+//    {
+//        Prepare();
+//        SetStrandMode(overQ_);
+//        
+//        current_mark = 1;
+//        
+//        Int a = a_first;
+//        Int b = a_last;
+//        
+//        strand_length = MarkArcs(a,b,current_mark);
+//        
+//        RerouteToShortestPath_impl(a,b,strand_length-Int(1),current_mark);
+//        
+//        Cleanup();
+//        
+//        return {a,b};
+//    }

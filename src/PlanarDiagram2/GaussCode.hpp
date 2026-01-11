@@ -61,15 +61,13 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             (void)c_1_pos;
             (void)c_1_visitedQ;
             
-            const ArcState_T a_state = A_state[a];
-
             // We need 1-based integers to be able to use signs.
             const T c_pos = static_cast<T>(c_0_pos) + T(1);
             
             gauss_code[a_pos] =
                 c_0_visitedQ
-                ? ( a_state.RightHandedQ(Tail) ? c_pos : -c_pos )
-                : ( a_state.OverQ(Tail)        ? c_pos : -c_pos );
+                ? ( ArcRightHandedQ(a,Tail) ? c_pos : -c_pos )
+                : ( ArcRightOverQ(a,Tail)   ? c_pos : -c_pos );
         }
     );
 }
@@ -112,12 +110,13 @@ static PD_T FromExtendedGaussCode(
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
+        pd.A_state[a] = ArcState_T::Active;
         
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
         {
-            pd.C_state[c] = (g > T(0)) ? CrossingState_T::RightHanded() : CrossingState_T::LeftHanded();
+            pd.C_state[c] = (g > T(0)) ? CrossingState_T::RightHanded : CrossingState_T::LeftHanded;
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
@@ -130,7 +129,7 @@ static PD_T FromExtendedGaussCode(
             
             const CrossingState_T c_state = pd.C_state[c];
             
-            if( overQ == c_state.RightHandedQ() )
+            if( overQ == RightHandedQ(c_state) )
             {
                 /*
                  * Situation in case of CrossingRightHandedQ(c) == overQ
@@ -171,13 +170,13 @@ static PD_T FromExtendedGaussCode(
                 pd.C_arcs(c,In ,Right) = a_prev;
             }
             
-            // This seems out of order, but pd.C_arcs(c,Out,Right) will typically be the arc stored right after pd.C_arcs(c,In ,Left ).
-            pd.A_state[pd.C_arcs(c,In ,Left )].Set(Head,Left ,c_state);
-            pd.A_state[pd.C_arcs(c,Out,Right)].Set(Tail,Right,c_state);
-            
-            // This seems out of order, but pd.C_arcs(c,Out,Left ) will typically be the arc stored right after pd.C_arcs(c,In ,Right).
-            pd.A_state[pd.C_arcs(c,In ,Right)].Set(Head,Right,c_state);
-            pd.A_state[pd.C_arcs(c,Out,Left )].Set(Tail,Left ,c_state);
+//            // This seems out of order, but pd.C_arcs(c,Out,Right) will typically be the arc stored right after pd.C_arcs(c,In ,Left ).
+//            pd.A_state[pd.C_arcs(c,In ,Left )].Set(Head,Left ,c_state);
+//            pd.A_state[pd.C_arcs(c,Out,Right)].Set(Tail,Right,c_state);
+//            
+//            // This seems out of order, but pd.C_arcs(c,Out,Left ) will typically be the arc stored right after pd.C_arcs(c,In ,Right).
+//            pd.A_state[pd.C_arcs(c,In ,Right)].Set(Head,Right,c_state);
+//            pd.A_state[pd.C_arcs(c,Out,Left )].Set(Tail,Left ,c_state);
         }
         
         return 0;

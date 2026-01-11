@@ -226,8 +226,8 @@ static std::pair<PD_T,Int> FromLink(
              */
             
             const CrossingState_T c_state = righthandedQ
-                                          ? CrossingState_T::RightHanded()
-                                          : CrossingState_T::LeftHanded();
+                                          ? CrossingState_T::RightHanded
+                                          : CrossingState_T::LeftHanded;
             pd.C_state[c] = c_state;
             
             /*

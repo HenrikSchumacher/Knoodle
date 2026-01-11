@@ -77,9 +77,9 @@ bool CheckDarcLeftDarc()
         
         TOOLS_LOGDUMP(duds);
         
-//        std::sort(touched.begin(),touched.end());
+//                std::sort(touched.begin(),touched.end());
 //
-//        TOOLS_LOGDUMP(touched);
+//                TOOLS_LOGDUMP(touched);
         
         logprint(MethodName("CheckDarcLeftDarc")+" failed.");
         
@@ -92,8 +92,8 @@ bool CheckDarcLeftDarc()
 }
 
 
-
 private:
+        
 
 bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
 {
@@ -105,7 +105,7 @@ bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
     
     if( a_begin == a_end )
     {
-        wprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
+        wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
     }
     
     while( (a != a_end) && (arc_counter < max_arc_count ) )
@@ -114,17 +114,18 @@ bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
         
         passedQ = passedQ && (pd.ArcOverQ(a,Head) == overQ);
         
-        a = NextArc(a,Head);
+        // We use the safe implementation of NextArc here.
+        a = pd.NextArc(a,Head);
     }
     
     if( a != a_end )
     {
-        pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
     }
     
     if( !passedQ )
     {
-        pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
     }
     
     return passedQ;

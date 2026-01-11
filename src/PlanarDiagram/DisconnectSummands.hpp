@@ -9,12 +9,12 @@ public:
 
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
-    const Int  min_dist           = 6,
-    const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
-    const Int  simplify3_level    = 4,
-    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q      = true
+    const Int    min_dist           = 6,
+    const Int    max_dist           = Scalar::Infty<Int>,
+    const bool   compressQ          = true,
+    const Int    simplify3_level    = 4,
+    const Size_T simplify3_max_iter = Scalar::Infty<Size_T>,
+    const bool   strand_R_II_Q      = true
 )
 {
     TOOLS_PTIMER(timer,MethodName("DisconnectSummands"));
@@ -82,15 +82,15 @@ bool DisconnectSummand(
     TwoArraySort<Int,Int,Int> & sort,
     mref<Aggregator<Int,Int>> f_arcs,
     mref<Aggregator<Int,Int>> & f_faces,
-    cptr<Int> F_dA_ptr,
-    cptr<Int> F_dA_idx,
-    cptr<Int> dA_face,
-    const Int min_dist,
-    const Int max_dist,
-    const bool compressQ,
-    const Int  simplify3_level,
-    const Int  simplify3_max_iter,
-    const bool strand_R_II_Q = true
+    cptr<Int>    F_dA_ptr,
+    cptr<Int>    F_dA_idx,
+    cptr<Int>    dA_face,
+    const Int    min_dist,
+    const Int    max_dist,
+    const bool   compressQ,
+    const Int    simplify3_level,
+    const Size_T simplify3_max_iter,
+    const bool   strand_R_II_Q = true
 )
 {
     // TODO: If the diagram is disconnected, then this might raise problems here. We need to prevent that!

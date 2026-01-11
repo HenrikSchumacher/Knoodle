@@ -58,16 +58,27 @@ int main()
     PD_T pd_0 = PD_T::FromSignedPDCode(
         &pd_code[0],     // pointer to array of pd code.
         c_count,         // number of crossingss
-        true             // whether to compress
+        false             // whether to compress
     );
+    
+//    TOOLS_LOGDUMP(pd_0.CopyCrossing(0));
+//    TOOLS_LOGDUMP(pd_0.CopyArc(0));
+//    
+//    TOOLS_LOGDUMP(pd_0.Crossings());
+//    TOOLS_LOGDUMP(pd_0.CrossingStates());
+//    TOOLS_LOGDUMP(pd_0.Arcs());
+//    TOOLS_LOGDUMP(pd_0.ArcStates());
+//    TOOLS_LOGDUMP(pd_0.ArcColors());
+    
+    pd_0.Compress();
     
     TOOLS_DUMP(pd_0.CheckAll());
     TOOLS_DUMP(pd_0.CheckLeftDarc());
     TOOLS_DUMP(pd_0.CheckRightDarc());
-    TOOLS_DUMP(pd_0.CheckArcStates());
+//    TOOLS_DUMP(pd_0.CheckNextDarc());
 
     
-//    TOOLS_DUMP(pd_0.PDCode());
+    TOOLS_DUMP(pd_0.PDCode());
     
     PDC_T pdc ( std::move(pd_0), Int(0) );
     
@@ -75,9 +86,7 @@ int main()
     Knoodle::print("RecomputeArcStates");
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
-        pdc.Diagram(i).RecomputeArcStates();
         TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
-        TOOLS_DUMP( pdc.Diagram(i).CheckArcStates() );
     }
 
     
@@ -108,32 +117,8 @@ int main()
     
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
-        pdc.Diagram(i).RecomputeArcStates();
         TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
-        TOOLS_DUMP( pdc.Diagram(i).CheckArcStates() );
     }
-    
-//    for( Int i = 0; i < pdc.DiagramCount(); ++i )
-//    {
-//        PD_T & pd = pdc.Diagram(i);
-//
-//        TOOLS_DUMP(pd.CrossingCount());
-//        TOOLS_DUMP(pd.MaxCrossingCount());
-//        TOOLS_DUMP(pd.CountActiveCrossings());
-//        
-//        for( Int a = 0; a < pd.MaxArcCount(); ++a )
-//        {
-//            for( bool headtail : {PD_T::Tail,PD_T::Head} )
-//            {
-//                if( pd.ArcActiveQ(a) )
-//                {
-//                    Knoodle::logvalprint( ("pd.ArcSide_Reference(" + Knoodle::ToString(a)) + "," + (headtail ? "Head" : "Tail") + ")", pd.ArcSide_Reference(a,headtail) );
-//                    
-//                    Knoodle::logvalprint( ("pd.ArcSide          (" + Knoodle::ToString(a)) + "," + (headtail ? "Head" : "Tail") + ")", pd.ArcSide(a,headtail) );
-//                }
-//            }
-//        }
-//    }
     
     TOOLS_DUMP(pdc.CrossingCount());
     TOOLS_DUMP(pdc.Diagram(0).CrossingCount());
@@ -143,10 +128,10 @@ int main()
     
     
     Knoodle::print("");
-    Knoodle::print("SimplifyGlobal(6,infty,4,infty,false)");
+    Knoodle::print("SimplifyGlobal(6,infty,4,infty,true)");
     try
     {
-        pdc.SimplifyGlobal(6,infty,4,infty,false);
+        pdc.SimplifyGlobal(6,infty,4,infty,true);
     }
     catch( const std::exception & e )
     {
@@ -157,28 +142,12 @@ int main()
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
         TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
-        TOOLS_DUMP( pdc.Diagram(i).CheckArcStates() );
     }
-//    
-//    TOOLS_DUMP(pdc.CrossingCount());
-//    TOOLS_DUMP(pdc.Diagram(0).CrossingCount());
-//    TOOLS_DUMP(pdc.Diagram(0).PDCode().Dim(0));
-//    
-//    {
-//        std::ofstream file ("/Users/Henrik/b.txt");
-//        file << ToString( pdc.Diagram(0).PDCode() );
-//    }
     
-    
-//    PD_T::ArcState_T a_state;
-//    
-//    Knoodle::print( Tools::ArrayToString( &a_state.set_lut[0][0][0][0], {2,2,2,2}) );
-//    
-//    Knoodle::print( Tools::ArrayToString( &a_state.ActiveMask_    [0], {2}) );
-//    Knoodle::print( Tools::ArrayToString( &a_state.SideMask_      [0], {2}) );
-//    Knoodle::print( Tools::ArrayToString( &a_state.HandednessMask_[0], {2}) );
-//    Knoodle::print( Tools::ArrayToString( &a_state.OverUnderMask_ [0], {2}) );
-//    Knoodle::print( Tools::ArrayToString( &a_state.HeadTailMask_  [0], {2}) );
+    TOOLS_DUMP(pdc.CrossingCount());
+    TOOLS_DUMP(pdc.Diagram(0).CrossingCount());
+    TOOLS_DUMP(pdc.Diagram(0).MaxCrossingCount());
+    TOOLS_DUMP(pdc.Diagram(0).PDCode().Dim(0));
     
     return EXIT_SUCCESS;
 }

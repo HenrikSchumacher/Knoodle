@@ -8,7 +8,7 @@ void Reconnect( const Int a, const Int b )
 #endif
     
     PD_TIMER(timer,tag);
-    PD_ASSERT( pd.ArcActiveQ(a) );
+    PD_ASSERT( ArcActiveQ(a) );
     
     const Int c = A_cross(b,headtail);
 
@@ -90,6 +90,6 @@ void Reconnect( const Int a, const Int b )
 
     if constexpr( deactivateQ )
     {
-        pd.DeactivateArc(b);
+        DeactivateArc(b);
     }
 }

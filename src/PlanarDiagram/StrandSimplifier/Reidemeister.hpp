@@ -47,11 +47,12 @@ bool Reidemeister_I( const Int a )
         //       +-----O
         //   a_prev = a_next
         
-        ++pd.unlink_count;
+        CreateUnlinkFromArc(a);
         DeactivateArc(a);
         DeactivateArc(a_prev);
         DeactivateCrossing(c);
-        pd.R_I_counter += 2;
+        CountReidemeister_I();
+        CountReidemeister_I();
         
         return true;
     }
@@ -68,7 +69,7 @@ bool Reidemeister_I( const Int a )
     Reconnect<Head>(a_prev,a_next);
     DeactivateArc(a);
     DeactivateCrossing(c);
-    ++pd.R_I_counter;
+    CountReidemeister_I();
     
     AssertArc<1>(a_prev);
     
@@ -134,7 +135,7 @@ bool Reidemeister_II_Backward(
         
         if( a_0_in == a_1_out )
         {
-            ++pd.unlink_count;
+            CreateUnlinkFromArc(a_0_in);
             DeactivateArc(a_0_in);
         }
         else
@@ -146,7 +147,7 @@ bool Reidemeister_II_Backward(
         DeactivateArc(a_0_out);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
-        ++pd.R_II_counter;
+        CountReidemeister_II();
         
         AssertArc<1>(a_prev);
         AssertArc<0>(a_next);
@@ -188,8 +189,9 @@ bool Reidemeister_II_Backward(
             //
             
             Reconnect<Head>(a_prev,a_0_out);
-            pd.DeactivateArc(a_next);
-            pd.R_I_counter+=2;
+            DeactivateArc(a_next);
+            CountReidemeister_I();
+            CountReidemeister_I();
         }
         else
         {
@@ -207,7 +209,7 @@ bool Reidemeister_II_Backward(
             
             Reconnect<Head>(a_prev,a_next);
             Reconnect<Tail>(a_0_out,a_1_in);
-            ++pd.R_II_counter;
+            CountReidemeister_II();
         }
         
         DeactivateArc(a);

@@ -108,7 +108,7 @@ bool CheckArc( const Int a ) const
         return false;
     }
     
-    if( !A_state[a].ActiveQ() )
+    if( !ActiveQ(A_state[a]) )
     {
         return true;
     }
@@ -273,75 +273,6 @@ bool CheckAll() const
     const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees();
 
     return passedQ;
-}
-
-
-
-/*! @brief Checks the arc states, assuming that the activity status of each arc is correct.
- */
-
-bool CheckArcState( const Int a ) const
-{
-    if( !ArcActiveQ(a) )
-    {
-        return true;
-    }
-    
-    for( bool headtail : {Tail,Head} )
-    {
-        if( ArcSide(a,headtail) != ArcSide_Reference(a,headtail) )
-        {
-            eprint(MethodName("CheckArcState")+": ArcSide(a," + (headtail ? "Head" : "Tail") +") of " + ArcString(a) + " is incorrect.");
-            return false;
-        }
-    }
-    for( bool headtail : {Tail,Head} )
-    {
-        if( ArcRightHandedQ(a,headtail) != ArcRightHandedQ_Reference(a,headtail) )
-        {
-            eprint(MethodName("CheckArcState")+": ArcRightHandedQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
-            return false;
-        }
-    }
-    for( bool headtail : {Tail,Head} )
-    {
-        if( ArcLeftHandedQ(a,headtail) != ArcLeftHandedQ_Reference(a,headtail) )
-        {
-            eprint(MethodName("CheckArcState")+": ArcLeftHandedQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
-            return false;
-        }
-    }
-    for( bool headtail : {Tail,Head} )
-    {
-        if( ArcOverQ(a,headtail) != ArcOverQ_Reference(a,headtail) )
-        {
-            eprint(MethodName("CheckArcState")+": ArcOverQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
-            return false;
-        }
-    }
-    for( bool headtail : {Tail,Head} )
-    {
-        if( ArcUnderQ(a,headtail) != ArcUnderQ_Reference(a,headtail) )
-        {
-            eprint(MethodName("CheckArcState")+": ArcUnderQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-bool CheckArcStates() const
-{
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        if( !CheckArcState(a) )
-        {
-            return false;
-        }
-    }
-    
-    return true;
 }
 
 

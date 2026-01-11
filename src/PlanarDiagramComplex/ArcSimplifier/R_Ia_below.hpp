@@ -185,12 +185,12 @@ bool R_Ia_below()
             C_arcs(c_1,!u_1,Left ) = C_arcs(c_1,!u_1,Right);
             C_arcs(c_1,!u_1,Right) = s_2;
             
-            RecomputeArcState(a  );
-            RecomputeArcState(n_0);
-            RecomputeArcState(w_0);
-            RecomputeArcState(e_1);
-            RecomputeArcState(s_2);
-            RecomputeArcState(w_2);
+//            RecomputeArcState(a  );
+//            RecomputeArcState(n_0);
+//            RecomputeArcState(w_0);
+//            RecomputeArcState(e_1);
+//            RecomputeArcState(s_2);
+//            RecomputeArcState(w_2);
 
             DeactivateArc(s_0);
             DeactivateArc(s_1);

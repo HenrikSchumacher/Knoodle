@@ -85,12 +85,10 @@ void WritePDCode( mptr<T> pd_code ) const
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
             
-            const ArcState_T a_state = A_state[a];
-            
             // Tell c_0_pos that arc a_pos goes out of it.
             {
-                const bool side          = a_state.Side(Tail);
-                const bool right_handedQ = a_state.RightHandedQ(Tail);
+                const bool side          = ArcSide(a,Tail,c_0);
+                const bool right_handedQ = CrossingRightHandedQ(c_0);
 
                 mptr<T> X = &pd_code[Int(5) * c_0_pos];
 
@@ -176,8 +174,8 @@ void WritePDCode( mptr<T> pd_code ) const
             
             // Tell c_1_pos that arc a_pos goes into it.
             {
-                const bool right_handedQ = a_state.RightHandedQ(Head);
-                const bool side          = a_state.Side(Head);
+                const bool side          = ArcSide(a,Head,c_1);
+                const bool right_handedQ = CrossingRightHandedQ(c_1);
                 
                 mptr<T> X = &pd_code[Int(5) * c_1_pos];
 
@@ -396,7 +394,7 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
          *       O       O            O       O
          */
         
-        return CrossingState_T::RightHanded();
+        return CrossingState_T::RightHanded;
     }
     else if ( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
     {
@@ -422,13 +420,13 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
          *      i /     \ j         i  /     \ l + x
          *       O       O            O       O
          */
-        return CrossingState_T::LeftHanded();
+        return CrossingState_T::LeftHanded;
     }
     else
     {
         eprint( std::string("PDHandedness: Handedness of {") + ToString(i) + "," + ToString(i) + "," + ToString(j) + "," + ToString(k) + "," + ToString(l) + "} could not be determined. Make sure that consecutive arcs on each component have consecutive labels (except the wrap-around, of course).");
         
-        return CrossingState_T::Inactive();
+        return CrossingState_T::Inactive;
     }
 }
 
@@ -496,15 +494,15 @@ static PD_T FromPDCode(
         if constexpr( PDsignedQ )
         {
             c_state = pd.C_state[c] = (state > ExtInt(0))
-                                    ? CrossingState_T::RightHanded()
-                                    : CrossingState_T::LeftHanded();
+                                    ? CrossingState_T::RightHanded
+                                    : CrossingState_T::LeftHanded;
         }
         else
         {
             c_state = pd.C_state[c] = PDCodeHandedness(&X[0]);
         }
         
-        if( c_state.RightHandedQ() )
+        if( RightHandedQ(c_state) )
         {
             
             /*
@@ -514,7 +512,7 @@ static PD_T FromPDCode(
              *            \ /
              *             / <--- c
              *            ^ ^
-             *           /   \
+             *           /   \.
              *          /     \
              *    X[3]           X[0]
              */
@@ -524,22 +522,27 @@ static PD_T FromPDCode(
             // each other as will A_cross(X[3],Head) and A_cross(X[1],Tail).
             // So this odd-appearing way of accessing A_cross is optimal.
             
+            pd.C_arcs(c,Out,Left ) = X[2];
+            pd.C_arcs(c,Out,Right) = X[1];
+            pd.C_arcs(c,In ,Left ) = X[3];
+            pd.C_arcs(c,In ,Right) = X[0];
+
             pd.A_cross(X[0],Head) = c;
             pd.A_cross(X[2],Tail) = c;
             pd.A_cross(X[3],Head) = c;
             pd.A_cross(X[1],Tail) = c;
 
-            pd.C_arcs(c,Out,Left ) = X[2];
-            pd.C_arcs(c,Out,Right) = X[1];
-            pd.C_arcs(c,In ,Left ) = X[3];
-            pd.C_arcs(c,In ,Right) = X[0];
+            pd.A_state(X[0]) = ArcState_T::Active;
+            pd.A_state(X[2]) = ArcState_T::Active;
+            pd.A_state(X[3]) = ArcState_T::Active;
+            pd.A_state(X[1]) = ArcState_T::Active;
             
-            pd.A_state(X[0]).Set(Head,Right,true);
-            pd.A_state(X[2]).Set(Tail,Left ,true);
-            pd.A_state(X[3]).Set(Head,Left ,true);
-            pd.A_state(X[1]).Set(Tail,Right,true);
+//            pd.A_state(X[0]).Set(Head,Right,true);
+//            pd.A_state(X[2]).Set(Tail,Left ,true);
+//            pd.A_state(X[3]).Set(Head,Left ,true);
+//            pd.A_state(X[1]).Set(Tail,Right,true);
         }
-       else if( c_state.LeftHandedQ() )
+       else if( LeftHandedQ(c_state) )
        {
            /*
             *    X[3]           X[2]
@@ -558,22 +561,31 @@ static PD_T FromPDCode(
             // each other as will A_cross(X[1],Head) and A_cross(X[3],Tail).
             // So this odd-appearing way of accessing A_cross is optimal.
 
+           
+            pd.C_arcs(c,Out,Left ) = X[3];
+            pd.C_arcs(c,Out,Right) = X[2];
+            pd.C_arcs(c,In ,Left ) = X[0];
+            pd.C_arcs(c,In ,Right) = X[1];
+           
             pd.A_cross(X[0],Head) = c;
             pd.A_cross(X[2],Tail) = c;
             pd.A_cross(X[1],Head) = c;
             pd.A_cross(X[3],Tail) = c;
 
-            pd.C_arcs(c,Out,Left ) = X[3];
-            pd.C_arcs(c,Out,Right) = X[2];
-            pd.C_arcs(c,In ,Left ) = X[0];
-            pd.C_arcs(c,In ,Right) = X[1];
-
-            pd.A_state(X[0]).Set(Head,Left ,false);
-            pd.A_state(X[2]).Set(Tail,Right,false);
-            pd.A_state(X[3]).Set(Tail,Left ,false);
-            pd.A_state(X[1]).Set(Head,Right,false);
+            pd.A_state(X[0]) = ArcState_T::Active;
+            pd.A_state(X[2]) = ArcState_T::Active;
+            pd.A_state(X[3]) = ArcState_T::Active;
+            pd.A_state(X[1]) = ArcState_T::Active;
+           
+//            pd.A_state(X[0]).Set(Head,Left ,false);
+//            pd.A_state(X[2]).Set(Tail,Right,false);
+//            pd.A_state(X[3]).Set(Tail,Left ,false);
+//            pd.A_state(X[1]).Set(Head,Right,false);
         }
     }
+    
+    // DEBUGGING
+    TOOLS_LOGDUMP( pd.CopyCrossing(0) );
 
     pd.crossing_count = pd.max_crossing_count;
     pd.arc_count      = pd.CountActiveArcs();

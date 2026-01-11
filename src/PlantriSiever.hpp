@@ -234,7 +234,7 @@ namespace Knoodle
                     
                     const UInt64 i_max = (UInt64(1) << crossing_count );
                     
-                    Tensor1<CrossingState_T,Int> C_state (crossing_count);
+                    PD_T::CrossingStateContainer_T C_state (crossing_count);
                     
                     CodeSet_T local_minimal_codes;
                     CodeSet_T local_other_codes;

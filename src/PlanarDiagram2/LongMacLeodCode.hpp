@@ -68,16 +68,14 @@ void WriteLongMacLeodCode( mptr<T> code ) const
             (void)c_1;
             (void)c_1_pos;
             (void)c_1_visitedQ;
-
-            const ArcState_T arc_state = this->A_state[arc];
-
+            
             if( !c_0_visitedQ )
             {
                 // Remember that arc_pos visited c_0_pos.
                 workspace[c_0_pos] = arc_pos;
                 
-                code[arc_pos] = (static_cast<T>(arc_state.OverQ(Tail)) << T(1))
-                              |  static_cast<T>(arc_state.RightHandedQ(Tail));
+                code[arc_pos] = (static_cast<T>(ArcOverQ(arc,Tail)) << T(1))
+                              |  static_cast<T>(ArcRightHandedQ(arc,Tail));
             }
             else
             {
@@ -89,8 +87,8 @@ void WriteLongMacLeodCode( mptr<T> code ) const
                 
                 code[a] |= (a_leap << T(2));
                 
-                code[b] = (static_cast<T>(arc_state.OverQ(Tail)) << T(1))
-                        |  static_cast<T>(arc_state.RightHandedQ(Tail))
+                code[b] = (static_cast<T>(ArcOverQ(arc,Tail)) << T(1))
+                        |  static_cast<T>(ArcRightHandedQ(arc,Tail))
                         | (b_leap << T(2));
             }
         }
@@ -207,8 +205,8 @@ static PD_T FromLongMacLeodCode(
             const Int c = crossing_counter;
             
             const CrossingState_T c_state = a_right_handedQ
-                                          ? CrossingState_T::RightHanded()
-                                          : CrossingState_T::LeftHanded();
+                                          ? CrossingState_T::RightHanded
+                                          : CrossingState_T::LeftHanded;
             pd.C_state[c] = c_state;
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));

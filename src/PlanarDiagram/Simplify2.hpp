@@ -10,23 +10,23 @@ public:
  *  This is a very dated simplification routine and only persists for benchmarking reasons. Better use `Simplify3` or `Simplify4` instead.
  */
 
-Int Simplify2()
+Size_T Simplify2()
 {
     if( proven_minimalQ || InvalidQ() )
     {
         return 0;
     }
     
-    TOOLS_PTIMER(timer,ClassName()+"::Simplify2");
+    TOOLS_PTIMER(timer,MethodName("Simplify2"));
 
     CrossingSimplifier<Int,true> S(*this);
     
-    Int counter = 0;
-    Int old_counter = 0;
-    Int iter = 0;
+    Size_T counter = 0;
+    Size_T old_counter = 0;
+//    Size_T iter = 0;
     do
     {
-        ++iter;
+//        ++iter;
         
         old_counter = counter;
 
@@ -64,7 +64,7 @@ Int Simplify2()
     }
     while( counter != old_counter );
         
-    if( counter > Int(0) )
+    if( counter > Size_T(0) )
     {
         this->ClearCache();
     }

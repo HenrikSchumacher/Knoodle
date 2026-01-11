@@ -24,7 +24,7 @@ namespace Knoodle
         Inactive             =  0
     };
     
-    CrossingState_T Flip( CrossingState_T s )
+    CrossingState_T Switch( CrossingState_T s )
     {
         return CrossingState_T(- ToUnderlying(s));
     }
@@ -56,16 +56,6 @@ namespace Knoodle
     inline constexpr bool ActiveQ( const CrossingState_T & s )
     {
         return ToUnderlying(s);
-    }
-    
-    inline constexpr bool ChangedQ( const CrossingState_T & s )
-    {
-        return ToUnderlying(s) % 2;
-    }
-    
-    inline constexpr bool UnchangedQ( const CrossingState_T & s )
-    {
-        return !ChangedQ(s);
     }
     
     inline constexpr bool RightHandedQ( const CrossingState_T & s )

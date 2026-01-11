@@ -37,16 +37,16 @@ namespace Knoodle
         using Int                   = Int_;
         using UInt                  = ToUnsigned<Int>;
         
-        using Base_T                = CachedObject;
-        using Class_T               = PlanarDiagram2<Int>;
-        using PD_T                  = PlanarDiagram2<Int>;
+        using Base_T                    = CachedObject;
+        using Class_T                   = PlanarDiagram2<Int>;
+        using PD_T                      = PlanarDiagram2<Int>;
         
-        using CrossingContainer_T   = Tiny::MatrixList_AoS<2,2,Int,Int>;
-        using ArcContainer_T        = Tiny::VectorList_AoS<2,  Int,Int>;
-        using ColorList_T           = std::unordered_set<Int>;
+        using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
+        using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
+        using ColorList_T               = std::unordered_set<Int>;
         
-#include "PlanarDiagram2/CrossingState.hpp"
-#include "PlanarDiagram2/ArcState.hpp"
+        using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
+        using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
         
     public:
         
@@ -165,10 +165,10 @@ namespace Knoodle
         , max_crossing_count { int_cast<Int>(max_crossing_count_)              }
         , max_arc_count      { Int(Int(2) * max_crossing_count)                }
         , C_arcs             { max_crossing_count, Uninitialized               }
-        , C_state            { max_crossing_count, CrossingState_T::Inactive() }
+        , C_state            { max_crossing_count, CrossingState_T::Inactive }
         , C_scratch          { max_crossing_count                              }
         , A_cross            { max_arc_count,      Uninitialized               }
-        , A_state            { max_arc_count,      ArcState_T::Inactive()      }
+        , A_state            { max_arc_count,      ArcState_T::Inactive       }
         , A_color            { max_arc_count,      Uninitialized               }
         , A_scratch          { max_arc_count                                   }
         {
@@ -438,12 +438,9 @@ namespace Knoodle
         const bool j0 = (mirrorQ != reverseQ);
         const bool j1 = (mirrorQ == reverseQ);
         
-        Int C [2][2] = {};
-        
         for( Int c = 0; c < max_crossing_count; ++c )
         {
-            copy_buffer<4>( C_arcs.data(c), &C[0][0] );
-            
+            const C_Arc_T C = CopyCrossing(c);
             C_arcs(c,0,0) = C[i0][j0];
             C_arcs(c,0,1) = C[i0][j1];
             C_arcs(c,1,0) = C[i1][j0];

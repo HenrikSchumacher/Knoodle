@@ -7,13 +7,13 @@ public:
  */
 
 
-Int Simplify4(
-    const Int  min_dist           = 6,
-    const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
-    const Int  simplify3_level    = 4,
-    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q      = true
+Size_T Simplify4(
+    const Int    min_dist           = 6,
+    const Int    max_dist           = std::numeric_limits<Int>::max(),
+    const bool   compressQ          = true,
+    const Int    simplify3_level    = 4,
+    const Size_T simplify3_max_iter = std::numeric_limits<Int>::max(),
+    const bool   strand_R_II_Q      = true
 )
 {
     if( proven_minimalQ || InvalidQ() )
@@ -21,7 +21,7 @@ Int Simplify4(
         return 0;
     }
     
-    TOOLS_PTIMER(timer,ClassName()+"::Simplify4"
+    TOOLS_PTIMER(timer,MethodName("Simplify4")
          + "(" + ToString(min_dist)
          + "," + ToString(max_dist)
          + "," + ToString(compressQ)
@@ -31,8 +31,8 @@ Int Simplify4(
          + ")");
     
 //    static_assert(SignedIntQ<Int>,"");
-    Int old_counter = 0;
-    Int counter = 0;
+    Size_T old_counter = 0;
+    Size_T counter = 0;
     
     // It is very likely that we change the diagram. Also, a stale cache might spoil the simplification. Thus, we proactively delete the cache.
     this->ClearCache();
@@ -54,14 +54,12 @@ Int Simplify4(
         
         dist = Min(dist,max_dist);
 
-        Int simplify3_changes = 0;
+        Size_T simplify3_changes = 0;
         
         if( do_simplify3Q && (simplify3_level > Int(0)) )
         {
             // Since Simplify3 contains only inexpensive tests, we should call it first.
-            simplify3_changes = Simplify3(
-                simplify3_level,simplify3_max_iter,true
-            );
+            simplify3_changes = Simplify3(simplify3_level,simplify3_max_iter,true);
             
             counter += simplify3_changes;
             
@@ -71,9 +69,9 @@ Int Simplify4(
         
         if( !do_simplify4Q ) { break; }
         
-        const Int o_changes = strand_R_II_Q
-                            ? S.template SimplifyStrands<true >(true,dist)
-                            : S.template SimplifyStrands<false>(true,dist);
+        const Size_T o_changes = strand_R_II_Q
+                               ? S.template SimplifyStrands<true >(true,dist)
+                               : S.template SimplifyStrands<false>(true,dist);
         
         counter += o_changes;
         
@@ -81,9 +79,9 @@ Int Simplify4(
         
         PD_ASSERT(CheckAll());
         
-        const Int u_changes = strand_R_II_Q
-                            ? S.template SimplifyStrands<true >(false,dist)
-                            : S.template SimplifyStrands<false>(false,dist);
+        const Size_T u_changes = strand_R_II_Q
+                               ? S.template SimplifyStrands<true >(false,dist)
+                               : S.template SimplifyStrands<false>(false,dist);
         
         counter += u_changes;
         
@@ -97,7 +95,7 @@ Int Simplify4(
         {
             dist = Scalar::Max<Int>;
         }
-        do_simplify3Q = (o_changes + u_changes > Int(0));
+        do_simplify3Q = (o_changes + u_changes > Size_T(0));
         
         PD_ASSERT(CheckAll());
     }
@@ -107,7 +105,7 @@ Int Simplify4(
           ( (dist <= max_dist) && (dist < arc_count) )
     );
     
-    if( counter > Int(0) )
+    if( counter > Size_T(0) )
     {
         this->ClearCache();
     }

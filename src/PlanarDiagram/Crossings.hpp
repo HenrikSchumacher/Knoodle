@@ -1,5 +1,10 @@
 public:
 
+C_Arc_T CopyCrossing( const Int c ) const
+{
+    return C_Arc_T( C_arcs.data(c) );
+}
+
 CrossingState_T CrossingState( const Int c ) const
 {
     return C_state[c];

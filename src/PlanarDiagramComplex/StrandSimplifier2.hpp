@@ -30,15 +30,17 @@ namespace Knoodle
         
         using PDC_T      = PlanarDiagramComplex<Int>;
         using PD_T       = PDC_T::PD_T;
-        using ArcState_T = PD_T::ArcState_T;
         
         // We need a signed integer type for Mark_T because we use "negative" values to indicate directions in the dual graph.
         using Mark_T = ToSigned<Int>;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
+        using C_Arc_T                   = typename PD_T::C_Arc_T;
+        using A_Cross_T                 = typename PD_T::A_Cross_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
+
         
         static constexpr bool R_II_Q     = R_II_Q_;
         static constexpr bool mult_compQ = mult_compQ_;
@@ -64,7 +66,7 @@ namespace Knoodle
         ArcContainer_T           & restrict A_cross;
         ArcStateContainer_T      & restrict A_state;
 
-        Tensor1<Int,Int>         & restrict D_source;
+        Tensor1<Int,Int>         & restrict D_mark2;
         
         
         // Marks for the crossings and arcs to mark the current strand.
@@ -74,7 +76,7 @@ namespace Knoodle
         
         Tensor1<Mark_T,Int> D_mark;     // marks for the dual arcs
         
-        // D_from and D_source will only be accessed for those a with D_mark[a] == mark.
+        // D_from and D_mark2 will only be accessed for those a with D_mark[a] == mark.
         
         // D_from[a] is the dual arc from which we visited dual arc a in the pass with D_mark[a] == mark.
         Tensor1<Int,Int> D_from;
@@ -114,7 +116,7 @@ namespace Knoodle
         ,   C_state    { pd.C_state                      }
         ,   A_cross    { pd.A_cross                      }
         ,   A_state    { pd.A_state                      }
-        ,   D_source   { pd.A_scratch                    }
+        ,   D_mark2    { pd.A_scratch                    }
         // We initialize by 0, indicating invalid/uninitialized.
         ,   C_mark     { C_arcs .Dim(0), Mark_T(0)       }
         ,   A_mark     { A_cross.Dim(0), Mark_T(0)       }
@@ -164,13 +166,14 @@ namespace Knoodle
 
 #include "StrandSimplifier/Checks.hpp"
 #include "StrandSimplifier/Helpers.hpp"
+#include "StrandSimplifier/RepairArcs.hpp"
 #include "StrandSimplifier/Reconnect.hpp"
 #include "StrandSimplifier/CollapseArcRange.hpp"
 #include "StrandSimplifier/RemoveLoop.hpp"
 #include "StrandSimplifier/FindShortestPath.hpp"
 #include "StrandSimplifier/RerouteToPath.hpp"
 #include "StrandSimplifier/Reidemeister.hpp"
-#include "StrandSimplifier/ReroutePasses.hpp"
+#include "StrandSimplifier/SimplifyStrands.hpp"
         
     private:
 
@@ -183,6 +186,13 @@ namespace Knoodle
         {
             pdc.CreateUnlink(pd.A_color[a_]);
         }
+        
+        
+        void CountReidemeister_I() const
+        {}
+        
+        void CountReidemeister_II() const
+        {}
         
 // Only needed for debugging, if at all.
 //#include "StrandSimplifier/Strings.hpp"
@@ -265,36 +275,6 @@ namespace Knoodle
             // TODO: We could catch the unlink already here, but that would need some change of communication here. Instead, we delay this to the do-loop in StrandSimplifier2. This will be double work, but only in very rare cases.
             
             return a;
-        }
-
-        /*! @brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
-         */
-        template<bool headtail>
-        void WalkToBranch( mref<Int> a, mref<Int> p ) const
-        {
-            // `a` is an arc.
-            // `p` points to a position in `path`.
-            
-            Int c    = A_cross(a,headtail);
-            Int side = ArcSide(a,headtail);
-            
-            Int b = path[p];
-            
-            while(
-                (C_arcs(c,headtail,!side) == b)
-                ||
-                (C_arcs(c,!headtail,side) == b)
-            )
-            {
-                a = C_arcs(c,!headtail,!side);
-                
-                c    = A_cross(a,headtail);
-                side = ArcSide(a,headtail);
-                
-                p = headtail ? p + Int(1) : p - Int(1);
-                
-                b = path[p];
-            }
         }
     
     public:

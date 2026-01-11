@@ -127,8 +127,7 @@ namespace Knoodle
                     
                     const Int c = A_cross(a,Head);
                     
-                    Int C [2][2];
-                    copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                    const C_Arc_T C = CopyCrossing(c);
                     
                     const bool rightQ = (C[In][Right] == a);
                     
