@@ -165,9 +165,9 @@ FoldFlag_T SubtreeFold(
     const bool check_jointsQ
 )
 {
-    int pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
+    FoldFlag_T pivot_flag = LoadPivots(std::move(pivots),theta_,reflectQ_);
     
-    if( pivot_flag != 0 )
+    if( pivot_flag != FoldFlag_T::Accepted )
     {
         // Folding step aborted because pivots indices are too close.
         CollectWitnesses();
@@ -176,9 +176,9 @@ FoldFlag_T SubtreeFold(
     
     if ( check_collisionsQ && check_jointsQ )
     {
-        int joint_flag = CheckJoints();
+        FoldFlag_T joint_flag = CheckJoints();
 
-        if( joint_flag != 0 )
+        if( joint_flag != FoldFlag_T::Accepted )
         {
             // Folding step failed because neighbors of pivot touch.
             CollectWitnesses();
@@ -194,13 +194,13 @@ FoldFlag_T SubtreeFold(
         // TODO: Here it should be safe to use pull_transformsQ = false?
         this->template UndoUpdate<pull_transformsQ>(start_node);
         CollectWitnesses();
-        return 4;
+        return FoldFlag_T::RejectedByTree;
     }
     else
     {
         // Folding step succeeded.
         CollectPivots();
-        return 0;
+        return FoldFlag_T::Accepted;
     }
 }
 
@@ -273,7 +273,7 @@ void SubtreeFoldRandom(
             check_jointsQ
         );
         
-        ++flag_ctr[flag];
+        ++flag_ctr[ToUnderlying(flag)];
     }
 }
 
