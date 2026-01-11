@@ -38,6 +38,8 @@
 
     #define PD_TOC(s) TOOLS_PTOC((s))
 
+    #define PD_TIMER( name, s ) Tools::Profiler::Timer name (s);
+
 #else
 
     #define PD_ASSERT(c)
@@ -49,6 +51,8 @@
     #define PD_TIC(s)
 
     #define PD_TOC(s)
+
+    #define PD_TIMER( name, s )
 
 #endif
 
@@ -66,9 +70,8 @@ namespace Knoodle
         
         if( Knoodle::PD_error_counter >= Knoodle::PD_max_error_count )
         {
-            Tools::eprint("Too many errors. Aborting program.");
-            
-            exit(-1);
+            Tools::eprint("Too many errors during execution of Knoodle. Aborting program.");
+            throw std::runtime_error("Too many errors during execution of Knoodle.");
         }
     }
 

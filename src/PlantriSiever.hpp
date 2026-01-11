@@ -234,7 +234,7 @@ namespace Knoodle
                     
                     const UInt64 i_max = (UInt64(1) << crossing_count );
                     
-                    Tensor1<CrossingState,Int> C_state (crossing_count);
+                    Tensor1<CrossingState_T,Int> C_state (crossing_count);
                     
                     CodeSet_T local_minimal_codes;
                     CodeSet_T local_other_codes;
@@ -248,8 +248,8 @@ namespace Knoodle
                             for( Int j = 0; j < crossing_count; ++j )
                             {
                                 C_state [j] = get_bit(i,j)
-                                            ? CrossingState::RightHanded
-                                            : CrossingState::LeftHanded;
+                                            ? CrossingState_T::RightHanded
+                                            : CrossingState_T::LeftHanded;
                             }
 
                             PD_T pd (

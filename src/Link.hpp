@@ -144,17 +144,17 @@ namespace Knoodle
                 {
                     component_lookup[v] = comp;
                     
-                    // DEBUGGING
-                    if( v != edges(v,0) )
-                    {
-                        eprint("!!!");
-                        TOOLS_DDUMP(v);
-                        TOOLS_DDUMP(edges(v,0));
-                        TOOLS_DDUMP(edges(v,1));
-                        
-                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
-                        );
-                    }
+//                    // DEBUGGING
+//                    if( v != edges(v,0) )
+//                    {
+//                        eprint("!!!");
+//                        TOOLS_DDUMP(v);
+//                        TOOLS_DDUMP(edges(v,0));
+//                        TOOLS_DDUMP(edges(v,1));
+//                        
+//                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
+//                        );
+//                    }
                     next_edge[v] = edges(v,1);
                 }
             }
