@@ -111,7 +111,7 @@ namespace Knoodle
 
             const auto & C_arcs = pd.Crossings();
 
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
 
             // const Scal v [3] = { Scal(1) - t, -1, t };
             const Scal v [3] = {
@@ -128,7 +128,7 @@ namespace Knoodle
             {
                 if( counter >= n ) { break; }
                 
-                const CrossingState s = C_state[c];
+                const CrossingState_T s = C_state[c];
 
                 // Convention:
                 // i is incoming over-strand that goes over.
@@ -229,7 +229,7 @@ namespace Knoodle
             
             const auto & C_arcs = pd.Crossings();
             
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
             
              const Scal v [3] = { Scal(1) - t, Scal(-1), t };
             
@@ -241,7 +241,7 @@ namespace Knoodle
             {
                 if( counter >= n ) { break; }
                 
-                const CrossingState s = C_state[c];
+                const CrossingState_T s = C_state[c];
 
                 mptr<Scal> row = &A[ n * counter ];
 
@@ -351,7 +351,7 @@ namespace Knoodle
                 
                 const auto & C_arcs = pd.Crossings();
                 
-                cptr<CrossingState> C_state = pd.CrossingStates().data();
+                cptr<CrossingState_T> C_state = pd.CrossingStates().data();
                 
                 Int counter = 0;
                 
@@ -361,7 +361,7 @@ namespace Knoodle
                 {
                     if( counter >= n ) { break; }
                     
-                    const CrossingState s = C_state[c];
+                    const CrossingState_T s = C_state[c];
                     
                     // Convention:
                     // i is incoming over-strand that goes over.

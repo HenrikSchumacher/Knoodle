@@ -52,7 +52,7 @@ namespace Knoodle
                 const auto & C_arcs  = pd.Crossings();
                 const auto & A_faces = pd.ArcFaces();
                 
-                cptr<CrossingState> C_state = pd.CrossingStates().data();
+                cptr<CrossingState_T> C_state = pd.CrossingStates().data();
                 
                 Int row_counter = 0;
                 
@@ -91,7 +91,7 @@ namespace Knoodle
                     const Int E = A_faces(a_out,0);
                     const Int N = A_faces(a_out,1);
                     
-                    const CrossingState s = C_state[c];
+                    const CrossingState_T s = C_state[c];
                     
                     if( RightHandedQ(s) )
                     {
@@ -246,7 +246,7 @@ namespace Knoodle
             const auto & C_arcs  = pd.Crossings();
             const auto & A_faces = pd.ArcFaces();
             
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
             
             Int row_counter = 0;
             
@@ -258,7 +258,7 @@ namespace Knoodle
             {
                 if( row_counter >= m ) { break; }
                 
-                const CrossingState s = C_state[c];
+                const CrossingState_T s = C_state[c];
 
                 mptr<Scal> row = &A[ n * row_counter ];
 

@@ -94,7 +94,7 @@ namespace Knoodle
             
             const auto & C_arcs  = pd.Crossings();
             
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
             
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
             
@@ -190,7 +190,7 @@ namespace Knoodle
             
             const auto & C_arcs  = pd.Crossings();
             
-            cptr<CrossingState> C_state = pd.CrossingStates().data();
+            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
             
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
             
