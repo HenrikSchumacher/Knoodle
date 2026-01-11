@@ -1,6 +1,8 @@
+#define TOOLS_ENABLE_PROFILER
+
 #define PD_DEBUG
 //#define PD_VERBOSE
-#define TOOLS_ENABLE_PROFILER
+
 
 #include "../Knoodle.hpp"
 //#include "../src/OrthoDraw.hpp"

@@ -175,7 +175,7 @@ bool CheckLeftDarc() const
             const Int dc      = LeftDarc(da);
             const Int dc_slow = LeftDarc_Reference(da);
             
-            const bool passedQ = (db == dc);
+            const bool passedQ = (db == dc) && (db == dc_slow);
             
             if( !passedQ )
             {

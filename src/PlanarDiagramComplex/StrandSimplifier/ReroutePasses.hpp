@@ -28,7 +28,7 @@ Size_T ReroutePasses(
     
     const Int m = A_cross.Dim(0);
     
-    // We increase `current_mark` for each strand. This ensures that all entries of D_mark, D_from, A_visited_from, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever current_mark is at least half of the maximal integer of type Int (rounded down).
+    // We increase `current_mark` for each strand. This ensures that all entries of D_mark, D_from, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever current_mark is at least half of the maximal integer of type Int (rounded down).
     // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `ReroutePasses`. That should really be enough for all feasible applications.
     
     ++current_mark;
@@ -417,7 +417,7 @@ Size_T ReroutePasses(
 //    
 //    const Int m = A_cross.Dim(0);
 //    
-//    // We increase `current_mark` for each strand. This ensures that all entries of D_mark,D_from, A_visited_from, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever `current_mark` is at least half of the maximal integer of type Int (rounded down).
+//    // We increase `current_mark` for each strand. This ensures that all entries of D_mark,D_from, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever `current_mark` is at least half of the maximal integer of type Int (rounded down).
 //    // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `ReroutePasses`. That should really be enough for all feasible applications.
 //    
 //    ++current_mark;

@@ -102,8 +102,6 @@ void RemoveLoop( const Int e, const Int c_0 )
     
     Time_RemoveLoop += Tools::Duration(start_time,stop_time);
 #endif
-    
-    PD_TOC(ClassName()+"::RemoveLoop");
 }
 
 
