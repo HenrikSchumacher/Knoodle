@@ -173,12 +173,6 @@ namespace Knoodle
             return PD_T::ToDarc(a,d);
         }
         
-        template<bool d>
-        static constexpr Int ToDarc( const Int a )
-        {
-            return PD_T::template ToDarc<d>(a);
-        }
-        
         static constexpr std::pair<Int,bool> FromDarc( const Int da )
         {
             return PD_T::FromDarc(da);

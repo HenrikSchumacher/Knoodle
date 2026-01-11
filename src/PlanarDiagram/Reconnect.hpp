@@ -60,8 +60,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    
-    // TODO: Handle over/under in ArcState.
+
     SetMatchingPortTo(c,headtail,b,a);
     
     DeactivateArc(b);
@@ -87,7 +86,7 @@ void Reconnect( const Int a, const Int b )
 {
     // TODO: It is a bit annoying and violates the DRY principle that we have two functions `Reconnect` with almost 100% the same code. However, I made this intentionally so because I think that the compiler will optimize the two routines quite differently.
     
-    PD_DPRINT(ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    PD_DPRINT(ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));
@@ -109,7 +108,6 @@ void Reconnect( const Int a, const Int b )
     
     SetMatchingPortTo<headtail>(c,b,a);
 
-    // TODO: Handle over/under in ArcState.
     if constexpr( deactivateQ )
     {
         DeactivateArc(b);

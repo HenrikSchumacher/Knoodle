@@ -213,10 +213,10 @@ bool DisconnectSummand(
                 
                 PD_ASSERT( c_0 != c_1 );
                 
-                const Int a_prev = NextArc<Tail>(a,c_0);
-                const Int b_next = NextArc<Head>(b,c_0);
-                const Int a_next = NextArc<Head>(a,c_1);
-                const Int b_prev = NextArc<Tail>(b,c_1);
+                const Int a_prev = NextArc(a,Tail,c_0);
+                const Int b_next = NextArc(b,Head,c_0);
+                const Int a_next = NextArc(a,Head,c_1);
+                const Int b_prev = NextArc(b,Tail,c_1);
                 
                 if( a_prev != b_next )
                 {
@@ -269,8 +269,8 @@ bool DisconnectSummand(
                 
                 const Int c = A_cross(a,Tail);
                 
-                const Int a_prev = NextArc<Tail>(a,c);
-                const Int b_next = NextArc<Head>(b,c);
+                const Int a_prev = NextArc(a,Tail,c);
+                const Int b_next = NextArc(b,Head,c);
                 
                 Reconnect<Head>(a_prev,b_next);
                 Reconnect<Tail>(a,b);
@@ -303,8 +303,8 @@ bool DisconnectSummand(
             
             const Int c = A_cross(a,Head);
 
-            const Int a_next = NextArc<Head>(a,c);
-            const Int b_prev = NextArc<Tail>(b,c);
+            const Int a_next = NextArc(a,Head,c);
+            const Int b_prev = NextArc(b,Tail,c);
             
             Reconnect<Head>(a,b);
             Reconnect<Tail>(a_next,b_prev);
@@ -365,8 +365,8 @@ PlanarDiagram ExportSmallerComponent( const Int a_0, const Int b_0 )
         
         ++length;
         
-        a = NextArc<Head>(a,c_a);
-        b = NextArc<Head>(b,c_b);
+        a = NextArc(a,Head,c_a);
+        b = NextArc(b,Head,c_b);
     }
     while( (a != a_0) && (b != b_0) );
     
@@ -439,8 +439,7 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
         
         pd.A_cross(a_counter,Tail) = t_label;
         pd.A_cross(a_counter,Head) = h_label;
-        // TODO: Handle over/under in ArcState.
-        pd.A_state[a_counter] = ArcState::Active;
+        pd.A_state[a_counter] = ArcState_T::Active;
 //        pd.A_state[a_counter] = ??;
         
         const Int a_next = C_arcs(h,Out,!h_side);

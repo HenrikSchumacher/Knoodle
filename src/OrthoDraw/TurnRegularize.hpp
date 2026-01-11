@@ -124,7 +124,6 @@ bool CheckFaceTurns( const Int de_ptr ) const
 
 private:
 
-// DEBUGGING
 template<bool debugQ = false,bool verboseQ = false>
 std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
 {
@@ -194,43 +193,6 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
             },
             false
         );
-    
-        
-//        // TODO: Use TraverseFace?
-//        Int de = de_ptr;
-//        do
-//        {
-//            this->template AssertDedge<true,debugQ>(de);
-//
-//            if( dE_turn[de] == Turn_T(-1) )
-//            {
-//                RE_de [RE_counter] = de;
-//                RE_d  [RE_counter] = dE_counter;
-//                RE_rot[RE_counter] = rot;
-//                rot_lut[rot].push_back(RE_counter);
-//                
-//                RE_counter++;
-//                
-////                // DEBUGGING
-////                if( exteriorQ != DedgeExteriorQ(de) )
-////                {
-////                    eprint(ClassName()+"::FindKittyCorner: dedge " + ToString(de) + " has bounday flag set to " + ToString(DedgeExteriorQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
-////                }
-//            }
-//            ++dE_counter;
-//            rot += dE_turn[de];
-//            de = dE_left_dE[de];
-//        }
-//        while( (de != de_ptr) && dE_counter < E_count );
-//
-//        // TODO: The checks on reflex_counter should be irrelevant if the graph structure is intact.
-//
-//        if( (de != de_ptr) && (dE_counter >= E_count) )
-//        {
-//            eprint(MethodName("FindKittyCorner")+": Aborted because too many elements were collected. The data structure is probably corrupted.");
-//
-//            return {Uninitialized,Uninitialized};
-//        }
     }
     
     if( RE_counter <= Int(1) )
@@ -339,7 +301,6 @@ private:
  *
  */
 
-// DEBUGGING
 template<bool debugQ = false, bool verboseQ = false>
 bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
 {
@@ -453,12 +414,6 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     ++E_end;
     ++edge_count;
     ++virtual_edge_count;
-    
-    // DEBUGGING
-    if( E_end > E_V.Dim(0) )
-    {
-        eprint(MethodName("TurnRegularize") + "(" + ToString(de_ptr) + "): Edge overflow.");
-    }
 
     // The new edge; de_0 in forward direction; de_1 in reverse direction.
     Int de_0 = ToDarc(e,Tail);

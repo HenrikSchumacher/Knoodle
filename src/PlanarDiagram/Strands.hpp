@@ -46,7 +46,7 @@ Tensor1<Int,Int> ArcStrands() const
             A_colors[a] = color;
 
             // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
-            color += (ArcOverQ<Head>(a) != overQ);
+            color += (ArcOverQ(a,Head) != overQ);
         }
     );
 
@@ -109,7 +109,7 @@ Tensor3<Int,Int> CrossingStrands() const
             C_strands(c_0,Out,(C_arcs(c_0,Out,Right) == a)) = strand_counter;
             C_strands(c_1,In ,(C_arcs(c_1,In ,Right) == a)) = strand_counter;
 
-            strand_counter += (ArcUnderQ<Head>(a) == overQ);
+            strand_counter += (ArcUnderQ(a,Head) == overQ);
         }
     );
     

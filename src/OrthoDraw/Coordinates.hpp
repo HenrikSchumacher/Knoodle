@@ -441,7 +441,7 @@ cref<ArcSplineContainer_T> ArcSplines()
 
         for( Int a = 0; a < a_count; ++a )
         {
-            if( !DedgeActiveQ(ToDarc<Tail>(a)) )
+            if( !DedgeActiveQ(ToDarc(a,Tail)) )
             {
                 A_splines.FinishSublist();
                 continue;

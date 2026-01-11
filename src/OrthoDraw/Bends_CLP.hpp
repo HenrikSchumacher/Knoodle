@@ -72,9 +72,9 @@ Tensor1<Turn_T,Int> Bends_CLP(
             if( !pd.ArcActiveQ(a) ) { continue; };
             
             // right face of a
-            const I f_0  = static_cast<I>( dA_F[pd.template ToDarc<Tail>(a)] );
+            const I f_0  = static_cast<I>( dA_F[pd.ToDarc(a,Tail)] );
             // left  face of a
-            const I f_1  = static_cast<I>( dA_F[pd.template ToDarc<Head>(a)] );
+            const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
 
             // Clp seems to work with different sign than I.
             

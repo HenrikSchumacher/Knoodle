@@ -67,7 +67,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             gauss_code[a_pos] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
         }
     );
 }
@@ -112,16 +112,15 @@ static PlanarDiagram FromExtendedGaussCode(
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
-        // TODO: Handle over/under in ArcState.
-        pd.A_state[a] = ArcState::Active;
+        pd.A_state[a] = ArcState_T::Active;
         
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
         {
             pd.C_state[c] = (g > T(0))
-                          ? CrossingState::RightHanded
-                          : CrossingState::LeftHanded;
+                          ? CrossingState_T::RightHanded
+                          : CrossingState_T::LeftHanded;
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
@@ -256,7 +255,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
             gauss_code[a_pos] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
         },
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {

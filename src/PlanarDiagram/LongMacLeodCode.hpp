@@ -69,8 +69,9 @@ void WriteLongMacLeodCode( mptr<T> code ) const
             workspace[Int(2) * c_0_pos + c_0_visitedQ] = a_pos;
             
             code[a_pos] = (
-                static_cast<T>(this->ArcOverQ<Tail>(a)) << T(1))
-                | static_cast<T>(this->CrossingRightHandedQ(c_0)
+                static_cast<T>(this->ArcOverQ(a,Tail)) << T(1))
+                |
+                static_cast<T>(this->CrossingRightHandedQ(c_0)
             );
         }
     );
@@ -290,8 +291,8 @@ static PlanarDiagram FromLongMacLeodCode(
             const Int c = crossing_counter;
             
             pd.C_state[c] = a_right_handedQ
-                          ? CrossingState::RightHanded
-                          : CrossingState::LeftHanded;
+                          ? CrossingState_T::RightHanded
+                          : CrossingState_T::LeftHanded;
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));
             pd.A_cross(a_prev,Head) = c;
@@ -301,8 +302,8 @@ static PlanarDiagram FromLongMacLeodCode(
             pd.A_cross(b_prev,Head) = c;
             pd.A_cross(b     ,Tail) = c;
             
-            pd.A_state[a] = ArcState::Active;
-            pd.A_state[b] = ArcState::Active;
+            pd.A_state[a] = ArcState_T::Active;
+            pd.A_state[b] = ArcState_T::Active;
             
             if( a_overQ == a_right_handedQ )
             {

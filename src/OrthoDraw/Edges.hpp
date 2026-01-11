@@ -159,25 +159,6 @@ void ComputeEdgeLeftDedges()
         const Int df_0 = dE_left_dE[de_0] = V_dE(c_0,s_0);
         const Int df_1 = dE_left_dE[de_1] = V_dE(c_1,s_1);
         
-//        TOOLS_LOGDUMP(c_0);
-//        TOOLS_LOGDUMP(c_1);
-//        logvalprint( "V_dE(c_0)", ArrayToString(V_dE.data(c_0), {4}) );
-//        logvalprint( "V_dE(c_1)", ArrayToString(V_dE.data(c_1), {4}) );
-//        TOOLS_LOGDUMP(df_0);
-//        TOOLS_LOGDUMP(df_1);
-        
-        // DEBUGGING
-        if ( df_0 == Uninitialized )
-        {
-            eprint(MethodName("ComputeEdgeLeftDedges") + ": dE_left_dE[de_0] of dedge " + ToString(de_0) + " is ill-defined.");
-        }
-        // DEBUGGING
-        if ( df_1 == Uninitialized )
-        {
-            eprint(MethodName("ComputeEdgeLeftDedges") + ": dE_left_dE[de_1] of dedge " + ToString(de_1) + " is ill-defined.");
-        }
-        
-        
         // TODO: I think this ought to be removed.
         if ( (t_0 == Turn_T(-1)) && (dE_turn[df_0] == Turn_T(-1)) )
         {

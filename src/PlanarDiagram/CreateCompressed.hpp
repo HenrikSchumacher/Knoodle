@@ -25,10 +25,10 @@ PlanarDiagram CreateCompressed()
     pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-    mptr<CrossingState>       C_state_new = pd.C_state.data();
+    mptr<CrossingState_T>     C_state_new = pd.C_state.data();
     
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-    mptr<ArcState>            A_state_new = pd.A_state.data();
+    mptr<ArcState_T>          A_state_new = pd.A_state.data();
     
     this->template Traverse<true,false,0>(
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
@@ -41,8 +41,7 @@ PlanarDiagram CreateCompressed()
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
 
-            // TODO: Handle over/under in ArcState.
-            A_state_new[a_pos] = ArcState::Active;
+            A_state_new[a_pos] = ArcState_T::Active;
 //             A_state_new[a_pos] = A_state[a];
 
             if( !c_0_visitedQ )

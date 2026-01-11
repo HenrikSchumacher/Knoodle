@@ -49,9 +49,9 @@ Tensor1<Turn_T,Int> Bends_OR(
         if( !pd.ArcActiveQ(a) ) { continue; };
         
         // right face of a
-        const Node_T f_0  = static_cast<Node_T>( dA_F[pd.template ToDarc<Tail>(a)] );
+        const Node_T f_0  = static_cast<Node_T>( dA_F[pd.ToDarc(a,Tail)] );
         // left  face of a
-        const Node_T f_1  = static_cast<Node_T>( dA_F[pd.template ToDarc<Head>(a)] );
+        const Node_T f_1  = static_cast<Node_T>( dA_F[pd.ToDarc(a,Head)] );
         
         const Arc_T  di_0 = static_cast<Arc_T>( A_idx(a,0) );
         const Arc_T  di_1 = static_cast<Arc_T>( A_idx(a,1) );

@@ -214,7 +214,7 @@ void LoadPlanarDiagram(
     A_V    = RaggedList<Int,Int>(A_count + Int(1), E_count + arc_count);
     A_E    = RaggedList<Int,Int>(A_count + Int(1), E_count );
 
-    cptr<CrossingState> C_state = pd.CrossingStates().data();
+    cptr<CrossingState_T> C_state = pd.CrossingStates().data();
     
     A_overQ = Tiny::VectorList_AoS<2,bool,Int>(A_count);
 
@@ -229,17 +229,17 @@ void LoadPlanarDiagram(
     {
         switch(C_state[c])
         {
-            case CrossingState::Inactive:
+            case CrossingState_T::Inactive:
             {
                 V_flag[c] = VertexFlag_T::Inactive;
                 break;
             }
-            case CrossingState::LeftHanded:
+            case CrossingState_T::LeftHanded:
             {
                 V_flag[c] = VertexFlag_T::LeftHanded;
                 break;
             }
-            case CrossingState::RightHanded:
+            case CrossingState_T::RightHanded:
             {
                 V_flag[c] = VertexFlag_T::RightHanded;
                 break;
@@ -260,11 +260,11 @@ void LoadPlanarDiagram(
         
         if( !pd.ArcActiveQ(a_) ) { continue; }
         
-        E_flag(a,Tail) = EdgeActiveMask;
-        E_flag(a,Head) = EdgeActiveMask;
+        E_flag (a,Tail) = EdgeActiveMask;
+        E_flag (a,Head) = EdgeActiveMask;
         
-        A_overQ(a,Tail) = pd.template ArcOverQ<Tail>(a_); // pd needed
-        A_overQ(a,Head) = pd.template ArcOverQ<Head>(a_); // pd needed
+        A_overQ(a,Tail) = pd.ArcOverQ(a_,Tail); // pd needed
+        A_overQ(a,Head) = pd.ArcOverQ(a_,Head); // pd needed
     }
     
     // From here on we do not need pd itself anymore. But we need the temporarily created C_dir buffer whose initialization requires a pd object (because of DepthFirstSearch).
@@ -464,12 +464,6 @@ void LoadPlanarDiagram(
         const Int da = R_dA.Elements()[
             R_dA.Pointers()[exterior_region]
         ];
-        
-        // DEBUGGING
-        if( da == Uninitialized )
-        {
-            eprint(tag + ": first darc if exterior region " + ToString(exterior_region) + " is not initialized.");
-        }
         
         MarkFaceAsExterior( da );
     }

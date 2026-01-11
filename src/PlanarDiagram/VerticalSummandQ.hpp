@@ -9,7 +9,7 @@ bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
     
     if constexpr ( nontrivialQ )
     {
-        goodQ = goodQ && (overQ != ArcOverQ<Tail>(a)) && (overQ != ArcOverQ<Head>(b));
+        goodQ = goodQ && (overQ != ArcOverQ(a,Tail)) && (overQ != ArcOverQ(b,Head));
 
         if( goodQ )
         {   // Tail of a should cross with complement of [a,b[.

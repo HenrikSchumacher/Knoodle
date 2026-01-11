@@ -84,7 +84,7 @@ void WriteExtendedGaussCode2( const Int a_0, mptr<T> code )  const
             code[a_counter] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
             
             A_visitedQ[a] = true;
             ++a_counter;

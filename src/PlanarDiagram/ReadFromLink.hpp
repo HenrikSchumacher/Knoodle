@@ -15,10 +15,7 @@ void ReadFromLink(
     
     using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
     using Sign_T         = typename Intersection_T::Sign_T;
-    // TODO: Handle over/under in ArcState.
-//    using F_T            = Underlying_T<ArcState>;
-    
-    
+
     if( intersections.size() <= Size_T(0) )
     {
         unlink_count = component_count;
@@ -78,12 +75,9 @@ void ReadFromLink(
          *
          */
         
-        C_state[c] = righthandedQ ? CrossingState::RightHanded : CrossingState::LeftHanded;
+        C_state[c] = righthandedQ ? CrossingState_T::RightHanded : CrossingState_T::LeftHanded;
         
-        // TODO: Handle over/under in ArcState.
-        A_state[a] = ArcState::Active;
-//                A_state[a] = ToUnderlying(A_state[a]) | F_T(1) | (F_T(overQ) << 2);
-//                A_state[b] = ToUnderlying(A_state[b]) | F_T(1) | (F_T(overQ) << 1);
+        A_state[a] = ArcState_T::Active;
         
         /*
         * righthandedQ == true and overQ == true:

@@ -14,17 +14,17 @@ bool Private_SwitchCrossing( const Int c )
     
     switch( C_state[c] )
     {
-        case CrossingState::RightHanded:
+        case CrossingState_T::RightHanded:
         {
-            C_state[c] = CrossingState::LeftHanded;
+            C_state[c] = CrossingState_T::LeftHanded;
             return true;
         }
-        case CrossingState::LeftHanded:
+        case CrossingState_T::LeftHanded:
         {
-            C_state[c] = CrossingState::RightHanded;
+            C_state[c] = CrossingState_T::RightHanded;
             return true;
         }
-        case CrossingState::Inactive:
+        case CrossingState_T::Inactive:
         {
             if constexpr ( warningQ )
             {

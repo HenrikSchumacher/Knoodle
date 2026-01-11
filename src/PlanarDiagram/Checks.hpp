@@ -33,9 +33,9 @@ bool CheckCrossing( const Int c  ) const
                 return false;
             }
             
-//            const int A_activeQ = (A_state[a] == ArcState::Active) || (A_state[a] == ArcState::Unchanged);
+//            const int A_activeQ = (A_state[a] == ArcState_T::Active) || (A_state[a] == ArcState_T::Unchanged);
             
-            const bool A_activeQ = ToUnderlying(A_state[a]) & Underlying_T<ArcState>(1);
+            const bool A_activeQ = ToUnderlying(A_state[a]) & Underlying_T<ArcState_T>(1);
             
             if( !A_activeQ )
             {
@@ -109,7 +109,7 @@ bool CheckArc( const Int a ) const
         return false;
     }
     
-    if( A_state[a] == ArcState::Inactive )
+    if( A_state[a] == ArcState_T::Inactive )
     {
         return true;
     }

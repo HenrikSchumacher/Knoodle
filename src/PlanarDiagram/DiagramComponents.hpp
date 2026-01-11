@@ -186,8 +186,6 @@ void Split( mref<PD_List_T> pd_list )
                 // Traversing link component `j`.
                 const Int a = lc_arc_idx[j];
 
-                // TODO: Handle over/under in ArcState.
-//                pd.A_state[a_counter] = ArcState::Active;
                 pd.A_state[a_counter] = A_state[a];
                 
                 const Int c_0 = A_cross(a,Tail);

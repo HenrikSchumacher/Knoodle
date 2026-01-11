@@ -3,7 +3,6 @@ public:
 /*! @brief Cycle around `de_ptr`'s left face and evaluate `edge_fun` on each directed edge. If the template argument `ignore_virtual_edgesQ` is set to true, this will ignore virtual edges and traverse as if these were not existent.
  */
 
-// DEBUGGING
 template<
     bool debugQ = false,
     bool verboseQ = false,
@@ -19,10 +18,6 @@ TOOLS_FORCE_INLINE void TraverseFace(
     {
         return;
     }
-    
-//    // DEBUGGING
-//    
-//    TOOLS_PTIMER(timer,ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")"));
     
     if constexpr ( verboseQ )
     {
