@@ -76,39 +76,21 @@ void WriteLongMacLeodCode( mptr<T> code ) const
                 // Remember that arc_pos visited c_0_pos.
                 workspace[c_0_pos] = arc_pos;
                 
-                code[arc_pos] = (static_cast<T>(arc_state.template OverQ<Tail>()) << T(1))
-                              |  static_cast<T>(arc_state.template RightHandedQ<Tail>());
+                code[arc_pos] = (static_cast<T>(arc_state.OverQ(Tail)) << T(1))
+                              |  static_cast<T>(arc_state.RightHandedQ(Tail));
             }
             else
             {
                 const T a = static_cast<T>(workspace[c_0_pos]);
                 const T b = static_cast<T>(arc_pos);
-                
-                // DEBUGGING
-                if( (a < T(0)) )
-                {
-                    valprint("a < 0",a);
-                }
-                if( (a >= m) )
-                {
-                    valprint("a > m",a);
-                }
-                if( (b < T(0)) )
-                {
-                    valprint("b < 0",b);
-                }
-                if( (b >= m) )
-                {
-                    valprint("b > m",b);
-                }
                    
                 const T a_leap = b - a;
                 const T b_leap = (m + a) - b;
                 
                 code[a] |= (a_leap << T(2));
                 
-                code[b] = (static_cast<T>(arc_state.template OverQ<Tail>()) << T(1))
-                        |  static_cast<T>(arc_state.template RightHandedQ<Tail>())
+                code[b] = (static_cast<T>(arc_state.OverQ(Tail)) << T(1))
+                        |  static_cast<T>(arc_state.RightHandedQ(Tail))
                         | (b_leap << T(2));
             }
         }
@@ -200,8 +182,6 @@ static PD_T FromLongMacLeodCode(
 
     PD_T pd ( n );
     
-    pd.A_color.SetZero();   // We expect only a single link component.
-    
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
     fill_buffer(A_visitedQ,false,m);
     
@@ -259,10 +239,10 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,In ,Left ) = a_prev;
                 pd.C_arcs(c,In ,Right) = b_prev;
 
-                pd.A_state[a_prev].template Set<Head>(Left ,c_state);
-                pd.A_state[a     ].template Set<Tail>(Right,c_state);
-                pd.A_state[b_prev].template Set<Head>(Right,c_state);
-                pd.A_state[b     ].template Set<Tail>(Left ,c_state);
+                pd.A_state[a_prev].Set(Head,Left ,c_state);
+                pd.A_state[a     ].Set(Tail,Right,c_state);
+                pd.A_state[b_prev].Set(Head,Right,c_state);
+                pd.A_state[b     ].Set(Tail,Left ,c_state);
             }
             else
             {
@@ -284,10 +264,10 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,In ,Left ) = b_prev;
                 pd.C_arcs(c,In ,Right) = a_prev;
 
-                pd.A_state[a_prev].template Set<Head>(Right,c_state);
-                pd.A_state[a     ].template Set<Tail>(Left ,c_state);
-                pd.A_state[b_prev].template Set<Head>(Left ,c_state);
-                pd.A_state[b     ].template Set<Tail>(Right,c_state);
+                pd.A_state[a_prev].Set(Head,Right,c_state);
+                pd.A_state[a     ].Set(Tail,Left ,c_state);
+                pd.A_state[b_prev].Set(Head,Left ,c_state);
+                pd.A_state[b     ].Set(Tail,Right,c_state);
             }
         
             ++crossing_counter;
@@ -302,14 +282,17 @@ static PD_T FromLongMacLeodCode(
         eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
+    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots.
+    
     // Compression is not really meaningful because the traversal ordering is unique for the MacLeod code.
     if(compressQ)
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-        return pd.template CreateCompressed<false>();
+        return pd.template CreateCompressed<true>();
     }
     else
     {
+        pd.ComputeArcColors();
         return pd;
     }
 }

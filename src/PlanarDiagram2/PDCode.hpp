@@ -23,7 +23,7 @@ public:
  */
 
 template<typename T = Int, bool labelsQ = false>
-Tensor2<T,Int> PDCode()
+Tensor2<T,Int> PDCode() const
 {
     auto tag = []()
     {
@@ -54,13 +54,13 @@ Tensor2<T,Int> PDCode()
     
     pd_code = Tensor2<T,Int> ( crossing_count, Int(5) );
 
-    this->WritePDCode<T,true,labelsQ>(pd_code.data());
+    this->WritePDCode<T,labelsQ>(pd_code.data());
     
     return pd_code;
 }
 
 template<typename T, bool labelsQ = false>
-void WritePDCode( mptr<T> pd_code )
+void WritePDCode( mptr<T> pd_code ) const
 {
     static_assert( IntQ<T>, "" );
     
@@ -89,8 +89,8 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_0_pos that arc a_pos goes out of it.
             {
-                const bool side          = a_state.template Side<Tail>();
-                const bool right_handedQ = a_state.template RightHandedQ<Tail>();
+                const bool side          = a_state.Side(Tail);
+                const bool right_handedQ = a_state.RightHandedQ(Tail);
 
                 mptr<T> X = &pd_code[Int(5) * c_0_pos];
 
@@ -176,8 +176,8 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_1_pos that arc a_pos goes into it.
             {
-                const bool right_handedQ = a_state.template RightHandedQ<Head>();
-                const bool side          = a_state.template Side<Head>();
+                const bool right_handedQ = a_state.RightHandedQ(Head);
+                const bool side          = a_state.Side(Head);
                 
                 mptr<T> X = &pd_code[Int(5) * c_1_pos];
 
@@ -534,10 +534,10 @@ static PD_T FromPDCode(
             pd.C_arcs(c,In ,Left ) = X[3];
             pd.C_arcs(c,In ,Right) = X[0];
             
-            pd.A_state(X[0]).template Set<Head>(Right, c_state);
-            pd.A_state(X[2]).template Set<Tail>(Left , c_state);
-            pd.A_state(X[3]).template Set<Head>(Left , c_state);
-            pd.A_state(X[1]).template Set<Tail>(Right, c_state);
+            pd.A_state(X[0]).Set(Head,Right,true);
+            pd.A_state(X[2]).Set(Tail,Left ,true);
+            pd.A_state(X[3]).Set(Head,Left ,true);
+            pd.A_state(X[1]).Set(Tail,Right,true);
         }
        else if( c_state.LeftHandedQ() )
        {
@@ -568,10 +568,10 @@ static PD_T FromPDCode(
             pd.C_arcs(c,In ,Left ) = X[0];
             pd.C_arcs(c,In ,Right) = X[1];
 
-            pd.A_state(X[0]).template Set<Head>(Left , c_state);
-            pd.A_state(X[2]).template Set<Tail>(Right, c_state);
-            pd.A_state(X[3]).template Set<Tail>(Left , c_state);
-            pd.A_state(X[1]).template Set<Head>(Right, c_state);
+            pd.A_state(X[0]).Set(Head,Left ,false);
+            pd.A_state(X[2]).Set(Tail,Right,false);
+            pd.A_state(X[3]).Set(Tail,Left ,false);
+            pd.A_state(X[1]).Set(Head,Right,false);
         }
     }
 

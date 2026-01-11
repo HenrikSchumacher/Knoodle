@@ -280,27 +280,64 @@ bool CheckAll() const
 /*! @brief Checks the arc states, assuming that the activity status of each arc is correct.
  */
 
+bool CheckArcState( const Int a ) const
+{
+    if( !ArcActiveQ(a) )
+    {
+        return true;
+    }
+    
+    for( bool headtail : {Tail,Head} )
+    {
+        if( ArcSide(a,headtail) != ArcSide_Reference(a,headtail) )
+        {
+            eprint(MethodName("CheckArcState")+": ArcSide(a," + (headtail ? "Head" : "Tail") +") of " + ArcString(a) + " is incorrect.");
+            return false;
+        }
+    }
+    for( bool headtail : {Tail,Head} )
+    {
+        if( ArcRightHandedQ(a,headtail) != ArcRightHandedQ_Reference(a,headtail) )
+        {
+            eprint(MethodName("CheckArcState")+": ArcRightHandedQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
+            return false;
+        }
+    }
+    for( bool headtail : {Tail,Head} )
+    {
+        if( ArcLeftHandedQ(a,headtail) != ArcLeftHandedQ_Reference(a,headtail) )
+        {
+            eprint(MethodName("CheckArcState")+": ArcLeftHandedQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
+            return false;
+        }
+    }
+    for( bool headtail : {Tail,Head} )
+    {
+        if( ArcOverQ(a,headtail) != ArcOverQ_Reference(a,headtail) )
+        {
+            eprint(MethodName("CheckArcState")+": ArcOverQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
+            return false;
+        }
+    }
+    for( bool headtail : {Tail,Head} )
+    {
+        if( ArcUnderQ(a,headtail) != ArcUnderQ_Reference(a,headtail) )
+        {
+            eprint(MethodName("CheckArcState")+": ArcUnderQ(a," + (headtail ? "Head" : "Tail") +") is incorrect.");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 bool CheckArcStates() const
 {
     for( Int a = 0; a < max_arc_count; ++a )
     {
-        if( ArcActiveQ(a) )
+        if( !CheckArcState(a) )
         {
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-            
-            const bool side_0 = (C_arcs(c_0,Out,Right) == a);
-            const bool side_1 = (C_arcs(c_1,In ,Right) == a);
-            
-            ArcState_T a_state = ArcState_T::Inactive();
-            
-            a_state.template Set<Tail>( side_0, C_state[c_0] );
-            a_state.template Set<Head>( side_1, C_state[c_1] );
-            
-            if( A_state[a] != a_state )
-            {
-                return false;
-            }
+            return false;
         }
     }
     
@@ -310,38 +347,91 @@ bool CheckArcStates() const
 
 public:
 
+// TODO: Rework this to look like the others.
+template<bool must_be_activeQ>
 void AssertDarc( const Int da ) const
 {
 #ifdef PD_DEBUG
-    std::string s = DarcString(da);
-    PD_ASSERT2(CheckArc  (FromDarc(da).first),s);
-    PD_ASSERT2(ArcActiveQ(FromDarc(da).first),s);
+        auto [a,d] = FromDarc(da);
+    
+        if constexpr( must_be_activeQ )
+        {
+            if( !ArcActiveQ(a) )
+            {
+                pd_eprint("AssertDarc<1>: " + DarcString(da) + " is not active.");
+            }
+            if( !CheckArc(a) )
+            {
+                pd_eprint("AssertDarc<1>: " + DarcString(da) + " failed CheckArc.");
+            }
+        }
+        else
+        {
+            if( ArcActiveQ(a) )
+            {
+                pd_eprint("AssertDarc<0>: " + DarcString(a) + " is not inactive.");
+            }
+        }
 #else
     (void)da;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertArc( const Int a ) const
 {
 #ifdef PD_DEBUG
-    std::string s = ArcString(a);
-    PD_ASSERT2(CheckArc  (a),s);
-    PD_ASSERT2(ArcActiveQ(a),s);
+        if constexpr( must_be_activeQ )
+        {
+            if( !ArcActiveQ(a) )
+            {
+                pd_eprint("AssertArc<1>: " + ArcString(a) + " is not active.");
+            }
+            if( !CheckArc(a) )
+            {
+                pd_eprint("AssertArc<1>: " + ArcString(a) + " failed CheckArc.");
+            }
+        }
+        else
+        {
+            if( ArcActiveQ(a) )
+            {
+                pd_eprint("AssertArc<0>: " + ArcString(a) + " is not inactive.");
+            }
+        }
 #else
-    (void)a;
+        (void)a;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertCrossing( const Int c ) const
 {
 #ifdef PD_DEBUG
-    std::string s = CrossingString(c);
-    PD_ASSERT2(InIntervalQ(c,Int(0),max_crossing_count),s);
-    PD_ASSERT2(CrossingActiveQ(c),s);
-    PD_ASSERT2(CheckCrossing(c),s);
+    if( !InIntervalQ(c,Int(0),max_crossing_count) )
+    {
+        pd_eprint("AssertCrossing<1>: Crossing index " + Tools::ToString(c) + " is out of bounds.");
+    }
+    
+    if constexpr( must_be_activeQ )
+    {
+        if( !CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " is not active.");
+        }
+        if( !CheckCrossing(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " failed CheckCrossing.");
+        }
+    }
+    else
+    {
+        if( CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<0>: " + CrossingString(c) + " is not inactive.");
+        }
+    }
 #else
     (void)c;
 #endif
 }
-
-

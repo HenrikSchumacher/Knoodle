@@ -1,22 +1,13 @@
 public:
 
-    
-// TODO: These things would be way faster if Int is unsigned.
-
-static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
-{
-    return std::pair( da / Int(2), da % Int(2) );
-}
-
 static constexpr Int ToDarc( const Int a, const HeadTail_T d )
 {
     return Int(2) * a + d;
 }
 
-template<HeadTail_T d>
-static constexpr Int ToDarc( const Int a )
+static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
 {
-    return Int(2) * a + d;
+    return std::pair( da / Int(2), da % Int(2) );
 }
 
 static constexpr Int FlipDarc( const Int da )
@@ -34,6 +25,17 @@ std::string DarcString( const Int da ) const
         + ToString(A_state[a]) + ")";
 }
 
+Int DarcCrossing( const Int da ) const
+{
+    return A_cross.data()[da];
+}
+
+bool DarcSide( const Int da )  const
+{
+    auto [a,d] = FromDarc(da);
+    return ArcSide(a,d);
+}
+
 //#########################################################
 //###       LeftDarc
 //#########################################################
@@ -43,10 +45,36 @@ Int LeftDarc( const Int da ) const
     auto [a,d] = FromDarc(da);
     AssertArc(a);
     
+    const Int  c    = A_cross(a,d);
+    const bool side = ArcSide(a,d);
+    AssertCrossing(c);
+    
+    
+    /*
+     *   O     O    d    == Head  == Right
+     *    ^   ^     side == Right == In == Head
+     *     \ /
+     *      X c
+     *     / \
+     *    /   \
+     *   O     O a
+     */
+    
+    const Int b = C_arcs(c,side,!d);
+    AssertArc(b);
+    
+    return ToDarc(b,!side);
+}
+
+Int LeftDarc_Reference( const Int da ) const
+{
+    auto [a,d] = FromDarc(da);
+    AssertArc(a);
+    
     const Int c = A_cross(a,d);
     AssertCrossing(c);
     
-    const bool side = A_state[a].Side(d);
+    const bool side = ArcSide_Reference(a,d);
     
     /*
      *   O     O    d    == Head  == Right
@@ -74,8 +102,10 @@ mref<ArcContainer_T> ArcLeftDarc() const
     {
         TOOLS_PTIMER(timer,tag);
         
-        ArcContainer_T A_left ( max_arc_count );
+        ArcContainer_T A_left_buffer ( max_arc_count );
         
+        mptr<Int> dA_left = A_left_buffer.data();
+
         for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
@@ -84,15 +114,14 @@ mref<ArcContainer_T> ArcLeftDarc() const
                 
                 copy_buffer<4>( C_arcs.data(c), &A[0][0] );
                 
-                const Int darcs [2][2] =
+                const Int in_darcs [2][2] =
                 {
                     {
-                        ToDarc<Head>(A[Out][Left ]), ToDarc<Head>(A[Out][Right])
+                        ToDarc(A[Out][Left ],Tail), ToDarc(A[Out][Right],Tail)
                     },{
-                        ToDarc<Tail>(A[In ][Left ]), ToDarc<Tail>(A[In ][Right])
+                        ToDarc(A[In ][Left ],Head), ToDarc(A[In ][Right],Head)
                     }
                 };
-                
                 
                 /* A[Out][Left ]         A[Out][Right]
                  *               O     O
@@ -105,19 +134,19 @@ mref<ArcContainer_T> ArcLeftDarc() const
                  * A[In ][Left ]         A[In ][Right]
                  */
                 
-                A_left(A[Out][Left ],Tail) = darcs[Out][Right];
-                A_left(A[Out][Right],Tail) = darcs[In ][Right];
-                A_left(A[In ][Left ],Head) = darcs[Out][Left ];
-                A_left(A[In ][Right],Head) = darcs[In ][Left ];
-                
-                PD_ASSERT( A_left(A[Out][Left ],Tail) == LeftDarc(darcs[Out][Left ]) );
-                PD_ASSERT( A_left(A[Out][Right],Tail) == LeftDarc(darcs[Out][Right]) );
-                PD_ASSERT( A_left(A[In ][Left ],Head) == LeftDarc(darcs[In ][Left ]) );
-                PD_ASSERT( A_left(A[In ][Right],Head) == LeftDarc(darcs[In ][Right]) );
+                dA_left[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[Out][Right] );
+                dA_left[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[In ][Right] );
+                dA_left[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[Out][Left ] );
+                dA_left[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[In ][Left ] );
+
+                PD_ASSERT( dA_left[ in_darcs[Out][Left ] ] == LeftDarc( in_darcs[Out][Left ] ) );
+                PD_ASSERT( dA_left[ in_darcs[Out][Right] ] == LeftDarc( in_darcs[Out][Right] ) );
+                PD_ASSERT( dA_left[ in_darcs[In ][Left ] ] == LeftDarc( in_darcs[In ][Left ] ) );
+                PD_ASSERT( dA_left[ in_darcs[In ][Right] ] == LeftDarc( in_darcs[In ][Right] ) );
             }
         }
         
-        this->SetCache(tag,std::move(A_left));
+        this->SetCache(tag,std::move(A_left_buffer));
     }
     
     return this->GetCache<ArcContainer_T>(tag);
@@ -130,7 +159,7 @@ bool CheckLeftDarc() const
     
     TOOLS_PTIMER(timer,tag);
     
-    cptr<Int> darc_left_darc = ArcLeftDarc().data();
+    mptr<Int> dA_left = ArcLeftDarc().data();
     
     for( Int a = 0; a < max_arc_count; ++a )
     {
@@ -141,12 +170,12 @@ bool CheckLeftDarc() const
         
         for( bool headtail : {false, true} )
         {
-            const Int da = ToDarc(a,headtail);
-            const Int db = darc_left_darc[da];
-            const Int dc = LeftDarc(dc);
-            auto [c,dir] = NextLeftArc(a,headtail);
+            const Int da      = ToDarc(a,headtail);
+            const Int db      = dA_left[da];
+            const Int dc      = LeftDarc(da);
+            const Int dc_slow = LeftDarc_Reference(da);
             
-            const bool passedQ = (db == dc) && (db == ToDarc(c,dir));
+            const bool passedQ = (db == dc);
             
             if( !passedQ )
             {
@@ -160,8 +189,9 @@ bool CheckLeftDarc() const
                 TOOLS_DUMP(dc);
                 TOOLS_DUMP(dc / Int(2));
                 TOOLS_DUMP(dc % Int(2));
-                TOOLS_DUMP(c);
-                TOOLS_DUMP(dir);
+                TOOLS_DUMP(dc_slow);
+                TOOLS_DUMP(dc_slow / Int(2));
+                TOOLS_DUMP(dc_slow % Int(2));
                 return false;
             }
         }
@@ -182,10 +212,35 @@ Int RightDarc( const Int da ) const
     auto [a,d] = FromDarc(da);
     AssertArc(a);
     
+    const Int  c    = A_cross(a,d);
+    const bool side = ArcSide(a,d);
+    AssertCrossing(c);
+    
+    /*
+     *   O     O    d    == Head  == Right
+     *    ^   ^     side == Right == In == Head
+     *     \ /
+     *      X c
+     *     / \
+     *    /   \
+     *   O     O a
+     */
+    
+    const Int b = C_arcs(c,!side,d);
+    AssertArc(b);
+    
+    return ToDarc(b,side);
+}
+
+Int RightDarc_Reference( const Int da ) const
+{
+    auto [a,d] = FromDarc(da);
+    AssertArc(a);
+    
     const Int c = A_cross(a,d);
     AssertCrossing(c);
     
-    const bool side = A_state[a].Side(d);
+    const bool side = ArcSide_Reference(a,d);
     
     /*
      *   O     O    d    == Head  == Right
@@ -212,7 +267,9 @@ mref<ArcContainer_T> ArcRightDarc() const
     
     if( !this->InCacheQ(tag) )
     {
-        ArcContainer_T A_right ( max_arc_count );
+        ArcContainer_T A_right_buffer ( max_arc_count );
+        
+        mptr<Int> dA_right = A_right_buffer.data();
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
@@ -222,12 +279,12 @@ mref<ArcContainer_T> ArcRightDarc() const
                 
                 copy_buffer<4>( C_arcs.data(c), &A[0][0] );
                 
-                const Int darcs [2][2] =
+                const Int in_darcs [2][2] =
                 {
                     {
-                        ToDarc<Head>(A[Out][Left ]), ToDarc<Head>(A[Out][Right])
+                        ToDarc(A[Out][Left ],Tail), ToDarc(A[Out][Right],Tail)
                     },{
-                        ToDarc<Tail>(A[In ][Left ]), ToDarc<Tail>(A[In ][Right])
+                        ToDarc(A[In ][Left ],Head), ToDarc(A[In ][Right],Head)
                     }
                 };
                 
@@ -242,31 +299,31 @@ mref<ArcContainer_T> ArcRightDarc() const
                  * A[In ][Left ]         A[In ][Right]
                  */
 
-                A_right(A[Out][Left ],Tail) = darcs[In ][Left ];
-                A_right(A[Out][Right],Tail) = darcs[Out][Left ];
-                A_right(A[In ][Left ],Head) = darcs[In ][Right];
-                A_right(A[In ][Right],Head) = darcs[Out][Right];
+                dA_right[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[In ][Left ] );
+                dA_right[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[Out][Left ] );
+                dA_right[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[In ][Right] );
+                dA_right[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[Out][Right] );
                 
-                PD_ASSERT( A_right(A[Out][Left ],Tail) == RightDarc(darcs[Out][Left ]) );
-                PD_ASSERT( A_right(A[Out][Right],Tail) == RightDarc(darcs[Out][Right]) );
-                PD_ASSERT( A_right(A[In ][Left ],Head) == RightDarc(darcs[In ][Left ]) );
-                PD_ASSERT( A_right(A[In ][Right],Head) == RightDarc(darcs[In ][Right]) );
+                PD_ASSERT( dA_right[ in_darcs[Out][Left ] ] == RightDarc( in_darcs[Out][Left ] ) );
+                PD_ASSERT( dA_right[ in_darcs[Out][Right] ] == RightDarc( in_darcs[Out][Right] ) );
+                PD_ASSERT( dA_right[ in_darcs[In ][Left ] ] == RightDarc( in_darcs[In ][Left ] ) );
+                PD_ASSERT( dA_right[ in_darcs[In ][Right] ] == RightDarc( in_darcs[In ][Right] ) );
             }
         }
         
-        this->SetCache(tag,std::move(A_right));
+        this->SetCache(tag,std::move(A_right_buffer));
     }
     
     return this->GetCache<ArcContainer_T>(tag);
 }
 
-bool CheckNextRightArc() const
+bool CheckRightDarc() const
 {
-    std::string tag = MethodName("CheckLeftDarc");
+    std::string tag = MethodName("RightDarc");
     
     TOOLS_PTIMER(timer,tag);
     
-    cptr<Int> darc_right_darc = ArcRightDarc().data();
+    cptr<Int> dA_right = ArcRightDarc().data();
     
     for( Int a = 0; a < max_arc_count; ++a )
     {
@@ -277,12 +334,12 @@ bool CheckNextRightArc() const
         
         for( bool headtail : {false, true} )
         {
-            const Int da = ToDarc(a,headtail);
-            const Int db = darc_right_darc(da);
-            const Int dc = RightDarc(dc);
-            auto [c,dir] = NextRightArc(a,headtail);
+            const Int da      = ToDarc(a,headtail);
+            const Int db      = dA_right[da];
+            const Int dc      = RightDarc(da);
+            const Int dc_slow = RightDarc_Reference(da);
             
-            const bool passedQ = (db == dc) && (db == ToDarc(c,dir));
+            const bool passedQ = (db == dc) && (db == dc_slow);
             
             if( !passedQ )
             {
@@ -296,8 +353,9 @@ bool CheckNextRightArc() const
                 TOOLS_DUMP(dc);
                 TOOLS_DUMP(dc / Int(2));
                 TOOLS_DUMP(dc % Int(2));
-                TOOLS_DUMP(c);
-                TOOLS_DUMP(dir);
+                TOOLS_DUMP(dc_slow);
+                TOOLS_DUMP(dc_slow / Int(2));
+                TOOLS_DUMP(dc_slow % Int(2));
                 return false;
             }
         }

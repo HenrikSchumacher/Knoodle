@@ -16,7 +16,7 @@ namespace Knoodle
     
     using Tools::ToString;
     
-    enum class CrossingState : Int8
+    enum class CrossingState_T : Int8
     {
         // Important! Active values are the only odd ones.
         RightHanded          =  1,
@@ -24,20 +24,20 @@ namespace Knoodle
         Inactive             =  0
     };
     
-    CrossingState Flip( CrossingState s )
+    CrossingState_T Flip( CrossingState_T s )
     {
-        return CrossingState(- ToUnderlying(s));
+        return CrossingState_T(- ToUnderlying(s));
     }
     
-    inline std::string ToString( cref<CrossingState> s )
+    inline std::string ToString( cref<CrossingState_T> s )
     {
         switch( s )
         {
-            case CrossingState::Inactive             : return "Inactive";
+            case CrossingState_T::Inactive             : return "Inactive";
                 
-            case CrossingState::RightHanded          : return "RightHanded";
+            case CrossingState_T::RightHanded          : return "RightHanded";
                 
-            case CrossingState::LeftHanded           : return "LeftHanded";
+            case CrossingState_T::LeftHanded           : return "LeftHanded";
                 
             default:
             {
@@ -47,39 +47,39 @@ namespace Knoodle
         }
     }
 
-    inline std::ostream & operator<<( std::ostream & s, cref<CrossingState> state )
+    inline std::ostream & operator<<( std::ostream & s, cref<CrossingState_T> state )
     {
         s << static_cast<int>(ToUnderlying(state));
         return s;
     }
     
-    inline constexpr bool ActiveQ( const CrossingState & s )
+    inline constexpr bool ActiveQ( const CrossingState_T & s )
     {
         return ToUnderlying(s);
     }
     
-    inline constexpr bool ChangedQ( const CrossingState & s )
+    inline constexpr bool ChangedQ( const CrossingState_T & s )
     {
         return ToUnderlying(s) % 2;
     }
     
-    inline constexpr bool UnchangedQ( const CrossingState & s )
+    inline constexpr bool UnchangedQ( const CrossingState_T & s )
     {
         return !ChangedQ(s);
     }
     
-    inline constexpr bool RightHandedQ( const CrossingState & s )
+    inline constexpr bool RightHandedQ( const CrossingState_T & s )
     {
-        return ToUnderlying(s) > Underlying_T<CrossingState>(0);
+        return ToUnderlying(s) > Underlying_T<CrossingState_T>(0);
     }
     
-    inline constexpr bool LeftHandedQ( const CrossingState & s )
+    inline constexpr bool LeftHandedQ( const CrossingState_T & s )
     {
-        return ToUnderlying(s) < Underlying_T<CrossingState>(0);
+        return ToUnderlying(s) < Underlying_T<CrossingState_T>(0);
     }
     
     inline constexpr bool OppositeHandednessQ(
-        const CrossingState & s_0, const CrossingState & s_1
+        const CrossingState_T & s_0, const CrossingState_T & s_1
     )
     {
         // TODO: Careful, this evaluates to true if both are `Inactive`.
@@ -88,172 +88,36 @@ namespace Knoodle
     }
     
     inline constexpr bool SameHandednessQ(
-        const CrossingState & s_0, const CrossingState & s_1
+        const CrossingState_T & s_0, const CrossingState_T & s_1
     )
     {
         // TODO: Careful, this evaluates to true if both are `Inactive`.
         
         return ( Sign(ToUnderlying(s_0)) == Sign(ToUnderlying(s_1)) );
     }
-    
-    
-//    // Make this a class in PlanarDiagram?
-//    class ArcStateNew
-//    {
-//    public:
-//        using UInt = UInt8;
-//       
-//        
-//        static constexpr bool Tail  = 0;
-//        static constexpr bool Head  = 1;
-//        static constexpr bool Left  = 0;
-//        static constexpr bool Right = 1;
-//        static constexpr bool Out   = 0;
-//        static constexpr bool In    = 1;
-//        
-//        static constexpr UInt one  = 1;
-//        static constexpr UInt zero = 0;
-//        
-//        
-//        // ht means "head or tail"
-//        template<bool ht> static constexpr int ActiveBit      = 0 + 4 * ht;
-//        template<bool ht> static constexpr int OverUnderBit   = 1 + 4 * ht;
-//        template<bool ht> static constexpr int SideBit        = 2 + 4 * ht;
-//        template<bool ht> static constexpr int HandednessBit  = 3 + 4 * ht;
-//        
-//        template<bool ht> static constexpr int ActiveMask     = (one << ActiveBit<ht>    );
-//        template<bool ht> static constexpr int OverUnderMask  = (one << OverUnderBit<ht> );
-//        template<bool ht> static constexpr int SideMask       = (one << SideBit<ht>      );
-//        template<bool ht> static constexpr int HandednessMask = (one << HandednessBit<ht>);
-//        
-//        static constexpr UInt Active = ActiveMask<Tail> | ActiveMask<Head>;
-//        
-//    private:
-//        
-//        UInt state = 0;
-//        
-//    public:
-//        
-//        ArcStateNew()  = default;
-//        ~ArcStateNew() = default;
-//        
-//        // TODO: Should these methods better be methods of PlanardDiagram?
-//        
-//        bool ActiveQ() const
-//        {
-//            return (state & Active) == Active;
-//        }
-//        
-//        void Activate( bool headtail)
-//        {
-//            state |= (headtail ? ActiveMask<Head> : ActiveMask<Tail>);
-//        }
-//        
-//        template<bool headtail>
-//        void Activate()
-//        {
-//            state |= ActiveMask<headtail>;
-//        }
-//        
-//        void Deactivate()
-//        {
-//            state = 0;
-//        }
-//        
-//        
-//        template<bool headtail>
-//        bool OverQ()
-//        {
-//            return ((state & OverUnderMask<headtail>) != zero);
-//        }
-//        
-//        bool OverQ( bool headtail )
-//        {
-//            return headtail ? OverQ<Head>() : OverQ<Tail>();
-//        }
-//        
-//        template<bool headtail>
-//        bool UnderQ()
-//        {
-//            return ((state & OverUnderMask<headtail>) == zero);
-//            
-//        }
-//        
-//        bool UnderQ( bool headtail )
-//        {
-//            return headtail ? UnderQ<Head>() : UnderQ<Tail>();
-//        }
-//        
-//        
-//        template<bool headtail>
-//        bool Side()
-//        {
-//            return ((state & SideMask<headtail>) != zero);
-//        }
-//        
-//        bool Side( bool headtail )
-//        {
-//            return headtail ? Side<Head>() : Side<Tail>();
-//        }
-//        
-//        
-//        template<bool headtail>
-//        bool RightHandedQ()
-//        {
-//            return ((state & HandednessMask<headtail>) != zero);
-//        }
-//        
-//        bool RightHandedQ( bool headtail )
-//        {
-//            return headtail ? RightHandedQ<Head>() : RightHandedQ<Tail>();
-//        }
-//        
-//        template<bool headtail>
-//        bool LeftHandedQ()
-//        {
-//            return ((state & HandednessMask<headtail>) == zero);
-//        }
-//        
-//        bool LeftHandedQ( bool headtail )
-//        {
-//            return headtail ? LeftHandedQ<Head>() : LeftHandedQ<Tail>();
-//        }
-//    };
+
         
-    enum class ArcState : UInt8
+    enum class ArcState_T : UInt8
     {
-//        Unchanged =  2,
-        
-        // TODO: Handle over/under in ArcState.
         Active           =  1,
         Inactive         =  0
     };
     
-//    inline constexpr bool ChangedQ( const ArcState & s )
-//    {
-//        return ToUnderlying(s) % 2;
-//    }
-//    
-//    inline constexpr bool UnchangedQ( const ArcState & s )
-//    {
-//        return !ChangedQ(s);
-//    }
-    
-    inline constexpr bool ActiveQ( const ArcState & s )
+    inline constexpr bool ActiveQ( const ArcState_T & s )
     {
         return ToUnderlying(s);
     }
     
-    inline std::string ToString( cref<ArcState> s )
+    inline std::string ToString( cref<ArcState_T> s )
     {
         switch( s )
         {
-            case ArcState::Active    : return "Active";
-            case ArcState::Inactive  : return "Inactive";
+            case ArcState_T::Active    : return "Active";
+            case ArcState_T::Inactive  : return "Inactive";
         }
     }
     
-    inline std::ostream & operator<<( std::ostream & s, cref<ArcState> state )
+    inline std::ostream & operator<<( std::ostream & s, cref<ArcState_T> state )
     {
         s << static_cast<int>(ToUnderlying(state));
         return s;
@@ -265,7 +129,7 @@ namespace Knoodle
      */
     
     template<typename Int, typename Int_2>
-    CrossingState PDCodeHandedness( mptr<Int_2> X )
+    CrossingState_T PDCodeHandedness( mptr<Int_2> X )
     {
         static_assert( IntQ<Int>, "" );
         static_assert( IntQ<Int_2>, "" );
@@ -318,7 +182,7 @@ namespace Knoodle
              *       O       O            O       O
              */
             
-            return CrossingState::RightHanded;
+            return CrossingState_T::RightHanded;
         }
         else if ( (i == l) || (j == k) || (l == j + 1) || (j > l + 1) )
         {
@@ -344,13 +208,13 @@ namespace Knoodle
              *      i /     \ j         i  /     \ l + x
              *       O       O            O       O
              */
-            return CrossingState::LeftHanded;
+            return CrossingState_T::LeftHanded;
         }
         else
         {
             eprint( std::string("PDHandedness: Handedness of {") + ToString(i) + "," + ToString(i) + "," + ToString(j) + "," + ToString(k) + "," + ToString(l) + "} could not be determined. Make sure that consecutive arcs on each component have consecutive labels (except the wrap-around, of course).");
             
-            return CrossingState::Inactive;
+            return CrossingState_T::Inactive;
         }
     }
     
@@ -404,11 +268,14 @@ namespace Knoodle
 
 #include "src/Debugging.hpp"
 #include "src/Binarizer.hpp"
+
 #include "src/PlanarDiagram.hpp"
+#include "src/PlanarDiagram/CrossingSimplifier.hpp"
+#include "src/PlanarDiagram/ArcSimplifier.hpp"
+#include "src/PlanarDiagram/StrandSimplifier.hpp"
+
 #include "src/PlanarDiagram2.hpp"
-#include "src/CrossingSimplifier.hpp"
-#include "src/ArcSimplifier.hpp"
-#include "src/StrandSimplifier.hpp"
+#include "src/PlanarDiagramComplex.hpp"
 
 //
 //#include "src/Seifert.hpp"    // TODO: Needs debugging.

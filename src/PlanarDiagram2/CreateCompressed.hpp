@@ -35,6 +35,19 @@ PD_T CreateCompressed()
     mptr<Int       >          A_color_new = pd.A_color.data();
     
     this->template Traverse<true>(
+        [&pd]( const Int lc, const Int lc_begin )
+        {
+            (void)lc_begin;
+            if constexpr( recolorQ )
+            {
+                pd.color_list.insert(lc);
+            }
+            else
+            {
+                (void)pd;
+                (void)lc;
+            }
+        },
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,A_color_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
@@ -65,8 +78,14 @@ PD_T CreateCompressed()
             const ArcState_T a_state = this->A_state[a];
             
             A_state_new[a_pos] = a_state;
-            C_arcs_new(c_0_pos,Out,a_state.template Side<Tail>()) = a_pos;
-            C_arcs_new(c_1_pos,In ,a_state.template Side<Head>()) = a_pos;
+            C_arcs_new(c_0_pos,Out,a_state.Side(Tail)) = a_pos;
+            C_arcs_new(c_1_pos,In ,a_state.Side(Head)) = a_pos;
+        },
+        []( const Int lc, const Int lc_begin, const Int lc_end )
+        {
+            (void)lc;
+            (void)lc_begin;
+            (void)lc_end;
         }
     );
     

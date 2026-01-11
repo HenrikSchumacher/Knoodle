@@ -2,7 +2,9 @@ class CrossingState_T
 {
 public:
     
-    using Int = Int8;
+    using Int = std::int_least8_t;
+    
+//    using I   = int;
     
 private:
     
@@ -33,7 +35,12 @@ public:
         return CrossingState_T(Int(-1));
     }
     
-    CrossingState_T Reflect() const
+    constexpr CrossingState_T Reflect() const
+    {
+        return CrossingState_T(-state);
+    }
+    
+    constexpr CrossingState_T Switch() const
     {
         return CrossingState_T(-state);
     }

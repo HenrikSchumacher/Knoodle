@@ -46,7 +46,7 @@ Tensor1<Int,Int> ArcStrands() const
             A_strand[a] = strand;
 
             // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
-            strand += (ArcOverQ<Head>(a) != overQ);
+            strand += (ArcOverQ(a,Head) != overQ);
         }
     );
 
@@ -101,13 +101,15 @@ Tensor3<Int,Int> CrossingStrands() const
             (void)a_pos;
             (void)lc;
             
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
+            const Int  c_0    = A_cross(a,Tail);
+            const bool side_0 = ArcSide(a,Tail);
+            const Int  c_1    = A_cross(a,Head);
+            const bool side_1 = ArcSide(a,Head);
             
-            C_strand(c_0,Out,ArcSide<Tail>(a)) = strand;
-            C_strand(c_1,In ,ArcSide<Head>(a)) = strand;
+            C_strand(c_0,Out,side_0) = strand;
+            C_strand(c_1,In ,side_1) = strand;
 
-            strand += (ArcUnderQ<Head>(a) == overQ);
+            strand += (ArcOverQ(a,Head) != overQ);
         }
     );
     

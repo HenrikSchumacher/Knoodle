@@ -321,25 +321,3 @@ void Traverse_ByLinkComponents( ArcFun_T && arc_fun )  const
         }
     );
 }
-
-
-void ComputeArcColors()
-{
-    TOOLS_PTIMER(timer,MethodName("ComputeArcColors"));
-    
-    if( this->InCacheQ("ArcLinkComponents") )
-    {
-        ArcLinkComponents().Write(A_color.data());
-    }
-    else
-    {
-        this->template Traverse<false,false>(
-            [this]
-            ( const Int a, const Int a_pos, const Int lc )
-            {
-                (void)a_pos;
-                this->A_color[a] = lc;
-            }
-        );
-    }
-}

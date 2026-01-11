@@ -18,13 +18,20 @@ public:
  * @tparam labelsQ A `bool` that controls whether `C_scratch` and `A_scratch` shall be populated with the reordering of arcs. `C_scratch` may or may not be populated, even if `labelsQ == false`.
  *
  * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
+ *
  *    `lc_pre( const Int lc, const Int lc_begin )`.
  *
  * @param arc_fun A function to apply to every visited arc. Its argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
+ *
  *      `arc_fun( Int a, Int a_idx, Int lc )`.
+ *
  * If `crossingsQ == true`, then it must be of the pattern
- *      `arc_fun( Int a, Int a_idx, Int lc, Int c_0, Int c_0_idx, bool c_0_visited, Int c_1, Int c_1_idx, bool c_1_visitedQ )`.
+ *
+ *      `arc_fun( Int a,   Int a_idx,   Int  lc,
+ *                Int c_0, Int c_0_idx, bool c_0_visited,
+ *                Int c_1, Int c_1_idx, bool c_1_visitedQ )`.
+ *
  * Here the arguments mean the following:
  *      - `a` is the current arc within the link;
  *      - `a_idx` is the position of the current arc `a` within the traversal;
@@ -37,7 +44,9 @@ public:
  *      - `c_1_visited` is a `bool` that indicates whether crossing `c_0` is visited for the first (`false`) or the second (`true`) time.
  *
  * @param lc_post A lambda function that is executed at the end of every link component. Must have the following signature:
+ *
  *    `lc_post( const Int lc, const Int lc_begin, const Int lc_end )`.
+ *
  */
 
 template<
@@ -114,7 +123,7 @@ void Traverse( ArcFun_T && arc_fun )  const
  *
  * @tparam start_arc_ou Controls how the first arc in a link component is chosen: If set to `0` (default), then just the next unvisited arc is chosen. If set to `1`, then the algorithm tries to choose it so that its tail goes over. If set to `-1`, then the algorithm tries to choose it so that its tail goes under. This feature is useful to traverse over/understrands.
  *
- * @tparam lutQ If set to `true`, then the traversal uses the precomputed array `ArcNextArc`; otherwise `NextArc<Head>` is used to determine the next arc to visit. The latter s typically slower.
+ * @tparam lutQ If set to `true`, then the traversal uses the precomputed array `ArcNextArc`; otherwise `NextArc(-,Head)` is used to determine the next arc to visit. The latter s typically slower.
  */
 
 template<
@@ -259,7 +268,7 @@ void Traverse_ByNextArc_impl(
         {
             // We have to find the _beginning_ of first over/understrand.
             // For this, we go forward until its tail goes under/over as needed.
-            if( ArcOverQ<Tail>(a) != overQ )
+            if( ArcOverQ(a,Tail) != overQ )
             {
                 do
                 {
@@ -270,10 +279,10 @@ void Traverse_ByNextArc_impl(
                     }
                     else
                     {
-                        a = this->template NextArc<Head>(a);
+                        a = NextArc(a,Head);
                     }
                 }
-                while( (a != a_0) && (ArcOverQ<Tail>(a) != overQ) );
+                while( (a != a_0) && (ArcOverQ(a,Tail) != overQ) );
             }
             
             a_0 = a;
@@ -360,11 +369,11 @@ void Traverse_ByNextArc_impl(
             {
                 if constexpr ( crossingsQ )
                 {
-                    a = NextArc<Head>(a,c_1);
+                    a = NextArc(a,Head,c_1);
                 }
                 else
                 {
-                    a = NextArc<Head>(a);
+                    a = NextArc(a,Head);
                 }
             }
             

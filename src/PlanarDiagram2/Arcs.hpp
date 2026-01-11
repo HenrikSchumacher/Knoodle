@@ -1,7 +1,6 @@
 public:
 
-/*!
- * @brief The maximal number of arcs for which memory is allocated in the data structure.
+/*! @brief The maximal number of arcs for which memory is allocated in the data structure.
  */
 
 Int MaxArcCount() const
@@ -17,8 +16,7 @@ Int ArcCount() const
     return arc_count;
 }
 
-/*!
- * @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
+/*! @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
@@ -31,7 +29,7 @@ Int ArcCount() const
  *
  * This means that arc `a` leaves crossing `GetArc()(a,Tail)` and enters `GetArc()(a,Head)`.
  *
- * Beware that an arc can have various states such as `CrossingState::Active` or `CrossingState::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
+ * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
  */
 
 cref<ArcContainer_T> Arcs() const
@@ -39,8 +37,7 @@ cref<ArcContainer_T> Arcs() const
     return A_cross;
 }
 
-/*!
- * @brief Returns the states of the arcs. The state encodes whether an edge is active and how its it is connected to the crossings at its head and tail.
+/*! @brief Returns the states of the arcs. The state encodes whether an edge is active and how its it is connected to the crossings at its head and tail.
  *
  * Use the methods `ArcState_T::ActiveQ`, `ArcState_T::Side`, `ArcState_T::OverQ` to find out more about the states.
  *
@@ -52,8 +49,7 @@ cref<ArcStateContainer_T> ArcStates() const
     return A_state;
 }
 
-/*!
- * @brief Returns the colors of the arcs. Each arc has a unique color which indicates to which link component the arc orginially belonged (before various simplification methods were applied).
+/*! @brief Returns the colors of the arcs. Each arc has a unique color which indicates to which link component the arc orginially belonged (before various simplification methods were applied).
  */
 
 cref<ArcColorContainer_T> ArcColors() const
@@ -125,32 +121,64 @@ void DeactivateArc( const Int a )
     else
     {
 #if defined(PD_DEBUG)
-        wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
+        wprint(MethodName("DeactivateArc")+": Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
     }
     
     PD_ASSERT( arc_count >= Int(0) );
 }
 
+public:
+
+void RecomputeArcState( Int a )
+{
+    const Int  c_0 = A_cross          (a,Tail);
+    const bool s_0 = ArcSide_Reference(a,Tail);
+    const Int  c_1 = A_cross          (a,Head);
+    const bool s_1 = ArcSide_Reference(a,Head);
+
+    ArcState_T a_state = ArcState_T::Inactive();
+    a_state.Set(Tail,s_0,C_state[c_0]);
+    a_state.Set(Head,s_1,C_state[c_1]);
+    A_state[a] = a_state;
+}
+
+void RecomputeArcStates()
+{
+    TOOLS_PTIMER(timer,MethodName("RecomputeArcStates"));
+
+    for( Int c = 0; c < MaxCrossingCount(); ++c )
+    {
+        if( CrossingActiveQ(c) )
+        {
+            Int A [2][2];
+            
+            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
+
+            const CrossingState_T c_state = C_state[c];
+            
+            /* A[Out][Left ]         A[Out][Right]
+             *               O     O
+             *                ^   ^
+             *                 \ /
+             *                  X c
+             *                 ^ ^
+             *                /   \
+             *               O     O
+             * A[In ][Left ]         A[In ][Right]
+             */
+            
+            A_state[A[Out][Left ]].Set(Tail,Left ,c_state);
+            A_state[A[Out][Right]].Set(Tail,Right,c_state);
+            A_state[A[In ][Left ]].Set(Head,Left ,c_state);
+            A_state[A[In ][Right]].Set(Head,Right,c_state);
+        }
+    }
+}
 
 public:
 
-/*!
- * @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
- *
- *  @param a The index of the arc in question.
- *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
- */
-
-template<bool headtail>
-bool ArcSide( const Int a )  const
-{
-    return A_state[a].template Side<headtail>();
-}
-
-/*!
- * @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
+/*! @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
  *
  *  @param a The index of the arc in question.
  *
@@ -162,25 +190,14 @@ bool ArcSide( const Int a, const bool headtail )  const
     return A_state[a].Side(headtail);
 }
 
-
-
-
-/*!
- * @brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
- *
- *  @param a The index of the arc in question.
- *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
- */
-
-template<bool headtail>
-bool ArcRightHandedQ( const Int a )  const
+bool ArcSide_Reference( const Int a, const bool headtail )  const
 {
-    return A_state[a].template RightHandedQ<headtail>();
+    const Int c = A_cross(a,headtail);
+    return (C_arcs(c,headtail,Right) == a);
 }
 
-/*!
- * @brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
+
+/*! @brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
  *
  *  @param a The index of the arc in question.
  *
@@ -192,25 +209,13 @@ bool ArcRightHandedQ( const Int a, const bool headtail )  const
     return A_state[a].RightHandedQ(headtail);
 }
 
-
-
-
-/*!
- * @brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
- *
- *  @param a The index of the arc in question.
- *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
- */
-
-template<bool headtail>
-bool ArcLeftHandedQ( const Int a )  const
+bool ArcRightHandedQ_Reference( const Int a, const bool headtail )  const
 {
-    return A_state[a].template LeftHandedQ<headtail>();
+    return CrossingRightHandedQ(A_cross(a,headtail));
 }
 
-/*!
- * @brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
+
+/*! @brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
  *
  *  @param a The index of the arc in question.
  *
@@ -222,23 +227,14 @@ bool ArcLeftHandedQ( const Int a, const bool headtail )  const
     return A_state[a].LeftHandedQ(headtail);
 }
 
-
-/*!
- * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
- *
- *  @param a The index of the arc in question.
- *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
- */
-
-template<bool headtail>
-bool ArcOverQ( const Int a )  const
+bool ArcLeftHandedQ_Reference( const Int a, const bool headtail )  const
 {
-    return A_state[a].template OverQ<headtail>();
+    return CrossingLeftHandedQ(A_cross(a,headtail));
 }
 
-/*!
- * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
+
+
+/*! @brief This tells us whether a giving arc goes under the crossing at the indicated end.
  *
  *  @param a The index of the arc in question.
  *
@@ -250,20 +246,65 @@ bool ArcOverQ( const Int a, const bool headtail )  const
     return A_state[a].OverQ(headtail);
 }
 
-
-
-/*!
- * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
- *
- *  @param a The index of the arc in question.
- *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
- */
-
-template<bool headtail>
-bool ArcUnderQ( const Int a )  const
+bool ArcOverQ_Reference( const Int a, const bool headtail )  const
 {
-    return A_state[a].template UnderQ<headtail>();
+    const Int  c    = A_cross(a,headtail);
+    const bool side = ArcSide_Reference(a,headtail);
+    
+    /* headtail == Tail, side == Right => overQ == true
+     *
+     *    ^       ^
+     *     \     /  a
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Tail, side == Left => overQ == false
+     *
+     *    ^       ^
+     *  a  \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Head, side == Right => overQ == false
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \  a
+     *    /       \
+     */
+
+    /* headtail == Head, side == Left => overQ == true
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *  a  /     \
+     *    /       \
+     */
+    
+    // TODO: Check this!
+    return CrossingRightHandedQ(c) == (headtail != side);
 }
 
 /*!
@@ -279,13 +320,18 @@ bool ArcUnderQ( const Int a, const bool headtail )  const
     return A_state[a].UnderQ(headtail);
 }
 
+bool ArcUnderQ_Reference( const Int a, const bool headtail )  const
+{
+    return !ArcOverQ_Reference(a,headtail);
+}
+
 
 
 bool AlternatingQ() const
 {
     for( Int a = 0; a < max_arc_count; ++a )
     {
-        if( ArcActiveQ(a) && (ArcOverQ<Tail>(a) == ArcOverQ<Head>(a)) )
+        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
         {
             return false;
         }
@@ -295,33 +341,60 @@ bool AlternatingQ() const
 }
 
 
-
 /*!
  * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
  *
  *  @param a The index of the arc in question.
  *
- *  @tparam headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
+ *  @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
  */
 
-template<bool headtail>
-Int NextArc( const Int a ) const
+Int NextArc( const Int a, const bool headtail ) const
 {
-    return this->template NextArc<headtail>(a,A_cross(a,headtail));
+    return NextArc(a,headtail,A_cross(a,headtail));
 }
 
-template<bool headtail>
-Int NextArc( const Int a, const Int c ) const
+Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
     AssertArc(a);
     AssertCrossing(c);
     PD_ASSERT( A_cross(a,headtail) == c );
     
-    const Int a_next = C_arcs(c,!headtail,!A_state[a].template Side<headtail>());
+    const bool side   = ArcSide(a,headtail);
+    const Int  a_next = C_arcs(c,!headtail,!side);
     AssertArc(a_next);
     
     return a_next;
 }
+
+
+Int NextArc_Reference( const Int a, const bool headtail, const Int c ) const
+{
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    const bool side   = ArcSide_Reference(a,headtail);
+    const Int  a_next = C_arcs(c,!headtail,!side);
+    AssertArc(a_next);
+    
+    return a_next;
+}
+
+Int NextArc_Reference( const Int a, const bool headtail ) const
+{
+    AssertArc(a);
+    
+    const Int  c      = A_cross          (a,headtail);
+    AssertCrossing(c);
+    const bool side   = ArcSide_Reference(a,headtail);
+    
+    const Int  a_next = C_arcs(c,!headtail,!side );
+    AssertArc(a_next);
+    
+    return a_next;
+}
+
 
 
 cref<Tensor1<Int,Int>> ArcNextArc() const
@@ -374,73 +447,6 @@ cref<Tensor1<Int,Int>> ArcPrevArc() const
     return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
-//#########################################################
-//###       Left
-//#########################################################
-
-/*!
- * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
- */
-
-// TODO: Make this obsolete and use NextLeftDarc instead.
-Arrow_T NextLeftArc( const Int a, const bool headtail ) const
-{
-    AssertArc(a);
-    
-    const Int c = A_cross(a,headtail);
-    AssertCrossing(c);
-    
-    const bool side = A_state[a].Side(headtail);
-    
-    /*
-     *   O     O    headtail == Head  == Right
-     *    ^   ^     side     == Right == In == Head
-     *     \ /
-     *      X c
-     *     / \
-     *    /   \
-     *   O     O a
-     */
-    
-    const Int b = C_arcs(c,side,!headtail);
-    AssertArc(b);
-    
-    return Arrow_T(b,!side);
-}
-
-
-//#########################################################
-//###       Right
-//#########################################################
-
-// TODO: Make this obsolete and use NextLeftDarc instead.
-Arrow_T NextRightArc( const Int a, const bool headtail ) const
-{
-    AssertArc(a);
-    
-    const Int c = A_cross(a,headtail);
-    AssertCrossing(c);
-    
-    const bool side = A_state[a].Side(headtail);
-    
-    /*
-     *   O     O    headtail == Head  == Right
-     *    ^   ^     side     == Right == In == Head
-     *     \ /
-     *      X c
-     *     / \
-     *    /   \
-     *   O     O a
-     */
-    
-    const Int b = C_arcs(c,!side,headtail);
-    AssertArc(b);
-    
-    return Arrow_T(b,side);
-}
-
-
-
 
 /*! @brief Computes the arc states, assuming that the activity status of each arc is correct.
  */
@@ -456,11 +462,8 @@ void ComputeArcStates()
             const Int c_0 = A_cross(a,Tail);
             const Int c_1 = A_cross(a,Head);
             
-            const bool side_0 = (C_arcs(c_0,Out,Right) == a);
-            const bool side_1 = (C_arcs(c_1,In ,Right) == a);
-            
-            A_state[a].template Set<Tail>( side_0, C_state[c_0] );
-            A_state[a].template Set<Head>( side_1, C_state[c_1] );
+            A_state[a].Set(Tail,ArcSide_Reference(a,Tail),C_state[c_0]);
+            A_state[a].Set(Head,ArcSide_Reference(a,Head),C_state[c_1]);
         }
     }
 }

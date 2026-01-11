@@ -144,7 +144,6 @@ void DeactivateCrossing( const Int c )
     }
     else
     {
-        
 #ifdef PD_DEBUG
         if constexpr ( assertsQ )
         {

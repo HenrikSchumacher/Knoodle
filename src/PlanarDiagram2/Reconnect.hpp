@@ -35,7 +35,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
  *
  * @tparam deactivateQ If set to to `true` (default), then arc `b` will be deactivated after the reconnection process.
  *
- * @tparam assertQ If set to `false`, then some error messages in debug mode (macro `PD_DEBUG` is defined) will be suppressed. As no effect whatsover if `PD_DEBUG` is undefined.
+ * @tparam assertQ If set to `false`, then some error messages in debug mode (macro `PD_DEBUG` is defined) will be suppressed. Has no effect whatsover if `PD_DEBUG` is undefined.
  */
 
 template<bool deactivateQ = true, bool assertQ = true>
@@ -59,7 +59,37 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    C_arcs(c,headtail,A_state[b].Side()) = a;
-    A_state[a].Copy(A_state[b],headtail);
+    C_arcs(c,headtail,A_state[b].Side(headtail)) = a;
+    A_state[a].Copy(headtail,A_state[b]);
     DeactivateArc(b);
+}
+
+
+template<bool headtail, bool deactivateQ = true, bool assertQ = true>
+void Reconnect( const Int a, const Int b )
+{
+    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    
+    PD_ASSERT(a != b);
+    PD_ASSERT(ArcActiveQ(a));
+    
+    const Int c = A_cross(b,headtail);
+    
+    // This is a hack to suppress warnings in situations where we cannot guarantee that c is intact (but where we can guarantee that it will finally be deactivated.
+    if constexpr ( assertQ )
+    {
+        AssertCrossing(c);
+        PD_ASSERT(CheckArc(b));
+        PD_ASSERT(CrossingActiveQ(A_cross(a, headtail)));
+        PD_ASSERT(CrossingActiveQ(A_cross(a,!headtail)));
+    }
+
+    A_cross(a,headtail) = c;
+    C_arcs(c,headtail,A_state[b].Side(headtail)) = a;
+    A_state[a].Copy(headtail,A_state[b]);
+
+    if constexpr ( deactivateQ )
+    {
+        DeactivateArc(b);
+    }
 }

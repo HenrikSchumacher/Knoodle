@@ -4,7 +4,7 @@
  */
 
 template<typename Real, typename BReal>
-static std::pair<PD_T,Int> FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> L )
+static std::pair<PD_T,Int> FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -14,12 +14,12 @@ static std::pair<PD_T,Int> FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> L )
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding")+"("+Knot_T::ClassName()+")");
 
     return PD_T::template FromLink<Real,BReal>(
-        L.ComponentCount(),
-        L.ComponentPointers().data(),
-        L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeOverQ().data(),
-        L.Intersections()
+        K.ComponentCount(),
+        K.ComponentPointers().data(),
+        K.EdgePointers().data(),
+        K.EdgeIntersections().data(),
+        K.EdgeOverQ().data(),
+        K.Intersections()
     );
 }
 
@@ -252,8 +252,8 @@ static std::pair<PD_T,Int> FromLink(
             
             pd.C_arcs(c,In , a_side) = a;
             pd.C_arcs(c,Out,!a_side) = b;
-            pd.A_state[a].template Set<Head>( a_side,c_state);
-            pd.A_state[b].template Set<Tail>(!a_side,c_state);
+            pd.A_state[a].Set(Head, a_side,righthandedQ);
+            pd.A_state[b].Set(Tail,!a_side,righthandedQ);
             pd.A_color[b] = comp;
         }
     }

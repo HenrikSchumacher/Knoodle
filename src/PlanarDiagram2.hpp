@@ -1,18 +1,24 @@
 #pragma  once
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/boyer_myrvold_planar_test.hpp>
+//#include <unordered_set>
+
+//#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/boyer_myrvold_planar_test.hpp>
 
 namespace Knoodle
 {
+    // TODO: Template this.
+    // bool fancy_arc_stateQ -- whether the flags other than an active bit ought to be used at all.
+
+    
+    template<typename Int> class PlanarDiagramComplex;
+    
 //    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
 //    
 //    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
 //    class ArcSimplifier;
     
-    // TODO: Test NextArc, NextLeftArc, and NextRightArc.
-    // TODO: Make Arrow_T obsolete. It is used in NextLeftArc, NextRightArc, etc.
-    // TODO: ---> change NextLeftArc, NextRightArc to NextLeftDarc, NextRightDarc.
+    // TODO: SwitchCrossing should also correctly set the arc states.
     
     // TODO: Port the methods in Unported.hpp
     // TODO: Port methods in Counters.hpp?
@@ -21,46 +27,45 @@ namespace Knoodle
     class alignas( ObjectAlignment ) PlanarDiagram2 final : public CachedObject
     {
         static_assert(IntQ<Int_>,"");
-
+        
     public:
         
         static constexpr bool always_compressQ = true;
         static constexpr bool countQ           = false;
         static constexpr bool debugQ           = false;
-            
+        
         using Int                   = Int_;
         using UInt                  = ToUnsigned<Int>;
-
+        
         using Base_T                = CachedObject;
         using Class_T               = PlanarDiagram2<Int>;
         using PD_T                  = PlanarDiagram2<Int>;
-
+        
         using CrossingContainer_T   = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T        = Tiny::VectorList_AoS<2,  Int,Int>;
-
+        using ColorList_T           = std::unordered_set<Int>;
+        
 #include "PlanarDiagram2/CrossingState.hpp"
 #include "PlanarDiagram2/ArcState.hpp"
-                
+        
     public:
         
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
-        
         using ArcColorContainer_T       = Tensor1<Int,Int>;
-
+        
         using MultiGraph_T              = MultiGraph<Int,Int>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
+        
+        friend class PlanarDiagramComplex<Int>;
+        
+        template<typename Int, Size_T, bool>
+        friend class ArcSimplifier2;
 
-//        using PD_List_T                 = std::vector<PlanarDiagram>;
-
-//        template<typename I, Size_T lvl, bool mult_compQ_>
-//        friend class ArcSimplifier;
-//
-//        template<typename I, bool mult_compQ_>
-//        friend class StrandSimplifier;
+        template<typename I, bool R_II_Q, bool mult_compQ_>
+        friend class StrandSimplifier2;
             
         using HeadTail_T = bool;
-        using Arrow_T = std::pair<Int,HeadTail_T>;
         
         static constexpr HeadTail_T Tail  = 0;
         static constexpr HeadTail_T Head  = 1;
@@ -94,6 +99,9 @@ namespace Knoodle
             return Uninitialized;
         }
         
+        
+        static constexpr Int InvalidColor = Uninitialized;
+        
     protected:
         
         // Class data members
@@ -102,10 +110,6 @@ namespace Knoodle
         Int arc_count           = 0;
         Int max_crossing_count  = 0;
         Int max_arc_count       = 0;
-        
-        // This flag is needed to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
-        // An unknot is represented by a PlanarDiagram with max_crossing_count == 0 and with color_flag being set so that ValidIndexQ(color_flag) evaluates to true.
-        Int color_flag          = Uninitialized;
         
         // Exposed to user via Crossings().
         CrossingContainer_T      C_arcs;
@@ -124,6 +128,14 @@ namespace Knoodle
         mutable Tensor1<Int,Int> A_scratch;
         
         bool proven_minimalQ = false;
+            
+        // This color_list is needed, among other things, to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
+        // Moreover, color_list will make some search queries terminate early.
+        // ComputeArcColors initializes color_list.
+        // Cut and past operations have to maintain color_list.
+        // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_list containing a single value != InvalidColor.
+
+        ColorList_T color_list;
         
     public:
   
@@ -223,8 +235,6 @@ namespace Knoodle
             pd.crossing_count  = crossing_count;
             pd.arc_count       = arc_count;
             pd.max_arc_count   = max_arc_count;
-            pd.proven_minimalQ = proven_minimalQ;
-            pd.color_flag      = color_flag;
             
             pd.C_arcs .Read(C_arcs .data());
             pd.C_state.Read(C_state.data());
@@ -233,13 +243,15 @@ namespace Knoodle
             pd.A_state.Read(A_state.data());
             pd.A_color.Read(A_color.data());
             
+            pd.proven_minimalQ = proven_minimalQ;
+            pd.color_list      = color_list;
+            
             return pd;
         }
         
     public:
         
 #include "PlanarDiagram2/Constructors.hpp"
-        
 #include "PlanarDiagram2/Crossings.hpp"
 #include "PlanarDiagram2/Arcs.hpp"
 #include "PlanarDiagram2/Darcs.hpp"
@@ -247,17 +259,15 @@ namespace Knoodle
         
 #include "PlanarDiagram2/Traverse.hpp"
 #include "PlanarDiagram2/LinkComponents.hpp"
+#include "PlanarDiagram2/Color.hpp"
         
 #include "PlanarDiagram2/CreateCompressed.hpp"
 #include "PlanarDiagram2/Reconnect.hpp"
+#include "PlanarDiagram2/SwitchCrossing.hpp"
         
 #include "PlanarDiagram2/PDCode.hpp"
         
-
-
-
 //#include "PlanarDiagram2/R_I.hpp"
-
 
 #include "PlanarDiagram2/Faces.hpp"
 
@@ -278,7 +288,7 @@ namespace Knoodle
 #include "PlanarDiagram2/MacLeodCode.hpp"
         
 //#include "PlanarDiagram2/ResolveCrossing.hpp"
-//#include "PlanarDiagram2/SwitchCrossing.hpp"
+
         
 //#include "PlanarDiagram2/VerticalSummandQ.hpp"
         
@@ -286,9 +296,14 @@ namespace Knoodle
 //#include "PlanarDiagram2/SpanningForest.hpp"
         
 #include "PlanarDiagram2/Permute.hpp"
-#include "PlanarDiagram2/Planarity.hpp"
+//#include "PlanarDiagram2/Planarity.hpp"
         
     public:
+        
+        Int ColorCount() const
+        {
+            return int_cast<Int>( color_list.size() );
+        }
         
         bool ProvenMinimalQ() const
         {
@@ -300,38 +315,37 @@ namespace Knoodle
             return PD_T();
         }
         
-        bool InvalidQ() const
-        {
-            return (max_crossing_count == Int(0)) && !ValidIndexQ(color_flag);
-        }
-        
-        bool ValidQ() const
-        {
-            return !InvalidQ();
-        }
-        
-        
         static PD_T Unknot( const Int color )
         {
             PD_T pd ( Int(0) );
             pd.proven_minimalQ = true;
-            pd.color_flag      = color;
+            pd.color_list      = {color};
             return pd;
         }
         
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && ValidIndexQ(color_flag);
+            return proven_minimalQ && (crossing_count == Int(0)) && (ColorCount() == Size_T(1));
         }
-        
+
         bool ProvenTrefoilQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(3)) && (LinkComponentCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(3)) && (ColorCount() == Size_T(1));
         }
         
         bool ProvenFigureEightQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(4)) && (LinkComponentCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(4)) && (ColorCount() == Size_T(1));
+        }
+
+        bool InvalidQ() const
+        {
+            return (max_crossing_count == Int(0)) && (ColorCount() != Size_T(1));
+        }
+        
+        bool ValidQ() const
+        {
+            return !InvalidQ();
         }
         
     public:
@@ -495,14 +509,13 @@ namespace Knoodle
         
         void PrintInfo() const
         {
-            logprint(ClassName()+"::PrintInfo");
+            logprint(MethodName("PrintInfo"));
             
             TOOLS_LOGDUMP( C_arcs );
             TOOLS_LOGDUMP( C_state );
             TOOLS_LOGDUMP( A_cross );
             TOOLS_LOGDUMP( A_state );
             TOOLS_LOGDUMP( A_color );
-//            TOOLS_LOGDUMP( unlink_count );
         }
 
 /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.

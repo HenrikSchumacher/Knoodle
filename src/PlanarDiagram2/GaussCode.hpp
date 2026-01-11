@@ -68,8 +68,8 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             
             gauss_code[a_pos] =
                 c_0_visitedQ
-                ? ( a_state.template RightHandedQ<Tail>() ? c_pos : -c_pos )
-                : ( a_state.template OverQ<Tail>()        ? c_pos : -c_pos );
+                ? ( a_state.RightHandedQ(Tail) ? c_pos : -c_pos )
+                : ( a_state.OverQ(Tail)        ? c_pos : -c_pos );
         }
     );
 }
@@ -172,12 +172,12 @@ static PD_T FromExtendedGaussCode(
             }
             
             // This seems out of order, but pd.C_arcs(c,Out,Right) will typically be the arc stored right after pd.C_arcs(c,In ,Left ).
-            pd.A_state[pd.C_arcs(c,In ,Left )].template Set<Head>(Left ,c_state);
-            pd.A_state[pd.C_arcs(c,Out,Right)].template Set<Tail>(Right,c_state);
+            pd.A_state[pd.C_arcs(c,In ,Left )].Set(Head,Left ,c_state);
+            pd.A_state[pd.C_arcs(c,Out,Right)].Set(Tail,Right,c_state);
             
             // This seems out of order, but pd.C_arcs(c,Out,Left ) will typically be the arc stored right after pd.C_arcs(c,In ,Right).
-            pd.A_state[pd.C_arcs(c,In ,Right)].template Set<Head>(Right,c_state);
-            pd.A_state[pd.C_arcs(c,Out,Left )].template Set<Tail>(Left ,c_state);
+            pd.A_state[pd.C_arcs(c,In ,Right)].Set(Head,Right,c_state);
+            pd.A_state[pd.C_arcs(c,Out,Left )].Set(Tail,Left ,c_state);
         }
         
         return 0;
@@ -203,6 +203,8 @@ static PD_T FromExtendedGaussCode(
     {
         eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
+    
+    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots.
     
     // Compression is not really meaningful because the traversal ordering is crucial for the extended Gauss code.
     if( compressQ )
