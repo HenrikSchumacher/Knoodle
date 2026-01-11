@@ -1,4 +1,93 @@
+// Methods that are just redirected to pd.
+
 private:
+
+bool CrossingActiveQ( const Int c_ ) const
+{
+    return pd.CrossingActiveQ(c_);
+}
+
+bool CrossingRightHandedQ( const Int c_ ) const
+{
+    return pd.CrossingRightHandedQ(c_);
+}
+
+bool CrossingLeftHandedQ( const Int c_ ) const
+{
+    return pd.CrossingLeftHandedQ(c_);
+}
+
+template<bool assertsQ = true>
+void DeactivateCrossing( const Int c_ )
+{
+    pd.template DeactivateCrossing<assertsQ>(c_);
+}
+
+//void SwitchCrossing( const Int c_ )
+//{
+//    (void) pd.SwitchCrossing(c_);
+//}
+
+template<bool must_be_activeQ>
+void AssertCrossing( const Int c_ ) const
+{
+#ifdef PD_DEBUG
+    pd.template AssertCrossing<must_be_activeQ>(c_);
+#else
+    (void)c_;
+#endif
+}
+    
+std::string CrossingString( const Int c_ ) const
+{
+    return pd.CrossingString(c_) + " (mark = " + ToString(C_mark(c_)) + ")";
+}
+
+bool ArcActiveQ( const Int a_ ) const
+{
+    return pd.ArcActiveQ(a_);
+}
+
+void DeactivateArc( const Int a_ ) const
+{
+    pd.DeactivateArc(a_);
+}
+
+template<bool must_be_activeQ>
+void AssertArc( const Int a_ ) const
+{
+#ifdef PD_DEBUG
+    pd.template AssertArc<must_be_activeQ>(a_);
+#else
+    (void)a_;
+#endif
+}
+
+std::string ArcString( const Int a_ )  const
+{
+    return pd.ArcString(a_) + " (mark = " + ToString(A_mark(a_)) + ")";
+}
+
+
+Int NextArc( const Int a, const bool headtail, const Int c ) const
+{
+    // TODO: We do it conservatively for now. We can accelerate it later.
+    const Int a_next = pd.NextArc(a,headtail,c);
+    PD_ASSERT(a != a_next);
+    AssertArc<1>(a_next);
+    return a_next;
+}
+
+Int NextArc( const Int a, const bool headtail ) const
+{
+    // TODO: We do it conservatively for now. We can accelerate it later.
+    const Int a_next = pd.NextArc(a,headtail);
+    PD_ASSERT(a != a_next);
+    AssertArc<1>(a_next);
+    return a_next;
+}
+
+
 
 static constexpr Int ToDarc( const Int a, const bool headtail )
 {
@@ -10,65 +99,4 @@ static constexpr Int FlipDarc( Int da )
     return PD_T::FlipDarc(da);
 }
 
-template<bool must_be_activeQ>
-void AssertArc( const Int a_ ) const
-{
-#ifdef PD_DEBUG
-    if constexpr( must_be_activeQ )
-    {
-        if( !pd.ArcActiveQ(a_) )
-        {
-            pd_eprint("AssertArc<1>: " + ArcString(a_) + " is not active.");
-        }
-        PD_ASSERT(pd.CheckArc(a_));
-//                PD_ASSERT(CheckArcLeftArc(a_));
-    }
-    else
-    {
-        if( pd.ArcActiveQ(a_) )
-        {
-            pd_eprint("AssertArc<0>: " + ArcString(a_) + " is not inactive.");
-        }
-    }
-#else
-    (void)a_;
-#endif
-}
 
-std::string ArcString( const Int a_ )  const
-{
-    return pd.ArcString(a_) + " (mark = " + ToString(A_mark(a_)) + ")";
-}
-
-template<bool must_be_activeQ>
-void AssertCrossing( const Int c_ ) const
-{
-#ifdef PD_DEBUG
-    if constexpr( must_be_activeQ )
-    {
-        if( !pd.CrossingActiveQ(c_) )
-        {
-            pd_eprint("AssertCrossing<1>: " + CrossingString(c_) + " is not active.");
-        }
-//                PD_ASSERT(pd.CheckCrossing(c_));
-//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Left )));
-//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,Out,Right)));
-//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Left )));
-//                PD_ASSERT(CheckArcLeftArc(C_arcs(c_,In ,Right)));
-    }
-    else
-    {
-        if( pd.CrossingActiveQ(c_) )
-        {
-            pd_eprint("AssertCrossing<0>: " + CrossingString(c_) + " is not inactive.");
-        }
-    }
-#else
-    (void)c_;
-#endif
-}
-    
-std::string CrossingString( const Int c_ ) const
-{
-    return pd.CrossingString(c_) + " (mark = " + ToString(C_mark(c_)) + ")";
-}

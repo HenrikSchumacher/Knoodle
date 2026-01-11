@@ -142,10 +142,6 @@ void ComputeEdgeLeftDedges()
         const Int de_1 = ToDedge<Head>(e);
         
         if ( !DedgeActiveQ(de_0) || !DedgeActiveQ(de_1) ) { continue; }
-
-//        TOOLS_LOGDUMP(e);
-//        TOOLS_LOGDUMP(de_0);
-//        TOOLS_LOGDUMP(de_1);
         
         const Dir_T e_dir = E_dir(e);
         

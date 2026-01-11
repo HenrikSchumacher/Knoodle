@@ -1,7 +1,7 @@
 private:
 
 template<bool must_be_activeQ = true, bool silentQ = false>
-bool CheckArcLeftArc( const Int da )
+bool CheckDarcLeftDarc( const Int da )
 {
     bool passedQ = true;
     
@@ -11,7 +11,7 @@ bool CheckArcLeftArc( const Int da )
     {
         if constexpr( must_be_activeQ )
         {
-            eprint(ClassName()+"::CheckArcLeftArc: Inactive " + ArcString(a) + ".");
+            eprint(MethodName("CheckDarcLeftDarc")+": Inactive " + ArcString(a) + ".");
             return false;
         }
         else
@@ -20,14 +20,14 @@ bool CheckArcLeftArc( const Int da )
         }
     }
     
-    const Int da_l_true = pd.NextLeftArc(da);
+    const Int da_l_true = pd.LeftDarc(da);
     const Int da_l      = dA_left[da];
     
     if( da_l != da_l_true )
     {
         if constexpr (!silentQ)
         {
-            eprint(ClassName()+"::CheckArcLeftArc: Incorrect at " + ArcString(a) );
+            eprint(MethodName("CheckDarcLeftDarc")+": Incorrect at " + ArcString(a) );
             
             auto [a_l_true,dir_l_true] = PD_T::FromDarc(da_l_true);
             auto [a_l     ,dir_l     ] = PD_T::FromDarc(da_l);
@@ -43,9 +43,11 @@ bool CheckArcLeftArc( const Int da )
 
 public:
 
-bool CheckArcLeftArcs()
+bool CheckDarcLeftDarc()
 {
-    duds.clear();
+    TOOLS_PTIMER(timer,"CheckDarcLeftDarc");
+    
+    std::vector<Int> duds;
     
     const Int m = A_cross.Dim(0);
     
@@ -55,14 +57,14 @@ bool CheckArcLeftArcs()
         {
             const Int da = ToDarc(a,Head);
             
-            if( !CheckArcLeftArc<false,true>(da) )
+            if( !CheckDarcLeftDarc<false,true>(da) )
             {
                 duds.push_back(da);
             }
             
             const Int db = ToDarc(a,Tail);
             
-            if( !CheckArcLeftArc<false,true>(db) )
+            if( !CheckDarcLeftDarc<false,true>(db) )
             {
                 duds.push_back(db);
             }
@@ -79,16 +81,12 @@ bool CheckArcLeftArcs()
 //
 //                TOOLS_LOGDUMP(touched);
         
-        logprint(ClassName()+"::CheckArcLeftArcs failed.");
+        logprint(MethodName("CheckDarcLeftDarc")+" failed.");
         
         return false;
     }
     else
     {
-//                TOOLS_LOGDUMP(duds);
-        
-//                logprint(ClassName()+"::CheckArcLeftArcs passed.");
-        
         return true;
     }
 }
@@ -107,7 +105,7 @@ bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
     
     if( a_begin == a_end )
     {
-        wprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
+        wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
     }
     
     while( (a != a_end) && (arc_counter < max_arc_count ) )
@@ -116,17 +114,18 @@ bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
         
         passedQ = passedQ && (pd.ArcOverQ(a,Head) == overQ);
         
+        // We use the safe implementation of NextArc here.
         a = pd.NextArc(a,Head);
     }
     
     if( a != a_end )
     {
-        pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
     }
     
     if( !passedQ )
     {
-        pd_eprint(ClassName()+"::CheckStrand<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
     }
     
     return passedQ;

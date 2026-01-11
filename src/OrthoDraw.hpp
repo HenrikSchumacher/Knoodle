@@ -35,7 +35,7 @@ namespace Knoodle
     // TODO: What to do with multiple diagram components?
     // TODO: Get/setters for all settings.
     
-    template<typename Int_>
+    template<typename Int_ = Int64>
     class OrthoDraw final : CachedObject
     {
     private:

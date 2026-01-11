@@ -42,7 +42,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
    //            b = path[p]?
    //
 
-   MoveWhileBranching<Head>(a,p);
+   WalkToBranch<Head>(a,p);
    
    // Now `a` is the first arc to be rerouted.
    
@@ -51,7 +51,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
    Int q = path_length - Int(1);
    Int e = a_last;
 
-   MoveWhileBranching<Tail>(e,q);
+    WalkToBranch<Tail>(e,q);
 
    // Now e is the last arc to be rerouted.
    
@@ -300,7 +300,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
 #ifdef PD_TIMINGQ
    const Time stop_time = Clock::now();
    
-   Time_Reroute += Tools::Duration(start_time,stop_time);
+    Time_RerouteToPath += Tools::Duration(start_time,stop_time);
 #endif
    
    ++change_counter;

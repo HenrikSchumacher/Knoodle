@@ -97,7 +97,6 @@ namespace Knoodle
         Int path_length = 0;
         
         std::vector<Int> touched;
-        std::vector<Int> duds;
         
         double Time_RemoveLoop            = 0;
         double Time_FindShortestPath      = 0;
@@ -268,9 +267,10 @@ namespace Knoodle
             return a;
         }
 
-        // TODO: Is this a misnomer?
+        /*! @brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
+         */
         template<bool headtail>
-        void MoveWhileBranching( mref<Int> a, mref<Int> p ) const
+        void WalkToBranch( mref<Int> a, mref<Int> p ) const
         {
             // `a` is an arc.
             // `p` points to a position in `path`.

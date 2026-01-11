@@ -24,7 +24,7 @@ void CollapseArcRange(
         return;
     }
     
-    PD_TIMER(timer,MethodName("CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) +  ")"));
+    PD_TIMER(timer,MethodName("CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) + ")"));
     
 #ifdef PD_TIMINGQ
     const Time start_time = Clock::now();
@@ -57,10 +57,10 @@ void CollapseArcRange(
         PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
         Reconnect<Head>(C_arcs(c,In,side),C_arcs(c,Out,!side));
         
-        pd.DeactivateArc(a);
+        DeactivateArc(a);
         
         // Sometimes we cannot guarantee that all arcs at `c` are already deactivated. But they will finally be deleted. Thus, we suppress some asserts here.
-        pd.template DeactivateCrossing<false>(c);
+        DeactivateCrossing<false>(c);
         
         a = a_prev;
     }

@@ -48,7 +48,7 @@ Int SimplifyStrands(
         while(
             ( a_ptr < m )
             &&
-            ( (A_mark(a_ptr) >= color_0 ) || (!pd.ArcActiveQ(a_ptr)) )
+            ( (A_mark(a_ptr) >= color_0 ) || (!ArcActiveQ(a_ptr)) )
         )
         {
             ++a_ptr;
@@ -86,6 +86,13 @@ Int SimplifyStrands(
         {
             ++strand_length;
             
+//            // DEBUGGING
+//            logprint(
+//                std::string("strand = ") + ToString(current_mark)
+//                     + ";  strand_length = " + ToString(strand_length)
+//                     + ";  a = " + ToString(a)
+//            );
+            
             // Safe guard against integer overflow.
             if( current_mark == std::numeric_limits<Mark_T>::max() )
             {
@@ -94,7 +101,6 @@ Int SimplifyStrands(
                 
                 Time_SimplifyStrands += Tools::Duration(start_time,stop_time);
 #endif
-                
                 // Return a positive number to encourage that this function is called again upstream.
                 return change_counter+1;
             }
@@ -209,7 +215,7 @@ Int SimplifyStrands(
                     if( !strand_completeQ || (A_mark(a_next) != current_mark) )
                     {
                         RemoveLoop(a,c_1);
-//                                RepairArcLeftArcs();
+//                        RepairArcLeftArcs();
                         break;
                     }
                     else
@@ -324,7 +330,7 @@ Int SimplifyStrands(
                     
                     if( changedQ )
                     {
-//                                RepairArcLeftArcs();
+//                        RepairArcLeftArcs();
                         
                         if( ActiveQ(a_0_state) )
                         {
@@ -351,7 +357,7 @@ Int SimplifyStrands(
                         current_mark
                     );
                     
-//                            if( changedQ ) { RepairArcLeftArcs(); }
+//                    if( changedQ ) { RepairArcLeftArcs(); }
                 }
                 
                 // TODO: Check this.
@@ -374,7 +380,6 @@ Int SimplifyStrands(
             AssertArc<1>(a);
             
             a = a_next;
-            
         }
         while( a != a_0 );
         
@@ -412,9 +417,6 @@ private:
         
         PD_ASSERT(pd.CheckAll());
         
-        PD_ASSERT(pd.CheckNextLeftArc());
-        PD_ASSERT(pd.CheckNextRightArc());
-        
         if( current_mark >= std::numeric_limits<Mark_T>::max()/2 )
         {
             C_mark.Fill(Mark_T(0));
@@ -426,11 +428,11 @@ private:
             current_mark = Mark_T(0);
         }
         
-        // We do not have to erase A_source, because it is only written from when a D_mark check is successful.
-//            pd.A_source.Fill(Uninitialized);
-        dA_left = pd.ArcLeftDarc().data();
+        // We do not have to erase D_mark2, because it is only written from when a D_mark check is successful.
+//        pd.D_mark2.Fill(Uninitialized);
+        dA_left = pd.ArcLeftDarcs().data();
         
-        PD_ASSERT(CheckArcLeftArcs());
+        PD_ASSERT(CheckDarcLeftDarc());
     }
     
     void Cleanup()

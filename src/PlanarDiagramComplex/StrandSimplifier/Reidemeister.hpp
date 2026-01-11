@@ -46,9 +46,9 @@ bool Reidemeister_I( const Int a )
         //   a_prev = a_next
         
         CreateUnlinkFromArc(a);
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_prev);
-        pd.DeactivateCrossing(c);
+        DeactivateArc(a);
+        DeactivateArc(a_prev);
+        DeactivateCrossing(c);
         
         // TODO: Implement counters.
 //        pd.R_I_counter += 2;
@@ -66,8 +66,8 @@ bool Reidemeister_I( const Int a )
     //              a_next
     
     Reconnect<Head>(a_prev,a_next);
-    pd.DeactivateArc(a);
-    pd.DeactivateCrossing(c);\
+    DeactivateArc(a);
+    DeactivateCrossing(c);\
     
     // TODO: Implement counters.
 //    ++pd.R_I_counter;
@@ -142,10 +142,10 @@ bool Reidemeister_II_Backward(
             Reconnect<Tail>(a_1_out,a_0_in);
         }
         
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_0_out);
-        pd.DeactivateCrossing(c_0);
-        pd.DeactivateCrossing(c_1);
+        DeactivateArc(a);
+        DeactivateArc(a_0_out);
+        DeactivateCrossing(c_0);
+        DeactivateCrossing(c_1);
         
         // TODO: Implement counters.
 //        ++pd.R_II_counter;
@@ -190,7 +190,7 @@ bool Reidemeister_II_Backward(
             //
             
             Reconnect<Head>(a_prev,a_0_out);
-            pd.DeactivateArc(a_next);
+            DeactivateArc(a_next);
             
             // TODO: Implement counters.
 //            pd.R_I_counter+=2;
@@ -216,10 +216,10 @@ bool Reidemeister_II_Backward(
 //            ++pd.R_II_counter;
         }
         
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_0_in);
-        pd.DeactivateCrossing(c_0);
-        pd.DeactivateCrossing(c_1);
+        DeactivateArc(a);
+        DeactivateArc(a_0_in);
+        DeactivateCrossing(c_0);
+        DeactivateCrossing(c_1);
         
         AssertArc<1>(a_prev);
         AssertArc<0>(a_next);

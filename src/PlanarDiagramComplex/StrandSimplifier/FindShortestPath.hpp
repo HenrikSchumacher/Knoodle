@@ -195,7 +195,7 @@ Exit:
         
         if( Abs(D_mark(a_last)) != mark )
         {
-            pd_eprint(MethodName("FindShortestPath_impl"));
+            pd_eprint(MethodName("FindShortestPath_impl") + "We should never get here.");
             TOOLS_LOGDUMP(d);
             TOOLS_LOGDUMP(max_dist);
             TOOLS_LOGDUMP(a_last);

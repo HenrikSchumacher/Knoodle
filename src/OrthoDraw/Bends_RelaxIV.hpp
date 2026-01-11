@@ -86,8 +86,6 @@ Tensor1<Turn_T,Int> Bends_RelaxIV(
 
     mcf.MCFGetX(s.data());
     
-    TOOLS_LOGDUMP(s);
-    
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
 
     for( ExtInt a = 0; a < a_count; ++a )

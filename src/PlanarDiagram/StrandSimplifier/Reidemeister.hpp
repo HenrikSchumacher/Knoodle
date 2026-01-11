@@ -21,7 +21,7 @@ bool Reidemeister_I( const Int a )
         }
     }
     
-    PD_DPRINT( ClassName()+"::Reidemeister_I at " + ArcString(a) );
+    PD_DPRINT( MethodName("Reidemeister_I")+" at " + ArcString(a) );
     
     // We assume here that we already know that a is a loop arc.
     
@@ -48,9 +48,9 @@ bool Reidemeister_I( const Int a )
         //   a_prev = a_next
         
         ++pd.unlink_count;
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_prev);
-        pd.DeactivateCrossing(c);
+        DeactivateArc(a);
+        DeactivateArc(a_prev);
+        DeactivateCrossing(c);
         pd.R_I_counter += 2;
         
         return true;
@@ -66,8 +66,8 @@ bool Reidemeister_I( const Int a )
     //              a_next
     
     Reconnect<Head>(a_prev,a_next);
-    pd.DeactivateArc(a);
-    pd.DeactivateCrossing(c);
+    DeactivateArc(a);
+    DeactivateCrossing(c);
     ++pd.R_I_counter;
     
     AssertArc<1>(a_prev);
@@ -80,6 +80,8 @@ bool Reidemeister_II_Backward(
 )
 {
     // TODO: This checks for a backward Reidemeister II move (and it exploits already that both vertical strands are either overstrands or understrands). But it would maybe help to do a check for a forward Reidemeister II move, because that might stop the strand from ending early. Not sure whether this would be worth it, because we would have to change the logic of `SimplifyStrands` considerably.
+    
+    PD_DPRINT( MethodName("Reidemeister_II_Backward")+" at " + ArcString(a) );
     
     const Int c_0 = A_cross(a,Tail);
     
@@ -133,17 +135,17 @@ bool Reidemeister_II_Backward(
         if( a_0_in == a_1_out )
         {
             ++pd.unlink_count;
-            pd.DeactivateArc(a_0_in);
+            DeactivateArc(a_0_in);
         }
         else
         {
             Reconnect<Tail>(a_1_out,a_0_in);
         }
         
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_0_out);
-        pd.DeactivateCrossing(c_0);
-        pd.DeactivateCrossing(c_1);
+        DeactivateArc(a);
+        DeactivateArc(a_0_out);
+        DeactivateCrossing(c_0);
+        DeactivateCrossing(c_1);
         ++pd.R_II_counter;
         
         AssertArc<1>(a_prev);
@@ -208,10 +210,10 @@ bool Reidemeister_II_Backward(
             ++pd.R_II_counter;
         }
         
-        pd.DeactivateArc(a);
-        pd.DeactivateArc(a_0_in);
-        pd.DeactivateCrossing(c_0);
-        pd.DeactivateCrossing(c_1);
+        DeactivateArc(a);
+        DeactivateArc(a_0_in);
+        DeactivateCrossing(c_0);
+        DeactivateCrossing(c_1);
         
         AssertArc<1>(a_prev);
         AssertArc<0>(a_next);

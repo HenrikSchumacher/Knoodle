@@ -6,33 +6,35 @@ bool VerticalSummandQ( const Int a, const Int b, const bool overQ )
 {
     bool goodQ = (ModDistance(arc_count,a,b) > Int(1));
 
-    
     if constexpr ( nontrivialQ )
     {
         goodQ = goodQ && (overQ != ArcOverQ(a,Tail)) && (overQ != ArcOverQ(b,Head));
 
         if( goodQ )
         {   // Tail of a should cross with complement of [a,b[.
-            const Int i = NextLeftArc (a,Tail).first;
-            const Int j = NextRightArc(a,Tail).first;
+            auto [i,d_i] = FromDarc(LeftDarc(ToDarc(a,Tail)));
+            auto [j,d_j] = FromDarc(RightDarc(ToDarc(a,Tail)));
             goodQ = !InIntervalQ(i,a,b) && !InIntervalQ(j,a,b);
         }
         if( goodQ )
         {   // Head of a should cross with [a,b[.
-            const Int i = NextLeftArc (a,Head).first;
-            const Int j = NextRightArc(a,Head).first;
+            auto [i,d_i] = FromDarc(LeftDarc(ToDarc(a,Head)));
+            auto [j,d_j] = FromDarc(RightDarc(ToDarc(a,Head)));
+            
             goodQ = InIntervalQ(i,a,b) && InIntervalQ(j,a,b);
         }
         if( goodQ )
         {   // Tail of b should cross with [a,b[.
-            const Int i = NextLeftArc (b,Tail).first;
-            const Int j = NextRightArc(b,Tail).first;
+            auto [i,d_i] = FromDarc(LeftDarc(ToDarc(b,Tail)));
+            auto [j,d_j] = FromDarc(RightDarc(ToDarc(b,Tail)));
+            
             goodQ = InIntervalQ(i,a,b) && InIntervalQ(j,a,b);
         }
         if( goodQ )
         {   // Head of b should cross with complement of [a,b[.
-            const Int i = NextLeftArc (b,Head).first;
-            const Int j = NextRightArc(b,Head).first;
+            auto [i,d_i] = FromDarc(LeftDarc(ToDarc(b,Head)));
+            auto [j,d_j] = FromDarc(RightDarc(ToDarc(b,Head)));
+            
             goodQ = !InIntervalQ(i,a,b) && !InIntervalQ(j,a,b);
         }
     }

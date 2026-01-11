@@ -56,7 +56,7 @@ void RequireFaces() const
 {
     TOOLS_PTIMER(timer,MethodName("RequireFaces"));
     
-    cptr<Int> dA_left_dA = ArcLeftDarc().data();
+    cptr<Int> dA_left_dA = ArcLeftDarcs().data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );

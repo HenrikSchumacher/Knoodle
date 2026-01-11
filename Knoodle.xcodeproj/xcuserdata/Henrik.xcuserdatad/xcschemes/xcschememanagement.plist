@@ -4,11 +4,6 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>Dev_CLP.xcscheme_^#shared#^_</key>
-		<dict>
-			<key>orderHint</key>
-			<integer>3</integer>
-		</dict>
 		<key>Dev_ClisbyTree.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -29,11 +24,6 @@
 			<key>orderHint</key>
 			<integer>9</integer>
 		</dict>
-		<key>Dev_PlanarityChecker.xcscheme_^#shared#^_</key>
-		<dict>
-			<key>orderHint</key>
-			<integer>4</integer>
-		</dict>
 		<key>Example_Knoodle.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
@@ -53,11 +43,6 @@
 		<dict>
 			<key>orderHint</key>
 			<integer>3</integer>
-		</dict>
-		<key>PolyFold_Parallel.xcscheme_^#shared#^_</key>
-		<dict>
-			<key>orderHint</key>
-			<integer>1</integer>
 		</dict>
 		<key>Test_ClisbyTree.xcscheme_^#shared#^_</key>
 		<dict>
@@ -88,6 +73,11 @@
 			<true/>
 		</dict>
 		<key>AF482C192D580BAA007CDB27</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>AF5FF6AC2DD27DCA0076AB0E</key>
 		<dict>
 			<key>primary</key>
 			<true/>

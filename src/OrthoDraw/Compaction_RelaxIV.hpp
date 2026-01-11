@@ -101,8 +101,6 @@ Tensor1<Int,Int> Compaction_RelaxIV( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>
 
     mcf.MCFGetPi(potentials.data());
     
-    TOOLS_LOGDUMP(potentials);
-    
     const R max_potential = potentials.Max();
     
     Tensor1<Int,Int> z (D.VertexCount());

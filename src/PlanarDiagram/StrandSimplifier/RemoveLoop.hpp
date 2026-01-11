@@ -14,7 +14,7 @@ void RemoveLoop( const Int e, const Int c_0 )
     // TODO: If the link has multiple components, it can also happen that the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well.
     if constexpr( mult_compQ )
     {
-        const Int a = pd.NextArc(e,Head,c_0);
+        const Int a = NextArc(e,Head,c_0);
         
         if( A_mark(a) == current_mark )
         {

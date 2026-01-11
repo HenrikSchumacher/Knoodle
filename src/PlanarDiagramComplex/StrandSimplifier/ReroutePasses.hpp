@@ -799,7 +799,7 @@ void Prepare()
     // D_source will be read or written to only if D_mark[a] == mark.
     
     // Refresh dA_left
-    dA_left = pd.ArcLeftDarc().data();
+    dA_left = pd.ArcLeftDarcs().data();
     
     PD_ASSERT(CheckDarcLeftDarc());
 }

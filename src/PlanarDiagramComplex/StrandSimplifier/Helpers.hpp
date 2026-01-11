@@ -12,7 +12,6 @@ bool CrossingRightHandedQ( const Int c_ ) const
     return pd.CrossingRightHandedQ(c_);
 }
 
-
 bool CrossingLeftHandedQ( const Int c_ ) const
 {
     return pd.CrossingLeftHandedQ(c_);
@@ -46,8 +45,6 @@ std::string CrossingString( const Int c_ ) const
 
 
 
-
-
 bool ArcActiveQ( const Int a_ ) const
 {
     return pd.ArcActiveQ(a_);
@@ -55,7 +52,7 @@ bool ArcActiveQ( const Int a_ ) const
 
 void DeactivateArc( const Int a_ ) const
 {
-    return pd.DeactivateArc(a_);
+    pd.DeactivateArc(a_);
 }
 
 void RecomputeArcState( const Int a_ )
@@ -96,13 +93,13 @@ bool ArcUnderQ( const Int a, const bool headtail ) const
     return pd.ArcUnderQ_Reference(a,headtail);
 }
 
-bool NextArc( const Int a, const bool headtail, const Int c ) const
+Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
     // TODO: We do it conservatively for now. Change this to ArcSide later.
     return pd.NextArc_Reference(a,headtail,c);
 }
 
-bool NextArc( const Int a, const bool headtail ) const
+Int NextArc( const Int a, const bool headtail ) const
 {
     // TODO: We do it conservatively for now. Change this to ArcSide later.
     return pd.NextArc_Reference(a,headtail);

@@ -96,8 +96,8 @@ namespace Knoodle
                     
                     //                if( v_stream.eof() ) { return; }
                     
-                    TOOLS_LOGDUMP(knot_name);
-                    TOOLS_LOGDUMP(knot_count);
+//                    TOOLS_LOGDUMP(knot_name);
+//                    TOOLS_LOGDUMP(knot_count);
                     
                     knot_names.push_back( std::move(knot_name) );
                     

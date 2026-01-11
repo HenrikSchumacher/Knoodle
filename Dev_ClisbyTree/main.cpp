@@ -12,7 +12,8 @@ using LInt = Int64;
 
 using Clisby_T = ClisbyTree<3,Real,Int,LInt>;
 
-int main(int argc, const char * argv[]) {
+int main()
+{
     // insert code here...
     std::cout << "Hello, World!\n";
     

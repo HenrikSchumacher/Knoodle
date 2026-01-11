@@ -16,7 +16,7 @@ namespace Knoodle
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
     
-    template<typename Real_, typename Int_>
+    template<typename Real_ = Real64, typename Int_ = Int64>
     class Reapr
     {
     public:

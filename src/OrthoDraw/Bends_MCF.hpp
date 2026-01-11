@@ -64,10 +64,6 @@ Tensor1<Turn_T,Int> Bends_MCF(
     auto capacities = Bends_UpperBoundsOnVariables<R,I>(pd);
     auto demands    = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
-    TOOLS_LOGDUMP(costs);
-    TOOLS_LOGDUMP(capacities);
-    TOOLS_LOGDUMP(demands);
-    
     MCFSimplex_T mcf (n,m);
 
     mcf.LoadNet(

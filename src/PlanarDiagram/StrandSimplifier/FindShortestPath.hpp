@@ -25,6 +25,8 @@ private:
         const Time start_time = Clock::now();
 #endif
         
+        PD_ASSERT(CheckDarcLeftDarc());
+        
         PD_ASSERT( mark > Mark_T(0) );
         
         PD_ASSERT( a_begin != a_end );
@@ -43,7 +45,7 @@ private:
         
         // This is needed to prevent us from running in circles when cycling around faces.
         // See comments below.
-        A_source[a_begin] = a_begin;
+        D_mark2[a_begin] = a_begin;
         
         Int d = 0;
         
@@ -133,7 +135,7 @@ private:
                         //         |     +----------+       |
                         //   ------+                        +---
                         
-                        if( A_source[a] == a_0 )
+                        if( D_mark2[a] == a_0 )
                         {
                             break;
                         }
@@ -141,7 +143,7 @@ private:
                     
                     if constexpr ( mult_compQ )
                     {
-                        A_source[a] = a_0;
+                        D_mark2[a] = a_0;
                     }
 
                     if( part_of_strandQ )
@@ -217,48 +219,47 @@ private:
 
 
 
-//public:
-//    
-//    /*!
-//     * @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
-//     *
-//     * @param a_first The first arc of the input strand.
-//     *
-//     * @param a_last The last arc of the input strand (included).
-//     *
-//     * @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
-//     */
-//    
-//    Tensor1<Int,Int> FindShortestPath(
-//        const Int a_first, const Int a_last, const Int max_dist
-//    )
-//    {
-//        Prepare();
-//        
-//        current_mark = 1;
-//        
-//        Int a = a_first;
-//        Int b = a_last;
-//        
-//        strand_length = ColorArcs(a,b,current_mark);
-//
-//        Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
-//        
-//        const Int d = FindShortestPath_impl(a,b,max_dist_,current_mark);
-//        
-//        Tensor1<Int,Int> p;
-//        
-//        if( d <= max_dist )
-//        {
-//            p = Tensor1<Int,Int> (path_length);
-//            
-//            p.Read( path.data() );
-//        }
-//        
-//        Cleanup();
-//        
-//        return p;
-//    }
+public:
+    
+/*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+ *
+ *  @param a_first The first arc of the input strand.
+ *
+ *  @param a_last The last arc of the input strand (included).
+ *
+ *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+ */
+
+Tensor1<Int,Int> FindShortestPath(
+    const Int a_first, const Int a_last, const Int max_dist
+)
+{
+    Prepare();
+    
+    current_mark = 1;
+    
+    Int a = a_first;
+    Int b = a_last;
+    
+    strand_length = MarkArcs(a,b,current_mark);
+
+    Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
+    
+    const Int d = FindShortestPath_impl(a,b,max_dist_,current_mark);
+    
+    Tensor1<Int,Int> p;
+    
+    if( d <= max_dist )
+    {
+        p = Tensor1<Int,Int> (path_length);
+        
+        p.Read( path.data() );
+    }
+    
+    Cleanup();
+    
+    return p;
+}
     
 
 //    private:

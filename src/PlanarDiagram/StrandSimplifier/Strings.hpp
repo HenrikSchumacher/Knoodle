@@ -2,6 +2,7 @@ private:
 
 std::string ArcRangeString( const Int a_begin, const Int a_end ) const
 {
+    PD_PRINT(MethodName("ArcRangeString"));
     std::string s;
 
     Int a = a_begin;
@@ -15,7 +16,7 @@ std::string ArcRangeString( const Int a_begin, const Int a_end ) const
     do
     {
         ++i;
-        a = pd.NextArc(a,Head);
+        a = NextArc(a,Head);
         s += ToString(i  ) + " : " +  ArcString(a)
            + " (" + (pd.ArcOverQ(a,Head) ? "over" : "under") + ")\n"
             + ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
@@ -27,6 +28,8 @@ std::string ArcRangeString( const Int a_begin, const Int a_end ) const
 
 std::string PathString()
 {
+    PD_PRINT(MethodName("PathString"));
+    
     if( path_length <= 0 )
     {
         return "{}";

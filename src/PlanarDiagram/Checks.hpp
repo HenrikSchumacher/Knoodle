@@ -276,35 +276,92 @@ bool CheckAll() const
     return passedQ;
 }
 
-
 public:
 
+template<bool must_be_activeQ = true>
 void AssertDarc( const Int da ) const
 {
-    PD_ASSERT(CheckArc  (FromDarc(da).first));
-    PD_ASSERT(ArcActiveQ(FromDarc(da).first));
-#ifndef PD_DEBUG
+#ifdef PD_DEBUG
+    auto [a,d] = FromDarc(da);
+
+    if constexpr( must_be_activeQ )
+    {
+        if( !ArcActiveQ(a) )
+        {
+            pd_eprint("AssertDarc<1>: " + DarcString(da) + " is not active.");
+        }
+        if( !CheckArc(a) )
+        {
+            pd_eprint("AssertDarc<1>: " + DarcString(da) + " failed CheckArc.");
+        }
+    }
+    else
+    {
+        if( ArcActiveQ(a) )
+        {
+            pd_eprint("AssertDarc<0>: " + DarcString(a) + " is not inactive.");
+        }
+    }
+#else
     (void)da;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertArc( const Int a ) const
 {
-    PD_ASSERT(CheckArc  (a));
-    PD_ASSERT(ArcActiveQ(a));
-#ifndef PD_DEBUG
-    (void)a;
+#ifdef PD_DEBUG
+    if constexpr( must_be_activeQ )
+    {
+        if( !ArcActiveQ(a) )
+        {
+            pd_eprint("AssertArc<1>: " + ArcString(a) + " is not active.");
+        }
+        if( !CheckArc(a) )
+        {
+            pd_eprint("AssertArc<1>: " + ArcString(a) + " failed CheckArc.");
+        }
+    }
+    else
+    {
+        if( ArcActiveQ(a) )
+        {
+            pd_eprint("AssertArc<0>: " + ArcString(a) + " is not inactive.");
+        }
+    }
+#else
+        (void)a;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertCrossing( const Int c ) const
 {
-    PD_ASSERT(InIntervalQ(c,Int(0),max_crossing_count));
-    PD_ASSERT(CrossingActiveQ(c));
-    PD_ASSERT(CheckCrossing(c));
-#ifndef PD_DEBUG
+#ifdef PD_DEBUG
+    if( !InIntervalQ(c,Int(0),max_crossing_count) )
+    {
+        pd_eprint("AssertCrossing<1>: Crossing index " + Tools::ToString(c) + " is out of bounds.");
+    }
+    
+    if constexpr( must_be_activeQ )
+    {
+        if( !CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " is not active.");
+        }
+        if( !CheckCrossing(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " failed CheckCrossing.");
+        }
+    }
+    else
+    {
+        if( CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<0>: " + CrossingString(c) + " is not inactive.");
+        }
+    }
+#else
     (void)c;
 #endif
 }
-
-

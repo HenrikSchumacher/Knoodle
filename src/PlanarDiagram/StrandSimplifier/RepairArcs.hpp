@@ -1,8 +1,9 @@
 private:
 
     
-void RepairArcLeftArc( const Int da )
+void RepairDarcLeftDarc( const Int da )
 {
+    PD_PRINT("RepairDarcLeftDarc(" + ToString(da) +  ")");
     auto [a,dir ] = PD_T::FromDarc(da);
     
     if( pd.ArcActiveQ(a) )
@@ -32,7 +33,7 @@ void RepairArcLeftArc( const Int da )
 //                RepairArcLeftArc(da);
 //            }
 //
-//            PD_ASSERT(CheckArcLeftArcs());
+//            PD_ASSERT(CheckDarcLeftDarcs());
 //
 //            touched.clear();
 //

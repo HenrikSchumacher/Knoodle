@@ -147,15 +147,8 @@ void DepthFirstSearch(
         }
     };
 
-//    TOOLS_LOGDUMP(c_count);
-//    TOOLS_LOGDUMP(crossing_count);
-    
     for( Int c_0 = 0; c_0 < max_crossing_count; ++c_0 )
     {
-//        TOOLS_LOGDUMP(c_0);
-//        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
-//        TOOLS_LOGDUMP(C_flag[c_0]);
-        
         if( !CrossingActiveQ(c_0) || (C_flag[c_0] != UInt8(0)) )
         {
             continue;

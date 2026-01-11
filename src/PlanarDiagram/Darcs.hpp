@@ -120,11 +120,11 @@ Int LeftDarc( const Int da ) const
     }
 }
 
-mref<ArcContainer_T> ArcLeftDarc() const
+mref<ArcContainer_T> ArcLeftDarcs() const
 {
     // Return value needs to be mutable so that StrandSimplifier can update it.
     
-    std::string tag ("ArcLeftDarc");
+    std::string tag ("ArcLeftDarcs");
     
     if( !this->InCacheQ(tag) )
     {
@@ -187,7 +187,7 @@ bool CheckLeftDarc() const
     
     TOOLS_PTIMER(timer,tag);
     
-    mptr<Int> dA_left = ArcLeftDarc().data();
+    mptr<Int> dA_left = ArcLeftDarcs().data();
     
     for( Int a = 0; a < max_arc_count; ++a )
     {
@@ -310,11 +310,11 @@ Int RightDarc( const Int da ) const
         }
     }
 }
-mref<ArcContainer_T> ArcRightDarc() const
+mref<ArcContainer_T> ArcRightDarcs() const
 {
     // Return value needs to be mutable so that StrandSimplifier can update it.
     
-    std::string tag ("ArcRightArc");
+    std::string tag ("ArcRightArcs");
     
     if( !this->InCacheQ(tag) )
     {
@@ -374,7 +374,7 @@ bool CheckRightDarc() const
     
     TOOLS_PTIMER(timer,tag);
     
-    cptr<Int> dA_right = ArcRightDarc().data();
+    cptr<Int> dA_right = ArcRightDarcs().data();
     
     for( Int a = 0; a < max_arc_count; ++a )
     {
