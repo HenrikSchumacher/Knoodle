@@ -20,9 +20,9 @@ void RemoveLoop( const Int e, const Int c_0 )
         {
             const bool u_0 = (C_arcs(c_0,Out,Right) == a);
             
-            CreateUnlinkFromArc(a);
             CollapseArcRange(a,e,strand_length);
             DeactivateArc(a);
+            CreateUnlinkFromArc(a);
             
             // overQ == true;
             //                   n_0
@@ -42,9 +42,8 @@ void RemoveLoop( const Int e, const Int c_0 )
 
             if( s_0 == n_0 )
             {
-                CreateUnlinkFromArc(s_0);
                 DeactivateArc(s_0);
-                
+                CreateUnlinkFromArc(s_0);
             }
             else
             {

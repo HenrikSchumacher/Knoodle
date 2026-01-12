@@ -63,9 +63,9 @@ bool R_Ia_above()
                     AssertArc<1>(w_0);
                     AssertArc<0>(n_1);
                     AssertArc<1>(e_1);
-                    AssertArc<0>(s_1);
-                    AssertArc<0>(n_3);
-                    AssertArc<0>(e_3);
+                    AssertArc<1>(s_1); 
+                    AssertArc<0>(n_3); // n_3 == w_3
+                    AssertArc<0>(e_3); // e_3 == n_1
                     AssertArc<0>(w_3);
                     AssertCrossing<1>(c_0);
                     AssertCrossing<1>(c_1);

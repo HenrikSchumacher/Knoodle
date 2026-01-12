@@ -14,6 +14,10 @@ PD_T CreateCompressed()
     if( !ValidQ() )
     {
         wprint(MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
+        
+        // DEBUGGING;
+        PrintInfo();
+        
         return InvalidDiagram();
     }
     
@@ -29,7 +33,8 @@ PD_T CreateCompressed()
     
     if constexpr ( !recolorQ )
     {
-        pd.color_palette = color_palette;
+//        pd.color_palette = color_palette;
+        pd.color_arc_counts = color_arc_counts;
     }
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
@@ -45,7 +50,9 @@ PD_T CreateCompressed()
             (void)lc_begin;
             if constexpr( recolorQ )
             {
-                pd.color_palette.insert(lc);
+//                pd.color_palette.insert(lc);
+                (void)lc;
+                (void)pd;
             }
             else
             {
@@ -90,11 +97,19 @@ PD_T CreateCompressed()
             C_arcs_new(c_1_pos,In ,ArcSide(a,Head,c_1)) = a_pos;
 
         },
-        []( const Int lc, const Int lc_begin, const Int lc_end )
+        [&pd]( const Int lc, const Int lc_begin, const Int lc_end )
         {
             (void)lc;
-            (void)lc_begin;
-            (void)lc_end;
+//            (void)lc_begin;
+//            (void)lc_end;
+            
+            if constexpr( recolorQ )
+            {
+                pd.color_arc_counts[lc] = lc_end - lc_begin;
+            }
+            {
+                (void)pd;
+            }
         }
     );
     

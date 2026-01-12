@@ -111,7 +111,6 @@ bool R_IIa_same_o_same_u()
                 *           w_2
                 */
                 
-                CreateUnlinkFromArc(e_1);
                 DeactivateArc(a);
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -124,6 +123,7 @@ bool R_IIa_same_o_same_u()
                 DeactivateCrossing(c_1);
                 DeactivateCrossing(c_2);
                 DeactivateCrossing(c_3);
+                CreateUnlinkFromArc(e_1);
                 
                 // TODO: Implement counters.
 //                ++pd.R_IIa_counter;
@@ -404,7 +404,6 @@ bool R_IIa_same_o_same_u()
                  *              +----------+
                  */
                 
-                CreateUnlinkFromArc(e_1);
                 DeactivateArc(a  );
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -417,6 +416,7 @@ bool R_IIa_same_o_same_u()
                 DeactivateCrossing(c_1);
                 DeactivateCrossing(c_2);
                 DeactivateCrossing(c_3);
+                CreateUnlinkFromArc(e_1);
                 
                 // TODO: Implement counters.
 //                ++pd.four_counter;

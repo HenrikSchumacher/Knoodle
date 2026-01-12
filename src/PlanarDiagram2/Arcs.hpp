@@ -118,6 +118,7 @@ void DeactivateArc( const Int a )
         PD_PRINT("Deactivating " + ArcString(a) + "." );
         
         --arc_count;
+        --color_arc_counts[A_color[a]];
         A_state[a] = ArcState_T::Inactive;
     }
     else
@@ -385,18 +386,22 @@ Int NextArc( const Int a, const bool headtail, const Int c ) const
     return a_next;
 }
 
-
 bool AlternatingQ() const
 {
-    for( Int a = 0; a < max_arc_count; ++a )
+    if( !this->InCacheQ("AlternatingQ") )
     {
-        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
+        bool alternatingQ = true;
+        for( Int a = 0; a < max_arc_count; ++a )
         {
-            return false;
+            if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
+            {
+                alternatingQ = alternatingQ && alternatingQ;
+            }
         }
+        
+        this->SetCache("AlternatingQ",alternatingQ);
     }
-
-    return true;
+    return this->template GetCache<bool>("AlternatingQ");
 }
 
 

@@ -661,6 +661,9 @@ static PD_T FromPDCode(
         }
     }
     
+    // DEBUGGING
+    pd.PrintInfo();
+    
     // Compression is meaningful because PD code stays valid under reordering.
     if( compressQ )
     {

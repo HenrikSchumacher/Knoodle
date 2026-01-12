@@ -4,7 +4,7 @@
  */
 
 template<typename Real, typename BReal>
-static std::pair<PD_T,Int> FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
+static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -20,7 +20,44 @@ static std::pair<PD_T,Int> FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
         K.EdgeIntersections().data(),
         K.EdgeOverQ().data(),
         K.Intersections()
-    );
+    ).first;
+}
+
+/*! @brief Construction from coordinates. Returns a planar diagram and the number of unlinks found in the input.
+ */
+
+template<typename Real, typename ExtInt>
+static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
+{
+    static_assert(FloatQ<Real>,"");
+    static_assert(IntQ<ExtInt>,"");
+    
+    TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
+
+    Knot_2D<Real,Int,Real> L ( n );
+
+    L.ReadVertexCoordinates(x);
+
+    int err = L.template FindIntersections<true>();
+
+    if( err != 0 )
+    {
+        eprint(MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid planar diagram.");
+        return PD_T::InvalidDiagram();
+    }
+
+    // Deallocate tree-related data in L to make room for the PD_T.
+    L.DeleteTree();
+
+    // We delay the allocation until substantial parts of L have been deallocated.
+    return PD_T::template FromLink<Real,Real>(
+        L.ComponentCount(),
+        L.ComponentPointers().data(),
+        L.EdgePointers().data(),
+        L.EdgeIntersections().data(),
+        L.EdgeOverQ().data(),
+        L.Intersections()
+    ).first;
 }
 
 /*!@brief Construction from `Link_2D` object. Returns a planar diagram and the number of unlinks found in the input.
@@ -39,44 +76,6 @@ static std::pair<PD_T,Int> FromLinkEmbedding( cref<Link_2D<Real,Int,BReal>> L )
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
 
     return PD_T::template FromLink<Real,BReal>(
-        L.ComponentCount(),
-        L.ComponentPointers().data(),
-        L.EdgePointers().data(),
-        L.EdgeIntersections().data(),
-        L.EdgeOverQ().data(),
-        L.Intersections()
-    );
-}
-
-
-/*! @brief Construction from coordinates. Returns a planar diagram and the number of unlinks found in the input.
- */
-
-template<typename Real, typename ExtInt>
-static std::pair<PD_T,Int> FromKnotEmbedding( cptr<Real> x, const ExtInt n )
-{
-    static_assert(FloatQ<Real>,"");
-    static_assert(IntQ<ExtInt>,"");
-    
-    TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
-
-    Knot_2D<Real,Int,Real> L ( n );
-
-    L.ReadVertexCoordinates(x);
-
-    int err = L.template FindIntersections<true>();
-
-    if( err != 0 )
-    {
-        eprint(MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid planar diagram.");
-        return { PD_T::InvalidDiagram(), 0 };
-    }
-
-    // Deallocate tree-related data in L to make room for the PD_T.
-    L.DeleteTree();
-
-    // We delay the allocation until substantial parts of L have been deallocated.
-    return PD_T::template FromLink<Real,Real>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.EdgePointers().data(),
@@ -147,9 +146,14 @@ static std::pair<PD_T,Int> FromLink(
     
     const int crossing_count = int_cast<Int>(intersections.size());
     
-    if( crossing_count <= Int(0) )
+    if( component_count <= Int(0) )
     {
-        return { PD_T::InvalidDiagram(), component_count };
+        return { InvalidDiagram(), Int(0) };
+    }
+    
+    if( (crossing_count <= Int(0)) && (component_count >= Int(1)) )
+    {
+        return { Unknot(0), component_count - Int(1) };
     }
     
     PD_T pd ( crossing_count, true );
@@ -168,21 +172,24 @@ static std::pair<PD_T,Int> FromLink(
     //      then through all intersections of the edge
     // and generate new vertices, edges, crossings, and arcs in one go.
     
+    Int color = 0;
+    
+    // We put the unlinks at the back so that it is easier to communicate with PlanarDiagramComplex.
+    
     for( Int comp = 0; comp < component_count; ++comp )
     {
         // The range of arcs belonging to this component.
         const Int b_begin = edge_ptr[component_ptr[comp  ]];
         const Int b_end   = edge_ptr[component_ptr[comp+1]];
-
+        
         if( b_begin == b_end )
         {
             // Component is an unlink. Just count it.
             ++unlink_count;
             continue;
         }
-        
+
         // If we arrive here, then there is definitely a crossing in the first edge.
-        
         for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
         {
             const Int c_pos = edge_intersections[b];
@@ -257,11 +264,14 @@ static std::pair<PD_T,Int> FromLink(
 //            pd.A_state[b].Set(Tail,!a_side,righthandedQ);
             
             pd.A_state[b] = ArcState_T::Active;
-            pd.A_color[b] = comp;
+            pd.A_color[b] = color;
         }
+        
+        pd.color_arc_counts[color] = b_end - b_begin;
+        ++color;
     }
     
-    // TODO: Extract LinkComponentArcPointers, LinkComponentIndices, ArcLinkComponents from here (only if needed)?
+    // TODO: Extract LinkComponentArcs, ArcLinkComponents from here (only if needed)?
     // Not so easy to do as we have to ignore the unlinks.
     
     pd.template SetCache<false>("LinkComponentCount",component_count - unlink_count);

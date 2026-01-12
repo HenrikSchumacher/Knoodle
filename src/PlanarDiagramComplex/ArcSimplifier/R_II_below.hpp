@@ -66,7 +66,6 @@ bool R_II_below()
                     AssertArc<1>(w_0);
                     AssertArc<1>(e_1);
                     
-                    CreateUnlinkFromArc(w_3);
                     Reconnect<Head>(w_0,e_1); //... so this is safe.
                     DeactivateArc(a);
                     DeactivateArc(n_0);
@@ -76,6 +75,7 @@ bool R_II_below()
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
                     DeactivateCrossing(c_3);
+                    CreateUnlinkFromArc(w_3);
                     
                     // TODO: Implement counters.
 //                    ++pd.R_II_counter;
@@ -142,7 +142,6 @@ bool R_II_below()
                      *               +---------+
                      */
                     
-                    CreateUnlinkFromArc(a);
                     DeactivateArc(a);
                     DeactivateArc(n_0);
                     DeactivateArc(n_1);
@@ -152,6 +151,7 @@ bool R_II_below()
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
                     DeactivateCrossing(c_3);
+                    CreateUnlinkFromArc(a);
                     
                     // TODO: Implement counters.
 //                    ++pd.R_II_counter;

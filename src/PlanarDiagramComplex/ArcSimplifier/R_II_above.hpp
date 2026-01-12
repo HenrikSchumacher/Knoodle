@@ -56,7 +56,6 @@ bool R_II_above()
                     
                     Reconnect<Head>(w_0,e_1); //... so this is safe.
                     
-                    CreateUnlinkFromArc(w_2);
                     DeactivateArc(a);
                     DeactivateArc(n_0);
                     DeactivateArc(s_0);
@@ -65,6 +64,7 @@ bool R_II_above()
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
                     DeactivateCrossing(c_2);
+                    CreateUnlinkFromArc(w_2);
                     
                     // TODO: Implement counters.
 //                    ++pd.R_II_counter;
@@ -118,7 +118,6 @@ bool R_II_above()
                          *               w_2     s_2
                          */
                         
-                        CreateUnlinkFromArc(a);
                         DeactivateArc(a);
                         DeactivateArc(n_0);
                         DeactivateArc(s_0);
@@ -128,6 +127,7 @@ bool R_II_above()
                         DeactivateCrossing(c_0);
                         DeactivateCrossing(c_1);
                         DeactivateCrossing(c_2);
+                        CreateUnlinkFromArc(a);
                         
                         // TODO: Implement counters.
 //                        ++pd.R_II_counter;
@@ -337,13 +337,13 @@ bool R_II_above()
             // This is guaranteed by calling a_is_2loop first.
             PD_ASSERT(w_0 != e_1)
             
-            CreateUnlinkFromArc(n_0);
             Reconnect<Head>(w_0,e_1);
             DeactivateArc(n_0);
             DeactivateArc(s_0);
             DeactivateArc(a);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
+            CreateUnlinkFromArc(n_0);
             
             // TODO: Implement counters.
 //            ++pd.R_II_counter;

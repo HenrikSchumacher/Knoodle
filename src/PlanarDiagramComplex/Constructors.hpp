@@ -8,12 +8,9 @@ static PDC_T FromPDCode(
     const bool proven_minimalQ_
 )
 {
-    return PDC_T(
-        PD_T::template FromPDCode<PDsignedQ,checksQ>(
-            pd_codes_,crossing_count_,compressQ,proven_minimalQ_
-        ),
-        Int(0)
-    );
+    return PDC_T( PD_T::template FromPDCode<PDsignedQ,checksQ>(
+        pd_codes_,crossing_count_,compressQ,proven_minimalQ_
+    ));
 }
 
 template<typename T, typename ExtInt>
@@ -24,9 +21,7 @@ static PDC_T FromMacLeodCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    return PDC_T(
-         PD_T::FromMacLeodCode(s_mac_leod,crossing_count_,compressQ,proven_minimalQ_), Int(0)
-    );
+    return PDC_T( PD_T::FromMacLeodCode(s_mac_leod,crossing_count_,compressQ,proven_minimalQ_) );
 }
 
 template<typename T, typename ExtInt>
@@ -37,10 +32,7 @@ static PDC_T FromExtendedGaussCode(
     const bool   proven_minimalQ_ = false
 )
 {
-    return PDC_T(
-         PD_T::FromExtendedGaussCode(gauss_code,arc_count_,compressQ,proven_minimalQ_),
-         Int(0)
-    );
+    return PDC_T( PD_T::FromExtendedGaussCode(gauss_code,arc_count_,compressQ,proven_minimalQ_) );
 }
 
 template<typename Real, typename BReal>

@@ -81,7 +81,7 @@ namespace Knoodle
         
         void DeactivateArc( const Int a_ ) const
         {
-            return pd.DeactivateArc(a_);
+            pd.DeactivateArc(a_);
         }
         
         template<bool must_be_activeQ>

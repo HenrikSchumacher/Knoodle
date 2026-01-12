@@ -55,15 +55,15 @@ bool a_is_2loop()
 
                     // Two unlinks
                     
-                    CreateUnlinkFromArc(a);
-                    CreateUnlinkFromArc(n_0);
-                    
                     DeactivateArc(w_0);
                     DeactivateArc(n_0);
                     DeactivateArc(s_0);
                     DeactivateArc(a);
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
+                    CreateUnlinkFromArc(a);
+                    CreateUnlinkFromArc(n_0);
+                    
                     // TODO: Invent some counter here and increment it.
 
                     AssertArc<0>(a  );
@@ -93,13 +93,13 @@ bool a_is_2loop()
                      *       s_0 O           O s_1              s_0 O           O s_1
                      */
                     
-                    CreateUnlinkFromArc(a);
                     Reconnect(s_0,u_0,s_1);
                     DeactivateArc(n_0);
                     DeactivateArc(w_0);
                     DeactivateArc(a);
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
+                    CreateUnlinkFromArc(a);
 //                    ++pdc.R_II_counter; // TODO: Implement counters.
 
                     AssertArc<0>(a  );
@@ -141,13 +141,13 @@ bool a_is_2loop()
                     AssertArc<1>(n_0);
                     AssertArc<1>(n_1);
                     
-                    CreateUnlinkFromArc(a);
                     Reconnect<true,true,true>(n_0,u_1,n_1);
                     DeactivateArc(w_0);
                     DeactivateArc(s_0);
                     DeactivateArc(a);
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
+                    CreateUnlinkFromArc(a);
 //                    ++pd.R_II_counter; // TODO: Implement counters.
                     
                     AssertArc<0>(a  );
@@ -178,13 +178,14 @@ bool a_is_2loop()
                      *             w_0 = e_1                          w_0 = e_1
                      */
                     
-                    CreateUnlinkFromArc(a);
+
                     Reconnect(s_0,u_0,n_0);
                     Reconnect(s_1,u_1,n_1);
                     DeactivateArc(w_0);
                     DeactivateArc(a);
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
+                    CreateUnlinkFromArc(a);
                     // TODO: Invent some counter here and increment it.
                     
                     AssertArc<0>(a  );

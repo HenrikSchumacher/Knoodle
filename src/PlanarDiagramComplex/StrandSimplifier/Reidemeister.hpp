@@ -47,10 +47,10 @@ bool Reidemeister_I( const Int a )
         //       +-----O
         //   a_prev = a_next
         
-        CreateUnlinkFromArc(a);
         DeactivateArc(a);
         DeactivateArc(a_prev);
         DeactivateCrossing(c);
+        CreateUnlinkFromArc(a);
         CountReidemeister_I();
         CountReidemeister_I();
         
@@ -135,8 +135,8 @@ bool Reidemeister_II_Backward(
         
         if( a_0_in == a_1_out )
         {
-            CreateUnlinkFromArc(a_0_in);
             DeactivateArc(a_0_in);
+            CreateUnlinkFromArc(a_0_in);
         }
         else
         {

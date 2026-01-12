@@ -52,20 +52,47 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
     
     using ArcSimplifier_T = ArcSimplifier2<Int,opt_level,multi_compQ>;
     
-    Size_T counter = 0;
+    Size_T counter     = 0;
+        
+    // This list is used for the diagrams that cannot processed any further.
+    PDList_T pd_list_done;
     
-    // TODO: I need a better loop here.
+    using std::swap;
+    
+    PD_ASSERT( pd_list_new.size() == Size_T(0) );
     
     do
     {
         for( PD_T & pd : pd_list )
         {
-            counter += ArcSimplifier_T( *this, pd, max_iter, compressQ )();
+            const Size_T changes = ArcSimplifier_T( *this, pd, max_iter, compressQ )();
+            
+            counter += changes;
+            
+            if( changes > Size_T(0) )
+            {
+                pd.ClearCache();
+            }
+            
+            if( pd.ValidQ() )
+            {
+                pd_list_done.push_back( std::move(pd) );
+            }
+            else
+            {
+                wprint(MethodName("SimplifyLocal_impl")+": A diagram that came out of " + pd.ClassName() + " was identified as invalid and discarded. This is per se not a bad thing to happen." );
+            }
         }
-        
-        JoinLists();
+
+        swap( pd_list, pd_list_new );
+        pd_list_new = PDList_T();
     }
-    while( pd_list_new.size() != Size_T(0) );
+    while( pd_list.size() != Size_T(0) );
+    
+    PD_ASSERT( pd_list_new.size() == Size_T(0) );
+    PD_ASSERT( pd_list.size()     == Size_T(0) );
+    
+    swap( pd_list, pd_list_done );
     
     return counter;
 }

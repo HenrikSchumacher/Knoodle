@@ -132,7 +132,7 @@ void DeactivateArc( const Int a )
     else
     {
 #if defined(PD_DEBUG)
-        wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
+        wprint(MethodName("DeactivateArc")+": Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
     }
     

@@ -42,6 +42,7 @@ namespace Knoodle
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         using ColorPalette_T            = std::unordered_set<Int>;
+        using ColorCounts_T             = std::unordered_map<Int,Int>;
         
         using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
@@ -133,7 +134,8 @@ namespace Knoodle
         // Cut and past operations have to maintain color_palette.
         // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_palette containing a single value != InvalidColor.
 
-        ColorPalette_T color_palette;
+//        ColorPalette_T color_palette;
+        ColorCounts_T color_arc_counts;
         
     public:
   
@@ -209,7 +211,8 @@ namespace Knoodle
             cptr<ExtInt>  arcs,
             cptr<ExtInt3> arc_states,
             cptr<ExtInt4> arc_colors,
-            cptr<ExtInt5> color_palette_,
+//            cptr<ExtInt5> color_palette_,
+            cptr<ExtInt5> color_arc_counts_,
             const ExtInt6 color_count_,
             const bool proven_minimalQ_ = false
         )
@@ -218,6 +221,24 @@ namespace Knoodle
             static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
+            
+            if( crossing_count_ == ExtInt(0) )
+            {
+                if(
+                    proven_minimalQ_
+                    && (color_count_ == 1)
+                    && ValidIndexQ(color_arc_counts_[0])
+                )
+                {
+                    *this = Unknot(color_arc_counts_[0]);
+                    return;
+                }
+                else
+                {
+                    *this = InvalidDiagram();
+                    return;
+                }
+            }
             
             C_arcs .Read(crossings);
             C_state.Read(crossing_states);
@@ -228,31 +249,65 @@ namespace Knoodle
             crossing_count = CountActiveCrossings();
             arc_count      = CountActiveArcs();
             
-            if( arc_colors != nullptr )
+            if( (crossing_count == 0)
+                && proven_minimalQ_
+                && (color_count_ == 1)
+                && ValidIndexQ(color_arc_counts_[0])
+            )
             {
-                if( color_palette_ != nullptr )
+                *this = Unknot(color_arc_counts_[0]);
+                return;
+            }
+            
+            if( arc_colors == nullptr )
+            {
+                ComputeArcColors();
+            }
+            else
+            {
+                if( color_arc_counts_ == nullptr )
                 {
-                    A_color.Read(arc_colors);
-                    for( Int i = 0; i < int_cast<Int>(color_count_); ++i )
+                    for( Int a = 0; a < max_crossing_count; ++a )
                     {
-                        color_palette.insert( color_palette_[i] );
+                        if( ArcActiveQ(a) )
+                        {
+                            const Int color = int_cast<Int>(arc_colors[a]);
+                            A_color[a] = color;
+                            CountArcColor(color);
+                        }
+                        else
+                        {
+                            A_color[a] = Uninitialized;
+                        }
+                        
+//                        color_palette.insert(color);
                     }
                 }
                 else
                 {
-                    for( Int a = 0; a < max_crossing_count; ++a )
-                    {
-                        const Int color = int_cast<Int>(arc_colors[a]);
-                        A_color[a] = color;
-                        color_palette.insert(color);
-                    }
+                    A_color.Read(arc_colors);
+                    color_arc_counts = ArrayToColorCounts(color_arc_counts_, color_count_);
                 }
                 
+                //                if( color_palette_ != nullptr )
+                //                {
+                //                    A_color.Read(arc_colors);
+                //                    for( Int i = 0; i < int_cast<Int>(color_count_); ++i )
+                //                    {
+                //                        color_palette.insert( color_palette_[i] );
+                //                    }
+                //                }
+                //                else
+                //                {
+                //                    for( Int a = 0; a < max_crossing_count; ++a )
+                //                    {
+                //                        const Int color = int_cast<Int>(arc_colors[a]);
+                //                        A_color[a] = color;
+                //                        color_palette.insert(color);
+                //                    }
+                //                }
+                
                 PD_ASSERT(CheckArcColors());
-            }
-            else
-            {
-                ComputeArcColors();
             }
         }
         
@@ -273,7 +328,9 @@ namespace Knoodle
             pd.A_color.Read(A_color.data());
             
             pd.proven_minimalQ = proven_minimalQ;
-            pd.color_palette      = color_palette;
+//            pd.color_palette  = color_palette;
+            
+            pd.color_arc_counts = color_arc_counts;
             
             return pd;
         }
@@ -331,7 +388,33 @@ namespace Knoodle
         
         Int ColorCount() const
         {
-            return int_cast<Int>( color_palette.size() );
+//            return int_cast<Int>( color_palette.size() );
+            return int_cast<Int>( color_arc_counts.size() );
+        }
+        
+        Int ActiveColorCount() const
+        {
+            Int color_count = 0;
+            for( auto & x : color_arc_counts )
+            {
+                if( x.second > Int(0) )
+                {
+                    ++color_count;
+                }
+                else
+                {
+#ifdef PD_DEBUG
+                    if ( x.second < Int(0) )
+                    {
+                        eprint(MethodName("ActiveColorCount")+": Found a color with a negative color count.");
+                    }
+#endif // PD_DEBUG
+                }
+            }
+            
+            PD_ASSERT(color_count <= arc_count);
+            
+            return color_count;
         }
         
         bool ProvenMinimalQ() const
@@ -348,28 +431,44 @@ namespace Knoodle
         {
             PD_T pd ( Int(0) );
             pd.proven_minimalQ = true;
-            pd.color_palette   = {color};
+//            pd.color_palette   = {color};
+            pd.color_arc_counts[Int(color)] = Int(0);
             return pd;
         }
         
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && (ColorCount() == Size_T(1));
+            return proven_minimalQ && (crossing_count == Int(0)) && (ColorCount() == Int(1));
         }
 
+        bool ProvenHopfLinkQ() const
+        {
+            return proven_minimalQ && (crossing_count == Int(2)) && (ActiveColorCount() == Int(2));
+        }
+        
         bool ProvenTrefoilQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(3)) && (ColorCount() == Size_T(1));
+            return proven_minimalQ && (crossing_count == Int(3)) && (ActiveColorCount() == Int(1));
         }
         
         bool ProvenFigureEightQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(4)) && (ColorCount() == Size_T(1));
+            return proven_minimalQ && (crossing_count == Int(4)) && (ActiveColorCount() == Int(1));
         }
 
         bool InvalidQ() const
         {
-            return (max_crossing_count == Int(0)) && (ColorCount() != Size_T(1));
+            if( (max_crossing_count == Int(0)) && (ColorCount() != Int(1)) )
+            {
+                // DEBUGGING
+                eprint(MethodName("InvalidQ()"));
+                
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         
         bool ValidQ() const

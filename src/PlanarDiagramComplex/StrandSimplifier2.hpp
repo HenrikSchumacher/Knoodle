@@ -187,7 +187,7 @@ namespace Knoodle
         
         void CreateUnlinkFromArc( const Int a_ )
         {
-            pdc.CreateUnlink(pd.A_color[a_]);
+            pdc.CreateUnlinkFromArc(pd,a_);
         }
         
         

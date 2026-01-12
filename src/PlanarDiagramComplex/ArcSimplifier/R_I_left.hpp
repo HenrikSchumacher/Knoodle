@@ -100,14 +100,13 @@ bool R_I_left()
          *                     s_0
          */
         
-        
-        CreateUnlinkFromArc(a);
         DeactivateArc(w_0);
         DeactivateArc(e_1);
         DeactivateArc(s_0);
         DeactivateArc(a  );
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
+        CreateUnlinkFromArc(a);
         
         // TODO: Implement counters.
 //        pd.R_I_counter += 2;
@@ -224,14 +223,14 @@ bool R_I_left()
          *           +<--+           +---+
          *
          */
-        
-        CreateUnlinkFromArc(a);
+                
         DeactivateArc(e_1);
         DeactivateArc(w_0);
         DeactivateArc(n_0);
         DeactivateArc(a  );
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
+        CreateUnlinkFromArc(a);
         
         // TODO: Implement counters.
 //        pd.R_I_counter += 2;

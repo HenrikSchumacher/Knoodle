@@ -41,7 +41,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 template<bool deactivateQ = true, bool assertQ = true, bool colorQ = false>
 void Reconnect( const Int a, const bool headtail, const Int b )
 {
-    PD_DPRINT(std::string("Reconnect<")  + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + "," + (headtail ? "Head" : "Tail") +  "," + ArcString(b) + " )" );
+    PD_DPRINT(std::string("Reconnect<")  + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") +  ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));
@@ -76,7 +76,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
 template<bool headtail, bool deactivateQ = true, bool assertQ = true, bool colorQ = false>
 void Reconnect( const Int a, const Int b )
 {
-    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + "," + ArcString(b) + " )" );
+    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));

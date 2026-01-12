@@ -30,8 +30,10 @@ namespace Knoodle
         using Class_T               = PlanarDiagramComplex<Int>;
         using PD_T                  = PlanarDiagram2<Int>;
         using PDC_T                 = PlanarDiagramComplex<Int>;
+        using PDList_T              = std::vector<PD_T>;
         
-        using ColorMap_T            = std::unordered_map<Int,Int>;
+//        using ColorPalette_T        = PD_T::ColorPalette_T;
+        using ColorCounts_T         = PD_T::ColorCounts_T;
                 
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -42,18 +44,35 @@ namespace Knoodle
         
         static constexpr Int  Uninitialized =  PD_T::Uninitialized;
         
+        friend class ArcSimplifier2<Int,0,true >;
+        friend class ArcSimplifier2<Int,1,true >;
+        friend class ArcSimplifier2<Int,2,true >;
+        friend class ArcSimplifier2<Int,3,true >;
+        friend class ArcSimplifier2<Int,4,true >;
+        friend class ArcSimplifier2<Int,0,false>;
+        friend class ArcSimplifier2<Int,1,false>;
+        friend class ArcSimplifier2<Int,2,false>;
+        friend class ArcSimplifier2<Int,3,false>;
+        friend class ArcSimplifier2<Int,4,false>;
+        friend class StrandSimplifier2<Int,true ,true >;
+        friend class StrandSimplifier2<Int,true ,false>;
+        friend class StrandSimplifier2<Int,false,true >;
+        friend class StrandSimplifier2<Int,false,false>;
+        
     public:
 
         
     protected:
         
         // Class data members
-        std::vector<PD_T> pd_list;
-        std::vector<PD_T> pd_list_new;
+        PDList_T pd_list;
+        PDList_T pd_list_new;
         
-        Int color_count;
+//        Int color_count;
         
-        ColorMap_T colored_unlinkQ;
+        ColorCounts_T colored_unlinkQ;
+        
+        PD_T invalid_diagram { PD_T::InvalidDiagram() };
         
         
     public:
@@ -72,28 +91,57 @@ namespace Knoodle
         PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
  
         PlanarDiagramComplex( PD_T && pd, Int unlink_count )
-        :   color_count     { pd.ColorCount() + Ramp(unlink_count) }
         {
-            pd_list.reserve( ToSize_T(unlink_count) + Size_T(1) );
+            pd_list.reserve( ToSize_T(unlink_count) + Size_T(pd.ValidQ()) );
             Int max_color = 0;
             
-            for( Int color : pd.color_palette )
+//            for( Int color : pd.color_palette )
+//            {
+//                max_color = Max( color, max_color );
+//                colored_unlinkQ[color] = false;
+//            }
+            
+            for( auto & x : pd.color_arc_counts )
             {
-                max_color = Max( color, max_color );
-                colored_unlinkQ[color] = false;
+                max_color = Max( max_color, x.second );
+                colored_unlinkQ[x.first] = 0;
             }
             
-            pd_list.push_back( std::move(pd) );
-            for( Int lc = 0; lc < unlink_count; ++lc )
+            PushDiagram( std::move(pd) );
+            
+            for( Int unlink = 0; unlink < unlink_count; ++unlink )
             {
-                CreateUnlink(max_color + lc + 1);
+                (void)CreateUnlink(max_color + unlink + 1);
             }
             
-            
+            JoinLists();
         }
         
-        PlanarDiagramComplex( std::pair<PD_T,Int> && pd_and_unlink_count )
-        :   PlanarDiagramComplex( std::move(pd_and_unlink_count.first), pd_and_unlink_count.second )
+        
+        bool PushDiagram( PD_T && pd )
+        {
+            if( pd.ValidQ() )
+            {
+                pd_list.push_back( std::move(pd) );
+                return true;
+            }
+            else
+            {
+                // DEBUGGING
+                wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram. Doing nothing.");
+                
+                return false;
+            }
+        }
+        
+        explicit PlanarDiagramComplex( std::pair<PD_T,Int> && pd_and_unlink_count )
+        :   PlanarDiagramComplex(
+                std::move(pd_and_unlink_count.first), pd_and_unlink_count.second
+            )
+        {}
+        
+        explicit PlanarDiagramComplex( PD_T && pd )
+        :   PlanarDiagramComplex( std::move(pd), Int(0) )
         {}
         
         
@@ -105,7 +153,7 @@ namespace Knoodle
         
         Int ColorCount() const
         {
-            return color_count;
+            return static_cast<Int>(colored_unlinkQ.size());
         }
             
         Int DiagramCount() const
@@ -113,9 +161,22 @@ namespace Knoodle
             return int_cast<Int>(pd_list.size());
         }
         
-        mref<PD_T> Diagram( Int i )
+        cref<PD_T> Diagram( Int i ) const
         {
-            // TODO: Check range of i?
+            if( i < Int(0) )
+            {
+                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
+            
+            if( i >= DiagramCount() )
+            {
+                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
+            
             return pd_list[Size_T(i)];
         }
         
@@ -134,38 +195,79 @@ namespace Knoodle
         
         bool ColorExistsQ( const Int color ) const
         {
-            return colored_unlinkQ.count(color) > Size_T(0);
+            return colored_unlinkQ.contains(color);
         }
         
-        void CreateUnlink( const Int color )
+        
+    private:
+        
+        bool CreateUnlink( const Int color )
         {
             if( !ColorExistsQ(color) )
             {
-                eprint(MethodName("CreateUnlink") + ": Invalid input color " + ToString(color) + ". Doing nothing.");
+                eprint(MethodName("CreateUnlink") + ": Invalid input color " + ToString(color) + ". Doing nothing");
+                
+                return false;
             }
             
-            // Make sure to push an unlink to `pd_list` only if there is no other unlink of the same color already.
-            if( !colored_unlinkQ[color] )
+            // Make sure to create an unlink to `pd_list` only if there is no other unlink of the same color already.
+            if( colored_unlinkQ[color] )
+            {
+                return false;
+            }
+            else
             {
                 // Records unlinks twice: once in pd_list and once in colored_unlinkQ.
                 // Not sure whether I like this design.
-                colored_unlinkQ[color] = true;
+                colored_unlinkQ[color] = Int(1);
+                
                 pd_list_new.push_back( PD_T::Unknot(color) );
+                return true;
             }
+        }
+        
+        void CreateUnlinkFromArc( PD_T & pd, const Int a )
+        {
+            TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
+            
+            pd.template AssertArc<0>(a);
+            const Int a_color = pd.A_color[a];
+            
+            PD_ASSERT( pd.color_arc_counts.contains(a_color) );
+            
+            // If there are no arcs of that color left in pd, then we tell it to forget that color.
+            if( pd.color_arc_counts[a_color] == Int(0) )
+            {
+                pd.color_arc_counts.erase( a_color );
+            }
+            else
+            {
+                // DEBUGGING
+                wprint(MethodName("CreateUnlinkFromArc") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
+            }
+                
+            CreateUnlink(a_color) ;
         }
         
     private:
         
+        // TODO: Check where this is used. Usually, there is a better way to do this.
         void JoinLists()
         {
             PD_TIMER(timer,MethodName("JoinLists"));
             for( PD_T & pd : pd_list_new )
             {
-                pd_list.push_back(std::move(pd));
+                if( pd.ValidQ() )
+                {
+                    pd_list.push_back(std::move(pd));
+                }
             }
             
             pd_list_new = std::vector<PD_T>();
         }
+        
+        
+
        
     public:
         

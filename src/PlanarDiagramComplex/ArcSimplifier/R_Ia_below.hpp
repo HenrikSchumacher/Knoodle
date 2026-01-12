@@ -4,6 +4,7 @@ bool R_Ia_below()
     
     if(n_0 != n_1)
     {
+        PD_DPRINT("\tn_0 != n_1");
         return false;
     }
     
@@ -49,7 +50,10 @@ bool R_Ia_below()
                      *               +---+                     +---+
                      */
                     
+                    
+                    
                     // TODO: We could disconnect-sum a Hopf link here.
+                    PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link as connected summand.");
                     
                     Reconnect(s_0,u_1,s_1);
                     DeactivateArc(w_2);
@@ -63,6 +67,133 @@ bool R_Ia_below()
             }
             
             PD_DPRINT("\t\t\t\tw_2 != s_2");
+            
+            /*  Current knowledge
+             *
+             *           +-----------+             +-----------+
+             *           |           |             |           |
+             *           |     a     |             |     a     |
+             *        -->----------->|-->   or  -->|---------->--->
+             *           |c_0        |c_1          |c_0        |c_1
+             *           O---O   O---O             O---O   O---O
+             *                \ /                       \ /
+             *                 / c_2                     \  c_2
+             *                / \                       / \
+             *           w_2 O   O s_2             w_2 O   O s_2
+             */
+            
+            
+            if( w_2 == w_0 )
+            {
+                PD_DPRINT("\t\t\t\t\tw_2 == w_0");
+                
+                if( s_2 == e_1 )
+                {
+                    PD_DPRINT("\t\t\t\t\t\ts_2 == e_1");
+
+                    wprint(MethodName("R_Ia_below")+": Seldom case: detected an unlink (three crossings deleted.");
+                    
+                    /*           +-----------+             +-----------+
+                     *           |           |             |           |
+                     *           |     a     |     or      |     a     |
+                     *     +---->----------->|---->+  +--->|---------->---->+
+                     *     |     |c_0        |c_1  |  |    |c_0        |c_1 |
+                     *     |     O---O   O---O     |  |    O---O   O---O    |
+                     *     |          \ /          |  |         \ /         |
+                     *     |           / c_2       |  |          \  c_2     |
+                     *     |w_0==w_2  / \  s_2==e_1|  |w_0==w_2 / \  s_2=e_1|
+                     *     +---------O   O---------+  +--------O   O--------+
+                     */
+                    
+                    DeactivateArc(a);
+                    DeactivateArc(e_1);
+                    DeactivateArc(s_0);
+                    DeactivateArc(n_0);
+                    DeactivateArc(s_1);
+                    DeactivateArc(w_0);
+                    DeactivateCrossing(c_0);
+                    DeactivateCrossing(c_1);
+                    DeactivateCrossing(c_2);
+                    CreateUnlinkFromArc(a);
+                    
+                    // TODO: Implement counters.
+//                    ++pd.R_I_counter;
+//                    ++pd.R_II_counter;
+                    
+                    return true;
+                }
+
+                PD_DPRINT("\t\t\t\t\t\ts_2 != e_1");
+                
+                wprint(MethodName("R_Ia_below")+": Seldom case: three crossings deleted.");
+                /*           +-----------+             +-----------+
+                 *           |           |             |           |
+                 *           |     a     |     or      |     a     |
+                 *     +---->----------->|---->   +--->|---------->---->
+                 *     |     |c_0        |c_1     |    |c_0        |c_1
+                 *     |     O---O   O---O        |    O---O   O---O
+                 *     |          \ /             |         \ /
+                 *     |           / c_2          |          \  c_2
+                 *     |w_0==w_2  / \             |w_0==w_2 / \
+                 *     +---------O   O s_2        +--------O   O s_2
+                 */
+                
+                Reconnect<Head>(s_2,e_1);
+                DeactivateArc(s_0);
+                DeactivateArc(n_0);
+                DeactivateArc(s_1);
+                DeactivateArc(w_0);
+                DeactivateArc(a);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+                DeactivateCrossing(c_2);
+                
+                // TODO: Implement counters.
+//                ++pd.R_I_counter;
+//                ++pd.R_II_counter;
+                
+                return true;
+            }
+            
+            PD_DPRINT("\t\t\t\t\tw_2 != w_0");
+            
+            if( s_2 == e_1 )
+            {
+                PD_DPRINT("\t\t\t\t\t\ts_2 == e_1");
+                
+                wprint(MethodName("R_Ia_below")+": Seldom case: three crossings deleted.");
+                
+                /*           +-----------+             +-----------+
+                 *           |           |             |           |
+                 *           |     a     |     or      |     a     |
+                 *       --->----------->|---->+   --->|---------->---->+
+                 *           |c_0        |c_1  |       |c_0        |c_1 |
+                 *           O---O   O---O     |       O---O   O---O    |
+                 *                \ /          |            \ /         |
+                 *                 / c_2       |             \  c_2     |
+                 *                / \  s_2==e_1|            / \  s_2=e_1|
+                 *           w_2 O   O---------+       w_2 O   O--------+
+                 */
+                
+                Reconnect<Head>(w_0,w_2);
+                DeactivateArc(a);
+                DeactivateArc(e_1);
+                DeactivateArc(s_0);
+                DeactivateArc(n_1);
+                DeactivateArc(s_1);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+                DeactivateCrossing(c_2);
+                
+                // TODO: Implement counters.
+//                ++pd.R_I_counter;
+//                ++pd.R_II_counter;
+                
+                return true;
+            }
+            
+            PD_DPRINT("\t\t\t\t\t\ts_2 != e_1");
+            
             
             /*  R_Ia move.
              *
@@ -256,6 +387,9 @@ bool R_Ia_below()
             {
                 PD_PRINT("\t\t\te_2 == s_2");
                 
+                // TODO: We could disconnect-sum a Hopf link here.
+                PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link as connected summand.");
+                
                 /*           +-----------+             +-----------+
                  *           |           |             |           |
                  *        c_0|     a     |c_1       c_0|     a     |c_1
@@ -278,6 +412,8 @@ bool R_Ia_below()
             }
             
             PD_DPRINT("\t\t\te_2 != s_2");
+            
+            PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link and a knot as connected summands.");
             
             /* Two further interesting cases.
              *

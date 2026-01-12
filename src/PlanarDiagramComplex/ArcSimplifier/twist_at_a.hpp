@@ -73,13 +73,13 @@ bool twist_at_a()
              *                             +-----------+
              */
             
-            CreateUnlinkFromArc(a);
             DeactivateArc(w_0);
             DeactivateArc(e_1);
             DeactivateArc(a );
             DeactivateArc(n_0);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
+            CreateUnlinkFromArc(a);
 //            pd.R_I_counter += 2; // TODO: Implement counters.
             
             AssertArc<0>(a  );
@@ -320,13 +320,13 @@ bool twist_at_a()
              *               +-------------------------+
              */
             
-            CreateUnlinkFromArc(a);
             DeactivateArc(w_0);
             DeactivateArc(a  );
             DeactivateArc(e_1);
             DeactivateArc(s_0);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
+            CreateUnlinkFromArc(a);
             
             // TODO: Implement counters.
 //            pd.R_I_counter += 2;

@@ -51,10 +51,10 @@ bool R_I_center()
                  *              s_0
                  */
                 
-                CreateUnlinkFromArc(a);
                 DeactivateArc(w_0);
                 DeactivateArc(a  );
                 DeactivateCrossing(c_0);
+                CreateUnlinkFromArc(a);
                 // TODO: Implement counters.
 //                pd.R_I_counter += 2; // We make two R_I moves instead of one.
                 
@@ -113,10 +113,10 @@ bool R_I_center()
                  *          +----O
                  */
                 
-                CreateUnlinkFromArc(a);
                 DeactivateArc(w_0);
                 DeactivateArc(a  );
                 DeactivateCrossing(c_0);
+                CreateUnlinkFromArc(a);
                 
                 // TODO: Implement counters.
 //                pd.R_I_counter += 2;

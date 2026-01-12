@@ -33,7 +33,31 @@ namespace Knoodle
             s += ToString(x);
             if( iter < n )
             {
-                s += ",";
+                s += ", ";
+            }
+        }
+        
+        s += " }";
+        
+        return s;
+    }
+    
+    template<typename Key_T, typename Val_T>
+    std::string ToString( cref<std::unordered_map<Key_T,Val_T>> a )
+    {
+        std::string s ("{ ");
+        
+        const Size_T n = a.size();
+        
+        Size_T iter = 0;
+        
+        for( auto & x : a )
+        {
+            ++iter;
+            s += ToString(x.first) + " -> " + ToString(x.second);
+            if( iter < n )
+            {
+                s += ", ";
             }
         }
         

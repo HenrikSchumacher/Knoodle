@@ -11,8 +11,7 @@
 
 namespace Knoodle
 {
-    template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagramComplex;
+    template<typename Int> class PlanarDiagramComplex;
 
     template<
         typename Int_,
@@ -396,7 +395,7 @@ namespace Knoodle
         
         void CreateUnlinkFromArc( const Int a_ )
         {
-            pdc.CreateUnlink(pd.A_color[a_]);
+            pdc.CreateUnlinkFromArc(pd,a_);
         }
         
     private:
