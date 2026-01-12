@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../submodules/Tensors/UMFPACK.hpp"
+#include "../../submodules/Tensors/UMFPACK.hpp"
 // This requires linking against libumfpack
 
-//#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
-////#include "../submodules/Tensors/src/Sparse/Metis.hpp"
+//#include "../../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+////#include "../../submodules/Tensors/src/Sparse/Metis.hpp"
 //
-#include "../submodules/Tensors/src/BLAS_Wrappers.hpp"
-#include "../submodules/Tensors/src/LAPACK_Wrappers.hpp"
+#include "../../submodules/Tensors/src/BLAS_Wrappers.hpp"
+#include "../../submodules/Tensors/src/LAPACK_Wrappers.hpp"
 
 
 namespace Knoodle

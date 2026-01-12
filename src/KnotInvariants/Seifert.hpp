@@ -1,9 +1,9 @@
 #pragma once
 
-#include "MultiGraph.hpp"
-#include "../submodules/Tensors/Sparse.hpp"
-//#include "../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
-//#include "../submodules/Tensors/src/Sparse/Metis.hpp"
+#include "../MultiGraph.hpp"
+#include "../../submodules/Tensors/Sparse.hpp"
+//#include "../../submodules/Tensors/src/Sparse/ApproximateMinimumDegree.hpp"
+//#include "../../submodules/Tensors/src/Sparse/Metis.hpp"
 
 namespace Knoodle
 {

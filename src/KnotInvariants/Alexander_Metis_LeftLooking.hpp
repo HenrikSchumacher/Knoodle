@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../submodules/Tensors/Sparse.hpp"
-#include "../submodules/Tensors/src/Sparse/Metis.hpp"
+#include "../../submodules/Tensors/Sparse.hpp"
+#include "../../submodules/Tensors/src/Sparse/Metis.hpp"
 
 namespace Knoodle
 {
