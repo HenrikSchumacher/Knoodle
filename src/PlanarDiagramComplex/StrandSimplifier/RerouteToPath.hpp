@@ -11,6 +11,8 @@ private:
 
 bool RerouteToPath( const Int a_first, mref<Int> a_last )
 {
+    PD_TIMER(timer,MethodName("RerouteToPath"));
+    
 #ifdef PD_TIMINGQ
    const Time start_time = Clock::now();
 #endif
@@ -55,7 +57,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     while( p < q )
     {
         const Int c_0 = A_cross(a,Head);
-        
+
         const bool side = (C_arcs(c_0,In,Right) != a);
         
         const Int a_2 = C_arcs(c_0,Out,side);
@@ -147,7 +149,10 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
         //             |
         //             X
         
+        PD_PRINT("Reconnect<Head,false>(a_0,a_1)");
         Reconnect<Head,false>(a_0,a_1);
+        PD_PRINT("Reconnect<Head,false>(a_1,b  )");
+        A_color[a_1] = A_color[b];
         Reconnect<Head,false>(a_1,b  );
         
         // We have to reconnect the head of b to c_0 manually, since a_0 has forgotten that it is connected to c_0.

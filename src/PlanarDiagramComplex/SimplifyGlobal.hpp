@@ -71,95 +71,104 @@ Size_T SimplifyGlobal_impl(
     
     Size_T total_counter = 0;
     
-    for( PD_T & pd : pd_list )
+    // TODO: I need a better loop here.
+    do
     {
-        if( pd.InvalidQ() || pd.ProvenMinimalQ() )
+        for( PD_T & pd : pd_list )
         {
-            continue;
-        }
-        
-        Size_T old_counter = 0;
-        Size_T counter = 0;
-        
-        // It is very likely that we change the diagram.
-        // Also, a stale cache might spoil the simplification.
-        // Thus, we proactively delete the cache.
-        pd.ClearCache();
-        
-        StrandSimplier_T S (*this,pd);
-        
-        Int dist = min_dist;
-        bool simplify_localQ   = true;
-        bool simplify_strandsQ = max_dist > Int(0);
-        
-        do
-        {
-            old_counter = counter;
-            
-            dist = Min(dist,max_dist);
-            
-            Size_T simplify_local_changes = 0;
-            
-            // Since ArcSimplier_T performs only inexpensive tests, we should use it first.
-            if( simplify_localQ && (local_opt_level > Int(0)) )
+            if( pd.InvalidQ() || pd.ProvenMinimalQ() )
             {
-                ArcSimplier_T A ( *this, pd, local_max_iter, false );
-                simplify_local_changes = A();
-                counter += simplify_local_changes;
-                
-                if( compressQ && (simplify_local_changes > Int(0)) ) { pd.Compress(); }
+                continue;
             }
             
-            if( !simplify_strandsQ ) { break; }
+            Size_T old_counter = 0;
+            Size_T counter = 0;
             
-            // Reroute overstrands.
-            const Size_T o_changes = S.SimplifyStrands(true,dist);
-            counter += o_changes;
-            
-            if( compressQ && (o_changes > Int(0)) ) { pd.Compress(); }
-            
-            PD_ASSERT(pd.CheckAll());
-            
-            // Reroute overstrands.
-            const Size_T u_changes = S.SimplifyStrands(false,dist);
-            counter += u_changes;
-            
-            if( compressQ && (u_changes > Int(0)) ) { pd.Compress(); }
-            
-            PD_ASSERT(pd.CheckAll());
-            
-            if( dist <= Scalar::Max<Int> / Int(2) )
-            {
-                dist *= Int(2);
-            }
-            else
-            {
-                dist = Scalar::Max<Int>;
-            }
-            simplify_localQ = (o_changes + u_changes > Int(0));
-        }
-        while(
-              (counter > old_counter)
-              ||
-              ( (dist <= max_dist) && (dist < pd.ArcCount()) )
-        );
-        
-        if( counter > Int(0) )
-        {
+            // It is very likely that we change the diagram.
+            // Also, a stale cache might spoil the simplification.
+            // Thus, we proactively delete the cache.
             pd.ClearCache();
-        }
+            
+            StrandSimplier_T S (*this,pd);
+            
+            Int dist = min_dist;
+            bool simplify_localQ   = true;
+            bool simplify_strandsQ = max_dist > Int(0);
+            
+            do
+            {
+                old_counter = counter;
+                
+                dist = Min(dist,max_dist);
+                
+                Size_T simplify_local_changes = 0;
+                
+                // Since ArcSimplier_T performs only inexpensive tests, we should use it first.
+                if( simplify_localQ && (local_opt_level > Int(0)) )
+                {
+                    ArcSimplier_T A ( *this, pd, local_max_iter, false );
+                    simplify_local_changes = A();
+                    counter += simplify_local_changes;
+                    
+                    if( compressQ && (simplify_local_changes > Size_T(0)) ) { pd.Compress(); }
+                }
+                
+                if( !simplify_strandsQ ) { break; }
+                
+                // Reroute overstrands.
+                const Size_T o_changes = S.SimplifyStrands(true,dist);
+                counter += o_changes;
+                
+                if( compressQ && (o_changes > Size_T(0)) ) { pd.Compress(); }
+                
+                PD_ASSERT(pd.CheckAll());
+                
+                // Reroute overstrands.
+                const Size_T u_changes = S.SimplifyStrands(false,dist);
+                counter += u_changes;
+                
+                if( compressQ && (u_changes > Size_T(0)) ) { pd.Compress(); }
+                
+                PD_ASSERT(pd.CheckAll());
+                
+                if( dist <= Scalar::Max<Int> / Int(2) )
+                {
+                    dist *= Int(2);
+                }
+                else
+                {
+                    dist = Scalar::Max<Int>;
+                }
+                simplify_localQ = (o_changes + u_changes > Int(0));
+            }
+            while(
+                  (counter > old_counter)
+                  ||
+                  ( (dist <= max_dist) && (dist < pd.ArcCount()) )
+            );
         
-        if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
-        {
-            pd.proven_minimalQ = true;
-        }
         
-        PD_ASSERT(pd.CheckAll());
+            if( counter > Int(0) )
+            {
+                pd.ClearCache();
+            }
+            
+            if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
+            {
+                pd.proven_minimalQ = true;
+            }
+            
+            PD_ASSERT(pd.CheckAll());
+            
+            total_counter += counter;
         
-        total_counter += counter;
+        } // for( PD_T & pd : pd_list )
         
-    } // for( PD_T & pd : pd_list )
-    
+        
+        JoinLists();
+    }
+    while( pd_list_new.size() != Size_T(0) );
+        
     return total_counter;
 }
 

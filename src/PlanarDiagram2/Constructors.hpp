@@ -252,8 +252,11 @@ static std::pair<PD_T,Int> FromLink(
             
             pd.C_arcs(c,In , a_side) = a;
             pd.C_arcs(c,Out,!a_side) = b;
-            pd.A_state[a].Set(Head, a_side,righthandedQ);
-            pd.A_state[b].Set(Tail,!a_side,righthandedQ);
+            
+//            pd.A_state[a].Set(Head, a_side,righthandedQ);
+//            pd.A_state[b].Set(Tail,!a_side,righthandedQ);
+            
+            pd.A_state[b] = ArcState_T::Active;
             pd.A_color[b] = comp;
         }
     }

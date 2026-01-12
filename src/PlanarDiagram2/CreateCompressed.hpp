@@ -17,7 +17,7 @@ PD_T CreateCompressed()
         return InvalidDiagram();
     }
     
-    TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
+    TOOLS_PTIMER(timer,MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">");
     
     PD_T pd ( crossing_count );
     
@@ -27,12 +27,17 @@ PD_T CreateCompressed()
     pd.arc_count       = arc_count;
     pd.proven_minimalQ = proven_minimalQ;
     
+    if constexpr ( !recolorQ )
+    {
+        pd.color_palette = color_palette;
+    }
+    
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState_T>     C_state_new = pd.C_state.data();
     
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
     mptr<ArcState_T>          A_state_new = pd.A_state.data();
-    mptr<Int       >          A_color_new = pd.A_color.data();
+    mptr<Int>                 A_color_new = pd.A_color.data();
     
     this->template Traverse<true>(
         [&pd]( const Int lc, const Int lc_begin )
@@ -40,7 +45,7 @@ PD_T CreateCompressed()
             (void)lc_begin;
             if constexpr( recolorQ )
             {
-                pd.color_list.insert(lc);
+                pd.color_palette.insert(lc);
             }
             else
             {

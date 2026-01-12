@@ -38,17 +38,26 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
  * @tparam assertQ If set to `false`, then some error messages in debug mode (macro `PD_DEBUG` is defined) will be suppressed. Has no effect whatsover if `PD_DEBUG` is undefined.
  */
 
-template<bool deactivateQ = true, bool assertQ = true>
+template<bool deactivateQ = true, bool assertQ = true, bool colorQ = false>
 void Reconnect( const Int a, const bool headtail, const Int b )
 {
-    PD_DPRINT(std::string("Reconnect<")  + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") +  ", " + ArcString(b) + " )" );
+    PD_DPRINT(std::string("Reconnect<")  + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + "," + (headtail ? "Head" : "Tail") +  "," + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
-    
     PD_ASSERT(ArcActiveQ(a));
     
-    const Int c = A_cross(b,headtail);
+    if constexpr ( assertQ && colorQ )
+    {
+        if( A_color[a] != A_color[b] )
+        {
+            wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+            TOOLS_LOGDUMP(ArcString(a));
+            TOOLS_LOGDUMP(ArcString(b));
+        }
+    }
     
+    const Int c = A_cross(b,headtail);
+
     // This is a hack to suppress warnings in situations where we cannot guarantee that c is intact (but where we can guarantee that it will finally be deactivated.
     if constexpr ( assertQ )
     {
@@ -60,20 +69,27 @@ void Reconnect( const Int a, const bool headtail, const Int b )
 
     A_cross(a,headtail) = c;
     SetMatchingPortTo(c,headtail,b,a);
-    
-//    C_arcs(c,headtail,ArcSide(b,headtail,c)) = a;
-//    A_state[a].Copy(headtail,A_state[b]);
     DeactivateArc(b);
 }
 
 
-template<bool headtail, bool deactivateQ = true, bool assertQ = true>
+template<bool headtail, bool deactivateQ = true, bool assertQ = true, bool colorQ = false>
 void Reconnect( const Int a, const Int b )
 {
-    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + "," + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));
+    
+    if constexpr ( assertQ && colorQ )
+    {
+        if( A_color[a] != A_color[b] )
+        {
+            wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+            TOOLS_LOGDUMP(ArcString(a));
+            TOOLS_LOGDUMP(ArcString(b));
+        }
+    }
     
     const Int c = A_cross(b,headtail);
     

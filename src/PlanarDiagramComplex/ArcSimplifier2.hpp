@@ -29,8 +29,9 @@ namespace Knoodle
         using PD_T  = PDC_T::PD_T;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
-        using ArcContainer_T            = typename PD_T::ArcContainer_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
+        using ArcContainer_T            = typename PD_T::ArcContainer_T;
+        using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ = mult_compQ_;
@@ -47,7 +48,6 @@ namespace Knoodle
     private:
         
         PDC_T & restrict pdc;
-        
         PD_T  & restrict pd;
         
         CrossingContainer_T      & restrict C_arcs;
@@ -55,6 +55,7 @@ namespace Knoodle
     
         ArcContainer_T           & restrict A_cross;
         ArcStateContainer_T      & restrict A_state;
+        ArcColorContainer_T      & restrict A_color;
         
         Size_T max_iter = 0;
         bool compressQ = false;
@@ -112,6 +113,7 @@ namespace Knoodle
         ,   C_state  { pd.C_state }
         ,   A_cross  { pd.A_cross }
         ,   A_state  { pd.A_state }
+        ,   A_color  { pd.A_color }
         ,   max_iter { max_iter_  }
         ,   compressQ{ compressQ_ }
         {}

@@ -39,6 +39,7 @@ namespace Knoodle
         using C_Arc_T                   = typename PD_T::C_Arc_T;
         using A_Cross_T                 = typename PD_T::A_Cross_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
+        using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
 
         
@@ -64,8 +65,9 @@ namespace Knoodle
         CrossingStateContainer_T & restrict C_state;
         
         ArcContainer_T           & restrict A_cross;
+        ArcColorContainer_T      & restrict A_color;
         ArcStateContainer_T      & restrict A_state;
-
+        
         Tensor1<Int,Int>         & restrict D_mark2;
         
         
@@ -115,6 +117,7 @@ namespace Knoodle
         ,   C_arcs     { pd.C_arcs                       }
         ,   C_state    { pd.C_state                      }
         ,   A_cross    { pd.A_cross                      }
+        ,   A_color    { pd.A_color                      }
         ,   A_state    { pd.A_state                      }
         ,   D_mark2    { pd.A_scratch                    }
         // We initialize by 0, indicating invalid/uninitialized.

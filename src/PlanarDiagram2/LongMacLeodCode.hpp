@@ -217,6 +217,9 @@ static PD_T FromLongMacLeodCode(
             pd.A_cross(b_prev,Head) = c;
             pd.A_cross(b     ,Tail) = c;
             
+            pd.A_state[a] = ArcState_T::Active;
+            pd.A_state[b] = ArcState_T::Active;
+            
             if( a_overQ == a_right_handedQ )
             {
                 /* Situation in case of a_overQ == a_right_handedQ
@@ -237,10 +240,10 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,In ,Left ) = a_prev;
                 pd.C_arcs(c,In ,Right) = b_prev;
 
-                pd.A_state[a_prev].Set(Head,Left ,c_state);
-                pd.A_state[a     ].Set(Tail,Right,c_state);
-                pd.A_state[b_prev].Set(Head,Right,c_state);
-                pd.A_state[b     ].Set(Tail,Left ,c_state);
+//                pd.A_state[a_prev].Set(Head,Left ,c_state);
+//                pd.A_state[a     ].Set(Tail,Right,c_state);
+//                pd.A_state[b_prev].Set(Head,Right,c_state);
+//                pd.A_state[b     ].Set(Tail,Left ,c_state);
             }
             else
             {
@@ -261,11 +264,11 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,Out,Right) = b;
                 pd.C_arcs(c,In ,Left ) = b_prev;
                 pd.C_arcs(c,In ,Right) = a_prev;
-
-                pd.A_state[a_prev].Set(Head,Right,c_state);
-                pd.A_state[a     ].Set(Tail,Left ,c_state);
-                pd.A_state[b_prev].Set(Head,Left ,c_state);
-                pd.A_state[b     ].Set(Tail,Right,c_state);
+                
+//                pd.A_state[a_prev].Set(Head,Right,c_state);
+//                pd.A_state[a     ].Set(Tail,Left ,c_state);
+//                pd.A_state[b_prev].Set(Head,Left ,c_state);
+//                pd.A_state[b     ].Set(Tail,Right,c_state);
             }
         
             ++crossing_counter;

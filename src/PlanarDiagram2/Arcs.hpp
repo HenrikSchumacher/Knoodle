@@ -90,7 +90,7 @@ std::string ArcString( const Int a ) const
     return "arc " +Tools::ToString(a) +" = { "
         + Tools::ToString(A_cross(a,Tail)) + ", "
         + Tools::ToString(A_cross(a,Head)) + " } ("
-        + ToString(A_state[a]) + ")";
+        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
 Int CountActiveArcs() const

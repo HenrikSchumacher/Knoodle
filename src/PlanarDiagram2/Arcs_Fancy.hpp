@@ -166,3 +166,82 @@ bool ArcOverQ( const Int a, const bool headtail )  const
 {
     return A_state[a].OverQ(headtail);
 }
+
+
+// Applies the transformation in-place.
+void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
+{
+    if( !mirrorQ && !reverseQ )
+    {
+        return;
+    }
+    
+    ClearCache();
+    
+    const bool i0 = reverseQ;
+    const bool i1 = !reverseQ;
+    
+    const bool j0 = (mirrorQ != reverseQ);
+    const bool j1 = (mirrorQ == reverseQ);
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        const C_Arc_T C = CopyCrossing(c);
+        C_arcs(c,0,0) = C[i0][j0];
+        C_arcs(c,0,1) = C[i0][j1];
+        C_arcs(c,1,0) = C[i1][j0];
+        C_arcs(c,1,1) = C[i1][j1];
+    }
+    
+    if( mirrorQ )
+    {
+        mptr<CrossingState_T> C_state_ptr = C_state.data();
+        
+        for( Int c = 0; c < max_crossing_count; ++c )
+        {
+            C_state_ptr[c] = C_state_ptr[c].Reflect();
+        }
+    }
+    
+    mptr<ArcState_T> A_state_ptr = A_state.data();
+    
+    if( mirrorQ )
+    {
+        if( reverseQ )
+        {
+            using std::swap;
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                swap(A_cross(a,Tail),A_cross(a,Head));
+                A_state_ptr[a] = A_state_ptr[a].ReflectReverse();
+            }
+        }
+        else
+        {
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                A_state_ptr[a] = A_state_ptr[a].Reflect();
+            }
+        }
+    }
+    else
+    {
+        if( reverseQ )
+        {
+            using std::swap;
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                swap(A_cross(a,Tail),A_cross(a,Head));
+                A_state_ptr[a] = A_state_ptr[a].Reverse();
+            }
+        }
+        else
+        {
+            // Do nothing;
+        }
+    }
+    
+    // A_color remains as it was.
+}

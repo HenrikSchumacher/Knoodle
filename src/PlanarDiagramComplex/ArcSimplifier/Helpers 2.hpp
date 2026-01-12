@@ -57,7 +57,7 @@ void DeactivateArc( const Int a_ ) const
 //}
 
 template<bool must_be_activeQ>
-void AssertArc( const Int a_ ) const
+void AssertArc( const Int a_ )
 {
 #ifdef PD_DEBUG
     pd.template AssertArc<must_be_activeQ>(a_);
@@ -66,7 +66,7 @@ void AssertArc( const Int a_ ) const
 #endif
 }
 
-std::string ArcString( const Int a_ )
+std::string ArcString( const Int a_ ) const
 {
     return pd.ArcString(a_);
 }
@@ -84,6 +84,6 @@ template<bool headtail, bool deactivateQ = true, bool assertQ = true, bool color
 void Reconnect( const Int a_, const Int b_ )
 {
     PD_DPRINT(std::string("Reconnect<") + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a_) + ", " + ArcString(b_) + " )" );
-
+    
     pd.template Reconnect<headtail,deactivateQ,assertQ,colorQ>(a_,b_);
 }

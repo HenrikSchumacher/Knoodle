@@ -67,7 +67,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             gauss_code[a_pos] =
                 c_0_visitedQ
                 ? ( ArcRightHandedQ(a,Tail) ? c_pos : -c_pos )
-                : ( ArcRightOverQ(a,Tail)   ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)        ? c_pos : -c_pos );
         }
     );
 }

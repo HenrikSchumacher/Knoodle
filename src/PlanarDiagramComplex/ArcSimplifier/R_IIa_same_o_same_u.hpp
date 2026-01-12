@@ -21,10 +21,37 @@ bool R_IIa_same_o_same_u()
     AssertCrossing<1>(c_2);
     AssertCrossing<1>(c_3);
     
+    // The situation should look like this.
+
+    /*
+     *      w_3 O   O n_3
+     *           \ /
+     *            / c_3
+     *           / \
+     *          O   O
+     *     n_0 /     \ n_1
+     *        /       \
+     *       O         O
+     *   w_0 |    a    |
+     *    O--|->O---O--|->O
+     *       |c_0   c_1| e_1
+     *       O         O
+     *        \       /
+     *     s_0 \     / s_1
+     *          O   O
+     *           \ /
+     *            \ c_2
+     *           / \
+     *          O   O
+     *       w_2     s_2
+     */
+    
     // Check for four-crossing move.
     if(s_2 == w_3)
     {
         PD_PRINT("\t\t\ts_2 == w_3");
+        
+        // TODO: In fact, two knots could be disconnect in this case.
 /*
  *          +--------------+                                            +--------------+
  *          |              |                                            |              |
@@ -623,10 +650,35 @@ bool R_IIa_same_o_same_u()
     PD_ASSERT(n_1 != n_3);
     PD_ASSERT(s_1 != s_2);
     
-    Reconnect(w_3,!u_0,n_0);
-    Reconnect(w_2, u_0,s_0);
-    Reconnect(n_3,!u_1,n_1);
-    Reconnect(s_2, u_1,s_1);
+    
+    /*
+     *      w_3 O   O n_3
+     *           \ /
+     *            / c_3
+     *           / \
+     *          O   O
+     *     n_0 /     \ n_1
+     *        /       \
+     *       O         O
+     *   w_0 |    a    |
+     *    O--|->O---O--|->O
+     *       |c_0   c_1| e_1
+     *       O         O
+     *        \       /
+     *     s_0 \     / s_1
+     *          O   O
+     *           \ /
+     *            \ c_2
+     *           / \
+     *          O   O
+     *       w_2     s_2
+     */
+    
+    // Here we have to ignore color temporarily.
+    Reconnect<true,true,false>(w_3,!u_0,n_0);
+    Reconnect<true,true,false>(w_2, u_0,s_0);
+    Reconnect<true,true,false>(n_3,!u_1,n_1);
+    Reconnect<true,true,false>(s_2, u_1,s_1);
     
     DeactivateCrossing(c_2);
     DeactivateCrossing(c_3);

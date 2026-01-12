@@ -1,6 +1,6 @@
 #pragma  once
 
-#include <unordered_set>
+//#include <unordered_set>
 
 //#include <boost/graph/adjacency_list.hpp>
 //#include <boost/graph/boyer_myrvold_planar_test.hpp>
@@ -53,7 +53,6 @@ namespace Knoodle
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
         using ArcColorContainer_T       = Tensor1<Int,Int>;
-        using ColorList_T               = std::unordered_set<Int>;
         
         using MultiGraph_T              = MultiGraph<Int,Int>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
@@ -142,14 +141,6 @@ namespace Knoodle
         Int four_counter  = 0;
         
         bool proven_minimalQ = false;
-        
-        // This color_list is needed, among other things, to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
-        // Moreover, color_list will make some search queries terminate early.
-        // ComputeArcColors initializes color_list.
-        // Cut and past operations have to maintain color_list.
-        // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_list containing a single value != InvalidColor.
-
-        ColorList_T color_list;
         
     public:
   
@@ -574,11 +565,9 @@ namespace Knoodle
             const bool j0 = (mirrorQ != reverseQ);
             const bool j1 = (mirrorQ == reverseQ);
 
-            Int C [2][2] = {};
-            
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                copy_buffer<4>( C_arcs.data(c), &C[0][0] );
+                const C_Arc_T C = CopyCrossing(c);
                 C_arcs(c,0,0) = C[i0][j0];
                 C_arcs(c,0,1) = C[i0][j1];
                 C_arcs(c,1,0) = C[i1][j0];
@@ -589,7 +578,7 @@ namespace Knoodle
             {
                 for( Int c = 0; c < max_crossing_count; ++c )
                 {
-                    C_state(c) = Flip(C_state(c));
+                    C_state(c) = Switch(C_state(c));
                 }
             }
             

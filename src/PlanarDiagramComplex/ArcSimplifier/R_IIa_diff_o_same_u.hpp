@@ -53,10 +53,10 @@ bool R_IIa_diff_o_same_u()
     
     PD_ASSERT(ToUnderlying(pd.C_state[c_2]) != ToUnderlying(pd.C_state[c_3]));
 
-    Reconnect(w_3,!u_0,n_0);
-    Reconnect(w_2, u_0,s_0);
-    Reconnect(n_3,!u_1,n_1);
-    Reconnect(s_2, u_1,s_1);
+    Reconnect<true,true,false>(w_3,!u_0,n_0);
+    Reconnect<true,true,false>(w_2, u_0,s_0);
+    Reconnect<true,true,false>(n_3,!u_1,n_1);
+    Reconnect<true,true,false>(s_2, u_1,s_1);
     
     SwitchCrossing(c_0);
     SwitchCrossing(c_1);

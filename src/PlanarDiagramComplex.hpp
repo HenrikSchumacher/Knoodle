@@ -49,6 +49,7 @@ namespace Knoodle
         
         // Class data members
         std::vector<PD_T> pd_list;
+        std::vector<PD_T> pd_list_new;
         
         Int color_count;
         
@@ -76,7 +77,7 @@ namespace Knoodle
             pd_list.reserve( ToSize_T(unlink_count) + Size_T(1) );
             Int max_color = 0;
             
-            for( Int color : pd.color_list )
+            for( Int color : pd.color_palette )
             {
                 max_color = Max( color, max_color );
                 colored_unlinkQ[color] = false;
@@ -104,7 +105,7 @@ namespace Knoodle
         
         Int ColorCount() const
         {
-            return int_cast<Int>(colored_unlinkQ.size());
+            return color_count;
         }
             
         Int DiagramCount() const
@@ -149,8 +150,21 @@ namespace Knoodle
                 // Records unlinks twice: once in pd_list and once in colored_unlinkQ.
                 // Not sure whether I like this design.
                 colored_unlinkQ[color] = true;
-                pd_list.push_back( PD_T::Unknot(color) );
+                pd_list_new.push_back( PD_T::Unknot(color) );
             }
+        }
+        
+    private:
+        
+        void JoinLists()
+        {
+            PD_TIMER(timer,MethodName("JoinLists"));
+            for( PD_T & pd : pd_list_new )
+            {
+                pd_list.push_back(std::move(pd));
+            }
+            
+            pd_list_new = std::vector<PD_T>();
         }
        
     public:

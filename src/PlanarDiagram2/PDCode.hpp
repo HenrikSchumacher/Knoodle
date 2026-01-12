@@ -583,9 +583,6 @@ static PD_T FromPDCode(
 //            pd.A_state(X[1]).Set(Head,Right,false);
         }
     }
-    
-    // DEBUGGING
-    TOOLS_LOGDUMP( pd.CopyCrossing(0) );
 
     pd.crossing_count = pd.max_crossing_count;
     pd.arc_count      = pd.CountActiveArcs();

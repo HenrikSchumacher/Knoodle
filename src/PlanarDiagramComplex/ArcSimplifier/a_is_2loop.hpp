@@ -39,11 +39,20 @@ bool a_is_2loop()
             if( n_0 == n_1 )
             {
                 PD_PRINT("\t\t\tn_0 == n_1");
+
+                /*       +-------------------+              +-------------------+
+                 *       |                   |              |                   |
+                 *       |   O-----------O   |              |   O-----------O   |
+                 *       |   |     a     |   |              |   |     a     |   |
+                 *       +-->|---------->|-->+      or      +-->----------->--->+
+                 *           |c_0        |c_1                   |c_0        |c_1
+                 *           |           |                      |           |
+                 */
                 
                 if( s_0 == s_1 )
                 {
                     PD_PRINT("\t\t\t\ts_0 == s_1");
-                    
+
                     // Two unlinks
                     
                     CreateUnlinkFromArc(a);
@@ -128,8 +137,12 @@ bool a_is_2loop()
                      *             w_0 = e_1                          w_0 = e_1
                      */
                     
+                    AssertArc<1>(a);
+                    AssertArc<1>(n_0);
+                    AssertArc<1>(n_1);
+                    
                     CreateUnlinkFromArc(a);
-                    Reconnect(n_0,u_1,n_1);
+                    Reconnect<true,true,true>(n_0,u_1,n_1);
                     DeactivateArc(w_0);
                     DeactivateArc(s_0);
                     DeactivateArc(a);
@@ -220,7 +233,7 @@ bool a_is_2loop()
         
         // TODO: If n_0 == n_1 and s_0 == s_1, then we might be able to detect a Hopf-Link here.
         
-        wprint(ClassName()+"::a_is_2loop: A loop twist move is possible here.");
+//        wprint(ClassName()+"::a_is_2loop: A loop twist move is possible here.");
         
         // TODO: If additionally the endpoints of n_0 and n_1 or the endpoints of s_0 and s_1 coincide, there are subtle ways to remove the crossing there:
 

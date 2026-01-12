@@ -216,7 +216,7 @@ namespace Knoodle
         template<typename Int_0, typename Int_1, typename Int_2>
         void MarkArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 mark )
         {
-            PD_PRINT(MethodName("MarkArcs")+ " from "+ ArcString(a_0) + " for "+ ToString(strand_length) + " step; mark = " + ToString(mark) );
+            PD_PRINT(MethodName("MarkArcs")+ " from "+ ArcString(arcs[0]) + " for "+ ToString(strand_length) + " step; mark = " + ToString(mark) );
             static_assert( IntQ<Int_0>, "" );
             static_assert( IntQ<Int_1>, "" );
             static_assert( IntQ<Int_2>, "" );
