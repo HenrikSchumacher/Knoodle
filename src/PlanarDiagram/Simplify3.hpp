@@ -18,7 +18,7 @@ public:
 
 Size_T Simplify3(
     const Int    optimization_level = 4,
-    const Size_T max_iter    = Scalar::Infty<Size_T>,
+    const Size_T max_iter    = Scalar::Max<Size_T>,
     const bool   multi_compQ = true
 )
 {

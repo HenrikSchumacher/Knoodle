@@ -1,6 +1,6 @@
-#define TOOLS_ENABLE_PROFILER
-
-#define PD_DEBUG
+//#define TOOLS_ENABLE_PROFILER
+//
+//#define PD_DEBUG
 //#define PD_VERBOSE
 
 

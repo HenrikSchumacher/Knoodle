@@ -39,6 +39,8 @@ namespace Knoodle
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
 
         using PD_T              = PlanarDiagram<Int>;
+        using A_Cross_T         = typename PD_T::A_Cross_T;
+        using C_Arc_T           = typename PD_T::C_Arc_T;
         
         using UMFPACK_T         = UMFPACK<Scal,Int_UMF>;
         using UMFPACK_Ptr       = std::shared_ptr<UMFPACK_T>;

@@ -142,51 +142,230 @@ void DeactivateArc( const Int a )
 
 public:
 
-/*! @brief This tells us whether a giving arc goes left or right into the crossing at the indicated end.
+/*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing at the indicated end.
  *
- *  @param a The index of the arc in question.
+ * @param a The index of the arc in question.
  *
- *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
 bool ArcSide( const Int a, const bool headtail )  const
 {
-    const Int c = A_cross(a,headtail);
+    return ArcSide(a,headtail,A_cross(a,headtail));
+}
+
+/*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
+ */
+
+bool ArcSide( const Int a, const bool headtail, const Int c  )  const
+{
     return (C_arcs(c,headtail,Right) == a);
 }
 
-/*! @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+
+/*!@brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
  *
- *  @param a The index of the arc in equations.
+ * @param a The index of the arc in question.
  *
- *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcRightHandedQ( const Int a, const bool headtail )  const
+{
+    return CrossingRightHandedQ(A_cross(a,headtail));
+}
+
+/*!@brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcLeftHandedQ( const Int a, const bool headtail )  const
+{
+    return CrossingLeftHandedQ(A_cross(a,headtail));
+}
+
+
+/*!@brief This tells us whether the arc `a` goes under the crossing at the indicated end.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
 bool ArcUnderQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
-
-    const Int c = A_cross(a,headtail);
-    AssertCrossing(c);
-    
-    return ( ArcSide(a,headtail) == ( headtail == CrossingRightHandedQ(c) ) );
+    return ArcUnderQ(a,headtail,A_cross(a,headtail));
 }
 
+/*!@brief This tells us whether the arc `a` goes under the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
+ */
 
-/*! @brief This tells us whether a giving arc goes under the crossing at the indicated end.
+bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
+{
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    return CrossingRightHandedQ(c) == (headtail == ArcSide(a,headtail,c));
+    
+    /* headtail == Tail, side == Right => underQ == false
+     *
+     *    ^       ^
+     *     \     /  a
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Tail, side == Left => underQ == true
+     *
+     *    ^       ^
+     *  a  \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Head, side == Right => underQ == true
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \  a
+     *    /       \
+     */
+
+    /* headtail == Head, side == Left => underQ == false
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *  a  /     \
+     *    /       \
+     */
+}
+
+/*!@brief This tells us whether the arc `a` goes over the crossing at the indicated end.
  *
- *  @param a The index of the arc in equations.
+ * @param a The index of the arc in question.
  *
- *  @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
 bool ArcOverQ( const Int a, const bool headtail )  const
 {
-    return !ArcUnderQ(a,headtail);
+    AssertArc(a);
+    return ArcOverQ(a,headtail,A_cross(a,headtail));
 }
 
 
-/*! @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
+/*!@brief This tells us whether the arc `a` goes over the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
+ */
+
+bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
+{
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    return CrossingRightHandedQ(c) != (headtail == ArcSide(a,headtail,c));
+    
+    /* headtail == Tail, side == Right => overQ == true
+     *
+     *    ^       ^
+     *     \     /  a
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Tail, side == Left => overQ == false
+     *
+     *    ^       ^
+     *  a  \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Head, side == Right => overQ == false
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \  a
+     *    /       \
+     */
+
+    /* headtail == Head, side == Left => overQ == true
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *  a  /     \
+     *    /       \
+     */
+}
+
+/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
  */
 
 Int NextArc( const Int a, const bool headtail ) const
@@ -194,21 +373,23 @@ Int NextArc( const Int a, const bool headtail ) const
     return NextArc(a,headtail,A_cross(a,headtail));
 }
 
-/*! @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. This function exploits that `c` is already known; so it saves one memory lookup.
+/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
+ *
+ * @param c The index of the arc in question.
  */
 
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
     AssertArc(a);
     AssertCrossing(c);
-    
     PD_ASSERT( A_cross(a,headtail) == c );
-
-    // We leave through the arc at the port opposite to where a arrives.
-    const bool side = (C_arcs(c, headtail,Right) != a);
     
-    const Int a_next = C_arcs(c,!headtail,side );
-    
+    const bool side   = ArcSide(a,headtail,c);
+    const Int  a_next = C_arcs(c,!headtail,!side);
     AssertArc(a_next);
     
     return a_next;

@@ -7,6 +7,8 @@
 #include "submodules/Tensors/Tensors.hpp"
 #include "submodules/Tensors/submodules/Tools/Oriented2D.hpp"
 
+#include <unordered_set>
+
 namespace Knoodle
 {
     using PRNG_T = pcg64;
@@ -15,6 +17,68 @@ namespace Knoodle
     using namespace Tools;
     
     using Tools::ToString;
+
+    template<typename T>
+    std::string ToString( cref<std::unordered_set<T>> set )
+    {
+        std::string s ("{ ");
+        
+        const Size_T n = set.size();
+        
+        Size_T iter = 0;
+        
+        for( auto & x : set )
+        {
+            ++iter;
+            s += ToString(x);
+            if( iter < n )
+            {
+                s += ",";
+            }
+        }
+        
+        s += " }";
+        
+        return s;
+    }
+    
+#ifdef LTEMPLATE_H
+    template< typename S, class = typename std::enable_if_t<mma::HasTypeQ<S>> >
+    inline mma::TensorRef<mma::Type<S>> to_MTensorRef( cref<std::unordered_set<S>> source )
+    {
+        using T = mma::Type<S>;
+        auto r = mma::makeVector<T>( int_cast<mint>(source.size()) );
+        mptr<T> target = r.data();
+        
+        mint i = 0;
+        
+        for( auto & x : source )
+        {
+            if constexpr ( (SameQ<S,double> || SameQ<S,float>) )
+            {
+                if( x == Scalar::Infty<S> )
+                {
+                    target[i] = Scalar::Max<T>;
+                }
+                else if( x == -Scalar::Infty<S> )
+                {
+                    target[i] = -Scalar::Max<T>;
+                }
+                else
+                {
+                    target[i] = static_cast<T>(x);
+                }
+            }
+            else
+            {
+                target[i] = static_cast<T>(x);
+            }
+            ++i;
+        }
+        
+        return r;
+    }
+#endif // LTEMPLATE_H
     
     enum class CrossingState_T : Int8
     {
@@ -274,8 +338,8 @@ namespace Knoodle
 
 #include "src/LinearHomotopy_3D.hpp"
 
-#include "src/AlexanderStrandMatrix.hpp"
-#include "src/AlexanderFaceMatrix.hpp"
+#include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
+#include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
 
 //#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
                                 // Not favorable compared to Alexander_UMFPACK.hpp

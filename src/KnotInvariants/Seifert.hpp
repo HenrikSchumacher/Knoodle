@@ -30,8 +30,12 @@ namespace Knoodle
         
 //        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
 //        using Factorization_Ptr = std::shared_ptr<Factorization_T>;
-        using PD_T              = PlanarDiagram<Int>;
 //        using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
+        
+        using PD_T              = PlanarDiagram<Int>;
+        using A_Cross_T         = typename PD_T::A_Cross_T;
+        using C_Arc_T           = typename PD_T::C_Arc_T;
+        
         
         using SeifertIncidenceMatrix_T = Sparse::MatrixCSR<Int,Int,Int>;
         
@@ -89,7 +93,6 @@ namespace Knoodle
             const Int n = pd.CrossingCount();
             const Int m = pd.ArcCount();
             
-            auto & C_arcs  = pd.Crossings();
             auto & A_cross = pd.Arcs();
             
             typename Graph_T::EdgeContainer_T C_disks ( n, 2 );
@@ -127,7 +130,7 @@ namespace Knoodle
                     
                     const Int c = A_cross(a,Head);
                     
-                    const C_Arc_T C = CopyCrossing(c);
+                    const C_Arc_T C = pd.CopyCrossing(c);
                     
                     const bool rightQ = (C[In][Right] == a);
                     

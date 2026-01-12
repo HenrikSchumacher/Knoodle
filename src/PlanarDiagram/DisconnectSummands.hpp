@@ -10,10 +10,10 @@ public:
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
     const Int    min_dist           = 6,
-    const Int    max_dist           = Scalar::Infty<Int>,
+    const Int    max_dist           = Scalar::Max<Int>,
     const bool   compressQ          = true,
     const Int    simplify3_level    = 4,
-    const Size_T simplify3_max_iter = Scalar::Infty<Size_T>,
+    const Size_T simplify3_max_iter = Scalar::Max<Size_T>,
     const bool   strand_R_II_Q      = true
 )
 {

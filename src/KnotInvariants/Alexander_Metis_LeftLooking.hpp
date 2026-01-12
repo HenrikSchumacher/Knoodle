@@ -24,6 +24,8 @@ namespace Knoodle
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
+        using A_Cross_T         = typename PD_T::A_Cross_T;
+        using C_Arc_T           = typename PD_T::C_Arc_T;
         
         Alexander_Metis_LeftLooking( const Int sparsity_threshold_ )
         :   sparsity_threshold (
@@ -92,23 +94,19 @@ namespace Knoodle
             // TODO: Replace this by pd.CrossingOverStrands() and measure!
             const auto arc_strands = pd.ArcOverStrand();
             
-            const auto & C_arcs  = pd.Crossings();
-            
-            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
-            
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
             
             Int counter = 0;
             
-            const Int c_count = C_arcs.Dim(0);
+            const Int c_count = pd.MaxCrossingCount();
             
             for( Int c = 0; c < c_count; ++c )
             {
                 if( counter >= n ) { break; }
                 
-                if( LeftHandedQ(C_state[c]) )
+                if( pd.CrossingLeftHandedQ(c) )
                 {
-                    const C_Arc_T C = CopyCrossing(c);
+                    const C_Arc_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -135,9 +133,9 @@ namespace Knoodle
                     
                     ++counter;
                 }
-                else if( RightHandedQ(C_state[c]) )
+                else if( pd.CrossingRightHandedQ(c) )
                 {
-                    const C_Arc_T C = CopyCrossing(c);
+                    const C_Arc_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];
@@ -186,15 +184,11 @@ namespace Knoodle
             // TODO: Replace this by pd.CrossingOverStrands() and measure!
             const auto arc_strands = pd.ArcOverStrands();
             
-            const auto & C_arcs  = pd.Crossings();
-            
-            cptr<CrossingState_T> C_state = pd.CrossingStates().data();
-            
             const Scal v [3] = { Scal(1) - t, Scal(-1), t};
             
             Int counter = 0;
             
-            const Int c_count = C_arcs.Dim(0);
+            const Int c_count = pd.MaxCrossingCount();
             
             for( Int c = 0; c < c_count; ++c )
             {
@@ -202,9 +196,9 @@ namespace Knoodle
                 
                 pd.AssertCrossing(c);
                 
-                if( LeftHandedQ( C_state[c] ) )
+                if( pd.CrossingLeftHandedQ(c) )
                 {
-                    const C_Arc_T C = CopyCrossing(c);
+                    const C_Arc_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -227,14 +221,13 @@ namespace Knoodle
                     
                     ++counter;
                 }
-                else if( RightHandedQ(C_state[c]) )
+                else if( pd.CrossingRightHandedQ(c) )
                 {
-                    const C_Arc_T C = CopyCrossing(c);
+                    const C_Arc_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];
                     const Int k = arc_strands[C[0][1]];
-                    
                     
                     if( i < n )
                     {

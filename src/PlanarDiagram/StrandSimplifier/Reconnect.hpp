@@ -11,9 +11,20 @@ void Reconnect( const Int a, const Int b )
     PD_ASSERT( ArcActiveQ(a) );
     
     const Int c = A_cross(b,headtail);
+    
+//    if( A_color[a] != A_color[b] )
+//    {
+//        wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+//        TOOLS_LOGDUMP(ArcString(a));
+//        TOOLS_LOGDUMP(ArcString(b));
+//    }
 
     const bool side = (C_arcs(c,headtail,Right) == b);
+    
+    A_cross(a,headtail) = c;
+    C_arcs(c,headtail,side) = a;
 
+    
     /*! If headtail == Head && side == Right
      *
      *         ^       ^
@@ -78,9 +89,6 @@ void Reconnect( const Int a, const Int b )
      * da_revr = ToDarc(C_arcs(c,In ,Left ),Head)
      */
     
-    A_cross(a,headtail) = c;
-    C_arcs(c,headtail,side) = a;
-
     const Int da      = ToDarc(a,headtail);
     const Int da_left = ToDarc(C_arcs(c, side,!headtail),!side);
     const Int da_revr = ToDarc(C_arcs(c,!side, headtail),!side);

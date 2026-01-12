@@ -21,7 +21,9 @@ namespace Knoodle
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
         
         using PD_T              = PlanarDiagram<Int>;
-                
+        using A_Cross_T         = typename PD_T::A_Cross_T;
+        using C_Arc_T           = typename PD_T::C_Arc_T;
+        
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;

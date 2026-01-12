@@ -1,6 +1,4 @@
-#pragma  once
-
-//#include <unordered_set>
+#pragma  once//
 
 //#include <boost/graph/adjacency_list.hpp>
 //#include <boost/graph/boyer_myrvold_planar_test.hpp>
@@ -43,7 +41,7 @@ namespace Knoodle
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-        using ColorList_T               = std::unordered_set<Int>;
+        using ColorPalette_T            = std::unordered_set<Int>;
         
         using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
@@ -129,13 +127,13 @@ namespace Knoodle
         
         bool proven_minimalQ = false;
             
-        // This color_list is needed, among other things, to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
-        // Moreover, color_list will make some search queries terminate early.
-        // ComputeArcColors initializes color_list.
-        // Cut and past operations have to maintain color_list.
-        // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_list containing a single value != InvalidColor.
+        // This color_palette is needed, among other things, to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
+        // Moreover, color_palette will make some search queries terminate early.
+        // ComputeArcColors initializes color_palette.
+        // Cut and past operations have to maintain color_palette.
+        // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_palette containing a single value != InvalidColor.
 
-        ColorList_T color_list;
+        ColorPalette_T color_palette;
         
     public:
   
@@ -200,14 +198,19 @@ namespace Knoodle
 
     public:
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3, typename ExtInt4>
+        /*!@brief Construct PlanarDiagram2 from internal data. The pointers `arc_colors` and `color_palette_` may be null pointers. In that case, the color information is computed from the remaining data.
+         */
+        
+        template<typename ExtInt, typename ExtInt2, typename ExtInt3, typename ExtInt4, typename ExtInt5, typename ExtInt6>
         PlanarDiagram2(
+            const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
             cptr<ExtInt2> crossing_states,
             cptr<ExtInt>  arcs,
             cptr<ExtInt3> arc_states,
             cptr<ExtInt4> arc_colors,
-            const ExtInt crossing_count_,
+            cptr<ExtInt5> color_palette_,
+            const ExtInt6 color_count_,
             const bool proven_minimalQ_ = false
         )
         :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
@@ -220,11 +223,37 @@ namespace Knoodle
             C_state.Read(crossing_states);
             A_cross.Read(arcs);
             A_state.Read(arc_states);
-            A_color.Read(arc_colors);
             proven_minimalQ = proven_minimalQ_;
             
             crossing_count = CountActiveCrossings();
             arc_count      = CountActiveArcs();
+            
+            if( arc_colors != nullptr )
+            {
+                if( color_palette_ != nullptr )
+                {
+                    A_color.Read(arc_colors);
+                    for( Int i = 0; i < int_cast<Int>(color_count_); ++i )
+                    {
+                        color_palette.insert( color_palette_[i] );
+                    }
+                }
+                else
+                {
+                    for( Int a = 0; a < max_crossing_count; ++a )
+                    {
+                        const Int color = int_cast<Int>(arc_colors[a]);
+                        A_color[a] = color;
+                        color_palette.insert(color);
+                    }
+                }
+                
+                PD_ASSERT(CheckArcColors());
+            }
+            else
+            {
+                ComputeArcColors();
+            }
         }
         
         /*! @brief Make a copy without copying cache and persistent cache.
@@ -244,7 +273,7 @@ namespace Knoodle
             pd.A_color.Read(A_color.data());
             
             pd.proven_minimalQ = proven_minimalQ;
-            pd.color_list      = color_list;
+            pd.color_palette      = color_palette;
             
             return pd;
         }
@@ -302,7 +331,7 @@ namespace Knoodle
         
         Int ColorCount() const
         {
-            return int_cast<Int>( color_list.size() );
+            return int_cast<Int>( color_palette.size() );
         }
         
         bool ProvenMinimalQ() const
@@ -319,7 +348,7 @@ namespace Knoodle
         {
             PD_T pd ( Int(0) );
             pd.proven_minimalQ = true;
-            pd.color_list      = {color};
+            pd.color_palette   = {color};
             return pd;
         }
         
@@ -421,46 +450,39 @@ namespace Knoodle
 //        return validQ;
 //    }
         
-        
-    // Applies the transformation in-place.
-    void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
-    {
-        if( !mirrorQ && !reverseQ )
+        // Applies the transformation in-place.
+        void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
-            return;
-        }
-        
-        ClearCache();
-        
-        const bool i0 = reverseQ;
-        const bool i1 = !reverseQ;
-        
-        const bool j0 = (mirrorQ != reverseQ);
-        const bool j1 = (mirrorQ == reverseQ);
-        
-        for( Int c = 0; c < max_crossing_count; ++c )
-        {
-            const C_Arc_T C = CopyCrossing(c);
-            C_arcs(c,0,0) = C[i0][j0];
-            C_arcs(c,0,1) = C[i0][j1];
-            C_arcs(c,1,0) = C[i1][j0];
-            C_arcs(c,1,1) = C[i1][j1];
-        }
-        
-        if( mirrorQ )
-        {
-            mptr<CrossingState_T> C_state_ptr = C_state.data();
+            if( !mirrorQ && !reverseQ )
+            {
+                return;
+            }
             
+            ClearCache();
+            
+            const bool i0 = reverseQ;
+            const bool i1 = !reverseQ;
+            
+            const bool j0 = (mirrorQ != reverseQ);
+            const bool j1 = (mirrorQ == reverseQ);
+
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                C_state_ptr[c] = C_state_ptr[c].Reflect();
+                const C_Arc_T C = CopyCrossing(c);
+                C_arcs(c,0,0) = C[i0][j0];
+                C_arcs(c,0,1) = C[i0][j1];
+                C_arcs(c,1,0) = C[i1][j0];
+                C_arcs(c,1,1) = C[i1][j1];
             }
-        }
-        
-        mptr<ArcState_T> A_state_ptr = A_state.data();
-        
-        if( mirrorQ )
-        {
+            
+            if( mirrorQ )
+            {
+                for( Int c = 0; c < max_crossing_count; ++c )
+                {
+                    C_state(c) = Switch(C_state(c));
+                }
+            }
+            
             if( reverseQ )
             {
                 using std::swap;
@@ -468,37 +490,9 @@ namespace Knoodle
                 for( Int a = 0; a < max_arc_count; ++a )
                 {
                     swap(A_cross(a,Tail),A_cross(a,Head));
-                    A_state_ptr[a] = A_state_ptr[a].ReflectReverse();
-                }
-            }
-            else
-            {
-                for( Int a = 0; a < max_arc_count; ++a )
-                {
-                    A_state_ptr[a] = A_state_ptr[a].Reflect();
                 }
             }
         }
-        else
-        {
-            if( reverseQ )
-            {
-                using std::swap;
-                
-                for( Int a = 0; a < max_arc_count; ++a )
-                {
-                    swap(A_cross(a,Tail),A_cross(a,Head));
-                    A_state_ptr[a] = A_state_ptr[a].Reverse();
-                }
-            }
-            else
-            {
-                // Do nothing;
-            }
-        }
-        
-        // A_color remains as it was.
-    }
 
         
         
