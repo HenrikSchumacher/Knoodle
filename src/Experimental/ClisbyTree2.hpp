@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../deps/pcg-cpp/include/pcg_random.hpp"
-
-#include "AffineTransforms/AffineTransformFlag.hpp"
-#include "AffineTransforms/AffineTransform.hpp"
-#include "AffineTransforms/ClangMatrix.hpp"
-#include "AffineTransforms/ClangAffineTransform.hpp"
-#include "AffineTransforms/ClangQuaternionTransform.hpp"
+#include "../AffineTransforms/AffineTransformFlag.hpp"
+#include "../AffineTransforms/AffineTransform.hpp"
+#include "../AffineTransforms/ClangMatrix.hpp"
+#include "../AffineTransforms/ClangAffineTransform.hpp"
+#include "../AffineTransforms/ClangQuaternionTransform.hpp"
 
 // This is a fork of ClisbyTree2 to experiment with thickness conditions.
 // This is mostly for finding out whether this is suitable for Rhoslyn
