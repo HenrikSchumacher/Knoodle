@@ -36,8 +36,7 @@ bool R_Ia_above()
                 {
                     PD_PRINT("\t\t\t\tw_3 == n_3");
                     
-                    /*  R_I move.
-                     *            w_3                       w_3
+                    /*            w_3                       w_3
                      *               +---+                     +---+
                      *               |   |                     |   |
                      *               O   O n_3                 O   O
@@ -52,31 +51,88 @@ bool R_Ia_above()
                      *           +-----------+             +-----------+
                      */
                     
-                    // TODO: Disconnect Hopf link.
-                    PD_PRINT(MethodName("R_Ia_above")+": Detected a Hopf link as connected summand.");
+                    if constexpr (allow_disconnectsQ)
+                    {
+                        if(w_0 == e_1)
+                        {
+                            PD_PRINT("\t\t\t\t\tw_0 == e_1");
+                            
+                            wprint(MethodName("R_Ia_above")+": Split a Hopf link as connected component.");
+                            
+                            DeactivateArc(a);
+                            DeactivateArc(e_1);
+                            DeactivateArc(s_0);
+                            DeactivateArc(n_0);
+                            DeactivateArc(n_3);
+                            DeactivateArc(n_1);
+                            DeactivateCrossing(c_0);
+                            DeactivateCrossing(c_1);
+                            DeactivateCrossing(c_3);
+                            CreateHopfLinkFromArcs(a,n_0,true);
+                            
+                            return true;
+                        }
+                        
+                        PD_PRINT("\t\t\t\t\tw_0 != e_1");
+                        
+
+                        wprint(MethodName("R_Ia_above")+": Disconnecting a Hopf link as connected summand.");
+                        
+                        /*            w_3                       w_3
+                         *               +---+                     +---+
+                         *               |   |                     |   |
+                         *               O   O n_3                 O   O
+                         *                \ /                       \ /
+                         *                 \ c_3                     /  c_3
+                         *            n_0 / \ n_1               n_0 / \ n_1
+                         *           O---O   O---O             O---O   O---O
+                         *           |     a     |             |     a     |
+                         *        -->----------->|-->   or  -->|---------->--->
+                         *           |c_0        |c_1          |c_0        |c_1
+                         *           |           |             |           |
+                         *           +-----------+             +-----------+
+                         */
+                        
+                        Reconnect<Head>(w_0,e_1);
+                        DeactivateArc(s_0);
+                        DeactivateArc(n_0);
+                        DeactivateArc(n_3);
+                        DeactivateArc(n_1);
+                        DeactivateCrossing(c_0);
+                        DeactivateCrossing(c_1);
+                        DeactivateCrossing(c_3);
+                        CreateHopfLinkFromArcs(a,n_0,false);
+
+                        return true;
+                    }
+                    else
+                    {
+                        
+                        Reconnect(n_0,u_0,n_1);
+                        DeactivateArc(w_3);
+                        DeactivateCrossing(c_3);
+                        
+                        // TODO: Implement counters.
+    //                    ++pd.R_I_counter;
+                        
+                        AssertArc<1>(a  );
+                        AssertArc<1>(n_0);
+                        AssertArc<1>(s_0);
+                        AssertArc<1>(w_0);
+                        AssertArc<0>(n_1);
+                        AssertArc<1>(e_1);
+                        AssertArc<1>(s_1);
+                        AssertArc<0>(n_3); // n_3 == w_3
+                        AssertArc<0>(e_3); // e_3 == n_1
+                        AssertArc<0>(w_3);
+                        AssertCrossing<1>(c_0);
+                        AssertCrossing<1>(c_1);
+                        AssertCrossing<0>(c_3);
+                        
+                        return true;
+                    }
                     
-                    Reconnect(n_0,u_0,n_1);
-                    DeactivateArc(w_3);
-                    DeactivateCrossing(c_3);
                     
-                    // TODO: Implement counters.
-//                    ++pd.R_I_counter;
-                    
-                    AssertArc<1>(a  );
-                    AssertArc<1>(n_0);
-                    AssertArc<1>(s_0);
-                    AssertArc<1>(w_0);
-                    AssertArc<0>(n_1);
-                    AssertArc<1>(e_1);
-                    AssertArc<1>(s_1);
-                    AssertArc<0>(n_3); // n_3 == w_3
-                    AssertArc<0>(e_3); // e_3 == n_1
-                    AssertArc<0>(w_3);
-                    AssertCrossing<1>(c_0);
-                    AssertCrossing<1>(c_1);
-                    AssertCrossing<0>(c_3);
-                    
-                    return true;
                 }
             }
             
@@ -187,21 +243,6 @@ bool R_Ia_above()
                  *           |c_0        |c_1         |c_0        |c_1
                  *           +-----------+            +-----------+
                  */
-//                
-//                // BLAME!!!
-//                
-//                logvalprint("w_0",ArcString(w_0));
-//                logvalprint("n_0",ArcString(n_0));
-//                logvalprint("a  ",ArcString(a));
-//                logvalprint("s_0",ArcString(s_0));
-//                
-//                logvalprint("n_1",ArcString(n_1));
-//                logvalprint("e_1",ArcString(e_1));
-//                logvalprint("s_1",ArcString(s_1)); // s_1 == s_0
-//                
-//                logvalprint("w_3",ArcString(w_3)); // w_2 == n_1
-//                logvalprint("n_3",ArcString(n_3)); // n_3 == e_1
-//                logvalprint("e_3",ArcString(e_3));
                 
                 Reconnect<Head>(w_0,w_3);
                 DeactivateArc(a);
@@ -303,16 +344,16 @@ bool R_Ia_above()
             {
                 if( n_3 == e_1 )
                 {
-                    PD_PRINT(MethodName("R_Ia_above")+": Detected a trefoil link component.");
+                    wprint(MethodName("R_Ia_above")+": Detected a trefoil link component.");
                 }
                 else
                 {
-                    PD_PRINT(MethodName("R_Ia_above")+": Detected a trefoil connected summand.");
+                    wprint(MethodName("R_Ia_above")+": Detected a trefoil connected summand.");
                 }
             }
             else if( n_3 == e_1 )
             {
-                PD_PRINT(MethodName("R_Ia_above")+": Detected a trefoil connected summand.");
+                wprint(MethodName("R_Ia_above")+": Detected a trefoil connected summand.");
             }
             
             return false;
@@ -345,7 +386,7 @@ bool R_Ia_above()
                  */
                 
                 // TODO: We could disconnect-sum a Hopf link here.
-                PD_PRINT(MethodName("R_Ia_above")+": Detected a Hopf link as connected summand.");
+                wprint(MethodName("R_Ia_above")+": Detected a Hopf link as connected summand.");
                 
                 Reconnect(n_1,u_1,n_0);
                 DeactivateArc(e_3);
@@ -373,7 +414,7 @@ bool R_Ia_above()
             
             PD_PRINT("\t\t\te_3 != n_3");
             
-            PD_PRINT(MethodName("R_Ia_above")+": Detected a Hopf link and a knot as connected summands.");
+            wprint(MethodName("R_Ia_above")+": Detected a Hopf link and a knot as connected summands.");
             
             /* Two further interesting cases.
              *

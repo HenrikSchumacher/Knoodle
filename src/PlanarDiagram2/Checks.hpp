@@ -270,7 +270,7 @@ bool CheckArcDegrees() const
 
 bool CheckAll() const
 {
-    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees();
+    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees() && CheckArcColors();
 
     return passedQ;
 }

@@ -190,6 +190,10 @@ namespace Knoodle
             pdc.CreateUnlinkFromArc(pd,a_);
         }
         
+        void CreateHopfLinkFromArcs( const Int a_0, const Int a_1 )
+        {
+            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1);
+        }
         
         void CountReidemeister_I() const
         {}

@@ -35,6 +35,8 @@ namespace Knoodle
         
         static constexpr bool mult_compQ = mult_compQ_;
         
+        static constexpr bool allow_disconnectsQ = true;
+        
         static constexpr Int optimization_level = optimization_level_;
         
         static constexpr bool Head  = PD_T::Head;
@@ -396,6 +398,11 @@ namespace Knoodle
         void CreateUnlinkFromArc( const Int a_ )
         {
             pdc.CreateUnlinkFromArc(pd,a_);
+        }
+        
+        void CreateHopfLinkFromArcs( const Int a_0, const Int a_1, const bool splitQ )
+        {
+            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1,splitQ);
         }
         
     private:

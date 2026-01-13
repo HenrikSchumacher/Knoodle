@@ -17,6 +17,47 @@ bool R_Ia_below()
      *       |           |             |           |
      */
     
+    if constexpr ( mult_compQ && allow_disconnectsQ )
+    {
+        if( s_0 == s_1 )
+        {
+            PD_DPRINT("\t\ts_0 == s_1");
+            
+            if( w_0 == e_1 )
+            {
+                PD_DPRINT("\t\t\tw_0 == e_1");
+                
+                wprint(MethodName("R_Ia_below")+": Split a Hopf link as connected component.");                
+                
+                DeactivateArc(w_0);
+                DeactivateArc(a);
+                DeactivateArc(n_0);
+                DeactivateArc(s_0);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+
+                CreateHopfLinkFromArcs(a,n_0,true);
+                
+                return true;
+            }
+            
+            PD_DPRINT("\t\t\tw_0 != e_1");
+            
+            wprint(MethodName("R_Ia_below")+": Disconnected a Hopf link as connected summand.");
+            
+            Reconnect<Head>(w_0,e_1);
+            DeactivateArc(a);
+            DeactivateArc(n_0);
+            DeactivateArc(s_0);
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            CreateHopfLinkFromArcs(a,n_0,false);
+            
+            return true;
+        }
+    }
+    
+    
     load_c_2();
                         
     if( e_2 == s_1 )
@@ -49,8 +90,6 @@ bool R_Ia_below()
                      *               |   |                     |   |
                      *               +---+                     +---+
                      */
-                    
-                    
                     
                     // TODO: We could disconnect-sum a Hopf link here.
                     PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link as connected summand.");

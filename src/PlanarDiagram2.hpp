@@ -436,6 +436,48 @@ namespace Knoodle
             return pd;
         }
         
+        static PD_T HopfLink( const Int color_0, const Int color_1 )
+        {
+            PD_T pd ( Int(2), true );
+            pd.crossing_count = 2;
+            pd.arc_count = 4;
+            pd.C_arcs(0,0,0) = 0;
+            pd.C_arcs(0,0,1) = 3;
+            pd.C_arcs(0,1,0) = 2;
+            pd.C_arcs(0,1,1) = 1;
+            pd.C_arcs(1,0,0) = 2;
+            pd.C_arcs(1,0,1) = 1;
+            pd.C_arcs(1,1,0) = 0;
+            pd.C_arcs(1,1,1) = 3;
+            
+            pd.C_state[0] = CrossingState_T::RightHanded;
+            pd.C_state[1] = CrossingState_T::RightHanded;
+            
+            pd.A_cross(0,0) = 0;
+            pd.A_cross(0,1) = 1;
+            pd.A_cross(1,0) = 1;
+            pd.A_cross(1,1) = 0;
+            pd.A_cross(2,0) = 1;
+            pd.A_cross(2,1) = 0;
+            pd.A_cross(3,0) = 0;
+            pd.A_cross(3,1) = 1;
+            
+            pd.A_state[0] = ArcState_T::Active;
+            pd.A_state[1] = ArcState_T::Active;
+            pd.A_state[2] = ArcState_T::Active;
+            pd.A_state[3] = ArcState_T::Active;
+            
+            pd.A_color[0] = color_0;
+            pd.A_color[1] = color_0;
+            pd.A_color[2] = color_1;
+            pd.A_color[3] = color_1;
+            
+            pd.color_arc_counts[Int(color_0)] = color_0;
+            pd.color_arc_counts[Int(color_1)] = color_1;
+            pd.proven_minimalQ = true;
+            return pd;
+        }
+        
         bool ProvenUnknotQ() const
         {
             return proven_minimalQ && (crossing_count == Int(0)) && (ColorCount() == Int(1));

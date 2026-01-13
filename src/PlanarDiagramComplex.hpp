@@ -95,12 +95,6 @@ namespace Knoodle
             pd_list.reserve( ToSize_T(unlink_count) + Size_T(pd.ValidQ()) );
             Int max_color = 0;
             
-//            for( Int color : pd.color_palette )
-//            {
-//                max_color = Max( color, max_color );
-//                colored_unlinkQ[color] = false;
-//            }
-            
             for( auto & x : pd.color_arc_counts )
             {
                 max_color = Max( max_color, x.second );
@@ -247,6 +241,81 @@ namespace Knoodle
             }
                 
             CreateUnlink(a_color) ;
+        }
+        
+        bool CreateHopfLink( const Int color_0, const Int color_1 )
+        {
+            if( !ColorExistsQ(color_0) )
+            {
+                eprint(MethodName("CreateHopfLink") + ": Invalid input color " + ToString(color_0) + ". Doing nothing");
+                
+                return false;
+            }
+            
+            if( !ColorExistsQ(color_1) )
+            {
+                eprint(MethodName("CreateHopfLink") + ": Invalid input color " + ToString(color_1) + ". Doing nothing");
+                
+                return false;
+            }
+            
+            pd_list_new.push_back( PD_T::HopfLink(color_0,color_1) );
+            return true;
+        }
+        
+        /*!@brief Create a new Hopf link `in pd_list-new`.
+         *
+         * @param pd The diagram we are working with.
+         *
+         * @param a_0 First edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
+         *
+         * @param a_1 Second edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
+         *
+         * @param splitQ If `splitQ == true`, then we assume that the Hopf link was not connect to the remainder of the diagram pd. If `splitQ == false`, then we assume that arc `a_0` was connected to the remaining diagram. This is important for the management of color counts.
+         */
+        void CreateHopfLinkFromArcs(
+            PD_T & pd, const Int a_0, const Int a_1, const bool splitQ
+        )
+        {
+            TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
+            
+            pd.template AssertArc<0>(a_0);
+            pd.template AssertArc<0>(a_1);
+            
+            const Int a_0_color = pd.A_color[a_0];
+            const Int a_1_color = pd.A_color[a_1];
+            
+            TOOLS_LOGDUMP(pd.A_color);
+            logvalprint("pd.color_arc_counts",Knoodle::ToString(pd.color_arc_counts));
+            
+            PD_ASSERT( pd.color_arc_counts.contains(a_0_color) );
+            PD_ASSERT( pd.color_arc_counts.contains(a_1_color) );
+
+            // If there are no arcs of that color left in pd, then we tell it to forget that color.
+            if( pd.color_arc_counts[a_0_color] == Int(0) )
+            {
+                pd.color_arc_counts.erase( a_0_color );
+            }
+            else
+            {
+                // DEBUGGING
+                
+                if( !splitQ )
+                {
+                    wprint(MethodName("CreateHopfLinkFromArcs") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
+                }
+            }
+            if( pd.color_arc_counts[a_1_color] == Int(0) )
+            {
+                pd.color_arc_counts.erase( a_1_color );
+            }
+            else
+            {
+                // DEBUGGING
+                wprint(MethodName("CreateHopfLinkFromArcs") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
+            }
+                
+            CreateHopfLink(a_0_color,a_1_color) ;
         }
         
     private:

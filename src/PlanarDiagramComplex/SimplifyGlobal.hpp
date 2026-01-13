@@ -66,7 +66,7 @@ Size_T SimplifyGlobal_impl(
         + "," + ToString(compressQ)
         + ")");
     
-    using ArcSimplier_T    = ArcSimplifier2<Int,local_opt_level,mult_compQ>;
+    using ArcSimplifier_T    = ArcSimplifier2<Int,local_opt_level,mult_compQ>;
     using StrandSimplier_T = StrandSimplifier2<Int,pass_R_II_Q,mult_compQ>;
     
     Size_T total_counter = 0;
@@ -115,10 +115,10 @@ Size_T SimplifyGlobal_impl(
                 
                 Size_T simplify_local_changes = 0;
                 
-                // Since ArcSimplier_T performs only inexpensive tests, we should use it first.
+                // Since ArcSimplifier_T performs only inexpensive tests, we should use it first.
                 if( simplify_localQ && (local_opt_level > Int(0)) )
                 {
-                    ArcSimplier_T A ( *this, pd, local_max_iter, false );
+                    ArcSimplifier_T A ( *this, pd, local_max_iter, false );
                     simplify_local_changes = A();
                     counter += simplify_local_changes;
                     
@@ -182,7 +182,7 @@ Size_T SimplifyGlobal_impl(
             }
             else
             {
-                wprint(MethodName("SimplifyGlobal_impl")+": A diagram that came out of " + pd.ClassName() + " was identified as invalid and discarded. This is per se not a bad thing to happen." );
+                wprint(MethodName("SimplifyGlobal_impl")+": A diagram that came out of " + ArcSimplifier_T::ClassName() + " was identified as invalid and discarded. This is per se not a bad thing to happen." );
             }
         
         } // for( PD_T & pd : pd_list )

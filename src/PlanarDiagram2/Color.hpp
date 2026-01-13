@@ -1,8 +1,3 @@
-//cref<ColorPalette_T> ColorPalette() const
-//{
-//    return color_palette;
-//}
-
 cref<ColorCounts_T> ColorArcCounts() const
 {
     return color_arc_counts;
