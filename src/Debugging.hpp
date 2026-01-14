@@ -9,6 +9,8 @@
     #define PD_VALPRINT( key, val ) Tools::logvalprint( (key), (val) )
     
     #define PD_WPRINT( s ) Tools::wprint((s));
+
+    #define PD_NOTE( s ) Tools::nprint((s));
     
 #else
     #define PD_PRINT( s )
@@ -16,6 +18,8 @@
     #define PD_VALPRINT( key, val )
     
     #define PD_WPRINT( s )
+
+    #define PD_NOTE( s )
 #endif
 
 #ifdef PD_DEBUG

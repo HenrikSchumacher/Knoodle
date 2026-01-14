@@ -399,9 +399,7 @@ static PlanarDiagram FromPDCode(
         
         if constexpr( PDsignedQ )
         {
-            pd.C_state[c] = (state > ExtInt(0))
-                          ? CrossingState_T::RightHanded
-                          : CrossingState_T::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(state > ExtInt(0));
         }
         else
         {

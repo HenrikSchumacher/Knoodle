@@ -1,5 +1,4 @@
 //#define TOOLS_ENABLE_PROFILER
-//
 //#define PD_DEBUG
 //#define PD_VERBOSE
 
@@ -91,8 +90,8 @@ int main()
 
     
     TOOLS_DUMP(pdc.DiagramCount());
-    TOOLS_DUMP(pdc.Diagram(0).ColorCount());
-    TOOLS_DUMP(pdc.ColorCount());
+//    TOOLS_DUMP(pdc.Diagram(0).ColorCount());
+//    TOOLS_DUMP(pdc.ColorCount());
     TOOLS_DUMP(pdc.CrossingCount());
 
     
@@ -115,17 +114,26 @@ int main()
         exit(-1);
     }
     
+    Tools::print("");
+    Tools::valprint( "pdc.CrossingCount()", pdc.CrossingCount() );
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
-        TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CheckAll()",
+            pdc.Diagram(i).CheckAll()
+        );
+        
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CrossingCount()",
+            pdc.Diagram(i).CrossingCount()
+        );
+        
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").MaxCrossingCount()",
+            pdc.Diagram(i).MaxCrossingCount()
+        );
+        Tools::print("");
     }
-    
-    TOOLS_DUMP(pdc.CrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).CrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).MaxCrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).PDCode().Dim(0));
-
-    
     
     Knoodle::print("");
     Knoodle::print("SimplifyGlobal(6,infty,4,infty,true)");
@@ -139,15 +147,25 @@ int main()
         exit(-1);
     }
     
+    Tools::valprint( "pdc.CrossingCount()", pdc.CrossingCount() );
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
-        TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CheckAll()",
+            pdc.Diagram(i).CheckAll()
+        );
+        
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CrossingCount()",
+            pdc.Diagram(i).CrossingCount()
+        );
+        
+        Tools::valprint(
+            std::string("pdc.Diagram(") + Tools::ToString(i) + ").MaxCrossingCount()",
+            pdc.Diagram(i).MaxCrossingCount()
+        );
+        Tools::print("");
     }
-    
-    TOOLS_DUMP(pdc.CrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).CrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).MaxCrossingCount());
-    TOOLS_DUMP(pdc.Diagram(0).PDCode().Dim(0));
     
     return EXIT_SUCCESS;
 }

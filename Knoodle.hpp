@@ -112,6 +112,12 @@ namespace Knoodle
         Inactive             =  0
     };
     
+    
+    static constexpr CrossingState_T BooleanToCrossingState( bool right_handedQ )
+    {
+        return right_handedQ ? CrossingState_T::RightHanded : CrossingState_T::LeftHanded;
+    }
+    
     CrossingState_T Switch( CrossingState_T s )
     {
         return CrossingState_T(- ToUnderlying(s));

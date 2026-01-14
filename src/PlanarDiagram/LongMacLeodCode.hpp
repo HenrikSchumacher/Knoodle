@@ -279,20 +279,12 @@ static PlanarDiagram FromLongMacLeodCode(
             Int b = a + a_leap;
             if( b >= m ) { b -= m; }
             
-//            TOOLS_LOGDUMP(v);
-//            TOOLS_LOGDUMP(a_leap);
-//            TOOLS_LOGDUMP(a_right_handedQ);
-//            TOOLS_LOGDUMP(a_overQ);
-//            TOOLS_LOGDUMP(b);
-            
             A_visitedQ[a] = true;
             A_visitedQ[b] = true;
             
             const Int c = crossing_counter;
             
-            pd.C_state[c] = a_right_handedQ
-                          ? CrossingState_T::RightHanded
-                          : CrossingState_T::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(a_right_handedQ);
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));
             pd.A_cross(a_prev,Head) = c;

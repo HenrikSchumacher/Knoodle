@@ -75,7 +75,7 @@ void ReadFromLink(
          *
          */
         
-        C_state[c] = righthandedQ ? CrossingState_T::RightHanded : CrossingState_T::LeftHanded;
+        C_state[c] = BooleanToCrossingState(righthandedQ);
         
         A_state[a] = ArcState_T::Active;
         

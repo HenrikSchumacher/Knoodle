@@ -63,7 +63,7 @@ bool R_IIa_diff_o_same_u()
     ++pd.R_IIa_counter;
     
     AssertArc<1>(a  );
-    AssertArc<0>(n_0);
+        AssertArc<0>(n_0);
     AssertArc<0>(s_0);
     AssertArc<1>(w_0);
     AssertArc<0>(n_1);

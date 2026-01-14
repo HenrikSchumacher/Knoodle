@@ -247,9 +247,7 @@ namespace Knoodle
                         {
                             for( Int j = 0; j < crossing_count; ++j )
                             {
-                                C_state [j] = get_bit(i,j)
-                                            ? CrossingState_T::RightHanded
-                                            : CrossingState_T::LeftHanded;
+                                C_state [j] = BooleanToCrossingState(get_bit(i,j));
                             }
 
                             PD_T pd (

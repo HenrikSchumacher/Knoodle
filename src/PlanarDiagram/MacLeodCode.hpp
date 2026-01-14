@@ -169,7 +169,7 @@ static PlanarDiagram FromMacLeodCode(
     MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
 
     return FromLongMacLeodCode(
-       l_mac_leod.data(), a_count, unlink_count_, compressQ, proven_minimalQ_
+       l_mac_leod.data(), a_count, unlink_count_, proven_minimalQ_, compressQ
     );
 }
 

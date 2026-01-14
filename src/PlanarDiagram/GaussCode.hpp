@@ -118,9 +118,7 @@ static PlanarDiagram FromExtendedGaussCode(
         
         if( !visitedQ )
         {
-            pd.C_state[c] = (g > T(0))
-                          ? CrossingState_T::RightHanded
-                          : CrossingState_T::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(g > T(0));
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
