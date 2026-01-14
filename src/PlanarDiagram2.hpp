@@ -126,16 +126,8 @@ namespace Knoodle
         // Some multi-purpose scratch buffers.
         mutable Tensor1<Int,Int> A_scratch;
         
+        mutable Int last_color_deactivated = Uninitialized;
         bool proven_minimalQ = false;
-            
-        // This color_palette is needed, among other things, to store unknots, as every link component in a LinkComplex needs a color. Colors are usually stored in arcs, but an unknot has no arcs.
-        // Moreover, color_palette will make some search queries terminate early.
-        // ComputeArcColors initializes color_palette.
-        // Cut and past operations have to maintain color_palette.
-        // An unknot is represented by a planar diagram with CrossingCount() == 0 and with color_palette containing a single value != InvalidColor.
-
-//        ColorPalette_T color_palette;
-        ColorCounts_T color_arc_counts;
         
     public:
   
@@ -168,10 +160,11 @@ namespace Knoodle
         , C_state            { max_crossing_count, CrossingState_T::Inactive }
         , C_scratch          { max_crossing_count                              }
         , A_cross            { max_arc_count,      Uninitialized               }
-        , A_state            { max_arc_count,      ArcState_T::Inactive       }
+        , A_state            { max_arc_count,      ArcState_T::Inactive        }
         , A_color            { max_arc_count,      Uninitialized               }
         , A_scratch          { max_arc_count                                   }
         {
+            // needs to know all member variables
             static_assert(IntQ<ExtInt>,"");
         }
         
@@ -194,16 +187,17 @@ namespace Knoodle
         , A_color            { max_arc_count                                   }
         , A_scratch          { max_arc_count                                   }
         {
+            // needs to know all member variables
             (void)dummy;
             static_assert(IntQ<ExtInt>,"");
         }
 
     public:
         
-        /*!@brief Construct PlanarDiagram2 from internal data. The pointers `arc_colors` and `color_palette_` may be null pointers. In that case, the color information is computed from the remaining data.
+        /*!@brief Construct PlanarDiagram2 from internal data.
          */
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3, typename ExtInt4, typename ExtInt5, typename ExtInt6>
+        template<typename ExtInt, typename ExtInt2, typename ExtInt3, typename ExtInt4, typename ExtInt5>
         PlanarDiagram2(
             const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
@@ -211,26 +205,28 @@ namespace Knoodle
             cptr<ExtInt>  arcs,
             cptr<ExtInt3> arc_states,
             cptr<ExtInt4> arc_colors,
-//            cptr<ExtInt5> color_palette_,
-            cptr<ExtInt5> color_arc_counts_,
-            const ExtInt6 color_count_,
-            const bool proven_minimalQ_ = false
+            const ExtInt5 last_color_deactivated_,
+            const bool proven_minimalQ_ = false,
+            const bool compressQ = false
         )
         :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
         {
+            // needs to know all member variables
+            
             static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
+            static_assert(IntQ<ExtInt4>,"");
+            static_assert(IntQ<ExtInt5>,"");
             
-            if( crossing_count_ == ExtInt(0) )
+            last_color_deactivated = int_cast<Int>(last_color_deactivated_);
+            proven_minimalQ = proven_minimalQ_;
+            
+            if( max_crossing_count == Int(0) )
             {
-                if(
-                    proven_minimalQ_
-                    && (color_count_ == 1)
-                    && ValidIndexQ(color_arc_counts_[0])
-                )
+                if( proven_minimalQ && (last_color_deactivated != Uninitialized) )
                 {
-                    *this = Unknot(color_arc_counts_[0]);
+                    *this = Unknot(last_color_deactivated);
                     return;
                 }
                 else
@@ -244,70 +240,90 @@ namespace Knoodle
             C_state.Read(crossing_states);
             A_cross.Read(arcs);
             A_state.Read(arc_states);
-            proven_minimalQ = proven_minimalQ_;
+            A_color.Read(arc_colors);
             
-            crossing_count = CountActiveCrossings();
-            arc_count      = CountActiveArcs();
+            crossing_count       = CountActiveCrossings();
+            arc_count            = CountActiveArcs();
             
+
             if( (crossing_count == 0)
-                && proven_minimalQ_
-                && (color_count_ == 1)
-                && ValidIndexQ(color_arc_counts_[0])
+                && proven_minimalQ
+                && (last_color_deactivated != Uninitialized)
             )
             {
-                *this = Unknot(color_arc_counts_[0]);
+                *this = Unknot(last_color_deactivated);
                 return;
             }
             
-            if( arc_colors == nullptr )
+            if( compressQ )
             {
-                ComputeArcColors();
+                this->template Compress<true>();
             }
-            else
+        }
+        
+        /*!@brief Construct PlanarDiagram2 from internal data withput colors.
+         */
+        
+        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+        PlanarDiagram2(
+            const ExtInt  crossing_count_,
+            cptr<ExtInt>  crossings,
+            cptr<ExtInt2> crossing_states,
+            cptr<ExtInt>  arcs,
+            cptr<ExtInt3> arc_states,
+            const bool proven_minimalQ_ = false,
+            const bool compressQ = false
+        )
+        :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
+        {
+            // needs to know all member variables
+            
+            static_assert(IntQ<ExtInt>,"");
+            static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
+            static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
+            
+            proven_minimalQ = proven_minimalQ_;
+            
+            if( max_crossing_count == Int(0) )
             {
-                if( color_arc_counts_ == nullptr )
+                if( proven_minimalQ )
                 {
-                    for( Int a = 0; a < max_crossing_count; ++a )
-                    {
-                        if( ArcActiveQ(a) )
-                        {
-                            const Int color = int_cast<Int>(arc_colors[a]);
-                            A_color[a] = color;
-                            CountArcColor(color);
-                        }
-                        else
-                        {
-                            A_color[a] = Uninitialized;
-                        }
-                        
-//                        color_palette.insert(color);
-                    }
+                    eprint(ClassName()+"(): input identifies this as an unknot, but the color information is missing. Use a different constructor.");
+                    *this = InvalidDiagram();
+                    return;
                 }
                 else
                 {
-                    A_color.Read(arc_colors);
-                    color_arc_counts = ArrayToColorCounts(color_arc_counts_, color_count_);
+                    *this = InvalidDiagram();
+                    return;
                 }
-                
-                //                if( color_palette_ != nullptr )
-                //                {
-                //                    A_color.Read(arc_colors);
-                //                    for( Int i = 0; i < int_cast<Int>(color_count_); ++i )
-                //                    {
-                //                        color_palette.insert( color_palette_[i] );
-                //                    }
-                //                }
-                //                else
-                //                {
-                //                    for( Int a = 0; a < max_crossing_count; ++a )
-                //                    {
-                //                        const Int color = int_cast<Int>(arc_colors[a]);
-                //                        A_color[a] = color;
-                //                        color_palette.insert(color);
-                //                    }
-                //                }
-                
-                PD_ASSERT(CheckArcColors());
+            }
+            
+            C_arcs .Read(crossings);
+            C_state.Read(crossing_states);
+            A_cross.Read(arcs);
+            A_state.Read(arc_states);
+
+            crossing_count       = CountActiveCrossings();
+            arc_count            = CountActiveArcs();
+            
+            TOOLS_DUMP(crossing_count);
+            TOOLS_DUMP(arc_count);
+            
+            if( (crossing_count == 0) && proven_minimalQ )
+            {
+                eprint(ClassName()+"(): input identifies this as an unknot, but the color information is missing. Use a different constructor.");
+                *this = InvalidDiagram();
+                return;
+            }
+            
+            if( compressQ )
+            {
+                this->template Compress<true>();
+            }
+            else
+            {
+                ComputeArcColors();
             }
         }
         
@@ -315,6 +331,8 @@ namespace Knoodle
          */
         PD_T CachelessCopy() const
         {
+            // needs to know all member variables
+            
             PD_T pd ( max_crossing_count, true ); // Allocate, but do not fill.
             pd.crossing_count  = crossing_count;
             pd.arc_count       = arc_count;
@@ -327,17 +345,15 @@ namespace Knoodle
             pd.A_state.Read(A_state.data());
             pd.A_color.Read(A_color.data());
             
-            pd.proven_minimalQ = proven_minimalQ;
-//            pd.color_palette  = color_palette;
-            
-            pd.color_arc_counts = color_arc_counts;
+            pd.last_color_deactivated = last_color_deactivated;
+            pd.proven_minimalQ        = proven_minimalQ;
             
             return pd;
         }
         
     public:
         
-#include "PlanarDiagram2/Constructors.hpp"
+#include "PlanarDiagram2/FromEmbeddings.hpp"
 #include "PlanarDiagram2/Crossings.hpp"
 #include "PlanarDiagram2/Arcs.hpp"
 #include "PlanarDiagram2/Darcs.hpp"
@@ -383,128 +399,51 @@ namespace Knoodle
         
 #include "PlanarDiagram2/Permute.hpp"
 //#include "PlanarDiagram2/Planarity.hpp"
+#include "PlanarDiagram2/StandardDiagrams.hpp"
         
     public:
         
-        Int ColorCount() const
+        Int LastColorDeactivated() const
         {
-//            return int_cast<Int>( color_palette.size() );
-            return int_cast<Int>( color_arc_counts.size() );
-        }
-        
-        Int ActiveColorCount() const
-        {
-            Int color_count = 0;
-            for( auto & x : color_arc_counts )
-            {
-                if( x.second > Int(0) )
-                {
-                    ++color_count;
-                }
-                else
-                {
-#ifdef PD_DEBUG
-                    if ( x.second < Int(0) )
-                    {
-                        eprint(MethodName("ActiveColorCount")+": Found a color with a negative color count.");
-                    }
-#endif // PD_DEBUG
-                }
-            }
-            
-            PD_ASSERT(color_count <= arc_count);
-            
-            return color_count;
+            return last_color_deactivated;
         }
         
         bool ProvenMinimalQ() const
         {
             return proven_minimalQ;
         }
+
         
         static PD_T InvalidDiagram()
         {
             return PD_T();
         }
         
-        static PD_T Unknot( const Int color )
-        {
-            PD_T pd ( Int(0) );
-            pd.proven_minimalQ = true;
-//            pd.color_palette   = {color};
-            pd.color_arc_counts[Int(color)] = Int(0);
-            return pd;
-        }
-        
-        static PD_T HopfLink( const Int color_0, const Int color_1 )
-        {
-            PD_T pd ( Int(2), true );
-            pd.crossing_count = 2;
-            pd.arc_count = 4;
-            pd.C_arcs(0,0,0) = 0;
-            pd.C_arcs(0,0,1) = 3;
-            pd.C_arcs(0,1,0) = 2;
-            pd.C_arcs(0,1,1) = 1;
-            pd.C_arcs(1,0,0) = 2;
-            pd.C_arcs(1,0,1) = 1;
-            pd.C_arcs(1,1,0) = 0;
-            pd.C_arcs(1,1,1) = 3;
-            
-            pd.C_state[0] = CrossingState_T::RightHanded;
-            pd.C_state[1] = CrossingState_T::RightHanded;
-            
-            pd.A_cross(0,0) = 0;
-            pd.A_cross(0,1) = 1;
-            pd.A_cross(1,0) = 1;
-            pd.A_cross(1,1) = 0;
-            pd.A_cross(2,0) = 1;
-            pd.A_cross(2,1) = 0;
-            pd.A_cross(3,0) = 0;
-            pd.A_cross(3,1) = 1;
-            
-            pd.A_state[0] = ArcState_T::Active;
-            pd.A_state[1] = ArcState_T::Active;
-            pd.A_state[2] = ArcState_T::Active;
-            pd.A_state[3] = ArcState_T::Active;
-            
-            pd.A_color[0] = color_0;
-            pd.A_color[1] = color_0;
-            pd.A_color[2] = color_1;
-            pd.A_color[3] = color_1;
-            
-            pd.color_arc_counts[Int(color_0)] = color_0;
-            pd.color_arc_counts[Int(color_1)] = color_1;
-            pd.proven_minimalQ = true;
-            return pd;
-        }
         
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && (ColorCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(0)) && (last_color_deactivated != Uninitialized);
         }
 
         bool ProvenHopfLinkQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(2)) && (ActiveColorCount() == Int(2));
+            return proven_minimalQ && (crossing_count == Int(2)) && (LinkComponentCount() == Int(2));
         }
         
         bool ProvenTrefoilQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(3)) && (ActiveColorCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(3)) && (LinkComponentCount() == Int(1));
         }
         
         bool ProvenFigureEightQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(4)) && (ActiveColorCount() == Int(1));
+            return proven_minimalQ && (crossing_count == Int(4)) && (LinkComponentCount() == Int(1));
         }
 
         bool InvalidQ() const
         {
-            if( (max_crossing_count == Int(0)) && (ColorCount() != Int(1)) )
+            if( (max_crossing_count == Int(0)) && (last_color_deactivated == Uninitialized ) )
             {
-                // DEBUGGING
-                eprint(MethodName("InvalidQ()"));
-                
                 return true;
             }
             else

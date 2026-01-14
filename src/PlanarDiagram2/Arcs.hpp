@@ -118,7 +118,7 @@ void DeactivateArc( const Int a )
         PD_PRINT("Deactivating " + ArcString(a) + "." );
         
         --arc_count;
-        --color_arc_counts[A_color[a]];
+        last_color_deactivated = A_color[a];
         A_state[a] = ArcState_T::Inactive;
     }
     else

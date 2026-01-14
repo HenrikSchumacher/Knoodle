@@ -1,10 +1,13 @@
-/*!@brief Construction from `Knot_2D` object. Returns a planar diagram and the number of unlinks found in the input.
+/*!@brief Construction from `Knot_2D` object.
  *
  * Caution: This assumes that `Knot_2D::FindIntersections` has been called already!
  */
 
 template<typename Real, typename BReal>
-static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
+static PD_T FromKnotEmbedding(
+    cref<Knot_2D<Real,Int,BReal>> K,
+    const bool compressQ = false // TODO: Is this meaningful?
+)
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -19,15 +22,20 @@ static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
         K.EdgePointers().data(),
         K.EdgeIntersections().data(),
         K.EdgeOverQ().data(),
-        K.Intersections()
+        K.Intersections(),
+        compressQ
     ).first;
 }
 
-/*! @brief Construction from coordinates. Returns a planar diagram and the number of unlinks found in the input.
+/*! @brief Construction from coordinates.
  */
 
 template<typename Real, typename ExtInt>
-static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
+static PD_T FromKnotEmbedding(
+    cptr<Real> x,
+    const ExtInt n,
+    const bool compressQ = false // TODO: Is this meaningful?
+)
 {
     static_assert(FloatQ<Real>,"");
     static_assert(IntQ<ExtInt>,"");
@@ -56,7 +64,8 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections()
+        L.Intersections(),
+        compressQ
     ).first;
 }
 
@@ -66,7 +75,10 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
  */
 
 template<typename Real, typename BReal>
-static std::pair<PD_T,Int> FromLinkEmbedding( cref<Link_2D<Real,Int,BReal>> L )
+static std::pair<PD_T,Int> FromLinkEmbedding(
+    cref<Link_2D<Real,Int,BReal>> L,
+    const bool compressQ = false // TODO: Is this meaningful?
+)
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -81,7 +93,8 @@ static std::pair<PD_T,Int> FromLinkEmbedding( cref<Link_2D<Real,Int,BReal>> L )
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections()
+        L.Intersections(),
+        compressQ
     );
 }
 
@@ -90,7 +103,12 @@ static std::pair<PD_T,Int> FromLinkEmbedding( cref<Link_2D<Real,Int,BReal>> L )
  */
 
 template<typename Real, typename ExtInt>
-static std::pair<PD_T,Int> FromLinkEmbedding( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
+static std::pair<PD_T,Int> FromLinkEmbedding(
+    cptr<Real> x,
+    cptr<ExtInt> edges,
+    const ExtInt n,
+    const bool compressQ = false // TODO: Is this meaningful?
+)
 {
     static_assert(FloatQ<Real>,"");
     static_assert(IntQ<ExtInt>,"");
@@ -121,7 +139,8 @@ static std::pair<PD_T,Int> FromLinkEmbedding( cptr<Real> x, cptr<ExtInt> edges, 
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections()
+        L.Intersections(),
+        compressQ
     );
 }
 
@@ -135,9 +154,12 @@ static std::pair<PD_T,Int> FromLink(
     cptr<Int>  edge_ptr,
     cptr<Int>  edge_intersections,
     cptr<bool> edge_overQ,
-    cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections
+    cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections,
+    const bool compressQ = false // TODO: Is this meaningful?
 )
 {
+    // needs to know all member variables
+    
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
     
@@ -173,6 +195,7 @@ static std::pair<PD_T,Int> FromLink(
     // and generate new vertices, edges, crossings, and arcs in one go.
     
     Int color = 0;
+    ColorCounts_T color_arc_counts;
     
     // We put the unlinks at the back so that it is easier to communicate with PlanarDiagramComplex.
     
@@ -232,9 +255,7 @@ static std::pair<PD_T,Int> FromLink(
              *
              */
             
-            const CrossingState_T c_state = righthandedQ
-                                          ? CrossingState_T::RightHanded
-                                          : CrossingState_T::LeftHanded;
+            const CrossingState_T c_state = BooleanToCrossingState(righthandedQ);
             pd.C_state[c] = c_state;
             
             /*
@@ -260,14 +281,11 @@ static std::pair<PD_T,Int> FromLink(
             pd.C_arcs(c,In , a_side) = a;
             pd.C_arcs(c,Out,!a_side) = b;
             
-//            pd.A_state[a].Set(Head, a_side,righthandedQ);
-//            pd.A_state[b].Set(Tail,!a_side,righthandedQ);
-            
             pd.A_state[b] = ArcState_T::Active;
             pd.A_color[b] = color;
         }
         
-        pd.color_arc_counts[color] = b_end - b_begin;
+        color_arc_counts[color] = b_end - b_begin;
         ++color;
     }
     
@@ -276,9 +294,11 @@ static std::pair<PD_T,Int> FromLink(
     
     pd.template SetCache<false>("LinkComponentCount",component_count - unlink_count);
     
+    pd.SetCache("ColorArcCoumts",std::move(color_arc_counts));
+    
     // TODO: Check whether this is really neccessary.
     
-    if constexpr ( always_compressQ )
+    if( compressQ )
     {
         return { pd.template CreateCompressed<false>(), unlink_count };
     }

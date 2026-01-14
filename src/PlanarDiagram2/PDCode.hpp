@@ -298,14 +298,14 @@ public:
 
 template<bool checksQ = true, typename ExtInt, typename ExtInt2>
 static PD_T FromSignedPDCode(
-    cptr<ExtInt> pd_codes,
+    cptr<ExtInt>  pd_codes,
     const ExtInt2 crossing_count,
-    const bool    compressQ = true,
-    const bool    proven_minimalQ_ = false
+    const bool    proven_minimalQ_ = false,
+    const bool    compressQ = true
 )
 {
     return FromPDCode<true,checksQ>(
-        pd_codes, crossing_count, compressQ, proven_minimalQ_
+        pd_codes, crossing_count, proven_minimalQ_, compressQ
     );
 }
 
@@ -327,14 +327,15 @@ static PD_T FromSignedPDCode(
 
 template<bool checksQ = true, typename ExtInt, typename ExtInt2>
 static PD_T FromUnsignedPDCode(
-    cptr<ExtInt> pd_codes,
+    cptr<ExtInt>  pd_codes,
     const ExtInt2 crossing_count,
-    const bool    compressQ = true,
-    const bool    proven_minimalQ_ = false
+    const bool    proven_minimalQ_ = false,
+    const bool    compressQ = true
+    
 )
 {
     return FromPDCode<false,checksQ>(
-        pd_codes, crossing_count, compressQ, proven_minimalQ_
+        pd_codes, crossing_count, proven_minimalQ_, compressQ
     );
 }
 
@@ -436,10 +437,12 @@ template<bool PDsignedQ, bool checksQ = true, typename ExtInt, typename ExtInt2>
 static PD_T FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
-    const bool compressQ,
-    const bool proven_minimalQ_
+    const bool proven_minimalQ_ = false,
+    const bool compressQ = false
 )
 {
+    // needs to know all member variables
+    
     static_assert( IntQ<ExtInt>, "" );
     static_assert( IntQ<ExtInt2>, "" );
     
@@ -493,9 +496,7 @@ static PD_T FromPDCode(
         
         if constexpr( PDsignedQ )
         {
-            c_state = pd.C_state[c] = (state > ExtInt(0))
-                                    ? CrossingState_T::RightHanded
-                                    : CrossingState_T::LeftHanded;
+            c_state = pd.C_state[c] = BooleanToCrossingState(state > ExtInt(0));
         }
         else
         {
@@ -536,11 +537,6 @@ static PD_T FromPDCode(
             pd.A_state(X[2]) = ArcState_T::Active;
             pd.A_state(X[3]) = ArcState_T::Active;
             pd.A_state(X[1]) = ArcState_T::Active;
-            
-//            pd.A_state(X[0]).Set(Head,Right,true);
-//            pd.A_state(X[2]).Set(Tail,Left ,true);
-//            pd.A_state(X[3]).Set(Head,Left ,true);
-//            pd.A_state(X[1]).Set(Tail,Right,true);
         }
        else if( LeftHandedQ(c_state) )
        {
@@ -576,11 +572,6 @@ static PD_T FromPDCode(
             pd.A_state(X[2]) = ArcState_T::Active;
             pd.A_state(X[3]) = ArcState_T::Active;
             pd.A_state(X[1]) = ArcState_T::Active;
-           
-//            pd.A_state(X[0]).Set(Head,Left ,false);
-//            pd.A_state(X[2]).Set(Tail,Right,false);
-//            pd.A_state(X[3]).Set(Tail,Left ,false);
-//            pd.A_state(X[1]).Set(Head,Right,false);
         }
     }
 
@@ -661,7 +652,8 @@ static PD_T FromPDCode(
         }
     }
     
-    // Compression is meaningful because PD code stays valid under reordering.
+    // Compression could be meaningful because PD code stays valid under reordering.
+    // But most of the tome PD codes are already compressed. That is somewhat their point.
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

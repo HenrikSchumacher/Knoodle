@@ -155,10 +155,12 @@ template<typename T, typename ExtInt>
 static PD_T FromLongMacLeodCode(
     cptr<T>       code,
     const ExtInt  arc_count_,
-    const bool    compressQ = false,
-    const bool    proven_minimalQ_ = false
+    const bool    proven_minimalQ_ = false,
+    const bool    compressQ = false
 )
 {
+    // needs to know all member variables
+    
     TOOLS_PTIMER(timer,MethodName("FromLongMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
@@ -168,14 +170,12 @@ static PD_T FromLongMacLeodCode(
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
 
-    if( arc_count_ <= ExtInt(0) )
-    {
-        PD_T pd( Int(0) );
-        pd.proven_minimalQ = true;
-        return pd;
-    }
-    
     const Int m = int_cast<Int>(arc_count_);
+    
+    if( m <= ExtInt(0) )
+    {
+        return Unknot(Int(0));
+    }
     const Int n = m / Int(2);
 
     PD_T pd ( n );
@@ -204,9 +204,7 @@ static PD_T FromLongMacLeodCode(
             
             const Int c = crossing_counter;
             
-            const CrossingState_T c_state = a_right_handedQ
-                                          ? CrossingState_T::RightHanded
-                                          : CrossingState_T::LeftHanded;
+            const CrossingState_T c_state = BooleanToCrossingState(a_right_handedQ);
             pd.C_state[c] = c_state;
             
             const Int a_prev = (a > Int(0)) ? (a - Int(1)) : (m - Int(1));
@@ -239,11 +237,6 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,Out,Right) = a;
                 pd.C_arcs(c,In ,Left ) = a_prev;
                 pd.C_arcs(c,In ,Right) = b_prev;
-
-//                pd.A_state[a_prev].Set(Head,Left ,c_state);
-//                pd.A_state[a     ].Set(Tail,Right,c_state);
-//                pd.A_state[b_prev].Set(Head,Right,c_state);
-//                pd.A_state[b     ].Set(Tail,Left ,c_state);
             }
             else
             {
@@ -264,11 +257,6 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,Out,Right) = b;
                 pd.C_arcs(c,In ,Left ) = b_prev;
                 pd.C_arcs(c,In ,Right) = a_prev;
-                
-//                pd.A_state[a_prev].Set(Head,Right,c_state);
-//                pd.A_state[a     ].Set(Tail,Left ,c_state);
-//                pd.A_state[b_prev].Set(Head,Left ,c_state);
-//                pd.A_state[b     ].Set(Tail,Right,c_state);
             }
         
             ++crossing_counter;
@@ -283,9 +271,7 @@ static PD_T FromLongMacLeodCode(
         eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots.
-    
-    // Compression is not really meaningful because the traversal ordering is unique for the MacLeod code.
+    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots, no?
     if(compressQ)
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

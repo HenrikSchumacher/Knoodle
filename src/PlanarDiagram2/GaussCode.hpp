@@ -77,21 +77,27 @@ template<typename T, typename ExtInt>
 static PD_T FromExtendedGaussCode(
     cptr<T>      gauss_code,
     const ExtInt arc_count_,
-    const bool   compressQ = true,
-    const bool   proven_minimalQ_ = false
+    const bool   proven_minimalQ_ = false,
+    const bool   compressQ = false // Compression should not be necessary.
 )
 {
+    // needs to know all member variables
+    
     static_assert( SignedIntQ<T>, "" );
     static_assert( SignedIntQ<ExtInt>, "" );
     
     TOOLS_PTIMER(timer,MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">");
     
-    if( arc_count_ <= ExtInt(0) )
+    // TODO: We should check whether 2 * arc_count_ fits into Int.
+    
+    const Int m = int_cast<Int>(arc_count_);
+    
+    if( m <= ExtInt(0) )
     {
         return Unknot(Int(0));
     }
     
-    PD_T pd ( int_cast<Int>(arc_count_/2) );
+    PD_T pd ( m / Int(2) );
     pd.proven_minimalQ = proven_minimalQ_;
     
     Int crossing_counter = 0;
@@ -116,7 +122,7 @@ static PD_T FromExtendedGaussCode(
         
         if( !visitedQ )
         {
-            pd.C_state[c] = (g > T(0)) ? CrossingState_T::RightHanded : CrossingState_T::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(g > T(0));
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
@@ -169,14 +175,6 @@ static PD_T FromExtendedGaussCode(
                 pd.C_arcs(c,Out,Left ) = a;
                 pd.C_arcs(c,In ,Right) = a_prev;
             }
-            
-//            // This seems out of order, but pd.C_arcs(c,Out,Right) will typically be the arc stored right after pd.C_arcs(c,In ,Left ).
-//            pd.A_state[pd.C_arcs(c,In ,Left )].Set(Head,Left ,c_state);
-//            pd.A_state[pd.C_arcs(c,Out,Right)].Set(Tail,Right,c_state);
-//            
-//            // This seems out of order, but pd.C_arcs(c,Out,Left ) will typically be the arc stored right after pd.C_arcs(c,In ,Right).
-//            pd.A_state[pd.C_arcs(c,In ,Right)].Set(Head,Right,c_state);
-//            pd.A_state[pd.C_arcs(c,Out,Left )].Set(Tail,Left ,c_state);
         }
         
         return 0;
@@ -190,7 +188,7 @@ static PD_T FromExtendedGaussCode(
         }
     }
     
-    if( fun( int_cast<Int>(arc_count_)-Int(1), Int(0) ) )
+    if( fun( m-Int(1), Int(0) ) )
     {
         return InvalidDiagram();
     }
@@ -205,7 +203,7 @@ static PD_T FromExtendedGaussCode(
     
     // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots.
     
-    // Compression is not really meaningful because the traversal ordering is crucial for the extended Gauss code.
+    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots, no?
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.

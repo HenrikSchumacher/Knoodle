@@ -11,6 +11,8 @@ public:
 template<bool recolorQ = false>
 PD_T CreateCompressed()
 {
+    // needs to know all member variables
+    
     if( !ValidQ() )
     {
         wprint(MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
@@ -34,8 +36,10 @@ PD_T CreateCompressed()
     if constexpr ( !recolorQ )
     {
 //        pd.color_palette = color_palette;
-        pd.color_arc_counts = color_arc_counts;
+//        pd.color_arc_counts = color_arc_counts;
     }
+    
+    ColorCounts_T color_arc_counts;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
     mptr<CrossingState_T>     C_state_new = pd.C_state.data();
@@ -45,20 +49,10 @@ PD_T CreateCompressed()
     mptr<Int>                 A_color_new = pd.A_color.data();
     
     this->template Traverse<true>(
-        [&pd]( const Int lc, const Int lc_begin )
+        []( const Int lc, const Int lc_begin )
         {
+            (void)lc;
             (void)lc_begin;
-            if constexpr( recolorQ )
-            {
-//                pd.color_palette.insert(lc);
-                (void)lc;
-                (void)pd;
-            }
-            else
-            {
-                (void)pd;
-                (void)lc;
-            }
         },
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,A_color_new,this](
             const Int a,   const Int a_pos,   const Int  lc,
@@ -97,18 +91,17 @@ PD_T CreateCompressed()
             C_arcs_new(c_1_pos,In ,ArcSide(a,Head,c_1)) = a_pos;
 
         },
-        [&pd]( const Int lc, const Int lc_begin, const Int lc_end )
+        [&color_arc_counts]( const Int lc, const Int lc_begin, const Int lc_end )
         {
-            (void)lc;
-//            (void)lc_begin;
-//            (void)lc_end;
-            
             if constexpr( recolorQ )
             {
-                pd.color_arc_counts[lc] = lc_end - lc_begin;
+                color_arc_counts[lc] = lc_end - lc_begin;
             }
             {
-                (void)pd;
+                (void)lc;
+                (void)lc_begin;
+                (void)lc_end;
+                (void)color_arc_counts;
             }
         }
     );
@@ -119,6 +112,10 @@ PD_T CreateCompressed()
     {
         pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
     }
+    if constexpr ( recolorQ )
+    {
+        pd.template SetCache<false>("ColorArcCounts",color_arc_counts);
+    }
     
     return pd;
 }
@@ -127,6 +124,20 @@ template<bool recolorQ = false>
 void Compress()
 {
     (*this) = this->template CreateCompressed<recolorQ>();
+}
+
+template<bool recolorQ = false>
+void ConditionalCompress()
+{
+    // CrossingCount() < MaxCrossingCount() / 2
+    if( ArcCount() < MaxCrossingCount() )
+    {
+        Compress();
+    }
+    else
+    {
+        ClearCache();
+    }
 }
 
 bool CompressedOrderQ()

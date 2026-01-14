@@ -143,8 +143,8 @@ template<typename T, typename ExtInt>
 static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
-    const bool    compressQ = false,
-    const bool    proven_minimalQ_ = false
+    const bool    proven_minimalQ_ = false,
+    const bool    compressQ = false
 )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
@@ -163,7 +163,7 @@ static PD_T FromMacLeodCode(
     // TODO: Can we out this step and reimplement FromMacLeodCode directly?
     MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
 
-    return FromLongMacLeodCode( l_mac_leod.data(), a_count, compressQ, proven_minimalQ_ );
+    return FromLongMacLeodCode( l_mac_leod.data(), a_count, proven_minimalQ_, compressQ );
 }
 
 

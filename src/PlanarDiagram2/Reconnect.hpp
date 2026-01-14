@@ -44,8 +44,14 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     PD_DPRINT(std::string("Reconnect<")  + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") +  ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
-    PD_ASSERT(ArcActiveQ(a));
     
+    if constexpr ( assertQ )
+    {
+        AssertArc<1>(a);
+        AssertArc<1>(b);
+    }
+    
+#ifdef PD_DEBUG
     if constexpr ( assertQ && colorQ )
     {
         if( A_color[a] != A_color[b] )
@@ -55,6 +61,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
             TOOLS_LOGDUMP(ArcString(b));
         }
     }
+#endif
     
     const Int c = A_cross(b,headtail);
 
@@ -81,6 +88,13 @@ void Reconnect( const Int a, const Int b )
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));
     
+    if constexpr ( assertQ )
+    {
+        AssertArc<1>(a);
+        AssertArc<1>(b);
+    }
+    
+#ifdef PD_DEBUG
     if constexpr ( assertQ && colorQ )
     {
         if( A_color[a] != A_color[b] )
@@ -90,6 +104,7 @@ void Reconnect( const Int a, const Int b )
             TOOLS_LOGDUMP(ArcString(b));
         }
     }
+#endif
     
     const Int c = A_cross(b,headtail);
     
