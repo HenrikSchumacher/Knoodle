@@ -13,7 +13,6 @@ void load_c_0()
     
     // Whether the vertical strand at c_0 points upwards.
     u_0 = (C_arcs(c_0,Out,Right) == a);
-    // TODO: Use A_state[a].Side<Tail>()
     
     n_0 = C_arcs( c_0, !u_0,  Left  );
     s_0 = C_arcs( c_0,  u_0,  Right );
@@ -23,13 +22,12 @@ void load_c_0()
     AssertArc<1>(s_0);
     AssertArc<1>(w_0);
     
-
     PD_VALPRINT("c_0",CrossingString(c_0));
     PD_VALPRINT("n_0",ArcString(n_0));
     PD_VALPRINT("w_0",ArcString(w_0));
     PD_VALPRINT("s_0",ArcString(s_0));
     PD_VALPRINT("u_0",u_0);
-    // Remark: We are _not_ loading o_0 here, because this is not needed for the Reidemeister I moves. This may safe a cache miss.
+    // Remark: We are _not_ loading o_0 here, because this is not needed for the Reidemeister I moves. This may save a cache miss.
 }
 
 void load_c_1()
@@ -53,7 +51,7 @@ void load_c_1()
     PD_VALPRINT("s_1",ArcString(s_1));
     PD_VALPRINT("u_1",u_1);
     
-    // Remark: We are _not_ loading o_1 here, because this is not needed for the Reidemeister I moves. This may safe a cache miss.
+    // Remark: We are _not_ loading o_1 here, because this is not needed for the Reidemeister I moves. This may save a cache miss.
 }
 
 void load_c_2()
@@ -139,7 +137,10 @@ void load_c_2()
     //    (b_2 = 1)           (b_2 = 0)
     //
     
-    o_2 = (u_0 == (b_2 == CrossingRightHandedQ(c_2)));
+    c_2_state = pd.CrossingState(c_2);
+    o_2 = (u_0 == (b_2 == RightHandedQ(c_2_state)));
+    PD_ASSERT(c_2 == A_cross    (s_0,!u_0));
+    PD_ASSERT(o_2 == pd.ArcOverQ(s_0,!u_0));
     
     AssertArc<1>(e_2);
     AssertArc<1>(s_2);
@@ -237,8 +238,11 @@ void load_c_3()
     //    (b_3 = 0)           (b_3 = 1)
     //
     
-    o_3 = (u_0 == (b_3 == CrossingLeftHandedQ(c_3)));
-    
+    c_3_state = pd.CrossingState(c_3);
+    o_3 = (u_0 == (b_3 == LeftHandedQ(c_3_state)));
+    PD_ASSERT(c_3 == A_cross    (n_0,u_0));
+    PD_ASSERT(o_3 == pd.ArcOverQ(n_0,u_0));
+              
     AssertArc<1>(e_3);
     AssertArc<1>(n_3);
     AssertArc<1>(w_3);    

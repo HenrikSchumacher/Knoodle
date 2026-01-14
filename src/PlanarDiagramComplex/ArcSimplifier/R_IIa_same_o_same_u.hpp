@@ -51,7 +51,7 @@ bool R_IIa_same_o_same_u()
     {
         PD_PRINT("\t\t\ts_2 == w_3");
         
-        // TODO: In fact, two knots could be disconnect in this case.
+        // TODO: This is redundant if four_pattern_u was called before.
 /*
  *          +--------------+                                            +--------------+
  *          |              |                                            |              |
@@ -111,6 +111,8 @@ bool R_IIa_same_o_same_u()
                 *           w_2
                 */
                 
+                PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identitied as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+                
                 DeactivateArc(a);
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -134,6 +136,8 @@ bool R_IIa_same_o_same_u()
             
             PD_PRINT("\t\t\t\t\te_1 != n_3");
             PD_ASSERT(e_1 != n_3);
+            
+            // TODO: This is redundant if four_pattern_u was called before.
             
             /*
             *            +--------------+
@@ -160,6 +164,8 @@ bool R_IIa_same_o_same_u()
             *    +-------O<-------------+
             *           w_2
             */
+            
+            PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identitied as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
             
             Reconnect<Tail>(e_1,n_3);
             DeactivateArc(a);
@@ -205,6 +211,8 @@ bool R_IIa_same_o_same_u()
         if(e_1 == n_3)
         {
             PD_PRINT("\t\t\t\te_1 == n_3");
+            
+            // TODO: This is redundant if four_pattern_u was called before.
             
             /*
             *            +--------------+
@@ -342,7 +350,8 @@ bool R_IIa_same_o_same_u()
     if(w_2 == n_3)
     {
         PD_PRINT("\t\t\tw_2 == n_3");
-        
+  
+        // TODO: This is redundant if four_pattern_u was called before.
 /*
 *       w_3     n_3                        w_3                            w_3
 *  ########O   O ---------+       ########O                    ########O--------------+
@@ -368,7 +377,6 @@ bool R_IIa_same_o_same_u()
 *          |              |                                                |          |
 *          +--------------+                                                +----------+
 */
-        
         if(w_0 == w_3)
         {
             PD_PRINT("\t\t\t\tw_0 == w_3");
@@ -644,6 +652,7 @@ bool R_IIa_same_o_same_u()
     PD_PRINT("\t\t\t(s_2 != w_3) && (w_2 != n_3)");
     PD_ASSERT((s_2 != w_3) && (w_2 != n_3));
     
+    PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Delete 2 crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
 
     PD_ASSERT(n_0 != w_3);
     PD_ASSERT(s_0 != w_2);

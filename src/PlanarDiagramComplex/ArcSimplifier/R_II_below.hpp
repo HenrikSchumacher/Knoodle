@@ -11,7 +11,7 @@ bool R_II_below()
     
     // TODO: If the endpoints of n_0 and n_1 coincide, we can remove even 3 crossings by doing the unlocked Reidemeister I move.
     // TODO: Price: Load 1 additional crossing for test. Since a later R_I would remove the crossing anyways, this does not seem to be overly attractive.
-    // TODO: On the other hand: we need to reference to the two end point anyways to do the reconnecting right...
+    // TODO: On the other hand: we need to reference to the two end points anyways to do the reconnecting right...
     
     /*                n_0         n_1                    n_0         n_1
      *               |     a     |                      |     a     |
@@ -99,9 +99,7 @@ bool R_II_below()
                 }
             }
             
-            
             PD_DPRINT("\t\t\tw_3 != n_3");
-            
             
             /*              w_3 O   O n_3           w_3 O   O n_3
              *                   \ /                     \ /
@@ -303,9 +301,7 @@ bool R_II_below()
             PD_ASSERT(e_1 != s_1);
             
             Reconnect<Head>(w_0,e_1); // ... so this is safe.
-            
-            // The ifs above make this safe..
-            Reconnect(w_3,u_0,n_3);
+            Reconnect(w_3,u_0,n_3); // The ifs above make this safe..
             
             DeactivateArc(a);
             DeactivateArc(n_0);

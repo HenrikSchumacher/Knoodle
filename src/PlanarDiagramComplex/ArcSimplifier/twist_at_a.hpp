@@ -231,6 +231,9 @@ bool twist_at_a()
          * s_0 and n_1 are fused.
          */
         
+        // TODO: Perform the surgery
+        PD_NOTE(MethodName("twist_at_a")+": Detected a knot as connected summand.");
+        
         Reconnect<Head>(w_0,e_1);
         Reconnect(s_0,u_0 ,n_1);
         DeactivateArc(a  );
@@ -439,6 +442,9 @@ bool twist_at_a()
          */
          
         // Case B is fully analogous. I skip it.
+        
+        // TODO: Perform the surgery
+        PD_NOTE(MethodName("twist_at_a")+": Detected a knot as connected summand.");
                 
         Reconnect<Head>(w_0,e_1);
         Reconnect(n_0,!u_0,s_1);

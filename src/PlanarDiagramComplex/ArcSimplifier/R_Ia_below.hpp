@@ -27,7 +27,7 @@ bool R_Ia_below()
             {
                 PD_DPRINT("\t\t\tw_0 == e_1");
                 
-                wprint(MethodName("R_Ia_below")+": Split a Hopf link as connected component.");                
+                PD_NOTE(MethodName("R_Ia_below")+": Split a Hopf link as link component. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                 
                 DeactivateArc(w_0);
                 DeactivateArc(a);
@@ -36,14 +36,14 @@ bool R_Ia_below()
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
 
-                CreateHopfLinkFromArcs(a,n_0,true);
+                CreateHopfLinkFromArcs(a,n_0);
                 
                 return true;
             }
             
             PD_DPRINT("\t\t\tw_0 != e_1");
-            
-            wprint(MethodName("R_Ia_below")+": Disconnected a Hopf link as connected summand.");
+
+            PD_NOTE(MethodName("R_Ia_below")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
             
             Reconnect<Head>(w_0,e_1);
             DeactivateArc(a);
@@ -51,12 +51,11 @@ bool R_Ia_below()
             DeactivateArc(s_0);
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);
-            CreateHopfLinkFromArcs(a,n_0,false);
+            CreateHopfLinkFromArcs(a,n_0);
             
             return true;
         }
     }
-    
     
     load_c_2();
                         
@@ -70,7 +69,6 @@ bool R_Ia_below()
             
             if constexpr ( mult_compQ )
             {
-                // The following can only happen with more than one component.
                 if(w_2 == s_2)
                 {
                     PD_DPRINT("\t\t\t\tw_2 == s_2");
@@ -90,20 +88,37 @@ bool R_Ia_below()
                      *               |   |                     |   |
                      *               +---+                     +---+
                      */
+  
+                    PD_NOTE(MethodName("R_Ia_below")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     
-                    // TODO: We could disconnect-sum a Hopf link here.
-                    PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link as connected summand.");
-                    
-                    Reconnect(s_0,u_1,s_1);
+                    Reconnect<Head>(w_0,e_1);
+                    DeactivateArc(a);
+                    DeactivateArc(s_0);
+                    DeactivateArc(n_0);
+                    DeactivateArc(s_1);
                     DeactivateArc(w_2);
+                    
+                    CreateHopfLinkFromArcs(a,n_0);
+                    
+                    DeactivateCrossing(c_0);
+                    DeactivateCrossing(c_1);
                     DeactivateCrossing(c_2);
                     
-                    // TODO: Implement counters.
-//                    ++pd.R_I_counter;
-                    
                     return true;
+                    
+                    // TODO: TODO
+                    
+//                    Reconnect(s_0,u_1,s_1);
+//                    DeactivateArc(w_2);
+//                    DeactivateCrossing(c_2);
+//                    
+//                    // TODO: Implement counters.
+////                    ++pd.R_I_counter;
+//                    
+//                    return true;
                 }
-            }
+                
+            } // if constexpr ( mult_compQ )
             
             PD_DPRINT("\t\t\t\tw_2 != s_2");
             
@@ -121,7 +136,6 @@ bool R_Ia_below()
              *           w_2 O   O s_2             w_2 O   O s_2
              */
             
-            
             if( w_2 == w_0 )
             {
                 PD_DPRINT("\t\t\t\t\tw_2 == w_0");
@@ -130,7 +144,7 @@ bool R_Ia_below()
                 {
                     PD_DPRINT("\t\t\t\t\t\ts_2 == e_1");
 
-                    wprint(MethodName("R_Ia_below")+": Seldom case: detected an unlink (three crossings deleted.");
+                    PD_NOTE(MethodName("R_Ia_below")+": Seldom case: identified unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     
                     /*           +-----------+             +-----------+
                      *           |           |             |           |
@@ -164,7 +178,8 @@ bool R_Ia_below()
 
                 PD_DPRINT("\t\t\t\t\t\ts_2 != e_1");
                 
-                wprint(MethodName("R_Ia_below")+": Seldom case: three crossings deleted.");
+                PD_DPRINT(MethodName("R_Ia_below")+": Seldom case: three crossings deleted. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+
                 /*           +-----------+             +-----------+
                  *           |           |             |           |
                  *           |     a     |     or      |     a     |
@@ -200,7 +215,7 @@ bool R_Ia_below()
             {
                 PD_DPRINT("\t\t\t\t\t\ts_2 == e_1");
                 
-                wprint(MethodName("R_Ia_below")+": Seldom case: three crossings deleted.");
+                PD_DPRINT(MethodName("R_Ia_below")+": Seldom case: three crossings deleted. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                 
                 /*           +-----------+             +-----------+
                  *           |           |             |           |
@@ -233,6 +248,7 @@ bool R_Ia_below()
             
             PD_DPRINT("\t\t\t\t\t\ts_2 != e_1");
             
+            PD_PRINT(MethodName("R_Ia_below")+": Perform an R_Ia move. ( crossing_count = " + ToString(pd.crossing_count) + ")");
             
             /*  R_Ia move.
              *
@@ -387,8 +403,7 @@ bool R_Ia_below()
 
         PD_PRINT("\t\t\to_0 != o_2");
         
-        /*
-         *           +-----------+             +-----------+
+        /*           +-----------+             +-----------+
          *           |           |             |           |
          *           |     a     |             |     a     |
          *        -->----------->|-->       -->|---------->--->
@@ -400,18 +415,112 @@ bool R_Ia_below()
          *               O   O s_2                 O   O s_2
          */
         
-        // TODO: trefoil as connect summand detected
-//        // TODO: How to store/use this info?
-//        if( (w_0 == w_2) || (e_1 == s_2) )
-//        {
-////            PD_PRINT( "\t\t\t\t(w_0 == w_2) || (e_1 == s_2)" );
-//            
-//            logprint( "Detected a trefoil connected summand." );
-//
-//            return false;
-//        }
+        if( w_0 == w_2 )
+        {
+            PD_PRINT("\t\t\t\tw_0 == w_2");
+            
+            if( s_2 == e_1 )
+            {
+                PD_PRINT("\t\t\t\t\ts_2 == e_1");
+                
+                PD_NOTE(MethodName("R_Ia_below")+": Split a trefoil as link component. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+
+                /*           +-----------+             +-----------+
+                 *           |           |             |           |
+                 *           |     a     |             |     a     |
+                 *      +--->----------->|--->+   +--->|---------->---->+
+                 *      |    |c_0        |c_1 |   |    |c_0        |c_1 |
+                 *      |    O---O   O---O    |   |    O---O   O---O    |
+                 *      |         \ /         |   |         \ /         |
+                 *      |          \ c_2      |   |          /  c_2     |
+                 *      |         / \         |   |         / \         |
+                 *      +------->O   O--------+   +------->O   O--------+
+                 */
+                
+                DeactivateArc(a);
+                DeactivateArc(e_1);
+                DeactivateArc(s_0);
+                DeactivateArc(n_0);
+                DeactivateArc(s_1);
+                DeactivateArc(w_0);
+                
+                CreateTrefoilKnotFromArc(a,C_state[c_0]);
+                
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+                DeactivateCrossing(c_2);
+                
+                return true;
+            }
+            
+            PD_PRINT("\t\t\t\t\ts_2 != e_1");
+            
+            PD_NOTE(MethodName("R_Ia_below")+": Disconnect a trefoil as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+            
+            /*           +-----------+             +-----------+
+             *           |           |             |           |
+             *           |     a     |             |     a     |
+             *      +--->----------->|-->     +--->|---------->--->
+             *      |    |c_0        |c_1     |    |c_0        |c_1
+             *      |    O---O   O---O        |    O---O   O---O
+             *      |         \ /             |         \ /
+             *      |          \ c_2          |          /  c_2
+             *      |         / \             |         / \
+             *      +------->O   O s_2        +------->O   O s_2
+             */
+
+            Reconnect<Head>(s_2,e_1);
+            DeactivateArc(s_0);
+            DeactivateArc(n_0);
+            DeactivateArc(s_1);
+            DeactivateArc(w_0);
+            DeactivateArc(a  );
+            
+            CreateTrefoilKnotFromArc(a,C_state[c_0]);
+            
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            DeactivateCrossing(c_2);
+            
+            return true;
+        }
         
-        return false;
+        PD_PRINT("\t\t\t\tw_0 != w_2");
+        
+        if( s_2 == e_1 )
+        {
+            PD_PRINT("\t\t\t\t\ts_2 == e_1");
+            
+            PD_NOTE(MethodName("R_Ia_below")+": Disconnect a trefoil as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+            
+            /*           +-----------+             +-----------+
+             *           |           |             |           |
+             *           |     a     |             |     a     |
+             *        -->----------->|--->+     -->|---------->---->+
+             *           |c_0        |c_1 |        |c_0        |c_1 |
+             *           O---O   O---O    |        O---O   O---O    |
+             *                \ /         |             \ /         |
+             *                 \ c_2      |              /  c_2     |
+             *                / \         |             / \         |
+             *           w_2 O   O--------+        w_2 O   O--------+
+             */
+
+            Reconnect<Head>(w_0,w_2);
+            DeactivateArc(a  );
+            DeactivateArc(e_1);
+            DeactivateArc(s_0);
+            DeactivateArc(n_0);
+            DeactivateArc(s_1);
+            
+            CreateTrefoilKnotFromArc(a,C_state[c_0]);
+            
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
+            DeactivateCrossing(c_2);
+            
+            return true;
+        }
+
     }
     
     // This can only happen, if the planar diagram has multiple components!
@@ -420,14 +529,10 @@ bool R_Ia_below()
         if(w_2 == s_1)
         {
             PD_PRINT("\t\tw_2 == s_1");
-             
             
             if(e_2 == s_2)
             {
                 PD_PRINT("\t\t\te_2 == s_2");
-                
-                // TODO: We could disconnect-sum a Hopf link here.
-                PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link as connected summand.");
                 
                 /*           +-----------+             +-----------+
                  *           |           |             |           |
@@ -440,72 +545,185 @@ bool R_Ia_below()
                  *           +---O   O---+             +---O   O---+
                  */
                 
-                Reconnect(s_0,u_1,s_1);
+                if( w_0 == e_1 )
+                {
+                    PD_PRINT("\t\t\t\tw_0 == e_1");
+                    
+                    PD_NOTE(MethodName("R_Ia_below")+": Split a Hopf link as link component. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+                    
+                    DeactivateArc(w_0);
+                    DeactivateArc(a);
+                    DeactivateArc(s_0);
+                    DeactivateArc(n_0);
+                    DeactivateArc(s_1);
+                    DeactivateArc(e_2);
+                    
+                    CreateHopfLinkFromArcs(a,n_0);
+                    
+                    DeactivateCrossing(c_0);
+                    DeactivateCrossing(c_1);
+                    DeactivateCrossing(c_2);
+                    
+                    return true;
+                }
+                
+                PD_PRINT("\t\t\t\tw_0 != e_1");
+                
+                PD_NOTE(MethodName("R_Ia_below")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+                
+                Reconnect<Head>(w_0,e_1);
+                DeactivateArc(a);
+                DeactivateArc(s_0);
+                DeactivateArc(n_0);
+                DeactivateArc(s_1);
                 DeactivateArc(e_2);
+                
+                CreateHopfLinkFromArcs(a,n_0);
+                
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 DeactivateCrossing(c_2);
                 
-                // TODO: Implement counters.
-//                ++pd.R_I_counter;
-                
                 return true;
+                
+                
+                // This is the old version that did just the Reidemeister I move.
+//                Reconnect(s_0,u_1,s_1);
+//                DeactivateArc(e_2);
+//                DeactivateCrossing(c_2);
+//                
+//                // TODO: Implement counters.
+////                ++pd.R_I_counter;
+                
+                
             }
             
             PD_DPRINT("\t\t\te_2 != s_2");
             
-            PD_PRINT(MethodName("R_Ia_below")+": Detected a Hopf link and a knot as connected summands.");
+            if( w_0 == e_1 )
+            {
+                PD_PRINT("\t\t\t\tw_0 == e_1");
+                
+                PD_NOTE(MethodName("R_Ia_below")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+                
+                /*      +---------------------+   +---------------------+
+                 *      |                     |   |                     |
+                 *      |                     |   |                     |
+                 *      |    +-----------+    |   |    +-----------+    |
+                 *      |    |           |    |   |    |           |    |
+                 *      | c_0|     a     |c_1 |   | c_0|     a     |c_1 |
+                 *      +--->----------->|--->+   +--->|---------->---->+
+                 *           O   O###O   O             O   O###O   O
+                 *           | e_2\ /s_2 |             |    \ /    |
+                 *       s_0 |     X c_2 | s_1         |     X c_2 | s_1
+                 *           |    / \    | w_2         |    / \    |
+                 *           +---O   O---+             +---O   O---+
+                 */
+                
+                Reconnect(e_2,u_1,s_2);
+                DeactivateArc(s_1);
+                DeactivateArc(n_0);
+                DeactivateArc(s_0);
+                DeactivateArc(w_0);
+                DeactivateArc(a  );
+                
+                CreateHopfLinkFromArcs(n_0,a);
             
-            /* Two further interesting cases.
-             *
-             *           +-----------+             +-----------+
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
+                DeactivateCrossing(c_2);
+                
+                return true;
+            }
+            
+            PD_PRINT("\t\t\t\t\tw_0 != e_1");
+            
+            PD_NOTE(MethodName("R_Ia_below")+": Disconnect a Hopf link and some further subdiagram as connected summands. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+            
+            /*           +-----------+             +-----------+
              *           |           |             |           |
              *        c_0|     a     |c_1       c_0|     a     |c_1
-             *        -->----------->|-->       -->|---------->--->
+             *       --->----------->|--->     --->|---------->---->
              *           O   O###O   O             O   O###O   O
              *           | e_2\ /s_2 |             |    \ /    |
-             *       s_0 |     X c_2 | s_1         |     X c_2 | s_1
-             *           |    / \    | w_2         |    / \    |
+             *       s_0 |     X c_2 | s_1     s_0 |     X c_2 | s_1
+             *           |    / \    | w_2         |    / \    | w_2
              *           +---O   O---+             +---O   O---+
-             *
-             *      These can be rerouted to the following two situations:
-             *           +-----------+             +-----------+
-             *           |           |             |           |
-             *        c_0|     a     |c_1       c_0|     a     |c_1
-             *        -->----------->|-->       -->|---------->--->
-             *           O   +-------O             O   +-------O
-             *           |   |     s_1             |   |     s_1
-             *       s_0 |   O###O             s_0 |   O###O
-             *           |       |                 |       |
-             *           +-------+                 +-------+
-             *
-             *      No matter how c_2 is handed, we fuse s_0 and s_1 with their opposite arcs accross c_2 and deactivate c_2.
-             *
-             *      This will probably happen seldomly.
              */
             
-            Reconnect(s_0,!u_0,s_2);
-            Reconnect(s_1,!u_1,e_2);
+            Reconnect(e_2,u_1,s_2); // This disconnects the knotted part between e_2 and s_2.
+            // The knot now resides as a diagram component in the planar diagram so that it can be  split off by a future split pass. The coloring makes it clear that it is not really a split link component, but a connected summand.
+            
+            Reconnect<Head>(w_0,e_1); // This disconnects the Hopf link.
+            DeactivateArc(s_1);
+            DeactivateArc(n_0);
+            DeactivateArc(s_0);
+            DeactivateArc(a  );
+            
+            CreateHopfLinkFromArcs(n_0,a);
+        
+            DeactivateCrossing(c_0);
+            DeactivateCrossing(c_1);
             DeactivateCrossing(c_2);
             
-            // TODO: Implement counters.
-//            ++pd.twist_counter;
-            
-            AssertArc<1>(a  );
-            AssertArc<1>(n_0);
-            AssertArc<1>(s_0);
-            AssertArc<1>(w_0);
-            AssertArc<1>(n_1);
-            AssertArc<1>(e_1);
-            AssertArc<1>(s_1);
-            AssertArc<0>(e_2);
-            AssertArc<0>(s_2);
-            AssertArc<0>(w_2);
-            AssertCrossing<1>(c_0);
-            AssertCrossing<1>(c_1);
-            AssertCrossing<0>(c_2);
-            
             return true;
+            
+//            /* Two further interesting cases.
+//             *
+//             *           +-----------+             +-----------+
+//             *           |           |             |           |
+//             *        c_0|     a     |c_1       c_0|     a     |c_1
+//             *        -->----------->|-->       -->|---------->--->
+//             *           O   O###O   O             O   O###O   O
+//             *           | e_2\ /s_2 |             |    \ /    |
+//             *       s_0 |     X c_2 | s_1         |     X c_2 | s_1
+//             *           |    / \    | w_2         |    / \    |
+//             *           +---O   O---+             +---O   O---+
+//             *
+//             *      These can be rerouted to the following two situations:
+//             *           +-----------+             +-----------+
+//             *           |           |             |           |
+//             *        c_0|     a     |c_1       c_0|     a     |c_1
+//             *        -->----------->|-->       -->|---------->--->
+//             *           O   +-------O             O   +-------O
+//             *           |   |     s_1             |   |     s_1
+//             *       s_0 |   O###O             s_0 |   O###O
+//             *           |       |                 |       |
+//             *           +-------+                 +-------+
+//             *
+//             *      No matter how c_2 is handed, we fuse s_0 and s_1 with their opposite arcs accross c_2 and deactivate c_2.
+//             *
+//             *      This will probably happen seldomly.
+//             */
+//            
+//            Reconnect(s_0,!u_0,s_2);
+//            Reconnect(s_1,!u_1,e_2);
+//            DeactivateCrossing(c_2);
+//            
+//            // TODO: Implement counters.
+////            ++pd.twist_counter;
+//            
+//            AssertArc<1>(a  );
+//            AssertArc<1>(n_0);
+//            AssertArc<1>(s_0);
+//            AssertArc<1>(w_0);
+//            AssertArc<1>(n_1);
+//            AssertArc<1>(e_1);
+//            AssertArc<1>(s_1);
+//            AssertArc<0>(e_2);
+//            AssertArc<0>(s_2);
+//            AssertArc<0>(w_2);
+//            AssertCrossing<1>(c_0);
+//            AssertCrossing<1>(c_1);
+//            AssertCrossing<0>(c_2);
+//            
+//            return true;
         }
-    }
+        
+        
+        PD_PRINT("\t\tw_2 != s_1");
+        
+    } // if constexpr( mult_compQ )
 
     return false;
 }

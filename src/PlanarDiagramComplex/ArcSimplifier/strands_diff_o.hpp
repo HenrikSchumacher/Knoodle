@@ -30,41 +30,77 @@ bool strands_diff_o()
     load_c_2();
     load_c_3();
     
-    //Check for Reidemeister IIa move.
-    if(
-        (e_3 == n_1) && (e_2 == s_1) && (o_2 == o_3) && ( (o_2 == o_0) || (o_2 != o_1) )
-    )
+    
+    //Check for 4-crossing patterns
+    if( (e_3 == n_1) && (e_2 == s_1) )
     {
-        /* Example: o_0, o_2, o_3 are the same
-         *
-         *          w_3 O   O n_3
+        /*          w_3 O   O n_3
          *               \ /
-         *                / c_3
+         *                X c_3
          *               / \
          *              O   O
          *             /     \
          *        n_0 /       \ n_1
          *           O         O
          *           |    a    |
-         *    w_0 O--|->O-->O---->O e_1
+         *    w_0 O--X->O-->O--X->O e_1
          *           |c_0      |c_1
          *           O         O
          *        s_0 \       / s_1
          *             \     /
          *              O   O
          *               \ /
-         *                \ c_2
+         *                X c_2
          *               / \
          *          w_2 O   O s_2
          */
         
-        if(u_0 == u_1)
+        PD_ASSERT(w_0 != e_1) // We checked that in a_is_2loop
+        
+//        PD_PRINT("\t\tw_3 != s_2");
+        
+        //Check for Reidemeister IIa move.
+        if( (o_2 == o_3) && ( (o_2 == o_0) || (o_2 != o_1) ) )
         {
-            return R_IIa_diff_o_same_u();
-        }
-        else
-        {
-            return R_IIa_diff_o_diff_u();
+            /* Example: o_0, o_2, o_3 are the same
+             *
+             *          w_3 O   O n_3
+             *               \ /
+             *                / c_3
+             *               / \
+             *              O   O
+             *             /     \
+             *        n_0 /       \ n_1
+             *           O         O
+             *           |    a    |
+             *    w_0 O--|->O-->O---->O e_1
+             *           |c_0      |c_1
+             *           O         O
+             *        s_0 \       / s_1
+             *             \     /
+             *              O   O
+             *               \ /
+             *                \ c_2
+             *               / \
+             *          w_2 O   O s_2
+             */
+            
+            if(u_0 == u_1)
+            {
+                if constexpr ( allow_four_patternQ )
+                {
+                    if( four_pattern_same_u() )
+                    {
+                        return true;
+                    }
+                }
+                
+                return R_IIa_diff_o_same_u();
+            }
+            else
+            {
+                return R_IIa_diff_o_diff_u();
+            }
         }
     }
 

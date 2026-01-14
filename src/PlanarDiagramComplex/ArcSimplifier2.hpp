@@ -33,11 +33,11 @@ namespace Knoodle
         using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
-        static constexpr bool mult_compQ = mult_compQ_;
-        
-        static constexpr bool allow_disconnectsQ = true;
-        
-        static constexpr Int optimization_level = optimization_level_;
+        static constexpr bool mult_compQ          = mult_compQ_;
+        static constexpr Int  optimization_level  = optimization_level_;
+        static constexpr bool allow_disconnectsQ  = true;
+        static constexpr bool allow_four_patternQ = true;
+//        static constexpr bool allow_four_patternQ = false;
         
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Tail  = PD_T::Tail;
@@ -94,6 +94,12 @@ namespace Knoodle
         Int w_3;
         
         Size_T test_count = 0;
+
+        // Whether the crossing is right-handed
+        CrossingState_T c_0_state;
+        CrossingState_T c_1_state;
+        CrossingState_T c_2_state;
+        CrossingState_T c_3_state;
         
         // Whether the vertical strand at corresponding crossing goes over.
         bool o_0;
@@ -107,7 +113,9 @@ namespace Knoodle
         
     public:
         
-        ArcSimplifier2( mref<PDC_T> pdc_, mref<PD_T> pd_, const Size_T max_iter_, const bool compressQ_ )
+        ArcSimplifier2(
+           mref<PDC_T> pdc_, mref<PD_T> pd_, const Size_T max_iter_, const bool compressQ_
+        )
         :   pdc      { pdc_       }
         ,   pd       { pd_        }
         ,   C_arcs   { pd.C_arcs  }
@@ -148,7 +156,10 @@ namespace Knoodle
             Size_T counter = 0;
             Size_T iter = 0;
             
-            const Int max_arc_count = pd.max_arc_count;
+            if( pd.ArcCount() < pd.MaxCrossingCount() )
+            {
+                pd.Compress();
+            }
             
             if( iter < max_iter )
             {
@@ -157,29 +168,40 @@ namespace Knoodle
                     ++iter;
                     old_counter = counter;
                     
+                    const Int max_arc_count = pd.max_arc_count;
+                   
                     for( Int arc = 0; arc < max_arc_count; ++arc )
                     {
+                        if( pd.arc_count <= Int(0) ) { break; }
+                        
                         counter += ProcessArc(arc);
                     }
+                    
+                    if( pd.arc_count <= Int(0) ) { break; }
         
                     // We could recompress also here...
                 }
                 while( (counter != old_counter) && (iter < max_iter) );
             }
-                
+            
+            if( pd.InvalidQ() ) { return counter; }
+            
             if( counter > Size_T(0) )
             {
-                pd.ClearCache();
-                
-                if( compressQ  )
+                if( compressQ )
                 {
-                    pd = pd.CreateCompressed();
+                    pd.ConditionalCompress();
+                }
+                else
+                {
+                    pd.ClearCache();
                 }
             }
-            
+                
             if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
             {
                 pd.proven_minimalQ = true;
+                //Maybe do pd = PD_T::Unknot( pd.LastColorDeactivated() )?
             }
             
             return counter;
@@ -190,224 +212,34 @@ namespace Knoodle
             return test_count;
         }
         
-    private:
-        
-        bool ProcessArc( const Int a_ )
-        {
-            if( !pd.ArcActiveQ(a_) ) return false;
-            
-            ++test_count;
-            a = a_;
-            
-            PD_PRINT( "===================================================" );
-            PD_PRINT( "Simplify a = " + ArcString(a) );
-            
-            AssertArc<1>(a);
-
-            c_0 = A_cross(a,Tail);
-            AssertCrossing<1>(c_0);
-            
-            c_1 = A_cross(a,Head);
-            AssertCrossing<1>(c_1);
-            
-            load_c_0();
-            
-            /*              n_0
-             *               O
-             *               |
-             *       w_0 O---X-->O a
-             *               |c_0
-             *               O
-             *              s_0
-             */
-            
-            // Check for Reidemeister I move
-            if( R_I_center() )
-            {
-                PD_VALPRINT( "a  ", ArcString(n_0) );
-                
-                PD_VALPRINT( "c_0", CrossingString(c_0) );
-                PD_VALPRINT( "n_0", ArcString(n_0) );
-                PD_VALPRINT( "s_0", ArcString(s_0) );
-                PD_VALPRINT( "w_0", ArcString(w_0) );
-                
-                return true;
-            }
-             
-            if constexpr ( optimization_level < 2 )
-            {
-                return false;
-            }
-            
-            load_c_1();
-            
-            /*              n_0           n_1
-             *               O             O
-             *               |      a      |
-             *       w_0 O---X---O---->O---X-->O e_1
-             *               |c_0          |c_1
-             *               O             O
-             *              s_0           s_1
-             */
-            
-            // We want to check for twist move _before_ Reidemeister I because the twist move can remove both crossings.
-            
-            if( twist_at_a() )
-            {
-                PD_VALPRINT( "a  ", ArcString(n_0) );
-                
-                PD_VALPRINT( "c_0", CrossingString(c_0) );
-                PD_VALPRINT( "n_0", ArcString(n_0) );
-                PD_VALPRINT( "s_0", ArcString(s_0) );
-                PD_VALPRINT( "w_0", ArcString(w_0) );
-                
-                PD_VALPRINT( "c_1", CrossingString(c_1) );
-                PD_VALPRINT( "n_1", ArcString(n_1) );
-                PD_VALPRINT( "e_1", ArcString(e_1) );
-                PD_VALPRINT( "s_1", ArcString(s_1) );
-                
-                return true;
-            }
-
-            // Next we check for Reidemeister_I at crossings c_0 and c_1.
-            // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
-            
-            if( R_I_left() )
-            {
-                PD_VALPRINT( "a  ", ArcString(n_0) );
-                
-                PD_VALPRINT( "c_0", CrossingString(c_0) );
-                PD_VALPRINT( "n_0", ArcString(n_0) );
-                PD_VALPRINT( "s_0", ArcString(s_0) );
-                PD_VALPRINT( "w_0", ArcString(w_0) );
-                
-                PD_VALPRINT( "c_1", CrossingString(c_1) );
-                PD_VALPRINT( "n_1", ArcString(n_1) );
-                PD_VALPRINT( "e_1", ArcString(e_1) );
-                PD_VALPRINT( "s_1", ArcString(s_1) );
-                
-                return true;
-            }
-            
-            if( R_I_right() )
-            {
-                PD_VALPRINT( "a  ", ArcString(n_0) );
-                
-                PD_VALPRINT( "c_0", CrossingString(c_0) );
-                PD_VALPRINT( "n_0", ArcString(n_0) );
-                PD_VALPRINT( "s_0", ArcString(s_0) );
-                PD_VALPRINT( "w_0", ArcString(w_0) );
-                
-                PD_VALPRINT( "c_1", CrossingString(c_1) );
-                PD_VALPRINT( "n_1", ArcString(n_1) );
-                PD_VALPRINT( "e_1", ArcString(e_1) );
-                PD_VALPRINT( "s_1", ArcString(s_1) );
-                
-                return true;
-            }
-            
-            // Neglecting asserts, this is the only time we access C_state[c_0].
-            // Find out whether the vertical strand at c_0 goes over.
-            o_0 = ( u_0 == CrossingLeftHandedQ(c_0) );
-            PD_VALPRINT("o_0", o_0);
-            
-            // Neglecting asserts, this is the only time we access C_state[c_1].
-            // Find out whether the vertical strand at c_1 goes over.
-            o_1 = ( u_1 == CrossingLeftHandedQ(c_1) );
-            PD_VALPRINT("o_1", o_1);
-
-            // Deal with the case that a is part of a loop of length 2.
-            // This can only occur if  the diagram has a more than one component.
-            if constexpr( mult_compQ )
-            {
-                // This requires o_0 and o_1 to be defined already.
-                if(a_is_2loop())
-                {
-                    PD_VALPRINT( "a  ", ArcString(n_0) );
-                    
-                    PD_VALPRINT( "c_0", CrossingString(c_0) );
-                    PD_VALPRINT( "n_0", ArcString(n_0) );
-                    PD_VALPRINT( "s_0", ArcString(s_0) );
-                    PD_VALPRINT( "w_0", ArcString(w_0) );
-                    
-                    PD_VALPRINT( "c_1", CrossingString(c_1) );
-                    PD_VALPRINT( "n_1", ArcString(n_1) );
-                    PD_VALPRINT( "e_1", ArcString(e_1) );
-                    PD_VALPRINT( "s_1", ArcString(s_1) );
-                    
-                    return true;
-                }
-            }
-            
-            if(o_0 == o_1)
-            {
-                /*       |     a     |             |     a     |
-                 *    -->|---------->|-->   or  -->----------->--->
-                 *       |c_0        |c_1          |c_0        |c_1
-                 */
-                
-                // Attempt the moves that rely on the vertical strands being both on top or both below the horizontal strand.
-                if( strands_same_o() )
-                {
-                    PD_VALPRINT( "a  ", ArcString(a) );
-                    
-                    PD_VALPRINT( "c_0", CrossingString(c_0) );
-                    PD_VALPRINT( "n_0", ArcString(n_0) );
-                    PD_VALPRINT( "s_0", ArcString(s_0) );
-                    PD_VALPRINT( "w_0", ArcString(w_0) );
-                    
-                    PD_VALPRINT( "c_1", CrossingString(c_1) );
-                    PD_VALPRINT( "n_1", ArcString(n_1) );
-                    PD_VALPRINT( "e_1", ArcString(e_1) );
-                    PD_VALPRINT( "s_1", ArcString(s_1) );
-                    
-                    return true;
-                }
-            }
-            else
-            {
-                /*       |     a     |             |     a     |
-                 *    -->|---------->--->   or  -->----------->|-->
-                 *       |c_0        |c_1          |c_0        |c_1
-                 */
-        
-                // Attempt the moves that rely on the vertical strands being separated by the horizontal strand.
-                if( strands_diff_o() )
-                {
-                    PD_VALPRINT( "a  ", ArcString(a) );
-        
-                    PD_VALPRINT( "c_0", CrossingString(c_0) );
-                    PD_VALPRINT( "n_0", ArcString(n_0) );
-                    PD_VALPRINT( "s_0", ArcString(s_0) );
-                    PD_VALPRINT( "w_0", ArcString(w_0) );
-        
-                    PD_VALPRINT( "c_1", CrossingString(c_1) );
-                    PD_VALPRINT( "n_1", ArcString(n_1) );
-                    PD_VALPRINT( "e_1", ArcString(e_1) );
-                    PD_VALPRINT( "s_1", ArcString(s_1) );
-        
-                    return true;
-                }
-            }
-            
-            AssertArc<1>(a);
-            
-            return false;
-        }
-        
         void CreateUnlinkFromArc( const Int a_ )
         {
+            PD_NOTE(MethodName("CreateUnlinkFromArc"));
             pdc.CreateUnlinkFromArc(pd,a_);
         }
         
-        void CreateHopfLinkFromArcs( const Int a_0, const Int a_1, const bool splitQ )
+        void CreateHopfLinkFromArcs( const Int a_0, const Int a_1 )
         {
-            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1,splitQ);
+            PD_NOTE(MethodName("CreateHopfLinkFromArcs"));
+            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1);
+        }
+        
+        void CreateTrefoilKnotFromArc( const Int a_, const CrossingState_T c_state )
+        {
+            PD_NOTE(MethodName("CreateTrefoilKnotFromArc"));
+            pdc.CreateTrefoilKnotFromArc(pd,a_,c_state);
+        }
+        
+        void CreateFigureEightKnotFromArc( const Int a_ )
+        {
+            PD_NOTE(MethodName("CreateFigureEightKnotFromArc"));
+            pdc.CreateFigureEightKnotFromArc(pd,a_);
         }
         
     private:
   
 #include "ArcSimplifier/Helpers.hpp"
+#include "ArcSimplifier/ProcessArc.hpp"
 #include "ArcSimplifier/load.hpp"
 #include "ArcSimplifier/a_is_2loop.hpp"
 #include "ArcSimplifier/twist_at_a.hpp"
@@ -420,6 +252,7 @@ namespace Knoodle
 #include "ArcSimplifier/R_Ia_below.hpp"
 #include "ArcSimplifier/R_II_above.hpp"
 #include "ArcSimplifier/R_II_below.hpp"
+#include "ArcSimplifier/four_pattern_u.hpp"
 #include "ArcSimplifier/R_IIa_same_o_same_u.hpp"
 #include "ArcSimplifier/R_IIa_same_o_diff_u.hpp"
 #include "ArcSimplifier/R_IIa_diff_o_same_u.hpp"
@@ -434,7 +267,10 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("ArcSimplifier2") + "<" + TypeName<Int> + "," + ToString(mult_compQ) + ">";
+            return ct_string("ArcSimplifier2")
+                + "<" + TypeName<Int>
+                + "," + ToString(optimization_level)
+                + "," + ToString(mult_compQ) + ">";
         }
 
     }; // class ArcSimplifier

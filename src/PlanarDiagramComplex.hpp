@@ -66,11 +66,10 @@ namespace Knoodle
         
         // Class data members
         PDList_T pd_list;
-        PDList_T pd_list_new;
-        
-//        Int color_count;
-        
-        ColorCounts_T colored_unlinkQ;
+        PDList_T pd_todo;
+        PDList_T pd_done;
+//
+//        ColorCounts_T colored_unlinkQ;
         
         PD_T invalid_diagram { PD_T::InvalidDiagram() };
         
@@ -92,41 +91,34 @@ namespace Knoodle
  
         PlanarDiagramComplex( PD_T && pd, Int unlink_count )
         {
-            pd_list.reserve( ToSize_T(unlink_count) + Size_T(pd.ValidQ()) );
+            const bool validQ = pd.ValidQ();
+            
+            pd_list.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
+            pd_done.reserve( ToSize_T(unlink_count) );
+            
             Int max_color = 0;
             
-            for( auto & x : pd.color_arc_counts )
+            if( validQ )
             {
-                max_color = Max( max_color, x.second );
-                colored_unlinkQ[x.first] = 0;
+                ColorCounts_T color_arc_counts = pd.ColorArcCounts();
+             
+                for( auto & x : color_arc_counts )
+                {
+                    max_color = Max( max_color, x.first );
+                }
             }
             
-            PushDiagram( std::move(pd) );
+            pd_done.push_back( std::move(pd) );
             
             for( Int unlink = 0; unlink < unlink_count; ++unlink )
             {
-                (void)CreateUnlink(max_color + unlink + 1);
+                CreateUnlink( max_color + unlink + validQ );
             }
             
-            JoinLists();
+            swap(pd_done,pd_list);
         }
         
-        
-        bool PushDiagram( PD_T && pd )
-        {
-            if( pd.ValidQ() )
-            {
-                pd_list.push_back( std::move(pd) );
-                return true;
-            }
-            else
-            {
-                // DEBUGGING
-                wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram. Doing nothing.");
-                
-                return false;
-            }
-        }
+    
         
         explicit PlanarDiagramComplex( std::pair<PD_T,Int> && pd_and_unlink_count )
         :   PlanarDiagramComplex(
@@ -145,10 +137,10 @@ namespace Knoodle
             
     public:
         
-        Int ColorCount() const
-        {
-            return static_cast<Int>(colored_unlinkQ.size());
-        }
+//        // TODO: Not so easy, as this requries a census.
+//        Int ColorCount() const
+//        {
+//        }
             
         Int DiagramCount() const
         {
@@ -174,6 +166,38 @@ namespace Knoodle
             return pd_list[Size_T(i)];
         }
         
+        ColorCounts_T ColorArcCounts() const
+        {
+            ColorCounts_T color_arc_counts;
+            
+            for( const PD_T & pd : pd_list )
+            {
+                if( pd.ValidQ() )
+                {
+                    const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
+                    
+                    for( const auto & x : pd_color_arc_counts )
+                    {
+                        if( color_arc_counts.contains(x.first) )
+                        {
+                            color_arc_counts[x.first] += x.second;
+                        }
+                        else
+                        {
+                            color_arc_counts[x.first]  = x.second;
+                        }
+                    }
+                }
+            }
+            return color_arc_counts;
+        }
+        
+        Int ColorCount() const
+        {
+            return int_cast<int>(ColorArcCounts().size());
+        }
+        
+        
         Int CrossingCount() const
         {
             Int crossing_count = 0;
@@ -187,80 +211,24 @@ namespace Knoodle
         }
         
         
-        bool ColorExistsQ( const Int color ) const
-        {
-            return colored_unlinkQ.contains(color);
-        }
-        
-        
     private:
         
-        bool CreateUnlink( const Int color )
+        // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
+        void CreateUnlink( const Int color )
         {
-            if( !ColorExistsQ(color) )
-            {
-                eprint(MethodName("CreateUnlink") + ": Invalid input color " + ToString(color) + ". Doing nothing");
-                
-                return false;
-            }
-            
-            // Make sure to create an unlink to `pd_list` only if there is no other unlink of the same color already.
-            if( colored_unlinkQ[color] )
-            {
-                return false;
-            }
-            else
-            {
-                // Records unlinks twice: once in pd_list and once in colored_unlinkQ.
-                // Not sure whether I like this design.
-                colored_unlinkQ[color] = Int(1);
-                
-                pd_list_new.push_back( PD_T::Unknot(color) );
-                return true;
-            }
+            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
+ 
+            pd_done.push_back( PD_T::Unknot(color) );
         }
         
         void CreateUnlinkFromArc( PD_T & pd, const Int a )
         {
             TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
             
+            PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
-            const Int a_color = pd.A_color[a];
             
-            PD_ASSERT( pd.color_arc_counts.contains(a_color) );
-            
-            // If there are no arcs of that color left in pd, then we tell it to forget that color.
-            if( pd.color_arc_counts[a_color] == Int(0) )
-            {
-                pd.color_arc_counts.erase( a_color );
-            }
-            else
-            {
-                // DEBUGGING
-                wprint(MethodName("CreateUnlinkFromArc") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
-            }
-                
-            CreateUnlink(a_color) ;
-        }
-        
-        bool CreateHopfLink( const Int color_0, const Int color_1 )
-        {
-            if( !ColorExistsQ(color_0) )
-            {
-                eprint(MethodName("CreateHopfLink") + ": Invalid input color " + ToString(color_0) + ". Doing nothing");
-                
-                return false;
-            }
-            
-            if( !ColorExistsQ(color_1) )
-            {
-                eprint(MethodName("CreateHopfLink") + ": Invalid input color " + ToString(color_1) + ". Doing nothing");
-                
-                return false;
-            }
-            
-            pd_list_new.push_back( PD_T::HopfLink(color_0,color_1) );
-            return true;
+            CreateUnlink(pd.A_color[a]) ;
         }
         
         /*!@brief Create a new Hopf link `in pd_list-new`.
@@ -270,70 +238,76 @@ namespace Knoodle
          * @param a_0 First edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
          *
          * @param a_1 Second edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
-         *
-         * @param splitQ If `splitQ == true`, then we assume that the Hopf link was not connect to the remainder of the diagram pd. If `splitQ == false`, then we assume that arc `a_0` was connected to the remaining diagram. This is important for the management of color counts.
          */
-        void CreateHopfLinkFromArcs(
-            PD_T & pd, const Int a_0, const Int a_1, const bool splitQ
-        )
+        void CreateHopfLinkFromArcs( PD_T & pd, const Int a_0, const Int a_1 )
         {
             TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
             
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
-            
-            const Int a_0_color = pd.A_color[a_0];
-            const Int a_1_color = pd.A_color[a_1];
-            
-            TOOLS_LOGDUMP(pd.A_color);
-            logvalprint("pd.color_arc_counts",Knoodle::ToString(pd.color_arc_counts));
-            
-            PD_ASSERT( pd.color_arc_counts.contains(a_0_color) );
-            PD_ASSERT( pd.color_arc_counts.contains(a_1_color) );
 
-            // If there are no arcs of that color left in pd, then we tell it to forget that color.
-            if( pd.color_arc_counts[a_0_color] == Int(0) )
-            {
-                pd.color_arc_counts.erase( a_0_color );
-            }
-            else
-            {
-                // DEBUGGING
-                
-                if( !splitQ )
-                {
-                    wprint(MethodName("CreateHopfLinkFromArcs") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
-                }
-            }
-            if( pd.color_arc_counts[a_1_color] == Int(0) )
-            {
-                pd.color_arc_counts.erase( a_1_color );
-            }
-            else
-            {
-                // DEBUGGING
-                wprint(MethodName("CreateHopfLinkFromArcs") +": There are arcs with the same color left in the same planar diagram; probably something went wrong.");
-            }
-                
-            CreateHopfLink(a_0_color,a_1_color) ;
+            pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1]) );
+        }
+        
+        
+        /*!@brief Create a new trefoil knot `in pd_list-new`.
+         *
+         * @param pd The diagram we are working with.
+         *
+         * @param a Edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
+         *
+         * @param handedness The handedness of the trefoil to create.
+         */
+        void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
+        {
+            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+            
+            pd.template AssertArc<0>(a);
+
+            pd_done.push_back( PD_T::TrefoilKnot(pd.A_color[a],handedness) );
+        }
+        
+        /*!@brief Create a new figure-eight knot `in pd_list-new`.
+         *
+         * @param pd The diagram we are working with.
+         *
+         * @param a Edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
+         */
+        void CreateFigureEightKnotFromArc( PD_T & pd, const Int a )
+        {
+            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
+            
+            pd.template AssertArc<0>(a);
+
+            pd_done.push_back( PD_T::FigureEightKnot(pd.A_color[a]) );
         }
         
     private:
         
-        // TODO: Check where this is used. Usually, there is a better way to do this.
-        void JoinLists()
+        void PushDiagram( PD_T && pd )
         {
-            PD_TIMER(timer,MethodName("JoinLists"));
-            for( PD_T & pd : pd_list_new )
+            if( pd.ValidQ() )
             {
-                if( pd.ValidQ() )
-                {
-                    pd_list.push_back(std::move(pd));
-                }
+                pd_list.push_back( std::move(pd) );
             }
-            
-            pd_list_new = std::vector<PD_T>();
+            else
+            {
+                // DEBUGGING
+                wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram. Doing nothing.");
+            }
         }
+        
+//        // TODO: Check where this is used. Usually, there is a better way to do this.
+//        void JoinLists()
+//        {
+//            PD_TIMER(timer,MethodName("JoinLists"));
+//            for( PD_T & pd : pd_list_todo )
+//            {
+//                PushDiagram(std::move(pd));
+//            }
+//            
+//            pd_list_todo.clear();
+//        }
         
         
 

@@ -54,12 +54,10 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
     
     Size_T counter     = 0;
         
-    // This list is used for the diagrams that cannot processed any further.
-    PDList_T pd_list_done;
-    
     using std::swap;
     
-    PD_ASSERT( pd_list_new.size() == Size_T(0) );
+    PD_ASSERT(pd_done.empty());
+    PD_ASSERT(pd_todo.empty());
     
     do
     {
@@ -76,23 +74,19 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
             
             if( pd.ValidQ() )
             {
-                pd_list_done.push_back( std::move(pd) );
-            }
-            else
-            {
-                wprint(MethodName("SimplifyLocal_impl")+": A diagram that came out of " + pd.ClassName() + " was identified as invalid and discarded. This is per se not a bad thing to happen." );
+                pd_done.push_back( std::move(pd) );
             }
         }
 
-        swap( pd_list, pd_list_new );
-        pd_list_new = PDList_T();
+        swap( pd_list, pd_todo );
+        pd_todo = PDList_T();
     }
     while( pd_list.size() != Size_T(0) );
     
-    PD_ASSERT( pd_list_new.size() == Size_T(0) );
-    PD_ASSERT( pd_list.size()     == Size_T(0) );
-    
-    swap( pd_list, pd_list_done );
+    PD_ASSERT( pd_list.empty() );
+    PD_ASSERT( pd_todo.empty() );
+
+    swap( pd_list, pd_done );
     
     return counter;
 }

@@ -8,15 +8,18 @@ void Reconnect( const Int a, const Int b )
 #endif
     
     PD_TIMER(timer,tag);
-    PD_ASSERT( pd.ArcActiveQ(a) );
+    AssertCrossing<1>(a);
+    AssertCrossing<1>(b);
+    PD_ASSERT(a != b);
     
-    // DEBUGGING
+#ifdef PD_DEBUG
     if( A_color[a] != A_color[b] )
     {
         wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
         TOOLS_LOGDUMP(ArcString(a));
         TOOLS_LOGDUMP(ArcString(b));
     }
+#endif
     
     const Int c = A_cross(b,headtail);
 

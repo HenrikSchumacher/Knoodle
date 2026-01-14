@@ -50,8 +50,11 @@ bool R_IIa_diff_o_same_u()
     PD_ASSERT(w_2 != s_2);
     PD_ASSERT(w_3 != n_3);
     
+    AssertCrossing<1>(c_2);
+    AssertCrossing<1>(c_3);
+    PD_ASSERT(OppositeHandednessQ(pd.C_state[c_2],pd.C_state[c_3]));
     
-    PD_ASSERT(ToUnderlying(pd.C_state[c_2]) != ToUnderlying(pd.C_state[c_3]));
+    PD_PRINT(MethodName("R_IIa_diff_o_same_u")+": Delete 2 crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
 
     Reconnect<true,true,false>(w_3,!u_0,n_0);
     Reconnect<true,true,false>(w_2, u_0,s_0);

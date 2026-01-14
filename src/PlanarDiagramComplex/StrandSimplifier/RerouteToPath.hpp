@@ -165,9 +165,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
         // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
         if( dir )
         {
-            C_state[c_0] = overQ
-                         ? CrossingState_T::RightHanded
-                         : CrossingState_T::LeftHanded;
+            C_state[c_0] = BooleanToCrossingState(overQ);
             
             // overQ == true
             //

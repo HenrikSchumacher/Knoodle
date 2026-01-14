@@ -92,6 +92,8 @@ bool R_IIa_same_o_diff_u()
      *          O                   O
      */
     
+    PD_PRINT(MethodName("R_IIa_same_o_diff_u")+": Delete 2 crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+    
     A_cross(w_3,!u_1) = c_0;
     A_cross(w_2, u_1) = c_0;
     A_cross(n_3,!u_0) = c_1;
