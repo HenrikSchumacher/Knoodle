@@ -14,7 +14,7 @@ bool four_pattern_same_u()
     {
         PD_PRINT("\t\t\tw_3 == s_2");
         
-        PD_NOTE(MethodName("pattern4_diff_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_NOTE(MethodName("four_pattern_same_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*              +<-------------+
          *              |  n_3         ^
@@ -55,7 +55,7 @@ bool four_pattern_same_u()
         }
         else
         {
-            Reconnect<Head>(w_0,w_2);   // Disconnect the bottom-left subdiagram
+            Reconnect<Tail>(w_2,w_0);   // Disconnect the bottom-left subdiagram
         }
         
         if( top_right_trivialQ )
@@ -64,7 +64,8 @@ bool four_pattern_same_u()
         }
         else
         {
-            Reconnect<Head>(n_3,e_1);   // Disconnect the top-right subdiagram
+            // This keeps e_1 alive, which is likely to be visited next.
+            Reconnect<Tail>(e_1,n_3);   // Disconnect the top-right subdiagram
         }
         
         DeactivateArc(a  );
@@ -78,7 +79,6 @@ bool four_pattern_same_u()
         DeactivateCrossing(c_1);
         DeactivateCrossing(c_2);
         DeactivateCrossing(c_3);
-        
         
         // I checked the following in the Mathematica notebook Dev_FourPattern.dev with the old implementation of PlanarDiagram.
         
@@ -176,7 +176,7 @@ bool four_pattern_same_u()
     {
         PD_PRINT("\t\t\t\tw_2 == n_3");
         
-        PD_PRINT(MethodName("pattern4_diff_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_PRINT(MethodName("four_pattern_same_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*   +<-------------+
          *   |          w_3 |
@@ -211,19 +211,13 @@ bool four_pattern_same_u()
         PD_ASSERT(w_3 != e_1);
         PD_ASSERT(w_3 != s_2);
         
-        logvalprint("w_0",ArcString(w_0));
-        logvalprint("w_3",ArcString(w_3));
-        logvalprint("s_2",ArcString(s_2));
-        logvalprint("e_1",ArcString(e_1));
-        logprint("if's");
-        
         if( top_left_trivialQ )
         {
             DeactivateArc(w_3);         // This deactivates also w_0 == w_3.
         }
         else
         {
-            Reconnect<Head>(w_0,w_3);   // Disconnect the top-left subdiagram
+            Reconnect<Tail>(w_3,w_0);   // Disconnect the top-left subdiagram
         }
         
         if( bottom_right_trivialQ )
@@ -232,17 +226,10 @@ bool four_pattern_same_u()
         }
         else
         {
-            Reconnect<Head>(s_2,e_1);   // Disconnect the bottom-right subdiagram
+            // This keeps e_1 alive, which is likely to be visited next.
+            Reconnect<Tail>(e_1,s_2);   // Disconnect the bottom-right subdiagram
         }
-        
-        logvalprint("w_2",ArcString(w_2));
-        logvalprint("a  ",ArcString(a  ));
-        logvalprint("s_0",ArcString(s_0));
-        logvalprint("n_0",ArcString(n_0));
-        logvalprint("n_3",ArcString(n_3));
-        logvalprint("s_1",ArcString(s_1));
-        logvalprint("n_1",ArcString(n_1));
-        
+
         DeactivateArc(a  );
         DeactivateArc(s_0);
         DeactivateArc(n_0);
@@ -350,3 +337,29 @@ bool four_pattern_same_u()
     
     return false;
 }
+
+
+
+/*
+ *                 n_3
+ *          w_3 O   O########
+ *               \ /        #
+ *                X c_3     #
+ *               / \        #
+ *              O   O       #
+ *             /     \      #
+ *        n_0 /       \ n_1 #
+ *           O         O    #
+ *    w_0    |    a    ^ e_1#
+ *        O--X->O-->O--X->O##
+ *           vc_0      |c_1
+ *           O         O
+ *        s_0 \       / s_1
+ *             \     /
+ *              O   O
+ *               \ /
+ *                X c_2
+ *               / \
+ *              O   O
+ *          w_2       s_2
+ */

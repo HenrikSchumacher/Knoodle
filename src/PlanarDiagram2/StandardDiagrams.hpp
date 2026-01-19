@@ -11,19 +11,19 @@ static PD_T Unknot( const Int color )
     return pd;
 }
 
-static PD_T HopfLink( const Int color_0, const Int color_1 )
+static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_T handedness )
 {
     // needs to know all member variables
     
     PD_T pd ( Int(2), true );
     pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_crossing_count;
+    pd.arc_count       = pd.max_arc_count;
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(2));
     
     constexpr Int C[2][2][2] = {{{0, 3}, {2, 1}}, {{2, 1}, {0, 3}}};
     pd.C_arcs.Read(&C[0][0][0]);
-    pd.C_state.Fill(CrossingState_T::RightHanded);
+    pd.C_state.Fill(handedness);
 //    pd.C_arcs(0,0,0) = 0;
 //    pd.C_arcs(0,0,1) = 3;
 //    pd.C_arcs(0,1,0) = 2;
@@ -60,7 +60,7 @@ static PD_T TrefoilKnot( const Int color, const CrossingState_T handedness )
     
     PD_T pd ( Int(3), true );
     pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_crossing_count;
+    pd.arc_count       = pd.max_arc_count;
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(1));
     
@@ -82,7 +82,7 @@ static PD_T FigureEightKnot( const Int color )
     
     PD_T pd ( Int(4), true );
     pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_crossing_count;
+    pd.arc_count       = pd.max_arc_count;
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(1));
     

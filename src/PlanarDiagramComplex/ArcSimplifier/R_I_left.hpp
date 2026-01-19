@@ -1,5 +1,6 @@
 bool R_I_left()
 {
+    // TODO: We could also delete all possible further loops iteratively.
     PD_DPRINT("R_I_left()");
     
     AssertArc<1>(a);

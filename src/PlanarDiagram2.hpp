@@ -28,12 +28,11 @@ namespace Knoodle
         
     public:
         
-        static constexpr bool always_compressQ = true;
         static constexpr bool countQ           = false;
         static constexpr bool debugQ           = false;
         
-        using Int                   = Int_;
-        using UInt                  = ToUnsigned<Int>;
+        using Int                       = Int_;
+        using UInt                      = ToUnsigned<Int>;
         
         using Base_T                    = CachedObject;
         using Class_T                   = PlanarDiagram2<Int>;
@@ -41,8 +40,7 @@ namespace Knoodle
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-        using ColorPalette_T            = std::unordered_set<Int>;
-        using ColorCounts_T             = std::unordered_map<Int,Int>;
+        using ColorCounts_T             = AssociativeContainer_T<Int,Int>;
         
         using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
@@ -57,6 +55,8 @@ namespace Knoodle
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
         
         friend class PlanarDiagramComplex<Int>;
+        
+        using PDC_T = PlanarDiagramComplex<Int>;
         
         template<typename Int, Size_T, bool>
         friend class ArcSimplifier2;
@@ -128,6 +128,9 @@ namespace Knoodle
         
         mutable Int last_color_deactivated = Uninitialized;
         bool proven_minimalQ = false;
+        
+        mutable Int c_search_ptr = 0;
+        mutable Int a_search_ptr = 0;
         
     public:
   
@@ -327,33 +330,71 @@ namespace Knoodle
             }
         }
         
+        /*! @brief Create a new planar diagram with the copied of this one, but with the internal buffers large enough for at least `new_max_crossing_count` crossings. Caches will be cleared.
+         */
+        
+        PD_T CreateEnlarged( const Int new_max_crossing_count )
+        {
+            // needs to know all member variables
+            
+            PD_T pd ( new_max_crossing_count, true );  // Allocate, but do not fill.
+            
+            pd.crossing_count = crossing_count;
+            pd.arc_count      = arc_count;
+            
+            const Int n       = max_crossing_count;
+            const Int n_new   = Max(n,pd.max_crossing_count);
+            
+            const Int m       = max_arc_count;
+            const Int m_new   = Max(m,pd.max_arc_count);
+            
+            C_arcs.Write( pd.C_arcs.data()   );
+            fill_buffer( pd.C_arcs.data(n) , Uninitialized            , Int(4) * (n_new - n) );
+            
+            C_state.Write( pd.C_state.data() );
+            fill_buffer( pd.C_state.data(n), CrossingState_T::Inactive, Int(1) * (n_new - n) );
+            
+            A_cross.Write( pd.A_cross.data() );
+            fill_buffer( pd.A_cross.data(m), Uninitialized            , Int(2) * (m_new - m) );
+            
+            A_state.Write( pd.A_state.data() );
+            fill_buffer( pd.A_state.data(m), ArcState_T::Inactive     , Int(1) * (m_new - m) );
+            
+            A_color.Write( pd.A_color.data() );
+            fill_buffer( pd.A_color.data(m), Uninitialized            , Int(1) * (m_new - m) );
+            
+            pd.last_color_deactivated = last_color_deactivated;
+            pd.proven_minimalQ = proven_minimalQ;
+            
+            // This guarantees that we will find free space very quickly.
+            pd.c_search_ptr = max_crossing_count;
+            pd.a_search_ptr = max_arc_count;
+            
+            return pd;
+        }
+        
+        /*! @brief Resize internal buffers to make room for at least `new_max_crossing_count` crossings. Caches will be cleared.
+         */
+        void RequireCrossingCount( const Int new_max_crossing_count, bool doubleQ = true )
+        {
+            if( max_crossing_count < new_max_crossing_count )
+            {
+                (*this) = CreateEnlarged( (doubleQ ? Int(2) : Int(1) ) * new_max_crossing_count );
+            }
+        }
+        
+        
         /*! @brief Make a copy without copying cache and persistent cache.
          */
         PD_T CachelessCopy() const
         {
-            // needs to know all member variables
-            
-            PD_T pd ( max_crossing_count, true ); // Allocate, but do not fill.
-            pd.crossing_count  = crossing_count;
-            pd.arc_count       = arc_count;
-            pd.max_arc_count   = max_arc_count;
-            
-            pd.C_arcs .Read(C_arcs .data());
-            pd.C_state.Read(C_state.data());
-            
-            pd.A_cross.Read(A_cross.data());
-            pd.A_state.Read(A_state.data());
-            pd.A_color.Read(A_color.data());
-            
-            pd.last_color_deactivated = last_color_deactivated;
-            pd.proven_minimalQ        = proven_minimalQ;
-            
-            return pd;
+            return CreateEnlarged( max_crossing_count );
         }
         
     public:
         
 #include "PlanarDiagram2/FromEmbeddings.hpp"
+        
 #include "PlanarDiagram2/Crossings.hpp"
 #include "PlanarDiagram2/Arcs.hpp"
 #include "PlanarDiagram2/Darcs.hpp"
@@ -362,12 +403,18 @@ namespace Knoodle
 #include "PlanarDiagram2/Traverse.hpp"
 #include "PlanarDiagram2/LinkComponents.hpp"
 #include "PlanarDiagram2/Color.hpp"
-        
+#include "PlanarDiagram2/DiagramComponents.hpp"
+#include "PlanarDiagram2/StandardDiagrams.hpp"
+
 #include "PlanarDiagram2/CreateCompressed.hpp"
 #include "PlanarDiagram2/Reconnect.hpp"
 #include "PlanarDiagram2/SwitchCrossing.hpp"
-        
+#include "PlanarDiagram2/Connect.hpp"
+
 #include "PlanarDiagram2/PDCode.hpp"
+#include "PlanarDiagram2/GaussCode.hpp"
+#include "PlanarDiagram2/LongMacLeodCode.hpp"
+#include "PlanarDiagram2/MacLeodCode.hpp"
         
 //#include "PlanarDiagram2/R_I.hpp"
 
@@ -383,15 +430,9 @@ namespace Knoodle
 //#include "PlanarDiagram2/Simplify4.hpp"
 //#include "PlanarDiagram2/Simplify5.hpp"
 //#include "PlanarDiagram2/Simplify6.hpp"
-        
 
-#include "PlanarDiagram2/GaussCode.hpp"
-#include "PlanarDiagram2/LongMacLeodCode.hpp"
-#include "PlanarDiagram2/MacLeodCode.hpp"
-        
+
 //#include "PlanarDiagram2/ResolveCrossing.hpp"
-
-        
 //#include "PlanarDiagram2/VerticalSummandQ.hpp"
         
 #include "PlanarDiagram2/DepthFirstSearch.hpp"
@@ -399,7 +440,6 @@ namespace Knoodle
         
 #include "PlanarDiagram2/Permute.hpp"
 //#include "PlanarDiagram2/Planarity.hpp"
-#include "PlanarDiagram2/StandardDiagrams.hpp"
         
     public:
         
@@ -455,6 +495,41 @@ namespace Knoodle
         bool ValidQ() const
         {
             return !InvalidQ();
+        }
+        
+
+        Int NextInactiveCrossing() const
+        {
+            if( crossing_count >= max_crossing_count )
+            {
+                return Uninitialized;
+            }
+            
+            while( CrossingActiveQ(c_search_ptr) )
+            {
+                ++c_search_ptr;
+                
+                if( c_search_ptr >= max_crossing_count ) { c_search_ptr = 0; }
+            }
+            
+            return c_search_ptr;
+        }
+        
+        Int NextInactiveArc() const
+        {
+            if( arc_count >= max_arc_count )
+            {
+                return Uninitialized;
+            }
+            
+            while( ArcActiveQ(a_search_ptr) )
+            {
+                ++a_search_ptr;
+                
+                if( a_search_ptr >= max_arc_count ) { a_search_ptr = 0; }
+            }
+            
+            return a_search_ptr;
         }
         
     public:

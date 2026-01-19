@@ -349,7 +349,8 @@ Size_T SimplifyStrands(
             {
                 bool changedQ = false;
 
-                if( (strand_length > Int(1)) && (max_dist > Int(0)) )
+                // TODO: What is a good lower bound for strand_length?
+                if( (strand_length > Int(2)) && (max_dist > Int(0)) )
                 {
                     changedQ = RerouteToShortestPath_impl(
                         a_begin,a,

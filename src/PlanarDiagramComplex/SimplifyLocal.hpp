@@ -59,6 +59,7 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
     PD_ASSERT(pd_done.empty());
     PD_ASSERT(pd_todo.empty());
     
+    // TODO: Suboptimal cycling throught the list. We should use stack approach as in SimplifyGlobal.
     do
     {
         for( PD_T & pd : pd_list )
@@ -67,15 +68,9 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
             
             counter += changes;
             
-            if( changes > Size_T(0) )
-            {
-                pd.ClearCache();
-            }
+            if( changes > Size_T(0) ) { pd.ClearCache(); }
             
-            if( pd.ValidQ() )
-            {
-                pd_done.push_back( std::move(pd) );
-            }
+            if( pd.ValidQ() ) { pd_done.push_back( std::move(pd) ); }
         }
 
         swap( pd_list, pd_todo );
@@ -87,6 +82,21 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
     PD_ASSERT( pd_todo.empty() );
 
     swap( pd_list, pd_done );
+    
+    // Sort big diagrams in front.
+    Sort(
+        &pd_list[0],
+        &pd_list[pd_list.size()],
+        []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
+        {
+            return pd_0.CrossingCount() > pd_1.CrossingCount();
+        }
+    );
+    
+    if( counter > Size_T(0) )
+    {
+        this->ClearCache();
+    }
     
     return counter;
 }

@@ -148,10 +148,23 @@ bool CheckArc( const Int a ) const
         
     }
     
-//    if( !A_passedQ )
-//    {
-//        eprint( ClassName()+"::CheckArc: Arc "+ToString(a)+" failed to pass.");
-//    }
+    const Int a_next = NextArc(a,Head);
+    
+    if( !InIntervalQ(a,Int(0),max_arc_count) )
+    {
+        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is out of bounds.");
+        A_passedQ = false;
+    }
+    else if( !ArcActiveQ(a) )
+    {
+        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is inactive.");
+        A_passedQ = false;
+    }
+    else if( A_color[a] != A_color[a_next] )
+    {
+        eprint(ClassName()+"::CheckArc: Color of next arc of " + ArcString(a) + " does not match.");
+        A_passedQ = false;
+    }
     
     return A_passedQ;
 }
@@ -168,13 +181,31 @@ bool CheckAllArcs() const
     
     if( arc_count < Int(0) )
     {
-        eprint(ClassName()+"::CheckAllArcs: arc_count < 0.");
+        eprint(MethodName("CheckAllArcs")+": arc_count < 0.");
         passedQ = false;
     }
     
+    if( arc_count > max_arc_count )
+    {
+        eprint(MethodName("CheckAllArcs")+": arc_count > max_arc_count.");
+        passedQ = false;
+    }
+    
+    Int active_arc_count = 0;
+    
     for( Int a = 0; a < max_arc_count; ++a )
     {
+        active_arc_count += ArcActiveQ(a);
         passedQ = passedQ && CheckArc(a);
+    }
+    
+    if( arc_count != active_arc_count )
+    {
+        eprint(MethodName("CheckAllArcs")+": arc_count != active_arc_count.");
+        TOOLS_LOGDUMP(arc_count);
+        TOOLS_LOGDUMP(active_arc_count);
+        TOOLS_LOGDUMP(max_arc_count);
+        passedQ = false;
     }
     
     if( passedQ )
@@ -270,7 +301,7 @@ bool CheckArcDegrees() const
 
 bool CheckAll() const
 {
-    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees() && CheckArcColors();
+    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees();
 
     return passedQ;
 }
@@ -278,12 +309,17 @@ bool CheckAll() const
 
 public:
 
-// TODO: Rework this to look like the others.
 template<bool must_be_activeQ>
 void AssertDarc( const Int da ) const
 {
 #ifdef PD_DEBUG
         auto [a,d] = FromDarc(da);
+    
+        if( !InIntervalQ(a,Int(0),max_arc_count) )
+        {
+            TOOLS_LOGDUMP(max_arc_count);
+            pd_eprint("AssertDarc<1>: Arc index " + Tools::ToString(a) + " is out of bounds.");
+        }
     
         if constexpr( must_be_activeQ )
         {
@@ -300,7 +336,7 @@ void AssertDarc( const Int da ) const
         {
             if( ArcActiveQ(a) )
             {
-                pd_eprint("AssertDarc<0>: " + DarcString(a) + " is not inactive.");
+                pd_eprint("AssertDarc<0>: " + DarcString(da) + " is not inactive.");
             }
         }
 #else
@@ -312,6 +348,12 @@ template<bool must_be_activeQ = true>
 void AssertArc( const Int a ) const
 {
 #ifdef PD_DEBUG
+        if( !InIntervalQ(a,Int(0),max_arc_count) )
+        {
+            TOOLS_LOGDUMP(max_arc_count);
+            pd_eprint("AssertArc<1>: Arc index " + Tools::ToString(a) + " is out of bounds.");
+        }
+    
         if constexpr( must_be_activeQ )
         {
             if( !ArcActiveQ(a) )
@@ -341,6 +383,7 @@ void AssertCrossing( const Int c ) const
 #ifdef PD_DEBUG
     if( !InIntervalQ(c,Int(0),max_crossing_count) )
     {
+        TOOLS_LOGDUMP(max_crossing_count);
         pd_eprint("AssertCrossing<1>: Crossing index " + Tools::ToString(c) + " is out of bounds.");
     }
     

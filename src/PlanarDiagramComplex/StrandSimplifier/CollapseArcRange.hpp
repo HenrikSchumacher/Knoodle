@@ -54,8 +54,13 @@ void CollapseArcRange(
         //         v                    |
 
         const Int a_prev = C_arcs(c,In,!side);
-        PD_ASSERT( C_arcs(c,In,side) != C_arcs(c,Out,!side) );
-        Reconnect<Head>(C_arcs(c,In,side),C_arcs(c,Out,!side));
+        const Int b_0 = C_arcs(c,In , side);
+        const Int b_1 = C_arcs(c,Out,!side);
+        
+        PD_ASSERT( b_0 != b_1 );
+        PD_ASSERT( A_mark[b_0] != A_mark[a] );
+        PD_ASSERT( A_mark[b_1] != A_mark[a] );
+        Reconnect<Head>(b_0,b_1);
         
         DeactivateArc(a);
         

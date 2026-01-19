@@ -173,9 +173,21 @@ bool CheckAllArcs() const
         passedQ = false;
     }
     
+    Int active_arc_count = 0;
+    
     for( Int a = 0; a < max_arc_count; ++a )
     {
+        active_arc_count += ArcActiveQ(a);
         passedQ = passedQ && CheckArc(a);
+    }
+    
+    if( arc_count != active_arc_count )
+    {
+        eprint("arc_count != active_arc_count");
+        TOOLS_LOGDUMP(arc_count);
+        TOOLS_LOGDUMP(active_arc_count);
+        TOOLS_LOGDUMP(max_arc_count);
+        passedQ = false;
     }
     
     if( passedQ )

@@ -214,25 +214,27 @@ namespace Knoodle
         
         void CreateUnlinkFromArc( const Int a_ )
         {
-            PD_NOTE(MethodName("CreateUnlinkFromArc"));
+            PD_NOTE(MethodName("CreateUnlinkFromArc")+" (crossing_count = " + ToString(pd.CrossingCount()) + ")");
             pdc.CreateUnlinkFromArc(pd,a_);
         }
         
-        void CreateHopfLinkFromArcs( const Int a_0, const Int a_1 )
+        void CreateHopfLinkFromArcs(
+            const Int a_0, const Int a_1, const CrossingState_T handedness
+        )
         {
-            PD_NOTE(MethodName("CreateHopfLinkFromArcs"));
-            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1);
+            PD_NOTE(MethodName("CreateHopfLinkFromArcs")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
+            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1,handedness);
         }
         
-        void CreateTrefoilKnotFromArc( const Int a_, const CrossingState_T c_state )
+        void CreateTrefoilKnotFromArc( const Int a_, const CrossingState_T handedness )
         {
-            PD_NOTE(MethodName("CreateTrefoilKnotFromArc"));
-            pdc.CreateTrefoilKnotFromArc(pd,a_,c_state);
+            PD_NOTE(MethodName("CreateTrefoilKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
+            pdc.CreateTrefoilKnotFromArc(pd,a_,handedness);
         }
         
         void CreateFigureEightKnotFromArc( const Int a_ )
         {
-            PD_NOTE(MethodName("CreateFigureEightKnotFromArc"));
+            PD_NOTE(MethodName("CreateFigureEightKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
             pdc.CreateFigureEightKnotFromArc(pd,a_);
         }
         
@@ -243,6 +245,7 @@ namespace Knoodle
 #include "ArcSimplifier/load.hpp"
 #include "ArcSimplifier/a_is_2loop.hpp"
 #include "ArcSimplifier/twist_at_a.hpp"
+//#include "ArcSimplifier/twist_at_a_legacy.hpp"
 #include "ArcSimplifier/strands_same_o.hpp"
 #include "ArcSimplifier/strands_diff_o.hpp"
 #include "ArcSimplifier/R_I_center.hpp"

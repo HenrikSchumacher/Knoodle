@@ -10,11 +10,18 @@ PlanarDiagram CreateCompressed()
 {
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::CreateCompressed: Input diagram is invalid. Returning invalid diagram.");
+        wprint( MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
         return PlanarDiagram();
     }
     
-    TOOLS_PTIMER(timer,ClassName()+"::CreateCompressed");
+    TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
+    
+    constexpr bool debugQ = true;
+    
+    if constexpr ( debugQ )
+    {
+        wprint(MethodName("CreateCompressed")+": Debug mode active.");
+    }
     
     PlanarDiagram pd ( crossing_count, unlink_count );
     
@@ -63,6 +70,14 @@ PlanarDiagram CreateCompressed()
     if( this->InCacheQ("LinkComponentCount") )
     {
         pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
+    }
+    
+    if constexpr ( debugQ )
+    {
+        if( !pd.CheckAll() )
+        {
+            pd_eprint(MethodName("CreateCompress") +": pd.CheckAll() failed.");
+        }
     }
     
     return pd;

@@ -69,14 +69,14 @@ bool R_Ia_above()
                             DeactivateCrossing(c_0);
                             DeactivateCrossing(c_1);
                             DeactivateCrossing(c_3);
-                            CreateHopfLinkFromArcs(a,n_0);
+                            CreateHopfLinkFromArcs(a,n_0,c_0_state);
                             
                             return true;
                         }
                         
                         PD_PRINT("\t\t\t\t\tw_0 != e_1");
 
-                        PD_NOTE(MethodName("R_Ia_above")+": Disconnecting a Hopf link as connected summand.");
+                        PD_NOTE(MethodName("R_Ia_above")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                         
                         /*            w_3                       w_3
                          *               +---+                     +---+
@@ -93,7 +93,8 @@ bool R_Ia_above()
                          *           +-----------+             +-----------+
                          */
                         
-                        Reconnect<Head>(w_0,e_1);
+                        // This keeps e_1 alive, which is likely to be visited next.
+                        Reconnect<Tail>(e_1,w_0);
                         DeactivateArc(s_0);
                         DeactivateArc(n_0);
                         DeactivateArc(n_3);
@@ -101,7 +102,7 @@ bool R_Ia_above()
                         DeactivateCrossing(c_0);
                         DeactivateCrossing(c_1);
                         DeactivateCrossing(c_3);
-                        CreateHopfLinkFromArcs(a,n_0);
+                        CreateHopfLinkFromArcs(a,n_0,c_0_state);
 
                         return true;
                     }
@@ -207,7 +208,8 @@ bool R_Ia_above()
                  *           +-----------+             +-----------+
                  */
                 
-                Reconnect<Head>(n_3,e_1);
+                // This keeps e_1 alive, which is likely to be visited next.
+                Reconnect<Tail>(e_1,n_3);
                 DeactivateArc(n_0);
                 DeactivateArc(s_0);
                 DeactivateArc(n_1);
@@ -244,7 +246,8 @@ bool R_Ia_above()
                  *           +-----------+            +-----------+
                  */
                 
-                Reconnect<Head>(w_0,w_3);
+                // This keeps w_3 alive, which is likely to be visited next.
+                Reconnect<Tail>(w_3,w_0);
                 DeactivateArc(a);
                 DeactivateArc(e_1);
                 DeactivateArc(n_0);
@@ -422,7 +425,8 @@ bool R_Ia_above()
                  *       +-----------+                +-----------+
                  */
                 
-                Reconnect<Head>(w_0,w_3);
+                // This keeps w_3 alive, which is likely to be visited next.
+                Reconnect<Tail>(w_3,w_0);
                 DeactivateArc(a  );
                 DeactivateArc(e_1);
                 DeactivateArc(n_0);
@@ -482,7 +486,7 @@ bool R_Ia_above()
                     DeactivateArc(n_3);
                     DeactivateArc(n_1);
                     
-                    CreateHopfLinkFromArcs(a,n_0);
+                    CreateHopfLinkFromArcs(a,n_0,c_0_state);
                     
                     DeactivateCrossing(c_0);
                     DeactivateCrossing(c_1);
@@ -508,14 +512,15 @@ bool R_Ia_above()
                 
                 PD_NOTE(MethodName("R_Ia_above")+": Disconnect a Hopf link as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                 
-                Reconnect<Head>(w_0,e_1);
+                // This keeps e_1 alive, which is likely to be visited next.
+                Reconnect<Tail>(e_1,w_0);
                 DeactivateArc(a  );
                 DeactivateArc(s_0);
                 DeactivateArc(n_0);
                 DeactivateArc(n_3);
                 DeactivateArc(n_1);
                 
-                CreateHopfLinkFromArcs(a,n_0);
+                CreateHopfLinkFromArcs(a,n_0,c_0_state);
                 
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
@@ -580,7 +585,7 @@ bool R_Ia_above()
                 DeactivateArc(s_0);
                 DeactivateArc(n_0);
                 
-                CreateHopfLinkFromArcs(n_0,a);
+                CreateHopfLinkFromArcs(n_0,a,c_0_state);
             
                 DeactivateCrossing(c_0);
                 DeactivateCrossing(c_1);
@@ -610,13 +615,14 @@ bool R_Ia_above()
             Reconnect(e_3,u_0,n_3);   // This disconnects the knotted part between e_3 and n_2.
             // The knot now resides as a diagram component in the planar diagram so that it can be  split off by a future split pass. The coloring makes it clear that it is not really a split link component, but a connected summand.
             
-            Reconnect<Head>(w_0,e_1); // This disconnects the Hopf link.
+            // This keeps e_1 alive, which is likely to be visited next.
+            Reconnect<Tail>(e_1,w_0); // This disconnects the Hopf link.
             DeactivateArc(a  );
             DeactivateArc(n_1);
             DeactivateArc(s_0);
             DeactivateArc(n_0);
             
-            CreateHopfLinkFromArcs(e_2,a);
+            CreateHopfLinkFromArcs(e_3,a,c_3_state);
         
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);

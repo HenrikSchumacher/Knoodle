@@ -9,6 +9,7 @@ bool R_I_center()
         if(s_0 == a)
         {
             PD_PRINT("\t\ts_0 == a");
+            // TODO: Maybe we should remove all newly created loops iteratively.
 
             if(w_0 != n_0)
             {
@@ -24,16 +25,26 @@ bool R_I_center()
                  *               O<---+  a
                  */
                 
-                Reconnect<Head>(w_0,n_0);
+//                Reconnect<Head>(w_0,n_0);
+                
+                // This keeps n_0 alive, which is likely to be visited next.
+                Reconnect<Tail>(n_0,w_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
 //                ++pd.R_I_counter; // TODO: Implement counters.
                 
                 AssertArc<0>(a  );
-                AssertArc<0>(n_0);
-                AssertArc<1>(w_0);
+                AssertArc<1>(n_0);
+                AssertArc<0>(w_0);
                 AssertArc<0>(s_0);
                 AssertCrossing<0>(c_0);
+                
+                // We could enforce to check for consecutive loops this way:
+                // a = n_0;
+                // c_0 = C_arcs(a,Tail);
+                // c_1 = C_arcs(a,Head);
+                // load_c_0();
+                // R_I_center();
                 
                 return true;
             }
@@ -70,6 +81,9 @@ bool R_I_center()
         else
         {
             PD_PRINT("\t\tn_0 == a");
+            
+            // TODO: Maybe we should remove all newly created loops iteratively.
+            
             PD_ASSERT(n_0 == a);
             
             if(w_0 != s_0)
@@ -86,7 +100,8 @@ bool R_I_center()
                  *              s_0
                  */
             
-                Reconnect<Head>(w_0,s_0);
+                // This keeps s_0 alive, which is likely to be visited next.
+                Reconnect<Tail>(s_0,w_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 // TODO: Implement counters.
@@ -94,9 +109,16 @@ bool R_I_center()
 
                 AssertArc<0>(a  );
                 AssertArc<0>(n_0);
-                AssertArc<1>(w_0);
-                AssertArc<0>(s_0);
+                AssertArc<0>(w_0);
+                AssertArc<1>(s_0);
                 AssertCrossing<0>(c_0);
+                
+                // We could enforce to check for consecutive loops this way:
+                // a = s_0;
+                // c_0 = C_arcs(a,Tail);
+                // c_1 = C_arcs(a,Head);
+                // load_c_0();
+                // R_I_center();
                 
                 return true;
             }

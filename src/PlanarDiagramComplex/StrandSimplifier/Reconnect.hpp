@@ -4,13 +4,12 @@ template<bool headtail, bool deactivateQ = true>
 void Reconnect( const Int a, const Int b )
 {
 #ifdef PD_DEBUG
-    std::string tag  (MethodName("Reconnect")+"<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    std::string tag  (MethodName("Reconnect")+"<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
 #endif
     
     PD_TIMER(timer,tag);
-    AssertCrossing<1>(a);
-    AssertCrossing<1>(b);
     PD_ASSERT(a != b);
+    PD_ASSERT( ArcActiveQ(a) );
     
 #ifdef PD_DEBUG
     if( A_color[a] != A_color[b] )

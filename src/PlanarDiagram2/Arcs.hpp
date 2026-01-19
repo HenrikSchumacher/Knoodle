@@ -395,7 +395,7 @@ bool AlternatingQ() const
         {
             if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
             {
-                alternatingQ = alternatingQ && alternatingQ;
+                alternatingQ = false;
             }
         }
         

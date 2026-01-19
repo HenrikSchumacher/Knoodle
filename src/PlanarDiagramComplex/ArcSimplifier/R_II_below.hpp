@@ -66,7 +66,9 @@ bool R_II_below()
                     AssertArc<1>(w_0);
                     AssertArc<1>(e_1);
                     
-                    Reconnect<Head>(w_0,e_1); //... so this is safe.
+                    //... so this is safe.
+                    // This keeps e_1 alive, which is likely to be visited next.
+                    Reconnect<Tail>(e_1,w_0);
                     DeactivateArc(a);
                     DeactivateArc(n_0);
                     DeactivateArc(s_0);
@@ -84,9 +86,9 @@ bool R_II_below()
                     AssertArc<0>(a  );
                     AssertArc<0>(n_0);
                     AssertArc<0>(s_0);
-                    AssertArc<1>(w_0);
+                    AssertArc<0>(w_0);
                     AssertArc<0>(n_1);
-                    AssertArc<0>(e_1);
+                    AssertArc<1>(e_1);
                     AssertArc<0>(s_1);
                     AssertArc<0>(n_3);
                     AssertArc<0>(e_3);
@@ -191,6 +193,7 @@ bool R_II_below()
                  *               +---------+
                  */
                 
+                // This keeps e_1 alive, which is likely to be visited next.
                 Reconnect<Tail>(e_1,n_3);
                 DeactivateArc(a);
                 DeactivateArc(n_0);
@@ -245,7 +248,8 @@ bool R_II_below()
                  *               +---------+
                  */
                 
-                Reconnect<Head>(w_0,w_3);
+                // This keeps e_1 alive, which is likely to be visited next.
+                Reconnect<Tail>(w_3,w_0);
                 DeactivateArc(a);
                 DeactivateArc(n_0);
                 DeactivateArc(n_1);
@@ -262,13 +266,13 @@ bool R_II_below()
                 AssertArc<0>(a  );
                 AssertArc<0>(n_0);
                 AssertArc<0>(s_0);
-                AssertArc<1>(w_0);
+                AssertArc<0>(w_0);
                 AssertArc<0>(n_1);
                 AssertArc<0>(e_1);
                 AssertArc<0>(s_1);
                 AssertArc<0>(n_3);
                 AssertArc<0>(e_3);
-                AssertArc<0>(w_3);
+                AssertArc<1>(w_3);
                 AssertCrossing<0>(c_0);
                 AssertCrossing<0>(c_1);
                 AssertCrossing<0>(c_3);
@@ -300,7 +304,9 @@ bool R_II_below()
             PD_ASSERT(w_0 != s_0);
             PD_ASSERT(e_1 != s_1);
             
-            Reconnect<Head>(w_0,e_1); // ... so this is safe.
+            // ... so this is safe.
+            // This keeps e_1 alive, which is likely to be visited next.
+            Reconnect<Tail>(e_1,w_0);
             Reconnect(w_3,u_0,n_3); // The ifs above make this safe..
             
             DeactivateArc(a);
@@ -318,9 +324,9 @@ bool R_II_below()
             AssertArc<0>(a  );
             AssertArc<0>(n_0);
             AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
+            AssertArc<0>(w_0);
             AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
+            AssertArc<1>(e_1);
             AssertArc<0>(s_1);
             AssertArc<0>(n_3);
             AssertArc<0>(e_3);
@@ -347,13 +353,6 @@ bool R_II_below()
     
     // The cases w_0 == n_0 and e_1 == n_1 are ruled out already by calling R_I_left and R_I_right first.
     
-    PD_ASSERT(w_0 != n_0);
-    PD_ASSERT(e_1 != n_1);
-    
-    // .. so this is safe:
-    Reconnect<Head>(w_0,e_1);
-    
-    
     /*                n_0         n_1                    n_0         n_1
      *               |     a     |                      |     a     |
      *        w_0 -->|---------->|--> e_1   or   w_0 -->----------->---> e_1
@@ -362,6 +361,12 @@ bool R_II_below()
      *               +-----------+                      +-----------+
      *                    s_0                                s_0
      */
+    
+    PD_ASSERT(w_0 != n_0);
+    PD_ASSERT(e_1 != n_1);
+    // .. so this is safe:
+    // This keeps e_1 alive, which is likely to be visited next.
+    Reconnect<Tail>(e_1,w_0);
     
     Reconnect(n_0,u_1,n_1);
     DeactivateArc(s_0);
@@ -375,9 +380,9 @@ bool R_II_below()
     AssertArc<0>(a  );
     AssertArc<1>(n_0);
     AssertArc<0>(s_0);
-    AssertArc<1>(w_0);
+    AssertArc<0>(w_0);
     AssertArc<0>(n_1);
-    AssertArc<0>(e_1);
+    AssertArc<1>(e_1);
     AssertArc<0>(s_1);
     AssertCrossing<0>(c_0);
     AssertCrossing<0>(c_1);

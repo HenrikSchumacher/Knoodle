@@ -147,7 +147,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
     mptr<Int>   RE_de  = E_scratch.data();
     mptr<Int>   RE_d   = E_scratch.data() + E_count;
     
-    std::unordered_map<Turn_T,std::vector<Int>> rot_lut;
+    AssociativeContainer_T<Turn_T,std::vector<Int>> rot_lut;
 
     const bool exteriorQ = DedgeExteriorQ(de_ptr);
     

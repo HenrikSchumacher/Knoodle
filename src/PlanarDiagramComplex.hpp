@@ -23,6 +23,8 @@ namespace Knoodle
 
     public:
 
+        static constexpr bool debugQ = false;
+        
         using Int                   = Int_;
         using UInt                  = ToUnsigned<Int>;
         
@@ -32,8 +34,10 @@ namespace Knoodle
         using PDC_T                 = PlanarDiagramComplex<Int>;
         using PDList_T              = std::vector<PD_T>;
         
-//        using ColorPalette_T        = PD_T::ColorPalette_T;
-        using ColorCounts_T         = PD_T::ColorCounts_T;
+        using C_Arc_T               = typename PD_T::C_Arc_T;
+        using A_Cross_T             = typename PD_T::A_Cross_T;
+        using ArcContainer_T        = typename PD_T::ArcContainer_T;
+        using ColorCounts_T         = typename PD_T::ColorCounts_T;
                 
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -59,20 +63,16 @@ namespace Knoodle
         friend class StrandSimplifier2<Int,false,true >;
         friend class StrandSimplifier2<Int,false,false>;
         
-    public:
-
-        
-    protected:
+    private:
         
         // Class data members
-        PDList_T pd_list;
-        PDList_T pd_todo;
-        PDList_T pd_done;
+        mutable PDList_T pd_list;
+        mutable PDList_T pd_todo;
+        mutable PDList_T pd_done;
 //
 //        ColorCounts_T colored_unlinkQ;
         
         PD_T invalid_diagram { PD_T::InvalidDiagram() };
-        
         
     public:
   
@@ -130,18 +130,20 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Int(0) )
         {}
         
-        
 #include "PlanarDiagramComplex/Constructors.hpp"
+#include "PlanarDiagramComplex/Color.hpp"
 #include "PlanarDiagramComplex/SimplifyLocal.hpp"
+#include "PlanarDiagramComplex/Split.hpp"
+#include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/SimplifyGlobal.hpp"
+#include "PlanarDiagramComplex/LinkingNumber.hpp"
+#include "PlanarDiagramComplex/Connect.hpp"
+#include "PlanarDiagramComplex/Modify.hpp"
+        
+#include "PlanarDiagramComplex/Unite.hpp"
             
     public:
         
-//        // TODO: Not so easy, as this requries a census.
-//        Int ColorCount() const
-//        {
-//        }
-            
         Int DiagramCount() const
         {
             return int_cast<Int>(pd_list.size());
@@ -166,38 +168,6 @@ namespace Knoodle
             return pd_list[Size_T(i)];
         }
         
-        ColorCounts_T ColorArcCounts() const
-        {
-            ColorCounts_T color_arc_counts;
-            
-            for( const PD_T & pd : pd_list )
-            {
-                if( pd.ValidQ() )
-                {
-                    const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
-                    
-                    for( const auto & x : pd_color_arc_counts )
-                    {
-                        if( color_arc_counts.contains(x.first) )
-                        {
-                            color_arc_counts[x.first] += x.second;
-                        }
-                        else
-                        {
-                            color_arc_counts[x.first]  = x.second;
-                        }
-                    }
-                }
-            }
-            return color_arc_counts;
-        }
-        
-        Int ColorCount() const
-        {
-            return int_cast<int>(ColorArcCounts().size());
-        }
-        
-        
         Int CrossingCount() const
         {
             Int crossing_count = 0;
@@ -216,14 +186,14 @@ namespace Knoodle
         // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
         void CreateUnlink( const Int color )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
+//            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
  
             pd_done.push_back( PD_T::Unknot(color) );
         }
         
         void CreateUnlinkFromArc( PD_T & pd, const Int a )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
+//            TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
             
             PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
@@ -239,14 +209,16 @@ namespace Knoodle
          *
          * @param a_1 Second edge whose color we use. It is assumed to belong to diagram `pd` and to be deactivated.
          */
-        void CreateHopfLinkFromArcs( PD_T & pd, const Int a_0, const Int a_1 )
+        void CreateHopfLinkFromArcs(
+            PD_T & pd, const Int a_0, const Int a_1, const CrossingState_T handedness
+        )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
+//            TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
             
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
 
-            pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1]) );
+            pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1],handedness) );
         }
         
         
@@ -260,7 +232,7 @@ namespace Knoodle
          */
         void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+//            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
             
             pd.template AssertArc<0>(a);
 
@@ -275,7 +247,7 @@ namespace Knoodle
          */
         void CreateFigureEightKnotFromArc( PD_T & pd, const Int a )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
+//            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
             
             pd.template AssertArc<0>(a);
 
@@ -309,8 +281,33 @@ namespace Knoodle
 //            pd_list_todo.clear();
 //        }
         
+    public:
         
+        void CompressDiagrams()
+        {
+            TOOLS_PTIMER(timer,MethodName("CompressDiagrams"));
 
+            for( PD_T & pd : pd_list )
+            {
+                pd.Compress();
+            }
+        }
+
+        static Int ToDarc( const Int a, const bool d )
+        {
+            return PD_T::ToDarc(a,d);
+        }
+        
+        static std::pair<Int,bool> FromDarc( const Int da )
+        {
+            return PD_T::FromDarc(da);
+        }
+        
+        static Int FlipDarc( const Int da )
+        {
+            return PD_T::FlipDarc(da);
+        }
+        
        
     public:
         

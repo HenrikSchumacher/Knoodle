@@ -11,6 +11,31 @@ void RemoveLoop( const Int e, const Int c_0 )
     // We can save the lookup here.
 //            const Int c_0 = A_cross(e,Head);
     
+    // DEBUGGING
+#ifdef PD_DEBUG
+    int mark_counter = 0;
+    mark_counter += (A_mark[C_arcs(c_0,Out,Left )] == A_mark[e]);
+    mark_counter += (A_mark[C_arcs(c_0,Out,Right)] == A_mark[e]);
+    mark_counter += (A_mark[C_arcs(c_0,In ,Left )] == A_mark[e]);
+    mark_counter += (A_mark[C_arcs(c_0,In ,Right)] == A_mark[e]);
+    
+    if ( mark_counter >= 4 )
+    {
+        wprint(MethodName("RemoveLoop") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_length = " + ToString(strand_length));
+        TOOLS_LOGDUMP(c_0);
+        TOOLS_LOGDUMP(e  );
+        TOOLS_LOGDUMP(C_arcs(c_0,Out,Left ));
+        TOOLS_LOGDUMP(C_arcs(c_0,Out,Right));
+        TOOLS_LOGDUMP(C_arcs(c_0,In ,Left ));
+        TOOLS_LOGDUMP(C_arcs(c_0,In ,Right));
+        TOOLS_LOGDUMP(A_mark[e]);
+        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,Out,Left )]);
+        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,Out,Right)]);
+        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,In ,Left )]);
+        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,In ,Right)]);
+    }
+#endif // PD_DEBUG
+    
     // TODO: If the link has multiple components, it can also happen that the loop strand is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well.
     if constexpr( mult_compQ )
     {

@@ -1,5 +1,7 @@
 bool R_I_right()
 {
+    // TODO: We could also delete all possible further loops iteratively.
+    
     PD_DPRINT("R_I_right()");
     
     AssertArc<1>(a);
@@ -23,18 +25,19 @@ bool R_I_right()
              *                s_0
              */
             
-            Reconnect<Head>(a,n_1);
+            // This keeps n_1 alive, which is likely to be visited next.
+            Reconnect<Tail>(n_1,a);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
             
             // TODO: Implement counters.
 //            ++pd.R_I_counter;
             
-            AssertArc<1>(a  );
+            AssertArc<0>(a  );
             AssertArc<1>(n_0);
             AssertArc<1>(s_0);
             AssertArc<1>(w_0);
-            AssertArc<0>(n_1);
+            AssertArc<1>(n_1);
             AssertArc<0>(e_1);
             AssertArc<0>(s_1);
             AssertCrossing<1>(c_0);
@@ -62,7 +65,9 @@ bool R_I_right()
              *                s_0
              */
             
-            Reconnect<Head>(w_0,s_0);
+            // This keeps w_0 alive, which is likely to be visited next.
+            Reconnect<Tail>(s_0,w_0);
+            
             DeactivateArc(n_1);
             DeactivateArc(e_1);
             DeactivateArc(a);
@@ -74,8 +79,8 @@ bool R_I_right()
             
             AssertArc<0>(a  );
             AssertArc<0>(n_0);
-            AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
+            AssertArc<1>(s_0);
+            AssertArc<0>(w_0);
             AssertArc<0>(n_1);
             AssertArc<0>(e_1);
             AssertArc<0>(s_1);
@@ -141,6 +146,7 @@ bool R_I_right()
              *                 s_0
              */
              
+            // This keeps s_1 alive, which is likely to be visited next.
             Reconnect<Tail>(s_1,a);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
@@ -181,7 +187,8 @@ bool R_I_right()
              *                    s_0
              */
             
-            Reconnect<Head>(w_0,n_0);
+            // This keeps n_0 alive, which is likely to be visited next.
+            Reconnect<Tail>(n_0,w_0);
             DeactivateArc(a  );
             DeactivateArc(e_1);
             DeactivateArc(s_0);
@@ -192,9 +199,9 @@ bool R_I_right()
 //            pd.R_I_counter += 2;
             
             AssertArc<0>(a  );
-            AssertArc<0>(n_0);
+            AssertArc<1>(n_0);
             AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
+            AssertArc<0>(w_0);
             AssertArc<0>(n_1);
             AssertArc<0>(e_1);
             AssertArc<0>(s_1);

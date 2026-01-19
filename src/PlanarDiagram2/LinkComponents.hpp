@@ -93,6 +93,9 @@ void ComputeLinkComponents() const
 {
     TOOLS_PTIMER(timer,MethodName("ComputeLinkComponents"));
     
+    
+    logprint("ComputeLinkComponents()");
+    
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
     RaggedList<Int,Int> lc_arcs ( CrossingCount() + Int(1), ArcCount() );
@@ -100,6 +103,17 @@ void ComputeLinkComponents() const
     //      {2 * c_0 + c_0_visitedQ, 2 * c_1 + c_1_visitedQ},
     // where c_0_visitedQ is true if c_0 is visited as tail for the second time
     // and   c_1_visitedQ is true if c_1 is visited as head for the second time.
+    
+    
+    // DEBUGGING
+    if( ArcCount() != CountActiveArcs() )
+    {
+        eprint("ArcCount() != CountActiveArcs()");
+        TOOLS_DUMP(ArcCount());
+        TOOLS_DUMP(arc_count);
+        TOOLS_DUMP(CountActiveArcs());
+        TOOLS_DUMP(MaxArcCount());
+    }
     
     ArcContainer_T      A_flags ( ArcCount() );
     
@@ -124,6 +138,8 @@ void ComputeLinkComponents() const
             (void)c_0;
             (void)c_1;
             
+            PD_ASSERT(a < A_lc.Dim(0));
+            PD_ASSERT(a_label < A_flags.Dim(0));
             A_lc[a]  = lc;
             A_pos[a] = a_label;
             lc_arcs.Push(a);

@@ -1,4 +1,6 @@
-//#define TOOLS_ENABLE_PROFILER
+#define TENSORS_BOUND_CHECKS
+
+#define TOOLS_ENABLE_PROFILER
 //#define PD_DEBUG
 //#define PD_VERBOSE
 
@@ -12,21 +14,51 @@ using Int         = std::int64_t;                 // integer type used, e.g., fo
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 
-static constexpr Int infty = Knoodle::Scalar::Infty<Int>;
+//static constexpr Int infty = Knoodle::Scalar::Infty<Int>;
 
 //using OrthoDraw_T = Knoodle::OrthoDraw<Int>;
 //using Reapr_T     = Knoodle::Reapr<double,Int>;
 
+
+template<typename T>
+void valprint( const std::string & s, const T & val )
+{
+    Tools::valprint(s,val);
+}
+
+void print( const std::string & s )
+{
+    Tools::print(s);
+}
+
+void PrintInfo( const PDC_T & pdc )
+{
+    
+    valprint( "CrossingCount()", pdc.CrossingCount() );
+    valprint( "DiagramCount()", pdc.DiagramCount() );
+    for( Int i = 0; i < pdc.DiagramCount(); ++i )
+    {
+        const PD_T & pd = pdc.Diagram(i);
+        print("Diagram(" + Tools::ToString(i) + ")");
+        valprint("\tValidQ()", pd.ValidQ());
+        valprint("\tCheckAll()", pd.CheckAll());
+        valprint("\tCrossingCount()", pd.CrossingCount());
+        valprint("\tMaxCrossingCount()", pd.MaxCrossingCount());
+        
+//        pd.PrintInfo();
+    }
+}
+
 int main()
 {
-    Knoodle::Profiler::Clear();
+    Knoodle::Profiler::Clear("/Users/Henrik",false,false);
     
-    Tools::print( "-=| An example program for Knoodle. |=-" );
-    Tools::print( "" );
+    print( "-=| An example program for Knoodle. |=-" );
+    print( "" );
  
     std::filesystem::path path = std::filesystem::path(__FILE__).parent_path();
   
-    Tools::valprint("working directory", path );
+    valprint("working directory", path );
     
     // Load a knot from file.
     std::vector<Int> pd_code;
@@ -69,41 +101,26 @@ int main()
 //    TOOLS_LOGDUMP(pd_0.ArcStates());
 //    TOOLS_LOGDUMP(pd_0.ArcColors());
     
+    print("Compress()");
     pd_0.Compress();
     
-    TOOLS_DUMP(pd_0.CheckAll());
-    TOOLS_DUMP(pd_0.CheckLeftDarc());
-    TOOLS_DUMP(pd_0.CheckRightDarc());
-//    TOOLS_DUMP(pd_0.CheckNextDarc());
-
-    
-    TOOLS_DUMP(pd_0.PDCode());
+//    print("");
+//    pd_0.PrintInfo();
+//    print("");
     
     PDC_T pdc ( std::move(pd_0), Int(0) );
     
-    Knoodle::print("");
-    Knoodle::print("RecomputeArcStates");
-    for( Int i = 0; i < pdc.DiagramCount(); ++i )
-    {
-        TOOLS_DUMP( pdc.Diagram(i).CheckAll() );
-    }
+    print("");
+    PrintInfo(pdc);
+    print("");
 
-    
-    TOOLS_DUMP(pdc.DiagramCount());
-//    TOOLS_DUMP(pdc.Diagram(0).ColorCount());
-//    TOOLS_DUMP(pdc.ColorCount());
-    TOOLS_DUMP(pdc.CrossingCount());
-
-    
     {
         std::ofstream file ("/Users/Henrik/a.txt");
         file << ToString( pdc.Diagram(0).PDCode() );
     }
     
-    
-    
-    Knoodle::print("");
-    Knoodle::print("SimplifyLocal(4,false)");
+    print("");
+    print("SimplifyLocal(4,false)");
     try
     {
         pdc.SimplifyLocal(4,false);
@@ -114,32 +131,18 @@ int main()
         exit(-1);
     }
     
-    Tools::print("");
-    Tools::valprint( "pdc.CrossingCount()", pdc.CrossingCount() );
-    for( Int i = 0; i < pdc.DiagramCount(); ++i )
-    {
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CheckAll()",
-            pdc.Diagram(i).CheckAll()
-        );
-        
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CrossingCount()",
-            pdc.Diagram(i).CrossingCount()
-        );
-        
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").MaxCrossingCount()",
-            pdc.Diagram(i).MaxCrossingCount()
-        );
-        Tools::print("");
-    }
+    print("");
+    PrintInfo(pdc);
+    print("");
     
-    Knoodle::print("");
-    Knoodle::print("SimplifyGlobal(6,infty,4,infty,true)");
+    print("SimplifyGlobal(6,infty,4,infty,true)");
     try
     {
-        pdc.SimplifyGlobal(6,infty,4,infty,true);
+        pdc.SimplifyGlobal({
+            .local_opt_level = 4,
+            .compressQ       = true,
+            .disconnectQ     = true
+        });
     }
     catch( const std::exception & e )
     {
@@ -147,25 +150,26 @@ int main()
         exit(-1);
     }
     
-    Tools::valprint( "pdc.CrossingCount()", pdc.CrossingCount() );
-    for( Int i = 0; i < pdc.DiagramCount(); ++i )
-    {
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CheckAll()",
-            pdc.Diagram(i).CheckAll()
-        );
-        
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").CrossingCount()",
-            pdc.Diagram(i).CrossingCount()
-        );
-        
-        Tools::valprint(
-            std::string("pdc.Diagram(") + Tools::ToString(i) + ").MaxCrossingCount()",
-            pdc.Diagram(i).MaxCrossingCount()
-        );
-        Tools::print("");
-    }
+    print("");
+    PrintInfo(pdc);
+    print("");
+    
+//    print("Unite()");
+//    pdc.Unite();
+//    
+//    print("");
+//    PrintInfo(pdc);
+//    print("");
+//    
+//    print("Split()");
+//    pdc.Split();
+//    
+//    print("");
+//    PrintInfo(pdc);
+//    print("");
+
+    
+//    pdc.DisconnectDiagrams();
     
     return EXIT_SUCCESS;
 }

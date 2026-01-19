@@ -93,8 +93,8 @@ bool R_IIa_same_o_same_u()
                 *                        |  |
                 *                        |  |
                 *                        |  |
+                *                        ^  |
                 *                        |  |
-                *                        v  |
                 *                        |  |
                 *                        |  |
                 *     w_0                |  |
@@ -167,6 +167,7 @@ bool R_IIa_same_o_same_u()
             
             PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identitied as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
             
+            // This keeps e_1 alive, which is likely to be visited next.
             Reconnect<Tail>(e_1,n_3);
             DeactivateArc(a);
             DeactivateArc(n_0);
@@ -222,8 +223,8 @@ bool R_IIa_same_o_same_u()
             *                        |  |
             *                        |  |
             *                        |  |
+            *                        ^  |
             *                        |  |
-            *                        v  |
             *                        |  |
             *                        |  |
             *     w_0                |  |
@@ -240,7 +241,8 @@ bool R_IIa_same_o_same_u()
             *           w_2
             */
             
-            Reconnect<Head>(w_0,w_2);
+            // This keeps w_2 alive, which is likely to be visited next.
+            Reconnect<Tail>(w_2,w_0);
             DeactivateArc(a);
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -260,13 +262,13 @@ bool R_IIa_same_o_same_u()
             AssertArc<0>(a  );
             AssertArc<0>(n_0);
             AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
+            AssertArc<0>(w_0);
             AssertArc<0>(n_1);
             AssertArc<0>(e_1);
             AssertArc<0>(s_1);
             AssertArc<0>(e_2);
             AssertArc<0>(s_2);
-            AssertArc<0>(w_2);
+            AssertArc<1>(w_2);
             AssertArc<0>(n_3);
             AssertArc<0>(e_3);
             AssertArc<0>(w_3);
@@ -306,8 +308,9 @@ bool R_IIa_same_o_same_u()
         *           w_2
         */
         
-        Reconnect<Head>(w_0,e_1);
-        Reconnect<Head>(n_3,w_2);
+        // This keeps w_2 alive, which is likely to be visited next.
+        Reconnect<Tail>(e_1,w_0);
+        Reconnect<Tail>(w_2,n_3);
         DeactivateArc(a  );
         DeactivateArc(n_0);
         DeactivateArc(n_1);
@@ -326,14 +329,14 @@ bool R_IIa_same_o_same_u()
         AssertArc<0>(a  );
         AssertArc<0>(n_0);
         AssertArc<0>(s_0);
-        AssertArc<1>(w_0);
+        AssertArc<0>(w_0);
         AssertArc<0>(n_1);
-        AssertArc<0>(e_1);
+        AssertArc<1>(e_1);
         AssertArc<0>(s_1);
         AssertArc<0>(e_2);
         AssertArc<0>(s_2);
-        AssertArc<0>(w_2);
-        AssertArc<1>(n_3);
+        AssertArc<1>(w_2);
+        AssertArc<0>(n_3);
         AssertArc<0>(e_3);
         AssertArc<0>(w_3);
         AssertCrossing<0>(c_0);
@@ -478,6 +481,7 @@ bool R_IIa_same_o_same_u()
              *              +----------+
              */
             
+            // This keeps e_1 alive, which is likely to be visited next.
             Reconnect<Tail>(e_1,s_2);
             DeactivateArc(a  );
             DeactivateArc(n_0);
@@ -546,7 +550,8 @@ bool R_IIa_same_o_same_u()
              *              +----------+
              */
             
-            Reconnect<Head>(w_0,w_3);
+            // This keeps w_3 alive, which is likely to be visited next.
+            Reconnect<Tail>(w_3,w_0);
             DeactivateArc(a  );
             DeactivateArc(n_0);
             DeactivateArc(n_1);
@@ -565,7 +570,7 @@ bool R_IIa_same_o_same_u()
             AssertArc<0>(a  );
             AssertArc<0>(n_0);
             AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
+            AssertArc<0>(w_0);
             AssertArc<0>(n_1);
             AssertArc<0>(e_1);
             AssertArc<0>(s_1);
@@ -574,7 +579,7 @@ bool R_IIa_same_o_same_u()
             AssertArc<0>(w_2);
             AssertArc<0>(n_3);
             AssertArc<0>(e_3);
-            AssertArc<0>(w_3);
+            AssertArc<1>(w_3);
             AssertCrossing<0>(c_0);
             AssertCrossing<0>(c_1);
             AssertCrossing<0>(c_2);
@@ -611,7 +616,8 @@ bool R_IIa_same_o_same_u()
         *              +----------+
         */
         
-        Reconnect<Head>(w_0,e_1);
+        // This keeps e_1 alive, which is likely to be visited next.
+        Reconnect<Tail>(e_1,w_0);
         Reconnect<Head>(s_2,w_3);
         DeactivateArc(a  );
         DeactivateArc(n_0);
@@ -630,9 +636,9 @@ bool R_IIa_same_o_same_u()
         AssertArc<0>(a  );
         AssertArc<0>(n_0);
         AssertArc<0>(s_0);
-        AssertArc<1>(w_0);
+        AssertArc<0>(w_0);
         AssertArc<0>(n_1);
-        AssertArc<0>(e_1);
+        AssertArc<1>(e_1);
         AssertArc<0>(s_1);
         AssertArc<0>(e_2);
         AssertArc<1>(s_2);

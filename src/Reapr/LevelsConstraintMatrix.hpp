@@ -40,9 +40,9 @@ void LevelsConstraintMatrix_CollectTriples(
         return;
     }
     
-    cptr<Int>             C_arcs   = pd.Crossings().data();
-    cptr<CrossingState_T> C_states = pd.CrossingStates().data();
-    cptr<Int>             A_pos    = pd.ArcPositions().data();
+    cptr<Int>             C_arcs  = pd.Crossings().data();
+    cptr<CrossingState_T> C_state = pd.CrossingStates().data();
+    cptr<Int>             A_pos   = pd.ArcPositions().data();
     
     const Int C_count = pd.MaxCrossingCount();
     
@@ -58,7 +58,7 @@ void LevelsConstraintMatrix_CollectTriples(
         const I a_0_pos = static_cast<I>(A_pos[a_0]);
         const I a_1_pos = static_cast<I>(A_pos[a_1]);
                                   
-        const R s = static_cast<R>(ToUnderlying(C_states[c]));
+        const R s = static_cast<R>(ToUnderlying(C_state[c]));
         
         //  Case: right-handed.
         //

@@ -52,6 +52,35 @@ Int MaxFaceSize() const
     return this->template GetCache<Int>(tag);
 }
 
+template<bool use_arrayQ = true, typename ArcFun_T>
+TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T && arc_fun ) const
+{
+    if( !ArcActiveQ(FromDarc(da_0).first) )
+    {
+        return;
+    }
+    
+    Int * restrict dA_left_dA = COND(use_arrayQ,ArcLeftDarcs().data(),nullptr);
+    
+    Int da = da_0;
+    do
+    {
+        // Do some work.
+        arc_fun(da);
+
+        // Move to next arc.
+        if constexpr( use_arrayQ )
+        {
+            da = dA_left_dA[da];
+        }
+        else
+        {
+            da = LeftDarc(da);
+        }
+    }
+    while( da != da_0 );
+}
+
 void RequireFaces() const
 {
     TOOLS_PTIMER(timer,MethodName("RequireFaces"));
@@ -71,7 +100,7 @@ void RequireFaces() const
     //
     //            A_faces_buffer(a,1)
     //
-    // This way the directed arc da = 2 * a + Head has its left face in dA_f[da].
+    // This way the directed arc da = 2 * a + d has its left face in dA_f[da].
     
     
     // Entry Uninitialized means "unvisited but to be visited".
@@ -127,8 +156,18 @@ void RequireFaces() const
         if( dA_F[da_0] != Uninitialized ) { continue; }
         
         const Int count_0 = F_dA.ElementCount();
-        
         const Int f = F_dA.SublistCount();
+        
+//        this->template TraverseFaceAtDarc<true>( da_0,
+//            [f,dA_F,&F_dA]( const Int da)
+//            {
+//                // Declare current face to be a face of this directed arc.
+//                dA_F[da] = f;
+//            
+//                // Declare this arc to belong to the current face.
+//                F_dA.Push(da);
+//            }
+//        );
         
         Int da = da_0;
         do

@@ -35,34 +35,11 @@ cref<ColorCounts_T> ColorArcCounts() const
     {
         ColorCounts_T color_arc_counts;
         
-        if( this->InCacheQ("LinkComponentArcs") )
+        for( Int a = 0; a < max_arc_count; ++a )
         {
-            const auto & lc_arcs = LinkComponentArcs();
-            
-            for( Int lc = 0; lc < lc_arcs.SublistCount(); ++lc )
+            if( ArcActiveQ(a) )
             {
-                color_arc_counts[lc] = lc_arcs.SublistSize(lc);
-            }
-        }
-        else
-        {
-            for( Int a = 0; a < max_arc_count; ++a )
-            {
-                if( !ArcActiveQ(a) )
-                {
-                    continue;
-                }
-                
-                const Int a_color = A_color[a];
-                
-                if( color_arc_counts.contains(a_color) )
-                {
-                    color_arc_counts[a_color] += Int(1);
-                }
-                else
-                {
-                    color_arc_counts[a_color]  = Int(1);
-                }
+                Increment(color_arc_counts,A_color[a]);
             }
         }
         
@@ -70,6 +47,33 @@ cref<ColorCounts_T> ColorArcCounts() const
     }
    
     return this->template GetCache<ColorCounts_T>("ColorArcCounts");
+}
+
+Int MaxColor() const
+{
+    if( InvalidQ() )
+    {
+        return 0;
+    }
+    
+    Int max_color = 0;
+    
+    if( (crossing_count <= Int(0)) )
+    {
+        if(last_color_deactivated != Uninitialized)
+        {
+            return last_color_deactivated;
+        }
+    }
+    
+    auto & lut = ColorArcCounts();
+    
+    for( auto & x : lut )
+    {
+        max_color = Max(max_color,x.first);
+    }
+    
+    return max_color;
 }
 
 

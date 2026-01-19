@@ -328,7 +328,7 @@ bool RerouteToShortestPath_impl(
 
     if( (d < Int(0)) || (d > max_dist) )
     {
-        PD_DPRINT("No improvement detected.");
+        PD_DPRINT("No improvement detected. (strand_length = " + ToString(strand_length) + ", d = " + ToString(d) + ", max_dist = " + ToString(max_dist) + ")");
         return false;
     }
     

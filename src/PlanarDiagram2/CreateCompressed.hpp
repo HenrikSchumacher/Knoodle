@@ -15,15 +15,15 @@ PD_T CreateCompressed()
     
     if( !ValidQ() )
     {
-        wprint(MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
-        
-        // DEBUGGING;
-        PrintInfo();
-        
         return InvalidDiagram();
     }
     
     TOOLS_PTIMER(timer,MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">");
+    
+    if constexpr ( debugQ )
+    {
+        wprint(MethodName("CreateCompressed")+": Debug mode active.");
+    }
     
     PD_T pd ( crossing_count );
     
@@ -115,6 +115,14 @@ PD_T CreateCompressed()
     if constexpr ( recolorQ )
     {
         pd.template SetCache<false>("ColorArcCounts",color_arc_counts);
+    }
+    
+    if constexpr ( debugQ )
+    {
+        if( !pd.CheckAll() )
+        {
+            pd_eprint(MethodName("CreateCompressed") +": pd.CheckAll() failed.");
+        }
     }
     
     return pd;
