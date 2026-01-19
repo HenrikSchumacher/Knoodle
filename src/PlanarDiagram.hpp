@@ -36,7 +36,9 @@ namespace Knoodle
         static_assert(IntQ<Int_>,"");
 
     public:
-            
+        
+        static constexpr bool debugQ = false;
+        
         using Int     = Int_;
         using UInt    = ToUnsigned<Int>;
 

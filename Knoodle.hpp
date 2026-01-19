@@ -38,9 +38,20 @@ namespace Knoodle
 #include "src/Binarizer.hpp"
 
 #include "src/PlanarDiagram.hpp"
+
 #include "src/PlanarDiagram/CrossingSimplifier.hpp"
 #include "src/PlanarDiagram/ArcSimplifier.hpp"
 #include "src/PlanarDiagram/StrandSimplifier.hpp"
+
+namespace Knoodle
+{
+    template<typename Int> class PlanarDiagram2;
+    template<typename Int> class PlanarDiagramComplex;
+}
+
+#include "src/PlanarDiagramComplex/LoopRemover.hpp"
+#include "src/PlanarDiagramComplex/ArcSimplifier2.hpp"
+#include "src/PlanarDiagramComplex/StrandSimplifier2.hpp"
 
 #include "src/PlanarDiagram2.hpp"
 #include "src/PlanarDiagramComplex.hpp"

@@ -32,7 +32,7 @@ namespace Knoodle
         using PD_T       = PDC_T::PD_T;
         
         // We need a signed integer type for Mark_T because we use "negative" values to indicate directions in the dual graph.
-        using Mark_T = ToSigned<Int>;
+        using Mark_T     = ToSigned<Int>;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
@@ -106,7 +106,7 @@ namespace Knoodle
         double Time_FindShortestPath      = 0;
         double Time_RerouteToPath         = 0;
         double Time_RepairArcLeftArcs     = 0;
-        double Time_ReroutePasses         = 0;
+        double Time_SimplifyStrands         = 0;
         double Time_CollapseArcRange      = 0;
         
     public:
@@ -139,7 +139,7 @@ namespace Knoodle
 #ifdef PD_TIMINGQ
             logprint("");
             logprint(ClassName() + " absolute timings:");
-            logvalprint("ReroutePasses", Time_ReroutePasses);
+            logvalprint("SimplifyStrands", Time_SimplifyStrands);
             logvalprint("RemoveLoop", Time_RemoveLoop);
             logvalprint("FindShortestPath", Time_FindShortestPath);
             logvalprint("RerouteToPath", Time_RerouteToPath);
@@ -147,12 +147,12 @@ namespace Knoodle
             logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs);
             logprint("");
             logprint(ClassName() + " relative timings:");
-            logvalprint("ReroutePasses", Time_ReroutePasses/Time_ReroutePasses);
-            logvalprint("RemoveLoop", Time_RemoveLoop/Time_ReroutePasses);
-            logvalprint("FindShortestPath", Time_FindShortestPath/Time_ReroutePasses);
-            logvalprint("Time_RerouteToPath", Time_RerouteToPath/Time_ReroutePasses);
-            logvalprint("CollapseArcRange", Time_CollapseArcRange/Time_ReroutePasses);
-            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs/Time_ReroutePasses);
+            logvalprint("SimplifyStrands", Time_SimplifyStrands/Time_SimplifyStrands);
+            logvalprint("RemoveLoop", Time_RemoveLoop/Time_SimplifyStrands);
+            logvalprint("FindShortestPath", Time_FindShortestPath/Time_SimplifyStrands);
+            logvalprint("Time_RerouteToPath", Time_RerouteToPath/Time_SimplifyStrands);
+            logvalprint("CollapseArcRange", Time_CollapseArcRange/Time_SimplifyStrands);
+            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs/Time_SimplifyStrands);
             logprint("");
 #endif
         }

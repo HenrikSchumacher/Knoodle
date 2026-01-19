@@ -104,7 +104,7 @@ void RequireFaces() const
     
     
     // Entry Uninitialized means "unvisited but to be visited".
-    // Entry Uninitialized - 1 means "do not visit".
+    // Entry DoNotVisit means "do not visit".
     
     for( Int a = 0; a < max_arc_count; ++ a )
     {
@@ -117,8 +117,8 @@ void RequireFaces() const
         }
         else
         {
-            dA_F[da         ] = Uninitialized - Int(1);
-            dA_F[da + Int(1)] = Uninitialized - Int(1);
+            dA_F[da         ] = DoNotVisit;
+            dA_F[da + Int(1)] = DoNotVisit;
         }
     }
     
@@ -157,18 +157,7 @@ void RequireFaces() const
         
         const Int count_0 = F_dA.ElementCount();
         const Int f = F_dA.SublistCount();
-        
-//        this->template TraverseFaceAtDarc<true>( da_0,
-//            [f,dA_F,&F_dA]( const Int da)
-//            {
-//                // Declare current face to be a face of this directed arc.
-//                dA_F[da] = f;
-//            
-//                // Declare this arc to belong to the current face.
-//                F_dA.Push(da);
-//            }
-//        );
-        
+
         Int da = da_0;
         do
         {
@@ -263,7 +252,7 @@ Tensor1<Int8,Int> CheckerBoardColoring()
     
     if( ArcCount() != MaxArcCount() )
     {
-        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and  works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
         
         return Tensor1<Int8,Int>();
     }

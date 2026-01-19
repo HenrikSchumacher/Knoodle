@@ -224,7 +224,7 @@ Tensor1<Int8,Int> CheckerBoardColoring()
     
     if( ArcCount() != MaxArcCount() )
     {
-        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and  works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
         
         return Tensor1<Int8,Int>();
     }

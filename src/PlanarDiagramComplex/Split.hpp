@@ -4,6 +4,8 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
 {
     TOOLS_PTIMER(timer,MethodName("Split"));
     
+//    constexpr bool debugQ = true;
+    
     if constexpr ( debugQ )
     {
         wprint(MethodName("Split")+": Debug mode active.");
@@ -15,7 +17,7 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
     {
         if constexpr ( debugQ )
         {
-            if( !pd.CheckAll() ) { pd_eprint("!pd.CheckAll() when pushed to pd_output."); };
+            if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
         }
         
         pd_output.push_back( std::move(pd) );
@@ -24,6 +26,7 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
     }
     
     cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
+
     
     const Int dc_count  = A.RowCount();
     
@@ -31,7 +34,7 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
     {
         if constexpr ( debugQ )
         {
-            if( !pd.CheckAll() ) { pd_eprint("!pd.CheckAll() when pushed to pd_output."); };
+            if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
         }
         
         pd_output.push_back( std::move(pd) );

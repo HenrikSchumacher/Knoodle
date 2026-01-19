@@ -1,8 +1,5 @@
 #pragma  once
 
-#include "PlanarDiagramComplex/ArcSimplifier2.hpp"
-#include "PlanarDiagramComplex/StrandSimplifier2.hpp"
-
 namespace Knoodle
 {
 
@@ -46,8 +43,10 @@ namespace Knoodle
         static constexpr bool Out   = PD_T::Out;
         static constexpr bool In    = PD_T::In;
         
+        static constexpr Int  DoNotVisit    =  PD_T::DoNotVisit;
         static constexpr Int  Uninitialized =  PD_T::Uninitialized;
         
+        friend class LoopRemover<Int>;
         friend class ArcSimplifier2<Int,0,true >;
         friend class ArcSimplifier2<Int,1,true >;
         friend class ArcSimplifier2<Int,2,true >;
@@ -137,8 +136,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/SimplifyGlobal.hpp"
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
-#include "PlanarDiagramComplex/Connect.hpp"
-#include "PlanarDiagramComplex/Modify.hpp"
+#include "PlanarDiagramComplex/ModifyDiagramList.hpp"
+#include "PlanarDiagramComplex/ModifyDiagram.hpp"
         
 #include "PlanarDiagramComplex/Unite.hpp"
             
@@ -167,6 +166,46 @@ namespace Knoodle
             
             return pd_list[Size_T(i)];
         }
+        
+        void Compress()
+        {
+            for( PD_T & pd : pd_list )
+            {
+                pd.Compress();
+            }
+        }
+        
+        void ClearCaches()
+        {
+            for( PD_T & pd : pd_list )
+            {
+                pd.ClearCache();
+            }
+            this->ClearCache();
+        }
+        
+    private:
+        
+        mref<PD_T> Diagram_Private( Int i )
+        {
+            if( i < Int(0) )
+            {
+                eprint(MethodName("Diagram") + ": Index  i < 0. Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
+            
+            if( i >= DiagramCount() )
+            {
+                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
+            
+            return pd_list[Size_T(i)];
+        }
+        
+    public:
         
         Int CrossingCount() const
         {
@@ -308,6 +347,99 @@ namespace Knoodle
             return PD_T::FlipDarc(da);
         }
         
+    
+        Size_T RemoveLoopArcs()
+        {
+            TOOLS_PTIMER(timer,MethodName("RemoveLoopArcs"));
+            
+            Size_T total_counter = 0;
+            
+            PD_ASSERT(pd_done.empty());
+            PD_ASSERT(pd_todo.empty());
+            
+            using std::swap;
+            pd_done.reserve(pd_list.size());
+            pd_todo.reserve(pd_list.size());
+          
+            swap(pd_list,pd_todo);
+            
+            while( !pd_todo.empty() )
+            {
+                PD_T pd = std::move(pd_todo.back());
+                pd_todo.pop_back();
+                
+                if( pd.InvalidQ() ) { continue; }
+                
+                if(  pd.proven_minimalQ )
+                {
+                    if( pd.arc_count < pd.max_arc_count )
+                    {
+                        pd_done.push_back( pd.CreateCompressed() );
+                    }
+                    else
+                    {
+                        pd.ClearCache();
+                        pd_done.push_back( std::move(pd) );
+                    }
+                    continue;
+                }
+                
+                Size_T old_counter = 0;
+                Size_T counter = 0;
+                
+                do
+                {
+                    old_counter = counter;
+                    
+                    for( Int a = 0; a < pd.max_arc_count; ++a )
+                    {
+                        if( pd.ArcActiveQ(a) )
+                        {
+                            LoopRemover<Int> R (*this,pd,a);
+                            while( R.Step() ) { ++counter; }
+                        }
+                    }
+                }
+                while( counter > old_counter );
+                
+                total_counter += counter;
+
+                if( pd.InvalidQ() ) { continue; }
+            
+                if( pd.CrossingCount() == Int(0) )
+                {
+                    pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
+                    continue;
+                }
+                
+                if( pd.crossing_count < pd.max_crossing_count )
+                {
+                    pd_done.push_back( pd.CreateCompressed() );
+                }
+                else
+                {
+                    pd.ClearCache();
+                    pd_done.push_back( std::move(pd) );
+                }
+            }  // while( !pd_todo.empty() )
+            
+            swap( pd_list, pd_done );
+            
+            // Sort big diagrams in front.
+            Sort(
+                &pd_list[0],
+                &pd_list[pd_list.size()],
+                []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
+                {
+                    return pd_0.CrossingCount() > pd_1.CrossingCount();
+                }
+            );
+            
+            if( total_counter > Size_T(0) ) { this->ClearCache(); }
+            
+            return total_counter;
+        }
+
        
     public:
         

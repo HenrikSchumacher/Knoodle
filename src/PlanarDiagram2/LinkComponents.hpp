@@ -93,9 +93,6 @@ void ComputeLinkComponents() const
 {
     TOOLS_PTIMER(timer,MethodName("ComputeLinkComponents"));
     
-    
-    logprint("ComputeLinkComponents()");
-    
     // Data for forming the graph components.
     // Each active arc will appear in precisely one component.
     RaggedList<Int,Int> lc_arcs ( CrossingCount() + Int(1), ArcCount() );
@@ -103,17 +100,6 @@ void ComputeLinkComponents() const
     //      {2 * c_0 + c_0_visitedQ, 2 * c_1 + c_1_visitedQ},
     // where c_0_visitedQ is true if c_0 is visited as tail for the second time
     // and   c_1_visitedQ is true if c_1 is visited as head for the second time.
-    
-    
-    // DEBUGGING
-    if( ArcCount() != CountActiveArcs() )
-    {
-        eprint("ArcCount() != CountActiveArcs()");
-        TOOLS_DUMP(ArcCount());
-        TOOLS_DUMP(arc_count);
-        TOOLS_DUMP(CountActiveArcs());
-        TOOLS_DUMP(MaxArcCount());
-    }
     
     ArcContainer_T      A_flags ( ArcCount() );
     
@@ -215,125 +201,128 @@ void ComputeLinkComponents() const
 //    }
 //}
 
-public:
 
-/*!
- * @brief See documentation of `Traverse`. The only difference is that `LinkComponents` are required for this. (This may make the traversal faster, if the `LinkComponents` are already in cache.
- */
+// Caution: The following turned out to be buggy!
 
-template<
-    bool crossingsQ, bool labelsQ,
-    typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
->
-void Traverse_ByLinkComponents(
-    LinkCompPre_T  && lc_pre,
-    ArcFun_T       && arc_fun,
-    LinkCompPost_T && lc_post
-)  const
-{
-    auto tag = []()
-    {
-        return MethodName("Traverse_ByLinkComponents")
-        + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
-        + "," + (labelsQ ? "w/ labels" : "w/o labels")
-        + ">";
-    };
-    
-    TOOLS_PTIMER(timer,tag());
-    
-    if( InvalidQ() )
-    {
-        eprint(tag() + ": Trying to traverse an invalid planar diagram. Aborting.");
-        
-        // Other methods might assume that this is set.
-        // In particular, calls to `LinkComponentCount` might go into an infinite loop.
-        this->template SetCache<false>("LinkComponentCount",Int(0));
-        return;
-    }
-    
-    RequireLinkComponents();
-    
-    Int a_counter = 0;
-
-    const auto & lc_arcs = LinkComponentArcs();
-    const Int lc_count   = lc_arcs.SublistCount();
-    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
-    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
-    cptr<Int> A_flag     = ArcTraversalFlags().data();
-     
-    for( Int lc = 0; lc < lc_count; ++lc )
-    {
-        const Int k_begin = lc_arc_ptr[lc  ];
-        const Int k_end   = lc_arc_ptr[lc+1];
-
-        lc_pre( lc, lc_arc_idx[k_begin] );
-
-        for( Int k = k_begin; k < k_end; ++k )
-        {
-            const Int a_pos = a_counter++;
-            const Int a     = lc_arc_idx[k];
-            
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-
-            const Int flag_0 = A_flag[Int(2) * a + Int(0)];
-            const Int flag_1 = A_flag[Int(2) * a + Int(1)];
-
-            if constexpr ( crossingsQ )
-            {
-                const Int c_0_pos = (flag_0 >> 1);
-                const Int c_1_pos = (flag_1 >> 1);
-
-                arc_fun(
-                    a, a_pos, lc,
-                    c_0, c_0_pos, flag_0 & Int(1),
-                    c_1, c_1_pos, flag_1 & Int(1)
-                );
-                
-                if constexpr ( labelsQ )
-                {
-                    C_scratch[c_0] = c_0_pos;
-                    A_scratch[a]   = a_pos;
-                }
-            }
-            else
-            {
-                arc_fun( a, a_pos, lc );
-                
-                if constexpr ( labelsQ )
-                {
-                    const Int c_0_pos = (flag_0 >> 1);
-                    
-                    C_scratch[c_0] = c_0_pos;
-                    A_scratch[a]   = a_pos;
-                }
-            }
-        }
-
-        lc_post( lc, lc_arc_idx[k_begin], lc_arc_idx[k_end] );
-    }
-}
-
-
-/*!
- * @brief Short version of `Traverse_ByNextArc` with only a argument `arc_fun`.
- */
-
-template<bool crossingsQ, bool labelsQ, typename ArcFun_T>
-void Traverse_ByLinkComponents( ArcFun_T && arc_fun )  const
-{
-    this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
-        []( const Int lc, const Int lc_begin )
-        {
-            (void)lc;
-            (void)lc_begin;
-        },
-        std::move(arc_fun),
-        []( const Int lc, const Int lc_begin, const Int lc_end )
-        {
-            (void)lc;
-            (void)lc_begin;
-            (void)lc_end;
-        }
-    );
-}
+//public:
+//
+///*!
+// * @brief See documentation of `Traverse`. The only difference is that `LinkComponents` are required for this. (This may make the traversal faster, if the `LinkComponents` are already in cache.
+// */
+//
+//template<
+//    bool crossingsQ, bool labelsQ,
+//    typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
+//>
+//void Traverse_ByLinkComponents(
+//    LinkCompPre_T  && lc_pre,
+//    ArcFun_T       && arc_fun,
+//    LinkCompPost_T && lc_post
+//)  const
+//{
+//    auto tag = []()
+//    {
+//        return MethodName("Traverse_ByLinkComponents")
+//        + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
+//        + "," + (labelsQ ? "w/ labels" : "w/o labels")
+//        + ">";
+//    };
+//    
+//    TOOLS_PTIMER(timer,tag());
+//    
+//    if( InvalidQ() )
+//    {
+//        eprint(tag() + ": Trying to traverse an invalid planar diagram. Aborting.");
+//        
+//        // Other methods might assume that this is set.
+//        // In particular, calls to `LinkComponentCount` might go into an infinite loop.
+//        this->template SetCache<false>("LinkComponentCount",Int(0));
+//        return;
+//    }
+//    
+//    RequireLinkComponents();
+//    
+//    Int a_counter = 0;
+//
+//    const auto & lc_arcs = LinkComponentArcs();
+//    const Int lc_count   = lc_arcs.SublistCount();
+//    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+//    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
+//    cptr<Int> A_flag     = ArcTraversalFlags().data();
+//     
+//    for( Int lc = 0; lc < lc_count; ++lc )
+//    {
+//        const Int k_begin = lc_arc_ptr[lc  ];
+//        const Int k_end   = lc_arc_ptr[lc+1];
+//
+//        lc_pre( lc, lc_arc_idx[k_begin] );
+//
+//        for( Int k = k_begin; k < k_end; ++k )
+//        {
+//            const Int a_pos = a_counter++;
+//            const Int a     = lc_arc_idx[k];
+//            
+//            const Int c_0 = A_cross(a,Tail);
+//            const Int c_1 = A_cross(a,Head);
+//
+//            const Int flag_0 = A_flag[Int(2) * a + Int(0)];
+//            const Int flag_1 = A_flag[Int(2) * a + Int(1)];
+//
+//            if constexpr ( crossingsQ )
+//            {
+//                const Int c_0_pos = (flag_0 >> 1);
+//                const Int c_1_pos = (flag_1 >> 1);
+//
+//                arc_fun(
+//                    a, a_pos, lc,
+//                    c_0, c_0_pos, flag_0 & Int(1),
+//                    c_1, c_1_pos, flag_1 & Int(1)
+//                );
+//                
+//                if constexpr ( labelsQ )
+//                {
+//                    C_scratch[c_0] = c_0_pos;
+//                    A_scratch[a]   = a_pos;
+//                }
+//            }
+//            else
+//            {
+//                arc_fun( a, a_pos, lc );
+//                
+//                if constexpr ( labelsQ )
+//                {
+//                    const Int c_0_pos = (flag_0 >> 1);
+//                    
+//                    C_scratch[c_0] = c_0_pos;
+//                    A_scratch[a]   = a_pos;
+//                }
+//            }
+//        }
+//
+//        lc_post( lc, lc_arc_idx[k_begin], lc_arc_idx[k_end] );
+//    }
+//}
+//
+//
+///*!
+// * @brief Short version of `Traverse_ByNextArc` with only a argument `arc_fun`.
+// */
+//
+//template<bool crossingsQ, bool labelsQ, typename ArcFun_T>
+//void Traverse_ByLinkComponents( ArcFun_T && arc_fun )  const
+//{
+//    this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
+//        []( const Int lc, const Int lc_begin )
+//        {
+//            (void)lc;
+//            (void)lc_begin;
+//        },
+//        std::move(arc_fun),
+//        []( const Int lc, const Int lc_begin, const Int lc_end )
+//        {
+//            (void)lc;
+//            (void)lc_begin;
+//            (void)lc_end;
+//        }
+//    );
+//}

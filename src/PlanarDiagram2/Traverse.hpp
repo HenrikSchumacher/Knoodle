@@ -1,7 +1,7 @@
 public:
 
 /*!
- * @brief Traverse each component of the link and apply function `arc_fun` to every arc visited. This function may leverage the precomputed array `ArcTraversalFlags` by calling `Traverse_ByLinkComponents` if it are already available. Otherwise, it will traverse by calling `Traverse_ByNextArc`.
+ * @brief Traverse each component of the link and apply function `arc_fun` to every arc visited. ~~This function may leverage the precomputed array `ArcTraversalFlags` by calling `Traverse_ByLinkComponents` if it are already available.~~ Otherwise, it will traverse by calling `Traverse_ByNextArc`.
  *
  * Beware that `A_scratch` and `C_scratch` are overwritten as follows:
  *
@@ -62,13 +62,14 @@ void Traverse(
                  + "," + (labelsQ ? "w/ labels" : "w/o labels")
                  + ">");
     
-    if( this->InCacheQ("ArcTraversalFlags") )
-    {
-        this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post)
-        );
-    }
-    else
+    // Traverse_ByLinkComponents seems to by buggy.
+//    if( this->InCacheQ("ArcTraversalFlags") && this->InCacheQ("LinkComponentArcs") )
+//    {
+//        this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
+//            std::move(lc_pre), std::move(arc_fun), std::move(lc_post)
+//        );
+//    }
+//    else
     {
         this->template Traverse_ByNextArc<crossingsQ,labelsQ>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post)
@@ -207,7 +208,16 @@ void Traverse_ByNextArc_impl(
     mptr<Int>  C_idx
 )  const
 {
-
+    [[maybe_unused]] auto tag = []()
+    {
+        return MethodName("Traverse_ByNextArc_impl")
+        + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
+        + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
+        + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
+        + "," + ToString(lutQ)
+        + " >";
+    };
+    
     if constexpr ( !lutQ )
     {
         (void)A_next;
@@ -215,12 +225,7 @@ void Traverse_ByNextArc_impl(
     
     if( InvalidQ() )
     {
-        eprint(MethodName("Traverse_ByNextArc_impl")
-               + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
-               + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
-               + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )
-               + "," + ToString(lutQ)
-               + " >: Trying to traverse an invalid planar diagram. Aborting.");
+        wprint(tag() + ": Trying to traverse an invalid planar diagram. Aborting.");
         
         // Other methods might assume that this is set.
         // In particular, calls to `LinkComponentCount` might go into an infinite loop.

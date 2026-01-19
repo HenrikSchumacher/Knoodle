@@ -18,26 +18,35 @@ PD_T CreateCompressed()
         return InvalidDiagram();
     }
     
-    TOOLS_PTIMER(timer,MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">");
+    auto tag = [](){ return MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">"; };
+    
+    TOOLS_PTIMER(timer,tag());
+    
+//    constexpr bool debugQ = true;
+    
+    PD_T pd;
     
     if constexpr ( debugQ )
     {
-        wprint(MethodName("CreateCompressed")+": Debug mode active.");
+        wprint(tag() + ": Debug mode active.");
+        
+        this->PrintInfo();
+        
+        if( this->CheckAll() ) { pd_eprint(tag() + ": this->CheckAll() failed."); }
+        
+        pd = PD_T( crossing_count );
     }
-    
-    PD_T pd ( crossing_count );
+    else
+    {
+        // Skip filling buffers as they will be overwritten anyways.
+        pd = PD_T( crossing_count, true );
+    }
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.
     pd.crossing_count  = crossing_count;
     pd.arc_count       = arc_count;
     pd.proven_minimalQ = proven_minimalQ;
-    
-    if constexpr ( !recolorQ )
-    {
-//        pd.color_palette = color_palette;
-//        pd.color_arc_counts = color_arc_counts;
-    }
     
     ColorCounts_T color_arc_counts;
     
@@ -54,7 +63,7 @@ PD_T CreateCompressed()
             (void)lc;
             (void)lc_begin;
         },
-        [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,A_color_new,this](
+        [&tag, &C_arcs_new, &C_state_new, &A_cross_new, &A_state_new, A_color_new, this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -63,8 +72,52 @@ PD_T CreateCompressed()
             (void)lc;
             (void)c_1;
             (void)c_1_visitedQ;
+            
+            if constexpr ( debugQ )
+            {
+                if( !ValidIndexQ(a) )
+                {
+                    pd_eprint(tag()+": Index a = " + ToString(a) + " is invalid.");
+                }
+                if( !this->ArcActiveQ(a) )
+                {
+                    pd_eprint(tag()+": a = " + this->ArcString(a) + " is inactive.");
+                }
+                if( !ValidIndexQ(c_0) )
+                {
+                    pd_eprint(tag()+": Index c_0 = " + ToString(c_0) + " is invalid.");
+                }
+                if( !this->CrossingActiveQ(c_0) )
+                {
+                    pd_eprint(tag()+": c_0 = " + this->CrossingString(c_0) + " is inactive.");
+                }
+                if( !ValidIndexQ(c_1) )
+                {
+                    pd_eprint(tag()+": Index c_1 = " + ToString(c_1) + " is invalid.");
+                }
+                if( !this->CrossingActiveQ(c_1) )
+                {
+                    pd_eprint(tag()+": c_1 = " + this->CrossingString(c_1) + " is inactive.");
+                }
+                if( !ValidIndexQ(a_pos) )
+                {
+                    pd_eprint(tag()+": Index a_pos = " + ToString(a_pos) + " is invalid.");
+                }
+                if( !ValidIndexQ(c_0_pos) )
+                {
+                    pd_eprint(tag()+": Index c_0_pos = " + ToString(c_0_pos) + " is invalid.");
+                }
+                if( !ValidIndexQ(c_1_pos) )
+                {
+                    pd_eprint(tag()+": Index c_1_pos = " + ToString(c_1_pos) + " is invalid.");
+                }
+            }
+            else
+            {
+                (void)tag;
+            }
 
-            if constexpr( recolorQ )
+            if constexpr ( recolorQ )
             {
                 A_color_new[a_pos] = lc;
             }
@@ -81,15 +134,9 @@ PD_T CreateCompressed()
             A_cross_new(a_pos,Tail) = c_0_pos;
             A_cross_new(a_pos,Head) = c_1_pos;
             
-//            const ArcState_T a_state = this->A_state[a];
-//            A_state_new[a_pos] = a_state;
-//            C_arcs_new(c_0_pos,Out,a_state.Side(Tail)) = a_pos;
-//            C_arcs_new(c_1_pos,In ,a_state.Side(Head)) = a_pos;
-            
             A_state_new[a_pos] = ArcState_T::Active;
             C_arcs_new(c_0_pos,Out,ArcSide(a,Tail,c_0)) = a_pos;
             C_arcs_new(c_1_pos,In ,ArcSide(a,Head,c_1)) = a_pos;
-
         },
         [&color_arc_counts]( const Int lc, const Int lc_begin, const Int lc_end )
         {
@@ -119,10 +166,8 @@ PD_T CreateCompressed()
     
     if constexpr ( debugQ )
     {
-        if( !pd.CheckAll() )
-        {
-            pd_eprint(MethodName("CreateCompressed") +": pd.CheckAll() failed.");
-        }
+        pd.PrintInfo();
+        if( !pd.CheckAll() ) { pd_eprint(tag() + ": pd.CheckAll() failed."); }
     }
     
     return pd;

@@ -16,7 +16,7 @@ PlanarDiagram CreateCompressed()
     
     TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
     
-    constexpr bool debugQ = true;
+//    constexpr bool debugQ = true;
     
     if constexpr ( debugQ )
     {

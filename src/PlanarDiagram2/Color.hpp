@@ -1,66 +1,29 @@
-//        Int ColorCount() const
-//        {
-////            return int_cast<Int>( color_palette.size() );
-//            return int_cast<Int>( color_arc_counts.size() );
-//        }
-//
-//        Int ActiveColorCount() const
-//        {
-//            Int color_count = 0;
-//            for( auto & x : color_arc_counts )
-//            {
-//                if( x.second > Int(0) )
-//                {
-//                    ++color_count;
-//                }
-//                else
-//                {
-//#ifdef PD_DEBUG
-//                    if ( x.second < Int(0) )
-//                    {
-//                        eprint(MethodName("ActiveColorCount")+": Found a color with a negative color count.");
-//                    }
-//#endif // PD_DEBUG
-//                }
-//            }
-//
-//            PD_ASSERT(color_count <= arc_count);
-//
-//            return color_count;
-//        }
+
+public:
 
 cref<ColorCounts_T> ColorArcCounts() const
 {
     if( !this->InCacheQ("ColorArcCounts") )
     {
         ColorCounts_T color_arc_counts;
-        
         for( Int a = 0; a < max_arc_count; ++a )
         {
-            if( ArcActiveQ(a) )
-            {
-                Increment(color_arc_counts,A_color[a]);
-            }
+            if( ArcActiveQ(a) ) { Increment(color_arc_counts,A_color[a]); }
         }
-        
         this->SetCache("ColorArcCounts",std::move(color_arc_counts));
     }
-   
     return this->template GetCache<ColorCounts_T>("ColorArcCounts");
 }
 
 Int MaxColor() const
 {
-    if( InvalidQ() )
-    {
-        return 0;
-    }
+    if( InvalidQ() ) { return 0; }
     
     Int max_color = 0;
     
     if( (crossing_count <= Int(0)) )
     {
-        if(last_color_deactivated != Uninitialized)
+        if( last_color_deactivated != Uninitialized )
         {
             return last_color_deactivated;
         }

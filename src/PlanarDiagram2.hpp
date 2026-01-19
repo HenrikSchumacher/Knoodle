@@ -6,10 +6,7 @@
 namespace Knoodle
 {
     // TODO: Template this.
-    // bool fancy_arc_stateQ -- whether the flags other than an active bit ought to be used at all.
-
-    
-    template<typename Int> class PlanarDiagramComplex;
+    // bool fancy_arc_stateQ -- whether the flags other than an active bit ought to be used at all.s
     
 //    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
 //    
@@ -28,8 +25,8 @@ namespace Knoodle
         
     public:
         
-        static constexpr bool countQ           = false;
-        static constexpr bool debugQ           = false;
+        static constexpr bool countQ = false;
+        static constexpr bool debugQ = false;
         
         using Int                       = Int_;
         using UInt                      = ToUnsigned<Int>;
@@ -45,8 +42,6 @@ namespace Knoodle
         using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
         
-    public:
-        
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
         using ArcColorContainer_T       = Tensor1<Int,Int>;
@@ -57,6 +52,8 @@ namespace Knoodle
         friend class PlanarDiagramComplex<Int>;
         
         using PDC_T = PlanarDiagramComplex<Int>;
+        
+        friend class LoopRemover<Int>;
         
         template<typename Int, Size_T, bool>
         friend class ArcSimplifier2;
@@ -75,6 +72,8 @@ namespace Knoodle
         static constexpr bool In    = 1;
         
         static constexpr Int Uninitialized = SignedIntQ<Int> ? Int(-1): std::numeric_limits<Int>::max();
+        
+        static constexpr Int DoNotVisit = Uninitialized - Int(1);
         
         // For the faces I need at least one invalid value that is different from `Uninitialized`. So we consider (Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
         
@@ -409,7 +408,7 @@ namespace Knoodle
 #include "PlanarDiagram2/CreateCompressed.hpp"
 #include "PlanarDiagram2/Reconnect.hpp"
 #include "PlanarDiagram2/SwitchCrossing.hpp"
-#include "PlanarDiagram2/Connect.hpp"
+#include "PlanarDiagram2/Modify.hpp"
 
 #include "PlanarDiagram2/PDCode.hpp"
 #include "PlanarDiagram2/GaussCode.hpp"
@@ -556,54 +555,56 @@ namespace Knoodle
             }
         }
         
-    /*!
-     * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
-     */
+        /*!
+         * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+         */
 
-    Int Writhe() const
-    {
-        Int writhe = 0;
-        
-        for( Int c = 0; c < max_crossing_count; ++c )
+        Int Writhe() const
         {
-            if( CrossingRightHandedQ(c) )
+            Int writhe = 0;
+            
+            for( Int c = 0; c < max_crossing_count; ++c )
             {
-                ++writhe;
+                if( CrossingRightHandedQ(c) )
+                {
+                    ++writhe;
+                }
+                else if ( CrossingLeftHandedQ(c) )
+                {
+                    --writhe;
+                }
             }
-            else if ( CrossingLeftHandedQ(c) )
-            {
-                --writhe;
-            }
+            
+            return writhe;
         }
-        
-        return writhe;
-    }
 
-    Int EulerCharacteristic() const
-    {
-        TOOLS_PTIMER(timer,MethodName("EulerCharacteristic"));
-        return CrossingCount() - ArcCount() + FaceCount();
-    }
+        Int EulerCharacteristic() const
+        {
+            TOOLS_PTIMER(timer,MethodName("EulerCharacteristic"));
+            return CrossingCount() - ArcCount() + FaceCount();
+        }
 
-//    template<bool verboseQ = true>
-//    bool EulerCharacteristicValidQ() const
-//    {
-//        TOOLS_PTIMER(timer,MethodName("EulerCharacteristicValidQ"));
-//        const Int euler_char  = EulerCharacteristic();
-//        const Int euler_char0 = Int(2) * DiagramComponentCount();
-//        
-//        const bool validQ = (euler_char == euler_char0);
-//        
-//        if constexpr ( verboseQ )
+//        template<bool verboseQ = true>
+//        bool EulerCharacteristicValidQ() const
 //        {
-//            if( !validQ )
+//            TOOLS_PTIMER(timer,MethodName("EulerCharacteristicValidQ"));
+//            const Int euler_char  = EulerCharacteristic();
+//            const Int euler_char0 = Int(2) * DiagramComponentCount();
+//
+//            const bool validQ = (euler_char == euler_char0);
+//
+//            if constexpr ( verboseQ )
 //            {
-//                wprint(ClassName()+"::EulerCharacteristicValidQ: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
+//                if( !validQ )
+//                {
+//                    wprint(ClassName()+"::EulerCharacteristicValidQ: Computed Euler characteristic is " + ToString(euler_char) + " != 2 * DiagramComponentCount() = " + ToString(euler_char0) + ". The processed diagram cannot be planar.");
+//                }
 //            }
+//
+//            return validQ;
 //        }
-//        
-//        return validQ;
-//    }
+        
+
         
         // Applies the transformation in-place.
         void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
@@ -649,19 +650,52 @@ namespace Knoodle
             }
         }
 
-        
+        Tensor1<Int,Int> FindIsthmi() const
+        {
+            TOOLS_PTIMER(timer,MethodName("FindIsthmi"));
+            
+            Aggregator<Int,Int> agg (1);
+            
+            auto & A_F = ArcFaces();
+            
+            for( Int c = 0; c < max_crossing_count; ++c )
+            {
+                if( !CrossingActiveQ(c) ) { continue; }
+                
+                const C_Arc_T C = CopyCrossing(c);
+                
+                const Int f_w = A_F(C[Out][Left ],0);
+                const Int f_n = A_F(C[Out][Left ],1);
+                const Int f_e = A_F(C[In ][Right],1);
+                const Int f_s = A_F(C[In ][Right],0);
+                
+                if( (f_w == f_e) || (f_n == f_s) )
+                {
+                    agg.Push(c);
+                }
+            }
+            
+            return agg.Disband();
+        }
         
     public:
         
         void PrintInfo() const
         {
-            logprint(MethodName("PrintInfo"));
+            logprint(MethodName("PrintInfo") + " -- begin");
             
             TOOLS_LOGDUMP( C_arcs );
             TOOLS_LOGDUMP( C_state );
             TOOLS_LOGDUMP( A_cross );
             TOOLS_LOGDUMP( A_state );
             TOOLS_LOGDUMP( A_color );
+            
+            TOOLS_LOGDUMP( last_color_deactivated );
+            TOOLS_LOGDUMP( proven_minimalQ );
+            
+            TOOLS_LOGDUMP( this->CacheKeys() );
+            
+            logprint(MethodName("PrintInfo") + " -- end");
         }
 
 /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.

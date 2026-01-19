@@ -148,23 +148,23 @@ bool CheckArc( const Int a ) const
         
     }
     
-    const Int a_next = NextArc(a,Head);
-    
-    if( !InIntervalQ(a,Int(0),max_arc_count) )
-    {
-        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is out of bounds.");
-        A_passedQ = false;
-    }
-    else if( !ArcActiveQ(a) )
-    {
-        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is inactive.");
-        A_passedQ = false;
-    }
-    else if( A_color[a] != A_color[a_next] )
-    {
-        eprint(ClassName()+"::CheckArc: Color of next arc of " + ArcString(a) + " does not match.");
-        A_passedQ = false;
-    }
+//    const Int a_next = NextArc(a,Head);
+//    
+//    if( !InIntervalQ(a,Int(0),max_arc_count) )
+//    {
+//        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is out of bounds.");
+//        A_passedQ = false;
+//    }
+//    else if( !ArcActiveQ(a) )
+//    {
+//        eprint(ClassName()+"::CheckArc: Next arc of " + ArcString(a) + " is inactive.");
+//        A_passedQ = false;
+//    }
+//    else if( A_color[a] != A_color[a_next] )
+//    {
+//        eprint(ClassName()+"::CheckArc: Color of next arc of " + ArcString(a) + " does not match.");
+//        A_passedQ = false;
+//    }
     
     return A_passedQ;
 }
@@ -301,7 +301,7 @@ bool CheckArcDegrees() const
 
 bool CheckAll() const
 {
-    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees();
+    const bool passedQ = CheckAllCrossings() && CheckAllArcs() && CheckVertexDegrees() && CheckArcDegrees() && CheckArcColors();
 
     return passedQ;
 }
