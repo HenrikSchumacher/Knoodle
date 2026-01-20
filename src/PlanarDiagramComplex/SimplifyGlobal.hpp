@@ -283,18 +283,19 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
             ( (disconnect_count > Size_T(0)) || (pd.DiagramComponentCount() > Int(1)) )
         )
         {
-//            nprint("Splitting");
             // Split the diagrams into diagram components and push them to pd_todo for further simplification.
             Split( std::move(pd), pd_todo );
             continue;
         }
         else
         {
-            if( args.disconnectQ && pd.AlternatingQ() ) { pd.proven_minimalQ = true; }
+            if( args.disconnectQ && pd.AlternatingQ() )
+            {
+                pd.proven_minimalQ = true;
+            }
             
             if( pd.crossing_count < pd.max_crossing_count )
             {
-//                nprint("Compressing.");
                 pd.Compress();
                 
                 if constexpr ( debugQ )
@@ -306,6 +307,7 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
             pd.ClearCache();
             pd_done.push_back( std::move(pd) );
         }
+        
     }  // while( !pd_todo.empty() )
     
     if constexpr ( debugQ )

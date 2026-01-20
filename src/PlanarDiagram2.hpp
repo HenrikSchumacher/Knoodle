@@ -332,7 +332,7 @@ namespace Knoodle
         /*! @brief Create a new planar diagram with the copied of this one, but with the internal buffers large enough for at least `new_max_crossing_count` crossings. Caches will be cleared.
          */
         
-        PD_T CreateEnlarged( const Int new_max_crossing_count )
+        PD_T CreateEnlarged( const Int new_max_crossing_count ) const
         {
             // needs to know all member variables
             

@@ -138,8 +138,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
-        
 #include "PlanarDiagramComplex/Unite.hpp"
+#include "PlanarDiagramComplex/Checks.hpp"
             
     public:
         

@@ -409,3 +409,42 @@ void AssertCrossing( const Int c ) const
     (void)c;
 #endif
 }
+
+
+bool LoopFreeQ() const
+{
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( ArcActiveQ(a) && (A_cross(a,Tail) == A_cross(a,Head)) )
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool CheckProvenMinimalQ() const
+{
+    if( proven_minimalQ )
+    {
+        PD_T pd = this->CachelessCopy();
+        
+        bool alternatingQ = AlternatingQ();
+        
+        if( !alternatingQ )
+        {
+            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not alternating.");
+        }
+        
+        bool loop_freeQ = LoopFreeQ();
+        
+        if( !loop_freeQ )
+        {
+            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not loop free.");
+        }
+        
+        return alternatingQ && loop_freeQ;
+    }
+    
+    return true;
+}
