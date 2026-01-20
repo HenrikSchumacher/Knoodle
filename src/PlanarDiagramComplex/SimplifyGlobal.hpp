@@ -22,23 +22,23 @@ Size_T SimplifyGlobal( cref<Simplify_Args_T> args = Simplify_Args_T() )
     {
         case 0:
         {
-            return SimplifyGlobal_impl<0,true,true>(args);
+            return SimplifyGlobal_impl<0,true>(args);
         }
         case 1:
         {
-            return SimplifyGlobal_impl<1,true,true>(args);
+            return SimplifyGlobal_impl<1,true>(args);
         }
         case 2:
         {
-            return SimplifyGlobal_impl<2,true,true>(args);
+            return SimplifyGlobal_impl<2,true>(args);
         }
         case 3:
         {
-            return SimplifyGlobal_impl<3,true,true>(args);
+            return SimplifyGlobal_impl<3,true>(args);
         }
         case 4:
         {
-            return SimplifyGlobal_impl<4,true,true>(args);
+            return SimplifyGlobal_impl<4,true>(args);
         }
         default:
         {
@@ -52,13 +52,13 @@ Size_T SimplifyGlobal( cref<Simplify_Args_T> args = Simplify_Args_T() )
 
 private:
 
-template<Int local_opt_level, bool pass_R_II_Q, bool mult_compQ>
+template<Int local_opt_level, bool pass_R_II_Q>
 Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
 {
     [[maybe_unused]] auto tag = [&args]()
     {
         return MethodName("SimplifyGlobal_impl")
-        + "<" + ToString(local_opt_level)+","+ToString(mult_compQ)
+        + "<" + ToString(local_opt_level)
         + ">"
         +"({ .min_dist = " + ToString(args.min_dist)
         + ", .max_dist = " + ToString(args.max_dist)
@@ -77,10 +77,13 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
         wprint(tag()+": Debug mode active.");
     }
 
-    using ArcSimplifier_T  = ArcSimplifier2<Int,local_opt_level,mult_compQ>;
-    using StrandSimplier_T = StrandSimplifier2<Int,pass_R_II_Q,mult_compQ>;
+//    using ArcSimplifier_Knot_T  = ArcSimplifier2<Int,local_opt_level,false>;
+    using ArcSimplifier_Link_T  = ArcSimplifier2<Int,local_opt_level,true >;
+//    
+//    using StrandSimplier_Knot_T = StrandSimplifier2<Int,pass_R_II_Q,false>;
+    using StrandSimplier_Link_T = StrandSimplifier2<Int,pass_R_II_Q,true >;
     
-    Size_T total_counter = 0;
+    Size_T total_change_count = 0;
     
     PD_ASSERT(pd_done.empty());
     PD_ASSERT(pd_todo.empty());
@@ -117,38 +120,57 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
             }
             else
             {
-                pd.ClearCache();
+                // TODO: I don't think that pd.ClearCache() is meaningful here.
+//                pd.ClearCache();
                 pd_done.push_back( std::move(pd) );
             }
             continue;
         }
         
-        Size_T old_counter = 0;
-        Size_T counter = 0;
-        
+//        const Int link_component_count = pd.LinkComponentCount();
+//        const bool mult_compQ = (link_component_count > Int(1));
         // It is very likely that we change the diagram.
         // Also, a stale cache might spoil the simplification.
         // Thus, we proactively delete the cache.
         pd.ClearCache();
+        // At least this information we can keep.
+//        pd.SetCache("LinkComponentCount",link_component_count);
+        
+        Size_T change_count_old = 0;
+        Size_T change_count     = 0;
+        Size_T change_count_loc = 0; // counter for local moves.
+        // Initialize to something != 0 to signal that we have not yet done any strand simplification.
+        Size_T change_count_o   = 1; // counter for overstrand moves.
+        Size_T change_count_u   = 1; // counter for understrand moves.
         
         Int dist = args.min_dist;
-        bool simplify_localQ   = true;
-        bool simplify_strandsQ = (args.max_dist > Int(0));
+        const bool simplify_localQ   = (local_opt_level > Int(0));
+        const bool simplify_strandsQ = (args.max_dist   > Int(0));
         
         do
         {
-            old_counter = counter;
+            change_count_old = change_count;
             
             dist = Min(dist,args.max_dist);
             
-            Size_T simplify_local_changes = 0;
-            
             // Since ArcSimplifier_T performs only inexpensive tests, we should use it first.
-            if( simplify_localQ && (local_opt_level > Int(0)) )
+            if( simplify_localQ && ( (change_count_o > 0) ||  (change_count_u > 0) ) )
             {
-                ArcSimplifier_T A ( *this, pd, args.local_max_iter, args.compressQ );
-                simplify_local_changes = A();
-                counter += simplify_local_changes;
+                ArcSimplifier_Link_T A ( *this, pd, args.local_max_iter, args.compressQ );
+                change_count_loc = A();
+                
+//                if( mult_compQ )
+//                {
+//                    ArcSimplifier_Link_T A ( *this, pd, args.local_max_iter, args.compressQ );
+//                    change_count_loc = A();
+//                }
+//                else
+//                {
+//                    ArcSimplifier_Knot_T A ( *this, pd, args.local_max_iter, args.compressQ );
+//                    change_count_loc = A();
+//                }
+                
+                change_count += change_count_loc;
                 
                 if constexpr ( debugQ )
                 {
@@ -156,59 +178,86 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
                 }
             }
             
-            // TODO: If we did strand moves before without success and if simplify_local_changes == 0, then we can break here, too.
+            // If we did strand moves before without success and if simplify_local_changes == 0, then we can break here, too.
+            if( (change_count_o == 0) && (change_count_u == 0) && (change_count_loc == 0) )
+            {
+                break;
+            }
             
             if( pd.InvalidQ() ) { break; }
             
             if( !simplify_strandsQ ) { break; }
             
-            Size_T o_changes;
             // Reroute overstrands.
             {
                 PD_PRINT("Construct StrandSimplier");
-                StrandSimplier_T S (*this,pd);
-                PD_VALPRINT("pd.max_crossing_count",pd.max_crossing_count);
-
-                o_changes = S.SimplifyStrands(true,dist);
-                counter += o_changes;
+                
+                StrandSimplier_Link_T S (*this,pd);
+                change_count_o  = S.SimplifyStrands(true,dist);
+                
+//                if( mult_compQ )
+//                {
+//                    StrandSimplier_Link_T S (*this,pd);
+//                    change_count_o  = S.SimplifyStrands(true,dist);
+//                }
+//                else
+//                {
+//                    StrandSimplier_Knot_T S (*this,pd);
+//                    change_count_o  = S.SimplifyStrands(true,dist);
+//                }
+                
+                change_count   += change_count_o;
                 
                 if( pd.InvalidQ() ) { break; }
                 
-                if( (o_changes > Size_T(0)) )
+                if( change_count_o > 0 )
                 {
                     if( args.compressQ ) { pd.ConditionalCompress(); } else { pd.ClearCache(); }
                     // TODO: Is clearing the cache really necessary? For example, ArcLeftDarc should still be valid.
                 }
+                
             }
 
             if constexpr ( debugQ )
             {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed overstrand simplification."); };
+                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after overstrand simplification."); };
             }
             
-            Size_T u_changes;
             // Reroute overstrands.
             {
                 PD_PRINT("Construct StrandSimplier");
-                StrandSimplier_T S (*this,pd);
-                PD_VALPRINT("pd.max_crossing_count",pd.max_crossing_count);
                 
-                u_changes = S.SimplifyStrands(false,dist);
-                counter += u_changes;
+                StrandSimplier_Link_T S (*this,pd);
+                change_count_u  = S.SimplifyStrands(false,dist);
+                
+//                if( mult_compQ )
+//                {
+//                    StrandSimplier_Link_T S (*this,pd);
+//                    change_count_u  = S.SimplifyStrands(false,dist);
+//                }
+//                else
+//                {
+//                    StrandSimplier_Knot_T S (*this,pd);
+//                    change_count_u  = S.SimplifyStrands(false,dist);
+//                }
+
+                change_count   += change_count_u;
                 
                 if( pd.InvalidQ() ) { break; }
                 
-                if( (u_changes > Size_T(0)) )
+                if( change_count_u > Size_T(0) )
                 {
                     if( args.compressQ ) { pd.ConditionalCompress(); } else { pd.ClearCache(); }
                     // TODO: Is clearing the cache really necessary? For example, ArcLeftDarc should still be valid.
+
                 }
             }
             
             if constexpr ( debugQ )
             {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed understand simplification."); };
+                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after understrand simplification."); };
             }
+
             
             if( dist <= Scalar::Max<Int> / Int(2) )
             {
@@ -218,16 +267,14 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
             {
                 dist = Scalar::Max<Int>;
             }
-            
-            simplify_localQ = (o_changes + u_changes > Int(0));
         }
         while(
-              (counter > old_counter)
+              (change_count > change_count_old)
               ||
               ( (dist <= args.max_dist) && (dist < pd.ArcCount()) )
         );
         
-        total_counter += counter;
+        total_change_count += change_count;
 
         if( pd.InvalidQ() ) { continue; }
         
@@ -242,13 +289,13 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
             continue;
         }
         
-        if( counter > Size_T(0) )
+        if( change_count > Size_T(0) )
         {
             pd.ClearCache();
         }
         
         Size_T disconnect_count = args.disconnectQ ? Disconnect(pd) : Size_T(0);
-        total_counter += disconnect_count;
+        total_change_count += disconnect_count;
         
         if constexpr ( debugQ )
         {
@@ -328,7 +375,7 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
         }
     );
     
-    if( total_counter > Size_T(0) ) { this->ClearCache(); }
+    if( total_change_count > Size_T(0) ) { this->ClearCache(); }
     
-    return total_counter;
+    return total_change_count;
 }

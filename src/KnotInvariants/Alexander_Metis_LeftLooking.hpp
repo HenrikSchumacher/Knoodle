@@ -25,7 +25,7 @@ namespace Knoodle
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
-        using C_Arc_T           = typename PD_T::C_Arc_T;
+        using C_Arcs_T          = typename PD_T::C_Arcs_T;
         
         Alexander_Metis_LeftLooking( const Int sparsity_threshold_ )
         :   sparsity_threshold (
@@ -106,7 +106,7 @@ namespace Knoodle
                 
                 if( pd.CrossingLeftHandedQ(c) )
                 {
-                    const C_Arc_T C = pd.CopyCrossing(c);
+                    const C_Arcs_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -135,7 +135,7 @@ namespace Knoodle
                 }
                 else if( pd.CrossingRightHandedQ(c) )
                 {
-                    const C_Arc_T C = pd.CopyCrossing(c);
+                    const C_Arcs_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];
@@ -198,7 +198,7 @@ namespace Knoodle
                 
                 if( pd.CrossingLeftHandedQ(c) )
                 {
-                    const C_Arc_T C = pd.CopyCrossing(c);
+                    const C_Arcs_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][0]];
                     const Int j = arc_strands[C[1][1]];
@@ -223,7 +223,7 @@ namespace Knoodle
                 }
                 else if( pd.CrossingRightHandedQ(c) )
                 {
-                    const C_Arc_T C = pd.CopyCrossing(c);
+                    const C_Arcs_T C = pd.CopyCrossing(c);
                 
                     const Int i = arc_strands[C[1][1]];
                     const Int j = arc_strands[C[1][0]];

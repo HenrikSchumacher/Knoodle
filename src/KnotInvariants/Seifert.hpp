@@ -34,7 +34,7 @@ namespace Knoodle
         
         using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
-        using C_Arc_T           = typename PD_T::C_Arc_T;
+        using C_Arcs_T          = typename PD_T::C_Arcs_T;
         
         
         using SeifertIncidenceMatrix_T = Sparse::MatrixCSR<Int,Int,Int>;
@@ -130,7 +130,7 @@ namespace Knoodle
                     
                     const Int c = A_cross(a,Head);
                     
-                    const C_Arc_T C = pd.CopyCrossing(c);
+                    const C_Arcs_T C = pd.CopyCrossing(c);
                     
                     const bool rightQ = (C[In][Right] == a);
                     

@@ -49,7 +49,7 @@ namespace Knoodle
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
         
-        using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
+        using C_Arcs_T                  = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
         
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
@@ -569,7 +569,7 @@ namespace Knoodle
 
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                const C_Arc_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c);
                 C_arcs(c,0,0) = C[i0][j0];
                 C_arcs(c,0,1) = C[i0][j1];
                 C_arcs(c,1,0) = C[i1][j0];

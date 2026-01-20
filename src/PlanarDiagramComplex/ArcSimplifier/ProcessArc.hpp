@@ -29,17 +29,31 @@ private:
          *              s_0
          */
         
-        // Check for Reidemeister I move
-        if( R_I_center() )
+        // Check for Reidemeister I move on arc a
+        
+        if constexpr ( use_arc_removerQ )
         {
-            PD_VALPRINT( "a  ", ArcString(n_0) );
+            LoopRemover<Int> R (pdc,pd,a,Head);
             
-            PD_VALPRINT( "c_0", CrossingString(c_0) );
-            PD_VALPRINT( "n_0", ArcString(n_0) );
-            PD_VALPRINT( "s_0", ArcString(s_0) );
-            PD_VALPRINT( "w_0", ArcString(w_0) );
-            
-            return true;
+            if( R.Step() )
+            {
+                while( R.Step() ){}
+                return true;
+            }
+        }
+        else
+        {
+            if( R_I_center() )
+            {
+                PD_VALPRINT( "a  ", ArcString(n_0) );
+                
+                PD_VALPRINT( "c_0", CrossingString(c_0) );
+                PD_VALPRINT( "n_0", ArcString(n_0) );
+                PD_VALPRINT( "s_0", ArcString(s_0) );
+                PD_VALPRINT( "w_0", ArcString(w_0) );
+                
+                return true;
+            }
         }
          
         if constexpr ( optimization_level < 2 )
@@ -80,38 +94,64 @@ private:
         // Next we check for Reidemeister_I at crossings c_0 and c_1.
         // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
         
-        if( R_I_left() )
+        // Check for Reidemeister I move on arc w_0
+        if constexpr ( use_arc_removerQ )
         {
-            PD_VALPRINT( "a  ", ArcString(n_0) );
-            
-            PD_VALPRINT( "c_0", CrossingString(c_0) );
-            PD_VALPRINT( "n_0", ArcString(n_0) );
-            PD_VALPRINT( "s_0", ArcString(s_0) );
-            PD_VALPRINT( "w_0", ArcString(w_0) );
-            
-            PD_VALPRINT( "c_1", CrossingString(c_1) );
-            PD_VALPRINT( "n_1", ArcString(n_1) );
-            PD_VALPRINT( "e_1", ArcString(e_1) );
-            PD_VALPRINT( "s_1", ArcString(s_1) );
-            
-            return true;
+            if( (w_0 == n_0) || (w_0 == s_0) )
+            {
+                LoopRemover<Int> R (pdc,pd,w_0,Head);
+                while( R.Step() ){}
+                return true;
+            }
+        }
+        else
+        {
+            if( R_I_left() )
+            {
+                PD_VALPRINT( "a  ", ArcString(n_0) );
+                
+                PD_VALPRINT( "c_0", CrossingString(c_0) );
+                PD_VALPRINT( "n_0", ArcString(n_0) );
+                PD_VALPRINT( "s_0", ArcString(s_0) );
+                PD_VALPRINT( "w_0", ArcString(w_0) );
+                
+                PD_VALPRINT( "c_1", CrossingString(c_1) );
+                PD_VALPRINT( "n_1", ArcString(n_1) );
+                PD_VALPRINT( "e_1", ArcString(e_1) );
+                PD_VALPRINT( "s_1", ArcString(s_1) );
+                
+                return true;
+            }
         }
         
-        if( R_I_right() )
+        // Check for Reidemeister I move on arc e_1
+        if constexpr ( use_arc_removerQ )
         {
-            PD_VALPRINT( "a  ", ArcString(n_0) );
-            
-            PD_VALPRINT( "c_0", CrossingString(c_0) );
-            PD_VALPRINT( "n_0", ArcString(n_0) );
-            PD_VALPRINT( "s_0", ArcString(s_0) );
-            PD_VALPRINT( "w_0", ArcString(w_0) );
-            
-            PD_VALPRINT( "c_1", CrossingString(c_1) );
-            PD_VALPRINT( "n_1", ArcString(n_1) );
-            PD_VALPRINT( "e_1", ArcString(e_1) );
-            PD_VALPRINT( "s_1", ArcString(s_1) );
-            
-            return true;
+            if( (e_1 == n_1) || (e_1 == s_1) )
+            {
+                LoopRemover<Int> R (pdc,pd,e_1,Head);
+                while( R.Step() ){}
+                return true;
+            }
+        }
+        else
+        {
+            if( R_I_right() )
+            {
+                PD_VALPRINT( "a  ", ArcString(n_0) );
+                
+                PD_VALPRINT( "c_0", CrossingString(c_0) );
+                PD_VALPRINT( "n_0", ArcString(n_0) );
+                PD_VALPRINT( "s_0", ArcString(s_0) );
+                PD_VALPRINT( "w_0", ArcString(w_0) );
+                
+                PD_VALPRINT( "c_1", CrossingString(c_1) );
+                PD_VALPRINT( "n_1", ArcString(n_1) );
+                PD_VALPRINT( "e_1", ArcString(e_1) );
+                PD_VALPRINT( "s_1", ArcString(s_1) );
+                
+                return true;
+            }
         }
         
         // Neglecting asserts, this is the only time we access C_state[c_0].

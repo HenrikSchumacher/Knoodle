@@ -80,7 +80,8 @@ Size_T Disconnect( PD_T & pd )
     std::vector<std::pair<Int,Int>> stack;
     stack.reserve(f_max_size);
     
-    AssociativeContainer_T<Int,Int> f_counts;
+    using I = ToSigned<Int>; // security measure so that we do not decrement below 0 and wrap around.
+    AssociativeContainer_T<I,Int> f_counts;
     
     auto remove_loop = [&pd,dA_F,this]( const Int da )
     {
@@ -179,17 +180,27 @@ Size_T Disconnect( PD_T & pd )
             {
                 auto [e,d_e] = FromDarc(de);
                 
-            
-                if( !pd.ArcActiveQ(e) ) { pd_eprint(pd.ArcString(e) + " is not active."); }
+                if( !pd.ArcActiveQ(e) )
+                {
+                    pd_eprint(MethodName("Disconnect") + ", during collecting face stats of face f = " + ToString(f) + ": " + pd.ArcString(e) + " is not active.");
+                }
                 
                 if( dA_F[de] != f )
                 {
+                    eprint(MethodName("Disconnect") + ", during collecting face stats of face f = " + ToString(f) + ": dA_F[de] != f (de = " + ToString(de) + ", dA_F[de] = " + ToString(dA_F[de]) + "); dA_F must be stale.");
+                    
+                    pd.PrintInfo();
+                    
+                    TOOLS_LOGDUMP(da_0);
                     TOOLS_LOGDUMP(de);
                     TOOLS_LOGDUMP(dA_F[de]);
                     TOOLS_LOGDUMP(dA_F[FlipDarc(de)]);
-                    TOOLS_LOGDUMP(pd.ArcFaces());
                     
-                    pd_eprint("dA_F[de] != f (de = " + ToString(de) + ", f = " + ToString(f) + ") dA_F must be stale.");
+                    TOOLS_LOGDUMP(pd.ArcFaces());
+                    TOOLS_LOGDUMP(F_count);
+                    logvalprint("F_state",ArrayToString(F_state,{Int(2) * pd.max_arc_count}));
+                    
+                    pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }
                 
                 const Int g = dA_F[FlipDarc(de)];
@@ -205,7 +216,7 @@ Size_T Disconnect( PD_T & pd )
         {
             for( Int g : f_F )
             {
-                if( f_counts.contains(g) && (f_counts[g] > Int(1)) )
+                if( f_counts.contains(g) && (f_counts[g] > I(1)) )
                 {
                     f_F_compressed.push_back(g);
                 }
@@ -226,8 +237,8 @@ Size_T Disconnect( PD_T & pd )
         // Cycle once more around the face and do the surgery.
         for( Int db : f_dA )
         {
-            auto [b,d_b]  = FromDarc(db);
-            const Int g   = dA_F[FlipDarc(db)];
+            auto [b,d]  = FromDarc(db);
+            const Int g = dA_F[FlipDarc(db)];
             
             if constexpr ( debugQ )
             {
@@ -241,7 +252,7 @@ Size_T Disconnect( PD_T & pd )
             
             if( !pd.ArcActiveQ(b) || (dA_F[db] != f) ) { continue; }
             
-            if( f_counts[g] <= Int(1) )
+            if( f_counts[g] <= I(1) )
             {
                 if constexpr( debugQ ) { logprint("f_counts[g] <= Int(1)"); }
                 continue;
@@ -257,17 +268,41 @@ Size_T Disconnect( PD_T & pd )
                 continue;
             }
              
+            
             const Int da = stack.back().first;
-            auto [a,d] = FromDarc(da);
+            auto [a,d_a] = FromDarc(da);
             
             if constexpr ( debugQ )
             {
+                if( stack.back().second != g )
+                {
+                    pd_eprint("Face " + ToString(stack.back().second) + " on stack does not match g = " + ToString(g) + ".");
+                    TOOLS_LOGDUMP(stack);
+                }
+                
                 logprint("Starting surgery.");
                 if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
-                
-                if( !pd.ArcActiveQ(a) ) { pd_eprint(pd.ArcString(a) + " is not active."); }
-                
-                if( d_b != d ) { pd_eprint("d_b != d."); }
+            }
+            
+            if( !pd.ArcActiveQ(a) )
+            {
+                if constexpr ( debugQ )
+                {
+                    wprint(pd.ArcString(a) + " from the stack is not active. Maybe it should have been erased earlier? We pop it from stack now and continue.");
+                    
+                    TOOLS_LOGDUMP(dA_F[da]);
+                    TOOLS_LOGDUMP(dA_F[FlipDarc(da)]);
+                    TOOLS_LOGDUMP(stack);
+                    TOOLS_LOGDUMP(f_F);
+                    TOOLS_LOGDUMP(f_dA);
+                }
+                stack.pop_back();
+                continue;
+            }
+            
+            if constexpr ( debugQ )
+            {
+                if( d_a != d ) { pd_eprint("d_a != d."); }
                 
                 TOOLS_LOGDUMP(d);
                 TOOLS_LOGDUMP(da);
@@ -346,7 +381,6 @@ Size_T Disconnect( PD_T & pd )
                 {
 
                     Int de = da;
-                    
                     do
                     {
                         // We avoid ArcLeftDarc here because the data structure is highly in flux.
@@ -361,7 +395,6 @@ Size_T Disconnect( PD_T & pd )
                         
                         const Int h = dA_F[FlipDarc(de)];
                         
-                        // DEBUGGING
                         auto iterator = std::find(stack.begin(), stack.end(), std::pair{de,h} );
                         if( iterator != stack.end() )
                         {
@@ -408,7 +441,7 @@ Size_T Disconnect( PD_T & pd )
                 }
                 
                 ++change_counter;
-                f_counts[g]   -= Int(1); // db does not belong to face f anymore.
+                f_counts[g]   -= I(1); // db does not belong to face f anymore.
                 
                 /*!@ Remove the loops that we might have created.
                  * We can simply do do `remove_loop(da)` and `remove_loop(db)` without changing `f_counts` any further. To see this, we distinguish two (possibly nondisjoint) cases:
@@ -456,7 +489,7 @@ Size_T Disconnect( PD_T & pd )
                 if( !pd.CheckAll() ) { pd_eprint("!CheckAll()"); }
             }
             
-            if( f_counts[g] <= Int(1) )
+            if( f_counts[g] <= (1) )
             {
                 if constexpr ( debugQ )
                 {
@@ -475,7 +508,25 @@ Size_T Disconnect( PD_T & pd )
             if( !stack.empty() )
             {
                 wprint(tag() + ": !stack.empty().");
-                TOOLS_DUMP(stack);
+                TOOLS_LOGDUMP(stack);
+                TOOLS_LOGDUMP(F_count);
+            }
+            
+            for( auto & x : f_counts )
+            {
+                if( x.second >= I(2) )
+                {
+                    wprint(tag() + ": Face " + ToString(x.first) + " has count " + ToString(x.second) + " >= 2 in f_counts."  );
+                    logvalprint("f_counts",ToString(f_counts));
+                    break;
+                }
+                
+                if( x.second < I(0) )
+                {
+                    wprint(tag() + ": Face " + ToString(x.first) + " has negative count " + ToString(x.second) + " in f_counts."  );
+                    logvalprint("f_counts",ToString(f_counts));
+                    break;
+                }
             }
         }
     }

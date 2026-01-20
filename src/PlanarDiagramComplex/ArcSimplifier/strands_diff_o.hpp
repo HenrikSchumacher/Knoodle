@@ -59,8 +59,10 @@ bool strands_diff_o()
         
 //        PD_PRINT("\t\tw_3 != s_2");
         
+        // TODO: I think this is too restrictive.
         //Check for Reidemeister IIa move.
-        if( (o_2 == o_3) && ( (o_2 == o_0) || (o_2 != o_1) ) )
+        // We have o_0 != o_1, so the following implies o_2 != o_1 and o_3 != o_1.
+        if( (o_2 == o_3) && (o_2 == o_0) )
         {
             /* Example: o_0, o_2, o_3 are the same
              *
@@ -89,7 +91,7 @@ bool strands_diff_o()
             {
                 if constexpr ( allow_four_patternQ )
                 {
-                    if( four_pattern_same_u() )
+                    if( two_triangles_same_u() )
                     {
                         return true;
                     }
@@ -106,3 +108,52 @@ bool strands_diff_o()
 
     return false;
 }
+
+
+
+
+/* Impossible for RIIa when o_1 != o_1 and o_2 == o_3: o_2 == o_1
+ *
+ *          w_3 O   O n_3
+ *               \ /
+ *                / c_3
+ *               / \
+ *              O   O
+ *             /     \
+ *        n_0 /       \ n_1
+ *           O         O
+ *           |    a    |
+ *    w_0 O---->O-->O--|->O e_1
+ *           |c_0      |c_1
+ *           O         O
+ *        s_0 \       / s_1
+ *             \     /
+ *              O   O
+ *               \ /
+ *                \ c_2
+ *               / \
+ *          w_2 O   O s_2
+ */
+
+/* Impossible for RIIa when o_1 != o_1:
+ *
+ *          w_3 O   O n_3
+ *               \ /
+ *                \ c_3
+ *               / \
+ *              O   O
+ *             /     \
+ *        n_0 /       \ n_1
+ *           O         O
+ *           |    a    |
+ *    w_0 O--X->O-->O--X->O e_1
+ *           |c_0      |c_1
+ *           O         O
+ *        s_0 \       / s_1
+ *             \     /
+ *              O   O
+ *               \ /
+ *                \ c_2
+ *               / \
+ *          w_2 O   O s_2
+ */

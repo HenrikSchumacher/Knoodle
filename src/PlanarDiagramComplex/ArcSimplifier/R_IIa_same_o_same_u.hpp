@@ -111,7 +111,7 @@ bool R_IIa_same_o_same_u()
                 *           w_2
                 */
                 
-                PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identitied as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+                PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identified as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                 
                 DeactivateArc(a);
                 DeactivateArc(n_0);
@@ -165,7 +165,7 @@ bool R_IIa_same_o_same_u()
             *           w_2
             */
             
-            PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Identitied as unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+            PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Removing four crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
             
             // This keeps e_1 alive, which is likely to be visited next.
             Reconnect<Tail>(e_1,n_3);
@@ -241,6 +241,8 @@ bool R_IIa_same_o_same_u()
             *           w_2
             */
             
+            PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Removing four crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+            
             // This keeps w_2 alive, which is likely to be visited next.
             Reconnect<Tail>(w_2,w_0);
             DeactivateArc(a);
@@ -307,6 +309,8 @@ bool R_IIa_same_o_same_u()
         *    ########O<-------------+
         *           w_2
         */
+        
+        PD_PRINT(MethodName("R_IIa_same_o_same_u")+": Detected a connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         // This keeps w_2 alive, which is likely to be visited next.
         Reconnect<Tail>(e_1,w_0);

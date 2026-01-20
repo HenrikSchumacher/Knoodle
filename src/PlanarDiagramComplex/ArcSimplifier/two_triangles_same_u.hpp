@@ -1,6 +1,10 @@
-bool four_pattern_same_u()
+bool two_triangles_same_u()
 {
-    PD_DPRINT( "four_pattern_same_u()" );
+    PD_ASSERT(u_0 != u_1);
+    
+    [[maybe_unused]] auto tag = [](){ return MethodName("two_triangles_same_u"); };
+    
+    PD_DPRINT( "two_triangles_same_u()" );
     
     // We need the crossings to be pairwise distinct here.
     PD_ASSERT(c_0 != c_1);
@@ -14,7 +18,7 @@ bool four_pattern_same_u()
     {
         PD_PRINT("\t\t\tw_3 == s_2");
         
-        PD_NOTE(MethodName("four_pattern_same_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_NOTE(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*              +<-------------+
          *              |  n_3         ^
@@ -100,18 +104,18 @@ bool four_pattern_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as trefoil knot.");
+                    PD_NOTE(tag()+": Identified as trefoil knot.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a trefoil knot.");
+                    PD_NOTE(tag()+": Disconnected a trefoil knot.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a trefoil knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnected a trefoil knot and a further diagram.");
                     return true;
                 }
             }
@@ -120,24 +124,24 @@ bool four_pattern_same_u()
         {
             // The remainder is a figure-eight knot.
             CreateFigureEightKnotFromArc(a);
-            PD_NOTE(MethodName("four_pattern_same_u")+": Found a figure-eight knot.");
+            PD_NOTE(tag()+": Found a figure-eight knot.");
             
             switch( nontrivial_count )
             {
                 case 0:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as figure-eight knot.");
+                    PD_NOTE(tag()+": Identified as figure-eight knot.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a figure-eight knot.");
+                    PD_NOTE(tag()+": Disconnected a figure-eight knot.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a figure-eight knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnected a figure-eight knot and a further diagram.");
                     return true;
                 }
             }
@@ -150,18 +154,18 @@ bool four_pattern_same_u()
                 {
                     CreateUnlinkFromArc(a);
                     PD_ASSERT(pd.InvalidQ());
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as unlink.");
+                    PD_NOTE(tag()+": Identified as unlink.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Removed four crossings.");
+                    PD_NOTE(tag()+": Removed four crossings.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a connected summand.");
+                    PD_NOTE(tag()+": Disconnected a connected summand.");
                     return true;
                 }
             }
@@ -176,7 +180,7 @@ bool four_pattern_same_u()
     {
         PD_PRINT("\t\t\t\tw_2 == n_3");
         
-        PD_PRINT(MethodName("four_pattern_same_u")+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_PRINT(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*   +<-------------+
          *   |          w_3 |
@@ -261,18 +265,18 @@ bool four_pattern_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as trefoil knot.");
+                    PD_NOTE(tag()+": Identified as trefoil knot.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a trefoil knot.");
+                    PD_NOTE(tag()+": Disconnected a trefoil knot.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a trefoil knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnected a trefoil knot and a further diagram.");
                     return true;
                 }
             }
@@ -281,24 +285,24 @@ bool four_pattern_same_u()
         {
             // The remainder is a figure-eight knot.
             CreateFigureEightKnotFromArc(a);
-            PD_NOTE(MethodName("four_pattern_same_u")+": Found a figure-eight knot.");
+            PD_NOTE(tag()+": Found a figure-eight knot.");
             
             switch( nontrivial_count )
             {
                 case 0:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as figure-eight knot.");
+                    PD_NOTE(tag()+": Identified as figure-eight knot.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a figure-eight knot.");
+                    PD_NOTE(tag()+": Disconnected a figure-eight knot.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a figure-eight knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnected a figure-eight knot and a further diagram.");
                     return true;
                 }
             }
@@ -311,18 +315,18 @@ bool four_pattern_same_u()
                 {
                     CreateUnlinkFromArc(a);
                     PD_ASSERT(pd.InvalidQ());
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Identified as unlink.");
+                    PD_NOTE(tag()+": Identified as unlink.");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Removed four crossings.");
+                    PD_NOTE(tag()+": Removed four crossings.");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(MethodName("four_pattern_same_u")+": Disconnected a connected summand.");
+                    PD_NOTE(tag()+": Disconnected a connected summand.");
                     return true;
                 }
             }
@@ -362,4 +366,59 @@ bool four_pattern_same_u()
  *               / \
  *              O   O
  *          w_2       s_2
+ */
+
+
+
+/*
+ *             \     /
+ *          w_3 \   / n_3
+ *               \ /
+ *                X c_3
+ *               / \
+ *              /   \
+ *             /     \
+ *            /       \
+ *           +         +
+ *    w_0    |    a    | e_1
+ *      -----X->O-->O--X---->
+ *           vc_0      |c_1
+ *           +         +
+ *            \       /
+ *             \     /
+ *              \   /
+ *               \ /
+ *                X c_2
+ *               / \
+ *          w_2 /   \ s_2
+ *             /     \
+ */
+
+
+
+/*        n_3|      n_2|
+ *           |         |   e_2
+ *      -----X---------X----
+ *     w_3   |c_3      |c_2
+ *           |         |
+ *           |         |
+ *           |    a    |   e_1
+ *      ---->X----->---X---->
+ *     w_0   |c_0      |c_1
+ *           |         |
+ *        s_0|      s_1|
+ */
+
+
+/*        n_3|      n_2|
+ *           |         |   e_2
+ *   +-------X----<----X----
+ *   | w_3   |c_3      |c_2
+ *   |       |         |
+ *   |       |         |
+ *   |       |    a    |   e_1
+ *   +------>X----->---X---->
+ *     w_0   |c_0      |c_1
+ *           |         |
+ *        s_0|      s_1|
  */

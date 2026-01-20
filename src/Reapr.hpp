@@ -81,8 +81,8 @@ namespace Knoodle
         
         bool permute_randomQ     = true;
         OrthoDrawSettings_T ortho_draw_settings = {
-            .randomize_virtual_edgesQ = true,
-            .randomize_bends  = 4
+            .randomize_bends  = 4,
+            .randomize_virtual_edgesQ = true
         };
         
         int  rattle_counter      = 0;

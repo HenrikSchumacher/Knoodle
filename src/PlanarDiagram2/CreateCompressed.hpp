@@ -13,14 +13,23 @@ PD_T CreateCompressed()
 {
     // needs to know all member variables
     
-    if( !ValidQ() )
-    {
-        return InvalidDiagram();
-    }
+    if( !ValidQ() ) { return InvalidDiagram(); }
     
     auto tag = [](){ return MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">"; };
     
     TOOLS_PTIMER(timer,tag());
+    
+    if( ProvenUnknotQ() )
+    {
+        if constexpr ( recolorQ )
+        {
+            return Unknot(Int(0));
+        }
+        else
+        {
+            return Unknot(last_color_deactivated);
+        }
+    }
     
 //    constexpr bool debugQ = true;
     
@@ -44,9 +53,10 @@ PD_T CreateCompressed()
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.
-    pd.crossing_count  = crossing_count;
-    pd.arc_count       = arc_count;
-    pd.proven_minimalQ = proven_minimalQ;
+    pd.crossing_count         = crossing_count;
+    pd.arc_count              = arc_count;
+    pd.proven_minimalQ        = proven_minimalQ;
+    pd.last_color_deactivated = last_color_deactivated;
     
     ColorCounts_T color_arc_counts;
     
@@ -182,7 +192,8 @@ void Compress()
 template<bool recolorQ = false>
 void ConditionalCompress()
 {
-    // CrossingCount() < MaxCrossingCount() / 2
+    //             +------ This avoids recompression of unknots.
+    //             V
     if( ArcCount() < MaxCrossingCount() )
     {
         Compress();

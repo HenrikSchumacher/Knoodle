@@ -37,6 +37,9 @@ namespace Knoodle
         static constexpr Int  optimization_level  = optimization_level_;
         static constexpr bool allow_disconnectsQ  = true;
         static constexpr bool allow_four_patternQ = true;
+        
+        static constexpr bool use_arc_removerQ    = true;
+        
 //        static constexpr bool allow_four_patternQ = false;
         
         static constexpr bool Head  = PD_T::Head;
@@ -136,16 +139,10 @@ namespace Knoodle
         {
             if( pd.ArcCount() == Int(0) )
             {
-                if( pd.ValidQ() )
-                {
-                    pd.proven_minimalQ = true;
-                }
+                if( pd.ValidQ() ) { pd.proven_minimalQ = true; }
             }
             
-            if( pd.InvalidQ() || pd.ProvenMinimalQ()  )
-            {
-                return 0;
-            }
+            if( pd.InvalidQ() || pd.ProvenMinimalQ()  ) { return 0; }
             
             TOOLS_PTIMER(timer,ClassName()
                 + "(" + ToString(optimization_level)
@@ -156,10 +153,7 @@ namespace Knoodle
             Size_T counter = 0;
             Size_T iter = 0;
             
-            if( pd.ArcCount() < pd.MaxCrossingCount() )
-            {
-                pd.Compress();
-            }
+            if( compressQ ) { pd.ConditionalCompress(); }
             
             if( iter < max_iter )
             {
@@ -180,6 +174,7 @@ namespace Knoodle
                     if( pd.arc_count <= Int(0) ) { break; }
         
                     // We could recompress also here...
+                    if( compressQ ) { pd.ConditionalCompress(); }
                 }
                 while( (counter != old_counter) && (iter < max_iter) );
             }
@@ -245,7 +240,6 @@ namespace Knoodle
 #include "ArcSimplifier/load.hpp"
 #include "ArcSimplifier/a_is_2loop.hpp"
 #include "ArcSimplifier/twist_at_a.hpp"
-//#include "ArcSimplifier/twist_at_a_legacy.hpp"
 #include "ArcSimplifier/strands_same_o.hpp"
 #include "ArcSimplifier/strands_diff_o.hpp"
 #include "ArcSimplifier/R_I_center.hpp"
@@ -255,7 +249,7 @@ namespace Knoodle
 #include "ArcSimplifier/R_Ia_below.hpp"
 #include "ArcSimplifier/R_II_above.hpp"
 #include "ArcSimplifier/R_II_below.hpp"
-#include "ArcSimplifier/four_pattern_u.hpp"
+#include "ArcSimplifier/two_triangles_same_u.hpp"
 #include "ArcSimplifier/R_IIa_same_o_same_u.hpp"
 #include "ArcSimplifier/R_IIa_same_o_diff_u.hpp"
 #include "ArcSimplifier/R_IIa_diff_o_same_u.hpp"

@@ -69,9 +69,9 @@ cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
     return C_scratch;
 }
 
-C_Arc_T CopyCrossing( const Int c ) const
+C_Arcs_T CopyCrossing( const Int c ) const
 {
-    return C_Arc_T( C_arcs.data(c) );
+    return C_Arcs_T( C_arcs.data(c) );
 }
 
 CrossingState_T CrossingState( const Int c ) const

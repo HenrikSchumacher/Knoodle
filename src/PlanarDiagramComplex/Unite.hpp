@@ -51,7 +51,7 @@ void Unite()
         for( Int c = 0; c < pd.max_crossing_count; ++c )
         {
             const Int c_pos = C_pos + c;
-            C_Arc_T C = pd.CopyCrossing(c);
+            C_Arcs_T C = pd.CopyCrossing(c);
             C += A_pos;
             C.Write(pd_union.C_arcs.data(c_pos));
         }

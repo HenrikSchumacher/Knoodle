@@ -138,8 +138,8 @@ mref<ArcContainer_T> ArcLeftDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arc_T C = CopyCrossing(c);
-                const C_Arc_T in_darcs {
+                const C_Arcs_T C = CopyCrossing(c);
+                const C_Arcs_T in_darcs {
                     { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
                     { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
                 };
@@ -320,8 +320,8 @@ mref<ArcContainer_T> ArcRightDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arc_T C = CopyCrossing(c);
-                const C_Arc_T in_darcs  {
+                const C_Arcs_T C = CopyCrossing(c);
+                const C_Arcs_T in_darcs  {
                     { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
                     { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
                 };

@@ -113,10 +113,18 @@ bool strands_same_o()
      *       w_2     s_2             w_2     s_2
      */
     
+
     // One of these will definitely work:
-    
     if(u_0 == u_1)
     {
+        if constexpr ( allow_four_patternQ )
+        {
+            if( two_triangles_same_u() )
+            {
+                return true;
+            }
+        }
+        
         return R_IIa_same_o_same_u();
     }
     else

@@ -39,7 +39,7 @@ namespace Knoodle
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
         using ColorCounts_T             = AssociativeContainer_T<Int,Int>;
         
-        using C_Arc_T                   = Tiny::Matrix<2,2,Int,Int>;
+        using C_Arcs_T                  = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
         
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
@@ -54,12 +54,21 @@ namespace Knoodle
         using PDC_T = PlanarDiagramComplex<Int>;
         
         friend class LoopRemover<Int>;
-        
-        template<typename Int, Size_T, bool>
-        friend class ArcSimplifier2;
+        friend class ArcSimplifier2<Int,0,true >;
+        friend class ArcSimplifier2<Int,1,true >;
+        friend class ArcSimplifier2<Int,2,true >;
+        friend class ArcSimplifier2<Int,3,true >;
+        friend class ArcSimplifier2<Int,4,true >;
+        friend class ArcSimplifier2<Int,0,false>;
+        friend class ArcSimplifier2<Int,1,false>;
+        friend class ArcSimplifier2<Int,2,false>;
+        friend class ArcSimplifier2<Int,3,false>;
+        friend class ArcSimplifier2<Int,4,false>;
 
-        template<typename I, bool R_II_Q, bool mult_compQ_>
-        friend class StrandSimplifier2;
+        friend class StrandSimplifier2<Int,true ,true >;
+        friend class StrandSimplifier2<Int,true ,false>;
+        friend class StrandSimplifier2<Int,false,true >;
+        friend class StrandSimplifier2<Int,false,false>;
             
         using HeadTail_T = bool;
         
@@ -624,7 +633,7 @@ namespace Knoodle
 
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                const C_Arc_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c);
                 C_arcs(c,0,0) = C[i0][j0];
                 C_arcs(c,0,1) = C[i0][j1];
                 C_arcs(c,1,0) = C[i1][j0];
@@ -662,7 +671,7 @@ namespace Knoodle
             {
                 if( !CrossingActiveQ(c) ) { continue; }
                 
-                const C_Arc_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c);
                 
                 const Int f_w = A_F(C[Out][Left ],0);
                 const Int f_n = A_F(C[Out][Left ],1);

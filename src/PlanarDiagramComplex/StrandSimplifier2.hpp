@@ -36,7 +36,7 @@ namespace Knoodle
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
-        using C_Arc_T                   = typename PD_T::C_Arc_T;
+        using C_Arcs_T                  = typename PD_T::C_Arcs_T;
         using A_Cross_T                 = typename PD_T::A_Cross_T;
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
         using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;

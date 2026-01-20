@@ -419,7 +419,7 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arc_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c);
                 A_next(C[In][Left ]) = C[Out][Right];
                 A_next(C[In][Right]) = C[Out][Left ];
             }
@@ -445,7 +445,7 @@ cref<Tensor1<Int,Int>> ArcPrevArc() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arc_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c);
                 A_prev(C[Out][Right]) = C[In][Left ];
                 A_prev(C[Out][Left ]) = C[In][Right];
             }

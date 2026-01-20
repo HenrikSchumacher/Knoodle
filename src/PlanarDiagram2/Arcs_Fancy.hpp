@@ -186,7 +186,7 @@ void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
     
     for( Int c = 0; c < max_crossing_count; ++c )
     {
-        const C_Arc_T C = CopyCrossing(c);
+        const C_Arcs_T C = CopyCrossing(c);
         C_arcs(c,0,0) = C[i0][j0];
         C_arcs(c,0,1) = C[i0][j1];
         C_arcs(c,1,0) = C[i1][j0];

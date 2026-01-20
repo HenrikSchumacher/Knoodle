@@ -22,7 +22,7 @@ namespace Knoodle
         
         using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
-        using C_Arc_T           = typename PD_T::C_Arc_T;
+        using C_Arcs_T          = typename PD_T::C_Arcs_T;
         
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;

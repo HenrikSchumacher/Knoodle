@@ -27,7 +27,6 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
     
     cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
 
-    
     const Int dc_count  = A.RowCount();
     
     if( dc_count <= Int(1) )
@@ -180,6 +179,8 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
         
         pd_new.crossing_count = c_counter;
         pd_new.arc_count      = a_counter;
+            
+        pd_new.SetCache("LinkComponentCount",i_end - i_begin);
         
         if constexpr (debugQ)
         {
