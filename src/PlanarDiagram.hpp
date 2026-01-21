@@ -1,9 +1,22 @@
 #pragma  once
 
-#include <unordered_set>
+//#include <unordered_set>
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/boyer_myrvold_planar_test.hpp>
+//#include <boost/graph/adjacency_list.hpp>
+//#include <boost/graph/boyer_myrvold_planar_test.hpp>
+
+// TODO: Darcs.hpp
+
+// TODO: Remove Arrow_T
+// Arcs.hpp
+// Color.hpp
+// Constructors.hpp
+// CreateCompressed.hpp
+// Permute.hpp
+// CreateUnlink.hpp
+// PlanarDiagram2.hpp
+
+// TODO: De-templating?
 
 namespace Knoodle
 {
@@ -16,26 +29,33 @@ namespace Knoodle
 
     
     // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
-    template<typename Int_>
+    template<typename Int_ = Int64>
     class alignas( ObjectAlignment ) PlanarDiagram final : public CachedObject
     {
 //        static_assert(SignedIntQ<Int_>,"");
         static_assert(IntQ<Int_>,"");
 
     public:
-            
+        
+        static constexpr bool debugQ = false;
+        
         using Int     = Int_;
         using UInt    = ToUnsigned<Int>;
 
         using Base_T  = CachedObject;
         using Class_T = PlanarDiagram<Int>;
-
+        using PD_T    = PlanarDiagram<Int>;
+        
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
+        using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
+        
+        using C_Arcs_T                  = Tiny::Matrix<2,2,Int,Int>;
+        using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
+        
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-
-        using CrossingStateContainer_T  = Tensor1<CrossingState,Int>;
-        using ArcStateContainer_T       = Tensor1<ArcState,Int>;
-
+        using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
+        using ArcColorContainer_T       = Tensor1<Int,Int>;
+        
         using MultiGraph_T              = MultiGraph<Int,Int>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
 
@@ -104,11 +124,15 @@ namespace Knoodle
         CrossingContainer_T      C_arcs;
         // Exposed to user via CrossingStates().
         CrossingStateContainer_T C_state;
+        // Some multi-purpose scratch buffers. Mostly for Traversal.
+        mutable Tensor1<Int,Int> C_scratch;
         
         // Exposed to user via Arcs().
         ArcContainer_T           A_cross;
         // Exposed to user via ArcStates().
         ArcStateContainer_T      A_state;
+        // Some multi-purpose scratch buffers. Mostly for Traversal.
+        mutable Tensor1<Int,Int> A_scratch;
         
         // Counters for Reidemeister moves.
         Int R_I_counter   = 0;
@@ -117,9 +141,6 @@ namespace Knoodle
         Int R_IIa_counter = 0;
         Int twist_counter = 0;
         Int four_counter  = 0;
-        
-        mutable Tensor1<Int,Int> C_scratch; // Some multi-purpose scratch buffers.
-        mutable Tensor1<Int,Int> A_scratch; // Some multi-purpose scratch buffers.
         
         bool proven_minimalQ = false;
         
@@ -140,7 +161,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -148,18 +169,41 @@ namespace Knoodle
         PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_ )
 //        : crossing_count     { int_cast<Int>(max_crossing_count_)          }
 //        , arc_count          { Int(2) * int_cast<Int>(max_crossing_count_) }
-        : crossing_count     { Int(0)                                      }
-        , arc_count          { Int(0)                                      }
-        , unlink_count       { int_cast<Int>(unlink_count_)                }
-        , max_crossing_count { int_cast<Int>(max_crossing_count_)          }
-        , max_arc_count      { Int(Int(2) * max_crossing_count)            }
-        , C_arcs             { max_crossing_count, Uninitialized           }
-        , C_state            { max_crossing_count, CrossingState::Inactive }
-        , A_cross            { max_arc_count,      Uninitialized           }
-        , A_state            { max_arc_count,      ArcState::Inactive      }
-        , C_scratch          { max_crossing_count                          }
-        , A_scratch          { max_arc_count                               }
+        : crossing_count     { Int(0)                                        }
+        , arc_count          { Int(0)                                        }
+        , unlink_count       { int_cast<Int>(unlink_count_)                  }
+        , max_crossing_count { int_cast<Int>(max_crossing_count_)            }
+        , max_arc_count      { Int(Int(2) * max_crossing_count)              }
+        , C_arcs             { max_crossing_count, Uninitialized             }
+        , C_state            { max_crossing_count, CrossingState_T::Inactive }
+        , C_scratch          { max_crossing_count                            }
+        , A_cross            { max_arc_count,      Uninitialized             }
+        , A_state            { max_arc_count,      ArcState_T::Inactive      }
+        , A_scratch          { max_arc_count                                 }
         {
+            static_assert(IntQ<ExtInt>,"");
+        }
+        
+        
+        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+         *  Data has to be filled in manually. Only for internal use.
+         */
+        
+        template<typename ExtInt>
+        PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_, bool dummy )
+        : crossing_count     { Int(0)                                       }
+        , arc_count          { Int(0)                                       }
+        , unlink_count       { int_cast<Int>(unlink_count_)                 }
+        , max_crossing_count { int_cast<Int>(max_crossing_count_)           }
+        , max_arc_count      { Int(Int(2) * max_crossing_count)             }
+        , C_arcs             { max_crossing_count                           }
+        , C_state            { max_crossing_count                           }
+        , C_scratch          { max_crossing_count                           }
+        , A_cross            { max_arc_count                                }
+        , A_state            { max_arc_count                                }
+        , A_scratch          { max_arc_count                                }
+        {
+            (void)dummy;
             static_assert(IntQ<ExtInt>,"");
         }
 
@@ -167,17 +211,19 @@ namespace Knoodle
         
         template<typename ExtInt, typename ExtInt2, typename ExtInt3>
         PlanarDiagram(
-            cptr<ExtInt> crossings, cptr<ExtInt2> crossing_states,
-            cptr<ExtInt> arcs     , cptr<ExtInt3> arc_states,
-            const ExtInt crossing_count_,
-            const ExtInt unlink_count_,
-            const bool proven_minimalQ_ = false
+            cptr<ExtInt>  crossings,
+            cptr<ExtInt2> crossing_states,
+            cptr<ExtInt>  arcs,
+            cptr<ExtInt3> arc_states,
+            const ExtInt  crossing_count_,
+            const ExtInt  unlink_count_,
+            const bool    proven_minimalQ_ = false
         )
-        :   PlanarDiagram( crossing_count_, unlink_count_ )
+        :   PlanarDiagram( crossing_count_, unlink_count_, true )
         {
             static_assert(IntQ<ExtInt>,"");
-            static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState>,"");
-            static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState>,"");
+            static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
+            static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
             
             C_arcs.Read(crossings);
             C_state.Read(crossing_states);
@@ -187,6 +233,25 @@ namespace Knoodle
             
             crossing_count = CountActiveCrossings();
             arc_count      = CountActiveArcs();
+        }
+        
+        /*! @brief Make a copy without copying cache and persistent cache.
+         */
+        PD_T CachelessCopy() const
+        {
+            PD_T pd ( max_crossing_count, unlink_count, true ); // Allocate, but do not fill.
+            pd.crossing_count  = crossing_count;
+            pd.arc_count       = arc_count;
+            pd.max_arc_count   = max_arc_count;
+            pd.proven_minimalQ = proven_minimalQ;
+
+            pd.C_arcs .Read(C_arcs .data());
+            pd.C_state.Read(C_state.data());
+            
+            pd.A_cross.Read(A_cross.data());
+            pd.A_state.Read(A_state.data());
+            
+            return pd;
         }
         
         /*!@brief Construction from `Knot_2D` object.
@@ -410,7 +475,7 @@ namespace Knoodle
          *            =              O       O             =
          *  Crossings()(c,In,Left)               Crossings()(c,In,Right)
          *
-         *  Beware that a crossing can have various states, such as `CrossingState::LeftHanded`, `CrossingState::RightHanded`, or `CrossingState::Deactivated`. This information is stored in the corresponding entry of `CrossingStates()`.
+         *  Beware that a crossing can have various states, such as `CrossingState_T::LeftHanded`, `CrossingState_T::RightHanded`, or `CrossingState_T::Deactivated`. This information is stored in the corresponding entry of `CrossingStates()`.
          */
         
         cref<CrossingContainer_T> Crossings() const
@@ -423,117 +488,16 @@ namespace Knoodle
          *
          *  The states that a crossing can have are:
          *
-         *  - `CrossingState::RightHanded`
-         *  - `CrossingState::LeftHanded`
-         *  - `CrossingState::Inactive`
+         *  - `CrossingState_T::RightHanded`
+         *  - `CrossingState_T::LeftHanded`
+         *  - `CrossingState_T::Inactive`
          *
-         * `CrossingState::Inactive` means that the crossing has been deactivated by topological manipulations.
+         * `CrossingState_T::Inactive` means that the crossing has been deactivated by topological manipulations.
          */
         
         cref<CrossingStateContainer_T> CrossingStates() const
         {
             return C_state;
-        }
-        
-        /*!
-         * @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
-         */
-        
-        Int MaxArcCount() const
-        {
-            return max_arc_count;
-        }
-        
-        /*!
-         * @brief Returns the number of arcs in the planar diagram.
-         */
-        
-        Int ArcCount() const
-        {
-            return arc_count;
-        }
-        
-        /*!
-         * @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
-         *
-         * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
-         *
-         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
-         *
-         *                          a
-         *    Arcs()(a,0) X -------------> X Arcs()(a,0)
-         *          =                             =
-         *    Arcs()(a,Tail)                Arcs()(a,Head)
-         *
-         * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
-         *
-         * Beware that an arc can have various states such as `CrossingState::Active` or `CrossingState::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
-         */
-        
-        cref<ArcContainer_T> Arcs()
-        {
-            return A_cross;
-        }
-        
-        /*!
-         * @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
-         *
-         * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
-         *
-         *                          a
-         *       Arcs()(a,0) X -------------> X Arcs()(a,0)
-         *            =                              =
-         *      Arcs()(a,Tail)                 Arcs()(a,Head)
-         *
-         * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
-         */
-        
-        cref<ArcContainer_T> Arcs() const
-        {
-            return A_cross;
-        }
-        
-        /*!
-         * @brief Returns the states of the arcs.
-         *
-         *  The states that an arc can have are:
-         *
-         *  - `ArcState::Active`
-         *  - `ArcState::Inactive`
-         *
-         * `CrossingState::Inactive` means that the arc has been deactivated by topological manipulations.
-         */
-        
-        cref<ArcStateContainer_T> ArcStates() const
-        {
-            return A_state;
-        }
-
-        
-    public:
-
-        
-        // TODO: These things would be way faster if Int where unsigned.
-        
-        static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
-        {
-            return std::pair( da / Int(2), da % Int(2) );
-        }
-        
-        static constexpr Int ToDarc( const Int a, const HeadTail_T d )
-        {
-            return Int(2) * a + d;
-        }
-        
-        template<HeadTail_T d>
-        static constexpr Int ToDarc( const Int a )
-        {
-            return Int(2) * a + d;
-        }
-        
-        static constexpr Int FlipDarc( const Int da )
-        {
-            return da ^ Int(1);
         }
         
     public:
@@ -588,21 +552,14 @@ namespace Knoodle
         }
         
         
-        PlanarDiagram ChiralityTransform(
-            const bool mirrorQ, const bool reverseQ
-        ) const
+        void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
-            PlanarDiagram pd ( max_crossing_count, unlink_count );
+            if( !mirrorQ && !reverseQ )
+            {
+                return;
+            }
             
-            pd.crossing_count  = crossing_count;
-            pd.arc_count       = arc_count;
-            pd.proven_minimalQ = proven_minimalQ;
-
-            auto & pd_C_arcs  = pd.C_arcs;
-            auto & pd_C_state = pd.C_state;
-            auto & pd_A_cross = pd.A_cross;
-            auto & pd_A_state = pd.A_state;
-            
+            ClearCache();
             
             const bool i0 = reverseQ;
             const bool i1 = !reverseQ;
@@ -612,37 +569,30 @@ namespace Knoodle
 
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                pd_C_arcs(c,0,0) = C_arcs(c,i0,j0);
-                pd_C_arcs(c,0,1) = C_arcs(c,i0,j1);
-                pd_C_arcs(c,1,0) = C_arcs(c,i1,j0);
-                pd_C_arcs(c,1,1) = C_arcs(c,i1,j1);
+                const C_Arcs_T C = CopyCrossing(c);
+                C_arcs(c,0,0) = C[i0][j0];
+                C_arcs(c,0,1) = C[i0][j1];
+                C_arcs(c,1,0) = C[i1][j0];
+                C_arcs(c,1,1) = C[i1][j1];
             }
             
             if( mirrorQ )
             {
                 for( Int c = 0; c < max_crossing_count; ++c )
                 {
-                    pd_C_state(c) = Flip(C_state(c));
+                    C_state(c) = Switch(C_state(c));
                 }
             }
-            else
+            
+            if( reverseQ )
             {
-                pd_C_state.Read(C_state.data());
+                using std::swap;
+                
+                for( Int a = 0; a < max_arc_count; ++a )
+                {
+                    swap(A_cross(a,Tail),A_cross(a,Head));
+                }
             }
-            
-            
-            const bool k0 = reverseQ;
-            const bool k1 = !reverseQ;
-            
-            for( Int a = 0; a < max_arc_count; ++a )
-            {
-                pd_A_cross(a,0) = A_cross(a,k0);
-                pd_A_cross(a,1) = A_cross(a,k1);
-            }
-            
-            pd_A_state.Read(A_state.data());
-            
-            return pd;
         }
         
         
@@ -679,6 +629,7 @@ namespace Knoodle
 
 #include "PlanarDiagram/Crossings.hpp"
 #include "PlanarDiagram/Arcs.hpp"
+#include "PlanarDiagram/Darcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/LinkComponents.hpp"
 #include "PlanarDiagram/DiagramComponents.hpp"
@@ -707,7 +658,7 @@ namespace Knoodle
 #include "PlanarDiagram/SpanningForest.hpp"
         
 #include "PlanarDiagram/Permute.hpp"
-#include "PlanarDiagram/Planarity.hpp"
+//#include "PlanarDiagram/Planarity.hpp"
         
     public:
         

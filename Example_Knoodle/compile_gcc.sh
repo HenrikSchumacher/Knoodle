@@ -1,0 +1,25 @@
+g++-15                                                  \
+    -m64                                                \
+    -Wall                                               \
+    -Wextra                                             \
+    -Wno-ignored-qualifiers                             \
+    -Wno-psabi                                          \
+    -std=c++20                                          \
+    -O3                                                 \
+    -mcpu=apple-m1                                      \
+    -mtune=native                                       \
+    -flto=auto                                          \
+    -pthread                                            \
+    -lumfpack                                           \
+    -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
+    -I./../submodules/Min-Cost-Flow-Class/MCFClass      \
+    -I./../submodules/Min-Cost-Flow-Class/MCFSimplex    \
+    -I./../submodules/Tensors                           \
+    -I/opt/homebrew/include                             \
+    -I/opt/homebrew/include/suitesparse                 \
+    -L/opt/homebrew/lib                                 \
+    -I/usr/local/include                                \
+    -I/usr/local/include/suitesparse                    \
+    -L/usr/local/lib                                    \
+    -o Knoodle                                          \
+    main.cpp                                            \

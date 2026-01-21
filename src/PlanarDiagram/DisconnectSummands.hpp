@@ -9,12 +9,12 @@ public:
 
 bool DisconnectSummands(
     mref<PD_List_T> pd_list,
-    const Int  min_dist           = 6,
-    const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
-    const Int  simplify3_level    = 4,
-    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q      = true
+    const Int    min_dist           = 6,
+    const Int    max_dist           = Scalar::Max<Int>,
+    const bool   compressQ          = true,
+    const Int    simplify3_level    = 4,
+    const Size_T simplify3_max_iter = Scalar::Max<Size_T>,
+    const bool   strand_R_II_Q      = true
 )
 {
     TOOLS_PTIMER(timer,MethodName("DisconnectSummands"));
@@ -82,15 +82,15 @@ bool DisconnectSummand(
     TwoArraySort<Int,Int,Int> & sort,
     mref<Aggregator<Int,Int>> f_arcs,
     mref<Aggregator<Int,Int>> & f_faces,
-    cptr<Int> F_dA_ptr,
-    cptr<Int> F_dA_idx,
-    cptr<Int> dA_face,
-    const Int min_dist,
-    const Int max_dist,
-    const bool compressQ,
-    const Int  simplify3_level,
-    const Int  simplify3_max_iter,
-    const bool strand_R_II_Q = true
+    cptr<Int>    F_dA_ptr,
+    cptr<Int>    F_dA_idx,
+    cptr<Int>    dA_face,
+    const Int    min_dist,
+    const Int    max_dist,
+    const bool   compressQ,
+    const Int    simplify3_level,
+    const Size_T simplify3_max_iter,
+    const bool   strand_R_II_Q = true
 )
 {
     // TODO: If the diagram is disconnected, then this might raise problems here. We need to prevent that!
@@ -184,39 +184,39 @@ bool DisconnectSummand(
                 // We split a bigon.
                 
                 /*   #  #  # #  #  #
-                //   ## # ## ## # ##
-                //    ##X##   ##X##
-                //       \     ^
-                // b_prev \   / a_next
-                //         v /
-                //          X c_1
-                //         ^ \
-                //        /   \
-                //       /     \
-                //    a +       +
-                //      |       |
-                // .....|.......|..... <<-- We cut here.
-                //      |       |
-                //      +       + b
-                //       \     /
-                //        \   /
-                //         \ v
-                //          X  c_0
-                //         / ^
-                // b_next /   \ a_prev
-                //       v     \
-                //      X       X
-                */
+                 *   ## # ## ## # ##
+                 *    ##X##   ##X##
+                 *       \     ^
+                 * b_prev \   / a_next
+                 *         v /
+                 *          X c_1
+                 *         ^ \
+                 *        /   \
+                 *       /     \
+                 *    a +       +
+                 *      |       |
+                 * .....|.......|..... <<-- We cut here.
+                 *      |       |
+                 *      +       + b
+                 *       \     /
+                 *        \   /
+                 *         \ v
+                 *          X  c_0
+                 *         / ^
+                 * b_next /   \ a_prev
+                 *       v     \
+                 *      X       X
+                 */
                 
                 const Int c_0 = A_cross(a,Tail);
                 const Int c_1 = A_cross(a,Head);
                 
                 PD_ASSERT( c_0 != c_1 );
                 
-                const Int a_prev = NextArc<Tail>(a,c_0);
-                const Int b_next = NextArc<Head>(b,c_0);
-                const Int a_next = NextArc<Head>(a,c_1);
-                const Int b_prev = NextArc<Tail>(b,c_1);
+                const Int a_prev = NextArc(a,Tail,c_0);
+                const Int b_next = NextArc(b,Head,c_0);
+                const Int a_next = NextArc(a,Head,c_1);
+                const Int b_prev = NextArc(b,Tail,c_1);
                 
                 if( a_prev != b_next )
                 {
@@ -249,28 +249,28 @@ bool DisconnectSummand(
             else
             {
                 /*  #################
-                //  #               #
-                //  #               #
-                //  #################
-                //     ^         /
-                //      \       /
-                //     a \     / b
-                //        \   /
-                //         \ v
-                //          X c
-                //         / ^
-                // b_next /   \ a_prev
-                //       /     \
-                //      /       \
-                //     v         \
-                //
-                // Beware of Reidemeister I move here!
-                */
+                 *  #               #
+                 *  #               #
+                 *  #################
+                 *     ^         /
+                 *      \       /
+                 *     a \     / b
+                 *        \   /
+                 *         \ v
+                 *          X c
+                 *         / ^
+                 * b_next /   \ a_prev
+                 *       /     \
+                 *      /       \
+                 *     v         \
+                 *
+                 * Beware of Reidemeister I move here!
+                 */
                 
                 const Int c = A_cross(a,Tail);
                 
-                const Int a_prev = NextArc<Tail>(a,c);
-                const Int b_next = NextArc<Head>(b,c);
+                const Int a_prev = NextArc(a,Tail,c);
+                const Int b_next = NextArc(b,Head,c);
                 
                 Reconnect<Head>(a_prev,b_next);
                 Reconnect<Tail>(a,b);
@@ -283,28 +283,28 @@ bool DisconnectSummand(
         else if( A_cross(b,Tail) == A_cross(a,Head) )
         {
             /*  #################
-            //  #               #
-            //  #               #
-            //  #################
-            //     \         ^
-            //      \       /
-            //     a \     / b
-            //        \   /
-            //         v /
-            //          X c
-            //         ^ \
-            // p_prev /   \ a_next
-            //       /     \
-            //      /       \
-            //     /         v
-            //
-            // Beware of Reidemeister I move here!
-            */
+             *  #               #
+             *  #               #
+             *  #################
+             *     \         ^
+             *      \       /
+             *     a \     / b
+             *        \   /
+             *         v /
+             *          X c
+             *         ^ \
+             * p_prev /   \ a_next
+             *       /     \
+             *      /       \
+             *     /         v
+             *
+             * Beware of Reidemeister I move here!
+             */
             
             const Int c = A_cross(a,Head);
 
-            const Int a_next = NextArc<Head>(a,c);
-            const Int b_prev = NextArc<Tail>(b,c);
+            const Int a_next = NextArc(a,Head,c);
+            const Int b_prev = NextArc(b,Tail,c);
             
             Reconnect<Head>(a,b);
             Reconnect<Tail>(a_next,b_prev);
@@ -315,15 +315,15 @@ bool DisconnectSummand(
         }
         
         /* `a` and `b` do not have any crossing in common.
-        //
-        //    #####################
-        //       ^             |
-        //       |             |
-        //     a |             | b
-        //       |             |
-        //       |             v
-        //    #####################
-        */
+         *
+         *    #####################
+         *       ^             |
+         *       |             |
+         *     a |             | b
+         *       |             |
+         *       |             v
+         *    #####################
+         */
 
         const Int c_a = A_cross(a,Head);
         const Int c_b = A_cross(b,Head);
@@ -365,8 +365,8 @@ PlanarDiagram ExportSmallerComponent( const Int a_0, const Int b_0 )
         
         ++length;
         
-        a = NextArc<Head>(a,c_a);
-        b = NextArc<Head>(b,c_b);
+        a = NextArc(a,Head,c_a);
+        b = NextArc(b,Head,c_b);
     }
     while( (a != a_0) && (b != b_0) );
     
@@ -439,8 +439,7 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
         
         pd.A_cross(a_counter,Tail) = t_label;
         pd.A_cross(a_counter,Head) = h_label;
-        // TODO: Handle over/under in ArcState.
-        pd.A_state[a_counter] = ArcState::Active;
+        pd.A_state[a_counter] = ArcState_T::Active;
 //        pd.A_state[a_counter] = ??;
         
         const Int a_next = C_arcs(h,Out,!h_side);

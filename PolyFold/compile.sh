@@ -1,20 +1,20 @@
- clang++                                                \
-    -Wall                                               \
-    -Wextra                                             \
-    -std=c++20                                          \
-    -O3                                                 \
-    -march=native                                       \
-    -mtune=native                                       \
-    -fenable-matrix                                     \
-    -pthread                                            \
-    -I/opt/homebrew/include                             \
-    -L/opt/homebrew/lib                                 \
-    -o PolyFold                                         \
-    -DPOLYFOLD_NO_QUATERNIONS                           \
-    -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\"                                   \
-    main.cpp                                            \
-    -lboost_program_options                             \
-    -flto                                               \
+ clang++                                                                            \
+    -Wall                                                                           \
+    -Wextra                                                                         \
+    -std=c++20                                                                      \
+    -O3                                                                             \
+    -march=native                                                                   \
+    -mtune=native                                                                   \
+    -fenable-matrix                                                                 \
+    -flto                                                                           \
+    -pthread                                                                        \
+    -I/opt/homebrew/include                                                         \
+    -L/opt/homebrew/lib                                                             \
+    -o PolyFold                                                                     \
+    -DPOLYFOLD_NO_QUATERNIONS                                                       \
+    -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\"  \
+    main.cpp                                                                        \
+    -lboost_program_options                                                         \
 #    -Wshadow                                            \
 #    -fsanitize=address                                  \
 #    -fsanitize-address-use-after-scope                  \

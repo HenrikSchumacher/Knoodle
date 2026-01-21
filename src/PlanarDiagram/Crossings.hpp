@@ -1,12 +1,16 @@
 public:
 
-CrossingState GetCrossingState( const Int c ) const
+C_Arcs_T CopyCrossing( const Int c ) const
+{
+    return C_Arcs_T( C_arcs.data(c) );
+}
+
+CrossingState_T CrossingState( const Int c ) const
 {
     return C_state[c];
 }
 
-/*!
- * @brief Checks whether crossing `c` is still active.
+/*! @brief Checks whether crossing `c` is still active.
  */
 
 bool CrossingActiveQ( const Int c ) const
@@ -44,6 +48,8 @@ bool SameHandednessQ( const Int c_0, const Int c_1 ) const
 {
     return Knoodle::SameHandednessQ(C_state[c_0],C_state[c_1]);
 }
+
+private:
 
 void RotateCrossing( const Int c, const bool dir )
 {
@@ -109,6 +115,8 @@ void RotateCrossing( const Int c, const bool dir )
     }
 }
 
+public:
+
 Int CountActiveCrossings() const
 {
     Int counter = 0;
@@ -142,7 +150,7 @@ void DeactivateCrossing( const Int c )
     {
         PD_PRINT("Deactivating " + CrossingString(c) + "." );
         --crossing_count;
-        C_state[c] = CrossingState::Inactive;
+        C_state[c] = CrossingState_T::Inactive;
     }
     else
     {

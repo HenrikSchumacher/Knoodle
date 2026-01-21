@@ -15,9 +15,8 @@ namespace Knoodle
 {
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
-    // TODO: Call COIN-OR for height regularizer.
     
-    template<typename Real_, typename Int_>
+    template<typename Real_ = Real64, typename Int_ = Int64>
     class Reapr
     {
     public:
@@ -82,8 +81,8 @@ namespace Knoodle
         
         bool permute_randomQ     = true;
         OrthoDrawSettings_T ortho_draw_settings = {
-            .randomize_virtual_edgesQ = true,
-            .randomize_bends  = 4
+            .randomize_bends  = 4,
+            .randomize_virtual_edgesQ = true
         };
         
         int  rattle_counter      = 0;
@@ -224,7 +223,7 @@ namespace Knoodle
                     
                     x[a] = level;
                  
-                    a = pd.template NextArc<1>(a);
+                    a = pd.NextArc(a,PD_T::Head);
                 }
             }
         }

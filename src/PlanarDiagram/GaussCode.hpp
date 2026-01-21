@@ -18,7 +18,7 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     if( LinkComponentCount() > Int(1) )
@@ -67,7 +67,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
             gauss_code[a_pos] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
         }
     );
 }
@@ -108,20 +108,17 @@ static PlanarDiagram FromExtendedGaussCode(
             return 1;
         }
         
-        const Int c = Abs(int_cast<Int>(g)) - Int(1);
+        const Int c = int_cast<Int>(Abs(g)) - Int(1);
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
-        // TODO: Handle over/under in ArcState.
-        pd.A_state[a] = ArcState::Active;
+        pd.A_state[a] = ArcState_T::Active;
         
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
         
         if( !visitedQ )
         {
-            pd.C_state[c] = (g > T(0))
-                          ? CrossingState::RightHanded
-                          : CrossingState::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(g > T(0));
             pd.C_arcs(c,Out,Left) = a;
             pd.C_arcs(c,In ,Left) = a_prev;
             ++crossing_counter;
@@ -227,7 +224,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCodeByLinkTraversal: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        error(ClassName()+"::ExtendedGaussCodeByLinkTraversal: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     gauss_code = Tensor1<T,Int>( arc_count );
@@ -256,7 +253,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
             gauss_code[a_pos] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
         },
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {

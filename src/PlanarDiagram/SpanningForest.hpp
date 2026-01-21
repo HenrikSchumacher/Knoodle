@@ -10,21 +10,20 @@ void ComputeSpanningForest()
     Aggregator<Int,Int> discovered_arcs ( ArcCount()         );
     Aggregator<Int,Int> tree_darcs      ( ArcCount()         );
 
-    // DEBUGGING
     this->template DepthFirstSearch<true>(
-        [&discovered_arcs,this]( cref<DarcNode> A )             // discover
+        [&discovered_arcs/*,this*/]( cref<DarcNode> A )             // discover
         {
             if( ValidIndexQ(A.da) )
             {
-                logprint("discover: Pushing " + this->DarcString(A.da));
+//                logprint("discover: Pushing " + this->DarcString(A.da));
                 discovered_arcs.Push( FromDarc(A.da).first );
             }
         },
-        [&discovered_arcs,this]( cref<DarcNode> A )             // rediscover
+        [&discovered_arcs/*,this*/]( cref<DarcNode> A )             // rediscover
         {
             if( ValidIndexQ(A.da) )
             {
-                logprint("rediscover: Pushing " + this->DarcString(A.da));
+//                logprint("rediscover: Pushing " + this->DarcString(A.da));
                 discovered_arcs.Push( FromDarc(A.da).first );
             }
         },
@@ -63,10 +62,6 @@ void ComputeSpanningForest()
     {
         eprint(MethodName("ComputeSpanningForest")+": tree_darcs.Size() > ArcCount().");
     }
-    
-    // DEBUGGING
-    
-    TOOLS_LOGDUMP(discovered_arcs);
 
     this->SetCache( "DiagramComponentCount", roots.Size()               );
     this->SetCache( "CrossingPreOrdering",   C_pre.Disband()            );

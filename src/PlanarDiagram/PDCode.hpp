@@ -39,7 +39,7 @@ Tensor2<T,Int> PDCode()
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
         return pd_code;
     }
@@ -78,7 +78,7 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_0 that arc a_counter goes out of it.
             {
-                const CrossingState state = C_state[c_0];
+                const CrossingState_T state = C_state[c_0];
                 
                 const bool side = (C_arcs(c_0,Out,Right) == a);
                 
@@ -166,7 +166,7 @@ void WritePDCode( mptr<T> pd_code )
             
             // Tell c_1 that arc a_counter goes into it.
             {
-                const CrossingState state = C_state[c_1];
+                const CrossingState_T state = C_state[c_1];
                 const bool side  = (C_arcs(c_1,In,Right)) == a;
                 
                 mptr<T> pd = &pd_code[Int(5) * c_1_pos];
@@ -348,13 +348,6 @@ static PlanarDiagram FromPDCode(
     const bool proven_minimalQ_
 )
 {
-    // TODO: Handle over/under in ArcState.
-//    using F_T = Underlying_T<ArcState>;
-//    constexpr F_T TailUnder = F_T(1) | ( F_T(0) >> 1);
-//    constexpr F_T TailOver  = F_T(1) | ( F_T(1) >> 1);
-//    constexpr F_T HeadUnder = F_T(1) | ( F_T(0) >> 2);
-//    constexpr F_T HeadOver  = F_T(1) | ( F_T(1) >> 2);
-
     PlanarDiagram pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
@@ -406,9 +399,7 @@ static PlanarDiagram FromPDCode(
         
         if constexpr( PDsignedQ )
         {
-            pd.C_state[c] = (state > ExtInt(0))
-                          ? CrossingState::RightHanded
-                          : CrossingState::LeftHanded;
+            pd.C_state[c] = BooleanToCrossingState(state > ExtInt(0));
         }
         else
         {
@@ -417,7 +408,7 @@ static PlanarDiagram FromPDCode(
         
         switch( pd.C_state[c] )
         {
-            case CrossingState::RightHanded:
+            case CrossingState_T::RightHanded:
             {
                 /*
                  *    X[2]           X[1]
@@ -446,20 +437,14 @@ static PlanarDiagram FromPDCode(
                 pd.C_arcs(c,In ,Left ) = X[3];
                 pd.C_arcs(c,In ,Right) = X[0];
 
-                // TODO: Handle over/under in ArcState.
-                pd.A_state(X[0]) = ArcState::Active;
-                pd.A_state(X[1]) = ArcState::Active;
-                pd.A_state(X[2]) = ArcState::Active;
-                pd.A_state(X[3]) = ArcState::Active;
-                
-//                pd.A_state(X[0]) |= HeadUnder;
-//                pd.A_state(X[1]) |= TailOver;
-//                pd.A_state(X[2]) |= TailUnder;
-//                pd.A_state(X[3]) |= HeadOver;
+                pd.A_state(X[0]) = ArcState_T::Active;
+                pd.A_state(X[1]) = ArcState_T::Active;
+                pd.A_state(X[2]) = ArcState_T::Active;
+                pd.A_state(X[3]) = ArcState_T::Active;
                 
                 break;
             }
-            case CrossingState::LeftHanded:
+            case CrossingState_T::LeftHanded:
             {
                 /*
                  *    X[3]           X[2]
@@ -488,16 +473,10 @@ static PlanarDiagram FromPDCode(
                 pd.C_arcs(c,In ,Left ) = X[0];
                 pd.C_arcs(c,In ,Right) = X[1];
                 
-                // TODO: Handle over/under in ArcState.
-                pd.A_state(X[0]) = ArcState::Active;
-                pd.A_state(X[1]) = ArcState::Active;
-                pd.A_state(X[2]) = ArcState::Active;
-                pd.A_state(X[3]) = ArcState::Active;
-                
-//                pd.A_state(X[0]) |= HeadUnder;
-//                pd.A_state(X[1]) |= HeadOver;
-//                pd.A_state(X[2]) |= TailUnder;
-//                pd.A_state(X[3]) |= TailOver;
+                pd.A_state(X[0]) = ArcState_T::Active;
+                pd.A_state(X[1]) = ArcState_T::Active;
+                pd.A_state(X[2]) = ArcState_T::Active;
+                pd.A_state(X[3]) = ArcState_T::Active;
                 
                 break;
             }

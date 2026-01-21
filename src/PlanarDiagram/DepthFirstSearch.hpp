@@ -89,7 +89,7 @@ void DepthFirstSearch(
         const DarcNode & A, const Int db
     )
     {
-        AssertDarc(db);
+        AssertDarc<1>(db);
         // We never walk back the same arc.
         if( this->ValidIndexQ(A.da) && (db == FlipDarc(A.da)) )
         {
@@ -145,15 +145,8 @@ void DepthFirstSearch(
         }
     };
 
-//    TOOLS_LOGDUMP(c_count);
-//    TOOLS_LOGDUMP(crossing_count);
-    
     for( Int c_0 = 0; c_0 < max_crossing_count; ++c_0 )
     {
-//        TOOLS_LOGDUMP(c_0);
-//        TOOLS_LOGDUMP(CrossingActiveQ(c_0));
-//        TOOLS_LOGDUMP(C_flag[c_0]);
-        
         if( !CrossingActiveQ(c_0) || (C_flag[c_0] != UInt8(0)) )
         {
             continue;

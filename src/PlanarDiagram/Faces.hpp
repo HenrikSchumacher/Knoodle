@@ -56,7 +56,7 @@ void RequireFaces() const
 {
     TOOLS_PTIMER(timer,MethodName("RequireFaces"));
     
-    cptr<Int> dA_left_dA = ArcLeftArc().data();
+    cptr<Int> dA_left_dA = ArcLeftDarcs().data();
 
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );
@@ -193,15 +193,17 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
             else
             {
 
-//                              O       O C_arcs(c,Out,Right)
-//                               ^     ^
-//                                \   /
-//                                 \ /
-//    A_F(C_arcs(c,In,Left),Head)   X   A_F(C_arcs(c,Out,Right),Tail)
-//                                 ^ ^
-//                                /   \
-//                               /     \
-//                              O       O
+                /*                              O       O C_arcs(c,Out,Right)
+                 *                               ^     ^
+                 *                                \   /
+                 *                                 \ /
+                 *    A_F(C_arcs(c,In,Left),Head)   X   A_F(C_arcs(c,Out,Right),Tail)
+                 *                                 ^ ^
+                 *                                /   \
+                 *                               /     \
+                 *                              O       O
+                 */
+                
                 const Int a_1 = C_arcs(c,Out,Right);
                 const Int a_0 = C_arcs(c,In ,Left );
                 
@@ -221,6 +223,13 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
 Tensor1<Int8,Int> CheckerBoardColoring()
 {
     TOOLS_PTIMER(timer,MethodName("CheckerBoardColoring"));
+    
+    if( ArcCount() != MaxArcCount() )
+    {
+        eprint(MethodName("CheckerBoardColoring") + ": Diagram contains deactivated arcs. This algorithm uses the class " + MultiGraph_T::ClassName() + " and works only if all arcs are active. We have to abort here. Try it again after you compressed the diagram with `Compress` or `CreateCompressed`.");
+        
+        return Tensor1<Int8,Int>();
+    }
     
     MultiGraph_T G ( FaceCount(), ArcFaces() );
     
@@ -247,5 +256,3 @@ Tensor1<Int8,Int> CheckerBoardColoring()
     
     return color;
 }
-
-

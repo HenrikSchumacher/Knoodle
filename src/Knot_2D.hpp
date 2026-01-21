@@ -47,6 +47,9 @@ namespace Knoodle
         template<typename Int>
         friend class PlanarDiagram;
         
+        template<typename Int>
+        friend class PlanarDiagram2;
+        
         template<typename Real, typename Int, typename LInt, typename BReal>
         friend class PolyFold;
         

@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-
 #ifdef PD_VERBOSE
     #define PD_PRINT( s ) Tools::logprint((s));
     
@@ -20,27 +19,43 @@
 
 #ifdef PD_DEBUG
 
-    #define PD_ASSERT(c)                                                \
-        if(!(c))                                                        \
-        {                                                               \
-            pd_eprint( "PD_ASSERT failed: " + std::string(#c) );        \
+    #define PD_ASSERT(c)                                                    \
+        if(!(c))                                                            \
+        {                                                                   \
+            pd_eprint( "PD_ASSERT failed: " + std::string(#c) );            \
+        }
+
+    #define PD_ASSERT2(c,s)                                                 \
+        if(!(c))                                                            \
+        {                                                                   \
+            pd_eprint( "PD_ASSERT failed: " + std::string(#c) + ": " + s ); \
         }
 
     #define PD_DPRINT( s ) Tools::logprint((s));
+
+    #define PD_NOTE( s ) Tools::nprint((s));
 
     #define PD_TIC(s) TOOLS_PTIC((s))
 
     #define PD_TOC(s) TOOLS_PTOC((s))
 
+    #define PD_TIMER( name, s ) Tools::Profiler::Timer name (s);
+
 #else
 
     #define PD_ASSERT(c)
 
+    #define PD_ASSERT2(c,s)
+
     #define PD_DPRINT(s)
+
+    #define PD_NOTE( s )
 
     #define PD_TIC(s)
 
     #define PD_TOC(s)
+
+    #define PD_TIMER( name, s )
 
 #endif
 
@@ -58,9 +73,7 @@ namespace Knoodle
         
         if( Knoodle::PD_error_counter >= Knoodle::PD_max_error_count )
         {
-            Tools::eprint("Too many errors. Aborting program.");
-            
-            exit(-1);
+            Tools::error("Too many errors during execution of Knoodle.");
         }
     }
 

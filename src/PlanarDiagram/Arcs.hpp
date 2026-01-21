@@ -1,12 +1,92 @@
 public:
 
-ArcState GetArcState( const Int a ) const
+/*! @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
+ */
+
+Int MaxArcCount() const
+{
+    return max_arc_count;
+}
+
+/*! @brief Returns the number of arcs in the planar diagram.
+ */
+
+Int ArcCount() const
+{
+    return arc_count;
+}
+
+/*! @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
+ *
+ * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
+ *
+ * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
+ *
+ *                          a
+ *    Arcs()(a,0) X -------------> X Arcs()(a,0)
+ *          =                             =
+ *    Arcs()(a,Tail)                Arcs()(a,Head)
+ *
+ * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
+ *
+ * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Inactive`. This information is stored in the corresponding entry of `ArcStates()`.
+ */
+
+cref<ArcContainer_T> Arcs()
+{
+    return A_cross;
+}
+
+/*! @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
+ *
+ * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
+ *
+ *                          a
+ *       Arcs()(a,0) X -------------> X Arcs()(a,0)
+ *            =                              =
+ *      Arcs()(a,Tail)                 Arcs()(a,Head)
+ *
+ * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
+ */
+
+cref<ArcContainer_T> Arcs() const
+{
+    return A_cross;
+}
+
+/*! @brief Returns the states of the arcs.
+ *
+ *  The states that an arc can have are:
+ *
+ *  - `ArcState_T::Active`
+ *  - `ArcState_T::Inactive`
+ *
+ * `CrossingState_T::Inactive` means that the arc has been deactivated by topological manipulations.
+ */
+
+cref<ArcStateContainer_T> ArcStates() const
+{
+    return A_state;
+}
+
+/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
+ */
+cref<Tensor1<Int,Int>> ArcScratchBuffer() const
+{
+    return A_scratch;
+}
+
+A_Cross_T CopyArc( const Int a ) const
+{
+    return A_Cross_T( A_cross.data(a) );
+}
+
+ArcState_T ArcState( const Int a ) const
 {
     return A_state[a];
 }
 
-/*!
- * @brief Checks whether arc `a` is still active.
+/*! @brief Checks whether arc `a` is still active.
  */
 
 bool ArcActiveQ( const Int a ) const
@@ -23,18 +103,6 @@ std::string ArcString( const Int a ) const
         + Knoodle::ToString(A_state[a]) + ")";
 }
 
-std::string DarcString( const Int da ) const
-{
-    auto [a,d] = FromDarc(da);
-    
-    return "darc " + Tools::ToString(da) + " = { "
-        + Tools::ToString(A_cross.data()[FlipDarc(da)]) + ", "
-        + Tools::ToString(A_cross.data()[da]) + " } ("
-        + Knoodle::ToString(A_state[a]) + ")";
-}
-
-
-
 Int CountActiveArcs() const
 {
     Int counter = 0;
@@ -47,18 +115,9 @@ Int CountActiveArcs() const
     return counter;
 }
 
-
-/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
- */
-cref<Tensor1<Int,Int>> ArcScratchBuffer() const
-{
-    return A_scratch;
-}
-
 private:
     
-/*!
- * @brief Deactivates arc `a`. Only for internal use.
+/*! @brief Deactivates arc `a`. Only for internal use.
  */
 
 void DeactivateArc( const Int a )
@@ -68,12 +127,12 @@ void DeactivateArc( const Int a )
         PD_PRINT("Deactivating " + ArcString(a) + "." );
         
         --arc_count;
-        A_state[a] = ArcState::Inactive;
+        A_state[a] = ArcState_T::Inactive;
     }
     else
     {
 #if defined(PD_DEBUG)
-        wprint(ClassName()+"::DeactivateArc: Attempted to deactivate already inactive " + ArcString(a) + ".");
+        wprint(MethodName("DeactivateArc")+": Attempted to deactivate already inactive " + ArcString(a) + ".");
 #endif
     }
     
@@ -83,155 +142,264 @@ void DeactivateArc( const Int a )
 
 public:
 
-/*!
- * @brief This tells us whether a giving arc goes over the crossing at the indicated end.
+/*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing at the indicated end.
  *
- *  @param a The index of the arc in equations.
+ * @param a The index of the arc in question.
  *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
-template<bool headtail>
-bool ArcUnderQ( const Int a )  const
+bool ArcSide( const Int a, const bool headtail )  const
 {
-    AssertArc(a);
-
-    const Int c = A_cross(a,headtail);
-
-    AssertCrossing(c);
-    
-    // Tail == 0 == Out
-    // Head == 1 == In
-    // const side = C_arcs(c_0,headtail,Right) == a ? Right : Left;
-//            const bool side = (C_arcs(c,headtail,Right) == a);
-    
-//            // Long version of code for documentation and debugging.
-//            if( headtail == Head )
-//            {
-//
-//                PD_ASSERT( A_cross(a,Head) == c );
-//                PD_ASSERT( C_arcs(c,In,side) == a );
-//
-//                return (side == CrossingRightHandedQ(c));
-//
-    
-                /* (side == Right) && CrossingRightHandedQ(c)
-                 *
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            / c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *                ^
-                 *                 \
-                 *                  \ a
-                 *                   \
-                 *                    X
-                 *
-                 *  (side == Left) && CrossingLeftHandedQ(c)
-                 *
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            \ c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *        ^
-                 *       /
-                 *      / a
-                 *     /
-                 *    X
-                 */
-    
-//            }
-//            else // if( headtail == Tail )
-//            {
-//                PD_ASSERT( A_cross(a,Tail) == c );
-//                PD_ASSERT( C_arcs(c,Out,side) == a );
-//
-//                return (side == CrossingLeftHandedQ(c));
-//
-    
-                /* Positive cases:
-                 *
-                 * (side == Right) && CrossingLeftHandedQ(c)
-                 *
-                 *
-                 *                   ^
-                 *                  /
-                 *                 / a
-                 *                /
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            \ c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 *
-                 * (side == Left) && CrossingRightHandedQ(c)
-                 *
-                 *     ^
-                 *      \
-                 *       \ a
-                 *        \
-                 *         O     O
-                 *          ^   ^
-                 *           \ /
-                 *            / c
-                 *           / \
-                 *          /   \
-                 *         O     O
-                 */
-    
-//            }
-    
-//            // Short version of code for performance.
-    return (
-        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-    );
+    return ArcSide(a,headtail,A_cross(a,headtail));
 }
+
+/*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
+ */
+
+bool ArcSide( const Int a, const bool headtail, const Int c  )  const
+{
+    return (C_arcs(c,headtail,Right) == a);
+}
+
+
+/*!@brief This tells us whether the crossing at the indicated end of a given arc is right-handed.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcRightHandedQ( const Int a, const bool headtail )  const
+{
+    return CrossingRightHandedQ(A_cross(a,headtail));
+}
+
+/*!@brief This tells us whether the crossing at the indicated end of a given arc is left-handed.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
+
+bool ArcLeftHandedQ( const Int a, const bool headtail )  const
+{
+    return CrossingLeftHandedQ(A_cross(a,headtail));
+}
+
+
+/*!@brief This tells us whether the arc `a` goes under the crossing at the indicated end.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
 
 bool ArcUnderQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
-
-    const Int c = A_cross(a,headtail);
-
-    AssertCrossing(c);
-    
-    return (
-        (C_arcs(c,headtail,Right) == a) == ( headtail == CrossingRightHandedQ(c) )
-    );
+    return ArcUnderQ(a,headtail,A_cross(a,headtail));
 }
 
-/*!
- * @brief This tells us whether a giving arc goes under the crossing at the indicated end.
+/*!@brief This tells us whether the arc `a` goes under the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
  *
- *  @param a The index of the arc in equations.
+ * @param a The index of the arc in question.
  *
- *  @tparam headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
  */
 
-template<bool headtail>
-bool ArcOverQ( const Int a ) const
+bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
 {
-    return !ArcUnderQ<headtail>(a);
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    return CrossingRightHandedQ(c) == (headtail == ArcSide(a,headtail,c));
+    
+    /* headtail == Tail, side == Right => underQ == false
+     *
+     *    ^       ^
+     *     \     /  a
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Tail, side == Left => underQ == true
+     *
+     *    ^       ^
+     *  a  \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Head, side == Right => underQ == true
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \  a
+     *    /       \
+     */
+
+    /* headtail == Head, side == Left => underQ == false
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *  a  /     \
+     *    /       \
+     */
 }
+
+/*!@brief This tells us whether the arc `a` goes over the crossing at the indicated end.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ */
 
 bool ArcOverQ( const Int a, const bool headtail )  const
 {
-    return !ArcUnderQ(a,headtail);
+    AssertArc(a);
+    return ArcOverQ(a,headtail,A_cross(a,headtail));
+}
+
+
+/*!@brief This tells us whether the arc `a` goes over the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ *
+ * @param c The index of the arc in question.
+ */
+
+bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
+{
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    return CrossingRightHandedQ(c) != (headtail == ArcSide(a,headtail,c));
+    
+    /* headtail == Tail, side == Right => overQ == true
+     *
+     *    ^       ^
+     *     \     /  a
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Tail, side == Left => overQ == false
+     *
+     *    ^       ^
+     *  a  \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \
+     *    /       \
+     */
+
+    /* headtail == Head, side == Right => overQ == false
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *     /     \  a
+     *    /       \
+     */
+
+    /* headtail == Head, side == Left => overQ == true
+     *
+     *    ^       ^
+     *     \     /
+     *      \   /
+     *       \ /
+     *        / <--- c
+     *       ^ ^
+     *      /   \
+     *  a  /     \
+     *    /       \
+     */
+}
+
+/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
+ */
+
+Int NextArc( const Int a, const bool headtail ) const
+{
+    return NextArc(a,headtail,A_cross(a,headtail));
+}
+
+/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+ *
+ * @param a The index of the arc in question.
+ *
+ * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
+ *
+ * @param c The index of the arc in question.
+ */
+
+Int NextArc( const Int a, const bool headtail, const Int c ) const
+{
+    AssertArc(a);
+    AssertCrossing(c);
+    PD_ASSERT( A_cross(a,headtail) == c );
+    
+    const bool side   = ArcSide(a,headtail,c);
+    const Int  a_next = C_arcs(c,!headtail,!side);
+    AssertArc(a_next);
+    
+    return a_next;
 }
 
 bool AlternatingQ() const
 {
     for( Int a = 0; a < max_arc_count; ++a )
     {
-        if( ArcActiveQ(a) && (ArcOverQ<Tail>(a) == ArcOverQ<Head>(a)) )
+        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
         {
             return false;
         }
@@ -239,734 +407,6 @@ bool AlternatingQ() const
 
     return true;
 }
-
-
-/*!
- * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning left.
- */
-
-Arrow_T NextLeftArc( const Int a, const bool d ) const
-{
-    // TODO: Signed indexing does not work because of 0!
-    
-    AssertArc(a);
-    
-    const Int c = A_cross(a,d);
-    
-    AssertCrossing(c);
-    
-    // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-    
-    if( d == Head )
-    {
-        // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
-
-        const Int b = C_arcs(c,In,Left);
-        
-        if( b != a )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *   b     a
-             */
-
-            return Arrow_T(b,Tail);
-        }
-        else // if( b == a )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             * a == b
-             */
-
-            return Arrow_T(C_arcs(c,Out,Left),Head);
-        }
-    }
-    else // if( a_dir == Tail )
-    {
-        // Also here we can make it so that we have to read for a second time only in 50% of the cases.
-
-        const Int b = C_arcs(c,Out,Right);
-        
-        if( b != a )
-        {
-            /*   a     b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return Arrow_T(b,Head);
-        }
-        else // if( b == a )
-        {
-            /*      a == b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return Arrow_T(C_arcs(c,In,Right),Tail);
-        }
-    }
-}
-
-Int NextLeftArc( const Int da ) const
-{
-    const Int c = A_cross.data()[da];
-
-    auto [a,d] = FromDarc(da);
-    
-    // It might seem a bit weird, but on my Apple M1 these conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-    
-    if( d == Head )
-    {
-        // We exploit a 50% chance that we do not have to read any index again.
-        
-//        const Int db = ToDarc(C_arcs(c,In,Left),Head);
-        const Int b = C_arcs(c,In,Left);
-        
-        if( b != a )
-        {
-            /*    O     O
-             *     ^   ^
-             *      \ /
-             *       X c
-             *      / \
-             *     /   \
-             *    O     O
-             *    b     a
-             */
-             
-            return ToDarc<Tail>(b);
-        }
-        else // if( db == da )
-        {
-            /*    O     O
-             *     ^   ^
-             *      \ /
-             *       X c
-             *      / \
-             *     /   \
-             *    O     O
-             * a == b
-             */
-
-            return ToDarc<Head>(C_arcs(c,Out,Left));
-        }
-    }
-    else // if( headtail == Tail )
-    {
-        // We exploit a 50% chance that we do not have to read any index again.
-
-//        const Int db = ToDarc(C_arcs(c,Out,Right),Tail);
-        const Int b = C_arcs(c,Out,Right);
-        
-        if( b != a )
-        {
-            /*   a     b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return ToDarc<Head>(b);
-        }
-        else // if( b == a )
-        {
-            /*       a == b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return ToDarc<Tail>(C_arcs(c,In,Right));
-        }
-    }
-}
-
-
-bool CheckNextLeftArc() const
-{
-    bool passedQ = true;
-    
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        if( !ArcActiveQ(a) )
-        {
-            continue;
-        }
-        
-        {
-            const Int da = ToDarc(a,Tail);
-            
-            const Int db = NextLeftArc(da);
-            
-            auto [b,dir] = NextLeftArc(a,Tail);
-            
-            passedQ = passedQ && (db == ToDarc(b,dir));
-            
-            if( !passedQ )
-            {
-                eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Tail).");
-                
-                TOOLS_DUMP(a);
-                TOOLS_DUMP(da);
-                TOOLS_DUMP(db);
-                TOOLS_DUMP(db / Int(2));
-                TOOLS_DUMP(db % Int(2));
-                TOOLS_DUMP(b);
-                TOOLS_DUMP(dir);
-                return false;
-            }
-        }
-        
-        {
-            const Int da = ToDarc(a,Head);
-            
-            const Int db = NextLeftArc(da);
-            
-            auto [b,dir] = NextLeftArc(a,Head);
-            
-            passedQ = passedQ && (db == ToDarc(b,dir) );
-            
-            if( !passedQ )
-            {
-                eprint(ClassName()+"::CheckNextLeftArc failed at " + ArcString(a) + " (Head).");
-                
-                TOOLS_DUMP(a);
-                TOOLS_DUMP(da);
-                TOOLS_DUMP(db);
-                TOOLS_DUMP(db / Int(2));
-                TOOLS_DUMP(db % Int(2));
-                TOOLS_DUMP(b);
-                TOOLS_DUMP(dir);
-                return false;
-            }
-        }
-    }
-    
-    if( passedQ )
-    {
-        logprint(ClassName()+"::CheckNextLeftArc passed.");
-    }
-    
-    return passedQ;
-}
-
-
-/*!
- * @brief Returns the arc following arc `a` by going to the crossing at the head of `a` and then turning right.
- */
-
-Arrow_T NextRightArc( const Int a, const bool headtail ) const
-{
-    // TODO: Signed indexing does not work because of 0!
-    
-    AssertArc(a);
-    
-    const Int c = A_cross(a,headtail);
-    
-    AssertCrossing(c);
-    
-    // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-    
-    if( headtail == Head )
-    {
-        // Using `C_arcs(c,In ,Left ) != a` instead of `C_arcs(c,In ,Right) == a` gives us a 50% chance that we do not have to read any index again.
-
-        const Int b = C_arcs(c,In,Right);
-
-        if( b != a )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *   a     b
-             */
-
-            return Arrow_T(b,Tail);
-        }
-        else // if( b == a )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *       a == b
-             */
-
-            return Arrow_T(C_arcs(c,Out,Right),Head);
-        }
-    }
-    else // if( headtail == Tail )
-    {
-        // Also here we can make it so that we have to read for a second time only in 50% of the cases.
-
-        const Int b = C_arcs(c,Out,Left);
-
-        if( b != a )
-        {
-            /*   b     a
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return Arrow_T(b,Head);
-        }
-        else // if( b == a )
-        {
-            /* a == b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return Arrow_T(C_arcs(c,In,Left),Tail);
-        }
-    }
-}
-
-Int NextRightArc( const Int da ) const
-{
-    const Int c = A_cross.data()[da];
-    
-    // It might seem a bit weird, but on my Apple M1 this conditional ifs are _faster_ than computing the Booleans to index into C_arcs and doing the indexing then. The reason must be that the conditionals have a 50% chance to prevent loading a second entry from C_arcs.
-    
-    auto [a,d] = FromDarc(da);
-    
-    if( d == Head )
-    {
-        // We exploit a 50% chance that we do not have to read any index again.
-
-        const Int b = C_arcs(c,In,Right);
-
-        if( b != a )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *   a     b
-             */
-
-            return ToDarc<Tail>(b);
-        }
-        else // if( a == b )
-        {
-            /*   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             *       a == b
-             */
-
-            return ToDarc<Head>(C_arcs(c,Out,Right));
-        }
-    }
-    else
-    {
-        // We exploit a 50% chance that we do not have to read any index again.
-
-        const Int b = C_arcs(c,Out,Left);
-
-        if( b != a )
-        {
-            /*   b     a
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return ToDarc<Head>(b);
-        }
-        else // if( b == a )
-        {
-            /* a == b
-             *   O     O
-             *    ^   ^
-             *     \ /
-             *      X c
-             *     / \
-             *    /   \
-             *   O     O
-             */
-
-            return ToDarc<Tail>(C_arcs(c,In,Left));
-        }
-    }
-}
-
-
-mref<ArcContainer_T> ArcLeftArc() const
-{
-    // Return value needs to be mutable so that StrandSimplifier can update it.
-    
-    std::string tag ("ArcLeftArc");
-    
-    if( !this->InCacheQ(tag) )
-    {
-        ArcContainer_T A_left ( max_arc_count );
-        
-        for( Int c = 0; c < max_crossing_count; ++c )
-        {
-            if( CrossingActiveQ(c) )
-            {
-                Int A [2][2];
-                
-                copy_buffer<4>( C_arcs.data(c), &A[0][0] );
-                
-                const Int arrows [2][2] =
-                {
-                    {
-                        ToDarc<Head>(A[Out][Left ]),
-                        ToDarc<Head>(A[Out][Right])
-                    },{
-                        ToDarc<Tail>(A[In ][Left ]),
-                        ToDarc<Tail>(A[In ][Right])
-                    }
-                };
-                
-                
-                /* A[Out][Left ]         A[Out][Right]
-                 *               O     O
-                 *                ^   ^
-                 *                 \ /
-                 *                  X c
-                 *                 ^ ^
-                 *                /   \
-                 *               O     O
-                 * A[In ][Left ]         A[In ][Right]
-                 */
-                
-                A_left(A[Out][Left ],Tail) = arrows[Out][Right];
-                
-                A_left(A[Out][Right],Tail) = arrows[In ][Right];
-                
-                A_left(A[In ][Left ],Head) = arrows[Out][Left ];
-                
-                A_left(A[In ][Right],Head) = arrows[In ][Left ];
-                
-                
-                PD_ASSERT(
-                    (A_left(A[In ][Left ],Head) >> 1)
-                    ==
-                    NextLeftArc(A[In ][Left ],Head).first
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[In ][Left ],Head) & Int(1))
-                    ==
-                    NextLeftArc(A[In ][Left ],Head).second
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[In ][Right],Head) >> 1)
-                    ==
-                    NextLeftArc(A[In ][Right],Head).first
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[In ][Right],Head) & Int(1))
-                    ==
-                    NextLeftArc(A[In ][Right],Head).second
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[Out][Left ],Tail) >> 1)
-                    ==
-                    NextLeftArc(A[Out][Left ],Tail).first
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[Out][Left ],Tail) & Int(1))
-                    ==
-                    NextLeftArc(A[Out][Left ],Tail).second
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[Out][Right],Tail) >> 1)
-                    ==
-                    NextLeftArc(A[Out][Right],Tail).first
-                );
-                
-                PD_ASSERT(
-                    (A_left(A[Out][Right],Tail) & Int(1))
-                    ==
-                    NextLeftArc(A[Out][Right],Tail).second
-                );
-            }
-//            else
-//            {
-//                A_left(A[Out][Left ],Tail) = Uninitialized;
-//
-//                A_left(A[Out][Right],Tail) = Uninitialized;
-//
-//                A_left(A[In ][Left ],Head) = Uninitialized;
-//
-//                A_left(A[In ][Right],Head) = Uninitialized;
-//            }
-        }
-        
-        this->SetCache(tag,std::move(A_left));
-    }
-    
-    return this->GetCache<ArcContainer_T>(tag);
-}
-
-
-bool CheckNextRightArc() const
-{
-    bool passedQ = true;
-    
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        if( !ArcActiveQ(a) )
-        {
-            continue;
-        }
-        
-        {
-            const Int da = ToDarc<Tail>(a);
-            
-            const Int db = NextRightArc(da);
-            
-            auto [b,d] = NextRightArc(a,Tail);
-            
-            
-            
-            passedQ = passedQ && (db == ToDarc(b,d));
-            
-            if( !passedQ )
-            {
-                eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Tail).");
-                
-                TOOLS_DUMP(db);
-                TOOLS_DUMP(b);
-                TOOLS_DUMP(d);
-                return false;
-            }
-        }
-        
-        {
-            const Int da = ToDarc<Head>(a);
-            
-            const Int db = NextRightArc(da);
-            
-            auto [b,d] = NextRightArc(a,Head);
-            
-            passedQ = passedQ && (db == ToDarc(b,d));
-            
-            if( !passedQ )
-            {
-                eprint(ClassName()+"::CheckNextRightArc failed at " + ArcString(a) + " (Head).");
-                
-                TOOLS_DUMP(db);
-                TOOLS_DUMP(b);
-                TOOLS_DUMP(d);
-                return false;
-            }
-        }
-    }
-    
-    if( passedQ )
-    {
-        logprint(ClassName()+"::CheckNextRightArc passed.");
-    }
-    
-    return passedQ;
-}
-
-
-
-/*!
- * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
- */
-
-template<bool headtail>
-Int NextArc( const Int a ) const
-{
-    return NextArc<headtail>(a,A_cross(a,headtail));
-}
-
-/*!
- * @brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. This function exploits that `c` is already known; so it saves one memory lookup.
- */
-
-template<bool headtail>
-Int NextArc( const Int a, const Int c ) const
-{
-    AssertArc(a);
-    AssertCrossing(c);
-    
-    PD_ASSERT( A_cross(a,headtail) == c );
-
-    // We leave through the arc at the port opposite to where a arrives.
-    const bool side = (C_arcs(c, headtail,Right) != a);
-    
-    const Int a_next = C_arcs(c,!headtail,side );
-    
-    AssertArc(a_next);
-    
-    return a_next;
-}
-
-//Tensor3<Int,Int> ArcWings() const
-//{
-//    Tensor3<Int,Int> A_wings ( max_arc_count, 2, 2 );
-//    
-//    for( Int c = 0; c < max_crossing_count; ++c )
-//    {
-//        if( CrossingActiveQ(c) )
-//        {
-//            Int A [2][2];
-//            
-//            copy_buffer<4>( C_arcs.data(c), &A[0][0] );
-//            
-//            
-//            constexpr Int tail_mask = 0;
-//            constexpr Int head_mask = 1;
-//            
-//            const Int arrows [2][2] =
-//            {
-//                {
-//                    ToDarc<Head>(A[Out][Left ]),
-//                    ToDarc<Head>(A[Out][Right])
-//                },{
-//                    ToDarc<Tail>(A[In ][Left ]),
-//                    ToDarc<Tail>(A[In ][Right])
-//                }
-//            };
-//            
-//            
-//            /* A[Out][Left ]         A[Out][Right]
-//             *               O     O
-//             *                ^   ^
-//             *                 \ /
-//             *                  X c
-//             *                 ^ ^
-//             *                /   \
-//             *               O     O
-//             * A[In ][Left ]         A[In ][Right]
-//             */
-//             
-//            A_wings(A[Out][Left ],Tail,Left ) = arrows[In ][Left ];
-//            A_wings(A[Out][Left ],Tail,Right) = arrows[Out][Right];
-//            
-//            A_wings(A[Out][Right],Tail,Left ) = arrows[Out][Left ];
-//            A_wings(A[Out][Right],Tail,Right) = arrows[In ][Right];
-//            
-//            A_wings(A[In ][Left ],Head,Left ) = arrows[Out][Left ];
-//            A_wings(A[In ][Left ],Head,Right) = arrows[In ][Right];
-//            
-//            A_wings(A[In ][Right],Head,Left ) = arrows[In ][Left ];
-//            A_wings(A[In ][Right],Head,Right) = arrows[Out][Right];
-//            
-//            PD_ASSERT(
-//                (A_wings(A[In ][Left ],Head,Left ) >> 1)
-//                ==
-//                NextLeftArc(A[In ][Left ],Head).first
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[In ][Left ],Head,Left ) & Int(1))
-//                ==
-//                NextLeftArc(A[In ][Left ],Head).second
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[In ][Right],Head,Left ) >> 1)
-//                ==
-//                NextLeftArc(A[In ][Right],Head).first
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[In ][Right],Head,Left ) & Int(1))
-//                ==
-//                NextLeftArc(A[In ][Right],Head).second
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[Out][Left ],Tail,Right) >> 1)
-//                ==
-//                NextLeftArc(A[Out][Left ],Tail).first
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[Out][Left ],Tail,Right) & Int(1))
-//                ==
-//                NextLeftArc(A[Out][Left ],Tail).second
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[Out][Right],Tail,Right) >> 1)
-//                ==
-//                NextLeftArc(A[Out][Right],Tail).first
-//            );
-//            
-//            PD_ASSERT(
-//                (A_wings(A[Out][Right],Tail,Right) & Int(1))
-//                ==
-//                NextLeftArc(A[Out][Right],Tail).second
-//            );
-//        }
-//    }
-//    
-//    return A_wings;
-//}
-
 
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {

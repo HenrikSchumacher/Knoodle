@@ -16,10 +16,10 @@ public:
  *   @param multi_compQ If set to `false`, then the algorithm may assume that the diagram belongs to a connected link and thus skip a couple of checks.
  */
 
-Int Simplify3(
-    const Int  optimization_level = 4,
-    const Int  max_iter    = std::numeric_limits<Int>::max(),
-    const bool multi_compQ = true
+Size_T Simplify3(
+    const Int    optimization_level = 4,
+    const Size_T max_iter    = Scalar::Max<Size_T>,
+    const bool   multi_compQ = true
 )
 {
     if( proven_minimalQ || InvalidQ() )
@@ -85,7 +85,7 @@ Int Simplify3(
             }
             default:
             {
-                eprint( ClassName()+"::Simplify3: Value " + ToString(level) + " is invalid" );
+                eprint( MethodName("Simplify3")+": Value " + ToString(level) + " is invalid" );
             }
         }
     }
@@ -96,15 +96,15 @@ Int Simplify3(
 private:
 
 template<Int optimization_level, bool multi_compQ>
-Int simplify3( Int max_iter )
+Size_T simplify3( Size_T max_iter )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::Simplify3(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
+    TOOLS_PTIMER(timer,MethodName("Simplify3")+"(" + ToString(optimization_level) + "," + ToString(max_iter) + "," + ToString(multi_compQ) + ")");
     
     ArcSimplifier<Int,optimization_level,multi_compQ> arc_simplifier (*this);
 
-    Int old_counter = 0;
-    Int counter = 0;
-    Int iter = 0;
+    Size_T old_counter = 0;
+    Size_T counter = 0;
+    Size_T iter = 0;
     if( iter < max_iter )
     {
         do
@@ -122,7 +122,7 @@ Int simplify3( Int max_iter )
     }
     
         
-    if( counter > Int(0) )
+    if( counter > Size_T(0) )
     {
         this->ClearCache();
     }

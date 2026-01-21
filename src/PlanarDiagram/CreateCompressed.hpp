@@ -3,18 +3,25 @@ public:
 /*!
  * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
- * Relabeling is done in order of traversal by routine `Traverse<true,false,0,DefaultTraversalMethod>`.
+ * Relabeling is done in order of traversal by routine `Traverse<true,false,0>`.
  */
 
 PlanarDiagram CreateCompressed()
 {
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::CreateCompressed: Input diagram is invalid. Returning invalid diagram.");
+        wprint( MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
         return PlanarDiagram();
     }
     
-    TOOLS_PTIMER(timer,ClassName()+"::CreateCompressed");
+    TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
+    
+//    constexpr bool debugQ = true;
+    
+    if constexpr ( debugQ )
+    {
+        wprint(MethodName("CreateCompressed")+": Debug mode active.");
+    }
     
     PlanarDiagram pd ( crossing_count, unlink_count );
     
@@ -25,10 +32,10 @@ PlanarDiagram CreateCompressed()
     pd.proven_minimalQ = proven_minimalQ;
     
     mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-    mptr<CrossingState>       C_state_new = pd.C_state.data();
+    mptr<CrossingState_T>     C_state_new = pd.C_state.data();
     
     mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-    mptr<ArcState>            A_state_new = pd.A_state.data();
+    mptr<ArcState_T>          A_state_new = pd.A_state.data();
     
     this->template Traverse<true,false,0>(
         [&C_arcs_new,&C_state_new,&A_cross_new,&A_state_new,this](
@@ -41,8 +48,7 @@ PlanarDiagram CreateCompressed()
             (void)c_0_visitedQ;
             (void)c_1_visitedQ;
 
-            // TODO: Handle over/under in ArcState.
-            A_state_new[a_pos] = ArcState::Active;
+            A_state_new[a_pos] = ArcState_T::Active;
 //             A_state_new[a_pos] = A_state[a];
 
             if( !c_0_visitedQ )
@@ -64,6 +70,14 @@ PlanarDiagram CreateCompressed()
     if( this->InCacheQ("LinkComponentCount") )
     {
         pd.template SetCache<false>("LinkComponentCount",LinkComponentCount());
+    }
+    
+    if constexpr ( debugQ )
+    {
+        if( !pd.CheckAll() )
+        {
+            pd_eprint(MethodName("CreateCompress") +": pd.CheckAll() failed.");
+        }
     }
     
     return pd;
@@ -102,152 +116,4 @@ bool CompressedOrderQ()
     );
     
     return orderedQ;
-}
-
-
-PlanarDiagram Canonicalize_Legacy( bool under_crossing_flag = true )
-{
-    TOOLS_PTIMER(timer,MethodName("Canonicalize_Legacy"));
-    
-    PD_ASSERT(CheckAll());
-    
-    PlanarDiagram pd ( crossing_count, unlink_count );
-    pd.crossing_count  = crossing_count;
-    pd.arc_count       = arc_count;
-    pd.proven_minimalQ = proven_minimalQ;
-    
-    mref<CrossingContainer_T> C_arcs_new  = pd.C_arcs;
-    mptr<CrossingState>       C_state_new = pd.C_state.data();
-    
-    mref<ArcContainer_T>      A_cross_new = pd.A_cross;
-    mptr<ArcState>            A_state_new = pd.A_state.data();
-    
-    C_scratch.Fill(Uninitialized);
-    mptr<Int> C_pos = C_scratch.data();
-    
-    mptr<bool> A_visited = reinterpret_cast<bool *>(A_scratch.data());
-    fill_buffer(A_visited,false,max_arc_count);
-    
-    Int a_counter = 0;
-    Int c_counter = 0;
-    Int a_ptr     = 0;
-    
-    Int lc_counter = 0;
-    
-    while( a_ptr < max_arc_count )
-    {
-        // Search for next arc that is active and has not yet been handled.
-//        while( ( a_ptr < max_arc_count ) && ( A_visited[a_ptr] || (!ArcActiveQ(a_ptr)) ) )
-        while(
-            ( a_ptr < max_arc_count )
-            &&
-            (
-                A_visited[a_ptr]
-                ||
-                (!ArcActiveQ(a_ptr))
-                ||
-                (under_crossing_flag ? ArcOverQ<Tail>(a_ptr) : false)
-                // Always start with an undercrossing.
-            )
-        )
-        {
-            ++a_ptr;
-        }
-        
-        if( a_ptr >= max_arc_count ) { break; }
-        
-        Int a = a_ptr;
-        
-        AssertArc(a);
-        
-#ifdef PD_DEBUG
-        if( A_visited[a] )
-        {
-            eprint(ClassName()+"::Canonicalize_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
-            
-            logprint( ArcString(a) );
-
-            PrintInfo();
-            
-            CheckAll();
-        }
-#endif
-        
-        {
-            const Int c_1 = A_cross(a,Tail);
-            
-            AssertCrossing(c_1);
-            
-            if( !ValidIndexQ(C_pos[c_1]) )
-            {
-                C_pos[c_1] = c_counter;
-                C_state_new[c_counter] = C_state[c_1];
-                ++c_counter;
-            }
-        }
-        
-        // Cycle along all arcs in the link component, until we return where we started.
-        do
-        {
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-            
-            AssertCrossing(c_0);
-            AssertCrossing(c_1);
-
-#ifdef PD_DEBUG
-            if( A_visited[a] )
-            {
-                eprint(ClassName()+"::Canonicalize_Legacy: A_visited[a] already! Something must be wrong with this diagram.");
-                
-                logprint( ArcString(a) );
-
-                PrintInfo();
-                
-                CheckAll();
-            }
-#endif
-            // TODO: Handle over/under in ArcState.
-            A_state_new[a_counter] = ArcState::Active;
-//            A_state_new[a_counter] = A_state[a];
-            
-            A_visited[a] = true;
-            
-            if( !ValidIndexQ(C_pos[c_1]) )
-            {
-                C_pos[c_1] = c_counter;
-                C_state_new[c_counter] = C_state[c_1];
-                ++c_counter;
-            }
-            
-            {
-                const Int  c    = C_pos[c_0];
-                const bool side = (C_arcs(c_0,Out,Right) == a);
-                C_arcs_new(c,Out,side) = a_counter;
-                A_cross_new(a_counter,Tail) = c;
-            }
-            
-            {
-                const Int  c    = C_pos[c_1];
-                const bool side = (C_arcs(c_1,In,Right) == a);
-                C_arcs_new(c,In,side) = a_counter;
-                A_cross_new(a_counter,Head) = c;
-            }
-            
-            a = NextArc<Head>(a);
-            
-            AssertArc(a);
-            
-            ++a_counter;
-        }
-        while( a != a_ptr );
-        
-        ++lc_counter;
-        ++a_ptr;
-        
-    }
-    
-    pd.template SetCache<false>("LinkComponentCounter",lc_counter);
-    
-    return pd;
 }

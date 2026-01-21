@@ -234,7 +234,7 @@ namespace Knoodle
                     
                     const UInt64 i_max = (UInt64(1) << crossing_count );
                     
-                    Tensor1<CrossingState,Int> C_state (crossing_count);
+                    PD_T::CrossingStateContainer_T C_state (crossing_count);
                     
                     CodeSet_T local_minimal_codes;
                     CodeSet_T local_other_codes;
@@ -247,9 +247,7 @@ namespace Knoodle
                         {
                             for( Int j = 0; j < crossing_count; ++j )
                             {
-                                C_state [j] = get_bit(i,j)
-                                            ? CrossingState::RightHanded
-                                            : CrossingState::LeftHanded;
+                                C_state [j] = BooleanToCrossingState(get_bit(i,j));
                             }
 
                             PD_T pd (
@@ -277,7 +275,8 @@ namespace Knoodle
                                     {
                                         // We collect the chirality transforms of the _original_ diagram, not the simplified one.
                                         
-                                        PD_T pd_1 = pd.ChiralityTransform(mirrorQ,reverseQ);
+                                        PD_T pd_1 = pd.CachelessCopy();
+                                        pd_1.ChiralityTransform(mirrorQ,reverseQ);
                                         
                                         if( proven_minimalQ )
                                         {

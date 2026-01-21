@@ -38,16 +38,16 @@ bool Break( const Int c )
             return true;
         }
 
-//               v_3 O----<----O       O---->----O v_2
-//                       e_3    ^     ^    e_2
-//                               \   /
-//                                \ /
-//        e_0 != v_e             c X               e_0 != v_e
-//                                / \
-//                               /   \
-//                       e_0    /     \    e_1
-//               v_0 O---->----O       O----<----O v_1
-
+/*               v_3 O----<----O       O---->----O v_2
+ *                       e_3    ^     ^    e_2
+ *                               \   /
+ *                                \ /
+ *        e_0 != v_e             c X               e_0 != v_e
+ *                                / \
+ *                               /   \
+ *                       e_0    /     \    e_1
+ *               v_0 O---->----O       O----<----O v_1
+ */
         const Int e_0 = C_arcs(c,In ,Left );
         const Int e_1 = C_arcs(c,In ,Right);
         const Int e_2 = C_arcs(c,Out,Right);

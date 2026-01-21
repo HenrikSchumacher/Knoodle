@@ -98,7 +98,7 @@ int main()
     
     Tools::print( "" );
     Tools::print( "== Demonstration of Simplify4 ==" );
-    Tools::print( "Simplify4 applies Simplify3 and then performs path rerouting (and former runs of Simplify3)." );
+    Tools::print( "Simplify4 applies Simplify3 and then performs path rerouting (and further runs of Simplify3)." );
     {
         PD_T pd ( pd_0 );
         pd.Simplify4(); // Do Simplify3 and path rerouting.

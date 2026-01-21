@@ -144,17 +144,17 @@ namespace Knoodle
                 {
                     component_lookup[v] = comp;
                     
-                    // DEBUGGING
-                    if( v != edges(v,0) )
-                    {
-                        eprint("!!!");
-                        TOOLS_DDUMP(v);
-                        TOOLS_DDUMP(edges(v,0));
-                        TOOLS_DDUMP(edges(v,1));
-                        
-                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
-                        );
-                    }
+//                    // DEBUGGING
+//                    if( v != edges(v,0) )
+//                    {
+//                        eprint("!!!");
+//                        TOOLS_DDUMP(v);
+//                        TOOLS_DDUMP(edges(v,0));
+//                        TOOLS_DDUMP(edges(v,1));
+//                        
+//                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
+//                        );
+//                    }
                     next_edge[v] = edges(v,1);
                 }
             }
@@ -165,7 +165,7 @@ namespace Knoodle
         
         /*! @brief Construct oriented `Link` from a list of oriented edges.
          *
-         *  @param edges_ Array of integers of length `2 * edge_count_`. Entries at odd positions are treated as tails; entries at even positions are treated as tips.
+         *  @param edges_ Array of integers of length `2 * edge_count_`. Entries at odd positions are treated as tails; entries at even positions are treated as heads.
          *
          *  @param edge_count_ Number of edges.
          *
@@ -181,23 +181,23 @@ namespace Knoodle
             ReadEdges( edges_ );
         }
         
-        /*! @brief Construct oriented `Link` from a list of tails and from a list of tips.
+        /*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
          *
          *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.
          *
-         *  @param edge_tips_ Array of integers of length `edge_count_`. Entries are treated as tips of edges.
+         *  @param edge_heads_ Array of integers of length `edge_count_`. Entries are treated as heads of edges.
          *
          *  @param edge_count_ Number of edges.
          */
         
         template<typename I_0, typename I_1>
-        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
+        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, const I_1 edge_count_ )
         :   Link( int_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
             
-            ReadEdges( edge_tails_, edge_tips_ );
+            ReadEdges( edge_tails_, edge_heads_ );
         }
 
     public:
@@ -213,6 +213,7 @@ namespace Knoodle
             return cyclicQ;
         }
         
+        
         /*! @brief Reads edges from the array `edges_`.
          *
          *  @param edges_ Integer array of length `2 * EdgeCount()`.
@@ -221,13 +222,14 @@ namespace Knoodle
         template<typename ExtInt>
         void ReadEdges( cptr<ExtInt> edges_ )
         {
-            TOOLS_PTIMER(timer,MethodName("ReadEdges"));
             static_assert(IntQ<ExtInt>,"");
             
+            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
+            
+            TOOLS_PTIMER(timer,tag());
+        
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
-            
-            bool in_rangeQ = true;
             
             // using edges(...,0) temporarily as scratch space.
 //            mptr<Int> tail_of_edge = edges.data(0);
@@ -235,22 +237,41 @@ namespace Knoodle
             for( Int e = 0; e < edge_count; ++e )
             {
                 const ExtInt tail = edges_[Int(2) * e];
-                
-                in_rangeQ = in_rangeQ && std::in_range<Int>(tail);
 
+                if( !std::in_range<Int>(tail) )
+                {
+                    error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
+                }
+                if( std::cmp_less(tail, ExtInt(0)) )
+                {
+                    error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
+                }
+                if( std::cmp_greater_equal(tail,edge_count) )
+                {
+                    error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
+                }
+                
                 edges(tail,0) = static_cast<Int>(tail);
-            }
-            
-            if( !in_rangeQ )
-            {
-                eprint(ClassName()+"::ReadEdges: input edges are out of range for type " + TypeName<Int> + "." );
             }
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tip = edges_[Int(2) * e + Int(1)];
-
-                next_edge[e] = edges(tip,0);
+                const ExtInt head = edges_[Int(2) * e + Int(1)];
+                
+                if( !std::in_range<Int>(head) )
+                {
+                    error(tag()+": index head is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
+                }
+                if( std::cmp_less(head, ExtInt(0)) )
+                {
+                    error(tag()+": head < 0 (head = " + ToString(head) + ").");
+                }
+                if( std::cmp_greater_equal(head,edge_count) )
+                {
+                    error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
+                }
+                
+                next_edge[e] = edges(static_cast<Int>(head),0);
             }
             
             FindComponents();
@@ -270,33 +291,66 @@ namespace Knoodle
             FinishPreparations();
         }
 
-        /*! @brief Reads edges from the arrays `edge_tails_` and `edge_tips_`.
+        /*! @brief Reads edges from the arrays `edge_tails_` and `edge_heads_`.
          *
          *  @param edge_tails_ Integer array of length `EdgeCount()` that contains the list of tails.
          *
-         *  @param edge_tips_ Integer array of length `EdgeCount()` that contains the list of tips.
+         *  @param edge_heads_ Integer array of length `EdgeCount()` that contains the list of heads.
          */
         
-        void ReadEdges( cptr<Int> edge_tails_, cptr<Int> edge_tips_ )
+        template<typename ExtInt>
+        void ReadEdges( cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_ )
         {
+            static_assert(IntQ<ExtInt>,"");
+            
+            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
+            
+            TOOLS_PTIMER(timer,tag());
+            
             // Finding for each e its next e.
             // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
             
             // using edges.data(0) temporarily as scratch space.
-            mptr<Int> tail_of_edge = edges.data(0);
+            mptr<ExtInt> tail_of_edge = edges.data(0);
             
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tail = edge_tails_[e];
+                const ExtInt tail = edge_tails_[e];
 
-                tail_of_edge[tail] = e;
+                if( !std::in_range<Int>(tail) )
+                {
+                    error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
+                }
+                if( std::cmp_less(tail, ExtInt(0)) )
+                {
+                    error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
+                }
+                if( std::cmp_greater_equal(tail,edge_count) )
+                {
+                    error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
+                }
+                
+                tail_of_edge[static_cast<Int>(tail)] = e;
             }
 
             for( Int e = 0; e < edge_count; ++e )
             {
-                const Int tip = edge_tips_[e];
+                const ExtInt head = edge_heads_[e];
+                
+                if( !std::in_range<Int>(head) )
+                {
+                    error(tag()+": head tail is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
+                }
+                if( std::cmp_less(head, ExtInt(0)) )
+                {
+                    error(tag()+": tail < 0 (head = " + ToString(head) + ").");
+                }
+                if( std::cmp_greater_equal(head,edge_count) )
+                {
+                    error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
+                }
 
-                next_edge[e] = tail_of_edge[tip];
+                next_edge[e] = tail_of_edge[static_cast<Int>(head)];
             }
             
             FindComponents();
@@ -304,7 +358,7 @@ namespace Knoodle
             // using edge_ptr temporarily as scratch space.
             cptr<Int> perm       = edge_ptr.data();
             mptr<Int> edge_tails = edges.data(0);
-            mptr<Int> edge_tips  = edges.data(1);
+            mptr<Int> edge_heads = edges.data(1);
             
             // Reordering edges.
             for( Int e = 0; e < edge_count; ++e )
@@ -312,7 +366,7 @@ namespace Knoodle
                 const Int from = perm[e];
 
                 edge_tails[e] = edge_tails_[from];
-                edge_tips [e] = edge_tips_ [from];
+                edge_heads[e] = edge_heads_[from];
             }
             
             FinishPreparations();
@@ -324,8 +378,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("FindComponents"));
             
-            
-            // TODO: FindComponents goes nuts if we supply a 1D simplicial complex that is not a closed. Add some tests and error messages here!
+            // TODO: FindComponents goes nuts if we supply a 1D simplicial complex that is not closed. Add some tests and error messages here!
             
             // using edge_ptr temporarily as scratch space.
             mptr<Int> perm = edge_ptr.data();

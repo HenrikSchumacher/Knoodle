@@ -40,9 +40,9 @@ void LevelsConstraintMatrix_CollectTriples(
         return;
     }
     
-    cptr<Int>           C_arcs   = pd.Crossings().data();
-    cptr<CrossingState> C_states = pd.CrossingStates().data();
-    cptr<Int>           A_pos    = pd.ArcPositions().data();
+    cptr<Int>             C_arcs  = pd.Crossings().data();
+    cptr<CrossingState_T> C_state = pd.CrossingStates().data();
+    cptr<Int>             A_pos   = pd.ArcPositions().data();
     
     const Int C_count = pd.MaxCrossingCount();
     
@@ -58,24 +58,25 @@ void LevelsConstraintMatrix_CollectTriples(
         const I a_0_pos = static_cast<I>(A_pos[a_0]);
         const I a_1_pos = static_cast<I>(A_pos[a_1]);
                                   
-        const R s = static_cast<R>(ToUnderlying(C_states[c]));
+        const R s = static_cast<R>(ToUnderlying(C_state[c]));
         
-        //  Case: right-handed.
-        //
-        //      a_0     a_1
-        //        ^     ^
-        //         \   /
-        //          \ /
-        //           /
-        //          / \
-        //         /   \
-        //        /     \
-        //
-        // If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
-        //   x[a_1] >= x[a_0] + 1
-        // - x[a_0] + x[a_1] >= 1
-        //   x[a_0] - x[a_1] <= -1
-
+        /*  Case: right-handed.
+         *
+         *      a_0     a_1
+         *        ^     ^
+         *         \   /
+         *          \ /
+         *           /
+         *          / \
+         *         /   \
+         *        /     \
+         *
+         * If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
+         *   x[a_1] >= x[a_0] + 1
+         * - x[a_0] + x[a_1] >= 1
+         *   x[a_0] - x[a_1] <= -1
+         */
+        
         if constexpr ( TransposedQ(op) )
         {
             const I col = int_cast<I>(c_pos + col_offset);

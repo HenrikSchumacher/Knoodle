@@ -18,7 +18,7 @@ Tensor1<T,Int> ExtendedGaussCode2( const Int a_0 = 0 )  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     if( LinkComponentCount() > Int(1) )
@@ -84,7 +84,7 @@ void WriteExtendedGaussCode2( const Int a_0, mptr<T> code )  const
             code[a_counter] =
                 c_0_visitedQ
                 ? ( CrossingRightHandedQ(c_0) ? c_pos : -c_pos )
-                : ( ArcOverQ<Tail>(a)         ? c_pos : -c_pos );
+                : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
             
             A_visitedQ[a] = true;
             ++a_counter;

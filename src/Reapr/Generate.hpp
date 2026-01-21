@@ -69,7 +69,7 @@ void Generate_impl(
         }
     };
     
-    // For iteration over a std::unordered_set can only be done with const iterators. Thus, we have to do copies here. Should be no problem in general.
+    // For-iteration over a std::unordered_set can only be done with const iterators. Thus, we have to do copies here. Should be no problem in general.
     for( const Code_T & code : code_set )
     {
         stack.push_back(code);

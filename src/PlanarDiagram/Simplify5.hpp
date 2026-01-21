@@ -20,13 +20,13 @@ public:
  */
 
 bool Simplify5(
-    PD_List_T & pd_list,
-    const Int  min_dist           = 6,
-    const Int  max_dist           = std::numeric_limits<Int>::max(),
-    const bool compressQ          = true,
-    const Int  simplify3_level    = 4,
-    const Int  simplify3_max_iter = std::numeric_limits<Int>::max(),
-    const bool strand_R_II_Q      = true
+    PD_List_T &  pd_list,
+    const Int    min_dist           = 6,
+    const Int    max_dist           = Scalar::Max<Int>,
+    const bool   compressQ          = true,
+    const Int    simplify3_level    = 4,
+    const Size_T simplify3_max_iter = Scalar::Max<Size_T>,
+    const bool   strand_R_II_Q      = true
 )
 {
     if( proven_minimalQ || InvalidQ() ) { return false; }

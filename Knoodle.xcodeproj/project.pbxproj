@@ -7,6 +7,15 @@
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AF1359792F0E96BC000B5009 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		AF2D42502E3118C7004C6CE0 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -82,6 +91,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AF13597B2F0E96BC000B5009 /* Dev_PlanarDiagram2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarDiagram2; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF3B5BD82E36499C00A14D16 /* Dev_PlanarityChecker */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarityChecker; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
@@ -99,10 +109,9 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
+		AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarDiagram2; sourceTree = "<group>"; };
 		AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree; sourceTree = "<group>"; };
-		AF3B5BD92E36499C00A14D16 /* Dev_PlanarityChecker */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarityChecker; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
-		AF5FF6AE2DD27DCA0076AB0E /* Dev_CLP */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_CLP; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
@@ -112,6 +121,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AF1359782F0E96BC000B5009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF2D424F2E3118C7004C6CE0 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -189,13 +205,12 @@
 				AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
-				AF5FF6AE2DD27DCA0076AB0E /* Dev_CLP */,
 				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
 				AF6C85DD2E29315B0051B919 /* WorkBench */,
 				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
-				AF3B5BD92E36499C00A14D16 /* Dev_PlanarityChecker */,
 				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
+				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 				AFAC11072F0345620029A41C /* KnoodleTool */,
@@ -213,6 +228,7 @@
 				AF3B5BD82E36499C00A14D16 /* Dev_PlanarityChecker */,
 				AFBB9A9A2EF54467000CA528 /* Example_Knoodle */,
 				AFAC10622F0293FA0029A41C /* Dev_ClisbyTree2 */,
+				AF13597B2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -220,6 +236,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		AF13597A2F0E96BC000B5009 /* Dev_PlanarDiagram2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF1359812F0E96BD000B5009 /* Build configuration list for PBXNativeTarget "Dev_PlanarDiagram2" */;
+			buildPhases = (
+				AF1359772F0E96BC000B5009 /* Sources */,
+				AF1359782F0E96BC000B5009 /* Frameworks */,
+				AF1359792F0E96BC000B5009 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
+			);
+			name = Dev_PlanarDiagram2;
+			packageProductDependencies = (
+			);
+			productName = Dev_PlanarDiagram2;
+			productReference = AF13597B2F0E96BC000B5009 /* Dev_PlanarDiagram2 */;
+			productType = "com.apple.product-type.tool";
+		};
 		AF2D42512E3118C7004C6CE0 /* Dev_ClisbyTree */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */;
@@ -254,9 +292,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				AF3B5BD92E36499C00A14D16 /* Dev_PlanarityChecker */,
-			);
 			name = Dev_PlanarityChecker;
 			packageProductDependencies = (
 			);
@@ -275,9 +310,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				AF5FF6AE2DD27DCA0076AB0E /* Dev_CLP */,
 			);
 			name = Dev_CLP;
 			packageProductDependencies = (
@@ -405,6 +437,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					AF13597A2F0E96BC000B5009 = {
+						CreatedOnToolsVersion = 26.2;
+					};
 					AF2D42512E3118C7004C6CE0 = {
 						CreatedOnToolsVersion = 16.4;
 					};
@@ -452,11 +487,19 @@
 				AF3B5BD72E36499C00A14D16 /* Dev_PlanarityChecker */,
 				AFBB9A992EF54467000CA528 /* Example_Knoodle */,
 				AFAC10612F0293FA0029A41C /* Dev_ClisbyTree2 */,
+				AF13597A2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AF1359772F0E96BC000B5009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AF2D424E2E3118C7004C6CE0 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -516,6 +559,34 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		AF13597F2F0E96BD000B5009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AF1359802F0E96BD000B5009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6DQ749ZRT;
+				ENABLE_HARDENED_RUNTIME = NO;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AF2D42572E3118C7004C6CE0 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1029,6 +1100,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AF1359812F0E96BD000B5009 /* Build configuration list for PBXNativeTarget "Dev_PlanarDiagram2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF13597F2F0E96BD000B5009 /* Debug */,
+				AF1359802F0E96BD000B5009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AF2D42562E3118C7004C6CE0 /* Build configuration list for PBXNativeTarget "Dev_ClisbyTree" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

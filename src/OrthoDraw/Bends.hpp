@@ -225,9 +225,9 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
         if( !pd.ArcActiveQ(a) ) { continue; };
         
         // right face of a
-        const I f_0  = static_cast<I>( dA_F[pd.template ToDarc<Tail>(a)] );
+        const I f_0  = static_cast<I>( dA_F[pd.ToDarc(a,Tail)] );
         // left  face of a
-        const I f_1  = static_cast<I>( dA_F[pd.template ToDarc<Head>(a)] );
+        const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
         
         const I di_0 = static_cast<I>( A_idx(a,0) );
         const I di_1 = static_cast<I>( A_idx(a,1) );
@@ -342,8 +342,8 @@ static Tiny::VectorList_AoS<2,ExtInt,ExtInt> Bends_ArcIndices( cref<PlanarDiagra
     {
         if( pd.ArcActiveQ(a) )
         {
-            A_idx(a,0) = PD_loc_T::template ToDarc<Tail>(a_counter);
-            A_idx(a,1) = PD_loc_T::template ToDarc<Head>(a_counter);
+            A_idx(a,0) = PD_loc_T::ToDarc(a_counter,Tail);
+            A_idx(a,1) = PD_loc_T::ToDarc(a_counter,Head);
             ++a_counter;
         }
         else

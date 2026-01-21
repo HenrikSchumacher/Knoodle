@@ -191,7 +191,7 @@ void Traverse_impl(
         {
             // We have to find the _beginning_ of first over/understrand.
             // For this, we go forward until its tail goes under/over as needed.
-            if( ArcOverQ<Tail>(a) != overQ )
+            if( ArcOverQ(a,Tail) != overQ )
             {
                 do
                 {
@@ -202,10 +202,10 @@ void Traverse_impl(
                     }
                     else
                     {
-                        a = NextArc<Head>(a);
+                        a = NextArc(a,Head);
                     }
                 }
-                while( (a != a_0) && (ArcOverQ<Tail>(a) != overQ) );
+                while( (a != a_0) && (ArcOverQ(a,Tail) != overQ) );
             }
             
             a_0 = a;
@@ -292,11 +292,11 @@ void Traverse_impl(
             {
                 if constexpr ( crossingsQ )
                 {
-                    a = NextArc<Head>(a,c_1);
+                    a = NextArc(a,Head,c_1);
                 }
                 else
                 {
-                    a = NextArc<Head>(a);
+                    a = NextArc(a,Head);
                 }
             }
             
@@ -377,7 +377,7 @@ void TraverseComponent_impl(
         }
         else
         {
-            a = NextArc<Head>(a);
+            a = NextArc(a,Head);
         }
     }
     while( a != a_0 );

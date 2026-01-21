@@ -19,7 +19,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 
 
 
-/*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care about that.
+/*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care of that.
  *
  * Arc `a` is assumed to be active, but the state of `b` can be anything.
  * (But the state `a` won't be checked explicitly for performance reasons and it is also not really exploited here in any way).
@@ -60,8 +60,6 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    
-    // TODO: Handle over/under in ArcState.
     SetMatchingPortTo(c,headtail,b,a);
     
     DeactivateArc(b);
@@ -87,7 +85,7 @@ void Reconnect( const Int a, const Int b )
 {
     // TODO: It is a bit annoying and violates the DRY principle that we have two functions `Reconnect` with almost 100% the same code. However, I made this intentionally so because I think that the compiler will optimize the two routines quite differently.
     
-    PD_DPRINT(ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+    PD_DPRINT(ClassName()+"::Reconnect<" + (headtail ? "Head" : "Tail") +  "," + BoolString(deactivateQ) + "," + BoolString(assertQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcActiveQ(a));
@@ -106,10 +104,8 @@ void Reconnect( const Int a, const Int b )
     }
 
     A_cross(a,headtail) = c;
-    
     SetMatchingPortTo<headtail>(c,b,a);
 
-    // TODO: Handle over/under in ArcState.
     if constexpr( deactivateQ )
     {
         DeactivateArc(b);

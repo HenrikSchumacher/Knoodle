@@ -33,9 +33,9 @@ bool CheckCrossing( const Int c  ) const
                 return false;
             }
             
-//            const int A_activeQ = (A_state[a] == ArcState::Active) || (A_state[a] == ArcState::Unchanged);
+//            const int A_activeQ = (A_state[a] == ArcState_T::Active) || (A_state[a] == ArcState_T::Unchanged);
             
-            const bool A_activeQ = ToUnderlying(A_state[a]) & Underlying_T<ArcState>(1);
+            const bool A_activeQ = ToUnderlying(A_state[a]) & Underlying_T<ArcState_T>(1);
             
             if( !A_activeQ )
             {
@@ -109,7 +109,7 @@ bool CheckArc( const Int a ) const
         return false;
     }
     
-    if( A_state[a] == ArcState::Inactive )
+    if( A_state[a] == ArcState_T::Inactive )
     {
         return true;
     }
@@ -173,9 +173,21 @@ bool CheckAllArcs() const
         passedQ = false;
     }
     
+    Int active_arc_count = 0;
+    
     for( Int a = 0; a < max_arc_count; ++a )
     {
+        active_arc_count += ArcActiveQ(a);
         passedQ = passedQ && CheckArc(a);
+    }
+    
+    if( arc_count != active_arc_count )
+    {
+        eprint("arc_count != active_arc_count");
+        TOOLS_LOGDUMP(arc_count);
+        TOOLS_LOGDUMP(active_arc_count);
+        TOOLS_LOGDUMP(max_arc_count);
+        passedQ = false;
     }
     
     if( passedQ )
@@ -276,35 +288,92 @@ bool CheckAll() const
     return passedQ;
 }
 
-
 public:
 
+template<bool must_be_activeQ = true>
 void AssertDarc( const Int da ) const
 {
-    PD_ASSERT(CheckArc  (FromDarc(da).first));
-    PD_ASSERT(ArcActiveQ(FromDarc(da).first));
-#ifndef PD_DEBUG
+#ifdef PD_DEBUG
+    auto [a,d] = FromDarc(da);
+
+    if constexpr( must_be_activeQ )
+    {
+        if( !ArcActiveQ(a) )
+        {
+            pd_eprint("AssertDarc<1>: " + DarcString(da) + " is not active.");
+        }
+        if( !CheckArc(a) )
+        {
+            pd_eprint("AssertDarc<1>: " + DarcString(da) + " failed CheckArc.");
+        }
+    }
+    else
+    {
+        if( ArcActiveQ(a) )
+        {
+            pd_eprint("AssertDarc<0>: " + DarcString(a) + " is not inactive.");
+        }
+    }
+#else
     (void)da;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertArc( const Int a ) const
 {
-    PD_ASSERT(CheckArc  (a));
-    PD_ASSERT(ArcActiveQ(a));
-#ifndef PD_DEBUG
-    (void)a;
+#ifdef PD_DEBUG
+    if constexpr( must_be_activeQ )
+    {
+        if( !ArcActiveQ(a) )
+        {
+            pd_eprint("AssertArc<1>: " + ArcString(a) + " is not active.");
+        }
+        if( !CheckArc(a) )
+        {
+            pd_eprint("AssertArc<1>: " + ArcString(a) + " failed CheckArc.");
+        }
+    }
+    else
+    {
+        if( ArcActiveQ(a) )
+        {
+            pd_eprint("AssertArc<0>: " + ArcString(a) + " is not inactive.");
+        }
+    }
+#else
+        (void)a;
 #endif
 }
 
+template<bool must_be_activeQ = true>
 void AssertCrossing( const Int c ) const
 {
-    PD_ASSERT(InIntervalQ(c,Int(0),max_crossing_count));
-    PD_ASSERT(CrossingActiveQ(c));
-    PD_ASSERT(CheckCrossing(c));
-#ifndef PD_DEBUG
+#ifdef PD_DEBUG
+    if( !InIntervalQ(c,Int(0),max_crossing_count) )
+    {
+        pd_eprint("AssertCrossing<1>: Crossing index " + Tools::ToString(c) + " is out of bounds.");
+    }
+    
+    if constexpr( must_be_activeQ )
+    {
+        if( !CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " is not active.");
+        }
+        if( !CheckCrossing(c) )
+        {
+            pd_eprint("AssertCrossing<1>: " + CrossingString(c) + " failed CheckCrossing.");
+        }
+    }
+    else
+    {
+        if( CrossingActiveQ(c) )
+        {
+            pd_eprint("AssertCrossing<0>: " + CrossingString(c) + " is not inactive.");
+        }
+    }
+#else
     (void)c;
 #endif
 }
-
-
