@@ -1,10 +1,14 @@
 g++-15                                                  \
+    -m64                                                \
     -Wall                                               \
     -Wextra                                             \
+    -Wno-ignored-qualifiers                             \
+    -Wno-psabi                                          \
     -std=c++20                                          \
     -O3                                                 \
     -mcpu=apple-m1                                      \
     -mtune=native                                       \
+    -flto=auto                                          \
     -pthread                                            \
     -lumfpack                                           \
     -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
@@ -19,6 +23,3 @@ g++-15                                                  \
     -L/usr/local/lib                                    \
     -o Knoodle                                          \
     main.cpp                                            \
-    -flto                                               \
-    -Wno-ignored-qualifiers                             \
-    -Wno-psabi                                          \

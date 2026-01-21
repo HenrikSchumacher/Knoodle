@@ -12,7 +12,6 @@ clang-19                                        \
     -mtune=native                               \
     -I/opt/homebrew/include                     \
     -L/opt/homebrew/lib                         \
-    -fverbose-asm                               \
     -o PolyFold                                 \
     -DPOLYFOLD_NO_QUATERNIONS                       \
     -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\" \

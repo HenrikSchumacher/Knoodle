@@ -6,6 +6,7 @@
     -march=native                                       \
     -mtune=native                                       \
     -fenable-matrix                                     \
+    -flto                                               \
     -pthread                                            \
     -I/opt/homebrew/include                             \
     -L/opt/homebrew/lib                                 \
@@ -14,7 +15,6 @@
     -DGIT_VERSION=\"\\\"$(git describe --abbrev=100 --dirty --always --tags)\\\"\"                                   \
     main.cpp                                            \
     -lboost_program_options                             \
-    -flto                                               \
 #    -Wshadow                                            \
 #    -fsanitize=address                                  \
 #    -fsanitize-address-use-after-scope                  \
