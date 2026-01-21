@@ -18,6 +18,7 @@ namespace Knoodle
 
 #include "src/Containers.hpp"
 #include "src/Types.hpp"
+#include "src/Debugging.hpp"
 
 #include "src/Link.hpp"
 
@@ -34,7 +35,6 @@ namespace Knoodle
 #include "src/MultiGraph.hpp"
 #include "src/MultiDiGraph.hpp"
 
-#include "src/Debugging.hpp"
 #include "src/Binarizer.hpp"
 
 #include "src/PlanarDiagram.hpp"

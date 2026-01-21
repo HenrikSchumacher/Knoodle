@@ -468,9 +468,10 @@ namespace Knoodle
         }
         
         
+        
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && (last_color_deactivated != Uninitialized);
+            return proven_minimalQ && (crossing_count == Int(0)) && ValidIndexQ(last_color_deactivated);
         }
 
         bool ProvenHopfLinkQ() const
@@ -490,14 +491,7 @@ namespace Knoodle
 
         bool InvalidQ() const
         {
-            if( (max_crossing_count == Int(0)) && (last_color_deactivated == Uninitialized ) )
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return (crossing_count == Int(0)) && !ValidIndexQ(last_color_deactivated);
         }
         
         bool ValidQ() const

@@ -12,7 +12,7 @@ struct Simplify_Args_T
     bool   compressQ       = true;
 };
 
-Size_T SimplifyGlobal( cref<Simplify_Args_T> args = Simplify_Args_T() )
+Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 {
     if( DiagramCount() == Int(0) ) { return 0; }
     
@@ -22,27 +22,27 @@ Size_T SimplifyGlobal( cref<Simplify_Args_T> args = Simplify_Args_T() )
     {
         case 0:
         {
-            return SimplifyGlobal_impl<0,true>(args);
+            return Simplify_impl<0,true>(args);
         }
         case 1:
         {
-            return SimplifyGlobal_impl<1,true>(args);
+            return Simplify_impl<1,true>(args);
         }
         case 2:
         {
-            return SimplifyGlobal_impl<2,true>(args);
+            return Simplify_impl<2,true>(args);
         }
         case 3:
         {
-            return SimplifyGlobal_impl<3,true>(args);
+            return Simplify_impl<3,true>(args);
         }
         case 4:
         {
-            return SimplifyGlobal_impl<4,true>(args);
+            return Simplify_impl<4,true>(args);
         }
         default:
         {
-            eprint( MethodName("SimplifyGlobal") + ": Value " + ToString(level) + " is invalid." );
+            eprint( MethodName("Simplify") + ": Value " + ToString(level) + " is invalid." );
             return 0;
         }
     }
@@ -53,11 +53,11 @@ Size_T SimplifyGlobal( cref<Simplify_Args_T> args = Simplify_Args_T() )
 private:
 
 template<Int local_opt_level, bool pass_R_II_Q>
-Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
+Size_T Simplify_impl( cref<Simplify_Args_T> args )
 {
     [[maybe_unused]] auto tag = [&args]()
     {
-        return MethodName("SimplifyGlobal_impl")
+        return MethodName("Simplify_impl")
         + "<" + ToString(local_opt_level)
         + ">"
         +"({ .min_dist = " + ToString(args.min_dist)
@@ -114,7 +114,7 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
                 if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed when pushed to pd_done."); };
             }
             
-            if( pd.arc_count < pd.max_arc_count )
+            if( pd.crossing_count < pd.max_crossing_count )
             {
                 pd_done.push_back( pd.CreateCompressed() );
             }
@@ -206,7 +206,7 @@ Size_T SimplifyGlobal_impl( cref<Simplify_Args_T> args )
 //                    change_count_o  = S.SimplifyStrands(true,dist);
 //                }
                 
-                change_count   += change_count_o;
+                change_count += change_count_o;
                 
                 if( pd.InvalidQ() ) { break; }
                 

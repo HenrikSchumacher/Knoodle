@@ -7,9 +7,6 @@ void RemoveLoop( const Int e, const Int c_0 )
 #ifdef PD_TIMINGQ
     const Time start_time = Clock::now();
 #endif
-
-    // We can save the lookup here.
-//            const Int c_0 = A_cross(e,Head);
     
     // DEBUGGING
 #ifdef PD_DEBUG
@@ -19,7 +16,7 @@ void RemoveLoop( const Int e, const Int c_0 )
     mark_counter += (A_mark[C_arcs(c_0,In ,Left )] == A_mark[e]);
     mark_counter += (A_mark[C_arcs(c_0,In ,Right)] == A_mark[e]);
     
-    if ( mark_counter >= 4 )
+    if ( mark_counter >= 4 ) // This should never happen.
     {
         wprint(MethodName("RemoveLoop") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_length = " + ToString(strand_length));
         TOOLS_LOGDUMP(c_0);

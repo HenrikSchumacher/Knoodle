@@ -10,16 +10,14 @@ ColorCounts_T ColorArcCounts() const
         {
             const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
             
-            for( const auto & x : pd_color_arc_counts )
+            for( auto [col,count] : pd_color_arc_counts )
             {
-                if( color_arc_counts.contains(x.first) )
-                {
-                    color_arc_counts[x.first] += x.second;
-                }
-                else
-                {
-                    color_arc_counts[x.first]  = x.second;
-                }
+                AddTo(color_arc_counts, col, count);
+            }
+            
+            if( pd.ProvenUnknotQ() )
+            {
+                AddTo(color_arc_counts, pd.last_color_deactivated, Int(0));
             }
         }
     }

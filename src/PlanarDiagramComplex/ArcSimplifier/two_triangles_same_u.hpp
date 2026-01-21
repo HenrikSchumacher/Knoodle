@@ -1,10 +1,9 @@
 bool two_triangles_same_u()
 {
-    PD_ASSERT(u_0 != u_1);
-    
     [[maybe_unused]] auto tag = [](){ return MethodName("two_triangles_same_u"); };
     
     PD_DPRINT( "two_triangles_same_u()" );
+    PD_ASSERT(u_0 == u_1);
     
     // We need the crossings to be pairwise distinct here.
     PD_ASSERT(c_0 != c_1);

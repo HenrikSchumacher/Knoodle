@@ -1,5 +1,10 @@
 void Unite()
 {
+    (*this) = this->Union();
+}
+
+PDC_T Union() const
+{
     Tensor1<Int,Size_T> crossing_ptr ( DiagramCount() + Int(1) );
     
     const Size_T diagram_count = Size_T(DiagramCount());
@@ -13,24 +18,19 @@ void Unite()
     {
         mref<PD_T> pd = pd_list[idx];
         
+        crossing_ptr[idx+1] = crossing_ptr[idx] + pd.max_crossing_count;
+        
         if( pd.InvalidQ() ) { continue; }
         
         if( pd.ProvenUnknotQ() )
         {
-            unlinks.push_back( std::move(pd) );
-            
-            pd_list[idx] = PD_T::InvalidDiagram();
-            
-            crossing_ptr[idx+Int(1)] = crossing_ptr[idx];
-            
-            wprint(MethodName("Unite") +": Diagram no. " + ToString(idx)+ " is an unlink. This method might not work correctly for this case, yet.");
+            unlinks.push_back( pd ); // make copies!
             continue;
         }
         else
         {
             crossing_count += pd.crossing_count;
             arc_count      += pd.arc_count;
-            crossing_ptr[idx+1] = crossing_ptr[idx] + pd.max_crossing_count;
         }
     }
     
@@ -43,7 +43,7 @@ void Unite()
     {
         mref<PD_T> pd = pd_list[idx];
         
-        if( pd.InvalidQ() ) { continue; }
+        if( pd.InvalidQ() || pd.ProvenUnknotQ() ) { continue; }
 
         const Int C_pos = crossing_ptr[idx];
         const Int A_pos = Int(2) * C_pos;
@@ -68,13 +68,36 @@ void Unite()
         pd.A_color.Write( pd_union.A_color.data(A_pos) );
     }
     
-    pd_list.clear();
-    pd_list.push_back( std::move(pd_union) );
-    
+    PDC_T pdc_union ( std::move(pd_union) );
+
     for( PD_T & pd : unlinks )
     {
-        pd_list.push_back( std::move(pd) );
+        pdc_union.pd_list.push_back( std::move(pd) );
     }
     
-    ClearCache();
+    return pdc_union;
+}
+
+
+RaggedList<Int,Int> UnionArcMaps() const
+{
+    const Size_T diagram_count = Size_T(DiagramCount());
+    
+    RaggedList<Int,Int> arc_maps ( DiagramCount(), MaxArcCount() );
+    
+    for( Size_T idx = 0; idx < diagram_count; ++idx )
+    {
+        mref<PD_T> pd = pd_list[idx];
+        
+        const Int A_pos = arc_maps.ElementCount();
+
+        for( Int a = 0; a < pd.max_arc_count; ++a )
+        {
+            arc_maps.Push( pd.ArcActiveQ(a) ? A_pos + a : Uninitialized );
+        }
+        
+        arc_maps.FinishSublist();
+    }
+
+    return arc_maps;
 }

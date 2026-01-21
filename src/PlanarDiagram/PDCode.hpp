@@ -39,7 +39,7 @@ Tensor2<T,Int> PDCode()
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
+        error(ClassName()+"::PDCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store PD code for this diagram.");
         
         return pd_code;
     }

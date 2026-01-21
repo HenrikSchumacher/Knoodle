@@ -319,7 +319,7 @@ Size_T Disconnect( PD_T & pd )
 
             pd.template AssertArc<1>(a);
             pd.template AssertArc<1>(b);
-            PD_ASSERT(d_b == d);
+            PD_ASSERT(d_a == d);
             
             PD_ASSERT( dA_F[ToDarc(a, d)] == f );
             PD_ASSERT( dA_F[ToDarc(b, d)] == f );

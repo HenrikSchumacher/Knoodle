@@ -134,12 +134,14 @@ namespace Knoodle
 #include "PlanarDiagramComplex/SimplifyLocal.hpp"
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
-#include "PlanarDiagramComplex/SimplifyGlobal.hpp"
+#include "PlanarDiagramComplex/Simplify.hpp"
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
-#include "PlanarDiagramComplex/Unite.hpp"
+#include "PlanarDiagramComplex/Union.hpp"
 #include "PlanarDiagramComplex/Checks.hpp"
+        
+#include "PlanarDiagramComplex/Connect.hpp"
             
     public:
         
@@ -209,14 +211,30 @@ namespace Knoodle
         
         Int CrossingCount() const
         {
-            Int crossing_count = 0;
-            
-            for( const PD_T & pd : pd_list )
-            {
-                crossing_count += pd.CrossingCount();
-            }
-            
-            return crossing_count;
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.CrossingCount(); }
+            return count;
+        }
+        
+        Int MaxCrossingCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.MaxCrossingCount(); }
+            return count;
+        }
+        
+        Int ArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.ArcCount(); }
+            return count;
+        }
+        
+        Int MaxArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
+            return count;
         }
         
         

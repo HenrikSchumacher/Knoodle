@@ -137,7 +137,7 @@ namespace Knoodle
 
         Size_T operator()()
         {
-            if( pd.ArcCount() == Int(0) )
+            if( pd.crossing_count == Int(0) )
             {
                 if( pd.ValidQ() ) { pd.proven_minimalQ = true; }
             }
@@ -196,7 +196,6 @@ namespace Knoodle
             if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
             {
                 pd.proven_minimalQ = true;
-                //Maybe do pd = PD_T::Unknot( pd.LastColorDeactivated() )?
             }
             
             return counter;

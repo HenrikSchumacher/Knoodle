@@ -1,11 +1,5 @@
 #pragma once
-
-// TODO: Split off RerouteToPath_impl from RerouteToShortestPath_impl and make the latter a combination of FindShortestPath_impl and RerouteToPath_impl. This way I can use the rerouting also for the Big Hopf Link. We also need a convenient way to set the path.
-
-
-
 // TODO: RemoveLoop is a big mess at the moment.
-// TODO: Could we use ArcNextArc as well?
 
 
 // TODO: Make RemoveLoop work also for Big Figure-8 Unlink and Big Hopf Link.
@@ -14,7 +8,6 @@
 // TODO: `WalkBackToStrandStart` -> Cut out over/under loops already here? ...
 //          --> less headache later.
 //          --> more efficient.
-// TODO: Check colors!
 
 namespace Knoodle
 {
@@ -105,8 +98,7 @@ namespace Knoodle
         double Time_RemoveLoop            = 0;
         double Time_FindShortestPath      = 0;
         double Time_RerouteToPath         = 0;
-        double Time_RepairArcLeftArcs     = 0;
-        double Time_SimplifyStrands         = 0;
+        double Time_SimplifyStrands       = 0;
         double Time_CollapseArcRange      = 0;
         
     public:
@@ -144,7 +136,6 @@ namespace Knoodle
             logvalprint("FindShortestPath", Time_FindShortestPath);
             logvalprint("RerouteToPath", Time_RerouteToPath);
             logvalprint("CollapseArcRange", Time_CollapseArcRange);
-            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs);
             logprint("");
             logprint(ClassName() + " relative timings:");
             logvalprint("SimplifyStrands", Time_SimplifyStrands/Time_SimplifyStrands);
@@ -152,7 +143,6 @@ namespace Knoodle
             logvalprint("FindShortestPath", Time_FindShortestPath/Time_SimplifyStrands);
             logvalprint("Time_RerouteToPath", Time_RerouteToPath/Time_SimplifyStrands);
             logvalprint("CollapseArcRange", Time_CollapseArcRange/Time_SimplifyStrands);
-            logvalprint("RepairArcLeftArcs", Time_RepairArcLeftArcs/Time_SimplifyStrands);
             logprint("");
 #endif
         }

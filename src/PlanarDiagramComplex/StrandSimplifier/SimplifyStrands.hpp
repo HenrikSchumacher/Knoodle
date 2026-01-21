@@ -65,7 +65,6 @@ Size_T SimplifyStrands(
         // We should make sure that a_0 is not a loop.
         if( Reidemeister_I<true>(a_0) )
         {
-//                    RepairArcLeftArcs();
             ++change_counter;
             continue;
         }
@@ -147,7 +146,6 @@ Size_T SimplifyStrands(
                 
                 ++change_counter;
                 --strand_length;
-//                        RepairArcLeftArcs();
                 
                 // TODO: I think it would be safe to continue without checking that `a_0` is still active. We should first complete the current strand.
                 
@@ -215,7 +213,6 @@ Size_T SimplifyStrands(
                     if( !strand_completeQ || (A_mark(a_next) != current_mark) )
                     {
                         RemoveLoop(a,c_1);
-//                        RepairArcLeftArcs();
                         break;
                     }
                     else
@@ -303,7 +300,6 @@ Size_T SimplifyStrands(
                     // However, the earlier call(s) to Reidemeister_I should rule this case out. So we have the case of a "Big Reidemeister I" here, and that is what `RemoveLoop` is made for.
                     
                     RemoveLoop(a,c_1);
-//                            RepairArcLeftArcs();
                     break;
                 }
             }
@@ -330,8 +326,6 @@ Size_T SimplifyStrands(
                     
                     if( changedQ )
                     {
-//                        RepairArcLeftArcs();
-                        
                         if( ActiveQ(a_0_state) )
                         {
                             // Reidemeister_II_Backward reset `a` to the previous arc.
@@ -357,8 +351,6 @@ Size_T SimplifyStrands(
                         Min(strand_length-Int(1),max_dist),
                         current_mark
                     );
-                    
-//                    if( changedQ ) { RepairArcLeftArcs(); }
                 }
                 
                 // TODO: Check this.

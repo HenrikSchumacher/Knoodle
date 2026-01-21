@@ -6,7 +6,7 @@ void CheckMacLeodReturnType() const
 {
     if( std::cmp_greater( Size_T(crossing_count) * Size_T(4) + Size_T(3) , std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(ClassName()+"::CheckMacLeodReturnType<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store MacLeod code for this diagram.");
+        error(ClassName()+"::CheckMacLeodReturnType<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store MacLeod code for this diagram.");
     }
 }
 

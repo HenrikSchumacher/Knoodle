@@ -135,13 +135,14 @@ int main()
     PrintInfo(pdc);
     print("");
     
-    print("SimplifyGlobal(6,infty,4,infty,true)");
+    print("Simplify()");
     try
     {
-        pdc.SimplifyGlobal({
+        pdc.Simplify({
             .local_opt_level = 4,
-            .compressQ       = true,
-            .disconnectQ     = true
+            .disconnectQ     = true,
+            .splitQ          = true,
+            .compressQ       = true
         });
     }
     catch( const std::exception & e )

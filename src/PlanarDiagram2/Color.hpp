@@ -1,4 +1,3 @@
-
 public:
 
 cref<ColorCounts_T> ColorArcCounts() const
@@ -165,14 +164,47 @@ static ColorCounts_T ArrayToColorCounts( cptr<ExtInt> a, ExtInt2 color_count )
     return counts;
 }
 
+
+bool ContainsColor( Int color ) const
+{
+    auto & color_counts = ColorArcCounts();
+    
+    return color_counts.contains(color) && (color_counts[color] > Int(0));
+}
+
+// TODO: There must be a more efficient way to do this!
+Int FindEdgeWithColor( Int color ) const
+{
+    if( crossing_count <= Int(0) ) { return Uninitialized; }
+   
+    if( !ContainsColor(color) ) { return Uninitialized; }
+    
+    Int a = 0;
+    while( a < max_arc_count )
+    {
+        if( ActiveQ(a) && (A_color[a] == color) )
+        {
+            return a;
+        }
+    }
+    
+    eprint(MethodName("FindEdgeWithColor") + ": ContainsColor(color) reported that diagram contains an arc with color " + ToString(color) + ", but no such arc was found. Try to ClearCache() and do the query again.");
+    
+    return Uninitialized;
+}
+
 private:
 
-void ChangeArcColor( const Int a, const Int new_color )
+// Dangerous function. At the moment, only for internal use.
+void ChangeArcColor_Private( const Int a, const Int new_color )
 {
     PD_ASSERT( ArcActiveQ(a) );
-    
-//    const Int a_color = A_color[a];
-//    --color_arc_counts[a_color];
+
     A_color[a] = new_color;
-//    ++color_arc_counts[new_color];
 }
+
+
+
+
+
+

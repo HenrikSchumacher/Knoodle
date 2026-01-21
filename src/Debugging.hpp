@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-
 #ifdef PD_VERBOSE
     #define PD_PRINT( s ) Tools::logprint((s));
     
@@ -74,8 +73,7 @@ namespace Knoodle
         
         if( Knoodle::PD_error_counter >= Knoodle::PD_max_error_count )
         {
-            Tools::eprint("Too many errors during execution of Knoodle. Aborting program.");
-            throw std::runtime_error("Too many errors during execution of Knoodle.");
+            Tools::error("Too many errors during execution of Knoodle.");
         }
     }
 

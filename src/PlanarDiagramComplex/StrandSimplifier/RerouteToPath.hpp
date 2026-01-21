@@ -150,7 +150,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
         //             X
         
         Reconnect<Head,false>(a_0,a_1);
-        pd.ChangeArcColor( a_1, A_color[b] );
+        pd.ChangeArcColor_Private( a_1, A_color[b] );
         Reconnect<Head,false>(a_1,b  );
         
         // We have to reconnect the head of b to c_0 manually, since a_0 has forgotten that it is connected to c_0.

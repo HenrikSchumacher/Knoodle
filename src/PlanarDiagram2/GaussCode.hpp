@@ -18,7 +18,7 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
     {
-        throw std::runtime_error(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+        error(MethodName("ExtendedGaussCode")+"<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
     }
     
     if( LinkComponentCount() > Int(1) )
