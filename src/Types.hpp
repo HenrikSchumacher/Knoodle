@@ -98,6 +98,11 @@ namespace Knoodle
         {
             case ArcState_T::Active    : return "Active";
             case ArcState_T::Inactive  : return "Inactive";
+            default:
+            {
+                eprint( "ToString: Argument s = " + ToString(s) + " is invalid." );
+                return "Inactive";
+            }
         }
     }
     

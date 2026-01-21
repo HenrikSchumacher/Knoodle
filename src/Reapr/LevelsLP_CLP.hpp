@@ -132,22 +132,23 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) cons
 
         const R s = static_cast<R>(ToUnderlying(C_states[c]));
         
-        //  Case: right-handed.
-        //
-        //      a_0     a_1
-        //        ^     ^
-        //         \   /
-        //          \ /
-        //           /
-        //          / \
-        //         /   \
-        //        /     \
-        //      b_1     b_0
-        //
-        // If s == 1 (right-handed), then the levels `z` have to satisfy the following inequalities:
-        // z[a_1] >= z[a_0] + 1
-        // - z[a_0] + z[a_1] >= 1
-        //   z[a_0] - z[a_1] <= -1
+        /*  Case: right-handed.
+         *
+         *      a_0     a_1
+         *        ^     ^
+         *         \   /
+         *          \ /
+         *           /
+         *          / \
+         *         /   \
+         *        /     \
+         *      b_1     b_0
+         *
+         * If s == 1 (right-handed), then the levels `z` have to satisfy the following inequalities:
+         * z[a_1] >= z[a_0] + 1
+         * - z[a_0] + z[a_1] >= 1
+         *   z[a_0] - z[a_1] <= -1
+         */
         
         // Over/under constraints
         agg.Push( a_0_pos, c_pos,  s );

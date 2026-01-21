@@ -99,31 +99,31 @@ bool SameHandednessQ( const CrossingView & C_0, const CrossingView & C_1 ) const
 void RotateCrossing( CrossingView & C, const bool dir )
 {
 /* Before:
-//
-//    C(Out,Left ) O       O C(Out,Right)
-//                  ^     ^
-//                   \   /
-//                    \ /
-//                     X
-//                    / \
-//                   /   \
-//                  /     \
-//    C(In ,Left ) O       O C(In ,Right)
-*/
+ *
+ *    C(Out,Left ) O       O C(Out,Right)
+ *                  ^     ^
+ *                   \   /
+ *                    \ /
+ *                     X
+ *                    / \
+ *                   /   \
+ *                  /     \
+ *    C(In ,Left ) O       O C(In ,Right)
+ */
     if( dir == Right )
     {
 /* After:
-//
-//    C(Out,Left ) O       O C(Out,Right)
-//                  \     ^
-//                   \   /
-//                    \ /
-//                     X
-//                    / \
-//                   /   \
-//                  /     v
-//    C(In ,Left ) O       O C(In ,Right)
-*/
+ *
+ *    C(Out,Left ) O       O C(Out,Right)
+ *                  \     ^
+ *                   \   /
+ *                    \ /
+ *                     X
+ *                    / \
+ *                   /   \
+ *                  /     v
+ *    C(In ,Left ) O       O C(In ,Right)
+ */
         const Int buffer = C(Out,Left );
         
         C(Out,Left ) = C(Out,Right);
@@ -134,17 +134,17 @@ void RotateCrossing( CrossingView & C, const bool dir )
     else
     {
 /* After:
-//
-//    C(Out,Left ) O       O C(Out,Right)
-//                  ^     /
-//                   \   /
-//                    \ /
-//                     X
-//                    / \
-//                   /   \
-//                  v     \
-//    C(In ,Left ) O       O C(In ,Right)
-*/
+ *
+ *    C(Out,Left ) O       O C(Out,Right)
+ *                  ^     /
+ *                   \   /
+ *                    \ /
+ *                     X
+ *                    / \
+ *                   /   \
+ *                  v     \
+ *    C(In ,Left ) O       O C(In ,Right)
+ */
         const Int buffer = C(Out,Left );
 
         C(Out,Left ) = C(In ,Left );

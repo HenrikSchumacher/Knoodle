@@ -144,15 +144,16 @@ namespace Knoodle
                     const Int i = arc_strands[C_arcs(c,In ,Left )];
                     const Int j = arc_strands[C_arcs(c,In ,Right)];
                     
-                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                    //
-                    //    k -> t O     O
-                    //            ^   ^
-                    //             \ /
-                    //              /
-                    //             / \
-                    //            /   \
-                    //  i -> 1-t O     O j -> -1
+                    /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                     *
+                     *    k -> t O     O
+                     *            ^   ^
+                     *             \ /
+                     *              /
+                     *             / \
+                     *            /   \
+                     *  i -> 1-t O     O j -> -1
+                     */
                     
                     if( fullQ || (i < n) )
                     {
@@ -180,14 +181,15 @@ namespace Knoodle
                     const Int j = arc_strands[C_arcs(c,In ,Left )];
                     const Int i = arc_strands[C_arcs(c,In ,Right)];
                     
-                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                    //           O     O  k -> -1
-                    //            ^   ^
-                    //             \ /
-                    //              \
-                    //             / \
-                    //            /   \
-                    //   j  -> t O     O i -> 1-t
+                    /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                     *           O     O  k -> -1
+                     *            ^   ^
+                     *             \ /
+                     *              \
+                     *             / \
+                     *            /   \
+                     *   j  -> t O     O i -> 1-t
+                     */
                     
                     if( fullQ || (i < n) )
                     {
@@ -261,15 +263,16 @@ namespace Knoodle
                     const Int i = arc_strands[C_arcs(c,In ,Left )];
                     const Int j = arc_strands[C_arcs(c,In ,Right)];
                     
-                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                    //
-                    //    k -> t O     O
-                    //            ^   ^
-                    //             \ /
-                    //              /
-                    //             / \
-                    //            /   \
-                    //  i -> 1-t O     O j -> -1
+                    /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                     *
+                     *    k -> t O     O
+                     *            ^   ^
+                     *             \ /
+                     *              /
+                     *             / \
+                     *            /   \
+                     *  i -> 1-t O     O j -> -1
+                     */
                     
                     if( i < n )
                     {
@@ -297,14 +300,15 @@ namespace Knoodle
                     const Int j = arc_strands[C_arcs(c,In ,Left )];
                     const Int i = arc_strands[C_arcs(c,In ,Right)];
                     
-                    // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                    //           O     O  k -> -1
-                    //            ^   ^
-                    //             \ /
-                    //              \
-                    //             / \
-                    //            /   \
-                    //   j  -> t O     O i -> 1-t
+                    /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                     *           O     O  k -> -1
+                     *            ^   ^
+                     *             \ /
+                     *              \
+                     *             / \
+                     *            /   \
+                     *   j  -> t O     O i -> 1-t
+                     */
                     
                     if( i < n )
                     {
@@ -377,16 +381,16 @@ namespace Knoodle
                         const Int i = arc_strands[C_arcs(c,In ,Left )];
                         const Int j = arc_strands[C_arcs(c,In ,Right)];
                         
-                        // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                        //
-                        //    k -> t O     O
-                        //            ^   ^
-                        //             \ /
-                        //              /
-                        //             / \
-                        //            /   \
-                        //  i -> 1-t O     O j -> -1
-
+                        /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                         *
+                         *    k -> t O     O
+                         *            ^   ^
+                         *             \ /
+                         *              /
+                         *             / \
+                         *            /   \
+                         *  i -> 1-t O     O j -> -1
+                         */
 
                         if( i < n )
                         {
@@ -419,14 +423,15 @@ namespace Knoodle
                         const Int j = arc_strands[C_arcs(c,In ,Left )];
                         const Int i = arc_strands[C_arcs(c,In ,Right)];
                         
-                        // cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
-                        //           O     O  k -> -1
-                        //            ^   ^
-                        //             \ /
-                        //              \
-                        //             / \
-                        //            /   \
-                        //   j  -> t O     O i -> 1-t
+                        /* cf. Lopez - The Alexander Polynomial, Coloring, and Determinants of Knots
+                         *           O     O  k -> -1
+                         *            ^   ^
+                         *             \ /
+                         *              \
+                         *             / \
+                         *            /   \
+                         *   j  -> t O     O i -> 1-t
+                         */
         
                         // Reading in order of appearance in C_arcs.
                         

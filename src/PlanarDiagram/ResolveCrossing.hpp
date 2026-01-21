@@ -19,14 +19,14 @@ bool Private_ResolveCrossing( const Int c )
     {
 
 /*        ###O----<----O       O---->----O###
-//               e_0    ^     ^    e_1
-//                       \   /
-//                        \ /
-//                       c X
-//                        / \
-//                       /   \
-//               e_2    /     \    e_3
-//        ###O---->----O       O----<----O###
+ *               e_0    ^     ^    e_1
+ *                       \   /
+ *                        \ /
+ *                       c X
+ *                        / \
+ *                       /   \
+ *               e_2    /     \    e_3
+ *        ###O---->----O       O----<----O###
 */
         const Int e_0 = C_arcs(c,Out,Left );
         const Int e_1 = C_arcs(c,Out,Right);

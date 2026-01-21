@@ -79,20 +79,20 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
     
 /* This special situation with a loop over or under a strand (in the case of side==Right):
-//
-//               v_3 O----<----O       O---->----O       O----<----O v_2
-//                       E_3    ^     ^     B     \     /    E_2
-//                               \   /             \   /
-//                                \ /               \ /
-//           v_2 != v_3        C_0 X                 X C_1
-//                                / \               / \
-//                               /   \             /   \
-//                              /     \     A     v     v
-//                             O       O----<----O       O
-//                              \                       /
-//                               \      E_0 = E_1      /
-//                                +---------<---------+
-*/
+ *
+ *               v_3 O----<----O       O---->----O       O----<----O v_2
+ *                       E_3    ^     ^     B     \     /    E_2
+ *                               \   /             \   /
+ *                                \ /               \ /
+ *           v_2 != v_3        C_0 X                 X C_1
+ *                                / \               / \
+ *                               /   \             /   \
+ *                              /     \     A     v     v
+ *                             O       O----<----O       O
+ *                              \                       /
+ *                               \      E_0 = E_1      /
+ *                                +---------<---------+
+ */
 
 //
 //            // We should not arrive here because this is a vertical case.
@@ -115,22 +115,22 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
     
 /* This very,very special situation with two noninterlinked loops (in the case of side==Right):
-//
-//                                +--------->---------+
-//                               /     E_3 = E_2       \
-//                              /                       \
-//                             O       O---->----O       O
-//                              ^     ^     B     \     /
-//                               \   /             \   /
-//                                \ /               \ /
-//                             C_0 X                 X C_1
-//                                / \               / \
-//                               /   \             /   \
-//                              /     \     A     v     v
-//                             O       O----<----O       O
-//                              \                       /
-//                               \      E_0 = E_1      /
-//                                +---------<---------+
+ *
+ *                                +--------->---------+
+ *                               /     E_3 = E_2       \
+ *                              /                       \
+ *                             O       O---->----O       O
+ *                              ^     ^     B     \     /
+ *                               \   /             \   /
+ *                                \ /               \ /
+ *                             C_0 X                 X C_1
+ *                                / \               / \
+ *                               /   \             /   \
+ *                              /     \     A     v     v
+ *                             O       O----<----O       O
+ *                              \                       /
+ *                               \      E_0 = E_1      /
+ *                                +---------<---------+
 */
     
 
@@ -156,18 +156,18 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
     
 /*                                +--------->---------+
-//                               /      E_3 = E_2      \
-//                              /                       \
-//                             O       O---->----O       O
-//                       E_3    ^     ^     B     \     /    E_2
-//                               \   /             \   /
-//                                \ /               \ /
-//         v_0 != v_1          C_0 X                 X c_1
-//                                / \               / \
-//                               /   \             /   \
-//                       E_0    /     \     A     v     v    E_1
-//               v_0 O---->----O       O----<----O       O---->----O v_1
-*/
+ *                               /      E_3 = E_2      \
+ *                              /                       \
+ *                             O       O---->----O       O
+ *                       E_3    ^     ^     B     \     /    E_2
+ *                               \   /             \   /
+ *                                \ /               \ /
+ *         v_0 != v_1          C_0 X                 X c_1
+ *                                / \               / \
+ *                               /   \             /   \
+ *                       E_0    /     \     A     v     v    E_1
+ *               v_0 O---->----O       O----<----O       O---->----O v_1
+ */
     
 //
 //        // We should not arrive here because this is a vertical case.
@@ -199,16 +199,16 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
     
 /* This special case:
-//                   +----<----O       O---->----O       O----<----O v_2
-//                  /    E_3    ^     ^     B     \     /    E_2
-//                 /             \   /             \   /
-//         E_3    /               \ /               \ /
-//          =    |             C_0 X                 X C_1        v_1 != v_2
-//         E_0    \               / \               / \
-//                 \             /   \             /   \
-//                  \    E_0    /     \     A     v     v    E_1
-//                   +---->----O       O----<----O       O---->----O v_1
-*/
+ *                   +----<----O       O---->----O       O----<----O v_2
+ *                  /    E_3    ^     ^     B     \     /    E_2
+ *                 /             \   /             \   /
+ *         E_3    /               \ /               \ /
+ *          =    |             C_0 X                 X C_1        v_1 != v_2
+ *         E_0    \               / \               / \
+ *                 \             /   \             /   \
+ *                  \    E_0    /     \     A     v     v    E_1
+ *                   +---->----O       O----<----O       O---->----O v_1
+ */
 
 //
 //            // We should not arrive here because we first check for a Reidemeister_I at c_0.
@@ -230,16 +230,16 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //        {
     
 /* This is a very, very special case:
-//                   +----<----O       O---->----O       O----<----+
-//                  /    E_3    ^     ^     B     \     /           \
-//                 /             \   /             \   /             \
-//         E_3    /               \ /               \ /               \    E_2
-//          =    |             C_0 X                 X C_1             |    =
-//         E_0    \               / \               / \               /    E_1
-//                 \             /   \             /   \             /
-//                  \    E_0    /     \     A     v     v           /
-//                   +---->----O       O----<----O       O---->----+
-*/
+ *                   +----<----O       O---->----O       O----<----+
+ *                  /    E_3    ^     ^     B     \     /           \
+ *                 /             \   /             \   /             \
+ *         E_3    /               \ /               \ /               \    E_2
+ *          =    |             C_0 X                 X C_1             |    =
+ *         E_0    \               / \               / \               /    E_1
+ *                 \             /   \             /   \             /
+ *                  \    E_0    /     \     A     v     v           /
+ *                   +---->----O       O----<----O       O---->----+
+ */
 
 //
 //            //  We should not arrive here because we first check for a Reidemeister_I at C_0.
@@ -264,19 +264,17 @@ void Reidemeister_II_Horizontal( const Int c_0, const Int c_1, const bool side )
 //
     
 /* This special case:
-//               v_3 O----<----O       O---->----O       O----<----+
-//                       E_3    ^     ^     B     \     /    E_2    \
-//                               \   /             \   /             \
-//                                \ /               \ /               \    E_2
-//         v_3 != v_0          C_0 X                 X C_1             |    =
-//                                / \               / \               /    E_1
-//                               /   \             /   \             /
-//                       E_0    /     \     A     v     v    E_1    /
-//               v_0 O---->----O       O----<----O       O---->----O
-*/
+ *               v_3 O----<----O       O---->----O       O----<----+
+ *                       E_3    ^     ^     B     \     /    E_2    \
+ *                               \   /             \   /             \
+ *                                \ /               \ /               \    E_2
+ *         v_3 != v_0          C_0 X                 X C_1             |    =
+ *                                / \               / \               /    E_1
+ *                               /   \             /   \             /
+ *                       E_0    /     \     A     v     v    E_1    /
+ *               v_0 O---->----O       O----<----O       O---->----O
+ */
 
-//
-//
 //        //  We should not arrive here because we first check for a Reidemeister_I at C_1.
 //        PD_ASSERT( false );
 //        wprint("We should not arrive here because we first check for a Reidemeister_I at C_0. (3)");

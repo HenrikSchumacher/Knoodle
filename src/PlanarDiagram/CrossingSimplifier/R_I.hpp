@@ -46,31 +46,31 @@ bool Reidemeister_I( const Int c )
     if( a != b )
     {
 /* Changing this (case side == Left )
-//                                        b = C(Out,Right)
-//                            +-<---O       O------->---O...
-//                           /       ^     ^             w
-//                          /         \   /
-//        C(Out,Left )     /           \ /
-//           = d =        |             /  C                v != w
-//        C(In ,Left )     \           / \
-//                          \         /   \
-//                           \       /     \            v
-//                            +--->-O       O---<-------O...
-//                                        a = C(In ,Right)
-//
-// to that:
-//
-//                                        b = C(Out,Right)
-//                            +-<---O       O------->---O...
-//                           /       ^     ^          w ^
-//                          /         \   /             |
-//        C(Out,Left )     /           \ /              |
-//           = d =        |             /  C            |
-//        C(In ,Left )     \           / \              |  a = C(In ,Right)
-//                          \         /   \             |
-//                           \       /     \            |
-//                            +--->-O       O         v O...
-*/
+ *                                        b = C(Out,Right)
+ *                            +-<---O       O------->---O...
+ *                           /       ^     ^             w
+ *                          /         \   /
+ *        C(Out,Left )     /           \ /
+ *           = d =        |             /  C                v != w
+ *        C(In ,Left )     \           / \
+ *                          \         /   \
+ *                           \       /     \            v
+ *                            +--->-O       O---<-------O...
+ *                                        a = C(In ,Right)
+ *
+ * to that:
+ *
+ *                                        b = C(Out,Right)
+ *                            +-<---O       O------->---O...
+ *                           /       ^     ^          w ^
+ *                          /         \   /             |
+ *        C(Out,Left )     /           \ /              |
+ *           = d =        |             /  C            |
+ *        C(In ,Left )     \           / \              |  a = C(In ,Right)
+ *                          \         /   \             |
+ *                           \       /     \            |
+ *                            +--->-O       O         v O...
+ */
         
         // Make arc a point to where arc b pointed before.
         Reconnect<Head>(a,b);
@@ -84,17 +84,17 @@ bool Reidemeister_I( const Int c )
     else
     {
 /* Otherwise we have this case of an unlink.
-//
-//                            +-<---O       O--->-+
-//                           /       ^     ^   b   \
-//                          /         \   /         \
-//       C(Out,Left )      /           \ /           \
-//          = d =         |             /  C          |  a == b
-//       C(In ,Left )      \           / \           /
-//                          \         /   \         /
-//                           \       /     \   a   /
-//                            +--->-O       O-<---+
-*/
+ *
+ *                            +-<---O       O--->-+
+ *                           /       ^     ^   b   \
+ *                          /         \   /         \
+ *       C(Out,Left )      /           \ /           \
+ *          = d =         |             /  C          |  a == b
+ *       C(In ,Left )      \           / \           /
+ *                          \         /   \         /
+ *                           \       /     \   a   /
+ *                            +--->-O       O-<---+
+ */
         ++pd.unlink_count;
         
         DeactivateArc(a);

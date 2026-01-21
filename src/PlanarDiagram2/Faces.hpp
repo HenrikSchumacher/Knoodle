@@ -221,15 +221,17 @@ cref<Tiny::VectorList_AoS<4,Int,Int>> CrossingFaces() const
             else
             {
 
-//                              O       O C_arcs(c,Out,Right)
-//                               ^     ^
-//                                \   /
-//                                 \ /
-//    A_F(C_arcs(c,In,Left),Head)   X   A_F(C_arcs(c,Out,Right),Tail)
-//                                 ^ ^
-//                                /   \
-//                               /     \
-//                              O       O
+                /*                              O       O C_arcs(c,Out,Right)
+                 *                               ^     ^
+                 *                                \   /
+                 *                                 \ /
+                 *    A_F(C_arcs(c,In,Left),Head)   X   A_F(C_arcs(c,Out,Right),Tail)
+                 *                                 ^ ^
+                 *                                /   \
+                 *                               /     \
+                 *                              O       O
+                 */
+                
                 const Int a_1 = C_arcs(c,Out,Right);
                 const Int a_0 = C_arcs(c,In ,Left );
                 

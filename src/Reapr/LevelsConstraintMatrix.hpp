@@ -60,22 +60,23 @@ void LevelsConstraintMatrix_CollectTriples(
                                   
         const R s = static_cast<R>(ToUnderlying(C_state[c]));
         
-        //  Case: right-handed.
-        //
-        //      a_0     a_1
-        //        ^     ^
-        //         \   /
-        //          \ /
-        //           /
-        //          / \
-        //         /   \
-        //        /     \
-        //
-        // If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
-        //   x[a_1] >= x[a_0] + 1
-        // - x[a_0] + x[a_1] >= 1
-        //   x[a_0] - x[a_1] <= -1
-
+        /*  Case: right-handed.
+         *
+         *      a_0     a_1
+         *        ^     ^
+         *         \   /
+         *          \ /
+         *           /
+         *          / \
+         *         /   \
+         *        /     \
+         *
+         * If s == 1 (right-handed), then the levels `x` have to satisfy the following inequalities:
+         *   x[a_1] >= x[a_0] + 1
+         * - x[a_0] + x[a_1] >= 1
+         *   x[a_0] - x[a_1] <= -1
+         */
+        
         if constexpr ( TransposedQ(op) )
         {
             const I col = int_cast<I>(c_pos + col_offset);

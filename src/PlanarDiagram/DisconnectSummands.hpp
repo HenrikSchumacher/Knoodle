@@ -184,29 +184,29 @@ bool DisconnectSummand(
                 // We split a bigon.
                 
                 /*   #  #  # #  #  #
-                //   ## # ## ## # ##
-                //    ##X##   ##X##
-                //       \     ^
-                // b_prev \   / a_next
-                //         v /
-                //          X c_1
-                //         ^ \
-                //        /   \
-                //       /     \
-                //    a +       +
-                //      |       |
-                // .....|.......|..... <<-- We cut here.
-                //      |       |
-                //      +       + b
-                //       \     /
-                //        \   /
-                //         \ v
-                //          X  c_0
-                //         / ^
-                // b_next /   \ a_prev
-                //       v     \
-                //      X       X
-                */
+                 *   ## # ## ## # ##
+                 *    ##X##   ##X##
+                 *       \     ^
+                 * b_prev \   / a_next
+                 *         v /
+                 *          X c_1
+                 *         ^ \
+                 *        /   \
+                 *       /     \
+                 *    a +       +
+                 *      |       |
+                 * .....|.......|..... <<-- We cut here.
+                 *      |       |
+                 *      +       + b
+                 *       \     /
+                 *        \   /
+                 *         \ v
+                 *          X  c_0
+                 *         / ^
+                 * b_next /   \ a_prev
+                 *       v     \
+                 *      X       X
+                 */
                 
                 const Int c_0 = A_cross(a,Tail);
                 const Int c_1 = A_cross(a,Head);
@@ -249,23 +249,23 @@ bool DisconnectSummand(
             else
             {
                 /*  #################
-                //  #               #
-                //  #               #
-                //  #################
-                //     ^         /
-                //      \       /
-                //     a \     / b
-                //        \   /
-                //         \ v
-                //          X c
-                //         / ^
-                // b_next /   \ a_prev
-                //       /     \
-                //      /       \
-                //     v         \
-                //
-                // Beware of Reidemeister I move here!
-                */
+                 *  #               #
+                 *  #               #
+                 *  #################
+                 *     ^         /
+                 *      \       /
+                 *     a \     / b
+                 *        \   /
+                 *         \ v
+                 *          X c
+                 *         / ^
+                 * b_next /   \ a_prev
+                 *       /     \
+                 *      /       \
+                 *     v         \
+                 *
+                 * Beware of Reidemeister I move here!
+                 */
                 
                 const Int c = A_cross(a,Tail);
                 
@@ -283,23 +283,23 @@ bool DisconnectSummand(
         else if( A_cross(b,Tail) == A_cross(a,Head) )
         {
             /*  #################
-            //  #               #
-            //  #               #
-            //  #################
-            //     \         ^
-            //      \       /
-            //     a \     / b
-            //        \   /
-            //         v /
-            //          X c
-            //         ^ \
-            // p_prev /   \ a_next
-            //       /     \
-            //      /       \
-            //     /         v
-            //
-            // Beware of Reidemeister I move here!
-            */
+             *  #               #
+             *  #               #
+             *  #################
+             *     \         ^
+             *      \       /
+             *     a \     / b
+             *        \   /
+             *         v /
+             *          X c
+             *         ^ \
+             * p_prev /   \ a_next
+             *       /     \
+             *      /       \
+             *     /         v
+             *
+             * Beware of Reidemeister I move here!
+             */
             
             const Int c = A_cross(a,Head);
 
@@ -315,15 +315,15 @@ bool DisconnectSummand(
         }
         
         /* `a` and `b` do not have any crossing in common.
-        //
-        //    #####################
-        //       ^             |
-        //       |             |
-        //     a |             | b
-        //       |             |
-        //       |             v
-        //    #####################
-        */
+         *
+         *    #####################
+         *       ^             |
+         *       |             |
+         *     a |             | b
+         *       |             |
+         *       |             v
+         *    #####################
+         */
 
         const Int c_a = A_cross(a,Head);
         const Int c_b = A_cross(b,Head);
