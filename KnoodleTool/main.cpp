@@ -86,7 +86,7 @@ struct Config
 };
 
 /// Minimum valid simplification level.
-constexpr int kMinSimplifyLevel = 3;
+constexpr int kMinSimplifyLevel = 0;
 
 /// Threshold at or above which Reapr is used instead of SimplifyN.
 constexpr int kReaprThreshold = 6;
@@ -340,6 +340,7 @@ void PrintUsage()
     Log("");
     Log("Simplification options:");
     Log("  -s=N, --simplify-level=N    Set simplification level:");
+    Log("                                0          No simplification (PD code only)");
     Log("                                3          Simplify3 (Reidemeister I + II)");
     Log("                                4          Simplify4 (+ path rerouting)");
     Log("                                5          Simplify5 (+ summand detection)");
@@ -899,7 +900,13 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
         
         for (const PD_T& pd_in : input.summands)
         {
-            if (config.simplify_level == 3)
+            if (config.simplify_level == 0)
+            {
+                // No simplification - just copy the PD
+                PD_T pd(pd_in);
+                result.summands.push_back(std::move(pd));
+            }
+            else if (config.simplify_level == 3)
             {
                 PD_T pd(pd_in);
                 pd.Simplify3();
@@ -1070,7 +1077,8 @@ void WriteKnotReport(const InputKnot& input,
     
     // Simplification settings
     std::string level_str;
-    if (config.simplify_level == 3) level_str = "Simplify3";
+    if (config.simplify_level == 0) level_str = "None (PD code only)";
+    else if (config.simplify_level == 3) level_str = "Simplify3";
     else if (config.simplify_level == 4) level_str = "Simplify4";
     else if (config.simplify_level == 5) level_str = "Simplify5";
     else
@@ -1170,7 +1178,7 @@ void WriteKnotReport(const InputKnot& input,
     
     auto format_time = [](Duration d) {
         std::ostringstream oss;
-        oss << std::fixed << std::setprecision(4) << d.count();
+        oss << std::scientific << std::setprecision(4) << d.count();
         return oss.str();
     };
     
@@ -1192,7 +1200,8 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
     
     // Simplification settings
     std::string level_str;
-    if (config.simplify_level == 3) level_str = "Simplify3";
+    if (config.simplify_level == 0) level_str = "None (PD code only)";
+    else if (config.simplify_level == 3) level_str = "Simplify3";
     else if (config.simplify_level == 4) level_str = "Simplify4";
     else if (config.simplify_level == 5) level_str = "Simplify5";
     else
@@ -1233,7 +1242,7 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
     
     auto format_time = [](Duration d) {
         std::ostringstream oss;
-        oss << std::fixed << std::setprecision(4) << d.count();
+        oss << std::scientific << std::setprecision(4) << d.count();
         return oss.str();
     };
     
@@ -1249,7 +1258,7 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
         double avg_simplify_time = stats.simplify_time.count() / 
                                    static_cast<double>(stats.total_summands);
         std::ostringstream oss;
-        oss << std::fixed << std::setprecision(6) << avg_simplify_time;
+        oss << std::scientific << std::setprecision(4) << avg_simplify_time;
         Log("  Average summand simplification time: " + oss.str() + " s");
     }
     
@@ -1498,24 +1507,9 @@ int main(int argc, char* argv[])
     }
     else if (config.input_files.empty())
     {
-        // No input files specified - use default example
-        std::filesystem::path path = std::filesystem::path(__FILE__).parent_path();
-        std::string default_file = (path / "ExampleKnot.tsv").string();
-        
-        std::ifstream file(default_file);
-        if (!file)
-        {
-            LogError("No input files specified and default file not found: " + default_file);
-            PrintUsage();
-            return EXIT_FAILURE;
-        }
-        
-        success = ProcessSource(file, default_file, output_stream, config, rng,
-                                stats, first_knot_in_output);
-        if (success)
-        {
-            ++stats.files_processed;
-        }
+        // No input files specified - display help
+        PrintUsage();
+        return EXIT_SUCCESS;
     }
     else
     {

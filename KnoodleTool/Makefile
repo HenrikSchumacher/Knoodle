@@ -1,4 +1,4 @@
-# Makefile for PolyFold
+# Makefile for knoodletool
 CXX ?= clang++
 
 # Detect OS and handle clang consistently
@@ -6,26 +6,31 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-               -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
+               -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
     # Linux - check if we're using Homebrew clang (ABI consistency)
     # If CXX contains "llvm", we can use -fenable-matrix
     ifeq ($(findstring llvm,$(CXX)),llvm)
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
+                   -fenable-matrix -pthread
     else
         # Default Linux GCC build (no -fenable-matrix)
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -pthread -DPOLYFOLD_NO_QUATERNIONS
+                   -pthread
     endif
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-               -pthread -DPOLYFOLD_NO_QUATERNIONS
+               -pthread
 endif
 
-CPPFLAGS = -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options
+CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
+           -I$(HOMEBREW_PREFIX)/include/suitesparse \
+           -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
+           -I./../submodules/Min-Cost-Flow-Class/MCFClass \
+           -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
+           -I./../submodules/Tensors
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack
 
 # Version handling
 ifdef KNOODLE_VERSION
@@ -38,17 +43,37 @@ endif
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
-polyfold: main.cpp
+# Debug build flags (similar OS detection)
+ifeq ($(UNAME_S),Darwin)
+    DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+                     -fenable-matrix -pthread
+else ifeq ($(UNAME_S),Linux)
+    ifeq ($(findstring llvm,$(CXX)),llvm)
+        DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+                         -fenable-matrix -pthread
+    else
+        DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+                         -pthread
+    endif
+else
+    DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
+                     -pthread
+endif
+
+knoodletool: main.cpp
 	@echo "=== Building for $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
 	@echo "=== Flags: $(CXXFLAGS) ==="
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
 
-install: polyfold
+debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
+debug: knoodletool
+
+install: knoodletool
 	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 polyfold $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodletool $(DESTDIR)$(BINDIR)/
 
 clean:
-	rm -f polyfold
+	rm -f knoodletool
 
-.PHONY: install clean
+.PHONY: install clean debug

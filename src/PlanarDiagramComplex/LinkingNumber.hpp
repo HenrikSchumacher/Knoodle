@@ -17,26 +17,15 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> LinkingNumbers() const
                 if( pd.CrossingActiveQ(c) )
                 {
                     pd.template AssertCrossing<1>(c);
-                    TOOLS_LOGDUMP(c);
-                    
+
                     const Int a = pd.C_arcs(c,Out,Left );
                     const Int b = pd.C_arcs(c,Out,Right);
                     
-                    TOOLS_LOGDUMP(a);
-                    TOOLS_LOGDUMP(b);
-                    
                     auto [i,j] = MinMax(pd.A_color[a],pd.A_color[b]);
-                    
-                    
-                    TOOLS_LOGDUMP(j);
-                    TOOLS_LOGDUMP(j);
                     
                     if( i != j )
                     {
                         const I val = static_cast<I>(ToUnderlying(pd.C_state[c]));
-                        
-                        TOOLS_LOGDUMP(val);
-                        
                         AddTo( lut, {i,j}, val );
                     }
                 }

@@ -18,7 +18,7 @@ PDC_T CreateConnected() const
 {
     TOOLS_PTIMER(timer,"CreateConnected");
     
-//    constexpr bool debug = true;
+//    constexpr bool debugQ = true;
     
     using ColorMap_T = AssociativeContainer_T<Int,Int>;
     
@@ -199,10 +199,36 @@ PDC_T CreateConnected() const
         logprint("Step 6: Do the surgery.");
     }
     
-    for( auto [a,b] : gluing_arc_pairs ) { pdc.Connect(0,a,b); }
+    Int64 flag = 0;
+    
+    for( auto [a,b] : gluing_arc_pairs )
+    {
+        // TODO: Is expensive as it recomputes ArcLinkComponents.
+        // TODO: Manage this manually here.
+        if( a == b )
+        {
+            wprint(MethodName("CreateConnected")+": a == b.");
+            continue;
+        }
+        flag += (!pdc.Connect(0,a,b));
+    }
+    
+    pdc.SetCache("CreateConnectedFlag",flag);
     
     // We do not compress so that pd_arc_map stays valid, in principle.
     return pdc;
+}
+
+Int64 CreateConnectedFlag() const
+{
+    if( this->InCacheQ("CreateConnectedFlag") )
+    {
+        return this->template GetCache<Int64>("CreateConnectedFlag");
+    }
+    else
+    {
+        return Int64(-1);
+    }
 }
 
 

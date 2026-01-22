@@ -236,6 +236,8 @@ bool Connect( const Int a, const Int b )
 
     if constexpr ( assertsQ ) { PD_ASSERT(CheckAll()); }
 
+    // TODO: This is an expensive check. Make it optional.
+    
     if( ArcLinkComponents()[a] == ArcLinkComponents()[b] )
     {
         if constexpr ( !silentQ )
@@ -261,6 +263,8 @@ bool Connect( const Int a, const Int b )
     return true;
 }
 
+
+// TODO: This is a combination of CreateLoop and Connect. Recode it.
 template<bool silentQ = false, bool assertsQ = true>
 bool ConnectWithIsthmus(
     const Int a, const Int b,
@@ -383,6 +387,8 @@ bool ConnectWithIsthmus(
     return true;
 }
 
+
+// TODO: This is a combination of 2x CreateLoop and Connect. Recode it.
 template<bool silentQ = false, bool assertsQ = true>
 bool ConnectWithDoubleIsthmus(
     const Int a, const Int b,

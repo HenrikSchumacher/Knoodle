@@ -138,7 +138,7 @@ bool a_is_2loop()
                 else
                 {
                     PD_NOTE(MethodName("a_is_2loop")+": Disconnected a Hopf link and a further subdiagram as connected summand.");
-                    CreateHopfLinkFromArcs(a,s_0,c_0_state);
+                    CreateHopfLinkFromArcs(n_0,a,c_0_state);
                 }
             }
         }
