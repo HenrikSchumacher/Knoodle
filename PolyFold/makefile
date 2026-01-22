@@ -39,10 +39,15 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
 polyfold: main.cpp
-	@echo "=== Building for $(UNAME_S) ==="
+	@echo "=== Building PolyFold on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Flags: $(CXXFLAGS) ==="
+	@echo "=== Compiler flags: $(CXXFLAGS) ==="
+	@echo "=== Include paths: $(CPPFLAGS) ==="
+	@echo "=== Link flags: $(LDFLAGS) ==="
+	@echo ""
+	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
+	@echo "✓ PolyFold compiled successfully"
 
 install: polyfold
 	install -d $(DESTDIR)$(BINDIR)

@@ -61,10 +61,15 @@ else
 endif
 
 knoodletool: main.cpp
-	@echo "=== Building for $(UNAME_S) ==="
+	@echo "=== Building KnoodleTool on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Flags: $(CXXFLAGS) ==="
+	@echo "=== Compiler flags: $(CXXFLAGS) ==="
+	@echo "=== Include paths: $(CPPFLAGS) ==="
+	@echo "=== Link flags: $(LDFLAGS) ==="
+	@echo ""
+	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
+	@echo "✓ KnoodleTool compiled successfully"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: knoodletool
