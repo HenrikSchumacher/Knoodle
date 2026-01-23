@@ -1,35 +1,22 @@
 # Makefile for knoodletool
-CXX ?= clang++
+CXX ?= g++
 
-# Detect OS and handle clang consistently
+# Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
+    CXX = clang++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
-    # Linux - check if we're using Homebrew clang (ABI consistency)
-    # If CXX contains "llvm", we can use -fenable-matrix
-    ifeq ($(findstring llvm,$(CXX)),llvm)
-        # Homebrew clang on Linux - use libc++ for complete ABI consistency  
-        # This matches dependencies that are also compiled with Homebrew clang
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread \
-                   -stdlib=libc++ \
-                   -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
-                   -I$(HOMEBREW_PREFIX)/include
-        LDFLAGS_EXTRA = -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
-    else
-        # Default Linux GCC build (no -fenable-matrix)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -pthread
-        LDFLAGS_EXTRA =
-    endif
+    # Linux - use gcc for ecosystem compatibility
+    CXX = g++
+    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+               -pthread
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -pthread
-    LDFLAGS_EXTRA =
 endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
@@ -38,7 +25,7 @@ CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
            -I./../submodules/Min-Cost-Flow-Class/MCFClass \
            -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
            -I./../submodules/Tensors
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack $(LDFLAGS_EXTRA)
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack
 
 # Version handling
 ifdef KNOODLE_VERSION
