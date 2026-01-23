@@ -1,39 +1,26 @@
 # Makefile for PolyFold
-CXX ?= clang++
+CXX ?= g++
 
-# Detect OS and handle clang consistently
+# Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
+    CXX = clang++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
 else ifeq ($(UNAME_S),Linux)
-    # Linux - check if we're using Homebrew clang (ABI consistency)
-    # If CXX contains "llvm", we can use -fenable-matrix
-    ifeq ($(findstring llvm,$(CXX)),llvm)
-        # Homebrew clang on Linux - use libc++ for complete ABI consistency
-        # This matches dependencies that are also compiled with Homebrew clang
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS \
-                   -stdlib=libc++ \
-                   -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
-                   -I$(HOMEBREW_PREFIX)/include
-        LDFLAGS_EXTRA = -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
-    else
-        # Default Linux GCC build (no -fenable-matrix)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -pthread -DPOLYFOLD_NO_QUATERNIONS
-        LDFLAGS_EXTRA =
-    endif
+    # Linux - use gcc, disable matrix extensions for compatibility
+    CXX = g++
+    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+               -pthread -DPOLYFOLD_NO_QUATERNIONS -DTOOLS_DEACTIVATE_MATRIX_EXTENSIONS
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-               -pthread -DPOLYFOLD_NO_QUATERNIONS
-    LDFLAGS_EXTRA =
+               -pthread -DPOLYFOLD_NO_QUATERNIONS -DTOOLS_DEACTIVATE_MATRIX_EXTENSIONS
 endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options $(LDFLAGS_EXTRA)
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options
 
 # Version handling
 ifdef KNOODLE_VERSION
@@ -52,7 +39,6 @@ polyfold: main.cpp
 	@echo "=== Compiler flags: $(CXXFLAGS) ==="
 	@echo "=== Include paths: $(CPPFLAGS) ==="
 	@echo "=== Link flags: $(LDFLAGS) ==="
-	@echo "=== Extra link flags: $(LDFLAGS_EXTRA) ==="
 	@echo ""
 	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
