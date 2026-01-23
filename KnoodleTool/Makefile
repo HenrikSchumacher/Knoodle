@@ -11,17 +11,25 @@ else ifeq ($(UNAME_S),Linux)
     # Linux - check if we're using Homebrew clang (ABI consistency)
     # If CXX contains "llvm", we can use -fenable-matrix
     ifeq ($(findstring llvm,$(CXX)),llvm)
+        # Homebrew clang on Linux - use libc++ for complete ABI consistency  
+        # This matches dependencies that are also compiled with Homebrew clang
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread
+                   -fenable-matrix -pthread \
+                   -stdlib=libc++ \
+                   -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
+                   -I$(HOMEBREW_PREFIX)/include
+        LDFLAGS_EXTRA = -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
     else
         # Default Linux GCC build (no -fenable-matrix)
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                    -pthread
+        LDFLAGS_EXTRA =
     endif
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -pthread
+    LDFLAGS_EXTRA =
 endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
@@ -30,7 +38,7 @@ CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
            -I./../submodules/Min-Cost-Flow-Class/MCFClass \
            -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
            -I./../submodules/Tensors
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack $(LDFLAGS_EXTRA)
 
 # Version handling
 ifdef KNOODLE_VERSION
@@ -49,8 +57,12 @@ ifeq ($(UNAME_S),Darwin)
                      -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
     ifeq ($(findstring llvm,$(CXX)),llvm)
+        # Homebrew clang on Linux - use libc++ for complete ABI consistency
         DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
-                         -fenable-matrix -pthread
+                         -fenable-matrix -pthread \
+                         -stdlib=libc++ \
+                         -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
+                         -I$(HOMEBREW_PREFIX)/include
     else
         DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
                          -pthread

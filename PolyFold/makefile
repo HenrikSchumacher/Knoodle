@@ -11,8 +11,14 @@ else ifeq ($(UNAME_S),Linux)
     # Linux - check if we're using Homebrew clang (ABI consistency)
     # If CXX contains "llvm", we can use -fenable-matrix
     ifeq ($(findstring llvm,$(CXX)),llvm)
+        # Homebrew clang on Linux - use libc++ for complete ABI consistency
+        # This matches dependencies that are also compiled with Homebrew clang
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
+                   -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS \
+                   -stdlib=libc++ \
+                   -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
+                   -I$(HOMEBREW_PREFIX)/include
+        LDFLAGS += -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
     else
         # Default Linux GCC build (no -fenable-matrix)
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
