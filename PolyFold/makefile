@@ -18,20 +18,22 @@ else ifeq ($(UNAME_S),Linux)
                    -stdlib=libc++ \
                    -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
                    -I$(HOMEBREW_PREFIX)/include
-        LDFLAGS += -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
+        LDFLAGS_EXTRA = -L$(HOMEBREW_PREFIX)/opt/llvm/lib -lc++abi -Wl,-rpath,$(HOMEBREW_PREFIX)/opt/llvm/lib
     else
         # Default Linux GCC build (no -fenable-matrix)
         CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                    -pthread -DPOLYFOLD_NO_QUATERNIONS
+        LDFLAGS_EXTRA =
     endif
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -pthread -DPOLYFOLD_NO_QUATERNIONS
+    LDFLAGS_EXTRA =
 endif
 
 CPPFLAGS = -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options $(LDFLAGS_EXTRA)
 
 # Version handling
 ifdef KNOODLE_VERSION
@@ -50,6 +52,7 @@ polyfold: main.cpp
 	@echo "=== Compiler flags: $(CXXFLAGS) ==="
 	@echo "=== Include paths: $(CPPFLAGS) ==="
 	@echo "=== Link flags: $(LDFLAGS) ==="
+	@echo "=== Extra link flags: $(LDFLAGS_EXTRA) ==="
 	@echo ""
 	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
