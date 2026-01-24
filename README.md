@@ -9,14 +9,16 @@ To make sure that all submodules are cloned, too, please clone by running the fo
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-Currently the package is configured and tested only for macos (Apple Silicon) and with Apple Clang as compiler. The library should compile also with other platforms, provided the correct compiler flags are given. The library can be installed on MacOS via homebrew 
+The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang, but installation has been recently tested on Ubuntu 24.04.3 LTS and WSL 2.6.3.0 (running in Windows 10). It should install on a wide variety of linux systems with the following commands: 
 
 ```
+brew install git-lfs
+git-lfs install
 brew tap designbynumbers/cantarellalab
 brew install knoodle
 ```
 
-This will also install the command line tools _polyfold_ and _knoodletool_. These are designed to compile and run on Linux/Cygwin, but the makefiles might need local adjustments. Please contact us if you are interested and need support. Also, please contact us if you make this work on other systems; we would gladly add the configurations into this package.
+This will also install the command line tools _polyfold_ and _knoodletool_. Please contact us if you are interested and need support. 
 
 # PolyFold
 
