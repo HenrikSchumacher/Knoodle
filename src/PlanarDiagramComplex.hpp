@@ -35,8 +35,10 @@ namespace Knoodle
         using A_Cross_T             = typename PD_T::A_Cross_T;
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
-        using Strategy_T            = SearchStrategy_T;
-                
+        
+        using StrandSimplifier_T    = StrandSimplifier2<Int,true,true>;
+        using Strategy_T            = typename StrandSimplifier_T::Strategy_T;
+        
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -481,22 +483,28 @@ namespace Knoodle
         }
 
 
+        mref<StrandSimplifier_T> StrandSimplifier( const Strategy_T strategy = Strategy_T::TwoSided )
+        {
+            if( !this->InCacheQ("StrandSimplifier") )
+            {
+                this->SetCache("StrandSimplifier", StrandSimplifier_T(*this,strategy));
+            }
+
+            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetStrategy(strategy);
+        }
+        
         Tensor1<Int,Int> FindShortestPath(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist,
-            const Strategy_T strategy
+            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
         )
         {
-            StrandSimplifier2<Int,true,true> S (*this, strategy);
-            return S.FindShortestPath( pd_list[diagramIdx], a, b, max_dist );
+            return StrandSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
         Tensor1<Int,Int> FindShortestRerouting(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist,
-            const Strategy_T strategy
+            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
         )
         {
-            StrandSimplifier2<Int,true,true> S (*this,strategy);
-            return S.FindShortestRerouting( pd_list[diagramIdx], a, b, max_dist );
+            return StrandSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
         }
        
     public:

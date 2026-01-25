@@ -8,7 +8,6 @@
 
 namespace Knoodle
 {
-    
     enum class SearchStrategy_T : Int8
     {
         Dijkstra    = 0,
@@ -203,6 +202,17 @@ namespace Knoodle
             // pd->ClearCache("ArcLeftArc");
         }
         
+        Strategy_T Strategy() const
+        {
+            return strategy;
+        }
+        
+        mref<StrandSimplifier2> SetStrategy( Strategy_T strategy_ )
+        {
+            strategy = strategy_;
+            
+            return *this;
+        }
         
 #include "StrandSimplifier/Marks.hpp"
 #include "StrandSimplifier/Checks.hpp"
