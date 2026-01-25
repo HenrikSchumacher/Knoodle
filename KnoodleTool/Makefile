@@ -1,23 +1,18 @@
 # Makefile for knoodletool
-CXX ?= clang++
+CXX ?= g++
 
-# Detect OS and handle clang consistently
+# Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
+    CXX = clang++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
-    # Linux - check if we're using Homebrew clang (ABI consistency)
-    # If CXX contains "llvm", we can use -fenable-matrix
-    ifeq ($(findstring llvm,$(CXX)),llvm)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread
-    else
-        # Default Linux GCC build (no -fenable-matrix)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -pthread
-    endif
+    # Linux - use gcc for ecosystem compatibility
+    CXX = g++
+    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+               -pthread
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
@@ -49,8 +44,12 @@ ifeq ($(UNAME_S),Darwin)
                      -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
     ifeq ($(findstring llvm,$(CXX)),llvm)
+        # Homebrew clang on Linux - use libc++ for complete ABI consistency
         DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
-                         -fenable-matrix -pthread
+                         -fenable-matrix -pthread \
+                         -stdlib=libc++ \
+                         -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
+                         -I$(HOMEBREW_PREFIX)/include
     else
         DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
                          -pthread
@@ -61,10 +60,15 @@ else
 endif
 
 knoodletool: main.cpp
-	@echo "=== Building for $(UNAME_S) ==="
+	@echo "=== Building KnoodleTool on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Flags: $(CXXFLAGS) ==="
+	@echo "=== Compiler flags: $(CXXFLAGS) ==="
+	@echo "=== Include paths: $(CPPFLAGS) ==="
+	@echo "=== Link flags: $(LDFLAGS) ==="
+	@echo ""
+	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
+	@echo "✓ KnoodleTool compiled successfully"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: knoodletool

@@ -1,0 +1,78 @@
+KNOODLE INSTALLATION GUIDE
+===========================
+
+QUICK INSTALLATION (for users who already have the tap)
+--------------------------------------------------------
+# Install git-lfs first (required)
+brew install git-lfs
+git lfs install
+
+# Install knoodle
+brew install knoodle
+
+
+FIRST-TIME INSTALLATION (for new users)
+----------------------------------------
+# 1. Add the tap
+brew tap designbynumbers/cantarellalab
+
+# 2. Install git-lfs (required for repository cloning)
+brew install git-lfs
+git lfs install
+
+# 3. Install knoodle
+brew install knoodle
+
+
+ONE-LINER INSTALLATION
+----------------------
+brew tap designbynumbers/cantarellalab && brew install git-lfs && git lfs install && brew install knoodle
+
+
+IMPORTANT NOTES
+---------------
+* Git LFS is required because Knoodle uses it to store large binary files
+* On Linux, this may take 20-30 minutes as it recompiles dependencies with 
+  LLVM/clang for ABI compatibility
+* The installation compiles from source for optimal performance on your CPU
+
+
+WHY GIT LFS IS REQUIRED
+-----------------------
+Knoodle uses Git LFS to store large binary files efficiently. The installation 
+will fail with a clear error message if git-lfs is not installed first.
+
+
+TROUBLESHOOTING
+---------------
+Error: "git-lfs: command not found"
+→ This means git-lfs is not installed. Follow the installation steps above.
+
+Error: Formula not found  
+→ Make sure you've added the tap: brew tap designbynumbers/cantarellalab
+
+Build taking a long time on Linux
+→ This is normal! The formula recompiles dependencies with LLVM for best 
+  compatibility. Grab a coffee and wait for it to finish.
+
+
+WHAT GETS INSTALLED
+-------------------
+* polyfold: Knot-tightening tool
+* knoodletool: Knot theory utilities  
+* Headers: Development headers in $(brew --prefix)/include/knoodle/
+
+
+VERIFICATION
+------------
+Test the installation:
+polyfold --help
+knoodletool --help
+
+
+PERFORMANCE NOTES
+-----------------
+* Both tools are compiled with CPU-specific optimizations (-march=native)
+* On macOS: Uses clang with matrix extensions for maximum performance
+* On Linux: Uses Homebrew LLVM/clang for ABI safety and performance
+* Performance should be comparable between platforms

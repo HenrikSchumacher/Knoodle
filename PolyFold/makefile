@@ -1,23 +1,18 @@
 # Makefile for PolyFold
-CXX ?= clang++
+CXX ?= g++
 
-# Detect OS and handle clang consistently
+# Detect OS and set appropriate flags
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
+    CXX = clang++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
 else ifeq ($(UNAME_S),Linux)
-    # Linux - check if we're using Homebrew clang (ABI consistency)
-    # If CXX contains "llvm", we can use -fenable-matrix
-    ifeq ($(findstring llvm,$(CXX)),llvm)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
-    else
-        # Default Linux GCC build (no -fenable-matrix)
-        CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
-                   -pthread -DPOLYFOLD_NO_QUATERNIONS
-    endif
+    # Linux - use gcc for ecosystem compatibility
+    CXX = g++
+    CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
+               -pthread -DPOLYFOLD_NO_QUATERNIONS
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
@@ -39,10 +34,15 @@ PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
 polyfold: main.cpp
-	@echo "=== Building for $(UNAME_S) ==="
+	@echo "=== Building PolyFold on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Flags: $(CXXFLAGS) ==="
+	@echo "=== Compiler flags: $(CXXFLAGS) ==="
+	@echo "=== Include paths: $(CPPFLAGS) ==="
+	@echo "=== Link flags: $(LDFLAGS) ==="
+	@echo ""
+	@echo "Compiling main.cpp..."
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
+	@echo "✓ PolyFold compiled successfully"
 
 install: polyfold
 	install -d $(DESTDIR)$(BINDIR)
