@@ -149,6 +149,8 @@ void Traverse_ByNextArc(
 
     if constexpr ( lutQ )
     {
+        PD_ASSERT(CheckArcNextArc());
+        
         this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
             std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
             ArcNextArc().data(), A_data, C_data
@@ -269,6 +271,8 @@ void Traverse_ByNextArc_impl(
         // Now a_0 points to the beginning of a link component.
         Int a = a_0;
         
+        AssertArc(a);
+        
         if constexpr ( ou_flag )
         {
             // We have to find the _beginning_ of first over/understrand.
@@ -277,6 +281,7 @@ void Traverse_ByNextArc_impl(
             {
                 do
                 {
+                    AssertArc(a);
                     // Move to next arc.
                     if constexpr ( lutQ )
                     {
@@ -322,6 +327,8 @@ void Traverse_ByNextArc_impl(
             }
         }
 
+        AssertArc(a);
+
         // Cycle along all arcs in the link component, until we return where we started.
         // Apply fun to every arc.
         do
@@ -344,7 +351,7 @@ void Traverse_ByNextArc_impl(
                 const Int c_0_idx      = c_1_idx;
 
                 c_1 = A_cross(a,Head);
-                AssertCrossing(c_1);
+                AssertCrossing<1>(c_1);
 
                 c_1_idx = C_idx[c_1];
                 c_1_visitedQ = ValidIndexQ(c_1_idx);

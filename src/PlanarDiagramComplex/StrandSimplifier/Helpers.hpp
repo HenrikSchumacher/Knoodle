@@ -108,9 +108,19 @@ Int NextArc( const Int a, const bool headtail ) const
 
 
 
+static constexpr std::pair<Int,Int> FromDarc( const Int da )
+{
+    return PD_T::FromDarc(da);
+}
+
 static constexpr Int ToDarc( const Int a, const bool headtail )
 {
     return PD_T::ToDarc(a,headtail);
+}
+
+static constexpr Int ArcOfDarc( const Int da )
+{
+    return PD_T::ArcOfDarc(da);
 }
 
 static constexpr Int FlipDarc( Int da )

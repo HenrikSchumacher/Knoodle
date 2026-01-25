@@ -65,10 +65,18 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,3,false>;
         friend class ArcSimplifier2<Int,4,false>;
 
-        friend class StrandSimplifier2<Int,true ,true >;
-        friend class StrandSimplifier2<Int,true ,false>;
-        friend class StrandSimplifier2<Int,false,true >;
-        friend class StrandSimplifier2<Int,false,false>;
+        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::Dijkstra>;
+        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::TwoSided>;
+        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::DijkstraLegacy>;
+        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::Dijkstra>;
+        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::TwoSided>;
+        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::DijkstraLegacy>;
+        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::Dijkstra>;
+        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::TwoSided>;
+        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::DijkstraLegacy>;
+        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::Dijkstra>;
+        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::TwoSided>;
+        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::DijkstraLegacy>;
             
         using HeadTail_T = bool;
         

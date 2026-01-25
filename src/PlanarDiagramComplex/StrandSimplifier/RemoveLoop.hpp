@@ -25,11 +25,11 @@ void RemoveLoop( const Int e, const Int c_0 )
         TOOLS_LOGDUMP(C_arcs(c_0,Out,Right));
         TOOLS_LOGDUMP(C_arcs(c_0,In ,Left ));
         TOOLS_LOGDUMP(C_arcs(c_0,In ,Right));
-        TOOLS_LOGDUMP(A_mark[e]);
-        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,Out,Left )]);
-        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,Out,Right)]);
-        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,In ,Left )]);
-        TOOLS_LOGDUMP(A_mark[C_arcs(c_0,In ,Right)]);
+        TOOLS_LOGDUMP(ArcMarkedQ(e));
+        TOOLS_LOGDUMP(ArcMarkedQ(C_arcs(c_0,Out,Left )));
+        TOOLS_LOGDUMP(ArcMarkedQ(C_arcs(c_0,Out,Right)));
+        TOOLS_LOGDUMP(ArcMarkedQ(C_arcs(c_0,In ,Left )));
+        TOOLS_LOGDUMP(ArcMarkedQ(C_arcs(c_0,In ,Right)));
     }
 #endif // PD_DEBUG
     
@@ -38,7 +38,7 @@ void RemoveLoop( const Int e, const Int c_0 )
     {
         const Int a = NextArc(e,Head,c_0);
         
-        if( A_mark(a) == current_mark )
+        if( ArcMarkedQ(a) )
         {
             const bool u_0 = (C_arcs(c_0,Out,Right) == a);
             

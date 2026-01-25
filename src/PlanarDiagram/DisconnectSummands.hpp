@@ -128,9 +128,9 @@ bool DisconnectSummand(
 
         // Warning: This alters the diagram but preserves the Cache -- which is important to not invalidate `FaceDarcs()`, etc. I don't think that this will ever happen because `DisconnectSummand` is called only in a very controlled context when all possible Reidemeister I moves have been performed already.
         
-        if( Private_Reidemeister_I<true,true>(a) )
+        if( Reidemeister_I_Private<true,true>(a) )
         {
-            wprint(ClassName()+"::DisconnectSummand: Found a face with just one arc around it. Tried to call Private_Reidemeister_I to remove. But maybe the face information is violated. Check your results thoroughly.");
+            wprint(ClassName()+"::DisconnectSummand: Found a face with just one arc around it. Tried to call Reidemeister_I_Private to remove. But maybe the face information is violated. Check your results thoroughly.");
             return true;
         }
         else

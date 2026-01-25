@@ -31,13 +31,13 @@ Size_T SimplifyStrands(
     
     const Int m = A_cross.Dim(0);
     
-    // We increase `current_mark` for each strand. This ensures that all entries of D_mark, D_from, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever current_mark is at least half of the maximal integer of type Int (rounded down).
+    // We increase `current_mark` for each strand. This ensures that all entries of D_data, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever current_mark is at least half of the maximal value.
     // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `SimplifyStrands`. That should really be enough for all feasible applications.
     
-    ++current_mark;
+    NewMark();
     a_ptr = 0;
     
-    const Mark_T color_0 = current_mark;
+    const Int old_mark = current_mark;
 
     strand_length = 0;
     change_counter = 0;
@@ -48,7 +48,7 @@ Size_T SimplifyStrands(
         while(
             ( a_ptr < m )
             &&
-            ( (A_mark(a_ptr) >= color_0 ) || (!ArcActiveQ(a_ptr)) )
+            ( (A_mark(a_ptr) >= old_mark ) || (!ArcActiveQ(a_ptr)) )
         )
         {
             ++a_ptr;
@@ -93,7 +93,7 @@ Size_T SimplifyStrands(
 //            );
             
             // Safe guard against integer overflow.
-            if( current_mark == std::numeric_limits<Mark_T>::max() )
+            if( current_mark >= max_mark )
             {
 #ifdef PD_TIMINGQ
                 const Time stop_time = Clock::now();
@@ -109,7 +109,7 @@ Size_T SimplifyStrands(
             AssertCrossing<1>(c_1);
             
             const bool side_1 = (C_arcs(c_1,In,Right) == a);
-            
+    
             Int a_next = C_arcs(c_1,Out,!side_1);
             AssertArc<1>(a_next);
             
@@ -158,10 +158,8 @@ Size_T SimplifyStrands(
                     break;
                 }
             }
-            
-            // Arc gets current current_mark.
-            A_mark(a) = current_mark;
-            
+
+            MarkArc(a);
             
             // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to reset and create a new strand.
             // This finds out whether we have to reset.
@@ -171,7 +169,7 @@ Size_T SimplifyStrands(
             
             // Check for loops, i.e., a over/understrand that starts and ends at the same crossing. This is akin to a "big Reidemeister I" move on top (or under) the diagram.
             
-            if( C_mark(c_1) == current_mark )
+            if( CrossingMarkedQ(c_1) )
             {
                 // Vertex c has been visted before.
                 
@@ -209,8 +207,8 @@ Size_T SimplifyStrands(
                      *         #             #
                      */
 
-
-                    if( !strand_completeQ || (A_mark(a_next) != current_mark) )
+                    
+                    if( !strand_completeQ || !ArcMarkedQ(a_next) )
                     {
                         RemoveLoop(a,c_1);
                         break;
@@ -348,8 +346,7 @@ Size_T SimplifyStrands(
                 {
                     changedQ = RerouteToShortestPath_impl(
                         a_begin,a,
-                        Min(strand_length-Int(1),max_dist),
-                        current_mark
+                        Min(strand_length-Int(1),max_dist)
                     );
                 }
                 
@@ -362,7 +359,7 @@ Size_T SimplifyStrands(
                 strand_length = 0;
                 a_begin = a_next;
 
-                ++current_mark;
+                NewMark();
             }
             
             // Head of arc gets new current_mark.
@@ -383,7 +380,7 @@ Size_T SimplifyStrands(
 //                    wprint(ClassName()+"::SimplifyStrands: Split unlink detected. We have yet to remove it." );
 //                }
         
-        ++current_mark;
+        NewMark();
         strand_length = 0;
         
         ++a_ptr;
@@ -416,15 +413,17 @@ private:
         
         PD_ASSERT(pd.CheckAll());
         
-        if( current_mark >= std::numeric_limits<Mark_T>::max()/2 )
+        if( current_mark >= max_mark/Int(2) )
         {
-            C_mark.Fill(Mark_T(0));
-            A_mark.Fill(Mark_T(0));
-            
-            D_mark.Fill(Mark_T(0));
-            D_from.Fill(Int(0));
+            C_mark.Fill(Uninitialized);
+            A_mark.Fill(Uninitialized);
+            D_data.Fill(Uninitialized);
 
-            current_mark = Mark_T(0);
+            current_mark = 0;
+        }
+        else
+        {
+            NewMark();
         }
         
         // We do not have to erase D_mark2, because it is only written from when a D_mark check is successful.
@@ -440,5 +439,6 @@ private:
         
         dA_left = nullptr;
         
-        pd.ClearCache("ArcLeftArc");
+        
+        // pd.ClearCache("ArcLeftArc");
     }

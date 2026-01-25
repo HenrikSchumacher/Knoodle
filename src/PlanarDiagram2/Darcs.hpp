@@ -5,6 +5,11 @@ static constexpr Int ToDarc( const Int a, const HeadTail_T d )
     return Int(2) * a + d;
 }
 
+static Int ArcOfDarc( const Int da )
+{
+    return da / Int(2);
+}
+
 static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
 {
     return std::pair( da / Int(2), da % Int(2) );

@@ -10,7 +10,7 @@ private:
  */
 
 template<bool checkQ = true, bool warningQ = false>
-bool Private_Reidemeister_I( const Int a )
+bool Reidemeister_I_Private( const Int a )
 {
     if constexpr ( checkQ )
     {
@@ -18,7 +18,7 @@ bool Private_Reidemeister_I( const Int a )
         {
             if constexpr ( warningQ )
             {
-                wprint(ClassName()+"::Private_Reidemeister_I: Arc " + ArcString(a) + " is deactivated.");
+                wprint(ClassName()+"::Reidemeister_I_Private: Arc " + ArcString(a) + " is deactivated.");
             }
             return false;
         }
@@ -101,7 +101,7 @@ public:
 template<bool warningQ = true>
 bool Reidemeister_I( const Int a )
 {
-    bool changedQ = this->template Private_Reidemeister_I<true,true>(a);
+    bool changedQ = this->template Reidemeister_I_Private<true,true>(a);
     
     if( changedQ )
     {

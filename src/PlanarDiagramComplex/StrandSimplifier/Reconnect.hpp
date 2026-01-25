@@ -7,7 +7,8 @@ void Reconnect( const Int a, const Int b )
     std::string tag  (MethodName("Reconnect")+"<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
 #endif
     
-    PD_TIMER(timer,tag);
+//    PD_TIMER(timer,tag);
+    PD_PRINT(tag);
     PD_ASSERT(a != b);
     PD_ASSERT( ArcActiveQ(a) );
     
