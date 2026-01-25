@@ -1,7 +1,6 @@
 #pragma once
 
 // TODO: Make RemoveLoop work also for Big Figure-8 Unlink and Big Hopf Link.
-// TODO: Implement FindShortestPath_impl with two-sided Dijkstra! This should converge faster, but might require more reloads because the stacks might become cold. Do it in ABBAABBABBA-fashion to remedy this a little.
 // TODO: Use `ArcSide`.
 // TODO: `WalkBackToStrandStart` -> Cut out over/under loops already here? ...
 //          --> less headache later.
@@ -13,8 +12,9 @@ namespace Knoodle
     enum class SearchStrategy_T : Int8
     {
         Dijkstra    = 0,
-        TwoSided    = 1,
-        DijkstraLegacy = 2
+        Alternating = 1,
+        TwoSided    = 2,
+        DijkstraLegacy = 3
     };
     
     std::string ToString( const SearchStrategy_T strategy )
@@ -22,12 +22,13 @@ namespace Knoodle
         switch( strategy )
         {
             case SearchStrategy_T::Dijkstra       : return "Dijkstra";
+            case SearchStrategy_T::Alternating    : return "Alternating";
             case SearchStrategy_T::TwoSided       : return "TwoSided";
             case SearchStrategy_T::DijkstraLegacy : return "DijkstraLegacy";
         }
     }
     
-    template<typename Int_, bool R_II_Q_, bool mult_compQ_, SearchStrategy_T strategy_>
+    template<typename Int_, bool R_II_Q_, bool mult_compQ_>
     class alignas( ObjectAlignment ) StrandSimplifier2 final
     {
     public:
@@ -49,8 +50,8 @@ namespace Knoodle
         using CrossingStateContainer_T  = typename PD_T::CrossingStateContainer_T;
         using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
-
-        static constexpr SearchStrategy_T strategy = strategy_;
+        using Stack_T                   = Stack<Int,Int>;
+        using Strategy_T                = SearchStrategy_T;
         
         static constexpr bool R_II_Q     = R_II_Q_;
         static constexpr bool mult_compQ = mult_compQ_;
@@ -65,23 +66,24 @@ namespace Knoodle
         static constexpr bool Uninitialized = PD_T::Uninitialized;
         
     private:
-        
+
+//        PD_T pd_null;
+//        
         PDC_T & restrict pdc;
+
+        PD_T  * restrict pd = nullptr;
         
-        PD_T  & restrict pd;
-        
-        CrossingContainer_T      & restrict C_arcs;
-        CrossingStateContainer_T & restrict C_state;
-        
-        ArcContainer_T           & restrict A_cross;
-        ArcColorContainer_T      & restrict A_color;
-        ArcStateContainer_T      & restrict A_state;
-        
-        Tensor1<Int,Int>         & restrict D_mark2;
-        
+        Int    max_crossing_count = 0;
+        Int    max_arc_count      = 0;
+        Int    current_mark       = 0;
+        Int    a_ptr              = 0;
+        Int    strand_length      = 0;
+        Int    path_length        = 0;
+        Size_T change_counter     = 0;
         
         // Marks for the crossings and arcs to mark the current strand.
         // We use this to detect loop strands.
+        // We need quite close control on the values in these containers; this is why we cannot use pd->C_scratch or pd->A_scratch here.
         Tensor1<Int,Int> C_mark;
         Tensor1<Int,Int> A_mark;
         
@@ -89,26 +91,15 @@ namespace Knoodle
         
         Int * restrict dA_left;
         
-        Int current_mark = 0;
-        Int a_ptr = 0;
-
-        Int    strand_length  = 0;
-        Size_T change_counter = 0;
+        Tensor1<Int,Int> path;
+        Stack_T X_front;
+        Stack_T Y_front;
+        Stack_T prev_front;
         
+        Strategy_T strategy = Strategy_T::TwoSided;
         bool overQ;
         bool strand_completeQ;
-        
-        Stack<Int,Int> X_next;
-        Stack<Int,Int> X_prev;
-        
-        Stack<Int,Int> Y_next;
-        Stack<Int,Int> Y_prev;
-        
-        Tensor1<Int,Int> path;
-        Int path_length = 0;
-        
-        std::vector<Int> touched;
-        
+      
         double Time_RemoveLoop            = 0;
         double Time_FindShortestPath      = 0;
         double Time_RerouteToPath         = 0;
@@ -117,26 +108,18 @@ namespace Knoodle
         
     public:
         
-        StrandSimplifier2( PDC_T & pdc_, PD_T & pd_ )
-        :   pdc     { pdc_                          }
-        ,   pd      { pd_                           }
-        ,   C_arcs  { pd.C_arcs                     }
-        ,   C_state { pd.C_state                    }
-        ,   A_cross { pd.A_cross                    }
-        ,   A_color { pd.A_color                    }
-        ,   A_state { pd.A_state                    }
-        ,   D_mark2 { pd.A_scratch                  }
-        // We initialize by 0, indicating invalid/uninitialized.
-        ,   C_mark  { C_arcs .Dim(0), Uninitialized }
-        ,   A_mark  { A_cross.Dim(0), Uninitialized }
-//        ,   D_mark  { A_cross.Dim(0), Uninitialized }
-//        ,   D_from  { A_cross.Dim(0), Uninitialized }
-        ,   D_data  { A_cross.Dim(0), Uninitialized }
-        ,   X_next  { A_cross.Dim(0)                }
-        ,   X_prev  { A_cross.Dim(0)                }
-        ,   Y_next  { A_cross.Dim(0)                } // TODO: Only needed for two-sided Dijkstra.
-        ,   Y_prev  { A_cross.Dim(0)                } // TODO: Only needed for two-sided Dijkstra.
-        ,   path    { A_cross.Dim(0), Uninitialized }
+        StrandSimplifier2( PDC_T & pdc_, Strategy_T strategy_ )
+        :   pdc                { pdc_                              }
+        ,   max_crossing_count { pdc_.MaxMaxCrossingCount()        }
+        ,   max_arc_count      { Int(2) * max_crossing_count       }
+        ,   C_mark             { max_crossing_count, Uninitialized }
+        ,   A_mark             { max_arc_count,      Uninitialized }
+        ,   D_data             { max_arc_count,      Uninitialized }
+        ,   path               { max_arc_count,      Uninitialized }
+        ,   X_front            { max_arc_count                     }
+        ,   Y_front            { max_arc_count                     }
+        ,   prev_front         { max_arc_count                     }
+        ,   strategy           { strategy_                         }
         {}
         
         // No default constructor
@@ -173,7 +156,54 @@ namespace Knoodle
         // Move assignment operator
         StrandSimplifier2 & operator=( StrandSimplifier2 && other ) = default;
 
-
+    public:
+        
+        void Load( mref<PD_T> pd_input )
+        {
+            PD_TIMER(timer,MethodName("Prepare"));
+            
+            pd = &pd_input;
+            
+            // TODO: Maybe put some reallocation checks here.
+            if( (pd->max_crossing_count > Int(0)) && (max_crossing_count < pd->max_crossing_count) )
+            {
+                TOOLS_DUMP(max_crossing_count);
+                TOOLS_DUMP(pd->max_crossing_count);
+                error("(pd->max_crossing_count > Int(0)) && (max_crossing_count < pd->max_crossing_count)");
+            }
+            
+            PD_ASSERT(pd->CheckAll());
+            
+            if( current_mark >= max_mark/Int(2) )
+            {
+                C_mark.Fill(Uninitialized);
+                A_mark.Fill(Uninitialized);
+                D_data.Fill(Uninitialized);
+                current_mark = 0;
+            }
+            else
+            {
+                NewMark();
+            }
+            
+            dA_left = pd->ArcLeftDarcs().data();
+            PD_ASSERT(CheckDarcLeftDarc());
+        }
+        
+        void Cleanup()
+        {
+            PD_TIMER(timer,MethodName("Cleanup"));
+            
+            PD_ASSERT(pd->CheckAll());
+            PD_ASSERT(CheckDarcLeftDarc());
+            
+            dA_left = nullptr;
+            pd      = nullptr;
+            
+            // pd->ClearCache("ArcLeftArc");
+        }
+        
+        
 #include "StrandSimplifier/Marks.hpp"
 #include "StrandSimplifier/Checks.hpp"
 #include "StrandSimplifier/Helpers.hpp"
@@ -182,7 +212,7 @@ namespace Knoodle
 #include "StrandSimplifier/CollapseArcRange.hpp"
 #include "StrandSimplifier/RemoveLoop.hpp"
 #include "StrandSimplifier/FindShortestPath.hpp"
-#include "StrandSimplifier/FindShortestPath2.hpp"
+#include "StrandSimplifier/FindShortestPath_DijkstraLegacy.hpp"
 #include "StrandSimplifier/RerouteToPath.hpp"
 #include "StrandSimplifier/Reidemeister.hpp"
 #include "StrandSimplifier/SimplifyStrands.hpp"
@@ -192,12 +222,12 @@ namespace Knoodle
         
         void CreateUnlinkFromArc( const Int a_ )
         {
-            pdc.CreateUnlinkFromArc(pd,a_);
+            pdc.CreateUnlinkFromArc(*pd,a_);
         }
         
         void CreateHopfLinkFromArcs( const Int a_0, const Int a_1 )
         {
-            pdc.CreateHopfLinkFromArcs(pd,a_0,a_1);
+            pdc.CreateHopfLinkFromArcs(*pd,a_0,a_1);
         }
         
         void CountReidemeister_I() const

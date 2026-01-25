@@ -35,6 +35,7 @@ namespace Knoodle
         using A_Cross_T             = typename PD_T::A_Cross_T;
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
+        using Strategy_T            = SearchStrategy_T;
                 
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -58,18 +59,10 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,3,false>;
         friend class ArcSimplifier2<Int,4,false>;
         
-        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::Dijkstra>;
-        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::TwoSided>;
-        friend class StrandSimplifier2<Int,true ,true ,SearchStrategy_T::DijkstraLegacy>;
-        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::Dijkstra>;
-        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::TwoSided>;
-        friend class StrandSimplifier2<Int,true ,false,SearchStrategy_T::DijkstraLegacy>;
-        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::Dijkstra>;
-        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::TwoSided>;
-        friend class StrandSimplifier2<Int,false,true ,SearchStrategy_T::DijkstraLegacy>;
-        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::Dijkstra>;
-        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::TwoSided>;
-        friend class StrandSimplifier2<Int,false,false,SearchStrategy_T::DijkstraLegacy>;
+        friend class StrandSimplifier2<Int,true ,true >;
+        friend class StrandSimplifier2<Int,true ,false>;
+        friend class StrandSimplifier2<Int,false,true >;
+        friend class StrandSimplifier2<Int,false,false>;
         
     private:
         
@@ -225,10 +218,17 @@ namespace Knoodle
             return count;
         }
         
-        Int MaxCrossingCount() const
+        Int TotalMaxCrossingCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.MaxCrossingCount(); }
+            return count;
+        }
+        
+        Int MaxMaxCrossingCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.MaxCrossingCount()); }
             return count;
         }
         
@@ -239,16 +239,23 @@ namespace Knoodle
             return count;
         }
         
-        Int MaxArcCount() const
+        Int TotalMaxArcCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
             return count;
         }
         
+        Int MaxMaxArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.MaxArcCount()); }
+            return count;
+        }
+        
         
     private:
-        
+
         // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
         void CreateUnlink( const Int color )
         {
@@ -475,36 +482,21 @@ namespace Knoodle
 
 
         Tensor1<Int,Int> FindShortestPath(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist
+            const Int diagramIdx, const Int a, const Int b, const Int max_dist,
+            const Strategy_T strategy
         )
         {
-            StrandSimplifier2<Int,true,true,SearchStrategy_T::DijkstraLegacy> S ( *this, pd_list[diagramIdx] );
-            return S.FindShortestPath( a, b, max_dist );
+            StrandSimplifier2<Int,true,true> S (*this, strategy);
+            return S.FindShortestPath( pd_list[diagramIdx], a, b, max_dist );
         }
         
         Tensor1<Int,Int> FindShortestRerouting(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist
+            const Int diagramIdx, const Int a, const Int b, const Int max_dist,
+            const Strategy_T strategy
         )
         {
-            StrandSimplifier2<Int,true,true,SearchStrategy_T::DijkstraLegacy> S ( *this, pd_list[diagramIdx] );
-            return S.FindShortestRerouting( a, b, max_dist );
-        }
-        
-        
-        Tensor1<Int,Int> FindShortestPath2(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist
-        )
-        {
-            StrandSimplifier2<Int,true,true,SearchStrategy_T::TwoSided> S ( *this, pd_list[diagramIdx] );
-            return S.FindShortestPath2( a, b, max_dist );
-        }
-        
-        Tensor1<Int,Int> FindShortestRerouting2(
-            const Int diagramIdx, const Int a, const Int b, const Int max_dist
-        )
-        {
-            StrandSimplifier2<Int,true,true,SearchStrategy_T::TwoSided> S ( *this, pd_list[diagramIdx] );
-            return S.FindShortestRerouting2( a, b, max_dist );
+            StrandSimplifier2<Int,true,true> S (*this,strategy);
+            return S.FindShortestRerouting( pd_list[diagramIdx], a, b, max_dist );
         }
        
     public:

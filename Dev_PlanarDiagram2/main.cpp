@@ -1,6 +1,6 @@
-#define TENSORS_BOUND_CHECKS
+//#define TENSORS_BOUND_CHECKS
 
-#define TOOLS_ENABLE_PROFILER
+//#define TOOLS_ENABLE_PROFILER
 //#define PD_DEBUG
 //#define PD_VERBOSE
 
@@ -35,6 +35,8 @@ void PrintInfo( const PDC_T & pdc )
 {
     
     valprint( "CrossingCount()", pdc.CrossingCount() );
+    valprint( "MaxMaxCrossingCount()", pdc.MaxMaxCrossingCount() );
+    valprint( "TotalMaxCrossingCount()", pdc.TotalMaxCrossingCount() );
     valprint( "DiagramCount()", pdc.DiagramCount() );
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
@@ -140,6 +142,8 @@ int main()
     {
         pdc.Simplify({
             .local_opt_level = 4,
+            .strategy        = Knoodle::SearchStrategy_T::TwoSided,
+            .min_dist        = 256,
             .disconnectQ     = true,
             .splitQ          = true,
             .compressQ       = true

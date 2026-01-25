@@ -1,4 +1,5 @@
 private:
+
 bool CrossingActiveQ( const Int c_ ) const
 {
     return pd.CrossingActiveQ(c_);

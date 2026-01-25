@@ -23,9 +23,9 @@ std::string ArcRangeString( const Int a, const Int b ) const
            + " (" + (ArcOverQ(e,Head) ? "over" : "under") + ")\n"
             + ToString(i+1) + " : " +  CrossingString(A_cross(e,Head)) + "\n\t";
     }
-    while( (e != b) && (i <= pd.arc_count) );
+    while( (e != b) && (i <= pd->arc_count) );
     
-    if( i > pd.arc_count)
+    if( i > pd->arc_count)
     {
         wprint(MethodName("ArcRangeString") + ": " + ArcString(a) + " and " + ArcString(b) + " do not lie on the same link component.");
         return "Failed.";
@@ -52,11 +52,11 @@ std::string ShortArcRangeString( const Int a, const Int b ) const
         e = NextArc(e,Head);
         s += ", " +  ToString(e);
     }
-    while( (e != b) && (i <= pd.arc_count) );
+    while( (e != b) && (i <= pd->arc_count) );
     
     s += " }";
     
-    if( i > pd.arc_count)
+    if( i > pd->arc_count)
     {
         wprint(MethodName("ShortArcRangeString") + ": " + ArcString(a) + " and " + ArcString(b) + " do not lie on the same link component.");
         return "Failed.";

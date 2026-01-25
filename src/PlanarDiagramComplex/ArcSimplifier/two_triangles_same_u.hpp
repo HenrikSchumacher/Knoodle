@@ -151,9 +151,8 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    CreateUnlinkFromArc(a);
-                    PD_ASSERT(pd.InvalidQ());
                     PD_NOTE(tag()+": Identified as unlink.");
+                    CreateUnlinkFromArc(a);
                     return true;
                 }
                 case 1:
@@ -312,9 +311,8 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    CreateUnlinkFromArc(a);
-                    PD_ASSERT(pd.InvalidQ());
                     PD_NOTE(tag()+": Identified as unlink.");
+                    CreateUnlinkFromArc(a);
                     return true;
                 }
                 case 1:

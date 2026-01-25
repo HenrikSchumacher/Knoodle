@@ -83,7 +83,7 @@ RaggedList<Int,Int> UnionArcMaps() const
 {
     const Size_T diagram_count = Size_T(DiagramCount());
     
-    RaggedList<Int,Int> arc_maps ( DiagramCount(), MaxArcCount() );
+    RaggedList<Int,Int> arc_maps ( DiagramCount(), TotalMaxArcCount() );
     
     for( Size_T idx = 0; idx < diagram_count; ++idx )
     {

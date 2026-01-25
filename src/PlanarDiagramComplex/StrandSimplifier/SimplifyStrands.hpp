@@ -11,25 +11,29 @@ public:
 
 template<bool R_II_Q = true>
 Size_T SimplifyStrands(
-    bool overQ_, const Int max_dist = std::numeric_limits<Int>::max()
+    mref<PD_T> pd_input, bool overQ_, const Int max_dist = Scalar::Max<Int>
 )
 {
-    // TODO: Maybe I should break this function into a few smaller pieces.
-    
     SetStrandMode(overQ_);
     
-    TOOLS_PTIMER(timer,ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands<" + ToString(R_II_Q) + ">(" + ToString(max_dist) + ")" );
+    [[maybe_unused]] auto tag = [this,max_dist]()
+    {
+        return ClassName()+"::Simplify" + (overQ ? "Over" : "Under")  + "Strands<" + ToString(R_II_Q) + ">(" + ToString(max_dist) + ")";
+    };
+    
+    TOOLS_PTIMER(timer,tag());
     
 #ifdef PD_TIMINGQ
     const Time start_time = Clock::now();
 #endif
-//            if( max_dist <= Int(0) ) { return 0; }
     
     if( max_dist <= Int(0) ) { return 0; }
     
-    Prepare();
+    PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
     
-    const Int m = A_cross.Dim(0);
+    Load(pd_input);
+    
+    const Int pd_max_arc_count = pd->max_arc_count;
     
     // We increase `current_mark` for each strand. This ensures that all entries of D_data, A_mark, C_mark etc. are invalidated. In addition, `Prepare` resets these whenever current_mark is at least half of the maximal value.
     // We typically use Int = int32_t (or greater). So we can handle 2^30-1 strands in one call to `SimplifyStrands`. That should really be enough for all feasible applications.
@@ -42,11 +46,11 @@ Size_T SimplifyStrands(
     strand_length = 0;
     change_counter = 0;
     
-    while( a_ptr < m )
+    while( a_ptr < pd_max_arc_count )
     {
         // Search for next arc that is active and has not yet been handled.
         while(
-            ( a_ptr < m )
+            ( a_ptr < pd_max_arc_count )
             &&
             ( (A_mark(a_ptr) >= old_mark ) || (!ArcActiveQ(a_ptr)) )
         )
@@ -54,7 +58,7 @@ Size_T SimplifyStrands(
             ++a_ptr;
         }
         
-        if( a_ptr >= m ) { break; }
+        if( a_ptr >= pd_max_arc_count ) { break; }
         
         // Find the beginning of first strand.
         Int a_begin = WalkBackToStrandStart(a_ptr);
@@ -71,14 +75,14 @@ Size_T SimplifyStrands(
         
         // Might be changed by RerouteToShortestPath_impl.
         // Thus, we need indeed a reference, not a copy here.
-        ArcState_T & a_0_state = A_state[a_0];
+        ArcState_T & a_0_state = pd->A_state[a_0];
         
         // Current arc.
         Int a = a_0;
         
         strand_length = 0;
         
-        MarkCrossing( A_cross(a,Tail) );
+        MarkCrossing( pd->A_cross(a,Tail) );
         
         // Traverse forward through all arcs in the link component, until we return where we started.
         do
@@ -104,16 +108,16 @@ Size_T SimplifyStrands(
                 return change_counter+1;
             }
             
-            Int c_1 = A_cross(a,Head);
+            Int c_1 = pd->A_cross(a,Head);
 
             AssertCrossing<1>(c_1);
             
-            const bool side_1 = (C_arcs(c_1,In,Right) == a);
+            const bool side_1 = (pd->C_arcs(c_1,In,Right) == a);
     
-            Int a_next = C_arcs(c_1,Out,!side_1);
+            Int a_next = pd->C_arcs(c_1,Out,!side_1);
             AssertArc<1>(a_next);
             
-            Int c_next = A_cross(a_next,Head);
+            Int c_next = pd->A_cross(a_next,Head);
             AssertCrossing<1>(c_next);
             
             // TODO: Not sure whether this adds anything good. RemoveLoop is also able to remove Reidemeister I loops. It just does it in a slightly different ways.
@@ -404,41 +408,3 @@ void SetStrandMode( const bool overQ_ )
 {
     overQ = overQ_;
 }
-
-private:
-    
-    void Prepare()
-    {
-        PD_TIMER(timer,MethodName("Prepare"));
-        
-        PD_ASSERT(pd.CheckAll());
-        
-        if( current_mark >= max_mark/Int(2) )
-        {
-            C_mark.Fill(Uninitialized);
-            A_mark.Fill(Uninitialized);
-            D_data.Fill(Uninitialized);
-
-            current_mark = 0;
-        }
-        else
-        {
-            NewMark();
-        }
-        
-        // We do not have to erase D_mark2, because it is only written from when a D_mark check is successful.
-//        pd.D_mark2.Fill(Uninitialized);
-        dA_left = pd.ArcLeftDarcs().data();
-        
-        PD_ASSERT(CheckDarcLeftDarc());
-    }
-    
-    void Cleanup()
-    {
-        PD_TIMER(timer,MethodName("Cleanup"));
-        
-        dA_left = nullptr;
-        
-        
-        // pd.ClearCache("ArcLeftArc");
-    }

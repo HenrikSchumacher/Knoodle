@@ -18,7 +18,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
 #endif
     
 #ifdef PD_DEBUG
-    const Int Cr_0 = pd.CrossingCount();
+    const Int Cr_0 = pd->CrossingCount();
     TOOLS_LOGDUMP(Cr_0);
 #endif
     
@@ -29,11 +29,11 @@ PD_VALPRINT("path", ShortPathString());
 
 //PD_PRINT("Diagram before rerouting:");
 //#ifdef PD_DEBUG
-//    pd.PrintInfo();
+//    pd->PrintInfo();
 //#endif
-//PD_VALPRINT("ArcLeftDarc", pd.ArcLeftDarcs());
-//PD_VALPRINT("C_scratch", pd.C_scratch);
-//PD_VALPRINT("A_scratch", pd.A_scratch);
+//PD_VALPRINT("ArcLeftDarc", pd->ArcLeftDarcs());
+//PD_VALPRINT("C_scratch", pd->C_scratch);
+//PD_VALPRINT("A_scratch", pd->A_scratch);
    
     // path[0] == a_first. This is not to be crossed.
     
@@ -69,18 +69,18 @@ PD_VALPRINT("path", ShortPathString());
 
     while( p < q )
     {
-        const Int c_0 = A_cross(a,Head);
+        const Int c_0 = pd->A_cross(a,Head);
 //        PD_VALPRINT("c_0", CrossingString(c_0));
 
-        const bool side = (C_arcs(c_0,In,Right) != a);
+        const bool side = (pd->C_arcs(c_0,In,Right) != a);
         
-        const Int a_2 = C_arcs(c_0,Out,side);
+        const Int a_2 = pd->C_arcs(c_0,Out,side);
 //        PD_VALPRINT("a_2", ArcString(a_2));
         const Int b = path[p];
 //        PD_VALPRINT("b", ArcString(b));
         const bool left_to_rightQ = DualArcLeftToRightQ(b);
         
-        const Int c_1 = A_cross(b,Head);
+        const Int c_1 = pd->A_cross(b,Head);
 //        PD_VALPRINT("c_1", CrossingString(c_1));
         // This is the situation for `a` before rerouting for `side == Right`;
         //
@@ -95,10 +95,10 @@ PD_VALPRINT("path", ShortPathString());
         //
         
         // a_0 is the vertical incoming arc.
-        const Int a_0 = C_arcs(c_0,In , side);
+        const Int a_0 = pd->C_arcs(c_0,In , side);
 //        PD_VALPRINT("a_0", ArcString(a_0));
         // a_1 is the vertical outgoing arc.
-        const Int a_1 = C_arcs(c_0,Out,!side);
+        const Int a_1 = pd->C_arcs(c_0,Out,!side);
 //        PD_VALPRINT("a_1", ArcString(a_1));
         // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
         PD_ASSERT( b != a_2 )
@@ -164,12 +164,12 @@ PD_VALPRINT("path", ShortPathString());
         //             X
         
         Reconnect<Head,false>(a_0,a_1);
-        pd.ChangeArcColor_Private( a_1, A_color[b] );
+        pd->ChangeArcColor_Private( a_1, pd->A_color[b] );
         Reconnect<Head,false>(a_1,b  );
         
         // We have to reconnect the head of b to c_0 manually, since a_0 has forgotten that it is connected to c_0.
         
-        A_cross(b,Head) = c_0;
+        pd->A_cross(b,Head) = c_0;
         
         const Int da   = ToDarc(a  ,Head);
         const Int db   = ToDarc(b  ,Head);
@@ -179,7 +179,7 @@ PD_VALPRINT("path", ShortPathString());
         // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
         if( left_to_rightQ )
         {
-            C_state[c_0] = BooleanToCrossingState(overQ);
+            pd->C_state[c_0] = BooleanToCrossingState(overQ);
             
             // overQ == true
             //
@@ -201,7 +201,7 @@ PD_VALPRINT("path", ShortPathString());
             
             // Fortunately, this does not depend on overQ.
             const C_Arcs_T C = { {a_1,a_2}, {a,b} };
-            C.Write(C_arcs.data(c_0));
+            C.Write(pd->C_arcs.data(c_0));
             
 //            const Int buffer [4] = { a_1,a_2,a,b };
 //            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
@@ -218,7 +218,7 @@ PD_VALPRINT("path", ShortPathString());
 //                         ? CrossingState_T::LeftHanded
 //                         : CrossingState_T::RightHanded;
             
-            C_state[c_0] = BooleanToCrossingState(!overQ);
+            pd->C_state[c_0] = BooleanToCrossingState(!overQ);
             
             // overQ == true
             //
@@ -240,7 +240,7 @@ PD_VALPRINT("path", ShortPathString());
             
             // Fortunately, this does not depend on overQ.
             const C_Arcs_T C = { {a_2,a_1}, {b,a} };
-            C.Write(C_arcs.data(c_0));
+            C.Write(pd->C_arcs.data(c_0));
             
 //            const Int buffer [4] = { a_2,a_1,b,a };
 //            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
@@ -278,7 +278,7 @@ PD_VALPRINT("path", ShortPathString());
     a_last = a;
 
 #ifdef PD_DEBUG
-    const Int Cr_1 = pd.CrossingCount();
+    const Int Cr_1 = pd->CrossingCount();
 #endif
     
     PD_ASSERT(Cr_1 < Cr_0);
@@ -291,16 +291,16 @@ PD_VALPRINT("path", ShortPathString());
     Time_RerouteToPath += Tools::Duration(start_time,stop_time);
 #endif
     
-    PD_ASSERT(pd.CheckAll() );
+    PD_ASSERT(pd->CheckAll() );
     PD_ASSERT(CheckDarcLeftDarc());
 
 //    PD_PRINT("Diagram after rerouting:");
 //#ifdef PD_DEBUG
-//    pd.PrintInfo();
+//    pd->PrintInfo();
 //#endif
-//    PD_VALPRINT("ArcLeftDarc", pd.ArcLeftDarcs());
-//    PD_VALPRINT("C_scratch", pd.C_scratch);
-//    PD_VALPRINT("A_scratch", pd.A_scratch);
+//    PD_VALPRINT("ArcLeftDarc", pd->ArcLeftDarcs());
+//    PD_VALPRINT("C_scratch", pd->C_scratch);
+//    PD_VALPRINT("A_scratch", pd->A_scratch);
     
     ++change_counter;
     
@@ -317,19 +317,19 @@ void WalkToBranch( mref<Int> a, mref<Int> p ) const
     // `a` is an arc.
     // `p` points to a position in `path`.
     
-    Int c = A_cross(a,headtail);
-    Int side = (C_arcs(c,headtail,Right) == a);
+    Int c = pd->A_cross(a,headtail);
+    Int side = (pd->C_arcs(c,headtail,Right) == a);
     Int b = path[p];
     
     while(
-        (C_arcs(c,headtail,!side) == b)
+        (pd->C_arcs(c,headtail,!side) == b)
         ||
-        (C_arcs(c,!headtail,side) == b)
+        (pd->C_arcs(c,!headtail,side) == b)
     )
     {
-        a = C_arcs(c,!headtail,!side);
-        c = A_cross(a,headtail);
-        side = (C_arcs(c,headtail,Right) == a);
+        a = pd->C_arcs(c,!headtail,!side);
+        c = pd->A_cross(a,headtail);
+        side = (pd->C_arcs(c,headtail,Right) == a);
         
         p = headtail ? p + Int(1) : p - Int(1);
         
@@ -353,27 +353,25 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
     PD_TIMER(timer,MethodName("RerouteToShortestPath_impl"));
     
     // We don't like loops of any kind here.
-    PD_ASSERT(pd.A_cross(a,Tail) != pd.A_cross(a,Head));
-    PD_ASSERT(pd.A_cross(b,Tail) != pd.A_cross(b,Head));
-    PD_ASSERT(pd.A_cross(a,Tail) != pd.A_cross(b,Tail));
-    PD_ASSERT(pd.A_cross(a,Tail) != pd.A_cross(b,Head));
-    PD_ASSERT(pd.A_cross(a,Head) != pd.A_cross(b,Tail));
-    PD_ASSERT(pd.A_cross(a,Head) != pd.A_cross(b,Head));
+    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(a,Head));
+    PD_ASSERT(pd->A_cross(b,Tail) != pd->A_cross(b,Head));
+    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Tail));
+    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Head));
+    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Tail));
+    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Head));
     
-    PD_ASSERT(pd.CheckAll());
-    PD_ASSERT(CheckDarcLeftDarc());
+    PD_ASSERT(pd->CheckAll());
     
     Int d;
     
-    if constexpr ( strategy == SearchStrategy_T::DijkstraLegacy )
+    if( strategy == Strategy_T::DijkstraLegacy )
     {
-        d = FindShortestPath_impl(a,b,max_dist);
+        d = FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
     }
     else
     {
-        d = FindShortestPath2_impl(a,b,max_dist);
+        d = FindShortestPath_impl(a,b,max_dist);
     }
-    
         
     if( (d < Int(0)) || (d > max_dist) )
     {
@@ -406,10 +404,10 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
 //     */
 //    
 //    std::array<Int,2> RerouteToShortestPath(
-//        const Int a, const Int b, bool overQ_
+//        mref<PD_T> pd_input, const Int a, const Int b, bool overQ_
 //    )
 //    {
-//        Prepare();
+//        Load(pd_input);
 //        ResetMark();
 //        SetStrandMode(overQ_);
 //        
