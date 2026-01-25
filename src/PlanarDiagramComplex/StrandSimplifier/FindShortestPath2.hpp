@@ -198,16 +198,13 @@ Exit:
     // It goes a,...,a_0,b_0,...,b
     
     PD_PRINT("Assembling path");
-    PD_VALPRINT("X_r",X_r);
-    PD_VALPRINT("Y_r",Y_r);
-    PD_VALPRINT("k",k);
 
     PD_VALPRINT("a",a);
     PD_VALPRINT("a_0",a_0);
     PD_VALPRINT("b_0",b_0);
     PD_VALPRINT("b",b);
     
-    PD_VALPRINT("D_data",D_data);
+//    PD_VALPRINT("D_data",D_data);
     
     PD_VALPRINT("a_0",a_0);
     PD_VALPRINT("b_0",b_0);
@@ -218,62 +215,88 @@ Exit:
     PD_VALPRINT("DualArcForwardQ(a_0)",DualArcForwardQ(a_0));
     PD_VALPRINT("DualArcForwardQ(b_0)",DualArcForwardQ(b_0));
     
-    std::vector<Int> path_0;
-    std::vector<Int> path_1;
+    std::vector<Int> X_path;
+    std::vector<Int> Y_path;
     
     PD_ASSERT(DualArcForwardQ(a_0) == Head);
     PD_ASSERT(DualArcForwardQ(b_0) == Tail);
     
     if( k == Int(0) ) { pd_eprint("k == Int(0)"); }
     
+    PD_VALPRINT("X_r",X_r);
+    PD_VALPRINT("Y_r",Y_r);
+    PD_VALPRINT("k",k);
+    PD_ASSERT(k == X_r + Y_r + Int(1));
+    
     if( (Int(1) <= k) && (k <= max_dist) )
     {
-        // The only way to get here with `d <= max_dist` is the `goto` above.
-        PD_PRINT("First part");
+        // The only way to get here with `k <= max_dist` is the `goto` above.
+        
+        path_length = k + Int(1);
+        Int e = a_0;
+        for( Int p = X_r + Int(1); p --> Int(0); )
         {
-            Int e = a_0;
-            while( e != a )
-            {
-                path_0.push_back(e);
-                e = DualArcFrom(e);
-            }
-            path_0.push_back(a);
+            path[p] = e;
+            e = DualArcFrom(e);
         }
+        PD_ASSERT(path[0] == a);
         
-        PD_PRINT("Second part");
+        e = b_0;
+        for( Int p = X_r + Int(1); p < path_length; ++p )
         {
-            Int e = b_0;
-            while( e != b )
-            {
-                path_1.push_back(e);
-                e = DualArcFrom(e);
-            }
-            path_1.push_back(b);
+            path[p] = e;
+            e = DualArcFrom(e);
         }
-        
-        PD_VALPRINT("path_0", path_0);
-        PD_VALPRINT("path_0.size()", path_0.size());
-        PD_VALPRINT("path_1", path_1);
-        PD_VALPRINT("path_1.size()", path_1.size());
-        
-        path_length = static_cast<Int>(path_0.size() + path_1.size());
-        
-        PD_VALPRINT("path_length", path_length);
-        
-        PD_PRINT("Merge");
-        for( Size_T i = 0; i < path_0.size(); ++i )
-        {
-            path[path_0.size()-1-i] = path_0[i];
-        }
-        path[0] = a; // Correcting the start arc.
-        
-        for( Size_T i = 0; i < path_1.size(); ++i )
-        {
-            path[path_0.size() + i] = path_1[i];
-        }
-        path[path_length-1] = b; // Correcting the start arc.
+        PD_ASSERT(path[k] == b);
         
         PD_VALPRINT("path", ArrayToString( &path[0], {path_length} ) );
+        
+//        PD_PRINT("X_path");
+//        {
+//            Int X_e = a_0;
+//            while( X_e != a )
+//            {
+//                X_path.push_back(X_e);
+//                X_e = DualArcFrom(X_e);
+//            }
+//            X_path.push_back(a);
+//        }
+//        PD_VALPRINT("X_path", X_path);
+//        PD_VALPRINT("X_path.size()", X_path.size());
+//        PD_ASSERT(std::cmp_equal(X_path.size(), X_r + Int(1)));
+//        
+//        PD_PRINT("Y_path");
+//        {
+//            Int Y_e = b_0;
+//            while( e != b )
+//            {
+//                Y_path.push_back(Y_e);
+//                Y_e = DualArcFrom(Y_e);
+//            }
+//            Y_path.push_back(b);
+//        }
+//        PD_VALPRINT("Y_path", Y_path);
+//        PD_VALPRINT("Y_path.size()", Y_path.size());
+//        PD_ASSERT(std::cmp_equal(Y_path.size(), Y_r + Int(1)));
+//        
+//        path_length = static_cast<Int>(X_path.size() + Y_path.size());
+//        
+//        PD_VALPRINT("path_length", path_length);
+//        
+//        PD_PRINT("Merge");
+//        for( Size_T i = 0; i < X_path.size(); ++i )
+//        {
+//            path[X_path.size()-1-i] = X_path[i];
+//        }
+//        path[0] = a; // Correcting the start arc.
+//        
+//        for( Size_T i = 0; i < Y_path.size(); ++i )
+//        {
+//            path[X_path.size() + i] = Y_path[i];
+//        }
+//        path[path_length-1] = b; // Correcting the end arc.
+//        
+//        PD_VALPRINT("path", ArrayToString( &path[0], {path_length} ) );
     }
     else
     {
@@ -423,32 +446,3 @@ bool SweepFront(
 
     return false;
 }
-
-
-
-
-
-
-//        path_length = d + Int(1);
-//
-//        {
-//            Int e = a_0;
-//            for( Int pos = X_r; pos >= Int(0); --pos ) // CAUTION: Unconventional loop.
-//            {
-//                path[pos] = e;
-//                e = D_from(e);
-//            }
-//        }
-//        {
-//            Int e = b_0;
-//            for( Int pos = X_r + Int(1); pos < path_length; ++pos )
-//            {
-//                path[pos] = e;
-//                e = D_from(e);
-//            }
-//        }
-//
-////        print("Is this right?");
-////        valprint("path", ArrayToString( &path[0], {path_length} ) );
-//        logprint("Is this right?");
-//        logvalprint("path", ArrayToString( &path[0], {path_length} ) );
