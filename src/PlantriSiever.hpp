@@ -1,9 +1,6 @@
 #pragma once
 
 #include "Reapr.hpp"
-#include <boost/unordered/unordered_set.hpp>
-#include <boost/container/flat_set.hpp>
-#include <boost/unordered/unordered_flat_set.hpp>
 
 namespace Knoodle
 {
@@ -86,16 +83,16 @@ namespace Knoodle
             }
         };
         
+        // These are the containers I tried.
 //        using CodeSet_T = std::set<Code_T,CodeLess>;
 //        using CodeSet_T = boost::container::flat_set<Code_T,CodeLess>;
 //        using CodeSet_T = boost::container::set<Code_T,CodeLess>;
         
 //        using CodeSet_T = std::unordered_set<Code_T,CodeHash>;
 //        using CodeSet_T = boost::unordered_set<Code_T,CodeHash>;
-        using CodeSet_T = boost::unordered_flat_set<Code_T,CodeHash>;
+//        using CodeSet_T = boost::unordered_flat_set<Code_T,CodeHash>;
         
-        
-        // TODO: Find faster alternative.
+        using CodeSet_T = SetContainer<Code_T,CodeHash>;
     
     private:
         

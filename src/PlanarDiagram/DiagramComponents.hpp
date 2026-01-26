@@ -12,7 +12,7 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
         // TODO: We could also use a Sparse::BinaryMatrix here.
         // TODO: But using an associative container might be faster because it uses much less memory.
         
-        SetContainer_T<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
+        SetContainer<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {

@@ -28,7 +28,7 @@ namespace Knoodle
 //        using LUT_T  = ankerl::unordered_dense::map<Key_T,ID_T,Hash_T>;
 //        using LUT_T =  boost::unordered_flat_map<Key_T,ID_T,Hash_T>;
         
-        using LUT_T =  AssociativeContainer_T<Key_T,ID_T,Hash_T>;
+        using LUT_T =  AssociativeContainer<Key_T,ID_T,Hash_T>;
 
         using Path_T  = std::filesystem::path;
         

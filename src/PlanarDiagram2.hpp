@@ -37,7 +37,7 @@ namespace Knoodle
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-        using ColorCounts_T             = AssociativeContainer_T<Int,Int>;
+        using ColorCounts_T             = AssociativeContainer<Int,Int>;
         
         using C_Arcs_T                  = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;

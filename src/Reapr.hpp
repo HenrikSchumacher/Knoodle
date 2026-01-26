@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../deps/pcg-cpp/include/pcg_random.hpp"
 #include "../submodules/Tensors/UMFPACK.hpp"
 
 #ifdef KNOODLE_USE_CLP
@@ -8,8 +7,6 @@
 #endif
 
 #include "OrthoDraw.hpp"
-
-#include <boost/unordered/unordered_flat_set.hpp>
 
 namespace Knoodle
 {
@@ -46,7 +43,7 @@ namespace Knoodle
         using Embedding_T         = RaggedList<Point_T,Int>;
 
         
-        using PRNG_T              = pcg64;
+        using PRNG_T              = Knoodle::PRNG_T;
         using Flag_T              = Scalar::Flag;
         
 
@@ -279,7 +276,7 @@ namespace Knoodle
                 {
                     return LevelsLP_CLP(pd);
                 }
-#endif
+#endif // KNOODLE_USE_CLP
                 case EnergyFlag_T::TV_MCF:
                 {
                     return LevelsLP_MCF(pd);

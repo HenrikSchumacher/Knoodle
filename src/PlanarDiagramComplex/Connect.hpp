@@ -20,7 +20,7 @@ PDC_T CreateConnected() const
     
 //    constexpr bool debugQ = true;
     
-    using ColorMap_T = AssociativeContainer_T<Int,Int>;
+    using ColorMap_T = AssociativeContainer<Int,Int>;
     
     const Int pd_count = static_cast<Int>(pd_list.size());
     
@@ -213,7 +213,7 @@ Int64 CreateConnectedFlag() const
 //    
 ////    constexpr bool debugQ = true;
 //    
-//    using ColorMap_T = AssociativeContainer_T<Int,Int>;
+//    using ColorMap_T = AssociativeContainer<Int,Int>;
 //    
 //    const Size_T pd_count = pd_list.size();
 //    
