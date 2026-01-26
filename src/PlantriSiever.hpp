@@ -218,7 +218,6 @@ namespace Knoodle
             
             const JobPointers job_ptr ( ToSize_T(input_count), thread_count );
             
-//            tic("Main loop");
             ParallelDo(
                 [&reapr, &job_ptr, rattle_iter, input, this]
                 ( Size_T thread )
@@ -234,7 +233,7 @@ namespace Knoodle
                     
                     const UInt64 i_max = (UInt64(1) << crossing_count );
                     
-                    PD_T::CrossingStateContainer_T C_state (crossing_count);
+                    typename PD_T::CrossingStateContainer_T C_state (crossing_count);
                     
                     CodeSet_T local_minimal_codes;
                     CodeSet_T local_other_codes;
@@ -301,9 +300,7 @@ namespace Knoodle
                 },
                 thread_count
             );
-//            toc("Main loop");
-            
-//            tic("Merge global_minimal_codes");
+
             // Take the union of all code sets of of proven minimal codes.
             global_minimal_codes = thread_minimal_codes[0];
             for( Size_T thread = 1; thread < thread_count; ++thread )
@@ -315,10 +312,7 @@ namespace Knoodle
 //                }
             }
             thread_minimal_codes = std::vector<CodeSet_T>();
-//            toc("Merge global_minimal_codes");
             
-//            tic("Merge global_other_codes");
-            // Some threads might not have proven minimality of some code, but other might. Thus, we check for each code whether it is proven minimal here.
             for( Size_T thread = 0; thread < thread_count; ++thread )
             {
                 for( auto & code : thread_other_codes[thread] )
@@ -334,7 +328,6 @@ namespace Knoodle
                 }
             }
             thread_other_codes = std::vector<CodeSet_T>();
-//            toc("Merge global_other_codes");
         }
 
 
@@ -351,7 +344,6 @@ namespace Knoodle
         static Code_T Code( cref<PD_T> pd )
         {
             Code_T code = { Scalar::Max<CodeInt> };
-//            Code_T code ( code_length, Scalar::Max<CodeInt> );
             
             pd.template WriteMacLeodCode<CodeInt>( &code[0] );
             
@@ -389,9 +381,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("ProvenMinimalCodes"));
             
-            Tensor2<CodeInt,Size_T> output (
-                global_minimal_codes.size(), OutputCodeSize()
-            );
+            Tensor2<CodeInt,Size_T> output ( global_minimal_codes.size(), OutputCodeSize() );
             
             WriteProvenMinimalCodes(output.data());
             
@@ -429,9 +419,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("OtherCodes"));
             
-            Tensor2<CodeInt,Size_T> output (
-                global_other_codes.size(), OutputCodeSize()
-            );
+            Tensor2<CodeInt,Size_T> output ( global_other_codes.size(), OutputCodeSize() );
             
             WriteOtherCodes(output.data());
             
