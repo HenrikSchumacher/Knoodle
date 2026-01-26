@@ -18,13 +18,13 @@ void BendingHessian_CollectTriples(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    std::string tag = ClassName()+"::BendingHessian_CollectTriples"
-    + "<" + TypeName<R>
-    + "," + TypeName<I>
-    + "," + TypeName<J>
-    + ">";
+    [[maybe_unused]] auto tag = [](){ return MethodName("BendingHessian_CollectTriples")
+        + "<" + TypeName<R>
+        + "," + TypeName<I>
+        + "," + TypeName<J>
+        + ">";};
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,tag());
     
     const Int m = pd.ArcCount();
     
@@ -32,7 +32,7 @@ void BendingHessian_CollectTriples(
     
     if( !std::in_range<I>(max_index) )
     {
-        eprint(tag + ": Type " + TypeName<I> + " is too small to store maximum index = " + ToString(max_index) + ". Aborting.");
+        eprint(tag() + ": Type " + TypeName<I> + " is too small to store maximum index = " + ToString(max_index) + ". Aborting.");
         return;
     }
     
@@ -40,7 +40,7 @@ void BendingHessian_CollectTriples(
     
     if( !std::in_range<J>(nnz) )
     {
-        eprint(tag + ": Type " + TypeName<J> + " is too small to store number of nonzero elements = " + ToString(nnz) + ". Aborting.");
+        eprint(tag() + ": Type " + TypeName<J> + " is too small to store number of nonzero elements = " + ToString(nnz) + ". Aborting.");
         return;
     }
     

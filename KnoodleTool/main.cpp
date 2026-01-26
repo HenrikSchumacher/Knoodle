@@ -20,6 +20,13 @@
  * See --help for full option list.
  */
 
+// Jason, you can let the compiler have the following flags defined
+//#define KNOODLE_USE_UMFPACK  // Support for the "Dirichlet" and "Bending" energies in Reapr.
+//#define KNOODLE_USE_CLP      // Support some LP problems in Reapr and OrthoDraw; inferior to MCF.
+//#define KNOODLE_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
+
+// Only KNOODLE_USE_BOOST_UNORDERED might be of some interest here because OrthoDraw and Reapr uses some of the containers provided by this a little. However, the containers sizes should be small in practive, so the corresponding fall back containers of the STL will be good enough. I doubt that anybody will measure some difference, but you are free to do so.
+
 #include "../Knoodle.hpp"
 #include "../src/OrthoDraw.hpp"
 #include "../Reapr.hpp"
@@ -38,9 +45,6 @@
 #include <variant>
 #include <vector>
 
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
-
 //==============================================================================
 // Type Aliases
 //==============================================================================
@@ -53,6 +57,7 @@ using Reapr_T     = Knoodle::Reapr<Real, Int>;
 using Link_T      = Knoodle::Link_2D<Real, Int, Real>;
 using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;
+using Flag_T      = Reapr_T::EnergyFlag_T;
 
 //==============================================================================
 // Configuration
@@ -66,15 +71,15 @@ namespace {
 struct Config
 {
     // Simplification options
-    int  simplify_level      = 6;      ///< Simplification level (3, 4, 5, or 6+)
-    Int  max_reapr_attempts  = 25;     ///< Max iterations for Reapr::Rattle
-    bool no_compaction       = false;  ///< Skip compaction in OrthoDraw (Reapr only)
-    std::optional<int> reapr_energy;   ///< Energy flag for Reapr (if set)
+    int  simplify_level      = 6;            ///< Simplification level (3, 4, 5, or 6+)
+    Int  max_reapr_attempts  = 25;           ///< Max iterations for Reapr::Rattle
+    bool no_compaction       = false;        ///< Skip compaction in OrthoDraw (Reapr only)
+    std::optional<Flag_T> reapr_energy;      ///< Energy flag for Reapr (if set)
     
     // Input options
-    std::vector<std::string> input_files;  ///< Input file paths
-    bool streaming_mode      = false;      ///< Read from stdin, write to stdout
-    bool randomize_projection = false;     ///< Apply random shear to 3D projection
+    std::vector<std::string> input_files;    ///< Input file paths
+    bool streaming_mode      = false;        ///< Read from stdin, write to stdout
+    bool randomize_projection = false;       ///< Apply random shear to 3D projection
     
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
@@ -299,7 +304,7 @@ bool ParseNumericLine(const std::string& line,
                       std::vector<Real>& values, 
                       bool& has_float)
 {
-    values.clear();
+    values.clear(); // Clearing the container without erasing it; values.size() will return 0.
     has_float = false;
     
     std::istringstream iss(line);
@@ -331,11 +336,27 @@ bool ParseNumericLine(const std::string& line,
 // Command-Line Parsing
 //==============================================================================
 
+std::string ValidEnergies()
+{
+    return std::string("TV, ")
+#ifdef KNOODLE_USE_UMFPACK
+    + "Dirichlet, "
+    + "Bending, "
+#endif
+    + "Height, "
+#ifdef KNOODLE_USE_CLP
+    + "TV_CLP, "
+#endif
+    + "TV_MCF";
+}
+    
 /**
  * @brief Print usage information.
  */
 void PrintUsage()
 {
+    
+    
     Log("Usage: knoodletool [options] [input_files...]");
     Log("");
     Log("Simplification options:");
@@ -349,7 +370,7 @@ void PrintUsage()
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
     Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
-    Log("                                TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
+    Log("                                " + ValidEnergies());
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
@@ -460,32 +481,32 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             
             if (energy_str == "tv")
             {
-                config.reapr_energy = 0;  // TV
+                config.reapr_energy = Flag_T::TV;
             }
             else if (energy_str == "dirichlet")
             {
-                config.reapr_energy = 1;  // Dirichlet
+                config.reapr_energy = Flag_T::Dirichlet;
             }
             else if (energy_str == "bending")
             {
-                config.reapr_energy = 2;  // Bending
+                config.reapr_energy = Flag_T::Bending;
             }
             else if (energy_str == "height")
             {
-                config.reapr_energy = 3;  // Height
+                config.reapr_energy = Flag_T::Height;
             }
             else if (energy_str == "tv_clp")
             {
-                config.reapr_energy = 4;  // TV_CLP
+                config.reapr_energy = Flag_T::TV_CLP;
             }
             else if (energy_str == "tv_mcf")
             {
-                config.reapr_energy = 5;  // TV_MCF
+                config.reapr_energy = Flag_T::TV_MCF;
             }
             else
             {
                 LogError("Unknown reapr energy: '" + std::string(arg.substr(15)) + "'");
-                LogError("Valid options: TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF");
+                LogError("Valid options: " + ValidEnergies());
                 return std::nullopt;
             }
         }
@@ -591,7 +612,7 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
  */
 PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
                          const Config& config,
-                         boost::random::mt19937& rng)
+                         Knoodle::PRNG_T& rng)
 {
     Int vertex_count = static_cast<Int>(vertices.size() / 3);
     
@@ -621,7 +642,7 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
     if (config.randomize_projection)
     {
         // Apply shear: (x, y, z) -> (x + eps_x * z, y + eps_y * z, z)
-        boost::random::uniform_real_distribution<Real> dist(-0.5, 0.5);
+        std::uniform_real_distribution<Real> dist(-0.5, 0.5);
         Real eps_x = dist(rng);
         Real eps_y = dist(rng);
         
@@ -696,7 +717,7 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
  */
 std::optional<InputKnot> ReadKnot(std::istream& input,
                                    const Config& config,
-                                   boost::random::mt19937& rng,
+                                   Knoodle::PRNG_T& rng,
                                    const std::string& source_name,
                                    bool& reached_eof)
 {
@@ -765,6 +786,11 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     };
     
     std::string line;
+    
+    std::vector<Real> values;
+    values.reserve(5); // We expect at most 5 elements per line, so we can allocate for that purpose.
+    // The container will be expanded automatically, if that does not suffice.
+    
     while (std::getline(input, line))
     {
         std::string cleaned = CleanLine(line);
@@ -794,7 +820,6 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         }
         
         // Parse as data line
-        std::vector<Real> values;
         bool has_float = false;
         
         if (!ParseNumericLine(cleaned, values, has_float))
@@ -943,9 +968,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 
                 if (config.reapr_energy.has_value())
                 {
-                    reapr.SetEnergyFlag(
-                        static_cast<Reapr_T::EnergyFlag_T>(*config.reapr_energy)
-                    );
+                    reapr.SetEnergyFlag(*config.reapr_energy);
                 }
                 
                 std::vector<PD_T> pd_list = reapr.Rattle(pd_in, config.max_reapr_attempts);
@@ -1087,15 +1110,9 @@ void WriteKnotReport(const InputKnot& input,
         
         if (config.reapr_energy.has_value())
         {
-            static const char* energy_names[] = {
-                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
-            };
-            int e = *config.reapr_energy;
-            if (e >= 0 && e <= 5)
-            {
-                level_str += ", energy: ";
-                level_str += energy_names[e];
-            }
+            level_str += ", energy: ";
+            // I alreay created an overload of the ToString function for this purpose.
+            level_str += Knoodle::ToString(*config.reapr_energy);
         }
         
         level_str += ")";
@@ -1210,15 +1227,10 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
         
         if (config.reapr_energy.has_value())
         {
-            static const char* energy_names[] = {
-                "TV", "Dirichlet", "Bending", "Height", "TV_CLP", "TV_MCF"
-            };
-            int e = *config.reapr_energy;
-            if (e >= 0 && e <= 5)
-            {
-                level_str += ", energy: ";
-                level_str += energy_names[e];
-            }
+            level_str += ", energy: ";
+            // I alreay created an overload of the ToString function for this purpose.
+            level_str += Knoodle::ToString(*config.reapr_energy);
+            
         }
         
         level_str += ")";
@@ -1338,7 +1350,7 @@ bool ProcessSource(std::istream& input,
                    const std::string& source_name,
                    std::ostream* output_stream,
                    const Config& config,
-                   boost::random::mt19937& rng,
+                   Knoodle::PRNG_T& rng,
                    ProcessingStats& stats,
                    bool& first_knot_in_output)
 {
@@ -1466,7 +1478,7 @@ int main(int argc, char* argv[])
     }
     
     // Initialize random number generator
-    boost::random::mt19937 rng(std::random_device{}());
+    Knoodle::PRNG_T rng = Knoodle::InitializedRandomEngine<Knoodle::PRNG_T>();
     
     // Statistics accumulator
     ProcessingStats stats;

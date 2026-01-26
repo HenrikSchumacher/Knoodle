@@ -69,7 +69,8 @@ namespace Knoodle
 //#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
                                 // Not favorable compared to Alexander_UMFPACK.hpp
 
-//#include "src/Alexander_UMFPACK.hpp" // Improved version of the former.
-
+//#ifdef KNOODLE_USE_UMFPACK
+//#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
+//#endif
 
 //#include "src/KnotLookupTable.hpp"
