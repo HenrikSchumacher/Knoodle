@@ -119,7 +119,7 @@ void Generate_impl(
 public:
 
 Tensor2<CodeInt,Size_T> Generate(
-    mref<PlanarDiagram<Int>> pd,
+    mref<PD_T> pd,
     const Int  output_n,              // max number of crossings of outputs
     const Int  permutation_count,
     const Int  rotation_count

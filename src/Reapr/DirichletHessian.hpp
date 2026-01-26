@@ -8,7 +8,7 @@ private:
 
 template<typename R = Real, typename I = Int, typename J = Int>
 void DirichletHessian_CollectTriples(
-    cref<PlanarDiagram<Int>> pd,
+    cref<PD_T> pd,
     mref<TripleAggregator<I,I,R,J>> agg,
     const I row_offset,
     const I col_offset
@@ -84,7 +84,7 @@ void DirichletHessian_CollectTriples(
 public:
 
 template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> DirichletHessian( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> DirichletHessian( cref<PD_T> pd ) const
 {
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");

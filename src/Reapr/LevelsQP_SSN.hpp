@@ -2,7 +2,7 @@ public:
 
 // Solve the linear-quadratic optimization problem with the semi-smooth Newton method.
 
-Tensor1<Real,Int> LevelsQP_SSN( cref<PlanarDiagram<Int>> pd )
+Tensor1<Real,Int> LevelsQP_SSN( cref<PD_T> pd )
 {
     auto x_mu = LevelsQP_SSN_LevelsAndLagrangeMultipliers(pd);
     
@@ -33,7 +33,7 @@ Tensor1<Real,Int> LevelsQP_SSN( cref<PlanarDiagram<Int>> pd )
 // Returns a vector that contains the levels _and_ the Lagrange multipliers.
 
 Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
-    cref<PlanarDiagram<Int>> pd
+    cref<PD_T> pd
 )
 {
     TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_LevelsAndLagrangeMultipliers");
@@ -173,7 +173,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
 public:
 
 template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
 {
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
@@ -227,7 +227,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PlanarDiagram<Int>> pd ) cons
 
 template<typename R = Real, typename I = Int, typename J = Int>
 void LevelsQP_SSN_WriteMatrixModifiedValues(
-    cref<PlanarDiagram<Int>> pd,
+    cref<PD_T> pd,
     mref<Sparse::MatrixCSR<R,I,J>> L,
     cptr<R> y,
     mptr<R> mod_vals

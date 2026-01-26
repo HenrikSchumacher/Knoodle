@@ -136,19 +136,19 @@ namespace Knoodle
         
     private:
         
-        EnergyFlag_T EnergyFlag( mref<PlanarDiagram<Int>> pd ) const
+        EnergyFlag_T EnergyFlag( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("EnergyFlag");
             
             return pd.GetCache(tag);
         }
         
-        bool EnergyFlagOutdatedQ( cref<PlanarDiagram<Int>> pd ) const
+        bool EnergyFlagOutdatedQ( cref<PD_T> pd ) const
         {
             return EnergyFlag(pd) != en_flag;
         }
         
-        void SetEnergyFlag( mref<PlanarDiagram<Int>> pd )
+        void SetEnergyFlag( mref<PD_T> pd )
         {
             const std::string tag = MethodName("EnergyFlag");
             
@@ -159,17 +159,17 @@ namespace Knoodle
         
     public:
         
-        void WriteReaprFeasibleLevels( cref<PlanarDiagram<Int>> pd, mptr<Real> x )
+        void WriteReaprFeasibleLevels( cref<PD_T> pd, mptr<Real> x )
         {
             
-            constexpr bool Tail  = PlanarDiagram<Int>::Tail;
-//            constexpr bool Head  = PlanarDiagram<Int>::Head;
+            constexpr bool Tail  = PD_T::Tail;
+//            constexpr bool Head  = PD_T::Head;
 
-            constexpr bool Out   = PlanarDiagram<Int>::Out;
-//            constexpr bool In    = PlanarDiagram<Int>::In;
+            constexpr bool Out   = PD_T::Out;
+//            constexpr bool In    = PD_T::In;
             
-            constexpr bool Left  = PlanarDiagram<Int>::Left;
-            constexpr bool Right = PlanarDiagram<Int>::Right;
+            constexpr bool Left  = PD_T::Left;
+            constexpr bool Right = PD_T::Right;
             
             const Int m        = pd.ArcCount();
             auto & C_arcs      = pd.Crossings();
@@ -245,7 +245,7 @@ namespace Knoodle
     public:
         
         template<typename R = Real, typename I = Int, typename J = Int>
-        Sparse::MatrixCSR<R,I,J> Hessian( cref<PlanarDiagram<Int>> pd ) const
+        Sparse::MatrixCSR<R,I,J> Hessian( cref<PD_T> pd ) const
         {
             switch ( en_flag )
             {

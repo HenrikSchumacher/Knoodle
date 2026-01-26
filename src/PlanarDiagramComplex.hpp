@@ -2,15 +2,7 @@
 
 namespace Knoodle
 {
-
-    // TODO: StrandSimplifier.
-    //      - "Big Hopf Link"
-    // TODO: SplitDiagramComponents.
-    // TODO: DisconnectSummands.
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
-    
-    // TODO: Need a way to express invalidity.
-    // TODO: LinkComponentCount.
     // TODO: ByteCount.
 
     template<typename Int_>

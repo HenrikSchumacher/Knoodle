@@ -1,5 +1,5 @@
 std::pair<Size_T,Tensor2<CodeInt,Size_T>> Generate(
-    mref<PlanarDiagram<Int>> pd,
+    mref<PD_T> pd,
     const Int  collection_threshold,
     const Int  simplification_threshold,
     const Int  branch_count,
@@ -42,7 +42,7 @@ private:
 
 Size_T Generate_Recursive(
     mref<CodeSet_T> code_set,
-    cref<PlanarDiagram<Int>> pd,
+    cref<PD_T> pd,
     const Int    collection_threshold,
     const Int    simplification_threshold,
     const Int    branch_count,
@@ -255,7 +255,7 @@ public:
 
 
 Tensor2<CodeInt,Size_T> Generate2(
-    mref<PlanarDiagram<Int>> pd,
+    mref<PD_T> pd,
     const Int  collection_threshold,
     const Int  simplification_threshold,
     const Int  attempt_count
@@ -292,7 +292,7 @@ private:
 
 void Generate2_impl(
     mref<CodeSet_T> code_set,
-    cref<PlanarDiagram<Int>> pd_0,
+    cref<PD_T> pd_0,
     const Int    collection_threshold,
     const Int    simplification_threshold,
     const Int    attempt_count
