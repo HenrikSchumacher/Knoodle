@@ -1,8 +1,11 @@
+#define KNOODLE_USE_BOOST_UNORDERED
+
 //#define TENSORS_BOUND_CHECKS
 
 //#define TOOLS_ENABLE_PROFILER
 //#define PD_DEBUG
 //#define PD_VERBOSE
+
 
 
 #include "../Knoodle.hpp"

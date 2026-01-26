@@ -36,7 +36,9 @@ using CodeInt      = ToUnsigned<Int>;
 using Code_T       = Tensor1<CodeInt,Int>;
 using Hash_T       = Tensor1Hash<CodeInt,Int>;
 //using CodeSet_T    = std::unordered_set<Code_T,Hash_T>;
-using CodeSet_T    = boost::unordered_flat_set<Code_T,Hash_T>;
+//using CodeSet_T    = boost::unordered_flat_set<Code_T,Hash_T>;
+
+using CodeSet_T    = SetContainer_T<Code_T,Hash_T>;
 
 // 0 can never occurs as entry of a MacLeodCode, so we can use it as filler.
 static constexpr CodeInt code_filler = CodeInt(0);
