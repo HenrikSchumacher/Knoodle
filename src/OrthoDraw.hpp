@@ -35,7 +35,7 @@ namespace Knoodle
     // TODO: What to do with multiple diagram components?
     // TODO: Get/setters for all settings.
     
-    template<typename Int_ = Int64>
+    template<class PD_T_>
     class OrthoDraw final : CachedObject
     {
     private:
@@ -43,9 +43,12 @@ namespace Knoodle
         using Base_T = CachedObject;
         
     public:
-        static_assert(SignedIntQ<Int_>,"");
         
-        using Int        = Int_;
+        using PD_T       = PD_T_;
+        using Int        = PD_T::Int;
+        
+        // TODO: Are signed integers really necessary here?
+        static_assert(SignedIntQ<Int>,"");
         
         using UInt       = UInt32;
         using Dir_T      = UInt8;
@@ -136,7 +139,7 @@ namespace Knoodle
         using VertexFlagContainer_T = Tensor1<VertexFlag_T,Int>;
         using EdgeFlagContainer_T   = Tiny::VectorList_AoS<2,EdgeFlag_T,Int>;
         using Vector_T              = Tiny::Vector<2,Int,Int>;
-        using PD_T                  = PlanarDiagram<Int>;
+//        using PD_T                  = PlanarDiagram<Int>;
         using CrossingContainer_T   = PD_T::CrossingContainer_T;
         using ArcContainer_T        = PD_T::ArcContainer_T;
         
@@ -188,7 +191,7 @@ namespace Knoodle
 
         template<typename ExtInt>
         OrthoDraw(
-            cref<PlanarDiagram<ExtInt>> pd,
+            cref<PD_T> pd,
             const ExtInt exterior_region_ = ExtInt(-1),
             Settings_T settings_ = Settings_T()
         )
@@ -659,7 +662,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("OrthoDraw<") + TypeName<Int> + ">";
+            return std::string("OrthoDraw<") + PD_T::ClassName() + ">";
         }
         
     }; // class OrthoDraw

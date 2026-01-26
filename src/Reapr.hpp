@@ -41,7 +41,7 @@ namespace Knoodle
         using Link_T              = Link_2D<Real,Int>;
         using PD_T                = PlanarDiagram<Int>;
         using Point_T             = std::array<Real,3>;
-        using OrthoDraw_T         = OrthoDraw<Int>;
+        using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
         using Embedding_T         = RaggedList<Point_T,Int>;
 

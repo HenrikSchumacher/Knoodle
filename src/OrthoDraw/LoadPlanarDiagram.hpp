@@ -1,12 +1,12 @@
 private:
 
-template<bool debugQ = false, bool verboseQ = false, typename ExtInt>
+template<bool debugQ = false, bool verboseQ = false>
 void LoadPlanarDiagram(
-    cref<PlanarDiagram<ExtInt>> pd,
-    const ExtInt exterior_region_
+    cref<PD_T> pd,
+    const Int exterior_region_
 )
 {
-    std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<ExtInt> + ">";
+    std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">";
     
     TOOLS_PTIMER(timer,tag);
     
@@ -106,7 +106,7 @@ void LoadPlanarDiagram(
 
     const Int r_count = R_dA.SublistCount();
     
-    for( ExtInt r = 0; r < r_count; ++r )
+    for( Int r = 0; r < r_count; ++r )
     {
         Int r_size = R_dA.SublistSize(r);
         
@@ -149,9 +149,9 @@ void LoadPlanarDiagram(
     mptr<Dir_T> C_dir = reinterpret_cast<Dir_T *>(V_scratch.data());
     fill_buffer( C_dir, NoDir, C_A.Dim(0));
     
-    using DarcNode = PlanarDiagram<ExtInt>::DarcNode;
+    using DarcNode = PD_T::DarcNode;
     
-    constexpr ExtInt UninitializedArc = PlanarDiagram<ExtInt>::Uninitialized;
+    constexpr Int UninitializedArc = PD_T::Uninitialized;
     
     // Tell each crossing what its absolute orientation is.
     // This would be hard to parallelize
@@ -166,8 +166,8 @@ void LoadPlanarDiagram(
             {
                 auto [a,d] = FromDarc(A.da);
 
-                const ExtInt c_0  = A.tail;
-                const ExtInt c_1  = A.head;
+                const Int c_0  = A.tail;
+                const Int c_1  = A.head;
                 const bool   io_0 = !d;
                 const bool   lr_0 = (C_A(c_0,io_0,Right) == a);
                 
@@ -256,15 +256,13 @@ void LoadPlanarDiagram(
     
     for( Int a = 0; a < A_count; ++a )
     {
-        ExtInt a_ = static_cast<ExtInt>(a);
-        
-        if( !pd.ArcActiveQ(a_) ) { continue; }
+        if( !pd.ArcActiveQ(a) ) { continue; }
         
         E_flag (a,Tail) = EdgeActiveMask;
         E_flag (a,Head) = EdgeActiveMask;
         
-        A_overQ(a,Tail) = pd.ArcOverQ(a_,Tail); // pd needed
-        A_overQ(a,Head) = pd.ArcOverQ(a_,Head); // pd needed
+        A_overQ(a,Tail) = pd.ArcOverQ(a,Tail); // pd needed
+        A_overQ(a,Head) = pd.ArcOverQ(a,Head); // pd needed
     }
     
     // From here on we do not need pd itself anymore. But we need the temporarily created C_dir buffer whose initialization requires a pd object (because of DepthFirstSearch).

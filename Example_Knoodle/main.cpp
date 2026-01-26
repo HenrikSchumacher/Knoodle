@@ -5,7 +5,7 @@
 
 using Int         = std::int64_t;                 // integer type used, e.g., for indices
 using PD_T        = Knoodle::PlanarDiagram<Int>;
-using OrthoDraw_T = Knoodle::OrthoDraw<Int>;
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Reapr_T     = Knoodle::Reapr<double,Int>;
 
 int main()
@@ -180,7 +180,7 @@ int main()
             
             Tools::valprint( "No. of crossings",  p.CrossingCount() );
             
-            // Create an orthogonal layout for the currect knot diagram.
+            // Create an orthogonal layout for the current knot diagram.
             OrthoDraw_T H ( p, Int(-1), plot_settings );
             
             // Print PD code to command line.

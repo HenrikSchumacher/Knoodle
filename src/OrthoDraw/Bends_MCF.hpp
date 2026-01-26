@@ -1,6 +1,6 @@
-template<typename ExtInt, typename ExtInt2>
+template<typename ExtInt2>
 Tensor1<Turn_T,Int> Bends_MCF(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     const ExtInt2 ext_region = -1
 )
 {
@@ -10,7 +10,7 @@ Tensor1<Turn_T,Int> Bends_MCF(
     
     TOOLS_PTIMER(timer,tag);
     
-    ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
+    Int ext_region_ = int_cast<Int>(ext_region);
     
     using MCFSimplex_T = MCF::MCFSimplex;
     using R = MCFSimplex_T::FNumber;
@@ -28,7 +28,7 @@ Tensor1<Turn_T,Int> Bends_MCF(
         }
     }
     
-    cptr<ExtInt> dA_F = pd.ArcFaces().data();
+    cptr<Int> dA_F = pd.ArcFaces().data();
     auto A_idx = Bends_ArcIndices(pd);
     
     const I n = Bends_ConCount<I>(pd);
@@ -37,9 +37,9 @@ Tensor1<Turn_T,Int> Bends_MCF(
     Tensor1<I,I> tails     (m);
     Tensor1<I,I> heads     (m);
 
-    const ExtInt a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.Arcs().Dim(0);
     
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
@@ -80,18 +80,18 @@ Tensor1<Turn_T,Int> Bends_MCF(
     
     mcf.SolveMCF();
 
-    Tensor1<R,ExtInt> s ( ExtInt(2) * a_count );
+    Tensor1<R,Int> s ( Int(2) * a_count );
 
     mcf.MCFGetX(s.data());
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
 
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            const ExtInt tail = A_idx(a,0);
-            const ExtInt head = A_idx(a,1);
+            const Int tail = A_idx(a,0);
+            const Int head = A_idx(a,1);
             bends[a] = static_cast<Turn_T>(std::round(s[head] - s[tail]));
         }
         else

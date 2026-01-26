@@ -48,7 +48,7 @@
 using Int         = std::int64_t;
 using Real        = double;
 using PD_T        = Knoodle::PlanarDiagram<Int>;
-using OrthoDraw_T = Knoodle::OrthoDraw<Int>;
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Reapr_T     = Knoodle::Reapr<Real, Int>;
 using Link_T      = Knoodle::Link_2D<Real, Int, Real>;
 using Clock       = std::chrono::steady_clock;
@@ -937,7 +937,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 if (config.no_compaction)
                 {
                     auto settings = reapr.OrthoDrawSettings();
-                    settings.compaction_method = Knoodle::OrthoDraw<Int>::CompactionMethod_T::Unknown;
+                    settings.compaction_method = OrthoDraw_T::CompactionMethod_T::Unknown;
                     reapr.SetOrthoDrawSettings(settings);
                 }
                 
