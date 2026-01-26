@@ -1,19 +1,39 @@
 #pragma once
 
-#include <unordered_set>
-#include <unordered_map>
+#ifdef KNOODLE_USE_BOOST_UNORDERED
+    #include <boost/unordered/unordered_flat_map.hpp>
+    #include <boost/unordered/unordered_flat_set.hpp>
+#else
+    #include <unordered_map>
+    #include <unordered_set>
+#endif
+
+
+//#include <boost/unordered/unordered_set.hpp>
+//#include <boost/container/flat_set.hpp>
 
 namespace Knoodle
 {
-    // TODO: Replace by boost::unordered_flat_map?
+#ifdef KNOODLE_USE_BOOST_UNORDERED
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
-    using AssociativeContainer_T = typename std::unordered_map<Key_T,Val_T,Hash_T>;
+    using AssociativeContainer = boost::unordered_flat_map<Key_T,Val_T,Hash_T>;
+#else
+    template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
+    using AssociativeContainer = std::unordered_map<Key_T,Val_T,Hash_T>;
+#endif
+    
+    
+#ifdef KNOODLE_USE_BOOST_UNORDERED
+    template<typename Key_T, typename Hash_T = Tools::hash<Key_T>>
+    using SetContainer = boost::unordered_flat_set<Key_T,Hash_T>;
+#else
+    template<typename Key_T, typename Hash_T = Tools::hash<Key_T>>
+    using SetContainer = std::unordered_set<Key_T,Hash_T>;
+#endif
     
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
     TOOLS_FORCE_INLINE void AddTo(
-        mref<AssociativeContainer_T<Key_T,Val_T,Hash_T>> a,
-        cref<Key_T> key,
-        cref<Val_T> val
+        mref<AssociativeContainer<Key_T,Val_T,Hash_T>> a, cref<Key_T> key, cref<Val_T> val
     )
     {
         static_assert(Tools::IntQ<Val_T>,"");
@@ -29,8 +49,7 @@ namespace Knoodle
     
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
     TOOLS_FORCE_INLINE void Increment(
-        mref<AssociativeContainer_T<Key_T,Val_T,Hash_T>> a,
-        cref<Key_T> key
+        mref<AssociativeContainer<Key_T,Val_T,Hash_T>> a, cref<Key_T> key
     )
     {
         static_assert(Tools::IntQ<Val_T>,"");
@@ -39,8 +58,7 @@ namespace Knoodle
     
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
     TOOLS_FORCE_INLINE void Decrement(
-        mref<AssociativeContainer_T<Key_T,Val_T,Hash_T>> a,
-        cref<Key_T> key
+        mref<AssociativeContainer<Key_T,Val_T,Hash_T>> a, cref<Key_T> key
     )
     {
         static_assert(Tools::IntQ<Val_T>,"");
@@ -48,7 +66,7 @@ namespace Knoodle
     }
     
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>
-    std::string ToString( cref<AssociativeContainer_T<Key_T,Val_T,Hash_T>> a )
+    std::string ToString( cref<AssociativeContainer<Key_T,Val_T,Hash_T>> a )
     {
         std::string s ("{ ");
         
@@ -100,16 +118,11 @@ namespace Knoodle
     
     template<typename Int, typename Scal>
     using MatrixTripleContainer_T
-    = AssociativeContainer_T<IndexPair_T<Int>, Scal, IndexPairHash_T<Int>>;
+            = AssociativeContainer<IndexPair_T<Int>, Scal, IndexPairHash_T<Int>>;
     
-    
-    
-    // TODO: Replace by boost::unordered_flat_map?
-    template<typename Key_T, typename Hash_T = Tools::hash<Key_T>>
-    using SetContainer_T = typename std::unordered_set<Key_T,Hash_T>;
     
     template<typename Key_T, typename Hash_T = Tools::hash<Key_T>>
-    std::string ToString( cref<SetContainer_T<Key_T,Hash_T>> set )
+    std::string ToString( cref<SetContainer<Key_T,Hash_T>> set )
     {
         std::string s ("{ ");
         
@@ -140,7 +153,7 @@ namespace Knoodle
         typename Hash_T = Tools::hash<S>,
         class = typename std::enable_if_t<mma::HasTypeQ<S>>
     >
-    inline mma::TensorRef<mma::Type<S>> to_MTensorRef( cref<SetContainer_T<S,Hash_T>> source )
+    inline mma::TensorRef<mma::Type<S>> to_MTensorRef( cref<SetContainer<S,Hash_T>> source )
     {
         using T = mma::Type<S>;
         auto r = mma::makeVector<T>( int_cast<mint>(source.size()) );

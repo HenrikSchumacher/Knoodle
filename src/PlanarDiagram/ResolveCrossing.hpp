@@ -8,9 +8,9 @@ private:
  */
 
 template<bool warningQ = false>
-bool Private_ResolveCrossing( const Int c )
+bool ResolveCrossing_Private( const Int c )
 {
-    PD_PRINT(ClassName()+"::Private_ResolveCrossing");
+    PD_PRINT(ClassName()+"::ResolveCrossing_Private");
     PD_VALPRINT("c",c);
     
     PD_ASSERT(CrossingActiveQ(c));
@@ -76,7 +76,7 @@ bool Private_ResolveCrossing( const Int c )
     {
         if constexpr ( warningQ )
         {
-            wprint(ClassName()+"::Private_ResolveCrossing: Crossing " + CrossingString(c) + " was already deactivated.");
+            wprint(ClassName()+"::ResolveCrossing_Private: Crossing " + CrossingString(c) + " was already deactivated.");
         }
         return false;
     }
@@ -96,7 +96,7 @@ public:
 template<bool warningQ = true>
 bool ResolveCrossing( const Int c )
 {
-    bool changedQ = this->template Private_ResolveCrossing<warningQ>(c);
+    bool changedQ = this->template ResolveCrossing_Private<warningQ>(c);
     
     if( changedQ )
     {

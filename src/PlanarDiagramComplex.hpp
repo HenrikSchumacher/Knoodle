@@ -2,15 +2,7 @@
 
 namespace Knoodle
 {
-
-    // TODO: StrandSimplifier.
-    //      - "Big Hopf Link"
-    // TODO: SplitDiagramComponents.
-    // TODO: DisconnectSummands.
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
-    
-    // TODO: Need a way to express invalidity.
-    // TODO: LinkComponentCount.
     // TODO: ByteCount.
 
     template<typename Int_>
@@ -35,7 +27,10 @@ namespace Knoodle
         using A_Cross_T             = typename PD_T::A_Cross_T;
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
-                
+        
+        using StrandSimplifier_T    = StrandSimplifier2<Int,true,true>;
+        using Strategy_T            = typename StrandSimplifier_T::Strategy_T;
+        
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -57,6 +52,7 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,2,false>;
         friend class ArcSimplifier2<Int,3,false>;
         friend class ArcSimplifier2<Int,4,false>;
+        
         friend class StrandSimplifier2<Int,true ,true >;
         friend class StrandSimplifier2<Int,true ,false>;
         friend class StrandSimplifier2<Int,false,true >;
@@ -216,10 +212,17 @@ namespace Knoodle
             return count;
         }
         
-        Int MaxCrossingCount() const
+        Int TotalMaxCrossingCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.MaxCrossingCount(); }
+            return count;
+        }
+        
+        Int MaxMaxCrossingCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.MaxCrossingCount()); }
             return count;
         }
         
@@ -230,16 +233,23 @@ namespace Knoodle
             return count;
         }
         
-        Int MaxArcCount() const
+        Int TotalMaxArcCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
             return count;
         }
         
+        Int MaxMaxArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.MaxArcCount()); }
+            return count;
+        }
+        
         
     private:
-        
+
         // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
         void CreateUnlink( const Int color )
         {
@@ -360,10 +370,16 @@ namespace Knoodle
             return PD_T::FromDarc(da);
         }
         
+        static Int ArcOfDarc( const Int da )
+        {
+            return PD_T::ArcOfDarc(da);
+        }
+        
         static Int FlipDarc( const Int da )
         {
             return PD_T::FlipDarc(da);
         }
+        
         
     
         Size_T RemoveLoopArcs()
@@ -458,6 +474,30 @@ namespace Knoodle
             return total_counter;
         }
 
+
+        mref<StrandSimplifier_T> StrandSimplifier( const Strategy_T strategy = Strategy_T::TwoSided )
+        {
+            if( !this->InCacheQ("StrandSimplifier") )
+            {
+                this->SetCache("StrandSimplifier", StrandSimplifier_T(*this,strategy));
+            }
+
+            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetStrategy(strategy);
+        }
+        
+        Tensor1<Int,Int> FindShortestPath(
+            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
+        )
+        {
+            return StrandSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
+        }
+        
+        Tensor1<Int,Int> FindShortestRerouting(
+            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
+        )
+        {
+            return StrandSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
+        }
        
     public:
         

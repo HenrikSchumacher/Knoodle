@@ -43,6 +43,8 @@ bool a_is_2loop()
                 
                 DeactivateArc(n_0);
                 DeactivateArc(s_0);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 
                 if( o_0 == o_1 )
                 {
@@ -71,6 +73,8 @@ bool a_is_2loop()
                 
                 Reconnect(s_0,u_0,s_1);
                 DeactivateArc(n_0);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 
                 if( o_0 == o_1 )
                 {
@@ -102,6 +106,8 @@ bool a_is_2loop()
                 
                 Reconnect(n_1,u_0,n_0);
                 DeactivateArc(s_0);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 
                 if( o_0 == o_1 )
                 {
@@ -129,6 +135,8 @@ bool a_is_2loop()
                 
                 Reconnect(n_1,u_0,n_0);
                 Reconnect(s_0,u_0,s_1);
+                DeactivateCrossing(c_0);
+                DeactivateCrossing(c_1);
                 
                 if( o_0 == o_1 )
                 {
@@ -138,12 +146,10 @@ bool a_is_2loop()
                 else
                 {
                     PD_NOTE(MethodName("a_is_2loop")+": Disconnected a Hopf link and a further subdiagram as connected summand.");
-                    CreateHopfLinkFromArcs(a,s_0,c_0_state);
+                    CreateHopfLinkFromArcs(n_0,a,c_0_state);
                 }
             }
         }
-        DeactivateCrossing(c_0);
-        DeactivateCrossing(c_1);
         
         return true;
     }

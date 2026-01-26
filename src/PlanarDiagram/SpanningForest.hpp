@@ -63,12 +63,12 @@ void ComputeSpanningForest()
         eprint(MethodName("ComputeSpanningForest")+": tree_darcs.Size() > ArcCount().");
     }
 
-    this->SetCache( "DiagramComponentCount", roots.Size()               );
-    this->SetCache( "CrossingPreOrdering",   C_pre.Disband()            );
-    this->SetCache( "CrossingPostOrdering",  C_post.Disband()           );
-    this->SetCache( "SpanningForestDarcs",   tree_darcs.Disband()       );
-    this->SetCache( "SpanningForestRoots",   roots.Disband()            );
-    this->SetCache( "DFSArcOrdering",        discovered_arcs.Disband()  );
+    this->template SetCache<false>( "DiagramComponentCount", roots.Size()               );
+    this->template SetCache<false>( "CrossingPreOrdering",   C_pre.Disband()            );
+    this->template SetCache<false>( "CrossingPostOrdering",  C_post.Disband()           );
+    this->template SetCache<false>( "SpanningForestDarcs",   tree_darcs.Disband()       );
+    this->template SetCache<false>( "SpanningForestRoots",   roots.Disband()            );
+    this->template SetCache<false>( "DFSArcOrdering",        discovered_arcs.Disband()  );
 }
 
 

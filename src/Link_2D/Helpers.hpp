@@ -78,7 +78,6 @@ private:
         }
     }
 
-
     Int DegenerateEdgeCount() const
     {
         Int counter = 0;

@@ -246,6 +246,9 @@ bool R_I_left()
         AssertCrossing<0>(c_0);
         AssertCrossing<0>(c_1);
         
+        PD_ASSERT(pd.CrossingCount()== Int(0));
+        pd = PD_T::InvalidDiagram();
+        
         return true;
     }
     

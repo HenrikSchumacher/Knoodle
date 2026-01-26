@@ -1,34 +1,75 @@
 private:
 
-std::string ArcRangeString( const Int a_begin, const Int a_end ) const
+/*!@brief Creates string with the details of the range of arcs from `a` (included) to `b` (included). Caution: It is assumed implicitly that `a` and `b` lie on the same link component.
+ */
+std::string ArcRangeString( const Int a, const Int b ) const
 {
     PD_PRINT(MethodName("ArcRangeString"));
     std::string s;
 
-    Int a = a_begin;
+    Int e = a;
     Int i = 0;
     
-    s += ToString(0) + " : " + CrossingString(A_cross(a,Tail)) + ")\n"
-       + ToString(0) + " : " + ArcString(a)
-       + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
-    + ToString(1) + " : " + CrossingString(A_cross(a,Head)) + "\n";
+    s += ToString(0) + " : " + CrossingString(A_cross(e,Tail)) + "\n\t"
+       + ToString(0) + " : " + ArcString(e)
+       + " (" + (ArcOverQ(e,Head) ? "over" : "under") + ")\n"
+    + ToString(1) + " : " + CrossingString(A_cross(e,Head)) + "\n\t";
 
     do
     {
         ++i;
-        a = NextArc(a,Head);
-        s += ToString(i  ) + " : " +  ArcString(a)
-           + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
-            + ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
+        e = NextArc(e,Head);
+        s += ToString(i  ) + " : " +  ArcString(e)
+           + " (" + (ArcOverQ(e,Head) ? "over" : "under") + ")\n"
+            + ToString(i+1) + " : " +  CrossingString(A_cross(e,Head)) + "\n\t";
     }
-    while( a != a_end );
+    while( (e != b) && (i <= pd->arc_count) );
     
-    return s;
+    if( i > pd->arc_count)
+    {
+        wprint(MethodName("ArcRangeString") + ": " + ArcString(a) + " and " + ArcString(b) + " do not lie on the same link component.");
+        return "Failed.";
+    }
+    else
+    {
+        return s;
+    }
+}
+
+std::string ShortArcRangeString( const Int a, const Int b ) const
+{
+//    PD_PRINT(MethodName("ShortArcRangeString"));
+    std::string s;
+
+    Int e = a;
+    Int i = 0;
+    
+    s += "{ " + ToString(e);
+
+    do
+    {
+        ++i;
+        e = NextArc(e,Head);
+        s += ", " +  ToString(e);
+    }
+    while( (e != b) && (i <= pd->arc_count) );
+    
+    s += " }";
+    
+    if( i > pd->arc_count)
+    {
+        wprint(MethodName("ShortArcRangeString") + ": " + ArcString(a) + " and " + ArcString(b) + " do not lie on the same link component.");
+        return "Failed.";
+    }
+    else
+    {
+        return s;
+    }
 }
 
 std::string PathString()
 {
-    PD_PRINT(MethodName("PathString"));
+//    PD_PRINT(MethodName("PathString"));
     
     if( path_length <= 0 )
     {
@@ -47,3 +88,11 @@ std::string PathString()
     
     return s;
 }
+
+std::string ShortPathString()
+{
+//    PD_PRINT(MethodName("ShortPathString"));
+    
+    return ArrayToString(&path[0],{path_length});
+}
+

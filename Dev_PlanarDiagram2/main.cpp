@@ -1,22 +1,22 @@
-#define TENSORS_BOUND_CHECKS
+#define KNOODLE_USE_BOOST_UNORDERED
 
-#define TOOLS_ENABLE_PROFILER
+//#define TENSORS_BOUND_CHECKS
+
+//#define TOOLS_ENABLE_PROFILER
 //#define PD_DEBUG
 //#define PD_VERBOSE
 
 
+
 #include "../Knoodle.hpp"
-//#include "../src/OrthoDraw.hpp"
+#include "../src/OrthoDraw.hpp"
 //#include "../Reapr.hpp"
 
 
 using Int         = std::int64_t;                 // integer type used, e.g., for indices
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
-
-//static constexpr Int infty = Knoodle::Scalar::Infty<Int>;
-
-//using OrthoDraw_T = Knoodle::OrthoDraw<Int>;
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 //using Reapr_T     = Knoodle::Reapr<double,Int>;
 
 
@@ -33,8 +33,9 @@ void print( const std::string & s )
 
 void PrintInfo( const PDC_T & pdc )
 {
-    
     valprint( "CrossingCount()", pdc.CrossingCount() );
+    valprint( "MaxMaxCrossingCount()", pdc.MaxMaxCrossingCount() );
+    valprint( "TotalMaxCrossingCount()", pdc.TotalMaxCrossingCount() );
     valprint( "DiagramCount()", pdc.DiagramCount() );
     for( Int i = 0; i < pdc.DiagramCount(); ++i )
     {
@@ -140,6 +141,8 @@ int main()
     {
         pdc.Simplify({
             .local_opt_level = 4,
+            .strategy        = Knoodle::SearchStrategy_T::TwoSided,
+            .min_dist        = 256,
             .disconnectQ     = true,
             .splitQ          = true,
             .compressQ       = true
@@ -171,6 +174,28 @@ int main()
 
     
 //    pdc.DisconnectDiagrams();
+    
+    // Graphics settings for ASCII art. (Move on, nothing to see here.)
+    OrthoDraw_T::Settings_T plot_settings {
+        .x_grid_size              = 8,
+        .y_grid_size              = 4,
+        .x_gap_size               = 1,
+        .y_gap_size               = 1
+    };
+
+    for( Int i = 0; i < pdc.DiagramCount(); ++ i )
+    {
+        const PD_T & pd = pdc.Diagram(i);
+        
+        Tools::print( "Connected component no. " + Tools::ToString(i) + ":" );
+        valprint("\tCrossingCount()", pd.CrossingCount());
+        // Create an orthogonal layout for the current knot diagram.
+        OrthoDraw_T H ( pd, Int(-1), plot_settings );
+        Tools::print(H.DiagramString());
+        Tools::print("");
+
+    }
+    
     
     return EXIT_SUCCESS;
 }

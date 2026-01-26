@@ -429,6 +429,18 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     return this->GetCache<Tensor1<Int,Int>>(tag);
 }
 
+bool CheckArcNextArc() const
+{
+    auto next = ArcNextArc();
+    
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        
+        if( next[a] != NextArc(a,Head) ) { return false; }
+    }
+    return true;
+}
 
 
 cref<Tensor1<Int,Int>> ArcPrevArc() const
@@ -455,4 +467,17 @@ cref<Tensor1<Int,Int>> ArcPrevArc() const
     }
     
     return this->GetCache<Tensor1<Int,Int>>(tag);
+}
+
+bool CheckArcPrevArc() const
+{
+    auto prev = ArcPrevArc();
+    
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        
+        if( prev[a] != NextArc(a,Tail) ) { return false; }
+    }
+    return true;
 }

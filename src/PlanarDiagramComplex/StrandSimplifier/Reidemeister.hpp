@@ -1,7 +1,7 @@
 private:
 
 /*! @brief Checks whether arc `a` is a loop arc. In the affirmative case it performs a Reidemeister I move and returns `true`. Otherwise, it returns `false`.
- *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Private_Reidemeister_I`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
+ *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Reidemeister_I_Private`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
  *
  * @param a The arc to check as possibly, to remove.
  *
@@ -11,11 +11,11 @@ private:
 template<bool checkQ>
 bool Reidemeister_I( const Int a )
 {
-    const Int c = A_cross(a,Head);
+    const Int c = pd->A_cross(a,Head);
     
     if constexpr( checkQ )
     {
-        if( A_cross(a,Tail) != c )
+        if( pd->A_cross(a,Tail) != c )
         {
             return false;
         }
@@ -25,15 +25,15 @@ bool Reidemeister_I( const Int a )
     
     // We assume here that we already know that a is a loop arc.
     
-    PD_ASSERT( A_cross(a,Tail) == c );
+    PD_ASSERT( pd->A_cross(a,Tail) == c );
     
     // const bool side = (C_arcs(c,In,Right) == a);
     
     // This allows a 50% chance that we do not have to load `C_arcs(c,In,Left)` again.
-    const bool side = (C_arcs(c,In,Left) != a);
+    const bool side = (pd->C_arcs(c,In,Left) != a);
     
-    const Int a_next = C_arcs(c,Out,!side);
-    const Int a_prev = C_arcs(c,In ,!side);
+    const Int a_next = pd->C_arcs(c,Out,!side);
+    const Int a_prev = pd->C_arcs(c,In ,!side);
     
     if( a_prev == a_next )
     {
@@ -84,19 +84,19 @@ bool Reidemeister_II_Backward(
     
     PD_DPRINT( MethodName("Reidemeister_II_Backward")+" at " + ArcString(a) );
     
-    const Int c_0 = A_cross(a,Tail);
+    const Int c_0 = pd->A_cross(a,Tail);
     
-    const bool side_0 = (C_arcs(c_0,Out,Right) == a);
+    const bool side_0 = (pd->C_arcs(c_0,Out,Right) == a);
     
-    //             a == C_arcs(c_0,Out, side_0)
-    //        a_prev == C_arcs(c_0,In ,!side_0)
-    const Int a_0_out = C_arcs(c_0,Out,!side_0);
-    const Int a_0_in  = C_arcs(c_0,In , side_0);
+    //             a == pd->C_arcs(c_0,Out, side_0)
+    //        a_prev == pd->C_arcs(c_0,In ,!side_0)
+    const Int a_0_out = pd->C_arcs(c_0,Out,!side_0);
+    const Int a_0_in  = pd->C_arcs(c_0,In , side_0);
     
-    //             a == C_arcs(c_1,In , side_1)
-    //        a_next == C_arcs(c_1,Out,!side_1)
-    const Int a_1_out = C_arcs(c_1,Out, side_1);
-    const Int a_1_in  = C_arcs(c_1,In ,!side_1);
+    //             a == pd->C_arcs(c_1,In , side_1)
+    //        a_next == pd->C_arcs(c_1,Out,!side_1)
+    const Int a_1_out = pd->C_arcs(c_1,Out, side_1);
+    const Int a_1_in  = pd->C_arcs(c_1,In ,!side_1);
     
     //             O a_0_out         O a_1_in
     //             ^                 |
@@ -112,7 +112,7 @@ bool Reidemeister_II_Backward(
     {
         PD_DPRINT("Detected Reidemeister II at ingoing port of " + CrossingString(c_1) + ".");
         
-        const Int a_prev = C_arcs(c_0,In,!side_0);
+        const Int a_prev = pd->C_arcs(c_0,In,!side_0);
         
         PD_ASSERT( a_0_in  != a_next );
         PD_ASSERT( a_1_in  != a_next );
@@ -167,7 +167,7 @@ bool Reidemeister_II_Backward(
     {
         PD_DPRINT("Detected Reidemeister II at outgoing port of " + CrossingString(c_1) + ".");
         
-        const Int a_prev = C_arcs(c_0,In,!side_0);
+        const Int a_prev = pd->C_arcs(c_0,In,!side_0);
         
         // This cannot happen because we called RemoveLoop.
         PD_ASSERT( a_0_out != a_prev );

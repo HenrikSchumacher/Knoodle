@@ -139,7 +139,7 @@ namespace Knoodle
         {
             if( pd.crossing_count == Int(0) )
             {
-                if( pd.ValidQ() ) { pd.proven_minimalQ = true; }
+                if( pd.ValidQ() ) { pd = PD_T::Unknot(pd.last_color_deactivated); }
             }
             
             if( pd.InvalidQ() || pd.ProvenMinimalQ()  ) { return 0; }

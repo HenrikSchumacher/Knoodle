@@ -10,9 +10,9 @@ public:
 
 // TODO: I have to filter out inactive crossings and inactive arcs!
 
-template<typename ExtInt, typename ExtInt2>
+template<typename ExtInt2>
 Tensor1<Turn_T,Int> Bends_CLP(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     const ExtInt2 ext_region = -1
 )
 {
@@ -20,7 +20,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
 
     TOOLS_PTIMER(timer,MethodName("Bends_CLP"));
     
-    ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
+    Int ext_region_ = int_cast<Int>(ext_region);
             
     {
         Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dim(0));
@@ -55,11 +55,11 @@ Tensor1<Turn_T,Int> Bends_CLP(
     
     auto A_idx = Bends_ArcIndices(pd);
     
-    const ExtInt a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.Arcs().Dim(0);
     
     if( settings.network_matrixQ )
     {
-        cptr<ExtInt> dA_F = pd.ArcFaces().data();
+        cptr<Int> dA_F = pd.ArcFaces().data();
         
         const I n = Bends_VarCount<I>(pd);
 //        const I m = Bends_ConCount<I>(pd);
@@ -67,7 +67,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
         Tensor1<COIN_Int,I> tails ( n );
         Tensor1<COIN_Int,I> heads ( n );
  
-        for( ExtInt a = 0; a < a_count; ++a )
+        for( Int a = 0; a < a_count; ++a )
         {
             if( !pd.ArcActiveQ(a) ) { continue; };
             
@@ -114,12 +114,12 @@ Tensor1<Turn_T,Int> Bends_CLP(
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            const ExtInt tail = A_idx(a,0);
-            const ExtInt head = A_idx(a,1);
+            const Int tail = A_idx(a,0);
+            const Int head = A_idx(a,1);
             bends[a] = s[head] - s[tail];
         }
         else

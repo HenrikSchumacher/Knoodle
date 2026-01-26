@@ -1,6 +1,6 @@
 private:
     
-/*!@brief Collapse the strand made by the arcs `a_begin, pd.NextArc(a_begin,Head),...,a_end` to a single arc. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that crossed this strand have to reconnected or deactivated.
+/*!@brief Collapse the strand made by the arcs `a_begin, pd->NextArc(a_begin,Head),...,a_end` to a single arc. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that crossed this strand have to reconnected or deactivated.
  *
  * @param a_begin First arc on strand to be collapsed.
  *
@@ -39,9 +39,9 @@ void CollapseArcRange(
     {
         ++iter;
         
-        const Int c = A_cross(a,Tail);
+        const Int c = pd->A_cross(a,Tail);
         
-        const bool side  = (C_arcs(c,Out,Right) == a);
+        const bool side  = (pd->C_arcs(c,Out,Right) == a);
         
         // side == Left         side == Right
         //
@@ -53,13 +53,14 @@ void CollapseArcRange(
         //         |                    |
         //         v                    |
 
-        const Int a_prev = C_arcs(c,In,!side);
-        const Int b_0 = C_arcs(c,In , side);
-        const Int b_1 = C_arcs(c,Out,!side);
+        const Int b_1    = pd->C_arcs(c,Out,!side);
+        const Int a_prev = pd->C_arcs(c,In,!side);
+        const Int b_0    = pd->C_arcs(c,In , side);
+        
         
         PD_ASSERT( b_0 != b_1 );
-        PD_ASSERT( A_mark[b_0] != A_mark[a] );
-        PD_ASSERT( A_mark[b_1] != A_mark[a] );
+        PD_ASSERT( !ArcMarkedQ(b_0) );
+        PD_ASSERT( !ArcMarkedQ(b_1) );
         Reconnect<Head>(b_0,b_1);
         
         DeactivateArc(a);
@@ -75,7 +76,7 @@ void CollapseArcRange(
     PD_ASSERT( iter <= arc_count_ );
 
     // a_end is already deactivated.
-    PD_ASSERT( !pd.ArcActiveQ(a_end) );
+    PD_ASSERT( !pd->ArcActiveQ(a_end) );
 
     Reconnect<Head,false>(a_begin,a_end);
     

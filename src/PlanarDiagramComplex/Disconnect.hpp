@@ -81,7 +81,7 @@ Size_T Disconnect( PD_T & pd )
     stack.reserve(f_max_size);
     
     using I = ToSigned<Int>; // security measure so that we do not decrement below 0 and wrap around.
-    AssociativeContainer_T<I,Int> f_counts;
+    AssociativeContainer<I,Int> f_counts;
     
     auto remove_loop = [&pd,dA_F,this]( const Int da )
     {

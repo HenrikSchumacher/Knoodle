@@ -2,7 +2,7 @@ public:
 
 
 template<typename T = Real>
-Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
+Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -133,7 +133,7 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PlanarDiagram<Int>> pd )
     return L;
 }
 
-cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PlanarDiagram<Int>> pd ) const
+cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PD_T> pd ) const
 {
     std::string tag (MethodName("LevelsLP_ArcIndices"));
     

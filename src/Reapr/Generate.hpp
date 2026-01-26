@@ -35,8 +35,7 @@ struct Tensor1Hash
 using CodeInt      = ToUnsigned<Int>;
 using Code_T       = Tensor1<CodeInt,Int>;
 using Hash_T       = Tensor1Hash<CodeInt,Int>;
-//using CodeSet_T    = std::unordered_set<Code_T,Hash_T>;
-using CodeSet_T    = boost::unordered_flat_set<Code_T,Hash_T>;
+using CodeSet_T    = SetContainer<Code_T,Hash_T>;
 
 // 0 can never occurs as entry of a MacLeodCode, so we can use it as filler.
 static constexpr CodeInt code_filler = CodeInt(0);
@@ -119,7 +118,7 @@ void Generate_impl(
 public:
 
 Tensor2<CodeInt,Size_T> Generate(
-    mref<PlanarDiagram<Int>> pd,
+    mref<PD_T> pd,
     const Int  output_n,              // max number of crossings of outputs
     const Int  permutation_count,
     const Int  rotation_count

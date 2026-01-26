@@ -142,10 +142,10 @@ void ComputeLinkComponents() const
      );
     
 //     LinkComponentCount is set by `Traverse`.
-    this->SetCache( "LinkComponentArcs", std::move(lc_arcs) );
-    this->SetCache( "ArcLinkComponents", std::move(A_lc)    );
-    this->SetCache( "ArcPositions",      std::move(A_pos)   );
-    this->SetCache( "ArcTraversalFlags", std::move(A_flags) );
+    this->template SetCache<false>( "LinkComponentArcs", std::move(lc_arcs) );
+    this->template SetCache<false>( "ArcLinkComponents", std::move(A_lc)    );
+    this->template SetCache<false>( "ArcPositions",      std::move(A_pos)   );
+    this->template SetCache<false>( "ArcTraversalFlags", std::move(A_flags) );
 }
 
 

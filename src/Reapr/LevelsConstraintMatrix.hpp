@@ -2,7 +2,7 @@ private:
 
 template<Op op = Op::Id, typename R = Real, typename I = Int, typename J = Int>
 void LevelsConstraintMatrix_CollectTriples(
-    cref<PlanarDiagram<Int>> pd,
+    cref<PD_T> pd,
     mref<TripleAggregator<I,I,R,J>> agg,
     const I row_offset,
     const I col_offset
@@ -99,7 +99,7 @@ void LevelsConstraintMatrix_CollectTriples(
 public:
 
 template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> LevelsConstraintMatrix( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsConstraintMatrix( cref<PD_T> pd ) const
 {
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");

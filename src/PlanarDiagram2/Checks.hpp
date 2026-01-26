@@ -309,7 +309,7 @@ bool CheckAll() const
 
 public:
 
-template<bool must_be_activeQ>
+template<bool must_be_activeQ = true>
 void AssertDarc( const Int da ) const
 {
 #ifdef PD_DEBUG

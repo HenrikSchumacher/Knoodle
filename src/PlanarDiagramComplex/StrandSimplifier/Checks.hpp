@@ -7,7 +7,7 @@ bool CheckDarcLeftDarc( const Int da )
     
     auto [a,dir] = PD_T::FromDarc(da);
     
-    if( !pd.ArcActiveQ(a) )
+    if( !pd->ArcActiveQ(a) )
     {
         if constexpr( must_be_activeQ )
         {
@@ -20,7 +20,7 @@ bool CheckDarcLeftDarc( const Int da )
         }
     }
     
-    const Int da_l_true = pd.LeftDarc(da);
+    const Int da_l_true = pd->LeftDarc(da);
     const Int da_l      = dA_left[da];
     
     if( da_l != da_l_true )
@@ -49,11 +49,9 @@ bool CheckDarcLeftDarc()
     
     std::vector<Int> duds;
     
-    const Int m = A_cross.Dim(0);
-    
-    for( Int a = 0; a < m; ++a )
+    for( Int a = 0; a < pd->max_crossing_count; ++a )
     {
-        if( pd.ArcActiveQ(a) )
+        if( pd->ArcActiveQ(a) )
         {
             const Int da = ToDarc(a,Head);
             
@@ -95,7 +93,7 @@ bool CheckDarcLeftDarc()
 private:
         
 
-bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
+bool CheckStrand( const Int a_begin, const Int a_end )
 {
     bool passedQ = true;
     
@@ -108,14 +106,16 @@ bool CheckStrand( const Int a_begin, const Int a_end, const Int max_arc_count )
         wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
     }
     
-    while( (a != a_end) && (arc_counter < max_arc_count ) )
+    const Int pd_max_arc_count = pd->max_arc_count;
+    
+    while( (a != a_end) && (arc_counter < pd_max_arc_count ) )
     {
         ++arc_counter;
         
-        passedQ = passedQ && (pd.ArcOverQ(a,Head) == overQ);
+        passedQ = passedQ && (pd->ArcOverQ(a,Head) == overQ);
         
         // We use the safe implementation of NextArc here.
-        a = pd.NextArc(a,Head);
+        a = pd->NextArc(a,Head);
     }
     
     if( a != a_end )

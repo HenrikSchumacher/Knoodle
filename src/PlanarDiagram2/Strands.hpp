@@ -1,20 +1,33 @@
 public:
 
-/*!
- * @brief Returns an array that tells every arc to which over-strand it belongs.
+/*!@brief Returns a RaggedList that contains the arcs that belong to every overstrand. The arcs are ordered as they are traversed in forward direction.
+ */
+
+RaggedList<Int,Int> OverStrandArcs() const
+{
+    return this->StrandArcs<true>();
+}
+
+/*!@brief Returns an array that tells every arc to which over-strand it belongs.
  *
  *  More precisely, arc `a` belongs to over-strand number `ArcOverStrands()[a]`.
- *
- *  (An over-strand is a maximal consecutive sequence of arcs that pass over.)
+ *  (An overstrand is a maximal consecutive sequence of arcs that pass over.)
  */
 
 Tensor1<Int,Int> ArcOverStrands() const
 {
-    return ArcStrands<true>();
+    return this->ArcStrands<true>();
 }
 
-/*!
- * @brief Returns an array that tells every arc to which under-strand it belongs.
+/*!@brief Returns a RaggedList that contains the arcs that belong to every understrand. The arcs are ordered as they are traversed in forward direction.
+ */
+
+RaggedList<Int,Int> UnderStrandArcs() const
+{
+    return this->StrandArcs<false>();
+}
+
+/*!@brief Returns an array that tells every arc to which under-strand it belongs.
  *
  *  More precisely, arc `a` belongs to under-strand number `ArcUnderStrands()[a]`.
  *
@@ -23,10 +36,36 @@ Tensor1<Int,Int> ArcOverStrands() const
 
 Tensor1<Int,Int> ArcUnderStrands() const
 {
-    return ArcStrands<false>();
+    return this->ArcStrands<false>();
 }
 
 private:
+
+template<bool overQ>
+RaggedList<Int,Int> StrandArcs() const
+{
+    TOOLS_PTIMER(timer, MethodName(overQ ? "Over" : "Under") + "StrandArcs");
+    
+    // Are these sizes optimal?
+    RaggedList<Int,Int> strand_arcs ( crossing_count, arc_count );
+    
+    this->template Traverse_ByNextArc<false,false,(overQ ? -1 : 1 )>(
+        [&strand_arcs,this]
+        ( const Int a, const Int a_pos, const Int lc )
+        {
+            (void)a_pos;
+            (void)lc;
+
+            strand_arcs.Push(a);
+
+            // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
+            if( ArcOverQ(a,Head) != overQ ) { strand_arcs.FinishSublist(); }
+        }
+    );
+    
+    return strand_arcs;
+}
+
 
 template<bool overQ>
 Tensor1<Int,Int> ArcStrands() const
@@ -66,7 +105,7 @@ public:
  */
 
 
-Tensor3<Int,Int> CrossingOverStrands() const
+CrossingContainer_T CrossingOverStrands() const
 {
     return CrossingStrands<true>();
 }
@@ -80,17 +119,19 @@ Tensor3<Int,Int> CrossingOverStrands() const
  *  (An under-strand is a maximal consecutive sequence of arcs that pass under.)
  */
 
-Tensor3<Int,Int> CrossingUnderStrands() const
+CrossingContainer_T CrossingUnderStrands() const
 {
     return CrossingStrands<false>();
 }
 
 template<bool overQ>
-Tensor3<Int,Int> CrossingStrands() const
+CrossingContainer_T CrossingStrands() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::Crossing" + (overQ ? "Over" : "Under") + "Strands");
     
-    Tensor3<Int,Int> C_strand ( max_crossing_count, 2, 2, -1 );
+//    CrossingContainer_T C_strand ( max_crossing_count, 2, 2, -1 );
+    
+    CrossingContainer_T C_strand ( max_crossing_count, -1 );
     
     Int strand = 0;
     
@@ -115,4 +156,3 @@ Tensor3<Int,Int> CrossingStrands() const
     
     return C_strand;
 }
-

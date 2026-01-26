@@ -6,10 +6,10 @@ void RepairDarcLeftDarc( const Int da )
     PD_PRINT("RepairDarcLeftDarc(" + ToString(da) +  ")");
     auto [a,dir ] = PD_T::FromDarc(da);
     
-    if( pd.ArcActiveQ(a) )
+    if( pd->ArcActiveQ(a) )
     {
-        const Int da_l = pd.LeftDarc(da);
-        const Int da_r = FlipDarc(pd.RightDarc(da));
+        const Int da_l = pd->LeftDarc(da);
+        const Int da_r = FlipDarc(pd->RightDarc(da));
         
 //                PD_DPRINT("RepairArcLeftArc touched a   = " + ArcString(a) + ".");
 //                PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(a_l) + ".");

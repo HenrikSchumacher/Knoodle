@@ -1,258 +1,29 @@
-private:
-    
-    /*!
-     * Run Dijkstra's algorithm to find the shortest path from arc `a_begin` to `a_end` in the graph G, where the vertices of G are the arcs and where there is an edge between two such vertices if the corresponding arcs share a common face.
-     *
-     * If an improved path has been found, its length is stored in `path_length` and the actual path is stored in the leading positions of `path`.
-     *
-     * @param a_begin  Starting arc.
-     *
-     * @param a_end    Final arc to which we want to find a path
-     *
-     * @param max_dist Maximal distance we want to travel
-     *
-     * @param mark    Indicator that is written to `D_mark`; this avoids having to erase the whole vector `D_from` for each new search. When we call this, we assume that `D_mark` contains only values different from `current_mark`.
-     *
-     */
-    
-    Int FindShortestPath_impl(
-        const Int a_begin, const Int a_end, const Int max_dist, const Mark_T mark
-    )
-    {
-        PD_TIMER(timer,MethodName("FindShortestPath_impl"));
-     
-#ifdef PD_TIMINGQ
-        const Time start_time = Clock::now();
-#endif
-        
-        PD_ASSERT(CheckDarcLeftDarc());
-        
-        PD_ASSERT( mark > Mark_T(0) );
-        
-        PD_ASSERT( a_begin != a_end );
-        
-        // Instead of a queue we use two stacks: One to hold the next front; and one for the previous (or current) front.
-        
-        next_front.Reset();
-        
-        // Push the arc `a_begin` twice onto the stack: once with forward orientation, once with backward orientation.
-        
-        next_front.Push( ToDarc(a_begin,Head) );
-        next_front.Push( ToDarc(a_begin,Tail) );
-        
-        D_mark(a_begin) = mark;
-        D_from(a_begin) = a_begin;
-        
-        // This is needed to prevent us from running in circles when cycling around faces.
-        // See comments below.
-        D_mark2[a_begin] = a_begin;
-        
-        Int d = 0;
-        
-        while( (d < max_dist) && (!next_front.EmptyQ()) )
-        {
-            // Actually, next_front must never become empty. Otherwise something is wrong.
-            std::swap( prev_front, next_front );
-            
-            next_front.Reset();
-            
-            // We don't want paths of length max_dist.
-            // The elements of prev_front have distance d.
-            // So the elements we push onto next_front will have distance d+1.
-            
-            ++d;
-
-            while( !prev_front.EmptyQ() )
-            {
-                const Int da_0 = prev_front.Pop();
-                
-                auto [a_0,d_0] = PD_T::FromDarc(da_0);
-                
-                // Now we run through the boundary arcs of the face using `dA_left` to turn always left.
-                // There is only one exception and that is when the arc we get to is part of the strand (which is when `A_mark(a) == mark`).
-                // Then we simply go straight through the crossing.
-
-                // arc a_0 itself does not have to be processed because that's where we are coming from.
-                Int da = dA_left[da_0];
-
-                do
-                {
-                    auto [a,dir] = PD_T::FromDarc(da);
-                    
-                    AssertArc<1>(a);
-                    
-                    const bool part_of_strandQ = (A_mark(a) == mark);
-
-                    // Check whether `a` has not been visited, yet.
-                    if( Abs(D_mark(a)) != mark )
-                    {
-                        if( a == a_end )
-                        {
-                            // Mark as visited.
-                            D_mark(a) = mark;
-                            
-                            // Remember from which arc we came
-                            D_from(a) = a_0;
-                            
-                            goto Exit;
-                        }
-                        
-                        PD_ASSERT( a != a_begin );
-                        
-                        if( part_of_strandQ )
-                        {
-                            // This arc is part of the strand itself, but neither a_begin nor a_end. We just skip it and do not make it part of the path.
-                        }
-                        else
-                        {
-                            // We make D_mark(a) positive if we cross arc `a` from left to right. Otherwise it is negative.
-                            
-                            D_mark(a) = dir ? mark : -mark;
-                            
-                            // Remember the arc we came from.
-                            D_from(a) = a_0;
-
-                            next_front.Push(FlipDarc(da));
-                        }
-                    }
-                    else if constexpr ( mult_compQ )
-                    {
-                        // When the diagram becomes disconnected by removing the strand, then there can be a face whose boundary has two components. Even weirder, it can happen that we start at `a_0` and then go to the component of the face boundary that is _not_ connected to `a_0`. This is difficult to imagine, so here is a picture:
-                        
-                        
-                        // The == indicates the current overstrand.
-                        //
-                        // If we start at `a_0 = a_begin`, then we turn left and get to the split link component, which happens to be a trefoil. Since we ignore all arcs that are part of the strand, we cannot leave this trefoil! This is not too bad because the ideal path would certainly not cross the trefoil. We have just to make sure that we do not cycle indefinitely around the trefoil.
-                        //
-                        //                      +---+
-                        //                      |   |
-                        //               +------|-------+
-                        //   ------+     |      |   |   |   +---
-                        //         |     |      +---|---+   |
-                        //         | a_0 |          |       |  a_end |
-                        //      ---|=================================|---
-                        //         |     |          |       |        |
-                        //         |     +----------+       |
-                        //   ------+                        +---
-                        
-                        if( D_mark2[a] == a_0 )
-                        {
-                            break;
-                        }
-                    }
-                    
-                    if constexpr ( mult_compQ )
-                    {
-                        D_mark2[a] = a_0;
-                    }
-
-                    if( part_of_strandQ )
-                    {
-                        // If da is part of the current strand, we ignore i
-                        da = dA_left[FlipDarc(da)];
-                    }
-                    else
-                    {
-                        da = dA_left[da];
-                    }
-                }
-                while( da != da_0 );
-            }
-        }
-        
-        // If we get here, then d+1 = max_dist or next_front.EmptyQ().
-        
-        // next_front.EmptyQ() should actually never happen because we know that there is a path between the arcs!
-        
-        if( next_front.EmptyQ() )
-        {
-            wprint(ClassName()+"::ShortestPath: next_front is empty, but shortest path is not found, yet.");
-        }
-        
-        d = max_dist + 1;
-        
-    Exit:
-        
-        // Write the actual path to array `path`.
-        
-        if( (Int(0) <= d) && (d <= max_dist) )
-        {
-            // The only way to get here with `d <= max_dist` is the `goto` above.
-            
-            if( Abs(D_mark(a_end)) != mark )
-            {
-                pd_eprint(MethodName("FindShortestPath_impl"));
-                TOOLS_LOGDUMP(d);
-                TOOLS_LOGDUMP(max_dist);
-                TOOLS_LOGDUMP(a_end);
-                TOOLS_LOGDUMP(mark);
-                TOOLS_LOGDUMP(current_mark);
-                TOOLS_LOGDUMP(D_mark(a_end));
-                TOOLS_LOGDUMP(D_from(a_end));
-            }
-            
-            Int a = a_end;
-            
-            path_length = d+1;
-            
-            for( Int i = 0; i < path_length; ++i )
-            {
-                path[path_length-1-i] = a;
-                
-                a = D_from(a);
-            }
-        }
-        else
-        {
-            path_length = 0;
-        }
-
-#ifdef PD_TIMINGQ
-        const Time stop_time = Clock::now();
-        
-        Time_FindShortestPath += Tools::Duration(start_time,stop_time);
-#endif
-
-        return d;
-    }
-
-
-
-
 public:
-    
-/*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+
+/*! @brief Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
  *
- *  @param a_first The first arc of the input strand.
+ *  @param a The one end arc of the shortest path we are looking for.
  *
- *  @param a_last The last arc of the input strand (included).
+ *  @param b The other end arc of the shortest path we are looking for.
  *
  *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
  */
 
 Tensor1<Int,Int> FindShortestPath(
-    const Int a_first, const Int a_last, const Int max_dist
+    mref<PD_T> pd_input, const Int a, const Int b, const Int max_dist
 )
 {
-    Prepare();
+    Load(pd_input);
+    MarkArc(a);
+    MarkArc(b);
     
-    current_mark = 1;
-    
-    Int a = a_first;
-    Int b = a_last;
-    
-    strand_length = MarkArcs(a,b,current_mark);
-
-    Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
-    
-    const Int d = FindShortestPath_impl(a,b,max_dist_,current_mark);
+    const Int d  = FindShortestPath(a,b,max_dist);
     
     Tensor1<Int,Int> p;
     
     if( d <= max_dist )
     {
         p = Tensor1<Int,Int> (path_length);
-        
         p.Read( path.data() );
     }
     
@@ -260,27 +31,459 @@ Tensor1<Int,Int> FindShortestPath(
     
     return p;
 }
-    
 
-//    private:
-//
-//        // Only meant for debugging. Don't do this in production!
-//        Tensor1<Int,Int> GetShortestPath_impl(
-//            const Int a_first, const Int a_last, const Int max_dist, const Int mark
-//        )
+/*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
+ *
+ *  @param a The first arc of the input strand.
+ *
+ *  @param b The last arc of the input strand (included).
+ *
+ *  @param max_dist Maximal length of the path we are looking for. If no path exists that satisfies this length constraint, then an empty list is returned.
+ */
+
+Tensor1<Int,Int> FindShortestRerouting(
+    mref<PD_T> pd_input, const Int a, const Int b, const Int max_dist
+)
+{
+    Load(pd_input);
+    strand_length = MarkArcs(a,b);
+    
+    Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
+    const Int d   = FindShortestPath(a,b,max_dist_);
+    
+    Tensor1<Int,Int> p;
+    
+    if( d <= max_dist )
+    {
+        p = Tensor1<Int,Int> (path_length);
+        p.Read( path.data() );
+    }
+    
+    Cleanup();
+    
+    return p;
+}
+
+private:
+
+Int FindShortestPath( const Int a, const Int b, const Int max_dist )
+{
+    if( strategy == Strategy_T::DijkstraLegacy )
+    {
+        return FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
+    }
+    else
+    {
+        return FindShortestPath_impl(a,b,max_dist);
+    }
+}
+
+private:
+
+Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
+{
+    [[maybe_unused]] auto tag = [](){ return MethodName("FindShortestPath_impl"); };
+    PD_TIMER(timer,tag());
+ 
+#ifdef PD_TIMINGQ
+    const Time start_time = Clock::now();
+#endif
+    
+    PD_ASSERT(CheckDarcLeftDarc());
+    
+    PD_ASSERT( a != b );
+    PD_ASSERT(ArcMarkedQ(a));
+    PD_ASSERT(ArcMarkedQ(b));
+    
+    PD_VALPRINT("a",a);
+    PD_VALPRINT("b",b);
+    
+    // Two-sided graph Dijkstra to find shortest path.
+    
+    // Instead of two queues we use two stacks: to hold the next fronts (X_front, Y_front).
+    // We also need a stack prev_front to hold the previous front.
+    
+    X_front.Reset();
+    Y_front.Reset();
+    
+    // Indicate that we met a in this pass during forward stepping.
+    SetDualArc(a,Head,a,Tail);
+    
+    // Indicate that we met b in this pass during backward stepping.
+    SetDualArc(b,Tail,b,Head);
+    
+    Int k   = 0;
+    Int X_r = 0;
+    Int Y_r = 0;
+    Int a_0 = a;
+    Int b_0 = b;
+    
+    PD_PRINT("Pushing arcs of starting face to X_front.");
+    {
+        PD_ASSERT( ArcMarkedQ(a) );
+    
+        ++k;
+        const Int da = ToDarc(a,Tail);
+        
+        Int de = dA_left[da];
+        auto [e,left_to_rightQ] = FromDarc(de);
+        
+        while( ArcMarkedQ(e) && (de != da) )
+        {
+            // a and b share a common face.
+            if( e == b )
+            {
+                SetDualArc(e,Head,a,Head==left_to_rightQ);
+                goto Exit;
+            }
+            de = dA_left[FlipDarc(de)];
+            std::tie(e,left_to_rightQ) = FromDarc(de);
+        }
+        
+        PD_VALPRINT("da",da);
+        PD_VALPRINT("de",de);
+        
+        // TODO: Handle this error.
+        if( de == da ) { eprint("starting arc  a " + ArcString(a) + " is isolated."); }
+        
+        //  CAUTION: This is crucial!  |
+        //                             V
+        if( SweepFace<true >(de, Head, a, a_0, b_0, X_front) ) { goto Exit; }
+        ++X_r;
+    }
+    
+    // If we arrive here, then we have the guarantee that a and b are not arcs of the same face (which would mean that we can reroute with 0 crossings).
+    
+    PD_PRINT("Pushing arcs of end face to Y_front.");
+    {
+        PD_ASSERT( ArcMarkedQ(b) );
+        
+        ++k;
+        const Int db = ToDarc(b,Head);
+        const Int de = LeftUnmarkedDarc(db);
+        
+        PD_VALPRINT("db",db);
+        PD_VALPRINT("de",de);
+        
+        // TODO: Handle this error.
+        if( de == db ) { eprint("starting arc  b " + ArcString(b) + " is isolated."); }
+
+        //  CAUTION: This is crucial!  |
+        //                             V
+        if( SweepFace<false>(de, Tail, b, b_0, a_0, Y_front) ) { goto Exit; }
+        ++Y_r;
+    }
+   
+    // We are good to go. Now run usual sweeps.
+
+    while( (k < max_dist) && (!X_front.EmptyQ()) && (!Y_front.EmptyQ()) )
+    {
+        ++k;
+        bool XQ;
+        
+        switch( strategy )
+        {
+            case Strategy_T::TwoSided:
+            {
+                XQ = (X_front.Size() <= Y_front.Size());
+                break;
+            }
+            case Strategy_T::Alternating:
+            {
+                XQ = static_cast<bool>(k % Int(2));
+                break;
+            }
+            case Strategy_T::Dijkstra:
+            {
+                XQ = true;
+                break;
+            }
+            default:
+            {
+                XQ = (X_front.Size() <= Y_front.Size());
+                break;
+            }
+        }
+        
+        PD_VALPRINT("X_front",X_front);
+        PD_VALPRINT("Y_front",Y_front);
+        
+        bool stopQ;
+        
+        if( XQ )
+        {
+            stopQ = SweepFront( Head, a_0, b_0, X_r, X_front );
+        }
+        else
+        {
+            stopQ = SweepFront( Tail, b_0, a_0, Y_r, Y_front );
+        }
+        
+        if( stopQ ) { goto Exit; }
+        
+        PD_VALPRINT("X_front",X_front);
+        PD_VALPRINT("Y_front",Y_front);
+    }
+    
+    // If we get here, then d + 1 == max_dist or X_front.EmptyQ() or Y_front.EmptyQ().
+    
+    // X_front.EmptyQ() and Y_front.EmptyQ() should actually never happen because we know that there is a path between the arcs!
+    
+    if( X_front.EmptyQ() ) { wprint(tag()+": X_front is empty, but shortest path is not found, yet."); }
+    if( Y_front.EmptyQ() ) { wprint(tag()+": Y_front is empty, but shortest path is not found, yet."); }
+    
+    k = max_dist + 1;
+    
+Exit:
+    
+    // Write the actual path to array `path`.
+    // It goes a,...,a_0,b_0,...,b
+    
+    PD_PRINT("Assembling path");
+
+    PD_VALPRINT("a",a);
+    PD_VALPRINT("a_0",a_0);
+    PD_VALPRINT("b_0",b_0);
+    PD_VALPRINT("b",b);
+    
+//    PD_VALPRINT("D_data",D_data);
+    
+    PD_VALPRINT("a_0",a_0);
+    PD_VALPRINT("b_0",b_0);
+    
+    PD_VALPRINT("DualArcFrom(a_0)",DualArcFrom(a_0));
+    PD_VALPRINT("DualArcFrom(b_0)",DualArcFrom(b_0));
+    
+    PD_VALPRINT("DualArcForwardQ(a_0)",DualArcForwardQ(a_0));
+    PD_VALPRINT("DualArcForwardQ(b_0)",DualArcForwardQ(b_0));
+    
+    std::vector<Int> X_path;
+    std::vector<Int> Y_path;
+    
+    PD_ASSERT(DualArcForwardQ(a_0) == Head);
+    PD_ASSERT(DualArcForwardQ(b_0) == Tail);
+    
+    if( k == Int(0) ) { pd_eprint("k == Int(0)"); }
+    
+    PD_VALPRINT("X_r",X_r);
+    PD_VALPRINT("Y_r",Y_r);
+    PD_VALPRINT("k",k);
+    PD_ASSERT(k == X_r + Y_r + Int(1));
+    
+    if( (Int(1) <= k) && (k <= max_dist) )
+    {
+        // The only way to get here with `k <= max_dist` is the `goto` above.
+        
+        path_length = k + Int(1);
+        Int e = a_0;
+        for( Int p = X_r + Int(1); p --> Int(0); )
+        {
+            path[p] = e;
+            e = DualArcFrom(e);
+        }
+        PD_ASSERT(path[0] == a);
+        
+        e = b_0;
+        for( Int p = X_r + Int(1); p < path_length; ++p )
+        {
+            path[p] = e;
+            e = DualArcFrom(e);
+        }
+        PD_ASSERT(path[k] == b);
+        
+        PD_VALPRINT("path", ArrayToString( &path[0], {path_length} ) );
+        
+//        PD_PRINT("X_path");
 //        {
-//            const Int d = FindShortestPath_impl( a_first, a_last, max_dist, mark );
-//
-//            if( d <= max_dist )
+//            Int X_e = a_0;
+//            while( X_e != a )
 //            {
-//                Tensor1<Int,Int> path_out (path_length);
-//
-//                path_out.Read( path.data() );
-//
-//                return path_out;
+//                X_path.push_back(X_e);
+//                X_e = DualArcFrom(X_e);
 //            }
-//            else
-//            {
-//                return Tensor1<Int,Int>();
-//            }
+//            X_path.push_back(a);
 //        }
+//        PD_VALPRINT("X_path", X_path);
+//        PD_VALPRINT("X_path.size()", X_path.size());
+//        PD_ASSERT(std::cmp_equal(X_path.size(), X_r + Int(1)));
+//        
+//        PD_PRINT("Y_path");
+//        {
+//            Int Y_e = b_0;
+//            while( e != b )
+//            {
+//                Y_path.push_back(Y_e);
+//                Y_e = DualArcFrom(Y_e);
+//            }
+//            Y_path.push_back(b);
+//        }
+//        PD_VALPRINT("Y_path", Y_path);
+//        PD_VALPRINT("Y_path.size()", Y_path.size());
+//        PD_ASSERT(std::cmp_equal(Y_path.size(), Y_r + Int(1)));
+//        
+//        path_length = static_cast<Int>(X_path.size() + Y_path.size());
+//        
+//        PD_VALPRINT("path_length", path_length);
+//        
+//        PD_PRINT("Merge");
+//        for( Size_T i = 0; i < X_path.size(); ++i )
+//        {
+//            path[X_path.size()-1-i] = X_path[i];
+//        }
+//        path[0] = a; // Correcting the start arc.
+//        
+//        for( Size_T i = 0; i < Y_path.size(); ++i )
+//        {
+//            path[X_path.size() + i] = Y_path[i];
+//        }
+//        path[path_length-1] = b; // Correcting the end arc.
+//        
+//        PD_VALPRINT("path", ArrayToString( &path[0], {path_length} ) );
+    }
+    else
+    {
+        PD_PRINT("No path found.");
+        path_length = 0;
+    }
+
+#ifdef PD_TIMINGQ
+    const Time stop_time = Clock::now();
+    
+    Time_FindShortestPath += Tools::Duration(start_time,stop_time);
+#endif
+
+    return k;
+}
+
+private:
+
+Int LeftUnmarkedDarc( const Int de_0 )
+{
+    Int de = dA_left[de_0];
+    
+    while( (de != de_0) && ArcMarkedQ(ArcOfDarc(de)) )
+    {
+        de = dA_left[FlipDarc(de)];
+    }
+    
+    if( ArcMarkedQ(ArcOfDarc(de)) )
+    {
+        wprint( MethodName("LeftUnmarkedDarc") + ": Cannot find proper darc.");
+    }
+    
+    return de;
+}
+
+template<bool first_faceQ = false>
+bool SweepFace(
+    const Int de_0, const bool forwardQ, const Int from,
+    mref<Int> a_0, mref<Int> b_0,
+    mref<Stack<Int,Int>> next
+)
+{
+    PD_PRINT("SweepFace; de_0 = " + ToString(de_0) + ".");
+    
+    PD_ASSERT(!ArcMarkedQ(ArcOfDarc(de_0)));
+    
+    Int de = de_0;
+    do
+    {
+        auto [e,left_to_rightQ] = FromDarc(de);
+        
+        // Only important for sweep the sweep over the starting face.
+        // If we hit the target b_0 already here, then a_0 and b_0 share a common face
+        // and their distance is 0.
+        if constexpr ( first_faceQ )
+        {
+            if( e == b_0 ) { return true; }
+        }
+        
+        // This is to ignore marked arcs.
+        if( ArcMarkedQ(e) )
+        {
+            de = dA_left[FlipDarc(de)];
+            continue;
+        }
+        
+        // Check whether `e` has not been visited, yet.
+        if( !DualArcMarkedQ(e) )
+        {
+            PD_PRINT("Arc " + ToString(e) + " is unvisited; marking as visited.");
+
+            // Beware that dual arcs with forwardQ == false have to be traversed in reverse way when the path is rerouted. This is why we may have to flip left_to_rightQ here.
+            SetDualArc( e, forwardQ, from, forwardQ == left_to_rightQ );
+            
+            Int de_next = FlipDarc(de);
+            PD_PRINT("Pushing darc de_next = " + ToString(de_next) + " to stack." );
+            next.Push(de_next);
+        }
+        else if( DualArcForwardQ(e) != forwardQ )
+        {
+            // We met this arc during stepping in the other direction.
+            // So, we have found a shortest path.
+            
+            PD_PRINT("Found shortest path at e = " + ToString(e) + ".");
+            
+            PD_PRINT("SweepFace: setting a_0 = from = " + ToString(from) + "; b_0 = e = " + ToString(from) + ".)");
+            
+            // Return the two points that touch.
+            a_0 = from;
+            b_0 = e;
+            return true;
+        }
+        
+        de = dA_left[de];
+    }
+    while( de != de_0 );
+    
+    PD_PRINT("SweepFace; de_0 = " + ToString(de_0) + " done.");
+    PD_VALPRINT("next", next);
+    
+    return false;
+}
+
+bool SweepFront(
+    const bool   forwardQ,
+    mref<Int>    a_0,
+    mref<Int>    b_0,
+    mref<Int>    r,
+    mref<Stack<Int,Int>> next_front
+)
+{
+    PD_PRINT("SweepFront");
+    PD_VALPRINT("forwardQ", forwardQ);
+    PD_VALPRINT("a_0", a_0);
+    PD_VALPRINT("b_0", b_0);
+    PD_VALPRINT("r", r);
+    
+    using std::swap;
+    swap( prev_front, next_front );
+    next_front.Reset();
+    
+    PD_VALPRINT("prev_front", prev_front);
+    PD_VALPRINT("next_front", next_front);
+    
+    // The tips of elements of prev have distance r from e_first.
+    
+    std::vector<Int> visited; // Collect all visited dual arcs.
+
+    while( !prev_front.EmptyQ() )
+    {
+        const Int de_0 = prev_front.Pop();
+        const Int e_0  = ArcOfDarc(de_0);
+        PD_PRINT("Popped de_from = " + ToString(de_0) + " from `prev_front`.");
+        
+        PD_VALPRINT("prev_front", prev_front);
+        
+        PD_ASSERT(!ArcMarkedQ(e_0) );
+
+        if( SweepFace(de_0,forwardQ,e_0,a_0,b_0,next_front) ) { return true; }
+        
+        PD_VALPRINT("prev_front", prev_front);
+        PD_VALPRINT("next_front", next_front);
+    }
+    
+    ++r;
+
+    return false;
+}

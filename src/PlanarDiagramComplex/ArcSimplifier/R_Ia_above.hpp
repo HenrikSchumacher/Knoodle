@@ -622,7 +622,7 @@ bool R_Ia_above()
             DeactivateArc(s_0);
             DeactivateArc(n_0);
             
-            CreateHopfLinkFromArcs(e_3,a,c_3_state);
+            CreateHopfLinkFromArcs(n_0,a,c_0_state);
         
             DeactivateCrossing(c_0);
             DeactivateCrossing(c_1);

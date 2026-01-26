@@ -1,6 +1,6 @@
-template<typename ExtInt, typename ExtInt2>
+template<typename ExtInt2>
 Tensor1<Turn_T,Int> Bends_OR(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     const ExtInt2 ext_region = -1
 )
 {
@@ -10,7 +10,7 @@ Tensor1<Turn_T,Int> Bends_OR(
     
     TOOLS_PTIMER(timer,tag);
     
-    ExtInt ext_region_ = int_cast<ExtInt>(ext_region);
+    Int ext_region_ = int_cast<Int>(ext_region);
     
     using SimpleMinCostFlow_T = operations_research::SimpleMinCostFlow;
     
@@ -31,7 +31,7 @@ Tensor1<Turn_T,Int> Bends_OR(
         }
     }
     
-    cptr<ExtInt> dA_F = pd.ArcFaces().data();
+    cptr<Int> dA_F = pd.ArcFaces().data();
     auto A_idx = Bends_ArcIndices(pd);
     
     const Arc_T  m = Bends_VarCount<Arc_T>(pd);
@@ -42,9 +42,9 @@ Tensor1<Turn_T,Int> Bends_OR(
     Tensor1<Node_T,Arc_T> tails     (m);
     Tensor1<Node_T,Arc_T> heads     (m);
 
-    const ExtInt a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.Arcs().Dim(0);
     
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
@@ -113,12 +113,12 @@ Tensor1<Turn_T,Int> Bends_OR(
     
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
 
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            const ExtInt tail = A_idx(a,0);
-            const ExtInt head = A_idx(a,1);
+            const Int tail = A_idx(a,0);
+            const Int head = A_idx(a,1);
             bends[a] = static_cast<Turn_T>(std::round(s[head] - s[tail]));
         }
         else

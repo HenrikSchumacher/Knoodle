@@ -1,7 +1,7 @@
 public:
 
 template<typename T = Real>
-Tensor1<T,Int> LevelsMinHeight( cref<PlanarDiagram<Int>> pd )
+Tensor1<T,Int> LevelsMinHeight( cref<PD_T> pd )
 {
     std::string tag = ClassName()+"::LevelsMinHeight" + "<" + TypeName<T> + ">";
     

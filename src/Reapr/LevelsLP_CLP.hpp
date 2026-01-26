@@ -1,7 +1,7 @@
 public:
 
 template<typename T = Real>
-Tensor1<T,Int> LevelsLP_CLP( cref<PlanarDiagram<Int>> pd )
+Tensor1<T,Int> LevelsLP_CLP( cref<PD_T> pd )
 {
     TOOLS_MAKE_FP_STRICT();
 
@@ -68,7 +68,7 @@ public:
 template<
     typename R = Real, typename I = COIN_Int, typename J = COIN_LInt
 >
-Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) const
+Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
 {
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
@@ -191,21 +191,21 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PlanarDiagram<Int>> pd ) cons
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnVariables( cref<PD_T> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), -Scalar::Infty<R> );
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnVariables( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnVariables( cref<PD_T> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     return Tensor1<R,I>( Size_T(2) * ToSize_T(pd.ArcCount()), +Scalar::Infty<R> );
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnConstraints( cref<PD_T> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -219,7 +219,7 @@ Tensor1<R,I> LevelsLP_CLP_LowerBoundsOnConstraints( cref<PlanarDiagram<Int>> pd 
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnConstraints( cref<PD_T> pd ) const
 {
     TOOLS_MAKE_FP_STRICT();
     
@@ -234,7 +234,7 @@ Tensor1<R,I> LevelsLP_CLP_UpperBoundsOnConstraints( cref<PlanarDiagram<Int>> pd 
 }
 
 template<typename R = Real, typename I = COIN_Int>
-Tensor1<R,I> LevelsLP_CLP_ObjectiveVector( cref<PlanarDiagram<Int>> pd ) const
+Tensor1<R,I> LevelsLP_CLP_ObjectiveVector( cref<PD_T> pd ) const
 {
     const Size_T m = ToSize_T(pd.ArcCount());
     Tensor1<R,I> v ( Size_T(2) * m );

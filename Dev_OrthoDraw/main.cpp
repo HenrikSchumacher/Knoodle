@@ -21,6 +21,8 @@ using LInt  = Int64;           // integer type used, e.g., for indices
 //using Int   = UInt64;           // integer type used, e.g., for indices
 //using LInt  = UInt64;           // integer type used, e.g., for indices
 
+using PD_T        = PlanarDiagram<Int>;
+using OrthoDraw_T = OrthoDraw<PD_T>;
 
 int main( int argc, char** argv )
 {
@@ -84,7 +86,7 @@ int main( int argc, char** argv )
         {25, 23, 26, 22, 1}
     };
     
-    PlanarDiagram<Int> pd = PlanarDiagram<Int>::FromSignedPDCode(
+    PD_T pd = PD_T::FromSignedPDCode(
         &pd_code[0][0], c_count, int(0), false, false
     );
     
@@ -97,9 +99,10 @@ int main( int argc, char** argv )
     Profiler::Clear();
 
     
-    OrthoDraw<Int> H (pd, Int(-1),
+    
+    OrthoDraw_T H (pd, Int(-1),
         {
-            .bend_method              = OrthoDraw<Int>::BendMethod_T::Bends_MCF,
+            .bend_method              = OrthoDraw_T::BendMethod_T::Bends_MCF,
             .network_matrixQ          = true,
             .use_dual_simplexQ        = false,
             .randomize_bends          = 0,
@@ -110,7 +113,7 @@ int main( int argc, char** argv )
             .saturate_facesQ          = true,
             .saturate_exterior_faceQ  = true,
             .parallelizeQ             = false,
-            .compaction_method        = OrthoDraw<Int>::CompactionMethod_T::TopologicalNumbering,
+            .compaction_method        = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering,
         
             .x_grid_size              = 8,
             .y_grid_size              = 4,

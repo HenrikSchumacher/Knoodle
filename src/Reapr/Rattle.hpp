@@ -11,28 +11,28 @@ double RattleTiming() const
 }
 
 template<bool verboseQ = false, typename ExtInt>
-std::vector<PlanarDiagram<Int>> Rattle( cref<PlanarDiagram<Int>> pd, const ExtInt target_iter )
+std::vector<PD_T> Rattle( cref<PD_T> pd, const ExtInt target_iter )
 {
     static_assert(IntQ<ExtInt>,"");
-    std::vector<PlanarDiagram<Int>> input;
+    std::vector<PD_T> input;
     input.push_back(pd); // Using copy constructor here!
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
 template<bool verboseQ = false, typename ExtInt>
-std::vector<PlanarDiagram<Int>> Rattle( PlanarDiagram<Int> && pd, const ExtInt target_iter )
+std::vector<PD_T> Rattle( PD_T && pd, const ExtInt target_iter )
 {
     static_assert(IntQ<ExtInt>,"");
-    std::vector<PlanarDiagram<Int>> input;
+    std::vector<PD_T> input;
     input.push_back(std::move(pd));
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
 template<bool verboseQ = false, typename ExtInt>
-std::vector<PlanarDiagram<Int>> Rattle(
-    mref<std::vector<PlanarDiagram<Int>>> input, const ExtInt target_iter
+std::vector<PD_T> Rattle(
+    mref<std::vector<PD_T>> input, const ExtInt target_iter
 )
 {
     static_assert(IntQ<ExtInt>,"");

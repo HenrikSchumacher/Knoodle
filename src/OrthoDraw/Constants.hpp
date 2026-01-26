@@ -15,12 +15,12 @@ static constexpr Dir_T NoDir     = Scalar::Max<Dir_T>;
 // The translation between PlanarDiagram's ports and the the cardinal directions under the assumption that C_dir[c] == North;
 static constexpr Dir_T dir_lut [2][2] = { {North,East}, {West,South} };
 
-static constexpr bool Left  = PlanarDiagram<Int>::Left;
-static constexpr bool Right = PlanarDiagram<Int>::Right;
-static constexpr bool Out   = PlanarDiagram<Int>::Out;
-static constexpr bool In    = PlanarDiagram<Int>::In;
-static constexpr bool Tail  = PlanarDiagram<Int>::Tail;
-static constexpr bool Head  = PlanarDiagram<Int>::Head;
+static constexpr bool Left  = PD_T::Left;
+static constexpr bool Right = PD_T::Right;
+static constexpr bool Out   = PD_T::Out;
+static constexpr bool In    = PD_T::In;
+static constexpr bool Tail  = PD_T::Tail;
+static constexpr bool Head  = PD_T::Head;
 
 
 static constexpr int EdgeActiveBit        = 0;

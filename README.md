@@ -9,11 +9,20 @@ To make sure that all submodules are cloned, too, please clone by running the fo
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-Currently the package is configured and tested only for macos (Apple Silicon) and with Apple Clang as compiler. The library should compile also with other platforms, provided the correct compiler flags are given. These can be edited in the file `Test_ClisbyTree\compile.sh`. It's some time since we ran this build system under Linux or Windows. So please contact us if you are interested and need support. Also, please contact us if you make this work on other systems; we would gladly add the configurations into this package.
+The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang, but installation has been recently tested on Ubuntu 24.04.3 LTS and WSL 2.6.3.0 (running in Windows 10). It should install on a wide variety of linux systems with the following commands: 
+
+```
+brew install git-lfs
+git-lfs install
+brew tap designbynumbers/cantarellalab
+brew install knoodle
+```
+
+This will also install the command line tools _polyfold_ and _knoodletool_. Please contact us if you are interested and need support. 
 
 # PolyFold
 
-The command-line tool _PolyFold_ can be compiled by running "compile.sh" in the subdirectory Test_ClisbyTree. After compiling:
+The command-line tool _PolyFold_ can be compiled by running `make` in the subdirectory PolyFold. After compiling:
 
 ```
 ./PolyFold --help
@@ -88,3 +97,39 @@ An `s` line is the start of a connected summand of a knot. The digit following t
 ```<a> <b> <c> <d> <+1/-1>```
 
 A line in this form describes a crossing in an oriented diagram of a connected summand of a knot. These lines follow an `s` line and precede another `s` or `k` line or the end of the file. `<a> <b> <c> <d>` are non-negative integers referring to 0-indexed strands of the diagram meeting at a crossing. The `+1/-1` gives the sign of the crossing. The ordering follows the convention in Regina: "Each 4-tuple represents a single crossing, and lists the four arcs that meet at that crossing in counter-clockwise order, beginning with the incoming lower arc." A block of `c` of these lines in a row gives the code for a `c`-crossing summand of the knot. The arc indices `0, 1, ..., 2c-1` should each occur twice in the block, and the arcs are numbered with the orientation of the knot.
+
+# knoodletool
+
+The command-line tool _knoodletool_ can be compiled by running `make` in the subdirectory KnoodleTool. After compiling:
+
+```
+Usage: knoodletool [options] [input_files...]
+
+Simplification options:
+  -s=N, --simplify-level=N    Set simplification level:
+                                0          No simplification (PD code only)
+                                3          Simplify3 (Reidemeister I + II)
+                                4          Simplify4 (+ path rerouting)
+                                5          Simplify5 (+ summand detection)
+                                6+/max/full/reapr
+                                           Full Reapr pipeline (default)
+  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)
+  --no-compaction             Skip compaction in OrthoDraw (Reapr only)
+  --reapr-energy=E            Set Reapr energy function (Reapr only):
+                                TV, Dirichlet, Bending, Height, TV_CLP, TV_MCF
+
+Input options:
+  --input=FILE                Specify input file (can use multiple times)
+  --streaming-mode            Read from stdin, write to stdout
+  --randomize-projection      Apply random shear to 3D geometry projection
+
+Output options:
+  --output=FILE               Write all output to FILE
+  --output-ascii-drawing      Generate ASCII art diagrams
+  -q, --quiet                 Suppress per-knot reports, show counter only
+
+Other:
+  -h, --help                  Show this help message
+```
+
+`knoodletool` is designed to provide a convenient interface to the knot simplifications in `Knoodle`. You can give it a single TSV file containing the coordinates of a 3d polygon or a PD code, an entire directory of such files, or you can pipe PD codes or polygons to `knoodletool` on `stdin` and receive simplified PD codes on `stdout` with `--streaming-mode`. In streaming mode (or in files), knots and summands are separated by lines containing `k` and `s` as they are in `polyfold` output. You can also use `knoodletool` as a quick and robust way to convert polygons to PD codes. The default projection is down the `z`-axis, so use `--randomize-projection` if your input geometry contains vertical segments. 

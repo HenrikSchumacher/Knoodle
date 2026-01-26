@@ -8,7 +8,7 @@ private:
  */
 
 template<bool warningQ = false>
-bool Private_SwitchCrossing( const Int c )
+bool SwitchCrossing_Private( const Int c )
 {
     // We intentionally remove the "Unchanged" attribute.
     
@@ -28,13 +28,13 @@ bool Private_SwitchCrossing( const Int c )
         {
             if constexpr ( warningQ )
             {
-                wprint(ClassName()+"::Private_SwitchCrossing: Crossing " + CrossingString(c) + " was already deactivated. Doing nothing.");
+                wprint(ClassName()+"::SwitchCrossing_Private: Crossing " + CrossingString(c) + " was already deactivated. Doing nothing.");
             }
             return false;
         }
         default:
         {
-            eprint( ClassName()+"::Private_SwitchCrossing: Value " + ToString(C_state[c]) + " is invalid. Doing nothing." );
+            eprint( ClassName()+"::SwitchCrossing_Private: Value " + ToString(C_state[c]) + " is invalid. Doing nothing." );
             return false;
         }
     }
@@ -53,7 +53,7 @@ public:
 template<bool warningQ = true>
 bool SwitchCrossing( const Int c )
 {
-    bool changedQ = this->template Private_SwitchCrossing<warningQ>(c);
+    bool changedQ = this->template SwitchCrossing_Private<warningQ>(c);
     
     if( changedQ )
     {

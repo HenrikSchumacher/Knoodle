@@ -1,6 +1,5 @@
-template<typename ExtInt>
 void RedistributeBends(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     mref<Tensor1<Turn_T,Int>> bends,
     Int iter = Int(0)
 )
@@ -9,17 +8,17 @@ void RedistributeBends(
     
     constexpr Turn_T one = Turn_T(1);
     
-    using CrossingMatrix_T = Tiny::Matrix<2,2,ExtInt,ExtInt>;
-    using TurnMatrix_T     = Tiny::Matrix<2,2,Turn_T,ExtInt>;
+    using CrossingMatrix_T = Tiny::Matrix<2,2,Int,Int>;
+    using TurnMatrix_T     = Tiny::Matrix<2,2,Turn_T,Int>;
     
 //    print("RedistributeBends");
     auto & C_A_loc = pd.Crossings();
     
     Int counter = 0;
     
-    const ExtInt c_count = C_A_loc.Dim(0);
+    const Int c_count = C_A_loc.Dim(0);
     
-    for( ExtInt c = 0; c < c_count; ++c )
+    for( Int c = 0; c < c_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
 
@@ -142,9 +141,8 @@ void RedistributeBends(
 //    }
 }
 
-template<typename ExtInt>
 void RandomizeBends(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     mref<Tensor1<Turn_T,Int>> bends,
     int iter_count
 )
@@ -158,23 +156,22 @@ void RandomizeBends(
 
 private:
 
-template<typename ExtInt>
 void RandomizeBends_impl(
-    cref<PlanarDiagram<ExtInt>> pd,
+    cref<PD_T> pd,
     mref<Tensor1<Turn_T,Int>> bends,
     int iter_count,
     mref<PRNG_T> random_engine
 )
 {
-    using CrossingMatrix_T = Tiny::Matrix<2,2,ExtInt,ExtInt>;
+    using CrossingMatrix_T = PD_T::C_Arcs_T;
     
     std::uniform_int_distribution<Int8> dice( -1, 1 );
     
     auto & C_A_loc = pd.Crossings();
 
-    const ExtInt c_count = C_A_loc.Dim(0);
+    const Int c_count = C_A_loc.Dim(0);
     
-    for( ExtInt c = 0; c < c_count; ++c )
+    for( Int c = 0; c < c_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
         
@@ -206,21 +203,21 @@ void RandomizeBends_impl(
 
 public:
 
-template<typename S, typename I, typename J, typename ExtInt>
+template<typename S, typename I, typename J>
 static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
-    cref<PlanarDiagram<ExtInt>> pd, cref<Tiny::VectorList_AoS<2,ExtInt,ExtInt>> A_idx
+    cref<PD_T> pd, cref<Tiny::VectorList_AoS<2,Int,Int>> A_idx
 )
 {
-    cptr<ExtInt> dA_F = pd.ArcFaces().data();
+    cptr<Int> dA_F = pd.ArcFaces().data();
     
     TripleAggregator<I,I,S,J> agg ( J(4) * static_cast<J>(pd.ArcCount()) );
     
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
     
-    const ExtInt a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.Arcs().Dim(0);
     
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
@@ -245,25 +242,25 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
     return A;
 }
 
-template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_LowerBoundsOnVariables( cref<PlanarDiagram<ExtInt>> pd )
+template<typename S, typename I>
+static Tensor1<S,I> Bends_LowerBoundsOnVariables( cref<PD_T> pd )
 {
     // All bends must be nonnegative.
     return Tensor1<S,I>( Bends_VarCount<I>(pd), S(0) );
 }
 
-template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_UpperBoundsOnVariables( cref<PlanarDiagram<ExtInt>> pd )
+template<typename S, typename I>
+static Tensor1<S,I> Bends_UpperBoundsOnVariables( cref<PD_T> pd )
 {
     TOOLS_MAKE_FP_STRICT();
     
     return Tensor1<S,I>( Bends_VarCount<I>(pd), Scalar::Infty<S> );
 }
 
-template<typename S, typename I, typename ExtInt>
+template<typename S, typename I>
 static Tensor1<S,I> Bends_EqualityConstraintVector(
-    cref<PlanarDiagram<ExtInt>> pd,
-    const ExtInt ext_region = PlanarDiagram<ExtInt>::Uninitialized
+    cref<PD_T> pd,
+    const Int ext_region = PD_T::Uninitialized
 )
 {
     Tensor1<S,I> v ( Bends_ConCount<I>(pd) );
@@ -271,14 +268,14 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     
     auto & F_dA = pd.FaceDarcs();
     
-    ExtInt max_f_size = 0;
-    ExtInt max_f      = 0;
+    Int max_f_size = 0;
+    Int max_f      = 0;
     
-    const ExtInt f_count = F_dA.SublistCount();
+    const Int f_count = F_dA.SublistCount();
     
-    for( ExtInt f = 0; f < f_count; ++f )
+    for( Int f = 0; f < f_count; ++f )
     {
-        const ExtInt f_size = F_dA.SublistSize(f);
+        const Int f_size = F_dA.SublistSize(f);
         
         if( f_size > max_f_size )
         {
@@ -290,9 +287,9 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     }
     
     if(
-        (ext_region != PlanarDiagram<ExtInt>::Uninitialized)
+        (ext_region != PD_T::Uninitialized)
         &&
-        InIntervalQ(ext_region,ExtInt(0),F_dA.SublistCount())
+        InIntervalQ(ext_region,Int(0),F_dA.SublistCount())
     )
     {
         v_ptr[ext_region] -= S(8);
@@ -305,8 +302,8 @@ static Tensor1<S,I> Bends_EqualityConstraintVector(
     return v;
 }
 
-template<typename S, typename I, typename ExtInt>
-static Tensor1<S,I> Bends_ObjectiveVector( cref<PlanarDiagram<ExtInt>> pd )
+template<typename S, typename I>
+static Tensor1<S,I> Bends_ObjectiveVector( cref<PD_T> pd )
 {
     return Tensor1<S,I>( Bends_VarCount<I>(pd), S(1) );
 }
@@ -314,31 +311,29 @@ static Tensor1<S,I> Bends_ObjectiveVector( cref<PlanarDiagram<ExtInt>> pd )
 
 private:
 
-template<typename I, typename ExtInt>
-static I Bends_VarCount( cref<PlanarDiagram<ExtInt>> pd )
+template<typename I>
+static I Bends_VarCount( cref<PD_T> pd )
 {
     return I(2) * static_cast<I>(pd.ArcCount());
 }
 
-template<typename I, typename ExtInt>
-static I Bends_ConCount( cref<PlanarDiagram<ExtInt>> pd )
+template<typename I>
+static I Bends_ConCount( cref<PD_T> pd )
 {
     return static_cast<I>(pd.FaceCount());
 }
 
-
-template<typename ExtInt>
-static Tiny::VectorList_AoS<2,ExtInt,ExtInt> Bends_ArcIndices( cref<PlanarDiagram<ExtInt>> pd )
+static Tiny::VectorList_AoS<2,Int,Int> Bends_ArcIndices( cref<PD_T> pd )
 {
-    using PD_loc_T = PlanarDiagram<ExtInt>;
+    using PD_loc_T = PD_T;
     
-    const ExtInt a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.Arcs().Dim(0);
     
-    Tiny::VectorList_AoS<2,ExtInt,ExtInt> A_idx ( a_count );
+    Tiny::VectorList_AoS<2,Int,Int> A_idx ( a_count );
     
-    ExtInt a_counter = 0;
+    Int a_counter = 0;
 
-    for( ExtInt a = 0; a < a_count; ++a )
+    for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
