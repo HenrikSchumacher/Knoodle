@@ -1,9 +1,7 @@
 #!/bin/bash
 # Build script for knoodletool - Knoodle example program
 #
-# Dependencies:
-#   - Boost (for random number generation)
-#   - UMFPACK/SuiteSparse (for sparse linear algebra)
+# Dependencies: None!
 #
 # Usage:
 #   ./compile.sh           # Build with optimizations
@@ -24,20 +22,11 @@ clang++                                                 \
     $OPT_FLAGS                                          \
     -fenable-matrix                                     \
     -pthread                                            \
-    -lumfpack                                           \
     -I./../submodules/Min-Cost-Flow-Class/OPTUtils      \
     -I./../submodules/Min-Cost-Flow-Class/MCFClass      \
     -I./../submodules/Min-Cost-Flow-Class/MCFSimplex    \
     -I./../submodules/Tensors                           \
-    -I/opt/homebrew/include                             \
-    -I/opt/homebrew/include/suitesparse                 \
-    -L/opt/homebrew/lib                                 \
-    -I/usr/local/include                                \
-    -I/usr/local/include/suitesparse                    \
-    -L/usr/local/lib                                    \
     -o knoodletool                                      \
-    -DKNOODLE_USE_UMFPACK                               \
-    -DKNOODLE_USE_BOOST_UNORDERED                       \
     main.cpp                                            \
 
 echo "Build complete: ./knoodletool"

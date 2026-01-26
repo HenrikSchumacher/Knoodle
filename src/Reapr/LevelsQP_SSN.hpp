@@ -36,7 +36,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     cref<PD_T> pd
 )
 {
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_LevelsAndLagrangeMultipliers");
+    TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers"));
     
     const Int m = pd.ArcCount();
     const Int n = pd.CrossingCount();
@@ -179,7 +179,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_Matrix<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
+    TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_Matrix")+"<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
     const I m = int_cast<I>(pd.ArcCount());
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         }
         default:
         {
-            wprint(ClassName()+"::LevelsQP_SSN_Matrix: Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
+            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();
@@ -237,7 +237,7 @@ void LevelsQP_SSN_WriteMatrixModifiedValues(
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
     
-    TOOLS_PTIMER(timer,ClassName()+"::LevelsQP_SSN_WriteMatrixModifiedValues"
+    TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_WriteMatrixModifiedValues")
         + "<" + TypeName<R>
         + "," + TypeName<I>
         + "," + TypeName<J>

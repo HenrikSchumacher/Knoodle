@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef KNOODLE_USE_UMFPACK
 #include "../submodules/Tensors/UMFPACK.hpp"
+#endif
 
 #ifdef KNOODLE_USE_CLP
 #include "../submodules/Tensors/Clp.hpp"
@@ -24,8 +26,10 @@ namespace Knoodle
         using Real                = Real_;
         using Int                 = Int_;
 
+#ifdef KNOODLE_USE_UMFPACK
         using UMF_Int             = Int64;
-
+#endif
+        
 #ifdef KNOODLE_USE_CLP
         using COIN_Real           = double;
         using COIN_Int            = int;
@@ -54,8 +58,22 @@ namespace Knoodle
             Bending   = 2,
             Height    = 3,
             TV_CLP    = 4,
-            TV_MCF    = 5,
+            TV_MCF    = 5
         };
+        
+        friend std::string ToString( EnergyFlag_T e )
+        {
+            switch(e)
+            {
+                case EnergyFlag_T::TV:        return "TV";
+                case EnergyFlag_T::Dirichlet: return "Dirichlet";
+                case EnergyFlag_T::Bending:   return "Bending";
+                case EnergyFlag_T::Height:    return "Height";
+                case EnergyFlag_T::TV_CLP:    return "TV_CLP";
+                case EnergyFlag_T::TV_MCF:    return "TV_MCF";
+                default:                      return "Unknown";
+            }
+        }
 
         static constexpr Real jump = 1;
 
@@ -228,10 +246,15 @@ namespace Knoodle
 #include "Reapr/DirichletHessian.hpp"
 #include "Reapr/BendingHessian.hpp"
 #include "Reapr/LevelsConstraintMatrix.hpp"
-#include "Reapr/LevelsQP_SSN.hpp"
-#ifdef KNOODLE_USE_CLP
-#include "Reapr/LevelsLP_CLP.hpp"
+        
+#ifdef KNOODLE_USE_UMFPACK
+    #include "Reapr/LevelsQP_SSN.hpp"
 #endif
+        
+#ifdef KNOODLE_USE_CLP
+    #include "Reapr/LevelsLP_CLP.hpp"
+#endif
+        
 #include "Reapr/LevelsLP_MCF.hpp"
 #include "Reapr/LevelsMinHeight.hpp"
 #include "Reapr/Embedding.hpp"
@@ -271,23 +294,36 @@ namespace Knoodle
                 {
                     return LevelsLP_MCF(pd);
                 }
-#ifdef KNOODLE_USE_CLP
                 case EnergyFlag_T::TV_CLP:
                 {
+#ifdef KNOODLE_USE_CLP
                     return LevelsLP_CLP(pd);
-                }
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::TV_CLP is only supported if compiled with Coin-or CLP support, which is deactivated. Using default (EnergyFlag_T::TV) instead. (No worries, it solves the same problem, but faster.)");
+                    return LevelsLP_MCF(pd);
 #endif // KNOODLE_USE_CLP
+                }
                 case EnergyFlag_T::TV_MCF:
                 {
                     return LevelsLP_MCF(pd);
                 }
                 case EnergyFlag_T::Bending:
                 {
+#ifdef KNOODLE_USE_UMFPACK
                     return LevelsQP_SSN(pd);
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::Bending is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_UMFPACK
                 }
                 case EnergyFlag_T::Dirichlet:
                 {
+#ifdef KNOODLE_USE_UMFPACK
                     return LevelsQP_SSN(pd);
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::Dirichlet is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_UMFPACK
                 }
                 case EnergyFlag_T::Height:
                 {
@@ -295,7 +331,7 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(ClassName() + "(): Unknown energy flag " + ToString(en_flag) + ". Using default (EnergyFlag_T::TV).");
+                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(en_flag) + ". Using default (EnergyFlag_T::TV) instead.");
                     return LevelsLP_MCF(pd);
                 }
             }
@@ -319,6 +355,23 @@ namespace Knoodle
         }
         
     }; // class Reapr
+
     
+//    template<typename Real, typename Int>
+//    std::string ToString( typename Reapr<Real,Int>::EnergyFlag_T e )
+//    {
+//        using F_T = Reapr<Real,Int>::EnergyFlag_T;
+//        switch(e)
+//        {
+//            case F_T::TV:        return "TV";
+//            case F_T::Dirichlet: return "Dirichlet";
+//            case F_T::Bending:   return "Bending";
+//            case F_T::Height:    return "Height";
+//            case F_T::TV_CLP:    return "TV_CLP";
+//            case F_T::TV_MCF:    return "TV_MCF";
+//            default:             return "Unknown";
+//        }
+//        
+//    }
 
 } // namespace Knoodle
