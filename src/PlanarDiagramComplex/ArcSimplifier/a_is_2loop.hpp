@@ -48,13 +48,13 @@ bool a_is_2loop()
                 
                 if( o_0 == o_1 )
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Identified two unlinks.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Split two unlinks. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                     CreateUnlinkFromArc(n_0);
                 }
                 else
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Identified a Hopf link.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Split a Hopf link. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateHopfLinkFromArcs(a,n_0,c_0_state);
                 }
             }
@@ -78,12 +78,12 @@ bool a_is_2loop()
                 
                 if( o_0 == o_1 )
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Split an unlink as diagram components.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Split an unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                 }
                 else
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Disconnected a Hopf link as connected summand.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Disconnect a Hopf link. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateHopfLinkFromArcs(a,n_0,c_0_state);
                 }
             }
@@ -111,12 +111,12 @@ bool a_is_2loop()
                 
                 if( o_0 == o_1 )
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Split an unlink as diagram components.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Split an unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                 }
                 else
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Disconnected a Hopf link as connected summand.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Disconnect a Hopf link. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateHopfLinkFromArcs(a,s_0,c_0_state);
                 }
             }
@@ -140,12 +140,12 @@ bool a_is_2loop()
                 
                 if( o_0 == o_1 )
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Identified an unlink and disconnected a subdiagram as connected summand.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Split an unlink and disconnect another subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                 }
                 else
                 {
-                    PD_NOTE(MethodName("a_is_2loop")+": Disconnected a Hopf link and a further subdiagram as connected summand.");
+                    PD_NOTE(MethodName("a_is_2loop")+": Disconnect a Hopf link and another subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateHopfLinkFromArcs(n_0,a,c_0_state);
                 }
             }

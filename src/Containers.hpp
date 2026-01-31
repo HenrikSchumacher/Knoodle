@@ -187,6 +187,21 @@ namespace Knoodle
         
         return r;
     }
+    
+    
+    
+    template<
+        typename S,
+        class = typename std::enable_if_t<mma::HasTypeQ<S>>
+    >
+    inline mma::TensorRef<mma::Type<S>> to_MTensorRef( cref<std::vector<S>> source )
+    {
+        using T = mma::Type<S>;
+        auto r = mma::makeVector<T>( int_cast<mint>(source.size()) );
+        copy_buffer( &source[0], r.data(), source.size() );        
+        return r;
+    }
+    
 #endif // LTEMPLATE_H
     
     

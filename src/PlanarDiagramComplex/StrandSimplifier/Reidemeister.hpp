@@ -155,10 +155,10 @@ bool Reidemeister_II_Backward(
         ++change_counter;
         
         // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
-        strand_length -= 2;
+        strand_arc_count -= 2;
         a = a_prev;
         
-        PD_ASSERT(strand_length >= Int(0) );
+        PD_ASSERT(strand_arc_count >= Int(0) );
         
         return true;
     }
@@ -223,10 +223,10 @@ bool Reidemeister_II_Backward(
         ++change_counter;
         
         // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
-        strand_length -= 2;
+        strand_arc_count -= 2;
         a = a_prev;
         
-        PD_ASSERT(strand_length >= Int(0) );
+        PD_ASSERT(strand_arc_count >= Int(0) );
         
         return true;
     }

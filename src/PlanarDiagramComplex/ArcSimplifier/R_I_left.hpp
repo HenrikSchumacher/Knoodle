@@ -64,6 +64,7 @@ bool R_I_left()
              8                    s_0
              */
             
+            // This keeps e_1 alive; this is what we like to have in forward mode.
             Reconnect<Tail>(e_1,n_1);
             DeactivateArc(w_0);
             DeactivateArc(s_0);
@@ -187,6 +188,7 @@ bool R_I_left()
              *                            s_1
              */
             
+            // This keeps e_1 alive; this is what we like to have in forward mode.
             Reconnect<Tail>(e_1,s_1);
             DeactivateArc(w_0);
             DeactivateArc(n_0);

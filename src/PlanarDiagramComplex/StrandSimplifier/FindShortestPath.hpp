@@ -46,9 +46,9 @@ Tensor1<Int,Int> FindShortestRerouting(
 )
 {
     Load(pd_input);
-    strand_length = MarkArcs(a,b);
+    strand_arc_count = MarkArcs(a,b);
     
-    Int max_dist_ = Min(Ramp(strand_length - Int(2)),max_dist);
+    Int max_dist_ = Min(Ramp(strand_arc_count - Int(2)),max_dist);
     const Int d   = FindShortestPath(a,b,max_dist_);
     
     Tensor1<Int,Int> p;
@@ -91,7 +91,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
     
     PD_ASSERT(CheckDarcLeftDarc());
     
-    PD_ASSERT( a != b );
+    PD_ASSERT(a != b);
     PD_ASSERT(ArcMarkedQ(a));
     PD_ASSERT(ArcMarkedQ(b));
     
@@ -146,9 +146,14 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         // TODO: Handle this error.
         if( de == da ) { eprint("starting arc  a " + ArcString(a) + " is isolated."); }
         
-        //  CAUTION: This is crucial!  |
-        //                             V
-        if( SweepFace<true >(de, Head, a, a_0, b_0, X_front) ) { goto Exit; }
+        // CAUTION: DualArcMarkedQ(ArcOfDarc(de)) must be false here; otherwise, not all neighbor faces will be traversed.
+        
+        // CAUTION: This is crucial!                       |
+        //                                                 V
+        if( this->template SweepFace<true,false>(de, Head, a, a_0, b_0, X_front) )
+        {
+            goto Exit;
+        }
         ++X_r;
     }
     
@@ -167,12 +172,23 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         
         // TODO: Handle this error.
         if( de == db ) { eprint("starting arc  b " + ArcString(b) + " is isolated."); }
-
-        //  CAUTION: This is crucial!  |
-        //                             V
-        if( SweepFace<false>(de, Tail, b, b_0, a_0, Y_front) ) { goto Exit; }
+        
+        // CAUTION: DualArcMarkedQ(ArcOfDarc(de)) must be false here; otherwise, not all neighbor faces will be traversed.
+        
+        //  CAUTION: This is crucial!                      |
+        //                                                 V
+        if( this->template SweepFace<false,true>(de, Tail, b, b_0, a_0, Y_front) )
+        {
+            goto Exit;
+        }
         ++Y_r;
     }
+    
+#ifdef PD_COUNTERS
+    // We only record initial faces if we completed both of them.
+    RecordInitialFaceSize(X_front.Size());
+    RecordInitialFaceSize(Y_front.Size());
+#endif
    
     // We are good to go. Now run usual sweeps.
 
@@ -374,7 +390,7 @@ Int LeftUnmarkedDarc( const Int de_0 )
     return de;
 }
 
-template<bool first_faceQ = false>
+template<bool first_faceQ = false, bool second_faceQ = false>
 bool SweepFace(
     const Int de_0, const bool forwardQ, const Int from,
     mref<Int> a_0, mref<Int> b_0,
@@ -383,14 +399,32 @@ bool SweepFace(
 {
     PD_PRINT("SweepFace; de_0 = " + ToString(de_0) + ".");
     
-    PD_ASSERT(!ArcMarkedQ(ArcOfDarc(de_0)));
+#ifdef PD_COUNTERS
+    Int f_size = 0;
+#endif
+
+    // We never push dual arcs to the stack whose primal arcs are marked.
+    PD_ASSERT( !ArcMarkedQ(ArcOfDarc(de_0)) );
     
-    Int de = de_0;
+    Int de;
+    
+    if constexpr ( first_faceQ || second_faceQ )
+    {
+        de = de_0;
+    }
+    else
+    {
+        PD_ASSERT( DualArcMarkedQ(ArcOfDarc(de_0)) );
+        // We can set de = dA_left[de_0] because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
+        de = dA_left[de_0];
+    }
+    
+    
     do
     {
         auto [e,left_to_rightQ] = FromDarc(de);
         
-        // Only important for sweep the sweep over the starting face.
+        // Only important for sweeping over the starting face.
         // If we hit the target b_0 already here, then a_0 and b_0 share a common face
         // and their distance is 0.
         if constexpr ( first_faceQ )
@@ -404,6 +438,11 @@ bool SweepFace(
             de = dA_left[FlipDarc(de)];
             continue;
         }
+        
+#ifdef PD_COUNTERS
+        ++f_size;
+        RecordDualArc(de);
+#endif
         
         // Check whether `e` has not been visited, yet.
         if( !DualArcMarkedQ(e) )
@@ -438,6 +477,11 @@ bool SweepFace(
     
     PD_PRINT("SweepFace; de_0 = " + ToString(de_0) + " done.");
     PD_VALPRINT("next", next);
+    
+#ifdef PD_COUNTERS
+    // We record only faces that we have completely traversed.
+    RecordFaceSize(f_size);
+#endif
     
     return false;
 }

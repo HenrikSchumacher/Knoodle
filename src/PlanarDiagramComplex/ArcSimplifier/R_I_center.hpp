@@ -24,20 +24,12 @@ bool R_I_center()
                  *               |c_0 |
                  *               O<---+  a
                  */
+                                      
+                ReconnectAsSuggestedByMode<Tail>(n_0,w_0);
                 
-//                Reconnect<Head>(w_0,n_0);
-                
-                // This keeps n_0 alive, which is likely to be visited next.
-                Reconnect<Tail>(n_0,w_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
 //                ++pd.R_I_counter; // TODO: Implement counters.
-                
-                AssertArc<0>(a  );
-                AssertArc<1>(n_0);
-                AssertArc<0>(w_0);
-                AssertArc<0>(s_0);
-                AssertCrossing<0>(c_0);
                 
                 // We could enforce to check for consecutive loops this way:
                 // a = n_0;
@@ -100,8 +92,7 @@ bool R_I_center()
                  *              s_0
                  */
             
-                // This keeps s_0 alive, which is likely to be visited next.
-                Reconnect<Tail>(s_0,w_0);
+                ReconnectAsSuggestedByMode<Tail>(s_0,w_0);
                 DeactivateArc(a);
                 DeactivateCrossing(c_0);
                 // TODO: Implement counters.

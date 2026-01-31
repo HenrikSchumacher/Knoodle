@@ -37,7 +37,7 @@ bool twist_at_a()
             {
                 PD_PRINT( "\t\t\tn_1 != e_1" );
                 
-                Reconnect<Tail>(e_1,n_1);
+                ReconnectAsSuggestedByMode<Tail>(e_1,n_1);
                 DeactivateArc(w_0);
                 DeactivateArc(a );
                 DeactivateArc(n_0);
@@ -115,7 +115,17 @@ bool twist_at_a()
             *                             +-----------+
             */
             
-            Reconnect<Head>(w_0,s_0);
+            if constexpr( forwardQ )
+            {
+                // This keeps s_0 alive; this is what we like to have in forward mode.
+                Reconnect<Tail>(s_0,w_0);
+            }
+            else
+            {
+                // This keeps w_0 alive; this is what we like to have in backward mode.
+                Reconnect<Head>(w_0,s_0);
+            }
+            
             DeactivateArc(n_0);
             DeactivateArc(a  );
             DeactivateArc(e_1);
@@ -124,16 +134,6 @@ bool twist_at_a()
             
             // TODO: Implement counters.
 //            pd.R_I_counter += 2;
-            
-            AssertArc<0>(a  );
-            AssertArc<0>(n_0);
-            AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
-            AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<0>(s_1);
-            AssertCrossing<0>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -156,10 +156,12 @@ bool twist_at_a()
          *                             +-----------+
          */
 
-        PD_NOTE(MethodName("twist_at_a")+": Disconnect a subdiagram as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_NOTE(MethodName("twist_at_a")+": Disconnect a subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
+        // This keeps w_0 alive; this is what we like to have in backward mode.
         Reconnect<Head>(w_0,s_0);
-        Reconnect<Head>(n_1,e_1);
+        // This keeps e_1 alive; this is what we like to have in forward mode.
+        Reconnect<Tail>(e_1,n_1);
         DeactivateArc(a  );
         DeactivateArc(n_0);
         DeactivateCrossing(c_0);
@@ -194,7 +196,17 @@ bool twist_at_a()
                 *               +-------------------------+
                 */
                 
-                Reconnect<Tail>(e_1,s_1);
+                if constexpr( forwardQ )
+                {
+                    // This keeps e_1 alive; this is what we like to have in forward mode.
+                    Reconnect<Tail>(e_1,s_1);
+                }
+                else
+                {
+                    // This keeps s_1 alive; this is what we like to have in backward mode.
+                    Reconnect<Head>(s_1,e_1);
+                }
+                
                 DeactivateArc(a  );
                 DeactivateArc(w_0);
                 DeactivateArc(s_0);
@@ -203,16 +215,6 @@ bool twist_at_a()
                 
                 // TODO: Implement counters.
 //                pd.R_I_counter += 2;
-
-                AssertArc<0>(a  );
-                AssertArc<0>(n_0);
-                AssertArc<0>(s_0);
-                AssertArc<0>(w_0);
-                AssertArc<0>(n_1);
-                AssertArc<1>(e_1);
-                AssertArc<0>(s_1);
-                AssertCrossing<0>(c_0);
-                AssertCrossing<0>(c_1);
                 
                 return true;
             }
@@ -277,7 +279,7 @@ bool twist_at_a()
              *               +-------------------------+
              */
             
-            Reconnect<Head>(w_0,n_0);
+            ReconnectAsSuggestedByMode<Tail>(n_0,w_0);
             DeactivateArc(a  );
             DeactivateArc(e_1);
             DeactivateArc(s_0);
@@ -286,16 +288,6 @@ bool twist_at_a()
             
             // TODO: Implement counters.
 //            pd.R_I_counter += 2;
-            
-            AssertArc<0>(a  );
-            AssertArc<0>(n_0);
-            AssertArc<0>(s_0);
-            AssertArc<1>(w_0);
-            AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<0>(s_1);
-            AssertCrossing<0>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -316,10 +308,12 @@ bool twist_at_a()
          *               +-------------------------+
          */
         
-        PD_NOTE(MethodName("twist_at_a")+": Disconnect a subdiagram as connected summand. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+        PD_NOTE(MethodName("twist_at_a")+": Disconnect a subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
 
+        // This keeps e_1 alive; this is what we like to have in forward mode.
+        Reconnect<Tail>(e_1,s_1);
+        // This keeps w_0 alive; this is what we like to have in backward mode.
         Reconnect<Head>(w_0,n_0);
-        Reconnect<Head>(s_1,e_1);
         DeactivateArc(a  );
         DeactivateArc(s_0);
         DeactivateCrossing(c_0);

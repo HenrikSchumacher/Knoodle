@@ -7,24 +7,13 @@ bool strands_same_o()
      *        |c_0        |c_1          |c_0        |c_1
      */
     
-    if( R_II_above() )
-    {
-        PD_ASSERT(pd.CheckAll());
-        return true;
-    }
+    if( R_II_above() ) { return true; }
     
-    if( R_II_below() )
-    {
-        PD_ASSERT(pd.CheckAll());
-        return true;
-    }
+    if( R_II_below() ) { return true; }
     
     // If no Reidemeister II move is possible, then we test whether the horizontal strand blocks a Reidemeister II move of the vertical strands. We call this a Reidemeister IIa move.
     
-    if constexpr( optimization_level < Int(4) )
-    {
-        return false;
-    }
+    if constexpr( optimization_level < Int(4) ) { return false; }
     
     PD_ASSERT(s_0 != s_1);
     PD_ASSERT(n_0 != n_1);
@@ -59,10 +48,7 @@ bool strands_same_o()
     
     PD_PRINT("R_IIa_same_o()");
     
-    if( ! ((e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)) )
-    {
-        return false;
-    }
+    if( ! ((e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)) ) { return false; }
     
     PD_PRINT("\t(e_2 == s_1) && (e_3 == n_1) && (o_2 == o_3)");
     
@@ -117,7 +103,7 @@ bool strands_same_o()
     // One of these will definitely work:
     if(u_0 == u_1)
     {
-        if constexpr ( allow_four_patternQ )
+        if constexpr ( search_two_triangles_same_u )
         {
             if( two_triangles_same_u() )
             {

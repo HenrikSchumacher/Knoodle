@@ -356,22 +356,4 @@ namespace Knoodle
         
     }; // class Reapr
 
-    
-//    template<typename Real, typename Int>
-//    std::string ToString( typename Reapr<Real,Int>::EnergyFlag_T e )
-//    {
-//        using F_T = Reapr<Real,Int>::EnergyFlag_T;
-//        switch(e)
-//        {
-//            case F_T::TV:        return "TV";
-//            case F_T::Dirichlet: return "Dirichlet";
-//            case F_T::Bending:   return "Bending";
-//            case F_T::Height:    return "Height";
-//            case F_T::TV_CLP:    return "TV_CLP";
-//            case F_T::TV_MCF:    return "TV_MCF";
-//            default:             return "Unknown";
-//        }
-//        
-//    }
-
 } // namespace Knoodle

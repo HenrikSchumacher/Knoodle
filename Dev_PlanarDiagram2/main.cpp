@@ -1,5 +1,7 @@
 #define KNOODLE_USE_BOOST_UNORDERED
 
+#define PD_COUNTERS
+
 //#define TENSORS_BOUND_CHECKS
 
 //#define TOOLS_ENABLE_PROFILER
@@ -196,6 +198,9 @@ int main()
 
     }
     
+    
+    TOOLS_DUMP(pdc.StrandSimplifier().RecordedDualArcs().size());
+    TOOLS_DUMP(pdc.StrandSimplifier().RecordedFaceSizes().size());
     
     return EXIT_SUCCESS;
 }

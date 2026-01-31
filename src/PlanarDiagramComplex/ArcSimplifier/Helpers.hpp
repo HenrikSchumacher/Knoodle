@@ -84,3 +84,20 @@ void Reconnect( const Int a_, const Int b_ )
 {
     pd.template Reconnect<headtail,deactivateQ,assertQ,colorQ>(a_,b_);
 }
+
+
+// We always write ReconnectAsSuggestedByMode<headtail>(a_,b_) as preferable for forward mode; if in backward mode, we turn it around.
+template<bool headtail, bool deactivateQ = true, bool assertQ = true, bool colorQ = true>
+void ReconnectAsSuggestedByMode( const Int a_, const Int b_ )
+{
+    if constexpr ( forwardQ )
+    {
+        // This keeps a_ alive, which is good if that is likely to be processed soon.
+        pd.template Reconnect< headtail,deactivateQ,assertQ,colorQ>(a_,b_);
+    }
+    else
+    {
+        // This keeps b_ alive, which is good if that is likely to be processed soon.
+        pd.template Reconnect<!headtail,deactivateQ,assertQ,colorQ>(b_,a_);
+    }
+}

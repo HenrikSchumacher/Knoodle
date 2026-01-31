@@ -104,6 +104,15 @@ PD_VALPRINT("path", ShortPathString());
         PD_ASSERT( b != a_2 )
         PD_ASSERT( b != a )
         
+        // DEBUGGING
+        if( a == b )
+        {
+            logvalprint("a",ArcString(a));
+            TOOLS_LOGDUMP(p);
+            TOOLS_LOGDUMP(q);
+            logvalprint("path",ShortPathString());
+        }
+        
         if( (b == a_0) || (b == a_1) )
         {
             // Go to next arc.
@@ -266,8 +275,8 @@ PD_VALPRINT("path", ShortPathString());
     PD_TOC("While loop for rerouting");
 
     
-    // strand_length is just an upper bound to prevent infinite loops.
-    CollapseArcRange(a,e,strand_length);
+    // strand_arc_count is just an upper bound to prevent infinite loops.
+    CollapseArcRange(a,e,strand_arc_count);
 
     AssertArc<1>(a);
     AssertArc<0>(e);
@@ -322,9 +331,9 @@ void WalkToBranch( mref<Int> a, mref<Int> p ) const
     Int b = path[p];
     
     while(
-        (pd->C_arcs(c,headtail,!side) == b)
+        (pd->C_arcs(c, headtail,!side) == b)
         ||
-        (pd->C_arcs(c,!headtail,side) == b)
+        (pd->C_arcs(c,!headtail, side) == b)
     )
     {
         a = pd->C_arcs(c,!headtail,!side);
@@ -362,20 +371,25 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
     
     PD_ASSERT(pd->CheckAll());
     
-    Int d;
+    Int path_arc_count;
     
     if( strategy == Strategy_T::DijkstraLegacy )
     {
-        d = FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
+        path_arc_count = FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
     }
     else
     {
-        d = FindShortestPath_impl(a,b,max_dist);
+        path_arc_count = FindShortestPath_impl(a,b,max_dist);
     }
+    
+#ifdef PD_COUNTERS
+    RecordPreStrandSize(strand_arc_count);
+    RecordPostStrandSize(path_arc_count);
+#endif
         
-    if( (d < Int(0)) || (d > max_dist) )
+    if( (path_arc_count < Int(0)) || (path_arc_count > max_dist) )
     {
-        PD_DPRINT("No improvement detected. (strand_length = " + ToString(strand_length) + ", d = " + ToString(d) + ", max_dist = " + ToString(max_dist) + ")");
+        PD_DPRINT("No improvement detected. (strand_arc_count = " + ToString(strand_arc_count) + ", path_arc_count = " + ToString(path_arc_count) + ", max_dist = " + ToString(max_dist) + ")");
         return false;
     }
     
@@ -411,9 +425,9 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
 //        ResetMark();
 //        SetStrandMode(overQ_);
 //        
-//        strand_length = MarkArcs(a,b);
+//        strand_arc_count = MarkArcs(a,b);
 //        
-//        RerouteToShortestPath_impl(a,b,strand_length-Int(1));
+//        RerouteToShortestPath_impl(a,b,strand_arc_count-Int(1));
 //        
 //        Cleanup();
 //        

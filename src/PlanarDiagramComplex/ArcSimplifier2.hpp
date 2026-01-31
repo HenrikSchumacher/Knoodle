@@ -16,7 +16,8 @@ namespace Knoodle
     template<
         typename Int_,
         Size_T optimization_level_ = 4,
-        bool mult_compQ_ = true
+        bool mult_compQ_ = true,
+        bool forwardQ_ = true
     >
     class alignas( ObjectAlignment ) ArcSimplifier2 final
     {
@@ -34,13 +35,12 @@ namespace Knoodle
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
         static constexpr bool mult_compQ          = mult_compQ_;
+        static constexpr bool forwardQ            = forwardQ_;
         static constexpr Int  optimization_level  = optimization_level_;
-        static constexpr bool allow_disconnectsQ  = true;
-        static constexpr bool allow_four_patternQ = true;
         
-        static constexpr bool use_arc_removerQ    = true;
+        static constexpr bool search_two_triangles_same_u = true;
         
-//        static constexpr bool allow_four_patternQ = false;
+        static constexpr bool use_loop_removerQ    = true;
         
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Tail  = PD_T::Tail;
@@ -187,10 +187,8 @@ namespace Knoodle
                 {
                     pd.ConditionalCompress();
                 }
-                else
-                {
-                    pd.ClearCache();
-                }
+                
+                pd.ClearCache();
             }
                 
             if( pd.ValidQ() && (pd.CrossingCount() == Int(0)) )
@@ -208,7 +206,7 @@ namespace Knoodle
         
         void CreateUnlinkFromArc( const Int a_ )
         {
-            PD_NOTE(MethodName("CreateUnlinkFromArc")+" (crossing_count = " + ToString(pd.CrossingCount()) + ")");
+//            PD_NOTE(MethodName("CreateUnlinkFromArc")+" (crossing_count = " + ToString(pd.CrossingCount()) + ")");
             pdc.CreateUnlinkFromArc(pd,a_);
         }
         
@@ -216,19 +214,19 @@ namespace Knoodle
             const Int a_0, const Int a_1, const CrossingState_T handedness
         )
         {
-            PD_NOTE(MethodName("CreateHopfLinkFromArcs")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
+//            PD_NOTE(MethodName("CreateHopfLinkFromArcs")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
             pdc.CreateHopfLinkFromArcs(pd,a_0,a_1,handedness);
         }
         
         void CreateTrefoilKnotFromArc( const Int a_, const CrossingState_T handedness )
         {
-            PD_NOTE(MethodName("CreateTrefoilKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
+//            PD_NOTE(MethodName("CreateTrefoilKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
             pdc.CreateTrefoilKnotFromArc(pd,a_,handedness);
         }
         
         void CreateFigureEightKnotFromArc( const Int a_ )
         {
-            PD_NOTE(MethodName("CreateFigureEightKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
+//            PD_NOTE(MethodName("CreateFigureEightKnotFromArc")+" (crossing_count = "  + ToString(pd.CrossingCount()) + ")");
             pdc.CreateFigureEightKnotFromArc(pd,a_);
         }
         

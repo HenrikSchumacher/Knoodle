@@ -189,28 +189,35 @@ void Compress()
     (*this) = this->template CreateCompressed<recolorQ>();
 }
 
-template<bool recolorQ = false>
 void ConditionalCompress()
 {
-    //             +------ This avoids recompression of unknots.
-    //             V
-    if( ArcCount() < MaxCrossingCount() )
+//    //            +------ This avoids recompression of unknots.
+//    //            V
+//    if( arc_count < max_crossing_count )
+//    {
+//        Compress();
+//    }
+////    else
+////    {
+////        ClearCache();
+////    }
+    
+    //                 +------ This avoids recompression of unknots.
+    //                 V
+    if( crossing_count < max_crossing_count )
     {
         Compress();
     }
-    else
-    {
-        ClearCache();
-    }
+//    else
+//    {
+//        ClearCache();
+//    }
 }
 
 bool CompressedOrderQ()
 {
     // An empty list is ordered, of course.
-    if( !ValidQ() )
-    {
-        return true;
-    }
+    if( !ValidQ() ) { return true; }
     
     bool orderedQ = true;
     

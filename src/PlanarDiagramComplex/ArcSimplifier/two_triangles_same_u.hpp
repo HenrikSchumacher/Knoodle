@@ -17,7 +17,7 @@ bool two_triangles_same_u()
     {
         PD_PRINT("\t\t\tw_3 == s_2");
         
-        PD_NOTE(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+//        PD_NOTE(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*              +<-------------+
          *              |  n_3         ^
@@ -58,7 +58,11 @@ bool two_triangles_same_u()
         }
         else
         {
-            Reconnect<Tail>(w_2,w_0);   // Disconnect the bottom-left subdiagram
+            // TODO: I don't know what's better in backward mode.
+//            Reconnect<Tail>(w_2,w_0);   // Disconnect the bottom-left subdiagram
+
+            // This keeps w_0 alive; good for backward mode.
+            Reconnect<Head>(w_0,w_2);   // Disconnect the bottom-left subdiagram
         }
         
         if( top_right_trivialQ )
@@ -67,7 +71,7 @@ bool two_triangles_same_u()
         }
         else
         {
-            // This keeps e_1 alive, which is likely to be visited next.
+            // This keeps e_1 alive; good for forward mode.
             Reconnect<Tail>(e_1,n_3);   // Disconnect the top-right subdiagram
         }
         
@@ -103,18 +107,18 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as trefoil knot.");
+                    PD_NOTE(tag()+": Split a trefoil knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Disconnected a trefoil knot.");
+                    PD_NOTE(tag()+": Disconnect a trefoil knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a trefoil knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnect a trefoil knot and a further diagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }
@@ -129,18 +133,18 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as figure-eight knot.");
+                    PD_NOTE(tag()+": Split a figure-eight knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Disconnected a figure-eight knot.");
+                    PD_NOTE(tag()+": Disconnect a figure-eight knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a figure-eight knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnect a figure-eight knot and a further diagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }
@@ -151,19 +155,19 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as unlink.");
+                    PD_NOTE(tag()+": Split an unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Removed four crossings.");
+                    PD_NOTE(tag()+": Remove four crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a connected summand.");
+                    PD_NOTE(tag()+": Disconnect a subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }
@@ -178,7 +182,7 @@ bool two_triangles_same_u()
     {
         PD_PRINT("\t\t\t\tw_2 == n_3");
         
-        PD_PRINT(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
+//        PD_PRINT(tag()+": We could disconnect up to two disconnected summands here. ( crossing_count = " + ToString(pd.crossing_count) + ")");
         
         /*   +<-------------+
          *   |          w_3 |
@@ -219,7 +223,11 @@ bool two_triangles_same_u()
         }
         else
         {
-            Reconnect<Tail>(w_3,w_0);   // Disconnect the top-left subdiagram
+            // TODO: I don't know what's better in backward mode.
+//            Reconnect<Tail>(w_3,w_0);   // Disconnect the top-left subdiagram
+                                    
+            // This keeps w_0 alive; good for forward mode.
+            Reconnect<Head>(w_0,w_3);   // Disconnect the top-left subdiagram
         }
         
         if( bottom_right_trivialQ )
@@ -228,7 +236,7 @@ bool two_triangles_same_u()
         }
         else
         {
-            // This keeps e_1 alive, which is likely to be visited next.
+            // This keeps e_1 alive; good for forward mode.
             Reconnect<Tail>(e_1,s_2);   // Disconnect the bottom-right subdiagram
         }
 
@@ -263,18 +271,18 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as trefoil knot.");
+                    PD_NOTE(tag()+": Split a trefoil knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Disconnected a trefoil knot.");
+                    PD_NOTE(tag()+": Disconnect a trefoil knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a trefoil knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnect a trefoil knot and a further diagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }
@@ -289,18 +297,18 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as figure-eight knot.");
+                    PD_NOTE(tag()+": Split a figure-eight knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Disconnected a figure-eight knot.");
+                    PD_NOTE(tag()+": Disconnect a figure-eight knot. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a figure-eight knot and a further diagram.");
+                    PD_NOTE(tag()+": Disconnect a figure-eight knot and a further diagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }
@@ -311,19 +319,19 @@ bool two_triangles_same_u()
             {
                 case 0:
                 {
-                    PD_NOTE(tag()+": Identified as unlink.");
+                    PD_NOTE(tag()+": Split an unlink. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     CreateUnlinkFromArc(a);
                     return true;
                 }
                 case 1:
                 {
-                    PD_NOTE(tag()+": Removed four crossings.");
+                    PD_NOTE(tag()+": Remove four crossings. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                     
                 }
                 case 2:
                 {
-                    PD_NOTE(tag()+": Disconnected a connected summand.");
+                    PD_NOTE(tag()+": Disconnect a subdiagram. ( crossing_count = " + ToString(pd.crossing_count) + ")");
                     return true;
                 }
             }

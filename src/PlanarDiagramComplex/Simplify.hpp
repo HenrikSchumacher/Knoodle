@@ -79,15 +79,15 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         wprint(tag()+": Debug mode active.");
     }
 
-//    using ArcSimplifier_Knot_T  = ArcSimplifier2<Int,local_opt_level,false>;
     using ArcSimplifier_Link_T  = ArcSimplifier2<Int,local_opt_level,true>;
-//
-//    using StrandSimplifier_Knot_T = StrandSimplifier2<Int,pass_R_II_Q,false>;
-    using StrandSimplifier_Link_T = StrandSimplifier2<Int,pass_R_II_Q,true>;
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
     PD_PRINT("Construct StrandSimplifier");
-    StrandSimplifier_Link_T S (*this,args.strategy);
+    mref<StrandSimplifier_T> S = StrandSimplifier(args.strategy);
+    
+#ifdef PD_COUNTERS
+    S.ResetCounters();
+#endif
     
 //    // We have to store this value here, because the result of MaxMaxCrossingCount changes if we change pd_list (which we will do frequently).
 //    const Int pdc_max_crossing_count = MaxMaxCrossingCount();
@@ -102,12 +102,6 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     pd_todo.reserve(pd_list.size());
   
     swap(pd_list,pd_todo);
-//    // Push everything in pd_list onto pd_todo in reverse order.
-//    while( !pd_list.empty() )
-//    {
-//        pd_todo.push_back( std::move(pd_list.back()) );
-//        pd_list.pop_back();
-//    }
     
     while( !pd_todo.empty() )
     {
@@ -321,7 +315,16 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         }
     );
     
+#ifdef PD_COUNTERS
+    // We need to save the counters from being erased by this->ClearCache().
+    auto S_buffer = std::move(this->GetCache<StrandSimplifier_T>("StrandSimplifier"));
+#endif
+    
     if( total_change_count > Size_T(0) ) { this->ClearCache(); }
+
+#ifdef PD_COUNTERS
+    this->SetCache("StrandSimplifier",std::move(S_buffer));
+#endif
     
     return total_change_count;
 }

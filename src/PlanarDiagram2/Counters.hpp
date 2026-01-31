@@ -1,12 +1,12 @@
 private:
 
-// Counters for Reidemeister moves.
-Int R_I_counter   = 0;
-Int R_Ia_counter  = 0;
-Int R_II_counter  = 0;
-Int R_IIa_counter = 0;
-Int twist_counter = 0;
-Int four_counter  = 0;
+//// Counters for Reidemeister moves.
+//Int R_I_counter   = 0;
+//Int R_Ia_counter  = 0;
+//Int R_II_counter  = 0;
+//Int R_IIa_counter = 0;
+//Int twist_counter = 0;
+//Int four_counter  = 0;
 
 public:
 

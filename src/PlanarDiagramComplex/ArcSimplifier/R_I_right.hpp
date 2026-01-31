@@ -25,23 +25,13 @@ bool R_I_right()
              *                s_0
              */
             
-            // This keeps n_1 alive, which is likely to be visited next.
+            // This keeps n_1 alive; this is what we like to have in forward mode.
             Reconnect<Tail>(n_1,a);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
             
             // TODO: Implement counters.
 //            ++pd.R_I_counter;
-            
-            AssertArc<0>(a  );
-            AssertArc<1>(n_0);
-            AssertArc<1>(s_0);
-            AssertArc<1>(w_0);
-            AssertArc<1>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<0>(s_1);
-            AssertCrossing<1>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -65,8 +55,16 @@ bool R_I_right()
              *                s_0
              */
             
-            // This keeps w_0 alive, which is likely to be visited next.
-            Reconnect<Tail>(s_0,w_0);
+            if constexpr( forwardQ )
+            {
+                // This keeps s_0 alive; this is what we like to have in forward mode.
+                Reconnect<Tail>(s_0,w_0);
+            }
+            else
+            {
+                // This keeps w_0 alive; this is what we like to have in backward mode.
+                Reconnect<Head>(w_0,s_0);
+            }
             
             DeactivateArc(n_1);
             DeactivateArc(e_1);
@@ -76,16 +74,6 @@ bool R_I_right()
             
             // TODO: Implement counters.
 //            pd.R_I_counter += 2;
-            
-            AssertArc<0>(a  );
-            AssertArc<0>(n_0);
-            AssertArc<1>(s_0);
-            AssertArc<0>(w_0);
-            AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<0>(s_1);
-            AssertCrossing<0>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -113,16 +101,6 @@ bool R_I_right()
         // TODO: Implement counters.
 //        pd.R_I_counter += 2;
         
-        AssertArc<0>(a  );
-        AssertArc<0>(n_0);
-        AssertArc<0>(s_0);
-        AssertArc<0>(w_0);
-        AssertArc<0>(n_1);
-        AssertArc<0>(e_1);
-        AssertArc<0>(s_1);
-        AssertCrossing<0>(c_0);
-        AssertCrossing<0>(c_1);
-        
         return true;
         
     }
@@ -146,23 +124,13 @@ bool R_I_right()
              *                 s_0
              */
              
-            // This keeps s_1 alive, which is likely to be visited next.
+            // This keeps s_1 alive; this is what we like to have in forward mode.
             Reconnect<Tail>(s_1,a);
             DeactivateArc(e_1);
             DeactivateCrossing(c_1);
             
             // TODO: Implement counters.
 //            ++pd.R_I_counter;
-            
-            AssertArc<0>(a  );
-            AssertArc<1>(n_0);
-            AssertArc<1>(s_0);
-            AssertArc<1>(w_0);
-            AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<1>(s_1);
-            AssertCrossing<1>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -187,8 +155,17 @@ bool R_I_right()
              *                    s_0
              */
             
-            // This keeps n_0 alive, which is likely to be visited next.
-            Reconnect<Tail>(n_0,w_0);
+            if constexpr( forwardQ )
+            {
+                // This keeps n_0 alive; this is what we like to have in forward mode.
+                Reconnect<Tail>(n_0,w_0);
+            }
+            else
+            {
+                // This keeps w_0 alive; this is what we like to have in backward mode.
+                Reconnect<Head>(w_0,n_0);
+            }
+            
             DeactivateArc(a  );
             DeactivateArc(e_1);
             DeactivateArc(s_0);
@@ -197,16 +174,6 @@ bool R_I_right()
             
             // TODO: Implement counters.
 //            pd.R_I_counter += 2;
-            
-            AssertArc<0>(a  );
-            AssertArc<1>(n_0);
-            AssertArc<0>(s_0);
-            AssertArc<0>(w_0);
-            AssertArc<0>(n_1);
-            AssertArc<0>(e_1);
-            AssertArc<0>(s_1);
-            AssertCrossing<0>(c_0);
-            AssertCrossing<0>(c_1);
             
             return true;
         }
@@ -234,16 +201,6 @@ bool R_I_right()
         
         // TODO: Implement counters.
 //        pd.R_I_counter += 2;
-        
-        AssertArc<0>(a  );
-        AssertArc<0>(n_0);
-        AssertArc<0>(s_0);
-        AssertArc<0>(w_0);
-        AssertArc<0>(n_1);
-        AssertArc<0>(e_1);
-        AssertArc<0>(s_1);
-        AssertCrossing<0>(c_0);
-        AssertCrossing<0>(c_1);
         
         return true;
     }

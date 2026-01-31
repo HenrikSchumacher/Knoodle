@@ -18,7 +18,7 @@ void RemoveLoop( const Int e, const Int c_0 )
     
     if ( mark_counter >= 4 ) // This should never happen.
     {
-        wprint(MethodName("RemoveLoop") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_length = " + ToString(strand_length));
+        wprint(MethodName("RemoveLoop") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
         TOOLS_LOGDUMP(c_0);
         TOOLS_LOGDUMP(e  );
         TOOLS_LOGDUMP(pd->C_arcs(c_0,Out,Left ));
@@ -42,7 +42,7 @@ void RemoveLoop( const Int e, const Int c_0 )
         {
             const bool u_0 = (pd->C_arcs(c_0,Out,Right) == a);
             
-            CollapseArcRange(a,e,strand_length);
+            CollapseArcRange(a,e,strand_arc_count);
             DeactivateArc(a);
             CreateUnlinkFromArc(a);
             
@@ -101,7 +101,7 @@ void RemoveLoop( const Int e, const Int c_0 )
               
     const Int b = pd->C_arcs(c_0,Out,side);
     
-    CollapseArcRange(b,e,strand_length);
+    CollapseArcRange(b,e,strand_arc_count);
 
     // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
     

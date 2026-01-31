@@ -76,7 +76,7 @@ namespace Knoodle
         Int    max_arc_count      = 0;
         Int    current_mark       = 0;
         Int    a_ptr              = 0;
-        Int    strand_length      = 0;
+        Int    strand_arc_count      = 0;
         Int    path_length        = 0;
         Size_T change_counter     = 0;
         
@@ -227,6 +227,7 @@ namespace Knoodle
 #include "StrandSimplifier/Reidemeister.hpp"
 #include "StrandSimplifier/SimplifyStrands.hpp"
 #include "StrandSimplifier/Strings.hpp"
+#include "StrandSimplifier/Counters.hpp"
         
     private:
         

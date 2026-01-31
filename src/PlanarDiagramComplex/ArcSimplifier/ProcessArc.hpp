@@ -31,7 +31,7 @@ private:
         
         // Check for Reidemeister I move on arc a
         
-        if constexpr ( use_arc_removerQ )
+        if constexpr ( use_loop_removerQ )
         {
             LoopRemover<Int> R (pdc,pd,a,Head);
             
@@ -95,7 +95,7 @@ private:
         // This will also remove some unpleasant cases for the Reidemeister II and Ia moves.
         
         // Check for Reidemeister I move on arc w_0
-        if constexpr ( use_arc_removerQ )
+        if constexpr ( use_loop_removerQ )
         {
             if( (w_0 == n_0) || (w_0 == s_0) )
             {
@@ -125,7 +125,7 @@ private:
         }
         
         // Check for Reidemeister I move on arc e_1
-        if constexpr ( use_arc_removerQ )
+        if constexpr ( use_loop_removerQ )
         {
             if( (e_1 == n_1) || (e_1 == s_1) )
             {
@@ -172,6 +172,7 @@ private:
         if constexpr( mult_compQ )
         {
             // This requires o_0 and o_1 to be defined already.
+            // Caution: a_is_2loop is crucial because it is the only time we ever test w_0 == e_1.
             if(a_is_2loop())
             {
                 PD_VALPRINT( "a  ", ArcString(n_0) );

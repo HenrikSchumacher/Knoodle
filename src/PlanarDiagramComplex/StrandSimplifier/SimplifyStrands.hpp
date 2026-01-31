@@ -14,6 +14,7 @@ Size_T SimplifyStrands(
     mref<PD_T> pd_input, bool overQ_, const Int max_dist = Scalar::Max<Int>
 )
 {
+    // TODO: We could interleave overstrand and understrand search: The last arc of an overstrand is always the first arc of an understrand; the last arc of an understrand is always the first arc of an overstrand.
     SetStrandMode(overQ_);
     
     [[maybe_unused]] auto tag = [this,max_dist]()
@@ -43,7 +44,7 @@ Size_T SimplifyStrands(
     
     const Int old_mark = current_mark;
 
-    strand_length = 0;
+    strand_arc_count = 0;
     change_counter = 0;
     
     while( a_ptr < pd_max_arc_count )
@@ -80,21 +81,14 @@ Size_T SimplifyStrands(
         // Current arc.
         Int a = a_0;
         
-        strand_length = 0;
+        strand_arc_count = 0;
         
         MarkCrossing( pd->A_cross(a,Tail) );
         
         // Traverse forward through all arcs in the link component, until we return where we started.
         do
         {
-            ++strand_length;
-            
-//            // DEBUGGING
-//            logprint(
-//                std::string("strand = ") + ToString(current_mark)
-//                     + ";  strand_length = " + ToString(strand_length)
-//                     + ";  a = " + ToString(a)
-//            );
+            ++strand_arc_count;
             
             // Safe guard against integer overflow.
             if( current_mark >= max_mark )
@@ -109,18 +103,15 @@ Size_T SimplifyStrands(
             }
             
             Int c_1 = pd->A_cross(a,Head);
-
             AssertCrossing<1>(c_1);
             
             const bool side_1 = (pd->C_arcs(c_1,In,Right) == a);
-    
             Int a_next = pd->C_arcs(c_1,Out,!side_1);
             AssertArc<1>(a_next);
             
             Int c_next = pd->A_cross(a_next,Head);
             AssertCrossing<1>(c_next);
             
-            // TODO: Not sure whether this adds anything good. RemoveLoop is also able to remove Reidemeister I loops. It just does it in a slightly different ways.
             if( c_next == c_1 )
             {
                 // overQ == true
@@ -149,17 +140,17 @@ Size_T SimplifyStrands(
                 PD_ASSERT(a_next != a);
                 
                 ++change_counter;
-                --strand_length;
+                --strand_arc_count;
                 
                 // TODO: I think it would be safe to continue without checking that `a_0` is still active. We should first complete the current strand.
                 
                 if( ActiveQ(a_0_state) )
                 {
-                    continue;
+                    continue; // Walk to next arc.
                 }
                 else
                 {
-                    break;
+                    break;  // Stop the strand here.
                 }
             }
 
@@ -175,7 +166,7 @@ Size_T SimplifyStrands(
             
             if( CrossingMarkedQ(c_1) )
             {
-                // Vertex c has been visted before.
+                // Vertex c has been visited before.
                 
                 
                 /*            |
@@ -286,7 +277,7 @@ Size_T SimplifyStrands(
                 }
                 else // single component link
                 {
-                    // The only case I can imagine where `RemoveLoop` won't wotk is this unknot:
+                    // The only case I can imagine where `RemoveLoop` won't work is this unknot:
                     
                     /*            +-------+
                      *            |       |
@@ -305,24 +296,20 @@ Size_T SimplifyStrands(
                     break;
                 }
             }
-
-            // Checking for Reidemeister II moves like this:
             
-            // overQ == true
-            //
-            //                  +--------+
-            //      |     |     |        |
-            //      |     |  a  | a_next |
-            // ---------------->|------->|----
-            //      |     |     |c_1     |
-            //      |     |     |        |
-            
-            // TODO: It might even be worth to do this before RemoveLoop is called.
-
             if constexpr ( R_II_Q )
             {
                 if( (!strand_completeQ) && (a != a_begin) )
                 {
+                    // overQ == true
+                    //
+                    //               +--------+
+                    //      |        |        |
+                    //      | a_prev |   a    | a_next
+                    // -----X---------------->-------->
+                    //      |        |        |c_1
+                    //      |        |        |
+                    
                     // Caution: This might change `a`.
                     const bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
                     
@@ -343,14 +330,31 @@ Size_T SimplifyStrands(
             
             if( strand_completeQ )
             {
+                
+                // TODO: We could check for Reidemeister II moves like this:
+                
+                /* overQ == true
+                 *
+                 *                        +--------+
+                 *      |        |        |        |
+                 *      |        |   a    | a_next |
+                 * ---------------------->|------->|----
+                 *      |        |        |c_1     |
+                 *      |        |        |        |
+                 */
+                
+                // TODO: I could also run ArcSimplifier_T::Process(a_next).
+                // TODO: This might allow us to reroute a longer strand now and to save some work later. (Not sure whether this ammortizes.)
+                // TODO: We could also give it the information that a is not a loop. (At least, I think we know this at this point.
+                // TODO: The only problem with that would be that ArcSimplifier_T does not tell us how far we have to backtrack a.
+                
                 bool changedQ = false;
 
-                // TODO: What is a good lower bound for strand_length?
-                if( (strand_length > Int(2)) && (max_dist > Int(0)) )
+                if( (strand_arc_count > Int(2)) && (max_dist > Int(0)) )
                 {
                     changedQ = RerouteToShortestPath_impl(
                         a_begin,a,
-                        Min(strand_length-Int(1),max_dist)
+                        Min(strand_arc_count-Int(1),max_dist)
                     );
                 }
                 
@@ -360,7 +364,7 @@ Size_T SimplifyStrands(
                 if( changedQ || (!ActiveQ(a_0_state)) ) { break; }
                 
                 // Create a new strand.
-                strand_length = 0;
+                strand_arc_count = 0;
                 a_begin = a_next;
 
                 NewMark();
@@ -385,7 +389,7 @@ Size_T SimplifyStrands(
 //                }
         
         NewMark();
-        strand_length = 0;
+        strand_arc_count = 0;
         
         ++a_ptr;
     }

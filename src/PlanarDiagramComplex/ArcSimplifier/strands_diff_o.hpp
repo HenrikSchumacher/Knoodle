@@ -89,7 +89,7 @@ bool strands_diff_o()
             
             if(u_0 == u_1)
             {
-                if constexpr ( allow_four_patternQ )
+                if constexpr ( search_two_triangles_same_u )
                 {
                     if( two_triangles_same_u() )
                     {
