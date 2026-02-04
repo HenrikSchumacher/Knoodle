@@ -26,10 +26,6 @@ void CollapseArcRange(
     
     PD_TIMER(timer,MethodName("CollapseArcRange(" + ToString(a_begin) + "," + ToString(a_end) + "," + ToString(arc_count_) + ")"));
     
-#ifdef PD_TIMINGQ
-    const Time start_time = Clock::now();
-#endif
-    
     Int a = a_end;
     
     Int iter = 0;
@@ -81,10 +77,4 @@ void CollapseArcRange(
     Reconnect<Head,false>(a_begin,a_end);
     
     ++change_counter;
-    
-#ifdef PD_TIMINGQ
-    const Time stop_time = Clock::now();
-    
-    Time_CollapseArcRange += Tools::Duration(start_time,stop_time);
-#endif
 }

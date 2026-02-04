@@ -214,7 +214,7 @@ void ConditionalCompress()
 //    }
 }
 
-bool CompressedOrderQ()
+bool CompressedOrderQ() const
 {
     // An empty list is ordered, of course.
     if( !ValidQ() ) { return true; }

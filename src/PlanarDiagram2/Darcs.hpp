@@ -134,7 +134,7 @@ mref<ArcContainer_T> ArcLeftDarcs() const
     
     if( !this->InCacheQ(tag) )
     {
-        TOOLS_PTIMER(timer,tag);
+        TOOLS_PTIMER(timer,MethodName(tag));
         
         ArcContainer_T A_left_buffer ( max_arc_count );
         
@@ -318,6 +318,8 @@ mref<ArcContainer_T> ArcRightDarcs() const
     
     if( !this->InCacheQ(tag) )
     {
+        TOOLS_PTIMER(timer,MethodName(tag));
+        
         ArcContainer_T A_right_buffer ( max_arc_count );
         
         mptr<Int> dA_right = A_right_buffer.data();

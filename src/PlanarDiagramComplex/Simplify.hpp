@@ -3,15 +3,28 @@ public:
 
 struct Simplify_Args_T
 {
-    Int              local_opt_level = 4;
-    Size_T           local_max_iter  = Scalar::Max<Size_T>;
-    SearchStrategy_T strategy        = SearchStrategy_T::DijkstraLegacy;
-    Int              min_dist        = 6;
-    Int              max_dist        = Scalar::Max<Int>;
-    bool             disconnectQ     = false;
-    bool             splitQ          = true;
-    bool             compressQ       = true;
+    Int                local_opt_level  = 4;
+    Size_T             local_max_iter   = Scalar::Max<Size_T>;
+    DijkstraStrategy_T strategy         = DijkstraStrategy_T::Bidirectional;
+    Int                start_max_dist   = Scalar::Max<Int>;
+    Int                final_max_dist   = Scalar::Max<Int>;
+    bool               disconnectQ      = true;
+    bool               splitQ           = true;
+    bool               compressQ        = true;
 };
+
+friend std::string ToString( cref<Simplify_Args_T> args )
+{
+    return "{.local_opt_level = " + ToString(args.local_opt_level)
+         + ",.local_max_iter = " + ToString(args.local_max_iter)
+         + ",.strategy = " + ToString(args.strategy)
+         + ",.start_max_dist = " + ToString(args.start_max_dist)
+         + ",.final_max_dist = " + ToString(args.final_max_dist)
+         + ",.disconnectQ = " + ToString(args.disconnectQ)
+         + ",.splitQ = " + ToString(args.splitQ)
+         + ",.compressQ = " + ToString(args.compressQ)
+         + "}";
+}
 
 Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 {
@@ -23,23 +36,23 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
     {
         case 0:
         {
-            return Simplify_impl<0,true>(args);
+            return Simplify_impl<0>(args);
         }
         case 1:
         {
-            return Simplify_impl<1,true>(args);
+            return Simplify_impl<1>(args);
         }
         case 2:
         {
-            return Simplify_impl<2,true>(args);
+            return Simplify_impl<2>(args);
         }
         case 3:
         {
-            return Simplify_impl<3,true>(args);
+            return Simplify_impl<3>(args);
         }
         case 4:
         {
-            return Simplify_impl<4,true>(args);
+            return Simplify_impl<4>(args);
         }
         default:
         {
@@ -53,24 +66,37 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 
 private:
 
-template<Int local_opt_level, bool pass_R_II_Q>
+template<Int local_opt_level>
 Size_T Simplify_impl( cref<Simplify_Args_T> args )
 {
-    [[maybe_unused]] auto tag = [&args]()
+    [[maybe_unused]] auto tag = [this]()
     {
-        return MethodName("Simplify_impl")
+        return this->MethodName("Simplify_impl")
         + "<" + ToString(local_opt_level)
-        + ">"
-        +"({ .min_dist = " + ToString(args.min_dist)
-        + ", .max_dist = " + ToString(args.max_dist)
-        + ", .strategy = " + ToString(args.strategy)
-        + ", .disconnectQ = " + ToString(args.disconnectQ)
-        + ", .splitQ = " + ToString(args.splitQ)
-        + ", .compressQ = " + ToString(args.compressQ)
-        + "})";
+        + ">";
     };
     
+//    [[maybe_unused]] auto tag = [&args,this]()
+//    {
+//        return this->MethodName("Simplify_impl")
+//        + "<" + ToString(local_opt_level)
+//        + ">"
+//        +"({ .local_opt_level = " + ToString(args.local_opt_level)
+//        + ", .local_max_iter = " + ToString(args.local_max_iter)
+//        + ", .strategy = " + ToString(args.strategy)
+//        + ", .start_max_dist = " + ToString(args.start_max_dist)
+//        + ", .final_max_dist = " + ToString(args.final_max_dist)
+//        + ", .disconnectQ = " + ToString(args.disconnectQ)
+//        + ", .splitQ = " + ToString(args.splitQ)
+//        + ", .compressQ = " + ToString(args.compressQ)
+//        + "})";
+//    };
+    
     TOOLS_PTIMER(timer,tag());
+    
+#ifdef TOOLS_ENABLE_PROFILER
+    logvalprint("args",ToString(args));
+#endif
     
 //    constexpr bool debugQ = true;
     
@@ -82,7 +108,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     using ArcSimplifier_Link_T  = ArcSimplifier2<Int,local_opt_level,true>;
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
-    PD_PRINT("Construct StrandSimplifier");
+    PD_PRINT("Request StrandSimplifier");
     mref<StrandSimplifier_T> S = StrandSimplifier(args.strategy);
     
 #ifdef PD_COUNTERS
@@ -146,15 +172,15 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         Size_T change_count_o   = 1; // counter for overstrand moves.
         Size_T change_count_u   = 1; // counter for understrand moves.
         
-        Int dist = args.min_dist;
+        Int max_dist = Max(Int(2),args.start_max_dist);
         const bool simplify_localQ   = (local_opt_level > Int(0));
-        const bool simplify_strandsQ = (args.max_dist   > Int(0));
+        const bool simplify_strandsQ = (args.final_max_dist   > Int(0));
         
         do
         {
             change_count_old = change_count;
             
-            dist = Min(dist,args.max_dist);
+            max_dist = Min(max_dist,args.final_max_dist);
             
             // Since ArcSimplifier_T performs only inexpensive tests, we should use it first.
             if( simplify_localQ && ( (change_count_o > 0) ||  (change_count_u > 0) ) )
@@ -178,7 +204,8 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
             if( !simplify_strandsQ ) { break; }
             
             // Reroute overstrands.
-            change_count_o = S.SimplifyStrands(pd,true,dist);
+            change_count_o = S.SimplifyStrands(pd,true,max_dist);
+            
             change_count += change_count_o;
             if( pd.InvalidQ() ) { break; }
             if( (change_count_o > 0) && args.compressQ ) { pd.ConditionalCompress(); }
@@ -191,8 +218,9 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
             // If we did strand moves before without success and if simplify_local_changes == 0, then we can break here, too.
             if( (change_count_o == 0) && (change_count_u == 0) && (change_count_loc == 0) ) { break; }
             
-            // Reroute overstrands.
-            change_count_u = S.SimplifyStrands(pd,false,dist);
+            // Reroute understrands.
+            change_count_u = S.SimplifyStrands(pd,false,max_dist);
+            
             change_count += change_count_u;
             if( pd.InvalidQ() ) { break; }
             if( (change_count_u > Size_T(0) ) && args.compressQ) { pd.ConditionalCompress(); }
@@ -202,19 +230,19 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
                 if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderStrands."); };
             }
             
-            if( dist <= Scalar::Max<Int> / Int(2) )
+            if( max_dist <= Scalar::Max<Int> / Int(2) )
             {
-                dist *= Int(2);
+                max_dist *= Int(2);
             }
             else
             {
-                dist = Scalar::Max<Int>;
+                max_dist = Scalar::Max<Int>;
             }
         }
         while(
               (change_count > change_count_old)
               ||
-              ( (dist <= args.max_dist) && (dist < pd.ArcCount()) )
+              ( (max_dist <= args.final_max_dist) && (max_dist < pd.arc_count) )
         );
         
         total_change_count += change_count;
@@ -226,7 +254,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
             if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed after simplification."); };
         }
         
-        if( pd.CrossingCount() == Int(0) )
+        if( pd.CrossingCount() <= Int(1) )
         {
             pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
             continue;
@@ -235,7 +263,6 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         if( change_count > Size_T(0) ) { pd.ClearCache(); }
         
         Size_T disconnect_count = args.disconnectQ ? Disconnect(pd) : Size_T(0);
-        total_change_count += disconnect_count;
         
         if constexpr (debugQ)
         {
@@ -271,7 +298,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         )
         {
             // Split the diagrams into diagram components and push them to pd_todo for further simplification.
-            Split( std::move(pd), pd_todo );
+            Split( std::move(pd), pd_todo, args.disconnectQ );
             continue;
         }
         else
@@ -304,23 +331,17 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     }
 
     swap( pd_list, pd_done );
-    
-    // Sort big diagrams in front.
-    Sort(
-        &pd_list[0],
-        &pd_list[pd_list.size()],
-        []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
-        {
-            return pd_0.CrossingCount() > pd_1.CrossingCount();
-        }
-    );
-    
+
 #ifdef PD_COUNTERS
     // We need to save the counters from being erased by this->ClearCache().
     auto S_buffer = std::move(this->GetCache<StrandSimplifier_T>("StrandSimplifier"));
 #endif
     
-    if( total_change_count > Size_T(0) ) { this->ClearCache(); }
+    if( total_change_count > Size_T(0) )
+    {
+        SortByCrossingCount();
+        this->ClearCache();
+    }
 
 #ifdef PD_COUNTERS
     this->SetCache("StrandSimplifier",std::move(S_buffer));

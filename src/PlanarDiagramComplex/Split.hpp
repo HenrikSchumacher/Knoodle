@@ -1,8 +1,12 @@
 public:
 
-void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
+// TODO: We could build the check of being alternating directly into the construction loop.
+
+// Caution: Split is allowed to push minimal diagrams to pd_done.
+
+Size_T Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output, const bool proven_reducedQ = false )
 {
-    TOOLS_PTIMER(timer,MethodName("Split"));
+    TOOLS_PTIMER(timer,MethodName("Split")+ "(pd,pd_output," + ToString(proven_reducedQ) + ")");
     
 //    constexpr bool debugQ = true;
     
@@ -11,38 +15,69 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
         wprint(MethodName("Split")+": Debug mode active.");
     }
     
-    if( pd.InvalidQ() ) { return; }
+    if( pd.InvalidQ() ) { return Size_T(0); }
     
-    if( pd.ProvenMinimalQ() )
+    if( pd.proven_minimalQ )
     {
         if constexpr ( debugQ )
         {
             if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
         }
         
-        pd_output.push_back( std::move(pd) );
+        pd_done.push_back( std::move(pd) );
         pd = PD_T::InvalidDiagram();
-        return;
+        return Size_T(1);
     }
     
-    cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
-
-    const Int dc_count  = A.RowCount();
-    
-    if( dc_count <= Int(1) )
+    if( pd.crossing_count <= Int(1) )
     {
-        if constexpr ( debugQ )
-        {
-            if( !pd.CheckAll() ) { pd_eprint("pd.CheckAll() failed when pushed to pd_output."); };
-        }
-        
-        pd_output.push_back( std::move(pd) );
+        // TODO: Filter out duplicate unknots.
+        pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
         pd = PD_T::InvalidDiagram();
-        return;
+        return Size_T(1);
     }
+    
+    if( proven_reducedQ )
+    {
+        PD_ASSERT(pd.ReducedQ());
+    }
+    
+    auto push = [&pd_output,this,proven_reducedQ]( PD_T && pd_ )
+    {
+        if( proven_reducedQ && pd_.AlternatingQ() )
+        {
+            PD_ASSERT(pd_.CheckProvenMinimalQ());
+            pd_.proven_minimalQ = true;
+            pd_done.push_back( std::move(pd_) );
+        }
+        else
+        {
+            pd_output.push_back( std::move(pd_) );
+        }
+    };
     
     // dc = diagram component
     // lc = link component
+    
+    const Int lc_count = pd.LinkComponentCount();
+    
+    if( lc_count == Int(1) )
+    {
+        push( std::move(pd) );
+        pd = PD_T::InvalidDiagram();
+        return Size_T(1);
+    }
+
+    const Int dc_count = pd.DiagramComponentCount();
+    
+    if( dc_count == Int(1) )
+    {
+        push( std::move(pd) );
+        pd = PD_T::InvalidDiagram();
+        return Size_T(1);
+    }
+
+    cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
 
     const auto & lc_arcs = pd.LinkComponentArcs();
     
@@ -228,29 +263,28 @@ void Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output )
                 if( !pd_new.CheckAll() ) { pd_eprint("!pd_new.CheckAll() when pushed to pd_output."); };
             }
             
-            pd_output.push_back( std::move(pd_new) );
+            push( std::move(pd_new) );
         }
         
     } // for( Int dc = 0; dc < dc_count; ++dc )
     
     pd = PD_T::InvalidDiagram(); // Communicate upstream that this is empty now.
+    
+    return ToSize_T(dc_count);
 }
 
-void Split()
+Size_T Split()
 {
     TOOLS_PTIMER(timer,MethodName("Split"));
     PD_ASSERT(pd_done.empty());
     
-    if( !pd_done.empty() )
-    {
-        eprint("!!!");
-    }
-    
     pd_done.clear();
+    
+    Size_T split_count = 0;
     
     for( PD_T & pd : pd_list )
     {
-        Split( std::move(pd), pd_done );
+        split_count += Split( std::move(pd), pd_done );
     }
     
     using std::swap;
@@ -260,4 +294,6 @@ void Split()
     pd_done.clear();
     
     this->ClearCache();
+    
+    return split_count;
 }

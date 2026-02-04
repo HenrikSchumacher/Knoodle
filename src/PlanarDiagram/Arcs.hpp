@@ -395,19 +395,6 @@ Int NextArc( const Int a, const bool headtail, const Int c ) const
     return a_next;
 }
 
-bool AlternatingQ() const
-{
-    for( Int a = 0; a < max_arc_count; ++a )
-    {
-        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");

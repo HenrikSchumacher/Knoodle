@@ -14,13 +14,9 @@ private:
  * @param max_dist Maximal distance we want to travel
  */
 
-Int FindShortestPath_DijkstraLegacy_impl( const Int a_begin, const Int a_end, const Int max_dist )
+Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int max_dist )
 {
-    PD_TIMER(timer,MethodName("FindShortestPath_DijkstraLegacy_impl"));
- 
-#ifdef PD_TIMINGQ
-    const Time start_time = Clock::now();
-#endif
+    PD_TIMER(timer,MethodName("FindShortestPath_Legacy_impl"));
     
     PD_ASSERT(CheckDarcLeftDarc());
     
@@ -180,12 +176,6 @@ Exit:
     {
         path_length = 0;
     }
-
-#ifdef PD_TIMINGQ
-    const Time stop_time = Clock::now();
-    
-    Time_FindShortestPath += Tools::Duration(start_time,stop_time);
-#endif
 
     return d;
 }

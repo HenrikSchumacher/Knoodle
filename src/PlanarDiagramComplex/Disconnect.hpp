@@ -29,7 +29,9 @@ Size_T Disconnect()
  *  The return value is the number of disconnection moves made.
  */
 
-Size_T Disconnect( PD_T & pd )
+// TODO: Add an optional proven_loop_freeQ argument (false by default). If proven_loop_freeQ == false, then we use LoopRemover to do all possible Reidemeister I moves. This way we get a certificate that the diagram is reduced on return.
+
+Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
 {
     auto tag = [](){ return MethodName("Disconnect"); };
     
@@ -71,17 +73,17 @@ Size_T Disconnect( PD_T & pd )
     f_F.reserve(f_max_size);
     
     std::vector<Int> f_F_compressed;
-    f_F_compressed.reserve(f_max_size);
+    if constexpr ( debugQ ) { f_F_compressed.reserve(f_max_size); }
     
     std::vector<Int> f_dA_compressed;
-    f_dA_compressed.reserve(f_max_size);
+    if constexpr ( debugQ ) { f_dA_compressed.reserve(f_max_size); }
     
     // Stack for the "disconnect jobs".
     std::vector<std::pair<Int,Int>> stack;
     stack.reserve(f_max_size);
     
     using I = ToSigned<Int>; // security measure so that we do not decrement below 0 and wrap around.
-    AssociativeContainer<I,Int> f_counts;
+    AssociativeContainer<Int,I> f_counts;
     
     auto remove_loop = [&pd,dA_F,this]( const Int da )
     {
@@ -531,10 +533,7 @@ Size_T Disconnect( PD_T & pd )
         }
     }
     
-    if( change_counter > Size_T(0) )
-    {
-        pd.ClearCache();
-    }
+    if( change_counter > Size_T(0) ) { pd.ClearCache(); }
     
     if constexpr ( debugQ )
     {

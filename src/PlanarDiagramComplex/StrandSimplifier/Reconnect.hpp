@@ -104,3 +104,40 @@ void Reconnect( const Int a, const Int b )
         DeactivateArc(b);
     }
 }
+
+// The same as above, but without constexpr headtail and always deactivating.
+void Reconnect( const Int a, const bool headtail, const Int b )
+{
+#ifdef PD_DEBUG
+    std::string tag  (MethodName("Reconnect") + "( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") + ", "+ ArcString(b) + " )" );
+#endif
+    
+//    PD_TIMER(timer,tag);
+    PD_PRINT(tag);
+    PD_ASSERT(a != b);
+    PD_ASSERT( ArcActiveQ(a) );
+    
+#ifdef PD_DEBUG
+    if( pd->A_color[a] != pd->A_color[b] )
+    {
+        wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+        TOOLS_LOGDUMP(ArcString(a));
+        TOOLS_LOGDUMP(ArcString(b));
+    }
+#endif // PD_DEBUG
+    
+    const Int c = pd->A_cross(b,headtail);
+
+    const bool side = (pd->C_arcs(c,headtail,Right) == b);
+
+    pd->A_cross(a,headtail) = c;
+    pd->C_arcs(c,headtail,side) = a;
+
+    const Int da      = ToDarc(a,headtail);
+    const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
+    const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+    
+    dA_left[da]       = da_left;
+    dA_left[da_revr]  = FlipDarc(da);
+    DeactivateArc(b);
+}

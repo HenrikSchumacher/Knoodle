@@ -3,7 +3,7 @@ public:
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
-    TOOLS_PTIMER(timer,tag);
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<Int>(tag);
 }

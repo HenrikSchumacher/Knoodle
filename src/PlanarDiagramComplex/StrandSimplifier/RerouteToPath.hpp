@@ -13,10 +13,6 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
 {
     PD_TIMER(timer,MethodName("RerouteToPath"));
     
-#ifdef PD_TIMINGQ
-   const Time start_time = Clock::now();
-#endif
-    
 #ifdef PD_DEBUG
     const Int Cr_0 = pd->CrossingCount();
     TOOLS_LOGDUMP(Cr_0);
@@ -104,7 +100,7 @@ PD_VALPRINT("path", ShortPathString());
         PD_ASSERT( b != a_2 )
         PD_ASSERT( b != a )
         
-        // DEBUGGING
+#ifdef PD_DEBUG
         if( a == b )
         {
             logvalprint("a",ArcString(a));
@@ -112,13 +108,14 @@ PD_VALPRINT("path", ShortPathString());
             TOOLS_LOGDUMP(q);
             logvalprint("path",ShortPathString());
         }
+#endif // PD_DEBUG
         
-        if( (b == a_0) || (b == a_1) )
+        //This can happen, but seldomly.
+        if( (b == a_0) || (b == a_1) ) [[unlikely]]
         {
             // Go to next arc.
             a = a_2;
             ++p;
-            
             continue;
         }
         
@@ -294,12 +291,6 @@ PD_VALPRINT("path", ShortPathString());
     
     PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
     
-#ifdef PD_TIMINGQ
-    const Time stop_time = Clock::now();
-    
-    Time_RerouteToPath += Tools::Duration(start_time,stop_time);
-#endif
-    
     PD_ASSERT(pd->CheckAll() );
     PD_ASSERT(CheckDarcLeftDarc());
 
@@ -370,12 +361,13 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
     PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Head));
     
     PD_ASSERT(pd->CheckAll());
+    PD_ASSERT(strand_arc_count == CountArcsInRange(a,b))
     
     Int path_arc_count;
     
-    if( strategy == Strategy_T::DijkstraLegacy )
+    if( strategy == DijkstraStrategy_T::Legacy )
     {
-        path_arc_count = FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
+        path_arc_count = FindShortestPath_Legacy_impl(a,b,max_dist);
     }
     else
     {
@@ -421,7 +413,7 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
 //        mref<PD_T> pd_input, const Int a, const Int b, bool overQ_
 //    )
 //    {
-//        Load(pd_input);
+//        LoadDiagram(pd_input);
 //        ResetMark();
 //        SetStrandMode(overQ_);
 //        

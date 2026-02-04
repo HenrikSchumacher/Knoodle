@@ -13,7 +13,7 @@ Tensor1<Int,Int> FindShortestPath(
     mref<PD_T> pd_input, const Int a, const Int b, const Int max_dist
 )
 {
-    Load(pd_input);
+    LoadDiagram(pd_input);
     MarkArc(a);
     MarkArc(b);
     
@@ -45,7 +45,7 @@ Tensor1<Int,Int> FindShortestRerouting(
     mref<PD_T> pd_input, const Int a, const Int b, const Int max_dist
 )
 {
-    Load(pd_input);
+    LoadDiagram(pd_input);
     strand_arc_count = MarkArcs(a,b);
     
     Int max_dist_ = Min(Ramp(strand_arc_count - Int(2)),max_dist);
@@ -68,9 +68,9 @@ private:
 
 Int FindShortestPath( const Int a, const Int b, const Int max_dist )
 {
-    if( strategy == Strategy_T::DijkstraLegacy )
+    if( strategy == DijkstraStrategy_T::Legacy )
     {
-        return FindShortestPath_DijkstraLegacy_impl(a,b,max_dist);
+        return FindShortestPath_Legacy_impl(a,b,max_dist);
     }
     else
     {
@@ -84,10 +84,6 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("FindShortestPath_impl"); };
     PD_TIMER(timer,tag());
- 
-#ifdef PD_TIMINGQ
-    const Time start_time = Clock::now();
-#endif
     
     PD_ASSERT(CheckDarcLeftDarc());
     
@@ -199,17 +195,17 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         
         switch( strategy )
         {
-            case Strategy_T::TwoSided:
+            case DijkstraStrategy_T::Bidirectional:
             {
                 XQ = (X_front.Size() <= Y_front.Size());
                 break;
             }
-            case Strategy_T::Alternating:
+            case DijkstraStrategy_T::Alternating:
             {
                 XQ = static_cast<bool>(k % Int(2));
                 break;
             }
-            case Strategy_T::Dijkstra:
+            case DijkstraStrategy_T::Unidirectional:
             {
                 XQ = true;
                 break;
@@ -361,12 +357,6 @@ Exit:
         PD_PRINT("No path found.");
         path_length = 0;
     }
-
-#ifdef PD_TIMINGQ
-    const Time stop_time = Clock::now();
-    
-    Time_FindShortestPath += Tools::Duration(start_time,stop_time);
-#endif
 
     return k;
 }

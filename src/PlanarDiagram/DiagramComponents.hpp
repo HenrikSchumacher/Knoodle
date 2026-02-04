@@ -125,11 +125,14 @@ cref<RaggedList<Int,Int>> DiagramComponentArcs() const
 //}
 
 
-void Split( mref<PD_List_T> pd_list )
+
+// Splits off all but the first diagram component. Compresses the remaining diagram. Returns the number of splits performed (= no. of diagram components - 1).
+
+Size_T Split( mref<PD_List_T> pd_list )
 {
     TOOLS_PTIMER(timer,MethodName("Split"));
     
-    if( CrossingCount() <= Int(0) ) { return; }
+    if( CrossingCount() <= Int(0) ) { return Int(0); }
     
     cref<ComponentMatrix_T> A = DiagramComponentLinkComponentMatrix();
     
@@ -141,7 +144,7 @@ void Split( mref<PD_List_T> pd_list )
     
     const Int dc_count  = A.RowCount();
     
-    if( dc_count <= Int(1) ) { return; }
+    if( dc_count <= Int(1) ) { return Int(0); }
     
     const auto & lc_arcs = LinkComponentArcs();
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
@@ -253,4 +256,6 @@ void Split( mref<PD_List_T> pd_list )
     } // for( Int dc = 0; dc < dc_count; ++dc )
     
     Compress();
+    
+    return ToSize_T(dc_count - 1);
 }

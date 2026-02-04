@@ -16,14 +16,14 @@ std::string FaceString( const Int f ) const
 
 Int FaceCount() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceCount"));
+//    TOOLS_PTIMER(timer,MethodName("FaceCount"));
     return FaceDarcs().SublistCount();
 }
 
 cref<RaggedList<Int,Int>> FaceDarcs() const
 {
     std::string tag ("FaceDarcs");
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<RaggedList<Int,Int>>(tag);
 }
@@ -31,7 +31,7 @@ cref<RaggedList<Int,Int>> FaceDarcs() const
 cref<ArcContainer_T> ArcFaces()  const
 {
     std::string tag ("ArcFaces");
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<ArcContainer_T>(tag);
 }
@@ -39,7 +39,7 @@ cref<ArcContainer_T> ArcFaces()  const
 Int MaximumFace() const
 {
     std::string tag ("MaximumFace");
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Int>(tag);
 }
@@ -47,7 +47,7 @@ Int MaximumFace() const
 Int MaxFaceSize() const
 {
     std::string tag ("MaxFaceSize");
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)) { RequireFaces(); }
     return this->template GetCache<Int>(tag);
 }
@@ -80,7 +80,7 @@ TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T && arc_fun 
 
 void RequireFaces() const
 {
-    TOOLS_PTIMER(timer,MethodName("RequireFaces"));
+//    TOOLS_PTIMER(timer,MethodName("RequireFaces"));
     
     if(
        !this->InCacheQ( "FaceDarcs")   || !this->InCacheQ( "ArcFaces")
@@ -98,6 +98,8 @@ void ComputeFaces() const
     
     cptr<Int> dA_left_dA = ArcLeftDarcs().data();
 
+    PD_ASSERT(CheckLeftDarc());
+    
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );
     

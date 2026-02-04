@@ -59,7 +59,7 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
     PD_ASSERT(pd_done.empty());
     PD_ASSERT(pd_todo.empty());
     
-    // TODO: Suboptimal cycling throught the list. We should use stack approach as in SimplifyGlobal.
+    // TODO: Suboptimal cycling through the list. We should use stack approach as in SimplifyGlobal.
     do
     {
         for( PD_T & pd : pd_list )
@@ -83,18 +83,9 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
 
     swap( pd_list, pd_done );
     
-    // Sort big diagrams in front.
-    Sort(
-        &pd_list[0],
-        &pd_list[pd_list.size()],
-        []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
-        {
-            return pd_0.CrossingCount() > pd_1.CrossingCount();
-        }
-    );
-    
     if( counter > Size_T(0) )
     {
+        SortByCrossingCount();
         this->ClearCache();
     }
     

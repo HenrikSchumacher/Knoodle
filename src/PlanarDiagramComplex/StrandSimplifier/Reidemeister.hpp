@@ -35,7 +35,7 @@ bool Reidemeister_I( const Int a )
     const Int a_next = pd->C_arcs(c,Out,!side);
     const Int a_prev = pd->C_arcs(c,In ,!side);
     
-    if( a_prev == a_next )
+    if( a_prev == a_next ) [[unlikely]]
     {
         //
         //             O-----+ a
@@ -66,7 +66,7 @@ bool Reidemeister_I( const Int a )
     //             O
     //              a_next
     
-    Reconnect<Head>(a_prev,a_next);
+    Reconnect<Head>(a_prev,a_next); // We keep a_prev alive here.
     DeactivateArc(a);
     DeactivateCrossing(c);
     CountReidemeister_I();
@@ -80,7 +80,7 @@ bool Reidemeister_II_Backward(
     mref<Int> a, const Int c_1, const bool side_1, const Int a_next
 )
 {
-    // TODO: This checks for a backward Reidemeister II move (and it exploits already that both vertical strands are either overstrands or understrands). But it would maybe help to do a check for a forward Reidemeister II move, because that might stop the strand from ending early. Not sure whether this would be worth it, because we would have to change the logic of `SimplifyStrands` considerably.
+    // TODO: This checks for a backward Reidemeister II move (and it exploits already that both vertical strands go under (if current strand is an overstrand) or go over (if current strand is an understrans).
     
     PD_DPRINT( MethodName("Reidemeister_II_Backward")+" at " + ArcString(a) );
     
@@ -98,15 +98,17 @@ bool Reidemeister_II_Backward(
     const Int a_1_out = pd->C_arcs(c_1,Out, side_1);
     const Int a_1_in  = pd->C_arcs(c_1,In ,!side_1);
     
-    //             O a_0_out         O a_1_in
-    //             ^                 |
-    //             |                 |
-    //  a_prev     |c_0     a        v     a_next
-    //  ----->O-------->O------>O-------->O------>
-    //             ^                 |c_1
-    //             |                 |
-    //             |                 v
-    //             O a_0_in          O a_1_out
+    /* Assuming overQ == true.
+     *
+     *               a_0_out           a_1_in
+     *             |                 |
+     *             |                 |
+     *  a_prev     |c_0     a        |     a_next
+     *  ---------->----------------->----------->
+     *             |                 |c_1
+     *             |                 |
+     *             | a_0_in          | a_1_out
+     */
         
     if( a_0_out == a_1_in )
     {
@@ -120,20 +122,34 @@ bool Reidemeister_II_Backward(
         PD_ASSERT( a_0_out != a_prev );
         PD_ASSERT( a_1_out != a_prev );
         
-        //              a_0_out == a_1_in
-        //             O---------------->O
-        //             ^                 |
-        //             |                 |
-        //  a_prev     |c_0     a        v     a_next
-        //  ----->O-------->O------>O-------->O------>
-        //             ^                 |c_1
-        //             |                 |
-        //             |                 v
-        //             O a_0_in          O a_1_out
+        /*              a_0_out == a_1_in
+         *             +---------------->+
+         *             ^                 |
+         *             |                 |
+         *  a_prev     |c_0     a        v     a_next
+         *  ---------->----------------->-------------->
+         *             ^                 |c_1
+         *             |                 |
+         *             | a_0_in          v a_1_out
+         */
         
+        // It could happen that `a_next` is the strand start.
+        // We have to take care of this outside the function.
+                
+        // DEBUGGING
+        if( a_prev == a_next ) [[unlikely]]
+        {
+            wprint(MethodName("Reidemeister_II_Backward")+": a_prev == a_next.");
+        }
+        
+        PD_ASSERT(a_prev != a_next);
+        
+        // TODO: What gives us the guarantee that a_prev != a_next?
         Reconnect<Head>(a_prev,a_next);
         
-        if( a_0_in == a_1_out )
+        // a_0_in cannot be the strand start (because its head goes under/over.
+        // So, it is safe to deactivate it.
+        if( a_0_in == a_1_out ) [[unlikely]]
         {
             DeactivateArc(a_0_in);
             CreateUnlinkFromArc(a_0_in);
@@ -141,10 +157,12 @@ bool Reidemeister_II_Backward(
         else
         {
             Reconnect<Tail>(a_1_out,a_0_in);
+            // It could happen that `a_1_out` is the strand start; in this case we could make the maximal strand one arc longer now. However, we keep the strand start where it was. Rerouting a strand that is slightly shorter than it could be does not break the algorithm.
         }
         
         DeactivateArc(a);
-        DeactivateArc(a_0_out);
+        // a_1_in cannot be the strand start (because its head goes under/over. So, this is safe.
+        DeactivateArc(a_1_in);
         DeactivateCrossing(c_0);
         DeactivateCrossing(c_1);
         CountReidemeister_II();
@@ -154,12 +172,10 @@ bool Reidemeister_II_Backward(
         
         ++change_counter;
         
-        // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
+        // Tell StrandSimplify to move back to previous arc, so that marking and loop checking are performed correctly.
+        PD_ASSERT(strand_arc_count >= Int(2) );
         strand_arc_count -= 2;
         a = a_prev;
-        
-        PD_ASSERT(strand_arc_count >= Int(0) );
-        
         return true;
     }
     
@@ -169,12 +185,14 @@ bool Reidemeister_II_Backward(
         
         const Int a_prev = pd->C_arcs(c_0,In,!side_0);
         
-        // This cannot happen because we called RemoveLoop.
+        // This cannot happen because we called RemoveLoopPath.
         PD_ASSERT( a_0_out != a_prev );
         
-        // TODO: Might be impossible if we call Reidemeister_I on a_next.
-        // A nasty case that is easy to overlook.
-        if( a_1_in == a_next )
+        // This should be guaranteed by the forward Reidemeister I check.
+        PD_ASSERT(a_1_in != a_next);
+        
+//        // A nasty case that is easy to overlook.
+        if( a_1_in == a_next ) [[unlikely]]
         {
             //             O a_0_out         O<---+ a_1_in == a_next
             //             ^                 |    |
@@ -188,7 +206,11 @@ bool Reidemeister_II_Backward(
             //              a_0_in == a_1_out
             //
             
+            // It could happen that `a_0_out` is the strand start.
+            // We have to take care of this outside the function.
             Reconnect<Head>(a_prev,a_0_out);
+            // a_next cannot be any arc on the strand because its head goes under/over.
+            // So, deactivating it is safe.
             DeactivateArc(a_next);
             CountReidemeister_I();
             CountReidemeister_I();
@@ -207,8 +229,29 @@ bool Reidemeister_II_Backward(
             //              a_0_in == a_1_out
             //
             
+            // It could happen that `a_next` is the strand start.
+            // We have to take care of this outside the function.
+            
+            // This should work also if a_prev == a_0_out. This would imply that a_prev == a_begin.
+            // This is why we prefer keeping a_prev alive over concatenating with the unlocked Reidemeister I move.
+            
+            // DEBUGGING
+            if( a_prev == a_next ) [[unlikely]]
+            {
+                wprint(MethodName("Reidemeister_II_Backward")+": a_prev == a_next.");
+            }
+            
+            PD_ASSERT(a_prev != a_next);
+            
+            // TODO: What gives us the guarantee that a_prev != a_next?
             Reconnect<Head>(a_prev,a_next);
+            
+            // `a_1_in` cannot be any arc on the strand because its head goes under/over.
+            // So, deactivating it is safe.
             Reconnect<Tail>(a_0_out,a_1_in);
+            
+            // It could happen that `a_0_out` is a_begin. In this case we could make the maximal strand one arc longer. However, we keep the strand start where it was. Rerouting a strand that is slightly shorter than it could be does not break the algorithm.
+            
             CountReidemeister_II();
         }
         
@@ -222,12 +265,10 @@ bool Reidemeister_II_Backward(
         
         ++change_counter;
         
-        // Tell StrandSimplify to move back to previous arc, so that coloring and loop checking are performed correctly.
+        // Tell StrandSimplify to move back to previous arc, so that marking and loop checking are performed correctly.
+        PD_ASSERT(strand_arc_count >= Int(2) );
         strand_arc_count -= 2;
         a = a_prev;
-        
-        PD_ASSERT(strand_arc_count >= Int(0) );
-        
         return true;
     }
 

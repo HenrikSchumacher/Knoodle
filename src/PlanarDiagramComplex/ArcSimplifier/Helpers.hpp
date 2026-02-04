@@ -72,7 +72,6 @@ std::string ArcString( const Int a_ ) const
     return pd.ArcString(a_);
 }
 
-
 template<bool deactivateQ = true, bool assertQ = true, bool colorQ = true>
 void Reconnect( const Int a_, const bool headtail, const Int b_ )
 {

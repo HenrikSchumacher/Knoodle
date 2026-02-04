@@ -629,6 +629,7 @@ namespace Knoodle
 #include "PlanarDiagram/Arcs.hpp"
 #include "PlanarDiagram/Darcs.hpp"
 #include "PlanarDiagram/Faces.hpp"
+#include "PlanarDiagram/Certificates.hpp"
 #include "PlanarDiagram/LinkComponents.hpp"
 #include "PlanarDiagram/DiagramComponents.hpp"
 #include "PlanarDiagram/Strands.hpp"

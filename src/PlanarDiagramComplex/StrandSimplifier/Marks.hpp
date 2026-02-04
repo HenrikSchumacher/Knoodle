@@ -4,10 +4,8 @@ static constexpr Int  max_mark = std::numeric_limits<Int>::max()/Int(2) - Int(1)
 static constexpr bool LeftToRight = 1;
 static constexpr bool RightToLeft = 0;
 
-void NewMark()
-{
-    ++current_mark;
-}
+//DEBUGGING
+public:
 
 void MarkCrossing( const Int c )
 {
@@ -33,6 +31,12 @@ bool ArcMarkedQ( const Int a ) const
 {
     return (A_mark(a) == current_mark);
 }
+
+bool ArcRecentlyMarkedQ( const Int a ) const
+{
+    return (A_mark(a) >= initial_mark);
+}
+
 
 Int ArcMark( const Int a ) const
 {
@@ -81,6 +85,24 @@ Int MarkArcs(const Int a, const Int b )
     {
         ++counter;
         MarkArc(e);
+        e = NextArc(e,Head);
+    }
+    while( (e != e_end) && (e != e_begin) );
+    
+    return counter;
+}
+
+Int CountArcsInRange(const Int a, const Int b )
+{
+    const Int e_begin = a;
+    const Int e_end   = NextArc(b,Head);
+    Int e = a;
+    
+    Int counter = 0;
+    
+    do
+    {
+        ++counter;
         e = NextArc(e,Head);
     }
     while( (e != e_end) && (e != e_begin) );

@@ -317,7 +317,7 @@ void RequireFaces( bool ignore_virtual_edgesQ = false ) const
 Int FaceCount( bool ignore_virtual_edgesQ = false ) const
 {
     std::string tag = "FaceCount(" + ToString(ignore_virtual_edgesQ) + ")";
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
@@ -325,7 +325,7 @@ Int FaceCount( bool ignore_virtual_edgesQ = false ) const
 Int MaxFace( bool ignore_virtual_edgesQ = false ) const
 {
     std::string tag = "MaxFace(" + ToString(ignore_virtual_edgesQ) + ")";
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
@@ -336,7 +336,7 @@ Int MaxFaceSize(
 ) const
 {
     std::string tag = "MaxFaceSize(" + ToString(ignore_virtual_edgesQ) + ")";
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
@@ -346,7 +346,7 @@ cref<RaggedList<Int,Int>> FaceDedges(
 ) const
 {
     std::string tag = "FaceDedges(" + ToString(ignore_virtual_edgesQ) + ")";
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
     return this->GetCache<RaggedList<Int,Int>>(tag);
 }
@@ -356,7 +356,7 @@ cref<EdgeContainer_T> EdgeFaces(
 ) const
 {
     std::string tag = "EdgeFaces(" + ToString(ignore_virtual_edgesQ) + ")";
-    TOOLS_PTIMER(timer,MethodName(tag));
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
     return this->GetCache<EdgeContainer_T>(tag);
 }

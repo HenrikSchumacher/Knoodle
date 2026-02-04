@@ -1,12 +1,8 @@
 private:
 
-void RemoveLoop( const Int e, const Int c_0 )
+void RemoveLoopPath( const Int e, const Int c_0 )
 {
-    PD_TIMER(timer,MethodName("RemoveLoop"));
-    
-#ifdef PD_TIMINGQ
-    const Time start_time = Clock::now();
-#endif
+    PD_TIMER(timer,MethodName("RemoveLoopPath"));
     
     // DEBUGGING
 #ifdef PD_DEBUG
@@ -18,7 +14,7 @@ void RemoveLoop( const Int e, const Int c_0 )
     
     if ( mark_counter >= 4 ) // This should never happen.
     {
-        wprint(MethodName("RemoveLoop") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
+        wprint(MethodName("RemoveLoopPath") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
         TOOLS_LOGDUMP(c_0);
         TOOLS_LOGDUMP(e  );
         TOOLS_LOGDUMP(pd->C_arcs(c_0,Out,Left ));
@@ -38,8 +34,12 @@ void RemoveLoop( const Int e, const Int c_0 )
     {
         const Int a = NextArc(e,Head,c_0);
         
-        if( ArcMarkedQ(a) )
+        if( ArcMarkedQ(a) ) [[unlikely]]
         {
+            PD_ASSERT( ArcOverQ(e,Head) == overQ );
+            // TODO: Should this assert ever fail: The strand can also form a Big Hopf Link or a Big Figure-8-Shaped Unlink!
+            
+            
             const bool u_0 = (pd->C_arcs(c_0,Out,Right) == a);
             
             CollapseArcRange(a,e,strand_arc_count);
@@ -108,10 +108,4 @@ void RemoveLoop( const Int e, const Int c_0 )
     (void)Reidemeister_I<false>(b);
     
     ++change_counter;
-    
-#ifdef PD_TIMINGQ
-    const Time stop_time = Clock::now();
-    
-    Time_RemoveLoop += Tools::Duration(start_time,stop_time);
-#endif
 }

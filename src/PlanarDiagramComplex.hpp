@@ -28,8 +28,8 @@ namespace Knoodle
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
         
-        using StrandSimplifier_T    = StrandSimplifier2<Int,true,true>;
-        using Strategy_T            = typename StrandSimplifier_T::Strategy_T;
+        using StrandSimplifier_T    = StrandSimplifier2<Int,true>;
+        using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
         
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -42,6 +42,7 @@ namespace Knoodle
         static constexpr Int  Uninitialized =  PD_T::Uninitialized;
         
         friend class LoopRemover<Int>;
+//        friend class ArcCrawler<Int>;
         friend class ArcSimplifier2<Int,0,true >;
         friend class ArcSimplifier2<Int,1,true >;
         friend class ArcSimplifier2<Int,2,true >;
@@ -53,10 +54,8 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,3,false>;
         friend class ArcSimplifier2<Int,4,false>;
         
-        friend class StrandSimplifier2<Int,true ,true >;
-        friend class StrandSimplifier2<Int,true ,false>;
-        friend class StrandSimplifier2<Int,false,true >;
-        friend class StrandSimplifier2<Int,false,false>;
+        friend class StrandSimplifier2<Int,true >;
+        friend class StrandSimplifier2<Int,false>;
         
     private:
         
@@ -127,10 +126,14 @@ namespace Knoodle
         
 #include "PlanarDiagramComplex/Constructors.hpp"
 #include "PlanarDiagramComplex/Color.hpp"
+#include "PlanarDiagramComplex/RemoveLoops.hpp"
 #include "PlanarDiagramComplex/SimplifyLocal.hpp"
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
+#include "PlanarDiagramComplex/Simplify2.hpp" // Only for development and debugging.
+//#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
+//#include "PlanarDiagramComplex/SimplifyLocal3.hpp" // Only for development and debugging.
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
@@ -381,6 +384,22 @@ namespace Knoodle
         }
         
         
+        
+        void SortByCrossingCount()
+        {
+            // Sort big diagrams in front.
+            Sort(
+                &pd_list[0],
+                &pd_list[pd_list.size()],
+                []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
+                {
+                    return pd_0.CrossingCount() > pd_1.CrossingCount();
+                }
+            );
+            
+            this->ClearCache();
+        }
+        
     
         Size_T RemoveLoopArcs()
         {
@@ -440,7 +459,7 @@ namespace Knoodle
 
                 if( pd.InvalidQ() ) { continue; }
             
-                if( pd.CrossingCount() == Int(0) )
+                if( pd.CrossingCount() <= Int(1) )
                 {
                     pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
                     continue;
@@ -475,25 +494,25 @@ namespace Knoodle
         }
 
 
-        mref<StrandSimplifier_T> StrandSimplifier( const Strategy_T strategy = Strategy_T::TwoSided )
+        mref<StrandSimplifier_T> StrandSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
             if( !this->InCacheQ("StrandSimplifier") )
             {
                 this->SetCache("StrandSimplifier", StrandSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetStrategy(strategy);
+            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetDijkstraStrategy(strategy);
         }
         
         Tensor1<Int,Int> FindShortestPath(
-            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
+            const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
             return StrandSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
         Tensor1<Int,Int> FindShortestRerouting(
-            const Int idx, const Int a, const Int b, const Int max_dist, const Strategy_T strategy
+            const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
             return StrandSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );

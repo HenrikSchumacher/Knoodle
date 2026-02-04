@@ -166,7 +166,7 @@ static std::pair<PD_T,Int> FromLink(
     using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
     using Sign_T         = typename Intersection_T::Sign_T;
     
-    const int crossing_count = int_cast<Int>(intersections.size());
+    const Int crossing_count = int_cast<Int>(intersections.size());
     
     if( component_count <= Int(0) )
     {

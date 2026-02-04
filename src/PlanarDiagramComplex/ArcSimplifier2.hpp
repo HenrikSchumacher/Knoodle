@@ -137,12 +137,15 @@ namespace Knoodle
 
         Size_T operator()()
         {
-            if( pd.crossing_count == Int(0) )
-            {
-                if( pd.ValidQ() ) { pd = PD_T::Unknot(pd.last_color_deactivated); }
-            }
+            if( pd.InvalidQ() ) { return 0; }
             
-            if( pd.InvalidQ() || pd.ProvenMinimalQ()  ) { return 0; }
+            if( pd.ProvenMinimalQ() ) { return 0; }
+            
+            if( pd.crossing_count <= Int(1) )
+            {
+                pd = PD_T::Unknot(pd.last_color_deactivated);
+                return 0;
+            }
             
             TOOLS_PTIMER(timer,ClassName()
                 + "(" + ToString(optimization_level)

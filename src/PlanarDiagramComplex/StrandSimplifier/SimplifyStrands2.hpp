@@ -1,59 +1,124 @@
 public:
 
+
+struct SimplifyStrands2_Args
+{
+    Int  max_dist         = Scalar::Max<Int>;
+    bool overQ            = false;
+    bool reroute_markedQ  = false;
+    bool compressQ        = true;
+    bool compress_oftenQ  = false;
+};
+
+friend std::string ToString( cref<SimplifyStrands2_Args> args )
+{
+    return "{.max_dist = " + ToString(args.max_dist)
+         + ",.overQ = " + ToString(args.overQ)
+         + ",.reroute_markedQ = " + ToString(args.reroute_markedQ)
+         + ",.compressQ = " + ToString(args.compressQ)
+         + ",.compress_oftenQ = " + ToString(args.compress_oftenQ)
+         + "}";
+}
+
+struct SimplifyStrands2_TArgs
+{
+    bool restart_after_successQ = false;
+    bool restart_after_failureQ = false;
+    bool restart_walk_backQ     = false;
+    bool restart_change_typeQ   = true;
+};
+
+friend std::string ToString( cref<SimplifyStrands2_TArgs> targs )
+{
+    return "{.restart_after_successQ = " + ToString(targs.restart_after_successQ)
+         + ",.restart_after_failureQ = " + ToString(targs.restart_after_failureQ)
+         + ",.restart_walk_backQ = " + ToString(targs.restart_walk_backQ)
+         + ",.restart_change_typeQ = " + ToString(targs.restart_change_typeQ)
+         + "}";
+}
+
 /*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrand. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the currect strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. 0 is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
  *
- * @param overQ_ Whether to simplify overstrands (true) or understrands(false).
- *
- * @param max_dist Maximal lengths of rerouted strands. If no rerouting is found that makes the end arcs this close to each other, the rerouting attempt is aborted. Typically, we should set this to "infinity".
  *
  */
 
-template<
-    bool restart_after_successQ = false,
-    bool restart_after_failureQ = false,
-    bool restart_walk_backQ     = false,
-    bool restart_change_typeQ   = true
->
-Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = Scalar::Max<Int> )
+template<SimplifyStrands2_TArgs targs>
+Size_T SimplifyStrands2( mref<PD_T> pd_input, cref<SimplifyStrands2_Args> args )
 {
-    // TODO: We could interleave overstrand and understrand search: The last arc of an overstrand is always the first arc of an understrand; the last arc of an understrand is always the first arc of an overstrand.
-    [[maybe_unused]] auto tag = [max_dist,overQ_]()
+    [[maybe_unused]] auto tag = [this]()
     {
-        return ClassName()+"::Simplify" + (overQ_ ? "Over" : "Under")  + "Strands(" + ToString(max_dist) + ")";
+        return this->MethodName("SimplifyStrands2");
     };
+    
+//    [[maybe_unused]] auto tag = [&args,this]()
+//    {
+//        return this->MethodName("SimplifyStrands2") + "<" + ToString(targs) + ">(" + ToString(args) + ")";
+//    };
     
     TOOLS_PTIMER(timer,tag());
     
-    if( max_dist <= Int(0) ) { return 0; }
+#ifdef TOOLS_ENABLE_PROFILER
+    logvalprint("targs",ToString(targs));
+    logvalprint("args ",ToString(args) );
+#endif
+    
+//    // DEBUGGING
+//    TOOLS_LOGDUMP(tag());
+//    TOOLS_LOGDUMP(pd_input.max_crossing_count);
+//    TOOLS_LOGDUMP(pd_input.crossing_count);
+
+    
+    if( args.max_dist <= Int(0) ) { return 0; }
     
     PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
     
-    SetStrandMode(overQ_);
+    if( args.compressQ ) { pd_input.ConditionalCompress(); }
+
+    SetStrandMode(args.overQ);
     LoadDiagram(pd_input);
+    NewStrand();
     
     Int a_ptr = 0;
-    const Int pd_max_arc_count = pd->max_arc_count;
-    change_counter = 0;
+    change_counter   = 0;
+
+    const Int pd_max_crossing_count = pd->max_crossing_count;
+    const Int pd_max_arc_count      = pd->max_arc_count;
     
-    while( a_ptr < pd_max_arc_count )
+    PD_VALPRINT("pd->crossing_count",pd->crossing_count);
+    
+    const bool compress_oftenQ = (args.compressQ && args.compress_oftenQ);
+    
+//    TOOLS_LOGDUMP( (!compress_oftenQ || (pd->arc_count >= pd_max_crossing_count)) );
+//    TOOLS_LOGDUMP(compress_oftenQ);
+//    TOOLS_LOGDUMP(pd_max_crossing_count);
+//    TOOLS_LOGDUMP(pd_max_crossing_count);
+    
+    while(
+        (a_ptr < pd_max_arc_count)
+        &&
+        (!compress_oftenQ || (pd->arc_count >= pd_max_crossing_count))
+    )
     {
         // Search for next arc that is active and has not yet been handled.
-        while(
-            ( a_ptr < pd_max_arc_count )
-            &&
-            ( (!ArcActiveQ(a_ptr)) || ArcRecentlyMarkedQ(a_ptr) )
-        )
+        while( ( a_ptr < pd_max_arc_count ) && (!ArcActiveQ(a_ptr) || ArcRecentlyMarkedQ(a_ptr) ) )
         {
+//            TOOLS_LOGDUMP(a_ptr);
+//            TOOLS_LOGDUMP(ArcRecentlyMarkedQ(a_ptr));
             ++a_ptr;
         }
         
-        if( a_ptr >= pd_max_arc_count ) { break; }
+//        TOOLS_LOGDUMP(a_ptr);
         
-        if( NewStrand() ) [[unlikely]] { break; };
-
+        if( a_ptr >= pd_max_arc_count ) [[unlikely]] { break; }
+        
         // TODO: Maybe we should walk back to the next alternating arc and pick overQ from there.
         // Find the beginning of first strand.
+        
+        if( NewStrand() ) [[unlikely]] { break; }
         s_begin = WalkBackToStrandStart(a_ptr);
+        
+        // TODO: Catch the Big Unlink here.
+        //if( s_begin == Uninitialized ) { continue; }
         
 #ifdef PD_DEBUG
         const bool s_begin_optimalQ = (pd->ArcOverQ(s_begin,Tail) != overQ);
@@ -67,9 +132,9 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
         {
             wprint("We should be able to remove a big loop here, no? (s_begin = " + ToString(s_begin) + ", crossing_count = " + ToString(pd->crossing_count) + ")");
         }
-        
 #endif // PD_DEBUG
         
+        // TODO: Is this really necessary? The do loop below eliminates out loops automatically.
         // We make sure that `s_begin` is not a loop.
         if( Reidemeister_I<true>(s_begin) )
         {
@@ -87,29 +152,17 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
         // Current arc.
         Int a = s_begin;
         
-        MarkCrossing( pd->A_cross(a,Tail) );
+        MarkCrossing(pd->A_cross(a,Tail));
         
         // Traverse forward through all arcs in the link component, until we return to `anchor`.
         do
         {
-            // Safe guard against integer overflow.
-            if( current_mark >= max_mark )
-            {
-                // Return a positive number to encourage that this function is called again upstream.
-                return change_counter+1;
-            }
+            PD_ASSERT(CrossingMarkedQ(pd->A_cross(a,Tail)));
             
             Int c_1 = pd->A_cross(a,Head);
             AssertCrossing<1>(c_1);
-            
-            
-#ifdef PD_DEBUG
-            if( pd->A_cross(a,Tail) == c_1 )
-            {
-                PD_PRINT("Arc a is a loop.");
-            }
-#endif // PD_DEBUG
-            
+        
+            // Check for forward Reidemeister I move.
             const bool side_1 = (pd->C_arcs(c_1,In,Right) == a);
             Int a_next = pd->C_arcs(c_1,Out,!side_1);
             AssertArc<1>(a_next);
@@ -138,8 +191,6 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                 //      |     |     |
                 
                 // In any case, the loop would prevent the strand from going further.
-                
-                // TODO: We could pass `a` as `a_prev` to `Reidemeister_I`.
                 (void)Reidemeister_I<false>(a_next);
                 ++change_counter;
                 
@@ -157,25 +208,21 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                 }
             }
             
-            // If we land here, then a_next is not a loop arc.
+            // If we land here, then `a_next` is not a loop arc.
+            // The arc `a` might still be a loop arc, though. But then CrossingMarkedQ(c_1) == true, and the check for big loops below will detect it and remove it correctly.
             
-            // TODO: Beware: `a` could still be a loop arc! A previous loop remove might have just made it so.
-            // TODO: Check `a` for being a loop arc.
-            // TODO: If yes, and if strand_arc_count > 0, do --strand_arc_count and a = NextArc<Tail>(a)
-            
-            // Arc `a` is now officially part of the strand and a_next is not a loop.
+            // Make arc `a` an official member of the strand.
             ++strand_arc_count;
             MarkArc(a);
             
-            // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to reset and create a new strand.
-            // This finds out whether we have to reset.
+            // Check whether the strand is finished.
             strand_completeQ = ((side_1 == CrossingRightHandedQ(c_1)) == overQ);
             
             PD_ASSERT( strand_completeQ == (ArcOverQ(a     ,Head) != overQ) );
             PD_ASSERT( strand_completeQ == (ArcOverQ(a_next,Tail) != overQ) );
 
 
-            // Check for a big loop strand.i.e., a over/understrand that starts and ends at the same crossing.
+            // Check for a big loop strand.i.e., an over/understrand that starts and ends at the same crossing.
             // TODO: Simplify everything to a single call to RemoveLoopPath(a,c_1) and break.
             // TODO: Don't forget to catch the Big Hopf Link in RemoveLoopPath.
             // TODO: In some cases we might reset the current strand
@@ -252,7 +299,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                          */
                         
                         // TODO: We could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
-                         RemoveLoopPath(a,c_1);
+                        RemoveLoopPath(a,c_1);
                         break;
                     }
                     else // if( strand_completeQ && (a_next == s_begin) )
@@ -360,11 +407,13 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                     
                     // However, the earlier call(s) to Reidemeister_I rule this case out as `a_next` cannot be a loop arc.
                     
-                     RemoveLoopPath(a,c_1);
+                    RemoveLoopPath(a,c_1);
                     break;
                 }
-            }
+                
+            } // if( CrossingMarkedQ(c_1) )
             
+            // We do not like Reidemeister II patterns along our strand because that would make rerouting difficult.
             if( (!strand_completeQ) && (a != s_begin) )
             {
                 // overQ == true
@@ -384,9 +433,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                 
                 if( changedQ )
                 {
-                    // TODO: Check also whether `s_begin` is still active!?
-                    
-                    if( ActiveQ(anchor_state) )
+                    if( ActiveQ(anchor_state) && ArcActiveQ(s_begin) )
                     {
                         continue; // Analyze `a` and the new `a_next` once more
                     }
@@ -412,46 +459,75 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
                  *      |        |        |        |
                  */
                 
+                
+                // Now try to reroute!
+                
                 bool changedQ = false;
 
-                if( (strand_arc_count > Int(2)) && (max_dist > Int(0)) )
+                if( (strand_arc_count > Int(2)) && (args.max_dist > Int(0)) )
                 {
 #ifdef PD_DEBUG
                     Int C_0 = pd->crossing_count;
 #endif
-                    changedQ = RerouteToShortestPath_impl( s_begin, a, Min(static_cast<Int>(strand_arc_count-Int(1)),max_dist) );
+                    changedQ = RerouteToShortestPath_impl( s_begin, a, Min(strand_arc_count-Int(1),args.max_dist) );
 #ifdef PD_DEBUG
                     Int C_1 = pd->crossing_count;
                     PD_ASSERT( !changedQ || (C_1 < C_0) );
 #endif // PD_DEBUG
                 }
 
-                // RerouteToShortestPath might deactivate `anchor`, so that we could never return to it.
+                // RerouteToShortestPath_impl might deactivate `anchor`, so that we could never return to it.
                 // Hence, we rather break the while loop here.
-                if( changedQ && !ActiveQ(anchor_state) ) { break; } // Search new anchor.
+                if( changedQ && !ActiveQ(anchor_state) ) [[unlikely]] { break; } // Search new anchor.
                 
                 // Surprisingly, these breaks tend to make it faster!
-                if constexpr( !restart_after_successQ ) { if(  changedQ ) { break; } }
-                if constexpr( !restart_after_failureQ ) { if( !changedQ ) { break; } }
+                if constexpr( !targs.restart_after_successQ ) { if(  changedQ ) { break; } }
+                if constexpr( !targs.restart_after_failureQ ) { if( !changedQ ) { break; } }
                 
-                // Changed or not; in any case we can try to start a new strand at a_next.
-                if( changedQ && !ArcActiveQ(a_next) ) { break; } // Search new anchor.
+                // Changed or not; in any case we can try to start a new strand at `pd->NextArc(a_next,Tail)`. But `a_next` must be active for this.
+                if( changedQ && !ArcActiveQ(a_next) ) [[unlikely]] { break; } // Search new anchor.
 
                 PD_ASSERT(pd->ArcOverQ(a_next,Tail) != overQ);
                 
-                // We start a strand of opposite type.
-                SetStrandMode(!overQ);
-                if( NewStrand() ) { break; }
-                
-                if constexpr( restart_walk_backQ )
+                // Rerouting arcs that we have already touched might be pointless. Here is a guard against that.
+                if ( !args.reroute_markedQ )
                 {
-                    // TODO: How expensive is this?
-                    s_begin = WalkBackToStrandStart(changedQ ? pd->NextArc(a_next,Tail) : a);
-                    // TODO: Catch the Big Unlink here.
+                    if( ArcRecentlyMarkedQ(a_next) ) [[unlikely]] { break; }
                 }
-                else
+                
+                if constexpr ( targs.restart_change_typeQ )
                 {
-                    s_begin = changedQ ? pd->NextArc(a_next,Tail) : a;
+                    // We start a strand of opposite type.
+                    SetStrandMode(!overQ);
+                }
+                
+                if( NewStrand() ) [[unlikely]] { break; }
+                
+                if constexpr ( targs.restart_change_typeQ )
+                {
+                    if constexpr( targs.restart_walk_backQ )
+                    {
+                        s_begin = WalkBackToStrandStart(pd->NextArc(a_next,Tail));
+                        // TODO: Catch Big Unlink here.
+                        //if( s_begin == Uninitialized ) { break; }
+                    }
+                    else
+                    {
+                        s_begin = pd->NextArc(a_next,Tail);
+                    }
+                }
+                else // if constexpr ( !targs.restart_change_typeQ )
+                {
+                    if constexpr( targs.restart_walk_backQ )
+                    {
+                        s_begin = WalkBackToStrandStart(a_next);
+                        // TODO: Catch Big Unlink here.
+                        //if( s_begin == Uninitialized ) { break; }
+                    }
+                    else
+                    {
+                        s_begin = a_next;
+                    }
                 }
                 
                 a = s_begin;
@@ -471,8 +547,11 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, bool overQ_, const Int max_dist = S
         }
         while( a != anchor );
         
+        // Go back to top and start a new strand.
         ++a_ptr;
     }
+    
+    PD_VALPRINT("pd->crossing_count",pd->crossing_count);
     
     Cleanup();
     

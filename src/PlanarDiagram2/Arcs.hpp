@@ -386,24 +386,6 @@ Int NextArc( const Int a, const bool headtail, const Int c ) const
     return a_next;
 }
 
-bool AlternatingQ() const
-{
-    if( !this->InCacheQ("AlternatingQ") )
-    {
-        bool alternatingQ = true;
-        for( Int a = 0; a < max_arc_count; ++a )
-        {
-            if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
-            {
-                alternatingQ = false;
-            }
-        }
-        
-        this->SetCache("AlternatingQ",alternatingQ);
-    }
-    return this->template GetCache<bool>("AlternatingQ");
-}
-
 
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {

@@ -54,6 +54,7 @@ namespace Knoodle
         using PDC_T = PlanarDiagramComplex<Int>;
         
         friend class LoopRemover<Int>;
+//        friend class ArcCrawler<Int>;
         friend class ArcSimplifier2<Int,0,true >;
         friend class ArcSimplifier2<Int,1,true >;
         friend class ArcSimplifier2<Int,2,true >;
@@ -65,10 +66,8 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,3,false>;
         friend class ArcSimplifier2<Int,4,false>;
 
-        friend class StrandSimplifier2<Int,true ,true >;
-        friend class StrandSimplifier2<Int,true ,false>;
-        friend class StrandSimplifier2<Int,false,true >;
-        friend class StrandSimplifier2<Int,false,false>;
+        friend class StrandSimplifier2<Int,true >;
+        friend class StrandSimplifier2<Int,false>;
             
         using HeadTail_T = bool;
         
@@ -427,7 +426,8 @@ namespace Knoodle
 //#include "PlanarDiagram2/R_I.hpp"
 
 #include "PlanarDiagram2/Faces.hpp"
-
+#include "PlanarDiagram2/Certificates.hpp"
+        
 //#include "PlanarDiagram2/DiagramComponents.hpp"
 #include "PlanarDiagram2/Strands.hpp"
 //#include "PlanarDiagram2/DisconnectSummands.hpp"
@@ -446,6 +446,7 @@ namespace Knoodle
 #include "PlanarDiagram2/DepthFirstSearch.hpp"
 //#include "PlanarDiagram2/SpanningForest.hpp"
         
+
 #include "PlanarDiagram2/Permute.hpp"
 //#include "PlanarDiagram2/Planarity.hpp"
         
@@ -624,7 +625,7 @@ namespace Knoodle
             
             const bool j0 = (mirrorQ != reverseQ);
             const bool j1 = (mirrorQ == reverseQ);
-
+            
             for( Int c = 0; c < max_crossing_count; ++c )
             {
                 const C_Arcs_T C = CopyCrossing(c);
@@ -651,34 +652,6 @@ namespace Knoodle
                     swap(A_cross(a,Tail),A_cross(a,Head));
                 }
             }
-        }
-
-        Tensor1<Int,Int> FindIsthmi() const
-        {
-            TOOLS_PTIMER(timer,MethodName("FindIsthmi"));
-            
-            Aggregator<Int,Int> agg (1);
-            
-            auto & A_F = ArcFaces();
-            
-            for( Int c = 0; c < max_crossing_count; ++c )
-            {
-                if( !CrossingActiveQ(c) ) { continue; }
-                
-                const C_Arcs_T C = CopyCrossing(c);
-                
-                const Int f_w = A_F(C[Out][Left ],0);
-                const Int f_n = A_F(C[Out][Left ],1);
-                const Int f_e = A_F(C[In ][Right],1);
-                const Int f_s = A_F(C[In ][Right],0);
-                
-                if( (f_w == f_e) || (f_n == f_s) )
-                {
-                    agg.Push(c);
-                }
-            }
-            
-            return agg.Disband();
         }
         
     public:

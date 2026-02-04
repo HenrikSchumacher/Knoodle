@@ -65,7 +65,7 @@ void AssertArc( const Int a_ ) const
 
 std::string ArcString( const Int a_ )  const
 {
-    return pd->ArcString(a_) + " (markedQ" + ToString(ArcMarkedQ(a_)) + ")";
+    return pd->ArcString(a_) + " (markedQ = " + ToString(ArcMarkedQ(a_)) + ")";
 }
 
 bool ArcUnderQ( const Int a, const bool headtail, const Int c ) const
@@ -128,4 +128,12 @@ static constexpr Int FlipDarc( Int da )
     return PD_T::FlipDarc(da);
 }
 
+void CreateUnlinkFromArc( const Int a )
+{
+    pdc.CreateUnlinkFromArc(*pd,a);
+}
 
+void CreateHopfLinkFromArcs( const Int a, const Int b, const CrossingState_T c_state )
+{
+    pdc.CreateHopfLinkFromArcs(*pd,a,b,c_state);
+}

@@ -126,9 +126,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
     
     std::string tag ("ArcLeftDarcs");
     
-    if( !this->InCacheQ(tag) )
+    if( !this->InCacheQ("ArcLeftDarcs") )
     {
-        TOOLS_PTIMER(timer,tag);
+        TOOLS_PTIMER(timer,MethodName(tag));
         
         ArcContainer_T A_left_buffer ( max_arc_count );
         
@@ -176,9 +176,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
 
 bool CheckLeftDarc() const
 {
-    std::string tag = MethodName("CheckLeftDarc");
+    [[maybe_unused]] auto tag = [](){ return MethodName("CheckLeftDarc"); };
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,tag());
     
     mptr<Int> dA_left = ArcLeftDarcs().data();
     
@@ -199,7 +199,7 @@ bool CheckLeftDarc() const
             
             if( !passedQ )
             {
-                eprint(tag + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
+                eprint(tag() + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
                 
                 TOOLS_DUMP(a);
                 TOOLS_DUMP(da);
@@ -214,7 +214,7 @@ bool CheckLeftDarc() const
         }
     }
     
-    logprint(tag + " passed.");
+    logprint(tag() + " passed.");
     
     return true;
 }
@@ -357,9 +357,9 @@ mref<ArcContainer_T> ArcRightDarcs() const
 
 bool CheckRightDarc() const
 {
-    std::string tag = MethodName("RightDarc");
+    std::string tag ("RightDarc");
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,MethodName(tag));
     
     cptr<Int> dA_right = ArcRightDarcs().data();
     
@@ -380,7 +380,7 @@ bool CheckRightDarc() const
             
             if( !passedQ )
             {
-                eprint(tag + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
+                eprint(MethodName(tag) + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
                 
                 TOOLS_DUMP(a);
                 TOOLS_DUMP(da);

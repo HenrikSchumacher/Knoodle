@@ -50,6 +50,7 @@ namespace Knoodle
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
+//#include "src/PlanarDiagramComplex/ArcCrawler.hpp"
 #include "src/PlanarDiagramComplex/ArcSimplifier2.hpp"
 #include "src/PlanarDiagramComplex/StrandSimplifier2.hpp"
 
