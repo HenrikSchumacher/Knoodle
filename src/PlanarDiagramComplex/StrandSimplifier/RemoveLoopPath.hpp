@@ -4,7 +4,6 @@ void RemoveLoopPath( const Int e, const Int c_0 )
 {
     PD_TIMER(timer,MethodName("RemoveLoopPath"));
     
-    // DEBUGGING
 #ifdef PD_DEBUG
     int mark_counter = 0;
     mark_counter += (A_mark[pd->C_arcs(c_0,Out,Left )] == A_mark[e]);

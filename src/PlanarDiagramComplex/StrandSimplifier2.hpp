@@ -64,6 +64,43 @@ namespace Knoodle
         
         static constexpr bool Uninitialized = PD_T::Uninitialized;
         
+        
+        struct DualArc_T
+        {
+            Int from;
+            bool left_to_rightQ;
+            bool forwardQ;
+        };
+        
+        friend std::string ToString( cref<DualArc_T> a )
+        {
+            return std::string("{") + ToString(a.from) + "," + ToString(a.left_to_rightQ) + "," + ToString(a.forwardQ) + "}";
+        }
+        
+        using ArcData_Vector2List_T = Tiny::VectorList_AoS<2,Int,Int>;
+        using ArcData_Vector4List_T = Tiny::VectorList_AoS<4,Int,Int>;
+        using ArcData_HasMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
+        using ArcData_HasMap1_T      = AssociativeContainer<Int,Int>;
+        using ArcData_HasMapStruct_T = AssociativeContainer<Int,DualArc_T>;
+        
+//        using ArcData_HasMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
+//        using ArcData_HasMap1_T      = std::unordered_map<Int,Int>;
+//        using ArcData_HasMapStruct_T = std::unordered_map<Int,DualArc_T>;
+        
+        using ArcDataContainer_T    = ArcData_Vector2List_T;
+//        using ArcDataContainer_T    = ArcData_Vector4List_T;
+//        using ArcDataContainer_T    = ArcData_HasMap2_T;
+//        using ArcDataContainer_T    = ArcData_HasMap1_T;
+//        using ArcDataContainer_T    = ArcData_HasMapStruct_T;
+
+        static constexpr bool vector2_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector2List_T>;
+        static constexpr bool vector4_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector4List_T>;
+        static constexpr bool vector_listQ     = vector2_listQ || vector4_listQ;
+        static constexpr bool hash_map2Q       = std::is_same_v<ArcDataContainer_T,ArcData_HasMap2_T>;
+        static constexpr bool hash_map1Q       = std::is_same_v<ArcDataContainer_T,ArcData_HasMap1_T>;
+        static constexpr bool hash_map_structQ = std::is_same_v<ArcDataContainer_T,ArcData_HasMapStruct_T>;
+        static constexpr bool hash_mapQ        = hash_map2Q || hash_map1Q || hash_map_structQ;
+        
     private:
 
         PDC_T & restrict pdc;
@@ -82,10 +119,10 @@ namespace Knoodle
         // Marks for the crossings and arcs to mark the current strand.
         // We use this to detect loop strands.
         // We need quite close control on the values in these containers; this is why we cannot use pd->C_scratch or pd->A_scratch here.
-        Tensor1<Int,Int> C_mark;
-        Tensor1<Int,Int> A_mark;
+        Tensor1<Int,Int>   C_mark;
+        Tensor1<Int,Int>   A_mark;
         
-        ArcContainer_T   D_data;  // Two Int per (dual) arc: The first one stores the current marker and some bits for left/right direction and one for traversal backward/forward direction.
+        ArcDataContainer_T D_data;  // Two Int per (dual) arc: The first one stores the current marker and some bits for left/right direction and one for traversal backward/forward direction.
         
         Int * restrict dA_left;
         
@@ -103,16 +140,25 @@ namespace Knoodle
         StrandSimplifier2( PDC_T & pdc_, DijkstraStrategy_T strategy_ )
         :   pdc                { pdc_                                       }
         ,   max_crossing_count { pdc_.MaxMaxCrossingCount()                 }
-        ,   max_arc_count      { int_cast<Int>(Int(2) * max_crossing_count) } // e.g., for Int16
+        ,   max_arc_count      { int_cast<Int>(Int(2) * max_crossing_count) } // int_cast for e.g., Int16
         ,   C_mark             { max_crossing_count, 0                      }
         ,   A_mark             { max_arc_count,      0                      }
-        ,   D_data             { max_arc_count,      0                      }
         ,   path               { max_arc_count,      Uninitialized          }
         ,   X_front            { max_arc_count                              }
         ,   Y_front            { max_arc_count                              }
         ,   prev_front         { max_arc_count                              }
         ,   strategy           { strategy_                                  }
-        {}
+        {
+            if constexpr ( hash_mapQ )
+            {
+                D_data.reserve(max_arc_count);
+            }
+            
+            if constexpr ( vector_listQ )
+            {
+                D_data = ArcDataContainer_T(max_arc_count,Int(0));
+            }
+        }
         
         // No default constructor
         StrandSimplifier2() = delete;
@@ -133,7 +179,7 @@ namespace Knoodle
         
         void LoadDiagram( mref<PD_T> pd_input )
         {
-            PD_TIMER(timer,MethodName("LoadDiagram"));
+            TOOLS_PTIMER(timer,MethodName("LoadDiagram"));
             
             pd = &pd_input;
             
@@ -151,7 +197,14 @@ namespace Knoodle
             {
                 C_mark.Fill(0);
                 A_mark.Fill(0);
-                D_data.Fill(0);
+                if constexpr ( vector_listQ )
+                {
+                    D_data.Fill(0);
+                }
+                if constexpr ( hash_mapQ )
+                {
+                    D_data.clear();
+                }
                 initial_mark = 1;
                 current_mark = 1;
                 strand_arc_count  = 0;
@@ -164,9 +217,20 @@ namespace Knoodle
                 PD_ASSERT(!resetQ);
                 initial_mark = current_mark;
             }
-            
+
             dA_left = pd->ArcLeftDarcs().data();
             PD_ASSERT(CheckDarcLeftDarc());
+        }
+        
+        
+        Int DarcLeftDarc( const Int da )
+        {
+            return dA_left[da];
+        }
+
+        void SetDarcLeftDarc( const Int da, const Int db )
+        {
+            dA_left[da] = db;
         }
         
         void Cleanup()
@@ -191,7 +255,8 @@ namespace Knoodle
             
             return *this;
         }
-        
+
+#include "StrandSimplifier/DualArcs.hpp"
 #include "StrandSimplifier/Marks.hpp"
 #include "StrandSimplifier/Checks.hpp"
 #include "StrandSimplifier/Helpers.hpp"
@@ -245,6 +310,11 @@ namespace Knoodle
             }
             
             PD_PRINT(std::string("NewStrand created new ") + (overQ ? "over" : "under") + "strand with current_mark = " + ToString(current_mark) + "." );
+            
+            if constexpr( hash_map1Q || hash_map_structQ )
+            {
+                D_data.clear();
+            }
             
             ++current_mark;
             strand_arc_count = 0;

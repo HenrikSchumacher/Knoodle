@@ -139,9 +139,10 @@ namespace Knoodle
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
 #include "PlanarDiagramComplex/Union.hpp"
 #include "PlanarDiagramComplex/Checks.hpp"
-        
 #include "PlanarDiagramComplex/Connect.hpp"
             
+#include "PlanarDiagramComplex/SearchTrefoils.hpp"
+        
     public:
         
         Int DiagramCount() const
@@ -334,7 +335,6 @@ namespace Knoodle
             }
             else
             {
-                // DEBUGGING
                 wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram. Doing nothing.");
             }
         }

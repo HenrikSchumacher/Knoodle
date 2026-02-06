@@ -204,6 +204,11 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
         // Also, a stale cache might spoil the simplification.
         // Thus, we proactively delete the cache.
         pd.ClearCache();
+  
+        // Not clear whether local patterns are beneficial.
+//        ArcSimplifier2<Int,3,true> A ( *this, pd, Scalar::Max<Size_T>, args.compressQ );
+//        Size_T local_change_count =  A();
+//        change_count += local_change_count;
         
         Size_T strand_change_count = 0;
         
@@ -223,7 +228,7 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
                 .compressQ              = args.compressQ,
                 .compress_oftenQ        = args.compress_oftenQ
             });
-            
+                        
             if( pd.InvalidQ() ) { break; }
             
             if constexpr (debugQ)
@@ -262,6 +267,10 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
                     if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderStrands."); };
                 }
             }
+            
+//            // DEBUGGING
+//            TOOLS_DUMP(CountTrefoils(pd));
+
             
             change_count += strand_change_count;
             

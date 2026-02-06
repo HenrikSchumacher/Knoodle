@@ -413,7 +413,7 @@ namespace Knoodle
 #include "PlanarDiagram2/DiagramComponents.hpp"
 #include "PlanarDiagram2/StandardDiagrams.hpp"
 
-#include "PlanarDiagram2/CreateCompressed.hpp"
+#include "PlanarDiagram2/Compress.hpp"
 #include "PlanarDiagram2/Reconnect.hpp"
 #include "PlanarDiagram2/SwitchCrossing.hpp"
 #include "PlanarDiagram2/Modify.hpp"

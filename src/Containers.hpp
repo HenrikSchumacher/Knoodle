@@ -63,6 +63,11 @@ namespace Knoodle
     {
         static_assert(Tools::IntQ<Val_T>,"");
         AddTo(a,key,Val_T(-1));
+        
+        if( a[key] == Val_T(0) )
+        {
+            a.erase(key);
+        }
     }
     
     template<typename Key_T, typename Val_T, typename Hash_T = Tools::hash<Key_T>>

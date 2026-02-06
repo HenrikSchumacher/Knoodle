@@ -15,7 +15,7 @@ void RepairDarcLeftDarc( const Int da )
 //                PD_DPRINT("RepairArcLeftArc touched a_l = " + ArcString(a_l) + ".");
 //                PD_DPRINT("RepairArcLeftArc touched a_r = " + ArcString(a_r) + ".");
         
-        dA_left[da]   = da_l;
-        dA_left[da_r] = FlipDarc(da);
+        SetDarcLeftDarc(da  ,da_l        );
+        SetDarcLeftDarc(da_r,FlipDarc(da));
     }
 }

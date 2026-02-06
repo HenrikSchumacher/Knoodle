@@ -87,8 +87,8 @@ void Reconnect( const Int a, const Int b )
     const Int da_left = ToDarc(C_arcs(c, side,!headtail),!side);
     const Int da_revr = ToDarc(C_arcs(c,!side, headtail),!side);
     
-    dA_left[da]       = da_left;
-    dA_left[da_revr]  = FlipDarc(da);
+    DarcLeftDarc(da)       = da_left;
+    DarcLeftDarc(da_revr)  = FlipDarc(da);
 
     if constexpr( deactivateQ )
     {

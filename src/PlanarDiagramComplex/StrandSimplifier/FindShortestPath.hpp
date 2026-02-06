@@ -121,7 +121,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         ++k;
         const Int da = ToDarc(a,Tail);
         
-        Int de = dA_left[da];
+        Int de = DarcLeftDarc(da);
         auto [e,left_to_rightQ] = FromDarc(de);
         
         while( ArcMarkedQ(e) && (de != da) )
@@ -132,7 +132,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
                 SetDualArc(e,Head,a,Head==left_to_rightQ);
                 goto Exit;
             }
-            de = dA_left[FlipDarc(de)];
+            de = DarcLeftDarc(FlipDarc(de));
             std::tie(e,left_to_rightQ) = FromDarc(de);
         }
         
@@ -258,8 +258,6 @@ Exit:
     PD_VALPRINT("b_0",b_0);
     PD_VALPRINT("b",b);
     
-//    PD_VALPRINT("D_data",D_data);
-    
     PD_VALPRINT("a_0",a_0);
     PD_VALPRINT("b_0",b_0);
     
@@ -281,6 +279,8 @@ Exit:
     PD_VALPRINT("Y_r",Y_r);
     PD_VALPRINT("k",k);
     PD_ASSERT(k == X_r + Y_r + Int(1));
+    
+//    PD_VALPRINT("D_data",ToString(D_data));
     
     if( (Int(1) <= k) && (k <= max_dist) )
     {
@@ -365,11 +365,11 @@ private:
 
 Int LeftUnmarkedDarc( const Int de_0 )
 {
-    Int de = dA_left[de_0];
+    Int de = DarcLeftDarc(de_0);
     
     while( (de != de_0) && ArcMarkedQ(ArcOfDarc(de)) )
     {
-        de = dA_left[FlipDarc(de)];
+        de = DarcLeftDarc(FlipDarc(de));
     }
     
     if( ArcMarkedQ(ArcOfDarc(de)) )
@@ -405,8 +405,8 @@ bool SweepFace(
     else
     {
         PD_ASSERT( DualArcMarkedQ(ArcOfDarc(de_0)) );
-        // We can set de = dA_left[de_0] because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
-        de = dA_left[de_0];
+        // We can set de = DarcLeftDarc(de_0) because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
+        de = DarcLeftDarc(de_0);
     }
     
     
@@ -425,7 +425,7 @@ bool SweepFace(
         // This is to ignore marked arcs.
         if( ArcMarkedQ(e) )
         {
-            de = dA_left[FlipDarc(de)];
+            de = DarcLeftDarc(FlipDarc(de));
             continue;
         }
         
@@ -461,7 +461,7 @@ bool SweepFace(
             return true;
         }
         
-        de = dA_left[de];
+        de = DarcLeftDarc(de);
     }
     while( de != de_0 );
     

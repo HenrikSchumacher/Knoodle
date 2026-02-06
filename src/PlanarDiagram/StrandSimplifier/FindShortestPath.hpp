@@ -68,12 +68,12 @@ private:
                 
                 auto [a_0,d_0] = PD_T::FromDarc(da_0);
                 
-                // Now we run through the boundary arcs of the face using `dA_left` to turn always left.
+                // Now we run through the boundary arcs of the face using `DarcLeftDarc` to turn always left.
                 // There is only one exception and that is when the arc we get to is part of the strand (which is when `A_mark(a) == mark`).
                 // Then we simply go straight through the crossing.
 
                 // arc a_0 itself does not have to be processed because that's where we are coming from.
-                Int da = dA_left[da_0];
+                Int da = DarcLeftDarc(da_0);
 
                 do
                 {
@@ -149,11 +149,11 @@ private:
                     if( part_of_strandQ )
                     {
                         // If da is part of the current strand, we ignore i
-                        da = dA_left[FlipDarc(da)];
+                        da = DarcLeftDarc(FlipDarc(da));
                     }
                     else
                     {
-                        da = dA_left[da];
+                        da = DarcLeftDarc(da);
                     }
                 }
                 while( da != da_0 );

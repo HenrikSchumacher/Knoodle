@@ -96,8 +96,8 @@ void Reconnect( const Int a, const Int b )
     const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
     const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
     
-    dA_left[da]       = da_left;
-    dA_left[da_revr]  = FlipDarc(da);
+    SetDarcLeftDarc(da     ,da_left     );
+    SetDarcLeftDarc(da_revr,FlipDarc(da));
 
     if constexpr( deactivateQ )
     {
@@ -137,7 +137,8 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
     const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
     
-    dA_left[da]       = da_left;
-    dA_left[da_revr]  = FlipDarc(da);
+    SetDarcLeftDarc(da     ,da_left     );
+    SetDarcLeftDarc(da_revr,FlipDarc(da));
+    
     DeactivateArc(b);
 }

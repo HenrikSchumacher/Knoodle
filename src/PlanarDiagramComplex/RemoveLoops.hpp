@@ -42,3 +42,4 @@ Size_T RemoveLoops( mref<PD_T> pd )
     
     return loop_count;
 }
+

@@ -1,10 +1,10 @@
 #define KNOODLE_USE_BOOST_UNORDERED
 
-#define TENSORS_BOUND_CHECKS
+//#define TENSORS_BOUND_CHECKS
 
 #define TOOLS_ENABLE_PROFILER
-#define PD_DEBUG
-#define PD_VERBOSE
+//#define PD_DEBUG
+//#define PD_VERBOSE
 //#define PD_COUNTERS
 
 
@@ -168,7 +168,7 @@ int main()
     {
         pdc.Simplify2({
             .strategy        = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ     = true,
+            .disconnectQ     = false,
             .splitQ          = true,
             .compressQ       = true
         });

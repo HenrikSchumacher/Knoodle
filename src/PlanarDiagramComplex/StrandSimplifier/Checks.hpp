@@ -21,7 +21,7 @@ bool CheckDarcLeftDarc( const Int da )
     }
     
     const Int da_l_true = pd->LeftDarc(da);
-    const Int da_l      = dA_left[da];
+    const Int da_l      = DarcLeftDarc(da);
     
     if( da_l != da_l_true )
     {
