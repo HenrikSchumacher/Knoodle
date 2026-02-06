@@ -114,6 +114,7 @@ namespace Knoodle
             bool label_crossingsQ                   = false;
             bool label_arcsQ                        = false;
             bool label_levelsQ                      = false;
+            bool label_facesQ                       = false;
 
             std::vector<Int> arc_levels;
 

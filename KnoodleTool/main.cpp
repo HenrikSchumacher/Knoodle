@@ -94,6 +94,7 @@ struct Config
     bool label_crossings     = false;        ///< Label crossings in ASCII art
     bool label_arcs          = false;        ///< Label arcs in ASCII art
     bool label_levels        = false;        ///< Label arc levels in ASCII art
+    bool label_faces         = false;        ///< Label faces in ASCII art
     std::vector<std::vector<Int>> highlight_arc_groups; ///< Arc highlight color groups
     bool output_levels       = false;        ///< Include arc levels in output (4 extra columns)
     bool quiet               = false;        ///< Suppress per-knot reports, show counter only
@@ -458,6 +459,7 @@ void PrintUsage()
     Log("  --label-crossings          Label crossings in ASCII art with their indices");
     Log("  --label-arcs               Label arcs in ASCII art with their indices");
     Log("  --label-levels             Label arc levels in ASCII art (uses --reapr-energy)");
+    Log("  --label-faces              Label interior faces in ASCII art (F0, F1, ...)");
     Log("  --highlight-arcs=A,B,C     Highlight arcs with ANSI color");
     Log("                              (repeatable; each use = new color group)");
     Log("  --output-levels             Include arc levels (4 extra columns per crossing)");
@@ -636,6 +638,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--label-levels")
         {
             config.label_levels = true;
+        }
+        // Label faces in ASCII art
+        else if (arg == "--label-faces")
+        {
+            config.label_faces = true;
         }
         // Highlight arcs with ANSI color
         else if (arg.starts_with("--highlight-arcs="))
@@ -1323,6 +1330,7 @@ void WriteAsciiDrawings(SimplifiedKnot& knot, std::ostream& out,
         .label_crossingsQ    = config.label_crossings,
         .label_arcsQ         = config.label_arcs,
         .label_levelsQ       = config.label_levels,
+        .label_facesQ        = config.label_faces,
         .highlight_arc_groups = config.highlight_arc_groups
     };
 
