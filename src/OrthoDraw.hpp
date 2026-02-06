@@ -110,6 +110,14 @@ namespace Knoodle
             
             Int  x_rounding_radius                  =  4;
             Int  y_rounding_radius                  =  4;
+
+            bool label_crossingsQ                   = false;
+            bool label_arcsQ                        = false;
+            bool label_levelsQ                      = false;
+
+            std::vector<Int> arc_levels;
+
+            std::vector<std::vector<Int>> highlight_arc_groups;
             
             void PrintInfo() const
             {

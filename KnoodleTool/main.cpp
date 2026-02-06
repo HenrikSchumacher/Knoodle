@@ -17,6 +17,12 @@
  *   1  2  3  4  1   <- crossing (5 integers: 4 arcs + handedness)
  *   ...
  *
+ * With --output-levels:
+ *   k
+ *   s
+ *   1  2  3  4  1  L1  L2  L3  L4   <- crossing + 4 arc levels
+ *   ...
+ *
  * See --help for full option list.
  */
 
@@ -83,11 +89,16 @@ struct Config
     
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
-    bool output_ascii_drawing = false;       ///< Generate ASCII art drawings
+    std::optional<std::string> ascii_drawing_file; ///< Output file for ASCII art drawings
+    bool label_crossings     = false;        ///< Label crossings in ASCII art
+    bool label_arcs          = false;        ///< Label arcs in ASCII art
+    bool label_levels        = false;        ///< Label arc levels in ASCII art
+    std::vector<std::vector<Int>> highlight_arc_groups; ///< Arc highlight color groups
+    bool output_levels       = false;        ///< Include arc levels in output (4 extra columns)
     bool quiet               = false;        ///< Suppress per-knot reports, show counter only
     
     // Derived state
-    bool help_requested      = false;  ///< User requested help
+    bool help_requested      = false;        ///< User requested help
 };
 
 /// Minimum valid simplification level.
@@ -120,6 +131,67 @@ private:
 };
 
 //==============================================================================
+// Level Conversion Utilities
+//==============================================================================
+
+/**
+ * @brief Convert real-valued levels to integer ranks.
+ *
+ * Groups values within tolerance, sorts unique groups, and returns
+ * the rank (0, 1, 2, ...) for each arc's level. This allows us to use
+ * any energy function (TV, Dirichlet, Bending, Height) and convert its
+ * real-valued output to consistent integer levels.
+ *
+ * @param real_levels The real-valued levels from Reapr::Levels().
+ * @param tolerance Values within this tolerance are considered equal.
+ * @return Integer levels where each value is the rank in sorted order.
+ */
+Knoodle::Tensor1<Int, Int> RealLevelsToIntRanks(
+    const Knoodle::Tensor1<Real, Int>& real_levels,
+    Real tolerance = 1e-6)
+{
+    const Int n = real_levels.Size();
+    
+    if (n == 0)
+    {
+        return Knoodle::Tensor1<Int, Int>();
+    }
+    
+    // Collect and sort all values
+    std::vector<Real> sorted_values;
+    sorted_values.reserve(n);
+    for (Int i = 0; i < n; ++i)
+    {
+        sorted_values.push_back(real_levels[i]);
+    }
+    std::sort(sorted_values.begin(), sorted_values.end());
+    
+    // Build unique representatives (group values within tolerance)
+    std::vector<Real> unique_values;
+    unique_values.reserve(n);
+    for (Real v : sorted_values)
+    {
+        if (unique_values.empty() || v - unique_values.back() > tolerance)
+        {
+            unique_values.push_back(v);
+        }
+    }
+    
+    // Map each arc's level to its rank
+    Knoodle::Tensor1<Int, Int> int_levels(n);
+    for (Int i = 0; i < n; ++i)
+    {
+        Real v = real_levels[i];
+        // Binary search for the group containing v
+        auto it = std::lower_bound(unique_values.begin(), unique_values.end(), 
+                                   v - tolerance);
+        int_levels[i] = static_cast<Int>(it - unique_values.begin());
+    }
+    
+    return int_levels;
+}
+
+//==============================================================================
 // Input/Output Data Structures
 //==============================================================================
 
@@ -147,6 +219,8 @@ struct SimplifiedKnot
     std::vector<PD_T> summands;           ///< Simplified prime summands
     std::vector<Int>  crossing_counts;    ///< Crossing count per summand
     Int               total_crossings = 0;
+    
+    std::vector<Knoodle::Tensor1<Int, Int>> levels;  ///< Arc levels per summand (if computed)
     
     Int               unknot_count = 0;       ///< Number of summands that simplified to unknots (Reapr only)
     Int               proven_minimal_count = 0;  ///< Number of summands with ProvenMinimalQ() == true
@@ -304,7 +378,7 @@ bool ParseNumericLine(const std::string& line,
                       std::vector<Real>& values, 
                       bool& has_float)
 {
-    values.clear(); // Clearing the container without erasing it; values.size() will return 0.
+    values.clear();
     has_float = false;
     
     std::istringstream iss(line);
@@ -349,14 +423,12 @@ std::string ValidEnergies()
 #endif
     + "TV_MCF";
 }
-    
+
 /**
  * @brief Print usage information.
  */
 void PrintUsage()
 {
-    
-    
     Log("Usage: knoodletool [options] [input_files...]");
     Log("");
     Log("Simplification options:");
@@ -369,7 +441,7 @@ void PrintUsage()
     Log("                                           Full Reapr pipeline (default)");
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
-    Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
+    Log("  --reapr-energy=E            Set Reapr energy function (also used for --output-levels):");
     Log("                                " + ValidEnergies());
     Log("");
     Log("Input options:");
@@ -379,7 +451,13 @@ void PrintUsage()
     Log("");
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
-    Log("  --output-ascii-drawing      Generate ASCII art diagrams");
+    Log("  --output-ascii-drawing=FILE Generate ASCII art diagrams");
+    Log("  --label-crossings          Label crossings in ASCII art with their indices");
+    Log("  --label-arcs               Label arcs in ASCII art with their indices");
+    Log("  --label-levels             Label arc levels in ASCII art (uses --reapr-energy)");
+    Log("  --highlight-arcs=A,B,C     Highlight arcs with ANSI color");
+    Log("                              (repeatable; each use = new color group)");
+    Log("  --output-levels             Include arc levels (4 extra columns per crossing)");
     Log("  -q, --quiet                 Suppress per-knot reports, show counter only");
     Log("");
     Log("Other:");
@@ -537,9 +615,53 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             config.output_file = std::string(arg.substr(9));
         }
         // ASCII drawing output
-        else if (arg == "--output-ascii-drawing")
+        else if (arg.starts_with("--output-ascii-drawing="))
         {
-            config.output_ascii_drawing = true;
+            config.ascii_drawing_file = std::string(arg.substr(23));
+        }
+        // Label crossings in ASCII art
+        else if (arg == "--label-crossings")
+        {
+            config.label_crossings = true;
+        }
+        // Label arcs in ASCII art
+        else if (arg == "--label-arcs")
+        {
+            config.label_arcs = true;
+        }
+        // Label arc levels in ASCII art
+        else if (arg == "--label-levels")
+        {
+            config.label_levels = true;
+        }
+        // Highlight arcs with ANSI color
+        else if (arg.starts_with("--highlight-arcs="))
+        {
+            std::string val(arg.substr(17));
+            std::vector<Int> group;
+            std::istringstream iss(val);
+            std::string token;
+            while (std::getline(iss, token, ','))
+            {
+                try
+                {
+                    group.push_back(std::stoll(Trim(token)));
+                }
+                catch (const std::exception&)
+                {
+                    LogError("Invalid arc index in --highlight-arcs: '" + token + "'");
+                    return std::nullopt;
+                }
+            }
+            if (!group.empty())
+            {
+                config.highlight_arc_groups.push_back(std::move(group));
+            }
+        }
+        // Levels output
+        else if (arg == "--output-levels")
+        {
+            config.output_levels = true;
         }
         // Quiet mode
         else if (arg == "--quiet" || arg == "-q")
@@ -567,7 +689,7 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         return std::nullopt;
     }
     
-    if (config.streaming_mode && config.output_ascii_drawing)
+    if (config.streaming_mode && config.ascii_drawing_file)
     {
         LogError("--streaming-mode and --output-ascii-drawing are incompatible");
         return std::nullopt;
@@ -788,8 +910,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     std::string line;
     
     std::vector<Real> values;
-    values.reserve(5); // We expect at most 5 elements per line, so we can allocate for that purpose.
-    // The container will be expanded automatically, if that does not suffice.
+    values.reserve(5);  // We expect at most 5 elements per line
     
     while (std::getline(input, line))
     {
@@ -910,6 +1031,31 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
 //==============================================================================
 
 /**
+ * @brief Compute integer levels for a PlanarDiagram using the specified energy.
+ *
+ * Uses Reapr::Levels() to compute real-valued levels, then converts to integer
+ * ranks via RealLevelsToIntRanks(). This allows any energy function to be used
+ * while producing consistent integer output.
+ *
+ * @param pd The diagram to compute levels for.
+ * @param energy_flag Optional energy flag; if not set, uses default (TV -> MCF).
+ * @return Integer levels for each arc (rank in sorted order of real levels).
+ */
+Knoodle::Tensor1<Int, Int> ComputeLevels(PD_T& pd, std::optional<Flag_T> energy_flag)
+{
+    Reapr_T reapr;
+    
+    if (energy_flag.has_value())
+    {
+        reapr.SetEnergyFlag(*energy_flag);
+    }
+    // Default is TV, which routes to LevelsLP_MCF
+    
+    auto real_levels = reapr.Levels(pd);
+    return RealLevelsToIntRanks(real_levels);
+}
+
+/**
  * @brief Simplify a knot using the configured algorithm.
  *
  * @param input The input knot with its summands.
@@ -929,18 +1075,42 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
             {
                 // No simplification - just copy the PD
                 PD_T pd(pd_in);
+                
+                // Compute levels if requested
+                if (config.output_levels)
+                {
+                    auto L = ComputeLevels(pd, config.reapr_energy);
+                    result.levels.push_back(std::move(L));
+                }
+                
                 result.summands.push_back(std::move(pd));
             }
             else if (config.simplify_level == 3)
             {
                 PD_T pd(pd_in);
                 pd.Simplify3();
+                
+                // Compute levels if requested
+                if (config.output_levels)
+                {
+                    auto L = ComputeLevels(pd, config.reapr_energy);
+                    result.levels.push_back(std::move(L));
+                }
+                
                 result.summands.push_back(std::move(pd));
             }
             else if (config.simplify_level == 4)
             {
                 PD_T pd(pd_in);
                 pd.Simplify4();
+                
+                // Compute levels if requested
+                if (config.output_levels)
+                {
+                    auto L = ComputeLevels(pd, config.reapr_energy);
+                    result.levels.push_back(std::move(L));
+                }
+                
                 result.summands.push_back(std::move(pd));
             }
             else if (config.simplify_level == 5)
@@ -952,6 +1122,13 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 
                 for (auto& p : pd_list)
                 {
+                    // Compute levels if requested
+                    if (config.output_levels)
+                    {
+                        auto L = ComputeLevels(p, config.reapr_energy);
+                        result.levels.push_back(std::move(L));
+                    }
+                    
                     result.summands.push_back(std::move(p));
                 }
             }
@@ -982,6 +1159,13 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 {
                     for (auto& p : pd_list)
                     {
+                        // Compute levels if requested
+                        if (config.output_levels)
+                        {
+                            auto L = ComputeLevels(p, config.reapr_energy);
+                            result.levels.push_back(std::move(L));
+                        }
+                        
                         result.summands.push_back(std::move(p));
                     }
                 }
@@ -1012,11 +1196,17 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
 /**
  * @brief Write a simplified knot in knoodletool format.
  *
+ * Output format per crossing line:
+ *   Without levels: e1 e2 e3 e4 sign
+ *   With levels:    e1 e2 e3 e4 sign L[e1] L[e2] L[e3] L[e4]
+ *
  * @param knot The simplified knot (non-const because PDCode() modifies internal buffers).
  * @param output The output stream.
  * @param include_k_marker Whether to include the leading 'k' marker.
+ * @param include_levels Whether to include arc levels (4 extra columns).
  */
-void WriteKnot(SimplifiedKnot& knot, std::ostream& output, bool include_k_marker)
+void WriteKnot(SimplifiedKnot& knot, std::ostream& output, 
+               bool include_k_marker, bool include_levels)
 {
     if (include_k_marker)
     {
@@ -1032,13 +1222,29 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output, bool include_k_marker
         
         Int crossing_count = pd.CrossingCount();
         
+        // Get levels array if available
+        const auto* L = (include_levels && i < knot.levels.size()) 
+                        ? &knot.levels[i] : nullptr;
+        
         for (Int c = 0; c < crossing_count; ++c)
         {
+            // Output arc indices and sign (existing format)
             output << pd_code(c, 0);
             for (Int j = 1; j < 5; ++j)
             {
                 output << '\t' << pd_code(c, j);
             }
+            
+            // Output levels if requested
+            if (L != nullptr)
+            {
+                for (Int j = 0; j < 4; ++j)
+                {
+                    Int arc = pd_code(c, j);
+                    output << '\t' << (*L)[arc];
+                }
+            }
+            
             output << '\n';
         }
     }
@@ -1048,37 +1254,50 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output, bool include_k_marker
  * @brief Write ASCII art diagrams for a simplified knot.
  *
  * @param knot The simplified knot.
- * @param filepath Output file path.
- * @return true on success.
+ * @param out Output stream.
  */
-bool WriteAsciiDrawings(SimplifiedKnot& knot, const std::filesystem::path& filepath)
+void WriteAsciiDrawings(SimplifiedKnot& knot, std::ostream& out,
+                        const Config& config)
 {
-    std::ofstream file(filepath);
-    if (!file)
-    {
-        LogError("Failed to open " + filepath.string() + " for writing");
-        return false;
-    }
-    
     OrthoDraw_T::Settings_T settings{
         .x_grid_size = 8,
         .y_grid_size = 4,
         .x_gap_size  = 1,
-        .y_gap_size  = 1
+        .y_gap_size  = 1,
+        .label_crossingsQ    = config.label_crossings,
+        .label_arcsQ         = config.label_arcs,
+        .label_levelsQ       = config.label_levels,
+        .highlight_arc_groups = config.highlight_arc_groups
     };
-    
+
     for (std::size_t i = 0; i < knot.summands.size(); ++i)
     {
         if (i > 0)
         {
-            file << "s\n";
+            out << "s\n";
         }
-        
+
+        if (config.label_levels)
+        {
+            if (i < knot.levels.size() && knot.levels[i].Size() > 0)
+            {
+                const auto& L = knot.levels[i];
+                settings.arc_levels.assign(L.data(), L.data() + L.Size());
+            }
+            else
+            {
+                auto L = ComputeLevels(knot.summands[i], config.reapr_energy);
+                settings.arc_levels.assign(L.data(), L.data() + L.Size());
+            }
+        }
+        else
+        {
+            settings.arc_levels.clear();
+        }
+
         OrthoDraw_T H(knot.summands[i], Int(-1), settings);
-        file << H.DiagramString() << "\n";
+        out << H.DiagramString() << "\n";
     }
-    
-    return true;
 }
 
 //==============================================================================
@@ -1111,7 +1330,6 @@ void WriteKnotReport(const InputKnot& input,
         if (config.reapr_energy.has_value())
         {
             level_str += ", energy: ";
-            // I alreay created an overload of the ToString function for this purpose.
             level_str += Knoodle::ToString(*config.reapr_energy);
         }
         
@@ -1228,9 +1446,7 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
         if (config.reapr_energy.has_value())
         {
             level_str += ", energy: ";
-            // I alreay created an overload of the ToString function for this purpose.
             level_str += Knoodle::ToString(*config.reapr_energy);
-            
         }
         
         level_str += ")";
@@ -1326,20 +1542,12 @@ std::filesystem::path GetSimplifiedFilename(const std::filesystem::path& input_p
 }
 
 /**
- * @brief Generate drawing filename from input filename.
- */
-std::filesystem::path GetDrawingFilename(const std::filesystem::path& input_path)
-{
-    auto stem = input_path.stem().string();
-    return input_path.parent_path() / (stem + "_simplified_drawing.txt");
-}
-
-/**
  * @brief Process a single input source (file or stdin).
  *
  * @param input The input stream.
  * @param source_name Description of the source.
  * @param output_stream Optional output stream (nullptr for per-file output).
+ * @param drawing_stream Optional stream for ASCII art output (nullptr to skip).
  * @param config Configuration.
  * @param rng Random number generator.
  * @param stats Statistics accumulator.
@@ -1349,6 +1557,7 @@ std::filesystem::path GetDrawingFilename(const std::filesystem::path& input_path
 bool ProcessSource(std::istream& input,
                    const std::string& source_name,
                    std::ostream* output_stream,
+                   std::ostream* drawing_stream,
                    const Config& config,
                    Knoodle::PRNG_T& rng,
                    ProcessingStats& stats,
@@ -1393,7 +1602,9 @@ bool ProcessSource(std::istream& input,
             if (output_stream)
             {
                 // Writing to shared output stream
-                WriteKnot(simplified, *output_stream, !first_knot_in_output || !config.streaming_mode);
+                WriteKnot(simplified, *output_stream, 
+                          !first_knot_in_output || !config.streaming_mode,
+                          config.output_levels);
                 first_knot_in_output = false;
             }
             else if (!config.streaming_mode)
@@ -1401,21 +1612,20 @@ bool ProcessSource(std::istream& input,
                 // Per-file output
                 std::filesystem::path input_path(source_name);
                 std::filesystem::path output_path = GetSimplifiedFilename(input_path);
-                
+
                 std::ofstream file(output_path);
                 if (!file)
                 {
                     LogError("Failed to open " + output_path.string() + " for writing");
                     return false;
                 }
-                
-                WriteKnot(simplified, file, true);
-                
-                if (config.output_ascii_drawing)
-                {
-                    std::filesystem::path drawing_path = GetDrawingFilename(input_path);
-                    WriteAsciiDrawings(simplified, drawing_path);
-                }
+
+                WriteKnot(simplified, file, true, config.output_levels);
+            }
+
+            if (drawing_stream)
+            {
+                WriteAsciiDrawings(simplified, *drawing_stream, config);
             }
         }
         
@@ -1487,7 +1697,7 @@ int main(int argc, char* argv[])
     // Prepare output stream if single output file specified
     std::ofstream output_file;
     std::ostream* output_stream = nullptr;
-    
+
     if (config.streaming_mode)
     {
         Log("knoodletool in stream mode, expect input from stdin, will direct output to stdout");
@@ -1503,15 +1713,30 @@ int main(int argc, char* argv[])
         }
         output_stream = &output_file;
     }
-    
+
+    // Prepare ASCII drawing stream if requested
+    std::ofstream drawing_file;
+    std::ostream* drawing_stream = nullptr;
+
+    if (config.ascii_drawing_file)
+    {
+        drawing_file.open(*config.ascii_drawing_file);
+        if (!drawing_file)
+        {
+            LogError("Failed to open drawing file: " + *config.ascii_drawing_file);
+            return EXIT_FAILURE;
+        }
+        drawing_stream = &drawing_file;
+    }
+
     // Process inputs
     bool success = true;
-    
+
     if (config.streaming_mode)
     {
         // Read from stdin
-        success = ProcessSource(std::cin, "stdin", output_stream, config, rng, 
-                                stats, first_knot_in_output);
+        success = ProcessSource(std::cin, "stdin", output_stream, drawing_stream,
+                                config, rng, stats, first_knot_in_output);
         if (success)
         {
             ++stats.files_processed;
@@ -1535,15 +1760,15 @@ int main(int argc, char* argv[])
                 success = false;
                 continue;
             }
-            
+
             // Add file separator to combined output
             if (output_stream && !first_knot_in_output && config.input_files.size() > 1)
             {
                 *output_stream << "%file " << filename << "\n";
             }
-            
-            if (!ProcessSource(file, filename, output_stream, config, rng,
-                               stats, first_knot_in_output))
+
+            if (!ProcessSource(file, filename, output_stream, drawing_stream,
+                               config, rng, stats, first_knot_in_output))
             {
                 success = false;
             }
