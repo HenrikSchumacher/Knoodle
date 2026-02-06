@@ -527,9 +527,9 @@ protected:
     {
         if constexpr ( verboseQ )
         {
-            print(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
-            TOOLS_DUMP(k);
-            TOOLS_DUMP(l);
+            logprint(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
+            TOOLS_LOGDUMP(k);
+            TOOLS_LOGDUMP(l);
         }
         
         // At this point we assume that `k != l` and that they are also not direct neighbors.
@@ -539,8 +539,8 @@ protected:
         
         if constexpr ( verboseQ )
         {
-            TOOLS_DUMP(ToString(x));
-            TOOLS_DUMP(ToString(y));
+            TOOLS_LOGDUMP(ToString(x));
+            TOOLS_LOGDUMP(ToString(y));
         }
         
         LineSegmentsIntersectionFlag flag
@@ -548,7 +548,7 @@ protected:
         
         if constexpr ( verboseQ )
         {
-            TOOLS_DUMP(flag);
+            TOOLS_LOGDUMP(flag);
         }
         
         if( IntersectingQ(flag) )
