@@ -492,6 +492,310 @@ std::string DiagramString() const
         }
     }
 
+    // Pass 6: Face labels via flood fill on the character grid.
+    if( settings.label_facesQ )
+    {
+        const auto grid_size = ToSize_T(n_x * n_y + 100);
+
+        // Component ID per cell: -1 = unvisited, >= 0 = component index.
+        std::vector<int> comp_id( grid_size, -1 );
+
+        // Per-component info.
+        struct CompInfo
+        {
+            double sum_x = 0.0;
+            double sum_y = 0.0;
+            int    count = 0;
+            bool   exteriorQ = false;
+        };
+        std::vector<CompInfo> comps;
+
+        // Stack for iterative flood fill.
+        std::vector<std::pair<Int,Int>> stack;
+
+        // Scan every cell; flood-fill connected components of space characters.
+        for( Int gy = 0; gy < n_y; ++gy )
+        {
+            for( Int gx = 0; gx < n_x - Int(1); ++gx ) // skip newline column
+            {
+                const auto idx = ToSize_T( gx + n_x * (n_y - Int(1) - gy) );
+                if( idx >= grid_size ) continue;
+                if( comp_id[idx] >= 0 ) continue;
+                if( s[idx] != ' ' ) continue;
+
+                // Start a new component.
+                int cid = static_cast<int>( comps.size() );
+                comps.emplace_back();
+                CompInfo & ci = comps.back();
+
+                stack.clear();
+                stack.push_back({gx, gy});
+                comp_id[idx] = cid;
+
+                while( !stack.empty() )
+                {
+                    auto [cx, cy] = stack.back();
+                    stack.pop_back();
+
+                    ci.sum_x += static_cast<double>(cx);
+                    ci.sum_y += static_cast<double>(cy);
+                    ci.count += 1;
+
+                    // Boundary touch check (grid coordinates).
+                    if( cx == Int(0) || cx == n_x - Int(2)
+                     || cy == Int(0) || cy == n_y - Int(1) )
+                    {
+                        ci.exteriorQ = true;
+                    }
+
+                    // 4-connected neighbours.
+                    const std::pair<Int,Int> nbrs[4] = {
+                        {cx - Int(1), cy}, {cx + Int(1), cy},
+                        {cx, cy - Int(1)}, {cx, cy + Int(1)}
+                    };
+
+                    for( auto [nx2, ny2] : nbrs )
+                    {
+                        if( nx2 < Int(0) || nx2 >= n_x - Int(1) ) continue;
+                        if( ny2 < Int(0) || ny2 >= n_y )           continue;
+
+                        const auto nidx = ToSize_T( nx2 + n_x * (n_y - Int(1) - ny2) );
+                        if( nidx >= grid_size )     continue;
+                        if( comp_id[nidx] >= 0 )    continue;
+                        if( s[nidx] != ' ' )         continue;
+
+                        comp_id[nidx] = cid;
+                        stack.push_back({nx2, ny2});
+                    }
+                }
+            }
+        }
+
+        // Label all faces with sequential numbers.
+        // Interior faces: label at centroid.
+        // Exterior face (all boundary-touching components): single label in upper-right corner.
+
+        // First, assign the exterior face number (face 0) and label it.
+        int face_number = 0;
+        {
+            std::string label = "F" + std::to_string(face_number);
+
+            Int ext_x = n_x - Int(2) - static_cast<Int>(label.size());
+            Int ext_y = n_y - Int(1);
+
+            bool fits = true;
+            for( std::size_t i = 0; i < label.size(); ++i )
+            {
+                Int lx = ext_x + static_cast<Int>(i);
+                if( lx < Int(0) || lx >= n_x - Int(1) )
+                {
+                    fits = false;
+                    break;
+                }
+                auto li = ToSize_T( lx + n_x * (n_y - Int(1) - ext_y) );
+                if( li >= grid_size || s[li] != ' ' )
+                {
+                    fits = false;
+                    break;
+                }
+            }
+
+            if( fits )
+            {
+                set_string( ext_x, ext_y, label );
+            }
+
+            ++face_number;
+        }
+
+        // Helper: check whether a grid cell holds a diagram edge character
+        // (safe to overwrite with a label).
+        auto is_edge_char = [](char c) -> bool
+        {
+            return c == '-' || c == '|' || c == '+' ||
+                   c == '>' || c == '<' || c == '^' || c == 'v';
+        };
+
+        // Now label interior faces.
+        for( int cid = 0; cid < static_cast<int>(comps.size()); ++cid )
+        {
+            const CompInfo & ci = comps[ToSize_T(cid)];
+
+            if( ci.exteriorQ ) continue;
+
+            std::string label = "F" + std::to_string(face_number);
+
+            // Compute centroid in grid coordinates.
+            Int cent_x = static_cast<Int>( ci.sum_x / ci.count );
+            Int cent_y = static_cast<Int>( ci.sum_y / ci.count );
+
+            bool placed = false;
+
+            // Try interior placement if the face is large enough.
+            // Collect all cells in this face sorted by distance from centroid,
+            // then try each as a label anchor until one fits.
+            if( ci.count >= static_cast<int>(label.size()) )
+            {
+                auto lsize = static_cast<Int>(label.size());
+
+                // Gather face cells sorted by distance from centroid.
+                std::vector<std::pair<Int,std::pair<Int,Int>>> candidates;
+
+                for( Int sy = 0; sy < n_y; ++sy )
+                {
+                    for( Int sx = 0; sx < n_x - Int(1); ++sx )
+                    {
+                        auto si = ToSize_T( sx + n_x * (n_y - Int(1) - sy) );
+                        if( si >= grid_size || comp_id[si] != cid ) continue;
+                        Int d = Abs(sx - cent_x) + Abs(sy - cent_y);
+                        candidates.push_back({ d, {sx, sy} });
+                    }
+                }
+
+                std::sort( candidates.begin(), candidates.end() );
+
+                for( const auto & [dist, pos] : candidates )
+                {
+                    auto [px, py] = pos;
+
+                    // Center the label on this cell.
+                    Int label_x = px - lsize / Int(2);
+
+                    bool fits = true;
+                    for( Int i = 0; i < lsize; ++i )
+                    {
+                        Int lx = label_x + i;
+                        if( lx < Int(0) || lx >= n_x - Int(1) )
+                            { fits = false; break; }
+                        auto li = ToSize_T( lx + n_x * (n_y - Int(1) - py) );
+                        if( li >= grid_size || s[li] != ' ' )
+                            { fits = false; break; }
+                    }
+
+                    if( fits )
+                    {
+                        set_string( label_x, py, label );
+                        placed = true;
+                        break;
+                    }
+                }
+            }
+
+            // If interior placement failed, place on an adjacent edge with arrow.
+            if( !placed )
+            {
+                // Find the cell in this face closest to the centroid.
+                Int face_x = -1, face_y = -1;
+                Int best_dist = n_x + n_y;
+
+                for( Int sy = 0; sy < n_y; ++sy )
+                {
+                    for( Int sx = 0; sx < n_x - Int(1); ++sx )
+                    {
+                        auto si = ToSize_T( sx + n_x * (n_y - Int(1) - sy) );
+                        if( si >= grid_size || comp_id[si] != cid ) continue;
+
+                        Int d = Abs(sx - cent_x) + Abs(sy - cent_y);
+                        if( d < best_dist )
+                        {
+                            best_dist = d;
+                            face_x = sx;
+                            face_y = sy;
+                        }
+                    }
+                }
+
+                if( face_x >= Int(0) )
+                {
+                    // Try 4 directions from face cell to find an adjacent edge.
+                    // Arrow points TOWARD the face.
+                    struct DirInfo { Int dx; Int dy; char arrow; bool horiz; };
+                    const DirInfo dirs[4] = {
+                        { Int(0),  Int(1), 'v', true  }, // edge above  -> arrow v
+                        { Int(0), Int(-1), '^', true  }, // edge below  -> arrow ^
+                        { Int(-1), Int(0), '>', false }, // edge left   -> arrow >
+                        { Int(1),  Int(0), '<', false }  // edge right  -> arrow <
+                    };
+
+                    for( int d = 0; d < 4 && !placed; ++d )
+                    {
+                        Int ex = face_x + dirs[d].dx;
+                        Int ey = face_y + dirs[d].dy;
+
+                        if( ex < Int(0) || ex >= n_x - Int(1) ) continue;
+                        if( ey < Int(0) || ey >= n_y )           continue;
+
+                        auto ei = ToSize_T( ex + n_x * (n_y - Int(1) - ey) );
+                        if( ei >= grid_size || !is_edge_char(s[ei]) ) continue;
+
+                        std::string arrow_label = label + dirs[d].arrow;
+                        auto alen = static_cast<Int>(arrow_label.size());
+
+                        if( dirs[d].horiz )
+                        {
+                            // Place horizontally on row ey, centered on ex.
+                            Int lx = ex - alen / Int(2);
+
+                            bool fits = true;
+                            for( Int i = 0; i < alen; ++i )
+                            {
+                                Int xi = lx + i;
+                                if( xi < Int(0) || xi >= n_x - Int(1) )
+                                    { fits = false; break; }
+                                auto idx = ToSize_T(
+                                    xi + n_x * (n_y - Int(1) - ey) );
+                                if( idx >= grid_size || !is_edge_char(s[idx]) )
+                                    { fits = false; break; }
+                            }
+
+                            if( fits )
+                            {
+                                for( Int i = 0; i < alen; ++i )
+                                {
+                                    auto idx = ToSize_T(
+                                        (lx + i) + n_x * (n_y - Int(1) - ey) );
+                                    s[idx] = arrow_label[ToSize_T(i)];
+                                }
+                                placed = true;
+                            }
+                        }
+                        else
+                        {
+                            // Place vertically on column ex, centered on ey.
+                            Int ly = ey + alen / Int(2);  // top of label (high y)
+
+                            bool fits = true;
+                            for( Int i = 0; i < alen; ++i )
+                            {
+                                Int yi = ly - i;  // top to bottom
+                                if( yi < Int(0) || yi >= n_y )
+                                    { fits = false; break; }
+                                auto idx = ToSize_T(
+                                    ex + n_x * (n_y - Int(1) - yi) );
+                                if( idx >= grid_size || !is_edge_char(s[idx]) )
+                                    { fits = false; break; }
+                            }
+
+                            if( fits )
+                            {
+                                for( Int i = 0; i < alen; ++i )
+                                {
+                                    Int yi = ly - i;
+                                    auto idx = ToSize_T(
+                                        ex + n_x * (n_y - Int(1) - yi) );
+                                    s[idx] = arrow_label[ToSize_T(i)];
+                                }
+                                placed = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            ++face_number;
+        }
+    }
+
     // Color-aware serialization.
     if( !has_highlights )
     {
