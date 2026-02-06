@@ -27,7 +27,7 @@ public:
                     print("L.EdgesAreNeighborsQ(i,j)");
                 }
             }
-            
+
             return;
         }
 
@@ -106,12 +106,12 @@ public:
             { cross(u_1,v_0), cross(u_1,v_1) }
         };
         
-        Tiny::Vector<4,Real,Int> coeff = {
+        Tiny::Vector<4,Real,Int> coeff {{
             dot(uxv[0][0],w_0),
             dot(uxv[0][0],w_1) + dot(uxv[0][1],w_0) + dot(uxv[1][0],w_0),
             dot(uxv[0][1],w_1) + dot(uxv[1][0],w_1) + dot(uxv[1][1],w_0),
             dot(uxv[1][1],w_1)
-        };
+        }};
         
     //            auto f = [&coeff]( const Real t )
     //            {
@@ -417,16 +417,16 @@ public:
                     eprint( ClassName()+"::MovingEdgeCollisions: Collision between edges " + ToString(i) + " and " + ToString(j) + " is degenerate." );
                 }
                 
-                collisions.emplace_back( t, std::move(inter), std::move(z), i, j, sign );
+                collisions.emplace_back( t, inter, z, i, j, sign );
                 
                 if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
                 {
                     if( i == i_0 && j == j_0 )
                     {
-                        print("Collision found");
-                        TOOLS_DUMP(t);
-                        TOOLS_DUMP(sign);
-                        TOOLS_DUMP(collisions.size());
+                        logprint("Collision found");
+                        TOOLS_LOGDUMP(t);
+                        TOOLS_LOGDUMP(sign);
+                        TOOLS_LOGDUMP(collisions.size());
                     }
                 }
             }

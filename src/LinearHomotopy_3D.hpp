@@ -62,18 +62,18 @@ namespace Knoodle
             
             Collision_T(
                 cref<Real> time_,
-                Vector3_T && point_,
-                Vector2_T && z_,
+                cref<Vector3_T> point_,
+                cref<Vector2_T> z_,
                 cref<Int> i_,
                 cref<Int> j_,
                 cref<Int> flag_
             )
-            :   time        ( time_             )
-            ,   point       ( std::move(point_) )
-            ,   z           ( std::move(z_)     )
-            ,   i           ( i_                )
-            ,   j           ( j_                )
-            ,   flag        ( flag_             )
+            :   time        ( time_  )
+            ,   point       ( point_ )
+            ,   z           ( z_     )
+            ,   i           ( i_     )
+            ,   j           ( j_     )
+            ,   flag        ( flag_  )
             {}
         };
         
@@ -123,7 +123,7 @@ namespace Knoodle
         
     public:
         
-        // Initialization from precomputed edge coodinates and bounding boxes.
+        // Initialization from precomputed edge coordinates and bounding boxes.
         // This is useful when handling piecewise-linear homotopies, because this data can be reused.
         LinearHomotopy_3D(
             mref<Link_T> L_,
@@ -147,25 +147,26 @@ namespace Knoodle
             const Real T_0_, cptr<Real> P_0,
             const Real T_1_, cptr<Real> P_1
         )
-        :   L           { L_                            }
-        ,   T           { L.Tree()                      }
-        ,   T_0         { T_0_                          }
-        ,   T_1         { T_1_                          }
-        ,   DeltaT      { T_1 - T_0                     }
-        ,   E_0_buffer  { L.EdgeCount()                 }
-        ,   E_1_buffer  { L.EdgeCount()                 }
-        ,   B_0_buffer  { L.Tree().NodeCount(), 3, 2    }
-        ,   B_1_buffer  { L.Tree().NodeCount(), 3, 2    }
-        ,   E_0         { E_0_buffer                    }
-        ,   E_1         { E_1_buffer                    }
-        ,   B_0         { B_0_buffer                    }
-        ,   B_1         { B_1_buffer                    }
+        :   L           { L_                   }
+        ,   T           { L.Tree()             }
+        ,   T_0         { T_0_                 }
+        ,   T_1         { T_1_                 }
+        ,   DeltaT      { T_1 - T_0            }
+        ,   E_0_buffer  { L.EdgeCount()        }
+        ,   E_1_buffer  { L.EdgeCount()        }
+        ,   B_0_buffer  { L.Tree().NodeCount() }
+        ,   B_1_buffer  { L.Tree().NodeCount() }
+        ,   E_0         { E_0_buffer           }
+        ,   E_1         { E_1_buffer           }
+        ,   B_0         { B_0_buffer           }
+        ,   B_1         { B_1_buffer           }
         {
             L.template ReadVertexCoordinates<false>( P_0, E_0_buffer );
             L.template ReadVertexCoordinates<false>( P_1, E_1_buffer );
 
-            L.Tree().template ComputeBoundingBoxes<2,3>( E_0, B_0_buffer );
-            L.Tree().template ComputeBoundingBoxes<2,3>( E_1, B_1_buffer );
+            
+            L.Tree().template ComputeBoundingBoxes<2,3>( E_0.data(), B_0_buffer.data() );
+            L.Tree().template ComputeBoundingBoxes<2,3>( E_1.data(), B_1_buffer.data() );
         }
         
         // Default constructor
@@ -331,10 +332,12 @@ namespace Knoodle
         
         Real CollisionTime() const
         {
-            Real time = Scalar::Infty<Real>;
+            TOOLS_MAKE_FP_STRICT()
             
             const Size_T k_count = CollisionCount();
-            
+         
+            Real time = Scalar::Infty<Real>;
+
             for( Size_T k = 0; k < k_count; ++k )
             {
                 time = Min( time, collisions[k].time );

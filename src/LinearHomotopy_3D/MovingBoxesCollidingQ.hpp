@@ -4,8 +4,8 @@ public:
         cptr<Real> P_0, cptr<Real> P_1, cptr<Real> Q_0, cptr<Real> Q_1
     )
     {
-        // Let P_0, P_1 be the bounding boxes of node i at time t=0 and t=1, repectively.
-        // Let Q_0, Q_1 be the bounding boxes of node j at time t=0 and t=1, repectively.
+        // Let P_0, P_1 be the bounding boxes of node i at time t=0 and t=1, respectively.
+        // Let Q_0, Q_1 be the bounding boxes of node j at time t=0 and t=1, respectively.
         //
         // This function computes the interval [t_first,t_last] of those t in [0,1] such that the AABBs defined by
         //     P(t) = (1-t) * p_0 + t * p_1
@@ -28,22 +28,18 @@ public:
     //                return true;
     //            }
         
-        
         Real t_0 = zero;
         Real t_1 = one;
-        
         
         for( Int k = Int(0); k < Int(3); ++k )
         {
             // Get the intervals of the four AABBs in the k-th coordinate direction.
-            
-    //                const Matrix2_T P { {B_0(i,k,0), B_0(i,k,1)}, {B_1(i,k,0), B_1(i,k,1)} };
-    //
-    //                const Matrix2_T Q { {B_0(j,k,0), B_0(j,k,1)}, {B_1(j,k,0), B_1(j,k,1)} };
-            const Real P [2][2] { {P_0[2*k], P_0[2*k+1]}, {P_1[2*k], P_1[2*k+1]} };
-            
-            const Real Q [2][2] { {Q_0[2*k], Q_0[2*k+1]}, {Q_1[2*k], Q_1[2*k+1]} };
 
+//            const Matrix2_T P { {B_0(i,0,k), B_0(i,1,k)}, {B_1(i,0,k), B_1(i,1,k)} };
+//            const Matrix2_T Q { {B_0(j,0,k), B_0(j,1,k)}, {B_1(j,0,k), B_1(j,1,k)} };
+            const Real P [2][2] { {P_0[k], P_0[Int(3)+k]}, {P_1[k], P_1[Int(3)+k]} };
+            const Real Q [2][2] { {Q_0[k], Q_0[Int(3)+k]}, {Q_1[k], Q_1[Int(3)+k]} };
+            
             // Consider the moving intervals
             //
             // P(t) = [ P[0][0] + (P[1][0] - P[0][0]) * t, P[0][1] + (P[1][1] - P[0][1]) * t ]
