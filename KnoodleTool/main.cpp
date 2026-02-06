@@ -9,6 +9,7 @@
  *
  * Input formats:
  *   - PD code: Lines with 4 or 5 tab-separated integers per crossing
+ *   - PD code + levels: Lines with 9 tab-separated integers (5 PD + 4 levels)
  *   - 3D geometry: Lines with 3 tab-separated numbers (coordinates)
  *
  * Output format (knoodletool format):
@@ -17,7 +18,7 @@
  *   1  2  3  4  1   <- crossing (5 integers: 4 arcs + handedness)
  *   ...
  *
- * With --output-levels:
+ * With --output-levels (9-column format, also accepted on input):
  *   k
  *   s
  *   1  2  3  4  1  L1  L2  L3  L4   <- crossing + 4 arc levels
@@ -207,7 +208,9 @@ struct InputKnot
     // For 3D geometry input
     bool              had_3d_geometry = false;
     Int               vertex_count_3d = 0;
-    
+
+    std::vector<Knoodle::Tensor1<Int, Int>> input_levels;  ///< Per-summand levels from 9-col input
+
     std::string       source_description;  ///< File name or "stdin"
 };
 
@@ -721,6 +724,10 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
     {
         return 5;  // Signed PD code
     }
+    else if (values.size() == 9 && !has_float)
+    {
+        return 9;  // Signed PD code + arc levels
+    }
     return 0;  // Unknown
 }
 
@@ -850,8 +857,9 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     // Current summand data
     std::vector<Real>  geometry_vertices;
     std::vector<Int>   pd_crossings;
+    std::vector<Int>   pd_level_data;        // Raw level columns from 9-col input
     Int                pd_crossing_count = 0;
-    int                detected_format = 0;  // 0=unknown, 3=geometry, 4/5=PD code
+    int                detected_format = 0;  // 0=unknown, 3=geometry, 4/5=PD code, 9=PD+levels
     bool               in_summand = false;
     bool               first_data_seen = false;
     
@@ -885,18 +893,38 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
                 geometry_vertices.clear();
             }
         }
-        else if (detected_format == 4 || detected_format == 5)
+        else if (detected_format == 4 || detected_format == 5 || detected_format == 9)
         {
-            // PD code
             if (pd_crossing_count > 0)
             {
-                PD_T pd = CreateDiagramFromPDCode(pd_crossings, pd_crossing_count, detected_format);
+                int pd_format = (detected_format == 9) ? 5 : detected_format;
+
+                PD_T pd = CreateDiagramFromPDCode(pd_crossings, pd_crossing_count, pd_format);
                 if (!pd.ValidQ())
                 {
                     LogError("Failed to create diagram from PD code");
                     return false;
                 }
-                
+
+                if (detected_format == 9 && !pd_level_data.empty())
+                {
+                    Int arc_count = Int(2) * pd_crossing_count;
+                    Knoodle::Tensor1<Int, Int> levels(arc_count, Int(0));
+
+                    for (Int c = 0; c < pd_crossing_count; ++c)
+                    {
+                        for (int j = 0; j < 4; ++j)
+                        {
+                            Int arc   = pd_crossings[5 * c + j];
+                            Int level = pd_level_data[4 * c + j];
+                            levels[arc] = level;
+                        }
+                    }
+
+                    result.input_levels.push_back(std::move(levels));
+                    pd_level_data.clear();
+                }
+
                 result.summands.push_back(std::move(pd));
                 pd_crossings.clear();
                 pd_crossing_count = 0;
@@ -910,7 +938,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     std::string line;
     
     std::vector<Real> values;
-    values.reserve(5);  // We expect at most 5 elements per line
+    values.reserve(9);  // We expect at most 9 elements per line
     
     while (std::getline(input, line))
     {
@@ -955,7 +983,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         int line_format = DetectFormat(values, has_float);
         if (line_format == 0)
         {
-            LogError("Unrecognized format (expected 3, 4, or 5 values): " + cleaned);
+            LogError("Unrecognized format (expected 3, 4, 5, or 9 values): " + cleaned);
             return std::nullopt;
         }
         
@@ -992,9 +1020,23 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         }
         else
         {
-            for (Real v : values)
+            if (detected_format == 9)
             {
-                pd_crossings.push_back(static_cast<Int>(v));
+                for (int j = 0; j < 5; ++j)
+                {
+                    pd_crossings.push_back(static_cast<Int>(values[j]));
+                }
+                for (int j = 5; j < 9; ++j)
+                {
+                    pd_level_data.push_back(static_cast<Int>(values[j]));
+                }
+            }
+            else
+            {
+                for (Real v : values)
+                {
+                    pd_crossings.push_back(static_cast<Int>(v));
+                }
             }
             ++pd_crossing_count;
         }
@@ -1065,24 +1107,38 @@ Knoodle::Tensor1<Int, Int> ComputeLevels(PD_T& pd, std::optional<Flag_T> energy_
 SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
 {
     SimplifiedKnot result;
-    
+
+    if (!input.input_levels.empty() && config.simplify_level > 0)
+    {
+        Log("Warning: Input contains arc levels, but simplification level "
+            + std::to_string(config.simplify_level)
+            + " will reindex arcs. Input levels will be discarded.");
+    }
+
     {
         ScopedTimer timer(result.simplify_time);
-        
-        for (const PD_T& pd_in : input.summands)
+
+        for (std::size_t si = 0; si < input.summands.size(); ++si)
         {
+            const PD_T& pd_in = input.summands[si];
+
             if (config.simplify_level == 0)
             {
                 // No simplification - just copy the PD
                 PD_T pd(pd_in);
-                
-                // Compute levels if requested
-                if (config.output_levels)
+
+                // Use input levels if available; otherwise compute if requested
+                if (si < input.input_levels.size()
+                    && input.input_levels[si].Size() > 0)
+                {
+                    result.levels.push_back(input.input_levels[si]);
+                }
+                else if (config.output_levels || config.label_levels)
                 {
                     auto L = ComputeLevels(pd, config.reapr_energy);
                     result.levels.push_back(std::move(L));
                 }
-                
+
                 result.summands.push_back(std::move(pd));
             }
             else if (config.simplify_level == 3)
