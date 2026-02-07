@@ -21,7 +21,7 @@ namespace Knoodle
     
     template<
         typename Real_     = double,
-        typename Int_      = std::int_fast32_t,
+        typename Int_      = Int64,
         typename Prng_T_   = Knoodle::PRNG_T,
         bool progressiveQ_ = true
     >
@@ -41,9 +41,9 @@ namespace Knoodle
         
         struct Arg_T
         {
-            bool wrap_aroundQ        = false;
+            bool wrap_aroundQ     = false;
             bool random_rotationQ = true;
-            bool centralizeQ         = true;
+            bool centralizeQ      = true;
         };
         
         using Vector_T = Tensors::Tiny::Vector<AmbDim,Real,Int>;
@@ -83,16 +83,12 @@ namespace Knoodle
          *
          *  @param n Number of edges.
          *
-         *  @param Arg_T::wrap_aroundQ If set to `true`, then the first vertex is repeated at the end.
-         *
-         *  @param Arg_T::random_rotationQ If set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}.
-         *
-         *  @param Arg_T::centralizeQ Whether to translate the random polygon so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.random_rotationQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          */
         
         Int WriteRandomEquilateralPolygon( mptr<Real> p, const Int n, cref<Arg_T> args )
         {
-            TOOLS_PTIMER(timer,ClassName("WriteRandomEquilateralPolygon"));
+            TOOLS_PTIMER(timer,MethodName("WriteRandomEquilateralPolygon"));
             
             if( args.wrap_aroundQ )
             {
@@ -455,11 +451,7 @@ namespace Knoodle
          *
          * @param m Number of samples to generate.
          *
-         * @param Arg_T::wrap_aroundQ If set to `true`, then the first vertex is repeated at the end.
-         *
-         * @param Arg_T::random_rotationQ If set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}.
-         *
-         * @param Arg_T::centralizeQ Whether to translate the random polygon so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.random_rotationQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          *
          * @param thread_count Number of threads to use. Best practice is to set this to the number of performance cores on your system.
          */
@@ -468,7 +460,7 @@ namespace Knoodle
             mptr<Real> p, const Int m, const Int n, cref<Arg_T> args, Int thread_count = 1
         )
         {
-            TOOLS_PTIMER(timer,ClassName("WriteRandomEquilateralPolygons"));
+            TOOLS_PTIMER(timer,MethodName("WriteRandomEquilateralPolygons"));
             
             if( args.wrap_aroundQ )
             {

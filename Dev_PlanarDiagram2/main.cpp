@@ -13,7 +13,10 @@
 #include "../src/OrthoDraw.hpp"
 //#include "../Reapr.hpp"
 
+#include "../src/ActionAngleSampler.hpp"
+#include "../src/ConformalBarycenterSampler.hpp"
 
+using Real        = double;
 // integer type used, e.g., for indices
 using Int         = std::int64_t;
 //using Int         = std::int32_t;
@@ -22,7 +25,7 @@ using Int         = std::int64_t;
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
-//using Reapr_T     = Knoodle::Reapr<double,Int>;
+//using Reapr_T     = Knoodle::Reapr<Real,Int>;
 
 
 template<typename T>
@@ -74,34 +77,41 @@ int main()
     // Load a knot from file.
     std::vector<Int> pd_code;
     
-    {
-        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
-        std::ifstream s ( filename );
-        Int number;
-        
-        if(!s)
-        {
-            Tools::eprint( "File " + filename + " not found." );
-            return EXIT_FAILURE;
-        }
-        
-        while( s )
-        {
-            if( s >> number )
-            {
-                pd_code.push_back(number);
-            }
-        }
-    }
+//    {
+//        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
+//        std::ifstream s ( filename );
+//        Int number;
+//        
+//        if(!s)
+//        {
+//            Tools::eprint( "File " + filename + " not found." );
+//            return EXIT_FAILURE;
+//        }
+//        
+//        while( s )
+//        {
+//            if( s >> number )
+//            {
+//                pd_code.push_back(number);
+//            }
+//        }
+//    }
+//    
+//    Int c_count = static_cast<Int>( pd_code.size()/5 );
+//    
+//    // Create an instance of PlanarDiagram.
+//    PD_T pd_0 = PD_T::FromSignedPDCode(
+//        &pd_code[0],     // pointer to array of pd code.
+//        c_count,         // number of crossingss
+//        false             // whether to compress
+//    );
     
-    Int c_count = static_cast<Int>( pd_code.size()/5 );
-    
-    // Create an instance of PlanarDiagram.
-    PD_T pd_0 = PD_T::FromSignedPDCode(
-        &pd_code[0],     // pointer to array of pd code.
-        c_count,         // number of crossingss
-        false             // whether to compress
-    );
+    const Int n = 2 * 2 * 2 * 2 * 1024;
+    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
+    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
+    Real K = 0;
+    S.WriteRandomClosedPolygon(vertex_coordinates.data(),K);
+    PD_T pd_0 = PD_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
     
 //    TOOLS_LOGDUMP(pd_0.CopyCrossing(0));
 //    TOOLS_LOGDUMP(pd_0.CopyArc(0));
@@ -168,7 +178,7 @@ int main()
     {
         pdc.Simplify2({
             .strategy        = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ     = false,
+            .disconnectQ     = true,
             .splitQ          = true,
             .compressQ       = true
         });
