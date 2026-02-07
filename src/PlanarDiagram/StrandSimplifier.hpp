@@ -195,6 +195,16 @@ namespace Knoodle
             ++pd.R_II_counter;
         }
         
+        Int DarcLeftDarc( const Int da )
+        {
+            return dA_left[da];
+        }
+
+        void SetDarcLeftDarc( const Int da, const Int db )
+        {
+            dA_left[da] = db;
+        }
+        
     public:
         
         template<typename Int_0, typename Int_1>

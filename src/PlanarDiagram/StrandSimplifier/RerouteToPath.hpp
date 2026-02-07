@@ -186,10 +186,10 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
             const Int buffer [4] = { a_1,a_2,a,b };
             copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
             
-            DarcLeftDarc(da  ) = FlipDarc(da_1);
-            DarcLeftDarc(da_2) = FlipDarc(db  );
-            DarcLeftDarc(db  ) = FlipDarc(da  );
-            DarcLeftDarc(da_1) = FlipDarc(da_2);
+            SetDarcLeftDarc(da  , FlipDarc(da_1));
+            SetDarcLeftDarc(da_2, FlipDarc(db  ));
+            SetDarcLeftDarc(db  , FlipDarc(da  ));
+            SetDarcLeftDarc(da_1, FlipDarc(da_2));
         }
         else // if ( !dir )
         {
@@ -219,10 +219,10 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
             const Int buffer [4] = { a_2,a_1,b,a };
             copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
             
-            DarcLeftDarc(da  ) = FlipDarc(db  );
-            DarcLeftDarc(da_2) = FlipDarc(da_1);
-            DarcLeftDarc(db  ) = FlipDarc(da_2);
-            DarcLeftDarc(da_1) = FlipDarc(da  );
+            SetDarcLeftDarc(da  , FlipDarc(db  ));
+            SetDarcLeftDarc(da_2, FlipDarc(da_1));
+            SetDarcLeftDarc(db  , FlipDarc(da_2));
+            SetDarcLeftDarc(da_1, FlipDarc(da  ));
         }
         
         AssertCrossing<1>(c_0);
