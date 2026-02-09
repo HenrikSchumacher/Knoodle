@@ -29,6 +29,7 @@ namespace Knoodle
 
 #include "src/PlanarLineSegmentIntersector.hpp"
 #include "src/Link_2D.hpp"
+#include "src/LinkEmbedding.hpp" // Meant to supercede the misnomer Link_2D.
 #include "src/Knot_2D.hpp"
 
 #include "src/MultiGraphBase.hpp"
@@ -50,12 +51,13 @@ namespace Knoodle
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
-//#include "src/PlanarDiagramComplex/ArcCrawler.hpp"
 #include "src/PlanarDiagramComplex/ArcSimplifier2.hpp"
 #include "src/PlanarDiagramComplex/StrandSimplifier2.hpp"
 
 #include "src/PlanarDiagram2.hpp"
 #include "src/PlanarDiagramComplex.hpp"
+#include "src/OrthoDraw.hpp"
+#include "src/Reapr2.hpp"
 
 //
 //#include "src/Seifert.hpp"    // TODO: Needs debugging.

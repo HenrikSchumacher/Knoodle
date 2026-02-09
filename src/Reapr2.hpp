@@ -8,15 +8,13 @@
 #include "../submodules/Tensors/Clp.hpp"
 #endif
 
-#include "OrthoDraw.hpp"
-
 namespace Knoodle
 {
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
     
-    template<typename Real_ = Real64, typename Int_ = Int64>
-    class Reapr
+    template<typename Real_ = Real64, typename Int_ = Int64, typename BReal_ = Real32>
+    class Reapr2
     {
     public:
         static_assert(FloatQ<Real_>,"");
@@ -25,6 +23,7 @@ namespace Knoodle
         
         using Real                = Real_;
         using Int                 = Int_;
+        using BReal               = BReal_;
 
 #ifdef KNOODLE_USE_UMFPACK
         using UMF_Int             = Int64;
@@ -39,13 +38,13 @@ namespace Knoodle
         static constexpr bool CLP_enabledQ = false;
 #endif
         
-        using Link_T              = Link_2D<Real,Int>;
-        using PD_T                = PlanarDiagram<Int>;
-        using Point_T             = std::array<Real,3>;
+//        using Link_T              = LinkEmbedding<Real,Int,BReal>;
+        using PD_T                = PlanarDiagram2<Int>;
+        using Point_T             = Tiny::Vector<3,Real,Int>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
-        using Embedding_T         = RaggedList<Point_T,Int>;
-
+//        using Embedding_T         = RaggedList<Point_T,Int>;
+        using LinkEmbedding_T     = LinkEmbedding<Real,Int,BReal>;
         
         using PRNG_T              = Knoodle::PRNG_T;
         using Flag_T              = Scalar::Flag;
@@ -75,79 +74,56 @@ namespace Knoodle
             }
         }
 
-        static constexpr Real jump = 1;
-
-    private:
-        
-        Real scaling             = Real(1);
-        Real dirichlet_reg       = Real(0.00001);
-        Real bending_reg         = Real(0.00001);
-        Real backtracking_factor = Real(0.25);
-        Real armijo_slope        = Real(0.001);
-        Real tolerance           = Real(0.00000001);
-        int  SSN_max_b_iter      = 20;
-        int  SSN_max_iter        = 1000;
-        int  SSN_iter            = 0;
-                
-        Real initial_time_step   = Real(1.0) / backtracking_factor;
-        
-        EnergyFlag_T en_flag     = EnergyFlag_T::TV;
-        
-        
-        bool permute_randomQ     = true;
-        OrthoDrawSettings_T ortho_draw_settings = {
-            .randomize_bends  = 4,
-            .randomize_virtual_edgesQ = true
+        struct Settings_T
+        {
+            EnergyFlag_T en_flag     = EnergyFlag_T::TV;
+            bool permute_randomQ     = true;
+            OrthoDrawSettings_T ortho_draw_settings = {
+                .randomize_bends  = 4,
+                .randomize_virtual_edgesQ = true
+            };
+            
+            Real   scaling             = Real(1);
+            Real   dirichlet_reg       = Real(0.00001);
+            Real   bending_reg         = Real(0.00001);
+            Real   backtracking_factor = Real(0.25);
+            Real   armijo_slope        = Real(0.001);
+            Real   tolerance           = Real(0.00000001);
+            Size_T SSN_max_b_iter      = 20;
+            Size_T SSN_max_iter        = 1000;
+                    
+            Real initial_time_step   = Real(1.0) / backtracking_factor;
         };
         
-        int  rattle_counter      = 0;
-        Real rattle_timing       = 0;
+        
+        static constexpr Real jump = 1;
+
+        static constexpr bool Tail  = PD_T::Tail;
+        static constexpr bool Head  = PD_T::Head;
+        static constexpr bool Out   = PD_T::Out;
+        static constexpr bool In    = PD_T::In;
+        static constexpr bool Left  = PD_T::Left;
+        static constexpr bool Right = PD_T::Right;
+        
+    private:
+        
+        Settings_T settings;
         
         mutable PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
     public:
         
-        void Reseed()
-        {
-            random_engine = InitializedRandomEngine<PRNG_T>();
-        }
+        Reapr2( cref<Settings_T> settings_ = Settings_T() )
+        : settings { settings_ }
+        {}
         
-        void SetEnergyFlag( EnergyFlag_T flag )
-        {
-            en_flag = flag;
-        }
-
-        EnergyFlag_T EnergyFlag() const { return en_flag; }
+        ~Reapr2() = default;
         
-        
-        Real Scaling() const { return scaling; }
-        
-        void SetScaling( Real val ) { scaling = val; }
-        
-        
-        bool PermuteRandomQ() const { return permute_randomQ; }
-        
-        void SetPermuteRandomQ( bool val ) { permute_randomQ = val; }
-
-        mref<OrthoDrawSettings_T> OrthoDrawSettings()
-        {
-            return ortho_draw_settings;
-        }
-        
-        cref<OrthoDrawSettings_T> OrthoDrawSettings() const
-        {
-            return ortho_draw_settings;
-        }
-        
-        void SetOrthoDrawSettings( OrthoDrawSettings_T && val )
-        {
-            ortho_draw_settings = val;
-        }
-        void SetOrthoDrawSettings( cref<OrthoDrawSettings_T> val )
-        {
-            ortho_draw_settings = val;
-        }
-        
+        // We redefine the copy constructor because of random_engine.
+        Reapr2( const Reapr2 & other )
+        :   settings          { other.settings                }
+        ,   random_engine { InitializedRandomEngine<PRNG_T>() }
+        {}
         
     private:
         
@@ -158,34 +134,33 @@ namespace Knoodle
             return pd.GetCache(tag);
         }
         
-        bool EnergyFlagOutdatedQ( cref<PD_T> pd ) const
-        {
-            return EnergyFlag(pd) != en_flag;
-        }
-        
         void SetEnergyFlag( mref<PD_T> pd )
         {
             const std::string tag = MethodName("EnergyFlag");
             
-            return pd.SetCache(tag,en_flag);
+            return pd.SetCache(tag,settings.en_flag);
         }
         
-        // TODO: Do we want more get-setters?
+        Size_T Iteration( mref<PD_T> pd ) const
+        {
+            const std::string tag = MethodName("Iteration");
+            
+            if( !pd.InCacheQ(tag) ) { SetIteration(pd,Size_T(0));
+            }
+            return pd.GetCache(tag);
+        }
+        
+        void SetIteration( mref<PD_T> pd, const Size_T iter )
+        {
+            const std::string tag = MethodName("Iteration");
+            
+            return pd.template SetCache<false>(tag,iter);
+        }
         
     public:
         
         void WriteFeasibleLevels( cref<PD_T> pd, mptr<Real> x )
         {
-            
-            constexpr bool Tail  = PD_T::Tail;
-//            constexpr bool Head  = PD_T::Head;
-
-            constexpr bool Out   = PD_T::Out;
-//            constexpr bool In    = PD_T::In;
-            
-            constexpr bool Left  = PD_T::Left;
-            constexpr bool Right = PD_T::Right;
-            
             const Int m        = pd.ArcCount();
             auto & C_arcs      = pd.Crossings();
             auto & A_cross     = pd.Arcs();
@@ -243,31 +218,31 @@ namespace Knoodle
             }
         }
 
-#include "Reapr/DirichletHessian.hpp"
-#include "Reapr/BendingHessian.hpp"
-#include "Reapr/LevelsConstraintMatrix.hpp"
+#include "Reapr2/DirichletHessian.hpp"
+#include "Reapr2/BendingHessian.hpp"
+#include "Reapr2/LevelsConstraintMatrix.hpp"
         
 #ifdef KNOODLE_USE_UMFPACK
-    #include "Reapr/LevelsQP_SSN.hpp"
+    #include "Reapr2/LevelsQP_SSN.hpp"
 #endif
         
 #ifdef KNOODLE_USE_CLP
-    #include "Reapr/LevelsLP_CLP.hpp"
+    #include "Reapr2/LevelsLP_CLP.hpp"
 #endif
         
-#include "Reapr/LevelsLP_MCF.hpp"
-#include "Reapr/LevelsMinHeight.hpp"
-#include "Reapr/Embedding.hpp"
-#include "Reapr/RandomRotation.hpp"
-#include "Reapr/Rattle.hpp"
-#include "Reapr/Generate.hpp"
+#include "Reapr2/LevelsLP_MCF.hpp"
+#include "Reapr2/LevelsMinHeight.hpp"
+#include "Reapr2/Embedding.hpp"
+#include "Reapr2/RandomRotation.hpp"
+//#include "Reapr/Rattle.hpp"
+//#include "Reapr/Generate.hpp"
         
     public:
         
         template<typename R = Real, typename I = Int, typename J = Int>
         Sparse::MatrixCSR<R,I,J> Hessian( cref<PD_T> pd ) const
         {
-            switch ( en_flag )
+            switch ( settings.en_flag )
             {
                 case EnergyFlag_T::Bending:
                 {
@@ -279,7 +254,7 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
+                    wprint(MethodName("Hessian")+": Energy flag " + ToString(settings.en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
                     
                     return Sparse::MatrixCSR<R,I,J>();
                 }
@@ -288,7 +263,7 @@ namespace Knoodle
         
         Tensor1<Real,Int> Levels( cref<PD_T> pd )
         {
-            switch ( en_flag )
+            switch ( settings.en_flag )
             {
                 case EnergyFlag_T::TV:
                 {
@@ -331,7 +306,7 @@ namespace Knoodle
                 }
                 default:
                 {
-                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(en_flag) + ". Using default (EnergyFlag_T::TV) instead.");
+                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(settings.en_flag) + ". Using default (EnergyFlag_T::TV) instead.");
                     return LevelsLP_MCF(pd);
                 }
             }
@@ -347,10 +322,9 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("Reapr")
+            return std::string("Reapr2")
             + "<" + TypeName<Real>
             + "," + TypeName<Int>
-            + "," + TypeName<CodeInt>
             + ">";
         }
         

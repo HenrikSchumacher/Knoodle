@@ -71,7 +71,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     // TODO: Is this a good value for the tolerance?
     const Real threshold = Power(m * tolerance,2);
     
-    Size_T SSN_iter = 0;
+    SSN_iter = 0;
 //    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );

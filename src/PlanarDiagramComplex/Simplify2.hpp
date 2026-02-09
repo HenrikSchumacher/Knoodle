@@ -2,36 +2,42 @@ public:
 
 struct Simplify2_Args_T
 {
+    Size_T local_opt_level      = 0;
     DijkstraStrategy_T strategy = DijkstraStrategy_T::Bidirectional;
-    Int  start_max_dist         = Scalar::Max<Int>;
-    Int  final_max_dist         = Scalar::Max<Int>;
+    Int    start_max_dist       = Scalar::Max<Int>;
+    Int    final_max_dist       = Scalar::Max<Int>;
     bool exhaust_strands_firstQ = true;
-    bool restart_after_successQ = true;
-    bool restart_after_failureQ = true;
-    bool restart_walk_backQ     = false;
-    bool restart_change_typeQ   = true;
-    bool reroute_markedQ        = false;
+//    bool restart_after_successQ = true;
+//    bool restart_after_failureQ = true;
+//    bool restart_walk_backQ     = true;
+//    bool restart_change_typeQ   = true;
+//    bool reroute_markedQ        = false;
     bool disconnectQ            = true;
     bool splitQ                 = true;
     bool compressQ              = true;
-    bool compress_oftenQ        = false ;
+//    bool compress_oftenQ        = false;
+    
+    Size_T reapr_max_iter       = 20;
+//    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
 
 friend std::string ToString( cref<Simplify2_Args_T> args )
 {
-    return "{ .strategy = " + ToString(args.strategy)
+    return std::string("{")
+            + ".local_opt_level = " + ToString(args.local_opt_level)
+            + ",.strategy = " + ToString(args.strategy)
             + ", .start_max_dist = " + ToString(args.start_max_dist)
             + ", .final_max_dist = " + ToString(args.final_max_dist)
             + ", .exhaust_strands_firstQ = " + ToString(args.exhaust_strands_firstQ)
-            + ", .restart_after_successQ = " + ToString(args.restart_after_successQ)
-            + ", .restart_after_failureQ = " + ToString(args.restart_after_failureQ)
-            + ", .restart_walk_backQ = " + ToString(args.restart_walk_backQ)
-            + ", .restart_change_typeQ = " + ToString(args.restart_change_typeQ)
-            + ", .reroute_markedQ = " + ToString(args.reroute_markedQ)
+//            + ", .restart_after_successQ = " + ToString(args.restart_after_successQ)
+//            + ", .restart_after_failureQ = " + ToString(args.restart_after_failureQ)
+//            + ", .restart_walk_backQ = " + ToString(args.restart_walk_backQ)
+//            + ", .restart_change_typeQ = " + ToString(args.restart_change_typeQ)
+//            + ", .reroute_markedQ = " + ToString(args.reroute_markedQ)
             + ", .disconnectQ = " + ToString(args.disconnectQ)
             + ", .splitQ = " + ToString(args.splitQ)
             + ", .compressQ = " + ToString(args.compressQ)
-            + ", .compress_oftenQ = " + ToString(args.compress_oftenQ)
+//            + ", .compress_oftenQ = " + ToString(args.compress_oftenQ)
     + "}";
 }
 
@@ -40,12 +46,14 @@ Size_T Simplify2( cref<Simplify2_Args_T> args = Simplify2_Args_T() )
 {
     if( DiagramCount() == Int(0) ) { return 0; }
     
-    int flag = (args.restart_after_successQ << 0)
-             | (args.restart_after_failureQ << 1)
-             | (args.restart_walk_backQ     << 2)
-             | (args.restart_change_typeQ   << 3);
+//    return Simplify2_impl<15>(args);
     
-    switch ( flag )
+//    int flag = (args.restart_after_successQ << 0)
+//             | (args.restart_after_failureQ << 1)
+//             | (args.restart_walk_backQ     << 2)
+//             | (args.restart_change_typeQ   << 3);
+    
+    switch ( args.local_opt_level )
     {
         case 0:
         {
@@ -67,53 +75,9 @@ Size_T Simplify2( cref<Simplify2_Args_T> args = Simplify2_Args_T() )
         {
             return Simplify2_impl<4>(args);
         }
-        case 5:
-        {
-            return Simplify2_impl<5>(args);
-        }
-        case 6:
-        {
-            return Simplify2_impl<6>(args);
-        }
-        case 7:
-        {
-            return Simplify2_impl<7>(args);
-        }
-        case 8:
-        {
-            return Simplify2_impl<8>(args);
-        }
-        case 9:
-        {
-            return Simplify2_impl<9>(args);
-        }
-        case 10:
-        {
-            return Simplify2_impl<10>(args);
-        }
-        case 11:
-        {
-            return Simplify2_impl<11>(args);
-        }
-        case 12:
-        {
-            return Simplify2_impl<12>(args);
-        }
-        case 13:
-        {
-            return Simplify2_impl<13>(args);
-        }
-        case 14:
-        {
-            return Simplify2_impl<14>(args);
-        }
-        case 15:
-        {
-            return Simplify2_impl<15>(args);
-        }
         default:
         {
-            eprint( MethodName("Simplify2") + ": flag = " + ToString(flag) + " is invalid." );
+            eprint( MethodName("Simplify2") + ": local_opt_level = " + ToString(args.local_opt_level) + " is invalid." );
             return 0;
         }
     }
@@ -123,31 +87,24 @@ Size_T Simplify2( cref<Simplify2_Args_T> args = Simplify2_Args_T() )
 
 private:
 
-template<int flag>
+template<Size_T local_opt_level>
 Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
 {
-    constexpr bool restart_after_successQ = (flag >> 0) & 1;
-    constexpr bool restart_after_failureQ = (flag >> 1) & 1;
-    constexpr bool restart_walk_backQ     = (flag >> 2) & 1;
-    constexpr bool restart_change_typeQ   = (flag >> 3) & 1;
+//    constexpr bool debugQ = true;
+    
+    using TArgs_T = StrandSimplifier_T::SimplifyStrands2_TArgs;
+    constexpr TArgs_T targs = TArgs_T();
 
     [[maybe_unused]] auto tag = [this]()
     {
-        return this->MethodName("Simplify2_impl") + "<" + ToString(flag) + ">";
+        return this->MethodName("Simplify2_impl") + "<" + ToString(local_opt_level) + ">";
     };
-    
-//    [[maybe_unused]] auto tag = [&args]()
-//    {
-//        return MethodName("Simplify2_impl") + "<" + ToString(flag) + ">" + "(" + ToString(args) + ")";
-//    };
     
     TOOLS_PTIMER(timer,tag());
     
 #ifdef TOOLS_ENABLE_PROFILER
     logvalprint("args",ToString(args));
 #endif
-    
-//    constexpr bool debugQ = true;
     
     if constexpr (debugQ) { wprint(tag()+": Debug mode active."); }
     
@@ -164,139 +121,32 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
     
     Size_T change_count = 0;
     
-    PD_ASSERT(pd_done.empty());
-    PD_ASSERT(pd_todo.empty());
-    
     using std::swap;
     pd_done.reserve(pd_list.size());
     pd_todo.reserve(pd_list.size());
   
     swap(pd_list,pd_todo);
     
-    const Int max_dist = Scalar::Max<Int>;
+    Reapr_T reapr;
+    PDList_T reapr_list;
     
     while( !pd_todo.empty() )
     {
         PD_T pd = std::move(pd_todo.back());
         pd_todo.pop_back();
         
-        if( pd.InvalidQ() ) { continue; }
-        
-        if(  pd.proven_minimalQ )
+        // We allow local pattern optimization only in the very first pass for each diagram. It won't help at all in Rattle.
+        if( args.local_opt_level > Size_T(0) )
         {
-            if constexpr (debugQ)
-            {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed when pushed to pd_done."); };
-            }
-            
-            if( pd.crossing_count < pd.max_crossing_count )
-            {
-                pd_done.push_back( pd.CreateCompressed() );
-            }
-            else
-            {
-                pd_done.push_back( std::move(pd) );
-            }
-            continue;
+            change_count += ArcSimplifier2<Int,local_opt_level,true>( *this, pd, Scalar::Max<Int>, args.compressQ )();
         }
-        
-        // It is very likely that we change the diagram.
-        // Also, a stale cache might spoil the simplification.
-        // Thus, we proactively delete the cache.
-        pd.ClearCache();
-  
-        // Not clear whether local patterns are beneficial.
-//        ArcSimplifier2<Int,3,true> A ( *this, pd, Scalar::Max<Size_T>, args.compressQ );
-//        Size_T local_change_count =  A();
-//        change_count += local_change_count;
-        
-        Size_T strand_change_count = 0;
-        
-        do
-        {
-            strand_change_count = 0;
-            
-            strand_change_count += S.template SimplifyStrands2<{
-                .restart_after_successQ = restart_after_successQ,
-                .restart_after_failureQ = restart_after_failureQ,
-                .restart_walk_backQ     = restart_walk_backQ,
-                .restart_change_typeQ   = restart_change_typeQ
-            }>(pd,{
-                .max_dist               = max_dist,
-                .overQ                  = true,
-                .reroute_markedQ        = args.reroute_markedQ,
-                .compressQ              = args.compressQ,
-                .compress_oftenQ        = args.compress_oftenQ
-            });
-                        
-            if( pd.InvalidQ() ) { break; }
-            
-            if constexpr (debugQ)
-            {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverStrands."); };
-            }
-            
-            if constexpr ( !restart_change_typeQ || !restart_after_successQ || !restart_after_failureQ )
-            {
-                // TODO: Filter out duplicate unknots.
-                if( pd.crossing_count <= Int(1) )
-                {
-                    pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
-                    pd = PD_T::InvalidDiagram();
-                    break;
-                }
-                
-                // Reroute understrands.
-                strand_change_count += S.template SimplifyStrands2<{
-                    .restart_after_successQ = restart_after_successQ,
-                    .restart_after_failureQ = restart_after_failureQ,
-                    .restart_walk_backQ     = restart_walk_backQ,
-                    .restart_change_typeQ   = restart_change_typeQ
-                }>(pd,{
-                    .max_dist               = max_dist,
-                    .overQ                  = false,
-                    .reroute_markedQ        = args.reroute_markedQ,
-                    .compressQ              = args.compressQ,
-                    .compress_oftenQ        = args.compress_oftenQ
-                });
-                
-                if( pd.InvalidQ() ) { break; }
-                
-                if constexpr (debugQ)
-                {
-                    if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderStrands."); };
-                }
-            }
-            
-//            // DEBUGGING
-//            TOOLS_DUMP(CountTrefoils(pd));
 
-            
-            change_count += strand_change_count;
-            
-            // TODO: Filter out duplicate unknots.
-            if( pd.crossing_count <= Int(1) )
-            {
-                pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
-                pd = PD_T::InvalidDiagram();
-                break;
-            }
-        }
-        while( args.exhaust_strands_firstQ && (strand_change_count > Size_T(0)) );
-
-        if( pd.InvalidQ() ) { continue; }
-        
-        Size_T disconnect_count = 0;
-        
-        // Caution: Disconnect is allowed to push some small diagrams to pd_done.
-        if( args.disconnectQ )
-        {
-            disconnect_count = Disconnect(pd);
-        }
+        auto [strand_change_count, disconnect_count] = this->template SimplifyDiagrammatically<debugQ,targs>( S, pd, args );
+        change_count += strand_change_count;
         change_count += disconnect_count;
         
         if( pd.InvalidQ() ) { continue; }
-        
+
         // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
         const bool proven_reducedQ = args.disconnectQ && (strand_change_count == Size_T(0));
         
@@ -307,37 +157,71 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
         
         // Split the diagrams into diagram components and push them to pd_todo for further simplification.
 
-        Size_T split_count = 0;
         // Caution: Split is allowed to push minimal diagrams to pd_done.
-        if( (strand_change_count == Size_T(0)) && (disconnect_count == Size_T(0)) )
-        {
-            // If no changes were found, we cannot do better than pushing to pd_done.
-            if( args.splitQ )
-            {
-                split_count = Split( std::move(pd), pd_done, proven_reducedQ );
-            }
-            else
-            {
-                pd_done.push_back( std::move(pd) );
-            }
-        }
-        else
+        if( (strand_change_count != Size_T(0)) || (disconnect_count != Size_T(0)) )
         {
             // If anything upstream changed, then we should better continue working on the split diagrams.
             if( args.splitQ )
             {
-                split_count = Split( std::move(pd), pd_todo, proven_reducedQ );
+                change_count += Split( std::move(pd), pd_todo, proven_reducedQ );
+                
             }
             else
             {
-                pd_todo.push_back( std::move(pd) );
+                PushDiagramToDo( std::move(pd) );
+            }
+            continue;
+        }
+        
+        // No changes were found so far. We can try reapr or we have to stop here.
+        if( args.reapr_max_iter > Size_T(0) )
+        {
+            if( args.splitQ )
+            {
+                PD_ASSERT(reapr_list.empty());
+                
+                change_count += Split( std::move(pd), reapr_list, proven_reducedQ );
+                
+                // Split already filters out minimal diagrams, if proven_reducedQ.
+                while( !reapr_list.empty() )
+                {
+                    PD_T pd_reapr = std::move(reapr_list.back());
+                    reapr_list.pop_back();
+                    change_count += this->template Rattle<debugQ,targs>( S, reapr, std::move(pd_reapr), args );
+                }
+                
+                PD_ASSERT(reapr_list.empty());
+            }
+            else
+            {
+                if( pd.DiagramComponentCount() <= Int(1) )
+                {
+                    this->template Rattle<debugQ,targs>( S, reapr, std::move(reapr_list.back()), args );
+                }
+                else
+                {
+                    // We are not allowed to split; so we cannot do better than pushing this onto the "done pile.
+                    PushDiagramDone( std::move(pd) );
+                }
             }
         }
-        change_count += split_count;
-        
-        PD_ASSERT(pd.InvalidQ());
+        else
+        {
+            // If no changes were found and if we do not want reapr, then we cannot do better than splittinh and pushing to pd_done.
+            if( args.splitQ )
+            {
+                change_count += Split( std::move(pd), pd_done, proven_reducedQ );
+            }
+            else
+            {
+                PushDiagramDone( std::move(pd) );
+            }
+        }
         
     }  // while( !pd_todo.empty() )
+    
+    PD_ASSERT(pd_list.empty());
+    PD_ASSERT(pd_todo.empty());
     
     if constexpr (debugQ)
     {
@@ -362,5 +246,233 @@ Size_T Simplify2_impl( cref<Simplify2_Args_T> args )
     this->SetCache("StrandSimplifier",std::move(S_buffer));
 #endif
     
+    PD_ASSERT(this->CheckAll());
+    
     return change_count;
+}
+
+
+
+template<bool debugQ, StrandSimplifier_T::SimplifyStrands2_TArgs targs>
+Size_T Rattle(
+    mref<StrandSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify2_Args_T> args
+)
+{
+    [[maybe_unused]] auto tag = [this]() { return this->MethodName("Rattle"); };
+    
+    TOOLS_PTIMER(timer,tag());
+    
+    PD_ASSERT(pd.CrossingCount() >= Int(1));
+    PD_ASSERT(pd.DiagramComponentCount() == Int(1));
+    PD_ASSERT(pd.ValidQ());
+    
+    PD_T pd_1;
+    
+    Size_T strand_change_count = 0;
+    Size_T disconnect_count    = 0;
+    
+    Size_T iter = 0;
+    bool progressQ = false;
+    
+    do
+    {
+        pd_1 = ReaprProjection(reapr,pd);
+        
+        std::tie(strand_change_count,disconnect_count) = this->template SimplifyDiagrammatically<debugQ,targs>(S, pd_1, args);
+        
+        progressQ = ( pd_1.CrossingCount() < pd.CrossingCount() )
+                    ||
+                    (disconnect_count > Size_T(0))
+                    ||
+                    (pd_1.DiagramComponentCount() > Int(1));
+        ++iter;
+    }
+    while( (iter < args.reapr_max_iter) && !progressQ );
+    
+    // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
+    const bool proven_reducedQ = args.disconnectQ && (strand_change_count == Size_T(0));
+    
+    if( proven_reducedQ )
+    {
+        PD_ASSERT(pd.ReducedQ());
+    }
+    
+    Size_T split_count = 0;
+    
+    if( progressQ )
+    {
+        if( args.splitQ )
+        {
+            split_count = Split( std::move(pd_1), pd_todo, proven_reducedQ );
+        }
+        else
+        {
+            PushDiagramToDo( std::move(pd_1) );
+        }
+    }
+    else
+    {
+        // If splits are allowed, then this is already split.
+        PushDiagramDone( std::move(pd) );
+    }
+    
+    return strand_change_count + disconnect_count + split_count;
+}
+
+
+
+
+template<bool debugQ, StrandSimplifier_T::SimplifyStrands2_TArgs targs>
+std::pair<Size_T,Size_T> SimplifyDiagrammatically(
+    mref<StrandSimplifier_T> S, mref<PD_T> pd, cref<Simplify2_Args_T> args
+)
+{
+    [[maybe_unused]] auto tag = [this](){ return this->MethodName("SimplifyDiagrammatically"); };
+    
+    TOOLS_PTIMER(timer,tag());
+    
+    if( pd.InvalidQ() ) { return {Size_T(0),Size_T(0)}; }
+    
+    if(  pd.proven_minimalQ )
+    {
+        if constexpr (debugQ)
+        {
+            if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed when pushed to pd_done."); };
+        }
+        
+        if( pd.crossing_count < pd.max_crossing_count )
+        {
+            PushDiagramDone( pd.CreateCompressed() );
+        }
+        else
+        {
+            PushDiagramDone( std::move(pd) );
+        }
+        
+        pd = PD_T::InvalidDiagram();
+        return {Size_T(0),Size_T(0)};
+    }
+    
+    PD_ASSERT(pd.ValidQ());
+    
+    // It is very likely that we change the diagram.
+    // Also, a stale cache might spoil the simplification.
+    // Thus, we proactively delete the cache.
+    pd.ClearCache();
+
+    // Not clear whether local patterns are beneficial.
+//        ArcSimplifier2<Int,3,true> A ( *this, pd, Scalar::Max<Size_T>, args.compressQ );
+//        Size_T local_change_count =  A();
+//        change_count += local_change_count;
+    
+    
+    const Int max_dist = Scalar::Max<Int>;
+    
+    Size_T strand_change_count = 0;
+    
+    do
+    {
+        strand_change_count = 0;
+        
+        strand_change_count += S.template SimplifyStrands2<targs>(pd,{
+            .max_dist  = max_dist,
+            .overQ     = true,
+            .compressQ = args.compressQ
+        });
+                    
+        if( pd.InvalidQ() ) { break; }
+        
+        if constexpr (debugQ)
+        {
+            if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverStrands."); };
+        }
+        
+        if constexpr ( !targs.restart_change_typeQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
+        {
+            // TODO: Filter out duplicate unknots.
+            if( pd.crossing_count <= Int(1) )
+            {
+                CreateUnlink(pd.last_color_deactivated);
+                pd = PD_T::InvalidDiagram();
+                break;
+            }
+            
+            // Reroute understrands.
+            strand_change_count += S.template SimplifyStrands2<targs>(pd,{
+                .max_dist  = max_dist,
+                .overQ     = false,
+                .compressQ = args.compressQ
+            });
+            
+            if( pd.InvalidQ() ) { break; }
+            
+            if constexpr (debugQ)
+            {
+                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderStrands."); };
+            }
+        }
+        
+        // TODO: Filter out duplicate unknots.
+        if( pd.crossing_count <= Int(1) )
+        {
+            CreateUnlink(pd.last_color_deactivated);
+            pd = PD_T::InvalidDiagram();
+            break;
+        }
+    }
+    while( args.exhaust_strands_firstQ && (strand_change_count > Size_T(0)) );
+
+    if( pd.InvalidQ() ) { return {strand_change_count,Size_T(0)}; }
+    
+    Size_T disconnect_count = 0;
+    
+    // Caution: Disconnect is allowed to push some small diagrams to pd_done.
+    if( args.disconnectQ )
+    {
+        disconnect_count = Disconnect(pd);
+    }
+    
+    return {strand_change_count,disconnect_count};
+}
+
+
+
+
+PD_T ReaprProjection( mref<Reapr_T> reapr, cref<PD_T> pd )
+{
+    TOOLS_PTIMER(timer,MethodName("ReaprProjection"));
+    
+    constexpr Size_T max_projection_iter = 10;
+    Size_T projection_iter = 0;
+    int projection_flag;
+    LinkEmbedding_T emb;
+    
+    do
+    {
+        ++projection_iter;
+        emb = reapr.Embedding(pd);
+        projection_flag = emb.FindIntersections();
+    }
+    while( (projection_flag!=0) && (projection_iter < max_projection_iter) );
+    
+
+    if( projection_flag != 0 )
+    {
+        eprint(MethodName("Projection") + ": Link_2D::FindIntersections returned status flag " + ToString(projection_flag) + " != 0 for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check you results carefully.");
+        
+        return PD_T::InvalidDiagram();
+    }
+    
+    PDC_T pdc_new = PDC_T::FromLinkEmbedding(emb);
+    
+    PD_ASSERT(pdc_new.CheckAll());
+    
+    // We might get some unlinks here.
+    for( Size_T i = 1; i < pdc_new.pd_list.size(); ++i )
+    {
+        PD_ASSERT(pdc_new.pd_list[i].ProvenUnknotQ());
+        PushDiagramDone( std::move(pdc_new.pd_list[i]) );
+    }
+    
+    return std::move(pdc_new.pd_list[0]);
 }

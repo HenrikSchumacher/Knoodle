@@ -31,8 +31,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output, const bool proven_red
     
     if( pd.crossing_count <= Int(1) )
     {
-        // TODO: Filter out duplicate unknots.
-        pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
+        CreateUnlink(pd.last_color_deactivated);
         pd = PD_T::InvalidDiagram();
         return Size_T(1);
     }
@@ -52,7 +51,10 @@ Size_T Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output, const bool proven_red
         }
         else
         {
-            pd_output.push_back( std::move(pd_) );
+            if( pd_.ValidQ() )
+            {
+                pd_output.push_back( std::move(pd_) );
+            }
         }
     };
     

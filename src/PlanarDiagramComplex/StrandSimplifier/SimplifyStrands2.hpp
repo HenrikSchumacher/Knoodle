@@ -4,7 +4,7 @@ public:
 struct SimplifyStrands2_Args
 {
     Int  max_dist         = Scalar::Max<Int>;
-    bool overQ            = false;
+    bool overQ            = true;
     bool reroute_markedQ  = false;
     bool compressQ        = true;
     bool compress_oftenQ  = false;
@@ -22,9 +22,9 @@ friend std::string ToString( cref<SimplifyStrands2_Args> args )
 
 struct SimplifyStrands2_TArgs
 {
-    bool restart_after_successQ = false;
-    bool restart_after_failureQ = false;
-    bool restart_walk_backQ     = false;
+    bool restart_after_successQ = true;
+    bool restart_after_failureQ = true;
+    bool restart_walk_backQ     = true;
     bool restart_change_typeQ   = true;
 };
 

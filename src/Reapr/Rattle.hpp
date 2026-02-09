@@ -127,7 +127,7 @@ std::vector<PD_T> Rattle(
         if ( !randomizeQ )
         {
             std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
-            L = Link_2D<Real,Int> ( comp_ptr );
+            L = Link_T( std::move(comp_ptr) );
         }
         
         bool successQ = false;
@@ -142,7 +142,7 @@ std::vector<PD_T> Rattle(
             if ( randomizeQ )
             {
                 std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
-                L = Link_2D<Real,Int> ( comp_ptr );
+                L = Link_T( std::move(comp_ptr) );
             }
 
             ++rattle_counter;
@@ -153,7 +153,7 @@ std::vector<PD_T> Rattle(
             
             if( flag != 0 )
             {
-                wprint(MethodName("Rattle") + ": Link_2D::FindIntersections return status flag " + ToString(flag) + " != 0. Check the results carefully.");
+                wprint(MethodName("Rattle") + ": " + L.MethodName("FindIntersections") + " returned status flag " + ToString(flag) + " != 0. Check the results carefully.");
             }
             
             PD_T pd_1 ( L );

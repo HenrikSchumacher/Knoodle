@@ -16,9 +16,12 @@ static PD_T FromKnotEmbedding(
     
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding")+"("+Knot_T::ClassName()+")");
 
+    Tensor1<Int,Int> comp_color(Int(1),Int(0));
+    
     return PD_T::template FromLink<Real,BReal>(
         K.ComponentCount(),
         K.ComponentPointers().data(),
+        comp_color.data(),
         K.EdgePointers().data(),
         K.EdgeIntersections().data(),
         K.EdgeOverQ().data(),
@@ -56,11 +59,14 @@ static PD_T FromKnotEmbedding(
 
     // Deallocate tree-related data in L to make room for the PD_T.
     L.DeleteTree();
+    
+    Tensor1<Int,Int> comp_color(Int(1),Int(0));
 
     // We delay the allocation until substantial parts of L have been deallocated.
     return PD_T::template FromLink<Real,Real>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
+        comp_color.data(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
@@ -75,21 +81,22 @@ static PD_T FromKnotEmbedding(
  */
 
 template<typename Real, typename BReal>
-static std::pair<PD_T,Int> FromLinkEmbedding(
-    cref<Link_2D<Real,Int,BReal>> L,
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
+    cref<LinkEmbedding<Real,Int,BReal>> L,
     const bool compressQ = false // TODO: Is this meaningful?
 )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
     
-    using Link_T [[maybe_unused]] = Link_2D<Real,Int,BReal>;
+    using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
 
     return PD_T::template FromLink<Real,BReal>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
+        L.ComponentColors().data(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
@@ -103,7 +110,7 @@ static std::pair<PD_T,Int> FromLinkEmbedding(
  */
 
 template<typename Real, typename ExtInt>
-static std::pair<PD_T,Int> FromLinkEmbedding(
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,
     cptr<ExtInt> edges,
     const ExtInt n,
@@ -115,9 +122,11 @@ static std::pair<PD_T,Int> FromLinkEmbedding(
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+")");
 
-    using Link_T = Link_2D<Real,Int,Real>;
+    using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;
+    
+    Int * edge_colors = nullptr;
 
-    Link_T L ( edges, n );
+    LinkEmbedding_T L ( edges, edge_colors, n );
 
     L.ReadVertexCoordinates(x);
 
@@ -126,7 +135,7 @@ static std::pair<PD_T,Int> FromLinkEmbedding(
     if( err != 0 )
     {
         eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+") FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
-        return { PD_T::InvalidDiagram(), Int(0) };
+        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
     // Deallocate tree-related data in L to make room for the PlanarDiagram2.
@@ -136,6 +145,7 @@ static std::pair<PD_T,Int> FromLinkEmbedding(
     return PD_T::template FromLink<Real,Real>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
+        L.ComponentColors().data(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
@@ -147,14 +157,16 @@ static std::pair<PD_T,Int> FromLinkEmbedding(
 
 private:
     
+// TODO: Get color information right!
 template<typename Real, typename BReal>
-static std::pair<PD_T,Int> FromLink(
+static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
     const Int  component_count,
     cptr<Int>  component_ptr,
+    cptr<Int>  component_color,
     cptr<Int>  edge_ptr,
     cptr<Int>  edge_intersections,
     cptr<bool> edge_overQ,
-    cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections,
+    cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections,
     const bool compressQ = false // TODO: Is this meaningful?
 )
 {
@@ -170,12 +182,12 @@ static std::pair<PD_T,Int> FromLink(
     
     if( component_count <= Int(0) )
     {
-        return { InvalidDiagram(), Int(0) };
+        return { InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
     if( (crossing_count <= Int(0)) && (component_count >= Int(1)) )
     {
-        return { Unknot(0), component_count - Int(1) };
+        return { InvalidDiagram(), Tensor1<Int,Int>(component_color,component_count) };
     }
     
     PD_T pd ( crossing_count, true );
@@ -186,7 +198,7 @@ static std::pair<PD_T,Int> FromLink(
     pd.C_scratch.Fill(Uninitialized);
     mptr<Int> C_label = pd.C_scratch.data();
     
-    Int unlink_count = 0;
+    Aggregator<Int,Int> unlink_colors;
     Int C_counter = 0;
     
     // Now we go through all components
@@ -194,7 +206,6 @@ static std::pair<PD_T,Int> FromLink(
     //      then through all intersections of the edge
     // and generate new vertices, edges, crossings, and arcs in one go.
     
-    Int color = 0;
     ColorCounts_T color_arc_counts;
     
     // We put the unlinks at the back so that it is easier to communicate with PlanarDiagramComplex.
@@ -205,10 +216,12 @@ static std::pair<PD_T,Int> FromLink(
         const Int b_begin = edge_ptr[component_ptr[comp  ]];
         const Int b_end   = edge_ptr[component_ptr[comp+1]];
         
+        const Int color = (component_color == nullptr) ? comp : component_color[comp];
+        
         if( b_begin == b_end )
         {
             // Component is an unlink. Just count it.
-            ++unlink_count;
+            unlink_colors.Push(color);
             continue;
         }
 
@@ -286,24 +299,23 @@ static std::pair<PD_T,Int> FromLink(
         }
         
         color_arc_counts[color] = b_end - b_begin;
-        ++color;
     }
     
     // TODO: Extract LinkComponentArcs, ArcLinkComponents from here (only if needed)?
     // Not so easy to do as we have to ignore the unlinks.
     
-    pd.template SetCache<false>("LinkComponentCount",component_count - unlink_count);
+    pd.template SetCache<false>("LinkComponentCount",component_count - unlink_colors.Size());
     
-    pd.SetCache("ColorArcCoumts",std::move(color_arc_counts));
+    pd.SetCache("ColorArcCounts",std::move(color_arc_counts));
     
     // TODO: Check whether this is really neccessary.
     
     if( compressQ )
     {
-        return { pd.template CreateCompressed<false>(), unlink_count };
+        return { pd.template CreateCompressed<false>(), unlink_colors.Disband() };
     }
     else
     {
-        return { pd, unlink_count };
+        return { pd, unlink_colors.Disband() };
     }
 }

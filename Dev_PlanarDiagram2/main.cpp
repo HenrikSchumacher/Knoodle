@@ -3,8 +3,8 @@
 //#define TENSORS_BOUND_CHECKS
 
 #define TOOLS_ENABLE_PROFILER
-//#define PD_DEBUG
-//#define PD_VERBOSE
+#define PD_DEBUG
+#define PD_VERBOSE
 //#define PD_COUNTERS
 
 
@@ -13,7 +13,7 @@
 #include "../src/OrthoDraw.hpp"
 //#include "../Reapr.hpp"
 
-#include "../src/ActionAngleSampler.hpp"
+//#include "../src/ActionAngleSampler.hpp"
 #include "../src/ConformalBarycenterSampler.hpp"
 
 using Real        = double;
@@ -77,60 +77,39 @@ int main()
     // Load a knot from file.
     std::vector<Int> pd_code;
     
-//    {
-//        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
-//        std::ifstream s ( filename );
-//        Int number;
-//        
-//        if(!s)
-//        {
-//            Tools::eprint( "File " + filename + " not found." );
-//            return EXIT_FAILURE;
-//        }
-//        
-//        while( s )
-//        {
-//            if( s >> number )
-//            {
-//                pd_code.push_back(number);
-//            }
-//        }
-//    }
-//    
-//    Int c_count = static_cast<Int>( pd_code.size()/5 );
-//    
-//    // Create an instance of PlanarDiagram.
-//    PD_T pd_0 = PD_T::FromSignedPDCode(
-//        &pd_code[0],     // pointer to array of pd code.
-//        c_count,         // number of crossingss
-//        false             // whether to compress
-//    );
+    {
+        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
+        std::ifstream s ( filename );
+        Int number;
+        
+        if(!s)
+        {
+            Tools::eprint( "File " + filename + " not found." );
+            return EXIT_FAILURE;
+        }
+        
+        while( s )
+        {
+            if( s >> number )
+            {
+                pd_code.push_back(number);
+            }
+        }
+    }
     
-    const Int n = 2 * 2 * 2 * 2 * 1024;
-    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
-    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
-    Real K = 0;
-    S.WriteRandomClosedPolygon(vertex_coordinates.data(),K);
-    PD_T pd_0 = PD_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
+    Int c_count = static_cast<Int>( pd_code.size()/5 );
     
-//    TOOLS_LOGDUMP(pd_0.CopyCrossing(0));
-//    TOOLS_LOGDUMP(pd_0.CopyArc(0));
-//    
-//    TOOLS_LOGDUMP(pd_0.Crossings());
-//    TOOLS_LOGDUMP(pd_0.CrossingStates());
-//    TOOLS_LOGDUMP(pd_0.Arcs());
-//    TOOLS_LOGDUMP(pd_0.ArcStates());
-//    TOOLS_LOGDUMP(pd_0.ArcColors());
+    // Create an instance of PlanarDiagram.
+    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
     
-    print("Compress()");
-    pd_0.Compress();
+//    const Int n = 2 * 2 * 2 * 2 * 1024;
+//    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
+//    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
+//    Real K = 0;
+//    S.WriteRandomClosedPolygon(vertex_coordinates.data(),K);
+//    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
     
-//    print("");
-//    pd_0.PrintInfo();
-//    print("");
-    
-    PDC_T pdc ( std::move(pd_0), Int(0) );
-    
+
     print("");
     PrintInfo(pdc);
     print("");
@@ -177,10 +156,12 @@ int main()
     try
     {
         pdc.Simplify2({
+            .local_opt_level = 4,
             .strategy        = Knoodle::DijkstraStrategy_T::Bidirectional,
             .disconnectQ     = true,
             .splitQ          = true,
-            .compressQ       = true
+            .compressQ       = true,
+            .reapr_max_iter  = 0
         });
     }
     catch( const std::exception & e )

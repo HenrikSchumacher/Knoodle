@@ -4,6 +4,9 @@ namespace Knoodle
 {
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
     // TODO: ByteCount.
+    
+    template<typename Real, typename Int, typename BReal> class Reapr2;
+    
 
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagramComplex final : public CachedObject
@@ -31,6 +34,8 @@ namespace Knoodle
         using StrandSimplifier_T    = StrandSimplifier2<Int,true>;
         using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
         
+        using Reapr_T               = Reapr2<double,Int,float>;
+        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -48,11 +53,11 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,2,true >;
         friend class ArcSimplifier2<Int,3,true >;
         friend class ArcSimplifier2<Int,4,true >;
-        friend class ArcSimplifier2<Int,0,false>;
-        friend class ArcSimplifier2<Int,1,false>;
-        friend class ArcSimplifier2<Int,2,false>;
-        friend class ArcSimplifier2<Int,3,false>;
-        friend class ArcSimplifier2<Int,4,false>;
+//        friend class ArcSimplifier2<Int,0,false>;
+//        friend class ArcSimplifier2<Int,1,false>;
+//        friend class ArcSimplifier2<Int,2,false>;
+//        friend class ArcSimplifier2<Int,3,false>;
+//        friend class ArcSimplifier2<Int,4,false>;
         
         friend class StrandSimplifier2<Int,true >;
         friend class StrandSimplifier2<Int,false>;
@@ -83,30 +88,20 @@ namespace Knoodle
         // Move assignment operator
         PlanarDiagramComplex & operator=( PlanarDiagramComplex && other ) = default;
  
-        PlanarDiagramComplex( PD_T && pd, Int unlink_count )
+        PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
         {
             const bool validQ = pd.ValidQ();
             
+            const Int unlink_count = unlink_colors.Size();
+            
             pd_list.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
-            pd_done.reserve( ToSize_T(unlink_count) );
-            
-            Int max_color = 0;
-            
-            if( validQ )
-            {
-                ColorCounts_T color_arc_counts = pd.ColorArcCounts();
-             
-                for( auto & x : color_arc_counts )
-                {
-                    max_color = Max( max_color, x.first );
-                }
-            }
-            
-            pd_done.push_back( std::move(pd) );
+            pd_done.reserve( ToSize_T(unlink_count) + Size_T(validQ) );
+
+            PushDiagramDone( std::move(pd) );
             
             for( Int unlink = 0; unlink < unlink_count; ++unlink )
             {
-                CreateUnlink( max_color + unlink + validQ );
+                CreateUnlink( unlink_colors[unlink] );
             }
             
             swap(pd_done,pd_list);
@@ -114,14 +109,14 @@ namespace Knoodle
         
     
         
-        explicit PlanarDiagramComplex( std::pair<PD_T,Int> && pd_and_unlink_count )
+        explicit PlanarDiagramComplex( std::pair<PD_T,Tensor1<Int,Int>> && pd_and_unlink_colors )
         :   PlanarDiagramComplex(
-                std::move(pd_and_unlink_count.first), pd_and_unlink_count.second
+                std::move(pd_and_unlink_colors.first), std::move(pd_and_unlink_colors.second)
             )
         {}
         
         explicit PlanarDiagramComplex( PD_T && pd )
-        :   PlanarDiagramComplex( std::move(pd), Int(0) )
+        :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
 #include "PlanarDiagramComplex/Constructors.hpp"
@@ -258,7 +253,7 @@ namespace Knoodle
         void CreateUnlink( const Int color )
         {
 //            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
- 
+
             pd_done.push_back( PD_T::Unknot(color) );
         }
         
@@ -268,7 +263,6 @@ namespace Knoodle
             
             PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
-            
             CreateUnlink(pd.A_color[a]) ;
         }
         
@@ -288,7 +282,6 @@ namespace Knoodle
             
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
-
             pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1],handedness) );
         }
         
@@ -304,9 +297,7 @@ namespace Knoodle
         void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
         {
 //            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
-            
             pd.template AssertArc<0>(a);
-
             pd_done.push_back( PD_T::TrefoilKnot(pd.A_color[a],handedness) );
         }
         
@@ -321,7 +312,6 @@ namespace Knoodle
 //            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
             
             pd.template AssertArc<0>(a);
-
             pd_done.push_back( PD_T::FigureEightKnot(pd.A_color[a]) );
         }
         
@@ -335,21 +325,39 @@ namespace Knoodle
             }
             else
             {
-                wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram. Doing nothing.");
+#ifdef PD_DEBUG
+                wprint(MethodName("PushDiagram")+": Tried to push an invalid diagram to pd_list. Doing nothing.");
+#endif
             }
         }
         
-//        // TODO: Check where this is used. Usually, there is a better way to do this.
-//        void JoinLists()
-//        {
-//            PD_TIMER(timer,MethodName("JoinLists"));
-//            for( PD_T & pd : pd_list_todo )
-//            {
-//                PushDiagram(std::move(pd));
-//            }
-//            
-//            pd_list_todo.clear();
-//        }
+        void PushDiagramDone( PD_T && pd )
+        {
+            if( pd.ValidQ() )
+            {
+                pd_done.push_back( std::move(pd) );
+            }
+            else
+            {
+#ifdef PD_DEBUG
+                wprint(MethodName("PushDiagramDone")+": Tried to push an invalid diagram to pd_done. Doing nothing.");
+#endif
+            }
+        }
+        
+        void PushDiagramToDo( PD_T && pd )
+        {
+            if( pd.ValidQ() )
+            {
+                pd_todo.push_back( std::move(pd) );
+            }
+            else
+            {
+#ifdef PD_DEBUG
+                wprint(MethodName("PushDiagramTodo")+": Tried to push an invalid diagram to pd_todo. Doing nothing.");
+#endif
+            }
+        }
         
     public:
         
@@ -427,12 +435,12 @@ namespace Knoodle
                 {
                     if( pd.arc_count < pd.max_arc_count )
                     {
-                        pd_done.push_back( pd.CreateCompressed() );
+                        PushDiagramDone( pd.CreateCompressed() );
                     }
                     else
                     {
                         pd.ClearCache();
-                        pd_done.push_back( std::move(pd) );
+                        PushDiagramDone( std::move(pd) );
                     }
                     continue;
                 }
@@ -461,19 +469,22 @@ namespace Knoodle
             
                 if( pd.CrossingCount() <= Int(1) )
                 {
-                    pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
+                    CreateUnlink( pd.last_color_deactivated );
                     continue;
                 }
                 
                 if( pd.crossing_count < pd.max_crossing_count )
                 {
-                    pd_done.push_back( pd.CreateCompressed() );
+                    PushDiagramDone( pd.CreateCompressed() );
+                    continue;
                 }
                 else
                 {
                     pd.ClearCache();
-                    pd_done.push_back( std::move(pd) );
+                    PushDiagramDone( std::move(pd) );
+                    continue;
                 }
+                
             }  // while( !pd_todo.empty() )
             
             swap( pd_list, pd_done );

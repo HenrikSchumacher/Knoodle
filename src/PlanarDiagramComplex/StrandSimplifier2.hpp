@@ -139,25 +139,9 @@ namespace Knoodle
         
         StrandSimplifier2( PDC_T & pdc_, DijkstraStrategy_T strategy_ )
         :   pdc                { pdc_                                       }
-        ,   max_crossing_count { pdc_.MaxMaxCrossingCount()                 }
-        ,   max_arc_count      { int_cast<Int>(Int(2) * max_crossing_count) } // int_cast for e.g., Int16
-        ,   C_mark             { max_crossing_count, 0                      }
-        ,   A_mark             { max_arc_count,      0                      }
-        ,   path               { max_arc_count,      Uninitialized          }
-        ,   X_front            { max_arc_count                              }
-        ,   Y_front            { max_arc_count                              }
-        ,   prev_front         { max_arc_count                              }
         ,   strategy           { strategy_                                  }
         {
-            if constexpr ( hash_mapQ )
-            {
-                D_data.reserve(max_arc_count);
-            }
-            
-            if constexpr ( vector_listQ )
-            {
-                D_data = ArcDataContainer_T(max_arc_count,Int(0));
-            }
+            Allocate(pdc.MaxMaxCrossingCount());
         }
         
         // No default constructor
@@ -175,24 +159,49 @@ namespace Knoodle
         // Move assignment operator
         StrandSimplifier2 & operator=( StrandSimplifier2 && other ) = default;
 
-    public:
+    private:
         
-        void LoadDiagram( mref<PD_T> pd_input )
+        void Allocate( const Int max_crossing_count_ )
         {
-            TOOLS_PTIMER(timer,MethodName("LoadDiagram"));
+            TOOLS_PTIMER(timer,MethodName("Allocate")+"(" + ToString(max_crossing_count_) + ")");
             
-            pd = &pd_input;
+            max_crossing_count = max_crossing_count_;
+            max_arc_count      = int_cast<Int>(Int(2) * max_crossing_count); // int_cast for e.g., Int16
+            C_mark             = Tensor1<Int,Int>( max_crossing_count, Int(0) );
+            A_mark             = Tensor1<Int,Int>( max_arc_count     , Int(0) );
+            path               = Tensor1<Int,Int>( max_arc_count     , Uninitialized );
+            X_front            = Stack_T( max_arc_count );
+            Y_front            = Stack_T( max_arc_count );
+            prev_front         = Stack_T( max_arc_count );
             
-            // TODO: Maybe put some reallocation checks here.
-            if( (pd->max_crossing_count > Int(0)) && (max_crossing_count < pd->max_crossing_count) )
+            if constexpr ( hash_mapQ )
             {
-                TOOLS_DUMP(max_crossing_count);
-                TOOLS_DUMP(pd->max_crossing_count);
-                error("(pd->max_crossing_count > Int(0)) && (max_crossing_count < pd->max_crossing_count)");
+                D_data.reserve(max_arc_count);
             }
             
-            PD_ASSERT(pd->CheckAll());
+            if constexpr ( vector_listQ )
+            {
+                D_data = ArcDataContainer_T(max_arc_count,Int(0));
+            }
             
+            initial_mark = 1;
+            current_mark = 1;
+            strand_arc_count  = 0;
+        }
+        
+    public:
+        
+        void LoadDiagram( PD_T & pd_input )
+        {
+            TOOLS_PTIMER(timer,MethodName("LoadDiagram"));
+
+            pd = &pd_input;
+
+            if( (pd->max_crossing_count > Int(0)) && (max_crossing_count < pd->max_crossing_count) )
+            {
+                Allocate(pd->max_crossing_count);
+            }
+
             if( current_mark >= max_mark/Int(2) )
             {
                 C_mark.Fill(0);
@@ -217,7 +226,6 @@ namespace Knoodle
                 PD_ASSERT(!resetQ);
                 initial_mark = current_mark;
             }
-
             dA_left = pd->ArcLeftDarcs().data();
             PD_ASSERT(CheckDarcLeftDarc());
         }

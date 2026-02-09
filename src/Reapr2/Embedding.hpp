@@ -1,34 +1,32 @@
 public:
 
-Embedding_T Embedding( cref<PD_T> pd )
+LinkEmbedding_T Embedding( cref<PD_T> pd, bool rotate_randomQ = true )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding"));
     
-    if( pd.CrossingCount() <= Int(0) ) { return RaggedList<Point_T,Int>(); }
+    if( pd.CrossingCount() <= Int(0) ) { return LinkEmbedding_T(); }
     
     // TODO: Improve handling of split links!
     if( pd.DiagramComponentCount() > Int(1) )
     {
         eprint(MethodName("Embedding") + ": input PlanarDiagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
-        return RaggedList<Point_T,Int>();
+        return LinkEmbedding_T();
     }
     
-    if( permute_randomQ )
+    if( settings.permute_randomQ )
     {
-        PD_T pd_ = pd.PermuteRandom(random_engine);
-        
-        return Embedding_impl(pd_);
+        return Embedding_impl(pd.PermuteRandom(random_engine),rotate_randomQ);
     }
     else
     {
-        return Embedding_impl(pd);
+        return Embedding_impl(pd,rotate_randomQ);
     }
 }
 
 
 private:
 
-Embedding_T Embedding_impl( cref<PD_T> pd )
+LinkEmbedding_T Embedding_impl( cref<PD_T> pd, bool rotate_randomQ = true )
 {
     OrthoDraw_T H;
     Tensor1<Real,Int> L;
@@ -38,7 +36,7 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
         {
             if( thread == Int(0) )
             {
-                H = OrthoDraw_T( pd, PD_T::Uninitialized, ortho_draw_settings );
+                H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
             }
             else if( thread == Int(1) )
             {
@@ -46,7 +44,7 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
             }
         },
         Int(2),
-        (ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
+        (settings.ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
     );
 
     auto [L_min,L_max] = L.MinMax();
@@ -54,7 +52,7 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
     const Real w = static_cast<Real>(H.Width()  * H.HorizontalGridSize());
     const Real h = static_cast<Real>(H.Height() * H.VerticalGridSize()  );
     
-    const Real scale = scaling * Min(w,h) / (L_max - L_min);
+    const Real scale = settings.scaling * Min(w,h) / (L_max - L_min);
     
     // TODO: Check whether I have to erase cache of PlanarDiagram pd.
     // TODO: Or maybe better: give OrthoDraw a full copy of PlanarDiagram.
@@ -71,9 +69,16 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
 
     const auto & V_coords = H.VertexCoordinates();
 
+    Tensor1<Int,Int> comp_color (lc_count);
+
     // cycle over link components
     for( Int lc = 0; lc < lc_count; ++lc )
     {
+        {
+            const Int a   = *(lc_arcs.Sublist(lc).begin());
+            comp_color[a] = pd.ArcColors()[a];
+        }
+        
         for( Int a : lc_arcs.Sublist(lc) )
         {
             const Int b = A_next_A[a];
@@ -144,6 +149,17 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
         
         V_agg.FinishSublist();
     }
+
+    auto [comp_ptr,x] = V_agg.Disband();
     
-    return V_agg;
+    LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
+    
+    if( rotate_randomQ )
+    {
+        emb.SetTransformationMatrix( RandomRotation() );
+    }
+    
+    emb.template ReadVertexCoordinates<1,0>( &x.data()[0][0] );
+    
+    return emb;
 }

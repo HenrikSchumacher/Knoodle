@@ -256,7 +256,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         
         if( pd.CrossingCount() <= Int(1) )
         {
-            pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
+            CreateUnlink(pd.last_color_deactivated);
             continue;
         }
         

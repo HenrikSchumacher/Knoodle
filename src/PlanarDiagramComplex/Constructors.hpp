@@ -57,7 +57,7 @@ static PDC_T FromKnotEmbedding(
 
 template<typename Real, typename BReal>
 static PDC_T FromLinkEmbedding(
-    cref<Link_2D<Real,Int,BReal>> L, const bool compressQ = false
+    cref<LinkEmbedding<Real,Int,BReal>> L, const bool compressQ = false
 )
 {
     return PDC_T( PD_T::FromLinkEmbedding(L,compressQ) );

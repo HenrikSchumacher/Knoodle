@@ -70,7 +70,7 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
             
             if( changes > Size_T(0) ) { pd.ClearCache(); }
             
-            if( pd.ValidQ() ) { pd_done.push_back( std::move(pd) ); }
+            PushDiagramDone( std::move(pd) );
         }
 
         swap( pd_list, pd_todo );
