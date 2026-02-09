@@ -423,21 +423,9 @@ namespace Knoodle
 #include "PlanarDiagram2/LongMacLeodCode.hpp"
 #include "PlanarDiagram2/MacLeodCode.hpp"
         
-//#include "PlanarDiagram2/R_I.hpp"
-
 #include "PlanarDiagram2/Faces.hpp"
 #include "PlanarDiagram2/Certificates.hpp"
-        
-//#include "PlanarDiagram2/DiagramComponents.hpp"
 #include "PlanarDiagram2/Strands.hpp"
-//#include "PlanarDiagram2/DisconnectSummands.hpp"
-        
-//#include "PlanarDiagram2/Simplify1.hpp"
-//#include "PlanarDiagram2/Simplify2.hpp"
-//#include "PlanarDiagram2/Simplify3.hpp"
-//#include "PlanarDiagram2/Simplify4.hpp"
-//#include "PlanarDiagram2/Simplify5.hpp"
-//#include "PlanarDiagram2/Simplify6.hpp"
 
 
 //#include "PlanarDiagram2/ResolveCrossing.hpp"

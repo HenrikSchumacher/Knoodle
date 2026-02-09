@@ -154,12 +154,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, bool rotate_randomQ = true )
     
     LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
     
-    if( rotate_randomQ )
-    {
-        emb.SetTransformationMatrix( RandomRotation() );
-    }
-    
-    emb.template ReadVertexCoordinates<1,0>( &x.data()[0][0] );
+    emb.template ReadVertexCoordinates<false,true>( &x.data()[0][0] );
     
     return emb;
 }

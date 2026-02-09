@@ -188,7 +188,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     
     Aggregator_T agg;
     
-    switch ( en_flag )
+    switch ( settings.energy )
     {
         case EnergyFlag_T::Bending:
         {
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         }
         default:
         {
-            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
+            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();

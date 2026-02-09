@@ -50,7 +50,7 @@ namespace Knoodle
         using Flag_T              = Scalar::Flag;
         
 
-        enum class EnergyFlag_T : Int32
+        enum class Energy_T : Int8
         {
             TV        = 0,
             Dirichlet = 1,
@@ -60,24 +60,25 @@ namespace Knoodle
             TV_MCF    = 5
         };
         
-        friend std::string ToString( EnergyFlag_T e )
+        friend std::string ToString( Energy_T e )
         {
             switch(e)
             {
-                case EnergyFlag_T::TV:        return "TV";
-                case EnergyFlag_T::Dirichlet: return "Dirichlet";
-                case EnergyFlag_T::Bending:   return "Bending";
-                case EnergyFlag_T::Height:    return "Height";
-                case EnergyFlag_T::TV_CLP:    return "TV_CLP";
-                case EnergyFlag_T::TV_MCF:    return "TV_MCF";
-                default:                      return "Unknown";
+                case Energy_T::TV:        return "TV";
+                case Energy_T::Dirichlet: return "Dirichlet";
+                case Energy_T::Bending:   return "Bending";
+                case Energy_T::Height:    return "Height";
+                case Energy_T::TV_CLP:    return "TV_CLP";
+                case Energy_T::TV_MCF:    return "TV_MCF";
+                default:                  return "Unknown";
             }
         }
 
         struct Settings_T
         {
-            EnergyFlag_T en_flag     = EnergyFlag_T::TV;
-            bool permute_randomQ     = true;
+            Energy_T energy            = Energy_T::TV;
+            bool permute_randomQ       = true;
+            
             OrthoDrawSettings_T ortho_draw_settings = {
                 .randomize_bends  = 4,
                 .randomize_virtual_edgesQ = true
@@ -127,7 +128,7 @@ namespace Knoodle
         
     private:
         
-        EnergyFlag_T EnergyFlag( mref<PD_T> pd ) const
+        Energy_T EnergyFlag( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("EnergyFlag");
             
@@ -138,7 +139,7 @@ namespace Knoodle
         {
             const std::string tag = MethodName("EnergyFlag");
             
-            return pd.SetCache(tag,settings.en_flag);
+            return pd.SetCache(tag,settings.energy);
         }
         
         Size_T Iteration( mref<PD_T> pd ) const
@@ -242,19 +243,19 @@ namespace Knoodle
         template<typename R = Real, typename I = Int, typename J = Int>
         Sparse::MatrixCSR<R,I,J> Hessian( cref<PD_T> pd ) const
         {
-            switch ( settings.en_flag )
+            switch ( settings.energy )
             {
-                case EnergyFlag_T::Bending:
+                case Energy_T::Bending:
                 {
                     return this->BendingHessian<R,I,J>(pd);
                 }
-                case EnergyFlag_T::Dirichlet:
+                case Energy_T::Dirichlet:
                 {
                     return this->DirichletHessian<R,I,J>(pd);
                 }
                 default:
                 {
-                    wprint(MethodName("Hessian")+": Energy flag " + ToString(settings.en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
+                    wprint(MethodName("Hessian")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for Hessian. Returning empty matrix");
                     
                     return Sparse::MatrixCSR<R,I,J>();
                 }
@@ -263,50 +264,50 @@ namespace Knoodle
         
         Tensor1<Real,Int> Levels( cref<PD_T> pd )
         {
-            switch ( settings.en_flag )
+            switch ( settings.energy )
             {
-                case EnergyFlag_T::TV:
+                case Energy_T::TV:
                 {
                     return LevelsLP_MCF(pd);
                 }
-                case EnergyFlag_T::TV_CLP:
+                case Energy_T::TV_CLP:
                 {
 #ifdef KNOODLE_USE_CLP
                     return LevelsLP_CLP(pd);
 #else
-                    wprint(ClassName() + "(): EnergyFlag_T::TV_CLP is only supported if compiled with Coin-or CLP support, which is deactivated. Using default (EnergyFlag_T::TV) instead. (No worries, it solves the same problem, but faster.)");
+                    wprint(ClassName() + "(): Energy_T::TV_CLP is only supported if compiled with Coin-or CLP support, which is deactivated. Using default (Energy_T::TV) instead. (No worries, it solves the same problem, but faster.)");
                     return LevelsLP_MCF(pd);
 #endif // KNOODLE_USE_CLP
                 }
-                case EnergyFlag_T::TV_MCF:
+                case Energy_T::TV_MCF:
                 {
                     return LevelsLP_MCF(pd);
                 }
-                case EnergyFlag_T::Bending:
-                {
-#ifdef KNOODLE_USE_UMFPACK
-                    return LevelsQP_SSN(pd);
-#else
-                    wprint(ClassName() + "(): EnergyFlag_T::Bending is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
-                    return LevelsLP_MCF(pd);
-#endif // KNOODLE_USE_UMFPACK
-                }
-                case EnergyFlag_T::Dirichlet:
+                case Energy_T::Bending:
                 {
 #ifdef KNOODLE_USE_UMFPACK
                     return LevelsQP_SSN(pd);
 #else
-                    wprint(ClassName() + "(): EnergyFlag_T::Dirichlet is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
+                    wprint(ClassName() + "(): Energy_T::Bending is only supported if compiled with UMFPACK support, which is deactivated. Using default (Energy_T::TV) instead.");
                     return LevelsLP_MCF(pd);
 #endif // KNOODLE_USE_UMFPACK
                 }
-                case EnergyFlag_T::Height:
+                case Energy_T::Dirichlet:
+                {
+#ifdef KNOODLE_USE_UMFPACK
+                    return LevelsQP_SSN(pd);
+#else
+                    wprint(ClassName() + "(): Energy_T::Dirichlet is only supported if compiled with UMFPACK support, which is deactivated. Using default (Energy_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_UMFPACK
+                }
+                case Energy_T::Height:
                 {
                     return LevelsMinHeight(pd);
                 }
                 default:
                 {
-                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(settings.en_flag) + ". Using default (EnergyFlag_T::TV) instead.");
+                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(settings.energy) + ". Using default (Energy_T::TV) instead.");
                     return LevelsLP_MCF(pd);
                 }
             }

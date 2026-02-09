@@ -135,33 +135,41 @@ int main()
 //    PrintInfo(pdc);
 //    print("");
     
-//    print("Simplify()");
-//    try
-//    {
-//        pdc.Simplify({
-//            .local_opt_level = 0,
-//            .strategy        = Knoodle::DijkstraStrategy_T::Bidirectional,
-//            .disconnectQ     = true,
-//            .splitQ          = true,
-//            .compressQ       = true
-//        });
-//    }
-//    catch( const std::exception & e )
-//    {
-//        Knoodle::eprint(e.what());
-//        exit(-1);
-//    }
     
-    print("Simplify2()");
+    print("Simplify()");
     try
     {
-        pdc.Simplify2({
-            .local_opt_level = 4,
-            .strategy        = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ     = true,
-            .splitQ          = true,
-            .compressQ       = true,
-            .reapr_max_iter  = 0
+        pdc.Simplify({
+            .local_opt_level        = 0,
+            .strategy               = Knoodle::DijkstraStrategy_T::Bidirectional,
+            .disconnectQ            = true,
+            .splitQ                 = true,
+            .compressQ              = true,
+            .reapr_embedding_trials = 0,
+            .reapr_rotation_trials  = 0
+        });
+    }
+    catch( const std::exception & e )
+    {
+        Knoodle::eprint(e.what());
+        exit(-1);
+    }
+    
+    print("");
+    PrintInfo(pdc);
+    print("");
+    
+    print("Simplify() + Reapr");
+    try
+    {
+        pdc.Simplify({
+            .local_opt_level        = 0,
+            .strategy               = Knoodle::DijkstraStrategy_T::Bidirectional,
+            .disconnectQ            = true,
+            .splitQ                 = true,
+            .compressQ              = true,
+            .reapr_embedding_trials = 10,
+            .reapr_rotation_trials  = 5
         });
     }
     catch( const std::exception & e )

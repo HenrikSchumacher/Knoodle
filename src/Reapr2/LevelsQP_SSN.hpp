@@ -188,15 +188,15 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     
     Aggregator_T agg;
     
-    switch ( en_flag )
+    switch ( settings.energy )
     {
-        case EnergyFlag_T::Bending:
+        case Energy_T::Bending:
         {
             agg = Aggregator_T( J(3) * m + J(3) * n );
             BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
             break;
         }
-        case EnergyFlag_T::Dirichlet:
+        case Energy_T::Dirichlet:
         {
             agg = Aggregator_T( J(2) * m + J(3) * n );
             DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         }
         default:
         {
-            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
+            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();

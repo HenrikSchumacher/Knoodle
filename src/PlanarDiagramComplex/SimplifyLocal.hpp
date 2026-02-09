@@ -74,7 +74,7 @@ Size_T SimplifyLocal_impl( const Size_T max_iter, const bool compressQ )
         }
 
         swap( pd_list, pd_todo );
-        pd_todo = PDList_T();
+        pd_todo = PD_List_T();
     }
     while( pd_list.size() != Size_T(0) );
     

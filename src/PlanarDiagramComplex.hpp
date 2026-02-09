@@ -7,7 +7,8 @@ namespace Knoodle
     
     template<typename Real, typename Int, typename BReal> class Reapr2;
     
-
+    template<typename PD_T> class OrthoDraw;
+    
     template<typename Int_>
     class alignas( ObjectAlignment ) PlanarDiagramComplex final : public CachedObject
     {
@@ -24,7 +25,7 @@ namespace Knoodle
         using Class_T               = PlanarDiagramComplex<Int>;
         using PD_T                  = PlanarDiagram2<Int>;
         using PDC_T                 = PlanarDiagramComplex<Int>;
-        using PDList_T              = std::vector<PD_T>;
+        using PD_List_T             = std::vector<PD_T>;
         
         using C_Arcs_T              = typename PD_T::C_Arcs_T;
         using A_Cross_T             = typename PD_T::A_Cross_T;
@@ -33,9 +34,14 @@ namespace Knoodle
         
         using StrandSimplifier_T    = StrandSimplifier2<Int,true>;
         using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
-        
+        using OrthoDraw_T           = OrthoDraw<PD_T>;
+        using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
+        using Compaction_T          = typename OrthoDraw_T::CompactionMethod_T;
         using Reapr_T               = Reapr2<double,Int,float>;
-        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
+        using Energy_T              = typename Reapr_T::Energy_T;
+        using ReaprSettings_T       = typename Reapr_T::Settings_T;
+        using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
+//        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Left  = PD_T::Left;
@@ -65,9 +71,9 @@ namespace Knoodle
     private:
         
         // Class data members
-        mutable PDList_T pd_list;
-        mutable PDList_T pd_todo;
-        mutable PDList_T pd_done;
+        mutable PD_List_T pd_list;
+        mutable PD_List_T pd_todo;
+        mutable PD_List_T pd_done;
 //
 //        ColorCounts_T colored_unlinkQ;
         
@@ -126,7 +132,6 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
-#include "PlanarDiagramComplex/Simplify2.hpp" // Only for development and debugging.
 //#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
 //#include "PlanarDiagramComplex/SimplifyLocal3.hpp" // Only for development and debugging.
 #include "PlanarDiagramComplex/LinkingNumber.hpp"

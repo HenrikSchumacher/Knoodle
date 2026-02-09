@@ -277,7 +277,6 @@ namespace Knoodle
 #include "StrandSimplifier/RerouteToPath.hpp"
 #include "StrandSimplifier/Reidemeister.hpp"
 #include "StrandSimplifier/SimplifyStrands.hpp"
-#include "StrandSimplifier/SimplifyStrands2.hpp" // For test purposes.
 #include "StrandSimplifier/Strings.hpp"
 #include "StrandSimplifier/Counters.hpp"
         

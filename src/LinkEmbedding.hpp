@@ -227,12 +227,12 @@ namespace Knoodle
         void ReadVertexCoordinates( cptr<Real> v )
         {
             TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+        
+            intersections.clear();
             
             Vector3_T lo;
             Vector3_T hi;
 
-//            ComputeBoundingBox( v, lo, hi );
-            
             if constexpr ( shiftQ )
             {
                 lo.Read( v );
@@ -384,88 +384,41 @@ namespace Knoodle
 //            logvalprint("edge_coords",edge_coords);
         }
         
-//        void ReadVertexCoordinates( cptr<Real> v )
-//        {
-//            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
-//            
-//            Vector3_T lo;
-//            Vector3_T hi;
-//
-//            ComputeBoundingBox( v, lo, hi );
-//            
-//            constexpr Real margin = static_cast<Real>(1.01);
-//            constexpr Real two = 2;
-//
-//            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
-//            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
-//            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
-//            
-//            if( preorderedQ )
-//            {
-////                logprint("preordered");
-//                for( Int c = 0; c < component_count; ++c )
-//                {
-//                    const Int i_begin = component_ptr[c  ];
-//                    const Int i_end   = component_ptr[c+1];
-//                                        
-//                    for( Int i = i_begin; i < i_end-1; ++i )
-//                    {
-//                        const Int j = i+1;
-//
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
-//                        
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//
-//                    {
-//                        const Int i = i_end-1;
-//                        const Int j = i_begin;
-//
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = edge_coords.data(j,0);
-//                      
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//                }
-//            }
-//            else
-//            {
-////                logprint("not preordered");
-//                
-//                for( Int e = 0; e < edge_count; ++e )
-//                {
-//                    const Int i = edges(e,0);
-//                    const Int j = edges(e,1);
-//
-//                    mptr<Real> target_0 = edge_coords.data(e,0);
-//                    mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(e,1);
-//                  
-//                    target_0[0] = v[3 * i + 0] + Sterbenz_shift[0];
-//                    target_0[1] = v[3 * i + 1] + Sterbenz_shift[1];
-//                    target_0[2] = v[3 * i + 2] + Sterbenz_shift[2];
-//                    
-//                    target_1[0] = v[3 * j + 0] + Sterbenz_shift[0];
-//                    target_1[1] = v[3 * j + 1] + Sterbenz_shift[1];
-//                    target_1[2] = v[3 * j + 2] + Sterbenz_shift[2];
-//                }
-//            }
-//            
-////            logvalprint("edge_coords",edge_coords);
-//        }
-        
         void ComputeBoundingBoxes()
         {
             TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             
-            T.template ComputeBoundingBoxes<2,3>(
-                edge_coords.data(),
-                box_coords.data()
-            );
+            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+        }
+        
+        template<bool shiftQ = true>
+        void Rotate( cref<Matrix3x3_T> A )
+        {
+            TOOLS_PTIMER(timer,MethodName("Rotate"));
+            
+            Tensor2<Real,Int> v_coords( edge_count, AmbDim );
+            
+            if( preorderedQ )
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(e) );
+                }
+            }
+            else
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(edges(e,0)) );
+                }
+            }
+            
+            cref<Matrix3x3_T> R_new = Dot(A,R);
+            // We make it so that we can restore the original coordinates up to shift from R.
+            // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
+            SetTransformationMatrix(A);
+            this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
+            SetTransformationMatrix(R_new);
         }
         
     private:

@@ -4,7 +4,7 @@ public:
 
 // Caution: Split is allowed to push minimal diagrams to pd_done.
 
-Size_T Split( PD_T && pd, mref<PDC_T::PDList_T> pd_output, const bool proven_reducedQ = false )
+Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_reducedQ = false )
 {
     TOOLS_PTIMER(timer,MethodName("Split")+ "(pd,pd_output," + ToString(proven_reducedQ) + ")");
     
