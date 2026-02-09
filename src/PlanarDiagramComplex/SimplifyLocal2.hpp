@@ -61,7 +61,7 @@ Size_T SimplifyLocal2( const bool compressQ )
         
         if( pd.CrossingCount() <= Int(1) )
         {
-            pd_done.push_back( PD_T::Unknot(pd.last_color_deactivated) );
+            CreateUnlink(pd.last_color_deactivated);
             continue;
         }
             

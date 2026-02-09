@@ -12,7 +12,7 @@ PDC_T Union() const
     Int crossing_count = 0;
     Int arc_count = 0;
     
-    PDList_T unlinks;
+    PD_List_T unlinks;
     
     for( Size_T idx = 0; idx < diagram_count; ++idx )
     {

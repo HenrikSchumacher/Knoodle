@@ -3,8 +3,9 @@
 namespace Knoodle
 {
 
-    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
-    class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
+    // TODO: Add color information!
+    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = float>
+    class alignas( ObjectAlignment ) LinkEmbedding : public Link<Int_>
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
         
@@ -89,7 +90,8 @@ namespace Knoodle
         Tensor1<Int,Int> edge_ctr;
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
-        EContainer_T edge_coords;
+        EContainer_T     edge_coords;
+        Tensor1<Int,Int> edge_colors;
         
         Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
         
@@ -113,44 +115,46 @@ namespace Knoodle
     public:
         
         // Default constructor
-        Link_2D() = default;
+        LinkEmbedding() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~Link_2D() = default;
+        virtual ~LinkEmbedding() = default;
         // Copy constructor
-        Link_2D( const Link_2D & other ) = default;
+        LinkEmbedding( const LinkEmbedding & other ) = default;
         // Copy assignment operator
-        Link_2D & operator=( const Link_2D & other ) = default;
+        LinkEmbedding & operator=( const LinkEmbedding & other ) = default;
         // Move constructor
-        Link_2D( Link_2D && other ) = default;
+        LinkEmbedding( LinkEmbedding && other ) = default;
         // Move assignment operator
-        Link_2D & operator=( Link_2D && other ) = default;
+        LinkEmbedding & operator=( LinkEmbedding && other ) = default;
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
-        explicit Link_2D( const I edge_count_ )
-        :   Base_T      { int_cast<Int>(edge_count_) }
-        ,   edge_coords { edge_count                 }
-        ,   T           { edge_count                 }
-        ,   box_coords  { T.AllocateBoxes()          }
+        explicit LinkEmbedding( const I edge_count_ )
+        :   Base_T      { int_cast<Int>(edge_count_)         }
+        ,   edge_coords { edge_count                         }
+        ,   T           { edge_count                         }
+        ,   box_coords  { T.AllocateBoxes()                  }
         {
             static_assert(IntQ<I>,"");
         }
         
-        Link_2D( Tensor1<Int,Int> && component_ptr_ )
-        :   Base_T      { std::move(component_ptr_), Tensor1<Int,Int>() }
-        ,   edge_coords { edge_count                                    }
-        ,   T           { edge_count                                    }
-        ,   box_coords  { T.AllocateBoxes()                             }
+        explicit LinkEmbedding( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
+        :   Base_T      { std::move(component_ptr_), std::move(component_color_)  }
+        ,   edge_coords { edge_count                                              }
+        ,   T           { edge_count                                              }
+        ,   box_coords  { T.AllocateBoxes()                                       }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<typename I_0, typename I_1>
-        Link_2D( cptr<I_0> edges_, const I_1 edge_count_ )
-        :   Base_T      { edges_, (I_0 *)nullptr, int_cast<Int>(edge_count_) }
-        ,   edge_coords { edge_count                                         }
-        ,   T           { edge_count                                         }
-        ,   box_coords  { T.AllocateBoxes()                                  }
+        LinkEmbedding(
+            cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
+        )
+        :   Base_T      { edges_, edges_colors_, int_cast<Int>(edge_count_) }
+        ,   edge_coords { edge_count                                        }
+        ,   T           { edge_count                                        }
+        ,   box_coords  { T.AllocateBoxes()                                 }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -158,11 +162,13 @@ namespace Knoodle
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<typename I_0, typename I_1>
-        Link_2D( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
-        :   Base_T      { edge_tails_, edge_tips_, (I_0 *)nullptr, edge_count_ }
-        ,   edge_coords { edge_count                                           }
-        ,   T           { edge_count                                           }
-        ,   box_coords  { T.AllocateBoxes()                                    }
+        LinkEmbedding(
+            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+        )
+        :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
+        ,   edge_coords { edge_count                                          }
+        ,   T           { edge_count                                          }
+        ,   box_coords  { T.AllocateBoxes()                                   }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -220,13 +226,13 @@ namespace Knoodle
         template<bool transformQ = false,bool shiftQ = true>
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+        
+            intersections.clear();
             
             Vector3_T lo;
             Vector3_T hi;
 
-//            ComputeBoundingBox( v, lo, hi );
-            
             if constexpr ( shiftQ )
             {
                 lo.Read( v );
@@ -378,88 +384,41 @@ namespace Knoodle
 //            logvalprint("edge_coords",edge_coords);
         }
         
-//        void ReadVertexCoordinates( cptr<Real> v )
-//        {
-//            TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates (AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
-//            
-//            Vector3_T lo;
-//            Vector3_T hi;
-//
-//            ComputeBoundingBox( v, lo, hi );
-//            
-//            constexpr Real margin = static_cast<Real>(1.01);
-//            constexpr Real two = 2;
-//
-//            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
-//            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
-//            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
-//            
-//            if( preorderedQ )
-//            {
-////                logprint("preordered");
-//                for( Int c = 0; c < component_count; ++c )
-//                {
-//                    const Int i_begin = component_ptr[c  ];
-//                    const Int i_end   = component_ptr[c+1];
-//                                        
-//                    for( Int i = i_begin; i < i_end-1; ++i )
-//                    {
-//                        const Int j = i+1;
-//
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(j,0)
-//                        
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//
-//                    {
-//                        const Int i = i_end-1;
-//                        const Int j = i_begin;
-//
-//                        mptr<Real> target_0 = edge_coords.data(i,1);
-//                        mptr<Real> target_1 = edge_coords.data(j,0);
-//                      
-//                        target_0[0] = target_1[0] = v[3*j + 0] + Sterbenz_shift[0];
-//                        target_0[1] = target_1[1] = v[3*j + 1] + Sterbenz_shift[1];
-//                        target_0[2] = target_1[2] = v[3*j + 2] + Sterbenz_shift[2];
-//                    }
-//                }
-//            }
-//            else
-//            {
-////                logprint("not preordered");
-//                
-//                for( Int e = 0; e < edge_count; ++e )
-//                {
-//                    const Int i = edges(e,0);
-//                    const Int j = edges(e,1);
-//
-//                    mptr<Real> target_0 = edge_coords.data(e,0);
-//                    mptr<Real> target_1 = &target_0[3]; // = edge_coords.data(e,1);
-//                  
-//                    target_0[0] = v[3 * i + 0] + Sterbenz_shift[0];
-//                    target_0[1] = v[3 * i + 1] + Sterbenz_shift[1];
-//                    target_0[2] = v[3 * i + 2] + Sterbenz_shift[2];
-//                    
-//                    target_1[0] = v[3 * j + 0] + Sterbenz_shift[0];
-//                    target_1[1] = v[3 * j + 1] + Sterbenz_shift[1];
-//                    target_1[2] = v[3 * j + 2] + Sterbenz_shift[2];
-//                }
-//            }
-//            
-////            logvalprint("edge_coords",edge_coords);
-//        }
-        
         void ComputeBoundingBoxes()
         {
             TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             
-            T.template ComputeBoundingBoxes<2,3>(
-                edge_coords.data(),
-                box_coords.data()
-            );
+            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+        }
+        
+        template<bool shiftQ = true>
+        void Rotate( cref<Matrix3x3_T> A )
+        {
+            TOOLS_PTIMER(timer,MethodName("Rotate"));
+            
+            Tensor2<Real,Int> v_coords( edge_count, AmbDim );
+            
+            if( preorderedQ )
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(e) );
+                }
+            }
+            else
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(edges(e,0)) );
+                }
+            }
+            
+            cref<Matrix3x3_T> R_new = Dot(A,R);
+            // We make it so that we can restore the original coordinates up to shift from R.
+            // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
+            SetTransformationMatrix(A);
+            this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
+            SetTransformationMatrix(R_new);
         }
         
     private:
@@ -482,10 +441,10 @@ namespace Knoodle
                 + Base_T::next_edge.AllocatedByteCount()
                 + Base_T::edge_ptr.AllocatedByteCount()
                 + Base_T::component_ptr.AllocatedByteCount()
-                + Base_T::component_color.AllocatedByteCount()
                 + Base_T::component_lookup.AllocatedByteCount();
                 + edge_ctr.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
+                + edge_colors.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
                 + edge_times.AllocatedByteCount()
@@ -494,7 +453,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(Link_2D) + AllocatedByteCount();
+            return sizeof(LinkEmbedding) + AllocatedByteCount();
         }
         
         template<int t0>
@@ -504,13 +463,13 @@ namespace Knoodle
             return
                 ct_string("<|")
                 + (" \n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_colors)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
@@ -526,7 +485,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("Link_2D")
+            return ct_string("LinkEmbedding")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

@@ -71,7 +71,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     // TODO: Is this a good value for the tolerance?
     const Real threshold = Power(m * tolerance,2);
     
-    Size_T SSN_iter = 0;
+    SSN_iter = 0;
 //    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
@@ -190,13 +190,13 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     
     switch ( settings.energy )
     {
-        case EnergyFlag_T::Bending:
+        case Energy_T::Bending:
         {
             agg = Aggregator_T( J(3) * m + J(3) * n );
             BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
             break;
         }
-        case EnergyFlag_T::Dirichlet:
+        case Energy_T::Dirichlet:
         {
             agg = Aggregator_T( J(2) * m + J(3) * n );
             DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );

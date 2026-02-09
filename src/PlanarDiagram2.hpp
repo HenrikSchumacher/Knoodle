@@ -60,11 +60,11 @@ namespace Knoodle
         friend class ArcSimplifier2<Int,2,true >;
         friend class ArcSimplifier2<Int,3,true >;
         friend class ArcSimplifier2<Int,4,true >;
-        friend class ArcSimplifier2<Int,0,false>;
-        friend class ArcSimplifier2<Int,1,false>;
-        friend class ArcSimplifier2<Int,2,false>;
-        friend class ArcSimplifier2<Int,3,false>;
-        friend class ArcSimplifier2<Int,4,false>;
+//        friend class ArcSimplifier2<Int,0,false>;
+//        friend class ArcSimplifier2<Int,1,false>;
+//        friend class ArcSimplifier2<Int,2,false>;
+//        friend class ArcSimplifier2<Int,3,false>;
+//        friend class ArcSimplifier2<Int,4,false>;
 
         friend class StrandSimplifier2<Int,true >;
         friend class StrandSimplifier2<Int,false>;
@@ -423,21 +423,9 @@ namespace Knoodle
 #include "PlanarDiagram2/LongMacLeodCode.hpp"
 #include "PlanarDiagram2/MacLeodCode.hpp"
         
-//#include "PlanarDiagram2/R_I.hpp"
-
 #include "PlanarDiagram2/Faces.hpp"
 #include "PlanarDiagram2/Certificates.hpp"
-        
-//#include "PlanarDiagram2/DiagramComponents.hpp"
 #include "PlanarDiagram2/Strands.hpp"
-//#include "PlanarDiagram2/DisconnectSummands.hpp"
-        
-//#include "PlanarDiagram2/Simplify1.hpp"
-//#include "PlanarDiagram2/Simplify2.hpp"
-//#include "PlanarDiagram2/Simplify3.hpp"
-//#include "PlanarDiagram2/Simplify4.hpp"
-//#include "PlanarDiagram2/Simplify5.hpp"
-//#include "PlanarDiagram2/Simplify6.hpp"
 
 
 //#include "PlanarDiagram2/ResolveCrossing.hpp"

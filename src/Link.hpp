@@ -28,6 +28,7 @@ namespace Knoodle
         Int component_count = 0;
         
         Tensor1<Int,Int> component_ptr;
+        Tensor1<Int,Int> component_color;
         Tensor1<Int,Int> component_lookup;
         
         bool cyclicQ      = false;
@@ -113,23 +114,25 @@ namespace Knoodle
          * @param component_ptr_ An array that indicates how many connected components there are which vertices are contained in each component. In the case of k components the array must have size `k+1`. The entries must be increasing integers starting at 0. Then the vertices of the i-th component are `component_ptr_[i],...,component_ptr_[i-1]-1`.
          */
         
-        template<typename J, typename K>
-        explicit Link( cref<Tensor1<J,K>> component_ptr_ )
+        Link( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Link{
                 (component_ptr_.Size() < Int(2)) ? 0 : component_ptr_.Last(),
                 false // Just allocate buffers. We fill them manually.
             }
-        {
-            static_assert(IntQ<J>,"");
-            static_assert(IntQ<K>,"");
-            
-            component_ptr = component_ptr_;
+        {            
+            component_ptr   = std::move(component_ptr_);
+            component_color = std::move(component_color_);
             
             if( component_ptr.Size() < Int(2) ) { return; }
             
             component_count = component_ptr.Size() - Int(1);
             cyclicQ         = (component_count == Int(1));
             preorderedQ     = true;
+            
+            if( component_color.Size() < component_count )
+            {
+                component_color = iota<Int,Int>(component_count);
+            }
             
             for( Int comp = 0; comp < component_count; ++comp )
             {
@@ -158,7 +161,6 @@ namespace Knoodle
                     next_edge[v] = edges(v,1);
                 }
             }
-            
         }
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -172,13 +174,13 @@ namespace Knoodle
          */
         
         template<typename I_0, typename I_1>
-        Link( cptr<I_0> edges_, const I_1 edge_count_ )
+        Link( cptr<I_0> edges_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
         :   Link( int_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
             
-            ReadEdges( edges_ );
+            ReadEdges( edges_, edge_colors_ );
         }
         
         /*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
@@ -191,13 +193,13 @@ namespace Knoodle
          */
         
         template<typename I_0, typename I_1>
-        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, const I_1 edge_count_ )
+        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
         :   Link( int_cast<Int>(edge_count_), true )
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
             
-            ReadEdges( edge_tails_, edge_heads_ );
+            ReadEdges( edge_tails_, edge_heads_, edge_colors_ );
         }
 
     public:
@@ -220,7 +222,7 @@ namespace Knoodle
          */
         
         template<typename ExtInt>
-        void ReadEdges( cptr<ExtInt> edges_ )
+        void ReadEdges( cptr<ExtInt> edges_, cptr<ExtInt> edge_colors_ )
         {
             static_assert(IntQ<ExtInt>,"");
             
@@ -288,7 +290,7 @@ namespace Knoodle
                 edges(e,1) = edges_[from+1];
             }
             
-            FinishPreparations();
+            FinishPreparations(edge_colors_);
         }
 
         /*! @brief Reads edges from the arrays `edge_tails_` and `edge_heads_`.
@@ -299,7 +301,9 @@ namespace Knoodle
          */
         
         template<typename ExtInt>
-        void ReadEdges( cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_ )
+        void ReadEdges(
+            cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_, cptr<ExtInt> edge_colors_
+        )
         {
             static_assert(IntQ<ExtInt>,"");
             
@@ -357,19 +361,16 @@ namespace Knoodle
             
             // using edge_ptr temporarily as scratch space.
             cptr<Int> perm       = edge_ptr.data();
-            mptr<Int> edge_tails = edges.data(0);
-            mptr<Int> edge_heads = edges.data(1);
             
             // Reordering edges.
             for( Int e = 0; e < edge_count; ++e )
             {
                 const Int from = perm[e];
-
-                edge_tails[e] = edge_tails_[from];
-                edge_heads[e] = edge_heads_[from];
+                edges(e,0) = edge_tails_[from];
+                edges(e,1) = edge_heads_[from];
             }
             
-            FinishPreparations();
+            FinishPreparations(edge_colors_);
         }
         
     protected:
@@ -417,11 +418,14 @@ namespace Knoodle
                             : Int(0);
         }
         
-        void FinishPreparations()
+        template<typename ExtInt>
+        void FinishPreparations( cref<ExtInt> edge_colors_ )
         {
             TOOLS_PTIMER(timer,MethodName("FinishPreparations"));
             
             cyclicQ = (component_count == Int(1));
+            
+            component_color = Tensor1<Int,Int>(component_count);
             
             bool b = true;
             
@@ -434,20 +438,54 @@ namespace Knoodle
             
             preorderedQ = b;
             
-            for( Int c = 0; c < component_count; ++ c )
+            // using edge_ptr temporarily as scratch space.
+            cptr<Int> perm = edge_ptr.data();
+            
+            if( edge_colors_ == nullptr )
             {
-                const Int i_begin = component_ptr[c  ];
-                const Int i_end   = component_ptr[c+1];
-                
-                for( Int i = i_begin; i < i_end-1; ++i )
+                for( Int c =  0; c < component_count; ++ c )
                 {
-                    next_edge       [i  ] = i+1;
-                    edge_ptr        [i+1] = i  ;
-                    component_lookup[i  ] = c;
+                    const Int i_begin = component_ptr[c  ];
+                    const Int i_end   = component_ptr[c+1];
+                    
+                    component_color[c] = c;
+                    
+                    for( Int i = i_begin; i < i_end-1; ++i )
+                    {
+                        next_edge       [i  ] = i+1;
+                        edge_ptr        [i+1] = i  ;
+                        component_lookup[i  ] = c;
+                    }
+                    
+                    next_edge       [i_end-1] = i_begin;
+                    component_lookup[i_end-1] = c;
                 }
+            }
+            else
+            {
+                bool colors_okayQ = true;
                 
-                next_edge       [i_end-1] = i_begin;
-                component_lookup[i_end-1] = c;
+                for( Int c =  0; c < component_count; ++ c )
+                {
+                    const Int i_begin = component_ptr[c  ];
+                    const Int i_end   = component_ptr[c+1];
+                    
+                    Int c_color = static_cast<Int>(edge_colors_[perm[i_begin]]);
+                    
+                    component_color[c] = c_color;
+                    
+                    for( Int i = i_begin; i < i_end-1; ++i )
+                    {
+                        colors_okayQ = colors_okayQ && (c_color == edge_colors_[perm[i_begin]]);
+                        
+                        next_edge       [i  ] = i+1;
+                        edge_ptr        [i+1] = i  ;
+                        component_lookup[i  ] = c;
+                    }
+                    
+                    next_edge       [i_end-1] = i_begin;
+                    component_lookup[i_end-1] = c;
+                }
             }
         }
         
@@ -499,6 +537,11 @@ namespace Knoodle
         cref<Tensor1<Int,Int>> ComponentPointers() const
         {
             return component_ptr;
+        }
+        
+        cref<Tensor1<Int,Int>> ComponentColors() const
+        {
+            return component_color;
         }
         
         /*! @brief Returns the number of vertices in component `c`.

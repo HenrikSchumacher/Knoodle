@@ -143,7 +143,8 @@ namespace Knoodle
             
             if( pd.crossing_count <= Int(1) )
             {
-                pd = PD_T::Unknot(pd.last_color_deactivated);
+                pdc.CreateUnlink(pd.last_color_deactivated);
+                pd = PD_T::InvalidDiagram();
                 return 0;
             }
             
