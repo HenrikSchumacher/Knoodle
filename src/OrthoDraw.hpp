@@ -86,6 +86,13 @@ namespace Knoodle
             , Length_OR            =  6
         };
         
+        enum class HighlightMode_T : Int8
+        {
+            ANSI  = 0,
+            Chars = 1,
+            HTML  = 2
+        };
+
         struct Settings_T
         {
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
@@ -119,7 +126,8 @@ namespace Knoodle
             std::vector<Int> arc_levels;
 
             std::vector<std::vector<Int>> highlight_arc_groups;
-            
+            HighlightMode_T highlight_mode = HighlightMode_T::ANSI;
+
             void PrintInfo() const
             {
                 TOOLS_DDUMP(bend_method);

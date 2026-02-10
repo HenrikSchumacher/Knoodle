@@ -914,53 +914,166 @@ std::string DiagramString() const
         return s;
     }
 
-    // Walk character grid and color_map in parallel, emitting ANSI escape codes.
-    std::string result;
-    result.reserve( s.size() + s.size() / 4 ); // extra room for escape codes
+    using HM = typename OrthoDraw::HighlightMode_T;
 
-    int current_group = -1;
-
-    for( std::size_t i = 0; i < s.size(); ++i )
+    switch( settings.highlight_mode )
     {
-        char c = s[i];
-
-        if( c == '\n' )
+        case HM::Chars:
         {
-            // Reset color before newline for clean line endings.
+            // Character substitution tables: [group][0]=horiz, [group][1]=vert
+            static constexpr char kCharSubst[][2] = {
+                { '=', '!' },  // group 0
+                { '~', ':' },  // group 1
+                { '#', '%' },  // group 2
+                { '*', '$' },  // group 3
+                { '@', '&' },  // group 4
+                { '`', ';' },  // group 5
+            };
+            static constexpr int kCharSubstCount = 6;
+
+            for( std::size_t i = 0; i < s.size(); ++i )
+            {
+                if( i >= color_map.size() ) break;
+
+                int g = color_map[i];
+
+                if( g < 0 ) continue;
+
+                char c = s[i];
+
+                if( c == '-' )
+                {
+                    s[i] = kCharSubst[g % kCharSubstCount][0];
+                }
+                else if( c == '|' )
+                {
+                    s[i] = kCharSubst[g % kCharSubstCount][1];
+                }
+            }
+
+            return s;
+        }
+
+        case HM::HTML:
+        {
+            static constexpr const char* kHtmlColors[] = {
+                "#ff6666",  // group 0
+                "#66ff66",  // group 1
+                "#6666ff",  // group 2
+                "#ffff66",  // group 3
+                "#ff66ff",  // group 4
+                "#66ffff",  // group 5
+            };
+            static constexpr int kHtmlColorCount = 6;
+
+            std::string result;
+            result.reserve( s.size() + s.size() / 2 );
+
+            result += "<pre>";
+
+            int current_group = -1;
+
+            for( std::size_t i = 0; i < s.size(); ++i )
+            {
+                char c = s[i];
+
+                if( c == '\n' )
+                {
+                    if( current_group >= 0 )
+                    {
+                        result += "</span>";
+                        current_group = -1;
+                    }
+                    result += c;
+                    continue;
+                }
+
+                int g = (i < color_map.size()) ? color_map[i] : -1;
+
+                if( g != current_group )
+                {
+                    if( current_group >= 0 )
+                    {
+                        result += "</span>";
+                    }
+                    if( g >= 0 )
+                    {
+                        result += "<span style=\"color:";
+                        result += kHtmlColors[g % kHtmlColorCount];
+                        result += "\">";
+                    }
+                    current_group = g;
+                }
+
+                // HTML-escape special characters.
+                if( c == '<' )       result += "&lt;";
+                else if( c == '>' )  result += "&gt;";
+                else if( c == '&' )  result += "&amp;";
+                else                 result += c;
+            }
+
+            if( current_group >= 0 )
+            {
+                result += "</span>";
+            }
+
+            result += "</pre>";
+
+            return result;
+        }
+
+        case HM::ANSI:
+        default:
+        {
+            // Walk character grid and color_map in parallel, emitting ANSI escape codes.
+            std::string result;
+            result.reserve( s.size() + s.size() / 4 ); // extra room for escape codes
+
+            int current_group = -1;
+
+            for( std::size_t i = 0; i < s.size(); ++i )
+            {
+                char c = s[i];
+
+                if( c == '\n' )
+                {
+                    // Reset color before newline for clean line endings.
+                    if( current_group >= 0 )
+                    {
+                        result += kColorReset;
+                        current_group = -1;
+                    }
+                    result += c;
+                    continue;
+                }
+
+                int g = (i < color_map.size()) ? color_map[i] : -1;
+
+                if( g != current_group )
+                {
+                    if( g >= 0 )
+                    {
+                        result += kHighlightColors[g % kHighlightColorCount];
+                    }
+                    else if( current_group >= 0 )
+                    {
+                        result += kColorReset;
+                    }
+                    current_group = g;
+                }
+
+                result += c;
+            }
+
+            // Final reset if we ended in a color.
             if( current_group >= 0 )
             {
                 result += kColorReset;
-                current_group = -1;
             }
-            result += c;
-            continue;
+
+            return result;
         }
-
-        int g = (i < color_map.size()) ? color_map[i] : -1;
-
-        if( g != current_group )
-        {
-            if( g >= 0 )
-            {
-                result += kHighlightColors[g % kHighlightColorCount];
-            }
-            else if( current_group >= 0 )
-            {
-                result += kColorReset;
-            }
-            current_group = g;
-        }
-
-        result += c;
     }
-
-    // Final reset if we ended in a color.
-    if( current_group >= 0 )
-    {
-        result += kColorReset;
-    }
-
-    return result;
 }
 
 cref<ArcSplineContainer_T> ArcLines()
