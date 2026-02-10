@@ -29,8 +29,8 @@ PDC_T Union() const
         }
         else
         {
-            crossing_count += pd.crossing_count;
-            arc_count      += pd.arc_count;
+            crossing_count += pd.CrossingCount();
+            arc_count      += pd.ArcCount();
         }
     }
     

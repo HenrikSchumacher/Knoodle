@@ -432,9 +432,9 @@ namespace Knoodle
                 
                 if( pd.InvalidQ() ) { continue; }
                 
-                if(  pd.proven_minimalQ )
+                if(  pd.ProvenMinimalQ() )
                 {
-                    if( pd.arc_count < pd.max_arc_count )
+                    if( pd.ArcCount() < pd.MaxArcCount() )
                     {
                         PushDiagramDone( pd.CreateCompressed() );
                     }

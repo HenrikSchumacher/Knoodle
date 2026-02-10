@@ -83,6 +83,7 @@ int main()
     TOOLS_DUMP( sizeof(Tools::CachedObject<1,1,1,1>::P_CacheContainer_T) );
     TOOLS_DUMP( sizeof(Tools::CachedObject<1,1,1,1>::P_CacheMutex_T) );
 
+    print("\n\n");
     
     TOOLS_DUMP( PDC_T::ClassName() );
     TOOLS_DUMP( sizeof(PDC_T) );
@@ -99,6 +100,18 @@ int main()
     TOOLS_DUMP( PD_T::ArcContainer_T::ClassName() );
     TOOLS_DUMP( sizeof(PD_T::ArcContainer_T) );
     TOOLS_DUMP( alignof(PD_T::ArcContainer_T) );
+    
+    print("\n\n");
+    
+    TOOLS_DUMP( sizeof(Tensors::Tensor1<Int,Int>) );
+    TOOLS_DUMP( sizeof(Tensors::Tensor1<Tools::Int32,Tools::Int32>) );
+    
+    TOOLS_DUMP( sizeof(Tensors::Tensor2<Int,Int>) );
+    TOOLS_DUMP( sizeof(Tensors::Tensor2<Tools::Int32,Tools::Int32>) );
+    
+    TOOLS_DUMP( sizeof(Tensors::Tensor3<Int,Int>) );
+    TOOLS_DUMP( sizeof(Tensors::Tensor3<Tools::Int32,Tools::Int32>) );
+    
     
     print("\n\n");
     
