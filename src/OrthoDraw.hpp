@@ -12,23 +12,12 @@
 //      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
 namespace MCF
 {
+    // TODO: MCFSimplex.C really does not like the -ffast-math flag. I get inconsistent results witht his flag. I could use TOOLS_MAKE_FP_STRICT() here (which is #pragma float_control(precise, on) under clang). But that just suppressed compiler errors; the inconstency still remains, even if I always place TOOLS_MAKE_FP_STRICT() before the c
+    
+//    TOOLS_MAKE_FP_STRICT()
+    
     #include "MCFSimplex.C"
 }
-
-// For this, the user has to put the following directory onto the search path:
-//      "../submodules/Min-Cost-Flow-Class/RelaxIV/
-#ifdef KNOODLE_USE_RELAXIV
-namespace RelaxIV
-{
-    using namespace MCF;
-    
-    #include "RelaxIV.C"
-}
-#endif
-
-#ifdef KNOODLE_USE_OR
-#include "ortools/graph/min_cost_flow.h"
-#endif
 
 namespace Knoodle
 {
@@ -36,11 +25,11 @@ namespace Knoodle
     // TODO: Get/setters for all settings.
     
     template<class PD_T_>
-    class OrthoDraw final : CachedObject
+    class OrthoDraw final : CachedObject<1,0,0,0>
     {
     private:
         
-        using Base_T = CachedObject;
+        using Base_T = CachedObject<1,0,0,0>;
         
     public:
         
@@ -70,8 +59,6 @@ namespace Knoodle
             Unknown         = -1
             , Bends_MCF     =  0
             , Bends_CLP     =  1
-            , Bends_RelaxIV =  2
-            , Bends_OR      =  3
         };
         
         enum class CompactionMethod_T : Int8
@@ -82,8 +69,6 @@ namespace Knoodle
             , Length_MCF           =  2
             , Length_CLP           =  3
             , AreaAndLength_CLP    =  4
-            , Length_RelaxIV       =  5
-            , Length_OR            =  6
         };
         
         struct Settings_T
@@ -104,29 +89,33 @@ namespace Knoodle
             
             Int  x_grid_size                        = 20;
             Int  y_grid_size                        = 20;
-            
             Int  x_gap_size                         =  4;
             Int  y_gap_size                         =  4;
-            
             Int  x_rounding_radius                  =  4;
             Int  y_rounding_radius                  =  4;
             
             void PrintInfo() const
             {
-                TOOLS_DDUMP(bend_method);
-                TOOLS_DDUMP(network_matrixQ);
-                TOOLS_DDUMP(redistribute_bendsQ);
-                TOOLS_DDUMP(use_dual_simplexQ);
-                TOOLS_DDUMP(turn_regularizeQ);
-                TOOLS_DDUMP(saturate_facesQ);
-                TOOLS_DDUMP(saturate_exterior_faceQ);
-                TOOLS_DDUMP(compaction_method);
+                TOOLS_LOGDUMP(bend_method);
+                TOOLS_LOGDUMP(network_matrixQ);
+                TOOLS_LOGDUMP(use_dual_simplexQ);
+                TOOLS_LOGDUMP(randomize_bends);
+                TOOLS_LOGDUMP(redistribute_bendsQ);
+                TOOLS_LOGDUMP(turn_regularizeQ);
+                TOOLS_LOGDUMP(soften_virtual_edgesQ);
+                TOOLS_LOGDUMP(randomize_virtual_edgesQ);
+                TOOLS_LOGDUMP(saturate_facesQ);
+                TOOLS_LOGDUMP(saturate_exterior_faceQ);
+                TOOLS_LOGDUMP(filter_saturating_edgesQ);
+                TOOLS_LOGDUMP(parallelizeQ);
+                TOOLS_LOGDUMP(compaction_method);
                 
-                TOOLS_DDUMP(x_grid_size);
-                TOOLS_DDUMP(y_grid_size);
-                
-                TOOLS_DDUMP(x_gap_size);
-                TOOLS_DDUMP(y_gap_size);
+                TOOLS_LOGDUMP(x_grid_size);
+                TOOLS_LOGDUMP(y_grid_size);
+                TOOLS_LOGDUMP(x_gap_size);
+                TOOLS_LOGDUMP(y_gap_size);
+                TOOLS_LOGDUMP(x_rounding_radius);
+                TOOLS_LOGDUMP(y_rounding_radius);
             }
         };
         
@@ -237,20 +226,6 @@ namespace Knoodle
                     break;
                 }
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-                case CompactionMethod_T::Length_RelaxIV:
-                {
-                    ComputeVertexCoordinates_Compaction_RelaxIV();
-                    break;
-                }
-#endif
-//#ifdef KNOODLE_USE_OR
-//                case CompactionMethod_T::Length_OR:
-//                {
-//                    ComputeVertexCoordinates_Compaction_OR();
-//                    break;
-//                }
-//#endif
                 default:
                 {
                     wprint(ClassName() + "(): Unknown compaction method " + ToString(settings.compaction_method) + ". Using default (CompactionMethod_T::Length_MCF).");
@@ -337,7 +312,7 @@ namespace Knoodle
             // We do not change E_A. This way we still know how many nonvirtual edges we had in the beginning.
             
             const Int old_max_edge_count = E_V.Dim(0);
-            
+                     
             if( max_edge_count == old_max_edge_count) { return; };
             
             // Might or might not be necessary.
@@ -377,12 +352,6 @@ namespace Knoodle
 #ifdef KNOODLE_USE_CLP
 #include "OrthoDraw/Bends_CLP.hpp"
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-#include "OrthoDraw/Bends_RelaxIV.hpp"
-#endif
-#ifdef KNOODLE_USE_OR
-#include "OrthoDraw/Bends_OR.hpp"
-#endif
 
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"
@@ -398,12 +367,6 @@ namespace Knoodle
 #ifdef KNOODLE_USE_CLP
 #include "OrthoDraw/Compaction_CLP.hpp"
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-#include "OrthoDraw/Compaction_RelaxIV.hpp"
-#endif
-//#ifdef KNOODLE_USE_OR
-//#include "OrthoDraw/Compaction_OR.hpp"
-//#endif
         
 #include "OrthoDraw/PostProcessing.hpp"
 
@@ -617,8 +580,9 @@ namespace Knoodle
                 {
                     if( VertexActiveQ(c) )
                     {
-                        A_next_A(C_A(c,In,Left )) = C_A(c,Out,Right);
-                        A_next_A(C_A(c,In,Right)) = C_A(c,Out,Left );
+                        Tiny::Matrix<2,2,Int,Int> C ( C_A.data(c) );
+                        A_next_A(C[In][Left ]) = C[Out][Right];
+                        A_next_A(C[In][Right]) = C[Out][Left ];
                     }
                 }
                 this->SetCache(tag,std::move(A_next_A));

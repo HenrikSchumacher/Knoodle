@@ -10,7 +10,7 @@ namespace Knoodle
     template<typename PD_T> class OrthoDraw;
     
     template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagramComplex final : public CachedObject
+    class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
         static_assert(IntQ<Int_>,"");
 
@@ -21,7 +21,7 @@ namespace Knoodle
         using Int                   = Int_;
         using UInt                  = ToUnsigned<Int>;
         
-        using Base_T                = CachedObject;
+        using Base_T                = CachedObject<1,0,0,0>;
         using Class_T               = PlanarDiagramComplex<Int>;
         using PD_T                  = PlanarDiagram2<Int>;
         using PDC_T                 = PlanarDiagramComplex<Int>;
@@ -74,9 +74,7 @@ namespace Knoodle
         mutable PD_List_T pd_list;
         mutable PD_List_T pd_todo;
         mutable PD_List_T pd_done;
-//
-//        ColorCounts_T colored_unlinkQ;
-        
+
         PD_T invalid_diagram { PD_T::InvalidDiagram() };
         
     public:
@@ -133,7 +131,6 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
 //#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
-//#include "PlanarDiagramComplex/SimplifyLocal3.hpp" // Only for development and debugging.
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
@@ -257,14 +254,14 @@ namespace Knoodle
         // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
         void CreateUnlink( const Int color )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
+            PD_TIMER(timer,MethodName("CreateUnlink"));
 
             pd_done.push_back( PD_T::Unknot(color) );
         }
         
         void CreateUnlinkFromArc( PD_T & pd, const Int a )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
+            PD_TIMER(timer,MethodName("CreateUnlinkFromArc"));
             
             PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
@@ -283,7 +280,7 @@ namespace Knoodle
             PD_T & pd, const Int a_0, const Int a_1, const CrossingState_T handedness
         )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
+            PD_TIMER(timer,MethodName("CreateHopfLinkFromArcs"));
             
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
@@ -301,7 +298,7 @@ namespace Knoodle
          */
         void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+            PD_TIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::TrefoilKnot(pd.A_color[a],handedness) );
         }
@@ -314,7 +311,7 @@ namespace Knoodle
          */
         void CreateFigureEightKnotFromArc( PD_T & pd, const Int a )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
+            PD_TIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
             
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::FigureEightKnot(pd.A_color[a]) );
@@ -400,10 +397,9 @@ namespace Knoodle
         
         void SortByCrossingCount()
         {
-            // Sort big diagrams in front.
-            Sort(
-                &pd_list[0],
-                &pd_list[pd_list.size()],
+            std::sort(
+                pd_list.begin(),
+                pd_list.end(),
                 []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
                 {
                     return pd_0.CrossingCount() > pd_1.CrossingCount();

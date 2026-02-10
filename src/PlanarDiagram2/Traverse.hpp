@@ -57,7 +57,7 @@ void Traverse(
     LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
 )  const
 {
-    TOOLS_PTIMER(timer,MethodName("Traverse")
+    PD_TIMER(timer,MethodName("Traverse")
                  + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
                  + "," + (labelsQ ? "w/ labels" : "w/o labels")
                  + ">");
@@ -136,7 +136,7 @@ void Traverse_ByNextArc(
     LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
 )  const
 {
-    TOOLS_PTIMER(timer,MethodName("Traverse_ByNextArc")
+    PD_TIMER(timer,MethodName("Traverse_ByNextArc")
                  + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
                  + "," + (arclabelsQ ? "w/ arc labels" : "w/o arc labels")
                  + "," + (start_arc_ou == 0 ?  "0" : (start_arc_ou < 0 ? "under" : "over") )

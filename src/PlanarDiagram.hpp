@@ -28,7 +28,7 @@ namespace Knoodle
     
     // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
     template<typename Int_ = Int64>
-    class alignas( ObjectAlignment ) PlanarDiagram final : public CachedObject
+    class PlanarDiagram final : public CachedObject<1,0,0,0>
     {
 //        static_assert(SignedIntQ<Int_>,"");
         static_assert(IntQ<Int_>,"");
@@ -40,7 +40,7 @@ namespace Knoodle
         using Int     = Int_;
         using UInt    = ToUnsigned<Int>;
 
-        using Base_T  = CachedObject;
+        using Base_T  = CachedObject<1,0,0,0>;
         using Class_T = PlanarDiagram<Int>;
         using PD_T    = PlanarDiagram<Int>;
         

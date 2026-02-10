@@ -13,7 +13,7 @@ namespace Knoodle
         typename EInt_   = VInt_,
         typename Sign_T_ = Int8
     >
-    class alignas( ObjectAlignment ) MultiGraphBase : public CachedObject
+    class MultiGraphBase : public CachedObject<1,0,0,0>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
         
@@ -23,7 +23,7 @@ namespace Knoodle
         
     public:
         
-        using Base_T          = CachedObject;
+        using Base_T          = CachedObject<1,0,0,0>;
 
         using VInt            = VInt_;
         using EInt            = EInt_;

@@ -58,13 +58,6 @@ void LoadPlanarDiagram(
             break;
         }
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-        case BendMethod_T::Bends_RelaxIV:
-        {
-            A_bends = Bends_RelaxIV(pd,exterior_region);
-            break;
-        }
-#endif
 #ifdef KNOODLE_USE_OR
         case BendMethod_T::Bends_OR:
         {
@@ -79,13 +72,13 @@ void LoadPlanarDiagram(
             break;
         }
     }
-
+    
     if( A_bends.Size() <= Int(0) )
     {
         eprint(tag + ": Bend optimization failed. Aborting.");
         return;
     }
-
+    
     if( settings.randomize_bends > 0 )
     {
         RandomizeBends(pd,A_bends,settings.randomize_bends);
@@ -97,7 +90,6 @@ void LoadPlanarDiagram(
             RedistributeBends(pd,A_bends);
         }
     }
-
     
     // Compute maximum face size as that will be useful for later allocations.
     // This also gives us the opportunity to compute the total number of bends.

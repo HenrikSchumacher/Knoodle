@@ -1,6 +1,5 @@
 public:
 
-
 Int LastActiveEdge() const
 {
     Int last_active_edge = E_V.Dim(0) - Int(1);

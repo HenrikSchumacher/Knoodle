@@ -169,32 +169,26 @@ namespace Knoodle
             
             static_assert(dimP >= AmbDim,"");
             
+            // Compute bounding boxes of leave nodes (last row of tree).
+            for( Int N = last_row_begin; N < node_count; ++N )
             {
-                TOOLS_PTIMER(timer2, timer.tag + " - Compute bounding boxes of leave nodes.");
-                // Compute bounding boxes of leave nodes (last row of tree).
-                for( Int N = last_row_begin; N < node_count; ++N )
-                {
-                    const Int i = N - last_row_begin;
-                    PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
-                }
-                
-                // Compute bounding boxes of leave nodes (penultimate row of tree).
-                for( Int N = int_node_count; N < last_row_begin; ++N )
-                {
-                    const Int i = N + offset;
-                    PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
-                }
+                const Int i = N - last_row_begin;
+                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
             }
             
+            // Compute bounding boxes of leave nodes (penultimate row of tree).
+            for( Int N = int_node_count; N < last_row_begin; ++N )
             {
-                TOOLS_PTIMER(timer2, timer.tag + " - Compute bounding boxes of internal nodes.");
-                // Compute bounding boxes of internal nodes.
-                for( Int N = int_node_count; N --> Int(0);  )
-                {
-                    const auto [L,R] = Children(N);
-                    
-                    BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
-                }
+                const Int i = N + offset;
+                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
+            }
+            
+            // Compute bounding boxes of internal nodes.
+            for( Int N = int_node_count; N --> Int(0);  )
+            {
+                const auto [L,R] = Children(N);
+                
+                BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
             }
         }
         

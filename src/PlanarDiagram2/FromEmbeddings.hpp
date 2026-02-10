@@ -114,7 +114,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,
     cptr<ExtInt> edges,
     const ExtInt n,
-    const bool compressQ = false // TODO: Is this meaningful?
+    const bool compressQ = false
 )
 {
     static_assert(FloatQ<Real>,"");

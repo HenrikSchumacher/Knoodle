@@ -98,20 +98,23 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     
     MCFSimplex_T mcf (n,m);
 
-    mcf.LoadNet(
-        n, // maximal number of vertices
-        m, // maximal number of edges
-        n, // current number of vertices
-        m, // current number of edges
-        upper.data(),
-        costs.data(),
-        defects.data(),
-        tails.data(),
-        heads.data()
-    );
+    {
+        TOOLS_MAKE_FP_STRICT()
+        mcf.LoadNet(
+            n, // maximal number of vertices
+            m, // maximal number of edges
+            n, // current number of vertices
+            m, // current number of edges
+            upper.data(),
+            costs.data(),
+            defects.data(),
+            tails.data(),
+            heads.data()
+        );
+        
+        mcf.SolveMCF();
+    }
     
-    mcf.SolveMCF();
-
     Tensor1<R,Int> potentials ( n );
 
     mcf.MCFGetPi(potentials.data());

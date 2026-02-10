@@ -1,6 +1,6 @@
 public:
 
-int RattleIterations() const
+Size_T RattleIterations() const
 {
     return rattle_counter;
 }

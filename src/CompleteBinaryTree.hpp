@@ -10,14 +10,15 @@ namespace Knoodle
         bool precompute_rangesQ_ = true,
         bool use_manual_stackQ_ = false
     >
-    class alignas( ObjectAlignment ) CompleteBinaryTree : public CachedObject
+    class CompleteBinaryTree : public CachedObject<1,0,0,0>
     {
 //        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
-        using Int  = Int_;
+        using Int    = Int_;
         
+        using Base_T = CachedObject<1,0,0,0>;
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
         

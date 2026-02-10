@@ -254,6 +254,7 @@ static Tensor1<S,I> Bends_UpperBoundsOnVariables( cref<PD_T> pd )
 {
     TOOLS_MAKE_FP_STRICT();
     
+    // TODO: I have never seen more than 6 bends in an arc. So maybe we can put here some finite value?
     return Tensor1<S,I>( Bends_VarCount<I>(pd), Scalar::Infty<S> );
 }
 
@@ -325,8 +326,6 @@ static I Bends_ConCount( cref<PD_T> pd )
 
 static Tiny::VectorList_AoS<2,Int,Int> Bends_ArcIndices( cref<PD_T> pd )
 {
-    using PD_loc_T = PD_T;
-    
     const Int a_count = pd.Arcs().Dim(0);
     
     Tiny::VectorList_AoS<2,Int,Int> A_idx ( a_count );
@@ -337,14 +336,14 @@ static Tiny::VectorList_AoS<2,Int,Int> Bends_ArcIndices( cref<PD_T> pd )
     {
         if( pd.ArcActiveQ(a) )
         {
-            A_idx(a,0) = PD_loc_T::ToDarc(a_counter,Tail);
-            A_idx(a,1) = PD_loc_T::ToDarc(a_counter,Head);
+            A_idx(a,0) = PD_T::ToDarc(a_counter,Tail);
+            A_idx(a,1) = PD_T::ToDarc(a_counter,Head);
             ++a_counter;
         }
         else
         {
-            A_idx(a,0) = PD_loc_T::Uninitialized;
-            A_idx(a,1) = PD_loc_T::Uninitialized;
+            A_idx(a,0) = PD_T::Uninitialized;
+            A_idx(a,1) = PD_T::Uninitialized;
         }
     }
     

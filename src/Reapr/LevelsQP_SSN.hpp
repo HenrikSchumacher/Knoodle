@@ -71,7 +71,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     // TODO: Is this a good value for the tolerance?
     const Real threshold = Power(m * tolerance,2);
     
-    Size_T SSN_iter = 0;
+    SSN_iter = 0;
 //    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
@@ -102,9 +102,9 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
             -Scalar::One<Real>, z.data(), Scalar::Zero<Real>, u.data()
         );
         
-        Real phi_tau;
-        Real tau    = initial_time_step;
-        int  SSN_b_iter = 0;
+        Real   phi_tau;
+        Real   tau    = initial_time_step;
+        Size_T SSN_b_iter = 0;
         
         // Armijo line search.
         do{
@@ -188,7 +188,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     
     Aggregator_T agg;
     
-    switch ( settings.energy )
+    switch ( en_flag )
     {
         case EnergyFlag_T::Bending:
         {
@@ -204,7 +204,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         }
         default:
         {
-            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
+            wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
             return Sparse::MatrixCSR<R,I,J>();

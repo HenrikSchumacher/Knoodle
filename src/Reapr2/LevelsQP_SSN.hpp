@@ -69,9 +69,9 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     );
     
     // TODO: Is this a good value for the tolerance?
-    const Real threshold = Power(m * tolerance,2);
+    const Real threshold = Power(m * settings.settings.tolerance,2);
     
-    SSN_iter = 0;
+    Size_T SSN_iter = 0;
 //    Real max_step_size = 0;
 
 //            L.Dot( Scalar::One<Real>, x, Scalar::Zero<Real>, y );
@@ -103,14 +103,14 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         );
         
         Real phi_tau;
-        Real tau    = initial_time_step;
+        Real tau    = settings.initial_time_step;
         int  SSN_b_iter = 0;
         
         // Armijo line search.
         do{
             ++SSN_b_iter;
             
-            tau = backtracking_factor * tau;
+            tau = settings.backtracking_factor * tau;
             
             // x_tau = x + tau * u;
             combine_buffers3<Flag_T::Plus,Flag_T::Generic>(
@@ -139,18 +139,18 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
             // Now z = F(x_tau).
         }
         while(
-            (phi_tau > (Real(1) - armijo_slope * tau) * phi_0)
+            (phi_tau > (Real(1) - settings.armijo_slope * tau) * phi_0)
             &&
-            (SSN_b_iter < SSN_max_b_iter)
+            (SSN_b_iter < settings.SSN_max_b_iter)
         );
         
-        if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
+        if( (phi_tau > (Real(1) - settings.armijo_slope * tau) * phi_0) && (SSN_b_iter >= settings.SSN_max_b_iter) )
         {
             wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of backtrackings reached.");
             
             TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
-            TOOLS_DDUMP( SSN_b_iter );
+            TOOLS_DDUMP( settings.SSN_b_iter );
             TOOLS_DDUMP( tau );
         }
         
@@ -160,9 +160,9 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         
         swap( x, x_tau );
     }
-    while( (phi_0 > threshold) && (SSN_iter < SSN_max_iter) );
+    while( (phi_0 > threshold) && (SSN_iter < settings.SSN_max_iter) );
     
-    if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
+    if( (phi_0 > threshold) && (SSN_iter >= settings.SSN_max_iter))
     {
         wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of iterations reached without reaching the stopping criterion.");
     }

@@ -193,7 +193,7 @@ namespace Knoodle
         
         void LoadDiagram( PD_T & pd_input )
         {
-            TOOLS_PTIMER(timer,MethodName("LoadDiagram"));
+            PD_TIMER(timer,MethodName("LoadDiagram"));
 
             pd = &pd_input;
 

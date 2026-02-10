@@ -72,6 +72,7 @@ TOOLS_FORCE_INLINE void TraverseFace(
                 
                 if( E_V.data()[FlipDedge(de)] != E_V.data()[FlipDedge(de_next)] )
                 {
+                    
                     error(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": tail of virtual " + DedgeString(de) + " and tail of " +  DedgeString(de_next) +  " do not coincide. Data structure must be corrupted.");
                     return;
                 }
@@ -103,11 +104,11 @@ TOOLS_FORCE_INLINE void TraverseFace(
         de = de_next;
         de_counter++;
     }
-    while( (de != de_ptr) && (de_counter < de_count) );
+    while( (de != de_ptr) && (de_counter <= de_count) );
     
-    if( de_counter >= de_count ) [[unlikely]]
+    if( de_counter > de_count ) [[unlikely]]
     {
-        error(ClassName()+("::TraverseFace(" + DedgeString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": More dedges traversed (" + ToString(de_counter) +" ) than there are dedges (" + ToString(de_count) + "). Data structure must be corrupted.");
+        error(ClassName()+("::TraverseFace(" + DedgeString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": More dedges traversed (" + ToString(de_counter) +") than there are dedges (" + ToString(de_count) + "). Data structure must be corrupted.");
     }
 }
 

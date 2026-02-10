@@ -79,15 +79,15 @@ namespace Knoodle
 
     private:
         
-        Real scaling             = Real(1);
-        Real dirichlet_reg       = Real(0.00001);
-        Real bending_reg         = Real(0.00001);
-        Real backtracking_factor = Real(0.25);
-        Real armijo_slope        = Real(0.001);
-        Real tolerance           = Real(0.00000001);
-        int  SSN_max_b_iter      = 20;
-        int  SSN_max_iter        = 1000;
-        int  SSN_iter            = 0;
+        Real   scaling             = Real(1);
+        Real   dirichlet_reg       = Real(0.00001);
+        Real   bending_reg         = Real(0.00001);
+        Real   backtracking_factor = Real(0.25);
+        Real   armijo_slope        = Real(0.001);
+        Real   tolerance           = Real(0.00000001);
+        Size_T SSN_max_b_iter      = 20;
+        Size_T SSN_max_iter        = 1000;
+        Size_T SSN_iter            = 0;
                 
         Real initial_time_step   = Real(1.0) / backtracking_factor;
         
@@ -100,8 +100,8 @@ namespace Knoodle
             .randomize_virtual_edgesQ = true
         };
         
-        int  rattle_counter      = 0;
-        Real rattle_timing       = 0;
+        Size_T rattle_counter      = 0;
+        Real   rattle_timing       = 0;
         
         mutable PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         

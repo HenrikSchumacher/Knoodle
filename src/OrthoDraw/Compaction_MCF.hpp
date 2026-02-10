@@ -83,20 +83,23 @@ Tensor1<Int,Int> Compaction_MCF( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>> ed
 
     MCFSimplex_T mcf (n,m);
     
-    mcf.LoadNet(
-        n, // maximal number of vertices
-        m, // maximal number of edges
-        n, // current number of vertices
-        m, // current number of edges
-        capacities.data(),
-        costs.data(),
-        demands.data(),
-        tails.data(),
-        heads.data()
-    );
-    
-    mcf.SolveMCF();
-
+    {
+        TOOLS_MAKE_FP_STRICT()
+        mcf.LoadNet(
+            n, // maximal number of vertices
+            m, // maximal number of edges
+            n, // current number of vertices
+            m, // current number of edges
+            capacities.data(),
+            costs.data(),
+            demands.data(),
+            tails.data(),
+            heads.data()
+        );
+        
+        mcf.SolveMCF();
+    }
+        
     Tensor1<R,Int> potentials (D.VertexCount());
 
     mcf.MCFGetPi(potentials.data());

@@ -1,6 +1,6 @@
 public:
 
-LinkEmbedding_T Embedding( cref<PD_T> pd, bool rotate_randomQ = true )
+LinkEmbedding_T Embedding( cref<PD_T> pd )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding"));
     
@@ -15,19 +15,22 @@ LinkEmbedding_T Embedding( cref<PD_T> pd, bool rotate_randomQ = true )
     
     if( settings.permute_randomQ )
     {
-        return Embedding_impl(pd.PermuteRandom(random_engine),rotate_randomQ);
+        return Embedding_impl(pd.CreatePermutedRandom(random_engine));
     }
     else
     {
-        return Embedding_impl(pd,rotate_randomQ);
+        return Embedding_impl(pd);
     }
 }
 
 
 private:
 
-LinkEmbedding_T Embedding_impl( cref<PD_T> pd, bool rotate_randomQ = true )
+LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
 {
+//    OrthoDraw_T       H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
+//    Tensor1<Real,Int> L = Levels(pd);
+
     OrthoDraw_T H;
     Tensor1<Real,Int> L;
     

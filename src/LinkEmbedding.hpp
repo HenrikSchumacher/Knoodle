@@ -386,9 +386,30 @@ namespace Knoodle
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+//            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
             
             T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+        }
+        
+        
+        void WriteVertexCoordinates( mptr<Real> v ) const
+        {
+            TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));
+            
+            if( preorderedQ )
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), &v[AmbDim * e] );
+                }
+            }
+            else
+            {
+                for( Int e = 0; e < edge_count; ++e )
+                {
+                    copy_buffer<AmbDim>( edge_coords.data(e), &v[AmbDim * edges(e,0)] );
+                }
+            }
         }
         
         template<bool shiftQ = true>
@@ -398,26 +419,15 @@ namespace Knoodle
             
             Tensor2<Real,Int> v_coords( edge_count, AmbDim );
             
-            if( preorderedQ )
-            {
-                for( Int e = 0; e < edge_count; ++e )
-                {
-                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(e) );
-                }
-            }
-            else
-            {
-                for( Int e = 0; e < edge_count; ++e )
-                {
-                    copy_buffer<AmbDim>( edge_coords.data(e), v_coords.data(edges(e,0)) );
-                }
-            }
+            WriteVertexCoordinates(v_coords.data());
             
             cref<Matrix3x3_T> R_new = Dot(A,R);
             // We make it so that we can restore the original coordinates up to shift from R.
             // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
             SetTransformationMatrix(A);
+            
             this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
+            
             SetTransformationMatrix(R_new);
         }
         

@@ -39,6 +39,12 @@ Tensor1<Turn_T,Int> Bends_MCF(
 
     const Int a_count = pd.Arcs().Dim(0);
     
+    TOOLS_LOGDUMP(pd.ArcCount());
+    TOOLS_LOGDUMP(pd.MaxArcCount());
+    TOOLS_LOGDUMP(pd.Arcs().Dim(0));
+    TOOLS_LOGDUMP(n);
+    TOOLS_LOGDUMP(m);
+    
     for( Int a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
@@ -64,27 +70,42 @@ Tensor1<Turn_T,Int> Bends_MCF(
     auto capacities = Bends_UpperBoundsOnVariables<R,I>(pd);
     auto demands    = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
+    TOOLS_LOGDUMP(tails.MinMax());
+    TOOLS_LOGDUMP(heads.MinMax());
+    TOOLS_LOGDUMP(tails);
+    TOOLS_LOGDUMP(heads);
+    TOOLS_LOGDUMP(costs);
+    TOOLS_LOGDUMP(capacities);
+    TOOLS_LOGDUMP(demands);
+    
+    
     MCFSimplex_T mcf (n,m);
 
-    mcf.LoadNet(
-        n, // maximal number of vertices
-        m, // maximal number of edges
-        n, // current number of vertices
-        m, // current number of edges
-        capacities.data(),
-        costs.data(),
-        demands.data(),
-        tails.data(),
-        heads.data()
-    );
-    
-    mcf.SolveMCF();
+    {
+        TOOLS_MAKE_FP_STRICT()
+        mcf.LoadNet(
+            n, // maximal number of vertices
+            m, // maximal number of edges
+            n, // current number of vertices
+            m, // current number of edges
+            capacities.data(),
+            costs.data(),
+            demands.data(),
+            tails.data(),
+            heads.data()
+        );
+        
+        mcf.SolveMCF();
+    }
 
     Tensor1<R,Int> s ( Int(2) * a_count );
 
     mcf.MCFGetX(s.data());
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
+    
+//    Turn_T min_bend = Scalar::Max<Turn_T>;
+//    Turn_T max_bend = Scalar::Min<Turn_T>;
 
     for( Int a = 0; a < a_count; ++a )
     {
@@ -92,13 +113,26 @@ Tensor1<Turn_T,Int> Bends_MCF(
         {
             const Int tail = A_idx(a,0);
             const Int head = A_idx(a,1);
-            bends[a] = static_cast<Turn_T>(std::round(s[head] - s[tail]));
+            const Turn_T bend = static_cast<Turn_T>(std::round(s[head] - s[tail]));
+            
+//            min_bend = Min(min_bend,bend);
+//            max_bend = Max(max_bend,bend);
+                
+            bends[a] = bend;
         }
         else
         {
-            bends[a] = Turn_T(0);
+            const Turn_T bend = Turn_T(0);
+            
+//            min_bend = Min(min_bend,bend);
+//            max_bend = Max(max_bend,bend);
+            
+            bends[a] = bend;
         }
     }
+    
+//    TOOLS_LOGDUMP(min_bend);
+//    TOOLS_LOGDUMP(max_bend);
 
     return bends;
 }

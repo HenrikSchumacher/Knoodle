@@ -85,14 +85,14 @@ void Generate_impl(
             Int(0),true,false
         );
         
-        Tensor1<Int,Int> comp_ptr;
-        Tensor1<Point_T,Int> x;
-        Link_T L;
+//        Tensor1<Int,Int> comp_ptr;
+//        Tensor1<Point_T,Int> x;
+//        Link_T L;
                 
         for( Int perm = 0; perm < permutation_count; ++perm )
         {
-            std::tie(comp_ptr,x) = Embedding(pd).Disband();
-            L = Link_T(comp_ptr);
+            auto [comp_ptr,x] = Embedding(pd).Disband();
+            Link_T L ( std::move(comp_ptr) );
             
             for( Int rot = 0; rot < rotation_count; ++rot )
             {

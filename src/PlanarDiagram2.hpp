@@ -19,7 +19,7 @@ namespace Knoodle
     // TODO: Port methods in Counters.hpp?
 
     template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagram2 final : public CachedObject
+    class PlanarDiagram2 final : public CachedObject<1,0,0,0>
     {
         static_assert(IntQ<Int_>,"");
         
@@ -31,7 +31,7 @@ namespace Knoodle
         using Int                       = Int_;
         using UInt                      = ToUnsigned<Int>;
         
-        using Base_T                    = CachedObject;
+        using Base_T                    = CachedObject<1,0,0,0>;
         using Class_T                   = PlanarDiagram2<Int>;
         using PD_T                      = PlanarDiagram2<Int>;
         
@@ -435,7 +435,7 @@ namespace Knoodle
 //#include "PlanarDiagram2/SpanningForest.hpp"
         
 
-#include "PlanarDiagram2/Permute.hpp"
+#include "PlanarDiagram2/Relabel.hpp"
 //#include "PlanarDiagram2/Planarity.hpp"
         
     public:
@@ -647,6 +647,11 @@ namespace Knoodle
         void PrintInfo() const
         {
             logprint(MethodName("PrintInfo") + " -- begin");
+            
+            TOOLS_LOGDUMP( max_crossing_count );
+            TOOLS_LOGDUMP( crossing_count );
+            TOOLS_LOGDUMP( max_arc_count );
+            TOOLS_LOGDUMP( arc_count );
             
             TOOLS_LOGDUMP( C_arcs );
             TOOLS_LOGDUMP( C_state );

@@ -8,9 +8,9 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
     {
         const auto & A_lc = ArcLinkComponents();
         
-        // Using a hash map to delete duplicates.
-        // TODO: We could also use a Sparse::BinaryMatrix here.
-        // TODO: But using an associative container might be faster because it uses much less memory.
+        // TODO: In case of few link components, we could assemble the dense adjacency matrix and build the matrix from there.
+        
+        // Using a hash container to delete duplicates.
         
         SetContainer<std::pair<Int,Int>,Tools::pair_hash<Int,Int>> aggregator;
         
@@ -44,7 +44,12 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
             ++counter;
         }
         
-        this->SetCache( tag, MultiGraph_T( LinkComponentCount(), std::move(comp_edges) ) );
+        MultiGraph_T G ( LinkComponentCount(), std::move(comp_edges) );
+        
+        TOOLS_LOGDUMP(G.VertexCount());
+        TOOLS_LOGDUMP(G.EdgeCount());
+        
+        this->SetCache( tag, std::move(G) );
     }
     
     return this->template GetCache<MultiGraph_T>(tag);
@@ -57,7 +62,14 @@ cref<ComponentMatrix_T> DiagramComponentLinkComponentMatrix() const
 
 Int DiagramComponentCount() const
 {
-    return DiagramComponentLinkComponentMatrix().RowCount();
+    if( LinkComponentCount() <= Int(1) )
+    {
+        return Int(1);
+    }
+    else
+    {
+        return DiagramComponentLinkComponentMatrix().RowCount();
+    }
 }
 
 

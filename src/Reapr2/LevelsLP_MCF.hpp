@@ -4,32 +4,39 @@ public:
 template<typename T = Real>
 Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
 {
-    TOOLS_MAKE_FP_STRICT();
-    
     using MCFSimplex_T = MCF::MCFSimplex;
     using R = MCFSimplex_T::FNumber;
     using I = MCFSimplex_T::Index;
     
-    std::string tag = MethodName("LevelsLP_MCF");
+    [[maybe_unused]] auto tag = [](){ return MethodName("LevelsLP_MCF"); };
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,tag());
     
     {
         Size_T max_idx = Size_T(5) * static_cast<Size_T>(pd.CrossingCount());
         
         if( std::cmp_greater( max_idx, std::numeric_limits<I>::max() ) )
         {
-            eprint(tag + ": Too many arcs to fit into type " + TypeName<I> + ".");
+            eprint(tag() + ": Too many arcs to fit into type " + TypeName<I> + ".");
             
             return Tensor1<T,Int>();
         }
     }
     
-    // We use LevelsLP_ArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active.
+    // We use PackedArcIndices/RandomPackedArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active. In order to avoid allocation of short-time memory, we use C_scratch and A_scratch.
     
-    cptr<Int> A_pos   = LevelsLP_ArcIndices(pd).data();
-    cptr<Int> A_next  = pd.ArcNextArc().data();
+    if( settings.permute_randomQ )
+    {
+        pd.ScratchRandomPackedArcIndices( random_engine );
+    }
+    else
+    {
+        pd.ScratchPackedArcIndices();
+    }
     
+    cptr<Int> a_map  = pd.ArcScratchBuffer().data();
+    cptr<Int> A_next = pd.ArcNextArc().data();
+
     const I n = I(4) * static_cast<I>(pd.CrossingCount());
     const I m = I(5) * static_cast<I>(pd.CrossingCount());
     
@@ -38,18 +45,19 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     Tensor1<I,I> heads   (m);
     Tensor1<R,I> costs   (m);
     Tensor1<R,I> defects (n);
-    
+
     // First, we loop over all (active) arcs to generate the cycle edges.
     
-    const Int a_count = pd.MaxArcCount();
+    const I   arc_count     = static_cast<I>(pd.ArcCount());
+    const Int max_arc_count = pd.MaxArcCount();
     
-    for( Int a = 0; a < a_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
-        const I v_0 = static_cast<I>(A_pos[a]);
-        const I v_1 = static_cast<I>(A_pos[A_next[a]]);
-        const I w   = static_cast<I>(a_count) + v_0;
+        const I v_0 = static_cast<I>(a_map[a]);
+        const I v_1 = static_cast<I>(a_map[A_next[a]]);
+        const I w   = arc_count + v_0;
 
         // MCF uses 1-based vertex indices!
         
@@ -67,18 +75,18 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     
     // Next, we loop over all (active) crossing to generate the matching edges.
     
-    const Int c_count = pd.MaxCrossingCount();
+    const Int max_crossing_count = pd.MaxCrossingCount();
           Int c_pos   = n;
     
     cptr<Int>             C_arcs   = pd.Crossings().data();
     cptr<CrossingState_T> C_states = pd.CrossingStates().data();
     
-    for( Int c = 0; c < c_count; ++c )
+    for( Int c = 0; c < max_crossing_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; };
         
-        const I v_L = static_cast<I>(A_pos[C_arcs[Int(4) * c + Int(0)]]);
-        const I v_R = static_cast<I>(A_pos[C_arcs[Int(4) * c + Int(1)]]);
+        const I v_L = static_cast<I>(a_map[C_arcs[Int(4) * c + Int(0)]]);
+        const I v_R = static_cast<I>(a_map[C_arcs[Int(4) * c + Int(1)]]);
         
         if( RightHandedQ(C_states[c]) )
         {
@@ -98,31 +106,33 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     
     MCFSimplex_T mcf (n,m);
 
-    mcf.LoadNet(
-        n, // maximal number of vertices
-        m, // maximal number of edges
-        n, // current number of vertices
-        m, // current number of edges
-        upper.data(),
-        costs.data(),
-        defects.data(),
-        tails.data(),
-        heads.data()
-    );
-    
-    mcf.SolveMCF();
-
+    {
+        TOOLS_MAKE_FP_STRICT()
+        mcf.LoadNet(
+            n, // maximal number of vertices
+            m, // maximal number of edges
+            n, // current number of vertices
+            m, // current number of edges
+            upper.data(),
+            costs.data(),
+            defects.data(),
+            tails.data(),
+            heads.data()
+        );
+        
+        mcf.SolveMCF();
+    }
     Tensor1<R,Int> potentials ( n );
 
     mcf.MCFGetPi(potentials.data());
     
     Tensor1<T,Int> L ( pd.ArcCount() );
     
-    for( Int a = 0; a < a_count; ++a )
+    for( Int a = 0; a < max_arc_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            L[a] = static_cast<T>(potentials[A_pos[a]]);
+            L[a] = static_cast<T>(potentials[a_map[a]]);
         }
         else
         {
@@ -131,60 +141,4 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     }
     
     return L;
-}
-
-cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PD_T> pd ) const
-{
-    std::string tag (MethodName("LevelsLP_ArcIndices"));
-    
-    if(!pd.InCacheQ(tag))
-    {
-        const Int a_count = pd.MaxArcCount();
-        
-        Tensor1<Int,Int> A_idx ( a_count );
-        Permutation<Int> perm;
-        
-        Int a_idx = 0;
-        
-        if( settings.permute_randomQ )
-        {
-            perm = Permutation<Int>::RandomPermutation(
-               a_count, Int(1), random_engine
-            );
-            
-            cptr<Int> p = perm.GetPermutation().data();
-            
-            for( Int a = 0; a < a_count; ++a )
-            {
-                if( pd.ArcActiveQ(a) )
-                {
-                    A_idx(a) = p[a_idx];
-                    ++a_idx;
-                }
-                else
-                {
-                    A_idx(a) = PD_T::Uninitialized;
-                }
-            }
-        }
-        else
-        {
-            for( Int a = 0; a < a_count; ++a )
-            {
-                if( pd.ArcActiveQ(a) )
-                {
-                    A_idx(a) = a_idx;
-                    ++a_idx;
-                }
-                else
-                {
-                    A_idx(a) = PD_T::Uninitialized;
-                }
-            }
-        }
-        
-        pd.SetCache(tag,std::move(A_idx));
-    }
-    
-    return pd.template GetCache<Tensor1<Int,Int>>(tag);
 }

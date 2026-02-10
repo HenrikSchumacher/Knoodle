@@ -26,9 +26,7 @@ public:
           
         // TODO: Randomly rotate until not degenerate.
         
-        TOOLS_PTIC("FindIntersectingEdges_DFS");
         FindIntersectingEdges_DFS();
-        TOOLS_PTOC("FindIntersectingEdges_DFS");
         
         // Check for bad intersections.
 
@@ -124,7 +122,6 @@ public:
         
         if( intersection_count <= Int(0) ) { return 0; }
         
-        TOOLS_PTIC("Counting sort");
         for( Int k = intersection_count; k --> Int(0);  )
         {
             Intersection_T & inter = intersections[static_cast<Size_T>(k)];
@@ -198,8 +195,6 @@ public:
         }
         
         intersection_flag_counts[8] = close_counter;
-        
-        TOOLS_PTOC("Counting sort");
         
         
         if( intersection_flag_counts[8] )
