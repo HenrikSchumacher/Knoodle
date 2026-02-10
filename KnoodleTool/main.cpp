@@ -96,6 +96,7 @@ struct Config
     bool label_levels        = false;        ///< Label arc levels in ASCII art
     bool label_faces         = false;        ///< Label faces in ASCII art
     std::vector<std::vector<Int>> highlight_arc_groups; ///< Arc highlight color groups
+    OrthoDraw_T::HighlightMode_T highlight_mode = OrthoDraw_T::HighlightMode_T::ANSI;
     bool output_levels       = false;        ///< Include arc levels in output (4 extra columns)
     bool quiet               = false;        ///< Suppress per-knot reports, show counter only
     
@@ -462,6 +463,10 @@ void PrintUsage()
     Log("  --label-faces              Label interior faces in ASCII art (F0, F1, ...)");
     Log("  --highlight-arcs=A,B,C     Highlight arcs with ANSI color");
     Log("                              (repeatable; each use = new color group)");
+    Log("  --highlight-mode=MODE      Highlighting mode for --highlight-arcs:");
+    Log("                                ansi   ANSI escape codes (default)");
+    Log("                                chars  Character substitution (plain text)");
+    Log("                                html   HTML <span> tags (browsers/Marked 2)");
     Log("  --output-levels             Include arc levels (4 extra columns per crossing)");
     Log("  -q, --quiet                 Suppress per-knot reports, show counter only");
     Log("");
@@ -666,6 +671,28 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!group.empty())
             {
                 config.highlight_arc_groups.push_back(std::move(group));
+            }
+        }
+        // Highlight mode
+        else if (arg.starts_with("--highlight-mode="))
+        {
+            std::string mode = ToLower(arg.substr(17));
+            if (mode == "ansi")
+            {
+                config.highlight_mode = OrthoDraw_T::HighlightMode_T::ANSI;
+            }
+            else if (mode == "chars")
+            {
+                config.highlight_mode = OrthoDraw_T::HighlightMode_T::Chars;
+            }
+            else if (mode == "html")
+            {
+                config.highlight_mode = OrthoDraw_T::HighlightMode_T::HTML;
+            }
+            else
+            {
+                LogError("Unknown highlight mode: '" + mode + "' (expected ansi, chars, or html)");
+                return std::nullopt;
             }
         }
         // Levels output
@@ -1331,7 +1358,8 @@ void WriteAsciiDrawings(SimplifiedKnot& knot, std::ostream& out,
         .label_arcsQ         = config.label_arcs,
         .label_levelsQ       = config.label_levels,
         .label_facesQ        = config.label_faces,
-        .highlight_arc_groups = config.highlight_arc_groups
+        .highlight_arc_groups = config.highlight_arc_groups,
+        .highlight_mode       = config.highlight_mode
     };
 
     for (std::size_t i = 0; i < knot.summands.size(); ++i)
