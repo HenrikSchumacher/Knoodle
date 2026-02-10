@@ -492,6 +492,118 @@ std::string DiagramString() const
         }
     }
 
+    // Pass 5.5: Jump markers for level transitions.
+    if( settings.label_levelsQ && !settings.arc_levels.empty() )
+    {
+        const auto & A_next_A = ArcNextArc();
+
+        for( Int a = 0; a < A_count; ++a )
+        {
+            if( !EdgeActiveQ(a) ) { continue; }
+            if( ToSize_T(a) >= settings.arc_levels.size() ) { continue; }
+
+            const Int next_a = A_next_A[a];
+
+            if( ToSize_T(next_a) >= settings.arc_levels.size() ) { continue; }
+            if( settings.arc_levels[ToSize_T(a)] == settings.arc_levels[ToSize_T(next_a)] ) { continue; }
+
+            const Int k_begin = A_E.Pointers()[a  ];
+            const Int k_end   = A_E.Pointers()[a+1];
+
+            if( k_begin >= k_end ) { continue; }
+
+            // Find the longest edge (label_edge) — same logic as Pass 5.
+            Int label_edge = A_E.Elements()[k_begin];
+            Int label_len  = Int(0);
+
+            for( Int k = k_begin; k < k_end; ++k )
+            {
+                const Int e  = A_E.Elements()[k];
+                const Int v0 = E_V(e,0);
+                const Int v1 = E_V(e,1);
+
+                const Int dx = Abs( V_coords(v1,0) - V_coords(v0,0) );
+                const Int dy = Abs( V_coords(v1,1) - V_coords(v0,1) );
+                const Int len = dx + dy;
+
+                if( len > label_len )
+                {
+                    label_len  = len;
+                    label_edge = e;
+                }
+            }
+
+            // Jump edge = last edge of arc (closest to head crossing).
+            Int jump_edge = A_E.Elements()[k_end - 1];
+
+            if( jump_edge == label_edge && k_end - k_begin > Int(1) )
+            {
+                jump_edge = A_E.Elements()[k_end - 2];
+            }
+
+            // Compute jump edge length and place marker.
+            const Int jv0 = E_V(jump_edge,0);
+            const Int jv1 = E_V(jump_edge,1);
+            const Int jdx = Abs( V_coords(jv1,0) - V_coords(jv0,0) );
+            const Int jdy = Abs( V_coords(jv1,1) - V_coords(jv0,1) );
+            const Int edge_len = jdx + jdy;
+
+            std::string marker;
+            if( edge_len >= Int(8) )
+            {
+                marker = "(JUMP)";
+            }
+            else if( edge_len >= Int(5) )
+            {
+                marker = "(J)";
+            }
+            else
+            {
+                marker = "J";
+            }
+
+            int jump_group = has_highlights ? arc_group[ToSize_T(a)] : -1;
+
+            const Int jx0 = V_coords(jv0,0);
+            const Int jy0 = V_coords(jv0,1);
+            const Int jx1 = V_coords(jv1,0);
+            const Int jy1 = V_coords(jv1,1);
+
+            if( jump_edge != label_edge )
+            {
+                // Place at midpoint of jump edge.
+                if( jy0 == jy1 )
+                {
+                    const Int mid_x = (jx0 + jx1) / Int(2) - static_cast<Int>(marker.size()) / Int(2);
+                    set_string( mid_x, jy0, marker );
+                    set_string_color( mid_x, jy0, marker.size(), jump_group );
+                }
+                else
+                {
+                    const Int mid_y = (jy0 + jy1) / Int(2);
+                    set_string( jx0 + Int(1), mid_y, marker );
+                    set_string_color( jx0 + Int(1), mid_y, marker.size(), jump_group );
+                }
+            }
+            else
+            {
+                // Single-edge fallback: place at 3/4 point (closer to head).
+                if( jy0 == jy1 )
+                {
+                    const Int qx = jx0 + (jx1 - jx0) * Int(3) / Int(4) - static_cast<Int>(marker.size()) / Int(2);
+                    set_string( qx, jy0, marker );
+                    set_string_color( qx, jy0, marker.size(), jump_group );
+                }
+                else
+                {
+                    const Int qy = jy0 + (jy1 - jy0) * Int(3) / Int(4);
+                    set_string( jx0 + Int(1), qy, marker );
+                    set_string_color( jx0 + Int(1), qy, marker.size(), jump_group );
+                }
+            }
+        }
+    }
+
     // Pass 6: Face labels via flood fill on the character grid.
     if( settings.label_facesQ )
     {
