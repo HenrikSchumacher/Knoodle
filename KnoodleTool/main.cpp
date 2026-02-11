@@ -97,6 +97,7 @@ struct Config
     bool label_faces         = false;        ///< Label faces in ASCII art
     std::vector<std::vector<Int>> highlight_arc_groups; ///< Arc highlight color groups
     OrthoDraw_T::HighlightMode_T highlight_mode = OrthoDraw_T::HighlightMode_T::ANSI;
+    int x_grid_size          = 12;           ///< Horizontal grid spacing for ASCII art
     bool output_levels       = false;        ///< Include arc levels in output (4 extra columns)
     bool quiet               = false;        ///< Suppress per-knot reports, show counter only
     
@@ -457,6 +458,7 @@ void PrintUsage()
     Log("Output options:");
     Log("  --output=FILE               Write all output to FILE");
     Log("  --output-ascii-drawing=FILE Generate ASCII art diagrams");
+    Log("  --x-grid-size=N             Horizontal grid spacing for ASCII art (default: 12)");
     Log("  --label-crossings          Label crossings in ASCII art with their indices");
     Log("  --label-arcs               Label arcs in ASCII art with their indices");
     Log("  --label-levels             Label arc levels in ASCII art (uses --reapr-energy)");
@@ -692,6 +694,24 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             else
             {
                 LogError("Unknown highlight mode: '" + mode + "' (expected ansi, chars, or html)");
+                return std::nullopt;
+            }
+        }
+        // X grid size
+        else if (arg.starts_with("--x-grid-size="))
+        {
+            try
+            {
+                config.x_grid_size = std::stoi(std::string(arg.substr(14)));
+                if (config.x_grid_size < 4)
+                {
+                    LogError("x-grid-size must be at least 4");
+                    return std::nullopt;
+                }
+            }
+            catch (const std::exception&)
+            {
+                LogError("Invalid x-grid-size value");
                 return std::nullopt;
             }
         }
@@ -1350,7 +1370,7 @@ void WriteAsciiDrawings(SimplifiedKnot& knot, std::ostream& out,
                         const Config& config)
 {
     OrthoDraw_T::Settings_T settings{
-        .x_grid_size = 8,
+        .x_grid_size = config.x_grid_size,
         .y_grid_size = 4,
         .x_gap_size  = 1,
         .y_gap_size  = 1,
