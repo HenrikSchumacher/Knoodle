@@ -140,11 +140,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
                 if constexpr (debugQ)
                 {
-                    if( a_counter >= pd_new.max_arc_count )
+                    if( a_counter >= pd_new.MaxArcCount() )
                     {
                         TOOLS_LOGDUMP(a_counter);
-                        TOOLS_LOGDUMP(pd_new.max_arc_count);
-                        pd_eprint("a_counter >= pd_new.max_arc_count");
+                        TOOLS_LOGDUMP(pd_new.MaxArcCount());
+                        pd_eprint("a_counter >= pd_new.MaxArcCount()");
                     }
                 }
                 
@@ -176,11 +176,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
                 if constexpr (debugQ)
                 {
-                    if( c_0_label >= pd_new.max_crossing_count )
+                    if( c_0_label >= pd_new.MaxCrossingCount() )
                     {
                         TOOLS_LOGDUMP(c_0_label);
-                        TOOLS_LOGDUMP(pd_new.max_crossing_count);
-                        pd_eprint("c_0_label >= pd_new.max_crossing_count");
+                        TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
+                        pd_eprint("c_0_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 
@@ -201,11 +201,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                 
                 if constexpr (debugQ)
                 {
-                    if( c_1_label >= pd_new.max_crossing_count )
+                    if( c_1_label >= pd_new.MaxCrossingCount() )
                     {
                         TOOLS_LOGDUMP(c_1_label);
-                        TOOLS_LOGDUMP(pd_new.max_crossing_count);
-                        pd_eprint("c_1_label >= pd_new.max_crossing_count");
+                        TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
+                        pd_eprint("c_1_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 pd_new.C_arcs(c_1_label,In,side_1) = a_counter;
@@ -221,31 +221,31 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
         
         if constexpr (debugQ)
         {
-            if( pd_new.crossing_count <= Int(0) )
+            if( pd_new.CrossingCount() <= Int(0) )
             {
-                TOOLS_LOGDUMP(pd_new.crossing_count);
+                TOOLS_LOGDUMP(pd_new.CrossingCount());
                 pd_eprint("pd_new.crossing_count <= Int(0)");
             }
             
-            if( pd_new.crossing_count != pd_new.max_crossing_count )
+            if( pd_new.CrossingCount() != pd_new.max_crossing_count )
             {
-                TOOLS_LOGDUMP(pd_new.crossing_count);
-                TOOLS_LOGDUMP(pd_new.max_crossing_count);
+                TOOLS_LOGDUMP(pd_new.CrossingCount());
+                TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
                 pd_eprint("pd_new.crossing_count != pd_new.max_crossing_count");
             }
             
-            if( pd_new.arc_count != pd_new.max_arc_count )
+            if( pd_new.ArcCount() != pd_new.MaxArcCount() )
             {
-                TOOLS_LOGDUMP(pd_new.arc_count);
-                TOOLS_LOGDUMP(pd_new.max_arc_count);
-                pd_eprint("pd_new.arc_count != pd_new.max_arc_count");
+                TOOLS_LOGDUMP(pd_new.ArcCount());
+                TOOLS_LOGDUMP(pd_new.MaxArcCount());
+                pd_eprint("pd_new.arc_count != pd_new.MaxArcCount()");
             }
             
-            if( pd_new.arc_count != Int(2) * pd_new.crossing_count )
+            if( pd_new.ArcCount() != Int(2) * pd_new.CrossingCount() )
             {
-                TOOLS_LOGDUMP(pd_new.arc_count);
-                TOOLS_LOGDUMP(2 * pd_new.crossing_count);
-                pd_eprint("pd_new.arc_count != Int(2) * pd_new.crossing_count");
+                TOOLS_LOGDUMP(pd_new.ArcCount());
+                TOOLS_LOGDUMP(2 * pd_new.CrossingCount());
+                pd_eprint("pd_new.ArcCount() != Int(2) * pd_new.CrossingCount()");
             }
             
             if( !pd_new.CheckAll() )
@@ -254,9 +254,9 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
             }
         }
         
-        PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.crossing_count) + " crossings.");
+        PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.CrossingCount()) + " crossings.");
         
-        PD_ASSERT( pd_new.crossing_count > Int(0) );
+        PD_ASSERT( pd_new.CrossingCount() > Int(0) );
         
         if( pd_new.ValidQ() )
         {

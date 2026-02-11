@@ -103,7 +103,6 @@ int main( int argc, char** argv )
     OrthoDraw_T H (pd, Int(-1),
         {
             .bend_method              = OrthoDraw_T::BendMethod_T::Bends_MCF,
-            .network_matrixQ          = true,
             .use_dual_simplexQ        = false,
             .randomize_bends          = 0,
             .redistribute_bendsQ      = true,

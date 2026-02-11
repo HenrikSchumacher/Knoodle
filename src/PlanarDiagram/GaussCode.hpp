@@ -172,7 +172,7 @@ static PlanarDiagram FromExtendedGaussCode(
         return 0;
     };
     
-    for( Int a = pd.max_arc_count; a --> Int(1); )
+    for( Int a = pd.MaxArcCount(); a --> Int(1); )
     {
         if( fun( a-Int(1), a ) )
         {

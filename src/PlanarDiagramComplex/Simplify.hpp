@@ -219,6 +219,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
                 {
                     PD_T pd_reapr = std::move(reapr_list.back());
                     reapr_list.pop_back();
+                    
                     change_count += this->template Rattle<debugQ,targs>( S, reapr, std::move(pd_reapr), args );
                 }
                 
@@ -313,6 +314,30 @@ Size_T Rattle(
 //        wprint(MethodName("Rattle") + ": Input diagram is minimal (crossing_count = " + ToString(pd.crossing_count) + "). No point calling Rattle.");
 //    }
     
+    
+//    // DEBUGGING
+//
+//    pd.PrintInfo();
+//
+//    if( pd.InCacheQ("ArcNextArc") && !pd.CheckArcNextArc() )
+//    {
+//        pd_eprint(tag() + "!pd.CheckArcNextArc()");
+//    }
+//
+//    if( pd.InCacheQ("ArcLeftDarcs") && !pd.CheckArcLeftDarcs() )
+//    {
+//        pd_eprint(tag() + "!pd.CheckArcLeftDarcs() ");
+//    }
+
+    // TODO: For some reason, reapr.Embedding(pd) will break if args.reapr_permute_randomQ == false and args.compressQ == false. So, let's compress here.
+    // TODO: It would be great if we did not have to erase, e.g., the face information.
+    // TODO: However, typically, we will use args.reapr_permute_randomQ == true anyways, and then it does not matter.
+    if( !args.reapr_permute_randomQ )
+    {
+        pd.Compress();
+        //    pd.ClearCache();
+    }
+    
     PD_T pd_1;
     
     Size_T strand_change_count = 0;
@@ -320,9 +345,12 @@ Size_T Rattle(
     
     constexpr Size_T max_projection_iter = 10;
     bool progressQ = false;
-        
+     
+    
     for( Size_T iter = 0; iter < args.reapr_embedding_trials; ++iter )
     {
+        // We want to exploit here that some information needed for OrthoDraw is already cached.
+        // However, this will help only if args.permute_randomQ == false.
         LinkEmbedding_T emb = reapr.Embedding(pd);
         
         for( Size_T rot = 0; rot < args.reapr_rotation_trials; ++rot )

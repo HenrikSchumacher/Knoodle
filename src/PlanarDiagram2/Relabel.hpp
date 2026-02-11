@@ -36,7 +36,7 @@ PD_T CreateRelabeled(
     pd.proven_minimalQ        = this->proven_minimalQ;
     pd.last_color_deactivated = this->last_color_deactivated;
     
-    for( Int s = 0; s < max_crossing_count; ++s )
+    for( Int s = 0; s < MaxCrossingCount(); ++s )
     {
         if( !this->CrossingActiveQ(s) ) { continue; }
         
@@ -64,7 +64,7 @@ PD_T CreateRelabeled(
         C_t.Write( pd.C_arcs.data(t) );
     }
     
-    for( Int s = 0; s < max_arc_count; ++s )
+    for( Int s = 0; s < MaxArcCount(); ++s )
     {
         if( !this->ArcActiveQ(s) ) { continue; }
         
@@ -109,7 +109,7 @@ void WritePackedCrossingIndices( mptr<Int> c_map ) const
 {
     Int c_label = 0;
     
-    for( Int c = 0; c < max_crossing_count; ++c )
+    for( Int c = 0; c < MaxCrossingCount(); ++c )
     {
         if( CrossingActiveQ(c) )
         {
@@ -130,7 +130,7 @@ void ScratchPackedCrossingIndices() const
 
 Tensor1<Int,Int> PackedCrossingIndices() const
 {
-    Tensor1<Int,Int> c_map ( max_crossing_count );
+    Tensor1<Int,Int> c_map ( MaxCrossingCount() );
     
     WritePackedCrossingIndices(c_map.data());
     
@@ -141,7 +141,7 @@ void WritePackedArcIndices( mptr<Int> a_map ) const
 {
     Int a_label = 0;
     
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( ArcActiveQ(a) )
         {
@@ -162,7 +162,7 @@ void ScratchPackedArcIndices() const
 
 Tensor1<Int,Int> PackedArcIndices() const
 {
-    Tensor1<Int,Int> a_map ( max_arc_count );
+    Tensor1<Int,Int> a_map ( MaxArcCount() );
     
     WritePackedArcIndices(a_map.data());
     
@@ -170,9 +170,15 @@ Tensor1<Int,Int> PackedArcIndices() const
 }
 
 
+bool PackedQ() const
+{
+    return CrossingCount() == MaxCrossingCount();
+}
+
+
 PD_T CreatePacked() const
 {
-    if( crossing_count == max_crossing_count )
+    if( PackedQ() )
     {
         PD_T pd = *this;
         
@@ -181,12 +187,12 @@ PD_T CreatePacked() const
     
     ScratchPackedCrossingIndices();
     ScratchPackedArcIndices();
-    return CreateRelabeled( C_scratch.data(), crossing_count, A_scratch.data(), arc_count, true );
+    return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 
 void Pack()
 {
-    if( crossing_count == max_crossing_count ) { return; }
+    if( PackedQ() ) { return; }
     PD_T pd = CreatePacked();
     if( ValidQ() == pd.ValidQ() ) { *this = std::move(pd); }
 }
@@ -197,7 +203,7 @@ void WriteRandomPackedCrossingIndices( mref<PRNG_T> random_engine, mptr<Int> c_m
     Int c_label = 0;
     Permutation<Int> perm = Permutation<Int>::RandomPermutation( crossing_count, Int(1), random_engine );
     cptr<Int> p = perm.GetPermutation().data();
-    for( Int c = 0; c < max_crossing_count; ++c )
+    for( Int c = 0; c < MaxCrossingCount(); ++c )
     {
         if( CrossingActiveQ(c) )
         {
@@ -220,7 +226,7 @@ template<typename PRNG_T>
 Tensor1<Int,Int> RandomPackedCrossingIndices( mref<PRNG_T> random_engine ) const
 {
     std::string tag (MethodName("RandomPackedCrossingIndices"));
-    Tensor1<Int,Int> c_map ( max_crossing_count );
+    Tensor1<Int,Int> c_map ( MaxCrossingCount() );
     WriteRandomPackedCrossingIndices( random_engine, c_map.data() );
     return c_map;
 }
@@ -234,7 +240,7 @@ void WriteRandomPackedArcIndices( mref<PRNG_T> random_engine, mptr<Int> a_map ) 
 
     cptr<Int> p = perm.GetPermutation().data();
 
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( ArcActiveQ(a) )
         {
@@ -266,7 +272,7 @@ PD_T CreatePermutedRandom( mref<PRNG_T> random_engine ) const
 {
     ScratchRandomPackedCrossingIndices( random_engine );
     ScratchRandomPackedArcIndices( random_engine );
-    return CreateRelabeled( C_scratch.data(), crossing_count, A_scratch.data(), arc_count, true );
+    return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 
 

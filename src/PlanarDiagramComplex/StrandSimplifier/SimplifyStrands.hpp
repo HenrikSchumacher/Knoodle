@@ -81,8 +81,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     Int a_ptr = 0;
     change_counter   = 0;
 
-    const Int pd_max_crossing_count = pd->max_crossing_count;
-    const Int pd_max_arc_count      = pd->max_arc_count;
+    const Int pd_max_crossing_count = pd->MaxCrossingCount();
+    const Int pd_max_arc_count      = pd->MaxArcCount();
     
     PD_VALPRINT("pd->crossing_count",pd->crossing_count);
     

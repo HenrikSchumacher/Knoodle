@@ -43,7 +43,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
     
     using R = COIN_Real;
     using I = COIN_Int;
-    using J = COIN_LInt;
+//    using J = COIN_LInt;
     using Clp_T = ClpWrapper<double,Int,Int>;
     using Settings_T = Clp_T::Settings_T;
     
@@ -53,73 +53,71 @@ Tensor1<Turn_T,Int> Bends_CLP(
     
     Settings_T param { .dualQ = settings.use_dual_simplexQ };
     
-    auto A_idx = Bends_ArcIndices(pd);
+//    auto A_idx = Bends_ArcIndices(pd);
     
     const Int a_count = pd.Arcs().Dim(0);
     
-    if( settings.network_matrixQ )
-    {
-        cptr<Int> dA_F = pd.ArcFaces().data();
-        
-        const I n = Bends_VarCount<I>(pd);
+    cptr<Int> dA_F = pd.ArcFaces().data();
+    
+    const I n = Bends_VarCount<I>(pd);
 //        const I m = Bends_ConCount<I>(pd);
-        
-        Tensor1<COIN_Int,I> tails ( n );
-        Tensor1<COIN_Int,I> heads ( n );
- 
-        for( Int a = 0; a < a_count; ++a )
-        {
-            if( !pd.ArcActiveQ(a) ) { continue; };
-            
-            // right face of a
-            const I f_0  = static_cast<I>( dA_F[pd.ToDarc(a,Tail)] );
-            // left  face of a
-            const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
+    
+    Tensor1<COIN_Int,I> tails ( n );
+    Tensor1<COIN_Int,I> heads ( n );
+    
+    Int a_counter = 0;
 
-            // Clp seems to work with different sign than I.
-            
-            const I di_0 = static_cast<I>( A_idx(a,0) );
-            const I di_1 = static_cast<I>( A_idx(a,1) );
-
-            tails[di_0] = f_0;
-            heads[di_0] = f_1;
-            
-            tails[di_1] = f_1;
-            heads[di_1] = f_0;
-        }
-                
-        clp = std::make_shared<Clp_T>(
-            tails, heads,
-            Bends_ObjectiveVector<R,I>(pd),
-            Bends_LowerBoundsOnVariables<R,I>(pd),
-            Bends_UpperBoundsOnVariables<R,I>(pd),
-            con_eq,
-            param
-        );
-    }
-    else
+    for( Int a = 0; a < a_count; ++a )
     {
-        clp = std::make_shared<Clp_T>(
-            Bends_ObjectiveVector<R,I>(pd),
-            Bends_LowerBoundsOnVariables<R,I>(pd),
-            Bends_UpperBoundsOnVariables<R,I>(pd),
-            Bends_ConstraintMatrix<R,I,J>(pd,A_idx),
-            con_eq,
-            con_eq,
-            param
-        );
+        if( !pd.ArcActiveQ(a) ) { continue; };
+        
+        // right face of a
+        const I f_0  = static_cast<I>( dA_F[pd.ToDarc(a,Tail)] );
+        // left  face of a
+        const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
+
+        // Clp seems to work with different sign than I.
+        
+//            const I di_0 = static_cast<I>( A_idx(a,0) );
+//            const I di_1 = static_cast<I>( A_idx(a,1) );
+        
+        const I di_0 = static_cast<I>( PD_T::ToDarc(a_counter,Tail) );
+        const I di_1 = static_cast<I>( PD_T::ToDarc(a_counter,Head) );
+        ++a_counter;
+
+        tails[di_0] = f_0;
+        heads[di_0] = f_1;
+        
+        tails[di_1] = f_1;
+        heads[di_1] = f_0;
     }
+            
+    clp = std::make_shared<Clp_T>(
+        tails, heads,
+        Bends_ObjectiveVector<R,I>(pd),
+        Bends_LowerBoundsOnVariables<R,I>(pd),
+        Bends_UpperBoundsOnVariables<R,I>(pd),
+        con_eq,
+        param
+    );
     
     auto s = clp->template IntegralPrimalSolution<Turn_T>();
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     
+    a_counter = 0;
+    
     for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            const Int tail = A_idx(a,0);
-            const Int head = A_idx(a,1);
+//            const Int tail = A_idx(a,0);
+//            const Int head = A_idx(a,1);
+            
+            const Int tail = PD_T::ToDarc(a_counter,Tail);
+            const Int head = PD_T::ToDarc(a_counter,Head);
+            ++a_counter;
+            
             bends[a] = s[head] - s[tail];
         }
         else

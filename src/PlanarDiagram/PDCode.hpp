@@ -365,9 +365,9 @@ static PlanarDiagram FromPDCode(
     pd.proven_minimalQ = proven_minimalQ_;
 
     // The maximally allowed arc index.
-    const Int max_a = pd.max_arc_count - 1;
+    const Int max_a = pd.MaxArcCount() - 1;
     
-    for( Int c = 0; c < pd.max_crossing_count; ++c )
+    for( Int c = 0; c < pd.MaxCrossingCount(); ++c )
     {
         Int X [4];
         ExtInt state;
@@ -536,7 +536,7 @@ static PlanarDiagram FromPDCode(
     
     bool all_arcs_initializedQ = true;
 
-    for( Int a = 0; a < pd.max_arc_count; ++a )
+    for( Int a = 0; a < pd.MaxArcCount(); ++a )
     {
         if( pd.A_cross(a,Tail) == Uninitialized )
         {

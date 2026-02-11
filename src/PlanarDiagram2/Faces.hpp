@@ -98,7 +98,7 @@ void ComputeFaces() const
     
     cptr<Int> dA_left_dA = ArcLeftDarcs().data();
 
-    PD_ASSERT(CheckLeftDarc());
+    PD_ASSERT(CheckArcLeftDarcs());
     
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
     ArcContainer_T dA_F_buffer (max_arc_count, Uninitialized );

@@ -46,9 +46,6 @@ cref<MultiGraph_T> DiagramComponentLinkComponentGraph() const
         
         MultiGraph_T G ( LinkComponentCount(), std::move(comp_edges) );
         
-        TOOLS_LOGDUMP(G.VertexCount());
-        TOOLS_LOGDUMP(G.EdgeCount());
-        
         this->SetCache( tag, std::move(G) );
     }
     

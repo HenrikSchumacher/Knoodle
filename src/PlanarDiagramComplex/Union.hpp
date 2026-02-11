@@ -57,7 +57,7 @@ PDC_T Union() const
         }
         pd.C_state.Write( pd_union.C_state.data(C_pos) );
         
-        for( Int a = 0; a < pd.max_arc_count; ++a )
+        for( Int a = 0; a < pd.MaxArcCount(); ++a )
         {
             const Int a_pos = A_pos + a;
             A_Cross_T A = pd.CopyArc(a);
@@ -91,7 +91,7 @@ RaggedList<Int,Int> UnionArcMaps() const
         
         const Int A_pos = arc_maps.ElementCount();
 
-        for( Int a = 0; a < pd.max_arc_count; ++a )
+        for( Int a = 0; a < pd.MaxArcCount(); ++a )
         {
             arc_maps.Push( pd.ArcActiveQ(a) ? A_pos + a : Uninitialized );
         }

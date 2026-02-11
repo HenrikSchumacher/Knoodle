@@ -387,6 +387,20 @@ Int NextArc( const Int a, const bool headtail, const Int c ) const
 }
 
 
+template<bool headtail>
+bool CheckNextArc() const
+{
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        
+        const Int a_next = NextArc(a,headtail);
+
+        if( A_cross(a_next,!headtail) != A_cross(a,headtail) ) { return false; }
+    }
+    return true;
+}
+
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");
@@ -419,8 +433,11 @@ bool CheckArcNextArc() const
     {
         if( !ArcActiveQ(a) ) { continue; }
         
-        if( next[a] != NextArc(a,Head) ) { return false; }
+        const Int a_next = next[a];
+
+        if( A_cross(a_next,Tail) != A_cross(a,Head) ) { return false; }
     }
+    
     return true;
 }
 
@@ -459,7 +476,10 @@ bool CheckArcPrevArc() const
     {
         if( !ArcActiveQ(a) ) { continue; }
         
-        if( prev[a] != NextArc(a,Tail) ) { return false; }
+        const Int a_prev = prev[a];
+
+        if( A_cross(a_prev,Head) != A_cross(a,Tail) ) { return false; }
     }
+    
     return true;
 }

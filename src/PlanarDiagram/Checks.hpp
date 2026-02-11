@@ -26,10 +26,10 @@ bool CheckCrossing( const Int c  ) const
         {
             const Int a = C_arcs(c,io,lr);
 
-            if( !InIntervalQ(a,Int(0),max_arc_count) )
+            if( !InIntervalQ(a,Int(0),MaxArcCount()) )
             {
                 eprint(ClassName()+"::CheckCrossing: Arc index a = " + Tools::ToString(a) + " in " + CrossingString(c) + " is out of bounds.");
-                TOOLS_LOGDUMP(max_arc_count);
+                TOOLS_LOGDUMP(MaxArcCount());
                 return false;
             }
             
@@ -102,10 +102,10 @@ bool CheckArc( const Int a ) const
         return true;
     }
     
-    if( !InIntervalQ(a,Int(0),max_arc_count) )
+    if( !InIntervalQ(a,Int(0),MaxArcCount()) )
     {
         eprint(ClassName()+"::CheckArc: Arc index a = " + Tools::ToString(a) + " is out of bounds.");
-        TOOLS_LOGDUMP(max_arc_count);
+        TOOLS_LOGDUMP(MaxArcCount());
         return false;
     }
     

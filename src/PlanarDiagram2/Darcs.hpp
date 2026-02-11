@@ -180,9 +180,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
 }
 
 
-bool CheckLeftDarc() const
+bool CheckArcLeftDarcs() const
 {
-    std::string tag = MethodName("CheckLeftDarc");
+    std::string tag = MethodName("CheckArcLeftDarcs");
     
     TOOLS_PTIMER(timer,tag);
     

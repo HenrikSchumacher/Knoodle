@@ -16,8 +16,8 @@ static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_
     // needs to know all member variables
     
     PD_T pd ( Int(2), true );
-    pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_arc_count;
+    pd.crossing_count  = pd.MaxCrossingCount();
+    pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(2));
     
@@ -59,8 +59,8 @@ static PD_T TrefoilKnot( const Int color, const CrossingState_T handedness )
     // needs to know all member variables
     
     PD_T pd ( Int(3), true );
-    pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_arc_count;
+    pd.crossing_count  = pd.MaxCrossingCount();
+    pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(1));
     
@@ -81,8 +81,8 @@ static PD_T FigureEightKnot( const Int color )
     // needs to know all member variables
     
     PD_T pd ( Int(4), true );
-    pd.crossing_count  = pd.max_crossing_count;
-    pd.arc_count       = pd.max_arc_count;
+    pd.crossing_count  = pd.MaxCrossingCount();
+    pd.arc_count       = pd.MaxArcCount();
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(1));
     

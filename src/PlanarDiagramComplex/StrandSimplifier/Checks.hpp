@@ -106,7 +106,7 @@ bool CheckStrand( const Int a_begin, const Int a_end )
         wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
     }
     
-    const Int pd_max_arc_count = pd->max_arc_count;
+    const Int pd_max_arc_count = pd->MaxArcCount();
     
     while( (a != a_end) && (arc_counter < pd_max_arc_count ) )
     {
@@ -120,7 +120,7 @@ bool CheckStrand( const Int a_begin, const Int a_end )
     
     if( a != a_end )
     {
-        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for max_arc_count steps the end ist still not reached.");
+        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for MaxArcCount() steps the end is still not reached.");
     }
     
     if( !passedQ )

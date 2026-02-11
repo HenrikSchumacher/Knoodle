@@ -453,7 +453,7 @@ namespace Knoodle
                 {
                     old_counter = counter;
                     
-                    for( Int a = 0; a < pd.max_arc_count; ++a )
+                    for( Int a = 0; a < pd.MaxArcCount(); ++a )
                     {
                         if( pd.ArcActiveQ(a) )
                         {
@@ -474,7 +474,7 @@ namespace Knoodle
                     continue;
                 }
                 
-                if( pd.crossing_count < pd.max_crossing_count )
+                if( pd.CrossingCount() < pd.MaxCrossingCount() )
                 {
                     PushDiagramDone( pd.CreateCompressed() );
                     continue;

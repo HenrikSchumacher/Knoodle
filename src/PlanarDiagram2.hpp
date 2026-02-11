@@ -350,10 +350,10 @@ namespace Knoodle
             pd.arc_count      = arc_count;
             
             const Int n       = max_crossing_count;
-            const Int n_new   = Max(n,pd.max_crossing_count);
+            const Int n_new   = Max(n,pd.MaxCrossingCount());
             
             const Int m       = max_arc_count;
-            const Int m_new   = Max(m,pd.max_arc_count);
+            const Int m_new   = Max(m,pd.MaxArcCount());
             
             C_arcs.Write( pd.C_arcs.data()   );
             fill_buffer( pd.C_arcs.data(n) , Uninitialized            , Int(4) * (n_new - n) );

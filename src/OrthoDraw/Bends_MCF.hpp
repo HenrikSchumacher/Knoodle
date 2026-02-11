@@ -18,7 +18,7 @@ Tensor1<Turn_T,Int> Bends_MCF(
             
     {
         // TODO: Replace pd.Arcs().Dim(0) by pd.ArcCount().
-        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.Arcs().Dim(0));
+        Size_T max_idx = Size_T(2) * static_cast<Size_T>(pd.MaxArcCount());
         
         if( std::cmp_greater( max_idx, std::numeric_limits<I>::max() ) )
         {
@@ -27,23 +27,26 @@ Tensor1<Turn_T,Int> Bends_MCF(
             return Tensor1<Turn_T,Int>();
         }
     }
-    
+
     cptr<Int> dA_F = pd.ArcFaces().data();
-    auto A_idx = Bends_ArcIndices(pd);
     
+//    auto A_idx = Bends_ArcIndices(pd);
+
     const I n = Bends_ConCount<I>(pd);
     const I m = Bends_VarCount<I>(pd);
-
+    
+    
+//    TOOLS_LOGDUMP(pd.ArcCount());
+//    TOOLS_LOGDUMP(pd.MaxArcCount());
+//    TOOLS_LOGDUMP(n);
+//    TOOLS_LOGDUMP(m);
+    
     Tensor1<I,I> tails     (m);
     Tensor1<I,I> heads     (m);
 
-    const Int a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.MaxArcCount();
     
-    TOOLS_LOGDUMP(pd.ArcCount());
-    TOOLS_LOGDUMP(pd.MaxArcCount());
-    TOOLS_LOGDUMP(pd.Arcs().Dim(0));
-    TOOLS_LOGDUMP(n);
-    TOOLS_LOGDUMP(m);
+    Int a_counter = 0;
     
     for( Int a = 0; a < a_count; ++a )
     {
@@ -54,9 +57,13 @@ Tensor1<Turn_T,Int> Bends_MCF(
         // left  face of a
         const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
         
-        const I di_0 = static_cast<I>( A_idx(a,0) );
-        const I di_1 = static_cast<I>( A_idx(a,1) );
+//        const Int tail = PD_T::ToDarc(a_counter,Tail);
+//        const Int head = PD_T::ToDarc(a_counter,Head);
 
+        const I di_0 = static_cast<I>( PD_T::ToDarc(a_counter,Tail) );
+        const I di_1 = static_cast<I>( PD_T::ToDarc(a_counter,Head) );
+        ++a_counter;
+        
         // MCF uses 1-based vertex indices!
         
         tails[di_0] = f_1 + I(1);
@@ -65,19 +72,18 @@ Tensor1<Turn_T,Int> Bends_MCF(
         tails[di_1] = f_0 + I(1);
         heads[di_1] = f_1 + I(1);
     }
-    
+
     auto costs      = Bends_ObjectiveVector<R,I>(pd);
     auto capacities = Bends_UpperBoundsOnVariables<R,I>(pd);
     auto demands    = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
-    TOOLS_LOGDUMP(tails.MinMax());
-    TOOLS_LOGDUMP(heads.MinMax());
-    TOOLS_LOGDUMP(tails);
-    TOOLS_LOGDUMP(heads);
-    TOOLS_LOGDUMP(costs);
-    TOOLS_LOGDUMP(capacities);
-    TOOLS_LOGDUMP(demands);
-    
+//    TOOLS_LOGDUMP(tails.MinMax());
+//    TOOLS_LOGDUMP(heads.MinMax());
+//    TOOLS_LOGDUMP(tails);
+//    TOOLS_LOGDUMP(heads);
+//    TOOLS_LOGDUMP(costs);
+//    TOOLS_LOGDUMP(capacities);
+//    TOOLS_LOGDUMP(demands);
     
     MCFSimplex_T mcf (n,m);
 
@@ -107,12 +113,18 @@ Tensor1<Turn_T,Int> Bends_MCF(
 //    Turn_T min_bend = Scalar::Max<Turn_T>;
 //    Turn_T max_bend = Scalar::Min<Turn_T>;
 
+    a_counter = 0;
+    
     for( Int a = 0; a < a_count; ++a )
     {
         if( pd.ArcActiveQ(a) )
         {
-            const Int tail = A_idx(a,0);
-            const Int head = A_idx(a,1);
+//            const Int tail = A_idx(a,0);
+//            const Int head = A_idx(a,1);
+            const Int tail = PD_T::ToDarc(a_counter,Tail);
+            const Int head = PD_T::ToDarc(a_counter,Head);
+            ++a_counter;
+            
             const Turn_T bend = static_cast<Turn_T>(std::round(s[head] - s[tail]));
             
 //            min_bend = Min(min_bend,bend);

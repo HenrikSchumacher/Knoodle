@@ -174,9 +174,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
 }
 
 
-bool CheckLeftDarc() const
+bool CheckArcLeftDarcs() const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("CheckLeftDarc"); };
+    [[maybe_unused]] auto tag = [](){ return MethodName("CheckArcLeftDarcs"); };
     
     TOOLS_PTIMER(timer,tag());
     

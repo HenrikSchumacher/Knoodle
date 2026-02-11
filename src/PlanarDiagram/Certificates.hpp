@@ -2,7 +2,7 @@ public:
 
 bool AlternatingQ() const
 {
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
         {
@@ -15,7 +15,7 @@ bool AlternatingQ() const
 
 bool LoopFreeQ() const
 {
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( ArcActiveQ(a) && (A_cross(a,Tail) == A_cross(a,Head)) )
         {
@@ -28,7 +28,7 @@ bool LoopFreeQ() const
 
 bool AlternatingAndLoopFreeQ() const
 {
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( !ArcActiveQ(a) ) { continue; }
         

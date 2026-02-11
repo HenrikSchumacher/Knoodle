@@ -59,7 +59,7 @@ PDC_T CreateConnected() const
         
         ColorMap_T & col_A = pd_col_A[i];
         
-        for( Int a = 0; a < pd.max_arc_count; ++a )
+        for( Int a = 0; a < pd.MaxArcCount(); ++a )
         {
             if( !pd.ArcActiveQ(a) ) { continue; }
             const Int col = pd.A_color[a];
@@ -258,7 +258,7 @@ Int64 CreateConnectedFlag() const
 //        
 //        ColorMap_T & col_A = pd_col_A[idx];
 //        
-//        for( Int a = 0; a < pd.max_arc_count; ++a )
+//        for( Int a = 0; a < pd.MaxArcCount(); ++a )
 //        {
 //            if( !pd.ArcActiveQ(a) ) { continue; }
 //            const Int col = pd.A_color[a];

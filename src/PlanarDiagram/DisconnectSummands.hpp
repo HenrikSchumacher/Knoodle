@@ -454,17 +454,17 @@ PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
     while( a != a_0 );
     
     // This might fail if the diagram has more than one connected component.
-    if( pd.max_crossing_count != c_counter )
+    if( pd.MaxCrossingCount() != c_counter )
     {
-        wprint(MethodName("ExportComponent") + ": pd.max_crossing_count != c_counter.");
-        TOOLS_LOGDUMP(pd.max_crossing_count);
+        wprint(MethodName("ExportComponent") + ": pd.MaxCrossingCount() != c_counter.");
+        TOOLS_LOGDUMP(pd.MaxCrossingCount());
         TOOLS_LOGDUMP(c_counter);
     }
-    if( pd.max_arc_count != a_counter )
+    if( pd.MaxArcCount() != a_counter )
     {
-        TOOLS_LOGDUMP(pd.max_arc_count);
+        TOOLS_LOGDUMP(pd.MaxArcCount());
         TOOLS_LOGDUMP(a_counter);
-        wprint(MethodName("ExportComponent") + ": pd.max_arc_count != a_counter.");
+        wprint(MethodName("ExportComponent") + ": pd.MaxArcCount() != a_counter.");
     }
     
     pd.crossing_count = c_counter;

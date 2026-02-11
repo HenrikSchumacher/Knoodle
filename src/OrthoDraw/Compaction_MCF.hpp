@@ -63,7 +63,14 @@ Tensor1<Int,Int> Compaction_MCF( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>> ed
     Tensor1<R,I> costs     (m);
     Tensor1<R,I> demands   (n,R(0));
     
+//    TOOLS_LOGDUMP(n);
+//    TOOLS_LOGDUMP(m);
+    
+    // We use the edges of graph D, not of the OrthoDraw object itself. So we do not have to filter out deactivated edges.
     const auto & edges = D.Edges();
+    
+//    TOOLS_LOGDUMP(edges);
+//    TOOLS_LOGDUMP(E_flag);
     
     for( I e = 0; e < m; ++e )
     {
@@ -81,6 +88,14 @@ Tensor1<Int,Int> Compaction_MCF( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>> ed
         demands[h] += primal_cost;
     }
 
+//    TOOLS_LOGDUMP(tails.MinMax());
+//    TOOLS_LOGDUMP(heads.MinMax());
+//    TOOLS_LOGDUMP(tails);
+//    TOOLS_LOGDUMP(heads);
+//    TOOLS_LOGDUMP(costs);
+//    TOOLS_LOGDUMP(capacities);
+//    TOOLS_LOGDUMP(demands);
+    
     MCFSimplex_T mcf (n,m);
     
     {

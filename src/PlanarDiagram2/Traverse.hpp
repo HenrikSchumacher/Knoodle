@@ -238,16 +238,16 @@ void Traverse_ByNextArc_impl(
     // Indicate that no arc or crossings are visited, yet.
     if constexpr ( arclabelsQ )
     {
-        fill_buffer( A_flag, Uninitialized, max_arc_count );
+        fill_buffer( A_flag, Uninitialized, MaxArcCount() );
     }
     else
     {
-        fill_buffer( A_flag, false, max_arc_count );
+        fill_buffer( A_flag, false, MaxArcCount() );
     }
     
     if constexpr ( crossingsQ )
     {
-        fill_buffer( C_idx, Uninitialized, max_crossing_count );
+        fill_buffer( C_idx, Uninitialized, MaxCrossingCount() );
     }
     
     Int lc_counter = 0; // counter for the link components.
@@ -257,7 +257,7 @@ void Traverse_ByNextArc_impl(
     constexpr bool ou_flag = (start_arc_ou != 0) ;
     constexpr bool overQ   = (start_arc_ou >  0) ;
     
-    for( Int a_0 = 0; a_0 < max_arc_count; ++a_0 )
+    for( Int a_0 = 0; a_0 < MaxArcCount(); ++a_0 )
     {
         if(
            ( arclabelsQ ? ValidIndexQ(A_flag[a_0]) : A_flag[a_0] )

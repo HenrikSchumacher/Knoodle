@@ -166,7 +166,7 @@ namespace Knoodle
                     ++iter;
                     old_counter = counter;
                     
-                    const Int max_arc_count = pd.max_arc_count;
+                    const Int max_arc_count = pd.MaxArcCount();
                    
                     for( Int arc = 0; arc < max_arc_count; ++arc )
                     {
@@ -175,7 +175,7 @@ namespace Knoodle
                         counter += ProcessArc(arc);
                     }
                     
-                    if( pd.arc_count <= Int(0) ) { break; }
+                    if( pd.ArcCount() <= Int(0) ) { break; }
         
                     // We could recompress also here...
                     if( compressQ ) { pd.ConditionalCompress(); }

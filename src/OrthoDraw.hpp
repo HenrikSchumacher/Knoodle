@@ -74,7 +74,6 @@ namespace Knoodle
         struct Settings_T
         {
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
-            bool network_matrixQ                    = true;
             bool use_dual_simplexQ                  = false;
             int  randomize_bends                    = 0;
             bool redistribute_bendsQ                = true;
@@ -97,7 +96,6 @@ namespace Knoodle
             void PrintInfo() const
             {
                 TOOLS_LOGDUMP(bend_method);
-                TOOLS_LOGDUMP(network_matrixQ);
                 TOOLS_LOGDUMP(use_dual_simplexQ);
                 TOOLS_LOGDUMP(randomize_bends);
                 TOOLS_LOGDUMP(redistribute_bendsQ);
@@ -553,17 +551,6 @@ namespace Knoodle
         {
             return A_bends;
         }
-  
-        bool NetworkMatrixQ() const
-        {
-            return settings.network_matrixQ;
-        }
-
-        void SetNetworkMatrixQ( const bool val )
-        {
-            settings.network_matrixQ = val;
-        }
-        
         
         cref<Tensor1<Int,Int>> ArcNextArc() const
         {

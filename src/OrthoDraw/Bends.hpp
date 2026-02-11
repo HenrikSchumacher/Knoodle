@@ -8,21 +8,20 @@ void RedistributeBends(
     
     constexpr Turn_T one = Turn_T(1);
     
-    using CrossingMatrix_T = Tiny::Matrix<2,2,Int,Int>;
+    using CrossingMatrix_T = PD_T::C_Arcs_T;
     using TurnMatrix_T     = Tiny::Matrix<2,2,Turn_T,Int>;
     
 //    print("RedistributeBends");
-    auto & C_A_loc = pd.Crossings();
     
     Int counter = 0;
     
-    const Int c_count = C_A_loc.Dim(0);
+    const Int c_count = pd.MaxCrossingCount();
     
     for( Int c = 0; c < c_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
 
-        CrossingMatrix_T C ( C_A_loc.data(c) );
+        CrossingMatrix_T C = pd.CopyCrossing(c);
         
         // We better do not touch Reidemeiter I loops as we would count the bends in a redundant way.
         if( (C(Out,Left ) == C(In,Left )) || (C(Out,Right) == C(In,Right)) )
@@ -167,15 +166,13 @@ void RandomizeBends_impl(
     
     std::uniform_int_distribution<Int8> dice( -1, 1 );
     
-    auto & C_A_loc = pd.Crossings();
-
-    const Int c_count = C_A_loc.Dim(0);
+    const Int c_count = pd.MaxCrossingCount();
     
     for( Int c = 0; c < c_count; ++c )
     {
         if( !pd.CrossingActiveQ(c) ) { continue; }
         
-        CrossingMatrix_T C ( C_A_loc.data(c) );
+        CrossingMatrix_T C = pd.CopyCrossing(c);
         
         for( int iter = 0; iter < iter_count; ++iter )
         {
@@ -215,16 +212,16 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
     // CAUTION:
     // We assemble the matrix transpose because CLP assumes column-major ordering!
     
-    const Int a_count = pd.Arcs().Dim(0);
+    const Int a_count = pd.MaxArcCount();
     
     for( Int a = 0; a < a_count; ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; };
         
         // right face of a
-        const I f_0  = static_cast<I>( dA_F[pd.ToDarc(a,Tail)] );
+        const I f_0  = static_cast<I>( dA_F[PD_T::ToDarc(a,Tail)] );
         // left  face of a
-        const I f_1  = static_cast<I>( dA_F[pd.ToDarc(a,Head)] );
+        const I f_1  = static_cast<I>( dA_F[PD_T::ToDarc(a,Head)] );
         
         const I di_0 = static_cast<I>( A_idx(a,0) );
         const I di_1 = static_cast<I>( A_idx(a,1) );
@@ -324,28 +321,28 @@ static I Bends_ConCount( cref<PD_T> pd )
     return static_cast<I>(pd.FaceCount());
 }
 
-static Tiny::VectorList_AoS<2,Int,Int> Bends_ArcIndices( cref<PD_T> pd )
-{
-    const Int a_count = pd.Arcs().Dim(0);
-    
-    Tiny::VectorList_AoS<2,Int,Int> A_idx ( a_count );
-    
-    Int a_counter = 0;
-
-    for( Int a = 0; a < a_count; ++a )
-    {
-        if( pd.ArcActiveQ(a) )
-        {
-            A_idx(a,0) = PD_T::ToDarc(a_counter,Tail);
-            A_idx(a,1) = PD_T::ToDarc(a_counter,Head);
-            ++a_counter;
-        }
-        else
-        {
-            A_idx(a,0) = PD_T::Uninitialized;
-            A_idx(a,1) = PD_T::Uninitialized;
-        }
-    }
-    
-    return A_idx;
-}
+//static Tiny::VectorList_AoS<2,Int,Int> Bends_ArcIndices( cref<PD_T> pd )
+//{
+//    const Int a_count = pd.MaxArcCount();
+//    
+//    Tiny::VectorList_AoS<2,Int,Int> A_idx ( a_count );
+//    
+//    Int a_counter = 0;
+//
+//    for( Int a = 0; a < a_count; ++a )
+//    {
+//        if( pd.ArcActiveQ(a) )
+//        {
+//            A_idx(a,0) = PD_T::ToDarc(a_counter,Tail);
+//            A_idx(a,1) = PD_T::ToDarc(a_counter,Head);
+//            ++a_counter;
+//        }
+//        else
+//        {
+//            A_idx(a,0) = PD_T::Uninitialized;
+//            A_idx(a,1) = PD_T::Uninitialized;
+//        }
+//    }
+//    
+//    return A_idx;
+//}

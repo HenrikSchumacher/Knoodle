@@ -72,7 +72,7 @@ Tensor1<Int,Int> ArcStrands() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    Tensor1<Int,Int> A_strand ( max_arc_count, Uninitialized );
+    Tensor1<Int,Int> A_strand ( MaxArcCount(), Uninitialized );
     Int strand = 0;
     
     this->template Traverse_ByNextArc<false,false,(overQ ? -1 : 1 )>(

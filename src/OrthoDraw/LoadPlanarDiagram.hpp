@@ -6,9 +6,15 @@ void LoadPlanarDiagram(
     const Int exterior_region_
 )
 {
-    std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">";
+    [[maybe_unused]] auto tag = [](){ return MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">"; };
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,tag());
+    
+    if( pd.DiagramComponentCount() > Int(1) )
+    {
+        eprint(tag() + ": Input planar diagram has more than one diagram components. Aborting.");
+        return;
+    }
     
 //    TOOLS_DUMP(ToUnderlying(settings.bend_method));
 //    TOOLS_DUMP(ToUnderlying(settings.compaction_method));
@@ -18,11 +24,11 @@ void LoadPlanarDiagram(
     
     R_dA = pd.FaceDarcs();
     
-    crossing_count = int_cast<Int>(pd.CrossingCount());
-    arc_count      = int_cast<Int>(pd.ArcCount());
+    crossing_count = pd.CrossingCount();
+    arc_count      = pd.ArcCount();
 
-    const Int C_count = C_A.Dim(0);
-    const Int A_count = A_C.Dim(0);
+    const Int C_count = pd.MaxCrossingCount();
+    const Int A_count = pd.MaxArcCount();
     
     if constexpr ( verboseQ )
     {
@@ -67,7 +73,7 @@ void LoadPlanarDiagram(
 #endif
         default:
         {
-            wprint(ClassName() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
+            wprint(tag() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
             A_bends = Bends_MCF(pd,exterior_region);
             break;
         }
@@ -75,7 +81,7 @@ void LoadPlanarDiagram(
     
     if( A_bends.Size() <= Int(0) )
     {
-        eprint(tag + ": Bend optimization failed. Aborting.");
+        eprint(tag() + ": Bend optimization failed. Aborting.");
         return;
     }
     
@@ -238,7 +244,7 @@ void LoadPlanarDiagram(
             }
             default:
             {
-                eprint(tag + ": Invalid crossing state " + ToString(C_state[c]) +".");
+                eprint(tag() + ": Invalid crossing state " + ToString(C_state[c]) +".");
                 break;
             }
         }
@@ -385,28 +391,28 @@ void LoadPlanarDiagram(
     
     if( V_end != V_count )
     {
-        eprint(tag + ": V_end != V_count.");
+        eprint(tag() + ": V_end != V_count.");
         TOOLS_LOGDUMP(V_count);
         TOOLS_LOGDUMP(V_end);
     }
     
     if( E_end > E_count )
     {
-        eprint(tag + ": E_end > E_count.");
+        eprint(tag() + ": E_end > E_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(E_end);
     }
     
     if( A_V.SublistCount() != A_count )
     {
-        eprint(tag + ": A_V.SublistCount() != A_count.");
+        eprint(tag() + ": A_V.SublistCount() != A_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(A_V.SublistCount());
     }
     
     if( A_E.SublistCount() != A_count )
     {
-        eprint(tag + ": A_E.SublistCount() != A_count.");
+        eprint(tag() + ": A_E.SublistCount() != A_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(A_E.SublistCount());
     }
@@ -443,7 +449,7 @@ void LoadPlanarDiagram(
 
         if( !this->template CheckEdgeDirections<verboseQ>() )
         {
-            eprint(tag + ": CheckEdgeDirections() failed.");
+            eprint(tag() + ": CheckEdgeDirections() failed.");
         }
     }
     

@@ -107,7 +107,7 @@ Int CountActiveArcs() const
 {
     Int counter = 0;
     
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         counter += ArcActiveQ(a);
     }
@@ -401,14 +401,15 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
     TOOLS_PTIMER(timer,MethodName(tag));
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_next ( max_arc_count, Uninitialized );
+        Tensor1<Int,Int> A_next ( MaxArcCount(), Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
-                A_next(C_arcs(c,In,Left )) = C_arcs(c,Out,Right);
-                A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
+                C_Arcs_T C = CopyCrossing(c);
+                A_next(C(In,Left )) = C(Out,Right);
+                A_next(C(In,Right)) = C(Out,Left );
             }
         }
         this->SetCache(tag,std::move(A_next));
@@ -420,7 +421,7 @@ bool CheckArcNextArc() const
 {
     auto next = ArcNextArc();
     
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( !ArcActiveQ(a) ) { continue; }
         
@@ -435,14 +436,15 @@ Tensor1<Int,Int> ArcPrevArc() const
     
     if( !this->InCacheQ(tag) )
     {
-        Tensor1<Int,Int> A_prev ( max_arc_count, Uninitialized );
+        Tensor1<Int,Int> A_prev ( MaxArcCount(), Uninitialized );
         
         for( Int c = 0; c < max_crossing_count; ++c )
         {
             if( CrossingActiveQ(c) )
             {
-                A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In,Left );
-                A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In,Right);
+                C_Arcs_T C = CopyCrossing(c);
+                A_prev(C(Out,Right)) = C(In,Left );
+                A_prev(C(Out,Left )) = C(In,Right);
             }
         }
         
@@ -456,7 +458,7 @@ bool CheckArcPrevArc() const
 {
     auto prev = ArcPrevArc();
     
-    for( Int a = 0; a < max_arc_count; ++a )
+    for( Int a = 0; a < MaxArcCount(); ++a )
     {
         if( !ArcActiveQ(a) ) { continue; }
         

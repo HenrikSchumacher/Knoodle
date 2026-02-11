@@ -55,7 +55,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     // We make copy so that we can manipulate it.
     ArcContainer_T dA_F_buffer = pd.ArcFaces();
     mptr<Int> dA_F       = dA_F_buffer.data();
-    const Int dA_count   = Int(2) * pd.max_arc_count;
+    const Int dA_count   = Int(2) * pd.MaxArcCount();
           Int F_count    = pd.FaceCount();   // Might be increased during this routine.
     
     // Using A_scratch for face flags. The array should be large anough for additional faces.
@@ -200,7 +200,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
-                    logvalprint("F_state",ArrayToString(F_state,{Int(2) * pd.max_arc_count}));
+                    logvalprint("F_state",ArrayToString(F_state,{Int(2) * pd.MaxArcCount()}));
                     
                     pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }

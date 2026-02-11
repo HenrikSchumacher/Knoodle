@@ -240,13 +240,13 @@ Size_T Split( mref<PD_List_T> pd_list )
         }
         
         //DEBUGGING
-        if( pd.max_crossing_count != c_counter )
+        if( pd.MaxCrossingCount() != c_counter )
         {
-            wprint(MethodName("Split") + ": pd.max_crossing_count != c_counter.");
+            wprint(MethodName("Split") + ": pd.MaxCrossingCount() != c_counter.");
         }
-        if( pd.max_arc_count != a_counter )
+        if( pd.MaxArcCount() != a_counter )
         {
-            wprint(MethodName("Split") + ": pd.max_arc_count != a_counter.");
+            wprint(MethodName("Split") + ": pd.MaxArcCount() != a_counter.");
         }
         
         pd.crossing_count = c_counter;

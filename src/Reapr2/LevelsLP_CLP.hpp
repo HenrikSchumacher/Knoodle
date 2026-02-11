@@ -1,5 +1,7 @@
 public:
 
+// Warning: This could be buggy!
+
 template<typename T = Real>
 Tensor1<T,Int> LevelsLP_CLP( cref<PD_T> pd )
 {
