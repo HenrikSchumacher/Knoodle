@@ -2,27 +2,30 @@ public:
 
 struct Simplify_Args_T
 {
-    Size_T local_opt_level        = 0;
-    DijkstraStrategy_T strategy   = DijkstraStrategy_T::Bidirectional;
-    Int    start_max_dist         = Scalar::Max<Int>;
-    Int    final_max_dist         = Scalar::Max<Int>;
-//    bool   exhaust_strands_firstQ = true;
-//    bool restart_after_successQ   = true;
-//    bool restart_after_failureQ   = true;
-//    bool restart_walk_backQ       = true;
-//    bool restart_change_typeQ     = true;
-//    bool reroute_markedQ          = false;
-    bool rerouteQ                 = true;
-    bool disconnectQ              = true;
-    bool splitQ                   = true;
-    bool compressQ                = true;
-//    bool compress_oftenQ          = false;
+    Size_T local_opt_level         = 0;
+    DijkstraStrategy_T strategy    = DijkstraStrategy_T::Bidirectional;
+    Int    start_max_dist          = Scalar::Max<Int>;
+    Int    final_max_dist          = Scalar::Max<Int>;
+//    bool   exhaust_strands_firstQ  = true;
+//    bool restart_after_successQ    = true;
+//    bool restart_after_failureQ    = true;
+//    bool restart_walk_backQ        = true;
+//    bool restart_change_typeQ      = true;
+//    bool reroute_markedQ           = false;
+    bool rerouteQ                  = true;
+    bool disconnectQ               = true;
+    bool splitQ                    = true;
+    bool compressQ                 = true;
+//    bool compress_oftenQ           = false;
 
-    Size_T       reapr_embedding_trials  = 25;
-    Size_T       reapr_rotation_trials   =  1;
-    bool         reapr_permute_randomQ   = true;
-    Energy_T     reapr_energy            = Energy_T::TV;
-    Compaction_T reapr_compaction_method = Compaction_T::Length_MCF;
+    Size_T       embedding_trials  = 25;
+    Size_T       rotation_trials   =  1;
+    bool         permute_randomQ   = true;
+    Energy_T     energy            = Energy_T::TV;
+    
+    int          randomize_bends   = 4;
+    bool  randomize_virtual_edgesQ = true;
+    Compaction_T compaction_method = Compaction_T::Length_MCF;
 
 //    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
@@ -44,11 +47,14 @@ friend std::string ToString( cref<Simplify_Args_T> args )
             + ", .splitQ = " + ToString(args.splitQ)
             + ", .compressQ = " + ToString(args.compressQ)
 //            + ", .compress_oftenQ = " + ToString(args.compress_oftenQ)
-            + ", .reapr_embedding_trials = " + ToString(args.reapr_embedding_trials)
-            + ", .reapr_rotation_trials = " + ToString(args.reapr_rotation_trials)
-            + ", .reapr_permute_randomQ = " + ToString(args.reapr_permute_randomQ)
-            + ", .reapr_energy = " + ToString(args.reapr_energy)
-            + ", .reapr_compaction_method = " + ToString(args.reapr_compaction_method)
+            + ", .embedding_trials = " + ToString(args.embedding_trials)
+            + ", .rotation_trials = " + ToString(args.rotation_trials)
+            + ", .permute_randomQ = " + ToString(args.permute_randomQ)
+            + ", .energy = " + ToString(args.energy)
+    
+            + ", .randomize_bends = " + ToString(args.randomize_bends)
+            + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
+            + ", .compaction_method = " + ToString(args.compaction_method)
     + "}";
 }
 
@@ -142,13 +148,13 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     swap(pd_list,pd_todo);
 
     Reapr_T reapr ({
-        .energy              = args.reapr_energy,
-        .permute_randomQ     = args.reapr_permute_randomQ,
+        .permute_randomQ     = args.permute_randomQ,
+        .energy              = args.energy,
         .ortho_draw_settings = {
-            .randomize_bends  = 4,
-            .randomize_virtual_edgesQ = true,
-            .compaction_method = args.reapr_compaction_method
-        }
+            .randomize_bends          = args.randomize_bends,
+            .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
+            .compaction_method        = args.compaction_method
+        },
     });
 
     PD_List_T reapr_list;
@@ -203,7 +209,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         }
         
         // No changes were found so far. We can try reapr or we have to stop here.
-        if( args.rerouteQ && (args.reapr_embedding_trials > Size_T(0)) && (args.reapr_rotation_trials > Size_T(0)) )
+        if( args.rerouteQ && (args.embedding_trials > Size_T(0)) && (args.rotation_trials > Size_T(0)) )
         {
             if( args.splitQ )
             {
@@ -329,10 +335,10 @@ Size_T Rattle(
 //        pd_eprint(tag() + "!pd.CheckArcLeftDarcs() ");
 //    }
 
-    // TODO: For some reason, reapr.Embedding(pd) will break if args.reapr_permute_randomQ == false and args.compressQ == false. So, let's compress here.
+    // TODO: For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
     // TODO: It would be great if we did not have to erase, e.g., the face information.
-    // TODO: However, typically, we will use args.reapr_permute_randomQ == true anyways, and then it does not matter.
-    if( !args.reapr_permute_randomQ )
+    // TODO: However, typically, we will use args.permute_randomQ == true anyways, and then it does not matter.
+    if( !args.permute_randomQ )
     {
         pd.Compress();
         //    pd.ClearCache();
@@ -346,14 +352,14 @@ Size_T Rattle(
     constexpr Size_T max_projection_iter = 10;
     bool progressQ = false;
      
-    
-    for( Size_T iter = 0; iter < args.reapr_embedding_trials; ++iter )
+    for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
         // However, this will help only if args.permute_randomQ == false.
+        // And it makes sense to do this only if args.permute_randomQ == false and if args.randomize_bends != 0 or args.randomize_virtual_edgesQ == true.
         LinkEmbedding_T emb = reapr.Embedding(pd);
         
-        for( Size_T rot = 0; rot < args.reapr_rotation_trials; ++rot )
+        for( Size_T rot = 0; rot < args.rotation_trials; ++rot )
         {
             Size_T projection_iter = 0;
             int projection_flag = 0;
@@ -413,9 +419,11 @@ Size_T Rattle(
 //                wprint("Found minimal diagram with " + ToString(pd_1.crossing_count) + " crossings, but we discarded it.");
 //            }
             
+            // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
         }
         
+        // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
         if( progressQ ) { break; }
     }
     
@@ -449,7 +457,7 @@ Size_T Rattle(
     }
     else
     {
-        // If splits are allowed, then this is already split.
+        // If splits are allowed, then this is already split; otherwise, we must not split here, either.
         PushDiagramDone( std::move(pd) );
     }
     

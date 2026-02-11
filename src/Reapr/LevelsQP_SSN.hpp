@@ -103,7 +103,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         );
         
         Real   phi_tau;
-        Real   tau    = initial_time_step;
+        Real   tau        = initial_time_step;
         Size_T SSN_b_iter = 0;
         
         // Armijo line search.

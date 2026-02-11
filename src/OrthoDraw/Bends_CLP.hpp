@@ -50,8 +50,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
     auto con_eq = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
     std::shared_ptr<Clp_T> clp;
-    
-    Settings_T param { .dualQ = settings.use_dual_simplexQ };
+
     
 //    auto A_idx = Bends_ArcIndices(pd);
     
@@ -98,7 +97,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
         Bends_LowerBoundsOnVariables<R,I>(pd),
         Bends_UpperBoundsOnVariables<R,I>(pd),
         con_eq,
-        param
+        { .dualQ = settings.use_dual_simplexQ }
     );
     
     auto s = clp->template IntegralPrimalSolution<Turn_T>();

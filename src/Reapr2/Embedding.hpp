@@ -6,7 +6,6 @@ LinkEmbedding_T Embedding( cref<PD_T> pd )
     
     if( pd.CrossingCount() <= Int(0) ) { return LinkEmbedding_T(); }
     
-    // TODO: Improve handling of split links!
     if( pd.DiagramComponentCount() > Int(1) )
     {
         eprint(MethodName("Embedding") + ": input PlanarDiagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
@@ -28,9 +27,6 @@ private:
 
 LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
 {
-//    OrthoDraw_T       H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
-//    Tensor1<Real,Int> L = Levels(pd);
-
     OrthoDraw_T H;
     Tensor1<Real,Int> L;
     
@@ -57,8 +53,6 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
     
     const Real scale = settings.scaling * Min(w,h) / (L_max - L_min);
     
-    // TODO: Check whether I have to erase cache of PlanarDiagram pd.
-    // TODO: Or maybe better: give OrthoDraw a full copy of PlanarDiagram.
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     
@@ -154,7 +148,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
     }
 
     auto [comp_ptr,x] = V_agg.Disband();
-    
+                         
     LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
     
     emb.template ReadVertexCoordinates<false,true>( &x.data()[0][0] );

@@ -214,13 +214,13 @@ int main()
     try
     {
         pdc.Simplify({
-            .local_opt_level        = 0,
-            .strategy               = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ            = true,
-            .splitQ                 = true,
-            .compressQ              = true,
-            .reapr_embedding_trials = 25,
-            .reapr_rotation_trials  = 1
+            .local_opt_level  = 0,
+            .strategy         = Knoodle::DijkstraStrategy_T::Bidirectional,
+            .disconnectQ      = true,
+            .splitQ           = true,
+            .compressQ        = true,
+            .embedding_trials = 5,
+            .rotation_trials  = 5
         });
     }
     catch( const std::exception & e )

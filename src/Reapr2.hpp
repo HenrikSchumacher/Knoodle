@@ -76,8 +76,8 @@ namespace Knoodle
 
         struct Settings_T
         {
-            Energy_T energy            = Energy_T::TV;
             bool permute_randomQ       = true;
+            Energy_T energy            = Energy_T::TV;
             
             OrthoDrawSettings_T ortho_draw_settings = {
                 .randomize_bends  = 4,
@@ -92,9 +92,24 @@ namespace Knoodle
             Real   tolerance           = Real(0.00000001);
             Size_T SSN_max_b_iter      = 20;
             Size_T SSN_max_iter        = 1000;
-                    
-            Real initial_time_step   = Real(1.0) / backtracking_factor;
         };
+        
+        friend std::string ToString( cref<Settings_T> args )
+        {
+            return std::string("{ ")
+                    +   ".permute_randomQ = " + ToString(args.permute_randomQ)
+                    + ", .energy = " + ToString(args.energy)
+                    + ", .ortho_draw_settings = " + ToString(args.ortho_draw_settings)
+                    + ", .scaling = " + ToStringFPGeneral(args.scaling)
+                    + ", .dirichlet_reg = " + ToStringFPGeneral(args.dirichlet_reg)
+                    + ", .bending_reg = " + ToStringFPGeneral(args.bending_reg)
+                    + ", .backtracking_factor = " + ToStringFPGeneral(args.backtracking_factor)
+                    + ", .armijo_slope = " + ToStringFPGeneral(args.armijo_slope)
+                    + ", .tolerance = " + ToStringFPGeneral(args.tolerance)
+                    + ", .SSN_max_b_iter = " + ToString(args.SSN_max_b_iter)
+                    + ", .SSN_max_iter = " + ToString(args.SSN_max_iter)
+            + " }";
+        }
         
         
         static constexpr Real jump = 1;
@@ -127,6 +142,7 @@ namespace Knoodle
         {}
         
     private:
+
         
         Energy_T EnergyFlag( mref<PD_T> pd ) const
         {
@@ -159,6 +175,11 @@ namespace Knoodle
         }
         
     public:
+        
+        cref<Settings_T> Settings() const
+        {
+            return settings;
+        }
         
         void WriteFeasibleLevels( cref<PD_T> pd, mptr<Real> x )
         {

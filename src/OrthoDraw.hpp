@@ -93,29 +93,53 @@ namespace Knoodle
             Int  x_rounding_radius                  =  4;
             Int  y_rounding_radius                  =  4;
             
-            void PrintInfo() const
-            {
-                TOOLS_LOGDUMP(bend_method);
-                TOOLS_LOGDUMP(use_dual_simplexQ);
-                TOOLS_LOGDUMP(randomize_bends);
-                TOOLS_LOGDUMP(redistribute_bendsQ);
-                TOOLS_LOGDUMP(turn_regularizeQ);
-                TOOLS_LOGDUMP(soften_virtual_edgesQ);
-                TOOLS_LOGDUMP(randomize_virtual_edgesQ);
-                TOOLS_LOGDUMP(saturate_facesQ);
-                TOOLS_LOGDUMP(saturate_exterior_faceQ);
-                TOOLS_LOGDUMP(filter_saturating_edgesQ);
-                TOOLS_LOGDUMP(parallelizeQ);
-                TOOLS_LOGDUMP(compaction_method);
-                
-                TOOLS_LOGDUMP(x_grid_size);
-                TOOLS_LOGDUMP(y_grid_size);
-                TOOLS_LOGDUMP(x_gap_size);
-                TOOLS_LOGDUMP(y_gap_size);
-                TOOLS_LOGDUMP(x_rounding_radius);
-                TOOLS_LOGDUMP(y_rounding_radius);
-            }
+//            void PrintInfo() const
+//            {
+//                TOOLS_LOGDUMP(bend_method);
+//                TOOLS_LOGDUMP(use_dual_simplexQ);
+//                TOOLS_LOGDUMP(randomize_bends);
+//                TOOLS_LOGDUMP(redistribute_bendsQ);
+//                TOOLS_LOGDUMP(turn_regularizeQ);
+//                TOOLS_LOGDUMP(soften_virtual_edgesQ);
+//                TOOLS_LOGDUMP(randomize_virtual_edgesQ);
+//                TOOLS_LOGDUMP(saturate_facesQ);
+//                TOOLS_LOGDUMP(saturate_exterior_faceQ);
+//                TOOLS_LOGDUMP(filter_saturating_edgesQ);
+//                TOOLS_LOGDUMP(parallelizeQ);
+//                TOOLS_LOGDUMP(compaction_method);
+//                
+//                TOOLS_LOGDUMP(x_grid_size);
+//                TOOLS_LOGDUMP(y_grid_size);
+//                TOOLS_LOGDUMP(x_gap_size);
+//                TOOLS_LOGDUMP(y_gap_size);
+//                TOOLS_LOGDUMP(x_rounding_radius);
+//                TOOLS_LOGDUMP(y_rounding_radius);
+//            }
         };
+        
+        friend std::string ToString( cref<Settings_T> args )
+        {
+            return std::string("{ ")
+                    +   ".bend_method = " + ToString(args.bend_method)
+                    + ", .use_dual_simplexQ = " + ToString(args.use_dual_simplexQ)
+                    + ", .randomize_bends = " + ToString(args.randomize_bends)
+                    + ", .redistribute_bendsQ = " + ToString(args.redistribute_bendsQ)
+                    + ", .turn_regularizeQ = " + ToString(args.turn_regularizeQ)
+                    + ", .soften_virtual_edgesQ = " + ToString(args.soften_virtual_edgesQ)
+                    + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
+                    + ", .saturate_facesQ = " + ToString(args.saturate_facesQ)
+                    + ", .saturate_exterior_faceQ = " + ToString(args.saturate_exterior_faceQ)
+                    + ", .filter_saturating_edgesQ = " + ToString(args.filter_saturating_edgesQ)
+                    + ", .parallelizeQ = " + ToString(args.parallelizeQ)
+                    + ", .compaction_method = " + ToString(args.compaction_method)
+                    + ", .x_grid_size = " + ToString(args.x_grid_size)
+                    + ", .y_grid_size = " + ToString(args.y_grid_size)
+                    + ", .x_gap_size = " + ToString(args.x_gap_size)
+                    + ", .y_gap_size = " + ToString(args.y_gap_size)
+                    + ", .x_rounding_radius = " + ToString(args.x_rounding_radius)
+                    + ", .y_rounding_radius = " + ToString(args.y_rounding_radius)
+            + " }";
+        }
         
         using DiGraph_T             = MultiDiGraph<Int,Int>;
         using HeadTail_T            = DiGraph_T::HeadTail_T;
@@ -601,9 +625,14 @@ namespace Knoodle
         
     public:
         
-        void PrintSettings()
+        cref<Settings_T> Settings() const
         {
-            settings.PrintInfo();
+            return settings;
+        }
+        
+        void PrintSettings() const
+        {
+            logvalprint(MethodName("Settings()"), ToString(settings));
         }
         
         static std::string MethodName( const std::string & tag )
