@@ -178,6 +178,7 @@ std::string DiagramString() const
     const Int n_y = Height() * settings.y_grid_size + 1;
 
     std::string s ( ToSize_T(n_x * n_y + 100), ' ');
+    std::vector<bool> protected_pos(s.size(), false);
 
     for( Int y = 0; y < n_y; ++y )
     {
@@ -243,6 +244,7 @@ std::string DiagramString() const
         const Int y = V_coords(v,1);
 
         set(x,y,'+');
+        protected_pos[ToSize_T(x + n_x * (n_y - Int(1) - y))] = true;
     }
     
     // Draw the edges.
@@ -367,6 +369,7 @@ std::string DiagramString() const
             const Int x = V_coords(v,0);
             const Int y = V_coords(v,1);
             set(x,y, ((E_dir[a] % 2) == 0) ? '-' : '|');
+            protected_pos[ToSize_T(x + n_x * (n_y - Int(1) - y))] = true;
 
             if( has_highlights )
             {
@@ -385,6 +388,20 @@ std::string DiagramString() const
             if( xi >= Int(0) && xi < n_x - Int(1) && y >= Int(0) && y < n_y )
             {
                 s[ToSize_T(xi + n_x * (n_y - Int(1) - y))] = label[i];
+            }
+        }
+    };
+
+    // Like set_string, but skips positions marked as protected (crossings, corners).
+    auto set_string_safe = [&s,&protected_pos,n_x,n_y]( Int x, Int y, const std::string & label )
+    {
+        for( std::size_t i = 0; i < label.size(); ++i )
+        {
+            const Int xi = x + static_cast<Int>(i);
+            if( xi >= Int(0) && xi < n_x - Int(1) && y >= Int(0) && y < n_y )
+            {
+                auto idx = ToSize_T(xi + n_x * (n_y - Int(1) - y));
+                if( !protected_pos[idx] ) { s[idx] = label[i]; }
             }
         }
     };
@@ -541,26 +558,11 @@ std::string DiagramString() const
                 jump_edge = A_E.Elements()[k_end - 2];
             }
 
-            // Compute jump edge length and place marker.
+            // Place marker on jump edge.
             const Int jv0 = E_V(jump_edge,0);
             const Int jv1 = E_V(jump_edge,1);
-            const Int jdx = Abs( V_coords(jv1,0) - V_coords(jv0,0) );
-            const Int jdy = Abs( V_coords(jv1,1) - V_coords(jv0,1) );
-            const Int edge_len = jdx + jdy;
 
-            std::string marker;
-            if( edge_len >= Int(8) )
-            {
-                marker = "(JUMP)";
-            }
-            else if( edge_len >= Int(5) )
-            {
-                marker = "(J)";
-            }
-            else
-            {
-                marker = "J";
-            }
+            std::string marker = "J";
 
             int jump_group = has_highlights ? arc_group[ToSize_T(a)] : -1;
 
@@ -571,33 +573,45 @@ std::string DiagramString() const
 
             if( jump_edge != label_edge )
             {
-                // Place at midpoint of jump edge.
+                // Place at midpoint of jump edge, clamped to edge interior.
                 if( jy0 == jy1 )
                 {
-                    const Int mid_x = (jx0 + jx1) / Int(2) - static_cast<Int>(marker.size()) / Int(2);
-                    set_string( mid_x, jy0, marker );
+                    const Int lo = Min(jx0,jx1) + Int(1);
+                    const Int hi = Max(jx0,jx1) - static_cast<Int>(marker.size());
+                    Int mid_x = (jx0 + jx1) / Int(2) - static_cast<Int>(marker.size()) / Int(2);
+                    mid_x = Max(lo, Min(mid_x, hi));
+                    set_string_safe( mid_x, jy0, marker );
                     set_string_color( mid_x, jy0, marker.size(), jump_group );
                 }
                 else
                 {
-                    const Int mid_y = (jy0 + jy1) / Int(2);
-                    set_string( jx0 + Int(1), mid_y, marker );
+                    const Int lo = Min(jy0,jy1) + Int(1);
+                    const Int hi = Max(jy0,jy1) - Int(1);
+                    Int mid_y = (jy0 + jy1) / Int(2);
+                    mid_y = Max(lo, Min(mid_y, hi));
+                    set_string_safe( jx0 + Int(1), mid_y, marker );
                     set_string_color( jx0 + Int(1), mid_y, marker.size(), jump_group );
                 }
             }
             else
             {
-                // Single-edge fallback: place at 3/4 point (closer to head).
+                // Single-edge fallback: place at 3/4 point, clamped to edge interior.
                 if( jy0 == jy1 )
                 {
-                    const Int qx = jx0 + (jx1 - jx0) * Int(3) / Int(4) - static_cast<Int>(marker.size()) / Int(2);
-                    set_string( qx, jy0, marker );
+                    const Int lo = Min(jx0,jx1) + Int(1);
+                    const Int hi = Max(jx0,jx1) - static_cast<Int>(marker.size());
+                    Int qx = jx0 + (jx1 - jx0) * Int(3) / Int(4) - static_cast<Int>(marker.size()) / Int(2);
+                    qx = Max(lo, Min(qx, hi));
+                    set_string_safe( qx, jy0, marker );
                     set_string_color( qx, jy0, marker.size(), jump_group );
                 }
                 else
                 {
-                    const Int qy = jy0 + (jy1 - jy0) * Int(3) / Int(4);
-                    set_string( jx0 + Int(1), qy, marker );
+                    const Int lo = Min(jy0,jy1) + Int(1);
+                    const Int hi = Max(jy0,jy1) - Int(1);
+                    Int qy = jy0 + (jy1 - jy0) * Int(3) / Int(4);
+                    qy = Max(lo, Min(qy, hi));
+                    set_string_safe( jx0 + Int(1), qy, marker );
                     set_string_color( jx0 + Int(1), qy, marker.size(), jump_group );
                 }
             }
