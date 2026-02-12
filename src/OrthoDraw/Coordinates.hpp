@@ -205,10 +205,10 @@ std::string DiagramString() const
     // Draw the edges.
     for( Int e = 0; e < E_end; ++e )
     {
+        if( !EdgeActiveQ(e) ) { continue; }
+        
         const Int de_0 = ToDedge(e,Tail);
-        
-        if( !DedgeActiveQ(e) ) { continue; }
-        
+
         char v_symbol = '|';
         char h_symbol = '-';
         char l_symbol = '<';
