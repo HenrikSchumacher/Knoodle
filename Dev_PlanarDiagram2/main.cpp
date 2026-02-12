@@ -215,13 +215,14 @@ int main()
     try
     {
         pdc.Simplify({
-            .local_opt_level  = 0,
-            .strategy         = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ      = true,
-            .splitQ           = true,
-            .compressQ        = true,
-            .embedding_trials = 5,
-            .rotation_trials  = 5
+            .local_opt_level       = 0,
+            .strategy              = Knoodle::DijkstraStrategy_T::Bidirectional,
+            .disconnectQ           = true,
+            .splitQ                = true,
+            .compressQ             = true,  // compress during rerouting
+            .compression_threshold = 0,     // don't compress if crossing_count <= compression_threshold
+            .embedding_trials      = 5,
+            .rotation_trials       = 5
         });
     }
     catch( const std::exception & e )

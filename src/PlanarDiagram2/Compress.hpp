@@ -191,27 +191,18 @@ void Compress()
 
 void ConditionalCompress()
 {
-//    //            +------ This avoids recompression of unknots.
-//    //            V
-//    if( arc_count < max_crossing_count )
-//    {
-//        Compress();
-//    }
-////    else
-////    {
-////        ClearCache();
-////    }
-    
-    //                 +------ This avoids recompression of unknots.
-    //                 V
-    if( crossing_count < max_crossing_count )
+    if( (crossing_count < max_crossing_count) )
     {
         Compress();
     }
-//    else
-//    {
-//        ClearCache();
-//    }
+}
+
+void ConditionalCompress( const Int compression_threshold )
+{
+    if( (compression_threshold < crossing_count) && (crossing_count < max_crossing_count) )
+    {
+        Compress();
+    }
 }
 
 bool CompressedOrderQ() const

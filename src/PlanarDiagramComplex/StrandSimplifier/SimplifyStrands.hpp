@@ -3,21 +3,22 @@ public:
 
 struct SimplifyStrands_Args
 {
-    Int  max_dist         = Scalar::Max<Int>;
-    bool overQ            = true;
-    bool reroute_markedQ  = false;
-    bool compressQ        = true;
-    bool compress_oftenQ  = false;
+    Int  max_dist              = Scalar::Max<Int>;
+    bool overQ                 = true;
+    bool reroute_markedQ       = false;
+    bool compressQ             = true;
+    Int  compression_threshold = 100;
 };
 
 friend std::string ToString( cref<SimplifyStrands_Args> args )
 {
-    return "{.max_dist = " + ToString(args.max_dist)
-         + ",.overQ = " + ToString(args.overQ)
-         + ",.reroute_markedQ = " + ToString(args.reroute_markedQ)
-         + ",.compressQ = " + ToString(args.compressQ)
-         + ",.compress_oftenQ = " + ToString(args.compress_oftenQ)
-         + "}";
+    return std::string("{ ")
+         +   ".max_dist = " + ToString(args.max_dist)
+         + ", .overQ = " + ToString(args.overQ)
+         + ", .reroute_markedQ = " + ToString(args.reroute_markedQ)
+         + ", .compressQ = " + ToString(args.compressQ)
+         + ", .compression_threshold = " + ToString(args.compression_threshold)
+         + " }";
 }
 
 struct SimplifyStrands_TArgs
@@ -72,7 +73,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     
     PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
     
-    if( args.compressQ ) { pd_input.ConditionalCompress(); }
+    if( args.compressQ ) { pd_input.ConditionalCompress( args.compression_threshold); }
 
     SetStrandMode(args.overQ);
     LoadDiagram(pd_input);
@@ -81,23 +82,17 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     Int a_ptr = 0;
     change_counter   = 0;
 
-    const Int pd_max_crossing_count = pd->MaxCrossingCount();
+//    const Int pd_max_crossing_count = pd->MaxCrossingCount();
     const Int pd_max_arc_count      = pd->MaxArcCount();
     
     PD_VALPRINT("pd->crossing_count",pd->crossing_count);
-    
-    const bool compress_oftenQ = (args.compressQ && args.compress_oftenQ);
     
 //    TOOLS_LOGDUMP( (!compress_oftenQ || (pd->arc_count >= pd_max_crossing_count)) );
 //    TOOLS_LOGDUMP(compress_oftenQ);
 //    TOOLS_LOGDUMP(pd_max_crossing_count);
 //    TOOLS_LOGDUMP(pd_max_crossing_count);
     
-    while(
-        (a_ptr < pd_max_arc_count)
-        &&
-        (!compress_oftenQ || (pd->arc_count >= pd_max_crossing_count))
-    )
+    while( a_ptr < pd_max_arc_count )
     {
         // Search for next arc that is active and has not yet been handled.
         while( ( a_ptr < pd_max_arc_count ) && (!ArcActiveQ(a_ptr) || ArcRecentlyMarkedQ(a_ptr) ) )

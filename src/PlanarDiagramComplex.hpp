@@ -337,6 +337,9 @@ namespace Knoodle
         {
             if( pd.ValidQ() )
             {
+                // It is maybe a good idea to compress here so save memory.
+                if( pd.crossing_count < pd.max_crossing_count ) { pd.Compress(); }
+                
                 pd_done.push_back( std::move(pd) );
             }
             else

@@ -2,51 +2,39 @@ public:
 
 struct Simplify_Args_T
 {
-    Size_T local_opt_level         = 0;
-    DijkstraStrategy_T strategy    = DijkstraStrategy_T::Bidirectional;
-    Int    start_max_dist          = Scalar::Max<Int>;
-    Int    final_max_dist          = Scalar::Max<Int>;
-//    bool   exhaust_strands_firstQ  = true;
-//    bool restart_after_successQ    = true;
-//    bool restart_after_failureQ    = true;
-//    bool restart_walk_backQ        = true;
-//    bool restart_change_typeQ      = true;
-//    bool reroute_markedQ           = false;
-    bool rerouteQ                  = true;
-    bool disconnectQ               = true;
-    bool splitQ                    = true;
-    bool compressQ                 = true;
-//    bool compress_oftenQ           = false;
-
-    Size_T       embedding_trials  = 25;
-    Size_T       rotation_trials   =  1;
-    bool         permute_randomQ   = true;
-    Energy_T     energy            = Energy_T::TV;
+    Size_T              local_opt_level          = 0;
+    DijkstraStrategy_T  strategy                 = DijkstraStrategy_T::Bidirectional;
+    Int                 start_max_dist           = Scalar::Max<Int>;
+    Int                 final_max_dist           = Scalar::Max<Int>;
     
-    int          randomize_bends   = 4;
-    bool  randomize_virtual_edgesQ = true;
-    Compaction_T compaction_method = Compaction_T::Length_MCF;
+    bool                rerouteQ                 = true;
+    bool                disconnectQ              = true;
+    bool                splitQ                   = true;
+    bool                compressQ                = true;
+    Int                 compression_threshold    = 0;
+    Size_T              embedding_trials         = 25;
+    Size_T              rotation_trials          = 1;
+    bool                permute_randomQ          = true;
+    Energy_T            energy                   = Energy_T::TV;
+    
+    int                 randomize_bends          = 4;
+    bool                randomize_virtual_edgesQ = true;
+    Compaction_T        compaction_method        = Compaction_T::Length_MCF;
 
 //    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
 
 friend std::string ToString( cref<Simplify_Args_T> args )
 {
-    return std::string("{")
-            + ".local_opt_level = " + ToString(args.local_opt_level)
-            + ",.strategy = " + ToString(args.strategy)
+    return std::string("{ ")
+            +   ".local_opt_level = " + ToString(args.local_opt_level)
+            + ", .strategy = " + ToString(args.strategy)
             + ", .start_max_dist = " + ToString(args.start_max_dist)
             + ", .final_max_dist = " + ToString(args.final_max_dist)
-//            + ", .exhaust_strands_firstQ = " + ToString(args.exhaust_strands_firstQ)
-//            + ", .restart_after_successQ = " + ToString(args.restart_after_successQ)
-//            + ", .restart_after_failureQ = " + ToString(args.restart_after_failureQ)
-//            + ", .restart_walk_backQ = " + ToString(args.restart_walk_backQ)
-//            + ", .restart_change_typeQ = " + ToString(args.restart_change_typeQ)
-//            + ", .reroute_markedQ = " + ToString(args.reroute_markedQ)
             + ", .disconnectQ = " + ToString(args.disconnectQ)
             + ", .splitQ = " + ToString(args.splitQ)
             + ", .compressQ = " + ToString(args.compressQ)
-//            + ", .compress_oftenQ = " + ToString(args.compress_oftenQ)
+            + ", .compression_threshold = " + ToString(args.compression_threshold)
             + ", .embedding_trials = " + ToString(args.embedding_trials)
             + ", .rotation_trials = " + ToString(args.rotation_trials)
             + ", .permute_randomQ = " + ToString(args.permute_randomQ)
@@ -55,7 +43,7 @@ friend std::string ToString( cref<Simplify_Args_T> args )
             + ", .randomize_bends = " + ToString(args.randomize_bends)
             + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
             + ", .compaction_method = " + ToString(args.compaction_method)
-    + "}";
+    + " }";
 }
 
 
@@ -66,14 +54,7 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
     TOOLS_PTIMER(timer,MethodName("Simplify"));
     
     if( DiagramCount() == Int(0) ) { return 0; }
-    
-//    return Simplify_impl<15>(args);
-    
-//    int flag = (args.restart_after_successQ << 0)
-//             | (args.restart_after_failureQ << 1)
-//             | (args.restart_walk_backQ     << 2)
-//             | (args.restart_change_typeQ   << 3);
-    
+
     switch ( args.local_opt_level )
     {
         case 0:
@@ -313,36 +294,11 @@ Size_T Rattle(
         if( pd.DiagramComponentCount() != Int(1) ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int(1)."); }
         if( !pd.CheckAll() ) { pd_eprint(tag() + ": !pd.CheckAll()."); }
     }
-    
-//    // DEBUGGING.
-//    if( pd.MinimalQ() )
-//    {
-//        wprint(MethodName("Rattle") + ": Input diagram is minimal (crossing_count = " + ToString(pd.crossing_count) + "). No point calling Rattle.");
-//    }
-    
-    
-//    // DEBUGGING
-//
-//    pd.PrintInfo();
-//
-//    if( pd.InCacheQ("ArcNextArc") && !pd.CheckArcNextArc() )
-//    {
-//        pd_eprint(tag() + "!pd.CheckArcNextArc()");
-//    }
-//
-//    if( pd.InCacheQ("ArcLeftDarcs") && !pd.CheckArcLeftDarcs() )
-//    {
-//        pd_eprint(tag() + "!pd.CheckArcLeftDarcs() ");
-//    }
 
     // TODO: For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
     // TODO: It would be great if we did not have to erase, e.g., the face information.
     // TODO: However, typically, we will use args.permute_randomQ == true anyways, and then it does not matter.
-    if( !args.permute_randomQ )
-    {
-        pd.Compress();
-        //    pd.ClearCache();
-    }
+    if( !args.permute_randomQ ) { pd.Compress(); }
     
     PD_T pd_1;
     
@@ -411,13 +367,7 @@ Size_T Rattle(
                         ||
                         (disconnect_count > Size_T(0))
                         ||
-                        (pd_1.DiagramComponentCount() > Int(1));
-            
-//            // DEBUGGING.
-//            if( !progressQ && pd_1.MinimalQ() )
-//            {
-//                wprint("Found minimal diagram with " + ToString(pd_1.crossing_count) + " crossings, but we discarded it.");
-//            }
+                        (pd_1.DiagramComponentCount() > Int(1));    
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
@@ -527,7 +477,8 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             strand_change_count += S.template SimplifyStrands<targs>(pd,{
                 .max_dist  = max_dist,
                 .overQ     = true,
-                .compressQ = args.compressQ
+                .compressQ = args.compressQ,
+                .compression_threshold = args.compression_threshold
             });
             
             if( pd.InvalidQ() ) { break; }
@@ -551,7 +502,8 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 strand_change_count += S.template SimplifyStrands<targs>(pd,{
                     .max_dist  = max_dist,
                     .overQ     = false,
-                    .compressQ = args.compressQ
+                    .compressQ = args.compressQ,
+                    .compression_threshold = args.compression_threshold
                 });
                 
                 if( pd.InvalidQ() ) { break; }
