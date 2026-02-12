@@ -103,7 +103,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         );
         
         Real phi_tau;
-        Real tau        = Frac<Real>(1,backtracking_factor);
+        Real tau        = Frac<Real>(1,settings.backtracking_factor);
         int  SSN_b_iter = 0;
         
         // Armijo line search.

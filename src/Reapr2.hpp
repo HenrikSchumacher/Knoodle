@@ -243,6 +243,8 @@ namespace Knoodle
 #include "Reapr2/DirichletHessian.hpp"
 #include "Reapr2/BendingHessian.hpp"
 #include "Reapr2/LevelsConstraintMatrix.hpp"
+#include "Reapr2/LevelsLP_MCF.hpp"
+#include "Reapr2/LevelsMinHeight.hpp"
         
 #ifdef KNOODLE_USE_UMFPACK
     #include "Reapr2/LevelsQP_SSN.hpp"
@@ -252,8 +254,6 @@ namespace Knoodle
     #include "Reapr2/LevelsLP_CLP.hpp"
 #endif
         
-#include "Reapr2/LevelsLP_MCF.hpp"
-#include "Reapr2/LevelsMinHeight.hpp"
 #include "Reapr2/Embedding.hpp"
 #include "Reapr2/RandomRotation.hpp"
 //#include "Reapr/Rattle.hpp"

@@ -1,7 +1,5 @@
 public:
 
-// Warning: This could be buggy!
-
 template<typename T = Real>
 Tensor1<T,Int> LevelsLP_CLP( cref<PD_T> pd )
 {
@@ -247,4 +245,60 @@ Tensor1<R,I> LevelsLP_CLP_ObjectiveVector( cref<PD_T> pd ) const
     pd.ClearCache(MethodName("LevelsLP_ArcIndices"));
     
     return v;
+}
+
+cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PD_T> pd ) const
+{
+    std::string tag (MethodName("LevelsLP_ArcIndices"));
+    
+    if(!pd.InCacheQ(tag))
+    {
+        const Int a_count = pd.MaxArcCount();
+        
+        Tensor1<Int,Int> A_idx ( a_count );
+        Permutation<Int> perm;
+        
+        Int a_idx = 0;
+        
+        if( settings.permute_randomQ )
+        {
+            perm = Permutation<Int>::RandomPermutation(
+               a_count, Int(1), random_engine
+            );
+            
+            cptr<Int> p = perm.GetPermutation().data();
+            
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = p[a_idx];
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        else
+        {
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = a_idx;
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        
+        pd.SetCache(tag,std::move(A_idx));
+    }
+    
+    return pd.template GetCache<Tensor1<Int,Int>>(tag);
 }

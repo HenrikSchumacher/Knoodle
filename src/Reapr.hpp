@@ -8,6 +8,10 @@
 #include "../submodules/Tensors/Clp.hpp"
 #endif
 
+// For this, the user has to put the following directories onto the search path:
+//      "../submodules/Min-Cost-Flow-Class/OPTUtils/",
+//      "../submodules/Min-Cost-Flow-Class/MCFClass/",
+//      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
 #include "OrthoDraw.hpp"
 
 namespace Knoodle

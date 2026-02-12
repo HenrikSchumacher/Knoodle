@@ -49,7 +49,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
     
     auto con_eq = Bends_EqualityConstraintVector<R,I>(pd,ext_region_);
     
-    std::shared_ptr<Clp_T> clp;
+//    std::shared_ptr<Clp_T> clp;
 
     
 //    auto A_idx = Bends_ArcIndices(pd);
@@ -91,7 +91,11 @@ Tensor1<Turn_T,Int> Bends_CLP(
         heads[di_1] = f_0;
     }
             
-    clp = std::make_shared<Clp_T>(
+    // Annoying, but std::make_shared wants it.
+//    typename Clp_T::Settings_T clp_settings { .dualQ = settings.use_dual_simplexQ };
+    
+//    clp = std::make_shared<Clp_T>(
+    Clp_T clp (
         tails, heads,
         Bends_ObjectiveVector<R,I>(pd),
         Bends_LowerBoundsOnVariables<R,I>(pd),
@@ -100,7 +104,7 @@ Tensor1<Turn_T,Int> Bends_CLP(
         { .dualQ = settings.use_dual_simplexQ }
     );
     
-    auto s = clp->template IntegralPrimalSolution<Turn_T>();
+    auto s = clp.template IntegralPrimalSolution<Turn_T>();
 
     Tensor1<Turn_T,Int> bends ( pd.Arcs().Dim(0) );
     
