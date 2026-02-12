@@ -2,6 +2,8 @@ public:
 
 struct Simplify_Args_T
 {
+    bool                compress_initialQ        = true;
+    
     UInt8               local_opt_level          = 0;
     DijkstraStrategy_T  strategy                 = DijkstraStrategy_T::Bidirectional;
     Int                 start_max_dist           = Scalar::Max<Int>;
@@ -27,7 +29,8 @@ struct Simplify_Args_T
 friend std::string ToString( cref<Simplify_Args_T> args )
 {
     return std::string("{ ")
-            +   ".local_opt_level = " + ToString(args.local_opt_level)
+            +   ".compress_initialQ = " + ToString(args.compress_initialQ)
+            + ", .local_opt_level = " + ToString(args.local_opt_level)
             + ", .strategy = " + ToString(args.strategy)
             + ", .start_max_dist = " + ToString(args.start_max_dist)
             + ", .final_max_dist = " + ToString(args.final_max_dist)
@@ -127,7 +130,14 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     pd_todo.reserve(pd_list.size());
   
     swap(pd_list,pd_todo);
-
+    
+    
+    if( args.compress_initialQ )
+    {
+        // This makes sure that the input is canonical ordering. This can make a huge difference in runtime!
+        for( PD_T & pd : pd_todo ) { pd.Compress(); }
+    }
+    
     Reapr_T reapr ({
         .permute_randomQ     = args.permute_randomQ,
         .energy              = args.energy,

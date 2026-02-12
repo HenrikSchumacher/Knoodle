@@ -409,10 +409,9 @@ bool SweepFace(
         de = DarcLeftDarc(de_0);
     }
     
-    
     do
     {
-        auto [e,left_to_rightQ] = FromDarc(de);
+        auto [e,d] = FromDarc(de);
         
         // Only important for sweeping over the starting face.
         // If we hit the target b_0 already here, then a_0 and b_0 share a common face
@@ -438,27 +437,40 @@ bool SweepFace(
         if( !DualArcMarkedQ(e) )
         {
             PD_PRINT("Arc " + ToString(e) + " is unvisited; marking as visited.");
-
+            
             // Beware that dual arcs with forwardQ == false have to be traversed in reverse way when the path is rerouted. This is why we may have to flip left_to_rightQ here.
-            SetDualArc( e, forwardQ, from, forwardQ == left_to_rightQ );
+            SetDualArc( e, forwardQ, from, forwardQ == d );
             
             Int de_next = FlipDarc(de);
             PD_PRINT("Pushing darc de_next = " + ToString(de_next) + " to stack." );
             next.Push(de_next);
         }
-        else if( DualArcForwardQ(e) != forwardQ )
+        else // if( DualArcMarkedQ(e) )
         {
-            // We met this arc during stepping in the other direction.
-            // So, we have found a shortest path.
-            
-            PD_PRINT("Found shortest path at e = " + ToString(e) + ".");
-            
-            PD_PRINT("SweepFace: setting a_0 = from = " + ToString(from) + "; b_0 = e = " + ToString(from) + ".)");
-            
-            // Return the two points that touch.
-            a_0 = from;
-            b_0 = e;
-            return true;
+            if( DualArcForwardQ(e) != forwardQ )
+            {
+                // We met this arc during stepping in the other direction.
+                // So, we have found a shortest path.
+                
+                PD_PRINT("Found shortest path at e = " + ToString(e) + ".");
+                
+                PD_PRINT("SweepFace: setting a_0 = from = " + ToString(from) + "; b_0 = e = " + ToString(from) + ".)");
+                
+                // Return the two points that touch.
+                a_0 = from;
+                b_0 = e;
+                return true;
+            }
+            else // if( DualArcForwardQ(e) == forwardQ )
+            {
+                // We visited this arc during stepping in the this direction.
+                // If we traversed it in the same direction, this means that we have visited the whole face already.
+                // Then we can abort the face traversal immediately.
+                
+                if( DualArcLeftToRightQ(e) == (forwardQ == d) ) { return false; }
+                
+                // Otherwise, we ignore this directed arc and continue cycling around the face.
+            }
         }
         
         de = DarcLeftDarc(de);
