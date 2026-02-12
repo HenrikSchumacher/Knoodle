@@ -15,9 +15,9 @@ namespace Knoodle
 
     template<
         typename Int_,
-        Size_T optimization_level_ = 4,
-        bool mult_compQ_ = true,
-        bool forwardQ_ = true
+        UInt8 optimization_level_ = 4,
+        bool mult_compQ_          = true,
+        bool forwardQ_            = true
     >
     class alignas( ObjectAlignment ) ArcSimplifier2 final
     {
@@ -34,20 +34,36 @@ namespace Knoodle
         using ArcColorContainer_T       = typename PD_T::ArcColorContainer_T;
         using ArcStateContainer_T       = typename PD_T::ArcStateContainer_T;
         
-        static constexpr bool mult_compQ          = mult_compQ_;
-        static constexpr bool forwardQ            = forwardQ_;
-        static constexpr Int  optimization_level  = optimization_level_;
+        static constexpr bool  mult_compQ          = mult_compQ_;
+        static constexpr bool  forwardQ            = forwardQ_;
+        static constexpr UInt8 optimization_level  = optimization_level_;
         
-        static constexpr bool search_two_triangles_same_u = true;
+        static constexpr bool  search_two_triangles_same_u = true;
         
-        static constexpr bool use_loop_removerQ    = true;
+        static constexpr bool  use_loop_removerQ    = true;
         
-        static constexpr bool Head  = PD_T::Head;
-        static constexpr bool Tail  = PD_T::Tail;
-        static constexpr bool Left  = PD_T::Left;
-        static constexpr bool Right = PD_T::Right;
-        static constexpr bool In    = PD_T::In;
-        static constexpr bool Out   = PD_T::Out;
+        static constexpr bool  Head  = PD_T::Head;
+        static constexpr bool  Tail  = PD_T::Tail;
+        static constexpr bool  Left  = PD_T::Left;
+        static constexpr bool  Right = PD_T::Right;
+        static constexpr bool  In    = PD_T::In;
+        static constexpr bool  Out   = PD_T::Out;
+        
+        struct Settings_T
+        {
+            Size_T max_iter              = Scalar::Max<Size_T>;
+            Int    compression_threshold = 0;
+            bool   compressQ             = true;
+        };
+        
+        friend std::string ToString( cref<Settings_T> settings_ )
+        {
+            return std::string("{ ")
+                    +   ".max_iter = " + ToString(settings_.max_iter)
+                    + ", .compression_threshold = " + ToString(settings_.compression_threshold)
+                    + ", .compressQ = " + ToString(settings_.compressQ)
+            + " }";
+        }
         
     private:
         
@@ -61,8 +77,7 @@ namespace Knoodle
         ArcStateContainer_T      & restrict A_state;
         ArcColorContainer_T      & restrict A_color;
         
-        Size_T max_iter = 0;
-        bool compressQ = false;
+        Settings_T settings;
         
     private:
         
@@ -116,9 +131,7 @@ namespace Knoodle
         
     public:
         
-        ArcSimplifier2(
-           mref<PDC_T> pdc_, mref<PD_T> pd_, const Size_T max_iter_, const bool compressQ_
-        )
+        ArcSimplifier2( mref<PDC_T> pdc_, mref<PD_T> pd_, cref<Settings_T> settings_ )
         :   pdc      { pdc_       }
         ,   pd       { pd_        }
         ,   C_arcs   { pd.C_arcs  }
@@ -126,8 +139,7 @@ namespace Knoodle
         ,   A_cross  { pd.A_cross }
         ,   A_state  { pd.A_state }
         ,   A_color  { pd.A_color }
-        ,   max_iter { max_iter_  }
-        ,   compressQ{ compressQ_ }
+        ,   settings { settings_  }
         {}
         
         // Default constructor
@@ -148,18 +160,15 @@ namespace Knoodle
                 return 0;
             }
             
-            TOOLS_PTIMER(timer,ClassName()
-                + "(" + ToString(optimization_level)
-                + "," + ToString(max_iter)
-                + "," + ToString(mult_compQ) + ")");
+            TOOLS_PTIMER(timer,ClassName() + "(" + ToString(settings) + ")");
             
             Size_T old_counter = 0;
             Size_T counter = 0;
             Size_T iter = 0;
             
-            if( compressQ ) { pd.ConditionalCompress(); }
+            if( settings.compressQ ) { pd.ConditionalCompress( settings.compression_threshold ); }
             
-            if( iter < max_iter )
+            if( iter < settings.max_iter )
             {
                 do
                 {
@@ -178,19 +187,16 @@ namespace Knoodle
                     if( pd.ArcCount() <= Int(0) ) { break; }
         
                     // We could recompress also here...
-                    if( compressQ ) { pd.ConditionalCompress(); }
+                    if( settings.compressQ ) { pd.ConditionalCompress( settings.compression_threshold ); }
                 }
-                while( (counter != old_counter) && (iter < max_iter) );
+                while( (counter != old_counter) && (iter < settings.max_iter) );
             }
             
             if( pd.InvalidQ() ) { return counter; }
             
             if( counter > Size_T(0) )
             {
-                if( compressQ )
-                {
-                    pd.ConditionalCompress();
-                }
+                if( settings.compressQ ) { pd.ConditionalCompress( settings.compression_threshold ); }
                 
                 pd.ClearCache();
             }
@@ -268,7 +274,8 @@ namespace Knoodle
             return ct_string("ArcSimplifier2")
                 + "<" + TypeName<Int>
                 + "," + ToString(optimization_level)
-                + "," + ToString(mult_compQ) + ">";
+                + "," + ToString(mult_compQ)
+                + "," + ToString(forwardQ) + ">";
         }
 
     }; // class ArcSimplifier

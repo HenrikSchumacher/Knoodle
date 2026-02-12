@@ -73,7 +73,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     
     PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
     
-    if( args.compressQ ) { pd_input.ConditionalCompress( args.compression_threshold); }
+    if( args.compressQ ) { pd_input.ConditionalCompress(args.compression_threshold); }
 
     SetStrandMode(args.overQ);
     LoadDiagram(pd_input);

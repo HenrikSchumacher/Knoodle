@@ -19,7 +19,7 @@ bool R_II_above()
      *               |c_0        |c_1          |c_0        |c_1
      */
     
-    if constexpr ( optimization_level >= 3 )
+    if constexpr ( optimization_level >= UInt8(3) )
     {
         load_c_2();
         

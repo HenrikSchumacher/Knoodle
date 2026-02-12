@@ -2,7 +2,7 @@ public:
 
 struct Simplify_Args_T
 {
-    Size_T              local_opt_level          = 0;
+    UInt8               local_opt_level          = 0;
     DijkstraStrategy_T  strategy                 = DijkstraStrategy_T::Bidirectional;
     Int                 start_max_dist           = Scalar::Max<Int>;
     Int                 final_max_dist           = Scalar::Max<Int>;
@@ -89,7 +89,7 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 
 private:
 
-template<Size_T local_opt_level>
+template<UInt8 local_opt_level>
 Size_T Simplify_impl( cref<Simplify_Args_T> args )
 {
 //    constexpr bool debugQ = true;
@@ -146,9 +146,14 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         pd_todo.pop_back();
         
         // We allow local pattern optimization only in the very first pass for each diagram. It won't help at all in Rattle.
-        if( args.local_opt_level > Size_T(0) )
+        if( args.local_opt_level > UInt8(0) )
         {
-            change_count += ArcSimplifier2<Int,local_opt_level,true>( *this, pd, Scalar::Max<Int>, args.compressQ )();
+            change_count += ArcSimplifier2<Int,local_opt_level,true>( *this, pd,
+                {
+                    .compression_threshold = args.compression_threshold,
+                    .compressQ = args.compressQ
+                }
+            )();
         }
 
         auto [strand_change_count, disconnect_count] = this->template SimplifyDiagrammatically<debugQ,targs>( S, pd, args );
@@ -367,7 +372,7 @@ Size_T Rattle(
                         ||
                         (disconnect_count > Size_T(0))
                         ||
-                        (pd_1.DiagramComponentCount() > Int(1));    
+                        (pd_1.DiagramComponentCount() > Int(1));
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }

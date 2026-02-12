@@ -56,7 +56,7 @@ private:
             }
         }
          
-        if constexpr ( optimization_level < 2 )
+        if constexpr ( optimization_level < UInt8(2) )
         {
             return false;
         }

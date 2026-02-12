@@ -25,7 +25,7 @@ bool R_II_below()
     // Guaranteed by calling R_II_above first.
     PD_ASSERT(n_0 != n_1);
     
-    if constexpr ( optimization_level >= 3 )
+    if constexpr ( optimization_level >= UInt8(3) )
     {
         load_c_3();
         
