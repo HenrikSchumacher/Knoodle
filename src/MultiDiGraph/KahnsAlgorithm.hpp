@@ -40,7 +40,7 @@ void KahnsAlgorithm() const
     VInt p_back  = 0;
     
     // We have to initialize to account for disconnected vertices.
-    V_scratch.SetZero();
+//    V_scratch.SetZero();
     mptr<VInt> indegree = V_scratch.data();
     
     cptr<EInt> V_In_ptr = InIncidenceMatrix().Outer().data();
@@ -63,7 +63,6 @@ void KahnsAlgorithm() const
     cptr<VInt> V_Out_idx = OutIncidenceMatrix().Inner().data();
     
     VInt level = 0;
-    
 
     while( p_front < p_back )
     {
@@ -114,120 +113,13 @@ void KahnsAlgorithm() const
 
     proven_acyclicQ = true;
     
-    this->SetCache(tag_ord,std::move(p));
-    this->SetCache(tag_num,std::move(q));
-}
-
-
-
-cref<Tensor1<VInt,VInt>> TopologicalTightened() const
-{
-    TOOLS_PTIMER(timer,MethodName("TopologicalTightening"));
+    Tensor1<VInt,VInt> perm (VertexCount());
     
-    auto & p = TopologicalOrdering();
-    auto   q = TopologicalNumbering(); // intentional copy here; we modify this.
-    
-    // If there are more outgoing edges than ingoing edges, then we tighten the topological numbering by setting each vertex's level to the highest possible level as dictated by its outgoing edges.
-    
-    cptr<EInt> V_In_ptr  = InIncidenceMatrix().Outer().data();
-    cptr<VInt> V_In_idx  = InIncidenceMatrix().Inner().data();
-    cptr<EInt> V_Out_ptr = OutIncidenceMatrix().Outer().data();
-    cptr<VInt> V_Out_idx = OutIncidenceMatrix().Inner().data();
-    
-    for( VInt i = p.Size(); i--> VInt(0); )
+    for( VInt i = 0; i < VertexCount(); ++i )
     {
-        const VInt v = p[i];
-        
-        const EInt in_begin  = V_In_ptr [v          ];
-        const EInt in_end    = V_In_ptr [v + VInt(1)];
-        
-        const EInt out_begin = V_Out_ptr[v          ];
-        const EInt out_end   = V_Out_ptr[v + VInt(1)];
-
-        const EInt in_cost  = in_end  - in_begin;
-        const EInt out_cost = out_end - out_begin;
-
-        // It can be important here to have multiple edges between two vertices.
-        // Alternatively, one could put costs onto the edges to indicate the strength by which the edges pull on the vertex. Beware, I use the term "cost" here because "weight" might be too easily confused with the "weighted topoligical numbering", where the weight omega[e] indicates that q[edges(e,Tail)] + omega[e] <= q[edges(e,Head)] must be fulfilled. See the version below.
-        
-        if( out_cost > in_cost)
-        {
-            VInt min = Scalar::Max<VInt>;
-
-            // Cycle over all outgoing edges e
-            for( EInt j = out_begin; j < out_end; ++j )
-            {
-                const EInt e = V_Out_idx[j];
-                const VInt w = edges(e,Head);
-                min = Min( min, q[w] );
-            }
-            
-            q[v] = min - VInt(1);
-        }
+        perm[p[i]] = i;
     }
     
-    return q;
-}
-
-public:
-
-template<typename Scal>
-Tensor1<VInt,VInt> TopologicalTightening( cptr<Scal> edge_costs ) const
-{
-    TOOLS_PTIMER(timer,MethodName("TopologicalTightening"));
-    
-    auto & p = TopologicalOrdering();
-    auto   q = TopologicalNumbering(); // intentional copy here; we modify this.
-
-    if( p.Size() <= VInt(0) )
-    {
-        return Tensor1<VInt,VInt>();
-    }
-    
-    // If there are more outgoing edges than ingoing edges, then we tighten the topological numbering by setting each vertex's level to the highest possible level as dictated by its outgoing edges.
-    
-    cptr<EInt> V_In_ptr  = InIncidenceMatrix().Outer().data();
-    cptr<VInt> V_In_idx  = InIncidenceMatrix().Inner().data();
-    cptr<EInt> V_Out_ptr = OutIncidenceMatrix().Outer().data();
-    cptr<VInt> V_Out_idx = OutIncidenceMatrix().Inner().data();
-    
-    for( VInt i = p.Size(); i--> VInt(0); )
-    {
-        const VInt v = p[i];
-        
-        const EInt in_begin  = V_In_ptr [v          ];
-        const EInt in_end    = V_In_ptr [v + VInt(1)];
-        
-        const EInt out_begin = V_Out_ptr[v          ];
-        const EInt out_end   = V_Out_ptr[v + VInt(1)];
-
-        Scal in_cost = 0;
-        for( EInt k = in_begin; k < in_end; ++k )
-        {
-            in_cost += edge_costs[V_In_idx[k]];
-        }
-        
-        Scal out_cost = 0;
-        for( EInt k = out_begin; k < out_end; ++k )
-        {
-            out_cost += edge_costs[V_Out_idx[k]];
-        }
-        
-        if( out_cost > in_cost)
-        {
-            VInt min = Scalar::Max<VInt>;
-
-            // Cycle over all outgoing edges e
-            for( EInt j = out_begin; j < out_end; ++j )
-            {
-                const EInt e = V_Out_idx[j];
-                const VInt w = edges(e,Head);
-                min = Min( min, q[w] );
-            }
-            
-            q[v] = min - VInt(1);
-        }
-    }
-    
-    return q;
+    this->SetCache(tag_ord,std::move(perm));
+    this->SetCache(tag_num,std::move(q   ));
 }

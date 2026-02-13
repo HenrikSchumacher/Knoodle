@@ -28,6 +28,6 @@ void ComputeVertexCoordinates_TopologicalNumbering()
     {
         eprint(MethodName("ComputeVertexCoordinates_TopologicalNumbering") + ": Graph Dh() is cyclic.");
     }
-
+    
     ComputeVertexCoordinates(x,y);
 }
