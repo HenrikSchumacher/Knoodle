@@ -196,7 +196,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     TOOLS_LOGDUMP(da_0);
                     TOOLS_LOGDUMP(de);
                     TOOLS_LOGDUMP(dA_F[de]);
-                    TOOLS_LOGDUMP(dA_F[FlipDarc(de)]);
+                    TOOLS_LOGDUMP(dA_F[ReverseDarc(de)]);
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
@@ -205,7 +205,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }
                 
-                const Int g = dA_F[FlipDarc(de)];
+                const Int g = dA_F[ReverseDarc(de)];
                 f_dA.push_back(de);
                 f_F.push_back(g);
                 Increment(f_counts,g);
@@ -240,7 +240,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
         for( Int db : f_dA )
         {
             auto [b,d]  = FromDarc(db);
-            const Int g = dA_F[FlipDarc(db)];
+            const Int g = dA_F[ReverseDarc(db)];
             
             if constexpr ( debugQ )
             {
@@ -293,7 +293,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     wprint(pd.ArcString(a) + " from the stack is not active. Maybe it should have been erased earlier? We pop it from stack now and continue.");
                     
                     TOOLS_LOGDUMP(dA_F[da]);
-                    TOOLS_LOGDUMP(dA_F[FlipDarc(da)]);
+                    TOOLS_LOGDUMP(dA_F[ReverseDarc(da)]);
                     TOOLS_LOGDUMP(stack);
                     TOOLS_LOGDUMP(f_F);
                     TOOLS_LOGDUMP(f_dA);
@@ -392,10 +392,10 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                         {
                             TOOLS_LOGDUMP(de);
                             TOOLS_LOGDUMP(dA_F[de]);
-                            TOOLS_LOGDUMP(dA_F[FlipDarc(de)]);
+                            TOOLS_LOGDUMP(dA_F[ReverseDarc(de)]);
                         }
                         
-                        const Int h = dA_F[FlipDarc(de)];
+                        const Int h = dA_F[ReverseDarc(de)];
                         
                         auto iterator = std::find(stack.begin(), stack.end(), std::pair{de,h} );
                         if( iterator != stack.end() )

@@ -391,9 +391,9 @@ namespace Knoodle
             return PD_T::ArcOfDarc(da);
         }
         
-        static Int FlipDarc( const Int da )
+        static Int ReverseDarc( const Int da )
         {
-            return PD_T::FlipDarc(da);
+            return PD_T::ReverseDarc(da);
         }
         
         

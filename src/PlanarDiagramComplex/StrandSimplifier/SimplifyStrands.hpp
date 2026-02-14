@@ -75,7 +75,10 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     
     if( args.compressQ ) { pd_input.ConditionalCompress(args.compression_threshold); }
 
-    SetStrandMode(args.overQ);
+    if constexpr ( !targs.restart_change_typeQ )
+    {
+        SetStrandMode(args.overQ);
+    }
     LoadDiagram(pd_input);
     NewStrand();
     
@@ -95,10 +98,10 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     while( a_ptr < pd_max_arc_count )
     {
         // Search for next arc that is active and has not yet been handled.
-        while( ( a_ptr < pd_max_arc_count ) && (!ArcActiveQ(a_ptr) || ArcRecentlyMarkedQ(a_ptr) ) )
+        while(
+            ( a_ptr < pd_max_arc_count ) && (!ArcActiveQ(a_ptr) || ArcRecentlyMarkedQ(a_ptr) )
+        )
         {
-//            TOOLS_LOGDUMP(a_ptr);
-//            TOOLS_LOGDUMP(ArcRecentlyMarkedQ(a_ptr));
             ++a_ptr;
         }
         
@@ -106,13 +109,61 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         
         if( a_ptr >= pd_max_arc_count ) [[unlikely]] { break; }
         
-        // TODO: Maybe we should walk back to the next alternating arc and pick overQ from there.
-        // Find the beginning of first strand.
+        // Find the beginning of strand.
+        if constexpr ( targs.restart_change_typeQ )
+        {
+            const bool overQ_0 = ArcOverQ(a_ptr,Tail);
+            const bool overQ_1 = ArcOverQ(a_ptr,Head);
+            
+            SetStrandMode(overQ_1);
+            if( NewStrand() ) [[unlikely]] { break; }
+            
+            if( overQ_0 != overQ_1 )
+            {
+                /* Definitely the start of an (overQ_1 ? over : under)-strand.
+                 * Bad idea to walk backwards.
+                 *
+                 *          |        |
+                 *          | a_ptr  |
+                 *  ------->|------->-------->
+                 *          |        |
+                 *          |        |
+                 */
+                
+                s_begin = a_ptr;
+            }
+            else
+            {
+                /* Somewhere in the middle of an (overQ_1 ? over : under)-strand.
+                 * We can (should?) move back to the start.
+                 *
+                 *          |        |
+                 *          | a_ptr  |
+                 *  ------->-------->-------->
+                 *          |        |
+                 *          |        |
+                 */
+                
+                if constexpr ( targs.restart_walk_backQ )
+                {
+                    s_begin = WalkBackToStrandStart( NextArc(a_ptr,Tail) );
+                }
+                else
+                {
+                    s_begin = a_ptr;
+                }
+                
+                // TODO: Catch the Big Unlink here.
+            }
+        }
+        else
+        {
+            if( NewStrand() ) [[unlikely]] { break; }
+            s_begin = WalkBackToStrandStart(a_ptr);
+            // TODO: Catch the Big Unlink here.
+        }
         
-        if( NewStrand() ) [[unlikely]] { break; }
-        s_begin = WalkBackToStrandStart(a_ptr);
         
-        // TODO: Catch the Big Unlink here.
         //if( s_begin == Uninitialized ) { continue; }
         
 #ifdef PD_DEBUG
@@ -129,7 +180,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         }
 #endif // PD_DEBUG
         
-        // TODO: Is this really necessary? The do loop below eliminates out loops automatically.
+        // TODO: Is this really necessary? The do loop below eliminates loops automatically.
         // We make sure that `s_begin` is not a loop.
         if( Reidemeister_I<true>(s_begin) )
         {

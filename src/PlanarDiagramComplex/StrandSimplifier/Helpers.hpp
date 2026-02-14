@@ -123,9 +123,9 @@ static constexpr Int ArcOfDarc( const Int da )
     return PD_T::ArcOfDarc(da);
 }
 
-static constexpr Int FlipDarc( Int da )
+static constexpr Int ReverseDarc( Int da )
 {
-    return PD_T::FlipDarc(da);
+    return PD_T::ReverseDarc(da);
 }
 
 void CreateUnlinkFromArc( const Int a )

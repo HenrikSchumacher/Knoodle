@@ -1,8 +1,13 @@
 private:
 
 template<bool must_be_activeQ = true, bool silentQ = false>
-bool CheckDarcLeftDarc( const Int da )
+bool CheckLeftDarc( const Int da )
 {
+    if constexpr ( lutQ )
+    {
+        return true;
+    }
+    
     bool passedQ = true;
     
     auto [a,dir] = PD_T::FromDarc(da);
@@ -11,7 +16,7 @@ bool CheckDarcLeftDarc( const Int da )
     {
         if constexpr( must_be_activeQ )
         {
-            eprint(MethodName("CheckDarcLeftDarc")+": Inactive " + ArcString(a) + ".");
+            eprint(MethodName("CheckLeftDarc")+": Inactive " + ArcString(a) + ".");
             return false;
         }
         else
@@ -21,13 +26,13 @@ bool CheckDarcLeftDarc( const Int da )
     }
     
     const Int da_l_true = pd->LeftDarc(da);
-    const Int da_l      = DarcLeftDarc(da);
+    const Int da_l      = LeftDarc(da);
     
     if( da_l != da_l_true )
     {
         if constexpr (!silentQ)
         {
-            eprint(MethodName("CheckDarcLeftDarc")+": Incorrect at " + ArcString(a) );
+            eprint(MethodName("CheckLeftDarc")+": Incorrect at " + ArcString(a) );
             
             auto [a_l_true,dir_l_true] = PD_T::FromDarc(da_l_true);
             auto [a_l     ,dir_l     ] = PD_T::FromDarc(da_l);
@@ -43,9 +48,9 @@ bool CheckDarcLeftDarc( const Int da )
 
 public:
 
-bool CheckDarcLeftDarc()
+bool CheckLeftDarc()
 {
-    TOOLS_PTIMER(timer,"CheckDarcLeftDarc");
+    TOOLS_PTIMER(timer,"CheckLeftDarc");
     
     std::vector<Int> duds;
     
@@ -55,14 +60,14 @@ bool CheckDarcLeftDarc()
         {
             const Int da = ToDarc(a,Head);
             
-            if( !CheckDarcLeftDarc<false,true>(da) )
+            if( !CheckLeftDarc<false,true>(da) )
             {
                 duds.push_back(da);
             }
             
             const Int db = ToDarc(a,Tail);
             
-            if( !CheckDarcLeftDarc<false,true>(db) )
+            if( !CheckLeftDarc<false,true>(db) )
             {
                 duds.push_back(db);
             }
@@ -79,7 +84,7 @@ bool CheckDarcLeftDarc()
 //
 //                TOOLS_LOGDUMP(touched);
         
-        logprint(MethodName("CheckDarcLeftDarc")+" failed.");
+        logprint(MethodName("CheckLeftDarc")+" failed.");
         
         return false;
     }

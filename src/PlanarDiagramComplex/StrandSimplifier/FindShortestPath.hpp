@@ -85,7 +85,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
     [[maybe_unused]] auto tag = [](){ return MethodName("FindShortestPath_impl"); };
     PD_TIMER(timer,tag());
     
-    PD_ASSERT(CheckDarcLeftDarc());
+    PD_ASSERT(CheckLeftDarc());
     
     PD_ASSERT(a != b);
     PD_ASSERT(ArcMarkedQ(a));
@@ -121,7 +121,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         ++k;
         const Int da = ToDarc(a,Tail);
         
-        Int de = DarcLeftDarc(da);
+        Int de = LeftDarc(da);
         auto [e,left_to_rightQ] = FromDarc(de);
         
         while( ArcMarkedQ(e) && (de != da) )
@@ -132,7 +132,7 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
                 SetDualArc(e,Head,a,Head==left_to_rightQ);
                 goto Exit;
             }
-            de = DarcLeftDarc(FlipDarc(de));
+            de = LeftDarc(ReverseDarc(de));
             std::tie(e,left_to_rightQ) = FromDarc(de);
         }
         
@@ -365,11 +365,11 @@ private:
 
 Int LeftUnmarkedDarc( const Int de_0 )
 {
-    Int de = DarcLeftDarc(de_0);
+    Int de = LeftDarc(de_0);
     
     while( (de != de_0) && ArcMarkedQ(ArcOfDarc(de)) )
     {
-        de = DarcLeftDarc(FlipDarc(de));
+        de = LeftDarc(ReverseDarc(de));
     }
     
     if( ArcMarkedQ(ArcOfDarc(de)) )
@@ -405,8 +405,8 @@ bool SweepFace(
     else
     {
         PD_ASSERT( DualArcMarkedQ(ArcOfDarc(de_0)) );
-        // We can set de = DarcLeftDarc(de_0) because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
-        de = DarcLeftDarc(de_0);
+        // We can set de = LeftDarc(de_0) because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
+        de = LeftDarc(de_0);
     }
     
     do
@@ -424,7 +424,7 @@ bool SweepFace(
         // This is to ignore marked arcs.
         if( ArcMarkedQ(e) )
         {
-            de = DarcLeftDarc(FlipDarc(de));
+            de = LeftDarc(ReverseDarc(de));
             continue;
         }
         
@@ -441,7 +441,7 @@ bool SweepFace(
             // Beware that dual arcs with forwardQ == false have to be traversed in reverse way when the path is rerouted. This is why we may have to flip left_to_rightQ here.
             SetDualArc( e, forwardQ, from, forwardQ == d );
             
-            Int de_next = FlipDarc(de);
+            Int de_next = ReverseDarc(de);
             PD_PRINT("Pushing darc de_next = " + ToString(de_next) + " to stack." );
             next.Push(de_next);
         }
@@ -473,7 +473,7 @@ bool SweepFace(
             }
         }
         
-        de = DarcLeftDarc(de);
+        de = LeftDarc(de);
     }
     while( de != de_0 );
     

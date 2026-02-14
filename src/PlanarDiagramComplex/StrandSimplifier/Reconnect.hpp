@@ -92,13 +92,16 @@ void Reconnect( const Int a, const Int b )
     pd->A_cross(a,headtail) = c;
     pd->C_arcs(c,headtail,side) = a;
 
-    const Int da      = ToDarc(a,headtail);
-    const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
-    const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+    if constexpr( lutQ )
+    {
+        const Int da      = ToDarc(a,headtail);
+        const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
+        const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+        
+        SetLeftDarc(da     ,da_left     );
+        SetLeftDarc(da_revr,ReverseDarc(da));
+    }
     
-    SetDarcLeftDarc(da     ,da_left     );
-    SetDarcLeftDarc(da_revr,FlipDarc(da));
-
     if constexpr( deactivateQ )
     {
         DeactivateArc(b);
@@ -133,12 +136,15 @@ void Reconnect( const Int a, const bool headtail, const Int b )
     pd->A_cross(a,headtail) = c;
     pd->C_arcs(c,headtail,side) = a;
 
-    const Int da      = ToDarc(a,headtail);
-    const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
-    const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
-    
-    SetDarcLeftDarc(da     ,da_left     );
-    SetDarcLeftDarc(da_revr,FlipDarc(da));
+    if constexpr( lutQ )
+    {
+        const Int da      = ToDarc(a,headtail);
+        const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
+        const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+        
+        SetLeftDarc(da     ,da_left     );
+        SetLeftDarc(da_revr,ReverseDarc(da));
+    }
     
     DeactivateArc(b);
 }

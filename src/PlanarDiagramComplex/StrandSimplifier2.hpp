@@ -54,6 +54,8 @@ namespace Knoodle
         
         static constexpr bool debugQ     = false;
         static constexpr bool mult_compQ = mult_compQ_;
+        static constexpr bool lutQ       = true; // Always activate this; switch is only for test reasons.
+//        static constexpr bool lutQ       = false;
         
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Tail  = PD_T::Tail;
@@ -226,19 +228,39 @@ namespace Knoodle
                 PD_ASSERT(!resetQ);
                 initial_mark = current_mark;
             }
-            dA_left = pd->ArcLeftDarcs().data();
-            PD_ASSERT(CheckDarcLeftDarc());
+            
+            if constexpr( lutQ )
+            {
+                dA_left = pd->ArcLeftDarcs().data();
+            }
+            
+            PD_ASSERT(CheckLeftDarc());
         }
         
         
-        Int DarcLeftDarc( const Int da )
+        Int LeftDarc( const Int da ) const
         {
-            return dA_left[da];
+            if constexpr( lutQ )
+            {
+                return dA_left[da];
+            }
+            else
+            {
+                return pd->LeftDarc(da);
+            }
         }
 
-        void SetDarcLeftDarc( const Int da, const Int db )
+        template<typename dummy = void>
+        void SetLeftDarc( const Int da, const Int db )
         {
-            dA_left[da] = db;
+            if constexpr( lutQ )
+            {
+                dA_left[da] = db;
+            }
+            else
+            {
+                static_assert(DependentFalse<dummy>,"We should not call this if lutQ == false.");
+            }
         }
         
         void Cleanup()
@@ -246,9 +268,12 @@ namespace Knoodle
             PD_TIMER(timer,MethodName("Cleanup"));
             
             PD_ASSERT(pd->CheckAll());
-            PD_ASSERT(CheckDarcLeftDarc());
+            PD_ASSERT(CheckLeftDarc());
             
-            dA_left = nullptr;
+            if constexpr ( lutQ )
+            {
+                dA_left = nullptr;
+            }
             pd      = nullptr;
         }
         
@@ -268,7 +293,7 @@ namespace Knoodle
 #include "StrandSimplifier/Marks.hpp"
 #include "StrandSimplifier/Checks.hpp"
 #include "StrandSimplifier/Helpers.hpp"
-#include "StrandSimplifier/RepairArcs.hpp"
+#include "StrandSimplifier/RepairLeftDarc.hpp"
 #include "StrandSimplifier/Reconnect.hpp"
 #include "StrandSimplifier/CollapseArcRange.hpp"
 #include "StrandSimplifier/RemoveLoopPath.hpp"

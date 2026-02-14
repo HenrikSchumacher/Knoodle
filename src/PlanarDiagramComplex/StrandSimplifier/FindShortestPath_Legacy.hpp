@@ -18,7 +18,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
 {
     PD_TIMER(timer,MethodName("FindShortestPath_Legacy_impl"));
     
-    PD_ASSERT(CheckDarcLeftDarc());
+    PD_ASSERT(CheckLeftDarc());
     
     PD_ASSERT( a_begin != a_end );
     
@@ -57,12 +57,12 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
             const Int da_0 = prev_front.Pop();
             auto [a_0,d_0] = FromDarc(da_0);
             
-            // Now we run through the boundary arcs of the face using `DarcLeftDarc` to turn always left.
+            // Now we run through the boundary arcs of the face using `LeftDarc` to turn always left.
             // There is only one exception and that is when the arc we get to is part of the strand (which is when `A_mark(a) == mark`).
             // Then we simply go straight through the crossing.
 
             // arc a_0 itself does not have to be processed because that's where we are coming from.
-            Int da = DarcLeftDarc(da_0);
+            Int da = LeftDarc(da_0);
 
             do
             {
@@ -90,7 +90,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
                     else
                     {
                         SetDualArc(a,Head,a_0,left_to_rightQ);
-                        X_front.Push(FlipDarc(da));
+                        X_front.Push(ReverseDarc(da));
                     }
                 }
                 else if constexpr ( mult_compQ )
@@ -113,7 +113,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
                     //         |     +----------+       |
                     //   ------+                        +---
                     
-                    // Wouldn't be easier to start with FlipDarc(da_0)?
+                    // Wouldn't be easier to start with ReverseDarc(da_0)?
                     
                     if( pd->A_scratch[a] == a_0 ) { break; }
                 }
@@ -123,11 +123,11 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
                 if( part_of_strandQ )
                 {
                     // If da is part of the current strand, we ignore i
-                    da = DarcLeftDarc(FlipDarc(da));
+                    da = LeftDarc(ReverseDarc(da));
                 }
                 else
                 {
-                    da = DarcLeftDarc(da);
+                    da = LeftDarc(da);
                 }
             }
             while( da != da_0 );

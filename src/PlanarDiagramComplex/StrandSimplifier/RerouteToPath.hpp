@@ -212,11 +212,13 @@ PD_VALPRINT("path", ShortPathString());
 //            const Int buffer [4] = { a_1,a_2,a,b };
 //            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
 
-            
-            SetDarcLeftDarc(da  , FlipDarc(da_1));
-            SetDarcLeftDarc(da_2, FlipDarc(db  ));
-            SetDarcLeftDarc(db  , FlipDarc(da  ));
-            SetDarcLeftDarc(da_1, FlipDarc(da_2));
+            if constexpr ( lutQ )
+            {
+                SetLeftDarc(da  , ReverseDarc(da_1));
+                SetLeftDarc(da_2, ReverseDarc(db  ));
+                SetLeftDarc(db  , ReverseDarc(da  ));
+                SetLeftDarc(da_1, ReverseDarc(da_2));
+            }
         }
         else // if ( !left_to_rightQ )
         {
@@ -251,10 +253,13 @@ PD_VALPRINT("path", ShortPathString());
 //            const Int buffer [4] = { a_2,a_1,b,a };
 //            copy_buffer<4>(&buffer[0],C_arcs.data(c_0));
             
-            SetDarcLeftDarc(da  , FlipDarc(db  ));
-            SetDarcLeftDarc(da_2, FlipDarc(da_1));
-            SetDarcLeftDarc(db  , FlipDarc(da_2));
-            SetDarcLeftDarc(da_1, FlipDarc(da  ));
+            if constexpr ( lutQ )
+            {
+                SetLeftDarc(da  , ReverseDarc(db  ));
+                SetLeftDarc(da_2, ReverseDarc(da_1));
+                SetLeftDarc(db  , ReverseDarc(da_2));
+                SetLeftDarc(da_1, ReverseDarc(da  ));
+            }
         }
         
         AssertCrossing<1>(c_0);
@@ -279,8 +284,11 @@ PD_VALPRINT("path", ShortPathString());
     AssertArc<0>(e);
     
     // TODO: Is this necessary? If yes, why?
-    RepairDarcLeftDarc(ToDarc(a,Head));
-
+    if constexpr ( lutQ )
+    {
+        RepairLeftDarc(ToDarc(a,Head));
+    }
+    
     a_last = a;
 
 #ifdef PD_DEBUG
@@ -292,15 +300,7 @@ PD_VALPRINT("path", ShortPathString());
     PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
     
     PD_ASSERT(pd->CheckAll() );
-    PD_ASSERT(CheckDarcLeftDarc());
-
-//    PD_PRINT("Diagram after rerouting:");
-//#ifdef PD_DEBUG
-//    pd->PrintInfo();
-//#endif
-//    PD_VALPRINT("ArcLeftDarc", pd->ArcLeftDarcs());
-//    PD_VALPRINT("C_scratch", pd->C_scratch);
-//    PD_VALPRINT("A_scratch", pd->A_scratch);
+    PD_ASSERT(CheckLeftDarc());
     
     ++change_counter;
     
