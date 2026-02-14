@@ -116,7 +116,7 @@ bool DisconnectSummand(
             f_arcs.Push(da);
             
             // Tell `f` that it is neighbor of the face that belongs to the twin of `A`.
-            f_faces.Push( dA_face[FlipDarc(da)] );
+            f_faces.Push( dA_face[ReverseDarc(da)] );
         }
     }
         

@@ -113,9 +113,9 @@ static constexpr Int ToDarc( const Int a, const bool headtail )
     return PD_T::ToDarc(a,headtail);
 }
 
-static constexpr Int FlipDarc( Int da )
+static constexpr Int ReverseDarc( Int da )
 {
-    return PD_T::FlipDarc(da);
+    return PD_T::ReverseDarc(da);
 }
 
 

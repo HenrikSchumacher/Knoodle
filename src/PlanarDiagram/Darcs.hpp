@@ -10,7 +10,7 @@ static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
     return std::pair( da / Int(2), da % Int(2) );
 }
 
-static constexpr Int FlipDarc( const Int da )
+static constexpr Int ReverseDarc( const Int da )
 {
     return da ^ Int(1);
 }
@@ -20,7 +20,7 @@ std::string DarcString( const Int da ) const
     auto [a,d] = FromDarc(da);
     
     return "darc " + Tools::ToString(da) + " = { "
-        + Tools::ToString(A_cross.data()[FlipDarc(da)]) + ", "
+        + Tools::ToString(A_cross.data()[ReverseDarc(da)]) + ", "
         + Tools::ToString(A_cross.data()[da]) + " } ("
         + ToString(A_state[a]) + ")";
 }
@@ -155,10 +155,10 @@ mref<ArcContainer_T> ArcLeftDarcs() const
                  * C[In ][Left ]         C[In ][Right]
                  */
                 
-                dA_left[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[Out][Right] );
-                dA_left[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[In ][Right] );
-                dA_left[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[Out][Left ] );
-                dA_left[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[In ][Left ] );
+                dA_left[ in_darcs[Out][Left ] ] = ReverseDarc( in_darcs[Out][Right] );
+                dA_left[ in_darcs[Out][Right] ] = ReverseDarc( in_darcs[In ][Right] );
+                dA_left[ in_darcs[In ][Left ] ] = ReverseDarc( in_darcs[Out][Left ] );
+                dA_left[ in_darcs[In ][Right] ] = ReverseDarc( in_darcs[In ][Left ] );
                 
                 PD_ASSERT( dA_left[ in_darcs[Out][Left ] ] == LeftDarc( in_darcs[Out][Left ] ) );
                 PD_ASSERT( dA_left[ in_darcs[Out][Right] ] == LeftDarc( in_darcs[Out][Right] ) );
@@ -337,10 +337,10 @@ mref<ArcContainer_T> ArcRightDarcs() const
                  * C[In ][Left ]         C[In ][Right]
                  */
 
-                dA_right[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[In ][Left ] );
-                dA_right[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[Out][Left ] );
-                dA_right[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[In ][Right] );
-                dA_right[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[Out][Right] );
+                dA_right[ in_darcs[Out][Left ] ] = ReverseDarc( in_darcs[In ][Left ] );
+                dA_right[ in_darcs[Out][Right] ] = ReverseDarc( in_darcs[Out][Left ] );
+                dA_right[ in_darcs[In ][Left ] ] = ReverseDarc( in_darcs[In ][Right] );
+                dA_right[ in_darcs[In ][Right] ] = ReverseDarc( in_darcs[Out][Right] );
                 
                 PD_ASSERT( dA_right[ in_darcs[Out][Left ] ] == RightDarc( in_darcs[Out][Left ] ) );
                 PD_ASSERT( dA_right[ in_darcs[Out][Right] ] == RightDarc( in_darcs[Out][Right] ) );

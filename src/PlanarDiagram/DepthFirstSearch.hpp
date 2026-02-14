@@ -91,7 +91,7 @@ void DepthFirstSearch(
     {
         AssertDarc<1>(db);
         // We never walk back the same arc.
-        if( this->ValidIndexQ(A.da) && (db == FlipDarc(A.da)) )
+        if( this->ValidIndexQ(A.da) && (db == ReverseDarc(A.da)) )
         {
             return;
         }

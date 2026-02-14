@@ -112,7 +112,7 @@ private:
                             // Remember the arc we came from.
                             D_from(a) = a_0;
 
-                            next_front.Push(FlipDarc(da));
+                            next_front.Push(ReverseDarc(da));
                         }
                     }
                     else if constexpr ( mult_compQ )
@@ -149,7 +149,7 @@ private:
                     if( part_of_strandQ )
                     {
                         // If da is part of the current strand, we ignore i
-                        da = DarcLeftDarc(FlipDarc(da));
+                        da = DarcLeftDarc(ReverseDarc(da));
                     }
                     else
                     {
