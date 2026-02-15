@@ -80,8 +80,8 @@ namespace Knoodle
             bool turn_regularizeQ                   = true;
             bool soften_virtual_edgesQ              = false;
             bool randomize_virtual_edgesQ           = false;
-            bool saturate_facesQ                    = true;
-            bool saturate_exterior_faceQ            = true;
+            bool saturate_regionsQ                  = true;
+            bool saturate_exterior_regionQ          = true;
             bool filter_saturating_edgesQ           = true;
             bool parallelizeQ                       = false;
             CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
@@ -92,29 +92,6 @@ namespace Knoodle
             Int  y_gap_size                         =  4;
             Int  x_rounding_radius                  =  4;
             Int  y_rounding_radius                  =  4;
-            
-//            void PrintInfo() const
-//            {
-//                TOOLS_LOGDUMP(bend_method);
-//                TOOLS_LOGDUMP(use_dual_simplexQ);
-//                TOOLS_LOGDUMP(randomize_bends);
-//                TOOLS_LOGDUMP(redistribute_bendsQ);
-//                TOOLS_LOGDUMP(turn_regularizeQ);
-//                TOOLS_LOGDUMP(soften_virtual_edgesQ);
-//                TOOLS_LOGDUMP(randomize_virtual_edgesQ);
-//                TOOLS_LOGDUMP(saturate_facesQ);
-//                TOOLS_LOGDUMP(saturate_exterior_faceQ);
-//                TOOLS_LOGDUMP(filter_saturating_edgesQ);
-//                TOOLS_LOGDUMP(parallelizeQ);
-//                TOOLS_LOGDUMP(compaction_method);
-//                
-//                TOOLS_LOGDUMP(x_grid_size);
-//                TOOLS_LOGDUMP(y_grid_size);
-//                TOOLS_LOGDUMP(x_gap_size);
-//                TOOLS_LOGDUMP(y_gap_size);
-//                TOOLS_LOGDUMP(x_rounding_radius);
-//                TOOLS_LOGDUMP(y_rounding_radius);
-//            }
         };
         
         friend std::string ToString( cref<Settings_T> args )
@@ -127,8 +104,8 @@ namespace Knoodle
                     + ", .turn_regularizeQ = " + ToString(args.turn_regularizeQ)
                     + ", .soften_virtual_edgesQ = " + ToString(args.soften_virtual_edgesQ)
                     + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
-                    + ", .saturate_facesQ = " + ToString(args.saturate_facesQ)
-                    + ", .saturate_exterior_faceQ = " + ToString(args.saturate_exterior_faceQ)
+                    + ", .saturate_regionsQ = " + ToString(args.saturate_regionsQ)
+                    + ", .saturate_exterior_regionQ = " + ToString(args.saturate_exterior_regionQ)
                     + ", .filter_saturating_edgesQ = " + ToString(args.filter_saturating_edgesQ)
                     + ", .parallelizeQ = " + ToString(args.parallelizeQ)
                     + ", .compaction_method = " + ToString(args.compaction_method)
@@ -203,14 +180,14 @@ namespace Knoodle
         template<typename ExtInt>
         OrthoDraw(
             cref<PD_T> pd,
-            const ExtInt exterior_region_ = ExtInt(-1),
+            const ExtInt exterior_face_ = ExtInt(-1),
             Settings_T settings_ = Settings_T()
         )
         :   settings( settings_ )
         {
             if( !pd.ValidQ() ) { return; }
             
-            LoadPlanarDiagram( pd, exterior_region_ );
+            LoadPlanarDiagram( pd, exterior_face_ );
             
             if( settings.turn_regularizeQ )
             {
@@ -280,7 +257,7 @@ namespace Knoodle
         Int edge_count          = 0;
         Int virtual_edge_count  = 0;
         
-        Int exterior_region     = 0;
+        Int exterior_face       = 0;
         Int max_face_size       = 0;
         
         // Indices to the last active vertex and edge.
@@ -294,7 +271,7 @@ namespace Knoodle
         
         Tensor1<Turn_T,Int> A_bends;
 
-        RaggedList<Int,Int> R_dA;
+        RaggedList<Int,Int> F_dA;
         
         RaggedList<Int,Int> A_V;
         RaggedList<Int,Int> A_E;
@@ -378,10 +355,10 @@ namespace Knoodle
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"
 #include "OrthoDraw/Edges.hpp"
-#include "OrthoDraw/Faces.hpp"
+#include "OrthoDraw/Regions.hpp"
 #include "OrthoDraw/TurnRegularize.hpp"
         
-#include "OrthoDraw/SaturateFaces.hpp"
+#include "OrthoDraw/SaturateRegions.hpp"
 #include "OrthoDraw/ConstraintGraphs.hpp"
 #include "OrthoDraw/Compaction_TopologicalOrdering.hpp"
 #include "OrthoDraw/Compaction_TopologicalNumbering.hpp"
@@ -493,19 +470,19 @@ namespace Knoodle
             return virtual_edges;
         }
         
-        Int ExteriorRegion() const
+        Int ExteriorFace() const
         {
-            return exterior_region;
+            return exterior_face;
         }
         
-        Int RegionCount() const
+        Int FaceCount() const
         {
-            return R_dA.SublistCount();
+            return F_dA.SublistCount();
         }
         
-        cref<RaggedList<Int,Int>> RegionDarcs() const
+        cref<RaggedList<Int,Int>> FaceDarcs() const
         {
-            return R_dA;
+            return F_dA;
         }
         
         

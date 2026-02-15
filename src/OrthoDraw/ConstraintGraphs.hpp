@@ -230,7 +230,7 @@ void ComputeConstraintGraphs() const
 //    }
     
     // Collecting the saturating edges of Gl. They have zero costs.
-    if ( settings.saturate_facesQ )
+    if ( settings.saturate_regionsQ )
     {
         const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
         
@@ -258,7 +258,7 @@ void ComputeConstraintGraphs() const
     }
     
     // Collecting the saturating edges of Gr. They have zero costs.
-    if ( settings.saturate_facesQ )
+    if ( settings.saturate_regionsQ )
     {
         const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
         
@@ -507,13 +507,13 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //
 //// Not what I need, I guess. This cycles around faces of the PD with the virtual edges added.
 //// But we need to cycle around faces in Dv and Dh to create the flow networks.
-//void ComputeFaceVHSegments() const
+//void ComputeRegionVHSegments() const
 //{
-//    TOOLS_PTIMER(timer,MethodName("ComputeFaceVHSegments"));
+//    TOOLS_PTIMER(timer,MethodName("ComputeRegionVHSegments"));
 //    
 //    const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
 //    
-//    Int f_count = FaceCount(soften_virtual_edgesQ);
+//    Int f_count = RegionCount(soften_virtual_edgesQ);
 //    
 //    RaggedList<Int,Int> F_DvV ( f_count, E_V.Dim(0) );
 //    RaggedList<Int,Int> F_DhV ( f_count, E_V.Dim(0) );
@@ -521,7 +521,7 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //    auto & E_DvV = EdgeToDvVertex();
 //    auto & E_DhV = EdgeToDhVertex();
 //    
-//    TraverseAllFaces(
+//    TraverseAllRegions(
 //        []( const Int f ){ (void)f; },
 //        [&E_DvV,&E_DhV,&F_DvV,&F_DhV,this](
 //            const Int f, const Int k, const Int de
@@ -560,38 +560,38 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceDvVertices() const
+//cref<RaggedList<Int,Int>> RegionDvVertices() const
 //{
-//    if( !this->InCacheQ("F_DvV") ) { ComputeFaceVHSegments(); }
+//    if( !this->InCacheQ("F_DvV") ) { ComputeRegionVHSegments(); }
 //    
 //    return this->GetCache<RaggedList<Int,Int>>("F_DvV");
 //}
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceDhVertices() const
+//cref<RaggedList<Int,Int>> RegionDhVertices() const
 //{
-//    if( !this->InCacheQ("F_DhV") ) { ComputeFaceVHSegments(); }
+//    if( !this->InCacheQ("F_DhV") ) { ComputeRegionVHSegments(); }
 //    
 //    return this->GetCache<RaggedList<Int,Int>>("F_DhV");
 //}
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceSegments() const
+//cref<RaggedList<Int,Int>> RegionSegments() const
 //{
-//    if( !this->InCacheQ("FaceSegments") )
+//    if( !this->InCacheQ("RegionSegments") )
 //    {
 //        const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
 //        
-//        RaggedList<Int,Int> F_segments ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
+//        RaggedList<Int,Int> F_segments ( RegionCount(soften_virtual_edgesQ), E_V.Dim(0) );
 //        
 //        auto & E_DvV = EdgeToDvVertex();
 //        auto & E_DhV = EdgeToDhVertex();
 //        
 //        const Int h = Dv().VertexCoordinates();
 //        
-//        TraverseAllFaces(
+//        TraverseAllRegions(
 //            []( const Int f ){ (void)f; },
 //            [&E_DvV,&E_DhV,&F_segments,h,this](
 //                const Int f, const Int k, const Int de
@@ -619,8 +619,8 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //            soften_virtual_edgesQ
 //        );
 //        
-//        this->SetCache( "FaceSegments", std::move(F_segments) );
+//        this->SetCache( "RegionSegments", std::move(F_segments) );
 //    }
 //    
-//    return this->GetCache<RaggedList<Int,Int>>("FaceSegments");
+//    return this->GetCache<RaggedList<Int,Int>>("RegionSegments");
 //}

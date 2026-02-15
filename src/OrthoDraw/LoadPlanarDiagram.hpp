@@ -3,7 +3,7 @@ private:
 template<bool debugQ = false, bool verboseQ = false>
 void LoadPlanarDiagram(
     cref<PD_T> pd,
-    const Int exterior_region_
+    const Int exterior_face_
 )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">"; };
@@ -22,7 +22,7 @@ void LoadPlanarDiagram(
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
     
-    R_dA = pd.FaceDarcs();
+    F_dA = pd.FaceDarcs();
     
     crossing_count = pd.CrossingCount();
     arc_count      = pd.ArcCount();
@@ -41,40 +41,40 @@ void LoadPlanarDiagram(
     
     // TODO: Allow more general bend sequences.
     
-    exterior_region = int_cast<Int>(exterior_region_);
+    exterior_face = int_cast<Int>(exterior_face_);
     
-    const Int maximum_region = int_cast<Int>(pd.MaximumFace());
+    const Int maximum_face = int_cast<Int>(pd.MaximumFace());
     
-    exterior_region = ((exterior_region < Int(0)) || (exterior_region >= R_dA.SublistCount()))
-                    ? maximum_region
-                    : exterior_region;
+    exterior_face = ((exterior_face < Int(0)) || (exterior_face >= F_dA.SublistCount()))
+                    ? maximum_face
+                    : exterior_face;
 
     // TODO: I have to filter out inactive crossings and inactive arcs!
     switch( settings.bend_method )
     {
         case BendMethod_T::Bends_MCF:
         {
-            A_bends = Bends_MCF(pd,exterior_region);
+            A_bends = Bends_MCF(pd,exterior_face);
             break;
         }
 #ifdef KNOODLE_USE_CLP
         case BendMethod_T::Bends_CLP:
         {
-            A_bends = Bends_CLP(pd,exterior_region);
+            A_bends = Bends_CLP(pd,exterior_face);
             break;
         }
 #endif
 #ifdef KNOODLE_USE_OR
         case BendMethod_T::Bends_OR:
         {
-            A_bends = Bends_OR(pd,exterior_region);
+            A_bends = Bends_OR(pd,exterior_face);
             break;
         }
 #endif
         default:
         {
             wprint(tag() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
-            A_bends = Bends_MCF(pd,exterior_region);
+            A_bends = Bends_MCF(pd,exterior_face);
             break;
         }
     }
@@ -102,21 +102,21 @@ void LoadPlanarDiagram(
     max_face_size = 0;
     bend_count    = 0;
 
-    const Int r_count = R_dA.SublistCount();
+    const Int f_count = F_dA.SublistCount();
     
-    for( Int r = 0; r < r_count; ++r )
+    for( Int f = 0; f < f_count; ++f )
     {
-        Int r_size = R_dA.SublistSize(r);
+        Int f_size = F_dA.SublistSize(f);
         
-        for( auto da : R_dA.Sublist(r) )
+        for( auto da : F_dA.Sublist(f) )
         {
             auto [a,d]  = FromDarc(da);
             const Int b = int_cast<Int>(Abs(A_bends[a]));
             bend_count += b;
-            r_size     += b;
+            f_size     += b;
         }
         
-        max_face_size = Max( max_face_size, r_size );
+        max_face_size = Max( max_face_size, f_size );
     }
     
     // We walk through each undirected arc twice, therefore, we divide by 2.
@@ -457,10 +457,7 @@ void LoadPlanarDiagram(
     ComputeEdgeLeftDedges();
 
     {
-        const Int da = R_dA.Elements()[
-            R_dA.Pointers()[exterior_region]
-        ];
-        
-        MarkFaceAsExterior( da );
+        const Int da = F_dA.Elements()[ F_dA.Pointers()[exterior_face] ];
+        MarkRegionAsExterior( da );
     }
 }

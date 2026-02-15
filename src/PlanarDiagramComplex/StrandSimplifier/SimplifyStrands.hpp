@@ -38,6 +38,9 @@ friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
          + "}";
 }
 
+
+// TODO: If a loops is removed that does not finish a component, we can try to restart as well.
+
 /*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrand. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the currect strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. 0 is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
  *
  *

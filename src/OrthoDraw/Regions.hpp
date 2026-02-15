@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Cycle around `de_ptr`'s left face and evaluate `edge_fun` on each directed edge. If the template argument `ignore_virtual_edgesQ` is set to true, this will ignore virtual edges and traverse as if these were not existent.
+/*! @brief Cycle around `de_ptr`'s left region and evaluate `edge_fun` on each directed edge. If the template argument `ignore_virtual_edgesQ` is set to true, this will ignore virtual edges and traverse as if these were not existent.
  */
 
 template<
@@ -8,7 +8,7 @@ template<
     bool verboseQ = false,
     typename EdgeFun_T
 >
-TOOLS_FORCE_INLINE void TraverseFace(
+TOOLS_FORCE_INLINE void TraverseRegion(
     const Int de_ptr,
     EdgeFun_T && edge_fun,
     bool ignore_virtual_edgesQ = false
@@ -21,7 +21,7 @@ TOOLS_FORCE_INLINE void TraverseFace(
     
     if constexpr ( verboseQ )
     {
-        logprint(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ".");
+        logprint(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ".");
     }
     
     Int de_count   = Int(2) * E_V.Dim(0);
@@ -33,19 +33,19 @@ TOOLS_FORCE_INLINE void TraverseFace(
         {
             if( de == Uninitialized )
             {
-                eprint(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse invalid dedge " + ToString(de) + ".");
+                eprint(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse invalid dedge " + ToString(de) + ".");
                 return;
             }
 
             if( !InIntervalQ(de,Int(0),de_count) )
             {
-                eprint(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse dedge " + ToString(de) + ", which is out of bounds.");
+                eprint(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse dedge " + ToString(de) + ", which is out of bounds.");
                 return;
             }
 
             if( !DedgeActiveQ(de) )
             {
-                eprint(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse inactive " + DedgeString(de) + ".");
+                eprint(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Attempting to traverse inactive " + DedgeString(de) + ".");
                 return;
             }
         }
@@ -73,7 +73,7 @@ TOOLS_FORCE_INLINE void TraverseFace(
                 if( E_V.data()[FlipDedge(de)] != E_V.data()[FlipDedge(de_next)] )
                 {
                     
-                    error(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": tail of virtual " + DedgeString(de) + " and tail of " +  DedgeString(de_next) +  " do not coincide. Data structure must be corrupted.");
+                    error(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": tail of virtual " + DedgeString(de) + " and tail of " +  DedgeString(de_next) +  " do not coincide. Data structure must be corrupted.");
                     return;
                 }
             }
@@ -96,7 +96,7 @@ TOOLS_FORCE_INLINE void TraverseFace(
             
             if( E_V.data()[de] != E_V.data()[FlipDedge(de_next)] )
             {
-                error(ClassName()+("::TraverseFace(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Head of " + DedgeString(de) + " and tail of " +  DedgeString(de_next) +  " do not coincide. Data structure must be corrupted.");
+                error(ClassName()+("::TraverseRegion(" + ToString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": Head of " + DedgeString(de) + " and tail of " +  DedgeString(de_next) +  " do not coincide. Data structure must be corrupted.");
                 
                 return;
             }
@@ -108,142 +108,142 @@ TOOLS_FORCE_INLINE void TraverseFace(
     
     if( de_counter > de_count ) [[unlikely]]
     {
-        error(ClassName()+("::TraverseFace(" + DedgeString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": More dedges traversed (" + ToString(de_counter) +") than there are dedges (" + ToString(de_count) + "). Data structure must be corrupted.");
+        error(ClassName()+("::TraverseRegion(" + DedgeString(de_ptr) + "," + ToString(ignore_virtual_edgesQ) + ")") + ": More dedges traversed (" + ToString(de_counter) +") than there are dedges (" + ToString(de_count) + "). Data structure must be corrupted.");
     }
 }
 
 /*! @brief Cycle around `de_ptr`'s and count the number of edges.
  */
 
-Int FaceEdgeCount(
+Int RegionEdgeCount(
     const Int de_ptr,
     bool ignore_virtual_edgesQ = false
 )
 {
-//    TOOLS_PTIMER(timer,ClassName()+"::FaceEdgeCount("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
+//    TOOLS_PTIMER(timer,ClassName()+"::RegionEdgeCount("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
     
-    Int f_size = 0;
+    Int r_size = 0;
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
-        [&f_size]( const Int de )
+        [&r_size]( const Int de )
         {
             (void)de;
-            ++f_size;
+            ++r_size;
         },
         ignore_virtual_edgesQ
     );
     
-    return f_size;
+    return r_size;
 }
 
-void MarkFaceAsExterior(
+void MarkRegionAsExterior(
     const Int de_ptr,
     bool ignore_virtual_edgesQ = false
 )
 {
-//    TOOLS_PTIMER(timer,ClassName()+"::MarkFaceAsExterior("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
+//    TOOLS_PTIMER(timer,ClassName()+"::MarkRegionAsExterior("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
         [this]( const Int de ) { MarkDedgeAsExterior(de); },
         ignore_virtual_edgesQ
     );
 }
 
-void MarkFaceAsInterior(
+void MarkRegionAsInterior(
     const Int de_ptr,
     bool ignore_virtual_edgesQ = false
 )
 {
-//    TOOLS_PTIMER(timer,ClassName()+"::MarkFaceAsInterior("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
+//    TOOLS_PTIMER(timer,ClassName()+"::MarkRegionAsInterior("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
         [this]( const Int de ) { MarkDedgeAsInterior(de); },
         ignore_virtual_edgesQ
     );
 }
 
-void MarkFaceAsVisited(
+void MarkRegionAsVisited(
    const Int de_ptr,
    bool ignore_virtual_edgesQ = false
 )
 {
-//    TOOLS_PTIMER(timer,ClassName()+"::MarkFaceAsVisited("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
+//    TOOLS_PTIMER(timer,ClassName()+"::MarkRegionAsVisited("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
         [this]( const Int de ) { MarkDedgeAsVisited(de); },
         ignore_virtual_edgesQ
     );
 }
 
-void MarkFaceAsUnvisited(
+void MarkRegionAsUnvisited(
     const Int de_ptr,
     bool ignore_virtual_edgesQ = false
 )
 {
-//    TOOLS_PTIMER(timer,ClassName()+"::MarkFaceAsUnvisited("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
+//    TOOLS_PTIMER(timer,ClassName()+"::MarkRegionAsUnvisited("+DedgeString(de_ptr)+","+ ToString(ignore_virtual_edgesQ)+")");
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
         [this]( const Int de ) { MarkDedgeAsUnvisited(de); },
         ignore_virtual_edgesQ
     );
 }
 
-void RequireFaces( bool ignore_virtual_edgesQ = false ) const
+void RequireRegions( bool ignore_virtual_edgesQ = false ) const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::RequireFaces("+ ToString(ignore_virtual_edgesQ)+")");
+    TOOLS_PTIMER(timer,ClassName()+"::RequireRegions("+ ToString(ignore_virtual_edgesQ)+")");
     
 //    cptr<Int> dE_left_dE = E_left_dE.data();
     
     // These are going to become edges of the dual graph(s). One dual edge for each arc.
-    EdgeContainer_T E_F ( E_V.Dim(0) );
+    EdgeContainer_T E_R ( E_V.Dim(0) );
     
-    mptr<Int> dE_F = E_F.data();
+    mptr<Int> dE_R = E_R.data();
     
-    // Convention: _Right_ face first:
+    // Convention: _Right_ region first:
     //
-    //            E_F(e,0)
+    //            E_R(e,0)
     //
     //            <------------|  e
     //
-    //            E_F(e,1)
+    //            E_R(e,1)
     //
-    // This way the directed edge de = 2 * e + Head has its left face in dE_F[de].
+    // This way the directed edge de = 2 * e + Head has its left region in dE_R[de].
 
     
     constexpr Int yet_to_be_visited = Uninitialized - Int(1);
     
-    const Int dE_count = Int(2) * E_F.Dim(0);
+    const Int dE_count = Int(2) * E_R.Dim(0);
     
     for( Int de = 0; de < dE_count; ++de )
     {
         if( DedgeActiveQ(de) )
         {
-            dE_F[de] = yet_to_be_visited;
+            dE_R[de] = yet_to_be_visited;
         }
         else
         {
-            dE_F[de] = Uninitialized;
+            dE_R[de] = Uninitialized;
         }
     }
         
-    RaggedList<Int,Int> F_dE ( dE_count + Int(1),  dE_count );
+    RaggedList<Int,Int> R_dE ( dE_count + Int(1),  dE_count );
     
-    // Same traversal as in PD_T::RequireFaces in the sense that the faces are traversed in the same order.
+    // Same traversal as in PD_T::RequireRegions in the sense that the regions are traversed in the same order.
     
     for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
     {
-//        // TODO: We need to check only dE_F[de_ptr].
-//        if( (!DedgeActiveQ(de_ptr)) || (dE_F[de_ptr] != yet_to_be_visited) )
+//        // TODO: We need to check only dE_R[de_ptr].
+//        if( (!DedgeActiveQ(de_ptr)) || (dE_R[de_ptr] != yet_to_be_visited) )
 //        {
 //            continue;
 //        }
         
-        if( dE_F[de_ptr] != yet_to_be_visited )
+        if( dE_R[de_ptr] != yet_to_be_visited )
         {
             continue;
         }
@@ -253,17 +253,17 @@ void RequireFaces( bool ignore_virtual_edgesQ = false ) const
             continue;
         }
         
-        const Int f = F_dE.SublistCount();
+        const Int r = R_dE.SublistCount();
         
-        TraverseFace(
+        TraverseRegion(
             de_ptr,
-            [f,dE_F,&F_dE]
+            [r,dE_R,&R_dE]
             ( const Int de )
             {
-                // Declare current face to be a face of this directed arc.
-                dE_F[de] = f;
-                // Declare this arc to belong to the current face.
-                F_dE.Push(de);
+                // Declare current region to be a region of this directed arc.
+                dE_R[de] = r;
+                // Declare this arc to belong to the current region.
+                R_dE.Push(de);
             },
             ignore_virtual_edgesQ
         );
@@ -277,131 +277,131 @@ void RequireFaces( bool ignore_virtual_edgesQ = false ) const
 //            }
 //            else
 //            {
-//                // Declare current face to be a face of this directed arc.
-//                dE_F[de] = f;
-//                // Declare this arc to belong to the current face.
-//                F_dE.Push(de);
+//                // Declare current region to be a region of this directed arc.
+//                dE_R[de] = r;
+//                // Declare this arc to belong to the current region.
+//                R_dE.Push(de);
 //                // Move to next arc.
 //                de = dE_left_dE[de];
 //            }
 //        }
 //        while( de != de_ptr );
         
-        F_dE.FinishSublist();
+        R_dE.FinishSublist();
     }
     
-    Int f_max = 0;
-    Int max_f_size = F_dE.SublistSize(f_max);
-    const Int f_count = F_dE.SublistCount();
+    Int r_max = 0;
+    Int max_r_size = R_dE.SublistSize(r_max);
+    const Int r_count = R_dE.SublistCount();
     
-    for( Int f = 1; f < f_count; ++f )
+    for( Int r = 1; r < r_count; ++r )
     {
-        const Int f_size = F_dE.SublistSize(f);
+        const Int r_size = R_dE.SublistSize(r);
         
-        if( f_size > max_f_size )
+        if( r_size > max_r_size )
         {
-            f_max = f;
-            max_f_size = f_size;
+            r_max = r;
+            max_r_size = r_size;
         }
     }
     
     std::string tag = "(" + ToString(ignore_virtual_edgesQ) + ")";
     
-    this->template SetCache<false>( "FaceCount"   + tag, F_dE.SublistCount() );
-    this->template SetCache<false>( "MaxFace"     + tag, f_max               );
-    this->template SetCache<false>( "MaxFaceSize" + tag, max_f_size          );
-    this->template SetCache<false>( "FaceDedges"  + tag, std::move(F_dE)     );
-    this->template SetCache<false>( "EdgeFaces"   + tag, std::move(E_F)      );
+    this->template SetCache<false>( "RegionCount"   + tag, R_dE.SublistCount() );
+    this->template SetCache<false>( "MaxRegion"     + tag, r_max               );
+    this->template SetCache<false>( "MaxRegionSize" + tag, max_r_size          );
+    this->template SetCache<false>( "RegionDedges"  + tag, std::move(R_dE)     );
+    this->template SetCache<false>( "EdgeRegions"   + tag, std::move(E_R)      );
     
 }
 
-Int FaceCount( bool ignore_virtual_edgesQ = false ) const
+Int RegionCount( bool ignore_virtual_edgesQ = false ) const
 {
-    std::string tag = "FaceCount(" + ToString(ignore_virtual_edgesQ) + ")";
+    std::string tag = "RegionCount(" + ToString(ignore_virtual_edgesQ) + ")";
 //    TOOLS_PTIMER(timer,MethodName(tag));
-    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    if( !this->InCacheQ(tag) ) { RequireRegions(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
 
-Int MaxFace( bool ignore_virtual_edgesQ = false ) const
+Int MaxRegion( bool ignore_virtual_edgesQ = false ) const
 {
-    std::string tag = "MaxFace(" + ToString(ignore_virtual_edgesQ) + ")";
+    std::string tag = "MaxRegion(" + ToString(ignore_virtual_edgesQ) + ")";
 //    TOOLS_PTIMER(timer,MethodName(tag));
-    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    if( !this->InCacheQ(tag) ) { RequireRegions(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
 
 
-Int MaxFaceSize(
+Int MaxRegionSize(
     bool ignore_virtual_edgesQ = false
 ) const
 {
-    std::string tag = "MaxFaceSize(" + ToString(ignore_virtual_edgesQ) + ")";
+    std::string tag = "MaxRegionSize(" + ToString(ignore_virtual_edgesQ) + ")";
 //    TOOLS_PTIMER(timer,MethodName(tag));
-    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    if( !this->InCacheQ(tag) ) { RequireRegions(ignore_virtual_edgesQ); }
     return this->GetCache<Int>(tag);
 }
 
-cref<RaggedList<Int,Int>> FaceDedges(
+cref<RaggedList<Int,Int>> RegionDedges(
     bool ignore_virtual_edgesQ = false
 ) const
 {
-    std::string tag = "FaceDedges(" + ToString(ignore_virtual_edgesQ) + ")";
+    std::string tag = "RegionDedges(" + ToString(ignore_virtual_edgesQ) + ")";
 //    TOOLS_PTIMER(timer,MethodName(tag));
-    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    if( !this->InCacheQ(tag) ) { RequireRegions(ignore_virtual_edgesQ); }
     return this->GetCache<RaggedList<Int,Int>>(tag);
 }
 
-cref<EdgeContainer_T> EdgeFaces(
+cref<EdgeContainer_T> EdgeRegions(
     bool ignore_virtual_edgesQ = false
 ) const
 {
-    std::string tag = "EdgeFaces(" + ToString(ignore_virtual_edgesQ) + ")";
+    std::string tag = "EdgeRegions(" + ToString(ignore_virtual_edgesQ) + ")";
 //    TOOLS_PTIMER(timer,MethodName(tag));
-    if( !this->InCacheQ(tag) ) { RequireFaces(ignore_virtual_edgesQ); }
+    if( !this->InCacheQ(tag) ) { RequireRegions(ignore_virtual_edgesQ); }
     return this->GetCache<EdgeContainer_T>(tag);
 }
 
 //template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
-//void TraverseAllFaces(
+//void TraverseAllRegions(
 //    PreVisit_T  && pre_visit,
 //    EdgeFun_T   && edge_fun,
 //    PostVisit_T && post_visit
 //) const
 //{
-//    TOOLS_PTIMER(timer,ClassName()+"::TraverseAllFaces");
+//    TOOLS_PTIMER(timer,ClassName()+"::TraverseAllRegions");
 //
-//    auto & F_dE_ptr = FaceDedges().Pointers();
-//    auto & F_dE_idx = FaceDedges().Elements();
-//    const Int f_count = FaceCount();
+//    auto & R_dE_ptr = RegionDedges().Pointers();
+//    auto & R_dE_idx = RegionDedges().Elements();
+//    const Int r_count = RegionCount();
 //
-//    for( Int f = 0; f < f_count; ++f )
+//    for( Int r = 0; r < r_count; ++r )
 //    {
-//        const Int k_begin = F_dE_ptr[f    ];
-//        const Int k_end   = F_dE_ptr[f + 1];
+//        const Int k_begin = R_dE_ptr[r    ];
+//        const Int k_end   = R_dE_ptr[r + 1];
 //        
-//        pre_visit(f);
+//        pre_visit(r);
 //        
 //        for( Int k = k_begin; k < k_end; ++k )
 //        {
-//            const Int de = F_dE_idx[k];
+//            const Int de = R_dE_idx[k];
 //            
-//            edge_fun(f,k,de);
+//            edge_fun(r,k,de);
 //        }
 //        
-//        post_visit(f);
+//        post_visit(r);
 //    }
 //}
 
 template<typename PreVisit_T, typename EdgeFun_T, typename PostVisit_T>
-void TraverseAllFaces(
+void TraverseAllRegions(
     PreVisit_T  && pre_visit,
     EdgeFun_T   && edge_fun,
     PostVisit_T && post_visit,
     bool ignore_virtual_edgesQ
 ) const
 {
-    TOOLS_PTIMER(timer,MethodName("TraverseAllFaces(" + ToString(ignore_virtual_edgesQ) + ")"));
+    TOOLS_PTIMER(timer,MethodName("TraverseAllRegions(" + ToString(ignore_virtual_edgesQ) + ")"));
     
 //    cptr<Int> dE_left_dE = E_left_dE.data();
     
@@ -412,7 +412,7 @@ void TraverseAllFaces(
         MarkDedgeAsUnvisited(de);
     }
     
-    Int f = 0;
+    Int r = 0;
     Int k = 0;
     
     for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
@@ -427,13 +427,13 @@ void TraverseAllFaces(
             continue;
         }
            
-        pre_visit(f);
+        pre_visit(r);
            
-        TraverseFace(
+        TraverseRegion(
              de_ptr,
-             [f,&k,&edge_fun,this]( const Int de)
+             [r,&k,&edge_fun,this]( const Int de)
              {
-                 edge_fun(f,k,de);
+                 edge_fun(r,k,de);
                  MarkDedgeAsVisited(de);
                  ++k;
              },
@@ -448,7 +448,7 @@ void TraverseAllFaces(
 //            }
 //            else
 //            {
-//                edge_fun(f,k,de);
+//                edge_fun(r,k,de);
 //                MarkDedgeAsVisited(de);
 //                ++k;
 //                // Move to next arc.
@@ -457,61 +457,61 @@ void TraverseAllFaces(
 //        }
 //        while( de != de_ptr );
         
-        post_visit(f);
-        ++f;
+        post_visit(r);
+        ++r;
     }
 }
 
 // Only for debugging, I guess.
-Aggregator<Turn_T,Int> FaceDedgeRotations() const
+Aggregator<Turn_T,Int> RegionDedgeRotations() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceDedgeRotations()"));
+    TOOLS_PTIMER(timer,MethodName("RegionDedgeRotations()"));
     
     Turn_T rot = 0;
     Aggregator<Turn_T,Int> rotations ( Int(2) * E_V.Dim(0) );
-//    Tensor1<Turn_T,Int> rotations ( FaceDedges(false).ElementCount() );
+//    Tensor1<Turn_T,Int> rotations ( RegionDedges(false).ElementCount() );
     cptr<Turn_T> dE_turn = E_turn.data();
     
-    TraverseAllFaces(
-        [&rot]( const Int f ){ (void)f; rot = Turn_T(0); },
-        [&rotations,dE_turn,&rot]( const Int f, const Int k, const Int de )
+    TraverseAllRegions(
+        [&rot]( const Int r ){ (void)r; rot = Turn_T(0); },
+        [&rotations,dE_turn,&rot]( const Int r, const Int k, const Int de )
         {
-            (void)f;
+            (void)r;
             (void)k;
             rotations.Push(rot);
             rot += dE_turn[de];
         },
-        []( const Int f ){ (void)f; },
+        []( const Int r ){ (void)r; },
         false
     );
     
     return rotations;
 }
 
-Aggregator<Turn_T,Int> FaceRotations() const
+Aggregator<Turn_T,Int> RegionRotations() const
 {
-    TOOLS_PTIMER(timer,MethodName("FaceRotations()"));
+    TOOLS_PTIMER(timer,MethodName("RegionRotations()"));
     
     Turn_T rot = 0;
     Aggregator<Turn_T,Int> rotations ( Int(2) * E_V.Dim(0) );
     
     cptr<Turn_T> dE_turn = E_turn.data();
     
-    TraverseAllFaces(
-        [&rot]( const Int f )
+    TraverseAllRegions(
+        [&rot]( const Int r )
         {
-            (void)f;
+            (void)r;
             rot = Turn_T(0);
         },
-        [dE_turn,&rot]( const Int f, const Int k, const Int de )
+        [dE_turn,&rot]( const Int r, const Int k, const Int de )
         {
-            (void)f;
+            (void)r;
             (void)k;
             rot += dE_turn[de];
         },
-        [&rotations,&rot]( const Int f )
+        [&rotations,&rot]( const Int r )
         {
-            (void)f;
+            (void)r;
             rotations.Push(rot);
         },
         false
@@ -522,32 +522,32 @@ Aggregator<Turn_T,Int> FaceRotations() const
 
 
 
-bool CheckAllFaceTurns() const
+bool CheckAllRegionTurns() const
 {
     bool okayQ = true;
     Turn_T rot = 0;
     cptr<Turn_T> dE_turn = E_turn.data();
     
-    Aggregator<Int,Int> face ( max_face_size );
+    Aggregator<Int,Int> region ( max_face_size );
     
     bool exteriorQ = false;
     
-    TraverseAllFaces(
-        [&face,&rot]( const Int f )
+    TraverseAllRegions(
+        [&region,&rot]( const Int r )
         {
-            (void)f;
-            face.Clear();
+            (void)r;
+            region.Clear();
             rot = Turn_T(0);
         },
-        [&face,dE_turn,&rot,&exteriorQ,this]( const Int f, const Int k, const Int de )
+        [&region,dE_turn,&rot,&exteriorQ,this]( const Int r, const Int k, const Int de )
         {
-            (void)f;
+            (void)r;
             (void)k;
-            face.Push(de);
+            region.Push(de);
             rot += dE_turn[de];
             exteriorQ = DedgeExteriorQ(de);
         },
-        [&face,&rot,&okayQ,&exteriorQ]( const Int f )
+        [&region,&rot,&okayQ,&exteriorQ]( const Int r )
         {
             if( exteriorQ )
             {
@@ -555,9 +555,9 @@ bool CheckAllFaceTurns() const
                 
                 if( !this_okayQ )
                 {
-                    eprint(ClassName() + "::CheckAllFaceTurns: face f = " + ToString(f) + " is exterior face with incorrect rotation number.");
+                    eprint(ClassName() + "::CheckAllRegionTurns: region r = " + ToString(r) + " is exterior region with incorrect rotation number.");
                     TOOLS_DDUMP(rot);
-                    TOOLS_DDUMP(face);
+                    TOOLS_DDUMP(region);
                 }
                 
                 okayQ = okayQ && this_okayQ;
@@ -568,9 +568,9 @@ bool CheckAllFaceTurns() const
                 
                 if( !this_okayQ )
                 {
-                    eprint(ClassName() + "::CheckAllFaceTurns: face f = " + ToString(f) + " is interior face with incorrect rotation number.");
+                    eprint(ClassName() + "::CheckAllRegionTurns: region r = " + ToString(r) + " is interior region with incorrect rotation number.");
                     TOOLS_DDUMP(rot);
-                    TOOLS_DDUMP(face);
+                    TOOLS_DDUMP(region);
                 }
                 okayQ = okayQ && this_okayQ;
             }

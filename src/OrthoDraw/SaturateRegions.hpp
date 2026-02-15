@@ -3,26 +3,28 @@
 
 // Hashemi, Tahmasbi - A better heuristic for area-compaction of orthogonal representations
 
+// What the authors call _faces_ is called _regions_ here so that we do not confuse this with the faces of the planar diagram. The latter matter more to our users, so we should not confuse them!
+
 public:
 
-bool SaturateFacesQ() const
+bool SaturateRegionsQ() const
 {
-    return settings.saturate_facesQ;
+    return settings.saturate_regionsQ;
 }
 
-void SetSaturateFacesQ( const bool val )
+void SetSaturateRegionsQ( const bool val )
 {
-    settings.saturate_facesQ = val;
+    settings.saturate_regionsQ = val;
 }
 
-bool SaturateExteriorFaceQ() const
+bool SaturateExteriorRegionQ() const
 {
-    return settings.saturate_exterior_faceQ;
+    return settings.saturate_exterior_regionQ;
 }
 
-void SetSaturateExteriorFaceQ( const bool val )
+void SetSaturateExteriorRegionQ( const bool val )
 {
-    settings.saturate_exterior_faceQ = val;
+    settings.saturate_exterior_regionQ = val;
 }
 
 enum class Switch_T : UInt8
@@ -82,7 +84,7 @@ Switch_T GlSwitchType( Int da ) const
         {
 //              In H:               In G_l:
 //
-//                   f
+//                   r
 //              X-------->X         X<--------X
 //                  da    |                   ^
 //                        | db                |     (no switch)
@@ -99,7 +101,7 @@ Switch_T GlSwitchType( Int da ) const
 //              X-------->X     t_L X<--------X
 //              ^                   ^
 //              |                   |
-//           f  | da                |               (sink (t), (L)arge angle)
+//           r  | da                |               (sink (t), (L)arge angle)
 //              |                   |
 //              X                   X
 //
@@ -115,7 +117,7 @@ Switch_T GlSwitchType( Int da ) const
 //              |   da              |
 //              X<------->X         X<--------X
 //
-//                  f
+//                  r
             return Switch_T::None;
         }
         else if( a_dir == South )
@@ -123,7 +125,7 @@ Switch_T GlSwitchType( Int da ) const
 //              In H:               In G_l:
 //                        X                   X
 //                        |                   ^
-//                     da | f                 |
+//                     da | r                 |
 //                        |                   |     (sourse (s), (L)arge angle)
 //                  db    v                   |
 //              X<--------X         X<--------X s_L
@@ -144,7 +146,7 @@ Switch_T GlSwitchType( Int da ) const
 //
 //                        X                   X
 //                        ^                   ^
-//                   f    | db                |     (source (s), (S)mall angle)
+//                   r    | db                |     (source (s), (S)mall angle)
 //                        |                   |
 //                  da    |                s_S|
 //              X-------->X         X<--------X
@@ -158,7 +160,7 @@ Switch_T GlSwitchType( Int da ) const
 //              X<--------X         X<--------X
 //                        ^                   ^
 //                        |                   |
-//                   f    | da                |     (no switch)
+//                   r    | da                |     (no switch)
 //                        |                   |
 //                        X                   X
 //
@@ -170,11 +172,11 @@ Switch_T GlSwitchType( Int da ) const
 //              X<--------X         X<--------X
 //              |   da              ^t_S
 //              |                   |
-//           db |    f              |               (sink (t), (S)mall angle)
+//           db |    r              |               (sink (t), (S)mall angle)
 //              v                   |
 //              X                   X
 //
-//                  f
+//                  r
             return Switch_T::t_S;
         }
         else if( a_dir == South )
@@ -182,7 +184,7 @@ Switch_T GlSwitchType( Int da ) const
 //              In H:               In G_l:
 //              X                   X
 //              |                   ^
-//           da |    f              |
+//           da |    r              |
 //              |                   |               (no switch)
 //              v   db              |
 //              X-------->X         X<--------X
@@ -227,7 +229,7 @@ Switch_T GrSwitchType( Int da ) const
         {
 //              In H:               In G_r:
 //
-//                   f                         t_L
+//                   r                         t_L
 //              X-------->X         X-------->X
 //                  da    |                   ^
 //                        | db                |     (sink (t), (L)arge angle)
@@ -244,7 +246,7 @@ Switch_T GrSwitchType( Int da ) const
 //              X-------->X         X-------->X
 //              ^                   ^
 //              |                   |
-//           f  | da                |               (no switch)
+//           r  | da                |               (no switch)
 //              |                   |
 //              X                   X
 //
@@ -260,7 +262,7 @@ Switch_T GrSwitchType( Int da ) const
 //              |   da              |
 //              X<------->X         X-------->X
 //                               s_L
-//                  f
+//                  r
             return Switch_T::s_L;
         }
         else if( a_dir == South )
@@ -268,7 +270,7 @@ Switch_T GrSwitchType( Int da ) const
 //              In H:               In G_r:
 //                        X                   X
 //                        |                   ^
-//                     da | f                 |
+//                     da | r                 |
 //                        |                   |     (no switch)
 //                  db    v                   |
 //              X<--------X         X-------->X
@@ -289,7 +291,7 @@ Switch_T GrSwitchType( Int da ) const
 //
 //                        X                   X
 //                        ^                   ^
-//                   f    | db                |     (no switch)
+//                   r    | db                |     (no switch)
 //                        |                   |
 //                  da    |                   |
 //              X-------->X         X-------->X
@@ -303,7 +305,7 @@ Switch_T GrSwitchType( Int da ) const
 //              X<--------X         X-------->X
 //                        ^                t_S^
 //                        |                   |
-//                   f    | da                |     (sink (t), (S)mall angle)
+//                   r    | da                |     (sink (t), (S)mall angle)
 //                        |                   |
 //                        X                   X
 //
@@ -315,11 +317,11 @@ Switch_T GrSwitchType( Int da ) const
 //              X<--------X         X<--------X
 //              |   da              ^
 //              |                   |
-//           db |    f              |               (no switch)
+//           db |    r              |               (no switch)
 //              v                   |
 //              X                   X
 //
-//                  f
+//                  r
             return Switch_T::None;
         }
         else if( a_dir == South )
@@ -327,7 +329,7 @@ Switch_T GrSwitchType( Int da ) const
 //              In H:               In G_r:
 //              X                   X
 //              |                   ^
-//           da |    f              |
+//           da |    r              |
 //              |                   |               (source (s), (S)mall angle)
 //              v   db              |s_S
 //              X-------->X         X-------->X
@@ -354,23 +356,23 @@ public:
 
 // This function exists only for debugging purposes.
 template<bool GrQ>
-RaggedList<UInt8,Int> FaceSwitchTypes()
+RaggedList<UInt8,Int> RegionSwitchTypes()
 {
-    TOOLS_PTIMER(timer,ClassName()+"::FaceSwitchTypes<" + ToString(GrQ) + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::RegionSwitchTypes<" + ToString(GrQ) + ">");
     
     RaggedList<UInt8,Int> F_types ( Int(2) * E_V.Dim(0), Int(2) * E_V.Dim(0) );
 
-    TraverseAllFaces(
-        []( const Int f ){ (void)f; },
-        [&F_types,this]( const Int f, const Int k, const Int de )
+    TraverseAllRegions(
+        []( const Int r ){ (void)r; },
+        [&F_types,this]( const Int r, const Int k, const Int de )
         {
-            (void)f;
+            (void)r;
             (void)k;
             F_types.Push( ToUnderlying(SwitchType<GrQ>(de)) );
         },
-        [&F_types]( const Int f )
+        [&F_types]( const Int r )
         {
-            (void)f;
+            (void)r;
             F_types.FinishSublist();
         },
         false
@@ -385,7 +387,7 @@ cref<EdgeContainer_T> SaturatingEdges() const
 {
     if( !this->InCacheQ("SaturatingEdges<" + ToString(GrQ) + ">") )
     {
-        this->template SaturateFaces<GrQ,verboseQ>();
+        this->template SaturateRegions<GrQ,verboseQ>();
     }
     
     return this->template GetCache<EdgeContainer_T>("SaturatingEdges<" + ToString(GrQ) + ">");
@@ -393,63 +395,63 @@ cref<EdgeContainer_T> SaturatingEdges() const
 
 
 template<bool GrQ, bool verboseQ = false>
-void SaturateFaces() const
+void SaturateRegions() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::SaturateFaces<" + ToString(GrQ) + ">");
+    TOOLS_PTIMER(timer,ClassName()+"::SaturateRegions<" + ToString(GrQ) + ">");
     
     Aggregator<std::array<Int,2>,Int> edge_agg (EdgeCount());
     
     // We make these buffers two steps longer to emulate a cyclic buffer.
-    Tensor1<Int,Int>      f_dE( max_face_size * Int(2) );
-    Tensor1<Switch_T,Int> f_S ( max_face_size * Int(2) );
+    Tensor1<Int,Int>      r_dE( max_face_size * Int(2) );
+    Tensor1<Switch_T,Int> r_S ( max_face_size * Int(2) );
     
-    Int f_size = 0;
-    Int f_n = 0; // count of labels
+    Int r_size = 0;
+    Int r_n = 0; // count of labels
     
     bool exteriorQ = false;
     
-    TraverseAllFaces(
-        [&exteriorQ,&f_size,&f_n]( const Int f )
+    TraverseAllRegions(
+        [&exteriorQ,&r_size,&r_n]( const Int r )
         {
-            (void)f;
-            f_size = 0;
-            f_n = 0;
+            (void)r;
+            r_size = 0;
+            r_n = 0;
             exteriorQ = false;
         },
-        [&exteriorQ,&f_size,&f_n,&f_dE,&f_S,this](
-            const Int f, const Int k, const Int de
+        [&exteriorQ,&r_size,&r_n,&r_dE,&r_S,this](
+            const Int r, const Int k, const Int de
         )
         {
-            (void)f;
+            (void)r;
             (void)k;
             
             exteriorQ = DedgeExteriorQ(de);
-            ++f_size;
+            ++r_size;
             
             Switch_T s = this->template SwitchType<GrQ>(de);
             if( s != Switch_T::None )
             {
-                f_dE[f_n] = de;
-                f_S [f_n] = s;
-                ++f_n;
+                r_dE[r_n] = de;
+                r_S [r_n] = s;
+                ++r_n;
             }
         },
-        [&exteriorQ,&f_size,&f_n,&f_dE,&f_S,&edge_agg,this]( const Int f )
+        [&exteriorQ,&r_size,&r_n,&r_dE,&r_S,&edge_agg,this]( const Int r )
         {
-            if( !settings.saturate_exterior_faceQ && exteriorQ ){ return; }
+            if( !settings.saturate_exterior_regionQ && exteriorQ ){ return; }
             
-            // No saturating edges are needed in sufficiently small faces.
+            // No saturating edges are needed in sufficiently small regions.
             // BEWARE: This might exploit something specific to knot-diagrams!
             if( settings.filter_saturating_edgesQ )
             {
-                if( f_size <= Int(7) ) { return; }
+                if( r_size <= Int(7) ) { return; }
             }
             
             // Make a complete copy to emulate a cyclic list.
-            copy_buffer(&f_dE[0],&f_dE[f_n],f_n);
-            copy_buffer(&f_S [0],&f_S [f_n],f_n);
+            copy_buffer(&r_dE[0],&r_dE[r_n],r_n);
+            copy_buffer(&r_S [0],&r_S [r_n],r_n);
 
-            this->template SaturateFace<GrQ,verboseQ>(f,f_dE,f_S,f_n,edge_agg);
+            this->template SaturateRegion<GrQ,verboseQ>(r,r_dE,r_S,r_n,edge_agg);
         },
         false
     );
@@ -462,18 +464,18 @@ void SaturateFaces() const
 
 // Not only do I need the saturating edges themselves.
 // I also need to know their next left edge and the edge whose next left edge they are.
-// From this I should be able to build the faces in Dv and Dh.
+// From this I should be able to build the regions in Dv and Dh.
 
 template<bool GrQ, bool verboseQ>
-void SaturateFace(
-    const Int                               f,
-    mref<Tensor1<Int,Int>>                  f_dE,
-    mref<Tensor1<Switch_T,Int>>             f_S,
-    mref<Int>                               f_n,
+void SaturateRegion(
+    const Int                               r,
+    mref<Tensor1<Int,Int>>                  r_dE,
+    mref<Tensor1<Switch_T,Int>>             r_S,
+    mref<Int>                               r_n,
     mref<Aggregator<std::array<Int,2>,Int>> edge_agg
 ) const
 {
-    if constexpr ( !verboseQ ) { (void)f; }
+    if constexpr ( !verboseQ ) { (void)r; }
     
     constexpr Switch_T s_L = Switch_T::s_L;
     constexpr Switch_T t_L = Switch_T::t_L;
@@ -482,54 +484,54 @@ void SaturateFace(
     
     if constexpr ( verboseQ )
     {
-        valprint("face",f);
-        valprint("face size",f_n);
+        valprint("region",r);
+        valprint("region size",r_n);
         
-        print( ArrayToString(f_dE.data(), {f_n*Int(2)} ) );
+        print( ArrayToString(r_dE.data(), {r_n*Int(2)} ) );
         
         auto s_str = []( const Switch_T x )
         {
             return SwitchString(x);
         };
         
-        print( ArrayToString(f_S.data(), {f_n*Int(2)}, s_str) );
+        print( ArrayToString(r_S.data(), {r_n*Int(2)}, s_str) );
     }
         
     bool recurseQ = false;
     
-    auto update_buffer = [&f_n,&f_dE,&f_S]( const Int i_2 )
+    auto update_buffer = [&r_n,&r_dE,&r_S]( const Int i_2 )
     {
-        // Face has positions [0,1,2,...,i_0,i_1,i_2,...f_n + 2[, where
+        // Region has positions [0,1,2,...,i_0,i_1,i_2,...r_n + 2[, where
         // i_1 = i_0 + 1 and i_2 = i_0 + 2.
         //
         // Positions i_0 and i_1 must go away.
         
         // First idea was this:
-        //      copy_buffer( &f_dE[i_2], &f_dE[i_0], f_n - i_0 );
-        //      copy_buffer( &f_S [i_2], &f_S [i_0], f_n - i_0 );
+        //      copy_buffer( &r_dE[i_2], &r_dE[i_0], r_n - i_0 );
+        //      copy_buffer( &r_S [i_2], &r_S [i_0], r_n - i_0 );
         // (and then duplicated the beginning after the end).
         
-        // Problem: We can have f_dE[0] == f_dE[i_1], i.e., we have to remove positions [1,...,i_0[ one step to the left and copy [i_2,...,i_2 + f_n - i_0[ to position i_1 instead. Or something like this.
-        // This is super error-prone, so I go for a full duplicate of the face:
+        // Problem: We can have r_dE[0] == r_dE[i_1], i.e., we have to remove positions [1,...,i_0[ one step to the left and copy [i_2,...,i_2 + r_n - i_0[ to position i_1 instead. Or something like this.
+        // This is super error-prone, so I go for a full duplicate of the region:
         
-        // Face has positions [0,1,2,...,i_0,i_1,i_2,...2 * f_n[.
+        // Region has positions [0,1,2,...,i_0,i_1,i_2,...2 * r_n[.
         
-        // We have f_dE[0] != f_dE[i_0], so i_0 <= f_n - 1.
-        // Thus, i_2 <= f_n + 1.
-        // Thus, i_2 + f_n - 2 <= 2 * f_n - 1.
+        // We have r_dE[0] != r_dE[i_0], so i_0 <= r_n - 1.
+        // Thus, i_2 <= r_n + 1.
+        // Thus, i_2 + r_n - 2 <= 2 * r_n - 1.
 
-        // This face loses exactly two edges.
-        f_n -= Int(2);
+        // This region loses exactly two edges.
+        r_n -= Int(2);
 
         // Take the valid part of the list and move it to the front.
         // Since we guarantee to copy to the left, (0 < i_2), we can safely use std::copy.
-        std::copy( &f_dE[i_2], &f_dE[i_2+f_n], &f_dE[0] );
-        std::copy( &f_S [i_2], &f_S [i_2+f_n], &f_S [0] );
+        std::copy( &r_dE[i_2], &r_dE[i_2+r_n], &r_dE[0] );
+        std::copy( &r_S [i_2], &r_S [i_2+r_n], &r_S [0] );
 
         // Duplicate whole list to emulate cyclic buffer.
         // We have guarantee of no overlap, so copy_buffer is safe.
-        copy_buffer( &f_dE[0], &f_dE[f_n], f_n );
-        copy_buffer( &f_S [0], &f_S [f_n], f_n );
+        copy_buffer( &r_dE[0], &r_dE[r_n], r_n );
+        copy_buffer( &r_S [0], &r_S [r_n], r_n );
     };
     
     auto push = [&edge_agg]( const Int v_0, const Int v_1 )
@@ -542,15 +544,15 @@ void SaturateFace(
         edge_agg.Push({v_0,v_1});
     };
     
-    for( Int i_0 = 0; i_0 < f_n; ++i_0 )
+    for( Int i_0 = 0; i_0 < r_n; ++i_0 )
     {
         const Int i_1 = i_0 + Int(1);
         const Int i_2 = i_0 + Int(2);
         
-        if( (f_S[i_0]==s_L) && (f_S[i_1]==t_S) && (f_S[i_2]==s_S) )
+        if( (r_S[i_0]==s_L) && (r_S[i_1]==t_S) && (r_S[i_2]==s_S) )
         {
-            const Int de_0 = f_dE[i_2];
-            const Int de_1 = f_dE[i_0];
+            const Int de_0 = r_dE[i_2];
+            const Int de_1 = r_dE[i_0];
             
             const Int v_0 = E_V.data()[de_0];
             const Int v_1 = E_V.data()[de_1];
@@ -560,16 +562,16 @@ void SaturateFace(
                 print("Case a: {s_L,t_S,s_S}");
                 valprint("i_0",i_0);
                 print(
-                    "f_dE[i_0] = " + ToString(f_dE[i_0]) + "; " +
-                     "f_S[i_0] = " + SwitchString(f_S[i_0])
+                    "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
+                     "r_S[i_0] = " + SwitchString(r_S[i_0])
                 );
                 print(
-                    "f_dE[i_1] = " + ToString(f_dE[i_1]) + "; " +
-                     "f_S[i_1] = " + SwitchString(f_S[i_2])
+                    "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
+                     "r_S[i_1] = " + SwitchString(r_S[i_2])
                 );
                 print(
-                    "f_dE[i_2] = " + ToString(f_dE[i_2]) + "; " +
-                     "f_S[i_2] = " + SwitchString(f_S[i_2])
+                    "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
+                     "r_S[i_2] = " + SwitchString(r_S[i_2])
                 );
             }
             
@@ -598,18 +600,18 @@ void SaturateFace(
                 // they look like this:
                 //                        ^
                 //                        |
-                //             f_0        |
+                //             r_0        |
                 //                        |
                 //    --------->+........>+<--------
                 //              |    e
-                //              |        f_1
+                //              |        r_1
                 //              |
                 //              |
                 //
                 // In particular, these T-junctions come in pairs and
                 // the one leg points to one side of the dotted edge e and
                 // the other leg points to the other side.
-                // So the maximal segment of e in face f_0 is definitely
+                // So the maximal segment of e in region r_0 is definitely
                 // constrained.
                 
                 const bool essentialQ =
@@ -635,7 +637,7 @@ void SaturateFace(
                 push(v_0,v_1);
             }
             
-            if( f_n >= Int(4) )
+            if( r_n >= Int(4) )
             {
                 update_buffer(i_2);
                 
@@ -647,10 +649,10 @@ void SaturateFace(
                 return;
             }
         }
-        else if( (f_S[i_0]==t_L) && (f_S[i_1]==s_S) && (f_S[i_2]==t_S) )
+        else if( (r_S[i_0]==t_L) && (r_S[i_1]==s_S) && (r_S[i_2]==t_S) )
         {
-            const Int de_0 = f_dE[i_0];
-            const Int de_1 = f_dE[i_2];
+            const Int de_0 = r_dE[i_0];
+            const Int de_1 = r_dE[i_2];
             
             const Int v_0 = E_V.data()[de_0];
             const Int v_1 = E_V.data()[de_1];
@@ -660,16 +662,16 @@ void SaturateFace(
                 print("Case b: {t_L,s_S,t_S}");
                 valprint("i_0",i_0);
                 print(
-                    "f_dE[i_0] = " + ToString(f_dE[i_0]) + "; " +
-                     "f_S[i_0] = " + SwitchString(f_S[i_0])
+                    "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
+                     "r_S[i_0] = " + SwitchString(r_S[i_0])
                 );
                 print(
-                    "f_dE[i_1] = " + ToString(f_dE[i_1]) + "; " +
-                     "f_S[i_1] = " + SwitchString(f_S[i_1])
+                    "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
+                     "r_S[i_1] = " + SwitchString(r_S[i_1])
                 );
                 print(
-                    "f_dE[i_2] = " + ToString(f_dE[i_2]) + "; " +
-                     "f_S[i_2] = " + SwitchString(f_S[i_2])
+                    "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
+                     "r_S[i_2] = " + SwitchString(r_S[i_2])
                 );
             }
             
@@ -702,7 +704,7 @@ void SaturateFace(
                 push(v_0,v_1);
             }
 
-            if( f_n >= Int(4) )
+            if( r_n >= Int(4) )
             {
                 update_buffer(i_2);
                 
@@ -718,13 +720,13 @@ void SaturateFace(
     
     if ( recurseQ )
     {
-        this->template SaturateFace<GrQ,verboseQ>(f,f_dE,f_S,f_n,edge_agg);
+        this->template SaturateRegion<GrQ,verboseQ>(r,r_dE,r_S,r_n,edge_agg);
     }
     else
     {
         if constexpr( verboseQ )
         {
-            print(std::string("G") + (GrQ ? "r" : "l") + "Saturation of face " + ToString(f) + " completed.");
+            print(std::string("G") + (GrQ ? "r" : "l") + "Saturation of region " + ToString(r) + " completed.");
         }
     }
 }

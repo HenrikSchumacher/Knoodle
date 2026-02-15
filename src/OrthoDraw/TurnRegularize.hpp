@@ -44,7 +44,7 @@ void TurnRegularize()
     
     for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
     {
-        TurnRegularizeFace(engine,de_ptr);
+        TurnRegularizeRegion(engine,de_ptr);
     }
     
     Resize(LastActiveEdge() + Int(1));
@@ -53,14 +53,14 @@ void TurnRegularize()
 }
 
 
-Turn_T FaceTurns( const Int de_ptr ) const
+Turn_T RegionTurns( const Int de_ptr ) const
 {
     if( !DedgeActiveQ(de_ptr) ) { return Turn_T(0); }
     
     cptr<Turn_T> dE_turn = E_turn.data();
     Turn_T rot = 0;
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
         [&rot,dE_turn]( const Int de ) { rot += dE_turn[de]; },
         false
@@ -77,21 +77,21 @@ Turn_T FaceTurns( const Int de_ptr ) const
     return rot;
 }
 
-bool CheckFaceTurns( const Int de_ptr ) const
+bool CheckRegionTurns( const Int de_ptr ) const
 {
     if( !DedgeActiveQ(de_ptr) ) { return true; }
     
     cptr<Turn_T> dE_turn = E_turn.data();
     Turn_T rot = 0;
-    std::vector<Int> face;
+    std::vector<Int> region;
     
-//    const Turn_T rot = FaceTurns(de_ptr);
+//    const Turn_T rot = RegionTurns(de_ptr);
     
-    TraverseFace(
+    TraverseRegion(
         de_ptr,
-        [&rot,&face,dE_turn]( const Int de )
+        [&rot,&region,dE_turn]( const Int de )
         {
-            face.push_back(de);
+            region.push_back(de);
             rot += dE_turn[de];
         },
         false
@@ -101,9 +101,9 @@ bool CheckFaceTurns( const Int de_ptr ) const
     {
         if( rot != Turn_T(-4) )
         {
-            eprint(MethodName("CheckFaceTurns") + "(" + ToString(de_ptr) + "): found exterior face with incorrect rotation number.");
+            eprint(MethodName("CheckRegionTurns") + "(" + ToString(de_ptr) + "): found exterior region with incorrect rotation number.");
             TOOLS_DDUMP(rot);
-            TOOLS_DDUMP(face);
+            TOOLS_DDUMP(region);
             return false;
         }
     }
@@ -111,9 +111,9 @@ bool CheckFaceTurns( const Int de_ptr ) const
     {
         if( rot != Turn_T(4) )
         {
-            eprint(MethodName("CheckFaceTurns") + "(" + ToString(de_ptr) + "): found interior face with incorrect rotation number.");
+            eprint(MethodName("CheckRegionTurns") + "(" + ToString(de_ptr) + "): found interior region with incorrect rotation number.");
             TOOLS_DDUMP(rot);
-            TOOLS_DDUMP(face);
+            TOOLS_DDUMP(region);
             return false;
         }
     }
@@ -157,7 +157,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
     {
         Int rot = 0;
     
-        this->TraverseFace<debugQ,verboseQ>(
+        this->TraverseRegion<debugQ,verboseQ>(
             de_ptr,
             [
                 &rot,&dE_counter,&RE_counter,&rot_lut,
@@ -178,7 +178,7 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
                     {
                         if( exteriorQ != this->DedgeExteriorQ(de) )
                         {
-                            eprint(ClassName()+"::FindKittyCorner: dedge " + this->DedgeString(de) + " has boundaty flag set to " + ToString(this->DedgeExteriorQ(de)) + ", but face's boundary flag is " + ToString(exteriorQ) + "." );
+                            eprint(ClassName()+"::FindKittyCorner: dedge " + this->DedgeString(de) + " has boundaty flag set to " + ToString(this->DedgeExteriorQ(de)) + ", but region's boundary flag is " + ToString(exteriorQ) + "." );
                         }
                     }
                     else
@@ -296,24 +296,24 @@ std::tuple<Int,Int> FindKittyCorner( const Int de_ptr ) const
 
 private:
 
-/*!@brief Check whether directed edge `de_ptr` is active and invisited. If affirmative, check whether the left face of `de_ptr` is turn-regular. If yes, return false (nothing changed); otherwise split the face by inserting a virtual edge and apply `TurnRegularizeFace` to both directed edges of the inserted virtual edge.
+/*!@brief Check whether directed edge `de_ptr` is active and invisited. If affirmative, check whether the left region of `de_ptr` is turn-regular. If yes, return false (nothing changed); otherwise split the region by inserting a virtual edge and apply `TurnRegularizeRegion` to both directed edges of the inserted virtual edge.
  *
  */
 
 template<bool debugQ = false, bool verboseQ = false>
-bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
+bool TurnRegularizeRegion( mref<PRNG_T> engine, const Int de_ptr )
 {
     if( !DedgeActiveQ(de_ptr) || DedgeVisitedQ(de_ptr) ) { return false; }
 
     if constexpr ( debugQ )
     {
-        logprint("TurnRegularizeFace(" + ToString(de_ptr) + ")");
+        logprint("TurnRegularizeRegion(" + ToString(de_ptr) + ")");
     
         this->template CheckDedge<1,true>(de_ptr);
         
-        if( !CheckFaceTurns(de_ptr) )
+        if( !CheckRegionTurns(de_ptr) )
         {
-            eprint(MethodName("TurnRegularize") + "(" + ToString(de_ptr) + "): CheckFaceTurns failed on entry.");
+            eprint(MethodName("TurnRegularize") + "(" + ToString(de_ptr) + "): CheckRegionTurns failed on entry.");
         }
     }
     
@@ -322,7 +322,7 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     mptr<Turn_T> dE_turn    = E_turn.data();
     mptr<UInt8>  dE_flag    = E_flag.data();
 
-    // TODO: We should cycle around the face just once and collect all directed edges.
+    // TODO: We should cycle around the region just once and collect all directed edges.
     
     if constexpr ( debugQ )
     {
@@ -337,7 +337,7 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
 
     if( !ValidIndexQ(da_0) )
     {
-        MarkFaceAsVisited(de_ptr);
+        MarkRegionAsVisited(de_ptr);
         return false;
     }
     
@@ -471,47 +471,47 @@ bool TurnRegularizeFace( mref<PRNG_T> engine, const Int de_ptr )
     }
 
     
-    // After splitting the face, we mark the bigger of the two residual faces as exterior face.
+    // After splitting the region, we mark the bigger of the two residual regions as exterior region.
     if( exteriorQ )
     {
-        const Turn_T t_0 = FaceTurns(de_0);
-        const Turn_T t_1 = FaceTurns(de_1);
+        const Turn_T t_0 = RegionTurns(de_0);
+        const Turn_T t_1 = RegionTurns(de_1);
         
         if( (t_0 == Turn_T(4)) && (t_1 == Turn_T(-4)) )
         {
-            MarkFaceAsInterior(de_0);
-            MarkFaceAsExterior(de_1);
+            MarkRegionAsInterior(de_0);
+            MarkRegionAsExterior(de_1);
         }
         else if( (t_0 == Turn_T(-4)) && (t_1 == Turn_T(4)) )
         {
-            MarkFaceAsExterior(de_0);
-            MarkFaceAsInterior(de_1);
+            MarkRegionAsExterior(de_0);
+            MarkRegionAsInterior(de_1);
         }
         else
         {
-            eprint(MethodName("TurnRegularize") + "(" + ToString(de_ptr) + "): Inconsistent split of exterior face detected.");
+            eprint(MethodName("TurnRegularize") + "(" + ToString(de_ptr) + "): Inconsistent split of exterior region detected.");
             TOOLS_DDUMP(t_0);
             TOOLS_DDUMP(t_1);
         }
     }
     
-    bool de_0_split = TurnRegularizeFace(engine,de_0);
-    bool de_1_split = TurnRegularizeFace(engine,de_1);
+    bool de_0_split = TurnRegularizeRegion(engine,de_0);
+    bool de_1_split = TurnRegularizeRegion(engine,de_1);
 
     if constexpr ( debugQ )
     {
         if( !de_0_split )
         {
-            if( !CheckFaceTurns(de_0) )
+            if( !CheckRegionTurns(de_0) )
             {
-                eprint(MethodName("TurnRegularize")+"(" + ToString(de_ptr) + "): CheckFaceTurns failed after calling TurnRegularizeFace on de_0 = " + ToString(de_0) + ".");
+                eprint(MethodName("TurnRegularize")+"(" + ToString(de_ptr) + "): CheckRegionTurns failed after calling TurnRegularizeRegion on de_0 = " + ToString(de_0) + ".");
             }
         }
         if( !de_1_split )
         {
-            if( !CheckFaceTurns(de_1) )
+            if( !CheckRegionTurns(de_1) )
             {
-                eprint(MethodName("TurnRegularize")+"(" + ToString(de_ptr) + "): CheckFaceTurns failed after calling TurnRegularizeFace on de_1 = " + ToString(de_1) + ".");
+                eprint(MethodName("TurnRegularize")+"(" + ToString(de_ptr) + "): CheckRegionTurns failed after calling TurnRegularizeRegion on de_1 = " + ToString(de_1) + ".");
             }
         }
     }
