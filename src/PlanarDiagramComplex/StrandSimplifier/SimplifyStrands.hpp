@@ -183,23 +183,26 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         
         // If we arrive at this point again, we break the do loop below.
         const Int anchor = s_begin;
-        bool anchor_metQ = false;
         
-        PD_PRINT("Set anchor arc to anchor = " + ToString(anchor) + ".");
+        PD_PRINT("Set anchor arc to = " + ArcString(anchor) + ".");
 
+        bool anchor_metQ = false;
         // Arc `anchor` might be deactivated by RerouteToShortestPath_impl.
         // Thus, we need indeed a reference, not a copy here.
         ArcState_T & anchor_state = pd->A_state[anchor];
+        PD_ASSERT(ActiveQ(anchor_state));
+        
         
         // Current arc.
         Int a = s_begin;
         
         MarkCrossing(pd->A_cross(a,Tail));
         
-        // Traverse forward through all arcs in the link component, until we return to `anchor`.
-        do
+        while( true )
         {
             PD_ASSERT(CrossingMarkedQ(pd->A_cross(a,Tail)));
+            
+            PD_VALPRINT("anchor_state",anchor_state);
             
             Int c_1 = pd->A_cross(a,Head);
             AssertCrossing<1>(c_1);
@@ -237,18 +240,34 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 ++change_counter;
                 
                 // We have to guarantee that arc `a` is still alive and part of the strand.
+                if( !ArcActiveQ(a) )
+                {
+                    PD_NOTE("Breaking because of !ArcActiveQ(a) after Reidemeister_I.");
+                    break;  // Search for new arc by incrementing a_ptr.
+                }
+                
+                if( !ArcActiveQ(s_begin) )
+                {
+                    PD_NOTE("Breaking because of !ArcActiveQ(s_begin) after Reidemeister_I.");
+                    break;  // Search for new arc by incrementing a_ptr.
+                }
+                
+                // We have to guarantee that arc `a` is still alive and part of the strand.
                 // It is a bit strange, that we do not check pd.ArcActiveA(a) here.
                 // Reidemeister_I can deactivate arc `a` only if `a` is part of a 2-loop.
                 // But that can happen only if `a ==  anchor`.
-                if( ActiveQ(anchor_state) )
+                if( !ActiveQ(anchor_state) )
                 {
-                    continue; // Analyze `a` and the new `a_next` once more
+//                    PD_PRINT("Breaking because of !ActiveQ(anchor_state) after Reidemeister_I.");
+//                    break;  // Search for new anchor.
+                    
+                    PD_PRINT("!ActiveQ(anchor_state) after Reidemeister_I.");
                 }
-                else
-                {
-                    break;  // Search for new anchor.
-                }
+                
+                continue; // Analyze `a` and the new `a_next` once more
             }
+            
+//            PD_ASSERT(ActiveQ(anchor_state));
             
             // If we land here, then `a_next` is not a loop arc.
             // The arc `a` might still be a loop arc, though. But then CrossingMarkedQ(c_1) == true, and the check for big loops below will detect it and remove it correctly.
@@ -269,8 +288,11 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             // TODO: Don't forget to catch the Big Hopf Link in RemoveLoopPath.
             // TODO: In some cases we might reset the current strand
             
+//            PD_ASSERT(ActiveQ(anchor_state));
+            
             if( CrossingMarkedQ(c_1) )
             {
+                PD_PRINT("Visiting marked crossing c_1 = " + CrossingString(c_1) + ".");
                 // Vertex c has been visited before.
                 // This catches also the case when `a` is a loop arc.
 
@@ -455,6 +477,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 
             } // if( CrossingMarkedQ(c_1) )
             
+//            PD_ASSERT(ActiveQ(anchor_state));
+            
             // We do not like Reidemeister II patterns along our strand because that would make rerouting difficult.
             if( (!strand_completeQ) && (a != s_begin) )
             {
@@ -468,23 +492,38 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 //      |        |        |
                 
                 // Caution: This might change `a`.
-                const bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
+                bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
+                
+                change_counter += changedQ;
+                
                 // If `a` is deactivated by this, then Reidemeister_II_Backward subtracts 2 from strand_arc_count.
                 // TODO: The only thing that can go wrong here is that the strand start `s_begin` is deactivated by Reidemeister_II_Backward (see the function body for details).
                 // So, we need the following check here.
                 
                 if( changedQ )
                 {
-                    if( ActiveQ(anchor_state) && ArcActiveQ(s_begin) )
+                    if( !ArcActiveQ(a) )
                     {
-                        continue; // Analyze `a` and the new `a_next` once more
+                        PD_NOTE("Breaking because of !ArcActiveQ(a)) after Reidemeister_II_Backward.");
+                        break;
                     }
-                    else
+                    if( !ArcActiveQ(s_begin) )
                     {
-                        break; // Search for new anchor.
+                        PD_NOTE("Breaking because of !ArcActiveQ(s_begin)) after Reidemeister_II_Backward.");
+                        break;
                     }
+                    if( !ActiveQ(anchor_state) )
+                    {
+//                        PD_PRINT("Breaking because of !ArcActiveQ(anchor_state)) after Reidemeister_II_Backward.");
+//                        break;
+                        
+                        PD_PRINT("!ArcActiveQ(anchor_state)) after Reidemeister_II_Backward.");
+                    }
+                    continue; // Analyze `a` and the new `a_next` once more
                 }
             }
+            
+//            PD_ASSERT(ActiveQ(anchor_state));
             
             if( strand_completeQ )
             {
@@ -524,15 +563,37 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
 #endif // PD_DEBUG
                 }
 
-                // RerouteToShortestPath_impl might deactivate `anchor`, so that we could never return to it.
-                // Hence, we rather break the while loop here.
-                if( changedQ && !ActiveQ(anchor_state) ) [[unlikely]] { break; } // Search new anchor.
+//                // RerouteToShortestPath_impl might deactivate `anchor`, so that we could never return to it.
+//                // Hence, we rather break the while loop here.
+                if( changedQ )
+                {
+                    if( !ActiveQ(anchor_state) )
+                    {
+//                        PD_PRINT("Breaking because of !ActiveQ(anchor_state) after successful rerouting.");
+//                        break; // Search new anchor.
+                        
+                        PD_PRINT("!ActiveQ(anchor_state) after successful rerouting.");
+                    }
+                }
+                else
+                {
+                    if( !ActiveQ(anchor_state) )
+                    {
+//                        PD_PRINT("Breaking because of !ActiveQ(anchor_state) after aborted rerouting.");
+//                        break; // Search new anchor.
+                        
+                        PD_PRINT("!ActiveQ(anchor_state) after aborted rerouting.");
+                    }
+                }
+                
+//                PD_ASSERT(ActiveQ(anchor_state));
                 
                 // Surprisingly, these breaks tend to make it faster!
                 if constexpr( !targs.restart_after_successQ )
                 {
                     if( changedQ )
                     {
+                        PD_PRINT("Breaking because of targs.restart_after_successQ == false.");
                         break;
                     }
                     else
@@ -544,6 +605,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 {
                     if( !changedQ )
                     {
+                        PD_PRINT("Breaking because of targs.restart_after_failureQ == false.");
                         break;
                     }
                     else
@@ -555,7 +617,11 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 // Changed or not; in any case we can try to start a new strand at `pd->NextArc(a_next,Tail)`.
                 
                 // But `a_next` must be active for this.
-                if( changedQ && !ArcActiveQ(a_next) ) [[unlikely]] { break; } // Search new anchor.
+                if( changedQ && !ArcActiveQ(a_next) ) [[unlikely]]
+                {
+                    PD_PRINT("Breaking because " + ArcString(a_next)+ " is inactive.");
+                    break; // Search new arc by incrementing a_ptr.
+                }
                 
                 // TODO: This extra step backwards is unnecessary if the previous strand has not been rerouted. This happens very often! Optimize this away! Beware: that last arc will be marked already. We should only check a_next for being marked.
 
@@ -564,8 +630,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 // Rerouting arcs that we have been marked recently is a bad idea.
                 if( ArcRecentlyMarkedQ(a_next) ) [[unlikely]]
                 {
-                    PD_PRINT(ArcString(a_next)+ " has been visited recently.");
-                    break;
+                    PD_PRINT("Breaking because " + ArcString(a_next)+ " has been visited recently.");
+                    break; // Search new arc by incrementing a_ptr.
                 }
                 
                 if constexpr ( targs.restart_change_typeQ )
@@ -585,7 +651,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 {
                     if constexpr( targs.restart_walk_backQ )
                     {
-                        PD_PRINT("Walking back from previous arc of " + ArcString(a_next)+ " to strand start.");
+                        PD_PRINT("Walking back to strand start from previous arc of " + ArcString(a_next)+ ".");
                         SetStrandBegin( WalkBackToStrandStart(pd->NextArc(a_next,Tail)) );
                     }
                     else
@@ -598,7 +664,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 {
                     if constexpr( targs.restart_walk_backQ )
                     {
-                        PD_PRINT("Walking back from " + ArcString(a_next)+ " to strand start.");
+                        PD_PRINT("Walking back to strand start from " + ArcString(a_next)+ ".");
                         SetStrandBegin( WalkBackToStrandStart(a_next) );
                     }
                     else
@@ -618,36 +684,36 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             else
             {
                 AssertArc<1>(a_next);
-                AssertArc<1>(anchor);
+//                AssertArc<1>(anchor);
                 AssertArc<1>(a);
                 a = a_next;
                 MarkCrossing(c_1); // `c_1` is now the tail of `a`; thus we mark it.
                 continue;
             }
             
-            // It can happen that we have visited a whole knot component and did not change anything. Now we are at the last strand of that component and `anchor` could be the last arc of this strand. For example, `anchor` could have been the first arc of overstrand and its head really goes over; then it will also be the last arc of the last understrand. So, If we just break here if `(a == anchor)`, then we may overlook a simplification opportunity. This happens seldomly, but it is crucial for figuring out whether the diagram is pass-reduced!
+//             It can happen that we have visited a whole knot component and did not change anything. Now we are at the last strand of that component and `anchor` could be the last arc of this strand. For example, `anchor` could have been the first arc of overstrand and its head really goes over; then it will also be the last arc of the last understrand. So, If we just break here if `(a == anchor)`, then we may overlook a simplification opportunity. This happens seldomly, but it is crucial for figuring out whether the diagram is pass-reduced!
             
-//            if( anchor_metQ )
-//            {
-//                PD_PRINT("anchor_metQ == true.");
-//                break;
-//            };
+            // DEBUGGING
+            if( !ActiveQ(anchor_state) )
+            {
+                wprint("Anchor " + ToString(anchor) + " is inactive.");
+            }
             
             if( anchor_metQ )
             {
-                wprint("anchor_metQ == true. Might have had to stop here.");
+                PD_NOTE("Breaking because of (anchor_metQ == true).");
+                break;
             };
             
             if( a == anchor )
             {
-//                PD_PRINT("Setting anchor_metQ = true.");
-                print("Setting anchor_metQ = true.");
+                PD_NOTE("Setting anchor_metQ = true.");
                 anchor_metQ = true;
             }
             
             // TODO: Maybe the anchor  is totally irrelevant. After all, we check whether we revisit crossings. So we do not need the anchor as protection against loops. Also, if we create a new strand, we check whether a_next has been recently visited and abort if it is.
         }
-        while( true );
+        
         
         PD_PRINT("Searching for new arc by incrementing a_ptr.");
         // Go back to top and start a new strand.
