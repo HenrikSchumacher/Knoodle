@@ -98,40 +98,105 @@ bool CheckLeftDarc()
 private:
         
 
-bool CheckStrand( const Int a_begin, const Int a_end )
+
+bool CheckStrand( const Int a, const Int b, const bool overQ_ ) const
 {
-    bool passedQ = true;
-    
-    Int arc_counter = 0;
-    
-    Int a = a_begin;
-    
-    if( a_begin == a_end )
+    if( pd == nullptr )
     {
-        wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
+        eprint(MethodName("CheckStrand") + ": No diagram loaded.");
+        return false;
     }
+    
+    if( a == b )
+    {
+        wprint(MethodName("CheckStrand") + ": Strand is trivial: a == b.");
+        return true;
+    }
+    
+    auto arc_failsQ = [this,overQ_]( const Int e, const bool headtail )
+    {
+        if( pd->ArcOverQ(e,headtail) != overQ_ )
+        {
+            eprint(MethodName("CheckStrand") + ": Current strand is supposed to be an " + (overQ_ ? "over" : "under" ) + "strand. " + ArcString(e) + " does not go " + (overQ_ ? "over" : "under" ) + " its " + (headtail ? "head" : "tail" )+ ".");
+            return true;
+        }
+        return false;
+    };
+    
+    Int e = a;
+        
+    if( arc_failsQ(e,Head) ) { return false; }
     
     const Int pd_max_arc_count = pd->MaxArcCount();
+    Int arc_counter = 0;
     
-    while( (a != a_end) && (arc_counter < pd_max_arc_count ) )
+    e = pd->NextArc(a,Head);
+
+    while( (e != b) && (arc_counter < pd_max_arc_count ) )
     {
-        ++arc_counter;
-        
-        passedQ = passedQ && (pd->ArcOverQ(a,Head) == overQ);
+        if( arc_failsQ(e,Tail) ) { return false; }
+        if( arc_failsQ(e,Head) ) { return false; }
         
         // We use the safe implementation of NextArc here.
-        a = pd->NextArc(a,Head);
+        e = pd->NextArc(e,Head);
     }
     
-    if( a != a_end )
+    if( e != b )
     {
-        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for MaxArcCount() steps the end is still not reached.");
+        eprint(MethodName("CheckStrand") + ": After traversing strand for MaxArcCount() =  " + ToString(pd_max_arc_count) + " steps the end is still not reached.");
+        
+        return false;
     }
     
-    if( !passedQ )
-    {
-        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
-    }
+    if( arc_failsQ(b,Tail) ) { return false; }
     
-    return passedQ;
+    logprint(MethodName("CheckStrand") + ": Passed.");
+
+    return true;
 }
+
+
+
+
+bool CheckStrand( const Int a, const Int b )
+{
+    return CheckStrand(a,b,overQ);
+}
+
+//bool CheckStrand( const Int a_begin, const Int a_end )
+//{
+//    bool passedQ = true;
+//    
+//    Int arc_counter = 0;
+//    
+//    Int a = a_begin;
+//    
+//    if( a_begin == a_end )
+//    {
+//        wprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is trivial: a_begin == a_end.");
+//    }
+//    
+//    const Int pd_max_arc_count = pd->MaxArcCount();
+//    
+//    while( (a != a_end) && (arc_counter < pd_max_arc_count ) )
+//    {
+//        ++arc_counter;
+//        
+//        passedQ = passedQ && (pd->ArcOverQ(a,Head) == overQ);
+//        
+//        // We use the safe implementation of NextArc here.
+//        a = pd->NextArc(a,Head);
+//    }
+//    
+//    if( a != a_end )
+//    {
+//        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: After traversing strand for MaxArcCount() steps the end is still not reached.");
+//    }
+//    
+//    if( !passedQ )
+//    {
+//        pd_eprint(MethodName("CheckStrand")+"<" + (overQ ? "over" : "under" ) + ">: Strand is not an" + (overQ ? "over" : "under" ) + "strand.");
+//    }
+//    
+//    return passedQ;
+//}

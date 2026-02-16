@@ -86,13 +86,6 @@ Size_T SimplifyStrands(
         {
             ++strand_length;
             
-//            // DEBUGGING
-//            logprint(
-//                std::string("strand = ") + ToString(current_mark)
-//                     + ";  strand_length = " + ToString(strand_length)
-//                     + ";  a = " + ToString(a)
-//            );
-            
             // Safe guard against integer overflow.
             if( current_mark == std::numeric_limits<Mark_T>::max() )
             {

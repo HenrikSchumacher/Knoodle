@@ -21,7 +21,7 @@ bool Reidemeister_I( const Int a )
         }
     }
     
-    PD_DPRINT( MethodName("Reidemeister_I")+" at " + ArcString(a) );
+    PD_DPRINT( MethodName("Reidemeister_I")+" found loop arc " + ArcString(a) );
     
     // We assume here that we already know that a is a loop arc.
     
@@ -82,7 +82,7 @@ bool Reidemeister_II_Backward(
 {
     // TODO: This checks for a backward Reidemeister II move (and it exploits already that both vertical strands go under (if current strand is an overstrand) or go over (if current strand is an understrans).
     
-    PD_DPRINT( MethodName("Reidemeister_II_Backward")+" at " + ArcString(a) );
+    PD_DPRINT( MethodName("Reidemeister_II_Backward")+" checks " + ArcString(a) );
     
     const Int c_0 = pd->A_cross(a,Tail);
     
@@ -272,5 +272,7 @@ bool Reidemeister_II_Backward(
         return true;
     }
 
+    PD_DPRINT( MethodName("Reidemeister_II_Backward")+" found no changes.");
+    
     return false;
 }

@@ -11,13 +11,28 @@ void RepairLeftDarc( const Int da )
         
         if( pd->ArcActiveQ(a) )
         {
-            const Int da_l = pd->LeftDarc(da);
             // TODO: We might be able to optimize this a little.
+            
+            const Int da_l = pd->LeftDarc(da);
+            if( LeftDarc(da) != da_l )
+            {
+                PD_PRINT("LeftDarc(" + ToString(da) + ") is indeed outdated.");
+            }
+            else
+            {
+                PD_PRINT("LeftDarc(" + ToString(da) + ") is up to date.");
+            }
+            
             const Int da_r = ReverseDarc(pd->RightDarc(da));
             
-            //                PD_DPRINT("RepairLeftDarc touched a   = " + ArcString(a) + ".");
-            //                PD_DPRINT("RepairLeftDarc touched a_l = " + ArcString(a_l) + ".");
-            //                PD_DPRINT("RepairLeftDarc touched a_r = " + ArcString(a_r) + ".");
+            if( LeftDarc(da_r) != da )
+            {
+                PD_PRINT("LeftDarc(" + ToString(da_r) + ") is indeed outdated.");
+            }
+            else
+            {
+                PD_PRINT("LeftDarc(" + ToString(da_r) + ") is up to date.");
+            }
             
             SetLeftDarc(da  ,da_l        );
             SetLeftDarc(da_r,ReverseDarc(da));

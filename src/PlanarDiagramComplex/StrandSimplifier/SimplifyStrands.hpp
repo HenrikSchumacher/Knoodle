@@ -88,15 +88,9 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     Int a_ptr = 0;
     change_counter   = 0;
 
-//    const Int pd_max_crossing_count = pd->MaxCrossingCount();
-    const Int pd_max_arc_count      = pd->MaxArcCount();
+    const Int pd_max_arc_count = pd->MaxArcCount();
     
     PD_VALPRINT("pd->crossing_count",pd->crossing_count);
-    
-//    TOOLS_LOGDUMP( (!compress_oftenQ || (pd->arc_count >= pd_max_crossing_count)) );
-//    TOOLS_LOGDUMP(compress_oftenQ);
-//    TOOLS_LOGDUMP(pd_max_crossing_count);
-//    TOOLS_LOGDUMP(pd_max_crossing_count);
     
     while( a_ptr < pd_max_arc_count )
     {
@@ -107,9 +101,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         {
             ++a_ptr;
         }
-        
-//        TOOLS_LOGDUMP(a_ptr);
-        
+
         if( a_ptr >= pd_max_arc_count ) [[unlikely]] { break; }
         
         // Find the beginning of strand.
@@ -155,17 +147,15 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 {
                     s_begin = a_ptr;
                 }
-                
-                // TODO: Catch the Big Unlink here.
             }
         }
         else
         {
             if( NewStrand() ) [[unlikely]] { break; }
             s_begin = WalkBackToStrandStart(a_ptr);
-            // TODO: Catch the Big Unlink here.
         }
         
+        PD_ASSERT( pd->ArcOverQ(s_begin,Head) == overQ );
         
         //if( s_begin == Uninitialized ) { continue; }
         
@@ -508,6 +498,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                  *      |        |        |        |
                  */
                 
+                PD_VALPRINT("strand", ShortArcRangeString(s_begin,a));
+                
                 
                 // Now try to reroute!
                 
@@ -515,9 +507,14 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
 
                 if( (strand_arc_count > Int(2)) && (args.max_dist > Int(0)) )
                 {
+                    PD_ASSERT(CheckStrand(s_begin,a,overQ));
 #ifdef PD_DEBUG
                     Int C_0 = pd->crossing_count;
+                    PD_ASSERT(CheckStrand(s_begin,a,overQ));
+                    pd->PrintInfo();
+                    
 #endif
+                    
                     changedQ = RerouteToShortestPath_impl( s_begin, a, Min(strand_arc_count-Int(1),args.max_dist) );
 #ifdef PD_DEBUG
                     Int C_1 = pd->crossing_count;
@@ -557,8 +554,6 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     if constexpr( targs.restart_walk_backQ )
                     {
                         s_begin = WalkBackToStrandStart(pd->NextArc(a_next,Tail));
-                        // TODO: Catch Big Unlink here.
-                        //if( s_begin == Uninitialized ) { break; }
                     }
                     else
                     {
@@ -570,14 +565,14 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     if constexpr( targs.restart_walk_backQ )
                     {
                         s_begin = WalkBackToStrandStart(a_next);
-                        // TODO: Catch Big Unlink here.
-                        //if( s_begin == Uninitialized ) { break; }
                     }
                     else
                     {
                         s_begin = a_next;
                     }
                 }
+                
+                PD_ASSERT( pd->ArcOverQ(s_begin,Head) == overQ );
                 
                 a = s_begin;
                 c_1 = pd->A_cross(a,Tail);
@@ -607,3 +602,4 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     return change_counter;
     
 } // Int SimplifyStrands
+

@@ -428,6 +428,13 @@ bool SweepFace(
             continue;
         }
         
+//        // This is to not cross forbidden arcs.
+//        if( ArcForbiddenQ(e) )
+//        {
+//            de = LeftDarc(de);
+//            continue;
+//        }
+        
 #ifdef PD_COUNTERS
         ++f_size;
         RecordDualArc(de);

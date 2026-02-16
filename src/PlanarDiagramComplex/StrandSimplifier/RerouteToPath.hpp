@@ -18,10 +18,11 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     TOOLS_LOGDUMP(Cr_0);
 #endif
     
-PD_VALPRINT("a_first",a_first);
-PD_VALPRINT("a_last",a_last);
-PD_VALPRINT("strand", ShortArcRangeString(a_first,a_last));
-PD_VALPRINT("path", ShortPathString());
+    PD_VALPRINT("a_first",a_first);
+    PD_VALPRINT("a_last",a_last);
+    PD_VALPRINT("strand", ShortArcRangeString(a_first,a_last));
+    PD_VALPRINT("path", ShortPathString());
+
 
 //PD_PRINT("Diagram before rerouting:");
 //#ifdef PD_DEBUG
@@ -284,10 +285,7 @@ PD_VALPRINT("path", ShortPathString());
     AssertArc<0>(e);
     
     // TODO: Is this necessary? If yes, why?
-    if constexpr ( lutQ )
-    {
-        RepairLeftDarc(ToDarc(a,Head));
-    }
+    if constexpr ( lutQ ) { RepairLeftDarc(ToDarc(a,Head)); }
     
     a_last = a;
 
@@ -352,6 +350,8 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
 {
     PD_TIMER(timer,MethodName("RerouteToShortestPath_impl"));
     
+    PD_VALPRINT("change_counter",change_counter);
+    
     // We don't like loops of any kind here.
     PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(a,Head));
     PD_ASSERT(pd->A_cross(b,Tail) != pd->A_cross(b,Head));
@@ -390,10 +390,6 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
     return successQ;
     
 }
-
-
-
-
 
 
 
