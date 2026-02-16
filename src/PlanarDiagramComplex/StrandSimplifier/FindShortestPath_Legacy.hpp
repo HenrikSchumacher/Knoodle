@@ -31,15 +31,15 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
     X_front.Push(ToDarc(a_begin,Head));
     X_front.Push(ToDarc(a_begin,Tail));
     
-    SetDualArc(a_begin,Head,a_begin,Head);
+    SetDualArc(a_begin,Head,Head,a_begin);
     
     // This is needed to prevent us from running in circles when cycling around faces.
     // See comments below.
     pd->A_scratch[a_begin] = a_begin;
     
-    Int d = 0;
+    Int r = 0;
     
-    while( (d < max_dist) && (!X_front.EmptyQ()) )
+    while( (r < max_dist) && (!X_front.EmptyQ()) )
     {
         // Actually, X_front must never become empty. Otherwise something is wrong.
         std::swap( prev_front, X_front );
@@ -47,10 +47,10 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
         X_front.Reset();
         
         // We don't want paths of length max_dist.
-        // The elements of prev_front have distance d.
-        // So the elements we push onto X_front will have distance d+1.
+        // The elements of prev_front have distance r.
+        // So the elements we push onto X_front will have distance r+1.
         
-        ++d;
+        ++r;
 
         while( !prev_front.EmptyQ() )
         {
@@ -66,7 +66,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
 
             do
             {
-                auto [a,left_to_rightQ] = FromDarc(da);
+                auto [a,d] = FromDarc(da);
                 
                 AssertArc<1>(a);
                 
@@ -77,7 +77,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
                 {
                     if( a == a_end )
                     {
-                        SetDualArc(a,Head,a_0,left_to_rightQ);
+                        SetDualArc(a,d,Head,a_0);
                         goto Exit;
                     }
                     
@@ -89,7 +89,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
                     }
                     else
                     {
-                        SetDualArc(a,Head,a_0,left_to_rightQ);
+                        SetDualArc(a,d,Head,a_0);
                         X_front.Push(ReverseDarc(da));
                     }
                 }
@@ -134,7 +134,7 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
         }
     }
     
-    // If we get here, then d+1 = max_dist or X_front.EmptyQ().
+    // If we get here, then r+1 = max_dist or X_front.EmptyQ().
     
     // X_front.EmptyQ() should actually never happen because we know that there is a path between the arcs!
     
@@ -143,19 +143,19 @@ Int FindShortestPath_Legacy_impl( const Int a_begin, const Int a_end, const Int 
         wprint(MethodName("FindShortestPath_impl")+": X_front is empty, but shortest path is not found, yet.");
     }
     
-    d = max_dist + 1;
+    r = max_dist + 1;
     
 Exit:
     
     // Write the actual path to array `path`.
     
-    if( (Int(0) <= d) && (d <= max_dist) )
+    if( (Int(0) <= r) && (r <= max_dist) )
     {
-        // The only way to get here with `d <= max_dist` is the `goto` above.
+        // The only way to get here with `r <= max_dist` is the `goto` above.
         if( !DualArcMarkedQ(a_end) )
         {
             pd_eprint(MethodName("FindShortestPath_impl") +": DualArcMarkedQ(a_end).");
-            TOOLS_LOGDUMP(d);
+            TOOLS_LOGDUMP(r);
             TOOLS_LOGDUMP(max_dist);
             TOOLS_LOGDUMP(a_end);
             TOOLS_LOGDUMP(DualArcMarkedQ(a_end));
@@ -164,7 +164,7 @@ Exit:
         
         Int a = a_end;
         
-        path_length = d+1;
+        path_length = r+1;
         
         for( Int i = 0; i < path_length; ++i )
         {
@@ -177,5 +177,5 @@ Exit:
         path_length = 0;
     }
 
-    return d;
+    return r;
 }

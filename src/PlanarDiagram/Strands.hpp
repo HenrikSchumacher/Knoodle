@@ -33,24 +33,24 @@ Tensor1<Int,Int> ArcStrands() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::" + (overQ ? "Over" : "Under")  + "StrandIndices");
     
-    Tensor1<Int,Int> A_colors ( max_arc_count, Uninitialized );
-    Int color = 0;
+    Tensor1<Int,Int> A_mark ( max_arc_count, Uninitialized );
+    Int mark = 0;
     
     this->template Traverse<false,false,(overQ ? -1 : 1 )>(
-        [&color,&A_colors,this]
+        [&mark,&A_mark,this]
         ( const Int a, const Int a_pos, const Int lc )
         {
             (void)a_pos;
             (void)lc;
 
-            A_colors[a] = color;
+            A_mark[a] = mark;
 
             // Whenever arc `a` goes under/over crossing A_cross(a,Head), we have to initialize a new strand.
-            color += (ArcOverQ(a,Head) != overQ);
+            mark += (ArcOverQ(a,Head) != overQ);
         }
     );
 
-    return A_colors;
+    return A_mark;
 }
 
 public:

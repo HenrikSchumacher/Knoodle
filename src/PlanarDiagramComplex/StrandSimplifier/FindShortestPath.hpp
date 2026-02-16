@@ -103,10 +103,10 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
     Y_front.Reset();
     
     // Indicate that we met a in this pass during forward stepping.
-    SetDualArc(a,Head,a,Tail);
+    SetDualArc(a,Tail,Head,a);
     
     // Indicate that we met b in this pass during backward stepping.
-    SetDualArc(b,Tail,b,Head);
+    SetDualArc(b,Head,Tail,b);
     
     Int k   = 0;
     Int X_r = 0;
@@ -122,18 +122,19 @@ Int FindShortestPath_impl( const Int a, const Int b, const Int max_dist )
         const Int da = ToDarc(a,Tail);
         
         Int de = LeftDarc(da);
-        auto [e,left_to_rightQ] = FromDarc(de);
+        auto [e,d] = FromDarc(de);
         
+        // We cannot use LeftUnmarkedDarc here because b could be one of a's immediate neighbors.
         while( ArcMarkedQ(e) && (de != da) )
         {
             // a and b share a common face.
             if( e == b )
             {
-                SetDualArc(e,Head,a,Head==left_to_rightQ);
+                SetDualArc(e,d,Head,a);
                 goto Exit;
             }
             de = LeftDarc(ReverseDarc(de));
-            std::tie(e,left_to_rightQ) = FromDarc(de);
+            std::tie(e,d) = FromDarc(de);
         }
         
         PD_VALPRINT("da",da);
@@ -446,7 +447,7 @@ bool SweepFace(
             PD_PRINT("Arc " + ToString(e) + " is unvisited; marking as visited.");
             
             // Beware that dual arcs with forwardQ == false have to be traversed in reverse way when the path is rerouted. This is why we may have to flip left_to_rightQ here.
-            SetDualArc( e, forwardQ, from, forwardQ == d );
+            SetDualArc(e,d,forwardQ,from);
             
             Int de_next = ReverseDarc(de);
             PD_PRINT("Pushing darc de_next = " + ToString(de_next) + " to stack." );
@@ -474,7 +475,9 @@ bool SweepFace(
                 // If we traversed it in the same direction, this means that we have visited the whole face already.
                 // Then we can abort the face traversal immediately.
                 
-                if( DualArcLeftToRightQ(e) == (forwardQ == d) ) { return false; }
+                if( DualArcDirection(e) == d ) { return false; }
+                
+//                if( DualArcLeftToRightQ(e) == (forwardQ == d) ) { return false; }
                 
                 // Otherwise, we ignore this directed arc and continue cycling around the face.
             }

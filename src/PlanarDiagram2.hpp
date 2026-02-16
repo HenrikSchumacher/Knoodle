@@ -271,7 +271,7 @@ namespace Knoodle
             }
         }
         
-        /*!@brief Construct PlanarDiagram2 from internal data withput colors.
+        /*!@brief Construct PlanarDiagram2 from internal data without colors.
          */
         
         template<typename ExtInt, typename ExtInt2, typename ExtInt3>
@@ -316,9 +316,6 @@ namespace Knoodle
 
             crossing_count       = CountActiveCrossings();
             arc_count            = CountActiveArcs();
-            
-            TOOLS_DUMP(crossing_count);
-            TOOLS_DUMP(arc_count);
             
             if( (crossing_count == 0) && proven_minimalQ )
             {

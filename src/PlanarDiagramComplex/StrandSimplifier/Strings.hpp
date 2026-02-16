@@ -1,5 +1,16 @@
 private:
 
+static std::string OverQString( const bool overQ_ )
+{
+    return (overQ_ ? "over" : "under");
+}
+
+std::string OverQString() const
+{
+    return OverQString(overQ);
+}
+
+
 /*!@brief Creates string with the details of the range of arcs from `a` (included) to `b` (included). Caution: It is assumed implicitly that `a` and `b` lie on the same link component.
  */
 std::string ArcRangeString( const Int a, const Int b ) const
@@ -12,15 +23,17 @@ std::string ArcRangeString( const Int a, const Int b ) const
     
     s += ToString(0) + " : " + CrossingString(A_cross(e,Tail)) + "\n\t"
        + ToString(0) + " : " + ArcString(e)
-       + " (" + (ArcOverQ(e,Head) ? "over" : "under") + ")\n"
+       + " (" + OverQString(ArcOverQ(e,Head)) + ")\n"
     + ToString(1) + " : " + CrossingString(A_cross(e,Head)) + "\n\t";
 
+    
+    
     do
     {
         ++i;
         e = NextArc(e,Head);
         s += ToString(i  ) + " : " +  ArcString(e)
-           + " (" + (ArcOverQ(e,Head) ? "over" : "under") + ")\n"
+           + " (" + OverQString(ArcOverQ(e,Head)) + ")\n"
             + ToString(i+1) + " : " +  CrossingString(A_cross(e,Head)) + "\n\t";
     }
     while( (e != b) && (i <= pd->arc_count) );

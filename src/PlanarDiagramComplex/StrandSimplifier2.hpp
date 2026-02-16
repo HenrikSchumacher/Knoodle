@@ -70,8 +70,8 @@ namespace Knoodle
         struct DualArc_T
         {
             Int from;
-            bool left_to_rightQ;
             bool forwardQ;
+            bool direction;
         };
         
         friend std::string ToString( cref<DualArc_T> a )
@@ -140,8 +140,8 @@ namespace Knoodle
     public:
         
         StrandSimplifier2( PDC_T & pdc_, DijkstraStrategy_T strategy_ )
-        :   pdc                { pdc_                                       }
-        ,   strategy           { strategy_                                  }
+        :   pdc                { pdc_      }
+        ,   strategy           { strategy_ }
         {
             Allocate(pdc.MaxMaxCrossingCount());
         }
@@ -169,8 +169,8 @@ namespace Knoodle
             
             max_crossing_count = max_crossing_count_;
             max_arc_count      = int_cast<Int>(Int(2) * max_crossing_count); // int_cast for e.g., Int16
-            C_mark             = Tensor1<Int,Int>( max_crossing_count, Int(0) );
-            A_mark             = Tensor1<Int,Int>( max_arc_count     , Int(0) );
+            C_mark             = Tensor1<Int,Int>( max_crossing_count, Int(0)        );
+            A_mark             = Tensor1<Int,Int>( max_arc_count     , Int(0)        );
             path               = Tensor1<Int,Int>( max_arc_count     , Uninitialized );
             X_front            = Stack_T( max_arc_count );
             Y_front            = Stack_T( max_arc_count );
@@ -341,7 +341,7 @@ namespace Knoodle
                 return true;
             }
             
-            PD_PRINT(std::string("NewStrand created new ") + (overQ ? "over" : "under") + "strand with current_mark = " + ToString(current_mark) + "." );
+            PD_PRINT(std::string("NewStrand created new ") + OverQString() + "strand with current_mark = " + ToString(current_mark) + "." );
             
             if constexpr( hash_map1Q || hash_map_structQ )
             {
@@ -351,6 +351,13 @@ namespace Knoodle
             ++current_mark;
             strand_arc_count = 0;
             return false;
+        }
+        
+        void SetStrandBegin( const Int a )
+        {
+            s_begin = a;
+            
+            PD_VALPRINT("s_begin",s_begin);
         }
 
         

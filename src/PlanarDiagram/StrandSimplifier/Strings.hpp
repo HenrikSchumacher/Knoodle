@@ -1,5 +1,16 @@
 private:
 
+static std::string OverQString( const bool overQ_ )
+{
+    return (overQ_ ? "over" : "under");
+}
+
+std::string OverQString() const
+{
+    return OverQString(overQ);
+}
+
+
 std::string ArcRangeString( const Int a_begin, const Int a_end ) const
 {
     PD_PRINT(MethodName("ArcRangeString"));
@@ -10,15 +21,16 @@ std::string ArcRangeString( const Int a_begin, const Int a_end ) const
     
     s += ToString(0) + " : " + CrossingString(A_cross(a,Tail)) + ")\n"
        + ToString(0) + " : " + ArcString(a)
-       + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
+       + " (" + OverQString(ArcOverQ(a,Head)) + ")\n"
     + ToString(1) + " : " + CrossingString(A_cross(a,Head)) + "\n";
-
+    
+    
     do
     {
         ++i;
         a = NextArc(a,Head);
         s += ToString(i  ) + " : " +  ArcString(a)
-           + " (" + (ArcOverQ(a,Head) ? "over" : "under") + ")\n"
+           + " (" + OverQString(ArcOverQ(a,Head)) + ")\n"
             + ToString(i+1) + " : " +  CrossingString(A_cross(a,Head)) + "\n";
     }
     while( a != a_end );
