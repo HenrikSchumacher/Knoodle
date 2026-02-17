@@ -15,8 +15,8 @@ struct Simplify_Args_T
     bool                compressQ                = true;
     Int                 compression_threshold    = 0;
     
-    Size_T              embedding_trials         = 25;
-    Size_T              rotation_trials          = 1;
+    Size_T              embedding_trials         = 0;
+    Size_T              rotation_trials          = 25;
     bool                permute_randomQ          = true;
     Energy_T            energy                   = Energy_T::TV;
     
