@@ -45,6 +45,7 @@ Int ArcMark( const Int a ) const
 
 public:
 
+// TODO: Need a guard against a and b lying on different link components.
 Int MarkArcs(const Int a, const Int b )
 {
     const Int e_begin = a;
@@ -64,12 +65,14 @@ Int MarkArcs(const Int a, const Int b )
     return counter;
 }
 
+
+// TODO: Need a guard against a and b lying on different link components.
 Int CountArcsInRange(const Int a, const Int b )
 {
     const Int e_begin = a;
     const Int e_end   = NextArc(b,Head);
     Int e = a;
-    
+
     Int counter = 0;
     
     do

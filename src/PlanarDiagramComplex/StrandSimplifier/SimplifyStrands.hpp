@@ -24,7 +24,9 @@ struct SimplifyStrands_TArgs
     bool restart_after_successQ = true;
     bool restart_after_failureQ = true;
     bool restart_walk_backQ     = true;
-    bool restart_change_typeQ   = true;
+    bool interleave_over_underQ = true;
+    bool R_II_blockingQ         = true;
+    bool R_II_forwardQ          = false;
 };
 
 friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
@@ -32,7 +34,9 @@ friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
     return "{.restart_after_successQ = " + ToString(targs.restart_after_successQ)
          + ",.restart_after_failureQ = " + ToString(targs.restart_after_failureQ)
          + ",.restart_walk_backQ = " + ToString(targs.restart_walk_backQ)
-         + ",.restart_change_typeQ = " + ToString(targs.restart_change_typeQ)
+         + ",.interleave_over_underQ = " + ToString(targs.interleave_over_underQ)
+         + ",.R_II_blockingQ = " + ToString(targs.R_II_blockingQ)
+         + ",.R_II_forwardQ = " + ToString(targs.R_II_forwardQ)
          + "}";
 }
 
@@ -47,15 +51,7 @@ friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
 template<SimplifyStrands_TArgs targs>
 Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
 {
-    [[maybe_unused]] auto tag = [this]()
-    {
-        return this->MethodName("SimplifyStrands");
-    };
-    
-//    [[maybe_unused]] auto tag = [&args,this]()
-//    {
-//        return this->MethodName("SimplifyStrands") + "<" + ToString(targs) + ">(" + ToString(args) + ")";
-//    };
+    [[maybe_unused]] auto tag = [this]() { return this->MethodName("SimplifyStrands"); };
     
     TOOLS_PTIMER(timer,tag());
     
@@ -63,20 +59,14 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     logvalprint("targs",ToString(targs));
     logvalprint("args ",ToString(args) );
 #endif
-    
-//    // DEBUGGING
-//    TOOLS_LOGDUMP(tag());
-//    TOOLS_LOGDUMP(pd_input.max_crossing_count);
-//    TOOLS_LOGDUMP(pd_input.crossing_count);
 
-    
     if( args.max_dist <= Int(0) ) { return 0; }
     
     PD_PRINT(tag()+ ": Initial number of crossings = " + ToString(pd_input.CrossingCount()) );
     
     if( args.compressQ ) { pd_input.ConditionalCompress(args.compression_threshold); }
 
-    if constexpr ( !targs.restart_change_typeQ )
+    if constexpr ( !targs.interleave_over_underQ )
     {
         SetStrandMode(args.overQ);
     }
@@ -100,12 +90,16 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             ++a_ptr;
         }
 
-        if( a_ptr >= pd_max_arc_count ) [[unlikely]] { break; }
+        if( a_ptr >= pd_max_arc_count ) [[unlikely]]
+        {
+            PD_PRINT("Breaking many loop because we marked all active arcs; we ar done for this round.");
+            break;
+        }
         
         PD_VALPRINT("a_ptr",a_ptr);
         
         // Find the beginning of strand.
-        if constexpr ( targs.restart_change_typeQ )
+        if constexpr ( targs.interleave_over_underQ )
         {
             const bool overQ_0 = ArcOverQ(a_ptr,Tail);
             const bool overQ_1 = ArcOverQ(a_ptr,Head);
@@ -157,22 +151,6 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         
         PD_ASSERT( pd->ArcOverQ(s_begin,Head) == overQ );
         
-        //if( s_begin == Uninitialized ) { continue; }
-        
-#ifdef PD_DEBUG
-        const bool s_begin_optimalQ = (pd->ArcOverQ(s_begin,Tail) != overQ);
-        
-        if( (s_begin != a_ptr) && !s_begin_optimalQ )
-        {
-            wprint("s_begin is placed suboptimally although s_begin != a_ptr. (s_begin = " + ToString(s_begin) + ", crossing_count = " + ToString(pd->crossing_count) + ")");
-        }
-        
-        if( (s_begin == a_ptr) && !s_begin_optimalQ )
-        {
-            wprint("We should be able to remove a big loop here, no? (s_begin = " + ToString(s_begin) + ", crossing_count = " + ToString(pd->crossing_count) + ")");
-        }
-#endif // PD_DEBUG
-        
         // TODO: Is this really necessary? The do loop below eliminates loops automatically.
         // We make sure that `s_begin` is not a loop.
         if( Reidemeister_I<true>(s_begin) )
@@ -181,41 +159,50 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             continue;   // TODO: Could we also walk to what was NextArc<Head>(s_begin)?
         }
         
-        // If we arrive at this point again, we break the do loop below.
-        const Int anchor = s_begin;
-        
-        PD_PRINT("Set anchor arc to = " + ArcString(anchor) + ".");
-
-        bool anchor_metQ = false;
-        // Arc `anchor` might be deactivated by RerouteToShortestPath_impl.
-        // Thus, we need indeed a reference, not a copy here.
-        ArcState_T & anchor_state = pd->A_state[anchor];
-        PD_ASSERT(ActiveQ(anchor_state));
-        
-        
         // Current arc.
         Int a = s_begin;
-        
         MarkCrossing(pd->A_cross(a,Tail));
         
+        // TODO: I could guard this by a simple counter.
+        // Potentially infinite loop. We must take care to break it correctly.
         while( true )
         {
-            PD_ASSERT(CrossingMarkedQ(pd->A_cross(a,Tail)));
+            AssertArc<1>(a);
+//            PD_ASSERT(CheckForDanglingMarkedArcs(a));
             
-            PD_VALPRINT("anchor_state",anchor_state);
+#ifdef PD_DEBUG
             
+            const Int fake_strand_arc_count = CountArcsInRange(s_begin,a);
+            TOOLS_LOGDUMP(fake_strand_arc_count);
+            logvalprint("strand",ShortArcRangeString(s_begin,a));
+            if( fake_strand_arc_count != strand_arc_count + Int(1) )
+            {
+                pd_eprint("fake_strand_arc_count != strand_arc_count + Int(1)");
+            }
+#endif // PD_DEBUG
+
+            
+            // TODO: We could preload c_0. Won't help much, though.
+            Int c_0 = pd->A_cross(a,Tail);
             Int c_1 = pd->A_cross(a,Head);
+            AssertCrossing<1>(c_0);
             AssertCrossing<1>(c_1);
-        
+            PD_ASSERT(CrossingMarkedQ(c_0));
+            
             // Check for forward Reidemeister I move.
             const bool side_1 = (pd->C_arcs(c_1,In,Right) == a);
             Int a_next = pd->C_arcs(c_1,Out,!side_1);
             AssertArc<1>(a_next);
             
-            Int c_next = pd->A_cross(a_next,Head);
-            AssertCrossing<1>(c_next);
+            Int c_2 = pd->A_cross(a_next,Head);
+            AssertCrossing<1>(c_2);
+
+            PD_ASSERT(
+                (strand_arc_count <= Int(2)) || (pd->A_cross(s_begin,Head) != pd->A_cross(a,Tail))
+            );
             
-            if( c_next == c_1 )
+            
+            if( c_2 == c_1 )
             {
                 // overQ == true
                 //
@@ -242,32 +229,18 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 // We have to guarantee that arc `a` is still alive and part of the strand.
                 if( !ArcActiveQ(a) )
                 {
-                    PD_NOTE("Breaking because of !ArcActiveQ(a) after Reidemeister_I.");
+                    PD_PRINT("Breaking because (ArcActiveQ(a) == false) after Reidemeister_I.");
                     break;  // Search for new arc by incrementing a_ptr.
                 }
                 
                 if( !ArcActiveQ(s_begin) )
                 {
-                    PD_NOTE("Breaking because of !ArcActiveQ(s_begin) after Reidemeister_I.");
+                    PD_PRINT("Breaking because (ArcActiveQ(s_begin) == false) after Reidemeister_I.");
                     break;  // Search for new arc by incrementing a_ptr.
-                }
-                
-                // We have to guarantee that arc `a` is still alive and part of the strand.
-                // It is a bit strange, that we do not check pd.ArcActiveA(a) here.
-                // Reidemeister_I can deactivate arc `a` only if `a` is part of a 2-loop.
-                // But that can happen only if `a ==  anchor`.
-                if( !ActiveQ(anchor_state) )
-                {
-//                    PD_PRINT("Breaking because of !ActiveQ(anchor_state) after Reidemeister_I.");
-//                    break;  // Search for new anchor.
-                    
-                    PD_PRINT("!ActiveQ(anchor_state) after Reidemeister_I.");
                 }
                 
                 continue; // Analyze `a` and the new `a_next` once more
             }
-            
-//            PD_ASSERT(ActiveQ(anchor_state));
             
             // If we land here, then `a_next` is not a loop arc.
             // The arc `a` might still be a loop arc, though. But then CrossingMarkedQ(c_1) == true, and the check for big loops below will detect it and remove it correctly.
@@ -276,19 +249,19 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             ++strand_arc_count;
             MarkArc(a);
             
+            // TODO: Expensive1
+            PD_ASSERT(CheckStrand<false>(s_begin,a));
+            
             // Check whether the strand is finished.
             strand_completeQ = ((side_1 == CrossingRightHandedQ(c_1)) == overQ);
             
             PD_ASSERT( strand_completeQ == (ArcOverQ(a     ,Head) != overQ) );
             PD_ASSERT( strand_completeQ == (ArcOverQ(a_next,Tail) != overQ) );
 
-
             // Check for a big loop strand.i.e., an over/understrand that starts and ends at the same crossing.
             // TODO: Simplify everything to a single call to RemoveLoopPath(a,c_1) and break.
             // TODO: Don't forget to catch the Big Hopf Link in RemoveLoopPath.
             // TODO: In some cases we might reset the current strand
-            
-//            PD_ASSERT(ActiveQ(anchor_state));
             
             if( CrossingMarkedQ(c_1) )
             {
@@ -296,188 +269,172 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 // Vertex c has been visited before.
                 // This catches also the case when `a` is a loop arc.
 
-                if constexpr ( mult_compQ )
+
+                if( !strand_completeQ )
                 {
-                    if( !strand_completeQ )
-                    {
-                        // There are two possibilities:
-                        
-                        /* Case 1:  (example for overQ = true)
-                         *
-                         *          |   |   |
-                         *      +<--------------+
-                         *      |   |   |   |   ^
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               ^ s_begin
-                         *      v   |   |   | a |
-                         *      +-------------->-------->
-                         *          |   |   |   ^c_1    a_next
-                         *                      |
-                         *                      |
-                         */
-                        
-                        /* Case 2: Big Unlink (s_begin == a_nex)
-                         *
-                         *          |   |   |
-                         *      +<--------------+
-                         *      |   |   |   |   ^
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               ^
-                         *      v     a |s_begin|
-                         *      +------>------->+
-                         *              |c_1
-                         *              |
-                         */
-                        
-                        // Both cases can be handled by  RemoveLoopPath.
-                        RemoveLoopPath(a,c_1);
-                        break;
-                        // TODO: Can't we start a new strand nearby?
-                    }
-                    else if ( a_next != s_begin )
-                    {
-                        PD_ASSERT(a_next != s_begin);
-                        
-                        
-                        /* Assume overQ = true; just one example:
-                         *
-                         *          |   |   |
-                         *      +---------------+
-                         *      |   |   |   |   ^ s_begin
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               |
-                         *    --|--           --|--
-                         *      |               |
-                         *      v   |   |   | a | a_next != s_begin
-                         *      +-------------->|-------+
-                         *          |   |   |   ^c_1
-                         *                      |
-                         *                      |
-                         */
-                        
-                        // TODO: We could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
-                        RemoveLoopPath(a,c_1);
-                        break;
-                    }
-                    else // if( strand_completeQ && (a_next == s_begin) )
-                    {
-                        // The following case cannot occur because we would have run into the if-case strand_completeQ == false before.
-                        
-                        /* Assume overQ = true; just one example:
-                         *
-                         *         |   |   |
-                         *      +--------------+
-                         *      |  |   |   |   ^
-                         *      |              |
-                         *    --|--          --|--
-                         *      |              |
-                         *    --|--          --|--
-                         *      |              |
-                         *      v  |   |   | a | a_next == s_begin
-                         *      +------------->|------->
-                         *         |   |   |   ^c_1
-                         *                     |
-                         *                     |
-                         */
-                        
-                        // This is the tiny version of the above
-                        
-                        /* Example for overQ = true. It cannot occur for the same reason.
-                         *
-                         *    +-------+
-                         *    |       |
-                         *    |       |
-                         *    |    a  |s_begin == a_next
-                         *    +------>|-------
-                         *         c_1|
-                         *            |
-                         *            |
-                         *
-                         */
-                        
-                        // However, the earlier call(s) to Reidemeister_I rule this case out as `a_next` cannot be a loop arc.
-                        
-                        // TODO: Cutting the loop here will probably be better.
-                        // TODO: Would  RemoveLoopPath(a,c_1); work?
-                        // TODO: Moreover, we could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
-                        
-                        
-                        // The only other possible configuration here is the Big Hopf Link.
-                        // The RerouteToShortestPath_impl will reroute this just fine. We could of course provide a shorter, slightly more efficient implementation that also disconnects the Hopf link.
-                        
-                        // For now, we just do not break here and let the algorithm continue.
-                        // Dijkstra should terminate quite quickly, so we should be happy about getting rid of this mental load, in particular, because this is probably not a frequent case.
-                        
-                        /* "Big Hopf Link"
-                         *
-                         *            #       #
-                         *            #       #
-                         *            |       |
-                         *            |       |
-                         *         a  |s_begin|
-                         *      +-----|-------------+
-                         *      |  c_1|       |     |
-                         *      |     |       |     |
-                         *      |     |       |     |
-                         *      |     |       |  +--|--##
-                         *  ##--|--+  +-------+  |  |
-                         *      |  |             |  |
-                         *      +-------------------+
-                         *         |             |
-                         *         #             #
-                         */
-                        
-                        /* Simplified "Big Hopf Loop"
-                         *
-                         *            #       #
-                         *            #       #
-                         *            |       |
-                         *            |       |
-                         *         a  |s_begin|
-                         *      +-----|---+   |
-                         *      |  c_1|   |   |
-                         *      |     |c_2|   |
-                         *      +---------+   |
-                         *            |       |  +-----##
-                         *  ##-----+  +-------+  |
-                         *         |             |
-                         *         |             |
-                         *         #             #
-                         */
+                    // There are two possibilities:
                     
-                    }
+                    /* Case 1:  (example for overQ = true)
+                     *
+                     *          |   |   |
+                     *      +<--------------+
+                     *      |   |   |   |   ^
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               ^ s_begin
+                     *      v   |   |   | a |
+                     *      +-------------->-------->
+                     *          |   |   |   ^c_1    a_next
+                     *                      |
+                     *                      |
+                     */
+                    
+                    /* Case 2: Big Unlink (s_begin == a_next)
+                     *
+                     *          |   |   |
+                     *      +<--------------+
+                     *      |   |   |   |   ^
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               ^
+                     *      v     a |s_begin|
+                     *      +------>------->+
+                     *              |c_1
+                     *              |
+                     */
+                    
+                    // Both cases can be handled by  RemoveLoopPath.
+                    RemoveLoopPath(a,c_1);
+                    PD_PRINT("Breaking because we called RemoveLoopPath. We might or might not recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    break;
+                    // TODO: Can't we start a new strand nearby?
                 }
-                else // single component link
+                else if ( a_next != s_begin )
                 {
-                    // The only cases I can imagine where ` RemoveLoopPath` won't work is this unknot:
+                    PD_ASSERT(a_next != s_begin);
                     
-                    /*            +-------+
-                     *            |       |
-                     *            |       |
-                     *         a  |s_begin|== a_next
-                     *    +-------|-------+
-                     *    |    c_1|
-                     *    |       |
-                     *    |       |
+                    
+                    /* Assume overQ = true; just one example:
+                     *
+                     *          |   |   |
+                     *      +---------------+
+                     *      |   |   |   |   ^ s_begin
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               |
+                     *    --|--           --|--
+                     *      |               |
+                     *      v   |   |   | a | a_next != s_begin
+                     *      +-------------->|-------+
+                     *          |   |   |   ^c_1
+                     *                      |
+                     *                      |
+                     */
+                    
+                    // TODO: We could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
+                    RemoveLoopPath(a,c_1);
+                    PD_PRINT("Breaking because we called RemoveLoopPath. We might recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    break;
+                }
+                else // if( strand_completeQ && (a_next == s_begin) )
+                {
+                    // The following case cannot occur because we would have run into the if-case strand_completeQ == false before.
+                    
+                    /* Assume overQ = true; just one example:
+                     *
+                     *         |   |   |
+                     *      +--------------+
+                     *      |  |   |   |   ^
+                     *      |              |
+                     *    --|--          --|--
+                     *      |              |
+                     *    --|--          --|--
+                     *      |              |
+                     *      v  |   |   | a | a_next == s_begin
+                     *      +------------->|------->
+                     *         |   |   |   ^c_1
+                     *                     |
+                     *                     |
+                     */
+                    
+                    // This is the tiny version of the above
+                    
+                    /* Example for overQ = true. It cannot occur for the same reason.
+                     *
                      *    +-------+
+                     *    |       |
+                     *    |       |
+                     *    |    a  |s_begin == a_next
+                     *    +------>|-------
+                     *         c_1|
+                     *            |
+                     *            |
+                     *
                      */
                     
                     // However, the earlier call(s) to Reidemeister_I rule this case out as `a_next` cannot be a loop arc.
                     
-                    RemoveLoopPath(a,c_1);
-                    break;
-                }
+                    // TODO: Cutting the loop here will probably be better.
+                    // TODO: Would  RemoveLoopPath(a,c_1); work?
+                    // TODO: Moreover, we could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
+                    
+                    
+                    // The only other possible configuration here is the Big Hopf Link.
+                    // The RerouteToShortestPath_impl will reroute this just fine. We could of course provide a shorter, slightly more efficient implementation that also disconnects the Hopf link.
+                    
+                    // For now, we just do not break here and let the algorithm continue.
+                    // Dijkstra should terminate quite quickly, so we should be happy about getting rid of this mental load, in particular, because this is probably not a frequent case.
+                    
+                    /* "Big Hopf Link"
+                     *
+                     *            #       #
+                     *            #       #
+                     *            |       |
+                     *            |       |
+                     *         a  |s_begin|
+                     *      +-----|-------------+
+                     *      |  c_1|       |     |
+                     *      |     |       |     |
+                     *      |     |       |     |
+                     *      |     |       |  +--|--##
+                     *  ##--|--+  +-------+  |  |
+                     *      |  |             |  |
+                     *      +-------------------+
+                     *         |             |
+                     *         #             #
+                     */
+                    
+                    /* Simplified "Big Hopf Loop"
+                     *
+                     *            #       #
+                     *            #       #
+                     *            |       |
+                     *            |       |
+                     *         a  |s_begin|
+                     *      +-----|---+   |
+                     *      |  c_1|   |   |
+                     *      |     |c_2|   |
+                     *      +---------+   |
+                     *            |       |  +-----##
+                     *  ##-----+  +-------+  |
+                     *         |             |
+                     *         |             |
+                     *         #             #
+                     */
                 
+                }
             } // if( CrossingMarkedQ(c_1) )
             
-//            PD_ASSERT(ActiveQ(anchor_state));
+            
+            // TODO: We might make our life easier if we check whether CrossingMarkedQ(c_2) == true.
+            
+            PD_ASSERT(!CrossingMarkedQ(c_1)); // We have just checked that.
+            PD_ASSERT(c_0 != c_1);             // Because of CrossingMarkedQ(c_0).
+            
             
             // We do not like Reidemeister II patterns along our strand because that would make rerouting difficult.
             if( (!strand_completeQ) && (a != s_begin) )
@@ -492,7 +449,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 //      |        |        |
                 
                 // Caution: This might change `a`.
-                bool changedQ = Reidemeister_II_Backward(a,c_1,side_1,a_next);
+                bool changedQ = Reidemeister_II_Backward(c_0,a,c_1,side_1,a_next);
                 
                 change_counter += changedQ;
                 
@@ -502,130 +459,129 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                 
                 if( changedQ )
                 {
+                    // TODO: This check might be superfluous.
                     if( !ArcActiveQ(a) )
                     {
-                        PD_NOTE("Breaking because of !ArcActiveQ(a)) after Reidemeister_II_Backward.");
+                        PD_PRINT("Breaking because (ArcActiveQ(a) == false) after Reidemeister_II_Backward.");
                         break;
                     }
                     if( !ArcActiveQ(s_begin) )
                     {
-                        PD_NOTE("Breaking because of !ArcActiveQ(s_begin)) after Reidemeister_II_Backward.");
+                        PD_PRINT("Breaking because (ArcActiveQ(s_begin) == false) after Reidemeister_II_Backward.");
                         break;
-                    }
-                    if( !ActiveQ(anchor_state) )
-                    {
-//                        PD_PRINT("Breaking because of !ArcActiveQ(anchor_state)) after Reidemeister_II_Backward.");
-//                        break;
-                        
-                        PD_PRINT("!ArcActiveQ(anchor_state)) after Reidemeister_II_Backward.");
                     }
                     continue; // Analyze `a` and the new `a_next` once more
                 }
             }
             
-//            PD_ASSERT(ActiveQ(anchor_state));
+
+            if constexpr ( targs.R_II_blockingQ || targs.R_II_forwardQ )
+            {
+                if ( targs.R_II_forwardQ || strand_completeQ )
+                {
+                    if( CrossingMarkedQ(c_2) )
+                    {
+                        if( strand_arc_count > Int(2) )
+                        {
+                            PD_NOTE("CrossingMarkedQ(c_2). We do not attempt Reidemeister_II_Forward. However, this would be a great rerouting opportunity. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                            
+                            PD_VALPRINT("strand", ArcRangeString(s_begin,a));
+                        }
+                    }
+                    else
+                    {
+                        const Int b = pd->NextArc(a_next,Head,c_2);
+                        
+                        PD_ASSERT(!CrossingMarkedQ(c_2));
+                        PD_ASSERT(a != b);  // Because ArcMarkedQ(a) and !CrossingMarkedQ(c_2)
+                        
+                        // TODO: We might reuse side_1 here.
+                        if( Reidemeister_II_Forward(a,c_1,a_next,c_2,b) )
+                        {
+                            AssertArc<1>(a);
+                            // I think this cannot happen by the preconditions.
+                            if( !pd->ArcActiveQ(s_begin) )
+                            {
+                                PD_NOTE("Breaking because Reidemeister_II_Forward deactivated s_begin. This would have been a rerouting opportunity.");
+                                // We deleted our strand start.
+                                // TODO: Can we recover from that?
+                                break;
+                            }
+                            else
+                            {
+                                continue; // Analyze the modified arc `a` again.
+                            }
+                        }
+                    }
+                }
+            }
             
             if( strand_completeQ )
             {
-                // TODO: We could check for Reidemeister II moves like the following.
-                // TODO: This might allow us to reroute a longer strand now and to save some work later. (Not sure whether this will ever ammortize.)
-                
-                /* overQ == true
-                 *
-                 *                        +--------+
-                 *      |        |        |        |
-                 *      |        |   a    | a_next |
-                 * ---------------------->|------->|----
-                 *      |        |        |c_1     |
-                 *      |        |        |        |
-                 */
-                
                 PD_VALPRINT("strand", ShortArcRangeString(s_begin,a));
                 
-                
                 // Now try to reroute!
-                
                 bool changedQ = false;
 
                 if( (strand_arc_count > Int(2)) && (args.max_dist > Int(0)) )
                 {
 #ifdef PD_DEBUG
-                    PD_ASSERT(CheckStrand(s_begin,a,overQ));
+                    PD_ASSERT(CheckStrand(s_begin,a));
                     Int C_0 = pd->crossing_count;
                     pd->PrintInfo();
                     
-#endif
+#endif // PD_DEBUG
                     
-                    changedQ = RerouteToShortestPath_impl( s_begin, a, Min(strand_arc_count-Int(1),args.max_dist) );
+                    changedQ = RerouteToShortestPath_impl(
+                        s_begin, a, Min(strand_arc_count-Int(1),args.max_dist)
+                    );
 #ifdef PD_DEBUG
                     Int C_1 = pd->crossing_count;
                     PD_ASSERT( !changedQ || (C_1 < C_0) );
 #endif // PD_DEBUG
                 }
-
-//                // RerouteToShortestPath_impl might deactivate `anchor`, so that we could never return to it.
-//                // Hence, we rather break the while loop here.
+                
                 if( changedQ )
                 {
-                    if( !ActiveQ(anchor_state) )
-                    {
-//                        PD_PRINT("Breaking because of !ActiveQ(anchor_state) after successful rerouting.");
-//                        break; // Search new anchor.
-                        
-                        PD_PRINT("!ActiveQ(anchor_state) after successful rerouting.");
-                    }
-                }
-                else
-                {
-                    if( !ActiveQ(anchor_state) )
-                    {
-//                        PD_PRINT("Breaking because of !ActiveQ(anchor_state) after aborted rerouting.");
-//                        break; // Search new anchor.
-                        
-                        PD_PRINT("!ActiveQ(anchor_state) after aborted rerouting.");
-                    }
-                }
-                
-//                PD_ASSERT(ActiveQ(anchor_state));
-                
-                // Surprisingly, these breaks tend to make it faster!
-                if constexpr( !targs.restart_after_successQ )
-                {
-                    if( changedQ )
-                    {
-                        PD_PRINT("Breaking because of targs.restart_after_successQ == false.");
-                        break;
-                    }
-                    else
+                    if constexpr( targs.restart_after_successQ )
                     {
                         PD_PRINT("Attempting to start new strand after successful rerouting.");
                     }
-                }
-                if constexpr( !targs.restart_after_failureQ )
-                {
-                    if( !changedQ )
+                    else
                     {
-                        PD_PRINT("Breaking because of targs.restart_after_failureQ == false.");
+                        PD_PRINT("Breaking after successful rerouting because of targs.restart_after_successQ == false.");
                         break;
                     }
-                    else
+                    
+                    // We may try to start a new strand at `pd->NextArc(a_next,Tail)`, but `a_next` must be active for this.
+                    if( !ArcActiveQ(a_next) ) [[unlikely]]
+                    {
+                        PD_PRINT("Breaking because " + ArcString(a_next)+ " is inactive.");
+                        break; // Search new arc by incrementing a_ptr.
+                    }
+                    
+                    // Caution: setting current arc to _new_ last arc of strand.
+                    a = pd->NextArc(a_next,Tail);
+                }
+                else
+                {
+                    if constexpr( targs.restart_after_failureQ )
                     {
                         PD_PRINT("Attempting to start new strand after aborted rerouting.");
                     }
+                    else
+                    {
+                        PD_PRINT("Breaking after aborted rerouting because of targs.restart_after_failureQ == false.");
+                        break;
+                    }
+                    
+                    // We may try to start a new strand at `pd->NextArc(a_next,Tail)`, but `a_next` must be active for this.
+                    PD_ASSERT(ArcActiveQ(a_next));
                 }
                 
-                // Changed or not; in any case we can try to start a new strand at `pd->NextArc(a_next,Tail)`.
-                
-                // But `a_next` must be active for this.
-                if( changedQ && !ArcActiveQ(a_next) ) [[unlikely]]
-                {
-                    PD_PRINT("Breaking because " + ArcString(a_next)+ " is inactive.");
-                    break; // Search new arc by incrementing a_ptr.
-                }
-                
-                // TODO: This extra step backwards is unnecessary if the previous strand has not been rerouted. This happens very often! Optimize this away! Beware: that last arc will be marked already. We should only check a_next for being marked.
-
+                PD_ASSERT(a == pd->NextArc(a_next,Tail));
                 PD_ASSERT(pd->ArcOverQ(a_next,Tail) != overQ);
+                PD_ASSERT(pd->ArcOverQ(a     ,Head) != overQ);
                 
                 // Rerouting arcs that we have been marked recently is a bad idea.
                 if( ArcRecentlyMarkedQ(a_next) ) [[unlikely]]
@@ -634,7 +590,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     break; // Search new arc by incrementing a_ptr.
                 }
                 
-                if constexpr ( targs.restart_change_typeQ )
+                if constexpr ( targs.interleave_over_underQ )
                 {
                     // We start a strand of opposite type.
                     SetStrandMode(!overQ);
@@ -645,22 +601,29 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     PD_PRINT("Strand type remains at " + OverQString() + "strand.");
                 }
                 
-                if( NewStrand() ) [[unlikely]] { break; }
+                if( NewStrand() ) [[unlikely]]
+                {
+                    PD_PRINT("Breaking because of marker overflowy.");
+                    break;
+                }
                 
-                if constexpr ( targs.restart_change_typeQ )
+                if constexpr ( targs.interleave_over_underQ )
                 {
                     if constexpr( targs.restart_walk_backQ )
                     {
                         PD_PRINT("Walking back to strand start from previous arc of " + ArcString(a_next)+ ".");
-                        SetStrandBegin( WalkBackToStrandStart(pd->NextArc(a_next,Tail)) );
+                        
+                        PD_ASSERT(a == pd->NextArc(a_next,Tail));
+                        SetStrandBegin( WalkBackToStrandStart(a) );
                     }
                     else
                     {
                         PD_PRINT("Starting at previous arc of " + ArcString(a_next)+ ".");
-                        SetStrandBegin( pd->NextArc(a_next,Tail) );
+                        PD_ASSERT(a == pd->NextArc(a_next,Tail));
+                        SetStrandBegin( a );
                     }
                 }
-                else // if constexpr ( !targs.restart_change_typeQ )
+                else // if constexpr ( !targs.interleave_over_underQ )
                 {
                     if constexpr( targs.restart_walk_backQ )
                     {
@@ -674,53 +637,27 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     }
                 }
                 
-                PD_ASSERT( pd->ArcOverQ(s_begin,Head) == overQ );
-                
                 a = s_begin;
-                c_1 = pd->A_cross(a,Tail);
-                MarkCrossing(c_1);
-                continue; // Analyze a again, this time as first arc of new strand.
+                MarkCrossing(pd->A_cross(a,Tail));
+                continue; // Analyze arc `a` again, this time as first arc of new strand.
             }
             else
             {
                 AssertArc<1>(a_next);
-//                AssertArc<1>(anchor);
                 AssertArc<1>(a);
+                
+                PD_PRINT("Moving current arc to next arc.");
                 a = a_next;
+                PD_ASSERT(c_1 == pd->A_cross(a,Tail));
                 MarkCrossing(c_1); // `c_1` is now the tail of `a`; thus we mark it.
                 continue;
             }
-            
-//             It can happen that we have visited a whole knot component and did not change anything. Now we are at the last strand of that component and `anchor` could be the last arc of this strand. For example, `anchor` could have been the first arc of overstrand and its head really goes over; then it will also be the last arc of the last understrand. So, If we just break here if `(a == anchor)`, then we may overlook a simplification opportunity. This happens seldomly, but it is crucial for figuring out whether the diagram is pass-reduced!
-            
-            // DEBUGGING
-            if( !ActiveQ(anchor_state) )
-            {
-                wprint("Anchor " + ToString(anchor) + " is inactive.");
-            }
-            
-            if( anchor_metQ )
-            {
-                PD_NOTE("Breaking because of (anchor_metQ == true).");
-                break;
-            };
-            
-            if( a == anchor )
-            {
-                PD_NOTE("Setting anchor_metQ = true.");
-                anchor_metQ = true;
-            }
-            
-            // TODO: Maybe the anchor  is totally irrelevant. After all, we check whether we revisit crossings. So we do not need the anchor as protection against loops. Also, if we create a new strand, we check whether a_next has been recently visited and abort if it is.
         }
-        
         
         PD_PRINT("Searching for new arc by incrementing a_ptr.");
         // Go back to top and start a new strand.
         ++a_ptr;
     }
-    
-    PD_PRINT("Run out of unmarked active arcs. Stopping main loop.");
     
     PD_VALPRINT("pd->crossing_count",pd->crossing_count);
     
@@ -729,5 +666,3 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
     return change_counter;
     
 } // Int SimplifyStrands
-
-

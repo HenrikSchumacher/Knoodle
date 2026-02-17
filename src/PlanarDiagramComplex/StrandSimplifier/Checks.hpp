@@ -98,9 +98,11 @@ bool CheckLeftDarc()
 private:
         
 
-
+template<bool trivial_strand_warningQ = true, bool check_strand_arc_countQ = false>
 bool CheckStrand( const Int a, const Int b, const bool overQ_ ) const
 {
+    logprint(MethodName("CheckStrand") +" (" + ToString(a) + "," + ToString(b) + ")");
+    
     if( pd == nullptr )
     {
         eprint(MethodName("CheckStrand") + ": No diagram loaded.");
@@ -109,54 +111,126 @@ bool CheckStrand( const Int a, const Int b, const bool overQ_ ) const
     
     if( a == b )
     {
-        wprint(MethodName("CheckStrand") + ": Strand is trivial: a == b.");
+        if constexpr ( trivial_strand_warningQ )
+        {
+            wprint(MethodName("CheckStrand") + ": Strand is trivial: a == b.");
+        }
         return true;
     }
     
-    auto arc_failsQ = [this,overQ_]( const Int e, const bool headtail )
+    auto arc_passesQ = [this,overQ_]( const Int e, const bool headtail )
     {
+        if( !ArcActiveQ(e) )
+        {
+            eprint(MethodName("CheckStrand") + ": " + ArcString(e) + " is inactive.");
+            return false;
+        }
+        
         if( pd->ArcOverQ(e,headtail) != overQ_ )
         {
             eprint(MethodName("CheckStrand") + ": Current strand is supposed to be an " + OverQString(overQ_) + "strand. " + ArcString(e) + " does not go " + OverQString(overQ_) + " its " + (headtail ? "head" : "tail" )+ ".");
-            return true;
+            return false;
         }
-        return false;
+        return true;
     };
     
-    Int e = a;
-        
-    if( arc_failsQ(e,Head) ) { return false; }
-    
     const Int pd_max_arc_count = pd->MaxArcCount();
-    Int arc_counter = 0;
+    
+    bool passedQ = true;
+    Int e = a;
+    passedQ = passedQ && arc_passesQ(e,Head);
     
     e = pd->NextArc(a,Head);
-
+    Int arc_counter = 1;
+    
     while( (e != b) && (arc_counter < pd_max_arc_count ) )
     {
-        if( arc_failsQ(e,Tail) ) { return false; }
-        if( arc_failsQ(e,Head) ) { return false; }
+        passedQ = passedQ && arc_passesQ(e,Tail);
+        passedQ = passedQ && arc_passesQ(e,Head);
         
         // We use the safe implementation of NextArc here.
         e = pd->NextArc(e,Head);
+        ++arc_counter;
     }
+    
+    passedQ = passedQ && arc_passesQ(b,Tail);
+    ++arc_counter;
     
     if( e != b )
     {
         eprint(MethodName("CheckStrand") + ": After traversing strand for MaxArcCount() =  " + ToString(pd_max_arc_count) + " steps the end is still not reached.");
         
-        return false;
+        passedQ = false;
     }
     
-    if( arc_failsQ(b,Tail) ) { return false; }
-    
-    logprint(MethodName("CheckStrand") + ": Passed.");
+    if constexpr ( check_strand_arc_countQ )
+    {
+        if( arc_counter != strand_arc_count )
+        {
+            eprint(MethodName("CheckStrand") + ": Counted " + ToString(arc_counter)+ " arcs in strand, but strand_arc_count = " + ToString(strand_arc_count) + ".");
+            passedQ = false;
+        }
+    }
 
-    return true;
+    if( passedQ )
+    {
+//        logprint(MethodName("CheckStrand") + " passed.");
+//        
+//        if constexpr ( check_strand_arc_countQ )
+//        {
+//            TOOLS_LOGDUMP(strand_arc_count);
+//        }
+//        
+//        TOOLS_LOGDUMP(arc_counter);
+//        logvalprint("strand",ShortArcRangeString(a,b));
+        
+        return true;
+    }
+    else
+    {
+        logprint(MethodName("CheckStrand") + " failed.");
+        
+        if constexpr ( check_strand_arc_countQ )
+        {
+            TOOLS_LOGDUMP(strand_arc_count);
+        }
+        
+        TOOLS_LOGDUMP(arc_counter);
+        logvalprint("strand",ShortArcRangeString(a,b));
+        
+        return false;
+    }
 }
 
 
-bool CheckStrand( const Int a, const Int b )
+template<bool trivial_strand_warningQ = true>
+bool CheckStrand( const Int a, const Int b ) const
 {
-    return CheckStrand(a,b,overQ);
+    return CheckStrand<trivial_strand_warningQ,true>(a,b,overQ);
+}
+
+bool CheckForDanglingMarkedArcs( const Int current_arc ) const
+{
+    bool passedQ = true;
+    
+    for( Int a = 0; a < pd->max_arc_count; ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        if( !ArcMarkedQ(a) ) { continue; }
+        if( a == current_arc) { continue; }
+        
+        if( !CrossingMarkedQ(pd->A_cross(a,Tail)) )
+        {
+            eprint(MethodName("CheckForDanglingMarkedArcs") + ": Found marked arc = "+ ArcString(a) + " whose tail is not marked.");
+            passedQ = false;
+        }
+        
+        if( !CrossingMarkedQ(pd->A_cross(a,Head)) )
+        {
+            eprint(MethodName("CheckForDanglingMarkedArcs") + ": Found marked arc = "+ ArcString(a) + " whose head is not marked.");
+            passedQ = false;
+        }
+    }
+    
+    return passedQ;
 }

@@ -14,6 +14,7 @@ struct Simplify_Args_T
     bool                splitQ                   = true;
     bool                compressQ                = true;
     Int                 compression_threshold    = 0;
+    
     Size_T              embedding_trials         = 25;
     Size_T              rotation_trials          = 1;
     bool                permute_randomQ          = true;
@@ -25,6 +26,7 @@ struct Simplify_Args_T
 
 //    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
+
 
 friend std::string ToString( cref<Simplify_Args_T> args )
 {
@@ -38,6 +40,7 @@ friend std::string ToString( cref<Simplify_Args_T> args )
             + ", .splitQ = " + ToString(args.splitQ)
             + ", .compressQ = " + ToString(args.compressQ)
             + ", .compression_threshold = " + ToString(args.compression_threshold)
+    
             + ", .embedding_trials = " + ToString(args.embedding_trials)
             + ", .rotation_trials = " + ToString(args.rotation_trials)
             + ", .permute_randomQ = " + ToString(args.permute_randomQ)
@@ -52,6 +55,7 @@ friend std::string ToString( cref<Simplify_Args_T> args )
 
 
 // Do some rerouting first, but disconnect and split early to divide-and-conquer.
+template<StrandSimplifier_T::SimplifyStrands_TArgs targs = typename StrandSimplifier_T::SimplifyStrands_TArgs()>
 Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 {
     TOOLS_PTIMER(timer,MethodName("Simplify"));
@@ -62,23 +66,23 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
     {
         case 0:
         {
-            return Simplify_impl<0>(args);
+            return Simplify_impl<0,targs>(args);
         }
         case 1:
         {
-            return Simplify_impl<1>(args);
+            return Simplify_impl<1,targs>(args);
         }
         case 2:
         {
-            return Simplify_impl<2>(args);
+            return Simplify_impl<2,targs>(args);
         }
         case 3:
         {
-            return Simplify_impl<3>(args);
+            return Simplify_impl<3,targs>(args);
         }
         case 4:
         {
-            return Simplify_impl<4>(args);
+            return Simplify_impl<4,targs>(args);
         }
         default:
         {
@@ -90,15 +94,67 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
     return 0;
 }
 
+
+// Allows be to define and run several imlementation variants to test them
+Size_T Simplify_Variant( cref<Simplify_Args_T> args = Simplify_Args_T(), Size_T variant = 0 )
+{
+    switch( variant )
+    {
+        case 0:
+        {
+            return Simplify(args);
+        }
+        case 1:
+        {
+            return this->template Simplify<{
+                .restart_after_successQ = false,
+                .restart_after_failureQ = false,
+                .restart_walk_backQ     = false,
+                .interleave_over_underQ = false,
+                .R_II_blockingQ         = false,
+                .R_II_forwardQ          = false
+            }>(args);
+        }
+        case 2:
+        {
+            return this->template Simplify<{
+                .restart_after_successQ = false,
+                .restart_after_failureQ = false,
+                .restart_walk_backQ     = false,
+                .interleave_over_underQ = false,
+                .R_II_blockingQ         = true,
+                .R_II_forwardQ          = false
+            }>(args);
+        }
+        case 3:
+        {
+            return this->template Simplify<{
+                .restart_after_successQ = false,
+                .restart_after_failureQ = false,
+                .restart_walk_backQ     = true,
+                .interleave_over_underQ = true,
+                .R_II_blockingQ         = true,
+                .R_II_forwardQ          = false
+            }>(args);
+        }
+        default:
+        {
+            wprint(MethodName("SimplifyVariant") + " variand " + ToString(variant) + " unknown. Using default.");
+            return Simplify(args);
+        }
+    }
+}
+
+
 private:
 
-template<UInt8 local_opt_level>
+template<UInt8 local_opt_level, StrandSimplifier_T::SimplifyStrands_TArgs targs>
 Size_T Simplify_impl( cref<Simplify_Args_T> args )
 {
 //    constexpr bool debugQ = true;
     
-    using TArgs_T = StrandSimplifier_T::SimplifyStrands_TArgs;
-    constexpr TArgs_T targs = TArgs_T();
+//    using TArgs_T = StrandSimplifier_T::SimplifyStrands_TArgs;
+//    constexpr TArgs_T targs = TArgs_T();
 
     [[maybe_unused]] auto tag = [this]()
     {
@@ -161,7 +217,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
             change_count += ArcSimplifier2<Int,local_opt_level,true>( *this, pd,
                 {
                     .compression_threshold = args.compression_threshold,
-                    .compressQ = args.compressQ
+                    .compressQ             = args.compressQ
                 }
             )();
         }
@@ -490,9 +546,9 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             strand_change_count = 0;
             
             strand_change_count += S.template SimplifyStrands<targs>(pd,{
-                .max_dist  = max_dist,
-                .overQ     = true,
-                .compressQ = args.compressQ,
+                .max_dist              = max_dist,
+                .overQ                 = true,
+                .compressQ             = args.compressQ,
                 .compression_threshold = args.compression_threshold
             });
             
@@ -503,7 +559,8 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverStrands."); };
             }
             
-            if constexpr ( !targs.restart_change_typeQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
+//            if constexpr ( !targs.interleave_over_underQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
+            if constexpr ( !targs.interleave_over_underQ )
             {
                 // TODO: Filter out duplicate unknots.
                 if( pd.crossing_count <= Int(1) )
@@ -515,9 +572,9 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 
                 // Reroute understrands.
                 strand_change_count += S.template SimplifyStrands<targs>(pd,{
-                    .max_dist  = max_dist,
-                    .overQ     = false,
-                    .compressQ = args.compressQ,
+                    .max_dist              = max_dist,
+                    .overQ                 = false,
+                    .compressQ             = args.compressQ,
                     .compression_threshold = args.compression_threshold
                 });
                 

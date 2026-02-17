@@ -352,16 +352,27 @@ bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
     
     PD_VALPRINT("change_counter",change_counter);
     
+    PD_ASSERT(pd->CheckAll());
+    PD_ASSERT(CheckStrand(a,b));
+    
+    
     // We don't like loops of any kind here.
     PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(a,Head));
     PD_ASSERT(pd->A_cross(b,Tail) != pd->A_cross(b,Head));
     PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Tail));
     PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Head));
-    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Tail));
     PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Head));
     
-    PD_ASSERT(pd->CheckAll());
-    PD_ASSERT(strand_arc_count == CountArcsInRange(a,b))
+//    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Tail));
+    
+#ifdef PD_DEBUG
+    if( pd->A_cross(a,Head) == pd->A_cross(b,Tail) )
+    {
+        TOOLS_LOGDUMP(strand_arc_count);
+        TOOLS_LOGDUMP(CountArcsInRange(a,b));
+        logvalprint("strand",ShortArcRangeString(a,b));
+    }
+#endif // PD_DEBUG
     
     Int path_arc_count;
     

@@ -66,8 +66,7 @@ namespace Knoodle
 //        friend class ArcSimplifier2<Int,3,false>;
 //        friend class ArcSimplifier2<Int,4,false>;
 
-        friend class StrandSimplifier2<Int,true >;
-        friend class StrandSimplifier2<Int,false>;
+        friend class StrandSimplifier2<Int>;
             
         using HeadTail_T = bool;
         

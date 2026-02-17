@@ -16,27 +16,30 @@ std::string OverQString() const
 std::string ArcRangeString( const Int a, const Int b ) const
 {
     PD_PRINT(MethodName("ArcRangeString"));
+
+
     std::string s;
 
     Int e = a;
     Int i = 0;
     
-    s += ToString(0) + " : " + CrossingString(A_cross(e,Tail)) + "\n\t"
+    s += ToString(0) + " : " + CrossingString(pd->A_cross(e,Tail)) + "\n\t"
        + ToString(0) + " : " + ArcString(e)
-       + " (" + OverQString(ArcOverQ(e,Head)) + ")\n"
-    + ToString(1) + " : " + CrossingString(A_cross(e,Head)) + "\n\t";
+       + " (" + OverQString(pd->ArcOverQ(e,Head)) + ")\n"
+    + ToString(1) + " : " + CrossingString(pd->A_cross(e,Head)) + "\n\t";
 
-    
-    
-    do
+    if( a != b )
     {
-        ++i;
-        e = NextArc(e,Head);
-        s += ToString(i  ) + " : " +  ArcString(e)
-           + " (" + OverQString(ArcOverQ(e,Head)) + ")\n"
-            + ToString(i+1) + " : " +  CrossingString(A_cross(e,Head)) + "\n\t";
+        do
+        {
+            ++i;
+            e = pd->NextArc(e,Head);
+            s += ToString(i  ) + " : " +  ArcString(e)
+            + " (" + OverQString(pd->ArcOverQ(e,Head)) + ")\n"
+            + ToString(i+1) + " : " +  CrossingString(pd->A_cross(e,Head)) + "\n\t";
+        }
+        while( (e != b) && (i <= pd->arc_count) );
     }
-    while( (e != b) && (i <= pd->arc_count) );
     
     if( i > pd->arc_count)
     {
@@ -52,20 +55,23 @@ std::string ArcRangeString( const Int a, const Int b ) const
 std::string ShortArcRangeString( const Int a, const Int b ) const
 {
 //    PD_PRINT(MethodName("ShortArcRangeString"));
+    
     std::string s;
-
     Int e = a;
     Int i = 0;
     
     s += "{ " + ToString(e);
-
-    do
+    
+    if( a != b )
     {
-        ++i;
-        e = NextArc(e,Head);
-        s += ", " +  ToString(e);
+        do
+        {
+            ++i;
+            e = NextArc(e,Head);
+            s += ", " +  ToString(e);
+        }
+        while( (e != b) && (i <= pd->arc_count) );
     }
-    while( (e != b) && (i <= pd->arc_count) );
     
     s += " }";
     
@@ -79,6 +85,7 @@ std::string ShortArcRangeString( const Int a, const Int b ) const
         return s;
     }
 }
+
 
 std::string PathString()
 {
@@ -108,4 +115,3 @@ std::string ShortPathString()
     
     return ArrayToString(&path[0],{path_length});
 }
-

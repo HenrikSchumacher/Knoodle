@@ -27,7 +27,7 @@ namespace Knoodle
         }
     }
     
-    template<typename Int_, bool mult_compQ_>
+    template<typename Int_>
     class alignas( ObjectAlignment ) StrandSimplifier2 final
     {
     public:
@@ -53,7 +53,7 @@ namespace Knoodle
         using Dijkstra_T                 = DijkstraStrategy_T;
         
         static constexpr bool debugQ     = false;
-        static constexpr bool mult_compQ = mult_compQ_;
+        static constexpr bool mult_compQ = true;
         static constexpr bool lutQ       = true; // Always activate this; switch is only for test reasons.
 //        static constexpr bool lutQ       = false;
         
@@ -355,8 +355,10 @@ namespace Knoodle
         
         void SetStrandBegin( const Int a )
         {
-            s_begin = a;
+            AssertArc<1>(a);
+            PD_ASSERT( pd->ArcOverQ(a,Head) == overQ );
             
+            s_begin = a;
             PD_VALPRINT("s_begin",s_begin);
         }
 
@@ -396,7 +398,6 @@ namespace Knoodle
         {
             return ct_string("StrandSimplifier2")
                 + "<" + TypeName<Int>
-                + "," + ToString(mult_compQ)
                 + ">";
         }
 

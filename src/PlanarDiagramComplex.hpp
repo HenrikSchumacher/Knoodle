@@ -32,7 +32,7 @@ namespace Knoodle
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
         
-        using StrandSimplifier_T    = StrandSimplifier2<Int,true>;
+        using StrandSimplifier_T    = StrandSimplifier2<Int>;
         using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
         using OrthoDraw_T           = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
@@ -65,8 +65,7 @@ namespace Knoodle
 //        friend class ArcSimplifier2<Int,3,false>;
 //        friend class ArcSimplifier2<Int,4,false>;
         
-        friend class StrandSimplifier2<Int,true >;
-        friend class StrandSimplifier2<Int,false>;
+        friend class StrandSimplifier2<Int>;
         
     private:
         
