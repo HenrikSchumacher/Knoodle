@@ -293,6 +293,10 @@ namespace Knoodle
         }
     
         
+//        void Resize( const Int edge_count )
+//        {
+//        }
+        
 
         /*!@brief Generates a random open polygon and writes its vertex positions to the buffer `p`.
          *
@@ -303,6 +307,7 @@ namespace Knoodle
         
         void WriteRandomOpenPolygon( Real * restrict const p ) const
         {
+            TOOLS_PTIMER(timer,MethodName("WriteRandomOpenPolygon"));
             RandomizeInitialEdgeVectors();
             WriteVertexPositions(p);
         }
@@ -315,29 +320,31 @@ namespace Knoodle
          *
          * @param K Where to store the sampling weight. The type of sampling weights is determined by the value of `quotient_space_Q` (see below).
          *
-         * @param quotient_space_Q If set to true (default), then the sampling weights of the polygon space modulo rotation group are returned; otherwise the sampling weights of the polygon space (rotation group not modded out) are returned.
+         * @param quotient_space_weightQ If set to true (default), then the sampling weights of the polygon space modulo rotation group are returned; otherwise the sampling weights of the polygon space (rotation group not modded out) are returned.
          */
         
         void WriteRandomClosedPolygon(
             Real * restrict const q,
             Real & restrict       K,
-            const bool quotient_space_Q = true
+            const bool wrap_aroundQ,
+            const bool centralizeQ            = true,
+            const bool quotient_space_weightQ = true
         )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateRandomClosedPolygon"));
+            TOOLS_PTIMER(timer,MethodName("WriteRandomClosedPolygon"));
             
             Real dummy;
             
-            if( quotient_space_Q )
+            if( quotient_space_weightQ )
             {
                 CreatePolygon<0,0,0,0,0,0,1,0,1>(
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, dummy, K
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, dummy, K, wrap_aroundQ, centralizeQ
                 );
             }
             else
             {
                 CreatePolygon<0,0,0,0,0,0,1,1,0>(
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, K, dummy
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, K, dummy, wrap_aroundQ, centralizeQ
                 );
             }
         }
@@ -403,14 +410,16 @@ namespace Knoodle
                   Real * restrict const w,
                   Real * restrict const q,
                   Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space
+                  Real & restrict       K_quot_space,
+            const bool                  wrap_aroundQ,
+            const bool                  centralizeQ = true
         ) const
         
         {
             TOOLS_PTIMER(timer,MethodName("ComputeConformalClosure"));
             
             CreatePolygon<0,0,1,0,1,0,1,1,1>(
-                nullptr, nullptr, p, nullptr, w, nullptr, q, K_edge_space, K_quot_space
+                nullptr, nullptr, p, nullptr, w, nullptr, q, K_edge_space, K_quot_space, wrap_aroundQ, centralizeQ
             );
         }
     

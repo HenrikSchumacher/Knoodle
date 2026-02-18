@@ -77,3 +77,6 @@ namespace Knoodle
 //#endif
 
 //#include "src/KnotLookupTable.hpp"
+
+#include "src/ActionAngleSampler.hpp"
+#include "src/ConformalBarycenterSampler.hpp"

@@ -9,13 +9,7 @@
 //#define PD_COUNTERS
 
 
-
 #include "../Knoodle.hpp"
-#include "../src/OrthoDraw.hpp"
-//#include "../Reapr.hpp"
-
-//#include "../src/ActionAngleSampler.hpp"
-#include "../src/ConformalBarycenterSampler.hpp"
 
 using Real        = double;
 // integer type used, e.g., for indices
@@ -107,7 +101,10 @@ int main()
     Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
     Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
     Real K = 0;
-    S.WriteRandomClosedPolygon(vertex_coordinates.data(),K);
+    // Sometimes we want to copy the the first vertex on wrap-around; sometimes we don't.
+    // That's why WriteRandomClosedPolygon has flag `wrap_aroundQ` for that.
+    S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, true /* = with wrap-around*/ );
+    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
     PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
     
 

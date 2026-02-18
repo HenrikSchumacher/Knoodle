@@ -35,12 +35,25 @@ Vector_T VertexPosition( const Int k ) const
 
 /*!@brief Writes the vertex positions of the closed polygon to buffer `q`.
  *
- * @param q Target array; assumed to be of size of at least `(n + 1) * d `, where `n = this->EdgeCount()` is the number of edges and `d = AmbientDimension()` is the dimension of the ambient space. The `j`-th coordinate of the `i`-th vertex of the polygon is stored in `q[d * i + j]`.
+ * @param q Target array; assumed to be of size of at least `(n + wrap_aroundQ) * d `, where `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space. The `j`-th coordinate of the `i`-th vertex of the polygon is stored in `q[d * i + j]`.
+ *
+ * @param wrap_aroundQ Whether the first vertex is to be repeated at the end.
  */
 
-void WriteVertexPositions( Real * restrict const q) const
+void WriteVertexPositions( Real * restrict const q, const bool wrap_aroundQ) const
 {
-    p_.Write(q);
+    if( wrap_aroundQ )
+    {
+        p_.Write(q);
+    }
+    else
+    {
+        for( Int k = 0; k < edge_count_; ++k )
+        {
+            // Hoping that the compiler is clever enough to optimize the two-fold copy.
+            Vector_T(p_,k).Write(&q[AmbDim *k]);
+        }
+    }
 }
 
 
@@ -50,7 +63,7 @@ private:
 /*!@brief Makes sure that the vertex coordinates of the closed polygon are computed.
 */
 
-void ComputeVertexPositions()
+void ComputeVertexPositions( const bool centralizeQ )
 {
     //Caution: This gives only half the weight to the end vertices of the chain.
     //Thus this is only really the barycenter, if the chain is closed!
@@ -60,32 +73,36 @@ void ComputeVertexPositions()
     Vector_T barycenter        (zero);
     Vector_T point_accumulator (zero);
     
-    for( Int i = 0; i < edge_count_; ++i )
+    if( centralizeQ )
     {
-        const Vector_T y_i ( y_, i );
-        
-        const Real r_i = r_[i];
-        
-        for( Int j = 0; j < AmbDim; ++j )
+        // Do it backwards, so that as much memory as possible is still warm when do the second loop.
+        for( Int i = edge_count_; i --> Int(0); )
         {
-            const Real delta = r_i * y_i[j];
+            const Vector_T y_i ( y_, i );
             
-            barycenter[j] += (point_accumulator[j] + half * delta);
+            const Real r_i = r_[i];
             
-            point_accumulator[j] += delta;
+            for( Int j = 0; j < AmbDim; ++j )
+            {
+                const Real delta = r_i * y_i[j];
+                
+                barycenter[j] += (point_accumulator[j] + half * delta);
+                
+                point_accumulator[j] += delta;
+            }
         }
+        
+        barycenter *= Inv<Real>( edge_count_ );
+        
+        point_accumulator = barycenter;
+        
+        point_accumulator *= -one;
     }
     
-    barycenter *= Inv<Real>( edge_count_ );
-    
-    point_accumulator = barycenter;
-    
-    point_accumulator *= -one;
-    
-    point_accumulator.Write( p_, Int(0) );
-    
     for( Int i = 0; i < edge_count_; ++i )
     {
+        point_accumulator.Write( p_, i );
+        
         const Vector_T y_i ( y_, i );
         
         const Real r_i = r_[i];
@@ -94,7 +111,7 @@ void ComputeVertexPositions()
         {
             point_accumulator[j] += r_i * y_i[j];
         }
-        
-        point_accumulator.Write( p_, i + Int(1) );
     }
+    
+    point_accumulator.Write( p_, edge_count_ + Int(1) );
 }

@@ -74,7 +74,6 @@ void WriteInitialEdgeVectors( Real * restrict const x )
 
 
 // Vertex positions
-
 void ReadInitialVertexPositions( const Real * restrict const p )
 {
     for( Int i = 0; i < edge_count_; ++i )

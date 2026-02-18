@@ -23,7 +23,9 @@ void CreatePolygon(
     mptr<Real> y,
     mptr<Real> q,
     mref<Real> K_edge_space,
-    mref<Real> K_quot_space
+    mref<Real> K_quot_space,
+    const bool wrap_aroundQ = false,
+    const bool centralizeQ  = true
 )
 {
     if constexpr ( p_in_Q || x_in_Q )
@@ -44,7 +46,7 @@ void CreatePolygon(
     
     if constexpr ( w_Q || y_Q || q_Q || edge_space_Q || quot_space_Q )
     {
-        computeConformalClosure<q_Q,quot_space_Q>();
+        computeConformalClosure<q_Q,quot_space_Q>( centralizeQ );
     }
     
     
@@ -70,7 +72,7 @@ void CreatePolygon(
     
     if constexpr ( q_Q )
     {
-        WriteVertexPositions(q);
+        WriteVertexPositions( q, wrap_aroundQ );
     }
     
     if constexpr ( edge_space_Q )
@@ -87,7 +89,7 @@ void CreatePolygon(
 private:
 
 template<bool vertex_pos_Q, bool quot_space_Q>
-void computeConformalClosure()
+void computeConformalClosure( const bool centralizedQ )
 {
     ComputeInitialShiftVector();
 
@@ -95,7 +97,7 @@ void computeConformalClosure()
     
     if constexpr ( vertex_pos_Q )
     {
-        ComputeVertexPositions();
+        ComputeVertexPositions( centralizedQ );
     }
     
     ComputeEdgeSpaceSamplingWeight();
