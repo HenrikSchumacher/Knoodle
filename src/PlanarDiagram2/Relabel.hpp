@@ -27,7 +27,7 @@ PD_T CreateRelabeled(
 
     // TODO: Check that c_max and a_max fit into Int.
     
-    const Int n = int_cast<Int>( Max( c_max, (a_max + ExtInt(1))/ExtInt(2) ) );
+    const Int n = int_cast<Int>( Max( c_max, ExtInt((a_max + ExtInt(1))/ExtInt(2) )) );
     
     PD_T pd = surjectiveQ ? PD_T(n,true) : PD_T(n);
     

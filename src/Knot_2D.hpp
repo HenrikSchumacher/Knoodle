@@ -113,13 +113,22 @@ namespace Knoodle
          */
         template<typename I>
         explicit Knot_2D( const I edge_count_ )
-        :   edge_count      { int_cast<Int>(edge_count_) }
-        ,   vertex_coords   { edge_count + 1             }
-        ,   edge_ptr        { edge_count + 1             }
-        ,   component_ptr   { 1                          }
-        ,   T               { edge_count                 }
-        ,   box_coords      { T.NodeCount()              }
+        :   edge_count      { int_cast<Int>(edge_count_)         }
+        ,   vertex_coords   { int_cast<Int>(edge_count + Int(1)) }
+        ,   edge_ptr        { int_cast<Int>(edge_count + Int(1)) }
+        ,   component_ptr   { Int(1)                             }
+        ,   T               { edge_count                         }
+        ,   box_coords      { T.NodeCount()                      }
         {
+            if(
+                std::cmp_greater_equal(edge_count_, Scalar::Max<Int> - Int(1))
+                ||
+                std::cmp_less(edge_count_, Int(0))
+            ) [[unlikely]]
+            {
+                edge_count = 0;
+                edge_count = 0;
+            }
             component_ptr[0] = 0;
             component_ptr[1] = edge_count;
         }

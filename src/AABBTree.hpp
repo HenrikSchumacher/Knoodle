@@ -118,11 +118,8 @@ namespace Knoodle
             {
                 for( Int k = 0; k < AmbDim; ++k )
                 {
-                    B[AmbDim * 0 + k] = PrevFloat(B[AmbDim * 0 + k]);
-                    B[AmbDim * 1 + k] = NextFloat(B[AmbDim * 1 + k]);
-                    
-//                    B[2 * k + 0] = PrevFloat(B[2 * k + 0]);
-//                    B[2 * k + 1] = NextFloat(B[2 * k + 1]);
+                    B[         k] = PrevFloat(B[         k]);
+                    B[AmbDim + k] = NextFloat(B[AmbDim + k]);
                 }
             }
         }
@@ -135,8 +132,8 @@ namespace Knoodle
             
             for( Int k = 0; k < AmbDim; ++k )
             {
-                B_N[AmbDim * 0 + k] = Min( B_L[AmbDim * 0 + k], B_R[AmbDim * 0 + k] );
-                B_N[AmbDim * 1 + k] = Max( B_L[AmbDim * 1 + k], B_R[AmbDim * 1 + k] );
+                B_N[         k] = Min( B_L[         k], B_R[         k] );
+                B_N[AmbDim + k] = Max( B_L[AmbDim + k], B_R[AmbDim + k] );
             }
         }
         

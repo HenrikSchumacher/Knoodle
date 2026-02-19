@@ -50,18 +50,20 @@ namespace Knoodle
         // TODO: What to do if leaf_node_count_ == 0?
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
-        :         leaf_node_count ( leaf_node_count_                                   )
-        ,              node_count ( Int(2) * leaf_node_count - Int(1)                  )
-        ,          int_node_count { node_count - leaf_node_count                       }
-        ,          last_row_begin { (Int(1) << Depth(node_count-Int(1))) - Int(1)      }
-        ,                  offset { node_count - int_node_count - last_row_begin       }
-        ,            actual_depth { Depth(node_count-Int(1))                           }
-        , regular_leaf_node_count { int_cast<Int>(Int(1) << actual_depth) }
-        ,          last_row_count { Int(2) * leaf_node_count - regular_leaf_node_count }
+        :         leaf_node_count { int_cast<Int>(leaf_node_count_)                                   }
+        ,              node_count { int_cast<Int>(Int(2) * leaf_node_count - Int(1))                  }
+        ,          int_node_count { int_cast<Int>(node_count - leaf_node_count)                       }
+        ,          last_row_begin { int_cast<Int>((Int(1) << Depth(int_cast<Int>(node_count-Int(1)))) - Int(1)) }
+        ,                  offset { int_cast<Int>(node_count - int_node_count - last_row_begin)       }
+        ,            actual_depth { int_cast<Int>(Depth(int_cast<Int>(node_count-Int(1))))            }
+        , regular_leaf_node_count { int_cast<Int>(Int(1) << actual_depth)                             }
+        ,          last_row_count { int_cast<Int>(Int(2) * leaf_node_count - regular_leaf_node_count) }
         {
-            if( leaf_node_count <= Int(0) )
+            if( std::cmp_greater(leaf_node_count_, Scalar::Max<Int> / Int(2)) ) [[unlikely]]
             {
-                eprint(ClassName()+" initialized with 0 leaf nodes.");
+                eprint(ClassName()+" leaf node count " + Tools::ToString(leaf_node_count_) + " is too big for type " + TypeName<Int> + ". Aborting.");
+                *this = CompleteBinaryTree(Int(0));
+                return;
             }
 
             if constexpr ( precompute_rangesQ )
@@ -73,15 +75,15 @@ namespace Knoodle
                 // Compute range of leaf nodes in last row.
                 for( Int N = last_row_begin; N < node_count; ++N )
                 {
-                    N_ranges(N,0) = N - last_row_begin    ;
-                    N_ranges(N,1) = N - last_row_begin + 1;
+                    N_ranges(N,0) = N - last_row_begin         ;
+                    N_ranges(N,1) = N - last_row_begin + Int(1);
                 }
                 
                 // Compute range of leaf nodes in penultimate row.
                 for( Int N = int_node_count; N < last_row_begin; ++N )
                 {
                     N_ranges(N,0) = N + offset;
-                    N_ranges(N,1) = N + offset + 1;
+                    N_ranges(N,1) = N + offset + Int(1);
                 }
                 
                 for( Int N = int_node_count; N --> Int(0); )
@@ -253,7 +255,7 @@ namespace Knoodle
         inline static constexpr Int Level( const Int i )
         {
             // Level equals the position of the most significant bit of i+1.
-            return static_cast<Int>( MSB( static_cast<UInt>(i) + UInt(1) ) ) - Int(1);
+            return static_cast<Int>( MSB( static_cast<UInt>(static_cast<UInt>(i) + UInt(1)) ) ) - Int(1);
         }
         
         inline static constexpr Int Depth( const Int i )

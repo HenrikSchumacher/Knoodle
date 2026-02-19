@@ -124,7 +124,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 
     using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;
     
-    Int * edge_colors = nullptr;
+    ExtInt * edge_colors = nullptr;
 
     LinkEmbedding_T L ( edges, edge_colors, n );
 

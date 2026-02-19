@@ -37,7 +37,8 @@ namespace Knoodle
         using Int        = PD_T::Int;
         
         // TODO: Are signed integers really necessary here?
-        static_assert(SignedIntQ<Int>,"");
+        static_assert(IntQ<Int>,"");
+//        static_assert(SignedIntQ<Int>,"");
         
         using UInt       = UInt32;
         using Dir_T      = UInt8;

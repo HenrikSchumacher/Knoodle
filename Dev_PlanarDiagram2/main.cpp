@@ -13,9 +13,10 @@
 
 using Real        = double;
 // integer type used, e.g., for indices
-using Int         = std::int64_t;
-//using Int         = std::int32_t;
-//using Int         = std::int16_t;
+//using Int         = std::int64_t;
+using Int         = std::uint32_t;
+//using Int         = std::uint64_t;
+//using Int         = std::uint16_t;
 
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using PD_T        = PDC_T::PD_T;
@@ -59,6 +60,10 @@ void PrintInfo( const PDC_T & pdc )
 
 int main()
 {
+    TOOLS_DUMP(std::is_unsigned_v<std::uint16_t>);
+    TOOLS_DUMP(std::is_integral_v<std::uint16_t>);
+    TOOLS_DUMP(Tools::UnsignedIntQ<std::uint16_t>);
+    
     std::filesystem::path in_path  = std::filesystem::path(__FILE__).parent_path();
     valprint("Input  directory", in_path );
 //    std::filesystem::path out_path = in_path;
@@ -97,7 +102,7 @@ int main()
 //    // Create an instance of PlanarDiagram.
 //    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
     
-    const Int n = 10'000;
+    const Int n = 1'000;
     Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
     Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
     Real K = 0;
