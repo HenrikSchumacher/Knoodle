@@ -403,17 +403,28 @@ bool SweepFace(
     {
         de = de_0;
     }
-    else
+    else // if constexpr ( !first_faceQ && !second_faceQ )
     {
-        PD_ASSERT( DualArcMarkedQ(ArcOfDarc(de_0)) );
-        // We can set de = LeftDarc(de_0) because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
+        auto [e_0,d_0] = FromDarc(de_0);
+        
+        PD_ASSERT( !ArcMarkedQ(e_0) );      //  We never push a marked arc to stack.
+        PD_ASSERT( DualArcMarkedQ(e_0) );   //  We only push dual arcs to stack that we have explored already.
+        PD_ASSERT( DualArcForwardQ(e_0) == forwardQ );
+        
+        if( DualArcVisitedTwiceQ(e_0) )
+        {
+            // We visited this face already. We can tell because e_0 has been visited from both sides.
+            return false;
+        }
+        
+        // We move to next darc because DualArcMarkedQ(ArcOfDarc(de_0) is guaranteed to be true.
         de = LeftDarc(de_0);
     }
     
     do
     {
         auto [e,d] = FromDarc(de);
-        
+
         // Only important for sweeping over the starting face.
         // If we hit the target b_0 already here, then a_0 and b_0 share a common face
         // and their distance is 0.
@@ -471,15 +482,10 @@ bool SweepFace(
             }
             else // if( DualArcForwardQ(e) == forwardQ )
             {
-                // We visited this arc during stepping in the this direction.
-                // If we traversed it in the same direction, this means that we have visited the whole face already.
-                // Then we can abort the face traversal immediately.
-                
-                if( DualArcDirection(e) == d ) { return false; }
-                
-//                if( DualArcLeftToRightQ(e) == (forwardQ == d) ) { return false; }
-                
-                // Otherwise, we ignore this directed arc and continue cycling around the face.
+                DualArcMarkAsVisitedTwice(e);
+
+                // If we have already visited this arc during stepping in the this direction, then we have done something wrong upstream.
+                PD_ASSERT(DualArcDirection(e) != d);
             }
         }
         

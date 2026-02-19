@@ -18,23 +18,24 @@ void SetDualArc( const Int a, const bool direction, const bool forwardQ, const I
     
     if constexpr ( vector_listQ )
     {
-        D_data(a,mark_pos) = (current_mark << Int(1)) | Int(forwardQ);
+        D_data(a,mark_pos) = (current_mark << Int(2)) | Int(forwardQ);
         D_data(a,from_pos) = (from << Int(1))         | Int(direction);
         // CAUTION: D_data(a,1) is not the darc we came from! It is the _arc_ we came from + the directions of da when we travelled through it!
     }
     else if constexpr ( hash_map2Q )
     {
         auto & v = D_data[a];
-        v[mark_pos] = (current_mark << Int(1)) | Int(forwardQ);
+        v[mark_pos] = (current_mark << Int(2)) | Int(forwardQ);
         v[from_pos] = (from << Int(1))         | Int(direction);
     }
     else if constexpr ( hash_map1Q )
     {
-        D_data[a] = (from << Int(2)) | Int(direction) << Int(1) | Int(forwardQ);
+        // I don't like the shift by 3 bits.
+        D_data[a] = (from << Int(3)) | Int(direction) << Int(1) | Int(forwardQ);
     }
     else if constexpr ( hash_map_structQ )
     {
-        D_data[a] = {from,direction,forwardQ};
+        D_data[a] = {from,false,direction,forwardQ};
     }
     else
     {
@@ -47,13 +48,13 @@ bool DualArcMarkedQ( const Int a )
 {
     if constexpr ( vector_listQ )
     {
-        return ((D_data(a,mark_pos) >> Int(1)) == current_mark);
+        return ((D_data(a,mark_pos) >> Int(2)) == current_mark);
     }
     else if constexpr ( hash_map2Q )
     {
         if( D_data.contains(a) )
         {
-            return ((D_data[a][mark_pos] >> Int(1)) == current_mark);
+            return ((D_data[a][mark_pos] >> Int(2)) == current_mark);
         }
         else
         {
@@ -108,7 +109,7 @@ Int DualArcFrom( const Int a )
     }
     else if constexpr ( hash_map1Q )
     {
-        return (D_data[a] >> Int(2));
+        return (D_data[a] >> Int(3));
     }
     else if constexpr ( hash_map_structQ )
     {
@@ -147,6 +148,56 @@ bool DualArcDirection( const Int a )
 }
 
 template<typename dummy = void>
+void DualArcMarkAsVisitedTwice( const Int a )
+{
+    if constexpr ( vector_listQ )
+    {
+        D_data(a,mark_pos) = D_data(a,mark_pos) | Int(2);
+    }
+    else if constexpr ( hash_map2Q )
+    {
+        D_data[a][mark_pos] = D_data[a][mark_pos] | Int(2);
+    }
+    else if constexpr ( hash_map1Q )
+    {
+        D_data[a] = D_data[a] | Int(4);
+    }
+    else if constexpr ( hash_map_structQ )
+    {
+        D_data[a].visited_twiceQ = true;
+    }
+    else
+    {
+        static_assert(DependentFalse<dummy>,"");
+    }
+}
+
+template<typename dummy = void>
+bool DualArcVisitedTwiceQ( const Int a )
+{
+    if constexpr ( vector_listQ )
+    {
+        return D_data(a,mark_pos) & Int(2);
+    }
+    else if constexpr ( hash_map2Q )
+    {
+        return D_data[a][mark_pos] & Int(2);
+    }
+    else if constexpr ( hash_map1Q )
+    {
+        return D_data[a] & Int(4);
+    }
+    else if constexpr ( hash_map_structQ )
+    {
+        return D_data[a].visited_twiceQ;
+    }
+    else
+    {
+        static_assert(DependentFalse<dummy>,"");
+    }
+}
+
+
 bool DualArcLeftToRightQ( const Int a )
 {
     return (DualArcForwardQ(a) == DualArcDirection(a));

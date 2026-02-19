@@ -105,7 +105,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             const bool overQ_1 = ArcOverQ(a_ptr,Head);
             
             SetStrandMode(overQ_1);
-            if( NewStrand() ) [[unlikely]] { break; }
+            NewStrand();
             
             if( overQ_0 != overQ_1 )
             {
@@ -145,7 +145,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
         }
         else
         {
-            if( NewStrand() ) [[unlikely]] { break; }
+            NewStrand();
             SetStrandBegin( WalkBackToStrandStart(a_ptr) );
         }
         
@@ -533,7 +533,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
 #endif // PD_DEBUG
                     
                     changedQ = RerouteToShortestPath_impl(
-                        s_begin, a, Min(strand_arc_count-Int(1),args.max_dist)
+                        s_begin, a, Min(static_cast<Int>(strand_arc_count-Int(1)),args.max_dist)
                     );
 #ifdef PD_DEBUG
                     Int C_1 = pd->crossing_count;
@@ -601,11 +601,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     PD_PRINT("Strand type remains at " + OverQString() + "strand.");
                 }
                 
-                if( NewStrand() ) [[unlikely]]
-                {
-                    PD_PRINT("Breaking because of marker overflowy.");
-                    break;
-                }
+                NewStrand();
                 
                 if constexpr ( targs.interleave_over_underQ )
                 {

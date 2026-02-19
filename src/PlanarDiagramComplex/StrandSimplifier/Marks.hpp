@@ -1,6 +1,7 @@
 private:
 
-static constexpr Int  max_mark = std::numeric_limits<Int>::max()/Int(2) - Int(1);
+static constexpr Int  max_mark = static_cast<Int>(std::numeric_limits<Int>::max() >> Int(2));
+
 static constexpr bool LeftToRight = 1;
 static constexpr bool RightToLeft = 0;
 

@@ -70,6 +70,7 @@ namespace Knoodle
         struct DualArc_T
         {
             Int from;
+            bool visited_twiceQ;
             bool forwardQ;
             bool direction;
         };
@@ -81,26 +82,26 @@ namespace Knoodle
         
         using ArcData_Vector2List_T = Tiny::VectorList_AoS<2,Int,Int>;
         using ArcData_Vector4List_T = Tiny::VectorList_AoS<4,Int,Int>;
-        using ArcData_HasMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
-        using ArcData_HasMap1_T      = AssociativeContainer<Int,Int>;
-        using ArcData_HasMapStruct_T = AssociativeContainer<Int,DualArc_T>;
+        using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
+        using ArcData_HashMap1_T      = AssociativeContainer<Int,Int>;
+        using ArcData_HashMapStruct_T = AssociativeContainer<Int,DualArc_T>;
         
-//        using ArcData_HasMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
-//        using ArcData_HasMap1_T      = std::unordered_map<Int,Int>;
-//        using ArcData_HasMapStruct_T = std::unordered_map<Int,DualArc_T>;
+//        using ArcData_HashMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
+//        using ArcData_HashMap1_T      = std::unordered_map<Int,Int>;
+//        using ArcData_HashMapStruct_T = std::unordered_map<Int,DualArc_T>;
         
         using ArcDataContainer_T    = ArcData_Vector2List_T;
 //        using ArcDataContainer_T    = ArcData_Vector4List_T;
-//        using ArcDataContainer_T    = ArcData_HasMap2_T;
-//        using ArcDataContainer_T    = ArcData_HasMap1_T;
-//        using ArcDataContainer_T    = ArcData_HasMapStruct_T;
+//        using ArcDataContainer_T    = ArcData_HashMap2_T;
+//        using ArcDataContainer_T    = ArcData_HashMap1_T;
+//        using ArcDataContainer_T    = ArcData_HashMapStruct_T;
 
         static constexpr bool vector2_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector2List_T>;
         static constexpr bool vector4_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector4List_T>;
         static constexpr bool vector_listQ     = vector2_listQ || vector4_listQ;
-        static constexpr bool hash_map2Q       = std::is_same_v<ArcDataContainer_T,ArcData_HasMap2_T>;
-        static constexpr bool hash_map1Q       = std::is_same_v<ArcDataContainer_T,ArcData_HasMap1_T>;
-        static constexpr bool hash_map_structQ = std::is_same_v<ArcDataContainer_T,ArcData_HasMapStruct_T>;
+        static constexpr bool hash_map2Q       = std::is_same_v<ArcDataContainer_T,ArcData_HashMap2_T>;
+        static constexpr bool hash_map1Q       = std::is_same_v<ArcDataContainer_T,ArcData_HashMap1_T>;
+        static constexpr bool hash_map_structQ = std::is_same_v<ArcDataContainer_T,ArcData_HashMapStruct_T>;
         static constexpr bool hash_mapQ        = hash_map2Q || hash_map1Q || hash_map_structQ;
         
     private:
@@ -169,8 +170,8 @@ namespace Knoodle
             
             max_crossing_count = max_crossing_count_;
             max_arc_count      = int_cast<Int>(Int(2) * max_crossing_count); // int_cast for e.g., Int16
-            C_mark             = Tensor1<Int,Int>( max_crossing_count, Int(0)        );
-            A_mark             = Tensor1<Int,Int>( max_arc_count     , Int(0)        );
+            C_mark             = Tensor1<Int,Int>( max_crossing_count);
+            A_mark             = Tensor1<Int,Int>( max_arc_count     );
             path               = Tensor1<Int,Int>( max_arc_count     , Uninitialized );
             X_front            = Stack_T( max_arc_count );
             Y_front            = Stack_T( max_arc_count );
@@ -183,16 +184,40 @@ namespace Knoodle
             
             if constexpr ( vector_listQ )
             {
-                D_data = ArcDataContainer_T(max_arc_count,Int(0));
+                D_data = ArcDataContainer_T(max_arc_count);
             }
             
-            initial_mark = 1;
-            current_mark = 1;
-            strand_arc_count  = 0;
+            ResetMarks();
         }
         
-    public:
+        void ResetMarks()
+        {
+            C_mark.Fill(0);
+            A_mark.Fill(0);
+            if constexpr ( vector_listQ ) { D_data.Fill(0); }
+            if constexpr ( hash_mapQ ) { D_data.clear(); }
+            current_mark = 1;
+            initial_mark = 1;
+            strand_arc_count  = 0;
+            
+            // TODO: We might have to reset the counters, too.
+        }
         
+        // Returns false if reset is equired.
+        void NewStrand()
+        {
+            // Safeguard against integer overflow.
+            if( current_mark >= max_mark ) [[unlikely]] { ResetMarks(); }
+            
+            PD_PRINT(std::string("NewStrand created new ") + OverQString() + "strand with current_mark = " + ToString(current_mark) + "." );
+            
+            if constexpr( hash_map1Q || hash_map_structQ ) { D_data.clear(); }
+            
+            ++current_mark;
+            strand_arc_count = 0;
+            return;
+        }
+                
         void LoadDiagram( PD_T & pd_input )
         {
             PD_TIMER(timer,MethodName("LoadDiagram"));
@@ -204,28 +229,13 @@ namespace Knoodle
                 Allocate(pd->max_crossing_count);
             }
 
-            if( current_mark >= max_mark/Int(2) )
+            if( current_mark >= static_cast<Int>(max_mark/Int(2)) )
             {
-                C_mark.Fill(0);
-                A_mark.Fill(0);
-                if constexpr ( vector_listQ )
-                {
-                    D_data.Fill(0);
-                }
-                if constexpr ( hash_mapQ )
-                {
-                    D_data.clear();
-                }
-                initial_mark = 1;
-                current_mark = 1;
-                strand_arc_count  = 0;
-                
-                // TODO: We might have to reset the counters, too.
+                ResetMarks();
             }
             else
             {
-                [[maybe_unused]] bool resetQ = NewStrand();
-                PD_ASSERT(!resetQ);
+                NewStrand();
                 initial_mark = current_mark;
             }
             
@@ -277,6 +287,8 @@ namespace Knoodle
             pd      = nullptr;
         }
         
+    public:
+
         DijkstraStrategy_T DijkstraStrategy() const
         {
             return strategy;
@@ -329,29 +341,6 @@ namespace Knoodle
         }
         
         
-        // Returns false if reset is equired.
-        bool NewStrand()
-        {
-            // Safeguard against integer overflow.
-            if( current_mark >= max_mark ) [[unlikely]]
-            {
-                wprint("NewStrand returns true.");
-                // Return a positive number to encourage that this function is called again upstream.
-                change_counter++;
-                return true;
-            }
-            
-            PD_PRINT(std::string("NewStrand created new ") + OverQString() + "strand with current_mark = " + ToString(current_mark) + "." );
-            
-            if constexpr( hash_map1Q || hash_map_structQ )
-            {
-                D_data.clear();
-            }
-            
-            ++current_mark;
-            strand_arc_count = 0;
-            return false;
-        }
         
         void SetStrandBegin( const Int a )
         {
