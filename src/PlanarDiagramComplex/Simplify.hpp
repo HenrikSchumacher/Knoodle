@@ -31,31 +31,31 @@ struct Simplify_Args_T
 friend std::string ToString( cref<Simplify_Args_T> args )
 {
     return std::string("{ ")
-            +   ".compress_initialQ = " + ToString(args.compress_initialQ)
-            + ", .local_opt_level = " + ToString(args.local_opt_level)
-            + ", .strategy = " + ToString(args.strategy)
-            + ", .start_max_dist = " + ToString(args.start_max_dist)
-            + ", .final_max_dist = " + ToString(args.final_max_dist)
-            + ", .disconnectQ = " + ToString(args.disconnectQ)
-            + ", .splitQ = " + ToString(args.splitQ)
-            + ", .compressQ = " + ToString(args.compressQ)
-            + ", .compression_threshold = " + ToString(args.compression_threshold)
+            +   "compress_initialQ = " + ToString(args.compress_initialQ)
+            + ", local_opt_level = " + ToString(args.local_opt_level)
+            + ", strategy = " + ToString(args.strategy)
+            + ", start_max_dist = " + ToString(args.start_max_dist)
+            + ", final_max_dist = " + ToString(args.final_max_dist)
+            + ", disconnectQ = " + ToString(args.disconnectQ)
+            + ", splitQ = " + ToString(args.splitQ)
+            + ", compressQ = " + ToString(args.compressQ)
+            + ", compression_threshold = " + ToString(args.compression_threshold)
     
-            + ", .embedding_trials = " + ToString(args.embedding_trials)
-            + ", .rotation_trials = " + ToString(args.rotation_trials)
-            + ", .permute_randomQ = " + ToString(args.permute_randomQ)
-            + ", .energy = " + ToString(args.energy)
+            + ", embedding_trials = " + ToString(args.embedding_trials)
+            + ", rotation_trials = " + ToString(args.rotation_trials)
+            + ", permute_randomQ = " + ToString(args.permute_randomQ)
+            + ", energy = " + ToString(args.energy)
     
-            + ", .randomize_bends = " + ToString(args.randomize_bends)
-            + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
-            + ", .compaction_method = " + ToString(args.compaction_method)
+            + ", randomize_bends = " + ToString(args.randomize_bends)
+            + ", randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
+            + ", compaction_method = " + ToString(args.compaction_method)
     + " }";
 }
 
 
 
 // Do some rerouting first, but disconnect and split early to divide-and-conquer.
-template<StrandSimplifier_T::SimplifyStrands_TArgs targs = typename StrandSimplifier_T::SimplifyStrands_TArgs()>
+template<PassSimplifier_T::SimplifyPasses_TArgs targs = typename PassSimplifier_T::SimplifyPasses_TArgs()>
 Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
 {
     TOOLS_PTIMER(timer,MethodName("Simplify"));
@@ -137,6 +137,17 @@ Size_T Simplify_Variant( cref<Simplify_Args_T> args = Simplify_Args_T(), Size_T 
                 .R_II_forwardQ          = false
             }>(args);
         }
+        case 4:
+        {
+            return this->template Simplify<{
+                .restart_after_successQ = true,
+                .restart_after_failureQ = true,
+                .restart_walk_backQ     = true,
+                .interleave_over_underQ = true,
+                .R_II_blockingQ         = true,
+                .R_II_forwardQ          = true
+            }>(args);
+        }
         default:
         {
             wprint(MethodName("SimplifyVariant") + " variand " + ToString(variant) + " unknown. Using default.");
@@ -148,7 +159,7 @@ Size_T Simplify_Variant( cref<Simplify_Args_T> args = Simplify_Args_T(), Size_T 
 
 private:
 
-template<UInt8 local_opt_level, StrandSimplifier_T::SimplifyStrands_TArgs targs>
+template<UInt8 local_opt_level, PassSimplifier_T::SimplifyPasses_TArgs targs>
 Size_T Simplify_impl( cref<Simplify_Args_T> args )
 {
 //    constexpr bool debugQ = true;
@@ -170,7 +181,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     if constexpr (debugQ) { wprint(tag()+": Debug mode active."); }
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
-    mref<StrandSimplifier_T> S = StrandSimplifier(args.strategy);
+    mref<PassSimplifier_T> S = PassSimplifier(args.strategy);
     
 #ifdef PD_COUNTERS
     S.ResetCounters();
@@ -324,7 +335,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     
 #ifdef PD_COUNTERS
     // We need to save the counters from being erased by this->ClearCache().
-    auto S_buffer = std::move(this->GetCache<StrandSimplifier_T>("StrandSimplifier"));
+    auto S_buffer = std::move(this->GetCache<PassSimplifier_T>("PassSimplifier"));
 #endif
     
     if( change_count > Size_T(0) )
@@ -334,7 +345,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     }
 
 #ifdef PD_COUNTERS
-    this->SetCache("StrandSimplifier",std::move(S_buffer));
+    this->SetCache("PassSimplifier",std::move(S_buffer));
 #endif
     
     if constexpr (debugQ)
@@ -347,9 +358,9 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
 
 
 
-template<bool debugQ, StrandSimplifier_T::SimplifyStrands_TArgs targs>
+template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 Size_T Rattle(
-    mref<StrandSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
+    mref<PassSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
 )
 {
     [[maybe_unused]] auto tag = [this]() { return this->MethodName("Rattle"); };
@@ -488,9 +499,9 @@ Size_T Rattle(
 
 
 
-template<bool debugQ, StrandSimplifier_T::SimplifyStrands_TArgs targs>
+template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 std::pair<Size_T,Size_T> SimplifyDiagrammatically(
-    mref<StrandSimplifier_T> S, mref<PD_T> pd, cref<Simplify_Args_T> args
+    mref<PassSimplifier_T> S, mref<PD_T> pd, cref<Simplify_Args_T> args
 )
 {
     [[maybe_unused]] auto tag = [this](){ return this->MethodName("SimplifyDiagrammatically"); };
@@ -545,7 +556,9 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
         {
             strand_change_count = 0;
             
-            strand_change_count += S.template SimplifyStrands<targs>(pd,{
+            // TODO: Check this
+            strand_change_count += S.template SimplifyPasses<targs>(pd,{
+//            strand_change_count += S.template SimplifyStrands<targs>(pd,{
                 .max_dist              = max_dist,
                 .overQ                 = true,
                 .compressQ             = args.compressQ,
@@ -556,7 +569,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             
             if constexpr (debugQ)
             {
-                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverStrands."); };
+                if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyOverPasses."); };
             }
             
 //            if constexpr ( !targs.interleave_over_underQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
@@ -571,7 +584,8 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 }
                 
                 // Reroute understrands.
-                strand_change_count += S.template SimplifyStrands<targs>(pd,{
+                strand_change_count += S.template SimplifyPasses<targs>(pd,{
+//                strand_change_count += S.template SimplifyStrands<targs>(pd,{
                     .max_dist              = max_dist,
                     .overQ                 = false,
                     .compressQ             = args.compressQ,
@@ -582,7 +596,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                 
                 if constexpr (debugQ)
                 {
-                    if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderStrands."); };
+                    if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderPasses."); };
                 }
             }
             

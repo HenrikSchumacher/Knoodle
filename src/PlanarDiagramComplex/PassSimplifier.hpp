@@ -1,19 +1,12 @@
 #pragma once
 
-// TODO: Make RemoveLoop work also for Big Figure-8 Unlink and Big Hopf Link.
-// TODO: Use `ArcSide`.
-// TODO: `WalkBackToStrandStart` -> Cut out over/under loops already here? ...
-//          --> less headache later.
-//          --> more efficient.
-
 namespace Knoodle
 {
     enum class DijkstraStrategy_T : Int8
     {
         Unidirectional = 0,
         Alternating    = 1,
-        Bidirectional  = 2,
-        Legacy         = 3
+        Bidirectional  = 2
     };
     
     std::string ToString( const DijkstraStrategy_T strategy )
@@ -23,12 +16,11 @@ namespace Knoodle
             case DijkstraStrategy_T::Unidirectional : return "Unidirectional";
             case DijkstraStrategy_T::Alternating    : return "Alternating";
             case DijkstraStrategy_T::Bidirectional  : return "Bidirectional";
-            case DijkstraStrategy_T::Legacy         : return "Legacy";
         }
     }
     
     template<typename Int_>
-    class alignas( ObjectAlignment ) StrandSimplifier2 final
+    class alignas( ObjectAlignment ) PassSimplifier final
     {
     public:
         
@@ -66,6 +58,7 @@ namespace Knoodle
         
         static constexpr bool Uninitialized = PD_T::Uninitialized;
         
+        friend class PlanarDiagramComplex<Int>;
         
         struct DualArc_T
         {
@@ -81,28 +74,84 @@ namespace Knoodle
         }
         
         using ArcData_Vector2List_T = Tiny::VectorList_AoS<2,Int,Int>;
-        using ArcData_Vector4List_T = Tiny::VectorList_AoS<4,Int,Int>;
         using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
-        using ArcData_HashMap1_T      = AssociativeContainer<Int,Int>;
-        using ArcData_HashMapStruct_T = AssociativeContainer<Int,DualArc_T>;
         
 //        using ArcData_HashMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
 //        using ArcData_HashMap1_T      = std::unordered_map<Int,Int>;
 //        using ArcData_HashMapStruct_T = std::unordered_map<Int,DualArc_T>;
         
         using ArcDataContainer_T    = ArcData_Vector2List_T;
-//        using ArcDataContainer_T    = ArcData_Vector4List_T;
 //        using ArcDataContainer_T    = ArcData_HashMap2_T;
 //        using ArcDataContainer_T    = ArcData_HashMap1_T;
 //        using ArcDataContainer_T    = ArcData_HashMapStruct_T;
 
         static constexpr bool vector2_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector2List_T>;
-        static constexpr bool vector4_listQ    = std::is_same_v<ArcDataContainer_T,ArcData_Vector4List_T>;
-        static constexpr bool vector_listQ     = vector2_listQ || vector4_listQ;
+        static constexpr bool vector_listQ     = vector2_listQ;
         static constexpr bool hash_map2Q       = std::is_same_v<ArcDataContainer_T,ArcData_HashMap2_T>;
-        static constexpr bool hash_map1Q       = std::is_same_v<ArcDataContainer_T,ArcData_HashMap1_T>;
-        static constexpr bool hash_map_structQ = std::is_same_v<ArcDataContainer_T,ArcData_HashMapStruct_T>;
-        static constexpr bool hash_mapQ        = hash_map2Q || hash_map1Q || hash_map_structQ;
+        static constexpr bool hash_mapQ        = hash_map2Q;
+        
+        struct Pass_T
+        {
+            Int  first;
+            Int  last;
+            Int  next  = Uninitialized; // Most be set when FindPass is done with pass.activeQ == true. Otherwise, no guarantees.
+            Int  arc_count;
+            Int  mark;
+            bool overQ;
+            bool activeQ = false;
+                
+            /*
+             *      |        |        |
+             *      |  last  |  next  |
+             * ------------->X------->X------->
+             *      |c_0     |c_1     |c_2
+             *      |        |        |
+             */
+        };
+        
+        struct Path_T
+        {
+            // The first and last arc in a path_container are the start and end arcs.
+            // All the other arcs path_container stand for arcs we need to cross.
+            Tensor1<Int,Int> container;
+            Int size = 0;
+            
+            Path_T() = default;
+            ~Path_T() = default;
+            
+            Path_T( Int max_arc_count )
+            : container { max_arc_count }
+            {}
+            
+            mref<Int> operator[]( const Int i )
+            {
+                return container[i];
+            }
+            
+            cref<Int> operator[]( const Int i ) const
+            {
+                return container[i];
+            }
+            
+            Int Size() const
+            {
+                return size;
+            }
+            
+            Int Capacity() const
+            {
+                return container.Size();
+            }
+            
+            void Resize( const Int new_size )
+            {
+                if( new_size > Capacity() )
+                {
+                    container.template Resize<false> ( new_size );
+                }
+                size = new_size;
+            }
+        };
         
     private:
 
@@ -116,12 +165,11 @@ namespace Knoodle
         Int    initial_mark       = 0;
         Int    s_begin            = 0; // First arc in strand.
         Int    strand_arc_count   = 0;
-        Int    path_length        = 0;
+//        Int    path_length        = 0;
         Size_T change_counter     = 0;
         
         // Marks for the crossings and arcs to mark the current strand.
         // We use this to detect loop strands.
-        // We need quite close control on the values in these containers; this is why we cannot use pd->C_scratch or pd->A_scratch here.
         Tensor1<Int,Int>   C_mark;
         Tensor1<Int,Int>   A_mark;
         
@@ -129,7 +177,8 @@ namespace Knoodle
         
         Int * restrict dA_left;
         
-        Tensor1<Int,Int> path;
+//        Tensor1<Int,Int> path;
+        Path_T  path_0;
         Stack_T X_front;
         Stack_T Y_front;
         Stack_T prev_front;
@@ -140,7 +189,7 @@ namespace Knoodle
         
     public:
         
-        StrandSimplifier2( PDC_T & pdc_, DijkstraStrategy_T strategy_ )
+        PassSimplifier( PDC_T & pdc_, DijkstraStrategy_T strategy_ )
         :   pdc                { pdc_      }
         ,   strategy           { strategy_ }
         {
@@ -148,19 +197,19 @@ namespace Knoodle
         }
         
         // No default constructor
-        StrandSimplifier2() = delete;
+        PassSimplifier() = delete;
         
         // Destructor
-        ~StrandSimplifier2() = default;
+        ~PassSimplifier() = default;
         
         // Copy constructor
-        StrandSimplifier2( const StrandSimplifier2 & other ) = default;
+        PassSimplifier( const PassSimplifier & other ) = default;
         // Copy assignment operator
-        StrandSimplifier2 & operator=( const StrandSimplifier2 & other ) = default;
+        PassSimplifier & operator=( const PassSimplifier & other ) = default;
         // Move constructor
-        StrandSimplifier2( StrandSimplifier2 && other ) = default;
+        PassSimplifier( PassSimplifier && other ) = default;
         // Move assignment operator
-        StrandSimplifier2 & operator=( StrandSimplifier2 && other ) = default;
+        PassSimplifier & operator=( PassSimplifier && other ) = default;
 
     private:
         
@@ -172,7 +221,8 @@ namespace Knoodle
             max_arc_count      = int_cast<Int>(Int(2) * max_crossing_count); // int_cast for e.g., Int16
             C_mark             = Tensor1<Int,Int>( max_crossing_count);
             A_mark             = Tensor1<Int,Int>( max_arc_count     );
-            path               = Tensor1<Int,Int>( max_arc_count     , Uninitialized );
+//            path               = Tensor1<Int,Int>( max_arc_count     , Uninitialized );
+            path_0             = Path_T ( max_arc_count );
             X_front            = Stack_T( max_arc_count );
             Y_front            = Stack_T( max_arc_count );
             prev_front         = Stack_T( max_arc_count );
@@ -210,8 +260,6 @@ namespace Knoodle
             if( current_mark >= max_mark ) [[unlikely]] { ResetMarks(); }
             
             PD_PRINT(std::string("NewStrand created new ") + OverQString() + "strand with current_mark = " + ToString(current_mark) + "." );
-            
-            if constexpr( hash_map1Q || hash_map_structQ ) { D_data.clear(); }
             
             ++current_mark;
             strand_arc_count = 0;
@@ -294,30 +342,31 @@ namespace Knoodle
             return strategy;
         }
         
-        mref<StrandSimplifier2> SetDijkstraStrategy( DijkstraStrategy_T strategy_ )
+        mref<PassSimplifier> SetDijkstraStrategy( DijkstraStrategy_T strategy_ )
         {
             strategy = strategy_;
             
             return *this;
         }
 
-#include "StrandSimplifier/DualArcs.hpp"
-#include "StrandSimplifier/Marks.hpp"
-#include "StrandSimplifier/Checks.hpp"
-#include "StrandSimplifier/Helpers.hpp"
-#include "StrandSimplifier/RepairLeftDarc.hpp"
-#include "StrandSimplifier/Reconnect.hpp"
-#include "StrandSimplifier/CollapseArcRange.hpp"
-#include "StrandSimplifier/RemoveLoopPath.hpp"
-#include "StrandSimplifier/FindShortestPath.hpp"
-#include "StrandSimplifier/FindShortestPath_Legacy.hpp"
-#include "StrandSimplifier/RerouteToPath.hpp"
-#include "StrandSimplifier/Reidemeister.hpp"
-#include "StrandSimplifier/SimplifyStrands.hpp"
-#include "StrandSimplifier/Strings.hpp"
-#include "StrandSimplifier/Counters.hpp"
+#include "PassSimplifier/DualArcs.hpp"
+#include "PassSimplifier/Marks.hpp"
+#include "PassSimplifier/Checks.hpp"
+#include "PassSimplifier/Helpers.hpp"
+#include "PassSimplifier/RepairLeftDarc.hpp"
+#include "PassSimplifier/Reconnect.hpp"
+#include "PassSimplifier/CollapseArcRange.hpp"
+#include "PassSimplifier/RerouteLoopPath.hpp"
+#include "PassSimplifier/FindShortestPath.hpp"
+#include "PassSimplifier/Reroute.hpp"
+#include "PassSimplifier/Reidemeister.hpp"
+#include "PassSimplifier/Strings.hpp"
+#include "PassSimplifier/Counters.hpp"
+#include "PassSimplifier/FindPass.hpp"
+#include "PassSimplifier/SimplifyPasses.hpp"
+#include "PassSimplifier/SimplifyStrands.hpp"
         
-//#include "StrandSimplifier/SimplifyLocal.hpp" // Only meant for debugging.
+//#include "PassSimplifier/SimplifyLocal.hpp" // Only meant for debugging.
         
     private:
         
@@ -375,6 +424,8 @@ namespace Knoodle
             
             return a;
         }
+        
+        
     
     public:
         
@@ -385,11 +436,11 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("StrandSimplifier2")
+            return ct_string("PassSimplifier")
                 + "<" + TypeName<Int>
                 + ">";
         }
 
-    }; // class StrandSimplifier2
+    }; // class PassSimplifier
     
 } // namespace Knoodle

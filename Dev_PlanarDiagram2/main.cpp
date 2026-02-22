@@ -1,4 +1,6 @@
 #define KNOODLE_USE_BOOST_UNORDERED
+//#define KNOODLE_USE_BOOST_PLANARITY
+
 //#define KNOODLE_USE_CLP
 
 //#define TENSORS_BOUND_CHECKS
@@ -13,8 +15,8 @@
 
 using Real        = double;
 // integer type used, e.g., for indices
-//using Int         = std::int64_t;
-using Int         = std::uint32_t;
+using Int         = std::int64_t;
+//using Int         = std::uint32_t;
 //using Int         = std::uint64_t;
 //using Int         = std::uint16_t;
 
@@ -57,12 +59,24 @@ void PrintInfo( const PDC_T & pdc )
     }
 }
 
+template<typename T>
+std::string SizeInfo()
+{
+    return std::string("{ size = ") + Knoodle::ToString(sizeof(T)) + ", alignment = " + Knoodle::ToString(alignof(T)) + "}";
+}
 
 int main()
 {
-    TOOLS_DUMP(std::is_unsigned_v<std::uint16_t>);
-    TOOLS_DUMP(std::is_integral_v<std::uint16_t>);
-    TOOLS_DUMP(Tools::UnsignedIntQ<std::uint16_t>);
+    TOOLS_DUMP(SizeInfo<PD_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::Base_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::CrossingContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::CrossingStateContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcStateContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcColorContainer_T>());
+    
+    print("");
+    print("");
     
     std::filesystem::path in_path  = std::filesystem::path(__FILE__).parent_path();
     valprint("Input  directory", in_path );
@@ -74,43 +88,45 @@ int main()
     print( "-=| An example program for Knoodle. |=-" );
     print( "" );
  
-//    // Load a knot from file.
-//    std::vector<Int> pd_code;
-//    
-//    {
-//        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
-//        std::ifstream s ( filename );
-//        Int number;
-//        
-//        if(!s)
-//        {
-//            Tools::eprint( "File " + filename + " not found." );
-//            return EXIT_FAILURE;
-//        }
-//        
-//        while( s )
-//        {
-//            if( s >> number )
-//            {
-//                pd_code.push_back(number);
-//            }
-//        }
-//    }
-//    
-//    Int c_count = static_cast<Int>( pd_code.size()/5 );
-//    
-//    // Create an instance of PlanarDiagram.
-//    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
+    // Load a knot from file.
+    std::vector<Int> pd_code;
     
-    const Int n = 1'000;
-    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
-    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
-    Real K = 0;
-    // Sometimes we want to copy the the first vertex on wrap-around; sometimes we don't.
-    // That's why WriteRandomClosedPolygon has flag `wrap_aroundQ` for that.
-    S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, true /* = with wrap-around*/ );
-    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
-    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
+    {
+        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
+        std::ifstream s ( filename );
+        Int number;
+        
+        if(!s)
+        {
+            Tools::eprint( "File " + filename + " not found." );
+            return EXIT_FAILURE;
+        }
+        
+        while( s )
+        {
+            if( s >> number )
+            {
+                pd_code.push_back(number);
+            }
+        }
+    }
+    
+    Int c_count = static_cast<Int>( pd_code.size()/5 );
+    
+    // Create an instance of PlanarDiagram.
+    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
+    
+//    const Int n = 1'000;
+//    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
+//    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
+//    Real K = 0;
+//    // Sometimes we want to copy the the first vertex on wrap-around; sometimes we don't.
+//    // That's why WriteRandomClosedPolygon has flag `wrap_aroundQ` for that.
+//    S.WriteRandomClosedPolygon(
+//        vertex_coordinates.data(), K, true /* = with wrap-around*/
+//    );
+//    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
+//    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
     
 
     print("");
@@ -126,17 +142,11 @@ int main()
     PrintInfo(pdc);
     print("");
     
-    print("Simplify() + Reapr");
+    Tools::tic("Simplify() + Reapr");
     try
     {
         pdc.Simplify({
-            .local_opt_level       = 0,
-            .strategy              = Knoodle::DijkstraStrategy_T::Bidirectional,
-            .disconnectQ           = true,
-            .splitQ                = true,
-            .compressQ             = true,  // compress during rerouting
-            .compression_threshold = 0,     // don't compress if crossing_count <= compression_threshold
-            .embedding_trials      = 1,
+            .embedding_trials      = 0,
             .rotation_trials       = 25
         });
     }
@@ -145,6 +155,7 @@ int main()
         Knoodle::eprint(e.what());
         exit(-1);
     }
+    Tools::toc("Simplify() + Reapr");
     
     print("");
     PrintInfo(pdc);

@@ -65,6 +65,8 @@ private:
 
 void ComputeVertexPositions( const bool centralizeQ )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     //Caution: This gives only half the weight to the end vertices of the chain.
     //Thus this is only really the barycenter, if the chain is closed!
     

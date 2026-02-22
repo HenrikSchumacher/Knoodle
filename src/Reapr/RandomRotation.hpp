@@ -2,6 +2,8 @@
 template<typename R = Real, typename I = Int>
 Tiny::Matrix<3,3,R,I> RandomRotation()
 {
+    TOOLS_MAKE_FP_FAST();
+    
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     

@@ -98,6 +98,14 @@ bool CheckAllCrossings() const
         passedQ = passedQ && CheckCrossing(c);
     }
     
+#ifdef KNOODLE_USE_BOOST_PLANARITY
+    if( !PlanarGraphQ() )
+    {
+        eprint(tag()+": Underlying graph is not planar.");
+        return false;
+    }
+#endif
+    
 //    if( passedQ )
 //    {
 //        logprint(tag()+": passed.");

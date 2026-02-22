@@ -131,7 +131,7 @@ namespace Knoodle
         ArcStateContainer_T      A_state;
         // Some multi-purpose scratch buffers. Mostly for Traversal.
         mutable Tensor1<Int,Int> A_scratch;
-        
+
         // Counters for Reidemeister moves.
         Int R_I_counter   = 0;
         Int R_Ia_counter  = 0;

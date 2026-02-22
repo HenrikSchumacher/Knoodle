@@ -4,6 +4,8 @@ public:
 
 Tensor1<Real,Int> LevelsQP_SSN( cref<PD_T> pd )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     auto x_mu = LevelsQP_SSN_LevelsAndLagrangeMultipliers(pd);
     
     // We have to read the levels values through pd.LinkComponentArcs().Elements()
@@ -36,6 +38,8 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     cref<PD_T> pd
 )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers"));
     
     const Int m = pd.ArcCount();
@@ -175,6 +179,8 @@ public:
 template<typename R = Real, typename I = Int, typename J = Int>
 Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
 {
+    TOOLS_MAKE_FP_FAST();
+    
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");
@@ -233,6 +239,8 @@ void LevelsQP_SSN_WriteMatrixModifiedValues(
     mptr<R> mod_vals
 ) const
 {
+    TOOLS_MAKE_FP_FAST();
+    
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");

@@ -59,9 +59,9 @@ namespace Knoodle
         friend std::string ToString( cref<Settings_T> settings_ )
         {
             return std::string("{ ")
-                    +   ".max_iter = " + ToString(settings_.max_iter)
-                    + ", .compression_threshold = " + ToString(settings_.compression_threshold)
-                    + ", .compressQ = " + ToString(settings_.compressQ)
+                    +   "max_iter = " + ToString(settings_.max_iter)
+                    + ", compression_threshold = " + ToString(settings_.compression_threshold)
+                    + ", compressQ = " + ToString(settings_.compressQ)
             + " }";
         }
         

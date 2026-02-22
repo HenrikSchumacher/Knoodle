@@ -32,8 +32,8 @@ namespace Knoodle
         using ArcContainer_T        = typename PD_T::ArcContainer_T;
         using ColorCounts_T         = typename PD_T::ColorCounts_T;
         
-        using StrandSimplifier_T    = StrandSimplifier2<Int>;
-        using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
+        using PassSimplifier_T      = PassSimplifier<Int>;
+        using Dijkstra_T            = typename PassSimplifier_T::Dijkstra_T;
         using OrthoDraw_T           = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
         using Compaction_T          = typename OrthoDraw_T::CompactionMethod_T;
@@ -65,7 +65,7 @@ namespace Knoodle
 //        friend class ArcSimplifier2<Int,3,false>;
 //        friend class ArcSimplifier2<Int,4,false>;
         
-        friend class StrandSimplifier2<Int>;
+        friend class PassSimplifier<Int>;
         
     private:
         
@@ -129,6 +129,7 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
+#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
 //#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
@@ -508,28 +509,28 @@ namespace Knoodle
         }
 
 
-        mref<StrandSimplifier_T> StrandSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
+        mref<PassSimplifier_T> PassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("StrandSimplifier") )
+            if( !this->InCacheQ("PassSimplifier") )
             {
-                this->SetCache("StrandSimplifier", StrandSimplifier_T(*this,strategy));
+                this->SetCache("PassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("PassSimplifier").SetDijkstraStrategy(strategy);
         }
         
-        Tensor1<Int,Int> FindShortestPath(
+        PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return StrandSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
+            return PassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
-        Tensor1<Int,Int> FindShortestRerouting(
+        PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return StrandSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
+            return PassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
         }
        
     public:

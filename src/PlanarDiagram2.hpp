@@ -1,7 +1,12 @@
-#pragma  once//
+#pragma  once
 
-//#include <boost/graph/adjacency_list.hpp>
-//#include <boost/graph/boyer_myrvold_planar_test.hpp>
+// Undecided on whether the scratch buffers help or not.
+#define PD_ALLOCATE_SCRATCH
+
+#ifdef KNOODLE_USE_BOOST_PLANARITY
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/boyer_myrvold_planar_test.hpp>
+#endif
 
 namespace Knoodle
 {
@@ -66,7 +71,7 @@ namespace Knoodle
 //        friend class ArcSimplifier2<Int,3,false>;
 //        friend class ArcSimplifier2<Int,4,false>;
 
-        friend class StrandSimplifier2<Int>;
+        friend class PassSimplifier<Int>;
             
         using HeadTail_T = bool;
         
@@ -120,23 +125,25 @@ namespace Knoodle
         CrossingContainer_T      C_arcs;
         // Exposed to user via CrossingStates().
         CrossingStateContainer_T C_state;
+#ifdef PD_ALLOCATE_SCRATCH
         // Some multi-purpose scratch buffers.
         mutable Tensor1<Int,Int> C_scratch;
-        
+#endif
         // Exposed to user via Arcs().
         ArcContainer_T           A_cross;
         // Exposed to user via ArcStates().
         ArcStateContainer_T      A_state;
         // Exposed to user via ArcColors().
         ArcColorContainer_T      A_color;
+#ifdef PD_ALLOCATE_SCRATCH
         // Some multi-purpose scratch buffers.
         mutable Tensor1<Int,Int> A_scratch;
+#endif
         
         mutable Int last_color_deactivated = Uninitialized;
-        bool proven_minimalQ = false;
-        
         mutable Int c_search_ptr = 0;
         mutable Int a_search_ptr = 0;
+        bool proven_minimalQ = false;
         
     public:
   
@@ -166,12 +173,16 @@ namespace Knoodle
         , max_crossing_count { int_cast<Int>(max_crossing_count_)              }
         , max_arc_count      { Int(Int(2) * max_crossing_count)                }
         , C_arcs             { max_crossing_count, Uninitialized               }
-        , C_state            { max_crossing_count, CrossingState_T::Inactive }
+        , C_state            { max_crossing_count, CrossingState_T::Inactive   }
+#ifdef PD_ALLOCATE_SCRATCH
         , C_scratch          { max_crossing_count                              }
+#endif
         , A_cross            { max_arc_count,      Uninitialized               }
         , A_state            { max_arc_count,      ArcState_T::Inactive        }
         , A_color            { max_arc_count,      Uninitialized               }
+#ifdef PD_ALLOCATE_SCRATCH
         , A_scratch          { max_arc_count                                   }
+#endif
         {
             // needs to know all member variables
             static_assert(IntQ<ExtInt>,"");
@@ -190,11 +201,15 @@ namespace Knoodle
         , max_arc_count      { Int(Int(2) * max_crossing_count)                }
         , C_arcs             { max_crossing_count                              }
         , C_state            { max_crossing_count                              }
+#ifdef PD_ALLOCATE_SCRATCH
         , C_scratch          { max_crossing_count                              }
+#endif
         , A_cross            { max_arc_count                                   }
         , A_state            { max_arc_count                                   }
         , A_color            { max_arc_count                                   }
+#ifdef PD_ALLOCATE_SCRATCH
         , A_scratch          { max_arc_count                                   }
+#endif
         {
             // needs to know all member variables
             (void)dummy;
@@ -432,7 +447,10 @@ namespace Knoodle
         
 
 #include "PlanarDiagram2/Relabel.hpp"
-//#include "PlanarDiagram2/Planarity.hpp"
+        
+#ifdef KNOODLE_USE_BOOST_PLANARITY
+#include "PlanarDiagram2/Planarity.hpp"
+#endif
         
     public:
         
@@ -669,11 +687,16 @@ namespace Knoodle
         {
             Size_T byte_count = C_arcs.AllocatedByteCount()
                               + C_state.AllocatedByteCount()
+#ifdef PD_ALLOCATE_SCRATCH
                               + C_scratch.AllocatedByteCount()
+#endif
                               + A_cross.AllocatedByteCount()
                               + A_state.AllocatedByteCount()
                               + A_color.AllocatedByteCount()
-                              + A_scratch.AllocatedByteCount();
+#ifdef PD_ALLOCATE_SCRATCH
+                              + A_scratch.AllocatedByteCount()
+#endif
+                              ;
             
             // TODO: This does not account for Cache and PersistentCache.
             
@@ -686,11 +709,16 @@ namespace Knoodle
                 ClassName() + " allocations \n"
                 + "\t" + TOOLS_MEM_DUMP_STRING(C_arcs)
                 + "\t" + TOOLS_MEM_DUMP_STRING(C_state)
+#ifdef PD_ALLOCATE_SCRATCH
                 + "\t" + TOOLS_MEM_DUMP_STRING(C_scratch)
+#endif
                 + "\t" + TOOLS_MEM_DUMP_STRING(A_cross)
                 + "\t" + TOOLS_MEM_DUMP_STRING(A_state)
                 + "\t" + TOOLS_MEM_DUMP_STRING(A_color)
-                + "\t" + TOOLS_MEM_DUMP_STRING(A_scratch);
+#ifdef PD_ALLOCATE_SCRATCH
+                + "\t" + TOOLS_MEM_DUMP_STRING(A_scratch)
+#endif
+                ;
         }
         
 /*!@brief A coarse estimator of memory in use for this class instance. Does not account for quantities stored in the class' cache.

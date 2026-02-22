@@ -58,12 +58,18 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     const Int dA_count   = Int(2) * pd.MaxArcCount();
           Int F_count    = pd.FaceCount();   // Might be increased during this routine.
     
+#ifdef PD_ALLOCATE_SCRATCH
     // Using A_scratch for face flags. The array should be large anough for additional faces.
     static_assert( sizeof(Int) >= Size_T(2) * sizeof(bool) );
     mptr<bool> F_state = reinterpret_cast<bool *>(pd.A_scratch.data());
+#else
+    Tensor1<bool,Int> F_state_buffer( dA_count );
+    mptr<bool> F_state = F_state_buffer.data();
+#endif // PD_ALLOCATE_SCRATCH
+    
     fill_buffer( F_state, true, F_count );
     fill_buffer( &F_state[F_count], false, dA_count - F_count );
-  
+    
     Size_T f_max_size = ToSize_T(pd.MaxFaceSize());
     
     std::vector<Int> f_dA;

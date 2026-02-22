@@ -11,12 +11,12 @@ bool PlanarGraphQ() const
         boost::property<boost::vertex_index_t,Int>
     >;
     
-    const Int n = Crossings().Dim(0);
-    const Int m = Arcs().Dim(0);
+    const Size_T n = ToSize_T(Crossings().Dim(0));
+    const Size_T m = ToSize_T(Arcs().Dim(0));
     
     Graph_T G(n);
     
-    for( Int a = 0; a < m; ++a )
+    for( Size_T a = 0; a < m; ++a )
     {
         if( !ArcActiveQ(a) ) { continue; }
         

@@ -205,6 +205,96 @@ void ChangeArcColor_Private( const Int a, const Int new_color )
 
 
 
-
-
-
+//PD_T ExtractByColor( const Int color )
+//{
+//    if( InvalidQ() ) { return InvalidDiagram(); }
+//    
+//    if( ProvenUnknotQ() ) { return Unknot( last_color_deactivated ); }
+//    
+//    
+//    Tensor1<Int,Int> c_map ( max_crossing_count );
+//    Tensor1<Int,Int> a_map ( max_arc_count );
+//    
+//    bool color_existQ = false;
+//    Int  c_counter    = 0;
+//    Int  a_counter    = 0;
+//    Int  c_dangling   = Uninitialized;  // If ValidIndexQ(c_dangling), then this is the head of the previous are collected
+//    Int  c_first_label = Uninitialized;
+//    
+//    this->template Traverse<true>(
+//        [&c_dangling,&c_first_label]( const Int lc, const Int lc_begin )
+//        {
+//            (void)lc;
+//            (void)lc_begin;
+//            c_dangling    = Uninitialized;
+//            c_first_label = Uninitialized;
+//        },
+//        [&color_existQ,&c_counter,&c_dangling,&c_first_label,&a_counter,&c_map,&a_map,color,this](
+//            const Int a,   const Int a_pos,   const Int  lc,
+//            const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
+//            const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
+//        )
+//        {
+//            (void)a_pos;
+//            (void)lc;
+//            (void)c_0_pos;
+//            (void)c_0_visitedQ;
+//            (void)c_1;
+//            (void)c_1_pos;
+//            (void)c_1_visitedQ;
+//            
+//            if( A_color[a] == color )
+//            {
+//                color_existQ = true;
+//                
+//                C_Arcs_T C = CopyCrossing(c_0);
+//                
+//                const bool side = (C[Out][Right] == a);
+//                
+//                PD_ASSERT(A_color[C[In][!side]] == color);
+//                
+//                if( (A_color[C[Out][!side]] == color) && (A_color[C[In][side]] == color) )
+//                {
+//                    const Int c_label = c_0_visitedQ ? c_map[c_0] : c_counter++;
+//                    
+//                    // If ValidIndexQ(c_dangling), then this is the head of the previous are collected.
+//                    // If ValidIndexQ(c_first_label), then this is the label of the first collected crossing in this c_first_label.
+//                    
+//                    if( ValidIndexQ(c_dangling) )
+//                    {
+//                        c_map[c_dangling] = c_label;
+//                    }
+//                    else
+//                    {
+//                        c_first_label = c_label;
+//                    }
+//                    c_map[c_0] = c_label;
+//                    c_dangling = c_1;
+//                    a_map[a]   = a_counter++;
+//                }
+//                else
+//                {
+//                    c_map[c_0] = UninitializedIndex();
+//                    a_map[a  ] = UninitializedIndex();
+//                }
+//            }
+//            
+//        },
+//        [&c_dangling,&c_first_label,&c_map]( const Int lc, const Int lc_begin, const Int lc_end )
+//        {
+//            (void)lc;
+//            (void)lc_begin;
+//            (void)lc_end;
+//            c_map[c_dangling] = c_first_label;
+//        }
+//    );
+//    
+//    TOOLS_DUMP(c_map);
+//    TOOLS_DUMP(a_map);
+//    
+//    if( !color_existQ ) { return InvalidDiagram(); }
+//    
+//    if( c_counter == Int(0) ) { return InvalidDiagram(); }
+//    
+//    return CreateRelabelled( c_map, c_counter, a_map, a_counter, true /*surjectiveQ*/ );
+//}

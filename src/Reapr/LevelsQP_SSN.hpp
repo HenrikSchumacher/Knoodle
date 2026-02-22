@@ -36,6 +36,8 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     cref<PD_T> pd
 )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers"));
     
     const Int m = pd.ArcCount();
@@ -233,6 +235,8 @@ void LevelsQP_SSN_WriteMatrixModifiedValues(
     mptr<R> mod_vals
 ) const
 {
+    TOOLS_MAKE_FP_FAST();
+    
     static_assert(FloatQ<R>,"");
     static_assert(IntQ<I>,"");
     static_assert(IntQ<J>,"");

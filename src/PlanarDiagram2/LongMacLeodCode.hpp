@@ -146,7 +146,12 @@ Size_T MacLeodComparisonCount()
 {
     if( !this->InCacheQ("MacLeodComparisonCount") )
     {
+#ifdef PD_ALLOCATE_SCRATCH
         WriteLongMacLeodCode( reinterpret_cast<UInt *>(A_scratch.data()) );
+#else
+        Tensor1<UInt,Int> dummy ( max_arc_count );
+        WriteLongMacLeodCode( dummy.data() );
+#endif
     }
     return this->GetCache<Size_T>("MacLeodComparisonCount");
 }
@@ -180,8 +185,13 @@ static PD_T FromLongMacLeodCode(
 
     PD_T pd ( n );
     
+#ifdef PD_ALLOCATE_SCRATCH
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
     fill_buffer(A_visitedQ,false,m);
+#else
+    Tensor1<bool,Int> A_visitedQ_buffer( pd.max_arc_count, false );
+    mptr<bool> A_visitedQ = A_visitedQ_buffer.data();
+#endif
     
     pd.proven_minimalQ = proven_minimalQ_;
     

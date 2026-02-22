@@ -25,6 +25,7 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     
     // We use PackedArcIndices/RandomPackedArcIndices to take care of gaps in the data structure. Moreover, it facilitates random permutation of the arcs if this feature is active. In order to avoid allocation of short-time memory, we use C_scratch and A_scratch.
     
+#ifdef PD_ALLOCATE_SCRATCH
     if( settings.permute_randomQ )
     {
         pd.ScratchRandomPackedArcIndices( random_engine );
@@ -35,6 +36,13 @@ Tensor1<T,Int> LevelsLP_MCF( cref<PD_T> pd )
     }
     
     cptr<Int> a_map  = pd.ArcScratchBuffer().data();
+#else
+    auto a_map_buffer = settings.permute_randomQ
+                      ? pd.RandomPackedArcIndices( random_engine )
+                      : pd.PackedArcIndices();
+    cptr<Int> a_map  = a_map_buffer.data();
+#endif
+    
     cptr<Int> A_next = pd.ArcNextArc().data();
 
     const I n = I(4) * static_cast<I>(pd.CrossingCount());

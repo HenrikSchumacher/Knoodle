@@ -30,6 +30,8 @@ private:
 
 Embedding_T Embedding_impl( cref<PD_T> pd )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     OrthoDraw_T H;
     Tensor1<Real,Int> L;
     

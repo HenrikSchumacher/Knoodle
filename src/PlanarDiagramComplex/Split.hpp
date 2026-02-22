@@ -83,7 +83,7 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
     const auto & lc_arcs = pd.LinkComponentArcs();
     
-    pd.C_scratch.Fill(Uninitialized);
+    
     
 #if defined(TENSORS_BOUND_CHECKS)
     // Use the containers to enable automatic bound checks.
@@ -92,8 +92,12 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     
     auto & lc_arc_ptr = lc_arcs.Pointers();
     auto & lc_arc_idx = lc_arcs.Elements();
-    
-    auto & C_labels = pd.C_scratch;
+
+    #ifdef PD_ALLOCATE_SCRATCH
+        auto & C_labels = pd.C_scratch;
+    #else
+        Tensor1<Int,Int> C_labels ( pd.max_crossing_count );
+    #endif
 #else
     // Use pointers to make this potentially faster. (Well, the restrict keyword would not work anyways, as we do not funnel this through a function call.)
     cptr<Int> dc_lc_ptr = A.Outer().data();
@@ -102,9 +106,16 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
     cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
     
-    mptr<Int> C_labels = pd.C_scratch.data();
+    #ifdef PD_ALLOCATE_SCRATCH
+        mptr<Int> C_labels = pd.C_scratch.data();
+    #else
+        Tensor1<Int,Int> C_labels_buffer ( pd.max_crossing_count );
+        mptr<Int> C_labels = C_labels_buffer.data();
+    #endif
 #endif
     
+    fill_buffer( &C_labels[0], Uninitialized, pd.max_crossing_count );
+
     for( Int dc = 0; dc < dc_count; ++dc  )
     {
         const Int i_begin = dc_lc_ptr[dc    ];

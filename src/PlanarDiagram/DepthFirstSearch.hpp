@@ -72,7 +72,7 @@ void DepthFirstSearch(
     
     mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
     fill_buffer(C_flag,UInt8(0),max_crossing_count);
-    
+
     // C_flag[c] == 0 means undiscovered.
     // C_flag[c] == 1 means discovered, not visited.
     // C_flag[c] == 2 means discovered and pre-visited, not post-visited.
@@ -82,7 +82,7 @@ void DepthFirstSearch(
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,max_arc_count);
-
+    
     Stack<DarcNode,Int> stack ( max_arc_count );
 
     auto conditional_push = [A_visitedQ,C_flag,dA_C,&stack,&discover,&rediscover,this](

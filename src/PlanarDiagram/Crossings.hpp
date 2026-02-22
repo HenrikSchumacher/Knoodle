@@ -129,7 +129,6 @@ Int CountActiveCrossings() const
     return counter;
 }
 
-
 /*!@brief Returns the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use with caution as its content depends heavily on which routines have been called before.
 */
 cref<Tensor1<Int,Int>> CrossingScratchBuffer() const

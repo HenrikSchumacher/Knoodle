@@ -166,6 +166,8 @@ private:
 
 static Real tanhc( const Real t )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     // Computes tanh(t)/t in a stable way by using a Padé approximation around t = 0.
     constexpr Real a0 = one;
     constexpr Real a1 = Frac<Real>(7,51);

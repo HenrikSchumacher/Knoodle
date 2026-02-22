@@ -40,10 +40,7 @@ Tensor2<T,Int> PDCode() const
     Tensor2<T,Int> pd_code;
     
     // We do this to suppress a warning by `Traverse`.
-    if( !ValidQ() )
-    {
-        return pd_code;
-    }
+    if( !ValidQ() ) { return pd_code; }
     
     if( std::cmp_greater( arc_count, std::numeric_limits<T>::max() ) )
     {
@@ -262,16 +259,16 @@ void WritePDCode( mptr<T> pd_code ) const
     );
 }
 
-
-template<typename T = Int>
-std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
-{
-    Tensor2<T,Int> pd_code  = this->template PDCode<T,true,true>();
-    Tensor1<T,Int> C_pos    = C_scratch;
-    Tensor1<T,Int> A_pos    = A_scratch;
-    
-    return std::tuple(pd_code,C_pos,A_pos);
-}
+// TODO: Repair this.
+//template<typename T = Int>
+//std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
+//{
+//    Tensor2<T,Int> pd_code  = this->template PDCode<T,true,true>();
+//    Tensor1<T,Int> C_pos    = C_scratch;
+//    Tensor1<T,Int> A_pos    = A_scratch;
+//    
+//    return std::tuple(pd_code,C_pos,A_pos);
+//}
 
 
 

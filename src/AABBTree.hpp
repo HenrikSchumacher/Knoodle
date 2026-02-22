@@ -105,6 +105,8 @@ namespace Knoodle
             cptr<Real> P, mptr<BReal> B
         )
         {
+            TOOLS_MAKE_FP_FAST();
+            
             static_assert(point_count > Int(0), "");
             
             // TODO: If we store upper and lower bounds as vectors, then this can be vectorized?
@@ -128,6 +130,8 @@ namespace Knoodle
             cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
         )
         {
+            TOOLS_MAKE_FP_FAST();
+            
             // TODO: Vectorize this.
             
             for( Int k = 0; k < AmbDim; ++k )
@@ -248,6 +252,8 @@ namespace Knoodle
             const cptr<Real> B_i, const cptr<Real> B_j
         )
         {
+            TOOLS_MAKE_FP_FAST();
+            
             Real d2 = 0;
             
             for( Int k = 0; k < AmbDim; ++k )

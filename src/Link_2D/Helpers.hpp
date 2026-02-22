@@ -59,6 +59,8 @@ private:
 
     void ComputeBoundingBox( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // We assume that input is a link; thus
         const Int vertex_count = edge_count;
         

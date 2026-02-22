@@ -195,8 +195,13 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
     pd.crossing_count = crossing_count;
     pd.arc_count      = Int(2) * crossing_count;
     
+#ifdef PD_ALLOCATE_SCRATCH
     pd.C_scratch.Fill(Uninitialized);
     mptr<Int> C_label = pd.C_scratch.data();
+#else
+    Tensor1<Int,Int> C_label_buffer (crossing_count,Uninitialized);
+    mptr<Int> C_label = C_label_buffer.data();
+#endif
     
     Aggregator<Int,Int> unlink_colors;
     Int C_counter = 0;

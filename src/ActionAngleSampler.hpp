@@ -78,6 +78,8 @@ namespace Knoodle
         template<Arg_T args>
         Size_T WriteRandomEquilateralPolygon_impl( mptr<Real> p, const Int n )
         {
+            TOOLS_MAKE_FP_FAST();
+            
             // We use the user-supplied buffer as scratch space for the diagonal lengths d.
             // We need n-1 entries.
             // We have at least 3 * n space at disposal.

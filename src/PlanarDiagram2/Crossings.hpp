@@ -62,12 +62,14 @@ cref<CrossingStateContainer_T> CrossingStates() const
     return C_state;
 }
 
+#ifdef PD_ALLOCATE_SCRATCH
 /*!@brief Returns the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use this with caution as its content depends heavily on which routines have been called before.
 */
 cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
 {
     return C_scratch;
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 C_Arcs_T CopyCrossing( const Int c ) const
 {

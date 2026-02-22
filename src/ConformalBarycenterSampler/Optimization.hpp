@@ -7,6 +7,8 @@ private:
 
     void Optimize()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         const Int max_iter = Settings().max_iter;
         
         iter = 0;
@@ -32,6 +34,8 @@ private:
     
     Real Potential()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         const Real zz = Dot(z_,z_);
         
         const Real a = big_one + zz;
@@ -54,6 +58,8 @@ private:
     
     void LineSearch_Hyperbolic_Residual()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // 2 F(0)^T.DF(0).u is the derivative of w\mapsto F(w)^T.F(w) at w = 0.
         const Real slope = two * DF_.InnerProduct(F_,u_);
         
@@ -110,6 +116,8 @@ private:
     
     void LineSearch_Hyperbolic_Potential()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         Real tau = one;
         
         const Real u_norm = u_.Norm();
@@ -167,6 +175,8 @@ private:
     
     void DifferentialAndHessian_Hyperbolic()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // CAUTION: We use a different sign convention as in the paper!
         // Assemble  F = -1/2 y * r.
         // Assemble DF_ = nabla F + regulatization:
@@ -259,6 +269,8 @@ private:
     
     void SearchDirection_Hyperbolic()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // Make decisions whether to continue.
         if( residual < static_cast<Real>(100.) * Settings().tolerance )
         {
@@ -324,6 +336,8 @@ private:
     
     void InverseShift()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // Shifts just the point w.
         
         const Real ww  = Dot(w_,w_);
@@ -345,6 +359,8 @@ public:
 
     void Shift()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // Shifts all entries of x along w and writes the results to y.
         
         const Real ww = Dot(w_,w_);
@@ -366,6 +382,8 @@ private:
     template< bool normalizeQ>
     void shift( const Real ww )
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // This function is meant to reduce code duplication.
         // It is only meant to be called directly from Shift.
         

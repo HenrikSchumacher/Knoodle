@@ -1,8 +1,8 @@
 private:
 
-void RemoveLoopPath( const Int e, const Int c_0 )
+void RerouteLoopPath( const Int e, const Int c_0 )
 {
-    PD_TIMER(timer,MethodName("RemoveLoopPath"));
+    PD_TIMER(timer,MethodName("RerouteLoopPath"));
     
 #ifdef PD_DEBUG
     int mark_counter = 0;
@@ -13,7 +13,7 @@ void RemoveLoopPath( const Int e, const Int c_0 )
     
     if ( mark_counter >= 4 ) // This should never happen.
     {
-        wprint(MethodName("RemoveLoopPath") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
+        wprint(MethodName("RerouteLoopPath") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
         TOOLS_LOGDUMP(c_0);
         TOOLS_LOGDUMP(e  );
         TOOLS_LOGDUMP(pd->C_arcs(c_0,Out,Left ));
@@ -41,7 +41,7 @@ void RemoveLoopPath( const Int e, const Int c_0 )
             
             const bool u_0 = (pd->C_arcs(c_0,Out,Right) == a);
             
-            CollapseArcRange(a,e,strand_arc_count);
+            CollapseArcRange(a,e,strand_arc_count,current_mark);
             DeactivateArc(a);
             CreateUnlinkFromArc(a);
             
@@ -100,7 +100,7 @@ void RemoveLoopPath( const Int e, const Int c_0 )
               
     const Int b = pd->C_arcs(c_0,Out,side);
     
-    CollapseArcRange(b,e,strand_arc_count);
+    CollapseArcRange(b,e,strand_arc_count,current_mark);
 
     // Now b is guaranteed to be a loop arc. (e == b or e is deactivated.)
     

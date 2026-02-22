@@ -1,46 +1,5 @@
 public:
 
-
-struct SimplifyStrands_Args
-{
-    Int  max_dist              = Scalar::Max<Int>;
-    bool overQ                 = true;
-    bool compressQ             = true;
-    Int  compression_threshold = 100;
-};
-
-friend std::string ToString( cref<SimplifyStrands_Args> args )
-{
-    return std::string("{ ")
-         +   ".max_dist = " + ToString(args.max_dist)
-         + ", .overQ = " + ToString(args.overQ)
-         + ", .compressQ = " + ToString(args.compressQ)
-         + ", .compression_threshold = " + ToString(args.compression_threshold)
-         + " }";
-}
-
-struct SimplifyStrands_TArgs
-{
-    bool restart_after_successQ = true;
-    bool restart_after_failureQ = true;
-    bool restart_walk_backQ     = true;
-    bool interleave_over_underQ = true;
-    bool R_II_blockingQ         = true;
-    bool R_II_forwardQ          = false;
-};
-
-friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
-{
-    return "{.restart_after_successQ = " + ToString(targs.restart_after_successQ)
-         + ",.restart_after_failureQ = " + ToString(targs.restart_after_failureQ)
-         + ",.restart_walk_backQ = " + ToString(targs.restart_walk_backQ)
-         + ",.interleave_over_underQ = " + ToString(targs.interleave_over_underQ)
-         + ",.R_II_blockingQ = " + ToString(targs.R_II_blockingQ)
-         + ",.R_II_forwardQ = " + ToString(targs.R_II_forwardQ)
-         + "}";
-}
-
-
 // TODO: If a loops is removed that does not finish a component, we can try to restart as well.
 
 /*!@brief This is the main routine of the class. It is supposed to reroute all over/understrands to shorter strands, if possible. It does so by traversing the diagram and looking for over/understrand. When a complete strand is detected, it runs Dijkstra's algorithm in the dual graph of the diagram _without the currect strand_. If a shorter path is detected, the strand is rerouted. The returned integer is a rough(!) indicator of how many changes accoured. 0 is returned only of no changes have been made and if there is no need to call this function again. A positive value indicates that it would be worthwhile to call this function again (maybe after some further simplifications).
@@ -48,8 +7,8 @@ friend std::string ToString( cref<SimplifyStrands_TArgs> targs )
  *
  */
 
-template<SimplifyStrands_TArgs targs>
-Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
+template<SimplifyPasses_TArgs targs>
+Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
 {
     [[maybe_unused]] auto tag = [this]() { return this->MethodName("SimplifyStrands"); };
     
@@ -259,8 +218,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
             PD_ASSERT( strand_completeQ == (ArcOverQ(a_next,Tail) != overQ) );
 
             // Check for a big loop strand.i.e., an over/understrand that starts and ends at the same crossing.
-            // TODO: Simplify everything to a single call to RemoveLoopPath(a,c_1) and break.
-            // TODO: Don't forget to catch the Big Hopf Link in RemoveLoopPath.
+            // TODO: Simplify everything to a single call to RerouteLoopPath(a,c_1) and break.
+            // TODO: Don't forget to catch the Big Hopf Link in RerouteLoopPath.
             // TODO: In some cases we might reset the current strand
             
             if( CrossingMarkedQ(c_1) )
@@ -307,9 +266,9 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                      *              |
                      */
                     
-                    // Both cases can be handled by  RemoveLoopPath.
-                    RemoveLoopPath(a,c_1);
-                    PD_PRINT("Breaking because we called RemoveLoopPath. We might or might not recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    // Both cases can be handled by  RerouteLoopPath.
+                    RerouteLoopPath(a,c_1);
+                    PD_PRINT("Breaking because we called RerouteLoopPath. We might or might not recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
                     break;
                     // TODO: Can't we start a new strand nearby?
                 }
@@ -336,8 +295,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                      */
                     
                     // TODO: We could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
-                    RemoveLoopPath(a,c_1);
-                    PD_PRINT("Breaking because we called RemoveLoopPath. We might recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    RerouteLoopPath(a,c_1);
+                    PD_PRINT("Breaking because we called RerouteLoopPath. We might recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
                     break;
                 }
                 else // if( strand_completeQ && (a_next == s_begin) )
@@ -379,7 +338,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     // However, the earlier call(s) to Reidemeister_I rule this case out as `a_next` cannot be a loop arc.
                     
                     // TODO: Cutting the loop here will probably be better.
-                    // TODO: Would  RemoveLoopPath(a,c_1); work?
+                    // TODO: Would  RerouteLoopPath(a,c_1); work?
                     // TODO: Moreover, we could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
                     
                     
@@ -532,8 +491,18 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyStrands_Args> args )
                     
 #endif // PD_DEBUG
                     
-                    changedQ = RerouteToShortestPath_impl(
-                        s_begin, a, Min(static_cast<Int>(strand_arc_count-Int(1)),args.max_dist)
+                    Pass_T pass {
+                        .first     = s_begin,
+                        .last      = a,
+                        .next      = a_next,
+                        .arc_count = strand_arc_count,
+                        .mark      = current_mark,
+                        .overQ     = overQ,
+                        .activeQ   = true
+                    };
+                    
+                    changedQ = RerouteToShortestPath(
+                        pass, Min(static_cast<Int>(strand_arc_count-Int(1)), args.max_dist), path_0
                     );
 #ifdef PD_DEBUG
                     Int C_1 = pd->crossing_count;

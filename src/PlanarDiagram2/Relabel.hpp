@@ -2,7 +2,8 @@ public:
 
 template<typename ExtInt>
 PD_T CreateRelabeled(
-     cptr<ExtInt> c_map, const ExtInt c_max, cptr<ExtInt> a_map, const ExtInt a_max, bool surjectiveQ = false
+     cptr<ExtInt> c_map, const ExtInt c_max, cptr<ExtInt> a_map, const ExtInt a_max,
+     bool surjectiveQ = false
 )  const
 {
     static_assert(IntQ<ExtInt>,"");
@@ -29,6 +30,10 @@ PD_T CreateRelabeled(
     
     const Int n = int_cast<Int>( Max( c_max, ExtInt((a_max + ExtInt(1))/ExtInt(2) )) );
     
+    if( n == Int(0) )
+    {
+    }
+    
     PD_T pd = surjectiveQ ? PD_T(n,true) : PD_T(n);
     
     pd.crossing_count         = this->crossing_count;
@@ -42,6 +47,8 @@ PD_T CreateRelabeled(
         
         const Int t = c_map[s];
 
+        if( !ValidIndexQ(t) ) { continue; }
+        
         if( t < Int(0) )
         {
             eprint(tag() + ": Found negative mapped crossing index. Aborting and returning invalid diagram.");
@@ -69,6 +76,8 @@ PD_T CreateRelabeled(
         if( !this->ArcActiveQ(s) ) { continue; }
         
         const ExtInt t = a_map[s];
+        
+        if( !ValidIndexQ(t) ) { continue; }
         
         if( t < ExtInt(0) )
         {
@@ -123,10 +132,12 @@ void WritePackedCrossingIndices( mptr<Int> c_map ) const
     }
 }
 
+#ifdef PD_ALLOCATE_SCRATCH
 void ScratchPackedCrossingIndices() const
 {
     WritePackedCrossingIndices( C_scratch.data() );
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 Tensor1<Int,Int> PackedCrossingIndices() const
 {
@@ -155,10 +166,12 @@ void WritePackedArcIndices( mptr<Int> a_map ) const
     }
 }
 
+#ifdef PD_ALLOCATE_SCRATCH
 void ScratchPackedArcIndices() const
 {
     WritePackedArcIndices( A_scratch.data() );
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 Tensor1<Int,Int> PackedArcIndices() const
 {
@@ -184,9 +197,14 @@ PD_T CreatePacked() const
         
         return pd;
     }
-    
+#ifdef PD_ALLOCATE_SCRATCH
     ScratchPackedCrossingIndices();
     ScratchPackedArcIndices();
+#else
+    Tensor1<Int,Int> C_scratch ( max_crossing_count );
+    Tensor1<Int,Int> A_scratch ( max_arc_count );
+#endif
+    
     return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 
@@ -217,10 +235,12 @@ void WriteRandomPackedCrossingIndices( mref<PRNG_T> random_engine, mptr<Int> c_m
     }
 }
 
+#ifdef PD_ALLOCATE_SCRATCH
 void ScratchRandomPackedCrossingIndices( mref<PRNG_T> random_engine )  const
 {
     WriteRandomPackedCrossingIndices( random_engine, C_scratch.data() );
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 template<typename PRNG_T>
 Tensor1<Int,Int> RandomPackedCrossingIndices( mref<PRNG_T> random_engine ) const
@@ -254,10 +274,12 @@ void WriteRandomPackedArcIndices( mref<PRNG_T> random_engine, mptr<Int> a_map ) 
     }
 }
 
+#ifdef PD_ALLOCATE_SCRATCH
 void ScratchRandomPackedArcIndices( mref<PRNG_T> random_engine ) const
 {
     WriteRandomPackedArcIndices( random_engine, A_scratch.data() );
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 template<typename PRNG_T>
 Tensor1<Int,Int> RandomPackedArcIndices( mref<PRNG_T> random_engine ) const
@@ -270,8 +292,14 @@ Tensor1<Int,Int> RandomPackedArcIndices( mref<PRNG_T> random_engine ) const
 
 PD_T CreatePermutedRandom( mref<PRNG_T> random_engine ) const
 {
+#ifdef PD_ALLOCATE_SCRATCH
     ScratchRandomPackedCrossingIndices( random_engine );
     ScratchRandomPackedArcIndices( random_engine );
+#else
+    auto C_scratch = RandomPackedCrossingIndices( random_engine );
+    auto A_scratch = RandomPackedArcIndices( random_engine );
+#endif
+    
     return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 

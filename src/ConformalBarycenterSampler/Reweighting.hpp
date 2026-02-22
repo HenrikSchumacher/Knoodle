@@ -20,6 +20,8 @@ private:
 
     Real EdgeQuotientSpaceSamplingCorrection() const
     {
+        TOOLS_MAKE_FP_FAST();
+        
         Tiny::SelfAdjointMatrix<AmbDim, Real, Int> Sigma;
         
         // We fill only the upper triangle of Sigma, because that's the only thing that the function Eigenvalues needs.
@@ -140,6 +142,8 @@ private:
 
     void ComputeEdgeSpaceSamplingHelper()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         edge_space_sampling_helper
             =
             Frac(
@@ -153,6 +157,8 @@ private:
 
     void ComputeEdgeQuotientSpaceSamplingHelper()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         edge_quotient_space_sampling_helper
             =
             Frac<Real>(
@@ -163,6 +169,8 @@ private:
 
     void ComputeEdgeSpaceSamplingWeight() const
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // Shifts all entries of x along y and writes the results to y.
         // Mind that x and y are stored in SoA fashion, i.e., as matrix of size AmbDim x point_count.
         
@@ -214,5 +222,7 @@ private:
 
     void ComputeEdgeQuotientSpaceSamplingWeight() const
     {
+        TOOLS_MAKE_FP_FAST();
+        
         edge_quotient_space_sampling_weight = EdgeSpaceSamplingWeight() * EdgeQuotientSpaceSamplingCorrection();
     }

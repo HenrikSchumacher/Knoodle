@@ -9,10 +9,10 @@ struct SimplifyLocal_Args_T
 friend std::string ToString( cref<SimplifyLocal_Args_T> args )
 {
     return std::string("{ ")
-            +   ".max_iter = " + ToString(args.max_iter)
-            + ", .compression_threshold = " + ToString(args.compression_threshold)
-            + ", .compressQ = " + ToString(args.compressQ)
-            + ", .opt_level = " + ToString(args.opt_level)
+            +   "max_iter = " + ToString(args.max_iter)
+            + ", compression_threshold = " + ToString(args.compression_threshold)
+            + ", compressQ = " + ToString(args.compressQ)
+            + ", opt_level = " + ToString(args.opt_level)
     + " }";
 }
 

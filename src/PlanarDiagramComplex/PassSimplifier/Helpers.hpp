@@ -40,7 +40,7 @@ void AssertCrossing( const Int c_ ) const
     
 std::string CrossingString( const Int c_ ) const
 {
-    return pd->CrossingString(c_) + " (markedQ = " + ToString(CrossingMarkedQ(c_)) + ")";
+    return pd->CrossingString(c_) + " (mark = " + ToString(CrossingMark(c_)) + ")";
 }
 
 bool ArcActiveQ( const Int a_ ) const
@@ -65,7 +65,7 @@ void AssertArc( const Int a_ ) const
 
 std::string ArcString( const Int a_ )  const
 {
-    return pd->ArcString(a_) + " (markedQ = " + ToString(ArcMarkedQ(a_)) + ")";
+    return pd->ArcString(a_) + " (mark = " + ToString(ArcMark(a_)) + ")";
 }
 
 bool ArcUnderQ( const Int a, const bool headtail, const Int c ) const

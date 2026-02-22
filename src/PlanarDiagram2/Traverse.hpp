@@ -1,7 +1,6 @@
 public:
 
-/*!
- * @brief Traverse each component of the link and apply function `arc_fun` to every arc visited. ~~This function may leverage the precomputed array `ArcTraversalFlags` by calling `Traverse_ByLinkComponents` if it are already available.~~ Otherwise, it will traverse by calling `Traverse_ByNextArc`.
+/*!@brief Traverse each component of the link and apply function `arc_fun` to every arc visited. ~~This function may leverage the precomputed array `ArcTraversalFlags` by calling `Traverse_ByLinkComponents` if it are already available.~~ Otherwise, it will traverse by calling `Traverse_ByNextArc`.
  *
  * Beware that `A_scratch` and `C_scratch` are overwritten as follows:
  *
@@ -78,8 +77,7 @@ void Traverse(
 }
 
 
-/*!
- * @brief Short version of `Traverse` with only a argument `arc_fun`.
+/*!@brief Short version of `Traverse` with only a argument `arc_fun`.
  */
 
 template<bool crossingsQ, bool labelsQ = false, typename ArcFun_T>
@@ -101,7 +99,6 @@ void Traverse( ArcFun_T && arc_fun )  const
     );
 }
 
-// TODO: Use this for ArcOverStrands and ArcUnderStrands.
 
 /*!
  * @brief Traverse each component of the link and apply function `arc_fun` to every arc visited. 
@@ -143,10 +140,17 @@ void Traverse_ByNextArc(
                  + "," + ToString(lutQ)
                  + ">");
     
+#ifdef PD_ALLOCATE_SCRATCH
     auto * A_data = reinterpret_cast<std::conditional_t<arclabelsQ,Int,bool> *>(A_scratch.data());
     
     auto * C_data = C_scratch.data();
-
+#else
+    Tensor1<std::conditional_t<arclabelsQ,Int,bool>,Int> A_data_buffer ( max_arc_count );
+    auto * A_data = A_data_buffer.data();
+    Tensor1<Int,Int> C_data_buffer ( max_crossing_count );
+    auto * C_data = C_data_buffer.data();
+#endif
+    
     if constexpr ( lutQ )
     {
         PD_ASSERT(CheckArcNextArc());

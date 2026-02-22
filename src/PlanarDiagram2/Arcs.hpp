@@ -57,14 +57,14 @@ cref<ArcColorContainer_T> ArcColors() const
     return A_color;
 }
 
-
+#ifdef PD_ALLOCATE_SCRATCH
 /*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
  */
 cref<Tensor1<Int,Int>> ArcScratchBuffer() const
 {
     return A_scratch;
 }
-
+#endif // PD_ALLOCATE_SCRATCH
 
 A_Cross_T CopyArc( const Int a ) const
 {
@@ -375,13 +375,13 @@ Int NextArc( const Int a, const bool headtail ) const
 
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
-    AssertArc(a);
-    AssertCrossing(c);
+    AssertArc<1>(a);
+    AssertCrossing<1>(c);
     PD_ASSERT( A_cross(a,headtail) == c );
     
     const bool side   = ArcSide(a,headtail,c);
     const Int  a_next = C_arcs(c,!headtail,!side);
-    AssertArc(a_next);
+    AssertArc<1>(a_next);
     
     return a_next;
 }

@@ -4,24 +4,22 @@ private:
  * @brief Attempts to reroute the strand. It is typically not save to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct coloring of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
  * This is why we make this function private.
  *
- * @param a_first The first arc of the strand on entry as well as as on return.
- *
- * @param a_last The last arc of the strand (included) as well as on entry as on return. Note that this values is a reference and that the passed variable will likely be changedQ!
+ * @param pass On entry, pass to reroute. On return, the reouted pass.
  */
 
-bool RerouteToPath( const Int a_first, mref<Int> a_last )
+bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
 {
-    PD_TIMER(timer,MethodName("RerouteToPath"));
+    PD_TIMER(timer,MethodName("Reroute"));
     
 #ifdef PD_DEBUG
     const Int Cr_0 = pd->CrossingCount();
     TOOLS_LOGDUMP(Cr_0);
 #endif
     
-    PD_VALPRINT("a_first",a_first);
-    PD_VALPRINT("a_last",a_last);
-    PD_VALPRINT("strand", ShortArcRangeString(a_first,a_last));
-    PD_VALPRINT("path", ShortPathString());
+    PD_VALPRINT("pass.first",pass.first);
+    PD_VALPRINT("pass.last",pass.last);
+    PD_VALPRINT("pass", ShortArcRangeString(pass.first,pass.last));
+    PD_VALPRINT("path", ShortPathString(path));
 
 
 //PD_PRINT("Diagram before rerouting:");
@@ -31,32 +29,30 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
 //PD_VALPRINT("ArcLeftDarc", pd->ArcLeftDarcs());
 //PD_VALPRINT("C_scratch", pd->C_scratch);
 //PD_VALPRINT("A_scratch", pd->A_scratch);
-   
-    // path[0] == a_first. This is not to be crossed.
     
     Int p = 1;
-    Int a = a_first;
+    Int a = pass.first;
     
-    // At the beginning of the strand we want to avoid inserting a crossing on arc `b` if `b` branches directly off from the current strand.
+    // At the beginning of the strand we want to avoid inserting a crossing on arc `b` if `b` branches directly off from the current pass.
     //
     //      |         |        |        |
-    //      |    a    |        |        |    current strand
+    //      |    a    |        |        |    current pass
     //    --|-------->-------->-------->-------->
     //      |         |        |        |
     //      |         |        |        |
     //            b = path[p]?
     //
 
-    WalkToBranch<Head>(a,p);
+    WalkToBranch<Head>(path,a,p);
     
     // Now `a` is the first arc to be rerouted.
     
     // We do the same at the end now.
     
-    Int q = path_length - Int(1);
-    Int e = a_last;
+    Int q = path.Size() - Int(1);
+    Int e = pass.last;
     
-    WalkToBranch<Tail>(e,q);
+    WalkToBranch<Tail>(path,e,q);
 
     // Now e is the last arc to be rerouted.
     
@@ -107,7 +103,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
             logvalprint("a",ArcString(a));
             TOOLS_LOGDUMP(p);
             TOOLS_LOGDUMP(q);
-            logvalprint("path",ShortPathString());
+            logvalprint("path",ShortPathString(path));
         }
 #endif // PD_DEBUG
         
@@ -186,7 +182,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
         // Recompute `c_0`. We have to be aware that the handedness and the positions of the arcs relative to `c_0` can completely change!
         if( left_to_rightQ )
         {
-            pd->C_state[c_0] = BooleanToCrossingState(overQ);
+            pd->C_state[c_0] = BooleanToCrossingState(pass.overQ);
             
             // overQ == true
             //
@@ -223,11 +219,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
         }
         else // if ( !left_to_rightQ )
         {
-//            C_state[c_0] = overQ
-//                         ? CrossingState_T::LeftHanded
-//                         : CrossingState_T::RightHanded;
-            
-            pd->C_state[c_0] = BooleanToCrossingState(!overQ);
+            pd->C_state[c_0] = BooleanToCrossingState(!pass.overQ);
             
             // overQ == true
             //
@@ -277,9 +269,9 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     }
     PD_TOC("While loop for rerouting");
 
-    
-    // strand_arc_count is just an upper bound to prevent infinite loops.
-    CollapseArcRange(a,e,strand_arc_count);
+    Int deleted_arc_count = CollapseArcRange( a, e, pass.arc_count, pass.mark );
+    // DEBUGGING
+    TOOLS_DUMP(deleted_arc_count);
 
     AssertArc<1>(a);
     AssertArc<0>(e);
@@ -287,8 +279,8 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     // TODO: Is this necessary? If yes, why?
     if constexpr ( lutQ ) { RepairLeftDarc(ToDarc(a,Head)); }
     
-    a_last = a;
-
+    pass.last = a;
+    pass.arc_count = path.Size() - Int(1);
 #ifdef PD_DEBUG
     const Int Cr_1 = pd->CrossingCount();
 #endif
@@ -305,11 +297,11 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     return true;
 }
 
-/*! @brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
+/*! @brief We move from one end `a` of a pass in direction `headtail` until path `p` starts to branch off from it.
  */
 
 template<bool headtail>
-void WalkToBranch( mref<Int> a, mref<Int> p ) const
+void WalkToBranch( cref<Path_T> path, mref<Int> a, mref<Int> p ) const
 {
     PD_TIMER(timer,MethodName("WalkToBranch")+"<" + (headtail ? "Head" : "Tail") + ">");
     // `a` is an arc.
@@ -334,101 +326,3 @@ void WalkToBranch( mref<Int> a, mref<Int> p ) const
         b = path[p];
     }
 }
-
-
-/*! @brief Attempts to reroute the strand to a shortest path. It is typically not safe to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct marking of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
- *  This is why we make this function private.
- *
- *  This implicitly _assumes_ that we can travel from `a_first` to `a_last` by `NextArc(-,Head)`. Otherwise, the behavior is undefined.
- *
- *  @param a The first arc of the strand on entry as well as as on return.
- *
- *  @param b The last arc of the strand (included) on entry as well as on return. Note that this value is a reference and that the passed variable will likely be changedQ!
- */
-
-bool RerouteToShortestPath_impl( const Int a, mref<Int> b, const Int max_dist )
-{
-    PD_TIMER(timer,MethodName("RerouteToShortestPath_impl"));
-    
-    PD_VALPRINT("change_counter",change_counter);
-    
-    PD_ASSERT(pd->CheckAll());
-    PD_ASSERT(CheckStrand(a,b));
-    
-    
-    // We don't like loops of any kind here.
-    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(a,Head));
-    PD_ASSERT(pd->A_cross(b,Tail) != pd->A_cross(b,Head));
-    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Tail));
-    PD_ASSERT(pd->A_cross(a,Tail) != pd->A_cross(b,Head));
-    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Head));
-    
-//    PD_ASSERT(pd->A_cross(a,Head) != pd->A_cross(b,Tail));
-    
-#ifdef PD_DEBUG
-    if( pd->A_cross(a,Head) == pd->A_cross(b,Tail) )
-    {
-        TOOLS_LOGDUMP(strand_arc_count);
-        TOOLS_LOGDUMP(CountArcsInRange(a,b));
-        logvalprint("strand",ShortArcRangeString(a,b));
-    }
-#endif // PD_DEBUG
-    
-    Int path_arc_count;
-    
-    if( strategy == DijkstraStrategy_T::Legacy )
-    {
-        path_arc_count = FindShortestPath_Legacy_impl(a,b,max_dist);
-    }
-    else
-    {
-        path_arc_count = FindShortestPath_impl(a,b,max_dist);
-    }
-    
-#ifdef PD_COUNTERS
-    RecordPreStrandSize(strand_arc_count);
-    RecordPostStrandSize(path_arc_count);
-#endif
-        
-    if( (path_arc_count < Int(0)) || (path_arc_count > max_dist) )
-    {
-        PD_DPRINT("No improvement detected. (strand_arc_count = " + ToString(strand_arc_count) + ", path_arc_count = " + ToString(path_arc_count) + ", max_dist = " + ToString(max_dist) + ")");
-        return false;
-    }
-    
-    bool successQ = RerouteToPath(a,b);
-    
-    return successQ;
-    
-}
-
-
-
-//public:
-//    
-//    /*!
-//     * @brief Attempts to reroute the input strand. It returns the first and last arcs of the rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
-//     *
-//     * @param a_first The first arc of the input strand.
-//     *
-//     * @param a_last The last arc of the input strand (included).
-//     *
-//     * @param overQ_ Whether the input strand is over (`true`) or under (`true`). Caution: The routine won't work correctly, if the input arc range is not a over/understrand according to this flag!
-//     */
-//    
-//    std::array<Int,2> RerouteToShortestPath(
-//        mref<PD_T> pd_input, const Int a, const Int b, bool overQ_
-//    )
-//    {
-//        LoadDiagram(pd_input);
-//        ResetMark();
-//        SetStrandMode(overQ_);
-//        
-//        strand_arc_count = MarkArcs(a,b);
-//        
-//        RerouteToShortestPath_impl(a,b,strand_arc_count-Int(1));
-//        
-//        Cleanup();
-//        
-//        return {a,b};
-//    }

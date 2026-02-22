@@ -76,6 +76,8 @@ void WriteInitialEdgeVectors( Real * restrict const x )
 // Vertex positions
 void ReadInitialVertexPositions( const Real * restrict const p )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     for( Int i = 0; i < edge_count_; ++i )
     {
         cptr<Real> u = &p[AmbDim * (i + 0) ];
@@ -103,6 +105,8 @@ void ReadInitialVertexPositions( const Real * restrict const p )
 
 void WriteInitialVertexPositions( Real * restrict const p )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     // We treat the edges as massless.
     // All mass is concentrated in the vertices, and each vertex carries the same mass.
     Vector_T barycenter        (zero);
