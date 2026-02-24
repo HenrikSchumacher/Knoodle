@@ -1,16 +1,3 @@
-friend std::string ToString( cref<Pass_T> pass )
-{
-    return std::string("{ ")
-        +   "first = " + ToString(pass.first)
-        + ", last = " + ToString(pass.last)
-        + ", next = " + ToString(pass.next)
-        + ", arc_count = " + ToString(pass.arc_count)
-        + ", mark = " + ToString(pass.mark)
-        + ", overQ = " + ToString(pass.overQ)
-        + ", activeQ = " + ToString(pass.activeQ)
-        + " }";
-}
-
 //Int WalkBackToPassStart( const Int a_0, const Int overQ_ ) const
 //{
 //    Int a = a_0;
@@ -44,6 +31,18 @@ void InitializePass( mref<Pass_T> pass, const Int initial_arc, const bool desire
     
     Int a = initial_arc;
     AssertArc<1>(a);
+    
+    if( pd->InvalidQ() )
+    {
+        pass.SetInvalid();
+        return;
+    }
+    
+    if( !pd->ArcActiveQ(initial_arc) )
+    {
+        pass.SetInvalid();
+        return;
+    }
     
     if constexpr ( find_maximal_passQ )
     {
@@ -139,7 +138,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
         }
         
         // If we land here, then `pass.next` is not a loop arc.
-        // The arc `pass.last` might still be a loop arc, though. But then CrossingMarkedQ(c_1) == true, and the check for big loops below will detect it and remove it correctly.
+        // The arc `pass.last` might still be a loop arc, though. But then CrossingMark(c_1) == pass.mark, and the check for big loops below will detect it and remove it correctly.
         
         // Make arc `pass.last` an official member of the pass.
         ++pass.arc_count;
@@ -213,7 +212,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
                 {
                     if( pass.arc_count > Int(2) )
                     {
-                        PD_NOTE("CrossingMarkedQ(c_2). We do not attempt Reidemeister_II_Forward. However, this could be a great rerouting opportunity. (strand_arc_count = " + ToString(pass.arc_count) + ")");
+                        PD_PRINT("CrossingMark(c_2) == pass.mark. We do not attempt Reidemeister_II_Forward. However, this could be a great rerouting opportunity. (strand_arc_count = " + ToString(pass.arc_count) + ")");
                         
                         PD_VALPRINT("pass", ToString(pass));
                     }
@@ -223,7 +222,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
                     const Int b = pd->NextArc(pass.next,Head,c_2);
                     
                     PD_ASSERT(CrossingMark(c_2) != pass.mark);
-                    PD_ASSERT(pass.last != b);  // Because ArcMarkedQ(a) and CrossingMark(c_2) != pass.mark.
+                    PD_ASSERT(pass.last != b);  // Because a is marked and b is not.
                     
                     if( FindPass_Reidemeister_II_Forward(pass,c_1,c_2,b) )
                     {
@@ -231,7 +230,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
                         // I think this cannot happen by the preconditions.
                         if( !pd->ArcActiveQ(pass.first) )
                         {
-                            PD_NOTE("Aborting because FindPass_Reidemeister_II_Forward deactivated s_begin. This would have been a rerouting opportunity.");
+                            PD_PRINT("Aborting because FindPass_Reidemeister_II_Forward deactivated s_begin. This would have been a rerouting opportunity.");
                             // We deleted our strand start.
                             // TODO: Can we recover from that?
                             pass.activeQ = false;
@@ -518,7 +517,7 @@ bool CheckPass( cref<Pass_T> pass, const bool pass_closedQ )
     {
         TOOLS_LOGDUMP(arc_counter);
         TOOLS_LOGDUMP(pass.arc_count);
-        PD_VALPRINT("pass",ArcRangeString(pass.first,pass.last));
+        PD_VALPRINT("pass",PassString(pass));
         
         logprint(tag() + " passed.");
         
@@ -528,7 +527,7 @@ bool CheckPass( cref<Pass_T> pass, const bool pass_closedQ )
     {
         TOOLS_LOGDUMP(arc_counter);
         TOOLS_LOGDUMP(pass.arc_count);
-        PD_VALPRINT("pass",ArcRangeString(pass.first,pass.last));
+        PD_VALPRINT("pass",PassString(pass));
         
         (tag() + " failed.");
         
@@ -550,9 +549,9 @@ bool FindPass_Reidemeister_II_Backward(
     PD_DPRINT( tag() + " checks " + ArcString(pass.last) );
     
     // Call preconditions.
-    PD_ASSERT(ArcMarkedQ(pass.last));
-    PD_ASSERT(CrossingMark(c_0) == pass.mark);
-    PD_ASSERT(CrossingMark(c_1) != pass.mark);
+    PD_ASSERT(ArcMark(pass.last) == pass.mark);
+    PD_ASSERT(CrossingMark(c_0)  == pass.mark);
+    PD_ASSERT(CrossingMark(c_1)  != pass.mark);
     
     const bool side_0 = (pd->C_arcs(c_0,Out,Right) == pass.last);
 //    const bool side_1 = (pd->C_arcs(c_1,In ,Right) == pass.last);
@@ -776,14 +775,15 @@ bool FindPass_Reidemeister_II_Forward(
     AssertCrossing<1>(c_2);
     
     // Call preconditions.
-    PD_ASSERT(ArcMarkedQ(pass.last));
-    PD_ASSERT(!CrossingMarkedQ(c_1));
-    PD_ASSERT(!CrossingMarkedQ(c_2));
+    PD_ASSERT(ArcMark(pass.last) == pass.mark);
+    PD_ASSERT(CrossingMark(c_1)  != pass.mark);
+    PD_ASSERT(CrossingMark(c_2)  != pass.mark);
     
     // Consequences:
-    PD_ASSERT(!ArcMarkedQ(pass.next));      // Because of !CrossingMarkedQ(c_1).
-    PD_ASSERT(!ArcMarkedQ(b)); // Because of !CrossingMarkedQ(c_2).
-    PD_ASSERT(pass.last != b);    // Because of !CrossingMarkedQ(c_2).
+    
+    PD_ASSERT(ArcMark(pass.next) != pass.mark); // Because of mark of c_1.
+    PD_ASSERT(ArcMark(b)         != pass.mark); // Because of mark of c_2.
+    PD_ASSERT(pass.last != b);                  // Because of mark of c_2.
     
     // Necessary for a Reidemeister II move: the crossings have opposite handedness
     if( !OppositeHandednessQ(pd->C_state[c_1],pd->C_state[c_2]) )
@@ -843,10 +843,10 @@ bool FindPass_Reidemeister_II_Forward(
     PD_ASSERT(a_1_out != a_2_out);
     
     // Call preconditions.
-    PD_ASSERT(!ArcMarkedQ(a_1_in )); // Because of !CrossingMarkedQ(c_1).
-    PD_ASSERT(!ArcMarkedQ(a_1_out)); // Because of !CrossingMarkedQ(c_1).
-    PD_ASSERT(!ArcMarkedQ(a_2_in )); // Because of !CrossingMarkedQ(c_2).
-    PD_ASSERT(!ArcMarkedQ(a_2_out)); // Because of !CrossingMarkedQ(c_2).
+    PD_ASSERT(ArcMark(a_1_in ) != pass.mark); // Because of mark of c_1.
+    PD_ASSERT(ArcMark(a_1_out) != pass.mark); // Because of mark of c_1.
+    PD_ASSERT(ArcMark(a_2_in ) != pass.mark); // Because of mark of c_2.
+    PD_ASSERT(ArcMark(a_2_out) != pass.mark); // Because of mark of c_2.
 
     
     /* // Picture side_1 == Right and for c_1 left-handed and c_2 right-handed.
@@ -885,26 +885,26 @@ bool FindPass_Reidemeister_II_Forward(
         // It could happen that `b` is the strand start.
         // We have to take care of this outside the function.
         
-        PD_ASSERT(pass.last != b);    // Because ArcMarkedQ(pass.last) and !ArcMarkedQ(b)
-        PD_ASSERT( ArcMarkedQ(pass.last));
-        PD_ASSERT(!ArcMarkedQ(b));
+        PD_ASSERT(pass.last != b);    // Because pass.last is markd and b not.
+        PD_ASSERT(ArcMark(pass.last) == pass.mark);
+        PD_ASSERT(ArcMark(b)         != pass.mark);
         Reconnect<Head>(pass.last,b);
         
         if( a_1_in == a_2_out ) [[unlikely]]
         {
-            PD_ASSERT(!ArcMarkedQ(a_2_out));
+            PD_ASSERT(ArcMark(a_2_out) != pass.mark);
             DeactivateArc(a_2_out);
             CreateUnlinkFromArc(a_1_in);
         }
         else
         {
-            PD_ASSERT(!ArcMarkedQ(a_2_out));
+            PD_ASSERT(ArcMark(a_2_out) != pass.mark);
             Reconnect<Head>(a_1_in,a_2_out);
         }
         
-        PD_ASSERT(!ArcMarkedQ(pass.next));
+        PD_ASSERT(ArcMark(pass.next) != pass.mark);
         DeactivateArc(pass.next);
-        PD_ASSERT(!ArcMarkedQ(a_2_in));
+        PD_ASSERT(ArcMark(a_2_in) != pass.mark);
         DeactivateArc(a_2_in);
         DeactivateCrossing(c_1);
         DeactivateCrossing(c_2);
@@ -945,9 +945,9 @@ bool FindPass_Reidemeister_II_Forward(
             //              a_1_in == a_2_out
             //
             
-            PD_ASSERT(!ArcMarkedQ(a_1_out));
+            PD_ASSERT(ArcMark(a_1_out) != pass.mark);
             Reconnect<Head>(pass.last,a_1_out);
-            PD_ASSERT(!ArcMarkedQ(b));
+            PD_ASSERT(ArcMark(b) != pass.mark);
             DeactivateArc(b);
             CountReidemeister_I();
             CountReidemeister_I();
@@ -972,9 +972,9 @@ bool FindPass_Reidemeister_II_Forward(
             // This should work also if pass.last == a_1_out. This would imply that a_prev == a_begin.
             // This is why we prefer keeping a_prev alive over concatenating with the unlocked Reidemeister I move.
             
-            PD_ASSERT(!ArcMarkedQ(b));
+            PD_ASSERT(ArcMark(b) != pass.mark);
             Reconnect<Head>(pass.last,b);
-            PD_ASSERT(!ArcMarkedQ(a_2_in));
+            PD_ASSERT(ArcMark(a_2_in) != pass.mark);
             Reconnect<Tail>(a_1_out,a_2_in);
             
             // It could happen that `a_1_out == pass.first`. In this case we could make the maximal strand one arc longer. However, we keep the strand start where it was. Rerouting a strand that is slightly shorter than it could be does not break the algorithm.
@@ -982,9 +982,9 @@ bool FindPass_Reidemeister_II_Forward(
             CountReidemeister_II();
         }
 
-        PD_ASSERT(!ArcMarkedQ(pass.next));
+        PD_ASSERT(ArcMark(pass.next) != pass.mark);
         DeactivateArc(pass.next);
-        PD_ASSERT(!ArcMarkedQ(a_2_out));
+        PD_ASSERT(ArcMark(a_2_out)   != pass.mark);
         DeactivateArc(a_2_out);
         DeactivateCrossing(c_1);
         DeactivateCrossing(c_2);

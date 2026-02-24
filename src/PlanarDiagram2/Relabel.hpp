@@ -1,9 +1,23 @@
 public:
 
+/*!@brief Create a new diagram my mapping each active crossing index to `c_map[c]` (unless that value is invalid; then that crossing is ignored) and by mapping each active arc index to `a_map[a]` (unless that value is invalid; then that arc is ignored).
+ *
+ * @param c_map A lookup table for the new crossing labels. The size must be at least `this->MaxCrossingCount()` and the maximum value must be nonnegative and less than `max_c_label_plus_one`.
+ *
+ * @param max_c_label_plus_one The maximum crossing label plus one. This is the minimum contiguous space required to store all the labels in `c_map` and `0`.
+ *
+ * @param a_map A lookup table for the new arc labels. The size must be at least `this->MaxArcCount()` and the maximum value must be nonnegative and less than `max_a_label_plus_one`.
+ *
+ * @param max_a_label_plus_one The maximum arc label plus one. This is the minimum contiguous space required to store all the labels in `a_map` and `0`.
+ *
+ * @param surjectiveQ If set to true, then we assume that all crossing labels in the range [0,max_c_label_plus_one[ and all arc labels in the range [0,max_a_label_plus_one[ are present in c_map and a_map. (So the gaps need not be filled.)
+ */
+
 template<typename ExtInt>
 PD_T CreateRelabeled(
-     cptr<ExtInt> c_map, const ExtInt c_max, cptr<ExtInt> a_map, const ExtInt a_max,
-     bool surjectiveQ = false
+    cptr<ExtInt> c_map, const ExtInt max_c_label_plus_one,
+    cptr<ExtInt> a_map, const ExtInt max_a_label_plus_one,
+    bool surjectiveQ = false
 )  const
 {
     static_assert(IntQ<ExtInt>,"");
@@ -26,18 +40,20 @@ PD_T CreateRelabeled(
 //        return InvalidDiagram();
 //    }
 
-    // TODO: Check that c_max and a_max fit into Int.
+    // TODO: Check that `max_c_label_plus_one - 1`  and `max_a_label_plus_one - 1` fit into Int.
     
-    const Int n = int_cast<Int>( Max( c_max, ExtInt((a_max + ExtInt(1))/ExtInt(2) )) );
+    const Int n = int_cast<Int>( Max( max_c_label_plus_one, ExtInt((max_a_label_plus_one + ExtInt(1))/ExtInt(2) )) );
+    
+    // DEBGUGGING
+    TOOLS_DUMP(n);
     
     if( n == Int(0) )
     {
+        return PD_T::InvalidDiagram();
     }
     
     PD_T pd = surjectiveQ ? PD_T(n,true) : PD_T(n);
     
-    pd.crossing_count         = this->crossing_count;
-    pd.arc_count              = this->arc_count;
     pd.proven_minimalQ        = this->proven_minimalQ;
     pd.last_color_deactivated = this->last_color_deactivated;
     
@@ -55,20 +71,18 @@ PD_T CreateRelabeled(
             return InvalidDiagram();
         }
         
-        if( t > c_max )
+        if( t >= max_c_label_plus_one )
         {
-            eprint(tag() + ": Found mapped crossing index bigger than c_max. Aborting and returning invalid diagram.");
+            eprint(tag() + ": Found mapped crossing index greater or equal to max_c_label_plus_one. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
 
-        pd.C_state[t] = this->C_state[s];
-
-        C_Arcs_T C_s = this->CopyCrossing(s);
-        C_Arcs_T C_t {
-            {static_cast<Int>(a_map[C_s(Out,Left )]), static_cast<Int>(a_map[C_s(Out,Right)])},
-            {static_cast<Int>(a_map[C_s(In ,Left )]), static_cast<Int>(a_map[C_s(In ,Right)])}
-        };
-        C_t.Write( pd.C_arcs.data(t) );
+        pd.C_arcs(t,Out,Left ) = static_cast<Int>(a_map[C_arcs(s,Out,Left )]);
+        pd.C_arcs(t,Out,Right) = static_cast<Int>(a_map[C_arcs(s,Out,Right)]);
+        pd.C_arcs(t,In ,Left ) = static_cast<Int>(a_map[C_arcs(s,In ,Left )]);
+        pd.C_arcs(t,In ,Right) = static_cast<Int>(a_map[C_arcs(s,In ,Right)]);
+        
+        pd.C_state[t] = C_state[s];
     }
     
     for( Int s = 0; s < MaxArcCount(); ++s )
@@ -85,34 +99,39 @@ PD_T CreateRelabeled(
             return InvalidDiagram();
         }
         
-        if( t > a_max )
+        if( t >= max_a_label_plus_one )
         {
-            eprint(tag() + ": Found mapped arc index bigger than a_max. Aborting and returning invalid diagram.");
+            eprint(tag() + ": Found mapped arc index greater or equal to max_a_label_plus_one. Aborting and returning invalid diagram.");
             return InvalidDiagram();
         }
+
+        pd.A_cross(t,Tail) = static_cast<Int>(c_map[A_cross(s,Tail)]);
+        pd.A_cross(t,Head) = static_cast<Int>(c_map[A_cross(s,Head)]);
         
-        pd.A_state[t] = this->A_state[s];
-        pd.A_color[t] = this->A_color[s];
-        
-        A_Cross_T A_s = this->CopyArc(s);
-        A_Cross_T A_t { {static_cast<Int>(c_map[A_s(Tail)]), static_cast<Int>(c_map[A_s(Head)])} };
-        A_t.Write(pd.A_cross.data(t) );
+        pd.A_state[t] = A_state[s];
+        pd.A_color[t] = A_color[s];
     }
+    
+    pd.crossing_count = pd.CountActiveCrossings();
+    pd.arc_count      = pd.CountActiveArcs();
     
     return pd;
 }
 
+/*!@briefSame as `CreateRelabeled`, but as in-place version. It effectively calls `CreateRelabeled`, so it is not really more efficient than that.
+ */
+
 template<typename ExtInt>
 void  Relabel(
-    cptr<ExtInt> c_map, const ExtInt c_max, cptr<ExtInt> a_map, const ExtInt a_max, bool surjectiveQ = false
+    cptr<ExtInt> c_map, const ExtInt max_c_label_plus_one,
+    cptr<ExtInt> a_map, const ExtInt max_a_label_plus_one,
+    bool surjectiveQ = false
 )
 {
-    PD_T pd = CreateRelabeled( c_map, c_max, a_map, a_max, surjectiveQ );
+    PD_T pd = CreateRelabeled( c_map, max_c_label_plus_one, a_map, max_a_label_plus_one, surjectiveQ );
     
     if( ValidQ() == pd.ValidQ() ) { *this = std::move(pd); }
 }
-
-
 
 void WritePackedCrossingIndices( mptr<Int> c_map ) const
 {
@@ -188,6 +207,8 @@ bool PackedQ() const
     return CrossingCount() == MaxCrossingCount();
 }
 
+/*!@brief Create a new diagram in which the gaps between the active crossings and active arcs are removed, but their ordering is preserved. Hence, in contrast to `CreateCompressed`, the crossings and arcs won't be in canonical ordering. (Which means that the ordering is not as cache-friendly as `CreateCompressed`'s.
+ */
 
 PD_T CreatePacked() const
 {
@@ -208,6 +229,8 @@ PD_T CreatePacked() const
     return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 
+/*!@brief In-place version of `CreatePacked`. This effectively calls the latter, so this not really more efficient.
+ */
 void Pack()
 {
     if( PackedQ() ) { return; }
@@ -289,6 +312,10 @@ Tensor1<Int,Int> RandomPackedArcIndices( mref<PRNG_T> random_engine ) const
     return a_map;
 }
 
+/*!@brief Create a new diagram in which the crossings and arcs of this diagram are permuted randomly.
+ *
+ * @param random_engine Some seeded random engine conforming to the C++ Standard Library.
+ */
 
 PD_T CreatePermutedRandom( mref<PRNG_T> random_engine ) const
 {
@@ -303,6 +330,11 @@ PD_T CreatePermutedRandom( mref<PRNG_T> random_engine ) const
     return CreateRelabeled( C_scratch.data(), CrossingCount(), A_scratch.data(), arc_count, true );
 }
 
+
+/*!@brief Permute the crossings and arcs randomly. In-place version of `CreatePermutedRandom`. The latter is effectively called by this; so this is not more efficient.
+ *
+ * @param random_engine Some seeded random engine conforming to the C++ Standard Library.
+ */
 
 void PermuteRandom( mref<PRNG_T> random_engine )
 {

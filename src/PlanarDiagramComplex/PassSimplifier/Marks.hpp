@@ -14,7 +14,7 @@ void MarkCrossing( const Int c, const Int mark )
 }
 void MarkCrossing( const Int c )
 {
-    MarkCrossing( c, current_mark );
+    MarkCrossing(c, current_mark);
 }
 
 Int CrossingMark( const Int c ) const
@@ -22,9 +22,14 @@ Int CrossingMark( const Int c ) const
     return C_mark(c);
 }
 
+bool CrossingMarkedQ( const Int c, const Int mark ) const
+{
+    return CrossingMark(c) == mark;
+}
+
 bool CrossingMarkedQ( const Int c ) const
 {
-    return C_mark(c) == current_mark;
+    return CrossingMarkedQ(c,current_mark);
 }
 
 void MarkArc( const Int a, const Int mark )
@@ -37,20 +42,24 @@ void MarkArc( const Int a )
     MarkArc(a, current_mark );
 }
 
+Int ArcMark( const Int a ) const
+{
+    return A_mark(a);
+}
+
+bool ArcMarkedQ( const Int a, const Int mark ) const
+{
+    return (ArcMark(a) == mark);
+}
+
 bool ArcMarkedQ( const Int a ) const
 {
-    return (A_mark(a) == current_mark);
+    return ArcMarkedQ(a,current_mark);
 }
 
 bool ArcRecentlyMarkedQ( const Int a ) const
 {
     return (A_mark(a) >= initial_mark);
-}
-
-
-Int ArcMark( const Int a ) const
-{
-    return A_mark(a);
 }
 
 public:

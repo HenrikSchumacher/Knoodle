@@ -9,17 +9,22 @@ private:
 
 bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
 {
-    PD_TIMER(timer,MethodName("Reroute"));
+    [[maybe_unused]] auto tag = [](){ return MethodName("Reroute"); };
+    PD_TIMER(timer,tag());
     
 #ifdef PD_DEBUG
     const Int Cr_0 = pd->CrossingCount();
     TOOLS_LOGDUMP(Cr_0);
 #endif
     
+    if( !pass.ValidQ() ) { return false; }
+    
+    if( path.Size() < Int(2) ) { return false; }
+    
     PD_VALPRINT("pass.first",pass.first);
     PD_VALPRINT("pass.last",pass.last);
-    PD_VALPRINT("pass", ShortArcRangeString(pass.first,pass.last));
-    PD_VALPRINT("path", ShortPathString(path));
+    PD_VALPRINT("pass", PassString(pass));
+    PD_VALPRINT("path", PathString(path));
 
 
 //PD_PRINT("Diagram before rerouting:");
@@ -63,18 +68,17 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     while( p < q )
     {
         const Int c_0 = pd->A_cross(a,Head);
-//        PD_VALPRINT("c_0", CrossingString(c_0));
+        PD_VALPRINT("c_0", CrossingString(c_0));
 
         const bool side = (pd->C_arcs(c_0,In,Right) != a);
         
         const Int a_2 = pd->C_arcs(c_0,Out,side);
-//        PD_VALPRINT("a_2", ArcString(a_2));
-        const Int b = path[p];
+        PD_VALPRINT("a_2", ArcString(a_2));
+        auto [b,left_to_rightQ] = FromDarc(path[p]);
 //        PD_VALPRINT("b", ArcString(b));
-        const bool left_to_rightQ = DualArcLeftToRightQ(b);
         
         const Int c_1 = pd->A_cross(b,Head);
-//        PD_VALPRINT("c_1", CrossingString(c_1));
+        PD_VALPRINT("c_1", CrossingString(c_1));
         // This is the situation for `a` before rerouting for `side == Right`;
         //
         //
@@ -89,10 +93,10 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
         
         // a_0 is the vertical incoming arc.
         const Int a_0 = pd->C_arcs(c_0,In , side);
-//        PD_VALPRINT("a_0", ArcString(a_0));
+        PD_VALPRINT("a_0", ArcString(a_0));
         // a_1 is the vertical outgoing arc.
         const Int a_1 = pd->C_arcs(c_0,Out,!side);
-//        PD_VALPRINT("a_1", ArcString(a_1));
+        PD_VALPRINT("a_1", ArcString(a_1));
         // In the cases b == a_0 and b == a_1, can we simply leave everything as it is!
         PD_ASSERT( b != a_2 )
         PD_ASSERT( b != a )
@@ -103,7 +107,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
             logvalprint("a",ArcString(a));
             TOOLS_LOGDUMP(p);
             TOOLS_LOGDUMP(q);
-            logvalprint("path",ShortPathString(path));
+            logvalprint("path",PathString(path));
         }
 #endif // PD_DEBUG
         
@@ -198,7 +202,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
             //             |
             //             O
             //             ^
-            //             | b == path[p]
+            //             | b == ArcOfDarc(path[p])
             //             |
             //             X
             
@@ -235,7 +239,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
             //             |
             //             O
             //             ^
-            //             | b == path[p]
+            //             | b == ArcOfDarc(path[p])
             //             |
             //             X
             
@@ -269,12 +273,12 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     }
     PD_TOC("While loop for rerouting");
 
-    Int deleted_arc_count = CollapseArcRange( a, e, pass.arc_count, pass.mark );
+    [[maybe_unused]] Int deleted_arc_count = CollapseArcRange( a, e, pass.arc_count, pass.mark );
     // DEBUGGING
-    TOOLS_DUMP(deleted_arc_count);
+    PD_VALPRINT("deleted_arc_count",deleted_arc_count);
 
     AssertArc<1>(a);
-    AssertArc<0>(e);
+//    AssertArc<0>(e); // Not guaranteed if path is at least as long as pass.
     
     // TODO: Is this necessary? If yes, why?
     if constexpr ( lutQ ) { RepairLeftDarc(ToDarc(a,Head)); }
@@ -283,9 +287,12 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     pass.arc_count = path.Size() - Int(1);
 #ifdef PD_DEBUG
     const Int Cr_1 = pd->CrossingCount();
-#endif
     
-    PD_ASSERT(Cr_1 < Cr_0);
+//    if( Cr_1 >= Cr_0 )
+//    {
+//        wprint(tag() + ": Cr_1 >= Cr_0.");
+//    }
+#endif // PD_DEBUG
     
     PD_DPRINT(ToString(Cr_0 - Cr_1) + " crossings removed.");
     
@@ -309,7 +316,7 @@ void WalkToBranch( cref<Path_T> path, mref<Int> a, mref<Int> p ) const
     
     Int c = pd->A_cross(a,headtail);
     Int side = (pd->C_arcs(c,headtail,Right) == a);
-    Int b = path[p];
+    Int b = ArcOfDarc(path[p]);
     
     while(
         (pd->C_arcs(c, headtail,!side) == b)
@@ -323,6 +330,6 @@ void WalkToBranch( cref<Path_T> path, mref<Int> a, mref<Int> p ) const
         
         p = headtail ? p + Int(1) : p - Int(1);
         
-        b = path[p];
+        b = ArcOfDarc(path[p]);
     }
 }

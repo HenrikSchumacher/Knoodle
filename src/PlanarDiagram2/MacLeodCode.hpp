@@ -139,12 +139,12 @@ Tensor1<T,Int> MacLeodCode() const
     return s_mac_leod;
 }
 
-template<typename T, typename ExtInt>
+template<typename T, typename ExtInt, typename ExtInt2>
 static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
-    const bool    proven_minimalQ_ = false,
-    const bool    compressQ = false
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
 )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
@@ -154,6 +154,7 @@ static PD_T FromMacLeodCode(
     
     static_assert(IntQ<T>,"");
     static_assert(IntQ<ExtInt>,"");
+    static_assert(IntQ<ExtInt2>,"");
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
@@ -163,16 +164,19 @@ static PD_T FromMacLeodCode(
     // TODO: Can we out this step and reimplement FromMacLeodCode directly?
     MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
 
-    return FromLongMacLeodCode( l_mac_leod.data(), a_count, proven_minimalQ_, compressQ );
+    return FromLongMacLeodCode( l_mac_leod.data(), a_count, color, proven_minimalQ_ );
 }
 
 
-template<typename T, typename ExtInt>
-static PD_T FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
+template<typename T, typename ExtInt, typename ExtInt2>
+static PD_T FromMacLeodCode(
+    cref<Tensor1<T,ExtInt>> s_mac_leod, const ExtInt2 color, const bool proven_minimalQ_ = false
+)
 {
     static_assert(IntQ<T>,"");
     static_assert(IntQ<ExtInt>,"");
-    return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), false, false );
+    static_assert(IntQ<ExtInt2>,"");
+    return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), color, proven_minimalQ_ );
 }
 
 
@@ -214,7 +218,8 @@ std::string MacLeodString() const
     return s;
 }
 
-static PD_T FromMacLeodString( cref<std::string> s )
+template<typename ExtInt2>
+static PD_T FromMacLeodString( cref<std::string> s, const ExtInt2 color )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
     
@@ -234,5 +239,5 @@ static PD_T FromMacLeodString( cref<std::string> s )
 
     auto code = Binarizer::template FromString<UInt>(s,d);
     
-    return FromMacLeodCode(code);
+    return FromMacLeodCode(code,color);
 }

@@ -51,18 +51,18 @@ PDC_T Union() const
         for( Int c = 0; c < pd.max_crossing_count; ++c )
         {
             const Int c_pos = C_pos + c;
-            C_Arcs_T C = pd.CopyCrossing(c);
-            C += A_pos;
-            C.Write(pd_union.C_arcs.data(c_pos));
+            pd_union.C_arcs(c_pos,Out,Left ) = pd.C_arcs(c,Out,Left ) + A_pos;
+            pd_union.C_arcs(c_pos,Out,Right) = pd.C_arcs(c,Out,Right) + A_pos;
+            pd_union.C_arcs(c_pos,In ,Left ) = pd.C_arcs(c,In ,Left ) + A_pos;
+            pd_union.C_arcs(c_pos,In ,Right) = pd.C_arcs(c,In ,Right) + A_pos;
         }
         pd.C_state.Write( pd_union.C_state.data(C_pos) );
         
         for( Int a = 0; a < pd.MaxArcCount(); ++a )
         {
             const Int a_pos = A_pos + a;
-            A_Cross_T A = pd.CopyArc(a);
-            A += C_pos;
-            A.Write(pd_union.A_cross.data(a_pos));
+            pd_union.A_cross(a_pos,Tail) = pd.A_cross(a,Tail) + C_pos;
+            pd_union.A_cross(a_pos,Head) = pd.A_cross(a,Head) + C_pos;
         }
         pd.A_state.Write( pd_union.A_state.data(A_pos) );
         pd.A_color.Write( pd_union.A_color.data(A_pos) );

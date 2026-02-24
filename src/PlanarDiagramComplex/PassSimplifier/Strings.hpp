@@ -85,33 +85,3 @@ std::string ShortArcRangeString( const Int a, const Int b ) const
         return s;
     }
 }
-
-
-std::string PathString( cref<Path_T> path ) const
-{
-//    PD_PRINT(MethodName("PathString"));
-    
-    if( path.Size() <= 0 )
-    {
-        return "{}";
-    }
-    
-    std::string s;
-    
-    for( Int p = 0; p < path.Size(); ++p )
-    {
-        const Int a = path[p];
-
-        s += ToString(p  ) + " : " +  ArcString(a)
-           + " (" + ToString( Sign(D_mark(a)) ) + ")\n";
-    }
-    
-    return s;
-}
-
-std::string ShortPathString( cref<Path_T> path ) const
-{
-//    PD_PRINT(MethodName("ShortPathString"));
-    
-    return ArrayToString(&path[0],{path.Size()});
-}

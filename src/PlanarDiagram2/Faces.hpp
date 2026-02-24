@@ -53,7 +53,7 @@ Int MaxFaceSize() const
 }
 
 template<bool lutQ = true, typename ArcFun_T>
-TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T && arc_fun ) const
+TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T & arc_fun ) const
 {
     if( !ArcActiveQ(ArcOfDarc(da_0)) ) { return; }
     

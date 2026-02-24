@@ -144,10 +144,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arcs_T C = CopyCrossing(c);
                 const C_Arcs_T in_darcs {
-                    { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
-                    { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
+                    { ToDarc(C_arcs(c,Out,Left ),Tail), ToDarc(C_arcs(c,Out,Right),Tail) },
+                    { ToDarc(C_arcs(c,In ,Left ),Head), ToDarc(C_arcs(c,In ,Right),Head) }
                 };
                 
                 /* C[Out][Left ]         C[Out][Right]
@@ -328,11 +327,9 @@ mref<ArcContainer_T> ArcRightDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arcs_T C = CopyCrossing(c);
-                
                 const C_Arcs_T in_darcs {
-                    { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
-                    { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
+                    { ToDarc(C_arcs(c,Out,Left ),Tail), ToDarc(C_arcs(c,Out,Right),Tail) },
+                    { ToDarc(C_arcs(c,In ,Left ),Head), ToDarc(C_arcs(c,In ,Right),Head) }
                 };
                 
                 /* C[Out][Left ]         C[Out][Right]

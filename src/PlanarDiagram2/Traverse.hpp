@@ -18,7 +18,9 @@ public:
  *
  * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
  *
- *    `lc_pre( const Int lc, const Int lc_begin )`.
+ *    `lc_pre( const Int a, const Int lc, const Int lc_begin )`.
+ *
+ * Here, `a` is the first arc in that link component, `lc` is the index of the link component, and `lc_begin` is the number of arcs before this link component.
  *
  * @param arc_fun A function to apply to every visited arc. Its argument pattern depends on `crossingsQ`:
  * If `crossingsQ == false`, then it must be of the pattern
@@ -65,13 +67,13 @@ void Traverse(
 //    if( this->InCacheQ("ArcTraversalFlags") && this->InCacheQ("LinkComponentArcs") )
 //    {
 //        this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
-//            std::move(lc_pre), std::move(arc_fun), std::move(lc_post)
+//            lc_pre, arc_fun, lc_post
 //        );
 //    }
 //    else
     {
         this->template Traverse_ByNextArc<crossingsQ,labelsQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post)
+            lc_pre, arc_fun, lc_post
         );
     }
 }
@@ -84,12 +86,13 @@ template<bool crossingsQ, bool labelsQ = false, typename ArcFun_T>
 void Traverse( ArcFun_T && arc_fun )  const
 {
     this->template Traverse<crossingsQ,labelsQ>(
-        []( const Int lc, const Int lc_begin )
+        []( const Int a, const Int lc, const Int lc_begin )
         {
+            (void)a;
             (void)lc;
             (void)lc_begin;
         },
-        std::move(arc_fun),
+        arc_fun,
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {
             (void)lc;
@@ -130,7 +133,9 @@ template<
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse_ByNextArc(
-    LinkCompPre_T && lc_pre, ArcFun_T && arc_fun, LinkCompPost_T && lc_post
+    LinkCompPre_T  && lc_pre,
+    ArcFun_T       && arc_fun,
+    LinkCompPost_T && lc_post
 )  const
 {
     PD_TIMER(timer,MethodName("Traverse_ByNextArc")
@@ -156,7 +161,7 @@ void Traverse_ByNextArc(
         PD_ASSERT(CheckArcNextArc());
         
         this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
+            lc_pre, arc_fun, lc_post,
             ArcNextArc().data(), A_data, C_data
         );
         
@@ -166,14 +171,13 @@ void Traverse_ByNextArc(
     else
     {
         this->template Traverse_ByNextArc_impl<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
+            lc_pre, arc_fun, lc_post,
             nullptr, A_data, C_data
         );
     }
 }
 
-/*!
- * @brief Short version of `Traverse_ByNextArc` with only a single argument `arc_fun`.
+/*!@brief Short version of `Traverse_ByNextArc` with only a single argument `arc_fun`.
  */
 
 template<
@@ -184,12 +188,13 @@ template<
 void Traverse_ByNextArc( ArcFun_T && arc_fun )  const
 {
     this->template Traverse_ByNextArc<crossingsQ,arclabelsQ,start_arc_ou,lutQ>(
-        []( const Int lc, const Int lc_begin )
+        []( const Int a, const Int lc, const Int lc_begin )
         {
+            (void)a;
             (void)lc;
             (void)lc_begin;
         },
-        std::move(arc_fun),
+        arc_fun,
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {
             (void)lc;
@@ -308,7 +313,7 @@ void Traverse_ByNextArc_impl(
         // In any case, we just have to traverse forward through all arcs in the link component.
         
         const Int lc_begin = a_counter;
-        lc_pre( lc_counter, lc_begin );
+        lc_pre( a, lc_counter, lc_begin );
 
         Int  c_1 = 0;
         bool c_1_visitedQ = 0;

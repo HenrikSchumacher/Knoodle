@@ -218,8 +218,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             PD_ASSERT( strand_completeQ == (ArcOverQ(a_next,Tail) != overQ) );
 
             // Check for a big loop strand.i.e., an over/understrand that starts and ends at the same crossing.
-            // TODO: Simplify everything to a single call to RerouteLoopPath(a,c_1) and break.
-            // TODO: Don't forget to catch the Big Hopf Link in RerouteLoopPath.
+            // TODO: Simplify everything to a single call to RerouteLoopPass(a,c_1) and break.
+            // TODO: Don't forget to catch the Big Hopf Link in RerouteLoopPass.
             // TODO: In some cases we might reset the current strand
             
             if( CrossingMarkedQ(c_1) )
@@ -266,9 +266,9 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                      *              |
                      */
                     
-                    // Both cases can be handled by  RerouteLoopPath.
-                    RerouteLoopPath(a,c_1);
-                    PD_PRINT("Breaking because we called RerouteLoopPath. We might or might not recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    // Both cases can be handled by  RerouteLoopPass.
+                    RerouteLoopPass(a,c_1);
+                    PD_PRINT("Breaking because we called RerouteLoopPass. We might or might not recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
                     break;
                     // TODO: Can't we start a new strand nearby?
                 }
@@ -295,8 +295,8 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                      */
                     
                     // TODO: We could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
-                    RerouteLoopPath(a,c_1);
-                    PD_PRINT("Breaking because we called RerouteLoopPath. We might recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                    RerouteLoopPass(a,c_1);
+                    PD_PRINT("Breaking because we called RerouteLoopPass. We might recover from here, though. (strand_arc_count = " + ToString(strand_arc_count) + ")");
                     break;
                 }
                 else // if( strand_completeQ && (a_next == s_begin) )
@@ -338,7 +338,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                     // However, the earlier call(s) to Reidemeister_I rule this case out as `a_next` cannot be a loop arc.
                     
                     // TODO: Cutting the loop here will probably be better.
-                    // TODO: Would  RerouteLoopPath(a,c_1); work?
+                    // TODO: Would  RerouteLoopPass(a,c_1); work?
                     // TODO: Moreover, we could set strand_arc_count = 0 and a = s_begin are restart the search for this strand.
                     
                     
@@ -442,7 +442,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                     {
                         if( strand_arc_count > Int(2) )
                         {
-                            PD_NOTE("CrossingMarkedQ(c_2). We do not attempt Reidemeister_II_Forward. However, this would be a great rerouting opportunity. (strand_arc_count = " + ToString(strand_arc_count) + ")");
+                            PD_PRINT("CrossingMarkedQ(c_2). We do not attempt Reidemeister_II_Forward. However, this would be a great rerouting opportunity. (strand_arc_count = " + ToString(strand_arc_count) + ")");
                             
                             PD_VALPRINT("strand", ArcRangeString(s_begin,a));
                         }
@@ -461,7 +461,7 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
                             // I think this cannot happen by the preconditions.
                             if( !pd->ArcActiveQ(s_begin) )
                             {
-                                PD_NOTE("Breaking because Reidemeister_II_Forward deactivated s_begin. This would have been a rerouting opportunity.");
+                                PD_PRINT("Breaking because Reidemeister_II_Forward deactivated s_begin. This would have been a rerouting opportunity.");
                                 // We deleted our strand start.
                                 // TODO: Can we recover from that?
                                 break;

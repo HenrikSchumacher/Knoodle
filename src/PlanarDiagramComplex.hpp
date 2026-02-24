@@ -128,6 +128,7 @@ namespace Knoodle
 #include "PlanarDiagramComplex/SimplifyLocal.hpp"
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
+#include "PlanarDiagramComplex/Canonicalize.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
 #include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
 //#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
@@ -137,7 +138,8 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Union.hpp"
 #include "PlanarDiagramComplex/Checks.hpp"
 #include "PlanarDiagramComplex/Connect.hpp"
-            
+#include "PlanarDiagramComplex/Subcomplex.hpp"
+        
 #include "PlanarDiagramComplex/SearchTrefoils.hpp"
         
     public:

@@ -89,69 +89,10 @@ namespace Knoodle
         static constexpr bool vector_listQ     = vector2_listQ;
         static constexpr bool hash_map2Q       = std::is_same_v<ArcDataContainer_T,ArcData_HashMap2_T>;
         static constexpr bool hash_mapQ        = hash_map2Q;
-        
-        struct Pass_T
-        {
-            Int  first;
-            Int  last;
-            Int  next  = Uninitialized; // Most be set when FindPass is done with pass.activeQ == true. Otherwise, no guarantees.
-            Int  arc_count;
-            Int  mark;
-            bool overQ;
-            bool activeQ = false;
-                
-            /*
-             *      |        |        |
-             *      |  last  |  next  |
-             * ------------->X------->X------->
-             *      |c_0     |c_1     |c_2
-             *      |        |        |
-             */
-        };
-        
-        struct Path_T
-        {
-            // The first and last arc in a path_container are the start and end arcs.
-            // All the other arcs path_container stand for arcs we need to cross.
-            Tensor1<Int,Int> container;
-            Int size = 0;
-            
-            Path_T() = default;
-            ~Path_T() = default;
-            
-            Path_T( Int max_arc_count )
-            : container { max_arc_count }
-            {}
-            
-            mref<Int> operator[]( const Int i )
-            {
-                return container[i];
-            }
-            
-            cref<Int> operator[]( const Int i ) const
-            {
-                return container[i];
-            }
-            
-            Int Size() const
-            {
-                return size;
-            }
-            
-            Int Capacity() const
-            {
-                return container.Size();
-            }
-            
-            void Resize( const Int new_size )
-            {
-                if( new_size > Capacity() )
-                {
-                    container.template Resize<false> ( new_size );
-                }
-                size = new_size;
-            }
-        };
+
+
+#include "PassSimplifier/Pass_T.hpp"
+#include "PassSimplifier/Path_T.hpp"
         
     private:
 
@@ -356,7 +297,7 @@ namespace Knoodle
 #include "PassSimplifier/RepairLeftDarc.hpp"
 #include "PassSimplifier/Reconnect.hpp"
 #include "PassSimplifier/CollapseArcRange.hpp"
-#include "PassSimplifier/RerouteLoopPath.hpp"
+#include "PassSimplifier/RerouteLoopPass.hpp"
 #include "PassSimplifier/FindShortestPath.hpp"
 #include "PassSimplifier/Reroute.hpp"
 #include "PassSimplifier/Reidemeister.hpp"

@@ -430,6 +430,8 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
 
 private:
 
+// TODO: Color information.
+
 template<bool PDsignedQ, bool checksQ = true, typename ExtInt, typename ExtInt2>
 static PD_T FromPDCode(
     cptr<ExtInt> pd_codes_,
@@ -588,15 +590,9 @@ static PD_T FromPDCode(
         
         for( Int c = 0; c < pd.max_crossing_count; ++c )
         {
-            bool out_okayQ =
-            (pd.C_arcs(c,Out,Left ) != Uninitialized)
-            &&
-            (pd.C_arcs(c,Out,Right) != Uninitialized);
+            bool out_okayQ = (pd.C_arcs(c,Out,Left ) != Uninitialized) && (pd.C_arcs(c,Out,Right) != Uninitialized);
             
-            bool in_okayQ =
-            (pd.C_arcs(c,In ,Left ) != Uninitialized)
-            &&
-            (pd.C_arcs(c,In ,Right) != Uninitialized);
+            bool in_okayQ  = (pd.C_arcs(c,In ,Left ) != Uninitialized) && (pd.C_arcs(c,In ,Right) != Uninitialized);
             
             
             if( !in_okayQ )

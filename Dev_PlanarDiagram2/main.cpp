@@ -5,9 +5,9 @@
 
 //#define TENSORS_BOUND_CHECKS
 
-//#define TOOLS_ENABLE_PROFILER
-//#define PD_DEBUG
-//#define PD_VERBOSE
+#define TOOLS_ENABLE_PROFILER
+#define PD_DEBUG
+#define PD_VERBOSE
 //#define PD_COUNTERS
 
 

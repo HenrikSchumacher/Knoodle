@@ -16,12 +16,10 @@ Path_T FindShortestPath( mref<PD_T> pd_input, const Int a, const Int b, const In
     MarkArc(b);
     
     Path_T p;
-    
-    FindShortestPath(a,b,max_dist,p);
-    
+    const bool successQ = FindShortestPath(a,b,max_dist,p);
     Cleanup();
     
-    return p;
+    return successQ ? p : Path_T();
 }
 
 /*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
@@ -41,22 +39,21 @@ Path_T FindShortestRerouting( mref<PD_T> pd_input, const Int a, const Int b, con
     Int max_dist_0 = Min(Ramp(arc_count - Int(2)),max_dist);
     
     Path_T p;
-    FindShortestPath(a,b,max_dist_0,p);
-    
+    const bool successQ = FindShortestPath(a,b,max_dist_0,p);
     Cleanup();
     
-    return p;
+    return successQ ? p : Path_T();
 }
 
 
 private:
 
 // Variant compatible with old version.
-void FindShortestPath(
+bool FindShortestPath(
     const Int a, const Int b, const Int max_dist, mref<Path_T> path
 )
 {
-    FindShortestPath( a, b, max_dist, path, current_mark,
+    return FindShortestPath( a, b, max_dist, path, current_mark,
         [this]( const Int e ){
             return A_mark[e] == current_mark;
         },
@@ -68,12 +65,12 @@ void FindShortestPath(
     );
 }
 
-void FindShortestPath(
+bool FindShortestPath(
     const Int a, const Int b, const Int max_dist, mref<Path_T> path,
     const Int dual_mark, const Int hidden_mark
 )
 {
-    FindShortestPath( a, b, max_dist, path, dual_mark,
+    return FindShortestPath( a, b, max_dist, path, dual_mark,
         [this,hidden_mark]( const Int e )
         {
             return A_mark[e] == hidden_mark;
@@ -86,12 +83,12 @@ void FindShortestPath(
     );
 }
 
-void FindShortestPath(
+bool FindShortestPath(
     const Int a, const Int b, const Int max_dist, mref<Path_T> path,
     const Int dual_mark, const Int hidden_mark, const Int forbidden_mark
 )
 {
-    FindShortestPath( a, b, max_dist, path, dual_mark,
+    return FindShortestPath( a, b, max_dist, path, dual_mark,
         [this,hidden_mark]( const Int e )
         {
             return A_mark[e] == hidden_mark;
@@ -104,7 +101,7 @@ void FindShortestPath(
 }
 
 template<typename HiddenFun_T, typename ForbiddenFun_T>
-void FindShortestPath(
+bool FindShortestPath(
     const Int a, const Int b, const Int max_dist, mref<Path_T> path,
     const Int dual_mark, HiddenFun_T && hiddenQ, ForbiddenFun_T && forbiddenQ
 )
@@ -147,12 +144,11 @@ void FindShortestPath(
     
         ++k;
         const Int da = ToDarc(a,Tail);
+        const Int de_0 = LeftDarc(da);
+        Int de = de_0;
+        bool successQ = false;
         
-        Int de = LeftDarc(da);
-//        auto [e,d] = FromDarc(de);
-        
-        // We cannot use LeftLegalDarc here because b could be one of a's immediate neighbors.
-        while( de != da )
+        do
         {
             auto [e,d] = FromDarc(de);
             // a and b share a common face.
@@ -171,15 +167,22 @@ void FindShortestPath(
             }
             else
             {
+                successQ = true;
                 break;
             }
         }
-        
+        while( de != de_0 );
+            
         PD_VALPRINT("da",da);
         PD_VALPRINT("de",de);
         
         // TODO: Handle this error.
-        if( de == da ) { eprint("starting arc  a " + ArcString(a) + " is isolated."); }
+        if( !successQ )
+        {
+            PD_PRINT("Starting arc a = " + ArcString(a) + " is isolated.");
+            path.Resize(Int(0));
+            return false;
+        }
         
         // CAUTION: DualArcMarkedQ(ArcOfDarc(de),dual_mark) must be false here; otherwise, not all neighbor faces will be traversed.
         
@@ -193,20 +196,47 @@ void FindShortestPath(
     }
     
     // If we arrive here, then we have the guarantee that a and b are not arcs of the same face (which would mean that we can reroute with 0 crossings).
-    
+
     PD_PRINT("Pushing arcs of end face to Y_front.");
     {
         PD_ASSERT( hiddenQ(b) );
         
         ++k;
-        const Int db = ToDarc(b,Head);
-        const Int de = LeftLegalDarc(db,hiddenQ,forbiddenQ);
+        const Int db   = ToDarc(b,Head);
+        const Int de_0 = LeftDarc(db);
+        Int de = de_0;
+        bool successQ = false;
+        
+        do
+        {
+            auto [e,d] = FromDarc(de);
+            
+            if( hiddenQ(e) )
+            {
+                de = LeftDarc(ReverseDarc(de));
+            }
+            else if( forbiddenQ(e) )
+            {
+                de = LeftDarc(de);
+            }
+            else
+            {
+                successQ = true;
+                break;
+            }
+        }
+        while( de != de_0 );
         
         PD_VALPRINT("db",db);
         PD_VALPRINT("de",de);
         
         // TODO: Handle this error.
-        if( de == db ) { eprint("starting arc  b " + ArcString(b) + " is isolated."); }
+        if( !successQ )
+        {
+            PD_PRINT("Starting arc b = " + ArcString(b) + " is isolated.");
+            path.Resize(Int(0));
+            return false;
+        }
         
         // CAUTION: DualArcMarkedQ(ArcOfDarc(de)) must be false here; otherwise, not all neighbor faces will be traversed.
         
@@ -329,64 +359,35 @@ Exit:
         Int e = a_0;
         for( Int p = X_r + Int(1); p --> Int(0); )
         {
-            path[p] = e;
+            path[p] = ToDarc(e,DualArcLeftToRightQ(e));
             e = DualArcFrom(e);
         }
-        PD_ASSERT(path[0] == a);
+        PD_ASSERT(ArcOfDarc(path[0]) == a);
+        PD_ASSERT(path[0] == ToDarc(a,Tail));
         
         e = b_0;
         for( Int p = X_r + Int(1); p < path.Size(); ++p )
         {
-            path[p] = e;
+            path[p] = ToDarc(e,DualArcLeftToRightQ(e));
             e = DualArcFrom(e);
         }
-        PD_ASSERT(path[k] == b);
+        PD_ASSERT(ArcOfDarc(path[k]) == b);
+        PD_ASSERT(path[k] == ToDarc(b,Tail));
+        PD_VALPRINT("path",PathString(path));
+        PD_VALPRINT("path.Size()",path.Size());
         
-        PD_VALPRINT("path", ShortPathString(path) );
+        return true;
     }
     else
     {
         PD_PRINT("No path found.");
         path.Resize(Int(0));
+        
+        return false;
     }
 }
 
 private:
-
-template<typename HiddenFun_T, typename ForbiddenFun_T>
-Int LeftLegalDarc( const Int de_0, cref<HiddenFun_T> hiddenQ, cref<ForbiddenFun_T> forbiddenQ )
-{
-    Int de = LeftDarc(de_0);
-    
-    while( de != de_0 )
-    {
-        const Int e = ArcOfDarc(de);
-        
-        if( hiddenQ(e) )
-        {
-            de = LeftDarc(ReverseDarc(de));
-        }
-        else if( forbiddenQ(e) )
-        {
-            de = LeftDarc(de);
-        }
-        else
-        {
-            break;
-        }
-    }
-    
-    {
-        const Int e = ArcOfDarc(de);
-        
-        if( hiddenQ(e) || forbiddenQ(e) )
-        {
-            wprint( MethodName("LeftLegalDarc") + ": Cannot find a darc that is neither hidden nor forbidden.");
-        }
-    }
-    
-    return de;
-}
 
 template<
     bool first_faceQ = false, bool second_faceQ = false,
@@ -424,7 +425,7 @@ TOOLS_FORCE_INLINE bool SweepFace(
         auto [e_0,d_0] = FromDarc(de_0);
         
         //  We only push dual arcs to stack that we have explored already.
-        PD_ASSERT(DualArcMarkedQ(e_0,dual_mark));
+        PD_ASSERT(DualArcMark(e_0) == dual_mark);
         PD_ASSERT(DualArcForwardQ(e_0) == forwardQ);
         
         if( DualArcVisitedTwiceQ(e_0) )

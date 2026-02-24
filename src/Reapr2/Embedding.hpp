@@ -62,8 +62,9 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
     cptr<Int> A_V_ptr = A_V.Pointers().data();
     cptr<Int> V       = A_V.Elements().data();
     
-    cref<Tensor1<Int,Int>> A_next_A = H.ArcNextArc();
-
+    cptr<Int> A_next_A = H.ArcNextArc().data();
+    cptr<Int> A_color  = pd.ArcColors().data();
+    
     const auto & V_coords = H.VertexCoordinates();
 
     Tensor1<Int,Int> comp_color (lc_count);
@@ -73,7 +74,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
     {
         {
             const Int a   = *(lc_arcs.Sublist(lc).begin());
-            comp_color[a] = pd.ArcColors()[a];
+            comp_color[a] = A_color[a];
         }
         
         for( Int a : lc_arcs.Sublist(lc) )

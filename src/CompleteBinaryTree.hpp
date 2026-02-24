@@ -464,8 +464,8 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void BreadthFirstSearch(
-            Internal_T  && int_visit,
-            Leaf_T      && leaf_visit
+            Internal_T  & int_visit,
+            Leaf_T      & leaf_visit
         )
         {
             TOOLS_PTIMER(timer,MethodName("BreadthFirstSearch"));
@@ -521,8 +521,8 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void ReverseBreadthFirstSearch(
-            Internal_T  && int_visit,
-            Leaf_T      && leaf_visit
+            Internal_T  & int_visit,
+            Leaf_T      & leaf_visit
         )
         {
             TOOLS_PTIMER(timer,MethodName("ReverseBreadthFirstSearch"));
@@ -614,9 +614,9 @@ namespace Knoodle
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
         void DepthFirstSearch(
-            IntPre_T  && int_pre_visit,
-            IntPost_T && int_post_visit,
-            Leaf_T    && leaf_visit,
+            IntPre_T  & int_pre_visit,
+            IntPost_T & int_post_visit,
+            Leaf_T    & leaf_visit,
             const Int start_node = Uninitialized
         )
         {
@@ -642,9 +642,9 @@ namespace Knoodle
         
         template< DFS mode, class IntPre_T, class IntPost_T, class Leaf_T >
         void DepthFirstSearch_Recursive(
-            IntPre_T  && int_pre_visit,
-            IntPost_T && int_post_visit,
-            Leaf_T    && leaf_visit,
+            IntPre_T  & int_pre_visit,
+            IntPost_T & int_post_visit,
+            Leaf_T    & leaf_visit,
             const Int node
         )
         {
@@ -704,9 +704,9 @@ namespace Knoodle
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
         void DepthFirstSearch_ManualStack(
-            IntPre_T  && int_pre_visit,
-            IntPost_T && int_post_visit,
-            Leaf_T    && leaf_visit,
+            IntPre_T  & int_pre_visit,
+            IntPost_T & int_post_visit,
+            Leaf_T    & leaf_visit,
             const Int start_node = Uninitialized
         )
         {
@@ -794,25 +794,16 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void PreOrderScan(
-            Internal_T  && int_visit,
-            Leaf_T      && leaf_visit,
+            Internal_T  & int_visit,
+            Leaf_T      & leaf_visit,
             const Int start_node = Uninitialized
         )
         {
             DepthFirstSearch<DFS::BreakNever>(
-               [&int_visit]( Int node )   // pre visit
-               {
-                   int_visit(node);
-               },
-               []( Int node )              // post visit
-               {
-                   (void)node;
-               },
-               [&leaf_visit]( Int node )  // leaf visit
-               {
-                   leaf_visit(node);
-               },
-               start_node
+                int_visit,                       // pre visit
+                []( Int node ){ (void)node; },   // post visit
+                leaf_visit,                     // leaf visit
+                start_node
             );
         }
         
@@ -850,25 +841,16 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void PostOrderScan(
-            Internal_T  && int_visit,
-            Leaf_T      && leaf_visit,
+            Internal_T  & int_visit,
+            Leaf_T      & leaf_visit,
             const Int start_node = Uninitialized
         )
         {
             DepthFirstSearch<DFS::BreakNever>(
-               []( Int node )             // pre visit
-               {
-                   (void)node;
-               },
-               [&int_visit]( Int node )   // post visit
-               {
-                   int_visit(node);
-               },
-               [&leaf_visit]( Int node )  // leaf visit
-               {
-                   leaf_visit(node);
-               },
-               start_node
+                []( Int node ) { (void)node; }, // pre visit
+                int_visit,                      // post visit
+                leaf_visit,                     // leaf visit
+                start_node
             );
         }
         

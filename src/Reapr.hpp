@@ -143,7 +143,7 @@ namespace Knoodle
             return ortho_draw_settings;
         }
         
-        void SetOrthoDrawSettings( OrthoDrawSettings_T && val )
+        void SetOrthoDrawSettings( OrthoDrawSettings_T & val )
         {
             ortho_draw_settings = val;
         }

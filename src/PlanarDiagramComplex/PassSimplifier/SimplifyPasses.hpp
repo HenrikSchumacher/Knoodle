@@ -289,16 +289,16 @@ bool RerouteToShortestPath( mref<Pass_T> pass, const Int max_dist, mref<Path_T> 
     }
 #endif // PD_DEBUG
     
-    FindShortestPath(pass.first,pass.last,max_dist,path);
+    FindShortestPath( pass.first, pass.last, max_dist, path );
     
 #ifdef PD_COUNTERS
     RecordPreStrandSize(pass.arc_count);
     RecordPostStrandSize(path_arc_count);
 #endif
-        
-    if( (path.Size() <= Int(0)) || (path.Size() > max_dist) )
+    
+    if( (path.Size() <= Int(0)) || (path.CrossingCount()) >= pass.CrossingCount() )
     {
-        PD_DPRINT("No improvement detected. (pass.arc_count = " + ToString(pass.arc_count) + ", path.Size() = " + ToString(path.Size()) + ", max_dist = " + ToString(max_dist) + ")");
+        PD_DPRINT("No improvement detected. (path.CrossingCount() = " + ToString(path.CrossingCount()) + ", pass.CrossingCount() = " + ToString(pass.CrossingCount()) + ", max_dist = " + ToString(max_dist) + ")");
         return false;
     }
     

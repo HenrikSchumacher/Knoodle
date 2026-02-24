@@ -13,29 +13,29 @@ static PDC_T FromPDCode(
     ));
 }
 
-template<typename T, typename ExtInt>
+template<typename T, typename ExtInt, typename ExtInt2>
 static PDC_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
-    const bool    proven_minimalQ_ = false,
-    const bool    compressQ = false
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
 )
 {
     return PDC_T(
-        PD_T::FromMacLeodCode(s_mac_leod,crossing_count_,proven_minimalQ_,compressQ)
+        PD_T::FromMacLeodCode(s_mac_leod,crossing_count_,color,proven_minimalQ_)
     );
 }
 
-template<typename T, typename ExtInt>
+template<typename T, typename ExtInt, typename ExtInt2>
 static PDC_T FromExtendedGaussCode(
-    cptr<T>      gauss_code,
-    const ExtInt arc_count_,
-    const bool   proven_minimalQ_ = false,
-    const bool   compressQ = false
+    cptr<T>       gauss_code,
+    const ExtInt  arc_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
 )
 {
     return PDC_T(
-        PD_T::FromExtendedGaussCode(gauss_code,arc_count_,proven_minimalQ_,compressQ)
+        PD_T::FromExtendedGaussCode(gauss_code,arc_count_,color,proven_minimalQ_)
     );
 }
 

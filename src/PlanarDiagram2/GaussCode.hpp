@@ -73,18 +73,19 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 }
 
 
-template<typename T, typename ExtInt>
+template<typename T, typename ExtInt, typename ExtInt2>
 static PD_T FromExtendedGaussCode(
-    cptr<T>      gauss_code,
-    const ExtInt arc_count_,
-    const bool   proven_minimalQ_ = false,
-    const bool   compressQ = false // Compression should not be necessary.
+    cptr<T>       gauss_code,
+    const ExtInt  arc_count_,
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
 )
 {
     // needs to know all member variables
     
     static_assert( SignedIntQ<T>, "" );
     static_assert( SignedIntQ<ExtInt>, "" );
+    static_assert( SignedIntQ<ExtInt2>, "" );
     
     TOOLS_PTIMER(timer,MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">");
     
@@ -94,7 +95,7 @@ static PD_T FromExtendedGaussCode(
     
     if( m <= ExtInt(0) )
     {
-        return Unknot(Int(0));
+        return Unknot(color);
     }
     
     PD_T pd ( m / Int(2) );
@@ -102,7 +103,7 @@ static PD_T FromExtendedGaussCode(
     
     Int crossing_counter = 0;
     
-    auto fun = [&gauss_code,&pd,&crossing_counter]
+    auto fun = [&gauss_code,&pd,&crossing_counter,color]
     ( const Int a_prev, const Int a ) -> int
     {
         const T g = gauss_code[a];
@@ -116,6 +117,7 @@ static PD_T FromExtendedGaussCode(
 
         pd.A_cross(a_prev,Head) = c;
         pd.A_cross(a     ,Tail) = c;
+        pd.A_color[a] = color;
         pd.A_state[a] = ArcState_T::Active;
         
         const bool visitedQ = pd.C_arcs(c,In,Left) != Uninitialized;
@@ -201,18 +203,5 @@ static PD_T FromExtendedGaussCode(
         eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots.
-    
-    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots, no?
-    if( compressQ )
-    {
-        // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-        // This also applies the coloring to the arcs.
-        return pd.template CreateCompressed<true>();
-    }
-    else
-    {
-        pd.ComputeArcColors();
-        return pd;
-    }
+    return pd;
 }

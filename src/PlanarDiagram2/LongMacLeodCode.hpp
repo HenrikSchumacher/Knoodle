@@ -156,12 +156,12 @@ Size_T MacLeodComparisonCount()
     return this->GetCache<Size_T>("MacLeodComparisonCount");
 }
 
-template<typename T, typename ExtInt>
+template<typename T, typename ExtInt, typename ExtInt2>
 static PD_T FromLongMacLeodCode(
     cptr<T>       code,
     const ExtInt  arc_count_,
-    const bool    proven_minimalQ_ = false,
-    const bool    compressQ = false
+    const ExtInt2 color,
+    const bool    proven_minimalQ_ = false
 )
 {
     // needs to know all member variables
@@ -172,6 +172,8 @@ static PD_T FromLongMacLeodCode(
         + ">");
     
     static_assert(IntQ<T>,"");
+    static_assert(IntQ<ExtInt>,"");
+    static_assert(IntQ<ExtInt2>,"");
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
 
@@ -179,7 +181,7 @@ static PD_T FromLongMacLeodCode(
     
     if( m <= ExtInt(0) )
     {
-        return Unknot(Int(0));
+        return Unknot(color);
     }
     const Int n = m / Int(2);
 
@@ -225,9 +227,12 @@ static PD_T FromLongMacLeodCode(
             pd.A_cross(b_prev,Head) = c;
             pd.A_cross(b     ,Tail) = c;
             
+            pd.A_color[a] = color;
+            pd.A_color[b] = color;
+            
             pd.A_state[a] = ArcState_T::Active;
             pd.A_state[b] = ArcState_T::Active;
-            
+
             if( a_overQ == a_right_handedQ )
             {
                 /* Situation in case of a_overQ == a_right_handedQ
@@ -268,7 +273,6 @@ static PD_T FromLongMacLeodCode(
                 pd.C_arcs(c,In ,Left ) = b_prev;
                 pd.C_arcs(c,In ,Right) = a_prev;
             }
-        
             ++crossing_counter;
         }
     }
@@ -281,23 +285,15 @@ static PD_T FromLongMacLeodCode(
         eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
     }
     
-    // TODO: Computing the arc colors is actually redundant and diagrams from Gauss code can only be knots, no?
-    if(compressQ)
-    {
-        // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-        return pd.template CreateCompressed<true>();
-    }
-    else
-    {
-        pd.ComputeArcColors();
-        return pd;
-    }
+    return pd;
 }
 
-template<typename T, typename ExtInt>
-static PD_T FromLongMacLeodCode( cref<Tensor1<T,ExtInt>> code )
+template<typename T, typename ExtInt, typename ExtInt2>
+static PD_T FromLongMacLeodCode(
+    cref<Tensor1<T,ExtInt>> code, const ExtInt2 color, const bool proven_minimalQ_ = false
+)
 {
     static_assert(IntQ<T>,"");
     static_assert(IntQ<ExtInt>,"");
-    return FromLongMacLeodCode( code.data(), code.Size(), false, false );
+    return FromLongMacLeodCode( code.data(), code.Size(), color, proven_minimalQ_ );
 }

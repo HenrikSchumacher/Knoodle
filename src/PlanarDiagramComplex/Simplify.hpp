@@ -23,6 +23,8 @@ struct Simplify_Args_T
     int                 randomize_bends          = 4;
     bool                randomize_virtual_edgesQ = true;
     Compaction_T        compaction_method        = Compaction_T::Length_MCF;
+    
+    bool                canonicalizeQ            = true;
 
 //    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
@@ -334,14 +336,13 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
     swap( pd_list, pd_done );
     
 #ifdef PD_COUNTERS
-    // We need to save the counters from being erased by this->ClearCache().
+    // We need to save the counters from being erased by Canonicalize().
     auto S_buffer = std::move(this->GetCache<PassSimplifier_T>("PassSimplifier"));
 #endif
     
-    if( change_count > Size_T(0) )
+    if( args.canonicalizeQ )
     {
-        SortByCrossingCount();
-        this->ClearCache();
+        Canonicalize();
     }
 
 #ifdef PD_COUNTERS

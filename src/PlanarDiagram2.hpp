@@ -39,6 +39,7 @@ namespace Knoodle
         using Base_T                    = CachedObject<1,0,0,0>;
         using Class_T                   = PlanarDiagram2<Int>;
         using PD_T                      = PlanarDiagram2<Int>;
+        using PD_List_T                 = std::vector<PD_T>;
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
@@ -447,9 +448,12 @@ namespace Knoodle
         
 
 #include "PlanarDiagram2/Relabel.hpp"
+#include "PlanarDiagram2/Subdiagram.hpp"
         
 #ifdef KNOODLE_USE_BOOST_PLANARITY
 #include "PlanarDiagram2/Planarity.hpp"
+        
+        
 #endif
         
     public:
@@ -630,7 +634,7 @@ namespace Knoodle
             
             for( Int c = 0; c < max_crossing_count; ++c )
             {
-                const C_Arcs_T C = CopyCrossing(c);
+                const C_Arcs_T C = CopyCrossing(c); // We need a copy here.
                 C_arcs(c,0,0) = C[i0][j0];
                 C_arcs(c,0,1) = C[i0][j1];
                 C_arcs(c,1,0) = C[i1][j0];

@@ -86,14 +86,14 @@ static PD_T FigureEightKnot( const Int color )
     pd.proven_minimalQ = true;
     pd.SetCache("LinkComponentCount",Int(1));
     
-    constexpr Int C[4][2][2] = {{{3, 0}, {7, 2}}, {{6, 1}, {0, 5}}, {{2, 5}, {4, 1}}, {{7, 4}, {3, 6}}};
+    constexpr Int C[4][2][2] = {{{0, 5}, {4, 7}}, {{4, 1}, {0, 3}}, {{7, 2}, {1, 6}}, {{3, 6}, {5, 2}}};
     pd.C_arcs.Read(&C[0][0][0]);
     pd.C_state[0] = CrossingState_T::RightHanded;
-    pd.C_state[1] = CrossingState_T::LeftHanded;
-    pd.C_state[2] = CrossingState_T::RightHanded;
+    pd.C_state[1] = CrossingState_T::RightHanded;
+    pd.C_state[2] = CrossingState_T::LeftHanded;
     pd.C_state[3] = CrossingState_T::LeftHanded;
     
-    constexpr Int A[8][2] = {{0, 1}, {1, 2}, {2, 0}, {0, 3}, {3, 2}, {2, 1}, {1, 3}, {3, 0}};
+    constexpr Int A[8][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 1}, {1, 0}, {0, 3}, {3, 2}, {2, 0}};
     pd.A_cross.Read(&A[0][0]);
     pd.A_state.Fill(ArcState_T::Active);
     pd.A_color.Fill(color);

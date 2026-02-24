@@ -1,8 +1,8 @@
 private:
 
-void RerouteLoopPath( const Int e, const Int c_0 )
+void RerouteLoopPass( const Int e, const Int c_0 )
 {
-    PD_TIMER(timer,MethodName("RerouteLoopPath"));
+    PD_TIMER(timer,MethodName("RerouteLoopPass"));
     
 #ifdef PD_DEBUG
     int mark_counter = 0;
@@ -13,7 +13,7 @@ void RerouteLoopPath( const Int e, const Int c_0 )
     
     if ( mark_counter >= 4 ) // This should never happen.
     {
-        wprint(MethodName("RerouteLoopPath") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
+        wprint(MethodName("RerouteLoopPass") + " with " + ((mark_counter = 3) ? "T" : "X" ) + "-junction; strand_arc_count = " + ToString(strand_arc_count));
         TOOLS_LOGDUMP(c_0);
         TOOLS_LOGDUMP(e  );
         TOOLS_LOGDUMP(pd->C_arcs(c_0,Out,Left ));

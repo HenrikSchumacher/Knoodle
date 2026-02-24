@@ -110,8 +110,9 @@ void ComputeLinkComponents() const
     Tensor1<Int,Int> A_pos   ( max_arc_count, Uninitialized );
     
     this->template Traverse_ByNextArc<true,false,0>(
-        []( const Int lc, const Int lc_begin )
+        []( const Int a, const Int lc, const Int lc_begin )
         {
+            (void)a;
             (void)lc;
             (void)lc_begin;
         },
@@ -177,7 +178,7 @@ void ComputeLinkComponents() const
 //        const Int k_begin = lc_arc_ptr[lc  ];
 //        const Int k_end   = lc_arc_ptr[lc+1];
 //
-//        lc_pre( lc, lc_arc_idx[k_begin] );
+//        lc_pre( a, lc, lc_arc_idx[k_begin] );
 //
 //        for( Int k = k_begin; k < k_end; ++k )
 //        {

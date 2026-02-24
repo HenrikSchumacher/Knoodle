@@ -46,6 +46,30 @@ bool AlternatingAndLoopFreeQ() const
     return true;
 }
 
+bool IsthmusFreeQ() const
+{
+    TOOLS_PTIMER(timer,MethodName("IsthmusFreeQ"));
+    
+    auto & A_F = ArcFaces();
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        if( !CrossingActiveQ(c) ) { continue; }
+        
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
+        
+        if( (f_w == f_e) || (f_n == f_s) )
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 Tensor1<Int,Int> FindIsthmi() const
 {
     TOOLS_PTIMER(timer,MethodName("FindIsthmi"));
@@ -58,12 +82,10 @@ Tensor1<Int,Int> FindIsthmi() const
     {
         if( !CrossingActiveQ(c) ) { continue; }
         
-        const C_Arcs_T C = CopyCrossing(c);
-        
-        const Int f_w = A_F(C[Out][Left ],0);
-        const Int f_n = A_F(C[Out][Left ],1);
-        const Int f_e = A_F(C[In ][Right],1);
-        const Int f_s = A_F(C[In ][Right],0);
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
         
         if( (f_w == f_e) || (f_n == f_s) )
         {

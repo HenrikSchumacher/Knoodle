@@ -205,7 +205,7 @@ bool Reidemeister_II_Backward(
         const Int a_prev = pd->C_arcs(c_0,In,!side_0);
         PD_ASSERT( ArcMarkedQ(a_prev));  // Because of  CrossingMarkedQ(c_0).
         
-        // This cannot happen because we called RerouteLoopPath.
+        // This cannot happen because we called RerouteLoopPass.
         PD_ASSERT( a_0_out != a_prev );
         
 //        // A nasty case that is easy to overlook.
@@ -458,7 +458,7 @@ bool Reidemeister_II_Forward(
     {
         PD_PRINT(tag() + " detected move at outgoing port of " + CrossingString(c_1) + ".");
         
-        // This cannot happen because we called RerouteLoopPath.
+        // This cannot happen because we called RerouteLoopPass.
         PD_ASSERT( a_0_out != a_prev );
         
 //        // A nasty case that is easy to overlook.

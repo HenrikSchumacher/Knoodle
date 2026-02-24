@@ -68,8 +68,9 @@ PD_T CreateCompressed()
     mptr<Int>                 A_color_new = pd.A_color.data();
     
     this->template Traverse<true>(
-        []( const Int lc, const Int lc_begin )
+        []( const Int a, const Int lc, const Int lc_begin )
         {
+            (void)a;
             (void)lc;
             (void)lc_begin;
         },

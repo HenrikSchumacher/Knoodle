@@ -73,7 +73,7 @@ void Traverse(
     if constexpr ( use_lutQ )
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
+            lc_pre, arc_fun, lc_post,
             ArcNextArc().data(), A_data, C_data
         );
         
@@ -82,7 +82,7 @@ void Traverse(
     else
     {
         this->template Traverse_impl<crossingsQ,arclabelsQ,start_arc_ou,use_lutQ>(
-            std::move(lc_pre), std::move(arc_fun), std::move(lc_post),
+            lc_pre, arc_fun, lc_post,
             nullptr, A_data, C_data
         );
     }
@@ -102,7 +102,7 @@ void Traverse( ArcFun_T && arc_fun )  const
             (void)lc;
             (void)lc_begin;
         },
-        std::move(arc_fun),
+        arc_fun,
         []( const Int lc, const Int lc_begin, const Int lc_end )
         {
             (void)lc;
@@ -328,7 +328,7 @@ void TraverseComponent(const Int a_0, ArcFun_T && arc_fun)  const
     if constexpr ( use_lutQ )
     {
         this->template TraverseComponent_impl<use_lutQ>(
-            a_0, std::move(arc_fun),ArcNextArc().data()
+            a_0, arc_fun, ArcNextArc().data()
         );
         
         this->ClearCache("ArcNextArc");
@@ -336,7 +336,7 @@ void TraverseComponent(const Int a_0, ArcFun_T && arc_fun)  const
     else
     {
         this->template Traverse_impl<use_lutQ>(
-            a_0, std::move(arc_fun), nullptr
+            a_0, arc_fun, nullptr
         );
     }
 }
