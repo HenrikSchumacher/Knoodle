@@ -235,14 +235,14 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
             )();
         }
 
-        auto [strand_change_count, disconnect_count] = this->template SimplifyDiagrammatically<debugQ,targs>( S, pd, args );
-        change_count += strand_change_count;
+        auto [pass_change_count, disconnect_count] = this->template SimplifyDiagrammatically<debugQ,targs>( S, pd, args );
+        change_count += pass_change_count;
         change_count += disconnect_count;
         
         if( pd.InvalidQ() ) { continue; }
 
         // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
-        const bool proven_reducedQ = args.disconnectQ && (strand_change_count == Size_T(0));
+        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T(0));
         
         
         if constexpr (debugQ)
@@ -256,21 +256,22 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         // Split the diagrams into diagram components and push them to pd_todo for further simplification.
 
         // Caution: Split is allowed to push minimal diagrams to pd_done.
-        if( (strand_change_count != Size_T(0)) || (disconnect_count != Size_T(0)) )
+        if( (pass_change_count > Size_T(0)) || (disconnect_count > Size_T(0)) )
         {
             // If anything upstream changed, then we should better continue working on the split diagrams.
             if( args.splitQ )
             {
                 change_count += Split( std::move(pd), pd_todo, proven_reducedQ );
-                
+                continue;
             }
             else
             {
                 if( proven_reducedQ && pd.AlternatingQ() ) { pd.proven_minimalQ = true; }
                 
                 PushDiagramToDo( std::move(pd) );
+                
+                continue;
             }
-            continue;
         }
         
         // No changes were found so far. We can try reapr or we have to stop here.
@@ -385,7 +386,7 @@ Size_T Rattle(
     
     PD_T pd_1;
     
-    Size_T strand_change_count = 0;
+    Size_T pass_change_count = 0;
     Size_T disconnect_count    = 0;
     
     constexpr Size_T max_projection_iter = 10;
@@ -441,7 +442,7 @@ Size_T Rattle(
             
             pd_1 = std::move(pdc_new.pd_list[0]);
             
-            std::tie(strand_change_count,disconnect_count) = this->template SimplifyDiagrammatically<debugQ,targs>(S, pd_1, args);
+            std::tie(pass_change_count,disconnect_count) = this->template SimplifyDiagrammatically<debugQ,targs>(S, pd_1, args);
     
             
             // TODO: Can we improve these conditions?
@@ -460,14 +461,14 @@ Size_T Rattle(
         if( progressQ ) { break; }
     }
     
-    if( pd_1.InvalidQ() ) { return strand_change_count + disconnect_count; }
+    if( pd_1.InvalidQ() ) { return pass_change_count + disconnect_count; }
     
     Size_T split_count = 0;
     
     if( progressQ )
     {
         // If the StrandSimplifier did not find anything, then Disconnect produces a reduced diagram.
-        const bool proven_reducedQ = args.disconnectQ && (strand_change_count == Size_T(0));
+        const bool proven_reducedQ = args.disconnectQ && (pass_change_count == Size_T(0));
         
         if constexpr (debugQ)
         {
@@ -494,12 +495,12 @@ Size_T Rattle(
         PushDiagramDone( std::move(pd) );
     }
     
-    return strand_change_count + disconnect_count + split_count;
+    return pass_change_count + disconnect_count + split_count;
 }
 
 
 
-
+// Caution: SimplifyDiagrammatically is non-exhaustive! It ends with Disconnect, and this may unlock new pass moves.
 template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     mref<PassSimplifier_T> S, mref<PD_T> pd, cref<Simplify_Args_T> args
@@ -549,17 +550,17 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     
     const Int max_dist = Scalar::Max<Int>;
     
-    Size_T strand_change_count = 0;
+    Size_T pass_change_count = 0;
     
     if( args.rerouteQ )
     {
         do
         {
-            strand_change_count = 0;
+            pass_change_count = 0;
             
             // TODO: Check this
-            strand_change_count += S.template SimplifyPasses<targs>(pd,{
-//            strand_change_count += S.template SimplifyStrands<targs>(pd,{
+            pass_change_count += S.template SimplifyPasses<targs>(pd,{
+//            pass_change_count += S.template SimplifyStrands<targs>(pd,{
                 .max_dist              = max_dist,
                 .overQ                 = true,
                 .compressQ             = args.compressQ,
@@ -576,17 +577,9 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
 //            if constexpr ( !targs.interleave_over_underQ || !targs.restart_after_successQ || !targs.restart_after_failureQ )
             if constexpr ( !targs.interleave_over_underQ )
             {
-                // TODO: Filter out duplicate unknots.
-                if( pd.crossing_count <= Int(1) )
-                {
-                    CreateUnlink(pd.last_color_deactivated);
-                    pd = PD_T::InvalidDiagram();
-                    break;
-                }
-                
-                // Reroute understrands.
-                strand_change_count += S.template SimplifyPasses<targs>(pd,{
-//                strand_change_count += S.template SimplifyStrands<targs>(pd,{
+                // Reroute underpasses.
+                pass_change_count += S.template SimplifyPasses<targs>(pd,{
+//                pass_change_count += S.template SimplifyStrands<targs>(pd,{
                     .max_dist              = max_dist,
                     .overQ                 = false,
                     .compressQ             = args.compressQ,
@@ -600,29 +593,44 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
                     if( !pd.CheckAll() ) { pd_eprint("CheckAll() failed after SimplifyUnderPasses."); };
                 }
             }
-            
-            // TODO: Filter out duplicate unknots.
-            if( pd.crossing_count <= Int(1) )
-            {
-                CreateUnlink(pd.last_color_deactivated);
-                pd = PD_T::InvalidDiagram();
-                break;
-            }
         }
-        while( /*args.exhaust_strands_firstQ &&*/ (strand_change_count > Size_T(0)) );
+        while( pass_change_count > Size_T(0) );
     }
 
-    if( pd.InvalidQ() ) { return {strand_change_count,Size_T(0)}; }
+    if( pd.InvalidQ() ) { return {pass_change_count,Size_T(0)}; }
     
     Size_T disconnect_count = 0;
     
     // Caution: Disconnect is allowed to push some small diagrams to pd_done.
     if( args.disconnectQ )
     {
-        disconnect_count = Disconnect(pd);
+        Size_T disconnect_iter = 0;
+        Size_T local_disconnect_count = 0;
+        // TODO: This while loop is nasty. Isn't there a way to disconnect in just one round?
+        do
+        {
+            ++disconnect_iter;
+            local_disconnect_count = Disconnect(pd);
+            disconnect_count += local_disconnect_count;
+            
+//            // DEBUGGING
+//            if( (disconnect_iter > Size_T(1)) && (local_disconnect_count > Size_T(0)) )
+//            {
+//                TOOLS_DUMP(local_disconnect_count);
+//                TOOLS_DUMP(disconnect_count);
+//            }
+        }
+        while( local_disconnect_count > Size_T(0) );
+        
+#ifdef PD_DEBUG
+        if( disconnect_iter > Size_T(2) )
+        {
+            PD_PRINT(tag() + ": Needed " + ToString(disconnect_iter-1) + " rounds of disconnect. (disconnect_count = " + ToString(disconnect_count)+ ", crossing_count = " + ToString(pd.CrossingCount()) + ").");
+        }
+#endif // PD_DEBUG
     }
     
-    return {strand_change_count,disconnect_count};
+    return {pass_change_count,disconnect_count};
 }
 
 

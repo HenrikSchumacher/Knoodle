@@ -37,10 +37,6 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     
     TOOLS_PTIMER(timer,tag());
     
-    
-//    // DEBUGGING
-//    constexpr bool debugQ = true;
-    
     if constexpr ( debugQ )
     {
         wprint(tag() + ": Debug mode active.");
