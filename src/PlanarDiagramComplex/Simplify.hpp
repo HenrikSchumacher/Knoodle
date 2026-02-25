@@ -604,12 +604,12 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     // Caution: Disconnect is allowed to push some small diagrams to pd_done.
     if( args.disconnectQ )
     {
-        Size_T disconnect_iter = 0;
+//        Size_T disconnect_iter = 0;
         Size_T local_disconnect_count = 0;
         // TODO: This while loop is nasty. Isn't there a way to disconnect in just one round?
         do
         {
-            ++disconnect_iter;
+//            ++disconnect_iter;
             local_disconnect_count = Disconnect(pd);
             disconnect_count += local_disconnect_count;
             
