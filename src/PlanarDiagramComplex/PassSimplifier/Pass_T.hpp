@@ -61,7 +61,7 @@ std::string PassDetails( cref<Pass_T> pass ) const
 
 std::string PassString( cref<Pass_T> pass ) const
 {
-    return ShortArcRangeString(pass.first,pass.last);
+    return pass.activeQ ? ShortArcRangeString(pass.first,pass.last) : "{ }";
 }
 
 Tensor1<Int,Int> PassToArray( cref<Pass_T> pass ) const

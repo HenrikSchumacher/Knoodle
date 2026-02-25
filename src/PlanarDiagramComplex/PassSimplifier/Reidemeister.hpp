@@ -150,11 +150,11 @@ bool Reidemeister_II_Backward(
         // It could happen that `a_next` is the strand start.
         // We have to take care of this outside the function.
                 
-        // DEBUGGING
-        if( a_prev == a_next ) [[unlikely]]
-        {
-            wprint(tag() + ": a_prev == a_next.");
-        }
+//        // DEBUGGING
+//        if( a_prev == a_next ) [[unlikely]]
+//        {
+//            wprint(tag() + ": a_prev == a_next.");
+//        }
         
         PD_ASSERT(a_prev != a_next);    //  Because ArcMarkedQ(a_prev) and !ArcMarkedQ(a_next).
         PD_ASSERT(!ArcMarkedQ(a_next));

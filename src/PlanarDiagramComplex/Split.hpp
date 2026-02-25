@@ -17,6 +17,13 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     
     if( pd.InvalidQ() ) { return Size_T(0); }
     
+    if( pd.crossing_count <= Int(1) )
+    {
+        CreateUnlink(pd.last_color_deactivated);
+        pd = PD_T::InvalidDiagram();
+        return Size_T(1);
+    }
+    
     if( pd.proven_minimalQ )
     {
         if constexpr ( debugQ )
@@ -25,13 +32,6 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
         }
         
         pd_done.push_back( std::move(pd) );
-        pd = PD_T::InvalidDiagram();
-        return Size_T(1);
-    }
-    
-    if( pd.crossing_count <= Int(1) )
-    {
-        CreateUnlink(pd.last_color_deactivated);
         pd = PD_T::InvalidDiagram();
         return Size_T(1);
     }
@@ -82,8 +82,6 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     cref<typename PD_T::ComponentMatrix_T> A = pd.DiagramComponentLinkComponentMatrix();
 
     const auto & lc_arcs = pd.LinkComponentArcs();
-    
-    
     
 #if defined(TENSORS_BOUND_CHECKS)
     // Use the containers to enable automatic bound checks.

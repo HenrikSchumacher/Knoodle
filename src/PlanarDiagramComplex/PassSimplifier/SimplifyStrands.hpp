@@ -628,6 +628,12 @@ Size_T SimplifyStrands( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
     
     Cleanup();
     
+    if( pd_input.CrossingCount() <= Int(1) )
+    {
+        pdc.CreateUnlink( pd_input.LastColorDeactivated() );
+        pd_input = PD_T::InvalidDiagram();
+    }
+    
     return change_counter;
     
 } // Int SimplifyStrands

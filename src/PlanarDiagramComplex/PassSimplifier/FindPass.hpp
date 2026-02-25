@@ -95,7 +95,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
         const bool side_1 = (pd->C_arcs(c_1,In,Right) == pass.last);
         pass.next = pd->C_arcs(c_1,Out,!side_1);
         AssertArc<1>(pass.next);
-        
+        PD_ASSERT(pd->A_cross(pass.next,Tail) == c_1);
         const Int c_2 = pd->A_cross(pass.next,Head);
         AssertCrossing<1>(c_2);
         
@@ -147,6 +147,8 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
         // TODO: Expensive!
         PD_ASSERT(CheckPass(pass,true));
 
+        PD_ASSERT(pd->A_cross(pass.next,Tail) != pd->A_cross(pass.next,Head));
+        
         if( CrossingMark(c_1) == pass.mark )
         {
             PD_PRINT("Visiting marked crossing c_1 = " + CrossingString(c_1) + ".");
@@ -262,160 +264,6 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
 }
 
 
-template<bool find_maximal_passQ = false>
-bool FindPass_HandleLoop( mref<Pass_T> pass, const Int c_1  )
-{
-    [[maybe_unused]] auto tag = [](){ return MethodName("FindPass_HandleLoop"); };
-    
-    TOOLS_PTIMER(timer,tag());
-    
-    PD_ASSERT(pd->CheckAll());
-    
-//    Int & a = pass.last;
-    const bool side = (pd->C_arcs(c_1,In,Right) == pass.last);
-    const Int a_out = pd->C_arcs(c_1,Out, side);
-    
-//    AssertArc<1>(a_in);
-    AssertArc<1>(a_out);
-    
-    if( pass.next != pass.first )
-    {
-        PD_PRINT("\tpass.next != pass.first");
-        
-        /* Loop can be removed and pass can could be restarted or continued.
-         *
-         *          |       |
-         *      +<--------------+
-         *      |   |       |   ^
-         *      |               |
-         *    --|--           --|--
-         *      |               ^
-         *    --|--             | a_out
-         *      |               |
-         *      v       | last  |   next
-         *      +------>------->X------>
-         *              |       ^ c_1
-         *             b|       |
-         *              |       | a_in
-         */
-        
-        Int deleted_arc_count = CollapseArcRange( a_out, pass.last, pass.arc_count, pass.mark );
-        DeactivateArc(a_out);
-        ++deleted_arc_count;
-        change_counter += static_cast<Size_T>(deleted_arc_count);
-        
-        AssertArc<0>(a_out);
-        AssertArc<0>(pass.last);
-        AssertArc<1>(pass.next);
-
-        // It can happen, that the arc at the south port of c_1 bends back to the deleted arc and thus is deactivated by CollapseArcRange. This is why we load it only now,
-        const Int a_in  = pd->C_arcs(c_1,In ,!side);
-        AssertArc<1>(a_in);
-
-        if( a_in == pass.next )
-        {
-            PD_PRINT("\t\ta_in == pass.next");
-            DeactivateArc(a_in);
-            CreateUnlinkFromArc(a_in);
-            DeactivateCrossing(c_1);
-            pass.activeQ = false;
-            return false;
-        }
-        else
-        {
-            PD_PRINT("\t\ta_in != pass.next");
-            Reconnect<Head>(a_in,pass.next);
-            DeactivateCrossing(c_1);
-            if( a_out == pass.first )
-            {
-                PD_PRINT("\t\t\ta_out == pass.first");
-                InitializePass<find_maximal_passQ>(pass, a_in, pass.overQ, pass.mark);
-            }
-            else
-            {
-                PD_PRINT("\t\t\ta_out != pass.first");
-                pass.last  = a_in;
-                PD_ASSERT(pass.arc_count >= deleted_arc_count);
-                pass.arc_count -= (deleted_arc_count + Int(1));
-            }
-            return true;
-        }
-    }
-    else
-    {
-        PD_PRINT("\tpass.next == pass.first");
-        
-        /* If the pass were a Big Figure-Eight Shaped Unlink, then we would have detected and removed another loop, first. So, this cannot happen.
-         *
-         * Big Figure-Eight Shaped Unlink:
-         *
-         *          |   |
-         *      +<----------+
-         *      |   |   |   |
-         *      |         --|--
-         *    --|--         ^
-         *      |   | last  |   next
-         *      +---|------>|---------->+
-         *          |       |           |
-         *                --|--       --|--
-         *                  |   |   |   |
-         *                  +-----------+
-         *                      |   |
-         */
-        
-        /* Remaining possibilities:
-         *
-         *          Big Unlink        or        Big Hopf link.
-         *
-         *          |   |   |                     |   |   |
-         *      +<--------------+             +<--------------+
-         *      |   |   |   |   ^             |   |   |   |   ^
-         *      |               |             |               |
-         *    --|--           --|--         --|--           --|--
-         *      |               |             |               |
-         *    --|--           --|--         --|--           --|--
-         *      |       |       ^             |       |       ^
-         *      v  last | next  |             v  last | next  |
-         *      +------>------->+             +------>|------>+
-         *              |c_1                          |c_1
-         *              |                             |
-         */
-        
-        // Could be optimized, but is called very seldomly.
-        const bool pass_endQ = (ArcOverQ(pass.last,Head) != pass.overQ);
-        
-        Int deleted_arc_count = CollapseArcRange( pass.next, pass.last, pass.arc_count, pass.mark );
-        DeactivateArc(pass.next);
-        ++deleted_arc_count;
-        change_counter += static_cast<Size_T>(deleted_arc_count);
-        
-        // It can happen, that the arc at the south port of c_1 bends back to the deleted arc and thus is deactivated by CollapseArcRange. This is why we load it only now.
-        const Int a_in  = pd->C_arcs(c_1,In ,!side);
-        AssertArc<1>(a_in);
-        
-        if( a_in == a_out )
-        {
-            PD_PRINT("\t\ta_in == a_out");
-            
-            // Only possible if not Hopf link
-            DeactivateArc(a_out);
-            CreateUnlinkFromArc(a_out);
-        }
-        else
-        {
-            PD_PRINT("\t\ta_in != a_out");
-            Reconnect<Head>(a_in,a_out);
-            if( pass_endQ ) { CreateUnlinkFromArc(a_out); }
-        }
-        DeactivateCrossing(c_1);
-        
-        // If a_in is still alive, we could start a new pass from there... but that could mix up a lot in memory access. We better stop here.
-
-        pass.activeQ = false;
-        return false;
-    }
-}
-
 template<bool trivial_strand_warningQ = true>
 bool CheckPass( cref<Pass_T> pass, const bool pass_closedQ )
 {
@@ -513,22 +361,18 @@ bool CheckPass( cref<Pass_T> pass, const bool pass_closedQ )
         passedQ = false;
     }
 
+    logvalprint("arc_counter",arc_counter);
+    logvalprint("pass.arc_count",pass.arc_count);
+    logvalprint("pass",PassString(pass));
+    
     if( passedQ )
     {
-        TOOLS_LOGDUMP(arc_counter);
-        TOOLS_LOGDUMP(pass.arc_count);
-        PD_VALPRINT("pass",PassString(pass));
-        
         logprint(tag() + " passed.");
         
         return true;
     }
     else
     {
-        TOOLS_LOGDUMP(arc_counter);
-        TOOLS_LOGDUMP(pass.arc_count);
-        PD_VALPRINT("pass",PassString(pass));
-        
         (tag() + " failed.");
         
         return false;

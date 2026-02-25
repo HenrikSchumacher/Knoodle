@@ -274,7 +274,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     PD_TOC("While loop for rerouting");
 
     [[maybe_unused]] Int deleted_arc_count = CollapseArcRange( a, e, pass.arc_count, pass.mark );
-    // DEBUGGING
+
     PD_VALPRINT("deleted_arc_count",deleted_arc_count);
 
     AssertArc<1>(a);

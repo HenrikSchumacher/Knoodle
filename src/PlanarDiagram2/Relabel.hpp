@@ -44,9 +44,6 @@ PD_T CreateRelabeled(
     
     const Int n = int_cast<Int>( Max( max_c_label_plus_one, ExtInt((max_a_label_plus_one + ExtInt(1))/ExtInt(2) )) );
     
-    // DEBGUGGING
-    TOOLS_DUMP(n);
-    
     if( n == Int(0) )
     {
         return PD_T::InvalidDiagram();

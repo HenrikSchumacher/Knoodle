@@ -152,8 +152,9 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
             FindPass<true,targs.R_II_blockingQ,targs.R_II_forwardQ>(pass, a_ptr, overQ, current_mark);
         }
         
+        
         PD_VALPRINT("pass",ToString(pass));
-        PD_VALPRINT("pass", ShortArcRangeString(pass.first,pass.last));
+        PD_VALPRINT("pass",PassString(pass));
         
         while( pass.activeQ )
         {
@@ -255,6 +256,12 @@ Size_T SimplifyPasses( mref<PD_T> pd_input, cref<SimplifyPasses_Args> args )
     PD_VALPRINT("pd->crossing_count",pd->crossing_count);
     
     Cleanup();
+    
+    if( pd_input.ValidQ() && (pd_input.CrossingCount() <= Int(1)) )
+    {
+        pdc.CreateUnlink( pd_input.LastColorDeactivated() );
+        pd_input = PD_T::InvalidDiagram();
+    }
     
     return change_counter;
     

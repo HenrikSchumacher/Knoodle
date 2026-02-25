@@ -304,6 +304,7 @@ namespace Knoodle
 #include "PassSimplifier/Strings.hpp"
 #include "PassSimplifier/Counters.hpp"
 #include "PassSimplifier/FindPass.hpp"
+#include "PassSimplifier/FindPass_HandleLoop.hpp"
 #include "PassSimplifier/SimplifyPasses.hpp"
 #include "PassSimplifier/SimplifyStrands.hpp"
         

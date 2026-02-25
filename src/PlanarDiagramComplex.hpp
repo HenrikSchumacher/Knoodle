@@ -257,14 +257,13 @@ namespace Knoodle
         void CreateUnlink( const Int color )
         {
             PD_TIMER(timer,MethodName("CreateUnlink"));
-
+            PD_VALPRINT("color",color);
             pd_done.push_back( PD_T::Unknot(color) );
         }
         
         void CreateUnlinkFromArc( PD_T & pd, const Int a )
         {
             PD_TIMER(timer,MethodName("CreateUnlinkFromArc"));
-            
             PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
             CreateUnlink(pd.A_color[a]) ;
@@ -283,7 +282,9 @@ namespace Knoodle
         )
         {
             PD_TIMER(timer,MethodName("CreateHopfLinkFromArcs"));
-            
+            PD_VALPRINT("color_0",pd.A_color[a_0]);
+            PD_VALPRINT("color_1",pd.A_color[a_1]);
+            PD_VALPRINT("handedness",ToString(handedness));
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
             pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1],handedness) );
@@ -301,6 +302,8 @@ namespace Knoodle
         void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
         {
             PD_TIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+            PD_VALPRINT("color",pd.A_color[a]);
+            PD_VALPRINT("handedness",ToString(handedness));
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::TrefoilKnot(pd.A_color[a],handedness) );
         }
@@ -314,7 +317,7 @@ namespace Knoodle
         void CreateFigureEightKnotFromArc( PD_T & pd, const Int a )
         {
             PD_TIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
-            
+            PD_VALPRINT("color",pd.A_color[a]);
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::FigureEightKnot(pd.A_color[a]) );
         }

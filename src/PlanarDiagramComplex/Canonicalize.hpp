@@ -10,19 +10,21 @@ void Canonicalize()
         
         if( pd.ProvenUnknotQ() )
         {
-            // We replace unknots that can be connected to arcs of the same color by invalid knots; they will be filtered out in the end.
-            if( pdc_color_arc_counts.contains(pd.LastColorDeactivated()) )
+            // We replace unknots that can be connected to arcs of the same color by invalid knots.
+            // They will be filtered out in the end.
+            
+            const Int color = pd.LastColorDeactivated();
+            
+            if( pdc_color_arc_counts.contains(color) && (pdc_color_arc_counts[color] > Int(0)) )
             {
                 pd = PD_T::InvalidDiagram();
             }
             continue;
         };
         
-        
         if( pd.LinkComponentCount() != Int(1) ) { continue; }
         if( pd.ColorCount() != Int(1) ) { continue; }
 
-        
         // Thing is MacLeod code is not good at normalizing figure-eight knot.
         if( pd.ProvenFigureEightQ() )
         {
