@@ -150,26 +150,6 @@ void ComputeVertexCoordinates(
     }
 }
 
-// Does not prevent self-intersections.
-//void ComputeVertexCoordinates_ByTopologicalTightening()
-//{
-//    auto x = Dv().TopologicalTightening(DvEdgeCosts().data());
-//    
-//    if( x.Size() <= Int(0) )
-//    {
-//        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dv() is cyclic.");
-//    }
-//    
-//    auto y = Dh().TopologicalTightening(DvEdgeCosts().data());
-//    
-//    if( y.Size() <= Int(0) )
-//    {
-//        eprint(MethodName("ComputeVertexCoordinates_ByTopologicalTightening") + ": Graph Dh() is cyclic.");
-//    }
-//    
-//    ComputeVertexCoordinates(x,y);
-//}
-
 std::string DiagramString() const
 {
     const CoordsContainer_T & V_coords = VertexCoordinates();

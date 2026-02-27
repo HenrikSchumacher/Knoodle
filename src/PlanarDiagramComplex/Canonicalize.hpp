@@ -99,8 +99,8 @@ void Canonicalize()
             
             for( Int i = 0; i < C_0; ++i )
             {
-                const Int m_0 = M_0[i];
-                const Int m_1 = M_1[i];
+                auto m_0 = M_0[i];
+                auto m_1 = M_1[i];
                 if( m_0 > m_1 ) { return true;  }
                 if( m_0 < m_1 ) { return false; }
             }

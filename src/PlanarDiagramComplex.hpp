@@ -93,6 +93,7 @@ namespace Knoodle
  
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
         {
+            TOOLS_PTIMER(timer,ClassName()+"()");
             const bool validQ = pd.ValidQ();
             
             const Int unlink_count = unlink_colors.Size();
@@ -120,6 +121,11 @@ namespace Knoodle
         
         explicit PlanarDiagramComplex( PD_T && pd )
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
+        {}
+        
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> && L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
 #include "PlanarDiagramComplex/Constructors.hpp"

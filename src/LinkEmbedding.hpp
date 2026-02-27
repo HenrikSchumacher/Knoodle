@@ -2,7 +2,6 @@
 
 namespace Knoodle
 {
-
     // TODO: Add color information!
     template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = float>
     class alignas( ObjectAlignment ) LinkEmbedding : public Link<Int_>
@@ -24,7 +23,6 @@ namespace Knoodle
         
         using Real  = Real_;
         using Int   = Int_;
-//        using LInt  = Int64;
         using BReal = BReal_;
         
         using Base_T         = Link<Int>;
@@ -42,7 +40,7 @@ namespace Knoodle
         using Intersection_T = Intersection<Real,Int>;
         
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
+        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
         
         static constexpr Int AmbDim = 3;
@@ -109,8 +107,10 @@ namespace Knoodle
         
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
-        
+
         Int intersection_count_3D = 0;
+        
+        bool intersections_computedQ = false;
         
     public:
         
@@ -176,10 +176,9 @@ namespace Knoodle
         
     public:
 
-#include "Link_2D/Helpers.hpp"
-#include "Link_2D/FindIntersections.hpp"
+#include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/FindIntersections.hpp"
 
-        
     public:
         
         cref<EContainer_T> EdgeCoordinates() const
@@ -228,6 +227,7 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         
+            intersections_computedQ = false;
             intersections.clear();
             
             Vector3_T lo;

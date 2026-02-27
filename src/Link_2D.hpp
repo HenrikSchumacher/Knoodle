@@ -41,7 +41,7 @@ namespace Knoodle
         using Intersection_T = Intersection<Real,Int>;
         
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
-        using IntersectionFlagCounts_T = Tiny::Vector<8,Size_T,Int>;
+        using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
         
         static constexpr Int AmbDim = 3;
@@ -110,6 +110,8 @@ namespace Knoodle
         
         Int intersection_count_3D = 0;
         
+        bool intersections_computedQ = false;
+        
     public:
         
         // Default constructor
@@ -170,8 +172,8 @@ namespace Knoodle
         
     public:
 
-#include "Link_2D/Helpers.hpp"
-#include "Link_2D/FindIntersections.hpp"
+#include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/FindIntersections.hpp"
 
         
     public:
@@ -221,6 +223,9 @@ namespace Knoodle
         void ReadVertexCoordinates( cptr<Real> v )
         {
             TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
+            
+            intersections.clear();
+            intersections_computedQ = false;
             
             Vector3_T lo;
             Vector3_T hi;

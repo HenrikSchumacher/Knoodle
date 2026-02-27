@@ -621,13 +621,13 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
 //            }
         }
         while( local_disconnect_count > Size_T(0) );
-        
-#ifdef PD_DEBUG
-        if( disconnect_iter > Size_T(2) )
-        {
-            PD_PRINT(tag() + ": Needed " + ToString(disconnect_iter-1) + " rounds of disconnect. (disconnect_count = " + ToString(disconnect_count)+ ", crossing_count = " + ToString(pd.CrossingCount()) + ").");
-        }
-#endif // PD_DEBUG
+//        
+//#ifdef PD_DEBUG
+//        if( disconnect_iter > Size_T(2) )
+//        {
+//            PD_PRINT(tag() + ": Needed " + ToString(disconnect_iter-1) + " rounds of disconnect. (disconnect_count = " + ToString(disconnect_count)+ ", crossing_count = " + ToString(pd.CrossingCount()) + ").");
+//        }
+//#endif // PD_DEBUG
     }
     
     return {pass_change_count,disconnect_count};

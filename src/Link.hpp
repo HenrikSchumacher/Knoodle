@@ -21,7 +21,7 @@ namespace Knoodle
 
         Int edge_count = 0;
 
-        EdgeContainer_T edges;
+        EdgeContainer_T  edges;
         Tensor1<Int,Int> next_edge;
         Tensor1<Int,Int> edge_ptr;
 
@@ -60,7 +60,7 @@ namespace Knoodle
         ,   edges           { edge_count     }
         ,   next_edge       { edge_count     }
         ,   edge_ptr        { edge_count + 1 }
-        
+
         ,   component_count { 1              }
         ,   component_ptr   { 2              }
         ,   component_lookup{ edge_count     }

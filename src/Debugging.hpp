@@ -6,8 +6,11 @@
     #define PD_PRINT( s ) Tools::logprint((s));
     
     #define PD_VALPRINT( key, val ) Tools::logvalprint( (key), (val) )
-    
+
+    #define PD_DUMP( s ) Tools::logvalprint( std::string(#x), x );
+
     #define PD_WPRINT( s ) Tools::wprint((s));
+
     
 #else
     #define PD_PRINT( s )
@@ -15,6 +18,8 @@
     #define PD_VALPRINT( key, val )
     
     #define PD_WPRINT( s )
+
+    #define PD_DUMP( s )
 #endif
 
 #ifdef PD_DEBUG

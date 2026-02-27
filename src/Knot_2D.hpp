@@ -93,6 +93,8 @@ namespace Knoodle
         
         Int intersection_count_3D = 0;
         
+        bool intersections_computedQ = false;
+        
     public:
         
         // Default constructor
@@ -133,8 +135,8 @@ namespace Knoodle
             component_ptr[1] = edge_count;
         }
 
-#include "Link_2D/Helpers.hpp"
-#include "Link_2D/FindIntersections.hpp"
+#include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/FindIntersections.hpp"
 
     
     public:
@@ -191,6 +193,9 @@ namespace Knoodle
             Vector3_T lo;
             Vector3_T hi;
 
+            intersections.clear();
+            intersections_computedQ = false;
+            
             ComputeBoundingBox( v, lo, hi );
             
             constexpr Real margin = static_cast<Real>(1.01);

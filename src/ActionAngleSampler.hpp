@@ -446,6 +446,56 @@ namespace Knoodle
             }
         }
         
+        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float, typename ExtInt>
+        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+            cptr<ExtInt> edge_counts, const ExtInt component_count
+        )
+        {
+            static_assert(FloatQ<Real2>, "");
+            static_assert(FloatQ<BReal2>, "");
+            static_assert(IntQ<Int2>, "");
+            static_assert(IntQ<ExtInt>, "");
+            
+            Tensor1<Int2,Int2> colors ( component_count );
+            Tensor1<Int2,Int2> component_ptr( component_count + Int(1) );
+            component_ptr[0] = 0;
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                colors[lc] = lc;
+                component_ptr[lc+1] = component_ptr[lc] + edge_counts[lc];
+            }
+            
+            Tensor2<Real2,Int2> v( component_ptr[component_count], Int2(3) );
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                WriteRandomEquilateralPolygon(
+                    v.data(component_ptr[lc]), edge_counts[lc], {.wrap_aroundQ = false}
+                );
+            }
+
+            LinkEmbedding<Real2,Int2,BReal2> L( std::move(component_ptr), std::move(colors) );
+            
+            L.ReadVertexCoordinates(v.data());
+            
+            return L;
+        }
+        
+        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+            const Int component_count, const Int edge_count
+        )
+        {
+            Knoodle::Tensor1<Int,Int> edge_counts(component_count);
+            for( Int lc = 0; lc < component_count; ++lc )
+            {
+                edge_counts[lc] = edge_count;
+            }
+            
+            return RandomEquilateralLink<Real2,Int2,BReal2>(edge_counts.data(),component_count);
+        }
+        
     public:
         
         /*! @brief Generates a single closed, equilateral random polygon.

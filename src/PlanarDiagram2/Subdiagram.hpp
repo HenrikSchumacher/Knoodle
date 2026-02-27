@@ -50,22 +50,21 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
     Int  c_counter     = 0;
     Int  c_first_label = Uninitialized;
     Int  a_counter     = 0;
-    Int  a_first_label = Uninitialized;
     Int  lc_color      = Uninitialized;
+    Int  dangling_port = Uninitialized;
     
     this->template Traverse<true>(
-        [&c_first_label,&a_counter,&a_first_label,&lc_color,&lc_contains_selected_arcsQ,this](
+        [&c_first_label,&lc_color,&lc_contains_selected_arcsQ,this](
             const Int a, const Int lc, const Int lc_begin
         )
         {
             (void)lc;
             (void)lc_begin;
             lc_color       = A_color[a];
-            lc_contains_selected_arcsQ = false;
             c_first_label  = Uninitialized;
-            a_first_label  = a_counter;
+            lc_contains_selected_arcsQ = false;
         },
-        [&c_counter,&c_first_label,&c_map,&a_counter,&lc_contains_selected_arcsQ,&select_arcQ,&pd_code,&arc_colors,this](
+        [&c_counter,&c_first_label,&c_map,&a_counter,&dangling_port,&lc_contains_selected_arcsQ,&select_arcQ,&pd_code,&arc_colors,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -108,6 +107,7 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
             if( c_first_label == Uninitialized )
             {
                 c_first_label = c_label;
+                dangling_port = overQ ? (right_handedQ ? 3 : 1) : Int(0);
             }
             else
             {
@@ -135,9 +135,8 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
             }
             
             pd_code[c_label][4] = right_handedQ;
-            
         },
-        [&a_counter,&c_first_label,&a_first_label,&lc_contains_selected_arcsQ,&pd_code,&unlink_colors,&lc_color](
+        [&a_counter,&c_first_label,&dangling_port,&lc_contains_selected_arcsQ,&pd_code,&unlink_colors,&lc_color](
             const Int lc, const Int lc_begin, const Int lc_end
         )
         {
@@ -157,21 +156,7 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
             else
             {
                 // Fix the wrap-around.
-                const Int a_label = a_counter - Int(1);
-
-                // I hate PD codes.
-                if( pd_code[c_first_label][1] == a_first_label )
-                {
-                    pd_code[c_first_label][3] = a_label;
-                }
-                if( pd_code[c_first_label][2] == a_first_label )
-                {
-                    pd_code[c_first_label][0] = a_label;
-                }
-                if( pd_code[c_first_label][3] == a_first_label )
-                {
-                    pd_code[c_first_label][1] = a_label;
-                }
+                pd_code[c_first_label][dangling_port] = a_counter - Int(1);
             }
         }
     );

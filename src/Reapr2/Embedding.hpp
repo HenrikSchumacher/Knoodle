@@ -27,6 +27,8 @@ private:
 
 LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
 {
+    TOOLS_PTIMER(timer,MethodName("Embedding_impl"));
+    
     OrthoDraw_T H;
     Tensor1<Real,Int> L;
     
@@ -45,7 +47,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
         Int(2),
         (settings.ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
     );
-
+    
     auto [L_min,L_max] = L.MinMax();
     
     const Real w = static_cast<Real>(H.Width()  * H.HorizontalGridSize());
@@ -68,13 +70,13 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
     const auto & V_coords = H.VertexCoordinates();
 
     Tensor1<Int,Int> comp_color (lc_count);
-
+    
     // cycle over link components
     for( Int lc = 0; lc < lc_count; ++lc )
     {
         {
             const Int a   = *(lc_arcs.Sublist(lc).begin());
-            comp_color[a] = A_color[a];
+            comp_color[lc] = A_color[a];
         }
         
         for( Int a : lc_arcs.Sublist(lc) )
@@ -147,12 +149,12 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd )
         
         V_agg.FinishSublist();
     }
-
+    
     auto [comp_ptr,x] = V_agg.Disband();
                          
     LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
-    
+
     emb.template ReadVertexCoordinates<false,true>( &x.data()[0][0] );
-    
+
     return emb;
 }

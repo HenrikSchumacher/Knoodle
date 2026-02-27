@@ -40,33 +40,25 @@ static PDC_T FromExtendedGaussCode(
 }
 
 template<typename Real, typename BReal>
-static PDC_T FromKnotEmbedding(
-    cref<Knot_2D<Real,Int,BReal>> K, const bool compressQ = false
-)
+static PDC_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
 {
-    return PDC_T( PD_T::FromKnotEmbedding(K,compressQ) );
+    return PDC_T( PD_T::FromKnotEmbedding(K) );
 }
 
 template<typename Real, typename ExtInt>
-static PDC_T FromKnotEmbedding(
-    cptr<Real> x, const ExtInt n, const bool compressQ = false
-)
+static PDC_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
-    return PDC_T( PD_T::FromKnotEmbedding(x,n,compressQ) );
+    return PDC_T( PD_T::FromKnotEmbedding(x,n) );
 }
 
 template<typename Real, typename BReal>
-static PDC_T FromLinkEmbedding(
-    cref<LinkEmbedding<Real,Int,BReal>> L, const bool compressQ = false
-)
+static PDC_T FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
 {
-    return PDC_T( PD_T::FromLinkEmbedding(L,compressQ) );
+    return PDC_T( PD_T::FromLinkEmbedding(L) );
 }
 
 template<typename Real, typename ExtInt>
-static PDC_T FromLinkEmbedding(
-    cptr<Real> x, cptr<ExtInt> edges, const ExtInt n, const bool compressQ = false
-)
+static PDC_T FromLinkEmbedding( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
 {
-    return PDC_T( PD_T::FromLinkEmbedding(x,edges,n,compressQ) );
+    return PDC_T( PD_T::FromLinkEmbedding(x,edges,n) );
 }

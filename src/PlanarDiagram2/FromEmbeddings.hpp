@@ -4,10 +4,7 @@
  */
 
 template<typename Real, typename BReal>
-static PD_T FromKnotEmbedding(
-    cref<Knot_2D<Real,Int,BReal>> K,
-    const bool compressQ = false // TODO: Is this meaningful?
-)
+static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -18,6 +15,8 @@ static PD_T FromKnotEmbedding(
 
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
     
+    K.FindIntersections();
+    
     return PD_T::template FromLink<Real,BReal>(
         K.ComponentCount(),
         K.ComponentPointers().data(),
@@ -25,8 +24,7 @@ static PD_T FromKnotEmbedding(
         K.EdgePointers().data(),
         K.EdgeIntersections().data(),
         K.EdgeOverQ().data(),
-        K.Intersections(),
-        compressQ
+        K.Intersections()
     ).first;
 }
 
@@ -34,11 +32,7 @@ static PD_T FromKnotEmbedding(
  */
 
 template<typename Real, typename ExtInt>
-static PD_T FromKnotEmbedding(
-    cptr<Real> x,
-    const ExtInt n,
-    const bool compressQ = false // TODO: Is this meaningful?
-)
+static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(IntQ<ExtInt>,"");
@@ -70,8 +64,7 @@ static PD_T FromKnotEmbedding(
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections(),
-        compressQ
+        L.Intersections()
     ).first;
 }
 
@@ -81,10 +74,7 @@ static PD_T FromKnotEmbedding(
  */
 
 template<typename Real, typename BReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
-    cref<LinkEmbedding<Real,Int,BReal>> L,
-    const bool compressQ = false // TODO: Is this meaningful?
-)
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
@@ -92,6 +82,14 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
+    
+    int err = L.template FindIntersections<true>();
+
+    if( err != 0 )
+    {
+        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
+        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
+    }
 
     return PD_T::template FromLink<Real,BReal>(
         L.ComponentCount(),
@@ -100,8 +98,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections(),
-        compressQ
+        L.Intersections()
     );
 }
 
@@ -113,8 +110,7 @@ template<typename Real, typename ExtInt>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,
     cptr<ExtInt> edges,
-    const ExtInt n,
-    const bool compressQ = false
+    const ExtInt n
 )
 {
     static_assert(FloatQ<Real>,"");
@@ -134,7 +130,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+") FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
+        eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
@@ -149,8 +145,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
-        L.Intersections(),
-        compressQ
+        L.Intersections()
     );
 }
 
@@ -166,8 +161,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
     cptr<Int>  edge_ptr,
     cptr<Int>  edge_intersections,
     cptr<bool> edge_overQ,
-    cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections,
-    const bool compressQ = false // TODO: Is this meaningful?
+    cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections
 )
 {
     // needs to know all member variables
@@ -315,12 +309,5 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
     
     // TODO: Check whether this is really neccessary.
     
-    if( compressQ )
-    {
-        return { pd.template CreateCompressed<false>(), unlink_colors.Disband() };
-    }
-    else
-    {
-        return { pd, unlink_colors.Disband() };
-    }
+    return { pd, unlink_colors.Disband() };
 }

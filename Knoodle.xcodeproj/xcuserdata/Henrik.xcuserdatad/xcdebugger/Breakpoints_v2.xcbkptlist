@@ -7,17 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "2AB3B5C2-437D-4AA2-B759-F168661B9AB9"
+            uuid = "606DE1FD-B708-47AF-82AE-C1755B1BB51B"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "src/PlanarDiagram/Arcs.hpp"
+            filePath = "src/PlanarDiagram2/Subdiagram.hpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "12"
-            endingLineNumber = "12"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            startingLineNumber = "165"
+            endingLineNumber = "165"
+            landmarkName = "Subdiagram(select_arcQ)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

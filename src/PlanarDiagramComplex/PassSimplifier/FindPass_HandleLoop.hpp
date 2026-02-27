@@ -3,7 +3,7 @@ bool FindPass_HandleLoop( mref<Pass_T> pass, const Int c_1  )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("FindPass_HandleLoop"); };
     
-    TOOLS_PTIMER(timer,tag());
+    PD_TIMER(timer,tag());
     
     PD_ASSERT(pd->CheckAll());
     

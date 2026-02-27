@@ -5,9 +5,9 @@
 
 //#define TENSORS_BOUND_CHECKS
 
-#define TOOLS_ENABLE_PROFILER
-#define PD_DEBUG
-#define PD_VERBOSE
+//#define TOOLS_ENABLE_PROFILER
+//#define PD_DEBUG
+//#define PD_VERBOSE
 //#define PD_COUNTERS
 
 
@@ -88,33 +88,33 @@ int main()
     print( "-=| An example program for Knoodle. |=-" );
     print( "" );
  
-    // Load a knot from file.
-    std::vector<Int> pd_code;
-    
-    {
-        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
-        std::ifstream s ( filename );
-        Int number;
-        
-        if(!s)
-        {
-            Tools::eprint( "File " + filename + " not found." );
-            return EXIT_FAILURE;
-        }
-        
-        while( s )
-        {
-            if( s >> number )
-            {
-                pd_code.push_back(number);
-            }
-        }
-    }
-    
-    Int c_count = static_cast<Int>( pd_code.size()/5 );
-    
-    // Create an instance of PlanarDiagram.
-    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
+//    // Load a knot from file.
+//    std::vector<Int> pd_code;
+//    
+//    {
+//        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
+//        std::ifstream s ( filename );
+//        Int number;
+//        
+//        if(!s)
+//        {
+//            Tools::eprint( "File " + filename + " not found." );
+//            return EXIT_FAILURE;
+//        }
+//        
+//        while( s )
+//        {
+//            if( s >> number )
+//            {
+//                pd_code.push_back(number);
+//            }
+//        }
+//    }
+//    
+//    Int c_count = static_cast<Int>( pd_code.size()/5 );
+//    
+//    // Create an instance of PlanarDiagram.
+//    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
     
 //    const Int n = 1'000;
 //    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
@@ -127,6 +127,14 @@ int main()
 //    );
 //    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
 //    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
+    
+    
+    const Int component_count = 8;
+    const Int edge_count      = 1200;
+    
+    Knoodle::ActionAngleSampler<Real,Int> S;
+    
+    PDC_T pdc ( S.RandomEquilateralLink(component_count, edge_count) );
     
 
     print("");
@@ -146,8 +154,8 @@ int main()
     try
     {
         pdc.Simplify({
-            .embedding_trials      = 0,
-            .rotation_trials       = 25
+            .embedding_trials      = 1,
+            .rotation_trials       = 1
         });
     }
     catch( const std::exception & e )

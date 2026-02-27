@@ -48,6 +48,10 @@ void ComputeConstraintGraphs() const
     // We do this by finding vertices that have no edge to the west or south; then we can simply walk to the east or north, until we hit a vertex that has no edge in that direction.
     // We can skip all crossings, since crossings have valence 4 thus cannot be the start or end of any segment.
     // Thus, we start at v_0 = C_end.
+    
+    // DEBUGGING
+    PD_PRINT("AA");
+    
     for( Int v_0 = C_end; v_0 < V_end; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
@@ -108,6 +112,8 @@ void ComputeConstraintGraphs() const
             DvV_V.FinishSublist();
         }
     }
+    
+    PD_PRINT("BB");
     
     // Very likely, we have many duplicate edges in Dv and Dh.
     // We use TripleAggregator to let Sparse::MatrixCSR tally the duplicate edges.
@@ -197,6 +203,8 @@ void ComputeConstraintGraphs() const
         }
     }
     
+    PD_PRINT("CC");
+    
 //    // Computing DvV_limit_DhV. (For every vertical segment, record the two horizontal segments at its ends.)
 //    // TODO: Potential candidate for erasure.
 //    {
@@ -229,6 +237,7 @@ void ComputeConstraintGraphs() const
 //        this->SetCache( "DhV_leftright_DvV", std::move(DhV_leftright_DvV) );
 //    }
     
+    
     // Collecting the saturating edges of Gl. They have zero costs.
     if ( settings.saturate_regionsQ )
     {
@@ -257,6 +266,8 @@ void ComputeConstraintGraphs() const
         }
     }
     
+    PD_PRINT("DD");
+    
     // Collecting the saturating edges of Gr. They have zero costs.
     if ( settings.saturate_regionsQ )
     {
@@ -282,13 +293,15 @@ void ComputeConstraintGraphs() const
             }
         }
     }
+    
+    PD_PRINT("Creating Dh");
 
     
     // We use Sparse::MatrixCSR to tally the duplicate edge in Dh.
     // The counts are stored in DhE_costs for the TopologicalTightening.
     {
         const Int n = DhV_E.SublistCount();
-
+        
         Sparse::MatrixCSR<Cost_T,Int,Int> A (DhE_agg,n,n,Int(1),true,0,true);
 
         if( n > Int(0) )
@@ -326,6 +339,8 @@ void ComputeConstraintGraphs() const
         this->SetCache( "DhV_E", std::move(DhV_E) );
         this->SetCache( "E_DhE", std::move(E_DhE) );
     }
+    
+    PD_PRINT("Creating Dv");
     
     // We use Sparse::MatrixCSR to tally the duplicate edge in Dv.
     // The counts are stored in DvE_costs for the TopologicalTightening.
@@ -370,6 +385,8 @@ void ComputeConstraintGraphs() const
         this->SetCache( "E_DvE", std::move(E_DvE) );
     }
     
+    PD_PRINT("GG");
+    
     // Not sure which of these I really need.
     this->SetCache( "E_DhV", std::move(E_DhV) );
     this->SetCache( "E_DvV", std::move(E_DvV) );
@@ -379,6 +396,8 @@ void ComputeConstraintGraphs() const
     
     this->SetCache( "DvV_V", std::move(DvV_V) );
     this->SetCache( "V_DvV", std::move(V_DvV) );
+    
+    PD_PRINT("HH");
 }
 
 

@@ -5,12 +5,14 @@ public:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
         
+        if( intersections_computedQ ) { return 0; }
+        
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.
         // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
         // enties only via operator(i,j,k), so this is safe!
-
+        
         ComputeBoundingBoxes();
         
         const Int degenerate_edge_count = DegenerateEdgeCount();
@@ -236,6 +238,9 @@ private:
 //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
         edge_ptr.Accumulate();
+        
+        intersections_computedQ = true;
+        
     } // FindIntersectingClusters_DFS
 
 
@@ -641,34 +646,43 @@ protected:
             case LineSegmentsIntersectionFlag::AtCorner0:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(k) + ".");
+//                logvalprint("edge " + ToString(k), x);
+//                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case LineSegmentsIntersectionFlag::AtCorner1:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in first corner of edge " + ToString(l) + ".");
+//                logvalprint("edge " + ToString(k), x);
+//                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case LineSegmentsIntersectionFlag::CornerCorner:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " have common first corners.");
+//                logvalprint("edge " + ToString(k), x);
+//                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case LineSegmentsIntersectionFlag::Interval:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in an interval.");
+//                logvalprint("edge " + ToString(k), x);
+//                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case LineSegmentsIntersectionFlag::Spatial:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
-                
-                logvalprint( "edge " + ToString(k), x );
-                logvalprint( "edge " + ToString(l), y );
+                logvalprint("edge " + ToString(k), x);
+                logvalprint("edge " + ToString(l), y);
                 break;
             }
             case LineSegmentsIntersectionFlag::OOBounds:
             {
                 wprint(ClassName()+"::ComputeEdgeIntersection: Intersection times of intersection between edges " + ToString(k) + " and " + ToString(l) + " are out of bounds.");
+//                logvalprint("edge " + ToString(k), x);
+//                logvalprint("edge " + ToString(l), y);
                 break;
             }
             default:

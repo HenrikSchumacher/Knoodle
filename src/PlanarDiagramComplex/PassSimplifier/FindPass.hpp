@@ -27,7 +27,7 @@ void InitializePass( mref<Pass_T> pass, const Int initial_arc, const bool desire
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("InitializePass"); };
     
-    TOOLS_PTIMER(timer,tag());
+    PD_TIMER(timer,tag());
     
     Int a = initial_arc;
     AssertArc<1>(a);
@@ -74,7 +74,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
 {
     [[maybe_unused]] auto tag= [](){ return MethodName("FindPass"); };
 
-    TOOLS_PTIMER(timer,tag());
+    PD_TIMER(timer,tag());
     
     InitializePass<find_maximal_passQ>( pass, initial_arc, desired_overQ, mark );
 

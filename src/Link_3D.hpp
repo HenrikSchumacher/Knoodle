@@ -5,6 +5,8 @@
 // TODO: Track the number of edges that cross the boundary of a box.
 // TODO: This will allow us to find connected sums.
 
+// TODO: We need colors here?
+
 namespace Knoodle
 {
     template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
