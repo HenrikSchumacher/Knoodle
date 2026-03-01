@@ -59,3 +59,12 @@ Dev_ClisbyTree2/Example_ClisbyTree2
 
 KnoodleTool/ExampleKnot_simplified.tsv
 KnoodleTool/knoodletool
+
+# Python build artifacts
+python/build/
+python/knoodle/__pycache__/
+python/__pycache__/
+python/.pytest_cache/
+python/pyknoodle.egg-info/
+python/knoodle/*.so
+python/knoodle/*.pyd
