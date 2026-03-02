@@ -2,6 +2,8 @@
 
 #define KNOODLE_H
 
+#include <cfenv>
+
 #include "deps/pcg-cpp/include/pcg_random.hpp"
 
 #include "submodules/Tensors/Tensors.hpp"
@@ -69,6 +71,9 @@ namespace Knoodle
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
 
+#include "src/ActionAngleSampler.hpp"
+#include "src/ConformalBarycenterSampler.hpp"
+
 //#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
                                 // Not favorable compared to Alexander_UMFPACK.hpp
 
@@ -77,6 +82,3 @@ namespace Knoodle
 //#endif
 
 //#include "src/KnotLookupTable.hpp"
-
-#include "src/ActionAngleSampler.hpp"
-#include "src/ConformalBarycenterSampler.hpp"

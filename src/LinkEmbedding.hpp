@@ -25,23 +25,23 @@ namespace Knoodle
         using Int   = Int_;
         using BReal = BReal_;
         
-        using Base_T         = Link<Int>;
+        using Base_T          = Link<Int>;
+        using LinkEmbedding_T = LinkEmbedding<Real,Int,BReal>;
         
-        using Tree2_T        = AABBTree<2,Real,Int,BReal,false>;
-        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
+        using Tree2_T         = AABBTree<2,Real,Int,BReal,false>;
+        using Tree3_T         = AABBTree<3,Real,Int,BReal,false>;
         
-        using Vector2_T      = Tiny::Vector<2,Real,Int>;
-        using Vector3_T      = Tiny::Vector<3,Real,Int>;
-        using E_T            = Tiny::Matrix<2,3,Real,Int>;
+        using Vector2_T       = Tiny::Vector<2,Real,Int>;
+        using Vector3_T       = Tiny::Vector<3,Real,Int>;
+        using E_T             = Tiny::Matrix<2,3,Real,Int>;
         
-        using EContainer_T   = typename Tree3_T::EContainer_T;
-        using BContainer_T   = typename Tree2_T::BContainer_T;
+        using EContainer_T    = typename Tree3_T::EContainer_T;
+        using BContainer_T    = typename Tree2_T::BContainer_T;
+         
+        using Intersection_T  = Intersection<Real,Int>;
         
-        using Intersection_T = Intersection<Real,Int>;
-        
-        using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
+        using Intersector_T   = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
-        
         
         static constexpr Int AmbDim = 3;
         
@@ -72,6 +72,7 @@ namespace Knoodle
         using Base_T::edge_count;
         using Base_T::component_count;
         using Base_T::component_ptr;
+        using Base_T::component_color;
         using Base_T::cyclicQ;
         using Base_T::preorderedQ;
         
@@ -82,6 +83,8 @@ namespace Knoodle
         using Base_T::VertexCount;
         using Base_T::EdgeCount;
         using Base_T::Edges;
+        using Base_T::NextEdge;
+        using Base_T::EdgeNextEdge;
         
     protected:
         
@@ -89,7 +92,6 @@ namespace Knoodle
         
         //Containers and data whose sizes stay constant under ReadVertexCoordinates.
         EContainer_T     edge_coords;
-        Tensor1<Int,Int> edge_colors;
         
         Matrix3x3_T R { { {1,0,0}, {0,1,0}, {0,0,1} } }; // a rotation matrix (later to be randomized)
         
@@ -110,7 +112,8 @@ namespace Knoodle
 
         Int intersection_count_3D = 0;
         
-        bool intersections_computedQ = false;
+        bool intersections_computedQ  = false;
+        bool bounding_boxes_computedQ = false;
         
     public:
         
@@ -133,8 +136,8 @@ namespace Knoodle
         explicit LinkEmbedding( const I edge_count_ )
         :   Base_T      { int_cast<Int>(edge_count_)         }
         ,   edge_coords { edge_count                         }
-        ,   T           { edge_count                         }
-        ,   box_coords  { T.AllocateBoxes()                  }
+//        ,   T           { edge_count                         }
+//        ,   box_coords  { T.AllocateBoxes()                  }
         {
             static_assert(IntQ<I>,"");
         }
@@ -143,7 +146,7 @@ namespace Knoodle
         :   Base_T      { std::move(component_ptr_), std::move(component_color_)  }
         ,   edge_coords { edge_count                                              }
         ,   T           { edge_count                                              }
-        ,   box_coords  { T.AllocateBoxes()                                       }
+//        ,   box_coords  { T.AllocateBoxes()                                       }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -154,7 +157,7 @@ namespace Knoodle
         :   Base_T      { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                                        }
         ,   T           { edge_count                                        }
-        ,   box_coords  { T.AllocateBoxes()                                 }
+//        ,   box_coords  { T.AllocateBoxes()                                 }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -177,20 +180,22 @@ namespace Knoodle
     public:
 
 #include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
+//#include "LinkEmbedding/Cobars.hpp"
+//#include "LinkEmbedding/Paam.hpp"
 
     public:
+        
+        bool ValidQ() const
+        {
+            return (component_ptr.Size() >= Int(2));
+        }
         
         cref<EContainer_T> EdgeCoordinates() const
         {
             return edge_coords;
         }
-        
-        Int NextEdge( const Int e ) const
-        {
-            return next_edge[e];
-        }
-        
         
         E_T EdgeData( const Int e ) const
         {
@@ -205,6 +210,16 @@ namespace Knoodle
         Vector3_T EdgeVector3( const Int e, const bool k ) const
         {
             return Vector2_T( edge_coords.data(e,k) );
+        }
+        
+        bool BoundingBoxedComputedQ()
+        {
+            return bounding_boxes_computedQ;
+        }
+        
+        bool IntersectionsComputedQ()
+        {
+            return intersections_computedQ;
         }
         
         void SetTransformationMatrix( cref<Matrix3x3_T> A )
@@ -227,7 +242,8 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
         
-            intersections_computedQ = false;
+            intersections_computedQ  = false;
+            bounding_boxes_computedQ = false;
             intersections.clear();
             
             Vector3_T lo;
@@ -358,12 +374,15 @@ namespace Knoodle
             
             if constexpr ( shiftQ )
             {
-                // Apply Sterbenz shift.
-                constexpr Real margin = static_cast<Real>(1.01);
-                Sterbenz_shift[0] = margin * ( hi[0] - Real(2) * lo[0] );
-                Sterbenz_shift[1] = margin * ( hi[1] - Real(2) * lo[1] );
-                Sterbenz_shift[2] = margin * ( hi[2] - Real(2) * lo[2] );
+                TOOLS_MAKE_FP_STRICT();
                 
+                // https://en.wikipedia.org/wiki/Sterbenz_lemma
+                    
+                // Apply Sterbenz shift.
+                Sterbenz_shift[0] = std::fma(-Real(2), lo[0], hi[0]);
+                Sterbenz_shift[1] = std::fma(-Real(2), lo[1], hi[1]);
+                Sterbenz_shift[2] = std::fma(-Real(2), lo[2], hi[2]);
+
                 for( Int e = 0; e < edge_count; ++e )
                 {
                     edge_coords(e,0,0) += Sterbenz_shift[0];
@@ -383,14 +402,6 @@ namespace Knoodle
             
 //            logvalprint("edge_coords",edge_coords);
         }
-        
-        void ComputeBoundingBoxes()
-        {
-//            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
-            
-            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
-        }
-        
         
         void WriteVertexCoordinates( mptr<Real> v ) const
         {
@@ -431,6 +442,142 @@ namespace Knoodle
             SetTransformationMatrix(R_new);
         }
         
+        void ComputeBoundingBoxes()
+        {
+        //    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+            
+            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+            bounding_boxes_computedQ = true;
+        }
+        
+        template<typename ToStringFun_T>
+        bool WriteToFile(
+            cref<std::filesystem::path> path, const bool colorQ, ToStringFun_T && to_string
+        ) const
+        {
+            std::ofstream stream;
+
+            stream.open(path, std::ofstream::out );
+
+            if( !stream )
+            {
+                eprint(MethodName("WriteToFile") + ": Could not open file. Aborting.");
+                return false;
+            }
+            
+            if( component_ptr.Dim(0) <= Int(1) )
+            {
+                eprint(MethodName("WriteToFile") + ": Diagram is invalid. Aborting.");
+                return false;
+            };
+            
+            std::string s;
+
+            const Int comp_count = component_ptr.Dim(0) - 1;
+
+            Int v = 0;
+            
+            for( Int lc = 0; lc < component_count; ++lc )
+            {
+                const Int i_begin = component_ptr[lc    ];
+                const Int i_end   = component_ptr[lc + 1];
+                
+                if( i_end <= i_begin ) { continue; }
+                
+                if ( colorQ )
+                {
+                    s+= "color " + ToString(component_color[lc]);
+                }
+                
+                // i == i_begin
+                {
+                    s += to_string(edge_coords(v,0,0));
+                    s += " ";
+                    s += to_string(edge_coords(v,0,1));
+                    s += " ";
+                    s += to_string(edge_coords(v,0,2));
+                    ++v;
+                }
+                for ( Int i = i_begin + 1; i < i_end; i++)
+                {
+                    s += "\n";
+                    s += to_string(edge_coords(v,0,0));
+                    s += " ";
+                    s += to_string(edge_coords(v,0,1));
+                    s += " ";
+                    s += to_string(edge_coords(v,0,2));
+                    ++v;
+                }
+                
+                if( (lc + 1) != comp_count ) { s += "\n"; }
+            }
+
+            stream << s;
+            
+            return true;
+        }
+        
+        bool WriteToFile( cref<std::filesystem::path> path, const bool colorQ = false ) const
+        {
+            return WriteToFile(path, colorQ, []( const Real x ) { return ToStringFPGeneral(x); });
+        }
+        
+        // TODO: Check and read color.
+        static LinkEmbedding_T ReadFromFile( cref<std::filesystem::path> path )
+        {
+            std::ifstream stream ( path );
+            
+            if( !stream ) { return LinkEmbedding_T(); }
+            
+            Int counter = 0;
+            std::vector<Real> v_coordinates;
+            std::vector<Int> component_ptr_agg;
+            component_ptr_agg.push_back(Int(0));
+            
+            std::string line;
+            std::string token;
+            
+            bool failedQ = false;
+            
+            while( std::getline(stream,line) )
+            {
+                if( line[0] == '\n' )
+                {
+                    component_ptr_agg.push_back(counter);
+                    continue;
+                }
+                
+                std::stringstream s (line);
+
+                if( !(s >> token) ) { failedQ = true; break; }
+                v_coordinates.push_back(std::stod(token));
+                if( !(s >> std::ws) ) { failedQ = true; break; }
+                
+                if( !(s >> token) ) { failedQ = true; break; }
+                v_coordinates.push_back(std::stod(token));
+                if( !(s >> std::ws) ) { failedQ = true; break; }
+                
+                if( !(s >> token) ) { failedQ = true; break; }
+                v_coordinates.push_back(std::stod(token));
+//                if( !(s >> std::ws) ) { failedQ = true; break; }
+
+                ++counter;
+            }
+            
+            if( failedQ ) { return LinkEmbedding_T(); }
+            
+            component_ptr_agg.push_back(counter);
+            
+            LinkEmbedding_T link (
+                Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
+                iota<Int,Int>(component_ptr_agg.size()-Size_T(1))
+            );
+            
+            link.ReadVertexCoordinates(&v_coordinates[0]);
+            
+            return link;
+        }
+        
     private:
 
         // Caution: Only meant to be called by a constructor of PlanarDiagram to make room for the new diagram.
@@ -447,14 +594,16 @@ namespace Knoodle
         {
             return
                   T.AllocatedByteCount()
+                + Base_T::edge_coords.AllocatedByteCount()
+                + Base_T::box_coords.AllocatedByteCount()
                 + Base_T::edges.AllocatedByteCount()
                 + Base_T::next_edge.AllocatedByteCount()
                 + Base_T::edge_ptr.AllocatedByteCount()
                 + Base_T::component_ptr.AllocatedByteCount()
-                + Base_T::component_lookup.AllocatedByteCount();
+                + Base_T::component_color.AllocatedByteCount()
+//                + Base_T::component_lookup.AllocatedByteCount();
                 + edge_ctr.AllocatedByteCount()
                 + edge_coords.AllocatedByteCount()
-                + edge_colors.AllocatedByteCount()
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
                 + edge_times.AllocatedByteCount()
@@ -473,14 +622,14 @@ namespace Knoodle
             return
                 ct_string("<|")
                 + (" \n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_coords)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_colors)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(box_coords)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(T)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edges)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::next_edge)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::edge_ptr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_ptr)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_color)
+//                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(Base_T::component_lookup)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
@@ -504,3 +653,5 @@ namespace Knoodle
     };
     
 } // namespace Knoodle
+
+

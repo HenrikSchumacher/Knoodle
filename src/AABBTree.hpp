@@ -4,12 +4,13 @@ namespace Knoodle
 {
     
     // A simple bounding volume hierarchy with static ordering.
-    // This is specifically written for edge and triangle primitives for curves.
+    // This is specifically written for line segment primitives for curves.
     // It won't work with more general clouds of primitives.
     
     template<
         int AmbDim_, typename Real_, typename Int_, typename BReal_ = Real_,
-        bool precompute_rangesQ_ = true
+        bool precompute_rangesQ_   = true,
+        bool change_rounding_modeQ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
@@ -82,65 +83,6 @@ namespace Knoodle
         using Base_T::NodeBegin;
         using Base_T::NodeEnd;
         
-    private:
-        
-        // TODO: Transpose this in description.
-        
-        /*!
-         * @brief Computes the bounding boxes from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points. Only the leading `AmbDim` entries of each point are used.
-         *
-         *If the precision of `Breal`, the type for storing the bounding boxes, is lower than `Real`, then the boxes will be correctly enlarged to guarantee that they contain the boxes as if compute with `BReal = Real`.
-         *
-         * @tparam point_count Number of points in the primitive.
-         *
-         * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
-         *
-         * @param P Array that represent a single primitive. It is assumed to have size `point_count x dimP`.
-         *
-         * @param B Represents a single box. It is assumed to be of dimensions `AmbDim x 2`.
-         */
-        
-        template<Int point_count, Int dimP>
-        static constexpr void PrimitiveToBox(
-            cptr<Real> P, mptr<BReal> B
-        )
-        {
-            TOOLS_MAKE_FP_FAST();
-            
-            static_assert(point_count > Int(0), "");
-            
-            // TODO: If we store upper and lower bounds as vectors, then this can be vectorized?
-            
-            columnwise_minmax<point_count,AmbDim>(
-                P, dimP, &B[0], Int(1), &B[AmbDim], Int(1)
-            );
-            
-            // If we have round, make sure that the boxes become a little bit bigger, so that it still contains all primitives.
-            if constexpr ( Scalar::Prec<BReal> < Scalar::Prec<Real> )
-            {
-                for( Int k = 0; k < AmbDim; ++k )
-                {
-                    B[         k] = PrevFloat(B[         k]);
-                    B[AmbDim + k] = NextFloat(B[AmbDim + k]);
-                }
-            }
-        }
-        
-        static constexpr void BoxesToBox(
-            cptr<BReal> B_L, cptr<BReal> B_R, mptr<BReal> B_N
-        )
-        {
-            TOOLS_MAKE_FP_FAST();
-            
-            // TODO: Vectorize this.
-            
-            for( Int k = 0; k < AmbDim; ++k )
-            {
-                B_N[         k] = Min( B_L[         k], B_R[         k] );
-                B_N[AmbDim + k] = Max( B_L[AmbDim + k], B_R[AmbDim + k] );
-            }
-        }
-        
     public:
         
         BContainer_T AllocateBoxes() const
@@ -170,18 +112,94 @@ namespace Knoodle
             
             static_assert(dimP >= AmbDim,"");
             
-            // Compute bounding boxes of leave nodes (last row of tree).
-            for( Int N = last_row_begin; N < node_count; ++N )
-            {
-                const Int i = N - last_row_begin;
-                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
-            }
+            constexpr Int d = AmbDim;
             
-            // Compute bounding boxes of leave nodes (penultimate row of tree).
-            for( Int N = int_node_count; N < last_row_begin; ++N )
+            // We might round from double to float here. We have to guarantee that the boxes won't become smaller by this. This is why we set the rounding mode to "upwards".
+            if constexpr( change_rounding_modeQ )
             {
-                const Int i = N + offset;
-                PrimitiveToBox<point_count,dimP>( &P[inc * i], &B[BoxDim * N] );
+                #pragma STDC FENV_ACCESS ON
+                std::fesetround(FE_UPWARD);
+//                change_rounding_mode
+                auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
+                {
+                    Tiny::Vector<AmbDim,Real,Int> lo(p);
+                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    
+                    for( Int i = 1; i < point_count; ++i )
+                    {
+                        lo.ElementwiseMin(&p[dimP * i]);
+                        hi.ElementwiseMax(&p[dimP * i]);
+                    }
+                
+                    // This is where the rounding happens.
+                    for( Int k = 0; k < AmbDim; ++k )
+                    {
+                        b[    k] = -static_cast<BReal>(-lo[k]); // because of upward rounding mode
+                        b[d + k] =  static_cast<BReal>( hi[k]);
+                    }
+                    
+//                    // This would work, but it is much slower.
+//                    for( Int k = 0; k < AmbDim; ++k )
+//                    {
+//                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
+//                        b[d + k] = nextFloat(static_cast<BReal>(hi[k]));
+//                    }
+                };
+
+                // Compute bounding boxes of leave nodes (last row of tree).
+                for( Int N = last_row_begin; N < node_count; ++N )
+                {
+                    const Int i = N - last_row_begin;
+                    // Here is where the rounding takes place.
+                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                }
+                
+                // Compute bounding boxes of leave nodes (penultimate row of tree).
+                for( Int N = int_node_count; N < last_row_begin; ++N )
+                {
+                    const Int i = N + offset;
+                    // Here is where the rounding takes place.
+                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                }
+                
+                // end of #pragma STDC FENV_ACCESS ON
+            }
+            else
+            {
+                auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
+                {
+                    Tiny::Vector<AmbDim,Real,Int> lo(p);
+                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    
+                    for( Int i = 1; i < point_count; ++i )
+                    {
+                        lo.ElementwiseMin(&p[dimP * i]);
+                        hi.ElementwiseMax(&p[dimP * i]);
+                    }
+                    
+                    // This would work, but it is much slower.
+                    for( Int k = 0; k < AmbDim; ++k )
+                    {
+                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
+                        b[d + k] = nextFloat(static_cast<BReal>(hi[k]));
+                    }
+                };
+
+                // Compute bounding boxes of leave nodes (last row of tree).
+                for( Int N = last_row_begin; N < node_count; ++N )
+                {
+                    const Int i = N - last_row_begin;
+                    // Here is where the rounding takes place.
+                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                }
+
+                // Compute bounding boxes of leave nodes (penultimate row of tree).
+                for( Int N = int_node_count; N < last_row_begin; ++N )
+                {
+                    const Int i = N + offset;
+                    // Here is where the rounding takes place.
+                    primitive_to_box( &P[inc * i], &B[BoxDim * N] );
+                }
             }
             
             // Compute bounding boxes of internal nodes.
@@ -189,55 +207,26 @@ namespace Knoodle
             {
                 const auto [L,R] = Children(N);
                 
-                BoxesToBox( &B[BoxDim * L], &B[BoxDim * R], &B[BoxDim * N] );
+                elementwise_min<d>(&B[BoxDim * L + 0], &B[BoxDim * R + 0], &B[BoxDim * N + 0]);
+                elementwise_max<d>(&B[BoxDim * L + d], &B[BoxDim * R + d], &B[BoxDim * N + d]);
             }
+            
         }
         
         static constexpr bool BoxesIntersectQ(
             const cptr<BReal> B_i, const cptr<BReal> B_j
         )
         {
-            // B_i and B_j are assumed to have size AmbDim x 2.
-            
-//            if constexpr ( VectorizableQ<BReal> )
-//            {
-//                vec_T<2*AmbDim,BReal> a;
-//                vec_T<2*AmbDim,BReal> b;
-//                
-//                for( Int k = 0; k < AmbDim; ++k )
-//                {
-//                    a[2 * k + 0] = B_i[2 * k + 0];
-//                    a[2 * k + 1] = B_j[2 * k + 0];
-//                    b[2 * k + 0] = B_j[2 * k + 1];
-//                    b[2 * k + 1] = B_i[2 * k + 1];
-//                }
-//                
-//                return __builtin_reduce_and( a <= b );
-//            }
-//            else
+            // B_i and B_j are assumed to have size 2 x AmbDim.
+            for( Int k = 0; k < AmbDim; ++k )
             {
-                for( Int k = 0; k < AmbDim; ++k )
+                if( (B_i[k] > B_j[AmbDim + k]) || (B_j[k] > B_i[AmbDim + k]) )
                 {
-//                    if(
-//                       (B_i[2 * k + 0] > B_j[2 * k + 1])
-//                       ||
-//                       (B_j[2 * k + 0] > B_i[2 * k + 1])
-//                    )
-//                    {
-//                        return false;
-//                    }
-                    if(
-                       (B_i[AmbDim * 0 + k] > B_j[AmbDim * 1 + k])
-                       ||
-                       (B_j[AmbDim * 0 + k] > B_i[AmbDim * 1 + k])
-                    )
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-                
-                return true;
             }
+            
+            return true;
         }
         
         Real BoxesIntersectQ(

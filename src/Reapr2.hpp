@@ -41,6 +41,7 @@ namespace Knoodle
 //        using Link_T              = LinkEmbedding<Real,Int,BReal>;
         using PD_T                = PlanarDiagram2<Int>;
         using Point_T             = Tiny::Vector<3,Real,Int>;
+        using Matrix_T            = Tiny::Matrix<3,3,Real,Int>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
 //        using Embedding_T         = RaggedList<Point_T,Int>;
@@ -176,7 +177,7 @@ namespace Knoodle
         
     public:
         
-        cref<Settings_T> Settings() const
+        mref<Settings_T> Settings()
         {
             return settings;
         }

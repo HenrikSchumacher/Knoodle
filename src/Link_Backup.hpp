@@ -29,7 +29,7 @@ namespace Knoodle
         
         Tensor1<Int,Int> component_ptr;
         Tensor1<Int,Int> component_color;
-//        Tensor1<Int,Int> edge_component;
+        Tensor1<Int,Int> component_lookup;
         
         bool cyclicQ      = false;
         bool preorderedQ  = false;
@@ -63,7 +63,7 @@ namespace Knoodle
 
         ,   component_count { 1              }
         ,   component_ptr   { 2              }
-//        ,   edge_component{ edge_count     }
+        ,   component_lookup{ edge_count     }
         {
             (void)dummy;
         }
@@ -83,7 +83,7 @@ namespace Knoodle
         
         ,   component_count { Int(1)                }
         ,   component_ptr   { Int(2)                }
-//        ,   edge_component{ edge_count, Int(0)    }
+        ,   component_lookup{ edge_count, Int(0)    }
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {
@@ -142,9 +142,9 @@ namespace Knoodle
                 
                 WriteCircleEdges(&edges(e_begin,0),e_begin,comp_size);
                 
-                for( Int e = e_begin; e < e_end; ++e )
+                for( Int e = e_begin; e < e_end; ++v )
                 {
-//                    edge_component[e] = comp;
+                    component_lookup[e] = comp;
                     next_edge[e] = edges(e,1);
                 }
             }
@@ -225,8 +225,6 @@ namespace Knoodle
             
             // using edges(...,0) temporarily as scratch space.
 //            mptr<Int> tail_of_edge = edges.data(0);
-            
-            mptr<Int> tail_to_edge = &edges(0,0);
 
             for( Int e = 0; e < edge_count; ++e )
             {
@@ -245,8 +243,7 @@ namespace Knoodle
                     error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
                 }
                 
-//                edges(tail,0) = static_cast<Int>(tail);
-                tail_to_edge[tail] = e;
+                edges(tail,0) = static_cast<Int>(tail);
             }
 
             for( Int e = 0; e < edge_count; ++e )
@@ -266,7 +263,7 @@ namespace Knoodle
                     error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
                 }
                 
-                next_edge[e] = tail_to_edge[static_cast<Int>(head)];
+                next_edge[e] = edges(static_cast<Int>(head),0);
             }
             
             FindComponents();
@@ -437,49 +434,62 @@ namespace Knoodle
             
             if( edge_colors_ == nullptr )
             {
-                for( Int lc =  0; lc < component_count; ++lc )
+                for( Int c =  0; c < component_count; ++ c )
                 {
-                    component_color[lc] = lc;
+                    const Int i_begin = component_ptr[c  ];
+                    const Int i_end   = component_ptr[c+1];
+                    
+                    component_color[c] = c;
+                    
+                    for( Int i = i_begin; i < i_end-1; ++i )
+                    {
+                        next_edge       [i  ] = i+1;
+                        edge_ptr        [i+1] = i  ;
+                        component_lookup[i  ] = c;
+                    }
+                    
+                    next_edge       [i_end-1] = i_begin;
+                    component_lookup[i_end-1] = c;
                 }
             }
             else
             {
-                for( Int lc =  0; lc < component_count; ++lc )
-                {
-                    const Int i_begin = component_ptr[lc];
-                    component_color[lc] = static_cast<Int>(edge_colors_[perm[i_begin]]);
-                }
-            }
-            
-            // We should not merge the above loop with the one below because we might need perm alias edge_ptr; and the loop below changes edge_ptr.
-            
-            for( Int lc =  0; lc < component_count; ++lc )
-            {
-                const Int i_begin = component_ptr[lc  ];
-                const Int i_end   = component_ptr[lc+1];
+                bool colors_okayQ = true;
                 
-                for( Int i = i_begin; i < i_end-1; ++i )
+                for( Int c =  0; c < component_count; ++ c )
                 {
-                    next_edge       [i  ] = i+1;
-                    edge_ptr        [i+1] = i  ;
-//                    edge_component[i  ] = lc;
+                    const Int i_begin = component_ptr[c  ];
+                    const Int i_end   = component_ptr[c+1];
+                    
+                    Int c_color = static_cast<Int>(edge_colors_[perm[i_begin]]);
+                    
+                    component_color[c] = c_color;
+                    
+                    for( Int i = i_begin; i < i_end-1; ++i )
+                    {
+                        colors_okayQ = colors_okayQ && (c_color == edge_colors_[perm[i_begin]]);
+                        
+                        next_edge       [i  ] = i+1;
+                        edge_ptr        [i+1] = i  ;
+                        component_lookup[i  ] = c;
+                    }
+                    
+                    next_edge       [i_end-1] = i_begin;
+                    component_lookup[i_end-1] = c;
                 }
-                
-                next_edge       [i_end-1] = i_begin;
-//                edge_component[i_end-1] = lc;
             }
         }
         
-//        void ComputeEdgeComponents()
-//        {
-//            for( Int lc = 0; lc < component_count; ++lc )
-//            {
-//                const Int begin = component_ptr[lc  ];
-//                const Int end   = component_ptr[lc+1];
-//                
-//                std::fill(&edge_component[begin],&edge_component[end],lc);
-//            }
-//        }
+        void ComputeComponentLookup()
+        {
+            for( Int c = 0; c < component_count; ++ c )
+            {
+                const Int begin = component_ptr[c  ];
+                const Int end   = component_ptr[c+1];
+                
+                std::fill( &component_lookup[begin], &component_lookup[end], c );
+            }
+        }
         
     public:
         
@@ -491,13 +501,13 @@ namespace Knoodle
             return static_cast<Int>(component_ptr.Size()-1);
         }
         
-////        /*! @brief This returns the component in which edge `e` lies.
-////         */
-////        
-//        Int EdgeComponent( const Int e ) const
-//        {
-//            return (cyclicQ) ? Int(0) : edge_component[e];
-//        }
+        /*! @brief This returns the component in which vertex `i` lies.
+         */
+        
+        Int ComponentLookup( const Int i ) const
+        {
+            return (cyclicQ) ? Int(0) : component_lookup[i];
+        }
         
         /*! @brief Returns the first vertex in component `c`.
          */
@@ -574,6 +584,8 @@ namespace Knoodle
             return (i == j) || (i == next_edge[j]) || (j == next_edge[i]);
         }
 
+        /*! @brief Returns the array that tells each edge `e` that `EdgeNextEdge()[e]` is the next edge that follows when we traverse `e`'s link component in positive orientation.
+         */
         
         cref<Tensor1<Int,Int>> EdgeNextEdge() const
         {
@@ -581,12 +593,12 @@ namespace Knoodle
         }
         
         
-        /*! @brief Returns the edge that follows `i` when traversing `i`'s link component in positive orientation.
+        /*! @brief Returns the edge that follows `e` when we traverse `e`'s link component in positive orientation.
          */
         
-        Int NextEdge( const Int i ) const
+        Int NextEdge( const Int e ) const
         {
-            return next_edge[i];
+            return next_edge[e];
         }
 
 //        EdgeContainer_T ExportEdges() const

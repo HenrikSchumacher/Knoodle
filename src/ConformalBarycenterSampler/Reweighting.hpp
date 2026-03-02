@@ -142,8 +142,6 @@ private:
 
     void ComputeEdgeSpaceSamplingHelper()
     {
-        TOOLS_MAKE_FP_FAST();
-        
         edge_space_sampling_helper
             =
             Frac(
@@ -157,8 +155,6 @@ private:
 
     void ComputeEdgeQuotientSpaceSamplingHelper()
     {
-        TOOLS_MAKE_FP_FAST();
-        
         edge_quotient_space_sampling_helper
             =
             Frac<Real>(
@@ -222,7 +218,5 @@ private:
 
     void ComputeEdgeQuotientSpaceSamplingWeight() const
     {
-        TOOLS_MAKE_FP_FAST();
-        
         edge_quotient_space_sampling_weight = EdgeSpaceSamplingWeight() * EdgeQuotientSpaceSamplingCorrection();
     }

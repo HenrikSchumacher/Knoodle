@@ -1,52 +1,3 @@
-public:
-
-/*!@brief Returns the number of edges.
- */
-
-Int EdgeCount() const
-{
-  return edge_count_;
-}
-
-/*!@brief Returns the list of edge lengths.
- */
-
-const Weights_T & EdgeLengths() const
-{
-    return r_;
-}
-
-/*!@brief Reads a new list of edge lengths from buffer `r`.
- *
- * @param r Buffer containing the new edge lengths; assumed to have length `this->EdgeCount()`.
- */
-
-void ReadEdgeLengths( const Real * const r )
-{
-    r_.Read(r);
-    
-    total_r_inv = Inv( r_.Total() );
-}
-
-/*!@brief Returns the list of weights for the Riemannian metrics on the product of unit spheres.
- */
-
-const Weights_T & Rho() const
-{
-    return rho_;
-}
-
-/*!@brief Reads a new list of edge weights for the Riemannian metric from buffer `rho`.
- *
- * @param rho Buffer containing the new weights; assumed to have length `this->EdgeCount()`.
- */
-
-
-void ReadRho( const Real * const rho )
-{
-    rho_.Read(rho);
-}
-
 private:
 
 void ComputeInitialShiftVector()
@@ -145,7 +96,7 @@ Real Residual() const
  */
 Real ErrorEstimator() const
 {
-    return errorestimator;
+    return error_estimator;
 }
 
 /*!brief Returns the number of iterations the last call to `Optimize` needed.
@@ -161,12 +112,17 @@ Int MaxIterationCount() const
     return settings_.max_iter;
 }
 
+bool SucceededQ() const
+{
+  return succeededQ;
+}
+
 
 private:
 
 static Real tanhc( const Real t )
 {
-    TOOLS_MAKE_FP_FAST();
+//    TOOLS_MAKE_FP_FAST();
     
     // Computes tanh(t)/t in a stable way by using a Padé approximation around t = 0.
     constexpr Real a0 = one;
@@ -194,6 +150,110 @@ static Real tanhc( const Real t )
     return result;
 }
 
+
+Vector_T Barycenter( cref<VectorContainer_T> z, const M_T mode )
+{
+    switch( mode )
+    {
+        case M_T::None:             return barycenter<M_T::None>(z);
+        case M_T::UnitOnPoints:     return barycenter<M_T::UnitOnPoints>(z);
+        case M_T::UnitOnMidpoints:  return barycenter<M_T::UnitOnMidpoints>(z);
+        case M_T::UniformOnEdges:   return barycenter<M_T::UniformOnEdges>(z);
+    }
+}
+
+template<M_T mode>
+Vector_T barycenter( cref<VectorContainer_T> z )
+{
+    TOOLS_MAKE_FP_FAST();
+    
+    Vector_T barycenter (zero);
+    
+    if constexpr ( mode == M_T::None ) { return barycenter; }
+    
+    Vector_T point (zero);
+    
+    // Do it backwards, so that as much memory as possible is still warm when we do a second loop to subtract the barycenter.
+    // Beware that we have to multiply each edge vector with -1.
+    for( Int i = edge_count_; i --> Int(0); )
+    {
+        const Vector_T z_i ( z, i );
+        
+        const Real r_i = r_[i];
+        
+        for( Int j = 0; j < AmbDim; ++j )
+        {
+            const Real delta = - r_i * z_i[j];
+            
+            if constexpr ( mode == M_T::UnitOnMidpoints )
+            {
+                barycenter[j] += (point[j] + half * delta);
+            }
+            else if constexpr ( mode == M_T::UniformOnEdges )
+            {
+                barycenter[j] += r_i * (point[j] + half * delta);
+            }
+            
+            point[j] += delta;
+            
+            if constexpr ( mode == M_T::UnitOnPoints )
+            {
+                barycenter[j] += point[j];
+            }
+        }
+    }
+
+    if constexpr ( mode == M_T::UnitOnPoints )
+    {
+        barycenter *= Inv<Real>( edge_count_ + Int(1) );
+    }
+    if constexpr ( mode == M_T::UnitOnMidpoints )
+    {
+        barycenter *= Inv<Real>( edge_count_ );
+    }
+    else if constexpr ( mode == M_T::UniformOnEdges )
+    {
+        barycenter *= total_r_inv;
+    }
+
+    return barycenter;
+}
+
+// Compute vertex coordinates from unit edge vectors `x`, a starting vector `point` and write the results into `p`.
+void writeCoordinates(
+    cref<VectorContainer_T> x, mref<Vector_T> point, mptr<Real> p, const bool wrap_aroundQ
+)
+{
+    TOOLS_MAKE_FP_FAST();
+    
+    for( Int i = 0; i < edge_count_; ++i )
+    {
+        point.Write( &p[AmbDim * i] );
+        
+        const Vector_T x_i ( x, i );
+        
+        const Real r_i = r_[i];
+        
+        for( Int j = 0; j < AmbDim; ++j )
+        {
+            point[j] += r_i * x_i[j];
+        }
+    }
+    
+    if( wrap_aroundQ )
+    {
+        point.Write( &p[AmbDim * edge_count_] );
+    }
+}
+
+void writeCoordinates(
+    cref<VectorContainer_T> x, mptr<Real> p, const M_T mode, const bool wrap_aroundQ
+)
+{
+    Vector_T point = Barycenter(x,mode);
+    point *= Real(-1);
+    writeCoordinates(x, point, p, wrap_aroundQ);
+}
 
 private:
     

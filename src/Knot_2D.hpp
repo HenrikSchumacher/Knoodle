@@ -93,7 +93,8 @@ namespace Knoodle
         
         Int intersection_count_3D = 0;
         
-        bool intersections_computedQ = false;
+        bool intersections_computedQ  = false;
+        bool bounding_boxes_computedQ = false;
         
     public:
         
@@ -120,7 +121,7 @@ namespace Knoodle
         ,   edge_ptr        { int_cast<Int>(edge_count + Int(1)) }
         ,   component_ptr   { Int(1)                             }
         ,   T               { edge_count                         }
-        ,   box_coords      { T.NodeCount()                      }
+//        ,   box_coords      { T.NodeCount()                      }
         {
             if(
                 std::cmp_greater_equal(edge_count_, Scalar::Max<Int> - Int(1))
@@ -129,13 +130,13 @@ namespace Knoodle
             ) [[unlikely]]
             {
                 edge_count = 0;
-                edge_count = 0;
             }
             component_ptr[0] = 0;
             component_ptr[1] = edge_count;
         }
 
 #include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
 
     
@@ -193,8 +194,9 @@ namespace Knoodle
             Vector3_T lo;
             Vector3_T hi;
 
+            intersections_computedQ  = false;
+            bounding_boxes_computedQ = false;
             intersections.clear();
-            intersections_computedQ = false;
             
             ComputeBoundingBox( v, lo, hi );
             
@@ -218,13 +220,12 @@ namespace Knoodle
             copy_buffer<AmbDim>(vertex_coords.data(),vertex_coords.data(edge_count));
         }
         
-
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
-            T.template ComputeBoundingBoxes<2,AmbDim,AmbDim>(
-                vertex_coords.data(), box_coords.data()
-            );
+//            TOOLS_TIMER(timer,MethodName("ComputeBoundingBoxes"));
+            
+            T.template ComputeBoundingBoxes<2,AmbDim,AmbDim>( vertex_coords.data(), box_coords.data() );
+            bounding_boxes_computedQ = true;
         }
         
     private:

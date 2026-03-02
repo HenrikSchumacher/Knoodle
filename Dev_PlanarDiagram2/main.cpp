@@ -132,9 +132,11 @@ int main()
     const Int component_count = 8;
     const Int edge_count      = 1200;
     
-    Knoodle::ActionAngleSampler<Real,Int> S;
+//    Knoodle::ActionAngleSampler<Real,Int> S;
+//    PDC_T pdc ( S.RandomEquilateralLink(component_count, edge_count) );
     
-    PDC_T pdc ( S.RandomEquilateralLink(component_count, edge_count) );
+    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( edge_count );
+    PDC_T pdc ( S.RandomEquilateralLink(component_count).first );
     
 
     print("");

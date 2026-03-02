@@ -1,19 +1,25 @@
 public:
     
     template<bool verboseQ = true> // whether to print errors and warnings
+    [[nodiscard]] int RequireIntersections()
+    {
+        if( intersections_computedQ ) { return 0; }
+        
+        return FindIntersections();
+    }
+    
+    template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
-        
-        if( intersections_computedQ ) { return 0; }
-        
+
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.
         // The latter expects a Tensor3 of size edge_count x 2 x 2, but it accesses the
         // enties only via operator(i,j,k), so this is safe!
         
-        ComputeBoundingBoxes();
+        RequireBoundingBoxes();
         
         const Int degenerate_edge_count = DegenerateEdgeCount();
         
@@ -25,13 +31,18 @@ public:
             }
             return 9;
         }
-          
-        // TODO: Randomly rotate until not degenerate.
+        
+        intersections.clear();
+        if( intersections.capacity() < ToSize_T(2 * EdgeCount()) )
+        {
+            intersections.reserve( ToSize_T(2 * EdgeCount()) );
+        }
         
         FindIntersectingEdges_DFS();
         
+        intersections_computedQ = true;
+        
         // Check for bad intersections.
-
         {
             const Size_T count = intersection_flag_counts[7];
             if( count > Size_T(0) )
@@ -198,7 +209,6 @@ public:
         
         intersection_flag_counts[8] = close_counter;
         
-        
         if( intersection_flag_counts[8] )
         {
             // TODO: For the moment we _want_ to see this warning.
@@ -221,12 +231,8 @@ private:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
         
-        intersections.clear();
-        
-        intersections.reserve( ToSize_T(2 * EdgeCount()) );
-        
-        S = Intersector_T();
-        
+//        S = Intersector_T();
+//        
         intersection_count_3D = 0;
         
         edge_ptr.Fill(0);
@@ -234,12 +240,9 @@ private:
         // Last time I checked the _ManualStack version was 5% faster.
         
         FindIntersectingEdges_DFS_ManualStack();
-
 //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
         edge_ptr.Accumulate();
-        
-        intersections_computedQ = true;
         
     } // FindIntersectingClusters_DFS
 
@@ -300,28 +303,13 @@ private:
             }
         };
         
-        
         push(0,0);
-        
-    //        Size_T box_call_count  = 0;
-    //        Size_T edge_call_count = 0;
-    //
-    //        double box_time  = 0;
-    //        double edge_time = 0;
         
         while( continueQ() )
         {
             // Pop from stack.
 
             auto [i,j] = pop();
-
-    //            Time box_start_time = Clock::now();
-    //            ++box_call_count;
-            
-            
-    //            Time box_end_time = Clock::now();
-    //            box_time += Tools::Duration( box_start_time, box_end_time );
-            
             
             const bool i_internalQ = (i < int_node_count);
             const bool j_internalQ = (j < int_node_count);
@@ -372,21 +360,10 @@ private:
                 }
             }
             else
-            {   
-    //                    Time edge_start_time = Clock::now();
-    //                    ++edge_call_count;
+            {
                 ComputeEdgeEdgeIntersection( T.NodeBegin(i), T.NodeBegin(j) );
-
-    //                    Time edge_end_time = Clock::now();
-    //                    edge_time += Tools::Duration( edge_start_time, edge_end_time );
             }
         }
-        
-    //        TOOLS_DUMP(box_call_count);
-    //        TOOLS_DUMP(box_time);
-    //        TOOLS_DUMP(edge_call_count);
-    //        TOOLS_DUMP(edge_time);
-        
     } // FindIntersectingEdges_DFS_ManualStack
 
 

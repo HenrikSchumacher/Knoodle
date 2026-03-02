@@ -39,22 +39,10 @@ static PDC_T FromExtendedGaussCode(
     );
 }
 
-template<typename Real, typename BReal>
-static PDC_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
-{
-    return PDC_T( PD_T::FromKnotEmbedding(K) );
-}
-
 template<typename Real, typename ExtInt>
 static PDC_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     return PDC_T( PD_T::FromKnotEmbedding(x,n) );
-}
-
-template<typename Real, typename BReal>
-static PDC_T FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
-{
-    return PDC_T( PD_T::FromLinkEmbedding(L) );
 }
 
 template<typename Real, typename ExtInt>
@@ -62,3 +50,18 @@ static PDC_T FromLinkEmbedding( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n
 {
     return PDC_T( PD_T::FromLinkEmbedding(x,edges,n) );
 }
+
+
+//// Promoted to real constructor.
+//template<typename Real, typename BReal>
+//static PDC_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
+//{
+//    return PDC_T( PD_T::FromKnotEmbedding(K) );
+//}
+
+// Promoted to real constructor.
+//template<typename Real, typename BReal>
+//static PDC_T FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
+//{
+//    return PDC_T( PD_T::FromLinkEmbedding(L) );
+//}

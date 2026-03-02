@@ -397,20 +397,22 @@ Size_T Rattle(
         // We want to exploit here that some information needed for OrthoDraw is already cached.
         // However, this will help only if args.permute_randomQ == false.
         // And it makes sense to do this only if args.permute_randomQ == false and if args.randomize_bends != 0 or args.randomize_virtual_edgesQ == true.
-        LinkEmbedding_T emb = reapr.Embedding(pd);
+        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
         
         for( Size_T rot = 0; rot < args.rotation_trials; ++rot )
         {
             Size_T projection_iter = 0;
             int projection_flag = 0;
+            projection_flag = emb.RequireIntersections();
             
-            do
+            while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
             {
                 ++projection_iter;
+                // Rotate is a bit expensive do to an extra allocation and extra copying.
+                // But we land here really very, very, very seldomly.
                 emb.Rotate( reapr.RandomRotation() );
-                projection_flag = emb.FindIntersections();
+                projection_flag = emb.RequireIntersections();
             }
-            while( (projection_flag!=0) && (projection_iter < max_projection_iter) );
             
             if( projection_flag != 0 )
             {
@@ -419,7 +421,7 @@ Size_T Rattle(
                 return Size_T(0);
             }
             
-            PDC_T pdc_new = PDC_T::FromLinkEmbedding(emb);
+            PDC_T pdc_new ( emb );
             
             if constexpr (debugQ)
             {
@@ -659,7 +661,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
 //        return PD_T::InvalidDiagram();
 //    }
 //    
-//    PDC_T pdc_new = PDC_T::FromLinkEmbedding(emb);
+//    PDC_T pdc_new (emb);
 //    
 //    PD_ASSERT(pdc_new.CheckAll());
 //    

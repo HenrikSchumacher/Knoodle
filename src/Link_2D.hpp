@@ -83,6 +83,7 @@ namespace Knoodle
         using Base_T::VertexCount;
         using Base_T::EdgeCount;
         using Base_T::Edges;
+        using Base_T::NextEdge;
         
     protected:
         
@@ -110,7 +111,8 @@ namespace Knoodle
         
         Int intersection_count_3D = 0;
         
-        bool intersections_computedQ = false;
+        bool intersections_computedQ  = false;
+        bool bounding_boxes_computedQ = false;
         
     public:
         
@@ -133,8 +135,8 @@ namespace Knoodle
         explicit Link_2D( const I edge_count_ )
         :   Base_T      { int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                 }
-        ,   T           { edge_count                 }
-        ,   box_coords  { T.AllocateBoxes()          }
+//        ,   T           { edge_count                 }
+//        ,   box_coords  { T.AllocateBoxes()          }
         {
             static_assert(IntQ<I>,"");
         }
@@ -142,8 +144,8 @@ namespace Knoodle
         Link_2D( Tensor1<Int,Int> && component_ptr_ )
         :   Base_T      { std::move(component_ptr_), Tensor1<Int,Int>() }
         ,   edge_coords { edge_count                                    }
-        ,   T           { edge_count                                    }
-        ,   box_coords  { T.AllocateBoxes()                             }
+//        ,   T           { edge_count                                    }
+//        ,   box_coords  { T.AllocateBoxes()                             }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -151,8 +153,8 @@ namespace Knoodle
         Link_2D( cptr<I_0> edges_, const I_1 edge_count_ )
         :   Base_T      { edges_, (I_0 *)nullptr, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                                         }
-        ,   T           { edge_count                                         }
-        ,   box_coords  { T.AllocateBoxes()                                  }
+//        ,   T           { edge_count                                         }
+//        ,   box_coords  { T.AllocateBoxes()                                  }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -163,8 +165,8 @@ namespace Knoodle
         Link_2D( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
         :   Base_T      { edge_tails_, edge_tips_, (I_0 *)nullptr, edge_count_ }
         ,   edge_coords { edge_count                                           }
-        ,   T           { edge_count                                           }
-        ,   box_coords  { T.AllocateBoxes()                                    }
+//        ,   T           { edge_count                                           }
+//        ,   box_coords  { T.AllocateBoxes()                                    }
         {
             static_assert(IntQ<I_0>,"");
             static_assert(IntQ<I_1>,"");
@@ -173,6 +175,7 @@ namespace Knoodle
     public:
 
 #include "LinkEmbedding/Helpers.hpp"
+#include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
 
         
@@ -182,12 +185,6 @@ namespace Knoodle
         {
             return edge_coords;
         }
-        
-        Int NextEdge( const Int e ) const
-        {
-            return next_edge[e];
-        }
-        
         
         E_T EdgeData( const Int e ) const
         {
@@ -224,8 +221,9 @@ namespace Knoodle
         {
             TOOLS_PTIMER(timer,ClassName()+"::ReadVertexCoordinates<" + ToString(transformQ) + "," + ToString(shiftQ) + ">(AoS, " + (preorderedQ ? "preordered" : "unordered") + ")");
             
+            intersections_computedQ  = false;
+            bounding_boxes_computedQ = false;
             intersections.clear();
-            intersections_computedQ = false;
             
             Vector3_T lo;
             Vector3_T hi;
@@ -459,12 +457,10 @@ namespace Knoodle
         
         void ComputeBoundingBoxes()
         {
-            TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
+//            TOOLS_TIMER(timer,MethodName("ComputeBoundingBoxes"));
             
-            T.template ComputeBoundingBoxes<2,3>(
-                edge_coords.data(),
-                box_coords.data()
-            );
+            T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
+            bounding_boxes_computedQ = true;
         }
         
     private:

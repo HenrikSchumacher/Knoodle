@@ -128,6 +128,23 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> & L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        // TODO: Rename Knot_2D to KnotEmbedding. More merge into LinkEmbedding.
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( Knot_2D<Real,Int,BReal> && K  )
+        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
+        {}
+        
+        // TODO: Rename Knot_2D to KnotEmbedding. More merge into LinkEmbedding.
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( Knot_2D<Real,Int,BReal> & K )
+        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
+        {}
+        
 #include "PlanarDiagramComplex/Constructors.hpp"
 #include "PlanarDiagramComplex/Color.hpp"
 #include "PlanarDiagramComplex/RemoveLoops.hpp"
