@@ -202,7 +202,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
-                    logvalprint("F_state",ArrayToString(F_state,{Int(2) * pd.MaxArcCount()}));
+                    logvalprint("F_state",OutString(F_state, Int(2) * pd.MaxArcCount() ));
                     
                     pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }

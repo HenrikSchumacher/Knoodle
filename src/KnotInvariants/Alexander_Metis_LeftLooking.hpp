@@ -6,12 +6,9 @@
 namespace Knoodle
 {
     
-    template<typename Scal_, typename Int_, typename LInt_>
+    template<typename Scal_, IntQ Int_, IntQ LInt_>
     class Alexander_Metis_LeftLooking final
     {
-//        static_assert(SignedIntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
-        
     public:
         
         using Scal = Scal_;
@@ -88,8 +85,6 @@ namespace Knoodle
             
             
 //            SparseAlexanderMatrix( pd, t ).WriteDense( A, n );
-//
-//            valprint( "sparse matrix", ArrayToString( A, {n,n} ) );
             
             // TODO: Replace this by pd.CrossingOverStrands() and measure!
             const auto arc_strands = pd.ArcOverStrand();
@@ -163,8 +158,6 @@ namespace Knoodle
                     ++counter;
                 }
             }
-            
-//            valprint( "dense matrix", ArrayToString( A, {n,n} ) );
         }
         
         SparseMatrix_T SparseAlexanderMatrix( cref<PD_T> pd, const Scal t ) const
@@ -342,8 +335,6 @@ namespace Knoodle
                     Real log_det = 0;
                                         
                     DenseAlexanderMatrix( pd, args[idx], LU_buffer.data() );
-                    
-//                    valprint( "dense array", ArrayToString( LU_buffer.data(), {n,n} ) );
                     
                     // Factorize dense Alexander matrix.
                     

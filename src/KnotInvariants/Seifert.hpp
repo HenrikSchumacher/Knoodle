@@ -8,7 +8,7 @@
 namespace Knoodle
 {
     
-    template<typename Scal_, typename Int_>
+    template<typename Scal_, IntQ Int_>
     class Seifert final
     {
         

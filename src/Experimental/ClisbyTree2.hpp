@@ -35,14 +35,11 @@ namespace Knoodle
     
     template<
         Size_T AmbDim_,
-        typename Real_, typename Int_, typename LInt_,
+        FloatQ Real_, IntQ Int_, IntQ LInt_,
         ClisbyTree2_TArgs targs = ClisbyTree2_TArgs()
     >
     class alignas(ObjectAlignment) ClisbyTree2 final : public CompleteBinaryTree<Int_,true,true>
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
         static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
         
     public:
@@ -152,7 +149,7 @@ namespace Knoodle
             Split     = 2
         };
         
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         ClisbyTree2(
             const ExtInt vertex_count_,
             const ExtReal edge_length_,
@@ -171,7 +168,7 @@ namespace Knoodle
             InitializePRNG();
         }
         
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         ClisbyTree2(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,
@@ -191,7 +188,7 @@ namespace Knoodle
             InitializePRNG();
         }
     
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         ClisbyTree2(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,

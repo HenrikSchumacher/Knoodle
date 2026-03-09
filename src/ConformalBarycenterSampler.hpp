@@ -20,16 +20,13 @@ namespace Knoodle
      */
     
     template<
-        Size_T  AmbDim_       = 3,
-        typename Real_        = double,
-        typename Int_         = Int64,
-        typename Prng_T_      = Knoodle::PRNG_T
+        Size_T  AmbDim_   = 3,
+        FloatQ Real_      = double,
+        IntQ Int_         = Int64,
+        typename Prng_T_  = Knoodle::PRNG_T
     >
     class ConformalBarycenterSampler
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real   = Real_;
@@ -390,7 +387,7 @@ namespace Knoodle
         }
         
         
-        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
         std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
             cptr<Real2> component_centers,
             const Int2  component_count,
@@ -448,7 +445,7 @@ namespace Knoodle
             return {link,static_cast<Real2>(K_prod)};
         }
         
-        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
         std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
             const Int2  component_count,
             const bool  quotient_space_weightQ = true
@@ -457,7 +454,7 @@ namespace Knoodle
             return RandomEquilateralLink<Real2,Int2,BReal2>( nullptr, component_count, quotient_space_weightQ);
         }
         
-        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
         std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralKnot(
             const Int component_count
         )

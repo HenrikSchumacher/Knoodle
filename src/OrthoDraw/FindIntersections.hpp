@@ -118,8 +118,6 @@ void FindIntersections(
         return;
     }
     
-//    valprint("region", ArrayToString( &R_dE_idx[region_begin], {n} ) );
-    
     for( Int i = 0; i < n; ++i )
     {
         const Int de_i = R_dE.Elements()[region_begin + i];
@@ -209,32 +207,7 @@ void FindIntersections(
         }
         
         std::array<Int,3> result = {de_i,da,db};
-        
-//        const Int a = da / 2;
-//        const Int b = db / 2;
-//        
-//        TOOLS_DUMP(de_i);
-//        TOOLS_DUMP(e_i);
-//        TOOLS_DUMP(da);
-//        TOOLS_DUMP(a);
-//        TOOLS_DUMP(db);
-//        TOOLS_DUMP(b);
-//        
-//        TOOLS_DUMP(RegionSize(r));
-//        
-//        TOOLS_DUMP(E_V(a,Tail));
-//        TOOLS_DUMP(E_V(a,Head));
-//        
-//        TOOLS_DUMP(E_V(b,Tail));
-//        TOOLS_DUMP(E_V(b,Head));
-//        
-//        valprint("X_0", ArrayToString(coords.data(E_V(a,Tail)),{2}));
-//        valprint("X_1", ArrayToString(coords.data(E_V(a,Head)),{2}));
-//        valprint("Y_0", ArrayToString(coords.data(E_V(b,Tail)),{2}));
-//        valprint("Y_1", ArrayToString(coords.data(E_V(b,Head)),{2}));
-//        
-//        TOOLS_DUMP(result);
-        
+    
         agg.push_back(std::move(result));
         
     } // for( Int i = region_begin; i < region_end; ++i )

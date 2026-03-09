@@ -9,13 +9,9 @@
 
 namespace Knoodle
 {
-    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
+    template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(FloatQ<BReal_>,"");
-        
     public:
         
         using Real  = Real_;

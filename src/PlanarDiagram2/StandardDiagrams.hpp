@@ -11,6 +11,11 @@ static PD_T Unknot( const Int color )
     return pd;
 }
 
+static PD_T Unlink( const Int color )
+{
+    return Unknot(color);
+}
+
 static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_T handedness )
 {
     // needs to know all member variables

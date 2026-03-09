@@ -22,25 +22,28 @@ public:
 void ComputeVertexCoordinates_Compaction_CLP( bool minimize_areaQ = false )
 {
     TOOLS_PTIMER(timer,MethodName("ComputeVertexCoordinates_Compaction_CLP"));
+
+    Tensor1<Int,Int> x = Compaction_CLP( Dv(), DvEdgeCosts(), minimize_areaQ );
+    Tensor1<Int,Int> y = Compaction_CLP( Dh(), DhEdgeCosts(), minimize_areaQ );
     
-    Tensor1<Int,Int> x;
-    Tensor1<Int,Int> y;
-    
-    ParallelDo(
-        [&x,&y,minimize_areaQ,this](const Int thread)
-        {
-            if( thread == Int(0) )
-            {
-                x = Compaction_CLP( Dv(), DvEdgeCosts(), minimize_areaQ );
-            }
-            else if( thread == Int(1) )
-            {
-                y = Compaction_CLP( Dh(), DhEdgeCosts(), minimize_areaQ );
-            }
-        },
-        Int(2),
-        (settings.parallelizeQ ? Int(2) : (Int(1)))
-    );
+//    Tensor1<Int,Int> x;
+//    Tensor1<Int,Int> y;
+//    
+//    ParallelDo(
+//        [&x,&y,minimize_areaQ,this](const Int thread)
+//        {
+//            if( thread == Int(0) )
+//            {
+//                x = Compaction_CLP( Dv(), DvEdgeCosts(), minimize_areaQ );
+//            }
+//            else if( thread == Int(1) )
+//            {
+//                y = Compaction_CLP( Dh(), DhEdgeCosts(), minimize_areaQ );
+//            }
+//        },
+//        Int(2),
+//        (settings.parallelizeQ ? Int(2) : (Int(1)))
+//    );
     
     ComputeVertexCoordinates(x,y);
 }

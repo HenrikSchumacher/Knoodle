@@ -139,7 +139,7 @@ Tensor1<T,Int> MacLeodCode() const
     return s_mac_leod;
 }
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
@@ -150,11 +150,8 @@ static PD_T FromMacLeodCode(
     TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
+        + "," + TypeName<ExtInt2>
         + ">");
-    
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
-    static_assert(IntQ<ExtInt2>,"");
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
@@ -168,14 +165,11 @@ static PD_T FromMacLeodCode(
 }
 
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromMacLeodCode(
     cref<Tensor1<T,ExtInt>> s_mac_leod, const ExtInt2 color, const bool proven_minimalQ_ = false
 )
 {
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
-    static_assert(IntQ<ExtInt2>,"");
     return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), color, proven_minimalQ_ );
 }
 
@@ -185,7 +179,7 @@ static PD_T FromMacLeodCode(
 
 
 
-//template<typename Int>
+//template<IntQ Int>
 //static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
 //{
 //    static_assert(IntQ<Int>);
@@ -218,7 +212,7 @@ std::string MacLeodString() const
     return s;
 }
 
-template<typename ExtInt2>
+template<IntQ ExtInt2>
 static PD_T FromMacLeodString( cref<std::string> s, const ExtInt2 color )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));

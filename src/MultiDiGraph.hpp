@@ -30,7 +30,7 @@ namespace Knoodle
         using EV_Vector_T       = Base_T::EV_Vector_T;
         using VE_Vector_T       = Base_T::VE_Vector_T;
         
-        template<typename Int,bool nonbinQ>
+        template<IntQ Int, bool nonbinQ>
         using SignedMatrix_T = Base_T::template SignedMatrix_T<Int,nonbinQ>;
         
         using Base_T::Tail;

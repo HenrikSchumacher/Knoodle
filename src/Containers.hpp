@@ -94,7 +94,7 @@ namespace Knoodle
         return s;
     }
     
-    template<typename Int>
+    template<IntQ Int>
     struct IndexPair_T
     {
         static_assert(IntQ<Int>,"");
@@ -107,7 +107,7 @@ namespace Knoodle
         }
     };
     
-    template<typename Int>
+    template<IntQ Int>
     struct IndexPairHash_T
     {
         using is_avalanching [[maybe_unused]] = std::true_type; // instruct Boost.Unordered to not use post-mixing
@@ -121,7 +121,7 @@ namespace Knoodle
         }
     };
     
-    template<typename Int, typename Scal>
+    template<IntQ Int, typename Scal>
     using MatrixTripleContainer_T
             = AssociativeContainer<IndexPair_T<Int>, Scal, IndexPairHash_T<Int>>;
     

@@ -10,7 +10,7 @@
 namespace Knoodle
 {
     
-    template<typename Int_, bool mult_compQ_>
+    template<IntQ Int_, bool mult_compQ_>
     class alignas( ObjectAlignment ) StrandSimplifier final
     {
     public:
@@ -207,7 +207,7 @@ namespace Knoodle
         
     public:
         
-        template<typename Int_0, typename Int_1>
+        template<IntQ Int_0, IntQ Int_1>
         Size_T MarkArcs(
             const Int_0 a_first, const Int_0 a_last, const Int_1 mark
         )
@@ -233,7 +233,7 @@ namespace Knoodle
             return counter;
         }
         
-        template<typename Int_0, typename Int_1, typename Int_2>
+        template<IntQ Int_0, IntQ Int_1, IntQ Int_2>
         void MarkArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 mark )
         {
             PD_PRINT(MethodName("MarkArcs")+ " from "+ ArcString(arcs[0]) + " for "+ ToString(strand_length) + " step; mark = " + ToString(mark) );

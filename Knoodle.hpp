@@ -48,8 +48,8 @@ namespace Knoodle
 
 namespace Knoodle
 {
-    template<typename Int> class PlanarDiagram2;
-    template<typename Int> class PlanarDiagramComplex;
+    template<IntQ Int> class PlanarDiagram2;
+    template<IntQ Int> class PlanarDiagramComplex;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"

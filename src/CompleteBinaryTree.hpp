@@ -6,7 +6,7 @@ namespace Knoodle
     // TODO: Unify the compile-size stacks for pairs of indices. They work only with signed integers at the moment. Moreover, they are quite annoying to maintain.
     
     template<
-        typename Int_,
+        IntQ Int_,
         bool precompute_rangesQ_ = true,
         bool use_manual_stackQ_ = false
     >

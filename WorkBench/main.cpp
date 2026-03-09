@@ -11,146 +11,246 @@ using Real  = Real64;
 //using BReal = Real64;
 using BReal = Real32;
 
-using T = Real;
+using T = Int;
+//using T = Real;
 
-template<Int point_count, Int AmbDim>
-void PrimitiveToBox2(
-    cptr<Real> P, mptr<BReal> B
-)
-{
-    Tiny::Vector<3,Real,Int> lo { Scalar::Max<Real> };
-    Tiny::Vector<3,Real,Int> hi { Scalar::Min<Real> };
-    
-    for( Int i = 0; i < point_count; ++i )
-    {
-        lo.ElementwiseMin(&P[AmbDim * i]);
-        hi.ElementwiseMax(&P[AmbDim * i]);
-    }
-    
-//     If we have to round, make sure that the boxes become a little bit bigger, so that it still contains all primitives.
-    if constexpr ( Scalar::Prec<BReal> != Scalar::Prec<Real> )
-    {
-        #pragma STDC FENV_ACCESS ON
-        std::fesetround(FE_UPWARD);
-        
-        for( Int k = 0; k < AmbDim; ++k )
-        {
-            B[         k] = -static_cast<BReal>(-lo[k]);
-            B[AmbDim + k] =  static_cast<BReal>( hi[k]);
-        }
-    }
-    else
-    {
-        for( Int k = 0; k < AmbDim; ++k )
-        {
-            B[         k] = static_cast<BReal>(lo[k]);
-            B[AmbDim + k] = static_cast<BReal>(hi[k]);
-        }
-    }
-//    
-//    for( Int k = 0; k < AmbDim; ++k )
-//    {
-//        if( static_cast<Real>(B[k]) > lo[k] ) { eprint("B[k] > lo[k]"); }
-//        if( static_cast<Real>(B[AmbDim + k]) < hi[k] ) { eprint("B[AmbDim + k] < hi[k]"); }
-//    }
-}
 
-using Rand_T = PRNG_T;
-using Tree_T = AABBTree<3,Real,Int,BReal>;
+using Dist_T = std::conditional_t<IntQ<T>, std::uniform_int_distribution<T>, std::uniform_real_distribution<T>>;
 
 int main()
 {
-    Int n = 12'000'000;
- 
-    {
-        double dnumber = 1.23456786012345679;
-        
-        {
-            float  fnumber = static_cast<float>(dnumber);
-            double dnumber2 = static_cast<double>(fnumber);
-            
-            std::cout << ToString(dnumber) << std::endl;
-            std::cout << ToString(fnumber) << std::endl;
-            std::cout << ToString(dnumber2) << std::endl;
-            //    TOOLS_DUMP(float(0.123456789012345679));
-        }
-        
-        {
-            #pragma STDC FENV_ACCESS ON
-            
-//            RoundingModeBarrier barrier ( RoundingMode_T::Downward );
-            std::fesetround(FE_DOWNWARD);
-            
-            float  fnumber = static_cast<float>(dnumber);
-            double dnumber2 = static_cast<double>(fnumber);
-            
-//            float  fnumber = static_cast<float>(dnumber);
-            
-            std::cout << ToString(dnumber) << std::endl;
-            std::cout << ToString(fnumber) << std::endl;
-            std::cout << ToString(dnumber2) << std::endl;
-        }
-        
-    }
     
-//    TOOLS_DUMP(float(0.123456789012345679));
+//    const char prefix_0 [3] = "{\n";
+//    const char infix_0  [3] = ",\n";
+//    const char suffix_0 [3] = "\n}";
+//    const char prefix_1 [4] = "\t{\n";
+//    const char infix_1  [3] = ",\n";
+//    const char suffix_1 [4] = "\n\t}";
+//    const char prefix_2 [5] = "\t\t{ ";
+//    const char infix_2  [3] = ", ";
+//    const char suffix_2 [3] = " }";
     
-    PRNG_T r = InitializedRandomEngine<PRNG_T>();
+//    const char prefix_0 [3] = "{\n";
+//    const char infix_0  [3] = ",\n";
+//    const char suffix_0 [3] = "\n}";
+//    const char prefix_1 [4] = " { ";
+//    const char infix_1  [3] = ", ";
+//    const char suffix_1 [3] = " }";
+//    const char prefix_2 [3] = "{ ";
+//    const char infix_2  [3] = ", ";
+//    const char suffix_2 [3] = " }";
     
-    std::uniform_real_distribution<Real> dist (1,2);
+//    std::string s_prefix_0 (prefix_0);
+//    std::string s_infix_0  (infix_0);
+//    std::string s_suffix_0 (suffix_0);
+//    
+//    std::string s_prefix_1 (prefix_1);
+//    std::string s_infix_1  (infix_1);
+//    std::string s_suffix_1 (suffix_1);
+//    
+//    std::string s_prefix_2 (prefix_2);
+//    std::string s_infix_2  (infix_2);
+//    std::string s_suffix_2 (suffix_2);
+//    
+//    TOOLS_DUMP(s_prefix_0);
+//    TOOLS_DUMP(s_prefix_0.size());
     
-    constexpr Int point_count = 4;
-    constexpr Int AmbDim = 3;
+    const T min_value = COND(IntQ<T>, T(0), T(-1.));
+    const T max_value = COND(IntQ<T>, T(1000), T(1.));
+    Dist_T dist (min_value,max_value);
     
-    Tensor3<Real,Int> P ( n, point_count, AmbDim );
-    
-    P.FillByFunction(
-        [&r,&dist]( const Int i, const Int j, const Int k )
-        {
-            (void)i; (void)j; (void)k;
-            return dist(r);
-        }
-    );
+    PRNG_T random_engine = InitializedRandomEngine<PRNG_T>();
 
-    valprint("P",ArrayToString(P.data(),{Int(6),point_count,AmbDim},[](Real x){ return ToStringFPGeneral(x); }));
     
-    Tensor3<BReal,Int> B ( n, 2, AmbDim );
+//    Size_T d_0 = 10;
+    Size_T d_0 = 2'000'000;
+    Size_T d_1 = 2;
+    Size_T d_2 = 2;
     
-    tic("PrimitiveToBox");
-    for( Int i = 0; i < n; ++i )
-    {
-        Tree_T::PrimitiveToBox<point_count,AmbDim>( P.data(i), B.data(i) );
-    }
-    toc("PrimitiveToBox");
-    
-//    valprint("B",ArrayToString(B.data(),{Int(2),Int(2),AmbDim},[](Real x){ return ToStringFPGeneral(x); }));
-    
-    valprint("B",ArrayToString(B.data(),{Int(2),Int(2),AmbDim}));
-    
-    
-    Tensor3<BReal,Int> B2 ( n, 2, AmbDim );
-    
-    tic("PrimitiveToBox2");
-    for( Int i = 0; i < n; ++i )
-    {
-        PrimitiveToBox2<point_count,AmbDim>( P.data(i), B2.data(i) );
-    }
-    toc("PrimitiveToBox2");
-    
-    valprint("B2",ArrayToString(B2.data(),{Int(2),Int(2),AmbDim}));
-//s
-    
-    
-//    Tree_T
-    
-//    columnwise_minmax<point_count,AmbDim>(
-//        P, dimP, &B[0], Int(1), &B[AmbDim], Int(1)
-//    );
-    
-    print(ToString(double(0.12345678901234567890)));
-    print(ToString(float (0.12345678901234567890)));
-    
- }
+    std::filesystem::path path ("/Volumes/RamDisk");
 
-// elementwise_minmax
-// columnwise_minmax
+    Tensor3<T,Size_T> T3 (d_0,d_1,d_2);
+
+    for( Size_T i = 0; i < d_0; ++i )
+    {
+        for( Size_T j = 0; j < d_1; ++j )
+        {
+            for( Size_T k = 0; k < d_2; ++k )
+            {
+                T3(i,j,k) = dist( random_engine );
+            }
+        }
+    }
+    
+    Tensor2<T,Size_T> T2 (d_0,d_1);
+
+    for( Size_T i = 0; i < d_0; ++i )
+    {
+        for( Size_T j = 0; j < d_1; ++j )
+        {
+            T2(i,j) = dist( random_engine );
+        }
+    }
+    
+    Tensor1<T,Size_T> T1 (d_0);
+
+    for( Size_T i = 0; i < d_0; ++i )
+    {
+        T1(i) = dist( random_engine );
+    }
+    
+    tic("Tensor3_OutString");
+    {
+        std::ofstream stream ( path / "Tensor3_OutString.txt" );
+        stream << T3;
+    }
+    toc("Tensor3_OutString");
+    tic("Tensor3_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor3_ArrayToString.txt" );
+        stream << ArrayToString(T3.data(),{T3.Dim(0),T3.Dim(1),T3.Dim(2)});
+    }
+    toc("Tensor3_ArrayToString");
+    
+    tic("Tensor2_OutString");
+    {
+        std::ofstream stream ( path / "Tensor2_OutString.txt" );
+        stream << T2;
+    }
+    toc("Tensor2_OutString");
+    tic("Tensor2_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor2_ArrayToString.txt" );
+        stream << ArrayToString(T2.data(),{T2.Dim(0),T2.Dim(1)});
+    }
+    toc("Tensor2_ArrayToString");
+    
+    tic("Tensor1_OutString");
+    {
+        std::ofstream stream ( path / "Tensor1_OutString.txt" );
+        stream << T1;
+    }
+    toc("Tensor1_OutString");
+    tic("Tensor1_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor1_ArrayToString.txt" );
+        stream << ArrayToString(T1.data(),{T1.Dim(0)});
+    }
+    toc("Tensor1_ArrayToString");
+    
+    
+    tic("Tensor3_OutString");
+    {
+        std::ofstream stream ( path / "Tensor3_OutString.txt" );
+        stream << T3;
+    }
+    toc("Tensor3_OutString");
+    tic("Tensor3_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor3_ArrayToString.txt" );
+        stream << ArrayToString(T3.data(),{T3.Dim(0),T3.Dim(1),T3.Dim(2)});
+    }
+    toc("Tensor3_ArrayToString");
+    
+    tic("Tensor2_OutString");
+    {
+        std::ofstream stream ( path / "Tensor2_OutString.txt" );
+        stream << T2;
+    }
+    toc("Tensor2_OutString");
+    tic("Tensor2_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor2_ArrayToString.txt" );
+        stream << ArrayToString(T2.data(),{T2.Dim(0),T2.Dim(1)});
+    }
+    toc("Tensor2_ArrayToString");
+    
+    tic("Tensor1_OutString");
+    {
+        std::ofstream stream ( path / "Tensor1_OutString.txt" );
+        stream << T1;
+    }
+    toc("Tensor1_OutString");
+    tic("Tensor1_ArrayToString");
+    {
+        std::ofstream stream ( path / "Tensor1_ArrayToString.txt" );
+        stream << ArrayToString(T1.data(),{T1.Dim(0)});
+    }
+    toc("Tensor1_ArrayToString");
+    
+    
+//
+//    {
+//        
+//        std::ofstream stream ( path / "c.txt" );
+//        tic("c");
+//        Tools::OutString s ( full_size );
+//        
+//        s.PutMatrix( a.data(), m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1, false );
+//        stream << s.View();
+//        toc("c");
+//    }
+//    
+//    
+//    Tensor2<T,Size_T> b(m,n);
+//    
+//    
+//    {
+//        std::filesystem::path file (path / "d.txt");
+//        // Open the stream to 'lock' the file.
+//        std::ifstream f(file, std::ios::in | std::ios::binary);
+//
+//        // Obtain the size of the file.
+//        const auto sz = std::filesystem::file_size(file);
+//        // Create a buffer.
+//        std::string input (sz, '\0');
+//        // Read the whole file into the buffer.
+//        f.read(input.data(), static_cast<std::streamsize>(sz));
+//        
+//        tic("Read d");
+//        Tools::InString s (input);
+//
+//        s.TakeMatrixFunction(
+//            [&b](const Size_T i, const Size_T j) -> T& { return b(i,j); },
+//            m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1
+//        );
+//        toc("Read d");
+//    }
+//    
+//    TOOLS_DUMP(b.MinMax());
+//    
+////    b -= a;
+//    for( Size_T i = 0; i < m; ++i )
+//    {
+//        for( Size_T j = 0; j < n; ++j )
+//        {
+//            b(i,j) -= a(i,j);
+//        }
+//    }
+//    
+//    TOOLS_DUMP(b.MinMax());
+    
+    
+    Tiny::Matrix<3,4,T,Int> A ;
+    for( Int i = 0; i < 3; ++i )
+    {
+        for( Int j = 0; j < 4; ++j )
+        {
+            A[i][j] = dist(random_engine);
+        }
+    }
+    
+    valprint("A[0][0]",ToString(A[0][0]));
+    
+    print(ToString(A));
+    
+    Aggregator<T,Int> agg;
+    
+    agg.Push( T(1) );
+    agg.Push( T(2) );
+    
+    print(ToString(agg.data()[0]));
+    print(ToString(agg.data()[1]));
+    
+    print(std::string_view( OutString( agg.data(), agg.Size() ) ));
+}

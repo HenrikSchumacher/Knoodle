@@ -111,7 +111,6 @@ int main( int argc, char** argv )
             .randomize_virtual_edgesQ = false,
             .saturate_facesQ          = true,
             .saturate_exterior_faceQ  = true,
-            .parallelizeQ             = false,
             .compaction_method        = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering,
         
             .x_grid_size              = 8,

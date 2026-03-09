@@ -153,7 +153,7 @@ Tensor2<CodeInt,Size_T> Generate(
     return result;
 }
 
-template<typename ExtInt>
+template<IntQ ExtInt>
 std::tuple<Tensor1<Size_T,Size_T>,Tensor2<CodeInt,Size_T>>
 GenerateMany(
     cptr<ExtInt> input_codes,
@@ -166,8 +166,6 @@ GenerateMany(
     const Int    rotation_count
 )
 {
-    static_assert(IntQ<ExtInt>,"");
- 
     TOOLS_PTIMER(timer,MethodName("GenerateMany"));
     
 //    TOOLS_DUMP(input_count);

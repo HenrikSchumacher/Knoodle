@@ -4,13 +4,9 @@ namespace Knoodle
 {
     // WARNING: This is a rather old development version that is probably buggy and significantly less efficient than ClisbyTree. Better use ClisbyTree for all  purposes other than performance comparison.
     
-    template<typename Real_, typename Int_, typename LInt_>
+    template<FloatQ Real_, SignedIntQ Int_, IntQ LInt_>
     class alignas( ObjectAlignment ) PolygonFolder final
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(SignedIntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
-        
     public:
         
         using Real = Real_;
@@ -31,7 +27,7 @@ namespace Knoodle
         using FlagCountVec_T = Tiny::Vector<5,LInt,Flag_T>;
 
         
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         PolygonFolder( const ExtInt vertex_count_, const ExtReal hard_sphere_diam_  )
         :   n       { int_cast<Int>(vertex_count_) }
         ,   hard_sphere_diam { static_cast<Real>(hard_sphere_diam_) }

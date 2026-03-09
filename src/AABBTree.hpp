@@ -8,15 +8,12 @@ namespace Knoodle
     // It won't work with more general clouds of primitives.
     
     template<
-        int AmbDim_, typename Real_, typename Int_, typename BReal_ = Real_,
+        int AmbDim_, FloatQ Real_, IntQ Int_, FloatQ BReal_ = Real_,
         bool precompute_rangesQ_   = true,
         bool change_rounding_modeQ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(FloatQ<BReal_>,"");
         
     public:
         

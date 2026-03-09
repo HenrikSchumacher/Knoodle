@@ -41,24 +41,27 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Transformation_T && f )
 {
     TOOLS_PTIMER(timer,MethodName("Embedding_impl"));
     
-    OrthoDraw_T H;
-    Tensor1<Real,Int> L;
+    OrthoDraw_T H ( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
+    Tensor1<Real,Int> L = Levels(pd);
     
-    ParallelDo(
-        [&H,&L,&pd,this](const Int thread)
-        {
-            if( thread == Int(0) )
-            {
-                H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
-            }
-            else if( thread == Int(1) )
-            {
-                L = Levels(pd);
-            }
-        },
-        Int(2),
-        (settings.ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
-    );
+//    OrthoDraw_T H;
+//    Tensor1<Real,Int> L;
+//    
+//    ParallelDo(
+//        [&H,&L,&pd,this](const Int thread)
+//        {
+//            if( thread == Int(0) )
+//            {
+//                H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
+//            }
+//            else if( thread == Int(1) )
+//            {
+//                L = Levels(pd);
+//            }
+//        },
+//        Int(2),
+//        (settings.ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
+//    );
     
     auto [comp_ptr,comp_color,x] = Embedding_VertexCoordinates(pd, H, L, f);
     

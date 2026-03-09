@@ -174,7 +174,7 @@ namespace Knoodle
             
             
             
-//            template<typename Int>
+//            template<IntQ Int>
 //            std::string LookupName( cref<PlanarDiagram<Int>> pd ) const
 //            {
 //                if( !std::cmp_equal(pd.CrossingCount(),c_count) )
@@ -245,7 +245,7 @@ namespace Knoodle
             return subtables.size() - Size_T(1);
         }
         
-        template<typename Int>
+        template<IntQ Int>
         std::pair<ID_T,ID_T> LookupID( cref<Key_T> key, Int n ) const
         {
             const ID_T c  = static_cast<ID_T>(n);
@@ -261,7 +261,7 @@ namespace Knoodle
             return std::pair{c,id};
         }
         
-        template<typename Int>
+        template<IntQ Int>
         std::string LookupName( cref<Key_T> key, Int n  ) const
         {
             if( std::cmp_greater_equal(n,subtables.size()) )
@@ -274,12 +274,9 @@ namespace Knoodle
         }
         
         
-        template<typename T, typename Int>
+        template<IntQ T, IntQ Int>
         static Key_T KeyFromMacLeodCode( cptr<T> s_mac_leod, Int n )
         {
-            static_assert(IntQ<T>,"");
-            static_assert(IntQ<Int>,"");
-            
 //            const Size_T n_ = ToSize_T(n);
 //            Key_T key (n_,'\0');
 //            copy_buffer(s_mac_leod,&key[0],n_);
@@ -290,7 +287,7 @@ namespace Knoodle
             return key;
         }
         
-        template<typename T, typename Int>
+        template<typename T, IntQ Int>
         static Key_T KeyFromMacLeodCode( cref<Tensor1<T,Int>> s_mac_leod )
         {
             return KeyFromMacLeodCode( &s_mac_leod[0], s_mac_leod.Size() );
@@ -305,39 +302,39 @@ namespace Knoodle
 
         
        
-       template<typename T, typename Int>
+       template<typename T, IntQ Int>
        std::pair<ID_T,ID_T> LookupID( cptr<T> s_mac_leod, Int n ) const
        {
            return LookupID( KeyFromMacLeodCode(s_mac_leod,n), n );
        }
 
-       template<typename T, typename Int>
+       template<typename T, IntQ Int>
        std::string LookupName( cptr<T> s_mac_leod, Int n ) const
        {
            return LookupName( KeyFromMacLeodCode(s_mac_leod,n), n );
        }
         
         
-        template<typename T, typename Int>
+        template<typename T, IntQ Int>
         std::pair<ID_T,ID_T> LookupID( cref<Tensor1<T,Int>> s_mac_leod ) const
         {
             return LookupID( &s_mac_leod[0], s_mac_leod.Size() );
         }
 
-        template<typename T, typename Int>
+        template<typename T, IntQ Int>
         std::string LookupName( cref<Tensor1<T,Int>> s_mac_leod ) const
         {
             return LookupName( &s_mac_leod[0], s_mac_leod.Size() );
         }
         
         
-        template<typename T, typename Int>
+        template<typename T, IntQ Int>
         std::pair<ID_T,ID_T> LookupID( cref<std::vector<T,Int>> s_mac_leod ) const
         {
             return LookupID( &s_mac_leod[0], s_mac_leod.size() );
         }
 
-        template<typename T, typename Int>
+        template<typename T, IntQ Int>
         std::string LookupName( cref<std::vector<T,Int>> s_mac_leod ) const
         {
             return LookupName( &s_mac_leod[0], s_mac_leod.size() );

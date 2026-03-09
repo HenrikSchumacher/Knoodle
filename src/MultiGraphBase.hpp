@@ -9,17 +9,13 @@ namespace Knoodle
     // TODO: Create a constructor that eliminates all duplicated edges. (Use the adjacency matrix for that.)
     
     template<
-        typename VInt_   = Int64,
-        typename EInt_   = VInt_,
-        typename Sign_T_ = Int8
+        IntQ VInt_   = Int64,
+        IntQ EInt_   = VInt_,
+        SignedIntQ Sign_T_ = Int8
     >
     class MultiGraphBase : public CachedObject<1,0,0,0>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
-        
-        static_assert(IntQ<VInt_>,"");
-        static_assert(IntQ<EInt_>,"");
-        static_assert(SignedIntQ<Sign_T_>,"");
         
     public:
         
@@ -48,7 +44,7 @@ namespace Knoodle
         static constexpr HeadTail_T Tail = 0;
         static constexpr HeadTail_T Head = 1;
 
-        template<typename Int, bool nonbinaryQ>
+        template<IntQ Int, bool nonbinaryQ>
         using SignedMatrix_T = std::conditional_t<
                 nonbinaryQ,
                 Sparse::MatrixCSR<Sign_T,Int,Int>,

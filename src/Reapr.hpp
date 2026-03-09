@@ -19,13 +19,10 @@ namespace Knoodle
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
     
-    template<typename Real_ = Real64, typename Int_ = Int64>
+    template<FloatQ Real_ = Real64, IntQ Int_ = Int64>
     class Reapr
     {
     public:
-        static_assert(FloatQ<Real_>,"");
-        static_assert(Scalar::RealQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
         
         using Real                = Real_;
         using Int                 = Int_;

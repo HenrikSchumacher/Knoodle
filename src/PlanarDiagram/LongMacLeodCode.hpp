@@ -145,7 +145,7 @@ Size_T MacLeodComparisonCount()
 
 
 // This was used only for debugging.
-//template<typename S, typename ExtInt>
+//template<typename S, IntQ ExtInt>
 //static Tensor1<ToSigned<Int>,Int> LongMacLeodCode_to_ExtendedGaussCode(
 //    cptr<S> code,
 //    const ExtInt arc_count_
@@ -229,7 +229,7 @@ Size_T MacLeodComparisonCount()
 //    return gauss;
 //}
 
-template<typename T, typename ExtInt2, typename ExtInt3>
+template<IntQ T, IntQ ExtInt2, IntQ ExtInt3>
 static PlanarDiagram FromLongMacLeodCode(
     cptr<T>       code,
     const ExtInt2 arc_count_,
@@ -243,8 +243,6 @@ static PlanarDiagram FromLongMacLeodCode(
         + "," + TypeName<ExtInt2>
         + "," + TypeName<ExtInt3>
         + ">");
-    
-    static_assert(IntQ<T>,"");
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
 
@@ -362,10 +360,8 @@ static PlanarDiagram FromLongMacLeodCode(
     }
 }
 
-template<typename T, typename ExtInt>
+template<IntQ T, IntQ ExtInt>
 static PlanarDiagram FromLongMacLeodCode( cref<Tensor1<T,ExtInt>> code )
 {
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
     return FromLongMacLeodCode( code.data(), code.Size(), Int(0), false, false );
 }

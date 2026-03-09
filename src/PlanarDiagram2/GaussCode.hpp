@@ -73,7 +73,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 }
 
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<SignedIntQ T, SignedIntQ ExtInt, SignedIntQ ExtInt2>
 static PD_T FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt  arc_count_,
@@ -82,10 +82,6 @@ static PD_T FromExtendedGaussCode(
 )
 {
     // needs to know all member variables
-    
-    static_assert( SignedIntQ<T>, "" );
-    static_assert( SignedIntQ<ExtInt>, "" );
-    static_assert( SignedIntQ<ExtInt2>, "" );
     
     TOOLS_PTIMER(timer,MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">");
     

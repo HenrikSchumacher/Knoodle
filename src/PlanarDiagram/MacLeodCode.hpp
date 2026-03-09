@@ -140,7 +140,7 @@ Tensor1<T,Int> MacLeodCode() const
     return s_mac_leod;
 }
 
-template<typename T, typename ExtInt2, typename ExtInt3>
+template<IntQ T, IntQ ExtInt2, IntQ ExtInt3>
 static PlanarDiagram FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt2 crossing_count_,
@@ -154,10 +154,6 @@ static PlanarDiagram FromMacLeodCode(
         + "," + TypeName<ExtInt2>
         + "," + TypeName<ExtInt3>
         + ">");
-    
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt2>,"");
-    static_assert(IntQ<ExtInt3>,"");
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
@@ -174,11 +170,9 @@ static PlanarDiagram FromMacLeodCode(
 }
 
 
-template<typename T, typename ExtInt>
+template<IntQ T, IntQ ExtInt>
 static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 {
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
     return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), Int(0), false, false );
 }
 
@@ -188,7 +182,7 @@ static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 
 
 
-//template<typename Int>
+//template<IntQ Int>
 //static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
 //{
 //    static_assert(IntQ<Int>);

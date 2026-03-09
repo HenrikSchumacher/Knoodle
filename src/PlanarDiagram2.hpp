@@ -13,9 +13,9 @@ namespace Knoodle
     // TODO: Template this.
     // bool fancy_arc_stateQ -- whether the flags other than an active bit ought to be used at all.s
     
-//    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
-//    
-//    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
+//    template<IntQ Int_, bool mult_compQ_> class StrandSimplifier;
+//
+//    template<IntQ Int_, Size_T optimization_level, bool mult_compQ_>
 //    class ArcSimplifier;
     
     // TODO: SwitchCrossing should also correctly set the arc states.
@@ -23,10 +23,9 @@ namespace Knoodle
     // TODO: Port the methods in Unported.hpp
     // TODO: Port methods in Counters.hpp?
 
-    template<typename Int_>
+    template<IntQ Int_>
     class PlanarDiagram2 final : public CachedObject<1,0,0,0>
     {
-        static_assert(IntQ<Int_>,"");
         
     public:
         
@@ -167,7 +166,7 @@ namespace Knoodle
          *  Data has to be filled in manually. Only for internal use.
          */
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         PlanarDiagram2( const ExtInt max_crossing_count_ )
         : crossing_count     { Int(0)                                          }
         , arc_count          { Int(0)                                          }
@@ -186,7 +185,6 @@ namespace Knoodle
 #endif
         {
             // needs to know all member variables
-            static_assert(IntQ<ExtInt>,"");
         }
         
         
@@ -194,7 +192,7 @@ namespace Knoodle
          *  Data has to be filled in manually. Only for internal use.
          */
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         PlanarDiagram2( const ExtInt max_crossing_count_, bool dummy )
         : crossing_count     { Int(0)                                          }
         , arc_count          { Int(0)                                          }
@@ -214,7 +212,6 @@ namespace Knoodle
         {
             // needs to know all member variables
             (void)dummy;
-            static_assert(IntQ<ExtInt>,"");
         }
 
     public:
@@ -222,7 +219,7 @@ namespace Knoodle
         /*!@brief Construct PlanarDiagram2 from internal data.
          */
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3, typename ExtInt4, typename ExtInt5>
+        template<IntQ ExtInt, typename ExtInt2, typename ExtInt3, IntQ ExtInt4, IntQ ExtInt5>
         PlanarDiagram2(
             const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
@@ -238,11 +235,8 @@ namespace Knoodle
         {
             // needs to know all member variables
             
-            static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
-            static_assert(IntQ<ExtInt4>,"");
-            static_assert(IntQ<ExtInt5>,"");
             
             last_color_deactivated = int_cast<Int>(last_color_deactivated_);
             proven_minimalQ = proven_minimalQ_;
@@ -289,7 +283,7 @@ namespace Knoodle
         /*!@brief Construct PlanarDiagram2 from internal data without colors.
          */
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+        template<IntQ ExtInt, typename ExtInt2, typename ExtInt3>
         PlanarDiagram2(
             const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
@@ -303,7 +297,6 @@ namespace Knoodle
         {
             // needs to know all member variables
             
-            static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
             

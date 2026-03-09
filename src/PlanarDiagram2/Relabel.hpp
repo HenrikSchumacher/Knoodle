@@ -13,7 +13,7 @@ public:
  * @param surjectiveQ If set to true, then we assume that all crossing labels in the range [0,max_c_label_plus_one[ and all arc labels in the range [0,max_a_label_plus_one[ are present in c_map and a_map. (So the gaps need not be filled.)
  */
 
-template<typename ExtInt>
+template<IntQ ExtInt>
 PD_T CreateRelabeled(
     cptr<ExtInt> c_map, const ExtInt max_c_label_plus_one,
     cptr<ExtInt> a_map, const ExtInt max_a_label_plus_one,
@@ -118,7 +118,7 @@ PD_T CreateRelabeled(
 /*!@briefSame as `CreateRelabeled`, but as in-place version. It effectively calls `CreateRelabeled`, so it is not really more efficient than that.
  */
 
-template<typename ExtInt>
+template<IntQ ExtInt>
 void  Relabel(
     cptr<ExtInt> c_map, const ExtInt max_c_label_plus_one,
     cptr<ExtInt> a_map, const ExtInt max_a_label_plus_one,

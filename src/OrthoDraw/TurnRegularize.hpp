@@ -22,15 +22,6 @@ void TurnRegularize()
 
     if( proven_turn_regularQ ) { return; }
     
-    PRNG_T engine;
-    
-    if( settings.randomize_virtual_edgesQ )
-    {
-        engine = InitializedRandomEngine<PRNG_T>();
-    }
-    
-    this->ClearCache();
-    
     // We need two reflex corners per virtual edge.
     const Int old_E_count = E_V.Dim(0);
     const Int E_count = A_C.Dim(0) + bend_count + bend_count/Int(2);
@@ -44,7 +35,7 @@ void TurnRegularize()
     
     for( Int de_ptr = 0; de_ptr < dE_count; ++de_ptr )
     {
-        TurnRegularizeRegion(engine,de_ptr);
+        TurnRegularizeRegion(de_ptr);
     }
     
     Resize(LastActiveEdge() + Int(1));
@@ -301,7 +292,7 @@ private:
  */
 
 template<bool debugQ = false, bool verboseQ = false>
-bool TurnRegularizeRegion( mref<PRNG_T> engine, const Int de_ptr )
+bool TurnRegularizeRegion( const Int de_ptr )
 {
     if( !DedgeActiveQ(de_ptr) || DedgeVisitedQ(de_ptr) ) { return false; }
 
@@ -432,7 +423,7 @@ bool TurnRegularizeRegion( mref<PRNG_T> engine, const Int de_ptr )
     std::uniform_int_distribution<int> dist (0,1);
     
     bool e_parallel_to_da_0 = settings.randomize_virtual_edgesQ
-                            ? dist(engine)
+                            ? dist(random_engine)
                             : true;
     
     // If e_parallel_to_da_0 == true, then s_0 = TRE_dir[a_0]; otherwise we turn by 90 degrees.
@@ -495,8 +486,8 @@ bool TurnRegularizeRegion( mref<PRNG_T> engine, const Int de_ptr )
         }
     }
     
-    bool de_0_split = TurnRegularizeRegion(engine,de_0);
-    bool de_1_split = TurnRegularizeRegion(engine,de_1);
+    bool de_0_split = TurnRegularizeRegion(de_0);
+    bool de_1_split = TurnRegularizeRegion(de_1);
 
     if constexpr ( debugQ )
     {

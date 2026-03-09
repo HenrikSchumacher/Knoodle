@@ -117,12 +117,9 @@ namespace Knoodle
      * Deduces the handedness of a crossing from the entries `X[0]`, `X[1]`, `X[2]`, `X[3]` alone. This only works if every link component has more than two arcs and if all arcs in each component are numbered consecutively.
      */
     
-    template<typename Int, typename Int_2>
+    template<IntQ Int, IntQ Int_2>
     CrossingState_T PDCodeHandedness( mptr<Int_2> X )
     {
-        static_assert( IntQ<Int>, "" );
-        static_assert( IntQ<Int_2>, "" );
-        
         const Int i = int_cast<Int>(X[0]);
         const Int j = int_cast<Int>(X[1]);
         const Int k = int_cast<Int>(X[2]);
@@ -217,11 +214,9 @@ namespace Knoodle
      * @param crossing_count The number of crossings in the pd code.
      */
     
-    template<typename Int, typename Int_2, typename Int_3>
+    template<IntQ Int, IntQ Int_2, IntQ Int_3>
     Tensor2<Int,Int> PDCode_AppendHandedness( mptr<Int_2> pd, const Int_3 crossing_count )
     {
-        static_assert( IntQ<Int>, "" );
-        
         const Int n = int_cast<Int>(crossing_count);
         
         Tensor2<Int,Int> pd_new( n, 5 );
@@ -238,3 +233,63 @@ namespace Knoodle
 
     
 } // namespace Knoodle
+
+
+
+
+namespace Tools
+{
+    template<> struct ToChars<Knoodle::CrossingState_T>
+    {
+        using U = std::underlying_type_t<Knoodle::CrossingState_T>;
+        
+        static constexpr bool implementedQ = true;
+        
+        static constexpr Size_T char_count = 11;
+        
+        ToCharResult operator()( char * & begin, char * end, const Knoodle::CrossingState_T & s ) const
+        {
+            switch( s )
+            {
+                case Knoodle::CrossingState_T::Inactive:
+                {
+                    return CharArray("Inactive").ToChars(begin,end);
+                }
+                case Knoodle::CrossingState_T::RightHanded:
+                {
+                    return CharArray("RightHanded").ToChars(begin,end);
+                }
+                case Knoodle::CrossingState_T::LeftHanded:
+                {
+                    return CharArray("LeftHanded").ToChars(begin,end);
+                }
+            }
+        }
+    };
+    
+    
+    template<> struct ToChars<Knoodle::ArcState_T>
+    {
+        using U = std::underlying_type_t<Knoodle::ArcState_T>;
+        
+        static constexpr bool implementedQ = true;
+        
+        static constexpr Size_T char_count = 8;
+        
+        ToCharResult operator()( char * & begin, char * end, const Knoodle::ArcState_T & s ) const
+        {
+            switch( s )
+            {
+                case Knoodle::ArcState_T::Inactive:
+                {
+                    return CharArray("Inactive").ToChars(begin,end);
+                }
+                case Knoodle::ArcState_T::Active:
+                {
+                    return CharArray("Active").ToChars(begin,end);
+                }
+            }
+        }
+    };
+    
+} // namespace Tools

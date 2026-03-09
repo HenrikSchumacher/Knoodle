@@ -3,7 +3,7 @@ public:
 std::string EdgeString( const Int e ) const
 {
     return "edge " + Tools::ToString(e) + " = "
-        + ArrayToString(E_V.data(e),{2})
+        + OutString(E_V.data(e), 2 )
         + " (" + (EdgeActiveQ(e) ? "Active" : "Inactive") + ")";
 }
 

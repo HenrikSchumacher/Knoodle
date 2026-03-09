@@ -2,13 +2,9 @@
 
 namespace Knoodle
 {
-    template<
-        Size_T AmbDim_,
-        typename Real_, typename Int_, typename LInt_
-    >
+    template<Size_T AmbDim_, FloatQ Real_, IntQ Int_, IntQ LInt_>
     class alignas( ObjectAlignment ) NaivePolygonFolder final
     {
-        static_assert(FloatQ<Real_>,"");
 //        static_assert(SignedIntQ<Int_>,"");
 //        static_assert(SignedIntQ<LInt_>,"");
         static_assert( AmbDim_ == 3, "Currently only implemented in dimension 3." );
@@ -33,7 +29,7 @@ namespace Knoodle
         using unif_int  = std::uniform_int_distribution<Int>;
         using unif_real = std::uniform_real_distribution<Real>;
         
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         NaivePolygonFolder(
             const ExtInt vertex_count_,
             const ExtReal hard_sphere_diam_
@@ -46,7 +42,7 @@ namespace Knoodle
             SetToCircle();
         }
         
-        template<typename ExtReal, typename ExtInt>
+        template<typename ExtReal, IntQ ExtInt>
         NaivePolygonFolder(
             cptr<ExtReal> vertex_coords_,
             const ExtInt vertex_count_,

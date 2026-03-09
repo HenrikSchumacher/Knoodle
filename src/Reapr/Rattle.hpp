@@ -10,33 +10,29 @@ double RattleTiming() const
     return rattle_timing;
 }
 
-template<bool verboseQ = false, typename ExtInt>
+template<bool verboseQ = false, IntQ ExtInt>
 std::vector<PD_T> Rattle( cref<PD_T> pd, const ExtInt target_iter )
 {
-    static_assert(IntQ<ExtInt>,"");
     std::vector<PD_T> input;
     input.push_back(pd); // Using copy constructor here!
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename ExtInt>
+template<bool verboseQ = false, IntQ ExtInt>
 std::vector<PD_T> Rattle( PD_T && pd, const ExtInt target_iter )
 {
-    static_assert(IntQ<ExtInt>,"");
     std::vector<PD_T> input;
     input.push_back(std::move(pd));
     
     return this->template Rattle<verboseQ>(input,target_iter);
 }
 
-template<bool verboseQ = false, typename ExtInt>
+template<bool verboseQ = false, IntQ ExtInt>
 std::vector<PD_T> Rattle(
     mref<std::vector<PD_T>> input, const ExtInt target_iter
 )
 {
-    static_assert(IntQ<ExtInt>,"");
-    
     TOOLS_PTIMER(timer,MethodName("Rattle"));
     
     TimeInterval rattle_timer;
@@ -213,7 +209,7 @@ std::vector<PD_T> Rattle(
         }
     }
     
-    Sort(
+    std::sort(
         &*output.begin(),
         &*output.end(),
         []( cref<PD_T> x, cref<PD_T> y )

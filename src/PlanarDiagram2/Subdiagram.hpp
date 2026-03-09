@@ -161,8 +161,13 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
         }
     );
     
-    PD_T pd = PD_T::FromPDCode<true>(&pd_code[0][0],c_counter);
-    pd.A_color.Read( &arc_colors[0] );
+    PD_T pd;
+    
+    if( c_counter > Int(0) )
+    {
+        pd = PD_T::FromPDCode<true>(&pd_code[0][0],c_counter);
+        pd.A_color.Read( &arc_colors[0] );
+    }
     
     return { pd, Tensor1<Int,Int>( &unlink_colors[0], int_cast<Int>(unlink_colors.size()) ) };
 }
@@ -176,14 +181,12 @@ std::pair<PD_T,Tensor1<Int,Int>> SubdiagramByColor( const Int color ) const
     );
 }
 
-template<bool check_arc_selectorQ = true, typename ExtInt, typename ExtInt2>
+template<bool check_arc_selectorQ = true, IntQ ExtInt, IntQ ExtInt2>
 std::pair<PD_T,Tensor1<Int,Int>> SubdiagramByColors(
     cptr<ExtInt> colors, ExtInt2 color_count
 ) const
 {
     TOOLS_PTIMER(timer,MethodName("SubdiagramByColors"));
-    static_assert(IntQ<ExtInt>,"");
-    static_assert(IntQ<ExtInt2>,"");
     
     SetContainer<Int> color_set;
     for( Int i = 0; i < color_count; ++i )

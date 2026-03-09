@@ -1,0 +1,212 @@
+#define TOOLS_AGGRESSIVE_INLINING
+
+#include "../Knoodle.hpp"
+
+using namespace Knoodle;
+using namespace Tools;
+
+using Int   = Size_T;
+using UInt  = UInt64;
+using Real  = Real64;
+//using BReal = Real64;
+using BReal = Real32;
+
+using T = Int;
+//using T = Real;
+
+
+using Dist_T = std::conditional_t<IntQ<T>, std::uniform_int_distribution<T>, std::uniform_real_distribution<T>>;
+
+
+int main()
+{
+    
+    const char prefix_0 [3] = "{\n";
+    const char infix_0  [3] = ",\n";
+    const char suffix_0 [3] = "\n}";
+    const char prefix_1 [3] = " {";
+    const char infix_1  [2] = ",";
+    const char suffix_1 [2] = "}";
+    
+//    [[maybe_unused]] CharArray a_prefix_0 ( prefix_0 );
+//    [[maybe_unused]] CharArray a_infix_0  ( infix_0 );
+//    [[maybe_unused]] CharArray a_suffix_0 ( suffix_0 );
+//    [[maybe_unused]] CharArray a_prefix_1 ( prefix_1 );
+//    [[maybe_unused]] CharArray a_infix_1  ( infix_1 );
+//    [[maybe_unused]] CharArray a_suffix_1 ( suffix_1 );
+    
+    const T min_value = IntQ<T> ? T(0) : T(-1);
+    const T max_value = IntQ<T> ? T(1000) : T(1);
+    Dist_T dist (min_value,max_value);
+    
+    PRNG_T random_engine = InitializedRandomEngine<PRNG_T>();
+
+    
+//    Size_T m = 240;
+    Size_T m = 2'000'000;
+//    Size_T n = std::uniform_int_distribution<Int>(Int(1),Int(12))(random_engine);
+//    Size_T n = 12;
+    Size_T n = 3;
+  
+    const Size_T size = OutputString::ArrayCharCount(
+        ToChars<T>(),
+        m, prefix_0, infix_0, suffix_0,
+        n, prefix_1, infix_1, suffix_1
+    );
+
+    TOOLS_DUMP( size );
+    
+    const Size_T a_size = OutputString::ArrayCharCount<T>(
+        m, prefix_0, infix_0, suffix_0,
+        n, prefix_1, infix_1, std::string(suffix_1)
+    );
+
+    TOOLS_DUMP( a_size );
+    
+    
+    std::filesystem::path path ("/Volumes/RamDisk");
+    
+    Size_T entry_size = ToChars<T>().char_count + CharCount(infix_1);
+    
+    Size_T row_size   = entry_size * n + CharCount(prefix_1) + CharCount(suffix_1) + CharCount(infix_0);
+    
+    Size_T full_size  = row_size * m + CharCount(prefix_0) + CharCount(suffix_0);
+
+    TOOLS_DUMP( full_size );
+    
+    Tensor2<T,Size_T> a(m,n);
+
+    for( Size_T i = 0; i < m; ++i )
+    {
+        for( Size_T j = 0; j < n; ++j )
+        {
+            a(i,j) = dist( random_engine );
+        }
+    }
+    
+    
+    {
+        std::ofstream stream ( path / "a.txt" );
+        
+        tic("a");
+//        for( Size_T i = 0; i < m; ++i )
+//        {
+//            for( Size_T j = 0; j < n; ++j )
+//            {
+//                stream << a(i,j) << ' ';
+//            }
+//        }
+        stream << MatrixString(
+//            a.data(), n, "{\n", " {", ",", "}", ",\n", "\n}", m, n,
+            a.data(), n,
+            prefix_0, prefix_1, infix_1, suffix_1, infix_0, suffix_0, m, n,
+            []( const T x) { return ToString(x); }
+        );
+        toc("a");
+        
+        
+        //        std::string_view prefix_0 ( header );
+        //        std::string_view infix_0  ( row_sep );
+        //        std::string_view suffix_0 ( footer );
+        //        std::string_view prefix_1 ( prefix );
+        //        std::string_view infix_1  ( infix );
+        //        std::string_view suffix_1 ( suffix );
+    }
+    
+    {
+        std::ofstream stream ( path / "b.txt" );
+        tic("b");
+        Tools::OutputString s ( full_size );
+        
+//        Tools::OutputString s ( 16 );
+
+        s.PutMatrixFunction(
+            [&a](const Size_T i, const Size_T j) -> T& { return a(i,j); },
+            m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1, false
+        );
+        stream << s.View();
+        toc("b");
+    }
+        
+    {
+        
+        std::ofstream stream ( path / "c.txt" );
+        tic("c");
+        Tools::OutputString s ( full_size );
+        
+        s.PutMatrix( a.data(), m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1, false );
+        stream << s.View();
+        toc("c");
+    }
+    
+    {
+        
+        std::ofstream stream ( path / "d.txt" );
+        tic("d");
+        Tools::OutputString s ( full_size );
+        
+        s.PutMatrix2( a.data(), m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1, false );
+        stream << s.View();
+        toc("d");
+    }
+    
+    {
+        
+        std::ofstream stream ( path / "e.txt" );
+        tic("e");
+        Tools::OutputString s (                               
+           OutputString::ArrayCharCount<T>(
+               m, prefix_0, infix_0, suffix_0,
+               n, prefix_1, infix_1, suffix_1
+           )
+        );
+        
+        
+        s.PutArray(
+            a.WriteAccess(), false,
+            m, prefix_0, infix_0, suffix_0,
+            n, prefix_1, infix_1, suffix_1
+        );
+        stream << s.View();
+        toc("e");
+    }
+    
+    
+    Tensor2<T,Size_T> b(m,n);
+    
+    
+    {
+        std::filesystem::path file (path / "e.txt");
+        // Open the stream to 'lock' the file.
+        std::ifstream f(file, std::ios::in | std::ios::binary);
+
+        // Obtain the size of the file.
+        const auto sz = std::filesystem::file_size(file);
+        // Create a buffer.
+        std::string input (sz, '\0');
+        // Read the whole file into the buffer.
+        f.read(input.data(), static_cast<std::streamsize>(sz));
+        
+        tic("Read e");
+        Tools::InString s (input);
+
+        s.TakeMatrixFunction(
+            [&b](const Size_T i, const Size_T j) -> T& { return b(i,j); },
+            m, n, prefix_0, infix_0, suffix_0, prefix_1, infix_1, suffix_1
+        );
+        toc("Read e");
+    }
+    
+    TOOLS_DUMP(b.MinMax());
+    
+//    b -= a;
+    for( Size_T i = 0; i < m; ++i )
+    {
+        for( Size_T j = 0; j < n; ++j )
+        {
+            b(i,j) -= a(i,j);
+        }
+    }
+    
+    TOOLS_DUMP(b.MinMax());
+}

@@ -73,7 +73,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 }
 
 
-template<typename T, typename ExtInt2, typename ExtInt3>
+template<SignedIntQ T, IntQ ExtInt2, IntQ ExtInt3>
 static PlanarDiagram FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt2 arc_count_,
@@ -82,8 +82,6 @@ static PlanarDiagram FromExtendedGaussCode(
     const bool    proven_minimalQ_ = false
 )
 {
-    static_assert( SignedIntQ<T>, "" );
-    
     if( arc_count_ <= ExtInt2(0) )
     {
         PlanarDiagram pd ( Int(0), int_cast<Int>(unlink_count_) );

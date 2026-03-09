@@ -37,7 +37,6 @@ namespace Knoodle
         using Int        = PD_T::Int;
         
         // TODO: Are signed integers really necessary here?
-        static_assert(IntQ<Int>,"");
 //        static_assert(SignedIntQ<Int>,"");
         
         using UInt       = UInt32;
@@ -84,7 +83,6 @@ namespace Knoodle
             bool saturate_regionsQ                  = true;
             bool saturate_exterior_regionQ          = true;
             bool filter_saturating_edgesQ           = true;
-            bool parallelizeQ                       = false;
             CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
             
             Int  x_grid_size                        = 20;
@@ -108,7 +106,7 @@ namespace Knoodle
                     + ", .saturate_regionsQ = " + ToString(args.saturate_regionsQ)
                     + ", .saturate_exterior_regionQ = " + ToString(args.saturate_exterior_regionQ)
                     + ", .filter_saturating_edgesQ = " + ToString(args.filter_saturating_edgesQ)
-                    + ", .parallelizeQ = " + ToString(args.parallelizeQ)
+//                    + ", .parallelizeQ = " + ToString(args.parallelizeQ)
                     + ", .compaction_method = " + ToString(args.compaction_method)
                     + ", .x_grid_size = " + ToString(args.x_grid_size)
                     + ", .y_grid_size = " + ToString(args.y_grid_size)
@@ -141,7 +139,7 @@ namespace Knoodle
         using COIN_LInt  = CoinBigIndex;
         using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
-#endif
+#endif // KNOODLE_USE_CLP
         
         static constexpr Int Uninitialized = PD_T::Uninitialized;
         static constexpr Int MaxValidIndex = PD_T::MaxValidIndex;
@@ -151,10 +149,7 @@ namespace Knoodle
             return PD_T::ValidIndexQ(i);
         }
         
-        // TODO: Maybe replace by pcg32?
-        // TODO: However, it is used rather seldomly. We prefer our graph drawer to be deterministic.
-        
-        using PRNG_T = std::mt19937;
+        using PRNG_T = Knoodle::PRNG_T;
         
 #include "OrthoDraw/Constants.hpp"
         
@@ -178,7 +173,7 @@ namespace Knoodle
         // TODO: move constructor
         // TODO: move assignment
 
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         OrthoDraw(
             cref<PD_T> pd,
             const ExtInt exterior_face_ = ExtInt(-1),
@@ -240,9 +235,9 @@ namespace Knoodle
         // Destructor (virtual because of inheritance)
         virtual ~OrthoDraw() override = default;
         // Copy constructor
-        OrthoDraw( const OrthoDraw & other ) = default;
+        OrthoDraw( const OrthoDraw & other ) = delete;              // Because of random_engine.
         // Copy assignment operator
-        OrthoDraw & operator=( const OrthoDraw & other ) = default;
+        OrthoDraw & operator=( const OrthoDraw & other ) = delete;  // Because of random_engine.
         // Move constructor
         OrthoDraw( OrthoDraw && other ) = default;
         // Move assignment operator
@@ -299,6 +294,8 @@ namespace Knoodle
         Settings_T settings;
         
         mutable bool proven_turn_regularQ = false;
+        
+        PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
         
     public:
         

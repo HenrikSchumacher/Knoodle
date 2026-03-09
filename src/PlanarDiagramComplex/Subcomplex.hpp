@@ -14,12 +14,12 @@ PDC_T Subcomplex( PDArcSelectorFun_T && pd_arc_selectQ ) const
         };
         
         auto [pd_new,unlink_colors] = pd.template Subdiagram<check_arc_selectorQ>(arc_selectQ);
-        
+
         pdc.Push(std::move(pd_new));
         
         for( Int color : unlink_colors )
         {
-            pdc.CreateUnlink(color);
+            pdc.Push(PD_T::Unlink(color));
         }
     }
     
@@ -31,7 +31,7 @@ PDC_T Subcomplex( PDArcSelectorFun_T && pd_arc_selectQ ) const
 template<bool check_arc_selectorQ = true>
 PDC_T SubcomplexByColor( const Int color ) const
 {
-    TOOLS_PTIMER(timer,MethodName("SubdiagramByColor"));
+    TOOLS_PTIMER(timer,MethodName("SubcomplexByColor"));
     return this->template Subcomplex<check_arc_selectorQ>(
         [color]( cref<PD_T> pd, const Int a ) -> bool
         {
@@ -40,15 +40,13 @@ PDC_T SubcomplexByColor( const Int color ) const
     );
 }
 
-template<bool check_arc_selectorQ = true, typename ExtInt, typename ExtInt2>
+template<bool check_arc_selectorQ = true, IntQ ExtInt, IntQ ExtInt2>
 PDC_T SubcomplexByColors(
     cptr<ExtInt> colors, ExtInt2 color_count
 ) const
 {
-    TOOLS_PTIMER(timer,MethodName("SubdiagramByColors"));
-    static_assert(IntQ<ExtInt>,"");
-    static_assert(IntQ<ExtInt2>,"");
-    
+    TOOLS_PTIMER(timer,MethodName("SubcomplexByColors"));
+
     SetContainer<Int> color_set;
     for( Int i = 0; i < color_count; ++i )
     {

@@ -11,10 +11,10 @@
 
 namespace Knoodle
 {
-    template<typename Int> class PlanarDiagramComplex;
+    template<IntQ Int> class PlanarDiagramComplex;
 
     template<
-        typename Int_,
+        IntQ Int_,
         UInt8 optimization_level_ = 4,
         bool mult_compQ_          = true,
         bool forwardQ_            = true

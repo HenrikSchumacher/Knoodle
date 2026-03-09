@@ -7,10 +7,7 @@
 
 namespace Knoodle
 {
-    template<typename Int_,
-        Size_T optimization_level_ = 4,
-        bool mult_compQ_ = true
-    >
+    template<IntQ Int_, Size_T optimization_level_ = 4, bool mult_compQ_ = true >
     class alignas( ObjectAlignment ) ArcSimplifier final
     {
     public:

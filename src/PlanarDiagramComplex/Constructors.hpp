@@ -1,6 +1,6 @@
 public:
 
-template<bool PDsignedQ, bool checksQ = true, typename ExtInt, typename ExtInt2>
+template<bool PDsignedQ, bool checksQ = true, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
@@ -13,7 +13,7 @@ static PDC_T FromPDCode(
     ));
 }
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<typename T, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt  crossing_count_,
@@ -26,7 +26,7 @@ static PDC_T FromMacLeodCode(
     );
 }
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<typename T, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt  arc_count_,
@@ -39,13 +39,13 @@ static PDC_T FromExtendedGaussCode(
     );
 }
 
-template<typename Real, typename ExtInt>
+template<typename Real, IntQ ExtInt>
 static PDC_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     return PDC_T( PD_T::FromKnotEmbedding(x,n) );
 }
 
-template<typename Real, typename ExtInt>
+template<typename Real, IntQ ExtInt>
 static PDC_T FromLinkEmbedding( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
 {
     return PDC_T( PD_T::FromLinkEmbedding(x,edges,n) );

@@ -20,16 +20,13 @@ namespace Knoodle
      */
     
     template<
-        typename Real_     = double,
-        typename Int_      = Int64,
+        FloatQ Real_       = double,
+        IntQ Int_          = Int64,
         typename Prng_T_   = Knoodle::PRNG_T,
         bool progressiveQ_ = true
     >
     class ActionAngleSampler
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real   = Real_;
@@ -438,17 +435,13 @@ namespace Knoodle
         }
         
         
-        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
         LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
             cptr<Real2> component_centers,
             cptr<Int2>  edge_counts,
             const Int2  component_count
         )
         {
-            static_assert(FloatQ<Real2>, "");
-            static_assert(IntQ<Int2>, "");
-            static_assert(FloatQ<BReal2>, "");
-            
             Tensor1<Int2,Int2> colors ( component_count );
             Tensor1<Int2,Int2> component_ptr( component_count + Int(1) );
             component_ptr[0] = 0;
@@ -490,7 +483,7 @@ namespace Knoodle
             return L;
         }
         
-        template<typename Real2 = Real, typename Int2 = Int, typename BReal2 = float>
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
         LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
             const Int component_count, const Int edge_count
         )

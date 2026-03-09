@@ -12,12 +12,9 @@ namespace Knoodle
     // TODO: Check against calling on trivial diagram.
     // TODO: Check against calling on multiple compenent diagram.
     
-    template<typename Scal_, typename Int_, typename LInt_>
+    template<typename Scal_, IntQ Int_, IntQ LInt_>
     class Alexander final
     {
-        static_assert(IntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
-        
     public:
         
         using Scal = Scal_;
@@ -603,8 +600,6 @@ namespace Knoodle
                     Real log_det = 0;
                                         
                     DenseAlexanderMatrix( pd, args[idx], LU_buffer.data() );
-                    
-//                    valprint( "dense array", ArrayToString( LU_buffer.data(), {n,n} ) );
                     
                     // Factorize dense Alexander matrix.
                     

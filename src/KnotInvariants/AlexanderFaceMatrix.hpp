@@ -4,7 +4,7 @@ namespace Knoodle
 {
     // TODO: Some care has to be taken in cases where not all crossings or arcs are active.
     
-    template<typename Scal_, typename Int_, typename LInt_>
+    template<typename Scal_, IntQ Int_, IntQ LInt_>
     class AlexanderFaceMatrix final
     {
     public:

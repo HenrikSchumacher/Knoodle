@@ -4,14 +4,10 @@
 
 namespace Knoodle
 {
-    template<typename Real_, typename Int_, typename CodeInt_>
+    template<FloatQ Real_, IntQ Int_, UnsignedIntQ CodeInt_>
     class PlantriSiever final
     {
     public:
-        
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(UnsignedIntQ<CodeInt_>,"");
         
         using Real      = Real_;
         using Int       = Int_;
@@ -122,11 +118,9 @@ namespace Knoodle
             return crossing_count;
         }
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         bool Reset( ExtInt crossing_count_ )
         {
-            static_assert(IntQ<ExtInt>);
-         
             if( std::cmp_greater(crossing_count_,max_crossing_count) )
             {
                 eprint(MethodName("Reset")+": Only works for 64 crossings or less. Aborting.");
@@ -147,10 +141,9 @@ namespace Knoodle
             return thread_count;
         }
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         void SetThreadCount( const ExtInt val )
         {
-            static_assert(IntQ<ExtInt>,"");
             thread_count = Max(Size_T(1),ToSize_T(val));
             
             thread_minimal_codes = std::vector<CodeSet_T>(thread_count);
@@ -160,10 +153,9 @@ namespace Knoodle
         
     private:
         
-        template<bool signed_pd_codeQ, typename ExtInt>
+        template<bool signed_pd_codeQ, IntQ ExtInt>
         PD_T FromPDCode( cptr<ExtInt> input, Size_T i = Size_T(0) )
         {
-            static_assert(IntQ<ExtInt>);
             if constexpr ( signed_pd_codeQ )
             {
                 const Int code_size = Size_T(5) * crossing_count;
@@ -184,11 +176,7 @@ namespace Knoodle
         
     public:
         
-        template<
-            bool signed_pd_codeQ,
-            typename ExtInt,  typename ExtInt2,
-            typename ExtInt3, typename ExtInt4, typename ExtInt5
-        >
+        template<bool signed_pd_codeQ, IntQ ExtInt,  IntQ ExtInt2, IntQ ExtInt3, IntQ ExtInt4, IntQ ExtInt5>
         void LoadPDCodes(
             mref<Reapr_T> reapr,
             ExtInt        rattle_iter_,
@@ -199,13 +187,7 @@ namespace Knoodle
         )
         {
             TOOLS_PTIMER(timer,MethodName("LoadPDCodes"));
-            
-            static_assert(IntQ<ExtInt>);
-            static_assert(IntQ<ExtInt2>);
-            static_assert(IntQ<ExtInt3>);
-            static_assert(IntQ<ExtInt4>);
-            static_assert(IntQ<ExtInt5>);
-            
+
             if( !Reset(crossing_count_) ) { return; }
             
             SetThreadCount(thread_count_);
@@ -353,11 +335,9 @@ namespace Knoodle
             return global_minimal_codes.size();
         }
 
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         void WriteProvenMinimalCodes( mptr<ExtInt> output ) const
         {
-            static_assert(IntQ<ExtInt>,"");
-            
             const Size_T output_code_size = OutputCodeSize();
             
             Size_T i = 0;
@@ -392,11 +372,9 @@ namespace Knoodle
             return global_other_codes.size();
         }
 
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         void WriteOtherCodes( mptr<ExtInt> output ) const
         {
-            static_assert(IntQ<ExtInt>,"");
-            
             const Size_T output_code_size = OutputCodeSize();
             
             Size_T i = 0;

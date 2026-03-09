@@ -293,7 +293,7 @@ public:
  *  @tparam checksQ Whether inputs shall be checked for correctness.
  */
 
-template<bool checksQ = true, typename ExtInt, typename ExtInt2>
+template<bool checksQ = true, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromSignedPDCode(
     cptr<ExtInt>  pd_codes,
     const ExtInt2 crossing_count,
@@ -322,7 +322,7 @@ static PD_T FromSignedPDCode(
  *  @tparam checksQ Whether inputs shall be checked for correctness.
  */
 
-template<bool checksQ = true, typename ExtInt, typename ExtInt2>
+template<bool checksQ = true, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromUnsignedPDCode(
     cptr<ExtInt>  pd_codes,
     const ExtInt2 crossing_count,
@@ -432,7 +432,7 @@ private:
 
 // TODO: Color information.
 
-template<bool PDsignedQ, bool checksQ = true, typename ExtInt, typename ExtInt2>
+template<bool PDsignedQ, bool checksQ = true, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromPDCode(
     cptr<ExtInt> pd_codes_,
     const ExtInt2 crossing_count_,
@@ -441,9 +441,6 @@ static PD_T FromPDCode(
 )
 {
     // needs to know all member variables
-    
-    static_assert( IntQ<ExtInt>, "" );
-    static_assert( IntQ<ExtInt2>, "" );
     
     std::string tag = MethodName("FromPDCode") + "<" + ToString(PDsignedQ) + "," + ToString(checksQ) + ">";
 
@@ -480,14 +477,14 @@ static PD_T FromPDCode(
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
             eprint(tag + ": There is a PD code entry with negative entries. Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
+            valprint("Code of crossing " + ToString(c), OutString(&X[0],d) );
             return InvalidDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
             eprint(tag + ": There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c),ArrayToString(&X[0],{d}) );
+            valprint("Code of crossing " + ToString(c), OutString(&X[0],d) );
             return InvalidDiagram();
         }
         
@@ -599,7 +596,7 @@ static PD_T FromPDCode(
             {
                 eprint(tag + ": Input PD code is invalid because crossing " + ToString(c) + " has less than two incoming arcs.");
                 
-                valprint("crossing " + ToString(c), ArrayToString( pd.C_arcs.data(c), {2,2}) );
+                valprint("crossing " + ToString(c), OutString( pd.C_arcs.data(c), 2, 2 ) );
                 
                 all_crossings_initializedQ = false;
             }
@@ -608,7 +605,7 @@ static PD_T FromPDCode(
             {
                 eprint(tag + ": Input PD code is invalid because crossing " + ToString(c) + " has less than two outgoing arcs.");
                 
-                valprint("crossing " + ToString(c), ArrayToString( pd.C_arcs.data(c), {2,2}) );
+                valprint("crossing " + ToString(c), OutString( pd.C_arcs.data(c), 2, 2 ) );
                 
                 all_crossings_initializedQ = false;
             }
@@ -622,7 +619,7 @@ static PD_T FromPDCode(
             {
                 eprint(tag + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict."));
                 
-                valprint("arc " + ToString(a), ArrayToString( pd.A_cross.data(a), {2}) );
+                valprint("arc " + ToString(a), OutString( pd.A_cross.data(a), 2 ) );
                 
                 all_arcs_initializedQ = false;
             }
@@ -631,7 +628,7 @@ static PD_T FromPDCode(
             {
                 eprint(tag + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
                 
-                valprint("arc " + ToString(a), ArrayToString( pd.A_cross.data(a), {2}) );
+                valprint("arc " + ToString(a), OutString( pd.A_cross.data(a), 2 ) );
                 
                 all_arcs_initializedQ = false;
             }

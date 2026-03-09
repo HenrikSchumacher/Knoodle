@@ -3,7 +3,7 @@
 namespace Knoodle
 {
 
-    template<typename Real_ = double, typename Int_ = Int64>
+    template<FloatQ Real_ = double, IntQ Int_ = Int64>
     struct Intersection
     {
         using Real   = Real_;

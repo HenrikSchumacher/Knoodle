@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    template<int AmbDim_, typename Real_, typename Int_>
+    template<int AmbDim_, FloatQ Real_, IntQ Int_>
     class ClangAffineTransform final
     {
         static_assert(FloatQ<Real_>,"");
@@ -16,8 +16,8 @@ namespace Knoodle
         static constexpr Int AmbDim  = AmbDim_;
         
         using Flag_T   = AffineTransformFlag_T;
-        using Vector_T = ClangMatrix<AmbDim,1       ,Real,Int>;
-        using Matrix_T = ClangMatrix<AmbDim,AmbDim  ,Real,Int>;
+        using Vector_T = ClangMatrix<AmbDim,1     ,Real,Int>;
+        using Matrix_T = ClangMatrix<AmbDim,AmbDim,Real,Int>;
        
         static constexpr Flag_T Id    = Flag_T::Id;
         static constexpr Flag_T NonId = Flag_T::NonId;

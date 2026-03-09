@@ -31,12 +31,9 @@ static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
 /*! @brief Construction from coordinates.
  */
 
-template<typename Real, typename ExtInt>
+template<FloatQ Real, IntQ ExtInt>
 static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
-    static_assert(FloatQ<Real>,"");
-    static_assert(IntQ<ExtInt>,"");
-    
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
 
     Knot_2D<Real,Int,Real> L ( n );
@@ -106,16 +103,13 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
 /*! @brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
  */
 
-template<typename Real, typename ExtInt>
+template<FloatQ Real, IntQ ExtInt>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,
     cptr<ExtInt> edges,
     const ExtInt n
 )
 {
-    static_assert(FloatQ<Real>,"");
-    static_assert(IntQ<ExtInt>,"");
-    
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+")");
 
     using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;

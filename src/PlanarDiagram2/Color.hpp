@@ -149,12 +149,9 @@ static Tensor2<Int,Int> ColorCountsToTensor2( cref<ColorCounts_T> counts )
     return a;
 }
 
-template<typename ExtInt,typename ExtInt2>
+template<IntQ ExtInt,IntQ ExtInt2>
 static ColorCounts_T ArrayToColorCounts( cptr<ExtInt> a, ExtInt2 color_count )
 {
-    static_assert(IntQ<ExtInt>, "");
-    static_assert(IntQ<ExtInt2>, "");
-    
     ColorCounts_T counts;
     
     for( ExtInt2 i = 0; i < color_count; ++i )

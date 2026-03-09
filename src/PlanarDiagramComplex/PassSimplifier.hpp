@@ -19,7 +19,7 @@ namespace Knoodle
         }
     }
     
-    template<typename Int_>
+    template<IntQ Int_>
     class alignas( ObjectAlignment ) PassSimplifier final
     {
     public:

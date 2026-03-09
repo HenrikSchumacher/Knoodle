@@ -156,7 +156,7 @@ Size_T MacLeodComparisonCount()
     return this->GetCache<Size_T>("MacLeodComparisonCount");
 }
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromLongMacLeodCode(
     cptr<T>       code,
     const ExtInt  arc_count_,
@@ -170,10 +170,6 @@ static PD_T FromLongMacLeodCode(
         + "<" + TypeName<T>
         + "," + TypeName<ExtInt>
         + ">");
-    
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
-    static_assert(IntQ<ExtInt2>,"");
     
     // TODO: We should check whether 2 * arc_count_ fits into Int.
 
@@ -288,12 +284,10 @@ static PD_T FromLongMacLeodCode(
     return pd;
 }
 
-template<typename T, typename ExtInt, typename ExtInt2>
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromLongMacLeodCode(
     cref<Tensor1<T,ExtInt>> code, const ExtInt2 color, const bool proven_minimalQ_ = false
 )
 {
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
     return FromLongMacLeodCode( code.data(), code.Size(), color, proven_minimalQ_ );
 }

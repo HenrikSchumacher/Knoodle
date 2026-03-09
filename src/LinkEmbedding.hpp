@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     // TODO: Add color information!
-    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = float>
+    template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = float>
     class alignas( ObjectAlignment ) LinkEmbedding : public Link<Int_>
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
@@ -15,9 +15,6 @@ namespace Knoodle
         // TODO: Write GeomView .vect files.
         
         // TODO: Add value semantics.
-        
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
         
     public:
         
@@ -47,13 +44,13 @@ namespace Knoodle
         
         using Matrix3x3_T = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         
-        template<typename Int>
+        template<IntQ Int>
         friend class PlanarDiagram;
         
-        template<typename Int>
+        template<IntQ Int>
         friend class PlanarDiagram2;
         
-        template<typename Real, typename Int, typename LInt, typename BReal>
+        template<FloatQ Real, IntQ Int, IntQ LInt, FloatQ BReal>
         friend class PolyFold;
         
     protected:
@@ -182,8 +179,8 @@ namespace Knoodle
 #include "LinkEmbedding/Helpers.hpp"
 #include "LinkEmbedding/BoundingBoxes.hpp"
 #include "LinkEmbedding/FindIntersections.hpp"
-//#include "LinkEmbedding/Cobars.hpp"
-//#include "LinkEmbedding/Paam.hpp"
+#include "LinkEmbedding/WriteToFile.hpp"
+#include "LinkEmbedding/ReadFromFile.hpp"
 
     public:
         
@@ -448,134 +445,6 @@ namespace Knoodle
             
             T.template ComputeBoundingBoxes<2,3>( edge_coords.data(), box_coords.data() );
             bounding_boxes_computedQ = true;
-        }
-        
-        template<typename ToStringFun_T>
-        bool WriteToFile(
-            cref<std::filesystem::path> path, const bool colorQ, ToStringFun_T && to_string
-        ) const
-        {
-            std::ofstream stream;
-
-            stream.open(path, std::ofstream::out );
-
-            if( !stream )
-            {
-                eprint(MethodName("WriteToFile") + ": Could not open file. Aborting.");
-                return false;
-            }
-            
-            if( component_ptr.Dim(0) <= Int(1) )
-            {
-                eprint(MethodName("WriteToFile") + ": Diagram is invalid. Aborting.");
-                return false;
-            };
-            
-            std::string s;
-
-            const Int comp_count = component_ptr.Dim(0) - 1;
-
-            Int v = 0;
-            
-            for( Int lc = 0; lc < component_count; ++lc )
-            {
-                const Int i_begin = component_ptr[lc    ];
-                const Int i_end   = component_ptr[lc + 1];
-                
-                if( i_end <= i_begin ) { continue; }
-                
-                if ( colorQ )
-                {
-                    s+= "color " + ToString(component_color[lc]);
-                }
-                
-                // i == i_begin
-                {
-                    s += to_string(edge_coords(v,0,0));
-                    s += " ";
-                    s += to_string(edge_coords(v,0,1));
-                    s += " ";
-                    s += to_string(edge_coords(v,0,2));
-                    ++v;
-                }
-                for ( Int i = i_begin + 1; i < i_end; i++)
-                {
-                    s += "\n";
-                    s += to_string(edge_coords(v,0,0));
-                    s += " ";
-                    s += to_string(edge_coords(v,0,1));
-                    s += " ";
-                    s += to_string(edge_coords(v,0,2));
-                    ++v;
-                }
-                
-                if( (lc + 1) != comp_count ) { s += "\n"; }
-            }
-
-            stream << s;
-            
-            return true;
-        }
-        
-        bool WriteToFile( cref<std::filesystem::path> path, const bool colorQ = false ) const
-        {
-            return WriteToFile(path, colorQ, []( const Real x ) { return ToStringFPGeneral(x); });
-        }
-        
-        // TODO: Check and read color.
-        static LinkEmbedding_T ReadFromFile( cref<std::filesystem::path> path )
-        {
-            std::ifstream stream ( path );
-            
-            if( !stream ) { return LinkEmbedding_T(); }
-            
-            Int counter = 0;
-            std::vector<Real> v_coordinates;
-            std::vector<Int> component_ptr_agg;
-            component_ptr_agg.push_back(Int(0));
-            
-            std::string line;
-            std::string token;
-            
-            bool failedQ = false;
-            
-            while( std::getline(stream,line) )
-            {
-                if( line[0] == '\n' )
-                {
-                    component_ptr_agg.push_back(counter);
-                    continue;
-                }
-                
-                std::stringstream s (line);
-
-                if( !(s >> token) ) { failedQ = true; break; }
-                v_coordinates.push_back(std::stod(token));
-                if( !(s >> std::ws) ) { failedQ = true; break; }
-                
-                if( !(s >> token) ) { failedQ = true; break; }
-                v_coordinates.push_back(std::stod(token));
-                if( !(s >> std::ws) ) { failedQ = true; break; }
-                
-                if( !(s >> token) ) { failedQ = true; break; }
-                v_coordinates.push_back(std::stod(token));
-//                if( !(s >> std::ws) ) { failedQ = true; break; }
-
-                ++counter;
-            }
-            
-            if( failedQ ) { return LinkEmbedding_T(); }
-            
-            component_ptr_agg.push_back(counter);
-            
-            LinkEmbedding_T link (
-                Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
-                iota<Int,Int>(component_ptr_agg.size()-Size_T(1))
-            );
-            
-            link.ReadVertexCoordinates(&v_coordinates[0]);
-            
-            return link;
         }
         
     private:

@@ -10,7 +10,7 @@ public:
 
 // TODO: I have to filter out inactive crossings and inactive arcs!
 
-template<typename ExtInt2>
+template<IntQ ExtInt2>
 Tensor1<Turn_T,Int> Bends_CLP(
     cref<PD_T> pd,
     const ExtInt2 ext_region = -1

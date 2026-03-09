@@ -147,10 +147,8 @@ void RandomizeBends(
 )
 {
     TOOLS_PTIMER(timer,ClassName()+"::RandomizeBends");
-
-    PRNG_T random_engine = InitializedRandomEngine<PRNG_T>();
     
-    RandomizeBends_impl(pd,bends,iter_count,random_engine);
+    RandomizeBends_impl(pd,bends,iter_count);
 }
 
 private:
@@ -158,8 +156,7 @@ private:
 void RandomizeBends_impl(
     cref<PD_T> pd,
     mref<Tensor1<Turn_T,Int>> bends,
-    int iter_count,
-    mref<PRNG_T> random_engine
+    int iter_count
 )
 {
     using CrossingMatrix_T = PD_T::C_Arcs_T;

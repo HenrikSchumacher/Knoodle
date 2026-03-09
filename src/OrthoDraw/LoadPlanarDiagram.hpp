@@ -191,9 +191,6 @@ void LoadPlanarDiagram(
             }
         }
     );
-    
-//    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
-//    TOOLS_LOGDUMP(pd.CrossingStates())
 
     V_dE   = VertexContainer_T      ( V_count, Uninitialized );
     E_V    = EdgeContainer_T        ( E_count, Uninitialized );

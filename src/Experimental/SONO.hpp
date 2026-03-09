@@ -5,7 +5,7 @@ namespace Knoodle
     // Very rough port of Keenan Crane's experimental implementation.
     // Many magic numbers for which I do not know how to adjust them.
     
-    template<typename Real_ = double, typename Int_ = std::int64_t>
+    template<FloatQ Real_ = double, IntQ Int_ = std::int64_t>
     class SONO final
     {
         

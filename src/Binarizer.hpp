@@ -18,7 +18,7 @@ namespace Knoodle
         static constexpr UInt64 digit_mask = base - UInt64(1);
         
         // Using the encoding of Base64 without padding.
-        static constexpr Char to_char [64] = {
+        static constexpr Char to_chars [64] = {
             'A','B','C','D','E','F','G','H',
             'I','J','K','L','M','N','O','P',
             'Q','R','S','T','U','V','W','X',
@@ -55,9 +55,9 @@ namespace Knoodle
             return from_char[static_cast<UInt8>(c)];
         }
         
-        static constexpr Char ToChar( const Digit k )
+        static constexpr Char ToChars( const Digit k )
         {
-            return to_char[k];
+            return to_chars[k];
         }
         
 //        static constexpr Digit FromChar( const Char c )
@@ -65,7 +65,7 @@ namespace Knoodle
 //            return static_cast<Digit>(c);
 //        }
 //        
-//        static constexpr Char ToChar( const Digit k )
+//        static constexpr Char ToChars( const Digit k )
 //        {
 //            return static_cast<Char>(k);
 //        }
@@ -89,16 +89,13 @@ namespace Knoodle
         }
         
         
-        template<typename UInt, typename Int>
+        template<UnsignedIntQ UInt, IntQ Int>
         static void WriteCharSequence(
             cptr<UInt> a, const Int int_count, const Size_T digit_count, mptr<Char> s
         )
         {
             // Only grabing the lower bits of entries in a.
             // Hence, negative number are not handled correctly!!
-            
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
             
             for( Int i = 0; i < int_count; ++i )
             {
@@ -107,7 +104,7 @@ namespace Knoodle
                 for( Size_T j = 0; j < digit_count; ++j )
                 {
                     Digit d = static_cast<Digit>(k & digit_mask);
-                    Char  c = ToChar(d);
+                    Char  c = ToChars(d);
                     
                     s[digit_count * i + j] = c;
                     
@@ -116,15 +113,11 @@ namespace Knoodle
             }
         }
         
-        template<typename UInt, typename Int, typename Int2>
+        template<UnsignedIntQ UInt, IntQ Int, IntQ Int2>
         static void ReadCharSequence(
             mptr<UInt> a, const Int int_count, const Int2 digit_count, cptr<Char> s
         )
         {
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
-            static_assert(IntQ<Int2>);
-             
             for( Int i = 0; i < int_count; ++i )
             {
                 UInt64 k = 0;
@@ -142,16 +135,13 @@ namespace Knoodle
             }
         }
         
-        template<typename UInt, typename Int>
+        template<UnsignedIntQ UInt, IntQ Int>
         static Tensor1<Char,Int> ToCharSequence(
             cptr<UInt> a, const Int int_count, const Size_T digit_count
         )
         {
             // Only grabing the lower bits of entries in a.
             // Hence, negative number are not handled correctly!!
-            
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
             
             Tensor1<Char,Int> s ( int_count * digit_count );
             
@@ -160,17 +150,14 @@ namespace Knoodle
             return s;
         }
         
-        template<typename UInt, typename Int>
+        template<UnsignedIntQ UInt, IntQ Int>
         static std::string ToString(
             cptr<UInt> a, const Int int_count, const Size_T digit_count
         )
         {
             // Only grabbing the lower bits of entries in a.
             // Hence, negative number are not handled correctly!!
-            
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
-            
+  
             std::string s ( int_count * digit_count, 'A' );
             
             WriteCharSequence( a, int_count, digit_count, &s[0] );
@@ -178,28 +165,11 @@ namespace Knoodle
             return s;
         }
         
-//        template<typename UInt, typename Int>
-//        static std::string ToString( cref<Tensor1<UInt,Int>> a )
-//        {
-//            static_assert(UnsignedIntQ<UInt>);
-//            static_assert(IntQ<Int>);
-//            
-//            Size_T int_count   = ToSize_T(a.Size());
-//            Size_T digit_count = DigitCountFromMaxNumber(a.Max());
-//            
-//            return ToString( a.data(), int_count, digit_count );
-//        }
-        
-        
-        template<typename UInt, typename Int, typename Int2>
+        template<UnsignedIntQ UInt, IntQ Int, IntQ Int2>
         static Tensor1<UInt,Int> FromCharSequence(
             cptr<Char> s, const Int int_count, const Int2 digit_count
         )
         {
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
-            static_assert(IntQ<Int2>);
-            
             Tensor1<UInt,Int> a ( int_count );
             
             ReadCharSequence( &a[0], int_count, digit_count, &s[0] );
@@ -207,37 +177,15 @@ namespace Knoodle
             return a;
         }
         
-//        template<typename UInt, typename Int>
-//        static Tensor1<UInt,Int> FromCharSequence( cref<Tensor1<Char,Int>> s )
-//        {
-//            const Size_T code_length = ToSize_T(s.Size());
-//            const Size_T d = DigitCountFromCodeLength(code_length);
-//            
-//            return Binarizer::template FromCharSequence<UInt>(
-//                &s[0], code_length/d, d
-//            );
-//        }
-        
-        template<typename UInt, typename Int>
+        template<UnsignedIntQ UInt, IntQ Int>
         static Tensor1<UInt,Size_T> FromString(
             cref<std::string> s, const Int digit_count
         )
         {
-            static_assert(UnsignedIntQ<UInt>);
-            static_assert(IntQ<Int>);
-            
             const Size_T d = ToSize_T(digit_count);
             
             return Binarizer::template FromCharSequence<UInt>( &s[0], s.size()/d, d );
         }
-        
-//        template<typename UInt>
-//        static Tensor1<UInt,Size_T> FromString( cref<std::string> s )
-//        {
-//            return Binarizer::template FromString<UInt>(
-//                &s[0], DigitCountFromCodeLength(s.size())
-//            );
-//        }
 
     }; // class Binarizer
     

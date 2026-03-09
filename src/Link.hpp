@@ -2,12 +2,10 @@
 
 namespace Knoodle
 {
-    template<typename Int_ = Int64>
+    template<IntQ Int_ = Int64>
     class alignas( ObjectAlignment ) Link
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
-        
-        static_assert(IntQ<Int_>,"");
 
     public:
         
@@ -210,8 +208,7 @@ namespace Knoodle
          *  @param edges_ Integer array of length `2 * EdgeCount()`.
          */
         
-        // TODO: Debug this!
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         void ReadEdges( cptr<ExtInt> edges_, cptr<ExtInt> edge_colors_ )
         {
             static_assert(IntQ<ExtInt>,"");
@@ -294,7 +291,7 @@ namespace Knoodle
 //         */
 //        
 //        // TODO: Scrutinize this!
-//        template<typename ExtInt>
+//        template<IntQ ExtInt>
 //        void ReadEdges(
 //            cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_, cptr<ExtInt> edge_colors_
 //        )
@@ -412,8 +409,8 @@ namespace Knoodle
                             : Int(0);
         }
         
-        template<typename ExtInt>
-        void FinishPreparations( cref<ExtInt> edge_colors_ )
+        template<IntQ ExtInt>
+        void FinishPreparations( cptr<ExtInt> edge_colors_ )
         {
             TOOLS_PTIMER(timer,MethodName("FinishPreparations"));
             
@@ -640,7 +637,7 @@ namespace Knoodle
             return edges;
         }
         
-        template<typename Int>
+        template<IntQ Int>
         static void WriteCircleEdges(
             mptr<Int> e_ptr, const Int first_edge, const Int n
         )
@@ -660,7 +657,7 @@ namespace Knoodle
         }
         
         
-//        template<typename Int>
+//        template<IntQ Int>
 //        static EdgeContainer_T CircleEdges( const Int n )
 //        {
 //            EdgeContainer_T edges ( n );

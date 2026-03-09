@@ -16,7 +16,7 @@ PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
     return Permute(c_perm,a_perm);
 }
 
-template<typename ExtInt>
+template<IntQ ExtInt>
 PlanarDiagram Permute(
     mref<Permutation<ExtInt>> c_perm, mref<Permutation<ExtInt>> a_perm
 )  const

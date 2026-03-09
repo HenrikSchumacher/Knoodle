@@ -3,7 +3,7 @@
 namespace Knoodle
 {
 
-    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
+    template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
@@ -15,9 +15,6 @@ namespace Knoodle
         // TODO: Write GeomView .vect files.
         
         // TODO: Add value semantics.
-        
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
         
     public:
         
@@ -48,13 +45,13 @@ namespace Knoodle
         
         using Matrix3x3_T = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         
-        template<typename Int>
+        template<IntQ Int>
         friend class PlanarDiagram;
         
-        template<typename Int>
+        template<IntQ Int>
         friend class PlanarDiagram2;
         
-        template<typename Real, typename Int, typename LInt, typename BReal>
+        template<FloatQ Real, IntQ Int, IntQ LInt, FloatQ BReal>
         friend class PolyFold;
         
     protected:

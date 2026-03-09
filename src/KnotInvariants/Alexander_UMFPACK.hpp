@@ -10,11 +10,9 @@
 namespace Knoodle
 {
     
-    template<typename Scal_, typename Int_>
+    template<typename Scal_, IntQ Int_>
     class Alexander_UMFPACK final
     {
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Scal    = Scal_;
@@ -92,7 +90,7 @@ namespace Knoodle
         
     public:
 
-        template<typename ExtScal, typename ExtInt>
+        template<typename ExtScal, IntQ ExtInt>
         void Alexander(
             cref<PD_T> pd,
             ExtScal arg,
@@ -119,7 +117,7 @@ namespace Knoodle
             }
         }
         
-        template<typename ExtScal, typename ExtInt>
+        template<typename ExtScal, IntQ ExtInt>
         void Alexander(
             cref<PD_T>    pd,
             cptr<ExtScal> args,

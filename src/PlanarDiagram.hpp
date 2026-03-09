@@ -18,20 +18,19 @@
 
 namespace Knoodle
 {
-    template<typename Int_, Size_T optimization_level, bool mult_compQ_>
+    template<IntQ Int_, Size_T optimization_level, bool mult_compQ_>
     class ArcSimplifier;
     
-    template<typename Int_, bool mult_compQ_> class CrossingSimplifier;
+    template<IntQ Int_, bool mult_compQ_> class CrossingSimplifier;
     
-    template<typename Int_, bool mult_compQ_> class StrandSimplifier;
+    template<IntQ Int_, bool mult_compQ_> class StrandSimplifier;
 
     
     // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
-    template<typename Int_ = Int64>
+    template<IntQ Int_ = Int64>
     class PlanarDiagram final : public CachedObject<1,0,0,0>
     {
 //        static_assert(SignedIntQ<Int_>,"");
-        static_assert(IntQ<Int_>,"");
 
     public:
         
@@ -59,13 +58,13 @@ namespace Knoodle
 
         using PD_List_T                 = std::vector<PlanarDiagram>;
 
-        template<typename I, Size_T lvl, bool mult_compQ_>
+        template<IntQ I, Size_T lvl, bool mult_compQ_>
         friend class ArcSimplifier;
 
-        template<typename I, bool mult_compQ_>
+        template<IntQ I, bool mult_compQ_>
         friend class CrossingSimplifier;
 
-        template<typename I, bool mult_compQ_>
+        template<IntQ I, bool mult_compQ_>
         friend class StrandSimplifier;
             
         using HeadTail_T = bool;
@@ -163,7 +162,7 @@ namespace Knoodle
          *  Data has to be filled in manually. Only for internal use.
          */
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_ )
 //        : crossing_count     { int_cast<Int>(max_crossing_count_)          }
 //        , arc_count          { Int(2) * int_cast<Int>(max_crossing_count_) }
@@ -178,16 +177,14 @@ namespace Knoodle
         , A_cross            { max_arc_count,      Uninitialized             }
         , A_state            { max_arc_count,      ArcState_T::Inactive      }
         , A_scratch          { max_arc_count                                 }
-        {
-            static_assert(IntQ<ExtInt>,"");
-        }
+        {}
         
         
         /*! @brief This constructor is supposed to only allocate all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_, bool dummy )
         : crossing_count     { Int(0)                                       }
         , arc_count          { Int(0)                                       }
@@ -202,12 +199,11 @@ namespace Knoodle
         , A_scratch          { max_arc_count                                }
         {
             (void)dummy;
-            static_assert(IntQ<ExtInt>,"");
         }
 
     public:
         
-        template<typename ExtInt, typename ExtInt2, typename ExtInt3>
+        template<IntQ ExtInt, typename ExtInt2, typename ExtInt3>
         PlanarDiagram(
             cptr<ExtInt>  crossings,
             cptr<ExtInt2> crossing_states,
@@ -219,7 +215,6 @@ namespace Knoodle
         )
         :   PlanarDiagram( crossing_count_, unlink_count_, true )
         {
-            static_assert(IntQ<ExtInt>,"");
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
             
@@ -257,13 +252,10 @@ namespace Knoodle
          * Caution: This assumes that `Knot_2D::FindIntersections` has been called already!
          */
         
-        template<typename Real, typename BReal>
+        template<FloatQ Real, FloatQ BReal>
         explicit PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
-            static_assert(FloatQ<Real>,"");
-            static_assert(FloatQ<BReal>,"");
-            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -279,13 +271,10 @@ namespace Knoodle
          * Caution: This assumes that `Link_2D::FindIntersections` has been called already!
          */
         
-        template<typename Real, typename BReal>
+        template<FloatQ Real, FloatQ BReal>
         explicit PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
-            static_assert(FloatQ<Real>,"");
-            static_assert(FloatQ<BReal>,"");
-            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -299,12 +288,9 @@ namespace Knoodle
         /*! @brief Construction from coordinates.
          */
         
-        template<typename Real, typename ExtInt>
+        template<FloatQ Real, IntQ ExtInt>
         PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
-            static_assert(FloatQ<Real>,"");
-            static_assert(IntQ<ExtInt>,"");
-            
             Knot_2D<Real,Int,Real> L ( n );
 
             L.ReadVertexCoordinates ( x );
@@ -333,12 +319,9 @@ namespace Knoodle
             );
         }
         
-        template<typename Real, typename ExtInt>
+        template<FloatQ Real, IntQ ExtInt>
         PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
         {
-            static_assert(FloatQ<Real>,"");
-            static_assert(IntQ<ExtInt>,"");
-            
             using Link_T = Link_2D<Real,Int,Real>;
             
             Link_T L ( edges, n );

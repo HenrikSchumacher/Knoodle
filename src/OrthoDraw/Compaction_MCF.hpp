@@ -4,24 +4,27 @@ void ComputeVertexCoordinates_Compaction_MCF()
 {
     TOOLS_PTIMER(timer,MethodName("ComputeVertexCoordinates_Compaction_MCF"));
     
-    Tensor1<Int,Int> x;
-    Tensor1<Int,Int> y;
+    Tensor1<Int,Int> x = Compaction_MCF( Dv(), DvEdgeCosts() );
+    Tensor1<Int,Int> y = Compaction_MCF( Dh(), DhEdgeCosts() );
     
-    ParallelDo(
-        [&x,&y,this](const Int thread)
-        {
-            if( thread == Int(0) )
-            {
-                x = Compaction_MCF( Dv(), DvEdgeCosts() );
-            }
-            else if( thread == Int(1) )
-            {
-                y = Compaction_MCF( Dh(), DhEdgeCosts() );
-            }
-        },
-        Int(2),
-        (settings.parallelizeQ ? Int(2) : (Int(1)))
-    );
+//    Tensor1<Int,Int> x;
+//    Tensor1<Int,Int> y;
+//    
+//    ParallelDo(
+//        [&x,&y,this](const Int thread)
+//        {
+//            if( thread == Int(0) )
+//            {
+//                x = Compaction_MCF( Dv(), DvEdgeCosts() );
+//            }
+//            else if( thread == Int(1) )
+//            {
+//                y = Compaction_MCF( Dh(), DhEdgeCosts() );
+//            }
+//        },
+//        Int(2),
+//        (settings.parallelizeQ ? Int(2) : (Int(1)))
+//    );
     
     ComputeVertexCoordinates(x,y);
 }

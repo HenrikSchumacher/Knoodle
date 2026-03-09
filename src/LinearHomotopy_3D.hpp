@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Real_, typename Int_>
+    template<FloatQ Real_, IntQ Int_>
     class alignas( ObjectAlignment ) LinearHomotopy_3D final
     {
         

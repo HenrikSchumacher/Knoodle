@@ -42,7 +42,7 @@ namespace Knoodle
         using Base_T::UninitializedVertex;
         using Base_T::UninitializedEdge;
         
-        template<typename Int,bool nonbinQ>
+        template<IntQ Int, bool nonbinQ>
         using SignedMatrix_T = Base_T::template SignedMatrix_T<Int,nonbinQ>;
         
     protected:

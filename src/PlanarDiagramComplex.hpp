@@ -5,14 +5,13 @@ namespace Knoodle
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
     // TODO: ByteCount.
     
-    template<typename Real, typename Int, typename BReal> class Reapr2;
+    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr2;
     
     template<typename PD_T> class OrthoDraw;
     
-    template<typename Int_>
+    template<IntQ Int_>
     class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
-        static_assert(IntQ<Int_>,"");
 
     public:
 
@@ -189,6 +188,20 @@ namespace Knoodle
             }
             
             return pd_list[Size_T(i)];
+        }
+        
+        cref<PD_T> LastDiagram() const
+        {
+            if( !pd_list.empty() )
+            {
+                return pd_list.back();
+            }
+            else
+            {
+                eprint(MethodName("LastDiagram") + ": List of diagrams is empty. Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
         }
         
         void Compress()
@@ -522,7 +535,7 @@ namespace Knoodle
             swap( pd_list, pd_done );
             
             // Sort big diagrams in front.
-            Sort(
+            std::sort(
                 &pd_list[0],
                 &pd_list[pd_list.size()],
                 []( cref<PD_T> pd_0, cref<PD_T> pd_1 )

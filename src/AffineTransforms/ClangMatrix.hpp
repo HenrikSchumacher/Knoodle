@@ -2,12 +2,9 @@
 
 namespace Knoodle
 {
-    template<Size_T M_, Size_T N_, typename Real_, typename Int_>
+    template<Size_T M_, Size_T N_, FloatQ Real_, IntQ Int_>
     class ClangMatrix final
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real = Real_;
