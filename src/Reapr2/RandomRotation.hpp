@@ -1,13 +1,10 @@
 public:
 
 // This rotation must be orientation preserving.
-template<typename R = Real, typename I = Int>
+template<FloatQ R = Real, IntQ I = Int>
 Tiny::Matrix<3,3,R,I> RandomRotation()
 {
     TOOLS_MAKE_FP_FAST();
-    
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
     
     using L_Vector_T = Tiny::Vector<3,R,I>;
     using L_Matrix_T = Tiny::Matrix<3,3,R,I>;

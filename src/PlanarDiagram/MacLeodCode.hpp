@@ -10,7 +10,7 @@ void CheckMacLeodReturnType() const
     }
 }
 
-template<typename S, typename T = UInt>
+template<IntQ S, IntQ T = UInt>
 static void LongMacLeodCode_to_MacLeodCode(
     cptr<S> l_mac_leod, mptr<T> s_mac_leod, Int c_count
 )
@@ -19,10 +19,6 @@ static void LongMacLeodCode_to_MacLeodCode(
         + "<" + TypeName<S>
         + "," + TypeName<T>
         + ">");
-    
-    static_assert(IntQ<S>,"");
-    static_assert(IntQ<T>,"");
-    
     
     const T n = static_cast<T>(c_count);
     const T m = T(2) * n;
@@ -41,7 +37,7 @@ static void LongMacLeodCode_to_MacLeodCode(
     }
 }
 
-template<typename S, typename T = UInt>
+template<IntQ S, IntQ T = UInt>
 static void MacLeodCode_to_LongMacLeodCode(
     cptr<S> s_mac_leod, mptr<T> l_mac_leod, Int c_count
 )
@@ -50,9 +46,6 @@ static void MacLeodCode_to_LongMacLeodCode(
         + "<" + TypeName<S>
         + "," + TypeName<T>
         + ">");
-    
-    static_assert(IntQ<S>,"");
-    static_assert(IntQ<T>,"");
     
     const T n = static_cast<T>(c_count);
     const T m = T(2) * n;
@@ -88,12 +81,10 @@ static void MacLeodCode_to_LongMacLeodCode(
 
 
 
-template<typename T = UInt>
+template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
     TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
-    
-    static_assert(IntQ<T>,"");
     
     if( LinkComponentCount() > Int(1) )
     {
@@ -115,12 +106,10 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
     LongMacLeodCode_to_MacLeodCode( l_mac_leod.data(), s_mac_leod, crossing_count );
 }
 
-template<typename T = UInt>
+template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+">");
-    
-    static_assert(IntQ<T>,"");
     
     if( LinkComponentCount() > Int(1) )
     {
@@ -185,8 +174,6 @@ static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 //template<IntQ Int>
 //static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
 //{
-//    static_assert(IntQ<Int>);
-//
 //    Size_T L   = ToSize_T(2) * ToSize_T(string_length);
 //    Size_T d   = 1;
 //    Size_T pow = 8;

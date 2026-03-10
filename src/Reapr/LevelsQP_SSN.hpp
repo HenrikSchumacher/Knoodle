@@ -174,13 +174,9 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
 
 public:
 
-template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
+Sparse::MatrixCSR<R,I,J,Sequential> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_Matrix")+"<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
     
     const I n = int_cast<I>(pd.CrossingCount());
@@ -209,7 +205,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
             wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
-            return Sparse::MatrixCSR<R,I,J>();
+            return Sparse::MatrixCSR<R,I,J,Sequential>();
         }
     }
     
@@ -220,27 +216,23 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         agg.Push( i, i, Scalar::One<R> );
     }
     
-    Sparse::MatrixCSR<R,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
+    Sparse::MatrixCSR<R,I,J,Sequential> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
     
     return L;
 }
 
 // TODO: Test this!
 
-template<typename R = Real, typename I = Int, typename J = Int>
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
 void LevelsQP_SSN_WriteMatrixModifiedValues(
     cref<PD_T> pd,
-    mref<Sparse::MatrixCSR<R,I,J>> L,
+    mref<Sparse::MatrixCSR<R,I,J,Sequential>> L,
     cptr<R> y,
     mptr<R> mod_vals
 ) const
 {
     TOOLS_MAKE_FP_FAST();
-    
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
+
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_WriteMatrixModifiedValues")
         + "<" + TypeName<R>
         + "," + TypeName<I>

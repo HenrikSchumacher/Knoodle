@@ -29,9 +29,9 @@ namespace Knoodle
         
         using Multiplier_T = ProductAccumulator<Scal,E_T>;
         
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
-        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
 
         using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;

@@ -22,12 +22,10 @@ public:
  *
  */
     
-template<typename T = Int>
+template<IntQ T = Int>
 Tensor2<T,Int> PDCode()
 {
     TOOLS_PTIMER(timer,ClassName()+"::PDCode<"+TypeName<T>+">");
-    
-    static_assert( IntQ<T>, "" );
     
     Tensor2<T,Int> pd_code;
     
@@ -51,11 +49,9 @@ Tensor2<T,Int> PDCode()
     return pd_code;
 }
 
-template<typename T>
+template<IntQ T>
 void WritePDCode( mptr<T> pd_code )
 {
-    static_assert( IntQ<T>, "" );
-    
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
         + ">");
@@ -348,10 +344,6 @@ static PlanarDiagram FromPDCode(
     PlanarDiagram pd (int_cast<Int>(crossing_count_),int_cast<Int>(unlink_count_));
     
     constexpr Int d = PDsignedQ ? 5 : 4;
-    
-    static_assert( IntQ<ExtInt>, "" );
-    static_assert( IntQ<ExtInt2>, "" );
-    static_assert( IntQ<ExtInt3>, "" );
     
     if( crossing_count_ <= ExtInt2(0) )
     {

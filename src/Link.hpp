@@ -72,7 +72,7 @@ namespace Knoodle
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
-        template<typename I_0 >
+        template<IntQ I_0 >
         explicit Link( const I_0 edge_count_ )
         :   edge_count      { int_cast<Int>(edge_count_) }
         ,   edges           { edge_count            }
@@ -86,8 +86,6 @@ namespace Knoodle
         ,   preorderedQ     { true                  }
         {
 //            TOOLS_PTIMER(timer,ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
-            
-            static_assert(IntQ<I_0>,"");
             
             const Int n = edge_count;
             
@@ -158,13 +156,10 @@ namespace Knoodle
          *
          */
         
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         Link( cptr<I_0> edges_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
         :   Link( int_cast<Int>(edge_count_), true )
         {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-            
             ReadEdges( edges_, edge_colors_ );
         }
         
@@ -177,13 +172,10 @@ namespace Knoodle
 //         *  @param edge_count_ Number of edges.
 //         */
 //        
-//        template<typename I_0, typename I_1>
+//        template<IntQ I_0, IntQ I_1>
 //        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
 //        :   Link( int_cast<Int>(edge_count_), true )
 //        {
-//            static_assert(IntQ<I_0>,"");
-//            static_assert(IntQ<I_1>,"");
-//            
 //            ReadEdges( edge_tails_, edge_heads_, edge_colors_ );
 //        }
 
@@ -211,8 +203,6 @@ namespace Knoodle
         template<IntQ ExtInt>
         void ReadEdges( cptr<ExtInt> edges_, cptr<ExtInt> edge_colors_ )
         {
-            static_assert(IntQ<ExtInt>,"");
-            
             [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
             
             TOOLS_PTIMER(timer,tag());
@@ -296,8 +286,6 @@ namespace Knoodle
 //            cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_, cptr<ExtInt> edge_colors_
 //        )
 //        {
-//            static_assert(IntQ<ExtInt>,"");
-//            
 //            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
 //            
 //            TOOLS_PTIMER(timer,tag());

@@ -7,15 +7,16 @@ namespace Knoodle
     template<
         typename VInt_   = Int64,
         typename EInt_   = VInt_,
-        typename Sign_T_ = Int8
+        typename Sign_T_ = Int8,
+        Parallel_T parQ_ = Sequential
     >
-    class alignas( ObjectAlignment ) MultiDiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
+    class alignas( ObjectAlignment ) MultiDiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_,parQ_>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
 
     public:
         
-        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_>;
+        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_,parQ_>;
         using VInt              = Base_T::VInt;
         using EInt              = Base_T::EInt;
         using Sign_T            = Base_T::Sign_T;
@@ -24,6 +25,8 @@ namespace Knoodle
         using EdgeContainer_T   = Base_T::EdgeContainer_T;
         using InOut             = Base_T::InOut;
         using IncidenceMatrix_T = Base_T::IncidenceMatrix_T;
+        
+        using Base_T::parQ;
         
         using VV_Vector_T       = Base_T::VV_Vector_T;
         using EE_Vector_T       = Base_T::EE_Vector_T;
@@ -128,13 +131,13 @@ namespace Knoodle
     public:
         
         template<typename Scal = ToSigned<EInt>>
-        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> AdjacencyMatrix() const
         {
             return this->template DirectedAdjacencyMatrix<Scal>();
         }
         
         template<typename Scal = ToSigned<EInt>>
-        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> Laplacian() const
         {
             const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";
             
@@ -143,7 +146,7 @@ namespace Knoodle
                 this->SetCache(tag,this->template CreateLaplacian<false,Scal>());
             }
             
-            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>>>(tag);
         }
         
         

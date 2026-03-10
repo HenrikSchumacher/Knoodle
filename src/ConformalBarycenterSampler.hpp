@@ -394,10 +394,6 @@ namespace Knoodle
             const bool  quotient_space_weightQ = true
         )
         {
-            static_assert(FloatQ<Real2>, "");
-            static_assert(IntQ<Int2>, "");
-            static_assert(FloatQ<BReal2>, "");
-            
             Tensor1<Int2,Int2> colors ( component_count );
             Tensor1<Int2,Int2> component_ptr( component_count + Int(1) );
             component_ptr[0] = 0;

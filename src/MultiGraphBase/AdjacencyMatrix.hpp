@@ -1,7 +1,7 @@
 template<
     bool undirQ, typename Scal = ToSigned<EInt>, typename ExtScal = Scal
 >
-Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
+Sparse::MatrixCSR<Scal,VInt,EInt,parQ> CreateAdjacencyMatrix(
     const ExtScal * edge_weights = nullptr,
     const EInt      thread_count = EInt(1)
 ) const
@@ -20,7 +20,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
     
     if( edge_weights == nullptr )
     {
-        ParallelDo(
+        Do<parQ>(
             [this,thread_count_,&agg]( const EInt thread )
             {
                 const EInt E_count = this->EdgeCount();
@@ -45,7 +45,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
     }
     else
     {
-        ParallelDo(
+        Do<parQ>(
             [this,thread_count_,edge_weights,&agg]( const EInt thread )
             {
                 const EInt E_count = this->EdgeCount();
@@ -68,14 +68,14 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateAdjacencyMatrix(
         );
     }
     
-    return Sparse::MatrixCSR<Scal,VInt,EInt>(
+    return Sparse::MatrixCSR<Scal,VInt,EInt,parQ>(
         agg, vertex_count, vertex_count, thread_count, true, true
     );
 }
 
 
 template<typename Scal = ToSigned<EInt>>
-cref<Sparse::MatrixCSR<Scal,VInt,EInt>> DirectedAdjacencyMatrix() const
+cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> DirectedAdjacencyMatrix() const
 {
     const std::string tag = std::string("DirectedAdjacencyMatrix<") + TypeName<Scal> + ">";
     
@@ -84,11 +84,11 @@ cref<Sparse::MatrixCSR<Scal,VInt,EInt>> DirectedAdjacencyMatrix() const
         this->SetCache(tag,CreateAdjacencyMatrix<false,Scal>());
     }
     
-    return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+    return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>>>(tag);
 }
 
 template<typename Scal = ToSigned<EInt>>
-cref<Sparse::MatrixCSR<Scal,VInt,EInt>> UndirectedAdjacencyMatrix() const
+cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> UndirectedAdjacencyMatrix() const
 {
     const std::string tag = std::string("UndirectedAdjacencyMatrix<") + TypeName<Scal> + ">";
     
@@ -97,5 +97,5 @@ cref<Sparse::MatrixCSR<Scal,VInt,EInt>> UndirectedAdjacencyMatrix() const
         this->SetCache(tag,CreateAdjacencyMatrix<true,Scal>());
     }
     
-    return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+    return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>>>(tag);
 }

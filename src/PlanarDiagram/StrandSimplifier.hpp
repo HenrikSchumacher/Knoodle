@@ -212,9 +212,6 @@ namespace Knoodle
             const Int_0 a_first, const Int_0 a_last, const Int_1 mark
         )
         {
-            static_assert( IntQ<Int_0>, "" );
-            static_assert( IntQ<Int_1>, "" );
-            
             const Mark_T c    = int_cast<Mark_T>(mark);
             const Int a_begin = int_cast<Int>(a_first);
             const Int a_end   = NextArc(int_cast<Int>(a_last),Head);
@@ -237,9 +234,6 @@ namespace Knoodle
         void MarkArcs( cptr<Int_0> arcs, const Int_1 strand_length_, const Int_2 mark )
         {
             PD_PRINT(MethodName("MarkArcs")+ " from "+ ArcString(arcs[0]) + " for "+ ToString(strand_length) + " step; mark = " + ToString(mark) );
-            static_assert( IntQ<Int_0>, "" );
-            static_assert( IntQ<Int_1>, "" );
-            static_assert( IntQ<Int_2>, "" );
             
             const Int n    = int_cast<Int>(strand_length_);
             const Mark_T m = int_cast<Mark_T>(mark);

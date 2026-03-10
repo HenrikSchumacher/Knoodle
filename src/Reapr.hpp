@@ -266,7 +266,7 @@ namespace Knoodle
     public:
         
         template<typename R = Real, typename I = Int, typename J = Int>
-        Sparse::MatrixCSR<R,I,J> Hessian( cref<PD_T> pd ) const
+        Sparse::MatrixCSR<R,I,J,Sequential> Hessian( cref<PD_T> pd ) const
         {
             switch ( en_flag )
             {
@@ -282,7 +282,7 @@ namespace Knoodle
                 {
                     wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
                     
-                    return Sparse::MatrixCSR<R,I,J>();
+                    return Sparse::MatrixCSR<R,I,J,Sequential>();
                 }
             }
         }

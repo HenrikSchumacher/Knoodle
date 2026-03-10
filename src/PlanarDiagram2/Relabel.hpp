@@ -20,8 +20,6 @@ PD_T CreateRelabeled(
     bool surjectiveQ = false
 )  const
 {
-    static_assert(IntQ<ExtInt>,"");
-    
     [[maybe_unused]] auto tag = [](){ return MethodName("CreateRelabeled"); };
     
     if( InvalidQ() ) { return InvalidDiagram(); }
@@ -239,7 +237,7 @@ template<typename PRNG_T>
 void WriteRandomPackedCrossingIndices( mref<PRNG_T> random_engine, mptr<Int> c_map ) const
 {
     Int c_label = 0;
-    Permutation<Int> perm = Permutation<Int>::RandomPermutation( crossing_count, Int(1), random_engine );
+    Permutation<Int,Sequential> perm = Permutation<Int,Sequential>::RandomPermutation( crossing_count, Int(1), random_engine );
     cptr<Int> p = perm.GetPermutation().data();
     for( Int c = 0; c < MaxCrossingCount(); ++c )
     {
@@ -276,7 +274,7 @@ void WriteRandomPackedArcIndices( mref<PRNG_T> random_engine, mptr<Int> a_map ) 
 {
     Int a_label = 0;
     
-    Permutation<Int> perm = Permutation<Int>::RandomPermutation( arc_count, Int(1), random_engine );
+    Permutation<Int,Sequential> perm = Permutation<Int,Sequential>::RandomPermutation( arc_count, Int(1), random_engine );
 
     cptr<Int> p = perm.GetPermutation().data();
 

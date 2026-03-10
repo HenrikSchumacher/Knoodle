@@ -8,15 +8,17 @@ namespace Knoodle
     template<
         typename VInt_   = Int64,
         typename EInt_   = VInt_,
-        typename Sign_T_ = Int8
+        typename Sign_T_ = Int8,
+        Parallel_T parQ_ = Sequential
     >
-    class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_>
+    class alignas( ObjectAlignment ) MultiGraph : public MultiGraphBase<VInt_,EInt_,Sign_T_,parQ_>
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
                 
     public:
         
-        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_>;
+        
+        using Base_T            = MultiGraphBase<VInt_,EInt_,Sign_T_,parQ_>;
         using VInt              = Base_T::VInt;
         using EInt              = Base_T::EInt;
         using Sign_T            = Base_T::Sign_T;
@@ -27,14 +29,17 @@ namespace Knoodle
         using IncidenceMatrix_T = Base_T::IncidenceMatrix_T;
         using DedgeNode         = Base_T::DedgeNode;
         
+        using Base_T::parQ;
+        
+        
         using VV_Vector_T       = Base_T::VV_Vector_T;
         using EE_Vector_T       = Base_T::EE_Vector_T;
         using EV_Vector_T       = Base_T::EV_Vector_T;
         using VE_Vector_T       = Base_T::VE_Vector_T;
         
-        using CycleMatrix_T     = Sparse::MatrixCSR<Sign_T,EInt,EInt>;
+        using CycleMatrix_T     = Sparse::MatrixCSR<Sign_T,EInt,EInt,parQ>;
         
-        using ComponentMatrix_T = Sparse::BinaryMatrixCSR<VInt,VInt>;
+        using ComponentMatrix_T = Sparse::BinaryMatrixCSR<VInt,VInt,parQ>;
 
         using Base_T::Tail;
         using Base_T::Head;
@@ -134,7 +139,7 @@ namespace Knoodle
     public:
         
         template<typename Scal = ToSigned<EInt>>
-        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> AdjacencyMatrix() const
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> AdjacencyMatrix() const
         {
             TOOLS_PTIMER(timer,MethodName(std::string("AdjacencyMatrix<") + TypeName<Scal> + ">"));
             
@@ -142,7 +147,7 @@ namespace Knoodle
         }
         
         template<typename Scal = ToSigned<EInt>>
-        cref<Sparse::MatrixCSR<Scal,VInt,EInt>> Laplacian() const
+        cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> Laplacian() const
         {
             const std::string tag = std::string("Laplacian<") + TypeName<Scal> + ">";
             
@@ -153,7 +158,7 @@ namespace Knoodle
                 this->SetCache(tag,this->template CreateLaplacian<true,Scal>());
             }
             
-            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt>>>(tag);
+            return this->template GetCache<cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>>>(tag);
         }
         
         cref<ComponentMatrix_T> ComponentVertexMatrix() const

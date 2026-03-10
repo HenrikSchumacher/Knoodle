@@ -34,6 +34,8 @@ namespace Knoodle
         static constexpr bool CLP_enabledQ = false;
 #endif
         
+        static constexpr Parallel_T parQ = Sequential;
+        
 //        using Link_T              = LinkEmbedding<Real,Int,BReal>;
         using PD_T                = PlanarDiagram2<Int>;
         using Point_T             = Tiny::Vector<3,Real,Int>;
@@ -259,7 +261,7 @@ namespace Knoodle
     public:
         
         template<typename R = Real, typename I = Int, typename J = Int>
-        Sparse::MatrixCSR<R,I,J> Hessian( cref<PD_T> pd ) const
+        Sparse::MatrixCSR<R,I,J,Sequential> Hessian( cref<PD_T> pd ) const
         {
             switch ( settings.energy )
             {
@@ -275,7 +277,7 @@ namespace Knoodle
                 {
                     wprint(MethodName("Hessian")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for Hessian. Returning empty matrix");
                     
-                    return Sparse::MatrixCSR<R,I,J>();
+                    return Sparse::MatrixCSR<R,I,J,Sequential>();
                 }
             }
         }

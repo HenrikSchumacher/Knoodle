@@ -22,7 +22,7 @@ public:
  *
  */
 
-template<typename T = Int, bool labelsQ = false>
+template<IntQ T = Int, bool labelsQ = false>
 Tensor2<T,Int> PDCode() const
 {
     auto tag = []()
@@ -34,8 +34,6 @@ Tensor2<T,Int> PDCode() const
     };
     
     TOOLS_PTIMER(timer,tag());
-    
-    static_assert( IntQ<T>, "" );
     
     Tensor2<T,Int> pd_code;
     
@@ -56,11 +54,9 @@ Tensor2<T,Int> PDCode() const
     return pd_code;
 }
 
-template<typename T, bool labelsQ = false>
+template<IntQ T, bool labelsQ = false>
 void WritePDCode( mptr<T> pd_code ) const
 {
-    static_assert( IntQ<T>, "" );
-    
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
         + "," + (labelsQ ? "w/ labels" : "w/o labels")

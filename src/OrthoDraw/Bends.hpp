@@ -198,7 +198,7 @@ void RandomizeBends_impl(
 public:
 
 template<typename S, typename I, typename J>
-static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
+static Sparse::MatrixCSR<S,I,J,Sequential> Bends_ConstraintMatrix(
     cref<PD_T> pd, cref<Tiny::VectorList_AoS<2,Int,Int>> A_idx
 )
 {
@@ -229,7 +229,7 @@ static Sparse::MatrixCSR<S,I,J> Bends_ConstraintMatrix(
         agg.Push( di_1, f_1,  S(1) );
     }
     
-    Sparse::MatrixCSR<S,I,J> A (
+    Sparse::MatrixCSR<S,I,J,Sequential> A (
         agg, Bends_VarCount<I>(pd), Bends_ConCount<I>(pd), true, false
     );
     

@@ -2,12 +2,9 @@
 
 namespace Knoodle
 {
-    template<typename Real_, IntQ Int_>
+    template<FloatQ Real_, IntQ Int_>
     class ClangQuaternionTransform final
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real = Real_;

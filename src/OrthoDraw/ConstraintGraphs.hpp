@@ -302,7 +302,7 @@ void ComputeConstraintGraphs() const
     {
         const Int n = DhV_E.SublistCount();
         
-        Sparse::MatrixCSR<Cost_T,Int,Int> A (DhE_agg,n,n,Int(1),true,0,true);
+        Sparse::MatrixCSR<Cost_T,Int,Int,Sequential> A (DhE_agg,n,n,Int(1),true,0,true);
 
         if( n > Int(0) )
         {
@@ -347,7 +347,7 @@ void ComputeConstraintGraphs() const
     {
         const Int n = DvV_E.SublistCount();
         
-        Sparse::MatrixCSR<Cost_T,Int,Int> A (DvE_agg,n,n,Int(1),true,0,true);
+        Sparse::MatrixCSR<Cost_T,Int,Int,Sequential> A (DvE_agg,n,n,Int(1),true,0,true);
 
         if( n > Int(0) )
         {

@@ -22,8 +22,8 @@ namespace Knoodle
         using Int  = Int_;
         using LInt = LInt_;
         
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
         
         using Helper_T          = Tensor2<Scal,LInt>;

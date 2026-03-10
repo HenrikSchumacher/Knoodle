@@ -22,8 +22,8 @@ namespace Knoodle
 //        static_assert(SignedIntQ<Int>,"");
 
                 
-//        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-//        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+//        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+//        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
         
 //        using Helper_T = Tensor2<Scal,LInt>;
@@ -37,7 +37,7 @@ namespace Knoodle
         using C_Arcs_T          = typename PD_T::C_Arcs_T;
         
         
-        using SeifertIncidenceMatrix_T = Sparse::MatrixCSR<Int,Int,Int>;
+        using SeifertIncidenceMatrix_T = Sparse::MatrixCSR<Int,Int,Int,Sequential>;
         
         using Graph_T = MultiGraph<Int>;
     

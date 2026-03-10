@@ -45,7 +45,6 @@ namespace Knoodle
         using Turn_T     = ToSigned<Int>;
         using Cost_T     = ToSigned<Int>;
         
-        
         enum class VertexFlag_T : Int8
         {
             Inactive    =  0,
@@ -137,7 +136,7 @@ namespace Knoodle
         using COIN_Real  = double;
         using COIN_Int   = int;
         using COIN_LInt  = CoinBigIndex;
-        using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
+        using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt,Sequential>;
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
 #endif // KNOODLE_USE_CLP
         

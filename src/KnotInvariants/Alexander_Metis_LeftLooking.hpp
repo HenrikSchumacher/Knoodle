@@ -16,8 +16,8 @@ namespace Knoodle
         using Int  = Int_;
         using LInt = LInt_;
         
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt,Sequential>;
         using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;

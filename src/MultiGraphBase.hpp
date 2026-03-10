@@ -11,7 +11,8 @@ namespace Knoodle
     template<
         IntQ VInt_   = Int64,
         IntQ EInt_   = VInt_,
-        SignedIntQ Sign_T_ = Int8
+        SignedIntQ Sign_T_ = Int8,
+        Parallel_T parQ_ = Sequential
     >
     class MultiGraphBase : public CachedObject<1,0,0,0>
     {
@@ -26,6 +27,8 @@ namespace Knoodle
         using Sign_T          = Sign_T_;
         using Edge_T          = Tiny::Vector<2,VInt,EInt>;
         using EdgeContainer_T = Tiny::VectorList_AoS<2,VInt,EInt>;
+        
+        static constexpr Parallel_T parQ = parQ_;
         
         enum class InOut : Sign_T
         {
@@ -47,8 +50,8 @@ namespace Knoodle
         template<IntQ Int, bool nonbinaryQ>
         using SignedMatrix_T = std::conditional_t<
                 nonbinaryQ,
-                Sparse::MatrixCSR<Sign_T,Int,Int>,
-                Sparse::BinaryMatrixCSR<Int,Int>
+                Sparse::MatrixCSR<Sign_T,Int,Int,parQ>,
+                Sparse::BinaryMatrixCSR<Int,Int,parQ>
         >;
 
         using IncidenceMatrix_T = SignedMatrix_T<EInt,1>;
@@ -94,7 +97,7 @@ namespace Knoodle
         }
         
         // Provide list of edges in noninterleaved form.
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         MultiGraphBase(
             const I_0 vertex_count_,
             cref<I_0> tails, cref<I_0> heads, const I_1 edge_count_
@@ -104,9 +107,6 @@ namespace Knoodle
         ,   V_scratch    ( vertex_count                     )
         ,   E_scratch    ( edges.Dim(0)                     )
         {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-            
             const EInt m = edges.Dim(0);
             
             for( EInt e = 0; e < m; ++e )
@@ -119,7 +119,7 @@ namespace Knoodle
         }
 
         // Provide a list of edges in interleaved form.
-        template<typename I_0>
+        template<IntQ I_0>
         MultiGraphBase( const I_0 vertex_count_, cref<EdgeContainer_T> edges_ )
         :   vertex_count ( int_cast<VInt>(vertex_count_)    )
         ,   edges        ( edges_                           )
@@ -130,7 +130,7 @@ namespace Knoodle
         }
         
         // Provide a list of edges in interleaved form.
-        template<typename I_0>
+        template<IntQ I_0>
         MultiGraphBase( const I_0 vertex_count_, EdgeContainer_T && edges_ )
         :   vertex_count ( int_cast<VInt>(vertex_count_)    )
         ,   edges        ( std::move(edges_)                )
@@ -142,7 +142,7 @@ namespace Knoodle
         
         
         // Provide a list of edges by a PairAggregator.
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         MultiGraphBase(
             const I_0 vertex_count_, mref<PairAggregator<I_0,I_0,I_1>> pairs
         )
@@ -156,8 +156,6 @@ namespace Knoodle
 //        ,   V_scratch    ( vertex_count                     )
 //        ,   E_scratch    ( edges.Dim(0)                     )
 //        {
-//            static_assert(IntQ<I_0>,"");
-//            static_assert(IntQ<I_1>,"");
 //            
 //            cptr<I_0> i = pairs.data_0();
 //            cptr<I_0> j = pairs.data_1();

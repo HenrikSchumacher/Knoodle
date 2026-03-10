@@ -5,9 +5,6 @@ namespace Knoodle
     template<int AmbDim_, FloatQ Real_, IntQ Int_>
     class ClangAffineTransform final
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real = Real_;

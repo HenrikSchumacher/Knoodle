@@ -79,9 +79,6 @@ namespace Knoodle
         
     protected:
         
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
         cref<Link_T> L;
         
         cref<Tree_T> T;

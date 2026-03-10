@@ -1,11 +1,9 @@
 public:
 
-template<typename T = UInt>
+template<IntQ T = UInt>
 Tensor1<T,Int> LongMacLeodCode() const
 {
     TOOLS_PTIMER(timer,ClassName()+"::LongMacLeodCode<"+TypeName<T>+">");
-    
-    static_assert(IntQ<T>,"");
     
     if( LinkComponentCount() > Int(1) )
     {
@@ -28,12 +26,10 @@ Tensor1<T,Int> LongMacLeodCode() const
     return code;
 }
 
-template<typename T>
+template<IntQ T>
 void WriteLongMacLeodCode( mptr<T> code ) const
 {
     TOOLS_PTIMER(timer,MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">");
-    
-    static_assert(IntQ<T>,"");
     
     if( LinkComponentCount() > Int(1) )
     {

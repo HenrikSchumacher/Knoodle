@@ -74,12 +74,12 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> ColorIntersectionCounts() const
     return lut;
 }
 
-Sparse::MatrixCSR<ToSigned<Int>,Int,Int> ColorIntersectionMatrix( Int thread_count = 1 ) const
+Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> ColorIntersectionMatrix() const
 {
     TOOLS_PTIMER(timer,MethodName("ColorIntersectionMatrix"));
     
     using I = ToSigned<Int>;
-    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int>;
+    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential>;
     
     if( !this->InCacheQ("ColorIntersectionMatrix") )
     {
@@ -107,10 +107,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int> ColorIntersectionMatrix( Int thread_cou
         
         this->SetCache(
             "ColorIntersectionMatrix",
-            Matrix_T(
-                i.Size(), i.data(), j.data(), a.data(), n, n,
-                thread_count, false, true, false
-            )
+            Matrix_T( i.Size(), i.data(), j.data(), a.data(), n, n, Int(1), false, true, false )
         );
     }
     

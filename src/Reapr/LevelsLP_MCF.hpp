@@ -145,13 +145,13 @@ cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PD_T> pd ) const
         const Int a_count = pd.MaxArcCount();
         
         Tensor1<Int,Int> A_idx ( a_count );
-        Permutation<Int> perm;
+        Permutation<Int,Sequential> perm;
         
         Int a_idx = 0;
         
         if( permute_randomQ )
         {
-            perm = Permutation<Int>::RandomPermutation(
+            perm = Permutation<Int,Sequential>::RandomPermutation(
                a_count, Int(1), random_engine
             );
             

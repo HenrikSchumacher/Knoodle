@@ -97,7 +97,6 @@ namespace Knoodle
     template<IntQ Int>
     struct IndexPair_T
     {
-        static_assert(IntQ<Int>,"");
         Int i;
         Int j;
         

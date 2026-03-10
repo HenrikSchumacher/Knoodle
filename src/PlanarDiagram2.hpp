@@ -51,7 +51,7 @@ namespace Knoodle
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
         using ArcColorContainer_T       = Tensor1<Int,Int>;
         
-        using MultiGraph_T              = MultiGraph<Int,Int>;
+        using MultiGraph_T              = MultiGraph<Int,Int,Int8,Sequential>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
         
         friend class PlanarDiagramComplex<Int>;

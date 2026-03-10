@@ -5,11 +5,11 @@ PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
 {
     TOOLS_PTIMER(timer,MethodName("PermuteRandom"));
                  
-    auto c_perm = Permutation<Int>::RandomPermutation(
+    auto c_perm = Permutation<Int,Sequential>::RandomPermutation(
         max_crossing_count, Int(1), random_engine
     );
     
-    auto a_perm = Permutation<Int>::RandomPermutation(
+    auto a_perm = Permutation<Int,Sequential>::RandomPermutation(
         max_arc_count, Int(1), random_engine
     );
     
@@ -18,7 +18,8 @@ PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
 
 template<IntQ ExtInt>
 PlanarDiagram Permute(
-    mref<Permutation<ExtInt>> c_perm, mref<Permutation<ExtInt>> a_perm
+    mref<Permutation<ExtInt,Sequential>> c_perm,
+    mref<Permutation<ExtInt,Sequential>> a_perm
 )  const
 {
     TOOLS_PTIMER(timer,ClassName()+"::Permute<"+TypeName<ExtInt>+">");

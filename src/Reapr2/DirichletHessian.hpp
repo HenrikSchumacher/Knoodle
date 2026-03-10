@@ -1,6 +1,6 @@
 private:
 
-template<typename R = Real, typename I = Int, typename J = Int>
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
 void DirichletHessian_CollectTriples(
     cref<PD_T> pd,
     mref<TripleAggregator<I,I,R,J>> agg,
@@ -8,10 +8,6 @@ void DirichletHessian_CollectTriples(
     const I col_offset
 ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     std::string tag = ClassName()+"::DirichletHessian_CollectTriples"
     + "<" + TypeName<I>
     + "," + TypeName<J>
@@ -77,13 +73,9 @@ void DirichletHessian_CollectTriples(
 
 public:
 
-template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> DirichletHessian( cref<PD_T> pd ) const
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
+Sparse::MatrixCSR<R,I,J,Sequential> DirichletHessian( cref<PD_T> pd ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-
     const I m = static_cast<I>(pd.ArcCount());
     
     TripleAggregator<I,I,R,J> agg( I(2) * m );

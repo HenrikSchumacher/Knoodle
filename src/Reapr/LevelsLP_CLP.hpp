@@ -66,13 +66,10 @@ Tensor1<T,Int> LevelsLP_CLP( cref<PD_T> pd )
 public:
 
 template<
-    typename R = Real, typename I = COIN_Int, typename J = COIN_LInt
+    FloatQ R = Real, IntQ I = COIN_Int, IntQ J = COIN_LInt
 >
 Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
 {
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     std::string tag = ClassName() + "::LevelsLP_CLP_Matrix"
     + "<" + TypeName<R>
     + "," + TypeName<I>

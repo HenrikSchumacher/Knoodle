@@ -516,11 +516,9 @@ static Int BinarySearch(
     cptr<Int> pos, cptr<Int> val, const Int n, cref<Int> j
 )
 {
-    static_assert(IntQ<Int>,"");
-    
     if( n <= Int(0) )
     {
-        eprint(MethodName("FindNearestPosition_BinarySearch")+": n <= 0.");
+        eprint(MethodName("BinarySearch")+": n <= 0.");
         return Int(0);
     }
     

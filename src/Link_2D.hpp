@@ -128,15 +128,13 @@ namespace Knoodle
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
-        template<typename I>
+        template<IntQ I>
         explicit Link_2D( const I edge_count_ )
         :   Base_T      { int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                 }
 //        ,   T           { edge_count                 }
 //        ,   box_coords  { T.AllocateBoxes()          }
-        {
-            static_assert(IntQ<I>,"");
-        }
+        {}
         
         Link_2D( Tensor1<Int,Int> && component_ptr_ )
         :   Base_T      { std::move(component_ptr_), Tensor1<Int,Int>() }
@@ -146,28 +144,22 @@ namespace Knoodle
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         Link_2D( cptr<I_0> edges_, const I_1 edge_count_ )
         :   Base_T      { edges_, (I_0 *)nullptr, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                                         }
 //        ,   T           { edge_count                                         }
 //        ,   box_coords  { T.AllocateBoxes()                                  }
-        {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-        }
+        {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         Link_2D( cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, const I_1 edge_count_ )
         :   Base_T      { edge_tails_, edge_tips_, (I_0 *)nullptr, edge_count_ }
         ,   edge_coords { edge_count                                           }
 //        ,   T           { edge_count                                           }
 //        ,   box_coords  { T.AllocateBoxes()                                    }
-        {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-        }
+        {}
         
     public:
 
