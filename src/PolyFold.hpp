@@ -55,15 +55,19 @@ namespace Knoodle
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
 //        using Link_T                    = Link_2D<Real,Int,BReal>;
-        using Link_T                    = Knot_2D<Real,Int,BReal>;
-        using PD_T                      = PlanarDiagram<Int>;
-        using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
+        using Link_T                    = KnotEmbedding<Real,Int,BReal>;
+//        using Link_T                    = LinkEmbedding<Real,Int,BReal>;
+//        using PD_T                      = PlanarDiagram<Int>;
+        
+        using PDC_T                     = PlanarDiagramComplex<Int>;
+        using PD_T                      = PDC_T::PD_T;
+        using IntersectionFlagCounts_T  = Link_T::IntersectionFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
-        using PRNG_T                    = typename Clisby_T::PRNG_T;
+        using PRNG_T                    = Clisby_T::PRNG_T;
         
         
-        using AngleRandomMethod_T       = typename Clisby_T::AngleRandomMethod_T;
-        using PivotRandomMethod_T       = typename Clisby_T::PivotRandomMethod_T;
+        using AngleRandomMethod_T       = Clisby_T::AngleRandomMethod_T;
+        using PivotRandomMethod_T       = Clisby_T::PivotRandomMethod_T;
         
         struct PRNG_State_T
         {

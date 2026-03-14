@@ -49,7 +49,7 @@ namespace Knoodle
         
     private:
         
-        /*! @brief This constructor only allocates the internal arrays. Only for internal use.
+        /*! @brief This constructor only allocates some internal arrays. Only for internal use.
          */
         
         template<typename I_0 >
@@ -59,8 +59,8 @@ namespace Knoodle
         ,   next_edge       { edge_count     }
         ,   edge_ptr        { edge_count + 1 }
 
-        ,   component_count { 1              }
-        ,   component_ptr   { 2              }
+//        ,   component_count { 1              }
+//        ,   component_ptr   { 2              }
 //        ,   edge_component{ edge_count     }
         {
             (void)dummy;
@@ -81,7 +81,7 @@ namespace Knoodle
         
         ,   component_count { Int(1)                }
         ,   component_ptr   { Int(2)                }
-//        ,   edge_component{ edge_count, Int(0)    }
+        ,   component_color { Int(1), Int(0)        }
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {

@@ -455,8 +455,8 @@ namespace Knoodle
         {
             return
                   T.AllocatedByteCount()
-                + Base_T::edge_coords.AllocatedByteCount()
-                + Base_T::box_coords.AllocatedByteCount()
+                + edge_coords.AllocatedByteCount()
+                + box_coords.AllocatedByteCount()
                 + Base_T::edges.AllocatedByteCount()
                 + Base_T::next_edge.AllocatedByteCount()
                 + Base_T::edge_ptr.AllocatedByteCount()

@@ -285,7 +285,7 @@ void FoldRandomHierarchicalWave(
             for( Int node = Int(0); node < node_count; ++node  )
             {
                 this->template SubtreeFoldRandom<true,splitQ>(
-                    node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                    node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                 );
             }
         }
@@ -294,26 +294,26 @@ void FoldRandomHierarchicalWave(
             for( Int node = node_count; node --> Int(0);  )
             {
                 this->template SubtreeFoldRandom<true,splitQ>(
-                    node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                    node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                 );
             }
         }
         else if constexpr ( dir == VCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Down,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Up  ,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
         }
         else if constexpr ( dir == LambdaCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Up  ,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::BFS,Down,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
         }
     }
@@ -327,7 +327,7 @@ void FoldRandomHierarchicalWave(
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                        node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                     );
                     return (this->Depth(node) < max_level );
                 },
@@ -345,7 +345,7 @@ void FoldRandomHierarchicalWave(
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                        node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                     );
                 },
                 []( Int node ){ (void)node; }
@@ -357,14 +357,14 @@ void FoldRandomHierarchicalWave(
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                        node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                     );
                     return (this->Depth(node) < max_level );
                 },
                 [=,this,&flag_ctr]( Int node )
                 {
                     this->template SubtreeFoldRandom<true,splitQ>(
-                        node, flag_ctr, f(node), reflectP, checkQ, check_jointsQ
+                        node, flag_ctr, std::invoke(f,node), reflectP, checkQ, check_jointsQ
                     );
                 },
                 []( Int node ){ (void)node; }
@@ -373,10 +373,10 @@ void FoldRandomHierarchicalWave(
         else if constexpr ( dir == LambdaCycle )
         {
             this->template FoldRandomHierarchicalWave<Traversal::DFS,Up  ,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
             this->template FoldRandomHierarchicalWave<Traversal::DFS,Down,splitQ>(
-                flag_ctr, f, max_level, node_count, reflectP, checkQ, check_jointsQ
+                flag_ctr, std::forward<F>(f), max_level, node_count, reflectP, checkQ, check_jointsQ
             );
         }
     }

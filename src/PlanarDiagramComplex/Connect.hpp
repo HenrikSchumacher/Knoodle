@@ -109,10 +109,10 @@ PDC_T CreateConnected() const
     
     if constexpr ( debugQ )
     {
-        logvalprint( "gluing_data", OutString( &gluing_data[0][0], gluing_data.size(), 5 ) );
+        logvalprint( "gluing_data", OutString::FromMatrix( &gluing_data[0][0], gluing_data.size(), 5 ) );
         TOOLS_LOGDUMP(gluing_arc_pairs);
         
-        logvalprint( "gluing_data", OutString( &gluing_data[0][0], gluing_data.size(), 5 ) );
+        logvalprint( "gluing_data", OutString::FromMatrix( &gluing_data[0][0], gluing_data.size(), 5 ) );
         TOOLS_LOGDUMP(gluing_arc_pairs);
         
         logprint("Step 3: Unite all diagrams.");

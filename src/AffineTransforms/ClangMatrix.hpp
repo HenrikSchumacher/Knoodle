@@ -267,33 +267,39 @@ namespace Knoodle
             }
         }
         
-        [[nodiscard]] friend std::string ToString(
+        [[nodiscard]] friend OutString ToString(
             cref<ClangMatrix> B,
             std::string line_prefix = std::string("")
         )
         {
             std::string s = "{ ";
             
-            for( Size_T i = 0; i < ToSize_T(M); ++ i )
-            {
-                if( i != 0 )
-                {
-                    s += " },";
-                }
-                s += "\n" + line_prefix;
-
-                s += "\t{ " + ToString(B.A[i][0]);
-                
-                for( Size_T j = 1; j < ToSize_T(N); ++ j )
-                {
-                    s += ", " + ToString(B.A[i][j]);
-                }
-            }
+//            for( Size_T i = 0; i < ToSize_T(M); ++ i )
+//            {
+//                if( i != 0 )
+//                {
+//                    s += " },";
+//                }
+//                s += "\n" + line_prefix;
+//
+//                s += "\t{ " + ToString(B.A[i][0]);
+//                
+//                for( Size_T j = 1; j < ToSize_T(N); ++ j )
+//                {
+//                    s += ", " + ToString(B.A[i][j]);
+//                }
+//            }
+//            
+//            s += " }\n";
+//            s += line_prefix + "}";
+//            
+//            return s;
             
-            s += " }\n";
-            s += line_prefix + "}";
-            
-            return s;
+            return OutString::FromArray(
+                [&B]( Size_T i, Size_T j ) { return B.A[i][j]; },
+                M, line_prefix + "{\n", ",\n", "\n" + line_prefix + "}",
+                N, line_prefix + " { ", ", ", " }"
+            );
         }
         
     public:

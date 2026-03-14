@@ -40,7 +40,8 @@ namespace Knoodle
         static constexpr bool CLP_enabledQ = false;
 #endif
         
-        using Link_T              = Link_2D<Real,Int>;
+//        using Link_T              = Link_2D<Real,Int>;
+        using Link_T              = LinkEmbedding<Real,Int>;
         using PD_T                = PlanarDiagram<Int>;
         using Point_T             = std::array<Real,3>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;

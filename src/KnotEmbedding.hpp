@@ -3,12 +3,13 @@
 namespace Knoodle
 {
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
-    class alignas( ObjectAlignment ) Knot_2D final
+    class alignas( ObjectAlignment ) KnotEmbedding final
     {
         // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
         
-        
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
+        
+        // This differs from LinkEmbedding in that the edge coordinates are not stored separated. This is to save memory when very large polygons ought to be handled.
         
         // TODO: Read  GeomView .vect files.
         // TODO: Write GeomView .vect files.
@@ -95,23 +96,23 @@ namespace Knoodle
     public:
         
         // Default constructor
-        Knot_2D() = default;
+        KnotEmbedding() = default;
         // Destructor
-        ~Knot_2D() = default;
+        ~KnotEmbedding() = default;
         // Copy constructor
-        Knot_2D( const Knot_2D & other ) = default;
+        KnotEmbedding( const KnotEmbedding & other ) = default;
         // Copy assignment operator
-        Knot_2D & operator=( const Knot_2D & other ) = default;
+        KnotEmbedding & operator=( const KnotEmbedding & other ) = default;
         // Move constructor
-        Knot_2D( Knot_2D && other ) = default;
+        KnotEmbedding( KnotEmbedding && other ) = default;
         // Move assignment operator
-        Knot_2D & operator=( Knot_2D && other ) = default;
+        KnotEmbedding & operator=( KnotEmbedding && other ) = default;
         
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
-        explicit Knot_2D( const I edge_count_ )
+        explicit KnotEmbedding( const I edge_count_ )
         :   edge_count      { int_cast<Int>(edge_count_)         }
         ,   vertex_coords   { int_cast<Int>(edge_count + Int(1)) }
         ,   edge_ptr        { int_cast<Int>(edge_count + Int(1)) }
@@ -255,7 +256,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(Knot_2D) + AllocatedByteCount();
+            return sizeof(KnotEmbedding) + AllocatedByteCount();
         }
         
         template<int t0>
@@ -282,7 +283,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("Knot_2D")
+            return ct_string("KnotEmbedding")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

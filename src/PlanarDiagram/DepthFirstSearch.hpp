@@ -118,7 +118,7 @@ void DepthFirstSearch(
                 logprint("Discovering " + CrossingString(head) + " from " + DarcString(db) + "."
                 );
             }
-            discover( B );
+            std::invoke( discover, B );
             stack.Push( std::move(B) );
         }
         else
@@ -132,7 +132,7 @@ void DepthFirstSearch(
                     logprint("Rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
                     );
                 }
-                rediscover({A.head,db,head});
+                std::invoke( rediscover, {A.head,db,head} );
             }
             else
             {
@@ -161,7 +161,7 @@ void DepthFirstSearch(
             {
                 logprint("Discovering " + CrossingString(c_0) + ", starting new spanning tree.");
             }
-            discover( A );
+            std::invoke( discover, A );
             stack.Push( std::move(A) );
         }
         
@@ -188,7 +188,7 @@ void DepthFirstSearch(
                 {
                     logprint("Pre-visiting " + CrossingString(c) + " along " + DarcString(A.da) + ".");
                 }
-                pre_visit( A );
+                std::invoke( pre_visit, A );
 
                 // We process the arcs in reverse order so that they appear in correct order on the stack.
                 
@@ -204,7 +204,7 @@ void DepthFirstSearch(
                 {
                     logprint("Post-visiting " + CrossingString(c) + " along  " + DarcString(A.da) + ".");
                 }
-                post_visit( A );
+                std::invoke( post_visit, A );
                 (void)stack.Pop();
             }
             else // if( C_flag[c] == UInt8(3) )
@@ -225,9 +225,9 @@ template<class PreVisitVertex_T>
 void DepthFirstSearch( PreVisitVertex_T && pre_visit ) const
 {
     DepthFirstSearch(
-        TrivialArcFunction,    //discover
-        TrivialArcFunction,    //rediscover
-        pre_visit,             // f( const DarcNode & da )
-        TrivialArcFunction     //postvisit
+        TrivialArcFunction,                         //discover
+        TrivialArcFunction,                         //rediscover
+        std::forward<PreVisitVertex_T>(pre_visit),  // f( const DarcNode & da )
+        TrivialArcFunction                          //postvisit
     );
 }

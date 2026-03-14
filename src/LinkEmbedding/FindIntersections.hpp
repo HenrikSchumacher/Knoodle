@@ -31,15 +31,15 @@ public:
             }
             return 9;
         }
-        
+
         intersections.clear();
         if( intersections.capacity() < ToSize_T(2 * EdgeCount()) )
         {
             intersections.reserve( ToSize_T(2 * EdgeCount()) );
         }
-        
+
         FindIntersectingEdges_DFS();
-        
+
         intersections_computedQ = true;
         
         // Check for bad intersections.
@@ -54,7 +54,7 @@ public:
                 return 7;
             }
         }
-        
+
         {
             const Size_T count = intersection_flag_counts[6];
             if( count > Size_T(0) )
@@ -118,7 +118,7 @@ public:
         }
         
         const Int intersection_count = static_cast<Int>(intersections.size());
-        
+
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
         edge_ctr.Read( edge_ptr.data() );
@@ -152,7 +152,7 @@ public:
             edge_times        [pos_1] = inter.times[1];
             edge_overQ        [pos_1] = false;
         }
-        
+
         // Sort intersections edgewise w.r.t. edge_times.
         ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
         
@@ -200,7 +200,7 @@ public:
                             
                             const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
-                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToStringFPGeneral(delta) + " < " + ToStringFPGeneral(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
+                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
 //                        }
                     }
                 }
@@ -219,7 +219,7 @@ public:
 //            }
             return 8;
         }
-        
+
         // From now on we can safely cycle around each component and generate vertices, edges, crossings, etc. in their order.
         
         return 0;

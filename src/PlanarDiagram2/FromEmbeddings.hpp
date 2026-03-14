@@ -1,23 +1,25 @@
-/*!@brief Construction from `Knot_2D` object.
- *
- * Caution: This assumes that `Knot_2D::FindIntersections` has been called already!
+
+/*!@brief Construction from `KnotEmbedding` object.
  */
 
-template<typename Real, typename BReal>
-static PD_T FromKnotEmbedding( cref<Knot_2D<Real,Int,BReal>> K )
+template<FloatQ Real, FloatQ BReal>
+static PlanarDiagram2 FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
 {
-    static_assert(FloatQ<Real>,"");
-    static_assert(FloatQ<BReal>,"");
-    
-    using Knot_T [[maybe_unused]] = Knot_2D<Real,Int,BReal>;
+    using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
     
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding")+"("+Knot_T::ClassName()+")");
 
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
     
-    K.FindIntersections();
+    int err = K.RequireIntersections();
     
-    return PD_T::template FromLink<Real,BReal>(
+    if( err != 0 )
+    {
+        eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid planar diagram.");
+        return PD_T::InvalidDiagram();
+    }
+    
+    return PD_T::template FromLinkEmbedding_impl<Real,BReal>(
         K.ComponentCount(),
         K.ComponentPointers().data(),
         comp_color.data(),
@@ -36,7 +38,7 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
 
-    Knot_2D<Real,Int,Real> L ( n );
+    KnotEmbedding<Real,Int,Real> L ( n );
 
     L.ReadVertexCoordinates(x);
 
@@ -54,7 +56,7 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
 
     // We delay the allocation until substantial parts of L have been deallocated.
-    return PD_T::template FromLink<Real,Real>(
+    return PD_T::template FromLinkEmbedding_impl<Real,Real>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         comp_color.data(),
@@ -65,30 +67,25 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
     ).first;
 }
 
-/*!@brief Construction from `Link_2D` object. Returns a planar diagram and the number of unlinks found in the input.
- *
- * Caution: This assumes that `Link_2D::FindIntersections` has been called already!
+/*!@brief Construction from `FromLinkEmbedding` object. Returns a planar diagram and the number of unlinks found in the input.
  */
 
-template<typename Real, typename BReal>
+template<FloatQ Real, FloatQ BReal>
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Real,Int,BReal>> L )
 {
-    static_assert(FloatQ<Real>,"");
-    static_assert(FloatQ<BReal>,"");
-    
     using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
     
     TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
-    
-    int err = L.template FindIntersections<true>();
+
+    int err = L.template RequireIntersections<true>();
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
+        eprint(MethodName("RequireIntersections") + "("+ Link_T::ClassName() +"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
-
-    return PD_T::template FromLink<Real,BReal>(
+    
+    return PD_T::template FromLinkEmbedding_impl<Real,BReal>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.ComponentColors().data(),
@@ -132,7 +129,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     L.DeleteTree();
 
     // We delay the allocation until substantial parts of L have been deallocated.
-    return PD_T::template FromLink<Real,Real>(
+    return PD_T::template FromLinkEmbedding_impl<Real,Real>(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.ComponentColors().data(),
@@ -148,7 +145,7 @@ private:
     
 // TODO: Get color information right!
 template<typename Real, typename BReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
     const Int  component_count,
     cptr<Int>  component_ptr,
     cptr<Int>  component_color,
@@ -158,12 +155,13 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLink(
     cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections
 )
 {
+    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding_impl") + "<"+TypeName<Real>+","+TypeName<BReal>+">");
     // needs to know all member variables
     
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
     
-    using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
+    using Intersection_T = typename LinkEmbedding<Real,Int,BReal>::Intersection_T;
     using Sign_T         = typename Intersection_T::Sign_T;
     
     const Int crossing_count = int_cast<Int>(intersections.size());

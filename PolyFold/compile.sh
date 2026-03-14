@@ -8,6 +8,9 @@
     -fenable-matrix                                                                 \
     -flto                                                                           \
     -pthread                                                                        \
+    -I./../submodules/Min-Cost-Flow-Class/OPTUtils                                  \
+    -I./../submodules/Min-Cost-Flow-Class/MCFClass                                  \
+    -I./../submodules/Min-Cost-Flow-Class/MCFSimplex                                \
     -I/opt/homebrew/include                                                         \
     -L/opt/homebrew/lib                                                             \
     -o PolyFold                                                                     \

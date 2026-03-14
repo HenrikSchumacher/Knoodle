@@ -102,7 +102,7 @@ void Generate_impl(
                 
                 if( flag != 0 )
                 {
-                    wprint(MethodName("Generate_impl") + ": Link_2D::FindIntersections returned status flag " + ToString(flag) + " != 0. Skipping result.");
+                    wprint(MethodName("Generate_impl") + ": LinkEmbedding::FindIntersections returned status flag " + ToString(flag) + " != 0. Skipping result.");
                     continue;
                 }
                 

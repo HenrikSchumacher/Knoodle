@@ -185,7 +185,7 @@ void HandleOptions( int argc, char** argv )
         wprint("Reflections cannot be activated while quaternions are used. Deactivating reflections");
         reflection_probability = 0;
     }
-    valprint<a>("Reflection Probability",ToStringFPGeneral(reflection_probability));
+    valprint<a>("Reflection Probability",ToString(reflection_probability));
     
     
     edge_length_tolerance = vm["edge-length-tol"].as<Real>() * Real(n);
@@ -195,7 +195,7 @@ void HandleOptions( int argc, char** argv )
     {
         Real sigma = vm["gaussian-angles"].as<Real>();
         
-        valprint<a>("Angle Random Method", "Wrapped Gaussian ( SD = " + ToStringFPGeneral(sigma) +")");
+        valprint<a>("Angle Random Method", "Wrapped Gaussian ( SD = " + ToString(sigma) +")");
         angle_method = AngleRandomMethod_T::WrappedGaussian;
         angle_sigma = sigma;
     }
@@ -225,13 +225,13 @@ void HandleOptions( int argc, char** argv )
     if( vm.count("gaussian-pivots") )
     {
         pivot_sigma = vm["gaussian-pivots"].as<double>();
-        valprint<a>("Pivot Random Method", "Discrete Wrapped Gaussian ( SD = " + ToStringFPGeneral(pivot_sigma) + " )");
+        valprint<a>("Pivot Random Method", "Discrete Wrapped Gaussian ( SD = " + ToString(pivot_sigma) + " )");
         pivot_method = PivotRandomMethod_T::DiscreteWrappedGaussian;
     }
     if( vm.count("laplace-pivots") )
     {
         pivot_beta = vm["laplace-pivots"].as<Real>();
-        valprint<a>("Pivot Random Method", "Wrapped Laplace ( beta = " + ToStringFPGeneral(pivot_beta) + " )");
+        valprint<a>("Pivot Random Method", "Wrapped Laplace ( beta = " + ToString(pivot_beta) + " )");
         pivot_method = PivotRandomMethod_T::DiscreteWrappedLaplace;
     }
     if( vm.count("clisby-pivots") )
@@ -299,7 +299,7 @@ void HandleOptions( int argc, char** argv )
         {
                 path = std::filesystem::path( vm["output"].as<std::string>()
                     + "-H" + ToString(hierarchicalQ)
-                    + "-d" + ToStringFPGeneral(hard_sphere_diam)
+                    + "-d" + ToString(hard_sphere_diam)
                     + "-n" + ToString(n)
                     + "-b" + ToString(burn_in)
                     + "-s" + ToString(skip)

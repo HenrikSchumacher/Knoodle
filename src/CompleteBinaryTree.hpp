@@ -464,20 +464,20 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void BreadthFirstSearch(
-            Internal_T  & int_visit,
-            Leaf_T      & leaf_visit
+            Internal_T && int_visit,
+            Leaf_T     && leaf_visit
         )
         {
             TOOLS_PTIMER(timer,MethodName("BreadthFirstSearch"));
             
             for( Int node = Int(0); node < int_node_count; ++node )
             {
-                int_visit(node);
+                std::invoke( int_visit, node );
             }
             
             for( Int node = int_node_count; node < leaf_node_count; ++node )
             {
-                leaf_visit(node);
+                std::invoke( leaf_visit, node );
             }
         }
         
@@ -614,9 +614,9 @@ namespace Knoodle
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
         void DepthFirstSearch(
-            IntPre_T  & int_pre_visit,
-            IntPost_T & int_post_visit,
-            Leaf_T    & leaf_visit,
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
             const Int start_node = Uninitialized
         )
         {
@@ -627,14 +627,18 @@ namespace Knoodle
             if constexpr ( use_manual_stackQ )
             {
                 DepthFirstSearch_ManualStack<mode>(
-                    int_pre_visit, int_post_visit, leaf_visit,
+                    std::forward<IntPre_T>(int_pre_visit),
+                    std::forward<IntPost_T>(int_post_visit),
+                    std::forward<Leaf_T>(leaf_visit),
                     (start_node < Int(0)) ? Root() : start_node
                 );
             }
             else
             {
                 DepthFirstSearch_Recursive<mode>(
-                    int_pre_visit, int_post_visit, leaf_visit,
+                    std::forward<IntPre_T>(int_pre_visit),
+                    std::forward<IntPost_T>(int_post_visit),
+                    std::forward<Leaf_T>(leaf_visit),
                     (start_node < Int(0)) ? Root() : start_node
                 );
             }
@@ -642,9 +646,9 @@ namespace Knoodle
         
         template< DFS mode, class IntPre_T, class IntPost_T, class Leaf_T >
         void DepthFirstSearch_Recursive(
-            IntPre_T  & int_pre_visit,
-            IntPost_T & int_post_visit,
-            Leaf_T    & leaf_visit,
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
             const Int node
         )
         {
@@ -658,39 +662,51 @@ namespace Knoodle
                     auto [L,R] = Children(node);
                     
                     DepthFirstSearch_Recursive<mode>(
-                        int_pre_visit, int_post_visit, leaf_visit, L
+                        std::forward<IntPre_T>(int_pre_visit),
+                        std::forward<IntPost_T>(int_post_visit),
+                        std::forward<Leaf_T>(leaf_visit),
+                        L
                     );
                     DepthFirstSearch_Recursive<mode>(
-                        int_pre_visit, int_post_visit, leaf_visit, R
+                        std::forward<IntPre_T>(int_pre_visit),
+                        std::forward<IntPost_T>(int_post_visit),
+                        std::forward<Leaf_T>(leaf_visit),
+                        R
                     );
                     
                     int_post_visit(node);
                 }
                 else
                 {
-                    bool continueQ = int_pre_visit(node);
+                    bool continueQ = std::invoke( int_pre_visit, node );
                     
                     if( continueQ )
                     {
                         auto [L,R] = Children(node);
                         
                         DepthFirstSearch_Recursive<mode>(
-                            int_pre_visit, int_post_visit, leaf_visit, L
+                            std::forward<IntPre_T>(int_pre_visit),
+                            std::forward<IntPost_T>(int_post_visit),
+                            std::forward<Leaf_T>(leaf_visit),
+                            L
                         );
                         DepthFirstSearch_Recursive<mode>(
-                            int_pre_visit, int_post_visit, leaf_visit, R
+                            std::forward<IntPre_T>(int_pre_visit),
+                            std::forward<IntPost_T>(int_post_visit),
+                            std::forward<Leaf_T>(leaf_visit),
+                            R
                         );
                     }
                     
                     if constexpr ( mode == DFS::PostvisitAlways )
                     {
-                        int_post_visit(node);
+                        std::invoke( int_post_visit, node );
                     }
                     else
                     {
                         if( continueQ )
                         {
-                            int_post_visit(node);
+                            std::invoke( int_post_visit, node );
                         }
                     }
                 }
@@ -698,15 +714,15 @@ namespace Knoodle
             else
             {
                 // Things to be done when node is a leaf.
-                leaf_visit(node);
+                std::invoke( leaf_visit, node );
             }
         }
         
         template<DFS mode, class IntPre_T, class IntPost_T, class Leaf_T>
         void DepthFirstSearch_ManualStack(
-            IntPre_T  & int_pre_visit,
-            IntPost_T & int_post_visit,
-            Leaf_T    & leaf_visit,
+            IntPre_T  && int_pre_visit,
+            IntPost_T && int_post_visit,
+            Leaf_T    && leaf_visit,
             const Int start_node = Uninitialized
         )
         {
@@ -738,13 +754,13 @@ namespace Knoodle
                         
                         if constexpr ( mode == DFS::BreakNever )
                         {
-                            (void)int_pre_visit(node);
+//                            (void)int_pre_visit(node);
                             stack[++stack_ptr] = (R << 1);
                             stack[++stack_ptr] = (L << 1);
                         }
                         else
                         {
-                            if( int_pre_visit(node) )
+                            if( std::invoke( int_pre_visit, node ) )
                             {
                                 stack[++stack_ptr] = (R << 1);
                                 stack[++stack_ptr] = (L << 1);
@@ -762,7 +778,7 @@ namespace Knoodle
                     else
                     {
                         // Things to be done when node is a leaf.
-                        leaf_visit(node);
+                        std::invoke( leaf_visit, node );
                         
                         // Popping current node from the stack.
                         --stack_ptr;
@@ -774,7 +790,7 @@ namespace Knoodle
                     // Thus, it cannot be a leave node.
                     // We are moving in direction towards the root.
                     // Hence, all children have already been visited.
-                    int_post_visit(node);
+                    std::invoke( int_post_visit, node );
 
                     // Popping current node from the stack.
                     --stack_ptr;
@@ -794,15 +810,15 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void PreOrderScan(
-            Internal_T  & int_visit,
-            Leaf_T      & leaf_visit,
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit,
             const Int start_node = Uninitialized
         )
         {
             DepthFirstSearch<DFS::BreakNever>(
-                int_visit,                       // pre visit
-                []( Int node ){ (void)node; },   // post visit
-                leaf_visit,                     // leaf visit
+                std::forward<Internal_T>(int_visit),    // pre visit
+                []( Int node ){ (void)node; },          // post visit
+                std::forward<Leaf_T>(leaf_visit),       // leaf visit
                 start_node
             );
         }
@@ -819,14 +835,8 @@ namespace Knoodle
                 mptr<Int> p_ptr = p.data();
                 
                 PreOrderScan(
-                   [p_ptr,&counter]( Int node )  // pre visit
-                   {
-                       p_ptr[counter++] = node;
-                   },
-                   [p_ptr,&counter]( Int node )  // leaf visit
-                   {
-                       p_ptr[counter++] = node;
-                   }
+                   [p_ptr,&counter]( Int node ) { p_ptr[counter++] = node; }, // pre visit
+                   [p_ptr,&counter]( Int node ) { p_ptr[counter++] = node; }  // leaf visit
                 );
                 
                 SetCache(tag,std::move(p));
@@ -841,15 +851,15 @@ namespace Knoodle
         
         template< class Internal_T, class Leaf_T >
         void PostOrderScan(
-            Internal_T  & int_visit,
-            Leaf_T      & leaf_visit,
+            Internal_T  && int_visit,
+            Leaf_T      && leaf_visit,
             const Int start_node = Uninitialized
         )
         {
             DepthFirstSearch<DFS::BreakNever>(
-                []( Int node ) { (void)node; }, // pre visit
-                int_visit,                      // post visit
-                leaf_visit,                     // leaf visit
+                []( Int node ) { (void)node; },             // pre visit
+                std::forward<Internal_T>(int_visit),        // post visit
+                std::forward<Leaf_T>(leaf_visit),           // leaf visit
                 start_node
             );
         }
@@ -866,14 +876,8 @@ namespace Knoodle
                 mptr<Int> p_ptr = p.data();
                 
                 PostOrderScan(
-                   [p_ptr,&counter]( Int node )          // node visit
-                   {
-                       p_ptr[counter++] = node;
-                   },
-                   [p_ptr,&counter]( Int node )          // leaf visit
-                   {
-                       p_ptr[counter++] = node;
-                   }
+                   [p_ptr,&counter]( Int node ) { p_ptr[counter++] = node; }, // node visit
+                   [p_ptr,&counter]( Int node ) { p_ptr[counter++] = node; }  // leaf visit
                 );
                 
                 SetCache(tag,std::move(p));

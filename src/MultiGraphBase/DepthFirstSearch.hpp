@@ -141,7 +141,7 @@ void DepthFirstSearch(
             E_visitedQ[e] = true;
             DedgeNode de_next {E.head,de,w};
 //            logprint("discover vertex " + ToString(w) + "; edge = " + ToString(e));
-            discover( de_next );
+            std::invoke( discover, de_next );
             stack.Push( std::move(de_next) );
         }
         else
@@ -151,7 +151,7 @@ void DepthFirstSearch(
             {
                 E_visitedQ[e] = true;
 //                logprint("rediscover vertex " + ToString(w) + "; edge = " + ToString(e));
-                rediscover({E.head,de,w});
+                std::invoke( rediscover, DedgeNode{E.head,de,w} );
             }
             else
             {
@@ -167,7 +167,7 @@ void DepthFirstSearch(
         {
             V_flag[v_0] = UInt8(1);
             DedgeNode E {UninitializedVertex, UninitializedEdge, v_0};
-            discover( E );
+            std::invoke( discover, E );
             stack.Push( std::move(E) );
         }
 
@@ -184,7 +184,7 @@ void DepthFirstSearch(
             else if( V_flag[v] == UInt8(1) )
             {
                 V_flag[v] = UInt8(2);
-                pre_visit( E );
+                std::invoke( pre_visit, E );
                 // Process outgoing edges first.
                 if constexpr ( dir != InOut::In )
                 {
@@ -214,7 +214,7 @@ void DepthFirstSearch(
             else if( V_flag[v] == UInt8(2) )
             {
                 V_flag[v] = UInt8(3);
-                post_visit( E );
+                std::invoke( post_visit, E );
                 (void)stack.Pop();
             }
             else // if( V_flag[v] == UInt8(3) )
@@ -231,9 +231,9 @@ template< InOut dir = InOut::Undirected, class PreVisitVertex_T >
 void DepthFirstSearch( PreVisitVertex_T && pre_visit ) const
 {
     this->template DepthFirstSearch<dir>(
-        TrivialEdgeFunction,    //discover
-        TrivialEdgeFunction,    //rediscover
-        pre_visit,              // f( const DedgeNode & E )
-        TrivialEdgeFunction     //postvisit
+        TrivialEdgeFunction,                        // discover
+        TrivialEdgeFunction,                        // rediscover
+        std::forward<PreVisitVertex_T>(pre_visit),  // f( const DedgeNode & E )
+        TrivialEdgeFunction                         // postvisit
     );
 }

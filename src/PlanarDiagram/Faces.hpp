@@ -10,7 +10,7 @@ std::string FaceString( const Int f ) const
     
     const Int f_size = i_end - i_begin;
     
-    return "face " + ToString(f) + " = " + OutString( &F_dA_idx[i_begin], f_size );
+    return "face " + ToString(f) + " = " + OutString::FromVector( &F_dA_idx[i_begin], f_size );
 }
 
 

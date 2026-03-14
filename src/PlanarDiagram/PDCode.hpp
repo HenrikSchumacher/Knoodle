@@ -375,14 +375,14 @@ static PlanarDiagram FromPDCode(
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
             eprint( ClassName()+"FromPDCode(): There is a PD code entry with negative entries. Returning invalid PlanarDiagram." );
-            valprint("Code of crossing " + ToString(c), OutString(&X[0],d) );
+            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],d) );
             return PlanarDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
             eprint( ClassName()+"FromPDCode(): There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid PlanarDiagram." );
-            valprint("Code of crossing " + ToString(c), OutString(&X[0],d) );
+            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],d) );
 
             return PlanarDiagram();
         }
@@ -511,7 +511,7 @@ static PlanarDiagram FromPDCode(
             
             
             
-            valprint("crossing " + ToString(c), OutString(pd.C_arcs.data(c),2,2) );
+            valprint("crossing " + ToString(c), OutString::FromMatrix(pd.C_arcs.data(c),2,2) );
             
             all_crossings_initializedQ = false;
         }
@@ -520,7 +520,7 @@ static PlanarDiagram FromPDCode(
         {
             eprint(ClassName()+"::FromPDCode: Input PD code is invalid because crossing " + ToString(c) + " has less than two outgoing arcs.");
             
-            valprint("crossing " + ToString(c), OutString(pd.C_arcs.data(c),2,2) );
+            valprint("crossing " + ToString(c), OutString::FromMatrix(pd.C_arcs.data(c),2,2) );
             
             all_crossings_initializedQ = false;
         }
@@ -535,7 +535,7 @@ static PlanarDiagram FromPDCode(
             eprint(ClassName()+"::FromPDCode: Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
             
             
-            valprint("arc " + ToString(a), OutString(pd.A_cross.data(a),2) );
+            valprint("arc " + ToString(a), OutString::FromVector(pd.A_cross.data(a),2) );
             
             all_arcs_initializedQ = false;
         }
@@ -544,7 +544,7 @@ static PlanarDiagram FromPDCode(
         {
             eprint(ClassName()+"::FromPDCode: Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( PDsignedQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
             
-            valprint("arc " + ToString(a), OutString(pd.A_cross.data(a),2) );
+            valprint("arc " + ToString(a), OutString::FromVector(pd.A_cross.data(a),2) );
             
             all_arcs_initializedQ = false;
         }

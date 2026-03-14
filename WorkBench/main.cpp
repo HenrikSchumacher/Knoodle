@@ -2,6 +2,8 @@
 
 #include "../Knoodle.hpp"
 
+#include "../submodules/Tensors/submodules/Tools/src/ToString_Obsolete.hpp"
+
 using namespace Knoodle;
 using namespace Tools;
 
@@ -252,5 +254,36 @@ int main()
     print(ToString(agg.data()[0]));
     print(ToString(agg.data()[1]));
     
-    print(std::string_view( OutString( agg.data(), agg.Size() ) ));
+    print(std::string_view( OutString::FromVector( agg.data(), agg.Size() ) ));
+    
+    
+    tic("logvalprint");
+    for( Size_T i = 0; i < d_0; ++i )
+    {
+        logvalprint( std::string("T1(") + ToString(i) + ") = ", T1(i));
+    }
+    toc("logvalprint");
+    
+    
+    tic("logvalprint2");
+    {
+        std::ofstream stream ( path / "log2.txt" );
+        
+        std::mutex stream_mutex;
+        
+//        stream << ArrayToString(T1.data(),{T1.Dim(0)});
+        
+        for( Size_T i = 0; i < d_0; ++i )
+        {
+            std::lock_guard guard ( stream_mutex );
+            Profiler::log << "T1(";
+            Profiler::log << ToString(i);
+            Profiler::log << ") = ";
+            Profiler::log << ToString(T1(i));
+            Profiler::log << "\n";
+            Profiler::log << std::endl;
+        }
+    }
+    toc("logvalprint2");
+    
 }

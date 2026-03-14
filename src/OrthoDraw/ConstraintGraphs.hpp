@@ -49,9 +49,6 @@ void ComputeConstraintGraphs() const
     // We can skip all crossings, since crossings have valence 4 thus cannot be the start or end of any segment.
     // Thus, we start at v_0 = C_end.
     
-    // DEBUGGING
-    PD_PRINT("AA");
-    
     for( Int v_0 = C_end; v_0 < V_end; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
@@ -112,8 +109,6 @@ void ComputeConstraintGraphs() const
             DvV_V.FinishSublist();
         }
     }
-    
-    PD_PRINT("BB");
     
     // Very likely, we have many duplicate edges in Dv and Dh.
     // We use TripleAggregator to let Sparse::MatrixCSR tally the duplicate edges.
@@ -203,8 +198,6 @@ void ComputeConstraintGraphs() const
         }
     }
     
-    PD_PRINT("CC");
-    
 //    // Computing DvV_limit_DhV. (For every vertical segment, record the two horizontal segments at its ends.)
 //    // TODO: Potential candidate for erasure.
 //    {
@@ -265,8 +258,6 @@ void ComputeConstraintGraphs() const
             }
         }
     }
-    
-    PD_PRINT("DD");
     
     // Collecting the saturating edges of Gr. They have zero costs.
     if ( settings.saturate_regionsQ )

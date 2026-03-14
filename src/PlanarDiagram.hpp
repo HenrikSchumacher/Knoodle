@@ -247,15 +247,15 @@ namespace Knoodle
             return pd;
         }
         
-        /*!@brief Construction from `Knot_2D` object.
-         *
-         * Caution: This assumes that `Knot_2D::FindIntersections` has been called already!
+        /*!@brief Construction from `KnotEmbedding` object.
          */
         
         template<FloatQ Real, FloatQ BReal>
-        explicit PlanarDiagram( cref<Knot_2D<Real,Int,BReal>> L )
+        explicit PlanarDiagram( mref<KnotEmbedding<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
+            L.template RequireIntersections<true>();
+            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -266,15 +266,15 @@ namespace Knoodle
             );
         }
         
-        /*!@brief Construction from `Link_2D` object.
-         *
-         * Caution: This assumes that `Link_2D::FindIntersections` has been called already!
+        /*!@brief Construction from `LinkEmbedding` object.
          */
         
         template<FloatQ Real, FloatQ BReal>
-        explicit PlanarDiagram( cref<Link_2D<Real,Int,BReal>> L )
+        explicit PlanarDiagram( mref<LinkEmbedding<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
+            L.template RequireIntersections<true>();
+            
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
                 L.ComponentPointers().data(),
@@ -291,7 +291,7 @@ namespace Knoodle
         template<FloatQ Real, IntQ ExtInt>
         PlanarDiagram( cptr<Real> x, const ExtInt n )
         {
-            Knot_2D<Real,Int,Real> L ( n );
+            KnotEmbedding<Real,Int,Real> L ( n );
 
             L.ReadVertexCoordinates ( x );
             
@@ -322,7 +322,7 @@ namespace Knoodle
         template<FloatQ Real, IntQ ExtInt>
         PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
         {
-            using Link_T = Link_2D<Real,Int,Real>;
+            using Link_T = LinkEmbedding<Real,Int,Real>;
             
             Link_T L ( edges, n );
 

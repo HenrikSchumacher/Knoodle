@@ -27,12 +27,12 @@ using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 
 
 template<typename T>
-void valprint( const std::string & s, const T & val )
+void valprint( std::string_view s, const T & val )
 {
     Tools::valprint(s,val);
 }
 
-void print( const std::string & s )
+void print( std::string_view s )
 {
     Tools::print(s);
 }

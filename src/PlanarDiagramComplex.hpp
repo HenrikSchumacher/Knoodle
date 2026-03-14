@@ -132,15 +132,13 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
-        // TODO: Rename Knot_2D to KnotEmbedding. More merge into LinkEmbedding.
         template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( Knot_2D<Real,Int,BReal> && K  )
+        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
         :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
         {}
         
-        // TODO: Rename Knot_2D to KnotEmbedding. More merge into LinkEmbedding.
         template<typename Real, typename BReal>
-        explicit PlanarDiagramComplex( Knot_2D<Real,Int,BReal> & K )
+        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> & K )
         :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
         {}
         
@@ -202,6 +200,11 @@ namespace Knoodle
                 
                 return invalid_diagram;
             }
+        }
+        
+        cref<PD_List_T> Diagrams() const
+        {
+            return pd_list;
         }
         
         void Compress()

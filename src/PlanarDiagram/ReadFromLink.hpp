@@ -7,13 +7,13 @@ void ReadFromLink(
     cptr<Int>  edge_ptr,
     cptr<Int>  edge_intersections,
     cptr<bool> edge_overQ,
-    cref<std::vector<typename Link_2D<Real,Int,BReal>::Intersection_T>> intersections
+    cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections
 )
 {
     static_assert(FloatQ<Real>,"");
     static_assert(FloatQ<BReal>,"");
     
-    using Intersection_T = typename Link_2D<Real,Int,BReal>::Intersection_T;
+    using Intersection_T = typename LinkEmbedding<Real,Int,BReal>::Intersection_T;
     using Sign_T         = typename Intersection_T::Sign_T;
 
     if( intersections.size() <= Size_T(0) )

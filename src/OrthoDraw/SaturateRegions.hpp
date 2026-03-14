@@ -36,18 +36,38 @@ enum class Switch_T : UInt8
     t_L  = 4 * Head + 2 * true  + 1
 };
 
-static std::string SwitchString( Switch_T t )
-{
-    switch(t)
-    {
-        case Switch_T::s_S: return "s_S";
-        case Switch_T::s_L: return "s_L";
-        case Switch_T::t_S: return "t_S";
-        case Switch_T::t_L: return "t_L";
-        default           : return " ";
-    }
-}
 
+struct SwitchToChars
+{
+    using U = std::underlying_type_t<Switch_T>;
+    
+    static constexpr bool implementedQ = true;
+    
+    static constexpr Size_T char_count = 3;
+    
+    ToCharResult operator()( char * & begin, char * end, const Switch_T & s ) const
+    {
+        switch( s )
+        {
+            case Switch_T::s_S:
+            {
+                return CharArray("s_S").ToChars(begin,end);
+            }
+            case Switch_T::s_L:
+            {
+                return CharArray("s_L").ToChars(begin,end);
+            }
+            case Switch_T::t_S:
+            {
+                return CharArray("t_S").ToChars(begin,end);
+            }
+            case Switch_T::t_L:
+            {
+                return CharArray("t_L").ToChars(begin,end);
+            }
+        }
+    }
+};
 
 
 template<bool GrQ>
@@ -486,15 +506,10 @@ void SaturateRegion(
     {
         valprint("region",r);
         valprint("region size",r_n);
-        
-        print( ArrayToString(r_dE.data(), {r_n*Int(2)} ) );
-        
-        auto s_str = []( const Switch_T x )
-        {
-            return SwitchString(x);
-        };
-        
-        print( ArrayToString(r_S.data(), {r_n*Int(2)}, s_str) );
+
+        print( OutString::FromVector( r_dE.data(), r_n*Int(2) ) );
+
+        print( OutString::FromVector( r_S.data(), SwitchToChars(), r_n * Int(2) ) );
     }
         
     bool recurseQ = false;

@@ -59,6 +59,8 @@ Clisby_T CreateClisbyTree( bool load_data = false )
 template<Size_T t0>
 void Initialize()
 {
+    TOOLS_PTIMER(timer,MethodName("Initialize"));
+    
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
     constexpr Size_T t3 = t0 + 3;
@@ -161,7 +163,7 @@ void Initialize()
     {
         case AngleRandomMethod_T::WrappedGaussian:
         {
-            kv<t1>  ("Angle Random Method","Wrapped Gaussian ( SD = " + ToStringFPGeneral(angle_sigma) +")");
+            kv<t1>  ("Angle Random Method","Wrapped Gaussian ( SD = " + ToString(angle_sigma) +")");
             break;
             
         }
@@ -176,13 +178,13 @@ void Initialize()
     {
         case PivotRandomMethod_T::DiscreteWrappedGaussian:
         {
-            kv<t1>  ("Pivot Random Method","Discrete Wrapped Gaussian ( SD = " + ToStringFPGeneral(pivot_sigma) +")");
+            kv<t1>  ("Pivot Random Method","Discrete Wrapped Gaussian ( SD = " + ToString(pivot_sigma) +")");
             break;
             
         }
         case PivotRandomMethod_T::DiscreteWrappedLaplace:
         {
-            kv<t1>  ("Pivot Random Method","Discrete Wrapped Laplace ( beta = " + ToStringFPGeneral(pivot_beta) +")");
+            kv<t1>  ("Pivot Random Method","Discrete Wrapped Laplace ( beta = " + ToString(pivot_beta) +")");
             break;
             
         }
@@ -252,7 +254,7 @@ void Initialize()
             // TODO: Check that loaded polygon has edgelengths close to 1.
             if( error > edge_length_tolerance )
             {
-                throw std::runtime_error(ClassName()+"::Initialize: Relative edge length deviation of loaded polygon " + ToStringFPGeneral(error) + " is greater than tolerance " + ToStringFPGeneral(edge_length_tolerance) + ".");
+                throw std::runtime_error(ClassName()+"::Initialize: Relative edge length deviation of loaded polygon " + ToString(error) + " is greater than tolerance " + ToString(edge_length_tolerance) + ".");
             }
             
             if( checksQ )
@@ -402,20 +404,20 @@ void Initialize()
             kv<t3,0>("Class", PD_T::ClassName());
         
         // We delay the allocation until substantial parts of L have been deallocated.
-        PD_T PD ( L );
+        PDC_T PDC ( L );
 
         if( force_deallocQ )
         {
             L = Link_T();
         }
-        PD_byte_count = PD.ByteCount();
-            kv<t3>("Byte Count (Before Simplification)", PD.ByteCount() );
+        PD_byte_count = PDC.Diagram(0).ByteCount();
+            kv<t3>("Byte Count (Before Simplification)", PD_byte_count );
         log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
 
         if( force_deallocQ )
         {
-            PD = PD_T();
+            PDC = PDC_T();
         }
     }
     

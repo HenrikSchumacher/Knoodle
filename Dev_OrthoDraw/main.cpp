@@ -97,26 +97,25 @@ int main( int argc, char** argv )
     pd.Simplify4();
     
     Profiler::Clear();
-
     
     
     OrthoDraw_T H (pd, Int(-1),
         {
-            .bend_method              = OrthoDraw_T::BendMethod_T::Bends_MCF,
-            .use_dual_simplexQ        = false,
-            .randomize_bends          = 0,
-            .redistribute_bendsQ      = true,
-            .turn_regularizeQ         = true,
-            .soften_virtual_edgesQ    = false,
-            .randomize_virtual_edgesQ = false,
-            .saturate_facesQ          = true,
-            .saturate_exterior_faceQ  = true,
-            .compaction_method        = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering,
+            .bend_method               = OrthoDraw_T::BendMethod_T::Bends_MCF,
+            .use_dual_simplexQ         = false,
+            .randomize_bends           = 0,
+            .redistribute_bendsQ       = true,
+            .turn_regularizeQ          = true,
+            .soften_virtual_edgesQ     = false,
+            .randomize_virtual_edgesQ  = false,
+            .saturate_regionsQ         = true,
+            .saturate_exterior_regionQ = true,
+            .compaction_method         = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering,
         
-            .x_grid_size              = 8,
-            .y_grid_size              = 4,
-            .x_gap_size               = 1,
-            .y_gap_size               = 1
+            .x_grid_size               = 8,
+            .y_grid_size               = 4,
+            .x_gap_size                = 1,
+            .y_gap_size                = 1
         }
     );
     
@@ -131,7 +130,7 @@ int main( int argc, char** argv )
     print("");
     
     TOOLS_DUMP(H.CheckEdgeDirections());
-    TOOLS_DUMP(H.CheckAllFaceTurns());
+//    TOOLS_DUMP(H.CheckAllFaceTurns());
     
     print("");
     print("Diagram -- Default");
