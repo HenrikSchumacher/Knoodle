@@ -22,7 +22,7 @@ Size_T Simplify1()
     Size_T old_counter = 0;
 //    Size_T iter = 0;
     
-    CrossingSimplifier<Int,true> S(*this);
+    CrossingSimplifier_Legacy<Int,true> S(*this);
     
     do
     {

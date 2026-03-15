@@ -12,7 +12,7 @@
 //      "../submodules/Min-Cost-Flow-Class/OPTUtils/",
 //      "../submodules/Min-Cost-Flow-Class/MCFClass/",
 //      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
-#include "OrthoDraw.hpp"
+//#include "OrthoDraw.hpp"
 
 namespace Knoodle
 {
@@ -20,7 +20,7 @@ namespace Knoodle
     // TODO: Add type checks everywhere.
     
     template<FloatQ Real_ = Real64, IntQ Int_ = Int64>
-    class Reapr
+    class Reapr_Legacy
     {
     public:
         
@@ -42,7 +42,7 @@ namespace Knoodle
         
 //        using Link_T              = Link_2D<Real,Int>;
         using Link_T              = LinkEmbedding<Real,Int>;
-        using PD_T                = PlanarDiagram<Int>;
+        using PD_T                = PlanarDiagram_Legacy<Int>;
         using Point_T             = std::array<Real,3>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
@@ -245,24 +245,24 @@ namespace Knoodle
             }
         }
 
-#include "Reapr/DirichletHessian.hpp"
-#include "Reapr/BendingHessian.hpp"
-#include "Reapr/LevelsConstraintMatrix.hpp"
+#include "Reapr_Legacy/DirichletHessian.hpp"
+#include "Reapr_Legacy/BendingHessian.hpp"
+#include "Reapr_Legacy/LevelsConstraintMatrix.hpp"
         
 #ifdef KNOODLE_USE_UMFPACK
-    #include "Reapr/LevelsQP_SSN.hpp"
+    #include "Reapr_Legacy/LevelsQP_SSN.hpp"
 #endif
         
 #ifdef KNOODLE_USE_CLP
-    #include "Reapr/LevelsLP_CLP.hpp"
+    #include "Reapr_Legacy/LevelsLP_CLP.hpp"
 #endif
         
-#include "Reapr/LevelsLP_MCF.hpp"
-#include "Reapr/LevelsMinHeight.hpp"
-#include "Reapr/Embedding.hpp"
-#include "Reapr/RandomRotation.hpp"
-#include "Reapr/Rattle.hpp"
-#include "Reapr/Generate.hpp"
+#include "Reapr_Legacy/LevelsLP_MCF.hpp"
+#include "Reapr_Legacy/LevelsMinHeight.hpp"
+#include "Reapr_Legacy/Embedding.hpp"
+#include "Reapr_Legacy/RandomRotation.hpp"
+#include "Reapr_Legacy/Rattle.hpp"
+#include "Reapr_Legacy/Generate.hpp"
         
     public:
         
@@ -349,13 +349,13 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("Reapr")
+            return std::string("Reapr_Legacy")
             + "<" + TypeName<Real>
             + "," + TypeName<Int>
             + "," + TypeName<CodeInt>
             + ">";
         }
         
-    }; // class Reapr
+    }; // class Reapr_Legacy
 
 } // namespace Knoodle

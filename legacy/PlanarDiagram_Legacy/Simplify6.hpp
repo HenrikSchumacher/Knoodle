@@ -6,13 +6,13 @@ public:
 
 /*! @brief This repeatedly applies `Simplify4` and attempts to split off connected components with `Split`. This works also for multiple component links.
  *
- * @param pd_list A `std::vector` of instances of `PlanarDiagram` to push the newly created connected summands to.
+ * @param pd_list A `std::vector` of instances of `PlanarDiagram_Legacy` to push the newly created connected summands to.
  *
  * @param min_dist This is the maximum distance used in Dijkstra's algorithm for the first rerouting pass. Further rerouting passes will use increasing values until `max_dist` is reached. For large diagrams a small value like `min_dist = 6` might increase performance as Dijkstra's algorithm is not allowed to grow large frontiers and because more frequent recompression might improve cache locality.
  *
  * @param max_dist The maximum distance that you be used in Dijkstra's algorithm for rerouting strands. Smaller numbers make the breadth-first search stop earlier (and thus faster), but this will typically lead to results with more crossings because some potential optimizations are missed.
  *
- * @param compressQ Whether the `PlanarDiagram` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
+ * @param compressQ Whether the `PlanarDiagram_Legacy` shall be recompressed between various stages. Although this comes with an addition cost, this is typically easily ammortized in the strand optimization pass due to improved cache locality.
  *
  * @param simplify3_level Optimization level for `Simplify3`. Level `0` deactivates it entirely, levels greater or equal to `2` check only patterns that involve as many crossings as specified by this variable.
  *

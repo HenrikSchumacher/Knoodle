@@ -86,7 +86,7 @@ bool ResolveCrossing_Private( const Int c )
 public:
 
 /*! @brief Checks whether crossing `c` is active. In the affirmative case it to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, (iii) deactivating the crossing `c`, and (iv)  clearing the internal cache; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
- * _Use this with extreme caution as this might invalidate some invariants of the PlanarDiagram class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
+ * _Use this with extreme caution as this might invalidate some invariants of the PlanarDiagram_Legacy class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
  *
  * @param c The crossing to be resolved.
  *

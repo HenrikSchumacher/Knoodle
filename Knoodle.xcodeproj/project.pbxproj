@@ -6,6 +6,58 @@
 	objectVersion = 73;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		AF8611CC2F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
+			remoteInfo = QRAlgorithm;
+		};
+		AF8611CE2F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
+			remoteInfo = Example_SparseCholesky;
+		};
+		AF8611D02F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF9A9286298E5BF600242813;
+			remoteInfo = UnitTests;
+		};
+		AF8611D22F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
+			remoteInfo = Unit_Test_SpMM;
+		};
+		AF8611D42F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
+			remoteInfo = DenseBLAS;
+		};
+		AF8611D62F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD4A1572C58C94200510A91;
+			remoteInfo = Experiment_SpMM;
+		};
+		AF8611D82F66C0A700F08C51 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
+			remoteInfo = Scratch;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		AF1359792F0E96BC000B5009 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -95,15 +147,14 @@
 		AF2D42522E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF3B5BD82E36499C00A14D16 /* Dev_PlanarityChecker */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_PlanarityChecker; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
-		AF5BC0BD29D1AF70008CA8B7 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; path = src; sourceTree = "<group>"; };
 		AF5FF6AD2DD27DCA0076AB0E /* Dev_CLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_CLP; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF6C85DC2E29315B0051B919 /* WorkBench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WorkBench; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF7FD1D52D87464900D802C0 /* PolyFold */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = PolyFold; sourceTree = BUILT_PRODUCTS_DIR; };
+		AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AFAC10622F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_ClisbyTree2; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFBB9A9A2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Example_Knoodle; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFBDADA72DECE2D9004BCA41 /* Dev_OrthoDraw */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_OrthoDraw; sourceTree = BUILT_PRODUCTS_DIR; };
-		AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Reapr.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
-		AFF305442B7ACE3B009ABC74 /* submodules */ = {isa = PBXFileReference; lastKnownFileType = folder; path = submodules; sourceTree = "<group>"; };
+		AFC2F3FD2D4D00A400FF8621 /* Reapr_Legacy.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Reapr_Legacy.hpp; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		AFF305482B7AF300009ABC74 /* Knoodle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Knoodle.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -125,6 +176,9 @@
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFB7E7AD2F5D7A75003F1179 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
 		AF860E6A2F66AD8300F08C51 /* legacy */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = legacy; sourceTree = "<group>"; };
+		AF860F272F66C08A00F08C51 /* experimental */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = experimental; sourceTree = "<group>"; };
+		AF8611C22F66C0A600F08C51 /* submodules */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = submodules; sourceTree = "<group>"; };
+		AF8612BC2F66C0AA00F08C51 /* src */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = src; sourceTree = "<group>"; };
 		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
 		AFAC11072F0345620029A41C /* KnoodleTool */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KnoodleTool; sourceTree = "<group>"; };
 		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
@@ -210,11 +264,12 @@
 			isa = PBXGroup;
 			children = (
 				AF05A27E2D6B573E0065E75A /* deps */,
-				AFF305442B7ACE3B009ABC74 /* submodules */,
+				AF860F272F66C08A00F08C51 /* experimental */,
 				AF860E6A2F66AD8300F08C51 /* legacy */,
-				AF5BC0BD29D1AF70008CA8B7 /* src */,
+				AF8611C22F66C0A600F08C51 /* submodules */,
+				AF8612BC2F66C0AA00F08C51 /* src */,
 				AFF305482B7AF300009ABC74 /* Knoodle.hpp */,
-				AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */,
+				AFC2F3FD2D4D00A400FF8621 /* Reapr_Legacy.hpp */,
 				AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */,
 				AF7FD1D62D87464900D802C0 /* PolyFold */,
 				AFBDADA82DECE2D9004BCA41 /* Dev_OrthoDraw */,
@@ -241,6 +296,20 @@
 				AFBB9A9A2EF54467000CA528 /* Example_Knoodle */,
 				AFAC10622F0293FA0029A41C /* Dev_ClisbyTree2 */,
 				AF13597B2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AF8611C32F66C0A600F08C51 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AF8611CD2F66C0A700F08C51 /* QRAlgorithm */,
+				AF8611CF2F66C0A700F08C51 /* Example_SparseCholesky */,
+				AF8611D12F66C0A700F08C51 /* UnitTests */,
+				AF8611D32F66C0A700F08C51 /* Unit_Test_SpMM */,
+				AF8611D52F66C0A700F08C51 /* DenseBLAS */,
+				AF8611D72F66C0A700F08C51 /* Experiment_SpMM */,
+				AF8611D92F66C0A700F08C51 /* Scratch */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -489,6 +558,12 @@
 			preferredProjectObjectVersion = 56;
 			productRefGroup = AF5BC0B429D1AF1C008CA8B7 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = AF8611C32F66C0A600F08C51 /* Products */;
+					ProjectRef = AF8611BD2F66C0A600F08C51 /* Tensors.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				AF7FD1D42D87464900D802C0 /* PolyFold */,
@@ -503,6 +578,58 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		AF8611CD2F66C0A700F08C51 /* QRAlgorithm */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = QRAlgorithm;
+			remoteRef = AF8611CC2F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611CF2F66C0A700F08C51 /* Example_SparseCholesky */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Example_SparseCholesky;
+			remoteRef = AF8611CE2F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611D12F66C0A700F08C51 /* UnitTests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = UnitTests;
+			remoteRef = AF8611D02F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611D32F66C0A700F08C51 /* Unit_Test_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Unit_Test_SpMM;
+			remoteRef = AF8611D22F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611D52F66C0A700F08C51 /* DenseBLAS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = DenseBLAS;
+			remoteRef = AF8611D42F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611D72F66C0A700F08C51 /* Experiment_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Experiment_SpMM;
+			remoteRef = AF8611D62F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF8611D92F66C0A700F08C51 /* Scratch */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Scratch;
+			remoteRef = AF8611D82F66C0A700F08C51 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AF1359772F0E96BC000B5009 /* Sources */ = {

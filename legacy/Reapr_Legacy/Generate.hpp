@@ -190,7 +190,7 @@ GenerateMany(
              permutation_count, rotation_count
         ]( const Size_T thread )
         {
-            Reapr reapr = *this;
+            Reapr_Legacy reapr = *this;
             reapr.Reseed();         // This is crucial!
             
             const Size_T job_begin = job_ptr[thread    ];

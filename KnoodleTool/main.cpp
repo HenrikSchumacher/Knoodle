@@ -29,7 +29,7 @@
 
 #include "../Knoodle.hpp"
 #include "../src/OrthoDraw.hpp"
-#include "../Reapr.hpp"
+#include "../Reapr_Legacy.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -51,9 +51,9 @@
 
 using Int         = std::int64_t;
 using Real        = double;
-using PD_T        = Knoodle::PlanarDiagram<Int>;
+using PD_T        = Knoodle::PlanarDiagram_Legacy<Int>;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
-using Reapr_T     = Knoodle::Reapr<Real, Int>;
+using Reapr_T     = Knoodle::Reapr_Legacy<Real, Int>;
 using Link_T      = Knoodle::KnotEmbedding<Real, Int, Real>;
 using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;

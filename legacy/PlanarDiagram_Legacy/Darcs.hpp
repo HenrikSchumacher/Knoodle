@@ -122,7 +122,7 @@ Int LeftDarc( const Int da ) const
 
 mref<ArcContainer_T> ArcLeftDarcs() const
 {
-    // Return value needs to be mutable so that StrandSimplifier can update it.
+    // Return value needs to be mutable so that StrandSimplifier_Legacy can update it.
     
     std::string tag ("ArcLeftDarcs");
     
@@ -306,7 +306,7 @@ Int RightDarc( const Int da ) const
 
 mref<ArcContainer_T> ArcRightDarcs() const
 {
-    // Return value needs to be mutable so that StrandSimplifier can update it.
+    // Return value needs to be mutable so that StrandSimplifier_Legacy can update it.
     
     std::string tag ("ArcRightArcs");
     

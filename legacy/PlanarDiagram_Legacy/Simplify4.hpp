@@ -1,7 +1,7 @@
 public:
 
 /*!
- * @brief Attempts to simplify the planar diagram by applying the local moves implemented in the `ArcSimplifier` class as well as some global pass moves implemented in `StrandSimplifier`. Returns an estimate on the number of changes that have been made.
+ * @brief Attempts to simplify the planar diagram by applying the local moves implemented in the `ArcSimplifier_Legacy` class as well as some global pass moves implemented in `StrandSimplifier_Legacy`. Returns an estimate on the number of changes that have been made.
  *
  *  The pass moves attempt to simplify the diagram by detecting overstrands and understrands by rerouting them using shortest paths in the dual graph. Loop overstrands and loop understrands are also eliminated.
  */
@@ -38,7 +38,7 @@ Size_T Simplify4(
     this->ClearCache();
     
     // TODO: Toggle this Boolean for multi/single-component links.
-    StrandSimplifier<Int,true> S(*this);
+    StrandSimplifier_Legacy<Int,true> S(*this);
     
 //    const Int c_count = CrossingCount();
 //

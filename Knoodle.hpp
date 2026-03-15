@@ -39,12 +39,6 @@ namespace Knoodle
 
 #include "src/Binarizer.hpp"
 
-#include "src/PlanarDiagram.hpp"
-
-#include "src/PlanarDiagram/CrossingSimplifier.hpp"
-#include "src/PlanarDiagram/ArcSimplifier.hpp"
-#include "src/PlanarDiagram/StrandSimplifier.hpp"
-
 namespace Knoodle
 {
     template<IntQ Int> class PlanarDiagram2;

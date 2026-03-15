@@ -2,7 +2,7 @@ static constexpr bool clang_matrixQ = true;
 static constexpr bool quaternionsQ  = true;
 
 #include "Knoodle.hpp"
-#include "../src/ClisbyTree2.hpp"
+#include "../experimental/ClisbyTree2.hpp"
 
 using namespace Knoodle;
 

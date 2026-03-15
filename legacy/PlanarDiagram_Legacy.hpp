@@ -3,32 +3,20 @@
 //#include <boost/graph/adjacency_list.hpp>
 //#include <boost/graph/boyer_myrvold_planar_test.hpp>
 
-// TODO: Darcs.hpp
-
-// TODO: Remove Arrow_T
-// Arcs.hpp
-// Color.hpp
-// Constructors.hpp
-// CreateCompressed.hpp
-// Permute.hpp
-// CreateUnlink.hpp
-// PlanarDiagram2.hpp
-
-// TODO: De-templating?
 
 namespace Knoodle
 {
     template<IntQ Int_, Size_T optimization_level, bool mult_compQ_>
-    class ArcSimplifier;
+    class ArcSimplifier_Legacy;
     
-    template<IntQ Int_, bool mult_compQ_> class CrossingSimplifier;
+    template<IntQ Int_, bool mult_compQ_> class CrossingSimplifier_Legacy;
     
-    template<IntQ Int_, bool mult_compQ_> class StrandSimplifier;
+    template<IntQ Int_, bool mult_compQ_> class StrandSimplifier_Legacy;
 
     
     // TODO: Enable unsigned integers because they should be about 15% faster in task heavy bit manipulations.
     template<IntQ Int_ = Int64>
-    class PlanarDiagram final : public CachedObject<1,0,0,0>
+    class PlanarDiagram_Legacy final : public CachedObject<1,0,0,0>
     {
 //        static_assert(SignedIntQ<Int_>,"");
 
@@ -40,8 +28,8 @@ namespace Knoodle
         using UInt    = ToUnsigned<Int>;
 
         using Base_T  = CachedObject<1,0,0,0>;
-        using Class_T = PlanarDiagram<Int>;
-        using PD_T    = PlanarDiagram<Int>;
+        using Class_T = PlanarDiagram_Legacy<Int>;
+        using PD_T    = PlanarDiagram_Legacy<Int>;
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
@@ -56,16 +44,16 @@ namespace Knoodle
         using MultiGraph_T              = MultiGraph<Int,Int,Int8,Sequential>;
         using ComponentMatrix_T         = MultiGraph_T::ComponentMatrix_T;
 
-        using PD_List_T                 = std::vector<PlanarDiagram>;
+        using PD_List_T                 = std::vector<PlanarDiagram_Legacy>;
 
         template<IntQ I, Size_T lvl, bool mult_compQ_>
-        friend class ArcSimplifier;
+        friend class ArcSimplifier_Legacy;
 
         template<IntQ I, bool mult_compQ_>
-        friend class CrossingSimplifier;
+        friend class CrossingSimplifier_Legacy;
 
         template<IntQ I, bool mult_compQ_>
-        friend class StrandSimplifier;
+        friend class StrandSimplifier_Legacy;
             
         using HeadTail_T = bool;
         using Arrow_T = std::pair<Int,HeadTail_T>;
@@ -144,17 +132,17 @@ namespace Knoodle
     public:
   
         // Default constructor
-        PlanarDiagram() = default;
+        PlanarDiagram_Legacy() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~PlanarDiagram() override = default;
+        virtual ~PlanarDiagram_Legacy() override = default;
         // Copy constructor
-        PlanarDiagram( const PlanarDiagram & other ) = default;
+        PlanarDiagram_Legacy( const PlanarDiagram_Legacy & other ) = default;
         // Copy assignment operator
-        PlanarDiagram & operator=( const PlanarDiagram & other ) = default;
+        PlanarDiagram_Legacy & operator=( const PlanarDiagram_Legacy & other ) = default;
         // Move constructor
-        PlanarDiagram( PlanarDiagram && other ) = default;
+        PlanarDiagram_Legacy( PlanarDiagram_Legacy && other ) = default;
         // Move assignment operator
-        PlanarDiagram & operator=( PlanarDiagram && other ) = default;
+        PlanarDiagram_Legacy & operator=( PlanarDiagram_Legacy && other ) = default;
  
     private:
         
@@ -163,7 +151,7 @@ namespace Knoodle
          */
         
         template<IntQ ExtInt>
-        PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_ )
+        PlanarDiagram_Legacy( const ExtInt max_crossing_count_, const ExtInt unlink_count_ )
 //        : crossing_count     { int_cast<Int>(max_crossing_count_)          }
 //        , arc_count          { Int(2) * int_cast<Int>(max_crossing_count_) }
         : crossing_count     { Int(0)                                        }
@@ -185,7 +173,7 @@ namespace Knoodle
          */
         
         template<IntQ ExtInt>
-        PlanarDiagram( const ExtInt max_crossing_count_, const ExtInt unlink_count_, bool dummy )
+        PlanarDiagram_Legacy( const ExtInt max_crossing_count_, const ExtInt unlink_count_, bool dummy )
         : crossing_count     { Int(0)                                       }
         , arc_count          { Int(0)                                       }
         , unlink_count       { int_cast<Int>(unlink_count_)                 }
@@ -204,7 +192,7 @@ namespace Knoodle
     public:
         
         template<IntQ ExtInt, typename ExtInt2, typename ExtInt3>
-        PlanarDiagram(
+        PlanarDiagram_Legacy(
             cptr<ExtInt>  crossings,
             cptr<ExtInt2> crossing_states,
             cptr<ExtInt>  arcs,
@@ -213,7 +201,7 @@ namespace Knoodle
             const ExtInt  unlink_count_,
             const bool    proven_minimalQ_ = false
         )
-        :   PlanarDiagram( crossing_count_, unlink_count_, true )
+        :   PlanarDiagram_Legacy( crossing_count_, unlink_count_, true )
         {
             static_assert(IntQ<ExtInt2>||SameQ<ExtInt2,CrossingState_T>,"");
             static_assert(IntQ<ExtInt3>||SameQ<ExtInt3,ArcState_T>,"");
@@ -251,8 +239,8 @@ namespace Knoodle
          */
         
         template<FloatQ Real, FloatQ BReal>
-        explicit PlanarDiagram( mref<KnotEmbedding<Real,Int,BReal>> L )
-        :   PlanarDiagram( L.CrossingCount(), Int(0) )
+        explicit PlanarDiagram_Legacy( mref<KnotEmbedding<Real,Int,BReal>> L )
+        :   PlanarDiagram_Legacy( L.CrossingCount(), Int(0) )
         {
             using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
             
@@ -280,8 +268,8 @@ namespace Knoodle
          */
         
         template<FloatQ Real, FloatQ BReal>
-        explicit PlanarDiagram( mref<LinkEmbedding<Real,Int,BReal>> L )
-        :   PlanarDiagram( L.CrossingCount(), Int(0) )
+        explicit PlanarDiagram_Legacy( mref<LinkEmbedding<Real,Int,BReal>> L )
+        :   PlanarDiagram_Legacy( L.CrossingCount(), Int(0) )
         {
             using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
             
@@ -309,7 +297,7 @@ namespace Knoodle
          */
         
         template<FloatQ Real, IntQ ExtInt>
-        PlanarDiagram( cptr<Real> x, const ExtInt n )
+        PlanarDiagram_Legacy( cptr<Real> x, const ExtInt n )
         {
             KnotEmbedding<Real,Int,Real> L ( n );
 
@@ -327,7 +315,7 @@ namespace Knoodle
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
-            *this = PlanarDiagram( L.CrossingCount(), Int(0) );
+            *this = PlanarDiagram_Legacy( L.CrossingCount(), Int(0) );
             
             ReadFromLink<Real,Real>(
                 L.ComponentCount(),
@@ -340,7 +328,7 @@ namespace Knoodle
         }
         
         template<FloatQ Real, IntQ ExtInt>
-        PlanarDiagram( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
+        PlanarDiagram_Legacy( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
         {
             using Link_T = LinkEmbedding<Real,Int,Real>;
             
@@ -362,7 +350,7 @@ namespace Knoodle
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
-            *this = PlanarDiagram( L.CrossingCount(), Int(0) );
+            *this = PlanarDiagram_Legacy( L.CrossingCount(), Int(0) );
             
             ReadFromLink<Real,Real>(
                 L.ComponentCount(),
@@ -623,46 +611,46 @@ namespace Knoodle
         
     public:
 
-#include "PlanarDiagram/ReadFromLink.hpp"
-#include "PlanarDiagram/Traverse.hpp"
-#include "PlanarDiagram/CreateCompressed.hpp"
-#include "PlanarDiagram/Reconnect.hpp"
-#include "PlanarDiagram/Checks.hpp"
-#include "PlanarDiagram/R_I.hpp"
+#include "PlanarDiagram_Legacy/ReadFromLink.hpp"
+#include "PlanarDiagram_Legacy/Traverse.hpp"
+#include "PlanarDiagram_Legacy/CreateCompressed.hpp"
+#include "PlanarDiagram_Legacy/Reconnect.hpp"
+#include "PlanarDiagram_Legacy/Checks.hpp"
+#include "PlanarDiagram_Legacy/R_I.hpp"
 
-#include "PlanarDiagram/Crossings.hpp"
-#include "PlanarDiagram/Arcs.hpp"
-#include "PlanarDiagram/Darcs.hpp"
-#include "PlanarDiagram/Faces.hpp"
-#include "PlanarDiagram/Certificates.hpp"
-#include "PlanarDiagram/LinkComponents.hpp"
-#include "PlanarDiagram/DiagramComponents.hpp"
-#include "PlanarDiagram/Strands.hpp"
-#include "PlanarDiagram/DisconnectSummands.hpp"
+#include "PlanarDiagram_Legacy/Crossings.hpp"
+#include "PlanarDiagram_Legacy/Arcs.hpp"
+#include "PlanarDiagram_Legacy/Darcs.hpp"
+#include "PlanarDiagram_Legacy/Faces.hpp"
+#include "PlanarDiagram_Legacy/Certificates.hpp"
+#include "PlanarDiagram_Legacy/LinkComponents.hpp"
+#include "PlanarDiagram_Legacy/DiagramComponents.hpp"
+#include "PlanarDiagram_Legacy/Strands.hpp"
+#include "PlanarDiagram_Legacy/DisconnectSummands.hpp"
         
-#include "PlanarDiagram/Simplify1.hpp"
-#include "PlanarDiagram/Simplify2.hpp"
-#include "PlanarDiagram/Simplify3.hpp"
-#include "PlanarDiagram/Simplify4.hpp"
-#include "PlanarDiagram/Simplify5.hpp"
-#include "PlanarDiagram/Simplify6.hpp"
+#include "PlanarDiagram_Legacy/Simplify1.hpp"
+#include "PlanarDiagram_Legacy/Simplify2.hpp"
+#include "PlanarDiagram_Legacy/Simplify3.hpp"
+#include "PlanarDiagram_Legacy/Simplify4.hpp"
+#include "PlanarDiagram_Legacy/Simplify5.hpp"
+#include "PlanarDiagram_Legacy/Simplify6.hpp"
         
-#include "PlanarDiagram/PDCode.hpp"
-#include "PlanarDiagram/GaussCode.hpp"
-//#include "PlanarDiagram/GaussCode2.hpp"
-#include "PlanarDiagram/LongMacLeodCode.hpp"
-#include "PlanarDiagram/MacLeodCode.hpp"
+#include "PlanarDiagram_Legacy/PDCode.hpp"
+#include "PlanarDiagram_Legacy/GaussCode.hpp"
+//#include "PlanarDiagram_Legacy/GaussCode2.hpp"
+#include "PlanarDiagram_Legacy/LongMacLeodCode.hpp"
+#include "PlanarDiagram_Legacy/MacLeodCode.hpp"
         
-#include "PlanarDiagram/ResolveCrossing.hpp"
-#include "PlanarDiagram/SwitchCrossing.hpp"
+#include "PlanarDiagram_Legacy/ResolveCrossing.hpp"
+#include "PlanarDiagram_Legacy/SwitchCrossing.hpp"
         
-#include "PlanarDiagram/VerticalSummandQ.hpp"
+#include "PlanarDiagram_Legacy/VerticalSummandQ.hpp"
         
-#include "PlanarDiagram/DepthFirstSearch.hpp"
-#include "PlanarDiagram/SpanningForest.hpp"
+#include "PlanarDiagram_Legacy/DepthFirstSearch.hpp"
+#include "PlanarDiagram_Legacy/SpanningForest.hpp"
         
-#include "PlanarDiagram/Permute.hpp"
-//#include "PlanarDiagram/Planarity.hpp"
+#include "PlanarDiagram_Legacy/Permute.hpp"
+//#include "PlanarDiagram_Legacy/Planarity.hpp"
         
     public:
         
@@ -757,7 +745,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("PlanarDiagram")
+            return ct_string("PlanarDiagram_Legacy")
                 + "<" + TypeName<Int>
                 + ">";
         } 

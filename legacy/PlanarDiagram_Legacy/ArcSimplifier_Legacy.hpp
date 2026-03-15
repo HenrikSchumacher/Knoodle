@@ -3,13 +3,13 @@
 namespace Knoodle
 {
     template<IntQ Int_, Size_T optimization_level_ = 4, bool mult_compQ_ = true >
-    class alignas( ObjectAlignment ) ArcSimplifier final
+    class alignas( ObjectAlignment ) ArcSimplifier_Legacy final
     {
     public:
         
         using Int  = Int_;
         
-        using PD_T = PlanarDiagram<Int>;
+        using PD_T = PlanarDiagram_Legacy<Int>;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
@@ -83,7 +83,7 @@ namespace Knoodle
         
     public:
         
-        ArcSimplifier( PD_T & pd_ )
+        ArcSimplifier_Legacy( PD_T & pd_ )
         :   pd     { pd_        }
         ,   C_arcs { pd.C_arcs  }
         ,   C_state{ pd.C_state }
@@ -92,7 +92,7 @@ namespace Knoodle
         {}
         
         // Default constructor
-        ArcSimplifier() = delete;
+        ArcSimplifier_Legacy() = delete;
 
     private:
         
@@ -398,22 +398,22 @@ namespace Knoodle
         
     private:
         
-#include "ArcSimplifier/load.hpp"
-#include "ArcSimplifier/a_is_2loop.hpp"
-#include "ArcSimplifier/twist_at_a.hpp"
-#include "ArcSimplifier/strands_same_o.hpp"
-#include "ArcSimplifier/strands_diff_o.hpp"
-#include "ArcSimplifier/R_I_center.hpp"
-#include "ArcSimplifier/R_I_left.hpp"
-#include "ArcSimplifier/R_I_right.hpp"
-#include "ArcSimplifier/R_Ia_above.hpp"
-#include "ArcSimplifier/R_Ia_below.hpp"
-#include "ArcSimplifier/R_II_above.hpp"
-#include "ArcSimplifier/R_II_below.hpp"
-#include "ArcSimplifier/R_IIa_same_o_same_u.hpp"
-#include "ArcSimplifier/R_IIa_same_o_diff_u.hpp"
-#include "ArcSimplifier/R_IIa_diff_o_same_u.hpp"
-#include "ArcSimplifier/R_IIa_diff_o_diff_u.hpp"
+#include "ArcSimplifier_Legacy/load.hpp"
+#include "ArcSimplifier_Legacy/a_is_2loop.hpp"
+#include "ArcSimplifier_Legacy/twist_at_a.hpp"
+#include "ArcSimplifier_Legacy/strands_same_o.hpp"
+#include "ArcSimplifier_Legacy/strands_diff_o.hpp"
+#include "ArcSimplifier_Legacy/R_I_center.hpp"
+#include "ArcSimplifier_Legacy/R_I_left.hpp"
+#include "ArcSimplifier_Legacy/R_I_right.hpp"
+#include "ArcSimplifier_Legacy/R_Ia_above.hpp"
+#include "ArcSimplifier_Legacy/R_Ia_below.hpp"
+#include "ArcSimplifier_Legacy/R_II_above.hpp"
+#include "ArcSimplifier_Legacy/R_II_below.hpp"
+#include "ArcSimplifier_Legacy/R_IIa_same_o_same_u.hpp"
+#include "ArcSimplifier_Legacy/R_IIa_same_o_diff_u.hpp"
+#include "ArcSimplifier_Legacy/R_IIa_diff_o_same_u.hpp"
+#include "ArcSimplifier_Legacy/R_IIa_diff_o_diff_u.hpp"
         
     public:
         
@@ -424,11 +424,11 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("ArcSimplifier")
+            return ct_string("ArcSimplifier_Legacy")
                 + "<" + TypeName<Int>
                 + "," + ToString(mult_compQ) + ">";
         }
 
-    }; // class ArcSimplifier
+    }; // class ArcSimplifier_Legacy
             
 } // namespace Knoodle

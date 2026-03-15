@@ -1,7 +1,7 @@
 private:
 
 /*! @brief Checks whether arc `a` is a loop arc. In the affirmative case it performs a Reidemeister I move and returns `true`. Otherwise, it returns `false`.
- *  _Caution:_ This routine is equivalent to `PlanarDiagram<Int>::Reidemeister_I_Private`, except that it uses the modified routine `StrandSimplifier<Int>::Reconnect` that is equivalent to `PlanarDiagram<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram<Int>::TouchArc`!
+ *  _Caution:_ This routine is equivalent to `PlanarDiagram_Legacy<Int>::Reidemeister_I_Private`, except that it uses the modified routine `StrandSimplifier_Legacy<Int>::Reconnect` that is equivalent to `PlanarDiagram_Legacy<Int>::Reconnect` except that it makes modified arcs by `PlanarDiagram_Legacy<Int>::TouchArc`!
  *
  * @param a The arc to check as possibly, to remove.
  *

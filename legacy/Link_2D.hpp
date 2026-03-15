@@ -6,7 +6,7 @@ namespace Knoodle
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_2D : public Link<Int_>
     {
-        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
+        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram_Legacy. Hence, this class' main routine is FindIntersections (using a static binary tree).
         
         
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
@@ -445,7 +445,7 @@ namespace Knoodle
         
     public:
 
-        // Caution: Only meant to be called by a constructor of PlanarDiagram to make room for the new diagram.
+        // Caution: Only meant to be called by a constructor of PlanarDiagram_Legacy to make room for the new diagram.
         void DeleteTree()
         {
             T           = Tree2_T();

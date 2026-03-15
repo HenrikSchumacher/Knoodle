@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     template<IntQ Int_, bool mult_compQ_ = true>
-    class alignas( ObjectAlignment ) CrossingSimplifier final
+    class alignas( ObjectAlignment ) CrossingSimplifier_Legacy final
     {
     public:
         
@@ -11,7 +11,7 @@ namespace Knoodle
         
         using Int  = Int_;
         
-        using PD_T = PlanarDiagram<Int>;
+        using PD_T = PlanarDiagram_Legacy<Int>;
         
         using CrossingContainer_T       = typename PD_T::CrossingContainer_T;
         using ArcContainer_T            = typename PD_T::ArcContainer_T;
@@ -41,7 +41,7 @@ namespace Knoodle
         
     public:
         
-        CrossingSimplifier( PD_T & pd_ )
+        CrossingSimplifier_Legacy( PD_T & pd_ )
         :   pd     { pd_        }
         ,   C_arcs { pd.C_arcs  }
         ,   C_state{ pd.C_state }
@@ -50,22 +50,22 @@ namespace Knoodle
         {}
         
         // Default constructor
-        CrossingSimplifier() = delete;
+        CrossingSimplifier_Legacy() = delete;
         // Destructor
-        ~CrossingSimplifier() = default;
+        ~CrossingSimplifier_Legacy() = default;
         // Copy constructor
-        CrossingSimplifier( const CrossingSimplifier & other ) = default;
+        CrossingSimplifier_Legacy( const CrossingSimplifier_Legacy & other ) = default;
         // Copy assignment operator
-        CrossingSimplifier & operator=( const CrossingSimplifier & other ) = default;
+        CrossingSimplifier_Legacy & operator=( const CrossingSimplifier_Legacy & other ) = default;
         // Move constructor
-        CrossingSimplifier( CrossingSimplifier && other ) = default;
+        CrossingSimplifier_Legacy( CrossingSimplifier_Legacy && other ) = default;
         // Move assignment operator
-        CrossingSimplifier & operator=( CrossingSimplifier && other ) = default;
+        CrossingSimplifier_Legacy & operator=( CrossingSimplifier_Legacy && other ) = default;
 
     public:
         
-#include "CrossingSimplifier/CrossingView.hpp"
-#include "CrossingSimplifier/ArcView.hpp"
+#include "CrossingSimplifier_Legacy/CrossingView.hpp"
+#include "CrossingSimplifier_Legacy/ArcView.hpp"
         
     private:
         
@@ -181,15 +181,15 @@ namespace Knoodle
         
     public:
         
-#include "CrossingSimplifier/R_I.hpp"
-#include "CrossingSimplifier/R_II.hpp"
-#include "CrossingSimplifier/R_II_Horizontal.hpp"
-#include "CrossingSimplifier/R_II_Vertical.hpp"
-#include "CrossingSimplifier/R_Ia_Horizontal.hpp"
-#include "CrossingSimplifier/R_Ia_Vertical.hpp"
-#include "CrossingSimplifier/R_IIa_Horizontal.hpp"
-#include "CrossingSimplifier/R_IIa_Vertical.hpp"
-#include "CrossingSimplifier/TwistMove.hpp"
+#include "CrossingSimplifier_Legacy/R_I.hpp"
+#include "CrossingSimplifier_Legacy/R_II.hpp"
+#include "CrossingSimplifier_Legacy/R_II_Horizontal.hpp"
+#include "CrossingSimplifier_Legacy/R_II_Vertical.hpp"
+#include "CrossingSimplifier_Legacy/R_Ia_Horizontal.hpp"
+#include "CrossingSimplifier_Legacy/R_Ia_Vertical.hpp"
+#include "CrossingSimplifier_Legacy/R_IIa_Horizontal.hpp"
+#include "CrossingSimplifier_Legacy/R_IIa_Vertical.hpp"
+#include "CrossingSimplifier_Legacy/TwistMove.hpp"
 
         
         
@@ -202,11 +202,11 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("CrossingSimplifier")
+            return ct_string("CrossingSimplifier_Legacy")
                 + "<" + TypeName<Int>
                 + "," + ToString(mult_compQ) + ">";
         }
 
-    }; // class CrossingSimplifier
+    }; // class CrossingSimplifier_Legacy
             
 } // namespace Knoodle

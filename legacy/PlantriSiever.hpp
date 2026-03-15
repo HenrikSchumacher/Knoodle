@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Reapr.hpp"
+#include "Reapr_Legacy.hpp"
 
 namespace Knoodle
 {
@@ -13,8 +13,8 @@ namespace Knoodle
         using Int       = Int_;
         using CodeInt   = CodeInt_;
         
-        using PD_T      = PlanarDiagram<Int>;
-        using Reapr_T   = Reapr<Real,Int>;
+        using PD_T      = PlanarDiagram_Legacy<Int>;
+        using Reapr_T   = Reapr_Legacy<Real,Int>;
         
         static constexpr int max_crossing_count = 16;
         static constexpr int code_length        = 2 * max_crossing_count;

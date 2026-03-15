@@ -19,7 +19,7 @@ Size_T Simplify2()
     
     TOOLS_PTIMER(timer,MethodName("Simplify2"));
 
-    CrossingSimplifier<Int,true> S(*this);
+    CrossingSimplifier_Legacy<Int,true> S(*this);
     
     Size_T counter = 0;
     Size_T old_counter = 0;

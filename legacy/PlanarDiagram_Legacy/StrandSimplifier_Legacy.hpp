@@ -11,7 +11,7 @@ namespace Knoodle
 {
     
     template<IntQ Int_, bool mult_compQ_>
-    class alignas( ObjectAlignment ) StrandSimplifier final
+    class alignas( ObjectAlignment ) StrandSimplifier_Legacy final
     {
     public:
         
@@ -19,7 +19,7 @@ namespace Knoodle
         
         using Int  = Int_;
         
-        using PD_T = PlanarDiagram<Int>;
+        using PD_T = PlanarDiagram_Legacy<Int>;
         
         // We need a signed integer type for Mark_T because we use negative marks to indicate directions in the dual graph.
         // TODO: We could do that also with the least significant bit as we do it for darcs...
@@ -103,7 +103,7 @@ namespace Knoodle
         
     public:
         
-        StrandSimplifier( PD_T & pd_ )
+        StrandSimplifier_Legacy( PD_T & pd_ )
         :   pd         { pd_                             }
         ,   C_arcs     { pd.C_arcs                       }  
         ,   C_state    { pd.C_state                      }
@@ -121,10 +121,10 @@ namespace Knoodle
         {}
         
         // No default constructor
-        StrandSimplifier() = delete;
+        StrandSimplifier_Legacy() = delete;
         
         // Destructor
-        ~StrandSimplifier()
+        ~StrandSimplifier_Legacy()
         {
 #ifdef PD_TIMINGQ
             logprint("");
@@ -148,27 +148,27 @@ namespace Knoodle
         }
         
         // Copy constructor
-        StrandSimplifier( const StrandSimplifier & other ) = default;
+        StrandSimplifier_Legacy( const StrandSimplifier_Legacy & other ) = default;
         // Copy assignment operator
-        StrandSimplifier & operator=( const StrandSimplifier & other ) = default;
+        StrandSimplifier_Legacy & operator=( const StrandSimplifier_Legacy & other ) = default;
         // Move constructor
-        StrandSimplifier( StrandSimplifier && other ) = default;
+        StrandSimplifier_Legacy( StrandSimplifier_Legacy && other ) = default;
         // Move assignment operator
-        StrandSimplifier & operator=( StrandSimplifier && other ) = default;
+        StrandSimplifier_Legacy & operator=( StrandSimplifier_Legacy && other ) = default;
         
 
-#include "StrandSimplifier/Helpers.hpp"
-#include "StrandSimplifier/Reconnect.hpp"
-#include "StrandSimplifier/Strings.hpp"
-#include "StrandSimplifier/Checks.hpp"
-#include "StrandSimplifier/RepairArcs.hpp"
+#include "StrandSimplifier_Legacy/Helpers.hpp"
+#include "StrandSimplifier_Legacy/Reconnect.hpp"
+#include "StrandSimplifier_Legacy/Strings.hpp"
+#include "StrandSimplifier_Legacy/Checks.hpp"
+#include "StrandSimplifier_Legacy/RepairArcs.hpp"
 
-#include "StrandSimplifier/Reidemeister.hpp"
-#include "StrandSimplifier/RemoveLoop.hpp"
-#include "StrandSimplifier/FindShortestPath.hpp"
-#include "StrandSimplifier/RerouteToPath.hpp"
-#include "StrandSimplifier/CollapseArcRange.hpp"
-#include "StrandSimplifier/SimplifyStrands.hpp"
+#include "StrandSimplifier_Legacy/Reidemeister.hpp"
+#include "StrandSimplifier_Legacy/RemoveLoop.hpp"
+#include "StrandSimplifier_Legacy/FindShortestPath.hpp"
+#include "StrandSimplifier_Legacy/RerouteToPath.hpp"
+#include "StrandSimplifier_Legacy/CollapseArcRange.hpp"
+#include "StrandSimplifier_Legacy/SimplifyStrands.hpp"
 
     private:
 
@@ -274,7 +274,7 @@ namespace Knoodle
                 a = NextArc(a,Tail);
             }
 
-            // TODO: We could catch the unlink already here, but that would need some change of communication here. Instead, we dealy this to the do-loop in StrandSimplifier. This will be double work, but only in very rare cases.
+            // TODO: We could catch the unlink already here, but that would need some change of communication here. Instead, we dealy this to the do-loop in StrandSimplifier_Legacy. This will be double work, but only in very rare cases.
             
             return a;
         }
@@ -288,12 +288,12 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("StrandSimplifier")
+            return ct_string("StrandSimplifier_Legacy")
                 + "<" + TypeName<Int>
                 + "," + ToString(mult_compQ)
                 + ">";
         }
 
-    }; // class StrandSimplifier
+    }; // class StrandSimplifier_Legacy
     
 } // namespace Knoodle

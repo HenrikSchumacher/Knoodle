@@ -72,7 +72,7 @@ void Reconnect( const Int a, const bool headtail, const Int b )
  *
  * @param b The arc to be disconnected and that is to "die" in this operator.
  *
- * @tparam headtail If `headtail` is `true` (of `PlanarDiagram<Int>::Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails.
+ * @tparam headtail If `headtail` is `true` (of `PlanarDiagram_Legacy<Int>::Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails.
  *
  * @tparam deactivateQ If set to to `true` (default), then arc `b` will be deactivated after the reconnection process.
  *

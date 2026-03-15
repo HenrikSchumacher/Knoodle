@@ -255,8 +255,6 @@ namespace Knoodle
         
 #include "Reapr2/Embedding.hpp"
 #include "Reapr2/RandomRotation.hpp"
-//#include "Reapr/Rattle.hpp"
-//#include "Reapr/Generate.hpp"
         
     public:
         
@@ -349,6 +347,6 @@ namespace Knoodle
             + ">";
         }
         
-    }; // class Reapr
+    }; // class Reapr2
 
 } // namespace Knoodle
