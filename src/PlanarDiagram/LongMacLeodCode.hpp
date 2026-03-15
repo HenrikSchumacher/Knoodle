@@ -13,7 +13,7 @@ Tensor1<T,Int> LongMacLeodCode() const
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -40,7 +40,7 @@ void WriteLongMacLeodCode( mptr<T> code ) const
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::WriteLongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::WriteLongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return;
     }
     
@@ -226,7 +226,7 @@ Size_T MacLeodComparisonCount()
 //}
 
 template<IntQ T, IntQ ExtInt2, IntQ ExtInt3>
-static PlanarDiagram FromLongMacLeodCode(
+static PD_T FromLongMacLeodCode(
     cptr<T>       code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
@@ -244,7 +244,7 @@ static PlanarDiagram FromLongMacLeodCode(
 
     if( arc_count_ <= ExtInt2(0) )
     {
-        PlanarDiagram pd( Int(0), int_cast<Int>(unlink_count_) );
+        PD_T pd( Int(0), int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
@@ -252,7 +252,7 @@ static PlanarDiagram FromLongMacLeodCode(
     const Int m = int_cast<Int>(arc_count_);
     const Int n = m / Int(2);
 
-    PlanarDiagram pd ( n, int_cast<Int>(unlink_count_) );
+    PD_T pd ( n, int_cast<Int>(unlink_count_) );
     
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(pd.A_scratch.data());
     fill_buffer(A_visitedQ,false,m);
@@ -341,7 +341,7 @@ static PlanarDiagram FromLongMacLeodCode(
     
     if( !std::cmp_equal(pd.arc_count, arc_count_) )
     {
-        eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(MethodName("FromLongMacLeodCode") + ": Input long MacLeod code code is invalid because arc_count != 2 * crossing_count. Returning invalid diagram.");
     }
     
     // Compression is not really meaningful because the traversal ordering is crucial for the MacLeod code.
@@ -357,7 +357,7 @@ static PlanarDiagram FromLongMacLeodCode(
 }
 
 template<IntQ T, IntQ ExtInt>
-static PlanarDiagram FromLongMacLeodCode( cref<Tensor1<T,ExtInt>> code )
+static PD_T FromLongMacLeodCode( cref<Tensor1<T,ExtInt>> code )
 {
     return FromLongMacLeodCode( code.data(), code.Size(), Int(0), false, false );
 }

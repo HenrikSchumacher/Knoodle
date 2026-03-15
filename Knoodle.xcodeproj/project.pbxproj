@@ -124,6 +124,7 @@
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFB7E7AD2F5D7A75003F1179 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
 		AF7FD1D62D87464900D802C0 /* PolyFold */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold; sourceTree = "<group>"; };
+		AF860E6A2F66AD8300F08C51 /* legacy */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = legacy; sourceTree = "<group>"; };
 		AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree2; sourceTree = "<group>"; };
 		AFAC11072F0345620029A41C /* KnoodleTool */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = KnoodleTool; sourceTree = "<group>"; };
 		AFBB9A9B2EF54467000CA528 /* Example_Knoodle */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Example_Knoodle; sourceTree = "<group>"; };
@@ -210,6 +211,7 @@
 			children = (
 				AF05A27E2D6B573E0065E75A /* deps */,
 				AFF305442B7ACE3B009ABC74 /* submodules */,
+				AF860E6A2F66AD8300F08C51 /* legacy */,
 				AF5BC0BD29D1AF70008CA8B7 /* src */,
 				AFF305482B7AF300009ABC74 /* Knoodle.hpp */,
 				AFC2F3FD2D4D00A400FF8621 /* Reapr.hpp */,

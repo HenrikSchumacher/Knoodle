@@ -140,7 +140,7 @@ void Traverse_impl(
                + "," + BoolString(arclabelsQ)
                + "," + ToString(start_arc_ou)
                + "," + ToString(use_lutQ)
-               + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+               + " >:: Trying to traverse an invalid diagram. Aborting.");
         
         // Other methods might assume that this is set.
         // In particular, calls to `LinkComponentCount` might go into a infinite loop.
@@ -360,7 +360,7 @@ void TraverseComponent_impl(
     {
         eprint(ClassName() + "TraverseComponent_impl"
                + "<" + ToString(use_lutQ)
-               + " >:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+               + " >:: Trying to traverse an invalid diagram. Aborting.");
         return;
     }
     

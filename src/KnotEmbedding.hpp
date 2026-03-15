@@ -41,15 +41,6 @@ namespace Knoodle
         using Intersector_T  = PlanarLineSegmentIntersector<Real,Int>;
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
-        template<IntQ Int>
-        friend class PlanarDiagram;
-        
-        template<IntQ Int>
-        friend class PlanarDiagram2;
-        
-        template<FloatQ Real, IntQ Int, IntQ LInt, FloatQ BReal>
-        friend class PolyFold;
-        
     protected:
         
         static_assert(std::in_range<Int>(4 * 64 + 1),"");
@@ -117,8 +108,6 @@ namespace Knoodle
         ,   vertex_coords   { int_cast<Int>(edge_count + Int(1)) }
         ,   edge_ptr        { int_cast<Int>(edge_count + Int(1)) }
         ,   component_ptr   { Int(1)                             }
-        ,   T               { edge_count                         }
-//        ,   box_coords      { T.NodeCount()                      }
         {
             if(
                 std::cmp_greater_equal(edge_count_, Scalar::Max<Int> - Int(1))
@@ -225,7 +214,7 @@ namespace Knoodle
             bounding_boxes_computedQ = true;
         }
         
-    private:
+    public:
 
         // Caution: Only meant to be called by a constructor of PlanarDiagram to make room for the new diagram.
         void DeleteTree()
@@ -233,6 +222,7 @@ namespace Knoodle
             T             = Tree2_T();
             vertex_coords = VContainer_T();
             box_coords    = BContainer_T();
+            bounding_boxes_computedQ = false;
         }
 
     public:

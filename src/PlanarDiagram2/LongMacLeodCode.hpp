@@ -13,7 +13,7 @@ Tensor1<T,Int> LongMacLeodCode() const
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::LongMacLeodCode<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -40,7 +40,7 @@ void WriteLongMacLeodCode( mptr<T> code ) const
     
     if( !ValidQ() )
     {
-        wprint(MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(MethodName("WriteLongMacLeodCode")+"<"+TypeName<T>+">: Trying to compute long MacLeod code of invalid diagram. Returning empty vector.");
         return;
     }
     

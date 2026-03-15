@@ -173,27 +173,6 @@ namespace Knoodle
             }
             
             
-            
-//            template<IntQ Int>
-//            std::string LookupName( cref<PlanarDiagram<Int>> pd ) const
-//            {
-//                if( !std::cmp_equal(pd.CrossingCount(),c_count) )
-//                {
-//                    wprint(MethodName("LookupName") + ": input's crossing count = " + ToString(pd.CrossingCount()) + " does not coincide with crossing count = " + ToString(c_count) + " of this lookup table. Returning \"NotFound\".");
-//
-//                    return "NotFound";
-//                }
-//
-//                std::string key (c_count, '\0');
-//
-//                pd.template WriteMacLeodCode<UInt8>(
-//                    reinterpret_cast<UInt8 *>(&key[0])
-//                );
-//
-//                return LookupName(key);
-//            }
-            
-            
         public:
             
             std::string MethodName( const std::string & tag ) const

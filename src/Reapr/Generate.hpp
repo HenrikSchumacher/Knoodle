@@ -92,7 +92,7 @@ void Generate_impl(
         for( Int perm = 0; perm < permutation_count; ++perm )
         {
             auto [comp_ptr,x] = Embedding(pd).Disband();
-            Link_T L ( std::move(comp_ptr) );
+            Link_T L ( std::move(comp_ptr), Tensor1<Int,Int>() );
             
             for( Int rot = 0; rot < rotation_count; ++rot )
             {

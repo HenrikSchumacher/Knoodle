@@ -171,7 +171,7 @@ Size_T Split( mref<PD_List_T> pd_list )
             dc_arc_count += j_end - j_begin;
         }
 
-        PlanarDiagram pd (dc_arc_count/Int(2),Int(0));        
+        PD_T pd (dc_arc_count/Int(2),Int(0));        
         Int a_counter = 0;
         Int c_counter = 0;
         

@@ -6,7 +6,7 @@ namespace Knoodle
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = float>
     class alignas( ObjectAlignment ) LinkEmbedding : public Link<Int_>
     {
-        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is FindIntersections (using a static binary tree).
+        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is RequireIntersections (using a static binary tree).
         
         
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
@@ -43,15 +43,6 @@ namespace Knoodle
         static constexpr Int AmbDim = 3;
         
         using Matrix3x3_T = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
-        
-        template<IntQ Int>
-        friend class PlanarDiagram;
-        
-        template<IntQ Int>
-        friend class PlanarDiagram2;
-        
-        template<FloatQ Real, IntQ Int, IntQ LInt, FloatQ BReal>
-        friend class PolyFold;
         
     protected:
         
@@ -131,17 +122,13 @@ namespace Knoodle
          */
         template<IntQ I>
         explicit LinkEmbedding( const I edge_count_ )
-        :   Base_T      { int_cast<Int>(edge_count_)         }
-        ,   edge_coords { edge_count                         }
-//        ,   T           { edge_count                         }
-//        ,   box_coords  { T.AllocateBoxes()                  }
+        :   Base_T      { int_cast<Int>(edge_count_) }
+        ,   edge_coords { edge_count                 }
         {}
         
-        explicit LinkEmbedding( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
+        LinkEmbedding( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Base_T      { std::move(component_ptr_), std::move(component_color_)  }
         ,   edge_coords { edge_count                                              }
-        ,   T           { edge_count                                              }
-//        ,   box_coords  { T.AllocateBoxes()                                       }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
@@ -151,8 +138,6 @@ namespace Knoodle
         )
         :   Base_T      { edges_, edges_colors_, int_cast<Int>(edge_count_) }
         ,   edge_coords { edge_count                                        }
-        ,   T           { edge_count                                        }
-//        ,   box_coords  { T.AllocateBoxes()                                 }
         {}
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
@@ -162,8 +147,6 @@ namespace Knoodle
         )
         :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
         ,   edge_coords { edge_count                                          }
-        ,   T           { edge_count                                          }
-        ,   box_coords  { T.AllocateBoxes()                                   }
         {}
         
     public:
@@ -439,14 +422,14 @@ namespace Knoodle
             bounding_boxes_computedQ = true;
         }
         
-    private:
+    public:
 
-        // Caution: Only meant to be called by a constructor of PlanarDiagram to make room for the new diagram.
         void DeleteTree()
         {
             T           = Tree2_T();
             edge_coords = EContainer_T();
             box_coords  = BContainer_T();
+            bounding_boxes_computedQ = false;
         }
 
     public:

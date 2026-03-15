@@ -9,7 +9,7 @@ Embedding_T Embedding( cref<PD_T> pd )
     // TODO: Improve handling of split links!
     if( pd.DiagramComponentCount() > Int(1) )
     {
-        eprint(MethodName("Embedding") + ": input PlanarDiagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
+        eprint(MethodName("Embedding") + ": input diagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
         return RaggedList<Point_T,Int>();
     }
     
@@ -42,8 +42,6 @@ Embedding_T Embedding_impl( cref<PD_T> pd )
     
     const Real scale = scaling * Min(w,h) / (L_max - L_min);
     
-    // TODO: Check whether I have to erase cache of PlanarDiagram pd.
-    // TODO: Or maybe better: give OrthoDraw a full copy of PlanarDiagram.
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     

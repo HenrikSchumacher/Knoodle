@@ -60,7 +60,7 @@ bool Simplify6(
             
             while( !pd_local_list.empty() )
             {
-                PlanarDiagram pd_loc = std::move(pd_local_list.back());
+                PD_T pd_loc = std::move(pd_local_list.back());
                 pd_local_list.pop_back();
                 
                 pd_loc.Simplify6(

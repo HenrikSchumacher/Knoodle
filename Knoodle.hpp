@@ -30,7 +30,6 @@ namespace Knoodle
 #include "src/Intersection.hpp"
 
 #include "src/PlanarLineSegmentIntersector.hpp"
-//#include "src/Link_2D.hpp"
 #include "src/LinkEmbedding.hpp" // Meant to supercede the misnomer Link_2D.
 #include "src/KnotEmbedding.hpp"
 

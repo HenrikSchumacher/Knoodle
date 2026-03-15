@@ -196,7 +196,7 @@ static PD_T FromExtendedGaussCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(MethodName("FromExtendedGaussCode")+"<"+TypeName<T>+","+TypeName<ExtInt>+">"+": Input Gauss code is invalid because arc_count != 2 * crossing_count. Returning invalid diagram.");
     }
     
     return pd;

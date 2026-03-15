@@ -43,31 +43,32 @@ struct SwitchToChars
     
     static constexpr bool implementedQ = true;
     
-    static constexpr Size_T char_count = 3;
+    static constexpr Size_T char_count = 4;
     
     ToCharResult operator()( char * & begin, char * end, const Switch_T & s ) const
     {
         switch( s )
         {
-            case Switch_T::s_S:
-            {
-                return CharArray("s_S").ToChars(begin,end);
-            }
-            case Switch_T::s_L:
-            {
-                return CharArray("s_L").ToChars(begin,end);
-            }
-            case Switch_T::t_S:
-            {
-                return CharArray("t_S").ToChars(begin,end);
-            }
-            case Switch_T::t_L:
-            {
-                return CharArray("t_L").ToChars(begin,end);
-            }
+            case Switch_T::s_S:  return CharArray("s_S").ToChars(begin,end);
+            case Switch_T::s_L:  return CharArray("s_L").ToChars(begin,end);
+            case Switch_T::t_S:  return CharArray("t_S").ToChars(begin,end);
+            case Switch_T::t_L:  return CharArray("t_L").ToChars(begin,end);
+            case Switch_T::None: return CharArray("None").ToChars(begin,end);
         }
     }
 };
+
+std::string friend ToString(  const Switch_T & s )
+{
+    switch( s )
+    {
+        case Switch_T::s_S:  return "s_S";
+        case Switch_T::s_L:  return "s_L";
+        case Switch_T::t_S:  return "s_L";
+        case Switch_T::t_L:  return "t_L";
+        case Switch_T::None: return "None";
+    }
+}
 
 
 template<bool GrQ>
@@ -578,15 +579,15 @@ void SaturateRegion(
                 valprint("i_0",i_0);
                 print(
                     "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
-                     "r_S[i_0] = " + SwitchString(r_S[i_0])
+                     "r_S[i_0] = " + ToString(r_S[i_0])
                 );
                 print(
                     "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
-                     "r_S[i_1] = " + SwitchString(r_S[i_2])
+                     "r_S[i_1] = " + ToString(r_S[i_2])
                 );
                 print(
                     "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
-                     "r_S[i_2] = " + SwitchString(r_S[i_2])
+                     "r_S[i_2] = " + ToString(r_S[i_2])
                 );
             }
             
@@ -678,15 +679,15 @@ void SaturateRegion(
                 valprint("i_0",i_0);
                 print(
                     "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
-                     "r_S[i_0] = " + SwitchString(r_S[i_0])
+                     "r_S[i_0] = " + ToString(r_S[i_0])
                 );
                 print(
                     "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
-                     "r_S[i_1] = " + SwitchString(r_S[i_1])
+                     "r_S[i_1] = " + ToString(r_S[i_1])
                 );
                 print(
                     "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
-                     "r_S[i_2] = " + SwitchString(r_S[i_2])
+                     "r_S[i_2] = " + ToString(r_S[i_2])
                 );
             }
             

@@ -11,7 +11,7 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
+        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid diagram. Returning empty vector.");
         
         return code;
     }
@@ -74,7 +74,7 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 
 
 template<SignedIntQ T, IntQ ExtInt2, IntQ ExtInt3>
-static PlanarDiagram FromExtendedGaussCode(
+static PD_T FromExtendedGaussCode(
     cptr<T>       gauss_code,
     const ExtInt2 arc_count_,
     const ExtInt3 unlink_count_,
@@ -84,12 +84,12 @@ static PlanarDiagram FromExtendedGaussCode(
 {
     if( arc_count_ <= ExtInt2(0) )
     {
-        PlanarDiagram pd ( Int(0), int_cast<Int>(unlink_count_) );
+        PD_T pd ( Int(0), int_cast<Int>(unlink_count_) );
         pd.proven_minimalQ = true;
         return pd;
     }
     
-    PlanarDiagram pd (
+    PD_T pd (
         int_cast<Int>(arc_count_/2),int_cast<Int>(unlink_count_)
     );
     pd.proven_minimalQ = proven_minimalQ_;
@@ -102,7 +102,7 @@ static PlanarDiagram FromExtendedGaussCode(
         const T g = gauss_code[a];
         if( g == T(0) )
         {
-            eprint(ClassName()+"::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid PlanarDiagram.");
+            eprint(ClassName()+"::FromExtendedGaussCode: Input code is invalid as it contains a crossing with label 0. Returning invalid diagram.");
             return 1;
         }
         
@@ -174,13 +174,13 @@ static PlanarDiagram FromExtendedGaussCode(
     {
         if( fun( a-Int(1), a ) )
         {
-            return PlanarDiagram();
+            return PD_T();
         }
     }
     
     if( fun( int_cast<Int>(arc_count_)-Int(1), Int(0) ) )
     {
-        return PlanarDiagram();
+        return PD_T();
     }
     
     pd.crossing_count = crossing_counter;
@@ -188,7 +188,7 @@ static PlanarDiagram FromExtendedGaussCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid PlanarDiagram.");
+        eprint(ClassName() + "FromPDCode: Input PD code is invalid because arc_count != 2 * crossing_count. Returning invalid diagram.");
     }
     
     // Compression is not really meaningful because the traversal ordering is crucial for the extended Gauss code.
@@ -215,7 +215,7 @@ Tensor1<T,Int> ExtendedGaussCodeByLinkTraversal()  const
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::ExtendedGaussCodeByLinkTraversal: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
+        wprint( ClassName()+"::ExtendedGaussCodeByLinkTraversal: Trying to compute extended Gauss code of invalid diagram. Returning empty vector.");
         
         return gauss_code;
     }

@@ -15,7 +15,7 @@ void Replace( const Int diagram_idx, PD_T && pd )
     
     if( (diagram_idx < 0) || (diagram_idx >= DiagramCount() ) )
     {
-        wprint(MethodName("Replace") + ": Diagram index a = " + ToString(diagram_idx) + " is out of bounds. Doing nothing.");
+        wprint(MethodName("Replace") + ": Diagram index = " + ToString(diagram_idx) + " is out of bounds. Doing nothing.");
         return;
     }
         

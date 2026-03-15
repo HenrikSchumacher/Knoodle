@@ -132,7 +132,7 @@ void DepthFirstSearch(
                     logprint("Rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
                     );
                 }
-                std::invoke( rediscover, {A.head,db,head} );
+                std::invoke( rediscover, DarcNode{A.head,db,head} );
             }
             else
             {

@@ -254,7 +254,17 @@ namespace Knoodle
         explicit PlanarDiagram( mref<KnotEmbedding<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
-            L.template RequireIntersections<true>();
+            using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
+            
+            TOOLS_PTIMER(timer,ClassName()+"("+Knot_T::ClassName()+")");
+            
+            int err = L.template RequireIntersections<true>();
+
+            if( err != 0 )
+            {
+                eprint(ClassName() + "("+ Knot_T::ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+                *this = PD_T();
+            }
             
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
@@ -273,7 +283,17 @@ namespace Knoodle
         explicit PlanarDiagram( mref<LinkEmbedding<Real,Int,BReal>> L )
         :   PlanarDiagram( L.CrossingCount(), Int(0) )
         {
-            L.template RequireIntersections<true>();
+            using Link_T [[maybe_unused]] = LinkEmbedding<Real,Int,BReal>;
+            
+            TOOLS_PTIMER(timer,ClassName()+"("+Link_T::ClassName()+")");
+            
+            int err = L.template RequireIntersections<true>();
+
+            if( err != 0 )
+            {
+                eprint(ClassName() + "("+ L.ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+                *this = PD_T();
+            }
             
             ReadFromLink<Real,BReal>(
                 L.ComponentCount(),
@@ -299,11 +319,11 @@ namespace Knoodle
             
             if( err != 0 )
             {
-                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
+                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
                 return;
             }
             
-            // Deallocate tree-related data in L to make room for the PlanarDiagram.
+            // Deallocate tree-related data in L to make room for the planar diagram.
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
@@ -324,7 +344,9 @@ namespace Knoodle
         {
             using Link_T = LinkEmbedding<Real,Int,Real>;
             
-            Link_T L ( edges, n );
+            Int * dummy = nullptr;
+            
+            Link_T L ( edges, dummy, n );
 
             L.ReadVertexCoordinates ( x );
             
@@ -332,11 +354,11 @@ namespace Knoodle
             
             if( err != 0 )
             {
-                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram.");
+                eprint(ClassName() + "(): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
                 return;
             }
             
-            // Deallocate tree-related data in L to make room for the PlanarDiagram.
+            // Deallocate tree-related data in L to make room for the planar diagram.
             L.DeleteTree();
             
             // We delay the allocation until substantial parts of L have been deallocated.
@@ -722,7 +744,7 @@ namespace Knoodle
 */
         Size_T ByteCount()
         {
-            return sizeof(PlanarDiagram) + AllocatedByteCount();
+            return sizeof(PD_T) + AllocatedByteCount();
         }
         
         static std::string MethodName( const std::string & tag )

@@ -180,7 +180,7 @@ namespace Knoodle
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                eprint(MethodName("Diagram") + ": Index  i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + " . Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -237,7 +237,7 @@ namespace Knoodle
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                eprint(MethodName("Diagram") + ": Index i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }

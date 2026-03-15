@@ -37,7 +37,7 @@ Int EdgeEdgeManhattanDistance(
         { E_V(e_1,Tail), E_V(e_1,Head) },
     };
     
-    // If the edges interect because their end vertices coincide (which can happen, e.g., if the PlanarDiagram had a Reidemeister I loop), then we have to report "no intersection"
+    // If the edges intesect because their end vertices coincide (which can happen, e.g., if the planar diagram had a Reidemeister I loop), then we have to report "no intersection"
     if(
        ( v[0][0] == v[1][0] )
        ||

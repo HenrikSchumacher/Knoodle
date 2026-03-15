@@ -11,7 +11,7 @@ Tensor1<T,Int> ExtendedGaussCode2( const Int a_0 = 0 )  const
     
     if( !ValidQ() )
     {
-        wprint( ClassName()+"::ExtendedGaussCode2<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid PlanarDiagram. Returning empty vector.");
+        wprint( ClassName()+"::ExtendedGaussCode2<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid diagram. Returning empty vector.");
         
         return code;
     }

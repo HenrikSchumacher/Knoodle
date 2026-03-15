@@ -95,7 +95,7 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid diagram. Returning empty vector.");
         return;
     }
 
@@ -119,7 +119,7 @@ Tensor1<T,Int> MacLeodCode() const
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -130,7 +130,7 @@ Tensor1<T,Int> MacLeodCode() const
 }
 
 template<IntQ T, IntQ ExtInt2, IntQ ExtInt3>
-static PlanarDiagram FromMacLeodCode(
+static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
     const ExtInt2 crossing_count_,
     const ExtInt3 unlink_count_,
@@ -160,7 +160,7 @@ static PlanarDiagram FromMacLeodCode(
 
 
 template<IntQ T, IntQ ExtInt>
-static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
+static PD_T FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 {
     return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), Int(0), false, false );
 }
@@ -202,7 +202,7 @@ std::string MacLeodString() const
     return s;
 }
 
-static PlanarDiagram FromMacLeodString( cref<std::string> s )
+static PD_T FromMacLeodString( cref<std::string> s )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
     

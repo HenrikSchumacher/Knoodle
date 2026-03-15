@@ -144,7 +144,7 @@ bool DisconnectSummand(
     
     sort( &f_faces[0], &f_arcs[0], f_size );
     
-    auto conditional_push = [&]( PlanarDiagram && pd )
+    auto conditional_push = [&]( PD_T && pd )
     {
         pd.Simplify5(
             pd_list,
@@ -347,7 +347,7 @@ private:
 /*! @brief Removes the smaller of the connected components of arc `a` and `b` and creates a new diagram from it.
  */
 
-PlanarDiagram ExportSmallerComponent( const Int a_0, const Int b_0 )
+PD_T ExportSmallerComponent( const Int a_0, const Int b_0 )
 {
     TOOLS_PTIMER(timer,MethodName("ExportSmallerComponent"));
     
@@ -370,7 +370,7 @@ PlanarDiagram ExportSmallerComponent( const Int a_0, const Int b_0 )
     }
     while( (a != a_0) && (b != b_0) );
     
-    PlanarDiagram pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
+    PD_T pd = ExportComponent( (a == a_0) ? a_0 : b_0, length );
     
     return pd;
 }
@@ -383,15 +383,15 @@ private:
  *
  * @param a_0 The index of the arc
  *
- * @param comp_size The number of arcs to remove. It is needed for creating the new `PlanarDiagram` instance with a sufficient number of arcs.
+ * @param comp_size The number of arcs to remove. It is needed for creating the new planar diagramwith a sufficient number of arcs.
  *
  */
 
-PlanarDiagram ExportComponent( const Int a_0, const Int comp_size )
+PD_T ExportComponent( const Int a_0, const Int comp_size )
 {
     TOOLS_PTIMER(timer,MethodName("ExportComponent"));
     
-    PlanarDiagram pd (comp_size/Int(2),Int(0));
+    PD_T pd (comp_size/Int(2),Int(0));
     
     Int a_counter = 0;
     Int c_counter = 0;

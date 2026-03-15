@@ -3,7 +3,7 @@
  */
 
 template<FloatQ Real, FloatQ BReal>
-static PlanarDiagram2 FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
+static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
 {
     using Knot_T [[maybe_unused]] = KnotEmbedding<Real,Int,BReal>;
     
@@ -15,8 +15,8 @@ static PlanarDiagram2 FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
     
     if( err != 0 )
     {
-        eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid planar diagram.");
-        return PD_T::InvalidDiagram();
+        eprint(MethodName("FromKnotEmbedding") + "("+Knot_T::ClassName()+"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
     return PD_T::template FromLinkEmbedding_impl<Real,BReal>(
@@ -27,14 +27,14 @@ static PlanarDiagram2 FromKnotEmbedding( mref<KnotEmbedding<Real,Int,BReal>> K )
         K.EdgeIntersections().data(),
         K.EdgeOverQ().data(),
         K.Intersections()
-    ).first;
+    );
 }
 
 /*! @brief Construction from coordinates.
  */
 
 template<FloatQ Real, IntQ ExtInt>
-static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
+static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
 
@@ -46,8 +46,8 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 
     if( err != 0 )
     {
-        eprint(MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid planar diagram.");
-        return PD_T::InvalidDiagram();
+        eprint(MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
     // Deallocate tree-related data in L to make room for the PD_T.
@@ -64,7 +64,7 @@ static PD_T FromKnotEmbedding( cptr<Real> x, const ExtInt n )
         L.EdgeIntersections().data(),
         L.EdgeOverQ().data(),
         L.Intersections()
-    ).first;
+    );
 }
 
 /*!@brief Construction from `FromLinkEmbedding` object. Returns a planar diagram and the number of unlinks found in the input.
@@ -81,7 +81,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
 
     if( err != 0 )
     {
-        eprint(MethodName("RequireIntersections") + "("+ Link_T::ClassName() +"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
+        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
@@ -121,7 +121,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning empty PlanarDiagram2.");
+        eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 

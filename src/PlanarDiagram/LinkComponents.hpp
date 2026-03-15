@@ -159,7 +159,7 @@ void TraverseLinkComponentsWithCrossings(
 {
     if( !ValidQ() )
     {
-        eprint(ClassName() + "TraverseLinkComponentsWithCrossings:: Trying to traverse an invalid PlanarDiagram. Aborting.");
+        eprint(ClassName() + "TraverseLinkComponentsWithCrossings:: Trying to traverse an invalid diagram. Aborting.");
         return;
     }
 

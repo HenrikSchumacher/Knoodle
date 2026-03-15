@@ -394,7 +394,7 @@ void Initialize()
         log << "\n" + ct_tabs<t2> + "|>";
         log << std::flush;
 
-        // Deallocate tree-related data in L to make room for the PlanarDiagram.
+        // Deallocate tree-related data in L to make room for the planar diagram.
         if( force_deallocQ )
         {
             L.DeleteTree();
@@ -410,6 +410,7 @@ void Initialize()
         {
             L = Link_T();
         }
+        
         PD_byte_count = PDC.Diagram(0).ByteCount();
             kv<t3>("Byte Count (Before Simplification)", PD_byte_count );
         log << "\n" + ct_tabs<t2> + "|>";

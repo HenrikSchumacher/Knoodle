@@ -19,7 +19,7 @@ LinkEmbedding_T Embedding( cref<PD_T> pd, Transformation_T && f )
     
     if( pd.DiagramComponentCount() > Int(1) )
     {
-        eprint(MethodName("Embedding") + ": input PlanarDiagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
+        eprint(MethodName("Embedding") + ": input diagram has " + ToString(pd.DiagramComponentCount()) + " > 1 diagram components. Split it first.");
         return LinkEmbedding_T();
     }
     
@@ -44,31 +44,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Transformation_T && f )
     OrthoDraw_T H ( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
     Tensor1<Real,Int> L = Levels(pd);
     
-//    OrthoDraw_T H;
-//    Tensor1<Real,Int> L;
-//    
-//    ParallelDo(
-//        [&H,&L,&pd,this](const Int thread)
-//        {
-//            if( thread == Int(0) )
-//            {
-//                H = OrthoDraw_T( pd, PD_T::Uninitialized, settings.ortho_draw_settings );
-//            }
-//            else if( thread == Int(1) )
-//            {
-//                L = Levels(pd);
-//            }
-//        },
-//        Int(2),
-//        (settings.ortho_draw_settings.parallelizeQ ? Int(2) : (Int(1)))
-//    );
-    
     auto [comp_ptr,comp_color,x] = Embedding_VertexCoordinates(pd, H, L, f);
-    
-//    RaggedList<Point_T,Int> V_agg = Embedding_VertexCoordinates( cref<PD_T> pd, Transformation_T && f );
-//    
-//    
-//    auto [comp_ptr,comp_color,x] = V_agg.Disband();
                          
     LinkEmbedding<Real,Int> emb ( std::move(comp_ptr), std::move(comp_color) );
 

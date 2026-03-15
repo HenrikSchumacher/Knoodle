@@ -54,7 +54,7 @@ using Real        = double;
 using PD_T        = Knoodle::PlanarDiagram<Int>;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Reapr_T     = Knoodle::Reapr<Real, Int>;
-using Link_T      = Knoodle::Link_2D<Real, Int, Real>;
+using Link_T      = Knoodle::KnotEmbedding<Real, Int, Real>;
 using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;
 using Flag_T      = Reapr_T::EnergyFlag_T;
@@ -71,23 +71,23 @@ namespace {
 struct Config
 {
     // Simplification options
-    int  simplify_level      = 6;            ///< Simplification level (3, 4, 5, or 6+)
-    Int  max_reapr_attempts  = 25;           ///< Max iterations for Reapr::Rattle
-    bool no_compaction       = false;        ///< Skip compaction in OrthoDraw (Reapr only)
+    int  simplify_level       = 6;           ///< Simplification level (3, 4, 5, or 6+)
+    Int  max_reapr_attempts   = 25;          ///< Max iterations for Reapr::Rattle
+    bool no_compaction        = false;       ///< Skip compaction in OrthoDraw (Reapr only)
     std::optional<Flag_T> reapr_energy;      ///< Energy flag for Reapr (if set)
     
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
-    bool streaming_mode      = false;        ///< Read from stdin, write to stdout
+    bool streaming_mode       = false;       ///< Read from stdin, write to stdout
     bool randomize_projection = false;       ///< Apply random shear to 3D projection
     
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
     bool output_ascii_drawing = false;       ///< Generate ASCII art drawings
-    bool quiet               = false;        ///< Suppress per-knot reports, show counter only
+    bool quiet                = false;       ///< Suppress per-knot reports, show counter only
     
     // Derived state
-    bool help_requested      = false;  ///< User requested help
+    bool help_requested       = false;       ///< User requested help
 };
 
 /// Minimum valid simplification level.
@@ -654,7 +654,7 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
         }
     }
     
-    // Create Link_2D and find intersections
+    // Create KnotEmbedding and find intersections
     Link_T link(vertex_count);
     link.ReadVertexCoordinates(coords.data());
     

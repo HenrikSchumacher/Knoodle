@@ -6,12 +6,12 @@ public:
  * Relabeling is done in order of traversal by routine `Traverse<true,false,0>`.
  */
 
-PlanarDiagram CreateCompressed()
+PD_T CreateCompressed()
 {
     if( !ValidQ() )
     {
         wprint( MethodName("CreateCompressed")+": Input diagram is invalid. Returning invalid diagram.");
-        return PlanarDiagram();
+        return PD_T();
     }
     
     TOOLS_PTIMER(timer,MethodName("CreateCompressed"));
@@ -23,7 +23,7 @@ PlanarDiagram CreateCompressed()
         wprint(MethodName("CreateCompressed")+": Debug mode active.");
     }
     
-    PlanarDiagram pd ( crossing_count, unlink_count );
+    PD_T pd ( crossing_count, unlink_count );
     
     // We assume that we start with a valid diagram.
     // So we do not have to compute `crossing_count` or `arc_count`.

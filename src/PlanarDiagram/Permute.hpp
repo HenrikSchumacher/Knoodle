@@ -1,7 +1,7 @@
 public:
 
 template<typename PRNGT_T>
-PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
+PD_T PermuteRandom( mref<PRNGT_T> random_engine ) const
 {
     TOOLS_PTIMER(timer,MethodName("PermuteRandom"));
                  
@@ -17,7 +17,7 @@ PlanarDiagram PermuteRandom( mref<PRNGT_T> random_engine ) const
 }
 
 template<IntQ ExtInt>
-PlanarDiagram Permute(
+PD_T Permute(
     mref<Permutation<ExtInt,Sequential>> c_perm,
     mref<Permutation<ExtInt,Sequential>> a_perm
 )  const
@@ -27,19 +27,19 @@ PlanarDiagram Permute(
     if( std::cmp_not_equal(max_crossing_count,c_perm.Size()) )
     {
         eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(c_perm.Size()) + " does not match number of elements " + Tools::ToString(max_crossing_count) + " in Crossings(). Aborting.");
-        return PlanarDiagram();
+        return PD_T();
     }
     
     if( std::cmp_not_equal(max_arc_count,a_perm.Size()) )
     {
         eprint(ClassName()+"::Permute<"+TypeName<ExtInt>+">: Size " + Tools::ToString(a_perm.Size()) + " does not match number of elements " + Tools::ToString(max_arc_count) + " in Arcs(). Aborting.");
-        return  PlanarDiagram();
+        return  PD_T();
     }
     
     cptr<Int> c_p = c_perm.GetPermutation().data();
     cptr<Int> a_p = a_perm.GetPermutation().data();
     
-    PlanarDiagram pd ( max_crossing_count, this->UnlinkCount() );
+    PD_T pd ( max_crossing_count, this->UnlinkCount() );
     
     pd.proven_minimalQ = this->proven_minimalQ;
     pd.crossing_count  = this->crossing_count;

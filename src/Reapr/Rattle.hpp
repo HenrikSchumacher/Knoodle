@@ -123,7 +123,7 @@ std::vector<PD_T> Rattle(
         if ( !randomizeQ )
         {
             std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
-            L = Link_T( std::move(comp_ptr) );
+            L = Link_T( std::move(comp_ptr), Tensor1<Int,Int>() );
         }
         
         bool successQ = false;
@@ -138,7 +138,7 @@ std::vector<PD_T> Rattle(
             if ( randomizeQ )
             {
                 std::tie(comp_ptr,x) = Embedding(pd_0).Disband();
-                L = Link_T( std::move(comp_ptr) );
+                L = Link_T( std::move(comp_ptr), Tensor1<Int,Int>() );
             }
 
             ++rattle_counter;
