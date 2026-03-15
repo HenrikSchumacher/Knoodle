@@ -1,28 +1,22 @@
 public:
 
-/*!
- * @brief Returns the pd-codes of the crossing as Tensor2 object.
+/*!@brief Returns the pd-codes of the crossings as Tensor2 object.
  *
- *  The pd-code of crossing `c` is given by
+ *  The information for crossing `c` is given by a row in the output matrix. There 4-7 numbers stored in such a row,.
+ *  The first 4 entries `PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3)` represent the arcs attached to crossing c. `PDCode()(c,0)` is the incoming arc that goes under. It is followed by the other arcs in counter-clockwise orientation. This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
  *
- *    `{ PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3), PDCode()(c,4) }`
- *
- *  The first 4 entries are the arcs attached to crossing c.
- *  `PDCode()(c,0)` is the incoming arc that goes under.
- *  This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
- *
- *  The fifth entry stores the handedness of the crossing: if `T` is a signed integer type, then this is encoded as follows:
- *    `+1` for a right-handed crossing,
- *    `-1` for a left-handed crossing.
- *  If `T` is an unsigned integer type, then we use
- *    `+1` for a right-handed crossing,
- *     `0` for a left-handed crossing.
+ *  Depending on the template parameters, there might be further entries `PDCode()(c,4), PDCode()(c,5), PDCode()(c,6)`. Their meaning is explained below.
  *
  * @tparam T Integer type to be used for the returned code.
  *
+ * @tparam signQ Whether the code is signed. If yes, then `PDCode()(c,4)` represents the handedness of crossing `c`; `PDCode()(c,4) > 0` means right-handed, `PDCode()(c,4) <= 9` means left-handed.
+ *
+ * @tparam colorQ Whether the arc colors ought to be stored. If yes, then the last two entries of PDCode()(c,..) will be the color of the incoming underarc and the incoming over-arc, respectively.
+ *
+ * @tparam labelQ If set to `true`, then the crossing and arc labels  (i.e., a mapping from he old crossings and arcs to the crossings and arcs in the pd code) are generated. Then can retrieved from `CrossingScratch` and `ArcScratch` right after the call to `PDCode`. Beware that these internal buffers may be overwritten by other routines.
  */
 
-template<IntQ T = Int, bool signQ = true, bool colorQ = false, bool labelQ = false>
+template<IntQ T = Int, bool signQ = true, bool colorQ = true, bool labelQ = false>
 Tensor2<T,Int> PDCode() const
 {
     auto tag = []()
@@ -62,6 +56,9 @@ Tensor2<T,Int> PDCode() const
     
     return pd_code;
 }
+
+/*!@brief Writes the pd code to the output raw buffer `pd_code`. Size and meaning of the results are determined by the template parameters. See the documentation of `PDCode` for details.
+ */
 
 template<IntQ T, bool signQ = true, bool colorQ = false, bool labelQ = false>
 void WritePDCode( mptr<T> pd_code ) const
@@ -307,7 +304,7 @@ static PD_T FromSignedPDCode(
     const bool   compressQ = true
 )
 {
-    return FromPDCode<true,checksQ>(
+    return FromPDCode<true,false,checksQ>(
         pd_codes, crossing_count, proven_minimalQ_, compressQ
     );
 }
@@ -337,15 +334,14 @@ static PD_T FromUnsignedPDCode(
     
 )
 {
-    return FromPDCode<false,checksQ>(
+    return FromPDCode<false,false,checksQ>(
         pd_codes, crossing_count, proven_minimalQ_, compressQ
     );
 }
 
 public:
 
-/*!
- * Deduces the handedness of a crossing from the entries `X[0]`, `X[1]`, `X[2]`, `X[3]` alone. This only works if every link component has more than two arcs and if all arcs in each component are numbered consecutively.
+/*!@brief Deduces the handedness of a crossing from the entries `X[0]`, `X[1]`, `X[2]`, `X[3]` alone. This only works if every link component has more than two arcs and if all arcs in each component are numbered consecutively.
  */
 
 static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
@@ -435,6 +431,20 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
 }
 
 public:
+
+
+/*!@brief Loads a PlanarDiagram from a pd code. Between 4 and 7 numbers are expected per crossing. The template parameters control how many and how they are interpreted.
+ *
+ * @tparam signQ Whether the code is signed. If yes, then the 4-th number per crossing represents the handedness of crossing `c`; ` 0` means right-handed, `<= 0` means left-handed.
+ *
+ * @tparam colorQ Whether the arc colors ought to be used. If yes, then the last two numbers per crossing are interpreted as the color of the incoming underarc and the incoming over-arc, respectively.
+ *
+ * @tparam checksQ If set to `true`, then a few consistency checks are performed.
+ *
+ * If no handedness is given, then an attempt will be made to guess these parameters. Note that that there are cases in which an unsigned pd code does not uniquely determine a link diagram.
+ *
+ * If color information is given, then the link components are colored in the "natural" order they a reversed by the `Traverse` routine.
+ */
 
 template<bool signQ, bool colorQ, bool checksQ = true, IntQ T, IntQ ExtInt>
 static PD_T FromPDCode(
@@ -676,7 +686,7 @@ static PD_T FromPDCode(
     if( compressQ )
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
-        // This also applies the coloring to the arcs.
+        // This also applies a coloring to the arcs of `colorQ == true`.
         return pd.template CreateCompressed<!colorQ>();
     }
     else
