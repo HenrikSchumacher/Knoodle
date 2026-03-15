@@ -4,17 +4,17 @@ public:
  *
  * Beware that `A_scratch` and `C_scratch` are overwritten as follows:
  *
- * If `labelsQ == true`, then, on return, `C_scratch` contains the reordering of the crossings:
+ * If `labelQ == true`, then, on return, `C_scratch` contains the reordering of the crossings:
  * If crossing `c` is active, then `C_scratch[c]` is the position of `c` among the visited crossings; otherwise, if `c` is inactive, `C_scratch[c] = Uninitialized`.
- * Otherwise, if `labelsQ == false`, then `C_scratch` may contain garbage; do not use it.
+ * Otherwise, if `labelQ == false`, then `C_scratch` may contain garbage; do not use it.
  *
- * If `labelsQ == true`, then, on return, `A_scratch` contains the reordering:
+ * If `labelQ == true`, then, on return, `A_scratch` contains the reordering:
  * If arc `a` is active, then `A_scratch[a]` is the position of `a` among the visited arcs; otherwise, if `a` is inactive, then `A_scratch[a] = Uninitialized`.
- * Otherwise, if `labelsQ == false`, then `A_scratch` contains garbage; do not use it.
+ * Otherwise, if `labelQ == false`, then `A_scratch` contains garbage; do not use it.
  *
  * @tparam crossingsQ A `bool` that controls whether the information of the crossings at the tail and head of the current arc shall be fed to `arc_fun`.
  *
- * @tparam labelsQ A `bool` that controls whether `C_scratch` and `A_scratch` shall be populated with the reordering of arcs. `C_scratch` may or may not be populated, even if `labelsQ == false`.
+ * @tparam labelQ A `bool` that controls whether `C_scratch` and `A_scratch` shall be populated with the reordering of arcs. `C_scratch` may or may not be populated, even if `labelQ == false`.
  *
  * @param lc_pre A lambda function that is executed at the start of every link component. Must have the following signature:
  *
@@ -51,7 +51,7 @@ public:
  */
 
 template<
-    bool crossingsQ, bool labelsQ = false,
+    bool crossingsQ, bool labelQ = false,
     typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T
 >
 void Traverse(
@@ -60,19 +60,19 @@ void Traverse(
 {
     PD_TIMER(timer,MethodName("Traverse")
                  + "<" + (crossingsQ ? "w/ crossings" : "w/o crossings")
-                 + "," + (labelsQ ? "w/ labels" : "w/o labels")
+                 + "," + (labelQ ? "w/ labels" : "w/o labels")
                  + ">");
     
     // Traverse_ByLinkComponents seems to by buggy.
 //    if( this->InCacheQ("ArcTraversalFlags") && this->InCacheQ("LinkComponentArcs") )
 //    {
-//        this->template Traverse_ByLinkComponents<crossingsQ,labelsQ>(
+//        this->template Traverse_ByLinkComponents<crossingsQ,labelQ>(
 //            lc_pre, arc_fun, lc_post
 //        );
 //    }
 //    else
     {
-        this->template Traverse_ByNextArc<crossingsQ,labelsQ>(
+        this->template Traverse_ByNextArc<crossingsQ,labelQ>(
             lc_pre, arc_fun, lc_post
         );
     }
@@ -82,10 +82,10 @@ void Traverse(
 /*!@brief Short version of `Traverse` with only a argument `arc_fun`.
  */
 
-template<bool crossingsQ, bool labelsQ = false, typename ArcFun_T>
+template<bool crossingsQ, bool labelQ = false, typename ArcFun_T>
 void Traverse( ArcFun_T && arc_fun )  const
 {
-    this->template Traverse<crossingsQ,labelsQ>(
+    this->template Traverse<crossingsQ,labelQ>(
         []( const Int a, const Int lc, const Int lc_begin )
         {
             (void)a;
@@ -112,11 +112,11 @@ void Traverse( ArcFun_T && arc_fun )  const
  *
  * On return, `C_scratch` contains the reordering of the crossings:
  * If crossing `c` is active, then `C_scratch[c]` is the position of `c` among the visited crossings; otherwise, if `c` is inactive, `C_scratch[c] = Uninitialized`.
- * Otherwise, if `labelsQ == false`, then `C_scratch` contains garbage; do not use it.
+ * Otherwise, if `labelQ == false`, then `C_scratch` contains garbage; do not use it.
  *
  * If `arclabelsQ == true`, then, on return, `A_scratch` contains the reordering:
  * If arc `a` is active, then `A_scratch[a]` is the position of `a` among the visited arcs; otherwise, if `a` is inactive, then `A_scratch[a] = Uninitialized`.
- * Otherwise, if `labelsQ == false`, then `A_scratch` contains garbage; do not use it.
+ * Otherwise, if `labelQ == false`, then `A_scratch` contains garbage; do not use it.
  *
  * Typically, `A_scratch` and `C_scratch` need not and should not be used externally. Because the values `A_scratch[a]`, `C_scratch[c_0]`, and `C_scratch[c_1]` are fed to `fun` as `a_idx`, `c_0_idx`, and `c_1_idx`, this could otherwise interfere with the traversal.
  *

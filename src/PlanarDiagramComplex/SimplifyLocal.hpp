@@ -64,7 +64,7 @@ Size_T SimplifyLocal_impl( cref<SimplifyLocal_Args_T> args )
 {
     TOOLS_PTIMER(timer,MethodName("SimplifyLocal_impl")+"<" + ToString(opt_level) + "," + ToString(multi_compQ) + ">");
     
-    using ArcSimplifier_T = ArcSimplifier2<Int,opt_level,multi_compQ>;
+    using ArcSimplifier_T = ArcSimplifier<Int,opt_level,multi_compQ>;
     
     Size_T counter = 0;
         

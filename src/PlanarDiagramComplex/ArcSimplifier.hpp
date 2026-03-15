@@ -19,7 +19,7 @@ namespace Knoodle
         bool mult_compQ_          = true,
         bool forwardQ_            = true
     >
-    class alignas( ObjectAlignment ) ArcSimplifier2 final
+    class alignas( ObjectAlignment ) ArcSimplifier final
     {
     public:
         
@@ -131,7 +131,7 @@ namespace Knoodle
         
     public:
         
-        ArcSimplifier2( mref<PDC_T> pdc_, mref<PD_T> pd_, cref<Settings_T> settings_ )
+        ArcSimplifier( mref<PDC_T> pdc_, mref<PD_T> pd_, cref<Settings_T> settings_ )
         :   pdc      { pdc_       }
         ,   pd       { pd_        }
         ,   C_arcs   { pd.C_arcs  }
@@ -143,7 +143,7 @@ namespace Knoodle
         {}
         
         // Default constructor
-        ArcSimplifier2() = delete;
+        ArcSimplifier() = delete;
         
     public:
 
@@ -271,7 +271,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("ArcSimplifier2")
+            return ct_string("ArcSimplifier")
                 + "<" + TypeName<Int>
                 + "," + ToString(optimization_level)
                 + "," + ToString(mult_compQ)

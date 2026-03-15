@@ -41,18 +41,20 @@ namespace Knoodle
 
 namespace Knoodle
 {
-    template<IntQ Int> class PlanarDiagram2;
+    template<IntQ Int> class PlanarDiagram;
     template<IntQ Int> class PlanarDiagramComplex;
+    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
+    template<typename PD_T> class OrthoDraw;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
-#include "src/PlanarDiagramComplex/ArcSimplifier2.hpp"
+#include "src/PlanarDiagramComplex/ArcSimplifier.hpp"
 #include "src/PlanarDiagramComplex/PassSimplifier.hpp"
 
-#include "src/PlanarDiagram2.hpp"
+#include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
 #include "src/OrthoDraw.hpp"
-#include "src/Reapr2.hpp"
+#include "src/Reapr.hpp"
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"

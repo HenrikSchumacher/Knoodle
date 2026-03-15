@@ -2,7 +2,13 @@ void Canonicalize()
 {
     using MacLeod_T = Tensor1<UInt,Int>;
     
-    ColorCounts_T pdc_color_arc_counts = ColorArcCounts();
+//    ColorCounts_T pdc_color_arc_counts = ColorArcCounts();
+    
+    // Sorting the unlinks to the end of the list.
+    // This makes sure that we can tell whether an unlink shall be discarded (if we have seen some arc of the same color or some other unlink of the same color).
+    SortByCrossingCount();
+    
+    SetContainer<Int> color_register;
     
     for( PD_T & pd : pd_list )
     {
@@ -15,12 +21,30 @@ void Canonicalize()
             
             const Int color = pd.LastColorDeactivated();
             
-            if( pdc_color_arc_counts.contains(color) && (pdc_color_arc_counts[color] > Int(0)) )
+//            if( pdc_color_arc_counts.contains(color) && (pdc_color_arc_counts[color] > Int(0)) )
+//            {
+//                pd = PD_T::InvalidDiagram();
+//            }
+            
+            if( !color_register.contains(color) )
             {
+                // Because of the sorting, this must be the first unlink of that color and there cannot be any  further diagrams with arcs of that color.
+                // So we need to keep this unlink.
+                color_register.insert(color);
+            }
+            else
+            {
+                // We have seen this color already, so we can drop this unlink.
                 pd = PD_T::InvalidDiagram();
             }
             continue;
         };
+        
+        
+        auto color_arc_counts = pd.ColorArcCounts(); // Make copy. We reuse the colors after canonicalization.
+        
+        // Register all colors of this diagram.
+        for( auto & x : color_arc_counts ) { color_register.insert(x.first); }
         
         if( pd.LinkComponentCount() != Int(1) ) { continue; }
         if( pd.ColorCount() != Int(1) ) { continue; }
@@ -28,7 +52,6 @@ void Canonicalize()
         // Thing is MacLeod code is not good at normalizing figure-eight knot.
         if( pd.ProvenFigureEightQ() )
         {
-            auto color_arc_counts = pd.ColorArcCounts(); // Make copy.
             const Int color = color_arc_counts.begin()->first;
             pd = PD_T::FigureEightKnot(color);
             pd.SetCache("BufferedMacLeodCode",pd.MacLeodCode());
@@ -37,8 +60,6 @@ void Canonicalize()
         }
         
         // Maybe do this only for knots with less than 100 crossings?
-        
-        auto color_arc_counts = pd.ColorArcCounts(); // Make copy.
         const Int color = color_arc_counts.begin()->first;
 //        TOOLS_LOGDUMP(color);
         MacLeod_T macleod = pd.MacLeodCode();

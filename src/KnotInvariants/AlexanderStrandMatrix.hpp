@@ -20,7 +20,7 @@ namespace Knoodle
         using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
-        using PD_T              = PlanarDiagram2<Int>;
+        using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
         using C_Arcs_T          = typename PD_T::C_Arcs_T;
         

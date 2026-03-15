@@ -125,7 +125,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
-    // Deallocate tree-related data in L to make room for the PlanarDiagram2.
+    // Deallocate tree-related data in L to make room for the planar diagram.
     L.DeleteTree();
 
     // We delay the allocation until substantial parts of L have been deallocated.

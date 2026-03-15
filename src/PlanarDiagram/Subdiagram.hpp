@@ -165,7 +165,7 @@ std::pair<PD_T,Tensor1<Int,Int>> Subdiagram( ArcSelectorFun_T && select_arcQ ) c
     
     if( c_counter > Int(0) )
     {
-        pd = PD_T::FromPDCode<true>(&pd_code[0][0],c_counter);
+        pd = PD_T::FromPDCode<true,false>(&pd_code[0][0],c_counter);
         pd.A_color.Read( &arc_colors[0] );
     }
     

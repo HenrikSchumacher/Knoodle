@@ -14,7 +14,7 @@ namespace Knoodle
     // TODO: Add type checks everywhere.
     
     template<FloatQ Real_ = Real64, IntQ Int_ = Int64, FloatQ BReal_ = Real32>
-    class Reapr2
+    class Reapr
     {
     public:
         using Real                = Real_;
@@ -37,7 +37,7 @@ namespace Knoodle
         static constexpr Parallel_T parQ = Sequential;
         
 //        using Link_T              = LinkEmbedding<Real,Int,BReal>;
-        using PD_T                = PlanarDiagram2<Int>;
+        using PD_T                = PlanarDiagram<Int>;
         using Point_T             = Tiny::Vector<3,Real,Int>;
         using Matrix_T            = Tiny::Matrix<3,3,Real,Int>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
@@ -128,14 +128,14 @@ namespace Knoodle
         
     public:
         
-        Reapr2( cref<Settings_T> settings_ = Settings_T() )
+        Reapr( cref<Settings_T> settings_ = Settings_T() )
         : settings { settings_ }
         {}
         
-        ~Reapr2() = default;
+        ~Reapr() = default;
         
         // We redefine the copy constructor because of random_engine.
-        Reapr2( const Reapr2 & other )
+        Reapr( const Reapr & other )
         :   settings          { other.settings                }
         ,   random_engine { InitializedRandomEngine<PRNG_T>() }
         {}
@@ -239,22 +239,22 @@ namespace Knoodle
             }
         }
 
-#include "Reapr2/DirichletHessian.hpp"
-#include "Reapr2/BendingHessian.hpp"
-#include "Reapr2/LevelsConstraintMatrix.hpp"
-#include "Reapr2/LevelsLP_MCF.hpp"
-#include "Reapr2/LevelsMinHeight.hpp"
+#include "Reapr/DirichletHessian.hpp"
+#include "Reapr/BendingHessian.hpp"
+#include "Reapr/LevelsConstraintMatrix.hpp"
+#include "Reapr/LevelsLP_MCF.hpp"
+#include "Reapr/LevelsMinHeight.hpp"
         
 #ifdef KNOODLE_USE_UMFPACK
-    #include "Reapr2/LevelsQP_SSN.hpp"
+    #include "Reapr/LevelsQP_SSN.hpp"
 #endif
         
 #ifdef KNOODLE_USE_CLP
-    #include "Reapr2/LevelsLP_CLP.hpp"
+    #include "Reapr/LevelsLP_CLP.hpp"
 #endif
         
-#include "Reapr2/Embedding.hpp"
-#include "Reapr2/RandomRotation.hpp"
+#include "Reapr/Embedding.hpp"
+#include "Reapr/RandomRotation.hpp"
         
     public:
         
@@ -341,12 +341,12 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return std::string("Reapr2")
+            return std::string("Reapr")
             + "<" + TypeName<Real>
             + "," + TypeName<Int>
             + ">";
         }
         
-    }; // class Reapr2
+    }; // class Reapr
 
 } // namespace Knoodle

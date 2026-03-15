@@ -5,10 +5,6 @@ namespace Knoodle
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
     // TODO: ByteCount.
     
-    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr2;
-    
-    template<typename PD_T> class OrthoDraw;
-    
     template<IntQ Int_>
     class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
@@ -22,7 +18,7 @@ namespace Knoodle
         
         using Base_T                = CachedObject<1,0,0,0>;
         using Class_T               = PlanarDiagramComplex<Int>;
-        using PD_T                  = PlanarDiagram2<Int>;
+        using PD_T                  = PlanarDiagram<Int>;
         using PDC_T                 = PlanarDiagramComplex<Int>;
         using PD_List_T             = std::vector<PD_T>;
         
@@ -36,7 +32,7 @@ namespace Knoodle
         using OrthoDraw_T           = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
         using Compaction_T          = typename OrthoDraw_T::CompactionMethod_T;
-        using Reapr_T               = Reapr2<double,Int,float>;
+        using Reapr_T               = Reapr<double,Int,float>;
         using Energy_T              = typename Reapr_T::Energy_T;
         using ReaprSettings_T       = typename Reapr_T::Settings_T;
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
@@ -53,16 +49,11 @@ namespace Knoodle
         
         friend class LoopRemover<Int>;
 //        friend class ArcCrawler<Int>;
-        friend class ArcSimplifier2<Int,0,true >;
-        friend class ArcSimplifier2<Int,1,true >;
-        friend class ArcSimplifier2<Int,2,true >;
-        friend class ArcSimplifier2<Int,3,true >;
-        friend class ArcSimplifier2<Int,4,true >;
-//        friend class ArcSimplifier2<Int,0,false>;
-//        friend class ArcSimplifier2<Int,1,false>;
-//        friend class ArcSimplifier2<Int,2,false>;
-//        friend class ArcSimplifier2<Int,3,false>;
-//        friend class ArcSimplifier2<Int,4,false>;
+        friend class ArcSimplifier<Int,0,true >;
+        friend class ArcSimplifier<Int,1,true >;
+        friend class ArcSimplifier<Int,2,true >;
+        friend class ArcSimplifier<Int,3,true >;
+        friend class ArcSimplifier<Int,4,true >;
         
         friend class PassSimplifier<Int>;
         

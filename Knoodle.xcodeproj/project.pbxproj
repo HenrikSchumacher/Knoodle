@@ -170,7 +170,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AF05A27E2D6B573E0065E75A /* deps */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = deps; sourceTree = "<group>"; };
-		AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarDiagram2; sourceTree = "<group>"; };
+		AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_PlanarDiagram; sourceTree = "<group>"; };
 		AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Dev_ClisbyTree; sourceTree = "<group>"; };
 		AF482C1B2D580BAA007CDB27 /* PolyFold_Kyoto */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PolyFold_Kyoto; sourceTree = "<group>"; };
 		AF6C85DD2E29315B0051B919 /* WorkBench */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AFB7E7AD2F5D7A75003F1179 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = WorkBench; sourceTree = "<group>"; };
@@ -277,7 +277,7 @@
 				AF2D42532E3118C7004C6CE0 /* Dev_ClisbyTree */,
 				AFAC10632F0293FA0029A41C /* Dev_ClisbyTree2 */,
 				AFBB9A9B2EF54467000CA528 /* Example_Knoodle */,
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
+				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
 				AF5BC0B429D1AF1C008CA8B7 /* Products */,
 				AF5B87F22BAE053100CB5CAF /* Frameworks */,
 				AFAC11072F0345620029A41C /* KnoodleTool */,
@@ -330,7 +330,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram2 */,
+				AF13597C2F0E96BC000B5009 /* Dev_PlanarDiagram */,
 			);
 			name = Dev_PlanarDiagram2;
 			packageProductDependencies = (

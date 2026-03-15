@@ -227,7 +227,7 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         // We allow local pattern optimization only in the very first pass for each diagram. It won't help at all in Rattle.
         if( args.local_opt_level > UInt8(0) )
         {
-            change_count += ArcSimplifier2<Int,local_opt_level,true>( *this, pd,
+            change_count += ArcSimplifier<Int,local_opt_level,true>( *this, pd,
                 {
                     .compression_threshold = args.compression_threshold,
                     .compressQ             = args.compressQ
@@ -545,7 +545,7 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
     pd.ClearCache();
 
     // Not clear whether local patterns are beneficial.
-//        ArcSimplifier2<Int,3,true> A ( *this, pd, Scalar::Max<Size_T>, args.compressQ );
+//        ArcSimplifier<Int,3,true> A ( *this, pd, Scalar::Max<Size_T>, args.compressQ );
 //        Size_T local_change_count =  A();
 //        change_count += local_change_count;
     

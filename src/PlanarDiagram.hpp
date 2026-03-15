@@ -24,7 +24,7 @@ namespace Knoodle
     // TODO: Port methods in Counters.hpp?
 
     template<IntQ Int_>
-    class PlanarDiagram2 final : public CachedObject<1,0,0,0>
+    class PlanarDiagram final : public CachedObject<1,0,0,0>
     {
         
     public:
@@ -36,8 +36,8 @@ namespace Knoodle
         using UInt                      = ToUnsigned<Int>;
         
         using Base_T                    = CachedObject<1,0,0,0>;
-        using Class_T                   = PlanarDiagram2<Int>;
-        using PD_T                      = PlanarDiagram2<Int>;
+        using Class_T                   = PlanarDiagram<Int>;
+        using PD_T                      = PlanarDiagram<Int>;
         using PD_List_T                 = std::vector<PD_T>;
         
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
@@ -60,16 +60,11 @@ namespace Knoodle
         
         friend class LoopRemover<Int>;
 //        friend class ArcCrawler<Int>;
-        friend class ArcSimplifier2<Int,0,true >;
-        friend class ArcSimplifier2<Int,1,true >;
-        friend class ArcSimplifier2<Int,2,true >;
-        friend class ArcSimplifier2<Int,3,true >;
-        friend class ArcSimplifier2<Int,4,true >;
-//        friend class ArcSimplifier2<Int,0,false>;
-//        friend class ArcSimplifier2<Int,1,false>;
-//        friend class ArcSimplifier2<Int,2,false>;
-//        friend class ArcSimplifier2<Int,3,false>;
-//        friend class ArcSimplifier2<Int,4,false>;
+        friend class ArcSimplifier<Int,0,true >;
+        friend class ArcSimplifier<Int,1,true >;
+        friend class ArcSimplifier<Int,2,true >;
+        friend class ArcSimplifier<Int,3,true >;
+        friend class ArcSimplifier<Int,4,true >;
 
         friend class PassSimplifier<Int>;
             
@@ -148,17 +143,17 @@ namespace Knoodle
     public:
   
         // Default constructor
-        PlanarDiagram2() = default;
+        PlanarDiagram() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~PlanarDiagram2() override = default;
+        virtual ~PlanarDiagram() override = default;
         // Copy constructor
-        PlanarDiagram2( const PlanarDiagram2 & other ) = default;
+        PlanarDiagram( const PlanarDiagram & other ) = default;
         // Copy assignment operator
-        PlanarDiagram2 & operator=( const PlanarDiagram2 & other ) = default;
+        PlanarDiagram & operator=( const PlanarDiagram & other ) = default;
         // Move constructor
-        PlanarDiagram2( PlanarDiagram2 && other ) = default;
+        PlanarDiagram( PlanarDiagram && other ) = default;
         // Move assignment operator
-        PlanarDiagram2 & operator=( PlanarDiagram2 && other ) = default;
+        PlanarDiagram & operator=( PlanarDiagram && other ) = default;
  
     private:
         
@@ -167,7 +162,7 @@ namespace Knoodle
          */
         
         template<IntQ ExtInt>
-        PlanarDiagram2( const ExtInt max_crossing_count_ )
+        PlanarDiagram( const ExtInt max_crossing_count_ )
         : crossing_count     { Int(0)                                          }
         , arc_count          { Int(0)                                          }
         , max_crossing_count { int_cast<Int>(max_crossing_count_)              }
@@ -193,7 +188,7 @@ namespace Knoodle
          */
         
         template<IntQ ExtInt>
-        PlanarDiagram2( const ExtInt max_crossing_count_, bool dummy )
+        PlanarDiagram( const ExtInt max_crossing_count_, bool dummy )
         : crossing_count     { Int(0)                                          }
         , arc_count          { Int(0)                                          }
         , max_crossing_count { int_cast<Int>(max_crossing_count_)              }
@@ -216,11 +211,11 @@ namespace Knoodle
 
     public:
         
-        /*!@brief Construct PlanarDiagram2 from internal data.
+        /*!@brief Construct PlanarDiagram from internal data.
          */
         
         template<IntQ ExtInt, typename ExtInt2, typename ExtInt3, IntQ ExtInt4, IntQ ExtInt5>
-        PlanarDiagram2(
+        PlanarDiagram(
             const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
             cptr<ExtInt2> crossing_states,
@@ -231,7 +226,7 @@ namespace Knoodle
             const bool proven_minimalQ_ = false,
             const bool compressQ = false
         )
-        :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
+        :   PlanarDiagram( crossing_count_, true ) // Allocate, but do not fill.
         {
             // needs to know all member variables
             
@@ -280,11 +275,11 @@ namespace Knoodle
             }
         }
         
-        /*!@brief Construct PlanarDiagram2 from internal data without colors.
+        /*!@brief Construct PlanarDiagram from internal data without colors.
          */
         
         template<IntQ ExtInt, typename ExtInt2, typename ExtInt3>
-        PlanarDiagram2(
+        PlanarDiagram(
             const ExtInt  crossing_count_,
             cptr<ExtInt>  crossings,
             cptr<ExtInt2> crossing_states,
@@ -293,7 +288,7 @@ namespace Knoodle
             const bool proven_minimalQ_ = false,
             const bool compressQ = false
         )
-        :   PlanarDiagram2( crossing_count_, true ) // Allocate, but do not fill.
+        :   PlanarDiagram( crossing_count_, true ) // Allocate, but do not fill.
         {
             // needs to know all member variables
             
@@ -407,46 +402,46 @@ namespace Knoodle
         
     public:
         
-#include "PlanarDiagram2/FromEmbeddings.hpp"
+#include "PlanarDiagram/FromEmbeddings.hpp"
         
-#include "PlanarDiagram2/Crossings.hpp"
-#include "PlanarDiagram2/Arcs.hpp"
-#include "PlanarDiagram2/Darcs.hpp"
-#include "PlanarDiagram2/Checks.hpp"
+#include "PlanarDiagram/Crossings.hpp"
+#include "PlanarDiagram/Arcs.hpp"
+#include "PlanarDiagram/Darcs.hpp"
+#include "PlanarDiagram/Checks.hpp"
         
-#include "PlanarDiagram2/Traverse.hpp"
-#include "PlanarDiagram2/LinkComponents.hpp"
-#include "PlanarDiagram2/Color.hpp"
-#include "PlanarDiagram2/DiagramComponents.hpp"
-#include "PlanarDiagram2/StandardDiagrams.hpp"
+#include "PlanarDiagram/Traverse.hpp"
+#include "PlanarDiagram/LinkComponents.hpp"
+#include "PlanarDiagram/Color.hpp"
+#include "PlanarDiagram/DiagramComponents.hpp"
+#include "PlanarDiagram/StandardDiagrams.hpp"
 
-#include "PlanarDiagram2/Compress.hpp"
-#include "PlanarDiagram2/Reconnect.hpp"
-#include "PlanarDiagram2/SwitchCrossing.hpp"
-#include "PlanarDiagram2/Modify.hpp"
+#include "PlanarDiagram/Compress.hpp"
+#include "PlanarDiagram/Reconnect.hpp"
+#include "PlanarDiagram/SwitchCrossing.hpp"
+#include "PlanarDiagram/Modify.hpp"
 
-#include "PlanarDiagram2/PDCode.hpp"
-#include "PlanarDiagram2/GaussCode.hpp"
-#include "PlanarDiagram2/LongMacLeodCode.hpp"
-#include "PlanarDiagram2/MacLeodCode.hpp"
+#include "PlanarDiagram/PDCode.hpp"
+#include "PlanarDiagram/GaussCode.hpp"
+#include "PlanarDiagram/LongMacLeodCode.hpp"
+#include "PlanarDiagram/MacLeodCode.hpp"
         
-#include "PlanarDiagram2/Faces.hpp"
-#include "PlanarDiagram2/Certificates.hpp"
-#include "PlanarDiagram2/Strands.hpp"
+#include "PlanarDiagram/Faces.hpp"
+#include "PlanarDiagram/Certificates.hpp"
+#include "PlanarDiagram/Strands.hpp"
 
 
-//#include "PlanarDiagram2/ResolveCrossing.hpp"
-//#include "PlanarDiagram2/VerticalSummandQ.hpp"
+#include "PlanarDiagram/ResolveCrossing.hpp"
+//#include "PlanarDiagram/VerticalSummandQ.hpp"
         
-#include "PlanarDiagram2/DepthFirstSearch.hpp"
-//#include "PlanarDiagram2/SpanningForest.hpp"
+#include "PlanarDiagram/DepthFirstSearch.hpp"
+//#include "PlanarDiagram/SpanningForest.hpp"
         
 
-#include "PlanarDiagram2/Relabel.hpp"
-#include "PlanarDiagram2/Subdiagram.hpp"
+#include "PlanarDiagram/Relabel.hpp"
+#include "PlanarDiagram/Subdiagram.hpp"
         
 #ifdef KNOODLE_USE_BOOST_PLANARITY
-#include "PlanarDiagram2/Planarity.hpp"
+#include "PlanarDiagram/Planarity.hpp"
         
         
 #endif
@@ -724,7 +719,7 @@ namespace Knoodle
 */
         Size_T ByteCount() const
         {
-            return sizeof(PlanarDiagram2) + AllocatedByteCount();
+            return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
         static std::string MethodName( const std::string & tag )
@@ -737,7 +732,7 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("PlanarDiagram2")
+            return ct_string("PlanarDiagram")
                 + "<" + TypeName<Int>
                 + ">";
         }

@@ -1,14 +1,14 @@
 public:
 
-template<bool PDsignedQ, bool checksQ = true, IntQ ExtInt, IntQ ExtInt2>
+template<bool signQ, bool colorQ, bool checksQ = true, IntQ T, IntQ ExtInt>
 static PDC_T FromPDCode(
-    cptr<ExtInt> pd_codes_,
-    const ExtInt2 crossing_count_,
+    cptr<T> pd_codes_,
+    const ExtInt crossing_count_,
     const bool proven_minimalQ_ = false,
     const bool compressQ = false
 )
 {
-    return PDC_T( PD_T::template FromPDCode<PDsignedQ,checksQ>(
+    return PDC_T( PD_T::template FromPDCode<signQ,colorQ,checksQ>(
         pd_codes_,crossing_count_,proven_minimalQ_,compressQ
     ));
 }
