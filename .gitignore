@@ -59,3 +59,6 @@ Dev_ClisbyTree2/Example_ClisbyTree2
 
 KnoodleTool/ExampleKnot_simplified.tsv
 KnoodleTool/knoodletool
+
+# Markdown files
+*.md 
