@@ -1,20 +1,22 @@
 /**
  * @file main.cpp
- * @brief knoodletool - A command-line tool for knot diagram simplification.
+ * @brief knoodletool - A command-line tool for knot and link diagram simplification.
  *
- * This tool reads knot diagrams (as PD codes or 3D geometry), simplifies them
- * using various algorithms, and outputs the simplified diagrams.
+ * This tool reads knot/link diagrams (as PD codes, 3D geometry, or .kndlxyz files),
+ * simplifies them using various algorithms, and outputs the simplified diagrams.
  *
  * Usage: knoodletool [options] [input_files...]
  *
  * Input formats:
- *   - PD code: Lines with 4 or 5 tab-separated integers per crossing
+ *   - PD code: Lines with 4, 5, 6, or 7 tab-separated integers per crossing
  *   - 3D geometry: Lines with 3 tab-separated numbers (coordinates)
+ *   - .kndlxyz: Multi-component 3D link embedding (blank lines separate components)
  *
  * Output format (knoodletool format):
- *   k           <- knot separator
+ *   k           <- knot/link separator
  *   s           <- summand separator
- *   1  2  3  4  1   <- crossing (5 integers: 4 arcs + handedness)
+ *   1  2  3  4  1           <- crossing (5 integers: 4 arcs + handedness)
+ *   1  2  3  4  1  0  1     <- crossing (7 integers: 4 arcs + handedness + 2 colors)
  *   ...
  *
  * See --help for full option list.
@@ -29,7 +31,6 @@
 
 #include "../Knoodle.hpp"
 #include "../src/OrthoDraw.hpp"
-#include "../Reapr_Legacy.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -51,13 +52,13 @@
 
 using Int         = std::int64_t;
 using Real        = double;
-using PD_T        = Knoodle::PlanarDiagram_Legacy<Int>;
+using PD_T        = Knoodle::PlanarDiagram<Int>;
+using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
-using Reapr_T     = Knoodle::Reapr_Legacy<Real, Int>;
-using Link_T      = Knoodle::KnotEmbedding<Real, Int, Real>;
+using Energy_T    = PDC_T::Energy_T;
+using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
 using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;
-using Flag_T      = Reapr_T::EnergyFlag_T;
 
 //==============================================================================
 // Configuration
@@ -74,7 +75,7 @@ struct Config
     int  simplify_level       = 6;           ///< Simplification level (3, 4, 5, or 6+)
     Int  max_reapr_attempts   = 25;          ///< Max iterations for Reapr::Rattle
     bool no_compaction        = false;       ///< Skip compaction in OrthoDraw (Reapr only)
-    std::optional<Flag_T> reapr_energy;      ///< Energy flag for Reapr (if set)
+    std::optional<Energy_T> reapr_energy;    ///< Energy flag for Reapr (if set)
     
     // Input options
     std::vector<std::string> input_files;    ///< Input file paths
@@ -131,11 +132,13 @@ struct InputKnot
     std::vector<PD_T> summands;           ///< Prime summands of the knot
     std::vector<Int>  crossing_counts;    ///< Crossing count per summand
     Int               total_crossings = 0;
-    
+
     // For 3D geometry input
     bool              had_3d_geometry = false;
     Int               vertex_count_3d = 0;
-    
+
+    int               input_column_count = 0; ///< Detected column format (3/4/5/6/7)
+
     std::string       source_description;  ///< File name or "stdin"
 };
 
@@ -336,6 +339,20 @@ bool ParseNumericLine(const std::string& line,
 // Command-Line Parsing
 //==============================================================================
 
+std::string EnergyName(Energy_T e)
+{
+    switch (e)
+    {
+        case Energy_T::TV:        return "TV";
+        case Energy_T::Dirichlet: return "Dirichlet";
+        case Energy_T::Bending:   return "Bending";
+        case Energy_T::Height:    return "Height";
+        case Energy_T::TV_CLP:    return "TV_CLP";
+        case Energy_T::TV_MCF:    return "TV_MCF";
+        default:                  return "Unknown";
+    }
+}
+
 std::string ValidEnergies()
 {
     return std::string("TV, ")
@@ -371,6 +388,14 @@ void PrintUsage()
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
     Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
     Log("                                " + ValidEnergies());
+    Log("");
+    Log("Input formats:");
+    Log("  4 columns: unsigned PD code (4 arc labels per crossing)");
+    Log("  5 columns: signed PD code (4 arcs + handedness)");
+    Log("  6 columns: unsigned PD code + link component colors");
+    Log("  7 columns: signed PD code + link component colors");
+    Log("  3 columns: 3D geometry (x, y, z coordinates)");
+    Log("  .kndlxyz:  multi-component 3D link embedding");
     Log("");
     Log("Input options:");
     Log("  --input=FILE                Specify input file (can use multiple times)");
@@ -481,27 +506,27 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             
             if (energy_str == "tv")
             {
-                config.reapr_energy = Flag_T::TV;
+                config.reapr_energy = Energy_T::TV;
             }
             else if (energy_str == "dirichlet")
             {
-                config.reapr_energy = Flag_T::Dirichlet;
+                config.reapr_energy = Energy_T::Dirichlet;
             }
             else if (energy_str == "bending")
             {
-                config.reapr_energy = Flag_T::Bending;
+                config.reapr_energy = Energy_T::Bending;
             }
             else if (energy_str == "height")
             {
-                config.reapr_energy = Flag_T::Height;
+                config.reapr_energy = Energy_T::Height;
             }
             else if (energy_str == "tv_clp")
             {
-                config.reapr_energy = Flag_T::TV_CLP;
+                config.reapr_energy = Energy_T::TV_CLP;
             }
             else if (energy_str == "tv_mcf")
             {
-                config.reapr_energy = Flag_T::TV_MCF;
+                config.reapr_energy = Energy_T::TV_MCF;
             }
             else
             {
@@ -583,7 +608,8 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
 /**
  * @brief Detect input format from a data line.
  *
- * @return 3 for 3D geometry, 4 for unsigned PD code, 5 for signed PD code, 0 for unknown.
+ * @return 3 for 3D geometry, 4 for unsigned PD code, 5 for signed PD code,
+ *         6 for unsigned PD + colors, 7 for signed PD + colors, 0 for unknown.
  */
 int DetectFormat(const std::vector<Real>& values, bool has_float)
 {
@@ -598,6 +624,14 @@ int DetectFormat(const std::vector<Real>& values, bool has_float)
     else if (values.size() == 5 && !has_float)
     {
         return 5;  // Signed PD code
+    }
+    else if (values.size() == 6 && !has_float)
+    {
+        return 6;  // Unsigned PD code + link component colors
+    }
+    else if (values.size() == 7 && !has_float)
+    {
+        return 7;  // Signed PD code + link component colors
     }
     return 0;  // Unknown
 }
@@ -654,19 +688,16 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
         }
     }
     
-    // Create KnotEmbedding and find intersections
-    Link_T link(vertex_count);
-    link.ReadVertexCoordinates(coords.data());
-    
-    int err = link.template FindIntersections<true>();
-    if (err != 0)
+    // Create PlanarDiagram from 3D coordinates using static factory
+    auto [pd, unlinks] = PD_T::FromKnotEmbedding(coords.data(), vertex_count);
+
+    if (!pd.ValidQ())
     {
-        LogError("FindIntersections failed with error code " + std::to_string(err));
+        LogError("FromKnotEmbedding failed to create a valid diagram");
         return PD_T();
     }
-    
-    // Construct PlanarDiagram from the link
-    return PD_T(link);
+
+    return pd;
 }
 
 /**
@@ -674,32 +705,33 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
  *
  * @param crossings Flat array of crossing data.
  * @param crossing_count Number of crossings.
- * @param format 4 for unsigned, 5 for signed PD code.
+ * @param format 4 for unsigned, 5 for signed, 6 for unsigned+colors, 7 for signed+colors.
  * @return The constructed PlanarDiagram.
  */
 PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
                               Int crossing_count,
                               int format)
 {
-    if (format == 5)
+    switch (format)
     {
-        return PD_T::FromSignedPDCode(
-            crossings.data(),
-            crossing_count,
-            Int(0),  // unlinks
-            true,    // compress
-            false    // not proven minimal
-        );
-    }
-    else
-    {
-        return PD_T::FromUnsignedPDCode(
-            crossings.data(),
-            crossing_count,
-            Int(0),
-            true,
-            false
-        );
+        case 4:
+            return PD_T::FromUnsignedPDCode(
+                crossings.data(), crossing_count, false, true
+            );
+        case 5:
+            return PD_T::FromSignedPDCode(
+                crossings.data(), crossing_count, false, true
+            );
+        case 6:
+            return PD_T::template FromPDCode<false, true>(
+                crossings.data(), crossing_count, false, true
+            );
+        case 7:
+            return PD_T::template FromPDCode<true, true>(
+                crossings.data(), crossing_count, false, true
+            );
+        default:
+            return PD_T();
     }
 }
 
@@ -763,7 +795,8 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
                 geometry_vertices.clear();
             }
         }
-        else if (detected_format == 4 || detected_format == 5)
+        else if (detected_format == 4 || detected_format == 5 ||
+                 detected_format == 6 || detected_format == 7)
         {
             // PD code
             if (pd_crossing_count > 0)
@@ -774,7 +807,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
                     LogError("Failed to create diagram from PD code");
                     return false;
                 }
-                
+
                 result.summands.push_back(std::move(pd));
                 pd_crossings.clear();
                 pd_crossing_count = 0;
@@ -788,7 +821,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     std::string line;
     
     std::vector<Real> values;
-    values.reserve(5); // We expect at most 5 elements per line, so we can allocate for that purpose.
+    values.reserve(7); // We expect at most 7 elements per line, so we can allocate for that purpose.
     // The container will be expanded automatically, if that does not suffice.
     
     while (std::getline(input, line))
@@ -834,7 +867,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         int line_format = DetectFormat(values, has_float);
         if (line_format == 0)
         {
-            LogError("Unrecognized format (expected 3, 4, or 5 values): " + cleaned);
+            LogError("Unrecognized format (expected 3, 4, 5, 6, or 7 values): " + cleaned);
             return std::nullopt;
         }
         
@@ -846,19 +879,17 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         }
         else if (line_format != detected_format)
         {
-            // Format mismatch within same summand
+            // Format mismatch within same knot
             if (line_format == 3 || detected_format == 3)
             {
                 LogError("Cannot mix 3D geometry and PD code formats");
                 return std::nullopt;
             }
-            // 4 vs 5 integers - keep using detected format
-            if (static_cast<int>(values.size()) != detected_format)
-            {
-                LogError("Inconsistent PD code format (expected " + 
-                         std::to_string(detected_format) + " values)");
-                return std::nullopt;
-            }
+            // All PD lines must use the same column count
+            LogError("Inconsistent PD code format (expected " +
+                     std::to_string(detected_format) + " values per line, got " +
+                     std::to_string(line_format) + ")");
+            return std::nullopt;
         }
         
         // Store data
@@ -893,7 +924,10 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     {
         return std::nullopt;  // No data found
     }
-    
+
+    // Record input column format for output format decisions
+    result.input_column_count = detected_format;
+
     // Compute crossing counts
     for (const auto& pd : result.summands)
     {
@@ -919,10 +953,10 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
 SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
 {
     SimplifiedKnot result;
-    
+
     {
         ScopedTimer timer(result.simplify_time);
-        
+
         for (const PD_T& pd_in : input.summands)
         {
             if (config.simplify_level == 0)
@@ -931,77 +965,68 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 PD_T pd(pd_in);
                 result.summands.push_back(std::move(pd));
             }
-            else if (config.simplify_level == 3)
+            else
             {
-                PD_T pd(pd_in);
-                pd.Simplify3();
-                result.summands.push_back(std::move(pd));
-            }
-            else if (config.simplify_level == 4)
-            {
-                PD_T pd(pd_in);
-                pd.Simplify4();
-                result.summands.push_back(std::move(pd));
-            }
-            else if (config.simplify_level == 5)
-            {
-                PD_T pd(pd_in);
-                std::vector<PD_T> pd_list;
-                pd.Simplify5(pd_list);
-                pd_list.push_back(std::move(pd));
-                
-                for (auto& p : pd_list)
+                // Use PlanarDiagramComplex for all simplification levels
+                PD_T pd_copy(pd_in);
+                PDC_T pdc(std::move(pd_copy));
+
+                PDC_T::Simplify_Args_T args;
+                args.splitQ = true;
+
+                if (config.simplify_level >= 4)
+                    args.rerouteQ = true;
+                else
+                    args.rerouteQ = false;
+
+                if (config.simplify_level >= 5)
+                    args.disconnectQ = true;
+                else
+                    args.disconnectQ = false;
+
+                if (config.simplify_level >= kReaprThreshold)
                 {
-                    result.summands.push_back(std::move(p));
+                    args.embedding_trials = static_cast<Knoodle::Size_T>(config.max_reapr_attempts);
+                    args.rotation_trials = 25;
                 }
-            }
-            else  // Reapr
-            {
-                Reapr_T reapr;
-                
-                if (config.no_compaction)
-                {
-                    auto settings = reapr.OrthoDrawSettings();
-                    settings.compaction_method = OrthoDraw_T::CompactionMethod_T::Unknown;
-                    reapr.SetOrthoDrawSettings(settings);
-                }
-                
+
                 if (config.reapr_energy.has_value())
+                    args.energy = *config.reapr_energy;
+
+                if (config.no_compaction)
+                    args.compaction_method = PDC_T::Compaction_T::Unknown;
+
+                pdc.Simplify(args);
+
+                // Extract results
+                if (pdc.DiagramCount() == 0)
                 {
-                    reapr.SetEnergyFlag(*config.reapr_energy);
-                }
-                
-                std::vector<PD_T> pd_list = reapr.Rattle(pd_in, config.max_reapr_attempts);
-                
-                if (pd_list.empty())
-                {
-                    // Rattle simplified to an unknot (0 crossings, discarded)
                     ++result.unknot_count;
                 }
                 else
                 {
-                    for (auto& p : pd_list)
+                    for (Int i = 0; i < pdc.DiagramCount(); ++i)
                     {
-                        result.summands.push_back(std::move(p));
+                        result.summands.push_back(PD_T(pdc.Diagram(i)));
                     }
                 }
             }
         }
     }
-    
+
     // Compute crossing counts and proven minimal count
     for (const auto& pd : result.summands)
     {
         Int cc = pd.CrossingCount();
         result.crossing_counts.push_back(cc);
         result.total_crossings += cc;
-        
+
         if (pd.ProvenMinimalQ())
         {
             ++result.proven_minimal_count;
         }
     }
-    
+
     return result;
 }
 
@@ -1015,31 +1040,51 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
  * @param knot The simplified knot (non-const because PDCode() modifies internal buffers).
  * @param output The output stream.
  * @param include_k_marker Whether to include the leading 'k' marker.
+ * @param colored_output If true, write 7-column format (with link component colors);
+ *                       otherwise write 5-column format.
  */
-void WriteKnot(SimplifiedKnot& knot, std::ostream& output, bool include_k_marker)
+void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
+               bool include_k_marker, bool colored_output)
 {
     if (include_k_marker)
     {
         output << "k\n";
     }
-    
+
     for (std::size_t i = 0; i < knot.summands.size(); ++i)
     {
         output << "s\n";
-        
+
         auto& pd = knot.summands[i];
-        auto pd_code = pd.PDCode();
-        
         Int crossing_count = pd.CrossingCount();
-        
-        for (Int c = 0; c < crossing_count; ++c)
+
+        if (colored_output)
         {
-            output << pd_code(c, 0);
-            for (Int j = 1; j < 5; ++j)
+            auto pd_code = pd.template PDCode<Int, true, true>();
+
+            for (Int c = 0; c < crossing_count; ++c)
             {
-                output << '\t' << pd_code(c, j);
+                output << pd_code(c, 0);
+                for (Int j = 1; j < 7; ++j)
+                {
+                    output << '\t' << pd_code(c, j);
+                }
+                output << '\n';
             }
-            output << '\n';
+        }
+        else
+        {
+            auto pd_code = pd.template PDCode<Int, true, false>();
+
+            for (Int c = 0; c < crossing_count; ++c)
+            {
+                output << pd_code(c, 0);
+                for (Int j = 1; j < 5; ++j)
+                {
+                    output << '\t' << pd_code(c, j);
+                }
+                output << '\n';
+            }
         }
     }
 }
@@ -1112,7 +1157,7 @@ void WriteKnotReport(const InputKnot& input,
         {
             level_str += ", energy: ";
             // I alreay created an overload of the ToString function for this purpose.
-            level_str += Knoodle::ToString(*config.reapr_energy);
+            level_str += EnergyName(*config.reapr_energy);
         }
         
         level_str += ")";
@@ -1229,7 +1274,7 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
         {
             level_str += ", energy: ";
             // I alreay created an overload of the ToString function for this purpose.
-            level_str += Knoodle::ToString(*config.reapr_energy);
+            level_str += EnergyName(*config.reapr_energy);
             
         }
         
@@ -1335,6 +1380,118 @@ std::filesystem::path GetDrawingFilename(const std::filesystem::path& input_path
 }
 
 /**
+ * @brief Process a .kndlxyz file (multi-component 3D link embedding).
+ *
+ * @param filepath Path to the .kndlxyz file.
+ * @param output_stream Optional output stream (nullptr for per-file output).
+ * @param config Configuration.
+ * @param stats Statistics accumulator.
+ * @param first_knot_in_output Whether this is the first knot being written.
+ * @return true on success.
+ */
+bool ProcessXYZFile(const std::string& filepath,
+                    std::ostream* output_stream,
+                    const Config& config,
+                    ProcessingStats& stats,
+                    bool& first_knot_in_output)
+{
+    Duration input_time{0};
+    PDC_T pdc;
+
+    {
+        ScopedTimer timer(input_time);
+        LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+        // PDC constructor from LinkEmbedding calls FindIntersections internally
+        pdc = PDC_T(std::move(link));
+    }
+
+    if (pdc.DiagramCount() == 0)
+    {
+        LogError("Failed to create diagram from .kndlxyz file: " + filepath);
+        return false;
+    }
+
+    // Create an InputKnot for reporting
+    InputKnot input_knot;
+    input_knot.source_description = filepath;
+    input_knot.had_3d_geometry = true;
+    input_knot.input_column_count = 7;  // .kndlxyz always outputs colored format
+
+    // Record input crossing counts before simplification
+    for (Int i = 0; i < pdc.DiagramCount(); ++i)
+    {
+        const auto& pd = pdc.Diagram(i);
+        Int cc = pd.CrossingCount();
+        input_knot.summands.push_back(PD_T(pd));
+        input_knot.crossing_counts.push_back(cc);
+        input_knot.total_crossings += cc;
+    }
+
+    // Simplification phase
+    SimplifiedKnot simplified = SimplifyKnot(input_knot, config);
+
+    // Output phase (always 7-column / colored for .kndlxyz)
+    Duration output_time{0};
+
+    {
+        ScopedTimer timer(output_time);
+
+        if (output_stream)
+        {
+            WriteKnot(simplified, *output_stream,
+                      !first_knot_in_output, true);
+            first_knot_in_output = false;
+        }
+        else
+        {
+            std::filesystem::path input_path(filepath);
+            std::filesystem::path output_path = GetSimplifiedFilename(input_path);
+
+            std::ofstream file(output_path);
+            if (!file)
+            {
+                LogError("Failed to open " + output_path.string() + " for writing");
+                return false;
+            }
+
+            WriteKnot(simplified, file, true, true);
+
+            if (config.output_ascii_drawing)
+            {
+                std::filesystem::path drawing_path = GetDrawingFilename(input_path);
+                WriteAsciiDrawings(simplified, drawing_path);
+            }
+        }
+    }
+
+    // Reporting phase
+    if (config.quiet)
+    {
+        *g_log_stream << "\r" << (stats.total_knots + 1) << " links processed" << std::flush;
+    }
+    else
+    {
+        WriteKnotReport(input_knot, simplified, config, input_time, output_time);
+    }
+
+    // Update stats
+    stats.input_crossings  += input_knot.total_crossings;
+    stats.output_crossings += simplified.total_crossings;
+    stats.total_summands   += simplified.TotalSummandCount();
+    stats.proven_minimal_summands += simplified.TotalProvenMinimalCount();
+    if (simplified.FullySimplifiedQ())
+    {
+        ++stats.fully_simplified_knots;
+    }
+    stats.input_time       += input_time;
+    stats.simplify_time    += simplified.simplify_time;
+    stats.output_time      += output_time;
+    ++stats.total_knots;
+
+    return true;
+}
+
+/**
  * @brief Process a single input source (file or stdin).
  *
  * @param input The input stream.
@@ -1383,17 +1540,22 @@ bool ProcessSource(std::istream& input,
         
         // Simplification phase
         SimplifiedKnot simplified = SimplifyKnot(*input_knot, config);
-        
+
+        // Determine output format based on input column count
+        bool colored_output = (input_knot->input_column_count >= 6);
+
         // Output phase
         Duration output_time{0};
-        
+
         {
             ScopedTimer timer(output_time);
-            
+
             if (output_stream)
             {
                 // Writing to shared output stream
-                WriteKnot(simplified, *output_stream, !first_knot_in_output || !config.streaming_mode);
+                WriteKnot(simplified, *output_stream,
+                          !first_knot_in_output || !config.streaming_mode,
+                          colored_output);
                 first_knot_in_output = false;
             }
             else if (!config.streaming_mode)
@@ -1401,16 +1563,16 @@ bool ProcessSource(std::istream& input,
                 // Per-file output
                 std::filesystem::path input_path(source_name);
                 std::filesystem::path output_path = GetSimplifiedFilename(input_path);
-                
+
                 std::ofstream file(output_path);
                 if (!file)
                 {
                     LogError("Failed to open " + output_path.string() + " for writing");
                     return false;
                 }
-                
-                WriteKnot(simplified, file, true);
-                
+
+                WriteKnot(simplified, file, true, colored_output);
+
                 if (config.output_ascii_drawing)
                 {
                     std::filesystem::path drawing_path = GetDrawingFilename(input_path);
@@ -1528,6 +1690,28 @@ int main(int argc, char* argv[])
         // Process each input file
         for (const auto& filename : config.input_files)
         {
+            // Add file separator to combined output
+            if (output_stream && !first_knot_in_output && config.input_files.size() > 1)
+            {
+                *output_stream << "%file " << filename << "\n";
+            }
+
+            // Route .kndlxyz files to the specialized handler
+            std::filesystem::path fpath(filename);
+            if (fpath.extension() == ".kndlxyz")
+            {
+                if (!ProcessXYZFile(filename, output_stream, config,
+                                    stats, first_knot_in_output))
+                {
+                    success = false;
+                }
+                else
+                {
+                    ++stats.files_processed;
+                }
+                continue;
+            }
+
             std::ifstream file(filename);
             if (!file)
             {
@@ -1535,13 +1719,7 @@ int main(int argc, char* argv[])
                 success = false;
                 continue;
             }
-            
-            // Add file separator to combined output
-            if (output_stream && !first_knot_in_output && config.input_files.size() > 1)
-            {
-                *output_stream << "%file " << filename << "\n";
-            }
-            
+
             if (!ProcessSource(file, filename, output_stream, config, rng,
                                stats, first_knot_in_output))
             {
