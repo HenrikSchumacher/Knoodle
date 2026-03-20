@@ -136,7 +136,7 @@ namespace Knoodle
         
         // We redefine the copy constructor because of random_engine.
         Reapr( const Reapr & other )
-        :   settings          { other.settings                }
+        :   settings      { other.settings                    }
         ,   random_engine { InitializedRandomEngine<PRNG_T>() }
         {}
         

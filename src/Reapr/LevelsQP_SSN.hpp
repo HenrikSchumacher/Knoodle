@@ -73,7 +73,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     );
     
     // TODO: Is this a good value for the tolerance?
-    const Real threshold = Power(m * settings.settings.tolerance,2);
+    const Real threshold = Power(m * settings.tolerance,2);
     
     Size_T SSN_iter = 0;
 //    Real max_step_size = 0;
@@ -108,7 +108,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         
         Real phi_tau;
         Real tau        = Frac<Real>(1,settings.backtracking_factor);
-        int  SSN_b_iter = 0;
+        Size_T SSN_b_iter = 0;
         
         // Armijo line search.
         do{
@@ -154,7 +154,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
             
             TOOLS_DDUMP( SSN_iter );
             TOOLS_DDUMP( u.FrobeniusNorm() );
-            TOOLS_DDUMP( settings.SSN_b_iter );
+            TOOLS_DDUMP( SSN_b_iter );
             TOOLS_DDUMP( tau );
         }
         
