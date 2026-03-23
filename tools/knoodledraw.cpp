@@ -48,6 +48,28 @@ struct Config
     bool label_crossings      = false;
     bool label_arcs           = false;
     bool label_faces          = false;
+
+    // Quality preset
+    std::optional<std::string> quality_preset;  // "fast", "default", "best", "best-clp"
+
+    // Algorithm selection
+    std::optional<OrthoDraw_T::BendMethod_T>      bend_method;
+    std::optional<OrthoDraw_T::CompactionMethod_T> compaction_method;
+
+    // Integer options
+    std::optional<Int> x_rounding_radius;
+    std::optional<Int> y_rounding_radius;
+    std::optional<int> randomize_bends;
+
+    // Boolean options (nullopt = use default/preset)
+    std::optional<bool> redistribute_bends;
+    std::optional<bool> turn_regularize;
+    std::optional<bool> saturate_regions;
+    std::optional<bool> saturate_exterior;
+    std::optional<bool> filter_saturating_edges;
+    std::optional<bool> soften_virtual_edges;
+    std::optional<bool> randomize_virtual_edges;
+    std::optional<bool> dual_simplex;
 };
 
 //==============================================================================
@@ -65,17 +87,40 @@ void PrintUsage()
     std::cerr << "Reads knot/link diagrams and produces ASCII art drawings.\n";
     std::cerr << "If no input files are given, reads from stdin (Unix filter mode).\n";
     std::cerr << "\n";
-    std::cerr << "Drawing options:\n";
+    std::cerr << "Quality presets:\n";
+    std::cerr << "  --quality=PRESET            fast, default, best, debug\n";
+    std::cerr << "\n";
+    std::cerr << "Grid and spacing:\n";
     std::cerr << "  --x-grid-size=N             Horizontal grid size (default: 4/6/8 for 0/1/2+ labels)\n";
     std::cerr << "  --y-grid-size=N             Vertical grid size (default: 2/3/4 for 0/1/2+ labels)\n";
     std::cerr << "  --x-gap-size=N              Horizontal gap size (default: 1)\n";
     std::cerr << "  --y-gap-size=N              Vertical gap size (default: 1)\n";
-    std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "  --x-rounding-radius=N       Horizontal rounding radius (default: 4)\n";
+    std::cerr << "  --y-rounding-radius=N       Vertical rounding radius (default: 4)\n";
     std::cerr << "\n";
     std::cerr << "Label options (combinable, e.g. -caf):\n";
     std::cerr << "  -c, --label-crossings       Show crossing numbers (0-based)\n";
     std::cerr << "  -a, --label-arcs            Show arc numbers (0-based)\n";
     std::cerr << "  -f, --label-faces           Show face numbers (0-based)\n";
+    std::cerr << "\n";
+    std::cerr << "Output options:\n";
+    std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "\n";
+    std::cerr << "Algorithm options:\n";
+    std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
+    std::cerr << "  --compaction=METHOD         topo-number, topo-order, length-mcf (default),\n";
+    std::cerr << "                              length-clp, area-clp\n";
+    std::cerr << "  --randomize-bends=N         [experimental] Randomization rounds (default: 0)\n";
+    std::cerr << "\n";
+    std::cerr << "Boolean tuning (--flag / --no-flag):\n";
+    std::cerr << "  redistribute-bends (on)     Redistribute bends after optimization\n";
+    std::cerr << "  turn-regularize (on)        Regularize turns\n";
+    std::cerr << "  saturate-regions (on)       Saturate regions\n";
+    std::cerr << "  saturate-exterior (on)      Saturate exterior region\n";
+    std::cerr << "  filter-saturating-edges (on) Filter saturating edges\n";
+    std::cerr << "  soften-virtual-edges (off)  Soften virtual edges\n";
+    std::cerr << "  randomize-virtual-edges (off) Randomize virtual edges\n";
+    std::cerr << "  dual-simplex (off)          Use dual simplex method\n";
     std::cerr << "\n";
     std::cerr << "Input formats:\n";
     std::cerr << "  4 columns: unsigned PD code (4 arc labels per crossing)\n";
@@ -94,7 +139,8 @@ void PrintUsage()
     std::cerr << "Examples:\n";
     std::cerr << "  knoodlesimplify --streaming-mode < input.tsv | knoodledraw\n";
     std::cerr << "  knoodledraw diagram.tsv\n";
-    std::cerr << "  knoodledraw --x-grid-size=12 diagram.tsv\n";
+    std::cerr << "  knoodledraw --quality=fast --ascii diagram.tsv\n";
+    std::cerr << "  knoodledraw --quality=debug --ascii diagram.tsv\n";
 }
 
 /**
@@ -113,6 +159,47 @@ std::optional<Int> ParsePositiveInt(std::string_view s)
     {
         return std::nullopt;
     }
+}
+
+/**
+ * @brief Parse a non-negative integer from a string (accepts 0).
+ */
+std::optional<int> ParseNonNegativeInt(std::string_view s)
+{
+    try
+    {
+        std::size_t pos = 0;
+        long long val = std::stoll(std::string(s), &pos);
+        if (pos != s.size() || val < 0) return std::nullopt;
+        return static_cast<int>(val);
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+}
+
+/**
+ * @brief Match a boolean flag pair: --name / --no-name.
+ * @return +1 for --name, -1 for --no-name, 0 for no match.
+ */
+int MatchBoolFlag(std::string_view arg, std::string_view name)
+{
+    // Check --name
+    if (arg.size() == 2 + name.size()
+        && arg.starts_with("--")
+        && arg.substr(2) == name)
+    {
+        return +1;
+    }
+    // Check --no-name
+    if (arg.size() == 5 + name.size()
+        && arg.starts_with("--no-")
+        && arg.substr(5) == name)
+    {
+        return -1;
+    }
+    return 0;
 }
 
 /**
@@ -181,6 +268,74 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.label_faces = true;
         }
+        // Quality preset
+        else if (arg.starts_with("--quality="))
+        {
+            std::string val(arg.substr(10));
+            if (val != "fast" && val != "default" && val != "best" && val != "debug")
+            {
+                std::cerr << "Error: Unknown quality preset: " << val << "\n";
+                std::cerr << "  Valid presets: fast, default, best, debug\n";
+                return std::nullopt;
+            }
+            config.quality_preset = val;
+        }
+        // Bend method
+        else if (arg.starts_with("--bend-method="))
+        {
+            std::string val(arg.substr(14));
+            if (val == "mcf")
+                config.bend_method = OrthoDraw_T::BendMethod_T::Bends_MCF;
+            else if (val == "clp")
+                config.bend_method = OrthoDraw_T::BendMethod_T::Bends_CLP;
+            else
+            {
+                std::cerr << "Error: Unknown bend method: " << val << "\n";
+                std::cerr << "  Valid methods: mcf, clp\n";
+                return std::nullopt;
+            }
+        }
+        // Compaction method
+        else if (arg.starts_with("--compaction="))
+        {
+            std::string val(arg.substr(13));
+            if (val == "topo-number")
+                config.compaction_method = OrthoDraw_T::CompactionMethod_T::TopologicalNumbering;
+            else if (val == "topo-order")
+                config.compaction_method = OrthoDraw_T::CompactionMethod_T::TopologicalOrdering;
+            else if (val == "length-mcf")
+                config.compaction_method = OrthoDraw_T::CompactionMethod_T::Length_MCF;
+            else if (val == "length-clp")
+                config.compaction_method = OrthoDraw_T::CompactionMethod_T::Length_CLP;
+            else if (val == "area-clp")
+                config.compaction_method = OrthoDraw_T::CompactionMethod_T::AreaAndLength_CLP;
+            else
+            {
+                std::cerr << "Error: Unknown compaction method: " << val << "\n";
+                std::cerr << "  Valid methods: topo-number, topo-order, length-mcf, length-clp, area-clp\n";
+                return std::nullopt;
+            }
+        }
+        // Randomize bends (non-negative integer)
+        else if (arg.starts_with("--randomize-bends="))
+        {
+            auto val = ParseNonNegativeInt(arg.substr(18));
+            if (!val) { std::cerr << "Error: Invalid randomize-bends value\n"; return std::nullopt; }
+            config.randomize_bends = *val;
+        }
+        // Rounding radii
+        else if (arg.starts_with("--x-rounding-radius="))
+        {
+            auto val = ParsePositiveInt(arg.substr(20));
+            if (!val) { std::cerr << "Error: Invalid x-rounding-radius value\n"; return std::nullopt; }
+            config.x_rounding_radius = *val;
+        }
+        else if (arg.starts_with("--y-rounding-radius="))
+        {
+            auto val = ParsePositiveInt(arg.substr(20));
+            if (!val) { std::cerr << "Error: Invalid y-rounding-radius value\n"; return std::nullopt; }
+            config.y_rounding_radius = *val;
+        }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)
         {
@@ -205,7 +360,37 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return std::nullopt;
             }
         }
-        // Unknown option
+        // Boolean flag pairs (--flag / --no-flag)
+        else if (arg.starts_with("--"))
+        {
+            int m;
+            bool matched = false;
+
+            if ((m = MatchBoolFlag(arg, "redistribute-bends")) != 0)
+            { config.redistribute_bends = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "turn-regularize")) != 0)
+            { config.turn_regularize = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "saturate-regions")) != 0)
+            { config.saturate_regions = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "saturate-exterior")) != 0)
+            { config.saturate_exterior = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "filter-saturating-edges")) != 0)
+            { config.filter_saturating_edges = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "soften-virtual-edges")) != 0)
+            { config.soften_virtual_edges = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "randomize-virtual-edges")) != 0)
+            { config.randomize_virtual_edges = (m > 0); matched = true; }
+            else if ((m = MatchBoolFlag(arg, "dual-simplex")) != 0)
+            { config.dual_simplex = (m > 0); matched = true; }
+
+            if (!matched)
+            {
+                std::cerr << "Error: Unknown option: " << arg << "\n";
+                PrintUsage();
+                return std::nullopt;
+            }
+        }
+        // Unknown short option
         else if (arg.starts_with("-"))
         {
             std::cerr << "Error: Unknown option: " << arg << "\n";
@@ -217,6 +402,14 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.input_files.emplace_back(arg);
         }
+    }
+
+    // Debug preset enables all labels (before auto-sizing so grid adapts)
+    if (config.quality_preset && *config.quality_preset == "debug")
+    {
+        config.label_crossings = true;
+        config.label_arcs      = true;
+        config.label_faces     = true;
     }
 
     // Apply default grid sizes based on label count (if not explicitly set)
@@ -1003,20 +1196,117 @@ void PlaceFaceLabels(std::string& diagram, Int n_x, Int n_y,
 }
 
 //==============================================================================
+// Settings Construction
+//==============================================================================
+
+/**
+ * @brief Build OrthoDraw settings from config: library defaults → preset → overrides.
+ */
+OrthoDraw_T::Settings_T BuildSettings(const Config& config)
+{
+    OrthoDraw_T::Settings_T s{};
+
+    // Layer 1: Library defaults (from default-initialized Settings_T)
+
+    // Layer 2: Quality preset
+    if (config.quality_preset)
+    {
+        const auto& preset = *config.quality_preset;
+
+        if (preset == "fast")
+        {
+            s.compaction_method    = OrthoDraw_T::CompactionMethod_T::TopologicalOrdering;
+            s.redistribute_bendsQ  = false;
+            s.turn_regularizeQ     = false;
+        }
+        else if (preset == "best")
+        {
+            s.soften_virtual_edgesQ    = true;
+        }
+        // "debug": keep defaults (virtual edges visible as dots);
+        // labels are enabled in ParseArguments
+        // "default": no changes from library defaults
+    }
+
+    // Layer 3: Individual overrides
+    if (config.bend_method)              s.bend_method              = *config.bend_method;
+    if (config.compaction_method)        s.compaction_method        = *config.compaction_method;
+    if (config.randomize_bends)          s.randomize_bends          = *config.randomize_bends;
+    if (config.x_rounding_radius)        s.x_rounding_radius        = *config.x_rounding_radius;
+    if (config.y_rounding_radius)        s.y_rounding_radius        = *config.y_rounding_radius;
+    if (config.redistribute_bends)       s.redistribute_bendsQ      = *config.redistribute_bends;
+    if (config.turn_regularize)          s.turn_regularizeQ         = *config.turn_regularize;
+    if (config.saturate_regions)         s.saturate_regionsQ        = *config.saturate_regions;
+    if (config.saturate_exterior)        s.saturate_exterior_regionQ = *config.saturate_exterior;
+    if (config.filter_saturating_edges)  s.filter_saturating_edgesQ = *config.filter_saturating_edges;
+    if (config.soften_virtual_edges)     s.soften_virtual_edgesQ    = *config.soften_virtual_edges;
+    if (config.randomize_virtual_edges)  s.randomize_virtual_edgesQ = *config.randomize_virtual_edges;
+    if (config.dual_simplex)             s.use_dual_simplexQ        = *config.dual_simplex;
+
+    // Grid/gap sizes always come from Config (with auto-sizing logic applied in ParseArguments)
+    s.x_grid_size = config.x_grid_size;
+    s.y_grid_size = config.y_grid_size;
+    s.x_gap_size  = config.x_gap_size;
+    s.y_gap_size  = config.y_gap_size;
+
+    return s;
+}
+
+/**
+ * @brief Validate that CLP methods are available if requested. Returns true if valid.
+ */
+bool ValidateCLPSettings(const OrthoDraw_T::Settings_T& settings)
+{
+#ifndef KNOODLE_USE_CLP
+    if (settings.bend_method == OrthoDraw_T::BendMethod_T::Bends_CLP)
+    {
+        std::cerr << "Error: --bend-method=clp requires CLP support (compile with -DKNOODLE_USE_CLP)\n";
+        return false;
+    }
+    if (settings.compaction_method == OrthoDraw_T::CompactionMethod_T::Length_CLP
+     || settings.compaction_method == OrthoDraw_T::CompactionMethod_T::AreaAndLength_CLP)
+    {
+        std::cerr << "Error: CLP compaction methods require CLP support (compile with -DKNOODLE_USE_CLP)\n";
+        return false;
+    }
+#endif
+    (void)settings;
+    return true;
+}
+
+/**
+ * @brief Validate that settings don't combine options known to produce
+ *        incorrect drawings. Returns true if valid.
+ */
+bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
+{
+    if (!settings.redistribute_bendsQ && !settings.saturate_regionsQ)
+    {
+        std::cerr
+            << "Error: --no-redistribute-bends and --no-saturate-regions cannot be used together.\n"
+            << "Without bend redistribution, the MCF solver's raw bend placement can route\n"
+            << "non-adjacent edges close together. Without region saturation, the constraint\n"
+            << "graph lacks the spacing constraints to keep those edges apart during compaction,\n"
+            << "which produces false visual crossings in the output.\n"
+            << "Re-enable at least one of these options.\n";
+        return false;
+    }
+    return true;
+}
+
+//==============================================================================
 // Drawing
 //==============================================================================
 
 /**
  * @brief Draw all summands of a knot to stdout.
  */
-void DrawKnot(const std::vector<PD_T>& summands, const Config& config)
+bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 {
-    OrthoDraw_T::Settings_T settings{
-        .x_grid_size = config.x_grid_size,
-        .y_grid_size = config.y_grid_size,
-        .x_gap_size  = config.x_gap_size,
-        .y_gap_size  = config.y_gap_size
-    };
+    OrthoDraw_T::Settings_T settings = BuildSettings(config);
+
+    if (!ValidateCLPSettings(settings)) return false;
+    if (!ValidateSettingsCombinations(settings)) return false;
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
@@ -1074,6 +1364,7 @@ void DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
         std::cout << diagram << "\n";
     }
+    return true;
 }
 
 //==============================================================================
@@ -1109,7 +1400,7 @@ bool ProcessStream(std::istream& input,
             std::cout << "k\n";
         }
 
-        DrawKnot(input_knot->summands, config);
+        if (!DrawKnot(input_knot->summands, config)) return false;
         any_drawn = true;
     }
 
@@ -1136,8 +1427,7 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         summands.push_back(PD_T(pdc.Diagram(i)));
     }
 
-    DrawKnot(summands, config);
-    return true;
+    return DrawKnot(summands, config);
 }
 
 } // anonymous namespace
