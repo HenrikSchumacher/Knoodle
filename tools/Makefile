@@ -1,4 +1,4 @@
-# Makefile for knoodletool
+# Makefile for knoodlesimplify and knoodledraw
 CXX ?= g++
 
 # Detect OS and set appropriate flags
@@ -38,6 +38,9 @@ endif
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
+# Shared header dependency
+SHARED_DEPS = knoodle_io.hpp ../Knoodle.hpp
+
 # Debug build flags (similar OS detection)
 ifeq ($(UNAME_S),Darwin)
     DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
@@ -59,25 +62,33 @@ else
                      -pthread
 endif
 
-knoodletool: main.cpp
-	@echo "=== Building KnoodleTool on $(UNAME_S) ==="
+all: knoodlesimplify knoodledraw
+
+knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodlesimplify on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Compiler flags: $(CXXFLAGS) ==="
-	@echo "=== Include paths: $(CPPFLAGS) ==="
-	@echo "=== Link flags: $(LDFLAGS) ==="
 	@echo ""
-	@echo "Compiling main.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
-	@echo "✓ KnoodleTool compiled successfully"
+	@echo "Compiling knoodlesimplify.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodlesimplify.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodlesimplify compiled successfully"
+
+knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodledraw on $(UNAME_S) ==="
+	@echo "=== Compiler: $(CXX) ==="
+	@echo ""
+	@echo "Compiling knoodledraw.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodledraw.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodledraw compiled successfully"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
-debug: knoodletool
+debug: all
 
-install: knoodletool
+install: all
 	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 knoodletool $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodlesimplify $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodledraw $(DESTDIR)$(BINDIR)/
 
 clean:
-	rm -f knoodletool
+	rm -f knoodlesimplify knoodledraw
 
-.PHONY: install clean debug
+.PHONY: all install clean debug
