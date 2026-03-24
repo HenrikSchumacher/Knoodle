@@ -134,7 +134,7 @@ void PrintUsage()
     std::cerr << "  saturate-regions (on)       Saturate regions\n";
     std::cerr << "  saturate-exterior (on)      Saturate exterior region\n";
     std::cerr << "  filter-saturating-edges (on) Filter saturating edges\n";
-    std::cerr << "  soften-virtual-edges (off)  Soften virtual edges\n";
+    std::cerr << "  soften-virtual-edges (off)  Soften virtual edges [KNOWN BUG: can cause collisions]\n";
     std::cerr << "  randomize-virtual-edges (off) Randomize virtual edges\n";
     std::cerr << "  dual-simplex (off)          Use dual simplex method\n";
     std::cerr << "\n";
@@ -910,13 +910,19 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
 
             if (best_pipe_count > 0)
             {
-                // Always use "a" prefix for vertical arcs
-                std::string digits = std::to_string(a);
+                // For vertical arcs, overwrite the central '|' with the
+                // first character of the label and place the rest beside it.
+                // When prefix is non-empty (e.g. "a"), the pipe becomes 'a'
+                // and digits go to the side. When prefix is empty, the pipe
+                // becomes the first digit and remaining digits go beside it.
+                std::string full_label = prefix + std::to_string(a);
+                char pipe_char = full_label[0];
+                std::string digits = full_label.substr(1);
                 Int digit_len = static_cast<Int>(digits.size());
 
-                // Overwrite '|' with 'a'
+                // Overwrite '|' with first label character
                 auto a_ci = idx(best_center_x, best_center_y);
-                diagram[a_ci] = 'a';
+                diagram[a_ci] = pipe_char;
                 bool arc_hl = mask && highlights
                               && highlights->arcs.count(a);
                 if (arc_hl)
@@ -948,7 +954,7 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                 }
                 else
                 {
-                    // Try digits to the left, 'a' stays on the pipe
+                    // Try digits to the left
                     bool left_fits = true;
                     for (Int i = 0; i < digit_len; ++i)
                     {
@@ -1869,7 +1875,11 @@ OrthoDraw_T::Settings_T BuildSettings(const Config& config)
 {
     OrthoDraw_T::Settings_T s{};
 
-    // Layer 1: Library defaults (from default-initialized Settings_T)
+    // Layer 1: Library defaults (soften_virtual_edgesQ = false)
+    // NOTE: soften_virtual_edgesQ is left OFF at all quality levels due to an
+    // OrthoDraw bug where softened virtual edges can produce zero-length
+    // diagonal edges, causing corner collisions between different components.
+    // See ConstraintGraphs.hpp TODOs re: one-vertex segments.
 
     // Layer 2: Quality preset
     if (config.quality_preset)
@@ -1882,13 +1892,7 @@ OrthoDraw_T::Settings_T BuildSettings(const Config& config)
             s.redistribute_bendsQ  = false;
             s.turn_regularizeQ     = false;
         }
-        else if (preset == "best")
-        {
-            s.soften_virtual_edgesQ    = true;
-        }
-        // "debug": keep defaults (virtual edges visible as dots);
-        // labels are enabled in ParseArguments
-        // "default": no changes from library defaults
+        // "best", "debug", "default": no changes from library defaults
     }
 
     // Layer 3: Individual overrides
@@ -1984,6 +1988,14 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
         OrthoDraw_T H(summands[i], Int(-1), settings);
         std::string diagram = H.DiagramString();
+
+        // Virtual edges are drawn as '.' by DiagramString().
+        // Hide them unless we're in debug mode.
+        bool debug_mode = config.quality_preset && *config.quality_preset == "debug";
+        if (!debug_mode)
+        {
+            std::replace(diagram.begin(), diagram.end(), '.', ' ');
+        }
 
         std::vector<HighlightType> mask;
         std::vector<Int> component_map;
