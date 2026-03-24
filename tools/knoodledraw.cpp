@@ -25,6 +25,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <map>
 #include <set>
 
 //==============================================================================
@@ -50,6 +51,7 @@ struct Config
     bool label_crossings      = false;
     bool label_arcs           = false;
     bool label_faces          = false;
+    bool label_components     = false;
 
     // Quality preset
     std::optional<std::string> quality_preset;  // "fast", "default", "best", "best-clp"
@@ -109,10 +111,11 @@ void PrintUsage()
     std::cerr << "  --x-rounding-radius=N       Horizontal rounding radius (default: 4)\n";
     std::cerr << "  --y-rounding-radius=N       Vertical rounding radius (default: 4)\n";
     std::cerr << "\n";
-    std::cerr << "Label options (combinable, e.g. -caf):\n";
+    std::cerr << "Label options (combinable, e.g. -calf):\n";
     std::cerr << "  -c, --label-crossings       Show crossing numbers (0-based)\n";
     std::cerr << "  -a, --label-arcs            Show arc numbers (0-based)\n";
     std::cerr << "  -f, --label-faces           Show face numbers (0-based)\n";
+    std::cerr << "  -l, --label-components      Color/label link components\n";
     std::cerr << "\n";
     std::cerr << "Output options:\n";
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
@@ -281,6 +284,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.label_faces = true;
         }
+        else if (arg == "--label-components")
+        {
+            config.label_components = true;
+        }
         // Quality preset
         else if (arg.starts_with("--quality="))
         {
@@ -362,9 +369,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             {
                 switch (arg[j])
                 {
-                    case 'c': config.label_crossings = true; break;
-                    case 'a': config.label_arcs      = true; break;
-                    case 'f': config.label_faces     = true; break;
+                    case 'c': config.label_crossings  = true; break;
+                    case 'a': config.label_arcs       = true; break;
+                    case 'f': config.label_faces      = true; break;
+                    case 'l': config.label_components = true; break;
                     default:
                         valid = false;
                         break;
@@ -425,15 +433,17 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
     // Debug preset enables all labels (before auto-sizing so grid adapts)
     if (config.quality_preset && *config.quality_preset == "debug")
     {
-        config.label_crossings = true;
-        config.label_arcs      = true;
-        config.label_faces     = true;
+        config.label_crossings  = true;
+        config.label_arcs       = true;
+        config.label_faces      = true;
+        config.label_components = true;
     }
 
     // Apply default grid sizes based on label count (if not explicitly set)
     int label_count = int(config.label_crossings)
                     + int(config.label_arcs)
-                    + int(config.label_faces);
+                    + int(config.label_faces)
+                    + int(config.label_components);
     if (config.x_grid_size < 0)
         config.x_grid_size = (label_count >= 2) ? 8 : (label_count == 1) ? 6 : 4;
     if (config.y_grid_size < 0)
@@ -473,7 +483,8 @@ bool ConnectsVertically(char c)
  */
 std::string UnicodeifyDiagram(const std::string& ascii,
                                const std::vector<HighlightType>* hl_mask = nullptr,
-                               Int n_x = 0)
+                               Int n_x = 0,
+                               const std::vector<Int>* comp_map = nullptr)
 {
     // Parse into lines
     std::vector<std::string> lines;
@@ -504,6 +515,19 @@ std::string UnicodeifyDiagram(const std::string& ascii,
     static const char* COLOR_CROSSING = "\033[38;5;203m";  // red
     static const char* COLOR_FACE     = "\033[48;5;234m";  // bg-dim
     static const char* COLOR_RESET    = "\033[0m";
+
+    // Component palette (Modus Vivendi distinct colors)
+    static constexpr int COMPONENT_COLORS[] = {
+        204,  // red-warmer (#ff5f87)
+        111,  // blue-warmer (#87afff)
+         78,  // green (#5fd787)
+        176,  // magenta (#d787d7)
+        180,  // gold (#d7af87)
+         80,  // cyan (#5fd7d7)
+        215,  // orange (#ffaf5f)
+        141,  // purple (#af87ff)
+    };
+    static constexpr int NUM_COMPONENT_COLORS = 8;
 
     std::string result;
     result.reserve(ascii.size() * 4);
@@ -557,11 +581,13 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                     break;
             }
 
-            // Apply highlight coloring if mask is provided
-            if (hl_mask && n_x > 0)
+            // Apply coloring: highlight takes priority over component color
+            if (n_x > 0)
             {
                 auto mi = r * static_cast<std::size_t>(n_x) + c;
-                if (mi < hl_mask->size()
+
+                // Priority 1: highlight color
+                if (hl_mask && mi < hl_mask->size()
                     && (*hl_mask)[mi] != HighlightType::None)
                 {
                     const char* color = "";
@@ -573,6 +599,20 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                         default: break;
                     }
                     result += color;
+                    result += char_out;
+                    result += COLOR_RESET;
+                    continue;
+                }
+
+                // Priority 2: component color
+                if (comp_map && mi < comp_map->size()
+                    && (*comp_map)[mi] >= 0)
+                {
+                    int lc = static_cast<int>((*comp_map)[mi]);
+                    int ci = COMPONENT_COLORS[lc % NUM_COMPONENT_COLORS];
+                    result += "\033[38;5;";
+                    result += std::to_string(ci);
+                    result += "m";
                     result += char_out;
                     result += COLOR_RESET;
                     continue;
@@ -1070,6 +1110,137 @@ std::vector<Int> BuildFaceMap(OrthoDraw_T& H, const std::string& diagram,
 }
 
 /**
+ * @brief Build a per-cell component color map for the diagram grid.
+ *
+ * Returns a vector parallel to the diagram string. Each cell stores
+ * the component color index (from pd.A_color) or -1 if not part of an arc.
+ * Uses the same edge-walk pattern as BuildHighlightMask.
+ */
+std::vector<Int> BuildComponentMap(
+    OrthoDraw_T& H, const PD_T& pd,
+    const std::string& diagram, Int n_x, Int n_y)
+{
+    std::vector<Int> comp_map(
+        static_cast<std::size_t>(n_x * n_y), Int(-1));
+
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    auto is_body_char = [](char c) -> bool {
+        return c == '-' || c == '|' || c == '<' || c == '>'
+            || c == '^' || c == 'v';
+    };
+
+    const auto& A_E = H.ArcEdges();
+    const auto& A_V = H.ArcVertices();
+    const auto& E_V = H.Edges();
+    const auto& V_coords = H.VertexCoordinates();
+    const auto& E_dir = H.EdgeDirections();
+
+    // Mark edge body cells for each arc
+    for (Int a = 0; a < H.MaxArcCount(); ++a)
+    {
+        if (!H.EdgeActiveQ(a)) continue;
+
+        Int color = pd.ArcColors()[a];
+
+        // Walk the edges of this arc
+        auto edges = A_E[a];
+        for (auto it = edges.begin(); it != edges.end(); ++it)
+        {
+            Int e = *it;
+            if (!H.EdgeActiveQ(e)) continue;
+
+            Int v_0 = E_V(e, 0);
+            Int v_1 = E_V(e, 1);
+            Int x0 = V_coords(v_0, 0), y0 = V_coords(v_0, 1);
+            Int x1 = V_coords(v_1, 0), y1 = V_coords(v_1, 1);
+
+            auto dir = E_dir[e];
+
+            if (dir == OrthoDraw_T::East || dir == OrthoDraw_T::West)
+            {
+                Int lo_x = std::min(x0, x1);
+                Int hi_x = std::max(x0, x1);
+                Int y = y0;
+                for (Int x = lo_x + 1; x <= hi_x - 1; ++x)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_body_char(diagram[i]))
+                        comp_map[i] = color;
+                }
+            }
+            else if (dir == OrthoDraw_T::North || dir == OrthoDraw_T::South)
+            {
+                Int lo_y = std::min(y0, y1);
+                Int hi_y = std::max(y0, y1);
+                Int x = x0;
+                for (Int y = lo_y + 1; y <= hi_y - 1; ++y)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_body_char(diagram[i]))
+                        comp_map[i] = color;
+                }
+            }
+        }
+
+        // Mark corner vertices ('+' characters)
+        auto verts = A_V[a];
+        for (auto it = verts.begin(); it != verts.end(); ++it)
+        {
+            Int v = *it;
+            Int x = V_coords(v, 0);
+            Int y = V_coords(v, 1);
+            if (!in_bounds(x, y)) continue;
+            auto i = idx(x, y);
+            if (diagram[i] == '+')
+                comp_map[i] = color;
+        }
+    }
+
+    // Fix crossing centers: the overstrand character ('-' or '|') belongs
+    // to the arc that passes over. Copy color from adjacent cell in the
+    // overstrand direction.
+    for (Int c = 0; c < H.MaxCrossingCount(); ++c)
+    {
+        if (!H.VertexActiveQ(c)) continue;
+
+        Int cx = V_coords(c, 0);
+        Int cy = V_coords(c, 1);
+        if (!in_bounds(cx, cy)) continue;
+
+        auto ci = idx(cx, cy);
+        char ch = diagram[ci];
+
+        if (ch == '-')
+        {
+            // Horizontal overstrand: copy from left or right neighbor
+            if (in_bounds(cx - 1, cy) && comp_map[idx(cx - 1, cy)] >= 0)
+                comp_map[ci] = comp_map[idx(cx - 1, cy)];
+            else if (in_bounds(cx + 1, cy) && comp_map[idx(cx + 1, cy)] >= 0)
+                comp_map[ci] = comp_map[idx(cx + 1, cy)];
+        }
+        else if (ch == '|')
+        {
+            // Vertical overstrand: copy from above or below neighbor
+            if (in_bounds(cx, cy - 1) && comp_map[idx(cx, cy - 1)] >= 0)
+                comp_map[ci] = comp_map[idx(cx, cy - 1)];
+            else if (in_bounds(cx, cy + 1) && comp_map[idx(cx, cy + 1)] >= 0)
+                comp_map[ci] = comp_map[idx(cx, cy + 1)];
+        }
+    }
+
+    return comp_map;
+}
+
+/**
  * @brief Place face labels into diagram, optimizing for maximum clearance.
  *
  * For each face, finds an initial position near the face centroid where the
@@ -1267,6 +1438,105 @@ void PlaceFaceLabels(std::string& diagram, Int n_x, Int n_y,
         for (Int i = 0; i < label_len; ++i)
         {
             diagram[idx(best_x + i, best_y)] =
+                label[static_cast<std::size_t>(i)];
+        }
+    }
+}
+
+/**
+ * @brief Place component labels ("comp0", "comp1", ...) in ASCII mode.
+ *
+ * One label per component color, placed on the topmost horizontal edge
+ * segment long enough to hold the label text. Called after PlaceArcLabels
+ * to avoid obscuring arc labels.
+ */
+void PlaceComponentLabels(
+    std::string& diagram, Int n_x, Int n_y,
+    OrthoDraw_T& H, const PD_T& pd)
+{
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    const auto& A_lines = H.ArcLines();
+
+    // Group arcs by color
+    std::map<Int, std::vector<Int>> color_arcs;
+    for (Int a = 0; a < H.MaxArcCount(); ++a)
+    {
+        if (!H.EdgeActiveQ(a)) continue;
+        color_arcs[pd.ArcColors()[a]].push_back(a);
+    }
+
+    for (const auto& [color, arcs] : color_arcs)
+    {
+        std::string label = "comp" + std::to_string(color);
+        Int label_len = static_cast<Int>(label.size());
+
+        // Collect all horizontal segments from all arcs in this component
+        struct HRun { Int x_start; Int y; Int length; };
+        std::vector<HRun> runs;
+
+        for (Int a : arcs)
+        {
+            auto sublist = A_lines[a];
+            Int point_count = static_cast<Int>(sublist.end() - sublist.begin());
+            if (point_count < 2) continue;
+
+            auto it = sublist.begin();
+            auto prev = it;
+            ++it;
+            for (; it != sublist.end(); prev = it, ++it)
+            {
+                Int x0 = (*prev)[0], y0 = (*prev)[1];
+                Int x1 = (*it)[0],   y1 = (*it)[1];
+
+                if (y0 != y1 || x0 == x1) continue; // not horizontal
+
+                Int lo = std::min(x0, x1);
+                Int hi = std::max(x0, x1);
+                Int y  = y0;
+
+                // Find contiguous runs of '-' in this segment
+                Int run_start = -1;
+                Int run_len   = 0;
+
+                for (Int x = lo; x <= hi; ++x)
+                {
+                    if (x >= 0 && x < n_x - 1 && y >= 0 && y < n_y
+                        && diagram[idx(x, y)] == '-')
+                    {
+                        if (run_len == 0) run_start = x;
+                        ++run_len;
+                    }
+                    else
+                    {
+                        if (run_len >= label_len)
+                            runs.push_back({run_start, y, run_len});
+                        run_len = 0;
+                    }
+                }
+                if (run_len >= label_len)
+                    runs.push_back({run_start, y, run_len});
+            }
+        }
+
+        if (runs.empty()) continue;
+
+        // Pick the topmost run (highest y in math coords).
+        // Break ties by longest run.
+        auto best = std::max_element(runs.begin(), runs.end(),
+            [](const HRun& a, const HRun& b) {
+                if (a.y != b.y) return a.y < b.y;
+                return a.length < b.length;
+            });
+
+        // Center the label within the run
+        Int offset  = (best->length - label_len) / 2;
+        Int start_x = best->x_start + offset;
+        for (Int i = 0; i < label_len; ++i)
+        {
+            diagram[idx(start_x + i, best->y)] =
                 label[static_cast<std::size_t>(i)];
         }
     }
@@ -1702,7 +1972,7 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
     if (!ValidateSettingsCombinations(settings)) return false;
 
     bool has_labels = config.label_crossings || config.label_arcs
-                   || config.label_faces;
+                   || config.label_faces || config.label_components;
     bool has_highlights = !config.highlight_specs.empty();
 
     for (std::size_t i = 0; i < summands.size(); ++i)
@@ -1716,6 +1986,7 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
         std::string diagram = H.DiagramString();
 
         std::vector<HighlightType> mask;
+        std::vector<Int> component_map;
         Int n_x = 0, n_y = 0;
 
         if (has_labels || has_highlights)
@@ -1746,12 +2017,20 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
                                           highlights, face_map);
             }
 
-            // Place labels (existing logic, unchanged)
+            // Build component map from pristine diagram (before labels)
+            if (config.label_components)
+            {
+                component_map = BuildComponentMap(
+                    H, summands[i], diagram, n_x, n_y);
+            }
+
+            // Place labels
             if (has_labels)
             {
                 int active_types = int(config.label_crossings)
                                  + int(config.label_arcs)
-                                 + int(config.label_faces);
+                                 + int(config.label_faces)
+                                 + int(config.label_components);
                 bool use_prefix = (active_types > 1);
 
                 // Pass mask+highlights in Unicode mode so labels of
@@ -1773,6 +2052,10 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
                                    use_prefix ? "a" : "",
                                    m_ptr, h_ptr);
                 }
+                if (config.label_components && config.ascii_mode)
+                {
+                    PlaceComponentLabels(diagram, n_x, n_y, H, summands[i]);
+                }
                 if (config.label_faces)
                 {
                     PlaceFaceLabels(diagram, n_x, n_y, H,
@@ -1789,8 +2072,13 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
         if (!config.ascii_mode)
         {
-            if (!mask.empty())
-                diagram = UnicodeifyDiagram(diagram, &mask, n_x);
+            const std::vector<HighlightType>* m_ptr =
+                !mask.empty() ? &mask : nullptr;
+            const std::vector<Int>* c_ptr =
+                !component_map.empty() ? &component_map : nullptr;
+
+            if (m_ptr || c_ptr)
+                diagram = UnicodeifyDiagram(diagram, m_ptr, n_x, c_ptr);
             else
                 diagram = UnicodeifyDiagram(diagram);
         }
