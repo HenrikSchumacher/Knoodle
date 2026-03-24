@@ -25,6 +25,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <set>
 
 //==============================================================================
 // Configuration
@@ -42,6 +43,7 @@ struct Config
     Int  x_gap_size     = 1;
     Int  y_gap_size     = 1;
     std::vector<std::string> input_files;
+    std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
     bool help_requested       = false;
@@ -70,6 +72,15 @@ struct Config
     std::optional<bool> soften_virtual_edges;
     std::optional<bool> randomize_virtual_edges;
     std::optional<bool> dual_simplex;
+};
+
+enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3 };
+
+struct HighlightSet {
+    std::set<Int> arcs;
+    std::set<Int> crossings;
+    std::set<Int> faces;
+    bool empty() const { return arcs.empty() && crossings.empty() && faces.empty(); }
 };
 
 //==============================================================================
@@ -105,6 +116,8 @@ void PrintUsage()
     std::cerr << "\n";
     std::cerr << "Output options:\n";
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
+    std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
+    std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -336,6 +349,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!val) { std::cerr << "Error: Invalid y-rounding-radius value\n"; return std::nullopt; }
             config.y_rounding_radius = *val;
         }
+        // Highlight specification
+        else if (arg.starts_with("--highlight="))
+        {
+            config.highlight_specs.emplace_back(arg.substr(12));
+        }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)
         {
@@ -449,8 +467,13 @@ bool ConnectsVertically(char c)
  *
  * Replaces -, |, +, <, >, ^, v, and . with their Unicode equivalents.
  * For + characters, examines neighbors to choose the correct corner/junction glyph.
+ *
+ * When a highlight mask is provided, highlighted characters are wrapped with
+ * ANSI 256-color escape sequences (Modus Vivendi palette).
  */
-std::string UnicodeifyDiagram(const std::string& ascii)
+std::string UnicodeifyDiagram(const std::string& ascii,
+                               const std::vector<HighlightType>* hl_mask = nullptr,
+                               Int n_x = 0)
 {
     // Parse into lines
     std::vector<std::string> lines;
@@ -476,24 +499,31 @@ std::string UnicodeifyDiagram(const std::string& ascii)
         return lines[row][col];
     };
 
+    // ANSI 256-color escapes (Modus Vivendi palette)
+    static const char* COLOR_ARC      = "\033[38;5;111m";  // blue-warmer
+    static const char* COLOR_CROSSING = "\033[38;5;203m";  // red
+    static const char* COLOR_FACE     = "\033[48;5;234m";  // bg-dim
+    static const char* COLOR_RESET    = "\033[0m";
+
     std::string result;
-    result.reserve(ascii.size() * 3); // UTF-8 chars are up to 3 bytes
+    result.reserve(ascii.size() * 4);
 
     for (std::size_t r = 0; r < lines.size(); ++r)
     {
         for (std::size_t c = 0; c < lines[r].size(); ++c)
         {
             char ch = lines[r][c];
+            std::string char_out;
 
             switch (ch)
             {
-                case '-': result += "\xe2\x94\x80"; break; // ─ U+2500
-                case '|': result += "\xe2\x94\x82"; break; // │ U+2502
-                case '<': result += "\xe2\x86\x90"; break; // ← U+2190
-                case '>': result += "\xe2\x86\x92"; break; // → U+2192
-                case '^': result += "\xe2\x86\x91"; break; // ↑ U+2191
-                case 'v': result += "\xe2\x86\x93"; break; // ↓ U+2193
-                case '.': result += "\xc2\xb7";     break; // · U+00B7
+                case '-': char_out = "\xe2\x94\x80"; break; // ─ U+2500
+                case '|': char_out = "\xe2\x94\x82"; break; // │ U+2502
+                case '<': char_out = "\xe2\x86\x90"; break; // ← U+2190
+                case '>': char_out = "\xe2\x86\x92"; break; // → U+2192
+                case '^': char_out = "\xe2\x86\x91"; break; // ↑ U+2191
+                case 'v': char_out = "\xe2\x86\x93"; break; // ↓ U+2193
+                case '.': char_out = "\xc2\xb7";     break; // · U+00B7
 
                 case '+':
                 {
@@ -502,30 +532,54 @@ std::string UnicodeifyDiagram(const std::string& ascii)
                     bool up    = (r > 0) && ConnectsVertically(cell(r - 1, c));
                     bool down  = (r + 1 < lines.size()) && ConnectsVertically(cell(r + 1, c));
 
-                    int mask = (left ? 8 : 0) | (right ? 4 : 0) | (up ? 2 : 0) | (down ? 1 : 0);
+                    int bits = (left ? 8 : 0) | (right ? 4 : 0) | (up ? 2 : 0) | (down ? 1 : 0);
 
-                    switch (mask)
+                    switch (bits)
                     {
-                        case 0b0101: result += "\xe2\x95\xad"; break; // ╭ right+down
-                        case 0b1001: result += "\xe2\x95\xae"; break; // ╮ left+down
-                        case 0b0110: result += "\xe2\x95\xb0"; break; // ╰ right+up
-                        case 0b1010: result += "\xe2\x95\xaf"; break; // ╯ left+up
-                        case 0b1101: result += "\xe2\x94\xac"; break; // ┬ left+right+down
-                        case 0b1110: result += "\xe2\x94\xb4"; break; // ┴ left+right+up
-                        case 0b0111: result += "\xe2\x94\x9c"; break; // ├ up+down+right
-                        case 0b1011: result += "\xe2\x94\xa4"; break; // ┤ up+down+left
-                        case 0b1111: result += "\xe2\x94\xbc"; break; // ┼ all four
-                        case 0b1100: result += "\xe2\x94\x80"; break; // ─ left+right
-                        case 0b0011: result += "\xe2\x94\x82"; break; // │ up+down
-                        default:     result += "+";            break; // fallback
+                        case 0b0101: char_out = "\xe2\x95\xad"; break; // ╭ right+down
+                        case 0b1001: char_out = "\xe2\x95\xae"; break; // ╮ left+down
+                        case 0b0110: char_out = "\xe2\x95\xb0"; break; // ╰ right+up
+                        case 0b1010: char_out = "\xe2\x95\xaf"; break; // ╯ left+up
+                        case 0b1101: char_out = "\xe2\x94\xac"; break; // ┬ left+right+down
+                        case 0b1110: char_out = "\xe2\x94\xb4"; break; // ┴ left+right+up
+                        case 0b0111: char_out = "\xe2\x94\x9c"; break; // ├ up+down+right
+                        case 0b1011: char_out = "\xe2\x94\xa4"; break; // ┤ up+down+left
+                        case 0b1111: char_out = "\xe2\x94\xbc"; break; // ┼ all four
+                        case 0b1100: char_out = "\xe2\x94\x80"; break; // ─ left+right
+                        case 0b0011: char_out = "\xe2\x94\x82"; break; // │ up+down
+                        default:     char_out = "+";            break; // fallback
                     }
                     break;
                 }
 
                 default:
-                    result += ch;
+                    char_out = ch;
                     break;
             }
+
+            // Apply highlight coloring if mask is provided
+            if (hl_mask && n_x > 0)
+            {
+                auto mi = r * static_cast<std::size_t>(n_x) + c;
+                if (mi < hl_mask->size()
+                    && (*hl_mask)[mi] != HighlightType::None)
+                {
+                    const char* color = "";
+                    switch ((*hl_mask)[mi])
+                    {
+                        case HighlightType::Arc:      color = COLOR_ARC;      break;
+                        case HighlightType::Crossing: color = COLOR_CROSSING; break;
+                        case HighlightType::Face:     color = COLOR_FACE;     break;
+                        default: break;
+                    }
+                    result += color;
+                    result += char_out;
+                    result += COLOR_RESET;
+                    continue;
+                }
+            }
+
+            result += char_out;
         }
         result += '\n';
     }
@@ -553,7 +607,9 @@ std::string UnicodeifyDiagram(const std::string& ascii)
  * orthogonal drawing.
  */
 void PlaceCrossingLabels(std::string& diagram, Int n_x, Int n_y,
-                         OrthoDraw_T& H, const std::string& prefix)
+                         OrthoDraw_T& H, const std::string& prefix,
+                         std::vector<HighlightType>* mask = nullptr,
+                         const HighlightSet* highlights = nullptr)
 {
     auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
         return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
@@ -637,8 +693,13 @@ void PlaceCrossingLabels(std::string& diagram, Int n_x, Int n_y,
             {
                 for (Int i = 0; i < label_len; ++i)
                 {
-                    diagram[idx(pos.x + i, pos.y)] =
-                        label[static_cast<std::size_t>(i)];
+                    auto ci = idx(pos.x + i, pos.y);
+                    diagram[ci] = label[static_cast<std::size_t>(i)];
+                    if (mask && highlights
+                        && highlights->crossings.count(c))
+                    {
+                        (*mask)[ci] = HighlightType::Crossing;
+                    }
                 }
                 break;
             }
@@ -654,7 +715,9 @@ void PlaceCrossingLabels(std::string& diagram, Int n_x, Int n_y,
  * For entirely-vertical arcs: overwrites a '|' with 'a' and places digits beside it.
  */
 void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
-                    OrthoDraw_T& H, const std::string& prefix)
+                    OrthoDraw_T& H, const std::string& prefix,
+                    std::vector<HighlightType>* mask = nullptr,
+                    const HighlightSet* highlights = nullptr)
 {
     auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
         return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
@@ -745,8 +808,13 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                 Int start_x = best_run_start + offset;
                 for (Int i = 0; i < label_len; ++i)
                 {
-                    diagram[idx(start_x + i, best_run_y)] =
-                        label[static_cast<std::size_t>(i)];
+                    auto ci = idx(start_x + i, best_run_y);
+                    diagram[ci] = label[static_cast<std::size_t>(i)];
+                    if (mask && highlights
+                        && highlights->arcs.count(a))
+                    {
+                        (*mask)[ci] = HighlightType::Arc;
+                    }
                 }
                 placed = true;
             }
@@ -807,7 +875,14 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                 Int digit_len = static_cast<Int>(digits.size());
 
                 // Overwrite '|' with 'a'
-                diagram[idx(best_center_x, best_center_y)] = 'a';
+                auto a_ci = idx(best_center_x, best_center_y);
+                diagram[a_ci] = 'a';
+                bool arc_hl = mask && highlights
+                              && highlights->arcs.count(a);
+                if (arc_hl)
+                {
+                    (*mask)[a_ci] = HighlightType::Arc;
+                }
 
                 // Try placing digits to the right in space cells
                 bool right_fits = true;
@@ -825,8 +900,9 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                 {
                     for (Int i = 0; i < digit_len; ++i)
                     {
-                        diagram[idx(best_center_x + 1 + i, best_center_y)] =
-                            digits[static_cast<std::size_t>(i)];
+                        auto ci = idx(best_center_x + 1 + i, best_center_y);
+                        diagram[ci] = digits[static_cast<std::size_t>(i)];
+                        if (arc_hl) (*mask)[ci] = HighlightType::Arc;
                     }
                     placed = true;
                 }
@@ -848,8 +924,9 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                     {
                         for (Int i = 0; i < digit_len; ++i)
                         {
-                            diagram[idx(best_center_x - digit_len + i, best_center_y)] =
-                                digits[static_cast<std::size_t>(i)];
+                            auto ci = idx(best_center_x - digit_len + i, best_center_y);
+                            diagram[ci] = digits[static_cast<std::size_t>(i)];
+                            if (arc_hl) (*mask)[ci] = HighlightType::Arc;
                         }
                         placed = true;
                     }
@@ -1196,6 +1273,322 @@ void PlaceFaceLabels(std::string& diagram, Int n_x, Int n_y,
 }
 
 //==============================================================================
+// Highlight Infrastructure
+//==============================================================================
+
+/**
+ * @brief Parse highlight spec strings into a HighlightSet.
+ *
+ * Each spec is tokenized on comma/space/tab. Tokens start with 'a', 'c', or 'f'
+ * followed by a non-negative integer index. Out-of-range or malformed tokens
+ * produce warnings on stderr.
+ */
+HighlightSet ParseHighlightSpecs(const std::vector<std::string>& specs,
+                                  Int max_arc, Int max_crossing, Int max_face)
+{
+    HighlightSet hs;
+
+    for (const auto& spec : specs)
+    {
+        std::size_t pos = 0;
+        while (pos < spec.size())
+        {
+            // Skip delimiters
+            while (pos < spec.size()
+                   && (spec[pos] == ',' || spec[pos] == ' ' || spec[pos] == '\t'))
+                ++pos;
+            if (pos >= spec.size()) break;
+
+            char type_char = spec[pos];
+            if (type_char != 'a' && type_char != 'c' && type_char != 'f')
+            {
+                std::cerr << "Warning: Unknown highlight type '"
+                          << type_char << "' (expected a/c/f)\n";
+                while (pos < spec.size()
+                       && spec[pos] != ',' && spec[pos] != ' ' && spec[pos] != '\t')
+                    ++pos;
+                continue;
+            }
+            ++pos;
+
+            // Parse integer index
+            std::size_t num_start = pos;
+            while (pos < spec.size() && spec[pos] >= '0' && spec[pos] <= '9')
+                ++pos;
+
+            if (pos == num_start)
+            {
+                std::cerr << "Warning: Missing index after '"
+                          << type_char << "' in highlight spec\n";
+                continue;
+            }
+
+            Int index;
+            try {
+                index = static_cast<Int>(
+                    std::stoll(spec.substr(num_start, pos - num_start)));
+            } catch (...) {
+                std::cerr << "Warning: Invalid index in highlight spec\n";
+                continue;
+            }
+
+            switch (type_char)
+            {
+                case 'a':
+                    if (index < 0 || index >= max_arc)
+                        std::cerr << "Warning: Arc index " << index
+                                  << " out of range [0, " << max_arc - 1 << "]\n";
+                    else
+                        hs.arcs.insert(index);
+                    break;
+                case 'c':
+                    if (index < 0 || index >= max_crossing)
+                        std::cerr << "Warning: Crossing index " << index
+                                  << " out of range [0, " << max_crossing - 1 << "]\n";
+                    else
+                        hs.crossings.insert(index);
+                    break;
+                case 'f':
+                    if (index < 0 || index >= max_face)
+                        std::cerr << "Warning: Face index " << index
+                                  << " out of range [0, " << max_face - 1 << "]\n";
+                    else
+                        hs.faces.insert(index);
+                    break;
+            }
+        }
+    }
+
+    return hs;
+}
+
+/**
+ * @brief Build a per-cell highlight mask for the diagram grid.
+ *
+ * The mask has the same flat layout as the diagram string (n_x * n_y).
+ * Built from the pristine diagram (before labels are placed).
+ *
+ * - Arcs: walks each edge of highlighted arcs, marking cells with edge chars.
+ * - Crossings: marks the crossing cell and adjacent body chars (- or |).
+ * - Faces: marks space cells owned by highlighted faces.
+ */
+std::vector<HighlightType> BuildHighlightMask(
+    OrthoDraw_T& H, const std::string& diagram,
+    Int n_x, Int n_y,
+    const HighlightSet& highlights,
+    const std::vector<Int>& face_map)
+{
+    std::vector<HighlightType> mask(
+        static_cast<std::size_t>(n_x * n_y), HighlightType::None);
+
+    auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
+        return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
+    };
+
+    auto in_bounds = [n_x, n_y](Int x, Int y) -> bool {
+        return x >= 0 && x < n_x - 1 && y >= 0 && y < n_y;
+    };
+
+    auto is_edge_char = [](char c) -> bool {
+        return c == '-' || c == '|' || c == '<' || c == '>'
+            || c == '^' || c == 'v';
+    };
+
+    const auto& A_E = H.ArcEdges();
+    const auto& A_V = H.ArcVertices();
+    const auto& E_V = H.Edges();
+    const auto& V_coords = H.VertexCoordinates();
+    const auto& E_dir = H.EdgeDirections();
+
+    // --- Arc highlighting ---
+    for (Int a : highlights.arcs)
+    {
+        if (!H.EdgeActiveQ(a)) continue;
+
+        // Mark edge body cells
+        auto edges = A_E[a];
+        for (auto it = edges.begin(); it != edges.end(); ++it)
+        {
+            Int e = *it;
+            if (!H.EdgeActiveQ(e)) continue;
+
+            Int v_0 = E_V(e, 0);
+            Int v_1 = E_V(e, 1);
+            Int x0 = V_coords(v_0, 0), y0 = V_coords(v_0, 1);
+            Int x1 = V_coords(v_1, 0), y1 = V_coords(v_1, 1);
+
+            auto dir = E_dir[e];
+
+            if (dir == OrthoDraw_T::East || dir == OrthoDraw_T::West)
+            {
+                Int lo_x = std::min(x0, x1);
+                Int hi_x = std::max(x0, x1);
+                Int y = y0;
+                for (Int x = lo_x + 1; x <= hi_x - 1; ++x)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i]))
+                        mask[i] = HighlightType::Arc;
+                }
+            }
+            else if (dir == OrthoDraw_T::North || dir == OrthoDraw_T::South)
+            {
+                Int lo_y = std::min(y0, y1);
+                Int hi_y = std::max(y0, y1);
+                Int x = x0;
+                for (Int y = lo_y + 1; y <= hi_y - 1; ++y)
+                {
+                    if (!in_bounds(x, y)) continue;
+                    auto i = idx(x, y);
+                    if (is_edge_char(diagram[i]))
+                        mask[i] = HighlightType::Arc;
+                }
+            }
+        }
+
+        // Mark corner vertices ('+' characters)
+        auto verts = A_V[a];
+        for (auto it = verts.begin(); it != verts.end(); ++it)
+        {
+            Int v = *it;
+            Int x = V_coords(v, 0);
+            Int y = V_coords(v, 1);
+            if (!in_bounds(x, y)) continue;
+            auto i = idx(x, y);
+            if (diagram[i] == '+')
+                mask[i] = HighlightType::Arc;
+        }
+    }
+
+    // Mark crossing centers where both sides of the overstrand are
+    // highlighted arcs (makes consecutive highlighted arcs visually
+    // continuous through the overstrand).
+    // A '-' overstrand is highlighted iff both left and right neighbors
+    // are Arc-highlighted (#-# pattern). A '|' overstrand likewise
+    // requires both above and below to be Arc-highlighted.
+    if (!highlights.arcs.empty())
+    {
+        for (Int c = 0; c < H.MaxCrossingCount(); ++c)
+        {
+            if (!H.VertexActiveQ(c)) continue;
+
+            Int cx = V_coords(c, 0);
+            Int cy = V_coords(c, 1);
+            if (!in_bounds(cx, cy)) continue;
+
+            auto ci = idx(cx, cy);
+            char ch = diagram[ci];
+
+            if (ch == '-')
+            {
+                // Horizontal overstrand: both left and right must be Arc
+                if (in_bounds(cx - 1, cy) && in_bounds(cx + 1, cy)
+                    && mask[idx(cx - 1, cy)] == HighlightType::Arc
+                    && mask[idx(cx + 1, cy)] == HighlightType::Arc)
+                {
+                    mask[ci] = HighlightType::Arc;
+                }
+            }
+            else if (ch == '|')
+            {
+                // Vertical overstrand: both above and below must be Arc
+                if (in_bounds(cx, cy - 1) && in_bounds(cx, cy + 1)
+                    && mask[idx(cx, cy - 1)] == HighlightType::Arc
+                    && mask[idx(cx, cy + 1)] == HighlightType::Arc)
+                {
+                    mask[ci] = HighlightType::Arc;
+                }
+            }
+        }
+    }
+
+    // --- Crossing highlighting ---
+    for (Int c : highlights.crossings)
+    {
+        if (!H.VertexActiveQ(c)) continue;
+
+        Int cx = V_coords(c, 0);
+        Int cy = V_coords(c, 1);
+
+        // Mark the crossing cell itself
+        if (in_bounds(cx, cy))
+        {
+            mask[idx(cx, cy)] = HighlightType::Crossing;
+        }
+
+        // Mark 4 adjacent cells that are part of the crossing's visual
+        // (body chars and arrowheads pointing into/out of the crossing)
+        static const Int dx[] = {1, -1, 0, 0};
+        static const Int dy[] = {0, 0, 1, -1};
+        for (int d = 0; d < 4; ++d)
+        {
+            Int nx = cx + dx[d];
+            Int ny = cy + dy[d];
+            if (!in_bounds(nx, ny)) continue;
+            auto i = idx(nx, ny);
+            if (is_edge_char(diagram[i]))
+                mask[i] = HighlightType::Crossing;
+        }
+    }
+
+    // --- Face highlighting ---
+    if (!highlights.faces.empty() && !face_map.empty())
+    {
+        // The exterior face can have disconnected grid regions (the flood-fill
+        // seed only reaches one connected component). Unassigned space cells
+        // (face_map == -1) are topologically part of the exterior face.
+        Int ext_face = H.ExteriorFace();
+        bool highlight_exterior = highlights.faces.count(ext_face) > 0;
+
+        for (Int y = 0; y < n_y; ++y)
+        {
+            for (Int x = 0; x < n_x - 1; ++x)
+            {
+                auto i = idx(x, y);
+                if (diagram[i] != ' ') continue;
+                Int face = face_map[i];
+                if (face >= 0 && highlights.faces.count(face))
+                    mask[i] = HighlightType::Face;
+                else if (face == Int(-1) && highlight_exterior)
+                    mask[i] = HighlightType::Face;
+            }
+        }
+    }
+
+    return mask;
+}
+
+/**
+ * @brief Apply ASCII-mode highlighting to a diagram string.
+ *
+ * For Arc/Crossing cells: replaces '-' or '|' with '#'.
+ * For Face cells: replaces ' ' with '.'.
+ * Arrowheads, corners, and label text are left unchanged.
+ */
+void ApplyHighlightASCII(std::string& diagram,
+                          const std::vector<HighlightType>& mask)
+{
+    for (std::size_t i = 0; i < mask.size() && i < diagram.size(); ++i)
+    {
+        switch (mask[i])
+        {
+            case HighlightType::Arc:
+            case HighlightType::Crossing:
+                if (diagram[i] == '-' || diagram[i] == '|')
+                    diagram[i] = '#';
+                break;
+            case HighlightType::Face:
+                if (diagram[i] == ' ')
+                    diagram[i] = '.';
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+//==============================================================================
 // Settings Construction
 //==============================================================================
 
@@ -1308,6 +1701,10 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
     if (!ValidateCLPSettings(settings)) return false;
     if (!ValidateSettingsCombinations(settings)) return false;
 
+    bool has_labels = config.label_crossings || config.label_arcs
+                   || config.label_faces;
+    bool has_highlights = !config.highlight_specs.empty();
+
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
         if (i > 0)
@@ -1318,48 +1715,84 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
         OrthoDraw_T H(summands[i], Int(-1), settings);
         std::string diagram = H.DiagramString();
 
-        // Insert labels before unicode conversion (digits pass through unchanged)
-        if (config.label_crossings || config.label_arcs || config.label_faces)
+        std::vector<HighlightType> mask;
+        Int n_x = 0, n_y = 0;
+
+        if (has_labels || has_highlights)
         {
-            Int n_x = H.Width()  * config.x_grid_size + 2;
-            Int n_y = H.Height() * config.y_grid_size + 1;
+            n_x = H.Width()  * config.x_grid_size + 2;
+            n_y = H.Height() * config.y_grid_size + 1;
 
-            // Use prefixes when multiple label types are active
-            int active_types = int(config.label_crossings)
-                             + int(config.label_arcs)
-                             + int(config.label_faces);
-            bool use_prefix = (active_types > 1);
+            // Parse highlight specs
+            HighlightSet highlights;
+            if (has_highlights)
+            {
+                highlights = ParseHighlightSpecs(
+                    config.highlight_specs,
+                    H.MaxArcCount(), H.MaxCrossingCount(), H.FaceCount());
+            }
 
-            // Build face map from pristine diagram (before any labels modify it)
+            // Build face map if needed (for face labels OR face highlights)
             std::vector<Int> face_map;
-            if (config.label_faces)
+            if (config.label_faces || !highlights.faces.empty())
             {
                 face_map = BuildFaceMap(H, diagram, n_x, n_y);
             }
 
-            // 1. Crossing labels: diagonal positions adjacent to crossings
-            if (config.label_crossings)
+            // Build highlight mask from pristine diagram (before labels)
+            if (!highlights.empty())
             {
-                PlaceCrossingLabels(diagram, n_x, n_y, H, use_prefix ? "c" : "");
+                mask = BuildHighlightMask(H, diagram, n_x, n_y,
+                                          highlights, face_map);
             }
 
-            // 2. Arc labels: overwrite dashes/pipes on arc segments
-            if (config.label_arcs)
+            // Place labels (existing logic, unchanged)
+            if (has_labels)
             {
-                PlaceArcLabels(diagram, n_x, n_y, H, use_prefix ? "a" : "");
+                int active_types = int(config.label_crossings)
+                                 + int(config.label_arcs)
+                                 + int(config.label_faces);
+                bool use_prefix = (active_types > 1);
+
+                // Pass mask+highlights in Unicode mode so labels of
+                // highlighted elements get marked directly at placement time.
+                std::vector<HighlightType>* m_ptr =
+                    (!config.ascii_mode && !mask.empty()) ? &mask : nullptr;
+                const HighlightSet* h_ptr =
+                    (!config.ascii_mode && !highlights.empty()) ? &highlights : nullptr;
+
+                if (config.label_crossings)
+                {
+                    PlaceCrossingLabels(diagram, n_x, n_y, H,
+                                        use_prefix ? "c" : "",
+                                        m_ptr, h_ptr);
+                }
+                if (config.label_arcs)
+                {
+                    PlaceArcLabels(diagram, n_x, n_y, H,
+                                   use_prefix ? "a" : "",
+                                   m_ptr, h_ptr);
+                }
+                if (config.label_faces)
+                {
+                    PlaceFaceLabels(diagram, n_x, n_y, H,
+                                    use_prefix ? "f" : "", face_map);
+                }
             }
 
-            // 3. Face labels: near centroid, hill-climbed for max clearance
-            if (config.label_faces)
+            // Apply ASCII highlighting after labels
+            if (!mask.empty() && config.ascii_mode)
             {
-                PlaceFaceLabels(diagram, n_x, n_y, H, use_prefix ? "f" : "",
-                                face_map);
+                ApplyHighlightASCII(diagram, mask);
             }
         }
 
         if (!config.ascii_mode)
         {
-            diagram = UnicodeifyDiagram(diagram);
+            if (!mask.empty())
+                diagram = UnicodeifyDiagram(diagram, &mask, n_x);
+            else
+                diagram = UnicodeifyDiagram(diagram);
         }
 
         std::cout << diagram << "\n";
