@@ -52,8 +52,8 @@
 
 using Int         = std::int64_t;
 using Real        = double;
-using PD_T        = Knoodle::PlanarDiagram<Int>;
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
+using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
 using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
