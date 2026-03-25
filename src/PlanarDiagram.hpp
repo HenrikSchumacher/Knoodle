@@ -457,19 +457,22 @@ namespace Knoodle
         {
             return proven_minimalQ;
         }
-
         
-        static PD_T InvalidDiagram()
+        bool AnelloQ() const
         {
-            return PD_T();
+            return (proven_minimalQ && (crossing_count <= Int(0)) && ValidIndexQ(last_color_deactivated));
         }
         
-        
+        bool FarfallaQ() const
+        {
+            return (crossing_count == Int(1));
+        }
         
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && ValidIndexQ(last_color_deactivated);
+            return AnelloQ() || FarfallaQ();
         }
+        
 
         bool ProvenHopfLinkQ() const
         {
@@ -648,6 +651,17 @@ namespace Knoodle
                     swap(A_cross(a,Tail),A_cross(a,Head));
                 }
             }
+        }
+        
+        
+        Int FirstColor() const
+        {
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                if( ArcActiveQ(a) ) { return A_color[a]; }
+            }
+            
+            return last_color_deactivated;
         }
         
     public:

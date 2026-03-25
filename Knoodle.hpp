@@ -1,5 +1,11 @@
 #pragma once
 
+// Make sure to put the following files onto the search path:
+//      "./submodules/Min-Cost-Flow-Class/OPTUtils/",
+//      "./submodules/Min-Cost-Flow-Class/MCFClass/",
+//      "./submodules/Min-Cost-Flow-Class/MCFSimplex/
+
+
 #define KNOODLE_H
 
 #include <cfenv>
@@ -30,8 +36,8 @@ namespace Knoodle
 #include "src/Intersection.hpp"
 
 #include "src/PlanarLineSegmentIntersector.hpp"
-#include "src/LinkEmbedding.hpp" // Meant to supercede the misnomer Link_2D.
-#include "src/KnotEmbedding.hpp"
+#include "src/LinkEmbedding.hpp"
+#include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -62,9 +68,9 @@ namespace Knoodle
 //#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
                                 // Not favorable compared to Alexander_UMFPACK.hpp
 
-//#ifdef KNOODLE_USE_UMFPACK
-//#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
-//#endif
+#ifdef KNOODLE_USE_UMFPACK
+#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
+#endif
 
 //
 //#include "src/Seifert.hpp"    // TODO: Needs debugging.

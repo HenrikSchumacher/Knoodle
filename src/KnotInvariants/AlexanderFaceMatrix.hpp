@@ -40,7 +40,7 @@ namespace Knoodle
         template<bool fullQ = false>
         cref<Pattern_T> Pattern( cref<PD_T> pd ) const
         {
-            std::string tag ( ClassName()+"::Pattern" + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
+            std::string tag ( MethodName("Pattern") + "<" + (fullQ ? "_Full" : "_Truncated" ) + ">"
             );
             
             if( !pd.InCacheQ(tag) )
@@ -63,6 +63,11 @@ namespace Knoodle
                 for( Int c = 0; c < c_count; ++c )
                 {
                     if( row_counter >= m ) { break; }
+                    
+                    const CrossingState_T s = C_state[c];
+
+                    if( !ActiveQ(s) ) { break; }
+
                     
                     /* N, E, S, W are the regions to the North, East, South, West
                      * of crossing c.
@@ -92,8 +97,6 @@ namespace Knoodle
                     const Int W = A_faces(a_in ,1);
                     const Int E = A_faces(a_out,0);
                     const Int N = A_faces(a_out,1);
-                    
-                    const CrossingState_T s = C_state[c];
                     
                     if( RightHandedQ(s) )
                     {
@@ -238,7 +241,7 @@ namespace Knoodle
         {
             // Writes the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
-            TOOLS_PTIMER(timer,ClassName()+"::WriteDenseMatrix<" + (fullQ ? "Full" : "Truncated") + ">");
+            TOOLS_PTIMER(timer,MethodName("WriteDenseMatrix")+"<" + (fullQ ? "Full" : "Truncated") + ">");
             
             // Assemble dense Alexander matrix, skipping last row and last column if fullQ == false.
 
@@ -262,6 +265,8 @@ namespace Knoodle
                 
                 const CrossingState_T s = C_state[c];
 
+                if( !ActiveQ(s) ) { break; }
+                
                 mptr<Scal> row = &A[ n * row_counter ];
 
                 // TODO: We can optimize this away if we know that all values but the nonzero values are already correct.

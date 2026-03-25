@@ -60,8 +60,8 @@ Tensor2<T,Int> PDCode() const
 /*!@brief Writes the pd code to the output raw buffer `pd_code`. Size and meaning of the results are determined by the template parameters. See the documentation of `PDCode` for details.
  */
 
-template<IntQ T, bool signQ = true, bool colorQ = false, bool labelQ = false>
-void WritePDCode( mptr<T> pd_code ) const
+template<IntQ T, bool signQ = true, bool colorQ = false, bool labelQ = false, bool farfalleQ = false>
+void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
 {
     TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
         + "<" + TypeName<T>
@@ -77,8 +77,33 @@ void WritePDCode( mptr<T> pd_code ) const
     constexpr Int under_pos = 4 + signQ;
     constexpr Int over_pos  = 5 + signQ;
     
+    if constexpr ( farfalleQ )
+    {
+        if( AnelloQ() )
+        {
+            pd_code[0] = offset;
+            pd_code[1] = offset;
+            pd_code[2] = offset + T(1);
+            pd_code[3] = offset + T(1);
+            
+            if constexpr ( signQ )
+            {
+                pd_code[4] = T_RightHanded;
+            }
+            
+            if constexpr ( colorQ )
+            {
+                const Int color = FirstColor();
+                pd_code[under_pos] = color;
+                pd_code[over_pos]  = color;
+            }
+            
+            return;
+        }
+    }
+    
     this->template Traverse<true,labelQ>(
-        [&pd_code,this](
+        [&pd_code,offset,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -116,7 +141,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *    X[3]           X[0]
                          */
                         
-                        X[2] = static_cast<T>(a_pos);
+                        X[2] = static_cast<T>(a_pos) + offset;
                     }
                     else // if( side == Right )
                     {
@@ -133,7 +158,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *    X[3]           X[0]
                          */
                         
-                        X[1] = static_cast<T>(a_pos);
+                        X[1] = static_cast<T>(a_pos) + offset;
                     }
                 }
                 else // if( !right_handedQ )
@@ -155,7 +180,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *    X[0]           X[1]
                          */
                         
-                        X[3] = static_cast<T>(a_pos);
+                        X[3] = static_cast<T>(a_pos) + offset;
                     }
                     else // if( side == Right )
                     {
@@ -172,7 +197,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *    X[0]           X[1]
                          */
                         
-                        X[2] = static_cast<T>(a_pos);
+                        X[2] = static_cast<T>(a_pos) + offset;
                     }
                 }
             }
@@ -203,7 +228,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *   a_pos
                          */
                         
-                        X[3] = static_cast<T>(a_pos);
+                        X[3] = static_cast<T>(a_pos) + offset;
 
                         if constexpr ( colorQ ) { X[over_pos] = A_color[a]; }
                     }
@@ -222,7 +247,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *                  a_pos
                          */
                         
-                        X[0] = static_cast<T>(a_pos);
+                        X[0] = static_cast<T>(a_pos) + offset;
                         
                         if constexpr ( colorQ ) { X[under_pos] = A_color[a]; }
                     }
@@ -246,7 +271,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *   a_pos
                          */
                         
-                        X[0] = static_cast<T>(a_pos);
+                        X[0] = static_cast<T>(a_pos) + offset;
                         
                         
                         if constexpr ( colorQ ) { X[under_pos] = A_color[a]; }
@@ -266,7 +291,7 @@ void WritePDCode( mptr<T> pd_code ) const
                          *                  a_pos
                          */
                         
-                        X[1] = static_cast<T>(a_pos);
+                        X[1] = static_cast<T>(a_pos) + offset;
                         
                         if constexpr ( colorQ ) { X[over_pos] = A_color[a]; }
                     }

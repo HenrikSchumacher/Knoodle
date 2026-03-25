@@ -1,6 +1,24 @@
 public:
 
+
+
+
+static PD_T InvalidDiagram()
+{
+    return PD_T();
+}
+
 static PD_T Unknot( const Int color )
+{
+    return Anello(color);
+}
+
+static PD_T Unlink( const Int color )
+{
+    return Anello(color);
+}
+
+static PD_T Anello( const Int color )
 {
     // needs to know all member variables
     
@@ -11,9 +29,28 @@ static PD_T Unknot( const Int color )
     return pd;
 }
 
-static PD_T Unlink( const Int color )
+static PD_T Farfalla( const Int color )
 {
-    return Unknot(color);
+    // needs to know all member variables
+    
+    PD_T pd ( Int(1), true );
+    pd.crossing_count  = pd.MaxCrossingCount();
+    pd.arc_count       = pd.MaxArcCount();
+    
+    constexpr Int C[1][2][2] = {{{1, 0}, {1, 0}}};
+    pd.C_arcs.Read(&C[0][0][0]);
+    pd.C_state[0] = CrossingState_T::RightHanded;
+//
+    constexpr Int A[2][2] = {{0, 0}, {0, 0}};
+    pd.A_cross.Read(&A[0][0]);
+    pd.A_state.Fill(ArcState_T::Active);
+    
+    pd.A_color[0] = color;
+    pd.A_color[1] = color;
+
+    pd.proven_minimalQ = false;
+    pd.SetCache("LinkComponentCount",Int(1));
+    return pd;
 }
 
 static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_T handedness )
@@ -29,24 +66,7 @@ static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_
     constexpr Int C[2][2][2] = {{{0, 3}, {2, 1}}, {{2, 1}, {0, 3}}};
     pd.C_arcs.Read(&C[0][0][0]);
     pd.C_state.Fill(handedness);
-//    pd.C_arcs(0,0,0) = 0;
-//    pd.C_arcs(0,0,1) = 3;
-//    pd.C_arcs(0,1,0) = 2;
-//    pd.C_arcs(0,1,1) = 1;
-//    pd.C_arcs(1,0,0) = 2;
-//    pd.C_arcs(1,0,1) = 1;
-//    pd.C_arcs(1,1,0) = 0;
-//    pd.C_arcs(1,1,1) = 3;
     
-//    pd.A_cross(0,0) = 0;
-//    pd.A_cross(0,1) = 1;
-//    pd.A_cross(1,0) = 1;
-//    pd.A_cross(1,1) = 0;
-//    pd.A_cross(2,0) = 1;
-//    pd.A_cross(2,1) = 0;
-//    pd.A_cross(3,0) = 0;
-//    pd.A_cross(3,1) = 1;
-//    
     constexpr Int A[6][2] = {{0, 1}, {1, 0}, {1, 0}, {0, 1}};
     pd.A_cross.Read(&A[0][0]);
     pd.A_state.Fill(ArcState_T::Active);
@@ -104,4 +124,22 @@ static PD_T FigureEightKnot( const Int color )
     pd.A_color.Fill(color);
     
     return pd;
+}
+
+
+
+void AnelloToFarfalla()
+{
+    if( AnelloQ() )
+    {
+        (*this) = Farfalla(last_color_deactivated);
+    }
+}
+
+void FarfallaToAnello()
+{
+    if( FarfallaQ() )
+    {
+        (*this) = Anello( FirstColor() );
+    }
 }

@@ -86,6 +86,8 @@ int main()
         
         pdc.Simplify();
         
+        TOOLS_DUMP(pdc.PDCode());
+        
         std::ofstream file ( filename );
         
         std::size_t iter = 0;

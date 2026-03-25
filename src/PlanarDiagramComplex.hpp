@@ -151,7 +151,12 @@ namespace Knoodle
 #include "PlanarDiagramComplex/Connect.hpp"
 #include "PlanarDiagramComplex/Subcomplex.hpp"
         
+#include "PlanarDiagramComplex/WriteToFile.hpp"
+#include "PlanarDiagramComplex/ReadFromFile.hpp"
+#include "PlanarDiagramComplex/PDCode.hpp"
+        
 #include "PlanarDiagramComplex/SearchTrefoils.hpp"
+        
         
     public:
         
@@ -196,6 +201,18 @@ namespace Knoodle
         cref<PD_List_T> Diagrams() const
         {
             return pd_list;
+        }
+        
+        bool ValidQ() const
+        {
+            bool contains_validQ = false;
+            
+            for( PD_T & pd : pd_list )
+            {
+                contains_validQ = contains_validQ || pd.ValidQ();
+            }
+            
+            return (DiagramCount() > Int(0)) && contains_validQ;
         }
         
         void Compress()
