@@ -12,12 +12,6 @@ bool WriteToFile( cref<std::filesystem::path> file, bool leading_kQ = true ) con
         return false;
     }
     
-//    if( !ValidQ() )
-//    {
-//        eprint(MethodName("WriteToFile") + ": This PlanarDiagramComplex is invalid. Aborting.");
-//        return false;
-//    };
-    
     if( leading_kQ )
     {
         stream << 'k' << '\n';

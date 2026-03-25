@@ -86,7 +86,7 @@ int main()
         
         pdc.Simplify();
         
-        TOOLS_DUMP(pdc.PDCode());
+        pdc.ToPDCodeFile("/Users/Henrik/a.tsv");
         
         std::ofstream file ( filename );
         

@@ -25,8 +25,6 @@ static PDC_T FromInString( mref<Tools::InString> s )
             &pd_buffer[0], crossing_counter, static_cast<bool>(proven_minimalQ)
         );
         
-        TOOLS_DUMP(pd.CrossingCount());
-        
         if( pd.ValidQ() ) { pdc.Push(std::move(pd)); }
         
         crossing_counter = 0;
@@ -41,10 +39,8 @@ static PDC_T FromInString( mref<Tools::InString> s )
 
     while( !s.EmptyQ() && !s.FailedQ() )
     {
-        TOOLS_DUMP(s.CurrentChar());
         if( s.CurrentChar() == 'u' )
         {
-            print("u");
             s.Skip(1);
             s.SkipWhiteSpace();
             s.Take(last_color_deactivated);
@@ -56,7 +52,6 @@ static PDC_T FromInString( mref<Tools::InString> s )
         }
         else if( s.CurrentChar() == 's' )
         {
-            print("s");
             s.Skip(1);
             s.SkipWhiteSpace();
             s.Take(proven_minimalQ);
@@ -89,11 +84,6 @@ static PDC_T FromInString( mref<Tools::InString> s )
     }
     
     push_diagram();
-    
-    for( PD_T & pd : pdc.pd_list )
-    {
-        TOOLS_DUMP(pd.CrossingCount());
-    }
     
     return pdc;
 }
