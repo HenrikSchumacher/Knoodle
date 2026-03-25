@@ -71,7 +71,6 @@ struct Config
     std::optional<bool> saturate_regions;
     std::optional<bool> saturate_exterior;
     std::optional<bool> filter_saturating_edges;
-    std::optional<bool> soften_virtual_edges;
     std::optional<bool> randomize_virtual_edges;
     std::optional<bool> dual_simplex;
 };
@@ -134,7 +133,6 @@ void PrintUsage()
     std::cerr << "  saturate-regions (on)       Saturate regions\n";
     std::cerr << "  saturate-exterior (on)      Saturate exterior region\n";
     std::cerr << "  filter-saturating-edges (on) Filter saturating edges\n";
-    std::cerr << "  soften-virtual-edges (off)  Soften virtual edges [KNOWN BUG: can cause collisions]\n";
     std::cerr << "  randomize-virtual-edges (off) Randomize virtual edges\n";
     std::cerr << "  dual-simplex (off)          Use dual simplex method\n";
     std::cerr << "\n";
@@ -402,8 +400,6 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             { config.saturate_exterior = (m > 0); matched = true; }
             else if ((m = MatchBoolFlag(arg, "filter-saturating-edges")) != 0)
             { config.filter_saturating_edges = (m > 0); matched = true; }
-            else if ((m = MatchBoolFlag(arg, "soften-virtual-edges")) != 0)
-            { config.soften_virtual_edges = (m > 0); matched = true; }
             else if ((m = MatchBoolFlag(arg, "randomize-virtual-edges")) != 0)
             { config.randomize_virtual_edges = (m > 0); matched = true; }
             else if ((m = MatchBoolFlag(arg, "dual-simplex")) != 0)
@@ -757,7 +753,8 @@ void PlaceCrossingLabels(std::string& diagram, Int n_x, Int n_y,
 void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                     OrthoDraw_T& H, const std::string& prefix,
                     std::vector<HighlightType>* mask = nullptr,
-                    const HighlightSet* highlights = nullptr)
+                    const HighlightSet* highlights = nullptr,
+                    std::vector<Int>* comp_map = nullptr)
 {
     auto idx = [n_x, n_y](Int x, Int y) -> std::size_t {
         return static_cast<std::size_t>(x + n_x * (n_y - Int(1) - y));
@@ -846,6 +843,15 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                 // Center the label within the safe zone
                 Int offset  = (best_run_len - label_len) / 2;
                 Int start_x = best_run_start + offset;
+                // Read component color from the first dash cell
+                Int h_arc_color = Int(-1);
+                if (comp_map)
+                {
+                    auto first_ci = idx(start_x, best_run_y);
+                    if (first_ci < comp_map->size())
+                        h_arc_color = (*comp_map)[first_ci];
+                }
+
                 for (Int i = 0; i < label_len; ++i)
                 {
                     auto ci = idx(start_x + i, best_run_y);
@@ -855,6 +861,8 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                     {
                         (*mask)[ci] = HighlightType::Arc;
                     }
+                    if (comp_map && h_arc_color >= 0)
+                        (*comp_map)[ci] = h_arc_color;
                 }
                 placed = true;
             }
@@ -922,6 +930,9 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
 
                 // Overwrite '|' with first label character
                 auto a_ci = idx(best_center_x, best_center_y);
+                Int arc_color = (comp_map && a_ci < comp_map->size()
+                                 && (*comp_map)[a_ci] >= 0)
+                                ? (*comp_map)[a_ci] : Int(-1);
                 diagram[a_ci] = pipe_char;
                 bool arc_hl = mask && highlights
                               && highlights->arcs.count(a);
@@ -949,6 +960,7 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                         auto ci = idx(best_center_x + 1 + i, best_center_y);
                         diagram[ci] = digits[static_cast<std::size_t>(i)];
                         if (arc_hl) (*mask)[ci] = HighlightType::Arc;
+                        if (comp_map && arc_color >= 0) (*comp_map)[ci] = arc_color;
                     }
                     placed = true;
                 }
@@ -973,6 +985,7 @@ void PlaceArcLabels(std::string& diagram, Int n_x, Int n_y,
                             auto ci = idx(best_center_x - digit_len + i, best_center_y);
                             diagram[ci] = digits[static_cast<std::size_t>(i)];
                             if (arc_hl) (*mask)[ci] = HighlightType::Arc;
+                            if (comp_map && arc_color >= 0) (*comp_map)[ci] = arc_color;
                         }
                         placed = true;
                     }
@@ -1875,11 +1888,7 @@ OrthoDraw_T::Settings_T BuildSettings(const Config& config)
 {
     OrthoDraw_T::Settings_T s{};
 
-    // Layer 1: Library defaults (soften_virtual_edgesQ = false)
-    // NOTE: soften_virtual_edgesQ is left OFF at all quality levels due to an
-    // OrthoDraw bug where softened virtual edges can produce zero-length
-    // diagonal edges, causing corner collisions between different components.
-    // See ConstraintGraphs.hpp TODOs re: one-vertex segments.
+    // Layer 1: Library defaults (soften_virtual_edgesQ left at library default)
 
     // Layer 2: Quality preset
     if (config.quality_preset)
@@ -1906,7 +1915,6 @@ OrthoDraw_T::Settings_T BuildSettings(const Config& config)
     if (config.saturate_regions)         s.saturate_regionsQ        = *config.saturate_regions;
     if (config.saturate_exterior)        s.saturate_exterior_regionQ = *config.saturate_exterior;
     if (config.filter_saturating_edges)  s.filter_saturating_edgesQ = *config.filter_saturating_edges;
-    if (config.soften_virtual_edges)     s.soften_virtual_edgesQ    = *config.soften_virtual_edges;
     if (config.randomize_virtual_edges)  s.randomize_virtual_edgesQ = *config.randomize_virtual_edges;
     if (config.dual_simplex)             s.use_dual_simplexQ        = *config.dual_simplex;
 
@@ -2060,9 +2068,11 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
                 }
                 if (config.label_arcs)
                 {
+                    std::vector<Int>* c_ptr =
+                        (!component_map.empty()) ? &component_map : nullptr;
                     PlaceArcLabels(diagram, n_x, n_y, H,
                                    use_prefix ? "a" : "",
-                                   m_ptr, h_ptr);
+                                   m_ptr, h_ptr, c_ptr);
                 }
                 if (config.label_components && config.ascii_mode)
                 {
