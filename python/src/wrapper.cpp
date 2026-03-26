@@ -427,10 +427,17 @@ AlexanderResult KnotAnalyzer::alexander(const std::complex<double>& z) const {
         Complex mantissa;
         Int exponent;
 
-        alex_calc.Alexander(*impl->pd, arg, mantissa, exponent, false);
+        // Use batch API (single element) because the single-value Alexander()
+        // takes mantissa/exponent by value, so results are never written back.
+        alex_calc.Alexander(*impl->pd, &arg, Int(1), &mantissa, &exponent, false);
 
-        // Convert complex result to real (Alexander polynomial should be real for real inputs)
-        result.mantissa = std::real(mantissa);
+        // For real inputs, return signed real part (preserves sign of Delta(-1) etc.)
+        // For complex inputs, return magnitude (true invariant on the unit circle)
+        if (z.imag() == 0.0) {
+            result.mantissa = std::real(mantissa);
+        } else {
+            result.mantissa = std::abs(mantissa);
+        }
         result.exponent = exponent;
 
     } catch (const std::exception& e) {
@@ -479,7 +486,11 @@ std::vector<AlexanderResult> KnotAnalyzer::alexander(const std::vector<std::comp
         // Convert results
         for (size_t i = 0; i < points.size(); ++i) {
             AlexanderResult result;
-            result.mantissa = std::real(mantissas[i]);
+            if (points[i].imag() == 0.0) {
+                result.mantissa = std::real(mantissas[i]);
+            } else {
+                result.mantissa = std::abs(mantissas[i]);
+            }
             result.exponent = exponents[i];
             results.push_back(result);
         }
