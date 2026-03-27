@@ -22,20 +22,26 @@ namespace Knoodle
         using PDC_T                 = PlanarDiagramComplex<Int>;
         using PD_List_T             = std::vector<PD_T>;
         
-        using C_Arcs_T              = typename PD_T::C_Arcs_T;
-        using A_Cross_T             = typename PD_T::A_Cross_T;
-        using ArcContainer_T        = typename PD_T::ArcContainer_T;
-        using ColorCounts_T         = typename PD_T::ColorCounts_T;
+        using C_Arcs_T              = PD_T::C_Arcs_T;
+        using A_Cross_T             = PD_T::A_Cross_T;
+        using ArcContainer_T        = PD_T::ArcContainer_T;
+        using ColorCounts_T         = PD_T::ColorCounts_T;
         
         using PassSimplifier_T      = PassSimplifier<Int>;
-        using Dijkstra_T            = typename PassSimplifier_T::Dijkstra_T;
+        using Dijkstra_T            = PassSimplifier_T::Dijkstra_T;
         using OrthoDraw_T           = OrthoDraw<PD_T>;
-        using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
-        using Compaction_T          = typename OrthoDraw_T::CompactionMethod_T;
+        using OrthoDrawSettings_T   = OrthoDraw_T::Settings_T;
+        using Compaction_T          = OrthoDraw_T::CompactionMethod_T;
         using Reapr_T               = Reapr<double,Int,float>;
-        using Energy_T              = typename Reapr_T::Energy_T;
-        using ReaprSettings_T       = typename Reapr_T::Settings_T;
+        using Energy_T              = Reapr_T::Energy_T;
+        using ReaprSettings_T       = Reapr_T::Settings_T;
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
+        
+        
+        using PDCode_TArgs_T        = PD_T::PDCode_TArgs_T;
+        using FromPDCode_TArgs_T    = PD_T::FromPDCode_TArgs_T;
+        
+        
 //        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -146,7 +152,7 @@ namespace Knoodle
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
-#include "PlanarDiagramComplex/Union.hpp"
+#include "PlanarDiagramComplex/Unite.hpp"
 #include "PlanarDiagramComplex/Checks.hpp"
 #include "PlanarDiagramComplex/Connect.hpp"
 #include "PlanarDiagramComplex/Subcomplex.hpp"
@@ -154,6 +160,7 @@ namespace Knoodle
 #include "PlanarDiagramComplex/WriteToFile.hpp"
 #include "PlanarDiagramComplex/ReadFromFile.hpp"
 #include "PlanarDiagramComplex/PDCode.hpp"
+#include "PlanarDiagramComplex/JenkinsCode.hpp"
         
 #include "PlanarDiagramComplex/SearchTrefoils.hpp"
         
@@ -215,6 +222,12 @@ namespace Knoodle
             return (DiagramCount() > Int(0)) && contains_validQ;
         }
         
+        
+        bool InvalidQ() const
+        {
+            return !ValidQ();
+        }
+        
         void Compress()
         {
             for( PD_T & pd : pd_list )
@@ -230,6 +243,40 @@ namespace Knoodle
                 pd.ClearCache();
             }
             this->ClearCache();
+        }
+        
+        /*!@brief Converts the complex to a single PlanarDiagram in which color information still persists, but is irrelevant for the topology. Also, anelli are transformed to farfalle in this process because a PlanarDiagram cannot represent diagrams that contain proper subdiagrams that are anelli. Use this to convert a PlanarDiagramComplex to a format that can be understood by other packages, e.g., Regina or SnapPea.
+         */
+        
+        PD_T ToSingleDiagram() const
+        {
+            if( InvalidQ() ) { return PD_T::InvalidDiagram(); }
+            
+            // We need to split first, otherwise, Connect() is not guaranteed to work.
+            PDC_T PDC = this->Splitting();
+            PDC.AnelliToFarfalle();
+            PDC.Connect();
+            
+            if( PDC.DiagramCount() > Int(1) )
+            {
+                eprint(MethodName("ToSingleDiagram") + ": Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
+                
+                return PD_T();
+            }
+            
+            return std::move(PDC.pd_list[0]);
+        }
+        
+        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+         */
+
+        ToSigned<Int> Writhe() const
+        {
+            ToSigned<Int> writhe = 0;
+            
+            for( PD_T & pd : pd_list ) { writhe += pd.Writhe(); }
+            
+            return writhe;
         }
         
     private:

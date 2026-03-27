@@ -21,7 +21,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
     {
         if( crossing_counter <= Int(0) ) { return; }
         
-        PD_T pd = PD_T::template FromPDCode<true,true,true>(
+        PD_T pd = PD_T::template FromPDCode<{.signQ = true, .colorQ = true}>(
             &pd_buffer[0], crossing_counter, static_cast<bool>(proven_minimalQ)
         );
         

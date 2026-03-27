@@ -189,7 +189,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
     mptr<Int> C_label = C_label_buffer.data();
 #endif
     
-    Aggregator<Int,Int> unlink_colors;
+    Aggregator<Int,Int> anello_colors;
     Int C_counter = 0;
     
     // Now we go through all components
@@ -199,7 +199,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
     
     ColorCounts_T color_arc_counts;
     
-    // We put the unlinks at the back so that it is easier to communicate with PlanarDiagramComplex.
+    // We put the anellos at the back so that it is easier to communicate with PlanarDiagramComplex.
     
     for( Int comp = 0; comp < component_count; ++comp )
     {
@@ -212,7 +212,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
         if( b_begin == b_end )
         {
             // Component is an unlink. Just count it.
-            unlink_colors.Push(color);
+            anello_colors.Push(color);
             continue;
         }
 
@@ -295,11 +295,11 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
     // TODO: Extract LinkComponentArcs, ArcLinkComponents from here (only if needed)?
     // Not so easy to do as we have to ignore the unlinks.
     
-    pd.template SetCache<false>("LinkComponentCount",component_count - unlink_colors.Size());
+    pd.template SetCache<false>("LinkComponentCount",component_count - anello_colors.Size());
     
-    pd.SetCache("ColorArcCounts",std::move(color_arc_counts));
+    pd.template SetCache<false>("ColorArcCounts",std::move(color_arc_counts));
     
     // TODO: Check whether this is really neccessary.
     
-    return { pd, unlink_colors.Disband() };
+    return { pd, anello_colors.Disband() };
 }

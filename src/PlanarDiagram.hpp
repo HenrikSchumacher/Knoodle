@@ -424,6 +424,7 @@ namespace Knoodle
 #include "PlanarDiagram/GaussCode.hpp"
 #include "PlanarDiagram/LongMacLeodCode.hpp"
 #include "PlanarDiagram/MacLeodCode.hpp"
+#include "PlanarDiagram/JenkinsCode.hpp"
         
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Certificates.hpp"
@@ -558,13 +559,12 @@ namespace Knoodle
             }
         }
         
-        /*!
-         * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
          */
 
-        Int Writhe() const
+        ToSigned<Int> Writhe() const
         {
-            Int writhe = 0;
+            ToSigned<Int> writhe = 0;
             
             for( Int c = 0; c < max_crossing_count; ++c )
             {
@@ -656,12 +656,16 @@ namespace Knoodle
         
         Int FirstColor() const
         {
+            if( InvalidQ() ) { return InvalidColor; }
+            
+            if( AnelloQ() ) { return last_color_deactivated; }
+            
             for( Int a = 0; a < max_arc_count; ++a )
             {
                 if( ArcActiveQ(a) ) { return A_color[a]; }
             }
             
-            return last_color_deactivated;
+            return InvalidColor;
         }
         
     public:

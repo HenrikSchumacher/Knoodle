@@ -13,11 +13,16 @@
 
 namespace MCF
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmisleading-indentation"
+
     // TODO: MCFSimplex.C really does not like the -ffast-math flag. I get inconsistent results witht his flag. I could use TOOLS_MAKE_FP_STRICT() here (which is #pragma float_control(precise, on) under clang). But that just suppressed compiler errors; the inconstency still remains, even if I always place TOOLS_MAKE_FP_STRICT() before the c
     
 //    TOOLS_MAKE_FP_STRICT()
     
     #include "MCFSimplex.C"
+    
+#pragma clang diagnostic pop
 }
 
 namespace Knoodle

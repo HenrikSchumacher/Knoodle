@@ -144,7 +144,7 @@ private:
     {
         edge_space_sampling_helper
             =
-            Frac(
+            Frac<Real>(
                 GammaQuotient(
                     static_cast<Real>((AmbDim-1) * (edge_count_-1)),
                     Frac<Real>( AmbDim, 2 )

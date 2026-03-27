@@ -19,15 +19,27 @@ PD_T CreateCompressed()
     
     TOOLS_PTIMER(timer,tag());
     
-    if( ProvenUnknotQ() )
+    if( AnelloQ() )
     {
         if constexpr ( recolorQ )
         {
-            return Unknot(Int(0));
+            return Anello(Int(0));
         }
         else
         {
-            return Unknot(last_color_deactivated);
+            return Anello(FirstColor());
+        }
+    }
+    
+    if( FarfallaQ() )
+    {
+        if constexpr ( recolorQ )
+        {
+            return Farfalla(Int(0));
+        }
+        else
+        {
+            return Farfalla(FirstColor());
         }
     }
     

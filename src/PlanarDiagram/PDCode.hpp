@@ -1,35 +1,82 @@
 public:
 
+
+struct PDCode_TArgs_T
+{
+    bool signQ     = true;
+    bool colorQ    = true;
+    bool farfalleQ = false;
+};
+
+friend constexpr std::string ToString( cref<PDCode_TArgs_T> args )
+{
+    return std::string("{ ")
+        + "signQ = " + ToString(args.signQ)
+        + ", colorQ = " + ToString(args.colorQ)
+        + ", farfalleQ = " + ToString(args.farfalleQ)
+        + " }";
+}
+
+constexpr Size_T PDCodeCrossingCount( bool farfalleQ ) const
+{
+    if ( farfalleQ )
+    {
+        if( InvalidQ() )
+        {
+            return 0;
+        }
+        if( AnelloQ() )
+        {
+            return 1;
+        }
+        else
+        {
+            return ToSize_T(CrossingCount());
+        }
+    }
+    else
+    {
+        return ToSize_T(CrossingCount());
+    }
+}
+
+static constexpr Size_T PDCodeWidth( bool signQ, bool colorQ )
+{
+    return 4 + signQ + 2 * colorQ;
+}
+
 /*!@brief Returns the pd-codes of the crossings as Tensor2 object.
  *
  *  The information for crossing `c` is given by a row in the output matrix. There 4-7 numbers stored in such a row,.
  *  The first 4 entries `PDCode()(c,0), PDCode()(c,1), PDCode()(c,2), PDCode()(c,3)` represent the arcs attached to crossing c. `PDCode()(c,0)` is the incoming arc that goes under. It is followed by the other arcs in counter-clockwise orientation. This should be compatible with Dror Bar-Natan's _KnotTheory_ package.
  *
+ *  The crossing and arc labels  (i.e., a mapping from he old crossings and arcs to the crossings and arcs in the pd code) are generated. They can be retrieved from `CrossingScratchBuffer` and `ArcScratchBuffer` right after the call to `PDCode`. Beware that these internal buffers may be overwritten by other routines.
+ *
  *  Depending on the template parameters, there might be further entries `PDCode()(c,4), PDCode()(c,5), PDCode()(c,6)`. Their meaning is explained below.
  *
  * @tparam T Integer type to be used for the returned code.
  *
- * @tparam signQ Whether the code is signed. If yes, then `PDCode()(c,4)` represents the handedness of crossing `c`; `PDCode()(c,4) > 0` means right-handed, `PDCode()(c,4) <= 9` means left-handed.
+ * @tparam targs Further options that control the kind of pd code to print:
  *
- * @tparam colorQ Whether the arc colors ought to be stored. If yes, then the last two entries of PDCode()(c,..) will be the color of the incoming underarc and the incoming over-arc, respectively.
+ * - `targs.signQ` controlas whether the code is signed. If yes, then `PDCode()(c,4)` represents the handedness of crossing `c`; `PDCode()(c,4) > 0` means right-handed, `PDCode()(c,4) <= 9` means left-handed.
  *
- * @tparam labelQ If set to `true`, then the crossing and arc labels  (i.e., a mapping from he old crossings and arcs to the crossings and arcs in the pd code) are generated. Then can retrieved from `CrossingScratch` and `ArcScratch` right after the call to `PDCode`. Beware that these internal buffers may be overwritten by other routines.
+ * - `colorQ` controls whether the arc colors ought to be stored. If yes, then the last two entries of PDCode()(c,..) will be the color of the incoming underarc and the incoming over-arc, respectively.
+ *
+
+ *
+ *  - `targs.faralleQ` If set to `true`, then unknots are represented as "farfalle", i.e., diagrams with a single crossing. This is to make this compatible with Regina.
  */
 
-template<IntQ T = Int, bool signQ = true, bool colorQ = true, bool labelQ = false>
+template<IntQ T = Int, PDCode_TArgs_T targs = PDCode_TArgs_T()>
 Tensor2<T,Int> PDCode() const
 {
-    auto tag = []()
+    [[maybe_unused]] auto tag = []()
     {
         std::string s = MethodName("PDCode");
         s += "<";
         s += TypeName<T>;
         s += ",";
-        s += (signQ  ? "w/ signs"  : "w/o signs" );
-        s += ",";
-        s += (colorQ ? "w/ colors" : "w/o colors");
-        s += ",";
-        s += (labelQ ? "w/ labels" : "w/o labels");
+        s += ToString(targs);
         s += ">";
         return s;
     };
@@ -48,11 +95,12 @@ Tensor2<T,Int> PDCode() const
         return pd_code;
     }
     
-    constexpr Int code_size = 4 + signQ + 2 * colorQ;
-    
-    pd_code = Tensor2<T,Int> ( crossing_count, code_size );
+    pd_code = Tensor2<T,Int> (
+        PDCodeCrossingCount(targs.farfalleQ),
+        PDCodeWidth(targs.signQ,targs.colorQ)
+    );
 
-    this->WritePDCode<T,signQ,colorQ,labelQ>(pd_code.data());
+    this->WritePDCode<T,targs>(pd_code.data());
     
     return pd_code;
 }
@@ -60,24 +108,22 @@ Tensor2<T,Int> PDCode() const
 /*!@brief Writes the pd code to the output raw buffer `pd_code`. Size and meaning of the results are determined by the template parameters. See the documentation of `PDCode` for details.
  */
 
-template<IntQ T, bool signQ = true, bool colorQ = false, bool labelQ = false, bool farfalleQ = false>
+template<IntQ T, PDCode_TArgs_T targs>
 void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::WritePDCode"
+    TOOLS_PTIMER(timer,MethodName("WritePDCode")
         + "<" + TypeName<T>
-        + "," + (signQ  ? "w/ signs"  : "w/o signs" )
-        + "," + (colorQ ? "w/ colors" : "w/o colors")
-        + "," + (labelQ ? "w/ labels" : "w/o labels")
+        + "," + ToString(targs)
         + ">");
     
     constexpr T T_LeftHanded  = SignedIntQ<T> ? T(-1) : T(0);
     constexpr T T_RightHanded = SignedIntQ<T> ? T( 1) : T(1);
     
-    constexpr Int code_size = 4 + signQ + 2 * colorQ;
-    constexpr Int under_pos = 4 + signQ;
-    constexpr Int over_pos  = 5 + signQ;
+    constexpr Int code_width = static_cast<Int>(PDCodeWidth(targs.signQ,targs.colorQ));
+    constexpr Int under_pos = 4 + targs.signQ;
+    constexpr Int over_pos  = 5 + targs.signQ;
     
-    if constexpr ( farfalleQ )
+    if constexpr ( targs.farfalleQ )
     {
         if( AnelloQ() )
         {
@@ -86,12 +132,12 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
             pd_code[2] = offset + T(1);
             pd_code[3] = offset + T(1);
             
-            if constexpr ( signQ )
+            if constexpr ( targs.signQ )
             {
                 pd_code[4] = T_RightHanded;
             }
             
-            if constexpr ( colorQ )
+            if constexpr ( targs.colorQ )
             {
                 const Int color = FirstColor();
                 pd_code[under_pos] = color;
@@ -102,8 +148,8 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
         }
     }
     
-    this->template Traverse<true,labelQ>(
-        [&pd_code,offset,this](
+    this->template Traverse<true,true>(
+        [pd_code,offset,this](
             const Int a,   const Int a_pos,   const Int  lc,
             const Int c_0, const Int c_0_pos, const bool c_0_visitedQ,
             const Int c_1, const Int c_1_pos, const bool c_1_visitedQ
@@ -120,11 +166,11 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                 const bool side          = ArcSide(a,Tail,c_0);
                 const bool right_handedQ = CrossingRightHandedQ(c_0);
 
-                mptr<T> X = &pd_code[code_size * c_0_pos];
+                mptr<T> X = &pd_code[code_width * c_0_pos];
 
                 if( right_handedQ )
                 {
-                    X[4] = T_RightHanded;
+                    if constexpr ( targs.signQ ) { X[4] = T_RightHanded; }
                     
                     if( side == Left )
                     {
@@ -163,7 +209,7 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                 }
                 else // if( !right_handedQ )
                 {
-                    X[4] = T_LeftHanded;
+                    if constexpr ( targs.signQ ) { X[4] = T_LeftHanded; }
                     
                     if( side == Left )
                     {
@@ -207,11 +253,11 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                 const bool side          = ArcSide(a,Head,c_1);
                 const bool right_handedQ = CrossingRightHandedQ(c_1);
                 
-                mptr<T> X = &pd_code[code_size * c_1_pos];
+                mptr<T> X = &pd_code[code_width * c_1_pos];
 
                 if( right_handedQ )
                 {
-                    X[4] = T_RightHanded;
+                    if constexpr ( targs.signQ ) { X[4] = T_RightHanded; }
                     
                     if( side == Left )
                     {
@@ -230,7 +276,7 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                         
                         X[3] = static_cast<T>(a_pos) + offset;
 
-                        if constexpr ( colorQ ) { X[over_pos] = A_color[a]; }
+                        if constexpr ( targs.colorQ ) { X[over_pos] = A_color[a]; }
                     }
                     else // if( side == Right )
                     {
@@ -249,12 +295,12 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                         
                         X[0] = static_cast<T>(a_pos) + offset;
                         
-                        if constexpr ( colorQ ) { X[under_pos] = A_color[a]; }
+                        if constexpr ( targs.colorQ ) { X[under_pos] = A_color[a]; }
                     }
                 }
                 else // if( !right_handedQ )
                 {
-                    X[4] = T_LeftHanded;
+                    if constexpr ( targs.signQ ) { X[4] = T_LeftHanded; }
                     
                     if( side == Left )
                     {
@@ -274,7 +320,7 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                         X[0] = static_cast<T>(a_pos) + offset;
                         
                         
-                        if constexpr ( colorQ ) { X[under_pos] = A_color[a]; }
+                        if constexpr ( targs.colorQ ) { X[under_pos] = A_color[a]; }
                     }
                     else // if( side == Right )
                     {
@@ -293,7 +339,7 @@ void WritePDCode( mptr<T> pd_code, T offset = 0 ) const
                         
                         X[1] = static_cast<T>(a_pos) + offset;
                         
-                        if constexpr ( colorQ ) { X[over_pos] = A_color[a]; }
+                        if constexpr ( targs.colorQ ) { X[over_pos] = A_color[a]; }
                     }
                 }
             }
@@ -305,7 +351,7 @@ public:
 
 /*! @brief Construction from PD codes and handedness of crossings.
  *
- *  @param pd_codes Integer array of length `5 * crossing_count_`.
+ *  @param pd_code Integer array of length `5 * crossing_count_`.
  *  There is one 5-tuple for each crossing.
  *  The first 4 entries in each 5-tuple store the actual PD code.
  *  The last entry gives the handedness of the crossing:
@@ -323,14 +369,14 @@ public:
 
 template<bool checksQ = true, IntQ T, IntQ ExtInt>
 static PD_T FromSignedPDCode(
-    cptr<T>      pd_codes,
+    cptr<T>      pd_code,
     const ExtInt crossing_count,
     const bool   proven_minimalQ_ = false,
     const bool   compressQ = true
 )
 {
-    return FromPDCode<true,false,checksQ>(
-        pd_codes, crossing_count, proven_minimalQ_, compressQ
+    return FromPDCode<{.signQ = true, .colorQ = false, .checksQ = checksQ}>(
+        pd_code, crossing_count, proven_minimalQ_, compressQ
     );
 }
 
@@ -338,7 +384,7 @@ static PD_T FromSignedPDCode(
  *
  *  The handedness of the crossing will be inferred from the PD codes. This does not always define a uniquely: A simple counterexample for uniqueness are the Hopf-links.
  *
- *  @param pd_codes Integer array of length `4 * crossing_count`.
+ *  @param pd_code Integer array of length `4 * crossing_count`.
  *  There has to be one 4-tuple for each crossing.
  *
  *  @param crossing_count Number of crossings in the diagram.
@@ -352,7 +398,7 @@ static PD_T FromSignedPDCode(
 
 template<bool checksQ = true, IntQ T, IntQ ExtInt>
 static PD_T FromUnsignedPDCode(
-    cptr<T>      pd_codes,
+    cptr<T>      pd_code,
     const ExtInt crossing_count,
     const bool   proven_minimalQ_ = false,
     const bool   compressQ = true
@@ -360,7 +406,7 @@ static PD_T FromUnsignedPDCode(
 )
 {
     return FromPDCode<false,false,checksQ>(
-        pd_codes, crossing_count, proven_minimalQ_, compressQ
+        pd_code, crossing_count, proven_minimalQ_, compressQ
     );
 }
 
@@ -457,23 +503,41 @@ static constexpr CrossingState_T PDCodeHandedness( mptr<Int> X )
 
 public:
 
+struct FromPDCode_TArgs_T
+{
+    bool signQ     = true;
+    bool colorQ    = true;
+    bool checksQ   = true;
+};
+
+friend constexpr std::string ToString( cref<FromPDCode_TArgs_T> args )
+{
+    return std::string("{ ")
+        + "signQ = " + ToString(args.signQ)
+        + ", colorQ = " + ToString(args.colorQ)
+        + ", checksQ = " + ToString(args.checksQ)
+        + " }";
+};
+
 
 /*!@brief Loads a PlanarDiagram from a pd code. Between 4 and 7 numbers are expected per crossing. The template parameters control how many and how they are interpreted.
  *
- * @tparam signQ Whether the code is signed. If yes, then the 4-th number per crossing represents the handedness of crossing `c`; ` 0` means right-handed, `<= 0` means left-handed.
+ * @tparam targs Options that govern the behavior:
  *
- * @tparam colorQ Whether the arc colors ought to be used. If yes, then the last two numbers per crossing are interpreted as the color of the incoming underarc and the incoming over-arc, respectively.
+ * - `targs.signQ` Whether the code is signed. If yes, then the 4-th number per crossing represents the handedness of crossing `c`; ` 0` means right-handed, `<= 0` means left-handed.
  *
- * @tparam checksQ If set to `true`, then a few consistency checks are performed.
+ * - `targs.colorQ` Whether the arc colors ought to be used. If yes, then the last two numbers per crossing are interpreted as the color of the incoming underarc and the incoming over-arc, respectively.
+ *
+ * - `targs.checksQ` If set to `true`, then a few consistency checks are performed.
  *
  * If no handedness is given, then an attempt will be made to guess these parameters. Note that that there are cases in which an unsigned pd code does not uniquely determine a link diagram.
  *
  * If color information is given, then the link components are colored in the "natural" order they a reversed by the `Traverse` routine.
  */
 
-template<bool signQ, bool colorQ, bool checksQ = true, IntQ T, IntQ ExtInt>
+template<FromPDCode_TArgs_T targs, IntQ T, IntQ ExtInt>
 static PD_T FromPDCode(
-    cptr<T>      pd_codes_,
+    cptr<T>      pd_code,
     const ExtInt crossing_count_,
     const bool   proven_minimalQ_ = false,
     const bool   compressQ = false
@@ -485,9 +549,7 @@ static PD_T FromPDCode(
         s += "<";
         s += TypeName<T>;
         s += ",";
-        s += (signQ  ? "w/ signs"  : "w/o signs" );
-        s += ",";
-        s += (colorQ ? "w/ colors" : "w/o colors");
+        s += ToString(targs);
         s += ">";
         return s;
     };
@@ -496,9 +558,9 @@ static PD_T FromPDCode(
 
     PD_T pd (int_cast<Int>(crossing_count_));
     
-    constexpr Int code_size = 4 + signQ + 2 * colorQ;
-    constexpr Int under_pos = 4 + signQ;
-    constexpr Int over_pos  = 5 + signQ;
+    constexpr Int code_width = int_cast<Int>(PD_T::PDCodeWidth(targs.signQ,targs.colorQ));
+    constexpr Int under_pos = 4 + targs.signQ;
+    constexpr Int over_pos  = 5 + targs.signQ;
     
     if( crossing_count_ <= ExtInt(0) )
     {
@@ -512,12 +574,12 @@ static PD_T FromPDCode(
     
     for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
-        Int X [code_size];
+        Int X [code_width];
         T state;
         
-        copy_buffer<code_size>( &pd_codes_[code_size * c], &X[0] );
+        copy_buffer<code_width>( &pd_code[code_width * c], &X[0] );
         
-        if constexpr ( signQ )
+        if constexpr ( targs.signQ )
         {
             state = X[4];
         }
@@ -528,21 +590,31 @@ static PD_T FromPDCode(
 
         if( (X[0] < Int(0)) || (X[1] < Int(0)) || (X[2] < Int(0)) || (X[3] < Int(0)) )
         {
-            eprint(tag() + ": There is a PD code entry with negative entries. Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_size) );
+            eprint(tag() + ": There is a negative entry in the PD code. Returning invalid planar diagram.");
+            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
             return InvalidDiagram();
         }
         
         if( (X[0] > max_a) || (X[1] > max_a) || (X[2] > max_a) || (X[3] > max_a) )
         {
-            eprint(tag() + ": There is a PD code entry that is greater than number of arcs - 1 = " + ToString(max_a) + ". Returning invalid planar diagram.");
-            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_size) );
+            eprint(tag() + ": There is an entry greater than number of arcs - 1 = " + ToString(max_a) + " in the PD code. Returning invalid planar diagram.");
+            valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
             return InvalidDiagram();
+        }
+        
+        if constexpr ( targs.colorQ )
+        {
+            if( (X[over_pos] < Int(0)) || (X[under_pos] < Int(0)) )
+            {
+                eprint(tag() + ": There is a negative color in the PD code. Returning invalid planar diagram.");
+                valprint("Code of crossing " + ToString(c), OutString::FromVector(&X[0],code_width) );
+                return InvalidDiagram();
+            }
         }
         
         CrossingState_T c_state;
         
-        if constexpr( signQ )
+        if constexpr( targs.signQ )
         {
             c_state = pd.C_state[c] = BooleanToCrossingState(state > T(0));
         }
@@ -586,7 +658,7 @@ static PD_T FromPDCode(
             pd.A_state(X[3]) = ArcState_T::Active;
 //            pd.A_state(X[1]) = ArcState_T::Active;
             
-            if constexpr ( colorQ )
+            if constexpr ( targs.colorQ )
             {
                 pd.A_color(X[3]) = X[over_pos];
                 pd.A_color(X[0]) = X[under_pos];
@@ -627,7 +699,7 @@ static PD_T FromPDCode(
 //            pd.A_state(X[3]) = ArcState_T::Active;
             pd.A_state(X[1]) = ArcState_T::Active;
             
-            if constexpr ( colorQ )
+            if constexpr ( targs.colorQ )
             {
                 pd.A_color(X[0]) = X[under_pos];
                 pd.A_color(X[1]) = X[over_pos];
@@ -645,7 +717,7 @@ static PD_T FromPDCode(
         return InvalidDiagram();
     }
     
-    if constexpr( checksQ )
+    if constexpr( targs.checksQ )
     {
         bool all_crossings_initializedQ  = true;
         
@@ -681,7 +753,7 @@ static PD_T FromPDCode(
         {
             if( pd.A_cross(a,Tail) == Uninitialized )
             {
-                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict."));
+                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its tail." + (( targs.signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict."));
                 
                 valprint("arc " + ToString(a), OutString::FromVector( pd.A_cross.data(a), 2 ) );
                 
@@ -690,7 +762,7 @@ static PD_T FromPDCode(
             
             if( pd.A_cross(a,Head) == Uninitialized )
             {
-                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
+                eprint(tag() + ": Input PD code is invalid because arc " + ToString(a) + " has no crossing assigned to its head." + (( targs.signQ ) ? "" : " This can easily happen with unsigned PD codes when the arc labels are not ordered correctly: The arcs in a valid input PD code must be numbered sequentially around each component of the link. For each crossing the arcs most be listed in counterclockwise order starting with the incoming underarc.\n Please check your input code. Or even better: use a signed PD code as the requirements for signed PD codes are less strict.") );
                 
                 valprint("arc " + ToString(a), OutString::FromVector( pd.A_cross.data(a), 2 ) );
                 
@@ -712,14 +784,139 @@ static PD_T FromPDCode(
     {
         // We finally call `CreateCompressed` to get the ordering of crossings and arcs consistent.
         // This also applies a coloring to the arcs of `colorQ == true`.
-        return pd.template CreateCompressed<!colorQ>();
+        return pd.template CreateCompressed<!targs.colorQ>();
     }
     else
     {
-        if constexpr ( !colorQ )
+        if constexpr ( !targs.colorQ )
         {
             pd.ComputeArcColors();
         }
         return pd;
     }
+}
+
+
+template<IntQ T, IntNotBoolQ ExtInt, IntNotBoolQ ExtInt2>
+static PD_T FromPDCode(
+    cptr<T>       pd_code,
+    const ExtInt  crossing_count_,
+    const ExtInt2 code_width,
+    const bool    proven_minimalQ_ = false,
+    const bool    compressQ = false
+)
+{
+    if( crossing_count_ == ExtInt(0) )
+    {
+        return PD_T();
+    }
+    else if( code_width == ExtInt2(4) )
+    {
+        return FromPDCode<{.signQ = 0, .colorQ = 0}>(
+            pd_code, crossing_count_, proven_minimalQ_, compressQ
+        );
+    }
+    else if( code_width == ExtInt2(5) )
+    {
+        return FromPDCode<{.signQ = 1, .colorQ = 0}>(
+             pd_code, crossing_count_, proven_minimalQ_, compressQ
+        );
+    }
+    else if( code_width == ExtInt2(6) )
+    {
+        return FromPDCode<{.signQ = 0, .colorQ = 1}>(
+            pd_code, crossing_count_, proven_minimalQ_, compressQ
+        );
+    }
+    else if( code_width == ExtInt2(7) )
+    {
+        return FromPDCode<{.signQ = 1, .colorQ = 1}>(
+            pd_code, crossing_count_, proven_minimalQ_, compressQ
+        );
+    }
+    else
+    {
+        eprint(MethodName("FromPDCode") +": Code width is not equal to 4, 5, 6, or 7. Returning invalid diagram.");
+        return PD_T();
+    }
+}
+
+static PD_T FromPDCodeString(
+    mref<InString> s,
+    const bool proven_minimalQ_ = false,
+    const bool compressQ = false
+)
+{
+    Int crossing_counter = 0;
+    std::vector<Int> pd_buffer;
+    Int x = 0;
+    Size_T code_width = 1;
+
+    // Read the first line and figure out code_width.
+    for( Size_T i = 0; i < Size_T(8); ++i )
+    {
+        s.SkipWhiteSpace();
+        s.Take(x);
+        pd_buffer.push_back(x);
+        
+        if( s.CurrentChar() == '\n' )
+        {
+            break;
+        }
+        else
+        {
+            ++code_width;
+        }
+    }
+    
+    ++crossing_counter;
+    
+    if( code_width < Size_T(4) )
+    {
+        eprint(MethodName("FromPDCodeString") + ": Input has less than 4 tokens per line. This violates the assumptions for an unsigned and uncolored PD code. Returning invalid diagram.");
+        return InvalidDiagram();
+    }
+    
+    if( code_width > Size_T(7) )
+    {
+        eprint(MethodName("FromPDCodeString") + ": Input has more than 7 tokens per line. This violates the assumptions for a signed and colored PD code. Returning invalid diagram.");
+        
+        return InvalidDiagram();
+    }
+    
+    while( !s.EmptyQ() && !s.FailedQ() )
+    {
+        // We have to be careful here, because the last line may easily end with an '\n'.
+        for( Size_T i = 0; i < code_width; ++i )
+        {
+            s.SkipWhiteSpace();
+            s.Take(x);
+            pd_buffer.push_back(x);
+        }
+        
+        ++crossing_counter;
+        
+        if( s.EmptyQ() ) { break; }
+    }
+    
+    if( s.FailedQ() )
+    {
+        eprint(MethodName("FromPDCodeString") + ": Reading failed. Returning invalid diagram.");
+        return InvalidDiagram();
+    }
+    
+    PD_T pd = FromPDCode( &pd_buffer[0], crossing_counter, code_width, proven_minimalQ_, compressQ );
+
+    return pd;
+}
+
+static PD_T FromPDCodeFile(
+    cref<std::filesystem::path> file,
+    const bool proven_minimalQ_ = false,
+    const bool compressQ = false
+)
+{
+    InString s ( file );
+    
+    return FromPDCodeString( s, proven_minimalQ_, compressQ );
 }

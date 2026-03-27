@@ -433,9 +433,9 @@ Size_T Rattle(
             {
                 if constexpr (debugQ)
                 {
-                    if( !pdc_new.pd_list[i].ProvenUnknotQ() )
+                    if( !pdc_new.pd_list[i].AnelloQ() )
                     {
-                        pd_eprint(tag() + ": !pdc_new.pd_list[" + ToString(i) + "].ProvenUnknotQ().");
+                        pd_eprint(tag() + ": !pdc_new.pd_list[" + ToString(i) + "].AnelloQ().");
                     }
                 }
                 
@@ -614,13 +614,6 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
 //            ++disconnect_iter;
             local_disconnect_count = Disconnect(pd);
             disconnect_count += local_disconnect_count;
-            
-//            // DEBUGGING
-//            if( (disconnect_iter > Size_T(1)) && (local_disconnect_count > Size_T(0)) )
-//            {
-//                TOOLS_DUMP(local_disconnect_count);
-//                TOOLS_DUMP(disconnect_count);
-//            }
         }
         while( local_disconnect_count > Size_T(0) );
 //        

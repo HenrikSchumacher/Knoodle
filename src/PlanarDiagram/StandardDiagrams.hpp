@@ -130,16 +130,10 @@ static PD_T FigureEightKnot( const Int color )
 
 void AnelloToFarfalla()
 {
-    if( AnelloQ() )
-    {
-        (*this) = Farfalla(last_color_deactivated);
-    }
+    if( AnelloQ() ) { (*this) = Farfalla(last_color_deactivated); }
 }
 
 void FarfallaToAnello()
 {
-    if( FarfallaQ() )
-    {
-        (*this) = Anello( FirstColor() );
-    }
+    if( FarfallaQ() ) { (*this) = Anello( FirstColor() ); }
 }

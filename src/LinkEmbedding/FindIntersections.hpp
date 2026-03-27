@@ -502,6 +502,8 @@ protected:
     template<bool verboseQ>
     void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     {
+        using Sign_T = Intersection_T::Sign_T;
+        
         if constexpr ( verboseQ )
         {
             logprint(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
@@ -552,7 +554,7 @@ protected:
             {
                 // edge k goes UNDER edge l
                 
-                intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
+                intersections.push_back(  Intersection_T(l,k,t[1],t[0],static_cast<Sign_T>(-sign)) );
                 
                 /*      If det > 0, then this looks like this (left-handed crossing):
                  *

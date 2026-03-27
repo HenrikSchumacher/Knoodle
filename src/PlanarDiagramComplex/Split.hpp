@@ -308,3 +308,13 @@ Size_T Split()
     
     return split_count;
 }
+
+
+PDC_T Splitting() const
+{
+    PDC_T pdc_new (*this);
+    
+    pdc_new.Split();
+    
+    return pdc_new;
+}
