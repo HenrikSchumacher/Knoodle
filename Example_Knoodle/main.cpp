@@ -105,7 +105,6 @@ int main()
             Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
             Tools::valprint( "MacLeod code", pd.MacLeodCode() );
             Tools::valprint( "Knot type", klut.FindName(pd) );
-            Tools::valprint( "Knot ID", klut.FindID(pd) );
             
             // Create an orthogonal layout for the currect knot diagram.
             OrthoDraw_T H ( pd, Int(-1), plot_settings );
@@ -123,7 +122,7 @@ int main()
     
     Tools::print( "" );
     Tools::print( "== Demonstration of Reapr ==" );
-    Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapris _not_ deterministic.." );
+    Tools::print( "Reapr applies Simplify and then make a number of attempts to embed, randomly rotate, project, and run Simplify again. Often, the output of Simplify is already as good as it gets. You need a fairly hard knot for Reapr to make a difference. Note that Reapr is _not_ deterministic.." );
     {
         std::string filename ( path / "Diagram_Reapr.txt" );
         Tools::print( "Writing diagram to file " + filename + "." );
@@ -149,7 +148,6 @@ int main()
             Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
             Tools::valprint( "MacLeod code", pd.MacLeodCode() );
             Tools::valprint( "Knot type", klut.FindName(pd) );
-            Tools::valprint( "Knot ID", klut.FindID(pd) );
             
             // Write an ASCII art version of the diagram to file.
             file << H.DiagramString();

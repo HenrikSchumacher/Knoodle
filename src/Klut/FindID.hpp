@@ -7,7 +7,7 @@ std::pair<Size_T,ID_T> FindID_impl( cref<Key_T> key, Int n )
     
     if constexpr( testQ )
     {
-        if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
+        if( std::cmp_less(n,3) || std::cmp_greater(c,CrossingCount()) )
         {
             return std::pair{c,not_found};
         }
@@ -31,7 +31,7 @@ std::pair<Size_T,ID_T> FindID( cptr<T> s_mac_leod, Int n )
 {
     const Size_T c = static_cast<Size_T>(n);
     
-    if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
+    if( std::cmp_less(n,3) || std::cmp_greater(c,CrossingCount()) )
     {
         return {c, not_found};
     }
@@ -64,7 +64,7 @@ std::pair<Size_T,ID_T> FindID( cref<PlanarDiagram<Int>> pd )
     
     Size_T c = static_cast<Size_T>(pd.CrossingCount());
     
-    if( std::cmp_greater(c, CrossingCount()) ) { return {c,not_found}; }
+    if( std::cmp_less(c,3) ||std::cmp_greater(c, CrossingCount()) ) { return {c,not_found}; }
     
     if( pd.LinkComponentCount() > Int(1) ) { return {c,not_found}; }
     

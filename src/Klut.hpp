@@ -60,18 +60,23 @@ namespace Knoodle
             
             subtables = std::vector<Subtable>( c_count + Size_T(1) );
             
-            for( Size_T c = 1; c <= c_count; ++c )
+            for( Size_T c = 3; c <= c_count; ++c )
             {
-                if( c >= Size_T(3) )
-                {
-                    subtables[c] = Subtable(c, KeyFile(c), ValueFile(c));
-                }
+                subtables[c] = Subtable(c, KeyFile(c), ValueFile(c));
             }
         }
         
         Size_T CrossingCount() const
         {
             return subtables.size() - Size_T(1);
+        }
+        
+        void LoadSubtables()
+        {
+            for( Size_T c = 3; c < subtables.size(); ++c )
+            {
+                subtables[c].RequireTable();
+            }
         }
         
     public:
@@ -91,6 +96,7 @@ namespace Knoodle
 #include "Klut/Key.hpp"
 #include "Klut/FindID.hpp"
 #include "Klut/FindName.hpp"
+#include "Klut/Export.hpp"
         
     public:
         

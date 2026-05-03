@@ -7,7 +7,7 @@ std::string FindName_impl( cref<Key_T> key, Int n  )
     
     if constexpr( testQ )
     {
-        if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
+        if( std::cmp_less(n,3) || std::cmp_greater(c,CrossingCount()) )
         {
             return "NotFound";
         }
@@ -22,7 +22,7 @@ std::string FindName( cref<Key_T> key, Int n  )
 {
     const Size_T c = static_cast<Size_T>(n);
     
-    if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
+    if( std::cmp_less(n,3) || std::cmp_greater(c,CrossingCount()) )
     {
         return "NotFound";
     }
@@ -33,7 +33,7 @@ std::string FindName( cref<Key_T> key )
 {
     const Size_T c = static_cast<Size_T>(CrossingCount(key));
     
-    if( std::cmp_greater(c,CrossingCount()) )
+    if( std::cmp_less(c,3) || std::cmp_greater(c,CrossingCount()) )
     {
         return "NotFound";
     }
@@ -46,7 +46,7 @@ std::string FindName( cptr<T> s_mac_leod, Int n )
 {
     const Size_T c = static_cast<Size_T>(n);
     
-    if( std::cmp_less(n,0) || std::cmp_greater(c,CrossingCount()) )
+    if( std::cmp_less(n,3) || std::cmp_greater(c,CrossingCount()) )
     {
         return "NotFound";
     }
@@ -78,7 +78,7 @@ std::string FindName( cref<PlanarDiagram<Int>> pd )
     
     const Size_T c = static_cast<Size_T>(pd.CrossingCount());
     
-    if( std::cmp_greater(c, CrossingCount()) ) { return "NotFound"; }
+    if( std::cmp_less(c,3) || std::cmp_greater(c, CrossingCount()) ) { return "NotFound"; }
     
     if( pd.LinkComponentCount() > Int(1) ) { return "NotFound"; }
     
@@ -105,12 +105,12 @@ std::string FindName( cref<std::pair<Size_T,ID_T>> id )
     {
         return "NotFound";
     }
-    else if( std::cmp_greater(c,CrossingCount()) )
+    else if( std::cmp_less(c,3) || std::cmp_greater(c,CrossingCount()) )
     {
         return "NotFound";
     }
     else
     {
-        return subtables[c].Names()[i];
+        return subtables[c].knot_names[i];
     }
 }

@@ -4,6 +4,8 @@ public:
 // Stores and looks up data for a fixed number of crossings.
 class Subtable
 {
+    friend Klut;
+    
 private:
     
     Size_T c_count = 0;
@@ -55,13 +57,16 @@ public:
         if( !loadedQ && !failedQ ) { Read(); }
     }
         
+private:
+    
     void Read()
     {
         [[maybe_unused]] auto tag = [this](){ return MethodName("Read"); };
         
         TOOLS_PTIMER(timer,tag());
         
-        if( loadedQ || failedQ ) { return; }
+        if( failedQ ) { return; }
+        if( loadedQ ) { return; }
         
         // TODO: Check that c_count is small enough so that we can use bytes!
         lut.clear();
@@ -96,14 +101,9 @@ public:
             
             v_stream >> knot_name;
             
-            if( v_stream.eof() ) { return; }
+            if( v_stream.eof() ) { break; }
             
             v_stream >> knot_count;
-            
-//            if( v_stream.eof() ) { return; }
-//
-//            TOOLS_LOGDUMP(knot_name);
-//            TOOLS_LOGDUMP(knot_count);
             
             knot_names.push_back( std::move(knot_name) );
             
@@ -134,9 +134,11 @@ public:
             
             ++id;
         }
-        
+
         loadedQ = !failedQ;
     }
+    
+public:
     
     Size_T CrossingCount() const
     {
@@ -180,82 +182,6 @@ public:
         return knot_names[id];
     }
     
-    std::vector<std::string> Names()
-    {
-        RequireTable();
-        return knot_names;
-    }
-    
-    cref<LUT_T> LookupTable()
-    {
-        RequireTable();
-        return lut;
-    }
-    
-    Tensor2<CodeInt,ID_T> Codes()
-    {
-        RequireTable();
-        Tensor2<CodeInt,ID_T> codes ( KeyCount(),  c_count );
-        
-        ID_T i = 0;
-        for( const auto & [key,id] : lut )
-        {
-            Klut::KeyToMacLeodCode(key,codes.data(i));
-            ++i;
-        }
-        
-        return codes;
-    }
-    
-    Tensor1<ID_T,ID_T> IDs()
-    {
-        RequireTable();
-        
-        Tensor1<ID_T,ID_T> ids ( KeyCount() );
-        
-        ID_T i = 0;
-        for( const auto & [key,id] : lut )
-        {
-            ids[i] = id;
-            ++i;
-        }
-        
-        return ids;
-    }
-    
-    void ExportToFile( cref<Path_T> file )
-    {
-        RequireTable();
-        
-        std::ofstream stream ( file );
-        
-        if( !stream )
-        {
-            eprint(MethodName("ExportToFile") + ": Could not open file " + file.string() +". Aborting." );
-            return;
-        }
-        
-        Tensor1<CodeInt,Size_T> code ( c_count );
-        
-        // The longest name that I found has length 23.
-        // Codes how c_count entries with up to 3 digits.
-        // We need another byte per entry for the separators `\t`.
-        // We need another byte per code for '\n'.
-        OutString s ( lut.size() * (3 * c_count + 23 + 1) );
-        
-        for( const auto & [key,id] : lut )
-        {
-            Klut::KeyToMacLeodCode(key,code.data());
-            s.template PutVectorFun<Format::Vector::TSV>(code.ReadAccess(),c_count);
-            s.PutChar('\t');
-            s.PutChars(knot_names[id]);
-            s.PutChar('\n');
-        }
-        
-        stream << s;
-    }
-    
-    
 public:
     
     std::string MethodName( const std::string & tag ) const
@@ -265,7 +191,7 @@ public:
     
     std::string ClassName() const
     {
-        return std::string("Klut::Subtable");
+        return std::string("Klut::Subtable(" + ToString(c_count) + ")");
     }
     
 }; // class Subtable
