@@ -20,7 +20,7 @@ namespace Knoodle
         using Real                = Real_;
         using Int                 = Int_;
         using BReal               = BReal_;
-
+        
 #ifdef KNOODLE_USE_UMFPACK
         using UMF_Int             = Int64;
 #endif
@@ -36,19 +36,19 @@ namespace Knoodle
         
         static constexpr Parallel_T parQ = Sequential;
         
-//        using Link_T              = LinkEmbedding<Real,Int,BReal>;
+        //        using Link_T              = LinkEmbedding<Real,Int,BReal>;
         using PD_T                = PlanarDiagram<Int>;
         using Point_T             = Tiny::Vector<3,Real,Int>;
         using Matrix_T            = Tiny::Matrix<3,3,Real,Int>;
         using OrthoDraw_T         = OrthoDraw<PD_T>;
         using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
-//        using Embedding_T         = RaggedList<Point_T,Int>;
+        //        using Embedding_T         = RaggedList<Point_T,Int>;
         using LinkEmbedding_T     = LinkEmbedding<Real,Int,BReal>;
         
         using PRNG_T              = Knoodle::PRNG_T;
         using Flag_T              = Scalar::Flag;
         
-
+        
         enum class Energy_T : Int8
         {
             TV        = 0,
@@ -72,7 +72,7 @@ namespace Knoodle
                 default:                  return "Unknown";
             }
         }
-
+        
         struct Settings_T
         {
             bool permute_randomQ       = true;
@@ -96,23 +96,23 @@ namespace Knoodle
         friend std::string ToString( cref<Settings_T> args )
         {
             return std::string("{ ")
-                    +   ".permute_randomQ = " + ToString(args.permute_randomQ)
-                    + ", .energy = " + ToString(args.energy)
-                    + ", .ortho_draw_settings = " + ToString(args.ortho_draw_settings)
-                    + ", .scaling = " + ToString(args.scaling)
-                    + ", .dirichlet_reg = " + ToString(args.dirichlet_reg)
-                    + ", .bending_reg = " + ToString(args.bending_reg)
-                    + ", .backtracking_factor = " + ToString(args.backtracking_factor)
-                    + ", .armijo_slope = " + ToString(args.armijo_slope)
-                    + ", .tolerance = " + ToString(args.tolerance)
-                    + ", .SSN_max_b_iter = " + ToString(args.SSN_max_b_iter)
-                    + ", .SSN_max_iter = " + ToString(args.SSN_max_iter)
+            +   ".permute_randomQ = " + ToString(args.permute_randomQ)
+            + ", .energy = " + ToString(args.energy)
+            + ", .ortho_draw_settings = " + ToString(args.ortho_draw_settings)
+            + ", .scaling = " + ToString(args.scaling)
+            + ", .dirichlet_reg = " + ToString(args.dirichlet_reg)
+            + ", .bending_reg = " + ToString(args.bending_reg)
+            + ", .backtracking_factor = " + ToString(args.backtracking_factor)
+            + ", .armijo_slope = " + ToString(args.armijo_slope)
+            + ", .tolerance = " + ToString(args.tolerance)
+            + ", .SSN_max_b_iter = " + ToString(args.SSN_max_b_iter)
+            + ", .SSN_max_iter = " + ToString(args.SSN_max_iter)
             + " }";
         }
         
         
         static constexpr Real jump = 1;
-
+        
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
         static constexpr bool Out   = PD_T::Out;
@@ -141,7 +141,7 @@ namespace Knoodle
         {}
         
     private:
-
+        
         
         Energy_T EnergyFlag( mref<PD_T> pd ) const
         {
@@ -178,6 +178,11 @@ namespace Knoodle
         mref<Settings_T> Settings()
         {
             return settings;
+        }
+        
+        mref<PRNG_T> RandomEngine()
+        {
+            return random_engine;
         }
         
         void WriteFeasibleLevels( cref<PD_T> pd, mptr<Real> x )

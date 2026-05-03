@@ -12,7 +12,7 @@ public:
     [[nodiscard]] int FindIntersections()
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
-
+        
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.

@@ -1223,3 +1223,4 @@ data/diagrams/randomunknots/unknot-3043-edges-0444.tsv filter=lfs diff=lfs merge
 data/diagrams/randomunknots/unknot-3043-edges-0515.tsv filter=lfs diff=lfs merge=lfs -text
 data/diagrams/veryhardunknots/juhasz-veryhard-227.tsv filter=lfs diff=lfs merge=lfs -text
 data/diagrams/veryhardunknots/juhasz-veryhard-333.tsv filter=lfs diff=lfs merge=lfs -text
+data/Klut/** filter=lfs diff=lfs merge=lfs -text

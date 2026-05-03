@@ -519,7 +519,14 @@ friend constexpr std::string ToString( cref<FromPDCode_TArgs_T> args )
         + " }";
 };
 
+template<FromPDCode_TArgs_T targs, IntQ T, IntQ ExtInt>
+static PD_T PDCodeSize(
+                       )
+{
+}
+                       
 
+                       
 /*!@brief Loads a PlanarDiagram from a pd code. Between 4 and 7 numbers are expected per crossing. The template parameters control how many and how they are interpreted.
  *
  * @tparam targs Options that govern the behavior:
@@ -547,9 +554,11 @@ static PD_T FromPDCode(
     [[maybe_unused]] auto tag = [](){
         std::string s = MethodName("FromPDCode");
         s += "<";
+        s += ToString(targs);
+        s += ",";
         s += TypeName<T>;
         s += ",";
-        s += ToString(targs);
+        s += TypeName<ExtInt>;
         s += ">";
         return s;
     };
@@ -570,7 +579,7 @@ static PD_T FromPDCode(
     pd.proven_minimalQ = proven_minimalQ_;
 
     // The maximally allowed arc index.
-    const Int max_a = pd.MaxArcCount() - 1;
+    const Int max_a = pd.MaxArcCount() - Int(1);
     
     for( Int c = 0; c < pd.max_crossing_count; ++c )
     {
@@ -712,7 +721,12 @@ static PD_T FromPDCode(
     
     if( pd.arc_count != Int(2) * pd.crossing_count )
     {
-        eprint(tag() + ": Input PD code is invalid because number of active arcs (" + ToString(pd.arc_count)+ ") is not equal to twice the number of active crossings (" + ToString(pd.crossing_count)+ ") . Returning invalid planar diagram.");
+        eprint(tag() + ": Input PD code is invalid because number of active arcs (" + ToString(pd.arc_count)+ ") is not equal to twice the number of active crossings (" + ToString(pd.crossing_count)+ "). Returning invalid planar diagram.");
+        
+        logvalprint(
+            "problematic pd code",
+            OutString::FromMatrix( pd_code, crossing_count_, code_width )
+        );
         
         return InvalidDiagram();
     }

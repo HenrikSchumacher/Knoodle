@@ -191,6 +191,11 @@ namespace Knoodle
             return pd_list[Size_T(i)];
         }
         
+        cref<PD_T> operator[]( Int i ) const
+        {
+            return Diagram(i);
+        }
+        
         cref<PD_T> LastDiagram() const
         {
             if( !pd_list.empty() )

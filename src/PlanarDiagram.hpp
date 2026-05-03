@@ -653,6 +653,20 @@ namespace Knoodle
             }
         }
         
+        void ChiralityTransform( const Chiral::Group g )
+        {
+            using Chiral::Group;
+            
+            switch( g )
+            {
+                case Group::e  : return;
+                case Group::m  : ChiralityTransform( 1, 0 );
+                case Group::r  : ChiralityTransform( 0, 1 );
+                case Group::mr : ChiralityTransform( 1, 1 );
+                default: return;
+            }
+        }
+        
         
         Int FirstColor() const
         {

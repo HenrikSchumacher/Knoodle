@@ -37,7 +37,7 @@ using Code_T       = Tensor1<CodeInt,Int>;
 using Hash_T       = Tensor1Hash<CodeInt,Int>;
 using CodeSet_T    = SetContainer<Code_T,Hash_T>;
 
-// 0 can never occurs as entry of a MacLeodCode, so we can use it as filler.
+// 0 can never occur as entry of a MacLeodCode, so we can use it as filler.
 static constexpr CodeInt code_filler = CodeInt(0);
 
 //using CodeCounts_T = std::unordered_map<Code_T,Size_T,Hash_T>;
@@ -55,8 +55,7 @@ void Generate_impl(
 {
     std::vector<Code_T> stack;
     
-    auto conditional_push = [&stack, &code_set, output_n]
-    ( Code_T && code )
+    auto conditional_push = [&stack, &code_set, output_n]( Code_T && code )
     {
         if ( code.Size() <= output_n )
         {

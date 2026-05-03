@@ -83,4 +83,4 @@ namespace Knoodle
 #include "src/ConformalBarycenterSampler.hpp"
 
 
-//#include "src/KnotLookupTable.hpp"
+#include "src/Klut.hpp"

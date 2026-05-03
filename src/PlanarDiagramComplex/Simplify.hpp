@@ -19,6 +19,7 @@ struct Simplify_Args_T
     Size_T              rotation_trials          = 25;
     bool                permute_randomQ          = true;
     Energy_T            energy                   = Energy_T::TV;
+    double              scaling                  = 1.;
     
     int                 randomize_bends          = 4;
     bool                randomize_virtual_edgesQ = true;
@@ -55,10 +56,31 @@ friend std::string ToString( cref<Simplify_Args_T> args )
 }
 
 
-
-// Do some rerouting first, but disconnect and split early to divide-and-conquer.
+/*!@brief Apply diagrammatic simplifications. If `arg.embedding_trials` and `arg.rotation_trials` are set to positive values, then also Reapr (construction of a 3D grid embedding, rotation, projection) is employed.
+ */
 template<PassSimplifier_T::SimplifyPasses_TArgs targs = typename PassSimplifier_T::SimplifyPasses_TArgs()>
 Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
+{
+    Reapr_T reapr ({
+        .permute_randomQ     = args.permute_randomQ,
+        .energy              = args.energy,
+        .ortho_draw_settings = {
+            .randomize_bends          = args.randomize_bends,
+            .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
+            .compaction_method        = args.compaction_method
+        },
+        .scaling             = args.scaling
+    });
+    
+    return Simplify<targs>( reapr, args );
+}
+
+/*!@brief Apply diagrammatic simplifications. If `arg.embedding_trials` and `arg.rotation_trials` are set to positive values, then also Reapr (construction of a 3D grid embedding, rotation, projection) is employed.
+ *
+ * Beware: The options of the `Reapr` instance `reapr` override some of the options in `args`.
+ */
+template<PassSimplifier_T::SimplifyPasses_TArgs targs = typename PassSimplifier_T::SimplifyPasses_TArgs()>
+Size_T Simplify( mref<Reapr_T> reapr, cref<Simplify_Args_T> args = Simplify_Args_T() )
 {
     TOOLS_PTIMER(timer,MethodName("Simplify"));
     
@@ -68,23 +90,23 @@ Size_T Simplify( cref<Simplify_Args_T> args = Simplify_Args_T() )
     {
         case 0:
         {
-            return Simplify_impl<0,targs>(args);
+            return Simplify_impl<0,targs>(reapr,args);
         }
         case 1:
         {
-            return Simplify_impl<1,targs>(args);
+            return Simplify_impl<1,targs>(reapr,args);
         }
         case 2:
         {
-            return Simplify_impl<2,targs>(args);
+            return Simplify_impl<2,targs>(reapr,args);
         }
         case 3:
         {
-            return Simplify_impl<3,targs>(args);
+            return Simplify_impl<3,targs>(reapr,args);
         }
         case 4:
         {
-            return Simplify_impl<4,targs>(args);
+            return Simplify_impl<4,targs>(reapr,args);
         }
         default:
         {
@@ -162,7 +184,7 @@ Size_T Simplify_Variant( cref<Simplify_Args_T> args = Simplify_Args_T(), Size_T 
 private:
 
 template<UInt8 local_opt_level, PassSimplifier_T::SimplifyPasses_TArgs targs>
-Size_T Simplify_impl( cref<Simplify_Args_T> args )
+Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 {
 //    constexpr bool debugQ = true;
     
@@ -206,16 +228,6 @@ Size_T Simplify_impl( cref<Simplify_Args_T> args )
         // This makes sure that the input is canonical ordering. This can make a huge difference in runtime!
         for( PD_T & pd : pd_todo ) { pd.Compress(); }
     }
-    
-    Reapr_T reapr ({
-        .permute_randomQ     = args.permute_randomQ,
-        .energy              = args.energy,
-        .ortho_draw_settings = {
-            .randomize_bends          = args.randomize_bends,
-            .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
-            .compaction_method        = args.compaction_method
-        },
-    });
 
     PD_List_T reapr_list;
     
@@ -387,11 +399,22 @@ Size_T Rattle(
     PD_T pd_1;
     
     Size_T pass_change_count = 0;
-    Size_T disconnect_count    = 0;
+    Size_T disconnect_count  = 0;
     
     constexpr Size_T max_projection_iter = 10;
     bool progressQ = false;
-     
+    
+    // DEBUGGING
+    if( args.embedding_trials == Size_T(0) )
+    {
+        wprint(MethodName("Rattle") + ": Called with embedding_trials = 0.");
+    }
+    // DEBUGGING
+    if( args.rotation_trials == Size_T(0) )
+    {
+        wprint(MethodName("Rattle") + ": Called with rotation_trials = 0.");
+    }
+    
     for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
@@ -403,6 +426,7 @@ Size_T Rattle(
         {
             Size_T projection_iter = 0;
             int projection_flag = 0;
+            emb.Rotate( reapr.RandomRotation() );
             projection_flag = emb.RequireIntersections();
             
             while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
@@ -428,7 +452,7 @@ Size_T Rattle(
                 if( !pdc_new.CheckAll() ) { pd_eprint(tag() + ": !pdc_new.CheckAll())."); }
             }
             
-            // We might get some unlinks here.
+            // We might get some unlinks here. We push them to "done", so that they won't be forgotton.
             for( Size_T i = 1; i < pdc_new.pd_list.size(); ++i )
             {
                 if constexpr (debugQ)
@@ -442,6 +466,8 @@ Size_T Rattle(
                 PushDiagramDone( std::move(pdc_new.pd_list[i]) );
             }
             
+            // TODO: Is pdc_new.pd_list[0] guaranteed to be valid?
+            // I don't think so!
             pd_1 = std::move(pdc_new.pd_list[0]);
             
             std::tie(pass_change_count,disconnect_count) = this->template SimplifyDiagrammatically<debugQ,targs>(S, pd_1, args);
@@ -457,13 +483,29 @@ Size_T Rattle(
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
+            
+//            // No progress, but we can at least change pd to have a new chance next time.
+//            if( pd_1.CrossingCount() == pd.CrossingCount() )
+//            {
+//                pd = std::move(pd_1);
+//            }
         }
         
         // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
         if( progressQ ) { break; }
     }
     
-    if( pd_1.InvalidQ() ) { return pass_change_count + disconnect_count; }
+    // TODO: Can pd_1.InvalidQ() ever happen? Shall this ever happen?
+    // There are a few ways this can happen:
+    //  1. args.embedding_trials == 0 or args.rotation_trials == 0. But then we should at least do PushDiagramDone( std::move(pd) ), no?
+    //  2. pdc_new.pd_list[0] was invalid. This can happen, for example, if the generated link embedding is a multiple "eight" that can be recognized only as unlink when looking from the side. Indeed, quitting here might be correct.
+    //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here might be correct.
+    if( pd_1.InvalidQ() )
+    {
+        // DEBUGGING
+        wprint(MethodName("Rattle") + ": pd_1 is invalid. Returning early.");
+        return pass_change_count + disconnect_count;
+    }
     
     Size_T split_count = 0;
     

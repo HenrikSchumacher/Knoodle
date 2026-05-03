@@ -1,3 +1,5 @@
+#define KNOODLE_USE_BOOST_UNORDERED
+
 #include "../Knoodle.hpp"
 
 using Int         = std::int64_t;                        // integer type used, e.g., for indices
@@ -10,9 +12,10 @@ int main()
     Tools::print( "-=| An example program for Knoodle. |=-" );
     Tools::print( "" );
  
-    std::filesystem::path path = std::filesystem::path(__FILE__).parent_path();
-  
+    std::filesystem::path path      = std::filesystem::path(__FILE__).parent_path();
+    std::filesystem::path klut_path = path.parent_path() / "data" / "Klut";
     Tools::valprint("working directory", path );
+    Tools::valprint("klut directory", klut_path );
     
     // Load a knot from file.
     std::vector<Int> pd_code;
@@ -70,6 +73,9 @@ int main()
     }
     
     
+    Knoodle::Klut klut (klut_path);
+    
+    
     Tools::print( "" );
     Tools::print( "== Demonstration of Simplify ==" );
     Tools::print( "Simplify applies pass moves to the ." );
@@ -96,7 +102,10 @@ int main()
             Tools::print( "Connected component no. " + Tools::ToString(iter) + ":" );
             Tools::valprint( "No. of crossings", pd.CrossingCount() );
             // Print PD code to command line.
-            Tools::valprint( "PD code", pd.PDCode() );
+            Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
+            Tools::valprint( "MacLeod code", pd.MacLeodCode() );
+            Tools::valprint( "Knot type", klut.FindName(pd) );
+            Tools::valprint( "Knot ID", klut.FindID(pd) );
             
             // Create an orthogonal layout for the currect knot diagram.
             OrthoDraw_T H ( pd, Int(-1), plot_settings );
@@ -121,7 +130,7 @@ int main()
         
         PDC_T pdc { PD_T(pd_0) }; // Creating a copy of pd here because PDC_T wants ownership. (Typically, to save memory.)
         
-        pdc.Simplify({.embedding_trials = 3, .rotation_trials = 20});
+        pdc.Simplify({.embedding_trials = 10, .rotation_trials = 20});
         
         std::ofstream file ( filename );
         
@@ -137,7 +146,10 @@ int main()
             OrthoDraw_T H ( pd, Int(-1), plot_settings );
             
             // Print PD code to command line.
-            Tools::valprint( "PD code", pd.PDCode() );
+            Tools::valprint( "PD code", pd.template PDCode<Int,{.signQ = true,.colorQ = false}>() );
+            Tools::valprint( "MacLeod code", pd.MacLeodCode() );
+            Tools::valprint( "Knot type", klut.FindName(pd) );
+            Tools::valprint( "Knot ID", klut.FindID(pd) );
             
             // Write an ASCII art version of the diagram to file.
             file << H.DiagramString();
@@ -147,6 +159,7 @@ int main()
             Tools::print("");
         }
     }
+    
 
     return EXIT_SUCCESS;
 }
