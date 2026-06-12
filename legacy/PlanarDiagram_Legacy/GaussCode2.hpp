@@ -30,7 +30,7 @@ Tensor1<T,Int> ExtendedGaussCode2( const Int a_0 = 0 )  const
     
     code = Tensor1<T,Int>( arc_count );
     
-    this->WriteExtendedGaussCode2<T>(a_0,code.data());
+    this->WriteExtendedGaussCode2(a_0,code.data());
 
     return code;
 }

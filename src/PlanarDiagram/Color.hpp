@@ -82,7 +82,7 @@ void ComputeArcColors()
         );
     }
     
-    this->SetCache("ColorArcCounts", std::move(color_arc_counts));
+    this->template SetCache<false>("ColorArcCounts", std::move(color_arc_counts));
 }
 
 Int ColorCount()  const
@@ -98,7 +98,7 @@ bool CheckArcColors() const
         return false;
     }
     
-    if( ProvenUnknotQ() )
+    if( AnelloQ() )
     {
         return true;
     }

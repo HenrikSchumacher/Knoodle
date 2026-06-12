@@ -12,7 +12,7 @@ PDC_T Union() const
     Int crossing_count = 0;
     Int arc_count = 0;
     
-    PD_List_T unlinks;
+    PD_List_T anelli;
     
     for( Size_T idx = 0; idx < diagram_count; ++idx )
     {
@@ -22,9 +22,9 @@ PDC_T Union() const
         
         if( pd.InvalidQ() ) { continue; }
         
-        if( pd.ProvenUnknotQ() )
+        if( pd.AnelloQ() )
         {
-            unlinks.push_back( pd ); // make copies!
+            anelli.push_back( pd ); // make copies!
             continue;
         }
         else
@@ -43,7 +43,7 @@ PDC_T Union() const
     {
         mref<PD_T> pd = pd_list[idx];
         
-        if( pd.InvalidQ() || pd.ProvenUnknotQ() ) { continue; }
+        if( pd.InvalidQ() || pd.AnelloQ() ) { continue; }
 
         const Int C_pos = crossing_ptr[idx];
         const Int A_pos = Int(2) * C_pos;
@@ -70,7 +70,7 @@ PDC_T Union() const
     
     PDC_T pdc_union ( std::move(pd_union) );
 
-    for( PD_T & pd : unlinks )
+    for( PD_T & pd : anelli )
     {
         pdc_union.pd_list.push_back( std::move(pd) );
     }
@@ -100,4 +100,15 @@ RaggedList<Int,Int> UnionArcMaps() const
     }
 
     return arc_maps;
+}
+
+
+void AnelliToFarfalle()
+{
+    for( PD_T & pd : pd_list ) { pd.AnelloToFarfalla(); }
+}
+
+void FarfalleToAnelli()
+{
+    for( PD_T & pd : pd_list ) { pd.FarfallaToAnello(); }
 }

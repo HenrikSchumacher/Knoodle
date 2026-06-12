@@ -6,19 +6,19 @@ ColorCounts_T ColorArcCounts() const
     
     for( const PD_T & pd : pd_list )
     {
-        if( pd.ValidQ() )
+        if( pd.InvalidQ() ) { continue; }
+
+        if( pd.AnelloQ() )
         {
-            const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
-            
-            for( auto [col,count] : pd_color_arc_counts )
-            {
-                AddTo(color_arc_counts, col, count);
-            }
-            
-            if( pd.ProvenUnknotQ() )
-            {
-                AddTo(color_arc_counts, pd.last_color_deactivated, Int(0));
-            }
+            AddTo(color_arc_counts, pd.last_color_deactivated, Int(0));
+            continue;
+        }
+        
+        const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
+        
+        for( auto [col,count] : pd_color_arc_counts )
+        {
+            AddTo(color_arc_counts, col, count);
         }
     }
     

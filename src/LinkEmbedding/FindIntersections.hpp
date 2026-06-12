@@ -12,7 +12,7 @@ public:
     [[nodiscard]] int FindIntersections()
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
-
+        
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.
@@ -502,6 +502,8 @@ protected:
     template<bool verboseQ>
     void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     {
+        using Sign_T = Intersection_T::Sign_T;
+        
         if constexpr ( verboseQ )
         {
             logprint(ClassName()+"::ComputeEdgeEdgeIntersection in verbose mode.");
@@ -552,7 +554,7 @@ protected:
             {
                 // edge k goes UNDER edge l
                 
-                intersections.push_back( Intersection_T(l,k,t[1],t[0],-sign) );
+                intersections.push_back(  Intersection_T(l,k,t[1],t[0],static_cast<Sign_T>(-sign)) );
                 
                 /*      If det > 0, then this looks like this (left-handed crossing):
                  *

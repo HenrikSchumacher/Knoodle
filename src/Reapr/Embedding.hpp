@@ -54,7 +54,7 @@ LinkEmbedding_T Embedding_impl( cref<PD_T> pd, Transformation_T && f )
 }
 
 
-// Taking the x-y-coordinates from OrthoDraw literally. As z-coordinates we use the scaled levels function. For settings.scaling == 1 we scale that length of the bounding in z-direction roughly matches the smaller of the lengths of the bounding box in x- and y-direction.
+// Taking the x-y-coordinates from OrthoDraw literally. As z-coordinates we use the scaled levels function. For settings.scaling == 1, we scale the length of the bounding in z-direction roughly matches the smaller of the lengths of the bounding box in x- and y-direction.
 // TODO: This typically contains long edges that are bad for Reapr. We should better find a way to subdivide the edges nicely, e.g., to make it so that each x in x-direction has length H.HorizontalGridSize()/2), each edge in y-direction has length H.VerticalGridSize()/2). I am not sure what the idea length in z-direction would be. Maybe the minimum of the two? Also, we have to beware that we have to incoporate the jump somewhere.
 template<typename Transformation_T>
 std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_VertexCoordinates(

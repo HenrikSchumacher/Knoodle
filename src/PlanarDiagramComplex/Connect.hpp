@@ -11,12 +11,12 @@ struct GlueData_T
 
 void Connect()
 {
-    *this = this->CreateConnected();
+    *this = this->ConnectedSum();
 }
 
-PDC_T CreateConnected() const
+PDC_T ConnectedSum() const
 {
-    TOOLS_PTIMER(timer,"CreateConnected");
+    TOOLS_PTIMER(timer,"ConnectedSum");
     
 //    constexpr bool debugQ = true;
     
@@ -24,8 +24,8 @@ PDC_T CreateConnected() const
     
     const Int pd_count = static_cast<Int>(pd_list.size());
     
-    ColorMap_T col_reps;              // map from colors to representatives for each color
-    ColorMap_T col_unlinks;           // map from colors to first unlink with that color
+    ColorMap_T col_reps;             // map from colors to representatives for each color
+    ColorMap_T col_anelli;           // map from colors to first anello with that color
     
     std::vector<ColorMap_T> pd_col_A (pd_count); // for each pd one map from colors to arcs.
 
@@ -46,13 +46,13 @@ PDC_T CreateConnected() const
         
         if( !pd.ValidQ() ) { continue; }
 
-        if( pd.ProvenUnknotQ() )
+        if( pd.AnelloQ() )
         {
             const Int col = pd.last_color_deactivated;
             
-            if( !col_unlinks.contains(col) )
+            if( !col_anelli.contains(col) )
             {
-                col_unlinks[col] = i;
+                col_anelli[col] = i;
             }
             continue;
         }
@@ -120,13 +120,24 @@ PDC_T CreateConnected() const
     
     PDC_T pdc = this->Union();
     
-    
     if constexpr ( debugQ )
     {
         logprint("Step 3: Push the unlinks.");
     }
-    pdc.pd_list.resize(1); // Delete the unlinks.
-    for( auto [col,idx] : col_unlinks )
+    
+    // Delete the anelli
+    // All diagrams except the first one are guaranteed to be anelli (otherwise Union would have merged them with the first diagram.)
+    // The first diagram might be an anello, too. We have to check for that.
+    if( pdc.pd_list.front().AnelloQ() )
+    {
+        pdc.pd_list.resize(0);
+    }
+    else
+    {
+        pdc.pd_list.resize(1);
+    }
+    
+    for( auto [col,idx] : col_anelli )
     {
         if( !col_reps.contains(col) )
         {
@@ -148,7 +159,7 @@ PDC_T CreateConnected() const
             // TODO: Is expensive as it recomputes ArcLinkComponents.
             if( a == b )
             {
-                wprint(MethodName("CreateConnected")+": a == b.");
+                wprint(MethodName("ConnectedSum")+": a == b.");
                 continue;
             }
             
@@ -159,7 +170,7 @@ PDC_T CreateConnected() const
         }
     }
     
-    pdc.SetCache("CreateConnectedFlag",flag);
+    pdc.SetCache("ConnectedSumFlag",flag);
     
     // Call Split() here?
     
@@ -167,11 +178,11 @@ PDC_T CreateConnected() const
     return pdc;
 }
 
-Int64 CreateConnectedFlag() const
+Int64 ConnectedSumFlag() const
 {
-    if( this->InCacheQ("CreateConnectedFlag") )
+    if( this->InCacheQ("ConnectedSumFlag") )
     {
-        return this->template GetCache<Int64>("CreateConnectedFlag");
+        return this->template GetCache<Int64>("ConnectedSumFlag");
     }
     else
     {

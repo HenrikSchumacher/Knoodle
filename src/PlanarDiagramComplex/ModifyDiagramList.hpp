@@ -22,3 +22,15 @@ void Replace( const Int diagram_idx, PD_T && pd )
     pd_list[diagram_idx] = std::move(pd);
     ClearCache();
 }
+
+//void Pop()
+//{
+//    pd_list.pop_back();
+//    ClearCache();
+//}
+
+void Clear()
+{
+    pd_list.clear();
+    ClearCache();
+}

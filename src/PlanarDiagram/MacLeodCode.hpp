@@ -27,7 +27,7 @@ static void LongMacLeodCode_to_MacLeodCode(
     
     for( T a = 0; a < m; ++a )
     {
-        T code = static_cast<S>(l_mac_leod[a]); // TODO: Use int_cast?
+        T code = int_cast<T>(l_mac_leod[a]);
         T leap = (code >> 2);
         if( a + leap < m )
         {
@@ -146,7 +146,7 @@ static PD_T FromMacLeodCode(
     Int a_count = Int(2) * c_count;
     
     Tensor1<T,Int> l_mac_leod ( a_count );
-    
+
     // TODO: Can we out this step and reimplement FromMacLeodCode directly?
     MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
 

@@ -18,17 +18,13 @@ void Canonicalize()
         {
             // We replace unknots that can be connected to arcs of the same color by invalid knots.
             // They will be filtered out in the end.
+            // pd can be an anello or a farfalla.
             
-            const Int color = pd.LastColorDeactivated();
-            
-//            if( pdc_color_arc_counts.contains(color) && (pdc_color_arc_counts[color] > Int(0)) )
-//            {
-//                pd = PD_T::InvalidDiagram();
-//            }
-            
+            const Int color = pd.FirstColor();
+
             if( !color_register.contains(color) )
             {
-                // Because of the sorting, this must be the first unlink of that color and there cannot be any  further diagrams with arcs of that color.
+                // Because of the sorting, this must be the first unlink of that color and there cannot be any further diagrams with arcs of that color.
                 // So we need to keep this unlink.
                 color_register.insert(color);
             }
@@ -39,7 +35,6 @@ void Canonicalize()
             }
             continue;
         };
-        
         
         auto color_arc_counts = pd.ColorArcCounts(); // Make copy. We reuse the colors after canonicalization.
         

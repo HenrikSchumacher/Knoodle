@@ -292,4 +292,213 @@ namespace Tools
         }
     };
     
+    
+    
+    
+    namespace Chiral
+    {
+        enum class Group : UInt8
+        {
+            e  = (1 << 0),
+            m  = (1 << 1),
+            r  = (1 << 2),
+            mr = (1 << 3)
+        };
+        
+        enum class Coset : UInt8
+        {
+            e        = ToUnderlying(Group::e),
+            m        = ToUnderlying(Group::m),
+            r        = ToUnderlying(Group::r),
+            mr       = ToUnderlying(Group::mr),
+            
+            e_m      = ToUnderlying(Group::e) | ToUnderlying(Group::m),
+            e_r      = ToUnderlying(Group::e) | ToUnderlying(Group::r),
+            e_mr     = ToUnderlying(Group::e) | ToUnderlying(Group::mr),
+            
+            m_r      = ToUnderlying(Group::m) | ToUnderlying(Group::r),
+            m_mr     = ToUnderlying(Group::m) | ToUnderlying(Group::mr),
+            r_mr     = ToUnderlying(Group::r) | ToUnderlying(Group::mr),
+            
+            e_m_r_mr = ToUnderlying(Group::e) | ToUnderlying(Group::m) | ToUnderlying(Group::r) | ToUnderlying(Group::mr),
+            
+            Invalid  = 0
+        };
+        
+    } // namespace Chiral
+    
+    
+    std::string ToString( Chiral::Coset type )
+    {
+        using Chiral::Coset;
+        
+        switch(type)
+        {
+            case Coset::e        : return "e";
+            case Coset::m        : return "m";
+            case Coset::r        : return "r";
+            case Coset::mr       : return "mr";
+                
+            case Coset::e_m      : return "e/m";
+            case Coset::e_r      : return "e/r";
+            case Coset::e_mr     : return "e/mr";
+                
+            case Coset::m_r      : return "m/r";
+            case Coset::m_mr     : return "m/mr";
+            case Coset::r_mr     : return "r/mr";
+                
+            case Coset::e_m_r_mr : return "e/m/r/mr";
+                
+            default: return "Invalid";
+        }
+    }
+    
+    Chiral::Coset StringToCoset( std::string_view s )
+    {
+        using Chiral::Coset;
+        
+        switch (s.size())
+        {
+            case 1:
+            {
+                if(s == "e")
+                {
+                    return Coset::e;
+                }
+                else if(s == "m")
+                {
+                    return Coset::m;
+                }
+                else if(s == "r")
+                {
+                    return Coset::r;
+                }
+                else
+                {
+                    return Coset::Invalid;
+                }
+            }
+            case 2:
+            {
+                if(s == "mr")
+                {
+                    return Coset::mr;
+                }
+                else
+                {
+                    return Coset::Invalid;
+                }
+            }
+            case 3:
+            {
+                if(s == "e/m")
+                {
+                    return Coset::e_m;
+                }
+                else if(s == "e/r")
+                {
+                    return Coset::e_r;
+                }
+                else if(s == "m/r")
+                {
+                    return Coset::m_r;
+                }
+                else
+                {
+                    return Coset::Invalid;
+                }
+            }
+            case 4:
+            {
+                if(s == "e/mr")
+                {
+                    return Coset::e_mr;
+                }
+                else if(s == "m/mr")
+                {
+                    return Coset::m_mr;
+                }
+                else if(s == "r/mr")
+                {
+                    return Coset::r_mr;
+                }
+                else
+                {
+                    return Coset::Invalid;
+                }
+            }
+            default:
+            {
+                if( s == "e/m/r/mr" )
+                {
+                    return Coset::e_m_r_mr;
+                }
+                else
+                {
+                    return Coset::Invalid;
+                }
+            }
+        }
+    }
+    
+    Chiral::Coset ChiralityTransform( Chiral::Coset c, Chiral::Group g  )
+    {
+        using Chiral::Group;
+        using Chiral::Coset;
+        switch( g )
+        {
+            case Group::e  : return c;
+            case Group::m  :
+            {
+                UInt8 a = ToUnderlying(c);
+                return Coset(
+                    (get_bit(a,0)<<1) | (get_bit(a,1)<<0) | (get_bit(a,2)<<3) | (get_bit(a,3)<<2)
+                );
+            }
+            case Group::r  :
+            {
+                UInt8 a = ToUnderlying(c);
+                return Coset(
+                    (get_bit(a,0)<<2) | (get_bit(a,1)<<3) | (get_bit(a,2)<<0) | (get_bit(a,3)<<1)
+                );
+            }
+            case Group::mr :
+            {
+                UInt8 a = ToUnderlying(c);
+                return Coset(
+                    (get_bit(a,0)<<3) | (get_bit(a,1)<<2) | (get_bit(a,2)<<1) | (get_bit(a,3)<<0)
+                );
+            }
+            default: return Coset::Invalid;
+        }
+    }
+    
+    Chiral::Coset ChiralityTransform( Chiral::Coset c, bool mirrorQ, bool reverseQ )
+    {
+        using Chiral::Group;
+        
+        if( mirrorQ )
+        {
+            if( reverseQ )
+            {
+                return ChiralityTransform(c, Group::mr );
+            }
+            else
+            {
+                return ChiralityTransform(c, Group::m );
+            }
+        }
+        else
+        {
+            if( reverseQ )
+            {
+                return ChiralityTransform(c, Group::r );
+            }
+            else
+            {
+                return c;
+            }
+        }
+    }
+    
 } // namespace Tools

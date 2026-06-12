@@ -206,22 +206,21 @@ namespace Knoodle
             A[2][1] = u[2] * u[1] * d + sin * u[0];
             A[2][2] = u[2] * u[2] * d + cos       ;
             
-            // DEBUGGING
-            {
-                auto B = Dot(A.Transpose(),A);
-                
-                B[0][0] -= Real(1);
-                B[1][1] -= Real(1);
-                B[2][2] -= Real(1);
-                
-                const Real error = norm_max<9>( &B[0][0] );
-                
-                if( error > 0.000'000'000'1 )
-                {
-                    eprint(MethodName("ComputePivotRotation") + ": pivot transformation matrix is not orthogonal!");
-                    TOOLS_DDUMP(error);
-                }
-            }
+//            {
+//                auto B = Dot(A.Transpose(),A);
+//                
+//                B[0][0] -= Real(1);
+//                B[1][1] -= Real(1);
+//                B[2][2] -= Real(1);
+//                
+//                const Real error = norm_max<9>( &B[0][0] );
+//                
+//                if( error > 0.000'000'000'1 )
+//                {
+//                    eprint(MethodName("ComputePivotRotation") + ": pivot transformation matrix is not orthogonal!");
+//                    TOOLS_DDUMP(error);
+//                }
+//            }
             
             return A;
         }

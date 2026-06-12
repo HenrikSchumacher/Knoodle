@@ -468,7 +468,7 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
 
         if (colored_output)
         {
-            auto pd_code = pd.template PDCode<Int, true, true>();
+            auto pd_code = pd.template PDCode<Int, {.signQ = true, .colorQ = true}>();
 
             for (Int c = 0; c < crossing_count; ++c)
             {
@@ -482,7 +482,7 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
         }
         else
         {
-            auto pd_code = pd.template PDCode<Int, true, false>();
+            auto pd_code = pd.template PDCode<Int, {.signQ = true, .colorQ = false}>();
 
             for (Int c = 0; c < crossing_count; ++c)
             {

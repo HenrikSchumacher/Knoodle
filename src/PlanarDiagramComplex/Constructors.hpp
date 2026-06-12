@@ -1,18 +1,5 @@
 public:
 
-template<bool signQ, bool colorQ, bool checksQ = true, IntQ T, IntQ ExtInt>
-static PDC_T FromPDCode(
-    cptr<T> pd_codes_,
-    const ExtInt crossing_count_,
-    const bool proven_minimalQ_ = false,
-    const bool compressQ = false
-)
-{
-    return PDC_T( PD_T::template FromPDCode<signQ,colorQ,checksQ>(
-        pd_codes_,crossing_count_,proven_minimalQ_,compressQ
-    ));
-}
-
 template<typename T, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromMacLeodCode(
     cptr<T>       s_mac_leod,

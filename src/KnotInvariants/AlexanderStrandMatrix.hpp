@@ -234,6 +234,8 @@ namespace Knoodle
                 
                 const CrossingState_T s = C_state[c];
 
+                if( !ActiveQ(s) ) { break; }
+
                 mptr<Scal> row = &A[ n * row_counter ];
 
                 zerofy_buffer( row, n );

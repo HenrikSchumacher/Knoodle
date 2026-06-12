@@ -197,7 +197,7 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
                 
                 if( !ArcActiveQ(pass.first) )
                 {
-                    nprint(tag() + ":Aborting because (ArcActiveQ(pass.first) == false) after FindPass_Reidemeister_II_Backward.");
+                    wprint(tag() + ": Aborting because (ArcActiveQ(pass.first) == false) after FindPass_Reidemeister_II_Backward.");
                     pass.activeQ = false;
                     return;
                 }

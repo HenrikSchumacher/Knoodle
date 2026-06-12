@@ -424,6 +424,7 @@ namespace Knoodle
 #include "PlanarDiagram/GaussCode.hpp"
 #include "PlanarDiagram/LongMacLeodCode.hpp"
 #include "PlanarDiagram/MacLeodCode.hpp"
+#include "PlanarDiagram/JenkinsCode.hpp"
         
 #include "PlanarDiagram/Faces.hpp"
 #include "PlanarDiagram/Certificates.hpp"
@@ -457,19 +458,22 @@ namespace Knoodle
         {
             return proven_minimalQ;
         }
-
         
-        static PD_T InvalidDiagram()
+        bool AnelloQ() const
         {
-            return PD_T();
+            return (proven_minimalQ && (crossing_count <= Int(0)) && ValidIndexQ(last_color_deactivated));
         }
         
-        
+        bool FarfallaQ() const
+        {
+            return (crossing_count == Int(1));
+        }
         
         bool ProvenUnknotQ() const
         {
-            return proven_minimalQ && (crossing_count == Int(0)) && ValidIndexQ(last_color_deactivated);
+            return AnelloQ() || FarfallaQ();
         }
+        
 
         bool ProvenHopfLinkQ() const
         {
@@ -555,13 +559,12 @@ namespace Knoodle
             }
         }
         
-        /*!
-         * @brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
          */
 
-        Int Writhe() const
+        ToSigned<Int> Writhe() const
         {
-            Int writhe = 0;
+            ToSigned<Int> writhe = 0;
             
             for( Int c = 0; c < max_crossing_count; ++c )
             {
@@ -648,6 +651,35 @@ namespace Knoodle
                     swap(A_cross(a,Tail),A_cross(a,Head));
                 }
             }
+        }
+        
+        void ChiralityTransform( const Chiral::Group g )
+        {
+            using Chiral::Group;
+            
+            switch( g )
+            {
+                case Group::e  : return;
+                case Group::m  : ChiralityTransform( 1, 0 );
+                case Group::r  : ChiralityTransform( 0, 1 );
+                case Group::mr : ChiralityTransform( 1, 1 );
+                default: return;
+            }
+        }
+        
+        
+        Int FirstColor() const
+        {
+            if( InvalidQ() ) { return InvalidColor; }
+            
+            if( AnelloQ() ) { return last_color_deactivated; }
+            
+            for( Int a = 0; a < max_arc_count; ++a )
+            {
+                if( ArcActiveQ(a) ) { return A_color[a]; }
+            }
+            
+            return InvalidColor;
         }
         
     public:

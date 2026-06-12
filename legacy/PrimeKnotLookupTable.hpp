@@ -9,7 +9,7 @@ namespace Knoodle
     {
     public:
         
-        using Value_T = std::string;
+        using Name_T = std::string;
         
         // Will work only up to 13-crossing knots!
         using ID_T   = UInt16; // TODO: Is this big/small enough?
@@ -42,7 +42,7 @@ namespace Knoodle
             Path_T v_file;
             
             LUT_T lut;
-            std::vector<Value_T> knot_names;
+            std::vector<Name_T> knot_names;
             
         public:
             
@@ -63,7 +63,7 @@ namespace Knoodle
                 lut.clear();
                 knot_names.clear();
                 
-                std::ifstream v_stream ( v_file, std::ios::in     );
+                std::ifstream v_stream ( v_file, std::ios::in );
                 if( !v_stream )
                 {
                     eprint(MethodName("ReadTable") + ": Could not open " + v_file.string() +". Aborting with incomplete table." );
@@ -87,8 +87,8 @@ namespace Knoodle
                 
                 while( v_stream )
                 {
-                    Value_T knot_name;
-                    Size_T  knot_count;
+                    Name_T knot_name;
+                    Size_T knot_count;
                     
                     v_stream >> knot_name;
                     
@@ -175,7 +175,7 @@ namespace Knoodle
             
         public:
             
-            std::string MethodName( const std::string & tag ) const
+            static std::string MethodName( const std::string & tag )
             {
                 return ClassName() + "::" + tag;
             }

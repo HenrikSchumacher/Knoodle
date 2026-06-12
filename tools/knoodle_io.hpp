@@ -31,8 +31,8 @@
 
 using Int         = std::int64_t;
 using Real        = double;
-using PD_T        = Knoodle::PlanarDiagram<Int>;
 using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
+using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
 using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
@@ -379,7 +379,9 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
     switch (format)
     {
         case 4:
-            return PD_T::FromUnsignedPDCode(
+            // Not PD_T::FromUnsignedPDCode: that wrapper does not compile
+            // against the new FromPDCode<targs> signature (upstream bug).
+            return PD_T::template FromPDCode<{.signQ = false, .colorQ = false}>(
                 crossings.data(), crossing_count, false, true
             );
         case 5:
@@ -387,11 +389,11 @@ PD_T CreateDiagramFromPDCode(const std::vector<Int>& crossings,
                 crossings.data(), crossing_count, false, true
             );
         case 6:
-            return PD_T::template FromPDCode<false, true>(
+            return PD_T::template FromPDCode<{.signQ = false, .colorQ = true}>(
                 crossings.data(), crossing_count, false, true
             );
         case 7:
-            return PD_T::template FromPDCode<true, true>(
+            return PD_T::template FromPDCode<{.signQ = true, .colorQ = true}>(
                 crossings.data(), crossing_count, false, true
             );
         default:

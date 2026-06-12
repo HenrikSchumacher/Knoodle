@@ -18,7 +18,7 @@ namespace Knoodle
         using Int   = Int_;
         using BReal = BReal_;
         
-        // DEBUGGING
+        // Dor debugging.
         static constexpr Int i_0 = - 1;
         static constexpr Int j_0 = - 1;
         
