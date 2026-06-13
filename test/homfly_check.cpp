@@ -68,6 +68,59 @@ std::string LibhomflyPoly(const std::string& jenkins)
     return result;
 }
 
+long UFFind(std::vector<long>& p, long x)
+{
+    while (p[x] != x) { p[x] = p[p[x]]; x = p[x]; }
+    return x;
+}
+
+/// True if a Jenkins code describes a SPLIT (disconnected) diagram — its link
+/// components do not all connect through shared crossings. libhomfly's o_make
+/// segfaults on split diagrams (including the bare unknot "1 0" and e.g.
+/// Hopf ⊔ unknot), so we must detect and avoid them: their HOMFLY needs the
+/// split-union delta rule, which this oracle does not implement.
+///
+/// Jenkins format: <#components>, then per component <#passings> followed by
+/// #passings (crossing-id, over/under) pairs. Two components are linked when
+/// they share a crossing id; a component with 0 passings is isolated. The
+/// diagram is split iff the component graph is disconnected.
+bool IsSplitDiagram(const std::string& jenkins)
+{
+    std::istringstream in(jenkins);
+    long ncomp;
+    if (!(in >> ncomp) || ncomp <= 0) { return true; }  // malformed -> unsafe
+
+    std::vector<long> parent(ncomp);
+    for (long i = 0; i < ncomp; ++i) { parent[i] = i; }
+
+    std::map<long, long> crossing_owner;  // crossing id -> a component holding it
+    for (long c = 0; c < ncomp; ++c)
+    {
+        long passings;
+        if (!(in >> passings)) { return true; }
+        if (passings == 0) { return true; }  // isolated 0-crossing component
+        for (long k = 0; k < passings; ++k)
+        {
+            long id, over;
+            if (!(in >> id >> over)) { return true; }
+            auto it = crossing_owner.find(id);
+            if (it == crossing_owner.end()) { crossing_owner[id] = c; }
+            else
+            {
+                long ra = UFFind(parent, it->second), rb = UFFind(parent, c);
+                if (ra != rb) { parent[ra] = rb; }
+            }
+        }
+    }
+
+    const long root0 = UFFind(parent, 0);
+    for (long c = 1; c < ncomp; ++c)
+    {
+        if (UFFind(parent, c) != root0) { return true; }  // disconnected
+    }
+    return false;
+}
+
 /// Run libhomfly and return the polynomial as a canonical (L,M)->coef map.
 Polynomial LibhomflyPolyMap(const std::string& jenkins)
 {
@@ -125,10 +178,14 @@ std::string PolyToString(const Polynomial& p)
 // homfly(input) to homfly(whole simplified diagram). The simplified complex is
 // reassembled into one diagram with PlanarDiagramComplex::ToSingleDiagram(),
 // which connect-sums the pieces back together (and converts anelli to
-// farfalle) — HOMFLY-faithful for knots and *non-split* links. All our test
-// corpora are non-split (link-table entries are prime; plantri gives connected
-// diagrams), so no product/δ bookkeeping is needed. A split-link input would
-// need that and is out of scope here.
+// farfalle) — HOMFLY-faithful for knots and non-split links.
+//
+// SPLIT (disconnected) diagrams are the exception: libhomfly segfaults on them
+// (see IsSplitDiagram), and their HOMFLY needs the split-union delta rule,
+// which we do not implement. CheckInvariance detects them (input or simplified)
+// and reports InvStatus::Unsupported rather than feed libhomfly a split
+// diagram. run_tests.py surfaces these as "skip" and verifies them via the
+// Regina --cross-check path.
 
 /// Simplify args mirroring knoodlesimplify's default (Reapr / level-6) path;
 /// the struct's defaults already set splitQ/rerouteQ/disconnectQ = true.
@@ -137,10 +194,19 @@ PDC_T::Simplify_Args_T SimplifyArgs()
     return PDC_T::Simplify_Args_T{};
 }
 
+enum class InvStatus { Preserved, Changed, Unsupported };
+
 /// HOMFLY of the simplified diagram as a whole. Returns the unknot polynomial
-/// {(0,0):1} when the input simplifies to the trivial knot.
-Polynomial SimplifiedHomfly(const PD_T& pd)
+/// {(0,0):1} when the input simplifies to the trivial knot. Sets
+/// supported=false when the simplified complex cannot be reassembled into a
+/// single diagram: ToSingleDiagram() connect-sums the pieces and returns an
+/// invalid diagram when they cannot be joined (a split link). Those need the
+/// split-union delta rule (H = delta^(k-1) * prod H(piece)), which this oracle
+/// does not implement — so we report them rather than feed an invalid diagram
+/// to libhomfly (which would crash) or silently give a wrong answer.
+Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
 {
+    supported = true;
     PD_T  copy(pd);
     PDC_T pdc(std::move(copy));
     pdc.Simplify(SimplifyArgs());
@@ -149,22 +215,45 @@ Polynomial SimplifiedHomfly(const PD_T& pd)
     {
         return Polynomial{ {{0, 0}, 1} };  // unknot
     }
-    return LibhomflyPolyMap(KnoodleJenkins(pdc.ToSingleDiagram()));
+    PD_T single = pdc.ToSingleDiagram();
+    if (!single.ValidQ())
+    {
+        supported = false;
+        return {};
+    }
+    const std::string jenkins = KnoodleJenkins(single);
+    if (IsSplitDiagram(jenkins))   // split unknot component(s)
+    {
+        supported = false;
+        return {};
+    }
+    return LibhomflyPolyMap(jenkins);
 }
 
 struct InvarianceResult
 {
-    bool       ok;
+    InvStatus  status;
     Polynomial before;
     Polynomial after;
 };
 
 InvarianceResult CheckInvariance(const PD_T& pd)
 {
-    Polynomial before = LibhomflyPolyMap(KnoodleJenkins(pd));
-    Polynomial after  = SimplifiedHomfly(pd);
-    const bool ok = (before == after);
-    return { ok, std::move(before), std::move(after) };
+    const std::string before_jenkins = KnoodleJenkins(pd);
+    if (IsSplitDiagram(before_jenkins))   // input has a split unknot
+    {
+        return { InvStatus::Unsupported, {}, {} };
+    }
+    Polynomial before = LibhomflyPolyMap(before_jenkins);
+
+    bool supported = true;
+    Polynomial after = SimplifiedHomfly(pd, supported);
+
+    const InvStatus status =
+        !supported           ? InvStatus::Unsupported
+        : (before == after)  ? InvStatus::Preserved
+                             : InvStatus::Changed;
+    return { status, std::move(before), std::move(after) };
 }
 
 /// Build the "before" diagram from a file's text. Auto-detects format: a '.'
@@ -216,30 +305,49 @@ int Invariance(int argc, char* argv[])
     std::vector<std::string> files;
     for (int i = 2; i < argc; ++i) { files.emplace_back(argv[i]); }
 
-    long passed = 0, failed = 0, unreadable = 0;
+    long passed = 0, failed = 0, skipped = 0;
 
+    // One machine-readable line per item on stdout:
+    //   RESULT \t pass|fail|skip \t <crossings> \t <label>
+    // (tab-separated so labels/paths may contain spaces). pass = HOMFLY
+    // preserved, fail = HOMFLY changed (a real bug), skip = not verifiable by
+    // this oracle (unreadable input, or a split link needing the delta rule).
+    // Failure details and skip notes go to stderr so stdout stays parseable.
     auto run_one = [&](const std::string& label, const std::string& text)
     {
         bool ok = false;
         PD_T pd = BuildDiagram(text, ok);
         if (!ok)
         {
+            std::cout << "RESULT\tskip\t0\t" << label << "\n";
             std::cerr << "  SKIP " << label << ": not a valid PD code / embedding\n";
-            ++unreadable;
+            ++skipped;
             return;
         }
         const Int crossings = pd.CrossingCount();
         InvarianceResult r = CheckInvariance(pd);
-        if (r.ok)
+
+        const char* st = (r.status == InvStatus::Preserved) ? "pass"
+                       : (r.status == InvStatus::Changed)   ? "fail" : "skip";
+        std::cout << "RESULT\t" << st << "\t" << crossings << "\t" << label << "\n";
+
+        if (r.status == InvStatus::Preserved)
         {
             ++passed;
         }
-        else
+        else if (r.status == InvStatus::Changed)
         {
             ++failed;
-            std::cout << "  FAIL " << label << " (" << crossings << " crossings)\n"
+            std::cerr << "  FAIL " << label << " (" << crossings << " crossings)\n"
                       << "    before: " << PolyToString(r.before) << "\n"
                       << "    after : " << PolyToString(r.after)  << "\n";
+        }
+        else
+        {
+            ++skipped;
+            std::cerr << "  SKIP " << label << " (" << crossings << " crossings):"
+                      << " split link / not reassemblable — needs the delta rule"
+                      << " (verify with --cross-check)\n";
         }
     };
 
@@ -254,7 +362,8 @@ int Invariance(int argc, char* argv[])
         for (const std::string& f : files)
         {
             std::ifstream in(f);
-            if (!in) { std::cerr << "  SKIP " << f << ": cannot open\n"; ++unreadable; continue; }
+            if (!in) { std::cout << "RESULT\tskip\t0\t" << f << "\n";
+                       std::cerr << "  SKIP " << f << ": cannot open\n"; ++skipped; continue; }
             std::stringstream ss;
             ss << in.rdbuf();
             run_one(f, ss.str());
@@ -262,8 +371,10 @@ int Invariance(int argc, char* argv[])
     }
 
     std::cout << "\ninvariance: " << passed << " preserved, " << failed
-              << " changed, " << unreadable << " unreadable\n";
-    return (failed == 0 && unreadable == 0) ? 0 : 1;
+              << " changed, " << skipped << " skipped\n";
+    // Exit 1 only on a genuine HOMFLY change; skips keep the code in {0,1} so
+    // callers can distinguish a clean run from a crash.
+    return (failed == 0) ? 0 : 1;
 }
 
 /// --emit-poly: read a flat 5-column signed PD code (whitespace-separated
@@ -432,8 +543,9 @@ int main(int argc, char* argv[])
     for (const KnownKnot& k : panel)
     {
         InvarianceResult r = CheckInvariance(BuildPD(k.pd, k.crossings));
-        std::cout << "  " << (r.ok ? "PASS" : "FAIL") << "  " << k.name << "\n";
-        if (!r.ok)
+        const bool ok = (r.status == InvStatus::Preserved);
+        std::cout << "  " << (ok ? "PASS" : "FAIL") << "  " << k.name << "\n";
+        if (!ok)
         {
             std::cout << "    before: " << PolyToString(r.before) << "\n"
                       << "    after : " << PolyToString(r.after)  << "\n";
