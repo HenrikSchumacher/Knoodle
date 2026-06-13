@@ -73,6 +73,14 @@ inflate_check: inflate_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	    inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ inflate_check compiled successfully"
 
+# klut_check — exhaustive KLUT internal-consistency test. Same heavy config as
+# inflate_check (Alexander via UMFPACK + BLAS/LAPACK; links vendored libhomfly).
+klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building klut_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_check compiled successfully"
+
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check
 
