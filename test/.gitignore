@@ -9,5 +9,6 @@ build/
 homfly_check
 key_roundtrip_probe
 inflate_check
+klut_check
 inflate_fail_*.tsv
 knoodlesimplify.log
