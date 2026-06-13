@@ -3,9 +3,11 @@
 # Targets:
 #   homfly_check        - HOMFLY correctness oracle (vendored libhomfly, no Python)
 #   key_roundtrip_probe - MacLeod-key round-trip stability probe over the KLUT
+#   inflate_check       - randomized inflate-to-100k stress test (needs UMFPACK +
+#                         BLAS/LAPACK; NOT built by `make all`, build explicitly)
 #   libhomfly           - just the vendored libhomfly objects
 #
-# Run `make` to build all drivers.
+# Run `make` to build the quick drivers; `make inflate_check` for the stress test.
 
 UNAME_S := $(shell uname -s)
 
@@ -52,7 +54,26 @@ key_roundtrip_probe: key_roundtrip_probe.cpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) key_roundtrip_probe.cpp -o $@
 	@echo "✓ key_roundtrip_probe compiled successfully"
 
+# inflate_check needs the Alexander invariant (UMFPACK sparse solver) and
+# BLAS/LAPACK. On macOS that is Apple Accelerate; elsewhere use OpenBLAS and
+# adjust UMFPACK_LDFLAGS / the force-included header accordingly.
+ifeq ($(UNAME_S),Darwin)
+    UMFPACK_INC      = -I$(HOMEBREW_PREFIX)/include/suitesparse \
+                       -include ../submodules/Tensors/Accelerate.hpp
+    UMFPACK_LDFLAGS  = -L$(HOMEBREW_PREFIX)/lib -lumfpack -framework Accelerate
+else
+    UMFPACK_INC      = -I$(HOMEBREW_PREFIX)/include/suitesparse \
+                       -include ../submodules/Tensors/OpenBLAS.hpp
+    UMFPACK_LDFLAGS  = -L$(HOMEBREW_PREFIX)/lib -lumfpack -lopenblas
+endif
+
+inflate_check: inflate_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building inflate_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ inflate_check compiled successfully"
+
 clean:
-	rm -rf build homfly_check key_roundtrip_probe
+	rm -rf build homfly_check key_roundtrip_probe inflate_check
 
 .PHONY: all libhomfly clean
