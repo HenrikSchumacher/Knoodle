@@ -40,6 +40,17 @@ TREFOIL = [[0, 4, 1, 3, 1], [2, 0, 3, 5, 1], [4, 2, 5, 1, 1]]
 FIGURE_EIGHT = [[3, 1, 4, 0, 1], [7, 5, 0, 4, 1], [5, 2, 6, 3, -1], [1, 6, 2, 7, -1]]
 
 
+def disjoint_union(*diagrams):
+    """Combine PD diagrams into a SPLIT (disjoint) PD by shifting arc labels so
+    the pieces share no arcs. Exercises homfly_check's split-union delta rule."""
+    result, shift = [], 0
+    for d in diagrams:
+        hi = max(max(r[:4]) for r in d)
+        result += [[r[0] + shift, r[1] + shift, r[2] + shift, r[3] + shift, r[4]] for r in d]
+        shift += hi + 1
+    return result
+
+
 def regina_pd(crossings):
     """0-based Knoodle crossings -> Regina 1-based PD string (cols 0-3)."""
     rows = [f"[{r[0] + 1},{r[1] + 1},{r[2] + 1},{r[3] + 1}]" for r in crossings]
@@ -102,6 +113,11 @@ def main():
     panel = [
         ("trefoil (3_1)", TREFOIL),
         ("figure-eight (4_1)", FIGURE_EIGHT),
+        # Split links exercise the delta rule (H = delta^(k-1) * prod H(piece)).
+        ("trefoil # split # figure-eight", disjoint_union(TREFOIL, FIGURE_EIGHT)),
+        ("trefoil # split # trefoil", disjoint_union(TREFOIL, TREFOIL)),
+        ("trefoil # split # trefoil # split # figure-eight",
+         disjoint_union(TREFOIL, TREFOIL, FIGURE_EIGHT)),
     ]
     n_knots = len(panel)
 

@@ -128,7 +128,7 @@ equality distinguishes distinct knots (the default self-test's discrimination
 guard), so a simplification that changed knot type would surface as
 before ≠ after.
 
-## Split links (a libhomfly limitation) and the `--cross-check` path
+## Split links and the δ rule
 
 libhomfly's `o_make` **segfaults on split (disconnected) diagrams** — where the
 link components don't all connect through shared crossings. It crashes even on
@@ -137,12 +137,30 @@ links are fine — the 1268 link-table links and libhomfly's own Borromean
 reference all compute.) Multi-component plantri diagrams routinely simplify to
 split links, so this matters for tier 2.
 
-`homfly_check` guards against it: `IsSplitDiagram()` parses the Jenkins code and
-runs union-find over the components (linked when they share a crossing). A
-split diagram is reported as **skip** (status, never fed to libhomfly), not
-crashed on and not falsely failed. Its HOMFLY needs the split-union δ rule
-(`H = δ^(k-1) · ∏ H(piece)`), which this oracle does not implement — but Regina
-does, so **`--cross-check` verifies the skipped split links**.
+`homfly_check` handles them itself with the **split-union δ rule**
+(`HomflyOfPossiblySplit`):
+
+1. Parse the Jenkins code; union-find the components into connected pieces
+   (joined when they share a crossing).
+2. Compute each connected piece separately via libhomfly (renumbering its
+   crossings to 0..m−1); a free unknot piece contributes the polynomial 1.
+3. Combine: `H = δ^(k−1) · ∏ H(piece)`, where `δ = −(L + L⁻¹)/M` is the HOMFLY
+   of the 2-component unlink in libhomfly's (L,M) = Regina homflyLM convention.
+
+Both the input and the simplified diagram may be split; the only remaining
+`Unsupported` (→ "skip") case is when `ToSingleDiagram()` cannot produce a
+single diagram at all.
+
+**δ-rule validation:**
+- δ verified by hand: `δ² = H(3-unlink)`, `δ · H(trefoil) = H(trefoil ⊔ unknot)`.
+- Value-level vs Regina: `HomflyOfPossiblySplit` of a split PD (trefoil ⊔
+  figure-eight, etc.) matches `regina.homflyLM` term-for-term
+  (`homfly_xcheck.py` panel; the default `homfly_check` self-test also checks
+  `H(A ⊔ B) == δ·H(A)·H(B)`).
+- Verdict-level at scale: tier 2 up to 8 crossings, `--cross-check` → 320/320,
+  **0 oracle disagreements** (many split links). Because each input's *before*
+  is connected and computed directly, a δ-rule bug in the split *after* would
+  surface as homfly_check-changed vs Regina-preserved — none did.
 
 ## run_tests.py integration
 
@@ -156,16 +174,15 @@ alongside and requires both oracles to agree (catching any disagreement), and
 verifies the split links homfly_check skips.
 
 Validated 2026-06-13:
-- Tier 1a 5/5, 1c 1268/1268, 1d 36/36 — default (homfly_check), no Regina.
-- Tier 2 up to 6 crossings: 64/64, 30 split links skipped (default) / verified
-  by Regina under `--cross-check` (0 oracle disagreements).
+- Full default Tier 1: 2495/2495 (1a 5/5, 1b 1186/1186, 1c 1268/1268, 1d 36/36).
+- Tier 2 up to 8 crossings: 320/320 (default, no Regina); `--cross-check`
+  320/320 with 0 disagreements (split links handled natively by the δ rule).
 
-## Status / next steps
+## Status
 
-- **Done:** vendoring, gc shim with bounded memory, Jenkins→libhomfly bridge,
-  encoding self-test, Regina cross-validation (252/252), the invariance test
-  (1304/1304 corpus), split-diagram guard, and the `run_tests.py` re-point with
-  Regina behind `--cross-check`.
-- **Possible next:** implement the split-union δ rule in `homfly_check` so split
-  links are verified without Regina (compute per-piece HOMFLY × δ^(k-1));
-  validate it against the `--cross-check` Regina path before relying on it.
+Complete: vendoring, gc shim with bounded memory, Jenkins→libhomfly bridge,
+encoding self-test, Regina cross-validation (252/252), the invariance test
+(1304/1304 corpus), the **split-union δ rule** for disconnected diagrams
+(validated by value vs Regina and by `--cross-check` at scale), and the
+`run_tests.py` re-point with Regina behind `--cross-check`. The default test run
+needs no Python/Regina and handles knots, non-split links, and split links.

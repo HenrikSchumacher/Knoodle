@@ -31,6 +31,7 @@ extern "C" void knoodle_gc_free_all(void);
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -74,51 +75,115 @@ long UFFind(std::vector<long>& p, long x)
     return x;
 }
 
-/// True if a Jenkins code describes a SPLIT (disconnected) diagram — its link
-/// components do not all connect through shared crossings. libhomfly's o_make
-/// segfaults on split diagrams (including the bare unknot "1 0" and e.g.
-/// Hopf ⊔ unknot), so we must detect and avoid them: their HOMFLY needs the
-/// split-union delta rule, which this oracle does not implement.
-///
-/// Jenkins format: <#components>, then per component <#passings> followed by
-/// #passings (crossing-id, over/under) pairs. Two components are linked when
-/// they share a crossing id; a component with 0 passings is isolated. The
-/// diagram is split iff the component graph is disconnected.
-bool IsSplitDiagram(const std::string& jenkins)
+/// Product of two HOMFLY polynomials (exponents add, coefficients convolve).
+Polynomial Multiply(const Polynomial& a, const Polynomial& b)
 {
-    std::istringstream in(jenkins);
-    long ncomp;
-    if (!(in >> ncomp) || ncomp <= 0) { return true; }  // malformed -> unsafe
+    Polynomial r;
+    for (const auto& [ea, ca] : a)
+        for (const auto& [eb, cb] : b)
+            r[{ ea.first + eb.first, ea.second + eb.second }] += ca * cb;
+    for (auto it = r.begin(); it != r.end(); )
+    {
+        if (it->second == 0) { it = r.erase(it); } else { ++it; }
+    }
+    return r;
+}
 
-    std::vector<long> parent(ncomp);
-    for (long i = 0; i < ncomp; ++i) { parent[i] = i; }
+/// delta = HOMFLY of the 2-component unlink in libhomfly's (L,M) convention
+/// (= Regina homflyLM): -(L + L^-1)/M. Each extra split component multiplies by
+/// delta, so H(split union of k pieces) = delta^(k-1) * prod H(piece).
+/// Verified: delta^2 = H(3-unlink) and delta * H(trefoil) = H(trefoil u unknot).
+const Polynomial Delta = { {{1, -1}, -1}, {{-1, -1}, -1} };
 
-    std::map<long, long> crossing_owner;  // crossing id -> a component holding it
-    for (long c = 0; c < ncomp; ++c)
+/// A Jenkins code parsed into its components and per-crossing handedness.
+/// Format: <#components>, then per component <#passings> followed by #passings
+/// (crossing-id, over/under) pairs; then (crossing-id, handedness) pairs.
+struct JenkinsCode
+{
+    long                                          ncomp = 0;
+    std::vector<std::vector<std::pair<long,long>>> comps;       // per comp: (id, over)
+    std::map<long,long>                            handedness;  // id -> +1/-1
+    bool                                          ok = false;
+};
+
+JenkinsCode ParseJenkins(const std::string& s)
+{
+    JenkinsCode j;
+    std::istringstream in(s);
+    if (!(in >> j.ncomp) || j.ncomp <= 0) { return j; }
+    j.comps.resize(static_cast<std::size_t>(j.ncomp));
+    for (long c = 0; c < j.ncomp; ++c)
     {
         long passings;
-        if (!(in >> passings)) { return true; }
-        if (passings == 0) { return true; }  // isolated 0-crossing component
+        if (!(in >> passings) || passings < 0) { return j; }
         for (long k = 0; k < passings; ++k)
         {
             long id, over;
-            if (!(in >> id >> over)) { return true; }
-            auto it = crossing_owner.find(id);
-            if (it == crossing_owner.end()) { crossing_owner[id] = c; }
+            if (!(in >> id >> over)) { return j; }
+            j.comps[static_cast<std::size_t>(c)].push_back({id, over});
+        }
+    }
+    long id, hand;
+    while (in >> id >> hand) { j.handedness[id] = hand; }
+    j.ok = true;
+    return j;
+}
+
+/// Group the link components into connected pieces of the *diagram*: two
+/// components are joined when they share a crossing (union-find). libhomfly
+/// only handles connected diagrams, so each piece is computed separately and
+/// combined with the delta rule.
+std::vector<std::vector<long>> ConnectedGroups(const JenkinsCode& j)
+{
+    std::vector<long> parent(static_cast<std::size_t>(j.ncomp));
+    for (long i = 0; i < j.ncomp; ++i) { parent[static_cast<std::size_t>(i)] = i; }
+
+    std::map<long,long> owner;  // crossing id -> a component holding it
+    for (long c = 0; c < j.ncomp; ++c)
+        for (const auto& [id, over] : j.comps[static_cast<std::size_t>(c)])
+        {
+            (void)over;
+            auto it = owner.find(id);
+            if (it == owner.end()) { owner[id] = c; }
             else
             {
                 long ra = UFFind(parent, it->second), rb = UFFind(parent, c);
-                if (ra != rb) { parent[ra] = rb; }
+                if (ra != rb) { parent[static_cast<std::size_t>(ra)] = rb; }
             }
         }
-    }
 
-    const long root0 = UFFind(parent, 0);
-    for (long c = 1; c < ncomp; ++c)
+    std::map<long, std::vector<long>> groups;
+    for (long c = 0; c < j.ncomp; ++c) { groups[UFFind(parent, c)].push_back(c); }
+    std::vector<std::vector<long>> out;
+    for (auto& [root, members] : groups) { (void)root; out.push_back(members); }
+    return out;
+}
+
+/// Jenkins code for one connected group, with its crossings renumbered to
+/// 0..m-1 (libhomfly requires consecutive crossing names). The group must have
+/// >= 1 crossing; callers handle free-unknot groups separately.
+std::string BuildSubJenkins(const JenkinsCode& j, const std::vector<long>& group)
+{
+    std::set<long> ids;
+    for (long c : group)
+        for (const auto& [id, over] : j.comps[static_cast<std::size_t>(c)])
+        { (void)over; ids.insert(id); }
+
+    std::map<long,long> remap;
+    long n = 0;
+    for (long id : ids) { remap[id] = n++; }
+
+    std::ostringstream o;
+    o << group.size();
+    for (long c : group)
     {
-        if (UFFind(parent, c) != root0) { return true; }  // disconnected
+        const auto& comp = j.comps[static_cast<std::size_t>(c)];
+        o << "\n" << comp.size();
+        for (const auto& [id, over] : comp) { o << " " << remap[id] << " " << over; }
     }
-    return false;
+    o << "\n";
+    for (long id : ids) { o << remap[id] << " " << j.handedness.at(id) << " "; }
+    return o.str();
 }
 
 /// Run libhomfly and return the polynomial as a canonical (L,M)->coef map.
@@ -141,6 +206,37 @@ Polynomial LibhomflyPolyMap(const std::string& jenkins)
     }
     knoodle_gc_free_all();  // safe: terms already copied into `out`
     return out;
+}
+
+/// HOMFLY of a (possibly split / disconnected) diagram from its Jenkins code.
+/// libhomfly only handles connected diagrams (it segfaults on split ones, even
+/// the bare unknot "1 0"), so we split into connected pieces, compute each, and
+/// combine with the split-union delta rule: H = delta^(k-1) * prod H(piece). A
+/// free unknot piece (no crossings) contributes the polynomial 1. Sets
+/// ok=false only on a malformed Jenkins code.
+Polynomial HomflyOfPossiblySplit(const std::string& jenkins, bool& ok)
+{
+    ok = true;
+    JenkinsCode j = ParseJenkins(jenkins);
+    if (!j.ok) { ok = false; return {}; }
+
+    const auto groups = ConnectedGroups(j);
+
+    Polynomial result = { {{0, 0}, 1} };  // multiplicative identity
+    for (const auto& group : groups)
+    {
+        bool has_crossings = false;
+        for (long c : group)
+        {
+            if (!j.comps[static_cast<std::size_t>(c)].empty()) { has_crossings = true; break; }
+        }
+        const Polynomial g = has_crossings
+            ? LibhomflyPolyMap(BuildSubJenkins(j, group))   // connected -> safe
+            : Polynomial{ {{0, 0}, 1} };                    // free unknot
+        result = Multiply(result, g);
+    }
+    for (std::size_t i = 1; i < groups.size(); ++i) { result = Multiply(result, Delta); }
+    return result;
 }
 
 struct KnownKnot
@@ -180,12 +276,13 @@ std::string PolyToString(const Polynomial& p)
 // which connect-sums the pieces back together (and converts anelli to
 // farfalle) — HOMFLY-faithful for knots and non-split links.
 //
-// SPLIT (disconnected) diagrams are the exception: libhomfly segfaults on them
-// (see IsSplitDiagram), and their HOMFLY needs the split-union delta rule,
-// which we do not implement. CheckInvariance detects them (input or simplified)
-// and reports InvStatus::Unsupported rather than feed libhomfly a split
-// diagram. run_tests.py surfaces these as "skip" and verifies them via the
-// Regina --cross-check path.
+// SPLIT (disconnected) diagrams need care: libhomfly segfaults on them (even
+// the bare unknot "1 0"). HomflyOfPossiblySplit handles them by decomposing
+// into connected pieces and combining with the split-union delta rule, so both
+// the input and the simplified diagram may be split. The only remaining
+// unsupported case is when ToSingleDiagram() cannot produce a single diagram at
+// all (returns invalid) — then we report InvStatus::Unsupported (run_tests.py
+// surfaces it as "skip", verifiable via the Regina --cross-check path).
 
 /// Simplify args mirroring knoodlesimplify's default (Reapr / level-6) path;
 /// the struct's defaults already set splitQ/rerouteQ/disconnectQ = true.
@@ -196,14 +293,10 @@ PDC_T::Simplify_Args_T SimplifyArgs()
 
 enum class InvStatus { Preserved, Changed, Unsupported };
 
-/// HOMFLY of the simplified diagram as a whole. Returns the unknot polynomial
-/// {(0,0):1} when the input simplifies to the trivial knot. Sets
-/// supported=false when the simplified complex cannot be reassembled into a
-/// single diagram: ToSingleDiagram() connect-sums the pieces and returns an
-/// invalid diagram when they cannot be joined (a split link). Those need the
-/// split-union delta rule (H = delta^(k-1) * prod H(piece)), which this oracle
-/// does not implement — so we report them rather than feed an invalid diagram
-/// to libhomfly (which would crash) or silently give a wrong answer.
+/// HOMFLY of the simplified diagram as a whole (split-union delta rule applied
+/// when it is disconnected). Returns the unknot polynomial {(0,0):1} when the
+/// input simplifies to the trivial knot. Sets supported=false only when the
+/// simplified complex cannot be reassembled into a single diagram at all.
 Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
 {
     supported = true;
@@ -221,13 +314,7 @@ Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
         supported = false;
         return {};
     }
-    const std::string jenkins = KnoodleJenkins(single);
-    if (IsSplitDiagram(jenkins))   // split unknot component(s)
-    {
-        supported = false;
-        return {};
-    }
-    return LibhomflyPolyMap(jenkins);
+    return HomflyOfPossiblySplit(KnoodleJenkins(single), supported);
 }
 
 struct InvarianceResult
@@ -239,20 +326,16 @@ struct InvarianceResult
 
 InvarianceResult CheckInvariance(const PD_T& pd)
 {
-    const std::string before_jenkins = KnoodleJenkins(pd);
-    if (IsSplitDiagram(before_jenkins))   // input has a split unknot
-    {
-        return { InvStatus::Unsupported, {}, {} };
-    }
-    Polynomial before = LibhomflyPolyMap(before_jenkins);
+    bool ok_before = true;
+    Polynomial before = HomflyOfPossiblySplit(KnoodleJenkins(pd), ok_before);
 
-    bool supported = true;
-    Polynomial after = SimplifiedHomfly(pd, supported);
+    bool ok_after = true;
+    Polynomial after = SimplifiedHomfly(pd, ok_after);
 
     const InvStatus status =
-        !supported           ? InvStatus::Unsupported
-        : (before == after)  ? InvStatus::Preserved
-                             : InvStatus::Changed;
+        (!ok_before || !ok_after) ? InvStatus::Unsupported
+        : (before == after)       ? InvStatus::Preserved
+                                  : InvStatus::Changed;
     return { status, std::move(before), std::move(after) };
 }
 
@@ -396,7 +479,8 @@ int EmitPoly()
 
     const Int crossings = static_cast<Int>(ints.size() / 5);
     PD_T pd = BuildPD(ints, crossings);
-    const Polynomial poly = LibhomflyPolyMap(KnoodleJenkins(pd));
+    bool ok = true;
+    const Polynomial poly = HomflyOfPossiblySplit(KnoodleJenkins(pd), ok);
 
     for (const auto& [lm, coef] : poly)
     {
@@ -563,6 +647,34 @@ int main(int argc, char* argv[])
                   << "  " << (distinct ? "PASS" : "FAIL")
                   << "  trefoil HOMFLY != figure-eight HOMFLY\n";
         if (!distinct) { ++failures; }
+    }
+
+    // Split-union delta rule: H(trefoil ⊔ figure-eight) must equal
+    // delta * H(trefoil) * H(figure-eight). Both are computed here from the
+    // same libhomfly pieces, so this checks the delta value and the
+    // decomposition/combination logic. (The value also matches Regina's
+    // homflyLM — see test/homfly_xcheck.py.)
+    {
+        // trefoil (arcs 0-5) disjoint figure-eight (arcs shifted by 6).
+        std::vector<Int> split = {0,4,1,3,1, 2,0,3,5,1, 4,2,5,1,1,
+                                  9,7,10,6,1, 13,11,6,10,1, 11,8,12,9,-1, 7,12,8,13,-1};
+        bool ok = true;
+        Polynomial got = HomflyOfPossiblySplit(KnoodleJenkins(BuildPD(split, 7)), ok);
+
+        Polynomial tref = LibhomflyPolyMap(KnoodleJenkins(BuildPD(panel[0].pd, panel[0].crossings)));
+        Polynomial four = LibhomflyPolyMap(KnoodleJenkins(BuildPD(panel[1].pd, panel[1].crossings)));
+        Polynomial expected = Multiply(Multiply(Delta, tref), four);
+
+        const bool match = ok && (got == expected);
+        std::cout << "\n=== split-union delta rule (trefoil u figure-eight) ===\n"
+                  << "  " << (match ? "PASS" : "FAIL")
+                  << "  H(A u B) == delta * H(A) * H(B)\n";
+        if (!match)
+        {
+            std::cout << "    got     : " << PolyToString(got) << "\n"
+                      << "    expected: " << PolyToString(expected) << "\n";
+            ++failures;
+        }
     }
 
     return failures == 0 ? 0 : 1;
