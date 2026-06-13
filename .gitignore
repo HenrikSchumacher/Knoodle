@@ -60,8 +60,13 @@ Dev_ClisbyTree2/Example_ClisbyTree2
 tools/ExampleKnot_simplified.tsv
 tools/knoodlesimplify
 tools/knoodledraw
+tools/knoodleidentify
 tools/knoodlesimplify.log
 tools/knoodledraw.log
+tools/knoodleidentify.log
+
+# test/ build artifacts (probe binaries)
+test/key_roundtrip_probe
 
 # Markdown files
 *.md 

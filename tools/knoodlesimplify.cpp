@@ -362,6 +362,9 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
 {
     SimplifiedKnot result;
 
+    // Unknot summands that arrived as bare 's' lines pass through.
+    result.unknot_count += input.empty_summand_count;
+
     {
         ScopedTimer timer(result.simplify_time);
 
@@ -457,6 +460,12 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
     if (include_k_marker)
     {
         output << "k\n";
+    }
+
+    // Unknot summands are written as bare 's' lines (0-crossing diagrams).
+    for (Int i = 0; i < knot.unknot_count; ++i)
+    {
+        output << "s\n";
     }
 
     for (std::size_t i = 0; i < knot.summands.size(); ++i)
