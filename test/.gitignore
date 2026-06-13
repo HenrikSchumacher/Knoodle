@@ -1,0 +1,11 @@
+venv/
+plantri58/
+__pycache__/
+*.pyc
+failures/
+
+# build artifacts
+build/
+homfly_check
+key_roundtrip_probe
+knoodlesimplify.log
