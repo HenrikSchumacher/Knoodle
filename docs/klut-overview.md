@@ -60,10 +60,14 @@ the initial commits `a46d737`, `f9aa2ed`, `02b9ba5`).
   input). `FindName(...)` returns the string instead.
 - Names look like `K[c, idx, j, "coset"]`:
   - `c` = crossing number, `idx` = index within KnotInfo's `c_idx` naming.
-  - `j` — the KnotInfo **amphichirality** flag (verified 2026-06-13 in
-    `$PKG/KnoodleLink/Klut.nb` ~L190-225: the loader does `names[[All,3]] /.
-    {0->False, 1->True}`). Stored as integer 0/1 in the raw `K[...]` table
-    name; rendered as WL boolean `True`/`False` in `KnotSymbol[...]` form.
+  - `j` — the KnotInfo **alternating** flag (1 = alternating, 0 =
+    non-alternating). Stored as integer 0/1 in the raw `K[...]` table name;
+    rendered as WL boolean `True`/`False` in `KnotSymbol[...]` form.
+    **Correction (2026-06-13):** an earlier note read this as amphichirality —
+    that was wrong. `klut_check` showed a knot is identified by `(c,i,j)`
+    (`12a_i` and `12n_i` share `i`, differ in `j`), and KnotInfo's column 11 is
+    literally "alternating". The Klut.nb `[[All,3]] /. {0->False,1->True}`
+    rewrite is just the boolean conversion, regardless of meaning.
   - `"coset"` = which symmetry-group coset of {e, m, r, mr} this entry
     represents (see next section).
 
@@ -147,9 +151,11 @@ C++ `src/Klutter.hpp` via LibraryLink. Per crossing number n:
    intended contract before writing tests.
 2. **Where are the plantri command lines / input files?** Needed to reproduce
    or extend the tables. Not in the notebooks we read.
-3. ~~Verify the `j` field~~ — RESOLVED 2026-06-13: amphichirality flag (0/1
-   integer in `K[...]`, `True`/`False` in WL `KnotSymbol[...]`). See
-   [knoodleidentify-design.md](knoodleidentify-design.md).
+3. ~~Verify the `j` field~~ — RESOLVED 2026-06-13: the **alternating** flag
+   (1 = alternating, 0 = non-alternating). An earlier note read it as
+   amphichirality; that was wrong — the `klut_check` consistency test showed a
+   knot is identified by `(c,i,j)` (`12a_i` and `12n_i` share `i`, differ in
+   `j`), matching KnotInfo's "alternating" column.
 4. **Verify MacLeod bit layout** against `src/PlanarDiagram/MacLeodCode.hpp`.
 5. **Unidentified keys**: did the May runs end with
    `UnidentifiedKeyCount[] == 0` for all n ≤ 13? No execution logs survive in

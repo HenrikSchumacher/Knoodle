@@ -92,7 +92,7 @@ void PrintUsage()
         "  -h, --help          Show this help.\n"
         "\n"
         "Knot symbols (default / --tsv):\n"
-        "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (amphichiral) is True/False\n"
+        "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
         "  Unidentified[N]          N crossings, over the table range\n"
         "  NotFound[N]              within range but not in the table (suspicious!)\n"
         "  Link[N]                  multi-component diagram (table is knots-only)\n"
@@ -269,7 +269,7 @@ struct Summand
 
     // Valid only when kind == Identified (parsed from the K[c,i,j,"sym"] name):
     Int         knot_index = 0;     ///< i
-    bool        amphichiral = false; ///< j (0/1 -> False/True)
+    bool        alternating = false; ///< j: alternating flag (0/1 -> False/True)
     std::string coset;              ///< "sym" *including* the surrounding quotes
     std::string raw_name;           ///< the original K[...] string from FindName
 };
@@ -296,7 +296,7 @@ void ParseRawName(const std::string& raw, Summand& s)
     const std::string f_amp = inner.substr(c2 + 1, c3 - c2 - 1);
 
     if (auto v = ParseInt(f_idx)) { s.knot_index = *v; }
-    s.amphichiral = (f_amp == "1");
+    s.alternating = (f_amp == "1");
     s.coset = inner.substr(c3 + 1);  // keeps the surrounding quotes
 }
 
@@ -371,7 +371,7 @@ std::string WLSymbol(const Summand& s)
         case Kind::Identified:
             return "KnotSymbol[" + std::to_string(s.crossings) + "," +
                    std::to_string(s.knot_index) + "," +
-                   (s.amphichiral ? "True" : "False") + "," + s.coset + "]";
+                   (s.alternating ? "True" : "False") + "," + s.coset + "]";
         case Kind::Unknot:    return "";
         case Kind::OverRange: return "Unidentified[" + std::to_string(s.crossings) + "]";
         case Kind::NotFound:  return "NotFound[" + std::to_string(s.crossings) + "]";
@@ -399,7 +399,7 @@ std::string ExpandedSymbol(const Summand& s)
 }
 
 /// Deterministic ordering of distinct summand kinds within a knot's multiset:
-/// identified knots first (by crossing, index, amphichirality, coset), then
+/// identified knots first (by crossing, index, alternating flag, coset), then
 /// the non-knot categories grouped after.
 bool SummandLess(const Summand& a, const Summand& b)
 {
@@ -420,8 +420,8 @@ bool SummandLess(const Summand& a, const Summand& b)
     const int ga = group(a);
     const int gb = group(b);
 
-    return std::tie(ga, a.crossings, a.knot_index, a.amphichiral, a.coset)
-         < std::tie(gb, b.crossings, b.knot_index, b.amphichiral, b.coset);
+    return std::tie(ga, a.crossings, a.knot_index, a.alternating, a.coset)
+         < std::tie(gb, b.crossings, b.knot_index, b.alternating, b.coset);
 }
 
 /**

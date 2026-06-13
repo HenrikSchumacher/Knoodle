@@ -66,7 +66,8 @@ multiplicity, which `ToExpression` parses directly:
 ```
 
 - **Knot symbol** is `KnotSymbol[c, i, a, "sym"]` — head `KnotSymbol`, third
-  field `a` the amphichirality flag as a WL boolean `True`/`False`. This is
+  field `a` the **alternating** flag (1 = alternating, 0 = non-alternating) as a
+  WL boolean `True`/`False`. This is
   exactly the object Henrik's `Klut.nb` ends up with after its
   `names[[All,0]] = KnotSymbol` head-swap and `[[All,3]] /. {0->False,
   1->True}` rewrite, so our output is drop-in (chosen 2026-06-13 with Jason;
@@ -79,7 +80,7 @@ multiplicity, which `ToExpression` parses directly:
 - **Unknot summands are the connect-sum identity** and are omitted; an
   all-unknot knot yields the empty association `<||>`.
 - **Keys are sorted** deterministically (crossing number, index,
-  amphichirality, coset; non-knot categories grouped after) — stable for
+  alternating flag, coset; non-knot categories grouped after) — stable for
   diffing/tests, independent of summand arrival order.
 - **Non-knot summand keys** (all WL-parseable inert heads, argument =
   crossing count): `Unidentified[N]` (over the 13-crossing table range),
@@ -169,9 +170,11 @@ association described above; the `#`-joined form moved to `--expanded`.
 (`<||>`), and the `Unidentified/NotFound/Link/Invalid` keys are all in
 `ProcessStream` / `WLSymbol` / `SummandLess` in `tools/knoodleidentify.cpp`.
 Verified: 42-trefoil synthetic knot → `<| KnotSymbol[3,1,True,"e/r"] -> 42 |>`;
-parses as a real `Association` under `wolframscript`. This also **resolves the
-`j`-field open question** (overview doc): `j` is the KnotInfo amphichirality
-flag (Y/N → 1/0 in the raw `K[...]` table form, `True`/`False` in WL).
+parses as a real `Association` under `wolframscript`. (On the `j`-field: it is
+the KnotInfo **alternating** flag — 1 = alternating, 0 = non-alternating — *not*
+amphichirality as first thought. Corrected 2026-06-13 when `klut_check` found
+that grouping keys by `(c,i)` conflated `12a_i` with `12n_i`; a knot is
+identified by `(c,i,j)`. The 0/1 → `False`/`True` rendering is unchanged.)
 
 What was built matches the original sketch, with these deviations/discoveries:
 
