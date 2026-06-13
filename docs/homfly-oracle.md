@@ -128,15 +128,44 @@ equality distinguishes distinct knots (the default self-test's discrimination
 guard), so a simplification that changed knot type would surface as
 before ≠ after.
 
+## Split links (a libhomfly limitation) and the `--cross-check` path
+
+libhomfly's `o_make` **segfaults on split (disconnected) diagrams** — where the
+link components don't all connect through shared crossings. It crashes even on
+the bare unknot `"1 0"`, and on e.g. Hopf ⊔ unknot. (Connected multi-component
+links are fine — the 1268 link-table links and libhomfly's own Borromean
+reference all compute.) Multi-component plantri diagrams routinely simplify to
+split links, so this matters for tier 2.
+
+`homfly_check` guards against it: `IsSplitDiagram()` parses the Jenkins code and
+runs union-find over the components (linked when they share a crossing). A
+split diagram is reported as **skip** (status, never fed to libhomfly), not
+crashed on and not falsely failed. Its HOMFLY needs the split-union δ rule
+(`H = δ^(k-1) · ∏ H(piece)`), which this oracle does not implement — but Regina
+does, so **`--cross-check` verifies the skipped split links**.
+
+## run_tests.py integration
+
+The HOMFLY-invariance tiers (1a, 1c, 1d, 2) call `homfly_check --invariance`
+(machine-readable `RESULT \t pass|fail|skip \t crossings \t label` lines) as
+their oracle — no Regina/Python in the default run. Tier 1b (known unknots) is
+unchanged: it checks "simplifies to 0 crossings" via the knoodlesimplify CLI
+(no HOMFLY — those before-diagrams are far too big to compute). Regina is now
+optional (`import` guarded by `REGINA_AVAILABLE`); `--cross-check` runs it
+alongside and requires both oracles to agree (catching any disagreement), and
+verifies the split links homfly_check skips.
+
+Validated 2026-06-13:
+- Tier 1a 5/5, 1c 1268/1268, 1d 36/36 — default (homfly_check), no Regina.
+- Tier 2 up to 6 crossings: 64/64, 30 split links skipped (default) / verified
+  by Regina under `--cross-check` (0 oracle disagreements).
+
 ## Status / next steps
 
-- **Done:** vendoring, gc shim with bounded memory (tracked allocator +
-  `free_all`, verified by `--stress`), Jenkins→libhomfly bridge, Tier-1
-  encoding self-test, exact Regina cross-validation (252/252), **the invariance
-  test (1304/1304 over the corpus)**.
-- **Next:** re-point `run_tests.py`'s small-diagram tiers (1a, 1c, 2) at
-  `homfly_check --invariance`, keeping Regina behind a `--cross-check` flag.
-  (Large unknot tiers test "simplifies to the unknot", not HOMFLY — both
-  before-diagrams are too big to HOMFLY, same as today.) Optionally add the
-  split-link δ rule if any split inputs appear, and a 3D-embedding cross-check
-  vs Regina.
+- **Done:** vendoring, gc shim with bounded memory, Jenkins→libhomfly bridge,
+  encoding self-test, Regina cross-validation (252/252), the invariance test
+  (1304/1304 corpus), split-diagram guard, and the `run_tests.py` re-point with
+  Regina behind `--cross-check`.
+- **Possible next:** implement the split-union δ rule in `homfly_check` so split
+  links are verified without Regina (compute per-piece HOMFLY × δ^(k-1));
+  validate it against the `--cross-check` Regina path before relying on it.
