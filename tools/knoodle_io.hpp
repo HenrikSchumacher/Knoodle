@@ -77,6 +77,11 @@ struct InputKnot
     std::vector<Int>  crossing_counts;    ///< Crossing count per summand
     Int               total_crossings = 0;
 
+    /// Number of 's' markers with no crossing data following them.
+    /// knoodlesimplify emits an unknot summand as a bare 's' line
+    /// (a 0-crossing diagram), so these represent unknot summands.
+    Int               empty_summand_count = 0;
+
     // For 3D geometry input
     bool              had_3d_geometry = false;
     Int               vertex_count_3d = 0;
@@ -429,12 +434,22 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     Int                pd_crossing_count = 0;
     int                detected_format = 0;  // 0=unknown, 3=geometry, 4/5=PD code
     bool               in_summand = false;
-    bool               first_data_seen = false;
+    bool               first_data_seen = false;  // first *data* line (sets format)
+    bool               saw_content = false;      // any 's' marker or data line
 
     // Lambda to finalize current summand
     auto finalize_summand = [&]() -> bool
     {
         if (!in_summand) return true;
+
+        // An 's' marker with no data lines is an unknot summand
+        // (knoodlesimplify writes unknots as bare 's' lines).
+        if (geometry_vertices.empty() && pd_crossing_count == 0)
+        {
+            ++result.empty_summand_count;
+            in_summand = false;
+            return true;
+        }
 
         if (detected_format == 3)
         {
@@ -499,7 +514,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         // Check for markers
         if (cleaned == "k" || cleaned == "K")
         {
-            if (first_data_seen)
+            if (saw_content)
             {
                 // End of this knot, finalize and return
                 if (!finalize_summand()) return std::nullopt;
@@ -511,9 +526,13 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
 
         if (cleaned == "s" || cleaned == "S")
         {
-            // Start of new summand
+            // Start of new summand. This counts as knot content even if no
+            // data lines follow (a bare 's' is an unknot summand), so a
+            // later 'k' must terminate this knot rather than be skipped as
+            // an optional leading marker.
             if (!finalize_summand()) return std::nullopt;
             in_summand = true;
+            saw_content = true;
             continue;
         }
 
@@ -540,6 +559,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         {
             detected_format = line_format;
             first_data_seen = true;
+            saw_content = true;
             in_summand = true;
         }
         else if (line_format != detected_format)
@@ -584,8 +604,9 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
     // Finalize last summand
     if (!finalize_summand()) return std::nullopt;
 
-    // Check if we got any data
-    if (result.summands.empty())
+    // Check if we got any data (a knot consisting only of unknot
+    // summands — bare 's' lines — still counts as data)
+    if (result.summands.empty() && result.empty_summand_count == 0)
     {
         return std::nullopt;  // No data found
     }

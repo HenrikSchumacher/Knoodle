@@ -62,7 +62,7 @@ else
                      -pthread
 endif
 
-all: knoodlesimplify knoodledraw
+all: knoodlesimplify knoodledraw knoodleidentify
 
 knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
 	@echo "=== Building knoodlesimplify on $(UNAME_S) ==="
@@ -80,6 +80,14 @@ knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodledraw.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodledraw compiled successfully"
 
+knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodleidentify on $(UNAME_S) ==="
+	@echo "=== Compiler: $(CXX) ==="
+	@echo ""
+	@echo "Compiling knoodleidentify.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodleidentify compiled successfully"
+
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: all
 
@@ -87,8 +95,9 @@ install: all
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 knoodlesimplify $(DESTDIR)$(BINDIR)/
 	install -m 755 knoodledraw $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodleidentify $(DESTDIR)$(BINDIR)/
 
 clean:
-	rm -f knoodlesimplify knoodledraw
+	rm -f knoodlesimplify knoodledraw knoodleidentify
 
 .PHONY: all install clean debug
