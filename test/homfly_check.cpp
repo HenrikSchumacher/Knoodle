@@ -28,8 +28,10 @@ extern "C" void knoodle_gc_free_all(void);
 
 #include <cstdint>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -99,6 +101,169 @@ struct KnownKnot
 PD_T BuildPD(const std::vector<Int>& pd, Int crossings)
 {
     return PD_T::FromSignedPDCode(pd.data(), crossings, false, true);
+}
+
+/// Human-readable form of a (L,M)->coef polynomial, for diagnostics.
+std::string PolyToString(const Polynomial& p)
+{
+    if (p.empty()) { return "0"; }
+    std::string s;
+    for (const auto& [lm, c] : p)
+    {
+        if (!s.empty()) { s += " + "; }
+        s += std::to_string(c) + " L^" + std::to_string(lm.first)
+                               + " M^" + std::to_string(lm.second);
+    }
+    return s;
+}
+
+//==============================================================================
+// Invariance check
+//==============================================================================
+//
+// HOMFLY is a link invariant, so simplification must not change it. We compare
+// homfly(input) to homfly(whole simplified diagram). The simplified complex is
+// reassembled into one diagram with PlanarDiagramComplex::ToSingleDiagram(),
+// which connect-sums the pieces back together (and converts anelli to
+// farfalle) — HOMFLY-faithful for knots and *non-split* links. All our test
+// corpora are non-split (link-table entries are prime; plantri gives connected
+// diagrams), so no product/δ bookkeeping is needed. A split-link input would
+// need that and is out of scope here.
+
+/// Simplify args mirroring knoodlesimplify's default (Reapr / level-6) path;
+/// the struct's defaults already set splitQ/rerouteQ/disconnectQ = true.
+PDC_T::Simplify_Args_T SimplifyArgs()
+{
+    return PDC_T::Simplify_Args_T{};
+}
+
+/// HOMFLY of the simplified diagram as a whole. Returns the unknot polynomial
+/// {(0,0):1} when the input simplifies to the trivial knot.
+Polynomial SimplifiedHomfly(const PD_T& pd)
+{
+    PD_T  copy(pd);
+    PDC_T pdc(std::move(copy));
+    pdc.Simplify(SimplifyArgs());
+
+    if (!pdc.ValidQ() || pdc.DiagramCount() == Int(0))
+    {
+        return Polynomial{ {{0, 0}, 1} };  // unknot
+    }
+    return LibhomflyPolyMap(KnoodleJenkins(pdc.ToSingleDiagram()));
+}
+
+struct InvarianceResult
+{
+    bool       ok;
+    Polynomial before;
+    Polynomial after;
+};
+
+InvarianceResult CheckInvariance(const PD_T& pd)
+{
+    Polynomial before = LibhomflyPolyMap(KnoodleJenkins(pd));
+    Polynomial after  = SimplifiedHomfly(pd);
+    const bool ok = (before == after);
+    return { ok, std::move(before), std::move(after) };
+}
+
+/// Build the "before" diagram from a file's text. Auto-detects format: a '.'
+/// anywhere means a 3-column 3D embedding (projected via FromKnotEmbedding);
+/// otherwise a 5-column signed PD code. Sets ok=false on a malformed shape.
+PD_T BuildDiagram(const std::string& text, bool& ok)
+{
+    ok = false;
+
+    if (text.find('.') != std::string::npos)   // 3D embedding (floats)
+    {
+        std::istringstream in(text);
+        std::vector<double> coords;
+        double v;
+        while (in >> v) { coords.push_back(v); }
+        if (coords.empty() || coords.size() % 3 != 0) { return PD_T::InvalidDiagram(); }
+
+        Int nverts = static_cast<Int>(coords.size() / 3);
+        // Drop a duplicated closing vertex if present (closed-polygon marker).
+        const double* first = coords.data();
+        const double* last  = coords.data() + 3 * (nverts - 1);
+        if (nverts > 1 && first[0] == last[0] && first[1] == last[1]
+                       && first[2] == last[2])
+        {
+            --nverts;
+        }
+
+        auto [pd, unlinks] = PD_T::FromKnotEmbedding(coords.data(), nverts);
+        (void)unlinks;
+        ok = pd.ValidQ();
+        return pd;
+    }
+
+    std::istringstream in(text);                // 5-col signed PD code (ints)
+    std::vector<Int> ints;
+    Int v;
+    while (in >> v) { ints.push_back(v); }
+    if (ints.empty() || ints.size() % 5 != 0) { return PD_T::InvalidDiagram(); }
+
+    ok = true;
+    return BuildPD(ints, static_cast<Int>(ints.size() / 5));
+}
+
+/// --invariance [files...]: run the invariance check on each input — a 5-col PD
+/// code or a 3-col 3D embedding (auto-detected) — or one diagram on stdin if no
+/// files. Reports per-item and an aggregate; exit nonzero on any failure.
+int Invariance(int argc, char* argv[])
+{
+    std::vector<std::string> files;
+    for (int i = 2; i < argc; ++i) { files.emplace_back(argv[i]); }
+
+    long passed = 0, failed = 0, unreadable = 0;
+
+    auto run_one = [&](const std::string& label, const std::string& text)
+    {
+        bool ok = false;
+        PD_T pd = BuildDiagram(text, ok);
+        if (!ok)
+        {
+            std::cerr << "  SKIP " << label << ": not a valid PD code / embedding\n";
+            ++unreadable;
+            return;
+        }
+        const Int crossings = pd.CrossingCount();
+        InvarianceResult r = CheckInvariance(pd);
+        if (r.ok)
+        {
+            ++passed;
+        }
+        else
+        {
+            ++failed;
+            std::cout << "  FAIL " << label << " (" << crossings << " crossings)\n"
+                      << "    before: " << PolyToString(r.before) << "\n"
+                      << "    after : " << PolyToString(r.after)  << "\n";
+        }
+    };
+
+    if (files.empty())
+    {
+        std::stringstream ss;
+        ss << std::cin.rdbuf();
+        run_one("stdin", ss.str());
+    }
+    else
+    {
+        for (const std::string& f : files)
+        {
+            std::ifstream in(f);
+            if (!in) { std::cerr << "  SKIP " << f << ": cannot open\n"; ++unreadable; continue; }
+            std::stringstream ss;
+            ss << in.rdbuf();
+            run_one(f, ss.str());
+        }
+    }
+
+    std::cout << "\ninvariance: " << passed << " preserved, " << failed
+              << " changed, " << unreadable << " unreadable\n";
+    return (failed == 0 && unreadable == 0) ? 0 : 1;
 }
 
 /// --emit-poly: read a flat 5-column signed PD code (whitespace-separated
@@ -203,6 +368,10 @@ int main(int argc, char* argv[])
         const long n = (argc > 2) ? std::atol(argv[2]) : 200000L;
         return Stress(n);
     }
+    if (argc > 1 && std::string(argv[1]) == "--invariance")
+    {
+        return Invariance(argc, argv);
+    }
 
     // PD codes from test/run_tests.py (0-based, [X0,X1,X2,X3,sign]).
     // Expected polynomials are libhomfly's own reference values
@@ -256,5 +425,33 @@ int main(int argc, char* argv[])
     std::cout << (failures == 0
                   ? "All Tier-1 encoding checks passed.\n"
                   : (std::to_string(failures) + " check(s) FAILED.\n"));
+
+    // Invariance self-test: simplify each panel knot and confirm HOMFLY is
+    // unchanged (HOMFLY is a link invariant; simplification must preserve it).
+    std::cout << "\n=== invariance (simplify must preserve HOMFLY) ===\n";
+    for (const KnownKnot& k : panel)
+    {
+        InvarianceResult r = CheckInvariance(BuildPD(k.pd, k.crossings));
+        std::cout << "  " << (r.ok ? "PASS" : "FAIL") << "  " << k.name << "\n";
+        if (!r.ok)
+        {
+            std::cout << "    before: " << PolyToString(r.before) << "\n"
+                      << "    after : " << PolyToString(r.after)  << "\n";
+            ++failures;
+        }
+    }
+
+    // Sensitivity guard: the oracle must distinguish distinct knots, otherwise
+    // the invariance equality check would be vacuous (always "preserved").
+    {
+        Polynomial tref = LibhomflyPolyMap(KnoodleJenkins(BuildPD(panel[0].pd, panel[0].crossings)));
+        Polynomial four = LibhomflyPolyMap(KnoodleJenkins(BuildPD(panel[1].pd, panel[1].crossings)));
+        const bool distinct = (tref != four);
+        std::cout << "\n=== discrimination (oracle separates distinct knots) ===\n"
+                  << "  " << (distinct ? "PASS" : "FAIL")
+                  << "  trefoil HOMFLY != figure-eight HOMFLY\n";
+        if (!distinct) { ++failures; }
+    }
+
     return failures == 0 ? 0 : 1;
 }

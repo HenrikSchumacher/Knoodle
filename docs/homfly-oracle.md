@@ -78,11 +78,18 @@ Mirrors need a real chirality transform, not a sign flip.)
 
 - `test/vendor/libhomfly/` — vendored sources + `gc_shim.h`, `LICENSE`,
   `README.upstream.md`, `reference_data.txt` (upstream's own reference polys).
-- `test/homfly_check.cpp` — C++ driver. Default: Tier-1 encoding self-test
-  (Knoodle Jenkins → libhomfly vs reference values). `--emit-poly`: read a
-  5-col signed PD code on stdin, print libhomfly terms `L_exp M_exp coef`
-  (bridge for the Regina cross-check). `--stress N`: memory-bound regression
-  guard for the gc_shim fix. Uses `homfly()` → `Poly{Term{coef,m,l}}`.
+- `test/homfly_check.cpp` — C++ driver. Modes:
+  - default: self-test — Tier-1 encoding (Knoodle Jenkins → libhomfly vs
+    reference values), invariance on the panel knots, and a discrimination
+    guard (distinct knots get distinct HOMFLY, so the equality check isn't
+    vacuous).
+  - `--invariance [files…]`: the invariance test (below). Each input is a
+    5-col PD code or a 3-col 3D embedding (auto-detected), or one diagram on
+    stdin. Exit nonzero on any HOMFLY change.
+  - `--emit-poly`: read a 5-col signed PD code on stdin, print libhomfly terms
+    `L_exp M_exp coef` (bridge for the Regina cross-check).
+  - `--stress N`: memory-bound regression guard for the gc_shim fix.
+  - Uses `homfly()` → `Poly{Term{coef,m,l}}`.
 - `test/homfly_xcheck.py` — optional Regina cross-check (needs venv + Regina).
 - `test/Makefile` — builds `homfly_check` (+ `key_roundtrip_probe`); compiles
   the vendored C to `build/` objects, links into the C++ driver.
@@ -96,15 +103,40 @@ make homfly_check
 ./venv/bin/python homfly_xcheck.py --samples 250   # optional Regina agreement
 ```
 
+## The invariance test (`--invariance`)
+
+HOMFLY is a link invariant, so simplification must not change it. For each
+diagram the test compares `homfly(before)` with `homfly(whole simplified
+diagram)`. The simplified `PlanarDiagramComplex` is reassembled into one
+diagram by `ToSingleDiagram()`, which connect-sums the pieces back together
+(and converts anelli → farfalle). That is HOMFLY-faithful for knots and
+**non-split** links — no product/δ bookkeeping needed, uniform for knots and
+links. (A genuinely split-link input would need the δ^(pieces−1) · ∏ rule from
+`run_tests.py:compute_composite_homfly`; all our corpora are non-split, so it's
+out of scope. An input that simplifies to the trivial knot → polynomial 1.)
+
+**Validated 2026-06-13:** `homfly_check --invariance` over the full corpus —
+**1304 / 1304 diagrams preserved HOMFLY**, 0 changed (1268 link-table links +
+36 children's-game 3D embeddings), in ~0.12 s. The children's-game embeddings
+are the strongest case: they start from messy projections that require real
+simplification down to a minimal knot. The link-table diagrams are minimal but
+still pass through full Reapr re-simplification (random re-embedding →
+re-projection → canonicalize), so the path is genuinely exercised, not a no-op.
+
+Sensitivity: the before-HOMFLY is exact (252/252 vs Regina) and the polynomial
+equality distinguishes distinct knots (the default self-test's discrimination
+guard), so a simplification that changed knot type would surface as
+before ≠ after.
+
 ## Status / next steps
 
 - **Done:** vendoring, gc shim with bounded memory (tracked allocator +
   `free_all`, verified by `--stress`), Jenkins→libhomfly bridge, Tier-1
-  encoding self-test, exact Regina cross-validation (252/252).
-- **Next:** build the pure-C++ invariance test on top of `homfly_check` —
-  read diagrams, `Simplify`, compare `homfly(before)` to the product of
-  `homfly(summandᵢ)` (HOMFLY is multiplicative under connect sum; unknot
-  summands = 1). Then re-point `run_tests.py`'s small-diagram tiers (1a, 1c, 2)
-  at it, keeping Regina behind a `--cross-check` flag. (Large unknot tiers test
-  "simplifies to the unknot", not HOMFLY — both before-diagrams are too big to
-  HOMFLY, same as today.)
+  encoding self-test, exact Regina cross-validation (252/252), **the invariance
+  test (1304/1304 over the corpus)**.
+- **Next:** re-point `run_tests.py`'s small-diagram tiers (1a, 1c, 2) at
+  `homfly_check --invariance`, keeping Regina behind a `--cross-check` flag.
+  (Large unknot tiers test "simplifies to the unknot", not HOMFLY — both
+  before-diagrams are too big to HOMFLY, same as today.) Optionally add the
+  split-link δ rule if any split inputs appear, and a 3D-embedding cross-check
+  vs Regina.
