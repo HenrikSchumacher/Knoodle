@@ -44,6 +44,7 @@ extern "C" void knoodle_gc_free_all(void);
 #include <iostream>
 #include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 
 using Int   = std::int64_t;
@@ -162,17 +163,83 @@ NameFields ParseName(const std::string& name)
 // Per-crossing-number sweep
 //==============================================================================
 
+//==============================================================================
+// Tier 3: KnotInfo reference (label cross-check)
+//==============================================================================
+
+using KIKey = std::tuple<int,int,int>;                 // (c, i, j)
+std::map<KIKey, AlexFP>     g_ref_alex;
+std::map<KIKey, Polynomial> g_ref_homfly;
+std::map<KIKey, bool>       g_ref_seen;                 // (c,i,j) found in the KLUT
+
+/// Parse a KnotInfo name + its alternating column into (c,i,j). Forms: "N_i"
+/// (c<=10, j from alt Y/N) or "Na_i"/"Nn_i" (c>=11, j from a/n). False on the
+/// unknot or c<3.
+bool ParseKnotInfoName(const std::string& name, const std::string& alt,
+                       int& c, int& i, int& j)
+{
+    const auto us = name.find('_');
+    if (us == std::string::npos) { return false; }
+    const std::string pre = name.substr(0, us);
+    try { i = std::stoi(name.substr(us + 1)); } catch (...) { return false; }
+    try
+    {
+        if (!pre.empty() && (pre.back() == 'a' || pre.back() == 'n'))
+        {
+            j = (pre.back() == 'a') ? 1 : 0;
+            c = std::stoi(pre.substr(0, pre.size() - 1));
+        }
+        else { c = std::stoi(pre); j = (alt == "Y") ? 1 : 0; }
+    } catch (...) { return false; }
+    return c >= 3;
+}
+
+/// KnotInfo pd_notation "[[a,b,c,d],...]" (1-based, optional spaces) -> 0-based
+/// flat 4-column PD code (Knoodle uses 0-based, so subtract 1).
+std::vector<Int> ParseKnotInfoPD(const std::string& s)
+{
+    std::vector<Int> out;
+    std::string num;
+    auto flush = [&]{ if (!num.empty()) { out.push_back(std::stoll(num) - 1); num.clear(); } };
+    for (char ch : s) { if (ch == '-' || (ch >= '0' && ch <= '9')) num += ch; else flush(); }
+    flush();
+    return out;
+}
+
+/// Build the reference invariants per (c,i,j) from the KnotInfo TSV (col 1 =
+/// name, 11 = alternating, 33 = pd_notation). `parsed` counts knots loaded.
+bool BuildKnotInfoReference(const std::string& path, int to_c, long& parsed);
+
+void CosetChirality(const std::string& coset_q, bool& has_plain, bool& has_mirror)
+{
+    has_plain = has_mirror = false;
+    std::string s = coset_q;
+    if (s.size() >= 2 && s.front() == '"' && s.back() == '"') s = s.substr(1, s.size() - 2);
+    for (std::size_t start = 0; ; )
+    {
+        const auto slash = s.find('/', start);
+        const std::string el =
+            s.substr(start, slash == std::string::npos ? std::string::npos : slash - start);
+        if (el == "e" || el == "r") { has_plain = true; }
+        else if (el == "m" || el == "mr") { has_mirror = true; }
+        if (slash == std::string::npos) break;
+        start = slash + 1;
+    }
+}
+
 struct Stats
 {
     long keys = 0, recon_fail = 0, alex_mismatch = 0,
          homfly_bucket_mismatch = 0, homfly_chirality_mismatch = 0,
-         reader_mismatch = 0, reader_notfound = 0;
+         reader_mismatch = 0, reader_notfound = 0,
+         ki_alex_mismatch = 0, ki_homfly_mismatch = 0,
+         klut_not_in_ki = 0, ki_not_in_klut = 0;
 };
 
 Alex_T alex;  // reused across the run (caches per-diagram normalization)
 
 void CheckCrossing(const std::string& dir, int c, bool do_alex, bool do_homfly,
-                   bool do_reader, Knoodle::Klut& klut, Stats& st)
+                   bool do_reader, bool do_knotinfo, Knoodle::Klut& klut, Stats& st)
 {
     const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
     std::ifstream vstream(dir + "/Klut_Values_" + cc + ".tsv");
@@ -299,6 +366,53 @@ void CheckCrossing(const std::string& dir, int c, bool do_alex, bool do_homfly,
         }
     }
 
+    // (Tier 3) Cross-check labels against the KnotInfo reference.
+    if (do_knotinfo)
+    {
+        // Alexander: each KLUT knot (c,i,j) must equal the KnotInfo knot.
+        for (const auto& [knot, a] : alex_by_knot)
+        {
+            const KIKey kik{c, knot.first, knot.second};
+            g_ref_seen[kik] = true;
+            auto r = g_ref_alex.find(kik);
+            if (r == g_ref_alex.end())
+            {
+                ++st.klut_not_in_ki;
+                std::cout << "  FAIL c=" << c << " i=" << knot.first << " j="
+                          << knot.second << ": KLUT knot not found in KnotInfo.\n";
+            }
+            else if (!AlexEqual(a, r->second))
+            {
+                ++st.ki_alex_mismatch;
+                std::cout << "  FAIL c=" << c << " i=" << knot.first << " j="
+                          << knot.second << ": Alexander disagrees with KnotInfo\n"
+                          << "    KLUT    : " << AlexStr(a) << "\n"
+                          << "    KnotInfo: " << AlexStr(r->second) << "\n";
+            }
+        }
+        // HOMFLY: each bucket must match KnotInfo's HOMFLY, with the chirality
+        // its coset implies (e/r -> as-is, m/mr -> mirror).
+        for (const auto& [bname, h] : homfly_by_name)
+        {
+            NameFields nf = ParseName(bname);
+            auto r = g_ref_homfly.find({c, nf.i, nf.j});
+            if (r == g_ref_homfly.end()) { continue; }  // already counted above
+            bool has_plain, has_mirror;
+            CosetChirality(nf.coset, has_plain, has_mirror);
+            const Polynomial& ref  = r->second;
+            const Polynomial  refm = Mirror(ref);
+            bool ok = (has_plain && !has_mirror) ? (h == ref)
+                    : (has_mirror && !has_plain) ? (h == refm)
+                    : (h == ref || h == refm);   // amphichiral / mixed coset
+            if (!ok)
+            {
+                ++st.ki_homfly_mismatch;
+                std::cout << "  FAIL c=" << c << " name=" << bname
+                          << ": HOMFLY disagrees with KnotInfo (chirality?).\n";
+            }
+        }
+    }
+
     const auto t1 = Clock::now();
     std::cout << "  c=" << c << ": " << keys << " keys, "
               << alex_by_knot.size() << " distinct knots, "
@@ -306,11 +420,50 @@ void CheckCrossing(const std::string& dir, int c, bool do_alex, bool do_homfly,
               << Secs(t0, t1) << "s]\n";
 }
 
+// Defined here so it can use Alexander()/HomflyKnot()/the global `alex`.
+bool BuildKnotInfoReference(const std::string& path, int to_c, long& parsed)
+{
+    std::ifstream in(path);
+    if (!in) { return false; }
+    std::string line;
+    long row = 0;
+    while (std::getline(in, line))
+    {
+        if (++row <= 2) { continue; }  // two header rows
+        // Split out the columns we need: 1 (name), 11 (alternating), 33 (pd).
+        std::vector<std::string> col;
+        for (std::size_t start = 0; col.size() <= 33; )
+        {
+            const auto tab = line.find('\t', start);
+            col.push_back(line.substr(start, tab == std::string::npos ? std::string::npos : tab - start));
+            if (tab == std::string::npos) break;
+            start = tab + 1;
+        }
+        if (col.size() < 33) { continue; }
+        int c, i, j;
+        if (!ParseKnotInfoName(col[0], col[10], c, i, j) || c > to_c) { continue; }
+        std::vector<Int> pd = ParseKnotInfoPD(col[32]);
+        if (pd.empty() || pd.size() % 4 != 0) { continue; }
+        const Int nc = static_cast<Int>(pd.size() / 4);
+        PD_T ref = PD_T::template FromPDCode<{.signQ = false, .colorQ = false}>(
+            pd.data(), nc, false, true);
+        if (!ref.ValidQ() || ref.LinkComponentCount() != Int(1)) { continue; }
+        bool ok = false;
+        Polynomial h = HomflyKnot(ref, ok);
+        if (!ok) { continue; }
+        g_ref_alex[{c,i,j}]   = Alexander(alex, ref);
+        g_ref_homfly[{c,i,j}] = std::move(h);
+        ++parsed;
+    }
+    return true;
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
 {
     std::string dir = "../data/Klut";
+    std::string knotinfo;
     int from_c = 3, to_c = 13;
     bool do_alex = true, do_homfly = true, do_reader = true;
 
@@ -318,6 +471,7 @@ int main(int argc, char* argv[])
     {
         std::string a(argv[k]);
         if      (a.rfind("--data-dir=", 0) == 0)        dir = a.substr(11);
+        else if (a.rfind("--knotinfo=", 0) == 0)        knotinfo = a.substr(11);
         else if (a.rfind("--up-to-crossing=", 0) == 0)  to_c = std::stoi(a.substr(17));
         else if (a.rfind("--from-crossing=", 0) == 0)    from_c = std::stoi(a.substr(16));
         else if (a == "--no-alex")                       do_alex = false;
@@ -332,35 +486,63 @@ int main(int argc, char* argv[])
                 "  (A) Alexander agrees within each knot (c,i,j),\n"
                 "  (B) HOMFLY agrees within each name bucket,\n"
                 "  (C) HOMFLY honors chirality across a knot's buckets.\n"
-                "Tier 2 (reader): Klut::FindName(key) returns the value-file name.\n\n"
+                "Tier 2 (reader): Klut::FindName(key) returns the value-file name.\n"
+                "Tier 3 (--knotinfo=FILE): cross-check each (c,i,j) name against the\n"
+                "  KnotInfo knot's own invariants (correct knot + chirality), and\n"
+                "  report KnotInfo knots missing from the table.\n\n"
                 "  --data-dir=PATH       KLUT data dir (default ../data/Klut)\n"
+                "  --knotinfo=FILE       enable Tier 3 against knotinfo_data_complete.tsv\n"
                 "  --from-crossing=N     first crossing number (default 3)\n"
                 "  --up-to-crossing=N    last crossing number (default 13)\n"
-                "  --no-alex             skip Alexander check (A)\n"
-                "  --no-homfly           skip HOMFLY checks (B,C)\n"
-                "  --no-reader           skip the Klut::FindName check\n"
-                "  --reader-only         only the reader check (no reconstruction)\n";
+                "  --no-alex / --no-homfly / --no-reader / --reader-only\n";
             return 0;
         }
     }
 
+    const bool do_knotinfo = !knotinfo.empty();
+    if (do_knotinfo) { do_alex = do_homfly = true; }  // Tier 3 needs the invariants
+
     std::string tiers;
-    if (do_alex)   tiers += "Alexander ";
-    if (do_homfly) tiers += "HOMFLY ";
-    if (do_reader) tiers += "reader ";
+    if (do_alex)     tiers += "Alexander ";
+    if (do_homfly)   tiers += "HOMFLY ";
+    if (do_reader)   tiers += "reader ";
+    if (do_knotinfo) tiers += "KnotInfo ";
     std::cout << "=== KLUT consistency (c=" << from_c << ".." << to_c
               << ", " << tiers << ") ===\n";
+
+    if (do_knotinfo)
+    {
+        long parsed = 0;
+        const auto r0 = Clock::now();
+        if (!BuildKnotInfoReference(knotinfo, to_c, parsed))
+        {
+            std::cerr << "could not open KnotInfo file: " << knotinfo << "\n";
+            return 2;
+        }
+        std::cout << "  KnotInfo reference: " << parsed << " knots loaded ["
+                  << Secs(r0, Clock::now()) << "s]\n";
+    }
 
     Knoodle::Klut klut(std::filesystem::path(dir), static_cast<Knoodle::Size_T>(to_c));
 
     Stats st;
     const auto t0 = Clock::now();
     for (int c = from_c; c <= to_c; ++c)
-        CheckCrossing(dir, c, do_alex, do_homfly, do_reader, klut, st);
+        CheckCrossing(dir, c, do_alex, do_homfly, do_reader, do_knotinfo, klut, st);
+
+    // Coverage: KnotInfo knots in range that the KLUT never produced.
+    if (do_knotinfo)
+        for (const auto& [kik, a] : g_ref_alex)
+        {
+            (void)a;
+            const int c = std::get<0>(kik);
+            if (c >= from_c && c <= to_c && !g_ref_seen.count(kik)) { ++st.ki_not_in_klut; }
+        }
     const auto t1 = Clock::now();
 
     const long fails = st.recon_fail + st.alex_mismatch + st.homfly_bucket_mismatch
-                     + st.homfly_chirality_mismatch + st.reader_mismatch;
+                     + st.homfly_chirality_mismatch + st.reader_mismatch
+                     + st.ki_alex_mismatch + st.ki_homfly_mismatch + st.klut_not_in_ki;
     std::cout << "\nklut_check: " << st.keys << " keys in " << Secs(t0, t1) << "s\n"
               << "  reconstruction failures     : " << st.recon_fail << "\n";
     if (do_alex)
@@ -371,6 +553,12 @@ int main(int argc, char* argv[])
     if (do_reader)
         std::cout << "  reader (FindName) mismatches: " << st.reader_mismatch
                   << "  (of which not-found: " << st.reader_notfound << ")\n";
+    if (do_knotinfo)
+        std::cout << "  KnotInfo Alexander mismatches: " << st.ki_alex_mismatch << "\n"
+                  << "  KnotInfo HOMFLY mismatches   : " << st.ki_homfly_mismatch << "\n"
+                  << "  KLUT knots not in KnotInfo   : " << st.klut_not_in_ki << "\n"
+                  << "  KnotInfo knots not in KLUT   : " << st.ki_not_in_klut
+                  << "  (coverage gaps; not a hard failure)\n";
     std::cout << (fails == 0 ? "PASS: KLUT is consistent.\n"
                              : (std::to_string(fails) + " failure(s).\n"));
     return fails == 0 ? 0 : 1;
