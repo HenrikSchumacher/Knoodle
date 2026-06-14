@@ -14,3 +14,7 @@ plantri_check
 vendor/plantri/plantri
 inflate_fail_*.tsv
 knoodlesimplify.log
+
+# private cluster config (site-specific; never commit)
+cluster/cluster.conf
+cluster/*.local

@@ -14,20 +14,33 @@ UNAME_S := $(shell uname -s)
 CXX ?= clang++
 CC  ?= cc
 
-ifeq ($(UNAME_S),Darwin)
-    ARCHFLAGS = -march=native -mtune=native -fenable-matrix
-else
-    ARCHFLAGS = -march=native -mtune=native
+# Knoodle uses clang's matrix extension (-fenable-matrix), so clang/LLVM is the
+# supported toolchain (macOS clang, or a module-loaded clang/LLVM on a cluster).
+# Detect clang by running the compiler (robust to the binary's name -- it may be
+# `c++`, `clang++`, or a module-provided name), so a clang build gets the flag on
+# any OS; a gcc build (unsupported by the core) simply omits it and fails loudly.
+# MARCH defaults to `native` (tune to the build host). On a cluster where the
+# login and compute nodes differ, override it with a safe baseline (e.g.
+# `make MARCH=x86-64-v3`) so the binary doesn't hit illegal instructions.
+MARCH ?= native
+CXX_IS_CLANG := $(shell $(CXX) --version 2>/dev/null | grep -ci clang)
+ARCHFLAGS = -march=$(MARCH) -mtune=$(MARCH)
+ifneq ($(CXX_IS_CLANG),0)
+    ARCHFLAGS += -fenable-matrix
 endif
 
 CXXFLAGS = -Wall -Wextra -std=c++20 -O3 $(ARCHFLAGS) -pthread
 
-# Knoodle core include paths (mirror tools/Makefile).
-KNOODLE_INC = -I$(HOMEBREW_PREFIX)/include \
-              -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
+# Knoodle core include paths (mirror tools/Makefile). The Homebrew include dir
+# is only added when HOMEBREW_PREFIX is set (macOS); on Linux/cluster the
+# submodule headers + the toolchain's own headers suffice for this light build.
+KNOODLE_INC = -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
               -I./../submodules/Min-Cost-Flow-Class/MCFClass \
               -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
               -I./../submodules/Tensors
+ifdef HOMEBREW_PREFIX
+    KNOODLE_INC += -I$(HOMEBREW_PREFIX)/include
+endif
 
 # Vendored libhomfly (public domain; gc shimmed to libc — see vendor/libhomfly).
 LIBHOMFLY_DIR = vendor/libhomfly
