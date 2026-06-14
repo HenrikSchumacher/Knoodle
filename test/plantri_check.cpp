@@ -90,13 +90,19 @@ class PlantriStream
 public:
     ~PlantriStream() { Close(); }
 
-    bool Open(const std::string& plantri, const std::string& mode, int V)
+    bool Open(const std::string& plantri, const std::string& mode, int V,
+              long shard_res, long shard_mod)
     {
         const std::string flags = (mode == "simple")  ? "-q -E"
                                 : (mode == "no-r1")    ? "-Q -c2 -E"
                                                        : "-Q -E";   // "everything"
+        // plantri's own res/mod: `plantri ... V res/mod` emits a disjoint,
+        // exhaustive 1/mod slice of the graphs at V -- the natural unit for
+        // fanning a sweep across cluster jobs (one SLURM array task per res).
+        const std::string shard = (shard_mod > 0)
+            ? (" " + std::to_string(shard_res) + "/" + std::to_string(shard_mod)) : "";
         const std::string cmd = Shq(plantri) + " " + flags + " " + std::to_string(V)
-                              + " 2>/dev/null";
+                              + shard + " 2>/dev/null";
         f_ = ::popen(cmd.c_str(), "r");
         if (!f_) { return false; }
 
@@ -361,12 +367,16 @@ std::vector<std::uint64_t> ChooseMasks(int n, const std::string& assignments,
 /// Write a changed diagram's 5-column signed PD code to its own file in `dir`
 /// (named by V/graph/mask/components) — a reproducer directly consumable by
 /// `homfly_check --invariance <dir>/*.tsv` or by knoodlesimplify.
-void DumpChanged(const std::string& dir, const std::vector<Int>& pd, int n,
+void DumpChanged(const std::string& dir, const std::string& shard_tag,
+                 const std::vector<Int>& pd, int n,
                  int V, long g, std::uint64_t mask, int ncomp)
 {
-    const std::string path = dir + "/V" + std::to_string(V) + "_g" + std::to_string(g)
-                           + "_m" + std::to_string(mask) + "_" + std::to_string(ncomp)
-                           + "comp.tsv";
+    // shard_tag (e.g. "s5-166_") makes names globally unique when many cluster
+    // jobs dump into one directory; g is then the within-shard graph index, so
+    // (shard, g, mask) reproduce the diagram via `plantri ... V res/mod`.
+    const std::string path = dir + "/" + shard_tag + "V" + std::to_string(V)
+                           + "_g" + std::to_string(g) + "_m" + std::to_string(mask)
+                           + "_" + std::to_string(ncomp) + "comp.tsv";
     std::ofstream f(path);
     if (!f) { return; }
     for (int c = 0; c < n; ++c)
@@ -390,6 +400,7 @@ int main(int argc, char* argv[])
     long max_graphs   = 0;          // per-vertex-count graph cap (0 = unlimited)
     long progress_every = 200000;   // emit a progress line every N diagrams
     std::string dump_changed;       // file to dump changed diagrams' PD codes to
+    long shard_res = 0, shard_mod = 0;   // plantri res/mod: this job is res of mod
 
     for (int k = 1; k < argc; ++k)
     {
@@ -406,6 +417,17 @@ int main(int argc, char* argv[])
         else if (a.rfind("--max-graphs=", 0) == 0)           max_graphs = std::stol(a.substr(13));
         else if (a.rfind("--progress-every=", 0) == 0)       progress_every = std::stol(a.substr(17));
         else if (a.rfind("--dump-changed=", 0) == 0)         dump_changed = a.substr(15);
+        else if (a.rfind("--shard=", 0) == 0)
+        {
+            const std::string v = a.substr(8);              // RES/MOD
+            const auto slash = v.find('/');
+            if (slash == std::string::npos)
+            { std::cerr << "--shard expects RES/MOD\n"; return 2; }
+            shard_res = std::stol(v.substr(0, slash));
+            shard_mod = std::stol(v.substr(slash + 1));
+            if (shard_mod <= 0 || shard_res < 0 || shard_res >= shard_mod)
+            { std::cerr << "--shard: need 0 <= RES < MOD\n"; return 2; }
+        }
         else if (a == "-h" || a == "--help")
         {
             std::cout <<
@@ -428,11 +450,17 @@ int main(int argc, char* argv[])
                 "  --progress-every=N          progress line every N diagrams (default 200000)\n"
                 "  --dump-changed=DIR          write each changed diagram's PD code into DIR\n"
                 "                              (one .tsv per diagram; feed to homfly_check)\n"
+                "  --shard=RES/MOD             process plantri's res/mod slice only -- the\n"
+                "                              unit for fanning a sweep across cluster jobs\n"
                 "  --seed=N                    RNG seed for K-sampling (default 42)\n\n"
+                "Emits a final 'SUMMARY\\t...' line with sum-reducible counts (per shard).\n\n"
                 "All-night torture test at 13 crossings (component check only is far\n"
                 "faster than HOMFLY there; sample signs and cap the work):\n"
                 "  ./plantri_check --from-crossing=13 --up-to-crossing=13 \\\n"
                 "                  --crossing-assignments=64 --no-homfly --max-diagrams=50000000\n"
+                "Cluster fan-out (one SLURM array task per shard, gather SUMMARY lines):\n"
+                "  ./plantri_check --up-to-crossing=9 --shard=$SLURM_ARRAY_TASK_ID/166 \\\n"
+                "                  --dump-changed=$SCRATCH/dump --no-homfly\n"
                 "Note: 'simple' mode only yields even V>=8 (crossing number >= 6);\n"
                 "use 'everything'/'no-r1' for smaller diagrams.\n";
             return 0;
@@ -472,6 +500,9 @@ int main(int argc, char* argv[])
     long dumped = 0;
     const long dump_cap = 2000;   // avoid flooding on a huge torture run
 
+    const std::string shard_tag = (shard_mod > 0)
+        ? ("s" + std::to_string(shard_res) + "-" + std::to_string(shard_mod) + "_") : "";
+
     std::mt19937_64 rng(static_cast<std::uint64_t>(seed));
     Stats st;
     std::map<int, std::pair<long,long>> per_c;   // crossing -> (tested, changed)
@@ -483,7 +514,7 @@ int main(int argc, char* argv[])
         if (stopped) { break; }
         const int n = V - 2;
         PlantriStream ps;
-        if (!ps.Open(plantri, mode, V))
+        if (!ps.Open(plantri, mode, V, shard_res, shard_mod))
         { std::cerr << "  could not run plantri for V=" << V << "\n"; return 2; }
         const auto tv = Clock::now();
 
@@ -568,7 +599,7 @@ int main(int argc, char* argv[])
                 {
                     ++v_changed;
                     if (!dump_changed.empty() && dumped < dump_cap)
-                    { DumpChanged(dump_changed, tr.pd, n, V, this_g, mask, tr.n_components); ++dumped; }
+                    { DumpChanged(dump_changed, shard_tag, tr.pd, n, V, this_g, mask, tr.n_components); ++dumped; }
                     if (st.comp_changed + st.changed <= max_fail_print)
                     {
                         std::cout << "  BUG  V" << V << " g" << this_g << " m" << mask << " "
@@ -624,5 +655,21 @@ int main(int argc, char* argv[])
     else
         std::cout << "FAIL: " << bugs << " bug(s) — " << st.comp_changed
                   << " component-count, " << st.changed << " HOMFLY.\n";
+
+    // Machine-readable, sum-reducible summary (one line; tab-separated key=val).
+    // A reducer adds the integer fields across shards; `bugs` and exit code roll
+    // up with OR/＋. shard=res/mod identifies this job.
+    std::cout << "SUMMARY"
+              << "\tshard="    << shard_res << "/" << shard_mod
+              << "\tfrom="     << from_c << "\tto=" << to_c
+              << "\ttested="   << st.tested
+              << "\tknots="    << st.knots    << "\tlinks=" << st.links
+              << "\tcomp_changed="   << st.comp_changed
+              << "\thomfly_knot="    << st.changed_knots
+              << "\thomfly_link="    << st.changed_links
+              << "\tskipped="  << st.skipped
+              << "\trecon_fail=" << st.recon_fail
+              << "\tbugs="     << bugs
+              << "\tseconds="  << Secs(t0, t1) << "\n";
     return bugs == 0 ? 0 : 1;
 }
