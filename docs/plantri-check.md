@@ -151,5 +151,42 @@ catches the component-loss class), sample sign masks, and cap the work:
 Flags: `--plantri`, `--plantri-mode`, `--crossing-assignments`,
 `--from-crossing`, `--up-to-crossing`, `--no-homfly`, `--knots-only`,
 `--max-diagrams`, `--max-graphs`, `--progress-every`, `--dump-changed`,
-`--seed`. Exit code is nonzero iff `Simplify` changed the component count or
-HOMFLY of some diagram.
+`--shard`, `--seed`. Exit code is nonzero iff `Simplify` changed the component
+count or HOMFLY of some diagram.
+
+## Cluster fan-out (`--shard=RES/MOD`)
+
+The test parallelizes trivially across cluster jobs by reusing **plantri's own
+`res/mod`** graph partitioning — designed for exactly this. `--shard=RES/MOD`
+appends `RES/MOD` to every plantri invocation, so the job processes plantri's
+disjoint `1/MOD` slice of the graphs at each crossing number. The union of all
+`MOD` shards is the complete, exhaustive sweep (verified: V=8's 733 graphs split
+`191 + 321 + 221` across `0/3,1/3,2/3`), with no inter-job communication.
+
+Each shard ends with a single sum-reducible line:
+
+```
+SUMMARY	shard=5/166	from=3	to=9	tested=...	knots=...	links=...
+        comp_changed=...	homfly_knot=...	homfly_link=...	skipped=...	bugs=...
+```
+
+Reproducers are dumped with a shard tag (`s5-166_V11_g…_m…comp.tsv`) so many
+jobs can share one `--dump-changed` directory without name collisions, and each
+is still independently re-checkable via `homfly_check --invariance`.
+
+`test/cluster/` has a ready SLURM array template and a reducer:
+
+```sh
+# 166 array tasks, exhaustive 9-crossing component sweep, on shared scratch:
+sbatch --array=0-165 test/cluster/plantri_sweep.sbatch
+# then reassemble:
+python3 test/cluster/plantri_reduce.py sweep_9cx/summary/job_*.out
+```
+
+The reducer sums the counts, reports any missing shards (incomplete sweep), and
+rolls the per-shard exit codes into a single PASS/FAIL. At 9 crossings (~121M
+diagrams) over 166 shards, each task is ~730k diagrams — a few seconds
+(component-only) to ~30 s (full per-sublink HOMFLY). Balance is approximate
+(plantri's res/mod classes aren't exactly equal), but with hundreds of thousands
+of graphs per crossing number the spread is small, and SLURM array tasks are
+independent so stragglers don't block the gather.
