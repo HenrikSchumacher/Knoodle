@@ -39,6 +39,7 @@ extern "C" void knoodle_gc_free_all(void);
 #include <cmath>
 #include <complex>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -164,12 +165,14 @@ NameFields ParseName(const std::string& name)
 struct Stats
 {
     long keys = 0, recon_fail = 0, alex_mismatch = 0,
-         homfly_bucket_mismatch = 0, homfly_chirality_mismatch = 0;
+         homfly_bucket_mismatch = 0, homfly_chirality_mismatch = 0,
+         reader_mismatch = 0, reader_notfound = 0;
 };
 
 Alex_T alex;  // reused across the run (caches per-diagram normalization)
 
-void CheckCrossing(const std::string& dir, int c, bool do_homfly, Stats& st)
+void CheckCrossing(const std::string& dir, int c, bool do_alex, bool do_homfly,
+                   bool do_reader, Knoodle::Klut& klut, Stats& st)
 {
     const std::string cc = (c < 10 ? "0" : "") + std::to_string(c);
     std::ifstream vstream(dir + "/Klut_Values_" + cc + ".tsv");
@@ -208,6 +211,23 @@ void CheckCrossing(const std::string& dir, int c, bool do_homfly, Stats& st)
             }
             ++keys; ++st.keys;
 
+            // (Tier 2) Reader: Klut::FindName(key) must return the value-file
+            // name. Tests the hash-table loader + lookup in src/Klut.hpp.
+            if (do_reader)
+            {
+                std::string found = klut.FindName(key.data(), Int(c));
+                if (found != name)
+                {
+                    ++st.reader_mismatch;
+                    if (found == "NotFound") { ++st.reader_notfound; }
+                    if (st.reader_mismatch <= 20)
+                        std::cout << "  FAIL c=" << c << " reader: FindName -> '"
+                                  << found << "', expected '" << name << "'\n";
+                }
+            }
+
+            if (!do_alex && !do_homfly) { continue; }   // Tier-2-only run
+
             PD_T pd = PD_T::FromMacLeodCode(key.data(), Int(c), Int(0));
             if (!pd.ValidQ() || pd.LinkComponentCount() != Int(1))
             {
@@ -220,16 +240,19 @@ void CheckCrossing(const std::string& dir, int c, bool do_homfly, Stats& st)
             const KnotKey knot{nf.i, nf.j};
 
             // (A) Alexander consistency within a knot (c,i,j).
-            AlexFP a = Alexander(alex, pd);
-            auto ai = alex_by_knot.find(knot);
-            if (ai == alex_by_knot.end()) { alex_by_knot.emplace(knot, a); }
-            else if (!AlexEqual(a, ai->second))
+            if (do_alex)
             {
-                ++st.alex_mismatch;
-                std::cout << "  FAIL c=" << c << " name=" << name
-                          << ": Alexander differs within (c,i,j)\n"
-                          << "    this key: " << AlexStr(a) << "\n"
-                          << "    knot    : " << AlexStr(ai->second) << "\n";
+                AlexFP a = Alexander(alex, pd);
+                auto ai = alex_by_knot.find(knot);
+                if (ai == alex_by_knot.end()) { alex_by_knot.emplace(knot, a); }
+                else if (!AlexEqual(a, ai->second))
+                {
+                    ++st.alex_mismatch;
+                    std::cout << "  FAIL c=" << c << " name=" << name
+                              << ": Alexander differs within (c,i,j)\n"
+                              << "    this key: " << AlexStr(a) << "\n"
+                              << "    knot    : " << AlexStr(ai->second) << "\n";
+                }
             }
 
             if (!do_homfly) { continue; }
@@ -289,7 +312,7 @@ int main(int argc, char* argv[])
 {
     std::string dir = "../data/Klut";
     int from_c = 3, to_c = 13;
-    bool do_homfly = true;
+    bool do_alex = true, do_homfly = true, do_reader = true;
 
     for (int k = 1; k < argc; ++k)
     {
@@ -297,40 +320,58 @@ int main(int argc, char* argv[])
         if      (a.rfind("--data-dir=", 0) == 0)        dir = a.substr(11);
         else if (a.rfind("--up-to-crossing=", 0) == 0)  to_c = std::stoi(a.substr(17));
         else if (a.rfind("--from-crossing=", 0) == 0)    from_c = std::stoi(a.substr(16));
+        else if (a == "--no-alex")                       do_alex = false;
         else if (a == "--no-homfly")                     do_homfly = false;
+        else if (a == "--no-reader")                     do_reader = false;
+        else if (a == "--reader-only")                   { do_alex = do_homfly = false; }
         else if (a == "-h" || a == "--help")
         {
             std::cout <<
-                "klut_check — exhaustive internal-consistency test of the KLUT.\n\n"
-                "Reconstructs every key, computes Alexander + HOMFLY, and checks\n"
-                "(A) Alexander agrees within each knot (c,i), (B) HOMFLY agrees\n"
-                "within each name bucket, (C) HOMFLY honors chirality across a\n"
-                "knot's buckets.\n\n"
+                "klut_check — exhaustive consistency test of the KLUT.\n\n"
+                "Tier 1 (invariants): reconstruct every key and check\n"
+                "  (A) Alexander agrees within each knot (c,i,j),\n"
+                "  (B) HOMFLY agrees within each name bucket,\n"
+                "  (C) HOMFLY honors chirality across a knot's buckets.\n"
+                "Tier 2 (reader): Klut::FindName(key) returns the value-file name.\n\n"
                 "  --data-dir=PATH       KLUT data dir (default ../data/Klut)\n"
                 "  --from-crossing=N     first crossing number (default 3)\n"
                 "  --up-to-crossing=N    last crossing number (default 13)\n"
-                "  --no-homfly           Alexander-only (fast; skips checks B,C)\n";
+                "  --no-alex             skip Alexander check (A)\n"
+                "  --no-homfly           skip HOMFLY checks (B,C)\n"
+                "  --no-reader           skip the Klut::FindName check\n"
+                "  --reader-only         only the reader check (no reconstruction)\n";
             return 0;
         }
     }
 
-    std::cout << "=== KLUT Tier-1 consistency (c=" << from_c << ".." << to_c
-              << (do_homfly ? ", Alexander+HOMFLY" : ", Alexander only") << ") ===\n";
+    std::string tiers;
+    if (do_alex)   tiers += "Alexander ";
+    if (do_homfly) tiers += "HOMFLY ";
+    if (do_reader) tiers += "reader ";
+    std::cout << "=== KLUT consistency (c=" << from_c << ".." << to_c
+              << ", " << tiers << ") ===\n";
+
+    Knoodle::Klut klut(std::filesystem::path(dir), static_cast<Knoodle::Size_T>(to_c));
 
     Stats st;
     const auto t0 = Clock::now();
-    for (int c = from_c; c <= to_c; ++c) { CheckCrossing(dir, c, do_homfly, st); }
+    for (int c = from_c; c <= to_c; ++c)
+        CheckCrossing(dir, c, do_alex, do_homfly, do_reader, klut, st);
     const auto t1 = Clock::now();
 
-    const long fails = st.recon_fail + st.alex_mismatch
-                     + st.homfly_bucket_mismatch + st.homfly_chirality_mismatch;
+    const long fails = st.recon_fail + st.alex_mismatch + st.homfly_bucket_mismatch
+                     + st.homfly_chirality_mismatch + st.reader_mismatch;
     std::cout << "\nklut_check: " << st.keys << " keys in " << Secs(t0, t1) << "s\n"
-              << "  reconstruction failures   : " << st.recon_fail << "\n"
-              << "  Alexander (c,i) mismatches: " << st.alex_mismatch << "\n";
+              << "  reconstruction failures     : " << st.recon_fail << "\n";
+    if (do_alex)
+        std::cout << "  Alexander (c,i,j) mismatches: " << st.alex_mismatch << "\n";
     if (do_homfly)
-        std::cout << "  HOMFLY bucket mismatches  : " << st.homfly_bucket_mismatch << "\n"
-                  << "  HOMFLY chirality mismatch : " << st.homfly_chirality_mismatch << "\n";
-    std::cout << (fails == 0 ? "PASS: KLUT is internally consistent.\n"
-                             : (std::to_string(fails) + " consistency failure(s).\n"));
+        std::cout << "  HOMFLY bucket mismatches    : " << st.homfly_bucket_mismatch << "\n"
+                  << "  HOMFLY chirality mismatches : " << st.homfly_chirality_mismatch << "\n";
+    if (do_reader)
+        std::cout << "  reader (FindName) mismatches: " << st.reader_mismatch
+                  << "  (of which not-found: " << st.reader_notfound << ")\n";
+    std::cout << (fails == 0 ? "PASS: KLUT is consistent.\n"
+                             : (std::to_string(fails) + " failure(s).\n"));
     return fails == 0 ? 0 : 1;
 }
