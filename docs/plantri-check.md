@@ -186,19 +186,42 @@ Reproducers are dumped with a shard tag (`s5-166_V11_g…_m…comp.tsv`) so many
 jobs can share one `--dump-changed` directory without name collisions, and each
 is still independently re-checkable via `homfly_check --invariance`.
 
-`test/cluster/` has a ready SLURM array template and a reducer:
+### The `sweep.sh` driver
+
+`test/cluster/sweep.sh` drives the whole thing on a SLURM login node (you
+authenticate manually; it only calls local `sbatch`/`squeue`/`sacct`):
 
 ```sh
-# 166 array tasks, exhaustive 9-crossing component sweep, on shared scratch:
-sbatch --array=0-165 test/cluster/plantri_sweep.sbatch
-# then reassemble:
-python3 test/cluster/plantri_reduce.py sweep_9cx/summary/job_*.out
+./sweep.sh build      # module load + make plantri_check (clang/LLVM toolchain)
+./sweep.sh submit     # sbatch the array + a dependent reduce job; record state
+./sweep.sh status     # how many shards have a SUMMARY line yet
+./sweep.sh recover    # resubmit only the shards that produced no SUMMARY
+./sweep.sh reduce     # sum the SUMMARY lines -> PASS/FAIL (+ missing-shard report)
 ```
 
-The reducer sums the counts, reports any missing shards (incomplete sweep), and
-rolls the per-shard exit codes into a single PASS/FAIL. At 9 crossings (~121M
-diagrams) over 166 shards, each task is ~730k diagrams — a few seconds
-(component-only) to ~30 s (full per-sublink HOMFLY). Balance is approximate
-(plantri's res/mod classes aren't exactly equal), but with hundreds of thousands
-of graphs per crossing number the spread is small, and SLURM array tasks are
-independent so stragglers don't block the gather.
+Recovery is clean because `res/mod` is deterministic: the source of truth for
+"did shard *R* finish?" is the **presence of its `SUMMARY` line**, not the SLURM
+exit code (a shard that *finds bugs* exits 1 but is done), so `recover`
+resubmits exactly the shards with no result and re-reduces. The companion
+`plantri_sweep.sbatch` (array worker) and `plantri_reduce.py` (reducer, which
+also flags missing shards) are invoked by the driver.
+
+### Privacy: generic code, private config
+
+Everything committed here is **site-agnostic** — the scripts reference cluster
+specifics (partition, account, modules, scratch path, …) only through
+variables, never literals. All site values live in a **private config that is
+never committed**: copy `cluster.conf.example` to
+`~/.config/knoodle/cluster.conf` (or point `$KNOODLE_CLUSTER_CONF` at it) and
+fill it in. `sweep.sh` sources the first of `$KNOODLE_CLUSTER_CONF` →
+`~/.config/knoodle/cluster.conf` → `./cluster.conf` (git-ignored, and the driver
+refuses to run if it is tracked), falling back to generic defaults plus the
+scheduler's own site defaults. So the public repo names no cluster, and you set
+your site up once.
+
+At 9 crossings (~121M diagrams) over, say, `MOD` shards, each task is
+`~121M/MOD` diagrams — a few seconds (component-only) to tens of seconds (full
+per-sublink HOMFLY). Balance is approximate (plantri's res/mod classes aren't
+exactly equal), but with hundreds of thousands of graphs per crossing number the
+spread is small, and array tasks are independent so stragglers don't block the
+gather.
