@@ -1,6 +1,6 @@
 # klut_check — exhaustive KLUT consistency test
 
-*Tiers 1–2, implemented 2026-06-13. `test/klut_check.cpp`.*
+*Tiers 1–3, implemented 2026-06-13. `test/klut_check.cpp`.*
 
 ## What it checks
 
@@ -32,6 +32,23 @@ loader and lookup in `src/Klut.hpp` (the `Subtable` load, `MacLeodCodeToKey`
 packing, and the associative-container lookup) — directly, with no
 reconstruction, so it runs in a fraction of a second over the whole table.
 
+**Tier 3 — KnotInfo label cross-check** (opt-in, `--knotinfo=FILE`). Build
+reference invariants for every ≤13-crossing knot from KnotInfo's own
+`pd_notation` (using the *same* Alexander + libhomfly tooling, so the
+comparison is exact, no convention mismatch), then verify each KLUT name:
+- the knot's Alexander matches KnotInfo's `(c,i,j)` knot (proves it's the
+  *right* knot, not just internally consistent);
+- each bucket's HOMFLY matches KnotInfo's with the chirality its coset implies
+  (`e/r` → as-is, `m/mr` → mirror; amphichiral → either) — proves the coset
+  labels are right;
+- **coverage**: every KLUT name is a real KnotInfo knot, and every KnotInfo
+  knot ≤13 crossings appears in the table.
+
+The `(c,i,j)` mapping (KnotInfo `"N_i"` for c≤10 / `"Na_i"`,`"Nn_i"` for c≥11)
+also independently re-confirms that `j` is the alternating flag. Needs the
+KnotInfo TSV from the package snapshot, so Tier 3 is opt-in; Tiers 1–2 run from
+repo data alone.
+
 ## The name format: `K[c, i, j, "coset"]`
 
 **Corrected here** (our earlier notes had `j` wrong): a knot is identified by
@@ -48,12 +65,16 @@ that are the same knot (trefoil = `e/r` + `m/mr`; figure-eight = `e/m/r/mr`).
 
 ## Result
 
-**All 1,816,748 keys pass** (c=3..13), with zero failures across every check —
-0 reconstruction failures, 0 Alexander mismatches, 0 HOMFLY bucket mismatches,
-0 chirality mismatches, 0 reader (`FindName`) mismatches. Tier 1 takes ~44 s
-(dominated by 1.5M HOMFLY evaluations at c=13); Tier 2 alone is ~0.4 s. The
-distinct-knot counts match KnotInfo exactly — e.g. c=12 → 2176 (1288a + 888n),
-c=13 → 9988 (4878a + 5110n).
+**All 1,816,748 keys pass** (c=3..13), with zero failures across **every** check
+in all three tiers — 0 reconstruction failures; 0 Alexander, HOMFLY-bucket and
+chirality mismatches (Tier 1); 0 reader `FindName` mismatches (Tier 2); 0
+KnotInfo Alexander/HOMFLY mismatches, **0 KLUT-knots-not-in-KnotInfo, and 0
+KnotInfo-knots-not-in-KLUT** (Tier 3). So the labels are provably the correct
+KnotInfo knots with the right chirality, and the table has **complete coverage**
+of all prime knots ≤13 crossings. The full run is ~44 s (dominated by 1.5M
+HOMFLY evaluations at c=13); Tier 2 alone is ~0.4 s; the KnotInfo reference (~13k
+knots) builds in a few seconds. Distinct-knot counts match KnotInfo exactly —
+c=12 → 2176 (1288a + 888n), c=13 → 9988 (4878a + 5110n).
 
 ## Usage
 
@@ -61,13 +82,14 @@ c=13 → 9988 (4878a + 5110n).
 cd test
 make klut_check           # needs UMFPACK + BLAS/LAPACK; links vendored libhomfly
 ./klut_check                          # full table, c=3..13 (Tiers 1+2)
+./klut_check --knotinfo=/path/to/knotinfo_data_complete.tsv   # add Tier 3
 ./klut_check --reader-only            # Tier 2 only: whole table in ~0.4 s
 ./klut_check --no-homfly              # Alexander + reader (skips HOMFLY; fast)
 ./klut_check --up-to-crossing=10      # quick (sub-second through c=10)
 ```
 
-Flags: `--data-dir`, `--from-crossing`, `--up-to-crossing`, `--no-alex`,
-`--no-homfly`, `--no-reader`, `--reader-only`.
+Flags: `--data-dir`, `--knotinfo=FILE`, `--from-crossing`, `--up-to-crossing`,
+`--no-alex`, `--no-homfly`, `--no-reader`, `--reader-only`.
 
 ## Scope and next tiers
 
