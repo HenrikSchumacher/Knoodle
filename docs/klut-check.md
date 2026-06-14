@@ -1,13 +1,15 @@
-# klut_check — exhaustive KLUT internal-consistency test
+# klut_check — exhaustive KLUT consistency test
 
-*Tier 1, implemented 2026-06-13. `test/klut_check.cpp`.*
+*Tiers 1–2, implemented 2026-06-13. `test/klut_check.cpp`.*
 
 ## What it checks
 
 For **every** key in the KLUT (`data/Klut/Klut_Keys_NN.bin`, mapped to its name
-via `Klut_Values_NN.tsv`), reconstruct the diagram from its MacLeod code
-(`PlanarDiagram::FromMacLeodCode`) and verify three invariant relationships —
-using only the table itself, no external reference:
+via `Klut_Values_NN.tsv`):
+
+**Tier 1 — invariant consistency.** Reconstruct the diagram from its MacLeod
+code (`PlanarDiagram::FromMacLeodCode`) and verify three relationships, using
+only the table itself, no external reference:
 
 - **(A) Alexander agrees within a knot.** All keys whose name shares `(c, i, j)`
   have the same Alexander value. Alexander is mirror/reverse-invariant, so every
@@ -23,6 +25,12 @@ using only the table itself, no external reference:
 
 Invariants: Alexander via `Alexander_UMFPACK` (fast, knots-only) and HOMFLY via
 the vendored libhomfly (`KnoodleJenkins`). KLUT keys are knots, so both apply.
+
+**Tier 2 — reader correctness.** `Klut::FindName(key)` must return the same
+name the value file assigns to that key. This exercises Henrik's hash-table
+loader and lookup in `src/Klut.hpp` (the `Subtable` load, `MacLeodCodeToKey`
+packing, and the associative-container lookup) — directly, with no
+reconstruction, so it runs in a fraction of a second over the whole table.
 
 ## The name format: `K[c, i, j, "coset"]`
 
@@ -40,8 +48,10 @@ that are the same knot (trefoil = `e/r` + `m/mr`; figure-eight = `e/m/r/mr`).
 
 ## Result
 
-**All 1,816,748 keys pass, in ~43 s** (c=3..13): 0 reconstruction failures, 0
-Alexander mismatches, 0 HOMFLY bucket mismatches, 0 chirality mismatches. The
+**All 1,816,748 keys pass** (c=3..13), with zero failures across every check —
+0 reconstruction failures, 0 Alexander mismatches, 0 HOMFLY bucket mismatches,
+0 chirality mismatches, 0 reader (`FindName`) mismatches. Tier 1 takes ~44 s
+(dominated by 1.5M HOMFLY evaluations at c=13); Tier 2 alone is ~0.4 s. The
 distinct-knot counts match KnotInfo exactly — e.g. c=12 → 2176 (1288a + 888n),
 c=13 → 9988 (4878a + 5110n).
 
@@ -50,21 +60,22 @@ c=13 → 9988 (4878a + 5110n).
 ```sh
 cd test
 make klut_check           # needs UMFPACK + BLAS/LAPACK; links vendored libhomfly
-./klut_check                          # full table, c=3..13
+./klut_check                          # full table, c=3..13 (Tiers 1+2)
+./klut_check --reader-only            # Tier 2 only: whole table in ~0.4 s
+./klut_check --no-homfly              # Alexander + reader (skips HOMFLY; fast)
 ./klut_check --up-to-crossing=10      # quick (sub-second through c=10)
-./klut_check --no-homfly              # Alexander-only (skips checks B,C; fast)
 ```
 
-`--data-dir`, `--from-crossing`, `--up-to-crossing`, `--no-homfly`.
+Flags: `--data-dir`, `--from-crossing`, `--up-to-crossing`, `--no-alex`,
+`--no-homfly`, `--no-reader`, `--reader-only`.
 
 ## Scope and next tiers
 
-Tier 1 proves the table is **internally consistent** — it cannot catch a whole
-knot being mislabeled the *same* wrong way in every one of its keys (a
-systematic label error). The planned follow-ups:
+Tiers 1–2 prove the table is **internally consistent** and that its **reader
+returns the right name** — but neither can catch a whole knot being mislabeled
+the *same* wrong way in every one of its keys (a systematic label error against
+the outside world). The remaining follow-ups close that gap:
 
-- **Tier 2 — reader correctness:** `Klut::FindName(key)` returns the value-file
-  name, for every key (tests the hash-table loader in `src/Klut.hpp`).
 - **Tier 3 — KnotInfo label cross-check:** reference invariants from KnotInfo
   `pd_notation` confirm each name's `(c,i,j)` is the *correct* knot with the
   right chirality for its coset (validates labels absolutely; a handful of
