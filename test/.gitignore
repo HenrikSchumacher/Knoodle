@@ -10,5 +10,7 @@ homfly_check
 key_roundtrip_probe
 inflate_check
 klut_check
+plantri_check
+vendor/plantri/plantri
 inflate_fail_*.tsv
 knoodlesimplify.log
