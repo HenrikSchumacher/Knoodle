@@ -88,6 +88,14 @@ knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodleidentify compiled successfully"
 
+# Tier 4 end-to-end pipeline test (test/klut_e2e.cpp). Same flags as the tools;
+# it shells out to the built knoodlesimplify / knoodleidentify binaries.
+klut_e2e: ../test/klut_e2e.cpp ../Knoodle.hpp
+	@echo "=== Building klut_e2e on $(UNAME_S) ==="
+	@echo "Compiling ../test/klut_e2e.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/klut_e2e.cpp $(LDFLAGS) -o ../test/klut_e2e
+	@echo "✓ klut_e2e compiled successfully"
+
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: all
 

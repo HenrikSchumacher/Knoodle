@@ -208,12 +208,33 @@ What was built matches the original sketch, with these deviations/discoveries:
 
 ## Test plan (test/ additions)
 
-1. **Exhaustive self-consistency:** for each key in each
-   `Klut_Keys_NN.bin`, reconstruct the diagram
-   (`PlanarDiagram::FromMacLeodCode`), print its PD code, run it through
-   `knoodlesimplify | knoodleidentify`, and check the name matches the key's
-   own table entry. Exercises round-trip + lookup on every key (~hundreds of
-   thousands of cases, all fast).
+1. **End-to-end pipeline round-trip — DONE (2026-06-14, `test/klut_e2e.cpp`,
+   Tier 4).** For a deterministic sample of keys across every crossing number,
+   reconstruct the diagram (`PlanarDiagram::FromMacLeodCode`), emit its
+   5-column signed PD code (knoodlesimplify's own output format), run the whole
+   batch through the *real* `knoodlesimplify --streaming-mode | knoodleidentify
+   --expanded` pipeline once, and check each knot is identified as its own table
+   name (`K[c,i,j,"coset"]`, coset included). Build: `tools/Makefile` target
+   `klut_e2e` (same light flags as knoodleidentify — no UMFPACK/libhomfly).
+
+   **Result:** 2814/2814 sampled knots (500/crossing, c=3..13) round-trip to an
+   exact name match — 0 wrong-knot, 0 coset, 0 notfound, 0 anomalies — in ~21 s.
+   This validates the CLI path end to end: PD parsing, that
+   `FromSignedPDCode` reconstructs the *same* diagram the independent MacLeod
+   path produced (a cross-check of two reconstruction routes), canonicalization
+   stability, and `FindName` + name rendering on every kind of knot.
+
+   **Discovery — it does not stress *reduction*.** knoodlesimplify returns a
+   minimal table diagram **byte-identical** (Reapr is idempotent on an already
+   minimal diagram, and the table holds no non-minimal diagrams to feed it). So
+   the simplification half is a no-op here; `<notfound:N>` therefore stays 0 and
+   measures nothing about reprojection coverage. The harness still classifies
+   notfound / wrong-knot / coset / unknot separately so a future
+   reduction-stressing tier can reuse it. The reduction path itself is covered
+   at the library level by `inflate_check` (inflate to 100k → Simplify recovers
+   the knot, Alexander preserved); the open follow-up is reduction-*to-name*
+   through the CLI (feed a messy/inflated diagram, expect the right name) —
+   that needs the Reapr+UMFPACK build, hence a separate **Tier 5**.
 2. **Exemplar spot checks:** known knots from test data (trefoil, 4_1, and
    the linktable knots' single-component analogues) → expected names.
 3. **Connect sums:** generated composites (e.g. via
