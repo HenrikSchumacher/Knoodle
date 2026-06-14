@@ -34,6 +34,9 @@ LIBHOMFLY_DIR = vendor/libhomfly
 LIBHOMFLY_SRC = $(wildcard $(LIBHOMFLY_DIR)/*.c)
 LIBHOMFLY_OBJ = $(patsubst $(LIBHOMFLY_DIR)/%.c,build/libhomfly_%.o,$(LIBHOMFLY_SRC))
 
+# Vendored plantri (Apache 2.0; single translation unit — see vendor/plantri).
+PLANTRI = vendor/plantri/plantri
+
 all: homfly_check key_roundtrip_probe
 
 build:
@@ -81,7 +84,23 @@ klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	    klut_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ klut_check compiled successfully"
 
+# Vendored plantri binary (the test shells out to it). Single .c file, C stdlib
+# only; -w because plantri's own source is not warning-clean and is unmodified.
+$(PLANTRI): vendor/plantri/plantri.c
+	@echo "=== Building vendored plantri on $(UNAME_S) ==="
+	$(CC) -O2 -w -o $@ $<
+	@echo "✓ plantri compiled successfully"
+
+# plantri_check — exhaustive plantri-generated diagrams, HOMFLY-invariance under
+# Simplify as the oracle (same light config as homfly_check; no UMFPACK). Needs
+# the vendored plantri binary at runtime.
+plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
+	@echo "=== Building plantri_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
+	@echo "✓ plantri_check compiled successfully"
+
 clean:
-	rm -rf build homfly_check key_roundtrip_probe inflate_check
+	rm -rf build homfly_check key_roundtrip_probe inflate_check \
+	       klut_check plantri_check $(PLANTRI)
 
 .PHONY: all libhomfly clean
