@@ -93,9 +93,9 @@ namespace Knoodle
         template<typename ExtScal, IntQ ExtInt>
         void Alexander(
             cref<PD_T> pd,
-            ExtScal arg,
-            ExtScal mantissa,
-            ExtInt  exponent,
+            ExtScal       arg,
+            mref<ExtScal> mantissa,
+            mref<ExtInt>  exponent,
             bool multiply_toQ
         ) const
         {
