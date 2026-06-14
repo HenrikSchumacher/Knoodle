@@ -96,12 +96,25 @@ cmd_config() {
 }
 
 cmd_build() {
+    # Submodules need network access (login/xfer nodes have it; compute nodes
+    # often do not), so fetch them here. Then compile on a COMPUTE node -- many
+    # clusters forbid compiling on the login node -- via the current allocation
+    # if we are in one, else a one-shot srun. `bash -lc` sources the login
+    # profile so Lmod's `module` function is available in the build shell.
     run bash -c "cd '$REPO' && git submodule update --init --recursive"
-    if [ "$DRYRUN" = "1" ]; then
-        echo "+ (module load $MODULES; make -C '$TESTDIR' CXX='$CXX' MARCH='$MARCH' plantri_check)"
-        return
+    local ml=""; [ -n "$MODULES" ] && ml="module load $MODULES && "
+    local make_cmd="${ml}make -C '$TESTDIR' CXX='$CXX' MARCH='$MARCH' plantri_check"
+    if [ -n "${SLURM_JOB_ID:-}" ]; then
+        echo "building in the current allocation..."
+        run bash -lc "$make_cmd"
+    elif command -v srun >/dev/null 2>&1; then
+        echo "compiling on a compute node via srun (login-node builds are disallowed)..."
+        sched_flags
+        run srun "${SCHED_FLAGS[@]}" bash -lc "$make_cmd"
+    else
+        echo "no SLURM detected; building locally..."
+        run make -C "$TESTDIR" CXX="$CXX" MARCH="$MARCH" plantri_check
     fi
-    ( load_modules; make -C "$TESTDIR" CXX="$CXX" MARCH="$MARCH" plantri_check )
     echo "built $TESTDIR/plantri_check"
 }
 
