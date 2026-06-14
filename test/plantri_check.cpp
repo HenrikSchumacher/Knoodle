@@ -47,6 +47,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <random>
 #include <set>
 #include <string>
@@ -338,6 +339,8 @@ struct Stats
     long knots = 0, links = 0;
     long changed_knots = 0, changed_links = 0;   // HOMFLY changed (knot/link)
     long comp_changed = 0;                        // link-component count changed
+    // KLUT coverage of simplified diagrammatically-prime knot pieces:
+    long klut_found = 0, klut_notfound = 0, klut_overrange = 0;
 };
 
 /// Masks to test for an n-crossing shadow: all 2^n, or a random K-sample.
@@ -401,6 +404,8 @@ int main(int argc, char* argv[])
     long progress_every = 200000;   // emit a progress line every N diagrams
     std::string dump_changed;       // file to dump changed diagrams' PD codes to
     long shard_res = 0, shard_mod = 0;   // plantri res/mod: this job is res of mod
+    std::string klut_dir;           // --klut[=DIR]: verify KLUT coverage of pieces
+    bool klut_on = false;
 
     for (int k = 1; k < argc; ++k)
     {
@@ -417,6 +422,8 @@ int main(int argc, char* argv[])
         else if (a.rfind("--max-graphs=", 0) == 0)           max_graphs = std::stol(a.substr(13));
         else if (a.rfind("--progress-every=", 0) == 0)       progress_every = std::stol(a.substr(17));
         else if (a.rfind("--dump-changed=", 0) == 0)         dump_changed = a.substr(15);
+        else if (a == "--klut")                              { klut_on = true; klut_dir = "../data/Klut"; }
+        else if (a.rfind("--klut=", 0) == 0)                 { klut_on = true; klut_dir = a.substr(7); }
         else if (a.rfind("--shard=", 0) == 0)
         {
             const std::string v = a.substr(8);              // RES/MOD
@@ -452,6 +459,9 @@ int main(int argc, char* argv[])
                 "                              (one .tsv per diagram; feed to homfly_check)\n"
                 "  --shard=RES/MOD             process plantri's res/mod slice only -- the\n"
                 "                              unit for fanning a sweep across cluster jobs\n"
+                "  --klut[=DIR]                also verify the KLUT coverage guarantee: every\n"
+                "                              simplified, diagrammatically prime, <=13-crossing\n"
+                "                              knot piece must be a table key (DIR=../data/Klut)\n"
                 "  --seed=N                    RNG seed for K-sampling (default 42)\n\n"
                 "Emits a final 'SUMMARY\\t...' line with sum-reducible counts (per shard).\n\n"
                 "All-night torture test at 13 crossings (component check only is far\n"
@@ -503,6 +513,16 @@ int main(int argc, char* argv[])
     const std::string shard_tag = (shard_mod > 0)
         ? ("s" + std::to_string(shard_res) + "-" + std::to_string(shard_mod) + "_") : "";
 
+    // --klut: the KLUT reader, loaded once (knots-only, <=13 crossings). Used to
+    // verify the table's coverage guarantee: every simplified, diagrammatically
+    // prime, <=13-crossing knot piece must be a table key.
+    std::unique_ptr<Knoodle::Klut> klut;
+    if (klut_on)
+    {
+        klut = std::make_unique<Knoodle::Klut>(
+            std::filesystem::path(klut_dir), Knoodle::Klut::max_crossing_count);
+    }
+
     std::mt19937_64 rng(static_cast<std::uint64_t>(seed));
     Stats st;
     std::map<int, std::pair<long,long>> per_c;   // crossing -> (tested, changed)
@@ -550,7 +570,7 @@ int main(int argc, char* argv[])
                 //      (the full subset is the whole-link check). Strictly
                 //      stronger than checking only the whole link.
                 const Int comp_before = pd.ColorCount();   // = link-component count
-                SimplifyMeasure m = SimplifyAndMeasure(pd, do_homfly);
+                SimplifyMeasure m = SimplifyAndMeasure(pd, do_homfly, klut_on);
                 const bool comp_bug = (comp_before != m.comp_after);
 
                 bool homfly_bug = false;
@@ -594,6 +614,33 @@ int main(int argc, char* argv[])
                 }
                 if (comp_bug) { ++st.comp_changed; }
                 if (!comp_bug && !homfly_bug) { ++st.preserved; }
+
+                // KLUT coverage: every diagrammatically-prime, single-component,
+                // 3..13-crossing piece of the simplified result must be a table
+                // key. NotFound on such a piece violates the table's guarantee.
+                bool klut_gap = false;
+                if (klut_on)
+                {
+                    for (const PD_T& piece : m.pieces)
+                    {
+                        if (piece.LinkComponentCount() != Int(1)) { continue; }  // knots-only
+                        const Int pcx = piece.CrossingCount();
+                        if (pcx < Int(3)) { continue; }                          // unknot / unreduced
+                        if (pcx > static_cast<Int>(klut->CrossingCount())) { ++st.klut_overrange; continue; }
+                        if (klut->FindName(piece) == "NotFound") { ++st.klut_notfound; klut_gap = true; }
+                        else { ++st.klut_found; }
+                    }
+                    if (klut_gap && !dump_changed.empty() && dumped < dump_cap)
+                    {
+                        DumpChanged(dump_changed, "klutgap_" + shard_tag, tr.pd, n, V,
+                                    this_g, mask, tr.n_components);
+                        ++dumped;
+                        if (st.klut_notfound <= max_fail_print)
+                            std::cout << "  KLUT-GAP  V" << V << " g" << this_g << " m" << mask
+                                      << " (" << n << "cx): a simplified prime knot piece is"
+                                      << " not a table key\n";
+                    }
+                }
 
                 if (comp_bug || homfly_bug)
                 {
@@ -646,15 +693,28 @@ int main(int argc, char* argv[])
     else
         std::cout << "  (HOMFLY check skipped — component-count check only)\n";
     std::cout << "  reconstruction failures : " << st.recon_fail << "\n";
+    if (klut_on)
+        std::cout << "  KLUT pieces found       : " << st.klut_found << "\n"
+                  << "  KLUT NOT in table       : " << st.klut_notfound
+                  << "  (coverage-guarantee gaps)\n"
+                  << "  KLUT over 13 crossings  : " << st.klut_overrange
+                  << "  (out of table range)\n";
 
-    // ToSingleDiagram reassembly is faithful for split links (verified), so any
-    // change — component count or HOMFLY — is a genuine simplification bug.
+    // Component/HOMFLY changes are genuine simplification bugs; a KLUT gap is a
+    // distinct failure of the table's coverage guarantee. Either fails the run.
     const long bugs = st.comp_changed + st.changed;
-    if (bugs == 0)
-        std::cout << "PASS: simplification preserved every invariant checked.\n";
+    if (bugs == 0 && st.klut_notfound == 0)
+        std::cout << "PASS: simplification preserved every invariant"
+                  << (klut_on ? "; KLUT classified every prime piece.\n" : " checked.\n");
     else
-        std::cout << "FAIL: " << bugs << " bug(s) — " << st.comp_changed
-                  << " component-count, " << st.changed << " HOMFLY.\n";
+    {
+        if (bugs)
+            std::cout << "FAIL: " << bugs << " simplification bug(s) — " << st.comp_changed
+                      << " component-count, " << st.changed << " HOMFLY.\n";
+        if (st.klut_notfound)
+            std::cout << "FAIL: " << st.klut_notfound
+                      << " simplified prime piece(s) missing from the KLUT.\n";
+    }
 
     // Machine-readable, sum-reducible summary (one line; tab-separated key=val).
     // A reducer adds the integer fields across shards; `bugs` and exit code roll
@@ -670,6 +730,9 @@ int main(int argc, char* argv[])
               << "\tskipped="  << st.skipped
               << "\trecon_fail=" << st.recon_fail
               << "\tbugs="     << bugs
+              << "\tklut_found="     << st.klut_found
+              << "\tklut_notfound="  << st.klut_notfound
+              << "\tklut_overrange=" << st.klut_overrange
               << "\tseconds="  << Secs(t0, t1) << "\n";
-    return bugs == 0 ? 0 : 1;
+    return (bugs == 0 && st.klut_notfound == 0) ? 0 : 1;
 }

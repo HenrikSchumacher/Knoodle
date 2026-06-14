@@ -14,7 +14,8 @@ Exit code: 0 if no shard reported a bug and all expected shards are present,
 import sys, glob
 
 INT_FIELDS = ["tested", "knots", "links", "comp_changed",
-              "homfly_knot", "homfly_link", "skipped", "recon_fail", "bugs"]
+              "homfly_knot", "homfly_link", "skipped", "recon_fail", "bugs",
+              "klut_found", "klut_notfound", "klut_overrange"]
 
 
 def main(argv):
@@ -71,10 +72,18 @@ def main(argv):
         dumps = glob.glob(f"{dump_dir}/*.tsv")
         print(f"  reproducers in {dump_dir}: {len(dumps)}")
 
-    if total["bugs"] > 0:
-        print(f"RESULT: FAIL -- {total['bugs']:,} bug(s) "
-              f"({total['comp_changed']:,} component-count, "
-              f"{total['homfly_knot'] + total['homfly_link']:,} HOMFLY)")
+    if total["klut_found"] or total["klut_notfound"]:
+        print(f"  KLUT coverage : {total['klut_found']:,} pieces found, "
+              f"{total['klut_notfound']:,} NOT in table, "
+              f"{total['klut_overrange']:,} over 13 crossings")
+
+    if total["bugs"] > 0 or total["klut_notfound"] > 0:
+        if total["bugs"]:
+            print(f"RESULT: FAIL -- {total['bugs']:,} simplification bug(s) "
+                  f"({total['comp_changed']:,} component-count, "
+                  f"{total['homfly_knot'] + total['homfly_link']:,} HOMFLY)")
+        if total["klut_notfound"]:
+            print(f"RESULT: FAIL -- {total['klut_notfound']:,} prime piece(s) missing from KLUT")
         return 1
     if incomplete:
         print("RESULT: INCOMPLETE -- no bugs in the shards that ran, but some are missing")
