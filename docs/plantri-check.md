@@ -27,7 +27,7 @@ its 2ⁿ crossing sign assignments give all the diagrams on that shadow.
 `Simplify` carries a **color** on every arc — a *persistent label* for each link
 component, preserved across simplification (connect-sum summands of one
 component share its color). After one `Simplify`, the test checks two invariants
-— exit is nonzero if either changes:
+(plus an optional third, `--klut`) — exit is nonzero if any fails:
 
 1. **Link-component count** (cheap, HOMFLY-free). `Simplify` must not change the
    number of link components = `PlanarDiagramComplex::ColorCount()`. This catches
@@ -44,6 +44,17 @@ component share its color). After one `Simplify`, the test checks two invariants
    changing, even when the whole-link polynomial happens to match. (For a knot,
    k = 1 component, so this is exactly one comparison — no extra cost; cost grows
    as 2^k in the component count k, capped at k ≤ 16.)
+
+3. **KLUT coverage** (optional, `--klut[=DIR]`). The KLUT promises that *every
+   simplified, diagrammatically prime, ≤13-crossing knot is a table key*. The
+   simplified result is already a complex of diagrammatically-prime pieces, so
+   for each piece that is a single-component knot with 3 ≤ crossings ≤ 13 we look
+   up its MacLeod key via `Klut::FindName`; a `NotFound` is a real coverage gap.
+   This is the *only* test in the suite that exercises the table's coverage
+   contract — `klut_check` tests internal consistency, and `klut_e2e` fed back
+   already-minimal table keys (Simplify was a no-op there). It rides along on the
+   `Simplify` that the invariant checks already run, so it costs only a hash
+   lookup per piece; `--klut` is off by default, keeping the test self-contained.
 
 HOMFLY is computed by the vendored, public-domain **libhomfly**, fed by the
 library's own `PlanarDiagram::ToJenkinsCodeString()`, with the split-link
@@ -151,8 +162,9 @@ catches the component-loss class), sample sign masks, and cap the work:
 Flags: `--plantri`, `--plantri-mode`, `--crossing-assignments`,
 `--from-crossing`, `--up-to-crossing`, `--no-homfly`, `--knots-only`,
 `--max-diagrams`, `--max-graphs`, `--progress-every`, `--dump-changed`,
-`--shard`, `--seed`. Exit code is nonzero iff `Simplify` changed the component
-count or HOMFLY of some diagram.
+`--shard`, `--klut`, `--seed`. Exit code is nonzero iff `Simplify` changed the
+component count or HOMFLY of some diagram, or (`--klut`) a simplified prime knot
+piece was missing from the table.
 
 ## Cluster fan-out (`--shard=RES/MOD`)
 

@@ -380,9 +380,11 @@ struct SimplifyMeasure
     PD_T single_after;                 // reassembled diagram (need_single only)
     bool reduced_to_unknot = false;    // simplified away entirely (1 unknot)
     bool reassembly_failed = false;    // ToSingleDiagram returned invalid
+    std::vector<PD_T> pieces;          // diagrammatically-prime pieces (need_pieces)
 };
 
-inline SimplifyMeasure SimplifyAndMeasure(const PD_T& pd, bool need_single)
+inline SimplifyMeasure SimplifyAndMeasure(const PD_T& pd, bool need_single,
+                                          bool need_pieces = false)
 {
     SimplifyMeasure m;
     PD_T  copy(pd);
@@ -400,6 +402,11 @@ inline SimplifyMeasure SimplifyAndMeasure(const PD_T& pd, bool need_single)
     {
         m.single_after = pdc.ToSingleDiagram();
         if (!m.single_after.ValidQ()) { m.reassembly_failed = true; }
+    }
+    if (need_pieces)   // each is a diagrammatically-prime summand of the result
+    {
+        m.pieces.reserve(static_cast<std::size_t>(pdc.DiagramCount()));
+        for (Int i = 0; i < pdc.DiagramCount(); ++i) { m.pieces.push_back(pdc.Diagram(i)); }
     }
     return m;
 }
