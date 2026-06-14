@@ -2,18 +2,24 @@
  * @file plantri_check.cpp
  * @brief Exhaustive generator-based correctness test: enumerate planar knot/link
  *        diagrams with the vendored `plantri`, then verify that simplification
- *        preserves HOMFLY on every one of them. No Python, no Regina, no tools/.
+ *        preserves two invariants on every one. No Python, no Regina, no tools/.
  *
  * Pipeline (a self-contained C++ port of test/run_tests.py's Tier 2):
  *
  *   plantri -E V  ->  edge_code graphs (planar quadrangulations)
- *      -> quad_to_shadow:      dual = a 4-valent graph (the knot/link shadow)
- *      -> assign + trace:      each 2^n over/under assignment -> a signed PD code
- *      -> CheckInvariance:     HOMFLY(diagram) == HOMFLY(Simplify(diagram)) ?
+ *      -> quad_to_shadow:   dual = a 4-valent graph (the knot/link shadow)
+ *      -> assign + trace:   each 2^n over/under assignment -> a signed PD code
+ *      -> Simplify, then check two invariants of the result:
+ *           (1) link-component count (cheap, HOMFLY-free): ColorCount must not
+ *               change;
+ *           (2) per-sublink HOMFLY: colors are persistent component labels, so
+ *               for EVERY color subset the corresponding sublink's HOMFLY must
+ *               be preserved (the full subset is the whole-link check). With
+ *               --no-homfly only (1) runs, for fast high-crossing torture runs.
  *
- * The HOMFLY oracle (vendored libhomfly + split-link delta rule + the
- * simplify-preserves-HOMFLY check) is shared with homfly_check.cpp via
- * homfly_invariance.hpp, so this test uses the exact oracle that is itself
+ * The HOMFLY oracle (vendored libhomfly + split-link delta rule) and the
+ * component/sublink helpers live in homfly_invariance.hpp, shared with
+ * homfly_check.cpp, so this test uses the exact oracle that is itself
  * cross-validated against libhomfly's published reference polynomials.
  *
  * For crossing number n, plantri is asked for V = n + 2 vertices:
@@ -21,9 +27,9 @@
  *   no-r1      : plantri -Q -c2 -E V     (all quads, no length-2 cycles)
  *   everything : plantri -Q -E V         (all quadrangulations)
  *
- * A "Changed" result is a genuine bug (simplification altered the knot type); a
- * "skip" is a diagram this oracle can't settle (e.g. a simplified complex that
- * cannot be reassembled into one diagram). Exit nonzero iff any HOMFLY changed.
+ * Any change in component count or a sublink HOMFLY is a genuine simplification
+ * bug; exit is nonzero iff one is found. plantri output is streamed (bounded
+ * memory at any V); Ctrl-C stops early with a summary.
  *
  * Build: test/Makefile target plantri_check (light config, links vendored
  * libhomfly; needs the vendored plantri binary at runtime).
@@ -31,9 +37,14 @@
 
 #include "homfly_invariance.hpp"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <csignal>
 #include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <random>
@@ -44,6 +55,11 @@
 using Clock = std::chrono::steady_clock;
 
 namespace {
+
+// Set by SIGINT so an all-night run can be stopped with Ctrl-C and still print
+// its summary. A volatile sig_atomic_t is the only state a handler may touch.
+volatile std::sig_atomic_t g_stop = 0;
+extern "C" void OnSigint(int) { g_stop = 1; }
 
 double Secs(Clock::time_point a, Clock::time_point b)
 {
@@ -59,77 +75,73 @@ std::string Shq(const std::string& s)
 }
 
 //==============================================================================
-// plantri invocation + edge_code parsing  (port of run_tests.py)
+// plantri invocation + streaming edge_code parser  (port of run_tests.py)
 //==============================================================================
-
-/// Run plantri for V vertices in the given mode and capture its binary stdout.
-/// Sets ok=false if the process could not be launched.
-std::vector<unsigned char> RunPlantri(const std::string& plantri,
-                                      const std::string& mode, int V, bool& ok)
-{
-    const std::string flags = (mode == "simple")  ? "-q -E"
-                            : (mode == "no-r1")    ? "-Q -c2 -E"
-                                                   : "-Q -E";   // "everything"
-    const std::string cmd = Shq(plantri) + " " + flags + " " + std::to_string(V)
-                          + " 2>/dev/null";
-    FILE* f = ::popen(cmd.c_str(), "r");
-    if (!f) { ok = false; return {}; }
-
-    std::vector<unsigned char> out;
-    unsigned char buf[65536];
-    std::size_t got;
-    while ((got = std::fread(buf, 1, sizeof buf, f)) > 0)
-        out.insert(out.end(), buf, buf + got);
-    ::pclose(f);
-    ok = true;
-    return out;
-}
 
 using Graph = std::vector<std::vector<int>>;   // per vertex: CW edge indices
 
-/// Parse plantri's binary edge_code (-E) output into a list of graphs.
-std::vector<Graph> ParseEdgeCodes(const std::vector<unsigned char>& raw)
+/// Streams graphs out of `plantri -E` one at a time, so memory stays bounded no
+/// matter how many graphs a high vertex count produces (V=15 yields hundreds of
+/// millions — buffering the whole stdout would OOM). Reads records directly off
+/// the pipe: a 1-byte body size (or 0 then a 4-byte little-endian size), then
+/// that many bytes of vertex sections separated by 0xFF.
+class PlantriStream
 {
-    static const std::string HEADER = ">>edge_code<<";
-    std::vector<Graph> graphs;
-    if (raw.size() < HEADER.size()) { return graphs; }
-    for (std::size_t i = 0; i < HEADER.size(); ++i)
-        if (raw[i] != static_cast<unsigned char>(HEADER[i])) { return graphs; }
+public:
+    ~PlantriStream() { Close(); }
 
-    std::size_t pos = HEADER.size();
-    while (pos < raw.size())
+    bool Open(const std::string& plantri, const std::string& mode, int V)
     {
-        std::size_t body_size = raw[pos];
-        ++pos;
-        if (body_size == 0)   // extended header: next 4 bytes LE are the size
-        {
-            if (pos + 4 > raw.size()) { break; }
-            body_size = static_cast<std::size_t>(raw[pos])
-                      | (static_cast<std::size_t>(raw[pos + 1]) << 8)
-                      | (static_cast<std::size_t>(raw[pos + 2]) << 16)
-                      | (static_cast<std::size_t>(raw[pos + 3]) << 24);
-            pos += 4;
-        }
-        if (pos + body_size > raw.size()) { break; }
+        const std::string flags = (mode == "simple")  ? "-q -E"
+                                : (mode == "no-r1")    ? "-Q -c2 -E"
+                                                       : "-Q -E";   // "everything"
+        const std::string cmd = Shq(plantri) + " " + flags + " " + std::to_string(V)
+                              + " 2>/dev/null";
+        f_ = ::popen(cmd.c_str(), "r");
+        if (!f_) { return false; }
 
-        Graph vertices;
-        std::vector<int> current;
-        for (std::size_t k = 0; k < body_size; ++k)
-        {
-            const unsigned char b = raw[pos + k];
-            if (b == 0xFF)
-            {
-                if (!current.empty()) { vertices.push_back(current); current.clear(); }
-            }
-            else { current.push_back(static_cast<int>(b)); }
-        }
-        if (!current.empty()) { vertices.push_back(current); }
-        pos += body_size;
-
-        graphs.push_back(std::move(vertices));
+        static const std::string HEADER = ">>edge_code<<";
+        std::vector<char> hb(HEADER.size());
+        if (std::fread(hb.data(), 1, HEADER.size(), f_) != HEADER.size()) { return false; }
+        return std::equal(HEADER.begin(), HEADER.end(), hb.begin());
     }
-    return graphs;
-}
+
+    /// Read the next graph into `g`. Returns false at end of stream.
+    bool Next(Graph& g)
+    {
+        int c = std::fgetc(f_);
+        if (c == EOF) { return false; }
+        std::size_t body = static_cast<std::size_t>(c);
+        if (body == 0)   // extended header: 4-byte little-endian size
+        {
+            unsigned char b4[4];
+            if (std::fread(b4, 1, 4, f_) != 4) { return false; }
+            body = static_cast<std::size_t>(b4[0])
+                 | (static_cast<std::size_t>(b4[1]) << 8)
+                 | (static_cast<std::size_t>(b4[2]) << 16)
+                 | (static_cast<std::size_t>(b4[3]) << 24);
+        }
+        std::vector<unsigned char> buf(body);
+        if (body && std::fread(buf.data(), 1, body, f_) != body) { return false; }
+
+        g.clear();
+        std::vector<int> cur;
+        for (std::size_t k = 0; k < body; ++k)
+        {
+            const unsigned char b = buf[k];
+            if (b == 0xFF) { if (!cur.empty()) { g.push_back(cur); cur.clear(); } }
+            else { cur.push_back(static_cast<int>(b)); }
+        }
+        if (!cur.empty()) { g.push_back(cur); }
+        return true;
+    }
+
+    // Stop early: closing the pipe sends plantri SIGPIPE on its next write.
+    void Close() { if (f_) { ::pclose(f_); f_ = nullptr; } }
+
+private:
+    FILE* f_ = nullptr;
+};
 
 //==============================================================================
 // quadrangulation -> knot-shadow (dual)  (port of quad_to_shadow)
@@ -318,6 +330,8 @@ struct Stats
 {
     long tested = 0, preserved = 0, changed = 0, skipped = 0, recon_fail = 0;
     long knots = 0, links = 0;
+    long changed_knots = 0, changed_links = 0;   // HOMFLY changed (knot/link)
+    long comp_changed = 0;                        // link-component count changed
 };
 
 /// Masks to test for an n-crossing shadow: all 2^n, or a random K-sample.
@@ -344,6 +358,22 @@ std::vector<std::uint64_t> ChooseMasks(int n, const std::string& assignments,
     return masks;
 }
 
+/// Write a changed diagram's 5-column signed PD code to its own file in `dir`
+/// (named by V/graph/mask/components) — a reproducer directly consumable by
+/// `homfly_check --invariance <dir>/*.tsv` or by knoodlesimplify.
+void DumpChanged(const std::string& dir, const std::vector<Int>& pd, int n,
+                 int V, long g, std::uint64_t mask, int ncomp)
+{
+    const std::string path = dir + "/V" + std::to_string(V) + "_g" + std::to_string(g)
+                           + "_m" + std::to_string(mask) + "_" + std::to_string(ncomp)
+                           + "comp.tsv";
+    std::ofstream f(path);
+    if (!f) { return; }
+    for (int c = 0; c < n; ++c)
+        for (int j = 0; j < 5; ++j)
+            f << pd[static_cast<std::size_t>(5 * c + j)] << (j < 4 ? '\t' : '\n');
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -353,8 +383,13 @@ int main(int argc, char* argv[])
     std::string assignments  = "all";
     int  from_c = 3, to_c = 6;
     bool knots_only = false;
+    bool do_homfly = true;          // --no-homfly => component-count check only (fast)
     long seed = 42;
     long max_fail_print = 25;
+    long max_diagrams = 0;          // global cap (0 = unlimited)
+    long max_graphs   = 0;          // per-vertex-count graph cap (0 = unlimited)
+    long progress_every = 200000;   // emit a progress line every N diagrams
+    std::string dump_changed;       // file to dump changed diagrams' PD codes to
 
     for (int k = 1; k < argc; ++k)
     {
@@ -365,27 +400,47 @@ int main(int argc, char* argv[])
         else if (a.rfind("--from-crossing=", 0) == 0)        from_c = std::stoi(a.substr(16));
         else if (a.rfind("--up-to-crossing=", 0) == 0)       to_c = std::stoi(a.substr(17));
         else if (a == "--knots-only")                        knots_only = true;
+        else if (a == "--no-homfly")                         do_homfly = false;
         else if (a.rfind("--seed=", 0) == 0)                 seed = std::stol(a.substr(7));
+        else if (a.rfind("--max-diagrams=", 0) == 0)         max_diagrams = std::stol(a.substr(15));
+        else if (a.rfind("--max-graphs=", 0) == 0)           max_graphs = std::stol(a.substr(13));
+        else if (a.rfind("--progress-every=", 0) == 0)       progress_every = std::stol(a.substr(17));
+        else if (a.rfind("--dump-changed=", 0) == 0)         dump_changed = a.substr(15);
         else if (a == "-h" || a == "--help")
         {
             std::cout <<
-                "plantri_check -- exhaustive plantri-generated HOMFLY-invariance test.\n\n"
+                "plantri_check -- exhaustive plantri-generated simplification test.\n\n"
                 "Enumerates planar knot/link diagrams with the vendored plantri and\n"
-                "checks that Simplify preserves HOMFLY on each. Exit nonzero iff any\n"
-                "HOMFLY changed (a real simplification bug).\n\n"
+                "checks that Simplify preserves two invariants on each: the link-\n"
+                "component count (cheap, HOMFLY-free) and the HOMFLY polynomial.\n"
+                "Exit nonzero iff either changed. plantri output is streamed, so\n"
+                "memory stays bounded at any crossing number; Ctrl-C stops early and\n"
+                "still prints a summary.\n\n"
                 "  --plantri=PATH              plantri binary (default vendor/plantri/plantri)\n"
                 "  --plantri-mode=MODE         everything | no-r1 | simple (default everything)\n"
                 "  --crossing-assignments=A    all, or an integer K random sample (default all)\n"
                 "  --from-crossing=N           first crossing number (default 3)\n"
                 "  --up-to-crossing=N          last crossing number (default 6)\n"
+                "  --no-homfly                 component-count check only (fast; for high cx)\n"
                 "  --knots-only                skip multi-component (link) diagrams\n"
+                "  --max-diagrams=N            stop after N diagrams total (0 = unlimited)\n"
+                "  --max-graphs=N              cap graphs per crossing number (0 = unlimited)\n"
+                "  --progress-every=N          progress line every N diagrams (default 200000)\n"
+                "  --dump-changed=DIR          write each changed diagram's PD code into DIR\n"
+                "                              (one .tsv per diagram; feed to homfly_check)\n"
                 "  --seed=N                    RNG seed for K-sampling (default 42)\n\n"
-                "Note: 'simple' mode only yields even V>=8, i.e. crossing number >= 6;\n"
-                "use 'everything' or 'no-r1' for smaller diagrams.\n";
+                "All-night torture test at 13 crossings (component check only is far\n"
+                "faster than HOMFLY there; sample signs and cap the work):\n"
+                "  ./plantri_check --from-crossing=13 --up-to-crossing=13 \\\n"
+                "                  --crossing-assignments=64 --no-homfly --max-diagrams=50000000\n"
+                "Note: 'simple' mode only yields even V>=8 (crossing number >= 6);\n"
+                "use 'everything'/'no-r1' for smaller diagrams.\n";
             return 0;
         }
         else { std::cerr << "unknown option: " << a << "\n"; return 2; }
     }
+
+    std::signal(SIGINT, OnSigint);   // Ctrl-C -> graceful stop with a summary
 
     std::cout << "=== plantri_check (mode=" << mode << ", c=" << from_c << ".."
               << to_c << ", assignments=" << assignments
@@ -408,59 +463,136 @@ int main(int argc, char* argv[])
         return 0;
     }
 
+    if (!dump_changed.empty())
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(dump_changed, ec);
+        if (ec) { std::cerr << "cannot create dir " << dump_changed << "\n"; return 2; }
+    }
+    long dumped = 0;
+    const long dump_cap = 2000;   // avoid flooding on a huge torture run
+
     std::mt19937_64 rng(static_cast<std::uint64_t>(seed));
     Stats st;
     std::map<int, std::pair<long,long>> per_c;   // crossing -> (tested, changed)
     const auto t0 = Clock::now();
 
+    bool stopped = false;   // diagram budget hit, or Ctrl-C
     for (int V : v_values)
     {
+        if (stopped) { break; }
         const int n = V - 2;
-        bool ok = false;
-        const auto raw = RunPlantri(plantri, mode, V, ok);
-        if (!ok) { std::cerr << "  could not run plantri for V=" << V << "\n"; return 2; }
-        const auto graphs = ParseEdgeCodes(raw);
+        PlantriStream ps;
+        if (!ps.Open(plantri, mode, V))
+        { std::cerr << "  could not run plantri for V=" << V << "\n"; return 2; }
         const auto tv = Clock::now();
 
-        long v_tested = 0, v_changed = 0, bad_graphs = 0;
-        for (std::size_t g = 0; g < graphs.size(); ++g)
+        long v_tested = 0, v_changed = 0, bad_graphs = 0, g_idx = 0;
+        Graph g;
+        while (ps.Next(g))
         {
-            Shadow sh = QuadToShadow(graphs[g]);
+            if (g_stop) { stopped = true; break; }
+            if (max_graphs && g_idx >= max_graphs) { break; }
+            const long this_g = g_idx++;
+
+            Shadow sh = QuadToShadow(g);
             if (!sh.ok) { ++bad_graphs; continue; }
 
             for (std::uint64_t mask : ChooseMasks(n, assignments, rng))
             {
+                if (g_stop) { stopped = true; break; }
                 Traced tr = AssignAndTrace(sh, mask);
                 if (!tr.ok) { continue; }
-                if (knots_only && tr.n_components > 1) { continue; }
+                const bool is_link = (tr.n_components > 1);
+                if (knots_only && is_link) { continue; }
 
                 PD_T pd = BuildPD(tr.pd, n);
-                if (!pd.ValidQ())
-                {
-                    ++st.recon_fail;
-                    continue;
-                }
-                (tr.n_components > 1 ? st.links : st.knots)++;
-
-                InvarianceResult r = CheckInvariance(pd);
+                if (!pd.ValidQ()) { ++st.recon_fail; continue; }
+                (is_link ? st.links : st.knots)++;
                 ++st.tested; ++v_tested;
 
-                if (r.status == InvStatus::Preserved) { ++st.preserved; }
-                else if (r.status == InvStatus::Changed)
+                // One Simplify, two invariants:
+                //  (1) component count (cheap, HOMFLY-free) — Simplify must not
+                //      change the number of link components (colors);
+                //  (2) per-sublink HOMFLY (optional) — colors are persistent
+                //      labels, so EVERY color-subset sublink must keep its HOMFLY
+                //      (the full subset is the whole-link check). Strictly
+                //      stronger than checking only the whole link.
+                const Int comp_before = pd.ColorCount();   // = link-component count
+                SimplifyMeasure m = SimplifyAndMeasure(pd, do_homfly);
+                const bool comp_bug = (comp_before != m.comp_after);
+
+                bool homfly_bug = false;
+                if (do_homfly)
                 {
-                    ++st.changed; ++v_changed;
-                    if (st.changed <= max_fail_print)
-                        std::cout << "  FAIL  V" << V << " g" << g << " m" << mask
-                                  << " " << tr.n_components << "comp ("
-                                  << n << " crossings)\n"
-                                  << "    before: " << PolyToString(r.before) << "\n"
-                                  << "    after : " << PolyToString(r.after)  << "\n";
+                    if (m.reassembly_failed) { ++st.skipped; }
+                    else
+                    {
+                        const std::set<Int> cset = DiagramColors(pd);
+                        const std::vector<Int> cols(cset.begin(), cset.end());
+                        const int k = static_cast<int>(cols.size());
+                        bool skip = false;
+                        const Polynomial unknot{ {{0,0},1} };
+                        if (m.reduced_to_unknot)
+                        {
+                            bool okb = true;                 // whole link must be the unknot
+                            if (SublinkHomfly(pd, cols, okb) != unknot) { homfly_bug = true; }
+                            if (!okb) { skip = true; }
+                        }
+                        else if (k >= 1 && k <= 16)
+                        {
+                            for (std::uint32_t bits = 1;
+                                 bits < (std::uint32_t(1) << k) && !homfly_bug && !skip; ++bits)
+                            {
+                                std::vector<Int> subset;
+                                for (int i = 0; i < k; ++i)
+                                    if (bits & (std::uint32_t(1) << i)) subset.push_back(cols[i]);
+                                bool okb = true, oka = true;
+                                Polynomial hb = SublinkHomfly(pd, subset, okb);
+                                Polynomial ha = SublinkHomfly(m.single_after, subset, oka);
+                                if (!okb || !oka) { skip = true; }
+                                else if (hb != ha) { homfly_bug = true; }
+                            }
+                        }
+                        else { skip = true; }   // too many components to enumerate
+
+                        if (skip) { ++st.skipped; }
+                        else if (homfly_bug)
+                        { ++st.changed; (is_link ? st.changed_links : st.changed_knots)++; }
+                    }
                 }
-                else { ++st.skipped; }
+                if (comp_bug) { ++st.comp_changed; }
+                if (!comp_bug && !homfly_bug) { ++st.preserved; }
+
+                if (comp_bug || homfly_bug)
+                {
+                    ++v_changed;
+                    if (!dump_changed.empty() && dumped < dump_cap)
+                    { DumpChanged(dump_changed, tr.pd, n, V, this_g, mask, tr.n_components); ++dumped; }
+                    if (st.comp_changed + st.changed <= max_fail_print)
+                    {
+                        std::cout << "  BUG  V" << V << " g" << this_g << " m" << mask << " "
+                                  << tr.n_components << "comp (" << n << "cx):";
+                        if (comp_bug)
+                            std::cout << " components " << comp_before << "->" << m.comp_after << ";";
+                        if (homfly_bug) std::cout << " a sublink's HOMFLY changed;";
+                        std::cout << "\n";
+                    }
+                }
+
+                if (progress_every && st.tested % progress_every == 0)
+                    std::cerr << "  ... V" << V << " g" << this_g << " | " << st.tested
+                              << " diagrams, " << st.comp_changed << " comp / "
+                              << st.changed << " HOMFLY changed ["
+                              << Secs(t0, Clock::now()) << "s]\n";
+
+                if (max_diagrams && st.tested >= max_diagrams) { stopped = true; break; }
             }
+            if (stopped) { break; }
         }
+        ps.Close();   // SIGPIPEs plantri if we stopped early
         per_c[n] = { v_tested, v_changed };
-        std::cout << "  V=" << V << " (" << n << " crossings): " << graphs.size()
+        std::cout << "  V=" << V << " (" << n << " crossings): " << g_idx
                   << " graphs, " << v_tested << " diagrams, " << v_changed
                   << " changed";
         if (bad_graphs) { std::cout << ", " << bad_graphs << " non-quad skipped"; }
@@ -468,15 +600,29 @@ int main(int argc, char* argv[])
     }
 
     const auto t1 = Clock::now();
+    if (stopped)
+        std::cout << (g_stop ? "\n(interrupted by Ctrl-C — partial results below)\n"
+                             : "\n(stopped at --max-diagrams budget)\n");
     std::cout << "\nplantri_check: " << st.tested << " diagrams ("
               << st.knots << " knots, " << st.links << " links) in "
               << Secs(t0, t1) << "s\n"
-              << "  HOMFLY preserved : " << st.preserved << "\n"
-              << "  HOMFLY changed   : " << st.changed   << "  (real simplify bugs)\n"
-              << "  skipped (oracle) : " << st.skipped   << "  (split/not reassemblable)\n"
-              << "  reconstruction failures: " << st.recon_fail << "\n";
-    std::cout << (st.changed == 0
-                  ? "PASS: simplification preserved HOMFLY on every diagram.\n"
-                  : (std::to_string(st.changed) + " diagram(s) changed HOMFLY.\n"));
-    return st.changed == 0 ? 0 : 1;
+              << "  component count changed : " << st.comp_changed
+              << "  (Simplify dropped/added a link component)\n";
+    if (do_homfly)
+        std::cout << "  HOMFLY changed (knot)   : " << st.changed_knots << "\n"
+                  << "  HOMFLY changed (link)   : " << st.changed_links << "\n"
+                  << "  skipped (HOMFLY)        : " << st.skipped << "  (not computable)\n";
+    else
+        std::cout << "  (HOMFLY check skipped — component-count check only)\n";
+    std::cout << "  reconstruction failures : " << st.recon_fail << "\n";
+
+    // ToSingleDiagram reassembly is faithful for split links (verified), so any
+    // change — component count or HOMFLY — is a genuine simplification bug.
+    const long bugs = st.comp_changed + st.changed;
+    if (bugs == 0)
+        std::cout << "PASS: simplification preserved every invariant checked.\n";
+    else
+        std::cout << "FAIL: " << bugs << " bug(s) — " << st.comp_changed
+                  << " component-count, " << st.changed << " HOMFLY.\n";
+    return bugs == 0 ? 0 : 1;
 }

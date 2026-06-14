@@ -22,21 +22,49 @@ For crossing number `n`, plantri is asked for `V = n + 2` vertices. The dual of
 a planar quadrangulation is a 4-valent graph — exactly a knot/link **shadow**;
 its 2ⁿ crossing sign assignments give all the diagrams on that shadow.
 
-## The oracle
+## What it checks per diagram
+
+`Simplify` carries a **color** on every arc — a *persistent label* for each link
+component, preserved across simplification (connect-sum summands of one
+component share its color). After one `Simplify`, the test checks two invariants
+— exit is nonzero if either changes:
+
+1. **Link-component count** (cheap, HOMFLY-free). `Simplify` must not change the
+   number of link components = `PlanarDiagramComplex::ColorCount()`. This catches
+   *component-loss* bugs directly and is the only check needed for a fast
+   high-crossing torture run (`--no-homfly`).
+2. **Per-sublink HOMFLY** (the strong property). Because colors are persistent
+   labels, not only must the whole-link HOMFLY be preserved, but the link type
+   of **every sublink** — the components in *any subset* of colors — must be too.
+   The test reassembles the result with `ToSingleDiagram()` and, for each
+   non-empty color subset `S`, compares `HOMFLY(input restricted to S)` against
+   `HOMFLY(simplified restricted to S)` via `SubdiagramByColors`. The full
+   subset is the ordinary whole-link check; the proper subsets additionally
+   catch a single component's knot type changing, or two components' linking
+   changing, even when the whole-link polynomial happens to match. (For a knot,
+   k = 1 component, so this is exactly one comparison — no extra cost; cost grows
+   as 2^k in the component count k, capped at k ≤ 16.)
 
 HOMFLY is computed by the vendored, public-domain **libhomfly**, fed by the
-core library's own `PlanarDiagram::ToJenkinsCodeString()`. The oracle —
-diagram → Jenkins → libhomfly, the split-link **delta rule**
-(`H(A ⊔ B) = δ·H(A)·H(B)`, since libhomfly only handles connected diagrams), and
-the `Simplify`-preserves-HOMFLY check — lives in `test/homfly_invariance.hpp`,
-**shared** with `homfly_check.cpp`. So `plantri_check` uses the exact oracle
-that `homfly_check` cross-validates against libhomfly's published reference
-polynomials. No Python, no Regina, no `tools/` — just the library, vendored
-libhomfly, and vendored plantri.
+library's own `PlanarDiagram::ToJenkinsCodeString()`, with the split-link
+**delta rule** (`H(A ⊔ B) = δ·H(A)·H(B)`). The oracle lives in
+`test/homfly_invariance.hpp`, **shared** with `homfly_check.cpp`, so
+`plantri_check` uses the exact HOMFLY oracle that `homfly_check` cross-validates
+against libhomfly's published reference polynomials. No Python, no Regina, no
+`tools/`.
 
-Per diagram the result is **preserved** (pass), **changed** (a genuine
-simplification bug → hard failure, exit nonzero), or **skipped** (the simplified
-complex can't be reassembled into one diagram for the oracle — rare).
+### A note on split links and `ToSingleDiagram()`
+
+`Simplify` returns a `PlanarDiagramComplex` whose arcs carry **colors**: same
+color = connect-summed (HOMFLY multiplies, no δ); distinct colors co-occurring
+in one connected piece = linked (no δ); distinct colors in disjoint pieces =
+split (one δ each). `ToSingleDiagram()` reassembles via
+`Splitting → AnelliToFarfalle → Connect`; the *anelli→farfalle* step encodes the
+split δ factors, so it is **HOMFLY-faithful for split links too**. This was
+verified (2026-06-14): an explicit color-aware `δ^(S−1)·∏H(piece)` computation
+agrees with `ToSingleDiagram` on 2- and 3-way split links and on all 8.5M
+8-crossing diagrams. So no "split-link oracle fix" was needed — a change on a
+split link is a genuine `Simplify` bug, and we kept the simpler library path.
 
 ## plantri modes
 
@@ -65,22 +93,34 @@ legitimate.
 
 ## Result
 
-**All diagrams pass** — `Simplify` preserved HOMFLY on every one, with no
-changes, in `everything` mode:
+Through **7 crossings, every diagram passes** — `Simplify` preserved HOMFLY on
+all of them — in `everything` mode:
 
-| up to | diagrams | (knots / links) | time |
-|---|---|---|---|
-| 6 crossings | 51,428 | 26,856 / 24,572 | ~0.9 s |
-| 7 crossings | +587,008 | 280,832 / 306,176 | ~11 s |
+| up to | diagrams | (knots / links) | bugs | time |
+|---|---|---|---|---|
+| 6 crossings | 51,428 | 26,856 / 24,572 | 0 | ~0.9 s |
+| 7 crossings | +587,008 | 280,832 / 306,176 | 0 | ~11 s |
+| 8 crossings | +8,543,488 | 3,741,184 / 4,802,304 | **208 links** | ~3 min |
 
 Diagram counts match `run_tests.py`'s Tier 2 exactly (V=4: 3 graphs, V=5: 7,
 V=6: 30, V=7: 124, V=8: 733), confirming the C++ converter is a faithful port.
 
+**8 crossings surfaces 208 genuine simplification bugs.** Every one is a
+multi-component **unlink** that `Simplify` reduces to a *lower* unlink — e.g. a
+3-component unlink (HOMFLY `before = δ²`) comes back with two components
+(`after = δ`). It is a real bug, not an oracle artifact: `Simplify`
+*deterministically* returns a 2-component result for these 3-unlink inputs
+(`ColorCount`/`DiagramCount` = 2), i.e. it **drops a split unknot component**.
+Both the cheap component-count check and the HOMFLY check flag the same 208.
+This 8-crossing Tier-2 sweep had never been run before (the Python suite OOM'd
+there; this test streams plantri, so memory is bounded). Dump the offending
+diagrams with `--dump-changed=DIR` to investigate.
+
 **Historical note.** As of 2026-03-24, Tier 2 had **8 known failures** up to 6
-crossings — all 4-component links from graph g510 at V=8 — then under
-investigation in `knoodlesimplify`. They are **gone**: both this C++ test and
-the Python Tier 2 now report 0 failures over all 51,428 diagrams, so the
-underlying simplification bug was fixed in the interim.
+crossings — 4-component links at V=8 g510 — then under investigation. They are
+**gone**: both this test and the Python Tier 2 now report 0 failures over all
+51,428 ≤6-crossing diagrams, so that bug was fixed in the interim. The 208 new
+failures are a *distinct*, deeper class found only at 8 crossings.
 
 ## Usage
 
@@ -88,12 +128,28 @@ underlying simplification bug was fixed in the interim.
 cd test
 make plantri_check          # builds vendored plantri + the test (no UMFPACK)
 ./plantri_check                              # everything mode, c=3..6 (~0.9 s)
-./plantri_check --up-to-crossing=7           # +7-crossing (~11 s)
+./plantri_check --up-to-crossing=7           # +7-crossing (~11 s, clean)
+./plantri_check --up-to-crossing=8           # +8-crossing (~3 min, finds 208)
+./plantri_check --up-to-crossing=8 --dump-changed=bugs/   # save reproducers
 ./plantri_check --knots-only                 # skip link diagrams
-./plantri_check --plantri-mode=no-r1         # fewer graphs, no R1 pairs
 ./plantri_check --crossing-assignments=8     # sample 8 random sign masks/shadow
 ```
 
+`--dump-changed=DIR` writes one `.tsv` per offending diagram, directly
+re-checkable via `./homfly_check --invariance bugs/*.tsv`.
+
+plantri output is **streamed**, so memory stays bounded at any crossing number;
+**Ctrl-C** stops early and still prints a summary. For an all-night torture test
+at, say, 13 crossings, drop HOMFLY (the component-count check is far cheaper and
+catches the component-loss class), sample sign masks, and cap the work:
+
+```sh
+./plantri_check --from-crossing=13 --up-to-crossing=13 \
+                --crossing-assignments=64 --no-homfly --max-diagrams=50000000
+```
+
 Flags: `--plantri`, `--plantri-mode`, `--crossing-assignments`,
-`--from-crossing`, `--up-to-crossing`, `--knots-only`, `--seed`. Exit code is
-nonzero iff some diagram's HOMFLY changed under simplification.
+`--from-crossing`, `--up-to-crossing`, `--no-homfly`, `--knots-only`,
+`--max-diagrams`, `--max-graphs`, `--progress-every`, `--dump-changed`,
+`--seed`. Exit code is nonzero iff `Simplify` changed the component count or
+HOMFLY of some diagram.

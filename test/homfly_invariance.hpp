@@ -262,17 +262,32 @@ inline std::string PolyToString(const Polynomial& p)
 //==============================================================================
 //
 // HOMFLY is a link invariant, so simplification must not change it. We compare
-// homfly(input) to homfly(whole simplified diagram). The simplified complex is
-// reassembled into one diagram with PlanarDiagramComplex::ToSingleDiagram(),
-// which connect-sums the pieces back together (and converts anelli to
-// farfalle) — HOMFLY-faithful for knots and non-split links.
+// homfly(input) to homfly(simplified complex).
 //
-// SPLIT (disconnected) diagrams need care: libhomfly segfaults on them (even
-// the bare unknot "1 0"). HomflyOfPossiblySplit handles them by decomposing
-// into connected pieces and combining with the split-union delta rule, so both
-// the input and the simplified diagram may be split. The only remaining
-// unsupported case is when ToSingleDiagram() cannot produce a single diagram at
-// all (returns invalid) — then we report InvStatus::Unsupported.
+// === How a simplified PlanarDiagramComplex encodes a link (the model) ===
+//
+// After Simplify, the result is a PlanarDiagramComplex whose pd_list holds one
+// or more diagrams, and every arc carries a COLOR (PD_T::ArcColors()). Color and
+// storage connectivity distinguish how the pieces combine:
+//
+//   * Same color  => CONNECT-SUMMED — prime summands of one knotted loop;
+//     HOMFLY multiplies, NO delta: H(A # B) = H(A)·H(B).
+//   * Distinct colors co-occurring in one CONNECTED piece => LINKED (e.g. a Hopf
+//     link); not split, no delta.
+//   * Distinct colors in disjoint pieces sharing no color => SPLIT (disjoint,
+//     unlinked); each split boundary adds one delta: H(A ⊔ B) = delta·H(A)·H(B).
+//
+// `ToSingleDiagram()` reassembles the complex into one diagram via
+// Splitting() -> AnelliToFarfalle() -> Connect(); the anelli->farfalle step
+// encodes the split-union delta factors, so the result is HOMFLY-faithful for
+// knots, connect-sums, non-split links, AND split links. We rely on it here.
+//
+// (Verified 2026-06-14: an explicit color-aware delta computation —
+// delta^(S-1)·prod H(Splitting piece), S = color-connected split components —
+// agrees with ToSingleDiagram on 2-way and 3-way split links and on all 8.5M
+// 8-crossing plantri diagrams. So ToSingleDiagram needs no "split-link fix"; a
+// HOMFLY change on a split link is a genuine Simplify bug, not an oracle
+// artifact. We kept the simpler library-canonical path.)
 
 /// Simplify args mirroring knoodlesimplify's default (Reapr / level-6) path;
 /// the struct's defaults already set splitQ/rerouteQ/disconnectQ = true.
@@ -283,10 +298,10 @@ inline PDC_T::Simplify_Args_T SimplifyArgs()
 
 enum class InvStatus { Preserved, Changed, Unsupported };
 
-/// HOMFLY of the simplified diagram as a whole (split-union delta rule applied
-/// when it is disconnected). Returns the unknot polynomial {(0,0):1} when the
-/// input simplifies to the trivial knot. Sets supported=false only when the
-/// simplified complex cannot be reassembled into a single diagram at all.
+/// HOMFLY of the simplified diagram, honoring its split structure (via
+/// ToSingleDiagram's faithful reassembly + HomflyOfPossiblySplit's delta rule).
+/// Returns the unknot polynomial {(0,0):1} when the input simplifies away
+/// entirely. Sets supported=false only when the complex cannot be reassembled.
 inline Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
 {
     supported = true;
@@ -305,6 +320,88 @@ inline Polynomial SimplifiedHomfly(const PD_T& pd, bool& supported)
         return {};
     }
     return HomflyOfPossiblySplit(KnoodleJenkins(single), supported);
+}
+
+/// Number of link components of a complex = number of distinct arc colors
+/// (connect-sum summands share a color, so they count once; each unlink was
+/// created with its own color). Simplify must preserve this; a change is a
+/// component-loss/gain bug. The empty (DiagramCount 0) complex is a single
+/// unknot = 1 component.
+inline Int ComplexComponentCount(const PDC_T& pdc)
+{
+    return (pdc.DiagramCount() == Int(0)) ? Int(1) : pdc.ColorCount();
+}
+
+/// Distinct active-arc colors of a diagram = the labels of its link components
+/// (a color is a *persistent* identifier preserved across simplification).
+inline std::set<Int> DiagramColors(const PD_T& d)
+{
+    std::set<Int> colors;
+    const auto& col = d.ArcColors();
+    const Int A = d.ArcCount();
+    for (Int a = 0; a < A; ++a)
+        if (d.ArcActiveQ(a) && col[a] != PD_T::InvalidColor) { colors.insert(col[a]); }
+    return colors;
+}
+
+/// HOMFLY of the SUBLINK of `d` formed by the components whose color is in
+/// `subset`. SubdiagramByColors splits pure-unknot components off into the
+/// returned unlink-color tensor, so we fold them back in with the delta rule
+/// (each is one extra split unknot component).
+inline Polynomial SublinkHomfly(const PD_T& d, const std::vector<Int>& subset, bool& ok)
+{
+    ok = true;
+    auto pr = d.SubdiagramByColors(subset.data(), static_cast<Int>(subset.size()));
+    const PD_T& sub  = pr.first;
+    const Int   extra = pr.second.Size();    // unknot components split off
+
+    Polynomial h;
+    if (sub.ValidQ())
+    {
+        h = HomflyOfPossiblySplit(KnoodleJenkins(sub), ok);
+        for (Int i = 0; i < extra; ++i) { h = Multiply(h, Delta); }   // + split unknots
+    }
+    else   // the sublink is all unknots: H = delta^(extra-1)
+    {
+        h = Polynomial{ {{0,0},1} };
+        for (Int i = 1; i < extra; ++i) { h = Multiply(h, Delta); }
+    }
+    return h;
+}
+
+/// One Simplify, measuring the result's component count and (if needed for the
+/// HOMFLY/sublink checks) reassembling it into a single colored diagram. The
+/// component count is a cheap, HOMFLY-free invariant — a high-crossing torture
+/// run can catch component-loss bugs with need_single=false and skip the
+/// expensive polynomial work entirely.
+struct SimplifyMeasure
+{
+    Int  comp_after        = 0;
+    PD_T single_after;                 // reassembled diagram (need_single only)
+    bool reduced_to_unknot = false;    // simplified away entirely (1 unknot)
+    bool reassembly_failed = false;    // ToSingleDiagram returned invalid
+};
+
+inline SimplifyMeasure SimplifyAndMeasure(const PD_T& pd, bool need_single)
+{
+    SimplifyMeasure m;
+    PD_T  copy(pd);
+    PDC_T pdc(std::move(copy));
+    pdc.Simplify(SimplifyArgs());
+
+    if (!pdc.ValidQ() || pdc.DiagramCount() == Int(0))
+    {
+        m.comp_after = 1;               // reduced to a single unknot
+        m.reduced_to_unknot = true;
+        return m;
+    }
+    m.comp_after = ComplexComponentCount(pdc);
+    if (need_single)
+    {
+        m.single_after = pdc.ToSingleDiagram();
+        if (!m.single_after.ValidQ()) { m.reassembly_failed = true; }
+    }
+    return m;
 }
 
 struct InvarianceResult
