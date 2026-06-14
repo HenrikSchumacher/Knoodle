@@ -405,7 +405,7 @@ static PD_T FromUnsignedPDCode(
     
 )
 {
-    return FromPDCode<false,false,checksQ>(
+    return FromPDCode<{.signQ = false, .colorQ = false, .checksQ = checksQ}>(
         pd_code, crossing_count, proven_minimalQ_, compressQ
     );
 }
