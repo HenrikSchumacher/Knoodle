@@ -21,9 +21,9 @@ namespace Knoodle
         static constexpr Size_T KeyLength = 2;
         using KeyEntry_T  = UInt64;
         using Key_T       = std::array<KeyEntry_T,KeyLength>; // keys have length of 16 bytes
-        using Hash_T      = Tools::array_hash;
-        using KeySet_T    = SetContainer<Key_T,Hash_T>;
-        using LUT_T       = AssociativeContainer<Key_T,ID_T,Hash_T>;
+//        using Hash_T      = Tools::Hash<Key_T>;
+        using KeySet_T    = SetContainer<Key_T/*,Hash_T*/>;
+        using LUT_T       = AssociativeContainer<Key_T,ID_T/*,Hash_T*/>;
         using Path_T      = std::filesystem::path;
         using Name_T      = std::string;
 

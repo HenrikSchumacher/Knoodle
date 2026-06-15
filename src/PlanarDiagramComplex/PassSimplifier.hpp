@@ -76,9 +76,9 @@ namespace Knoodle
         using ArcData_Vector2List_T = Tiny::VectorList_AoS<2,Int,Int>;
         using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
         
-//        using ArcData_HashMap2_T      = std::unordered_map<Int,std::array<Int,2>>;
-//        using ArcData_HashMap1_T      = std::unordered_map<Int,Int>;
-//        using ArcData_HashMapStruct_T = std::unordered_map<Int,DualArc_T>;
+//        using ArcData_HashMap2_T      = AssociativeContainer<Int,std::array<Int,2>>;
+//        using ArcData_HashMap1_T      = AssociativeContainer<Int,Int>;
+//        using ArcData_HashMapStruct_T = AssociativeContainer<Int,DualArc_T>;
         
         using ArcDataContainer_T    = ArcData_Vector2List_T;
 //        using ArcDataContainer_T    = ArcData_HashMap2_T;
@@ -306,7 +306,7 @@ namespace Knoodle
 #include "PassSimplifier/FindPass.hpp"
 #include "PassSimplifier/FindPass_HandleLoop.hpp"
 #include "PassSimplifier/SimplifyPasses.hpp"
-#include "PassSimplifier/SimplifyStrands.hpp"
+//#include "PassSimplifier/SimplifyStrands.hpp"
         
 //#include "PassSimplifier/SimplifyLocal.hpp" // Only meant for debugging.
         

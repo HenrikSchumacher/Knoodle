@@ -504,6 +504,8 @@ namespace Knoodle
         
         void SortByCrossingCount()
         {
+            if( DiagramCount() <= Int(0) ) { return; }
+            
             std::sort(
                 pd_list.begin(),
                 pd_list.end(),

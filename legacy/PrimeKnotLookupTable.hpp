@@ -18,17 +18,16 @@ namespace Knoodle
         static constexpr ID_T   not_found   = std::numeric_limits<ID_T>::max();
         
 //        using Key_T  = std::string;
-//        using Hash_T = std::hash<Key_T>;
         
         using Key_T  = std::array<UInt64,2>; // keys have length of 16 bytes
-        using Hash_T = Tools::array_hash;
+//        using Hash_T = Tools::Hash<Key_T>;
         
 //        using LUT_T  = std::map<Key_T,ID_T>;
 //        using LUT_T  = std::unordered_map<Key_T,ID_T,Hash_T>;
 //        using LUT_T  = ankerl::unordered_dense::map<Key_T,ID_T,Hash_T>;
 //        using LUT_T =  boost::unordered_flat_map<Key_T,ID_T,Hash_T>;
         
-        using LUT_T =  AssociativeContainer<Key_T,ID_T,Hash_T>;
+        using LUT_T =  AssociativeContainer<Key_T,ID_T/*,Hash_T*/>;
 
         using Path_T  = std::filesystem::path;
         
