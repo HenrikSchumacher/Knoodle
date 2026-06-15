@@ -139,7 +139,7 @@ namespace Knoodle
 //                    for( Int k = 0; k < AmbDim; ++k )
 //                    {
 //                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-//                        b[d + k] = nextFloat(static_cast<BReal>(hi[k]));
+//                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
 //                    }
                 };
 
@@ -178,7 +178,7 @@ namespace Knoodle
                     for( Int k = 0; k < AmbDim; ++k )
                     {
                         b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-                        b[d + k] = nextFloat(static_cast<BReal>(hi[k]));
+                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
                     }
                 };
 
@@ -226,7 +226,7 @@ namespace Knoodle
             return true;
         }
         
-        Real BoxesIntersectQ(
+        bool BoxesIntersectQ(
             cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
         )
         {

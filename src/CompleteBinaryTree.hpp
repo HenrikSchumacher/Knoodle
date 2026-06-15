@@ -620,7 +620,7 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            TOOLS_PTIMER(timer,ClassName()+"::DepthFirstSearch"
+            TOOLS_PTIMER(timer,MethodName("DepthFirstSearch")
                 + "<" + ToString(mode)
                 + ">" );
             
@@ -799,7 +799,7 @@ namespace Knoodle
             
             if( stack_ptr >= stack_max_size )
             {
-                eprint(ClassName()+"::DepthFirstSearch_ManualStack: Stack overflow.");
+                eprint(MethodName("DepthFirstSearch_ManualStack")+": Stack overflow.");
             }
         }
         
