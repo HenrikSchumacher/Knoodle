@@ -116,6 +116,17 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ link_split_check compiled successfully"
 
+# klut_bench — throughput benchmark for the KLUT identify path (construct ->
+# Simplify -> canonicalize -> lookup), single- and multi-threaded. See
+# docs/klut-simplify-perf.md. Note: with -include of a Tensors header (UMFPACK
+# build), the KNOODLE->TOOLS boost cascade is front-run, so pass
+# -DTOOLS_USE_BOOST_UNORDERED explicitly to actually enable boost's flat maps.
+klut_bench: klut_bench.cpp ../Knoodle.hpp
+	@echo "=== Building klut_bench on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_bench compiled successfully"
+
 # klut_check — exhaustive KLUT internal-consistency test. Same heavy config as
 # inflate_check (Alexander via UMFPACK + BLAS/LAPACK; links vendored libhomfly).
 klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
@@ -141,7 +152,7 @@ plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTR
 
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
-	       klut_check plantri_check link_alex_probe link_inflate_check \
+	       klut_check klut_bench plantri_check link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
 .PHONY: all libhomfly clean
