@@ -74,6 +74,8 @@ void Canonicalize()
 //        logvalprint("pd.ColorArcCounts()",ToString(pd.ColorArcCounts()));
     }
     
+    
+    // TODO: Here we access cached quantities quite frequently, leading to many calls to GetCache. Is this a problem? Can we improve this?
     std::sort(
         pd_list.begin(),
         pd_list.end(),

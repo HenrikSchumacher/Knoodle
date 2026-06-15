@@ -25,9 +25,9 @@
 // Jason, you can let the compiler have the following flags defined
 //#define KNOODLE_USE_UMFPACK  // Support for the "Dirichlet" and "Bending" energies in Reapr.
 //#define KNOODLE_USE_CLP      // Support some LP problems in Reapr and OrthoDraw; inferior to MCF.
-//#define KNOODLE_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
+//#define TOOLS_USE_BOOST_UNORDERED // Support for faster associative containers in Reapr.
 
-// Only KNOODLE_USE_BOOST_UNORDERED might be of some interest here because OrthoDraw and Reapr uses some of the containers provided by this a little. However, the containers sizes should be small in practive, so the corresponding fall back containers of the STL will be good enough. I doubt that anybody will measure some difference, but you are free to do so.
+// Only TOOLS_USE_BOOST_UNORDERED might be of some interest here because OrthoDraw and Reapr uses some of the containers provided by this a little. However, the containers sizes should be small in practive, so the corresponding fall back containers of the STL will be good enough. I doubt that anybody will measure some difference, but you are free to do so.
 
 #include "../Knoodle.hpp"
 #include "../src/OrthoDraw.hpp"

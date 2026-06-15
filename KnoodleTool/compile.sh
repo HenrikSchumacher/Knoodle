@@ -37,7 +37,7 @@ clang++                                                 \
     -L/usr/local/lib                                    \
     -o knoodletool                                      \
     -DKNOODLE_USE_UMFPACK                               \
-    -DKNOODLE_USE_BOOST_UNORDERED                       \
+    -DTOOLS_USE_BOOST_UNORDERED                         \
     main.cpp                                            \
 
 echo "Build complete: ./knoodletool"
