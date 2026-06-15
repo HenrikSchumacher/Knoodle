@@ -2,6 +2,9 @@
 
 namespace Knoodle
 {
+    template<IntQ Int, typename Scal>
+    using MatrixTripleContainer_T = AssociativeContainer<std::pair<Int,Int>, Scal>;
+    
     using PRNG_T = pcg64;
     
     enum class CrossingState_T : Int8

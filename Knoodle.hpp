@@ -30,7 +30,6 @@ namespace Knoodle
     using Tools::ToString;
 }
 
-#include "src/Containers.hpp"
 #include "src/Types.hpp"
 #include "src/Debugging.hpp"
 
