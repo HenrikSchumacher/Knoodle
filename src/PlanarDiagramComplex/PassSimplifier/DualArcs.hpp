@@ -1,12 +1,5 @@
 private:
 
-
-//        static constexpr Int tail_pos  = 0; // <-- Caution!
-//        static constexpr Int mark_pos  = 1;
-//        static constexpr Int head_pos  = 2; // <-- Caution!
-//        static constexpr Int from_pos  = 3;
-
-
 static constexpr bool mark_pos  = 0;
 static constexpr bool from_pos  = 1;
 

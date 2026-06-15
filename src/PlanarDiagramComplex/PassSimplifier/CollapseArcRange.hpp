@@ -1,6 +1,6 @@
 private:
     
-/*!@brief Collapse the strand made by the arcs `a_begin, pd->NextArc(a_begin,Head),...,a_end` to the single arc  `a_begin`. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that crossed this strand have to be reconnected or deactivated. Returns the number of arcs in `a_begin, pd->NextArc(a_begin,Head),...,a_end` that were deleted.
+/*!@brief Collapse the strand made by the arcs `a_begin, pd->NextArc(a_begin,Head),...,a_end` to the single arc  `a_begin`. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that had crossed this strand have to be reconnected or deactivated. Returns the number of arcs in `a_begin, pd->NextArc(a_begin,Head),...,a_end` that were deleted.
  *
  * @param a_begin First arc on strand to be collapsed.
  *
@@ -9,19 +9,10 @@ private:
  * @param arc_count_ An upper bound for the number of arcs on the strand from `a_begin` to `a_end`. This merely serves as fallback to prevent infinite loops.
  */
 
-//Int CollapseArcRange(
-//    const Int a_begin, const Int a_end, const Int arc_count_
-//)
-//{
-//    return CollapseArcRange( a_begin, a_end, arc_count_, current_mark );
-//}
-
 Int CollapseArcRange(
     const Int a_begin, const Int a_end, const Int arc_count_, [[maybe_unused]] const Int mark
 )
 {
-//            PD_DPRINT( ClassName()+"::CollapseArcRange" );
-    
     // We remove the arcs _backwards_ because of how Reconnect uses PD_ASSERT.
     // (It is legal that the head is inactive, but the tail must be active!)
     // Also, this might be a bit cache friendlier.
@@ -55,17 +46,37 @@ Int CollapseArcRange(
         //         v b_1                | b_0
 
         const Int b_1    = pd->C_arcs(c,Out,!side);
-        const Int a_prev = pd->C_arcs(c,In,!side);
+        const Int a_prev = pd->C_arcs(c,In ,!side);
         const Int b_0    = pd->C_arcs(c,In , side);
         
         PD_VALPRINT("b_0   ",ArcString(b_0)   );
         PD_VALPRINT("a_prev",ArcString(a_prev));
         PD_VALPRINT("b_1   ",ArcString(b_1)   );
         
-        PD_ASSERT(b_0 != b_1);
-        PD_ASSERT(ArcMark(b_0) != mark);
-        PD_ASSERT(ArcMark(b_1) != mark);
-        Reconnect<Head>(b_0,b_1);
+        if( b_0 == b_1 )
+        {
+            // If the path goes over/under an otherwise split unknot we have to create an unlink at some point because we lose track of that unlink.
+            
+            // side == Right
+            //
+            //     b_1 == b_0 +----------------------+
+            //                |                      |
+            //         a_prev |   a                  |      There had been a crossing somewhere
+            //         ------>X------> [[deactiv.]]  | <<-- here when we started to collapse
+            //               c|                      |      the path.
+            //                |                      |
+            //     b_0 == b_1 +----------------------+
+            
+            PD_ASSERT(ArcMark(b_0) != mark);
+            DeactivateArc(b_0);
+            CreateUnlinkFromArc(b_0);
+        }
+        else
+        {
+            PD_ASSERT(ArcMark(b_0) != mark);
+            PD_ASSERT(ArcMark(b_1) != mark);
+            Reconnect<Head>(b_0,b_1);
+        }
         
         DeactivateArc(a);
         
@@ -76,11 +87,8 @@ Int CollapseArcRange(
     }
     
     PD_ASSERT( a == a_begin );
-    
     PD_ASSERT( iter <= arc_count_ );
-
-    // a_end is already deactivated.
-    PD_ASSERT( !pd->ArcActiveQ(a_end) );
+    PD_ASSERT( !pd->ArcActiveQ(a_end) );     // a_end should already be deactivated.
 
     Reconnect<Head,false>(a_begin,a_end);
     

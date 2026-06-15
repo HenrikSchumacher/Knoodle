@@ -1,26 +1,4 @@
-//Int WalkBackToPassStart( const Int a_0, const Int overQ_ ) const
-//{
-//    Int a = a_0;
-//    AssertArc<1>(a);
-//    
-//    print("WalkBackToPassStart");
-//    TOOLS_DUMP(overQ_);
-//    TOOLS_DUMP(a_0);
-//
-//    while( ArcOverQ(a,Tail) == overQ_  )
-//    {
-//        TOOLS_DUMP(a);
-//        a = NextArc(a,Tail);
-//        AssertArc<1>(a);
-//        
-//        // If the link has multiple components, it can also happen that the loop pass is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well. So we need a guard against cycling around this unlink forever!
-//        if( a == a_0 ) { break; }
-//    }
-//    
-//    logvalprint("Strand start",a);
-//    
-//    return a;
-//}
+private:
 
 template<bool find_maximal_passQ = false>
 void InitializePass( mref<Pass_T> pass, const Int initial_arc, const bool desired_overQ, const Int mark )
@@ -77,8 +55,6 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
     PD_TIMER(timer,tag());
     
     InitializePass<find_maximal_passQ>( pass, initial_arc, desired_overQ, mark );
-
-//    MarkCrossing(pd->A_cross(pass.last,Tail),mark);
 
     while( true )
     {
@@ -154,7 +130,6 @@ void FindPass( mref<Pass_T> pass, const Int initial_arc, const bool desired_over
             PD_PRINT("Visiting marked crossing c_1 = " + CrossingString(c_1) + ".");
             // Vertex c_1 has been visited before.
             // This catches also the case when `pass.last` is a loop arc.
-            
             
             if( FindPass_HandleLoop<find_maximal_passQ>(pass, c_1) )
             {
@@ -365,18 +340,8 @@ bool CheckPass( cref<Pass_T> pass, const bool pass_closedQ )
     logvalprint("pass.arc_count",pass.arc_count);
     logvalprint("pass",PassString(pass));
     
-    if( passedQ )
-    {
-        logprint(tag() + " passed.");
-        
-        return true;
-    }
-    else
-    {
-        (tag() + " failed.");
-        
-        return false;
-    }
+    logprint(tag() + (passedQ ? " passed." : " failed.") );
+    return passedQ;
 }
 
 
@@ -852,3 +817,28 @@ bool FindPass_Reidemeister_II_Forward(
     
     return false;
 }
+
+
+//Int WalkBackToPassStart( const Int a_0, const Int overQ_ ) const
+//{
+//    Int a = a_0;
+//    AssertArc<1>(a);
+//
+//    print("WalkBackToPassStart");
+//    TOOLS_DUMP(overQ_);
+//    TOOLS_DUMP(a_0);
+//
+//    while( ArcOverQ(a,Tail) == overQ_  )
+//    {
+//        TOOLS_DUMP(a);
+//        a = NextArc(a,Tail);
+//        AssertArc<1>(a);
+//
+//        // If the link has multiple components, it can also happen that the loop pass is an unknot that lies on top (or under) the remaining diagram. We have to take care of this as well. So we need a guard against cycling around this unlink forever!
+//        if( a == a_0 ) { break; }
+//    }
+//
+//    logvalprint("Strand start",a);
+//
+//    return a;
+//}
