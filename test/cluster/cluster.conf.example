@@ -1,0 +1,43 @@
+# plantri_check cluster config -- EXAMPLE.
+#
+# Copy this to a private, NON-committed location and fill in your site's values:
+#     mkdir -p ~/.config/knoodle && cp cluster.conf.example ~/.config/knoodle/cluster.conf
+# (or set $KNOODLE_CLUSTER_CONF to its path). sweep.sh sources the first of:
+#     $KNOODLE_CLUSTER_CONF  >  ~/.config/knoodle/cluster.conf  >  ./cluster.conf
+# A ./cluster.conf is git-ignored and sweep.sh refuses to run if it is tracked.
+#
+# Nothing here is committed, so this is where any site-specific names live --
+# none of these values ever enter the public repository.
+
+# ---- toolchain -------------------------------------------------------------
+# Modules to load before building AND inside each job (for the clang/LLVM
+# runtime). Knoodle requires clang (matrix extension); give whatever module(s)
+# provide a recent clang++/libc++ on your system. Leave blank if clang is
+# already on PATH. Space-separated, passed verbatim to `module load`.
+MODULES=""
+CXX="clang++"          # the clang++ the modules provide
+# Override if the login and compute nodes have different CPUs (else SIGILL):
+#   MARCH="x86-64-v3"
+MARCH="native"
+
+# ---- scheduler (blank => use the site default for that flag) ---------------
+PARTITION=""           # queue/partition
+ACCOUNT=""             # allocation / charge account
+QOS=""
+TIME="04:00:00"        # per-task wall-clock limit
+MEM="2G"               # per-task memory
+CPUS="1"               # cores per task (the test is single-threaded)
+
+# ---- the sweep -------------------------------------------------------------
+MOD="64"               # number of shards = SLURM array size (also your job count)
+FROM="3"               # first crossing number
+UPTO="9"               # last crossing number
+MODE="everything"      # everything | no-r1 | simple
+HOMFLY="0"             # 1 = full per-sublink HOMFLY (slow); 0 = component-count only
+KLUT="0"               # 1 = also verify KLUT coverage of simplified prime knots
+KNOTS_ONLY="0"         # 1 = skip link diagrams
+CROSSING_ASSIGNMENTS="all"   # "all", or an integer K to sample K sign masks/shadow
+EXTRA=""               # any extra plantri_check flags
+
+# ---- where results go (shared filesystem visible to all nodes) -------------
+OUT="${SCRATCH:-$HOME/scratch}/knoodle_sweep"

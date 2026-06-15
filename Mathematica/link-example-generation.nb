@@ -1,0 +1,59 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Wolfram 14.3' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       154,          7]
+NotebookDataLength[      1393,         49]
+NotebookOptionsPosition[       919,         32]
+NotebookOutlinePosition[      1314,         48]
+CellTagsIndexPosition[      1271,         45]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell["Plantri link diagram generation.", "Title",
+ CellChangeTimes->{{3.9832869001675587`*^9, 
+  3.983286905323308*^9}},ExpressionUUID->"a07582bc-d44e-46de-837d-\
+0fce63102b64"],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.98328690718573*^9, 
+  3.9832869077752*^9}},ExpressionUUID->"c9e9fb2b-febb-4497-9347-0a5d04d0bea9"]
+}, Open  ]]
+},
+WindowSize->{992, 974},
+WindowMargins->{{Automatic, 355}, {Automatic, -263}},
+FrontEndVersion->"14.3 for Mac OS X ARM (64-bit) (July 8, 2025)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"bfa06bf5-0161-4f5a-8336-0c812ffb2f71"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[576, 22, 177, 3, 120, "Title",ExpressionUUID->"a07582bc-d44e-46de-837d-0fce63102b64"],
+Cell[756, 27, 147, 2, 36, "Input",ExpressionUUID->"c9e9fb2b-febb-4497-9347-0a5d04d0bea9"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+

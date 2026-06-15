@@ -1,0 +1,24 @@
+venv/
+plantri58/
+__pycache__/
+*.pyc
+failures/
+
+# build artifacts
+build/
+homfly_check
+key_roundtrip_probe
+inflate_check
+klut_check
+plantri_check
+link_alex_probe
+link_inflate_check
+link_split_check
+vendor/plantri/plantri
+inflate_fail_*.tsv
+link_inflate_fail_*.tsv
+knoodlesimplify.log
+
+# private cluster config (site-specific; never commit)
+cluster/cluster.conf
+cluster/*.local
