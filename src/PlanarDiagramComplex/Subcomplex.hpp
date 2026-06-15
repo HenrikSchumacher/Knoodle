@@ -14,16 +14,14 @@ PDC_T Subcomplex( PDArcSelectorFun_T && pd_arc_selectQ ) const
         };
         
         auto [pd_new,unlink_colors] = pd.template Subdiagram<check_arc_selectorQ>(arc_selectQ);
-
-        pdc.Push(std::move(pd_new));
+        
+        if( pd_new.ValidQ() ) { pdc.Push(std::move(pd_new)); }
         
         for( Int color : unlink_colors )
         {
             pdc.Push(PD_T::Unlink(color));
         }
     }
-    
-    pdc.ClearCache();
     
     return pdc;
 }

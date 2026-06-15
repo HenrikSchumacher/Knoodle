@@ -29,7 +29,7 @@ bool WriteToFile( cref<std::filesystem::path> file, bool leading_kQ = true ) con
         
         if( pd.AnelloQ() )
         {
-            stream << "u " << pd.LastColorDeactivated() << "\n";
+            stream << "u " << pd.FirstColor() << "\n";
             continue;
         }
 
