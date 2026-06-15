@@ -89,6 +89,33 @@ inflate_check: inflate_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	    inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ inflate_check compiled successfully"
 
+# link_alex_probe — prototype: single-variable Alexander |det| fingerprint for
+# LINKS (no knots-only normalization). Same heavy config as inflate_check.
+link_alex_probe: link_alex_probe.cpp link_alexander.hpp ../Knoodle.hpp
+	@echo "=== Building link_alex_probe on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    link_alex_probe.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ link_alex_probe compiled successfully"
+
+# link_inflate_check — inflate-and-recover stress test for LINKS. Tripwires:
+# single-variable Alexander |det| fingerprint + component count, plus a HOMFLY
+# cross-check (split-safe oracle homfly_invariance.hpp -> vendored libhomfly).
+link_inflate_check: link_inflate_check.cpp link_alexander.hpp homfly_invariance.hpp \
+                    $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building link_inflate_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    link_inflate_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ link_inflate_check compiled successfully"
+
+# link_split_check — direct split-link corner-case test (oracle correctness vs
+# delta rule, Simplify preservation incl. free loops, |det| graceful degradation).
+link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp \
+                  $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building link_split_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ link_split_check compiled successfully"
+
 # klut_check — exhaustive KLUT internal-consistency test. Same heavy config as
 # inflate_check (Alexander via UMFPACK + BLAS/LAPACK; links vendored libhomfly).
 klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
@@ -114,6 +141,7 @@ plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTR
 
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
-	       klut_check plantri_check $(PLANTRI)
+	       klut_check plantri_check link_alex_probe link_inflate_check \
+	       link_split_check $(PLANTRI)
 
 .PHONY: all libhomfly clean
