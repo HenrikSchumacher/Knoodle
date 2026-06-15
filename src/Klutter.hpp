@@ -32,7 +32,7 @@ namespace Knoodle
         static constexpr Size_T KeyLength = Klut_T::KeyLength;
         using KeyEntry_T  = Klut_T::KeyEntry_T;
         using Key_T       = Klut_T::Key_T;
-        using Hash_T      = Klut_T::Hash_T;
+//        using Hash_T      = Klut_T::Hash_T;
         using KeySet_T    = Klut_T::KeySet_T;
         using LUT_T       = Klut_T::LUT_T;
         using Path_T      = Klut_T::Path_T;

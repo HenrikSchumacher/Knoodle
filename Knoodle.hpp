@@ -8,6 +8,13 @@
 
 #define KNOODLE_H
 
+#ifdef KNOODLE_USE_BOOST_UNORDERED
+    #ifndef TOOLS_USE_BOOST_UNORDERED
+        #define TOOLS_USE_BOOST_UNORDERED
+    #endif
+#endif
+
+
 #include <cfenv>
 
 #include "deps/pcg-cpp/include/pcg_random.hpp"
@@ -22,7 +29,6 @@ namespace Knoodle
     
     using Tools::ToString;
 }
-
 
 #include "src/Containers.hpp"
 #include "src/Types.hpp"
@@ -78,9 +84,7 @@ namespace Knoodle
 #include "src/Link_3D.hpp"
 #include "src/LinearHomotopy_3D.hpp"
 
-
 #include "src/ActionAngleSampler.hpp"
 #include "src/ConformalBarycenterSampler.hpp"
-
 
 #include "src/Klut.hpp"

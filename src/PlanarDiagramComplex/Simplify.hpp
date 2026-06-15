@@ -26,8 +26,6 @@ struct Simplify_Args_T
     Compaction_T        compaction_method        = Compaction_T::Length_MCF;
     
     bool                canonicalizeQ            = true;
-
-//    Reapr_T::Settings_T reapr_settings  = typename Reapr_T::Settings_T();
 };
 
 
@@ -604,7 +602,6 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             
             // TODO: Check this
             pass_change_count += S.template SimplifyPasses<targs>(pd,{
-//            pass_change_count += S.template SimplifyStrands<targs>(pd,{
                 .max_dist              = max_dist,
                 .overQ                 = true,
                 .compressQ             = args.compressQ,
@@ -623,7 +620,6 @@ std::pair<Size_T,Size_T> SimplifyDiagrammatically(
             {
                 // Reroute underpasses.
                 pass_change_count += S.template SimplifyPasses<targs>(pd,{
-//                pass_change_count += S.template SimplifyStrands<targs>(pd,{
                     .max_dist              = max_dist,
                     .overQ                 = false,
                     .compressQ             = args.compressQ,

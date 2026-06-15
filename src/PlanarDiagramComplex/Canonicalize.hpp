@@ -10,6 +10,9 @@ void Canonicalize()
     
     SetContainer<Int> color_register;
     
+    // TODO: Is this meaningful?
+//    Tensor1<Int,Int> mac_leod_buffer ( );
+    
     for( PD_T & pd : pd_list )
     {
         if( pd.InvalidQ() ) { continue; };
@@ -43,8 +46,13 @@ void Canonicalize()
         
         if( pd.LinkComponentCount() != Int(1) ) { continue; }
         if( pd.ColorCount() != Int(1) ) { continue; }
+        
+        
+        // TODO: Buffering the pd.MacLeodCode() codes into the cache might be unnecessary. We could also use C_scratch for that if we can make sure that pd.C_scratch is not overwritten in the meantime.
+        
+        // TODO: Buffering the pd.ColorArcCount() into cache might also be unnecessary; we only need only to compute and buffer pd.ColorCount() and pd.FirstColor(). We could store that in pd.A_scratch[0] -- unless we have an anello =(.
 
-        // Thing is MacLeod code is not good at normalizing figure-eight knot.
+        // The thing is: MacLeod code is not good at normalizing figure-eight knots.
         if( pd.ProvenFigureEightQ() )
         {
             const Int color = color_arc_counts.begin()->first;
@@ -143,5 +151,5 @@ void Canonicalize()
         pd.ClearCache("BufferedMacLeodCode");
     }
     
-    ClearCache();
+    this->ClearCache();
 }

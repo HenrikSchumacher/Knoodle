@@ -26,8 +26,6 @@ namespace Knoodle
         static_assert(
             (max_crossing_count * sizeof(CodeInt)) % sizeof(Size_T) == 0, ""
         );
-
-//        using CodeHash = array_hash<CodeInt,code_length>;
         
         struct CodeHash
         {
@@ -35,7 +33,7 @@ namespace Knoodle
             
             inline Size_T operator()( cref<Code_T> v )  const
             {
-                using namespace std;
+//                using namespace std;
                 
                 constexpr Size_T n = code_length * sizeof(CodeInt) / sizeof(Size_T);
                 
@@ -45,7 +43,7 @@ namespace Knoodle
                 
                 for( Size_T i = 0; i < n; ++i )
                 {
-                    Tools::hash_combine(seed,w[i]);
+                    HashCombine(seed,w[i]);
                 }
                 
                 return seed;
