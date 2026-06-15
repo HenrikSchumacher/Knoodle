@@ -1,5 +1,5 @@
-#define KNOODLE_USE_BOOST_UNORDERED
-
+#define TOOLS_USE_BOOST_UNORDERED
+    
 #include "../Knoodle.hpp"
 
 using Int         = std::int64_t;                        // integer type used, e.g., for indices
@@ -156,8 +156,7 @@ int main()
             Tools::print(H.DiagramString());
             Tools::print("");
         }
-    }
-    
+    }    
 
     return EXIT_SUCCESS;
 }
