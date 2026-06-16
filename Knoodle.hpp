@@ -51,6 +51,7 @@ namespace Knoodle
     template<IntQ Int> class PlanarDiagramComplex;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
     template<typename PD_T> class OrthoDraw;
+    template<typename PD_T> class OrthoDecorate;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
@@ -60,6 +61,7 @@ namespace Knoodle
 #include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
 #include "src/OrthoDraw.hpp"
+#include "src/OrthoDecorate.hpp"
 #include "src/Reapr.hpp"
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
