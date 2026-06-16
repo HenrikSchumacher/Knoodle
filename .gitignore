@@ -57,8 +57,25 @@ Example_Knoodle/Diagram_unsimplified.txt
 
 Dev_ClisbyTree2/Example_ClisbyTree2
 
-KnoodleTool/ExampleKnot_simplified.tsv
-KnoodleTool/knoodletool
+tools/ExampleKnot_simplified.tsv
+tools/knoodlesimplify
+tools/knoodledraw
+tools/knoodleidentify
+tools/knoodlesimplify.log
+tools/knoodledraw.log
+tools/knoodleidentify.log
+
+# test/ build artifacts (probe binaries)
+test/key_roundtrip_probe
+test/homfly_check
+test/inflate_check
+test/klut_check
+test/klut_e2e
+test/klut_e2e_*.tsv
+test/klut_e2e_*.txt
+test/klut_e2e_*.log
+test/inflate_fail_*.tsv
+test/build/
 
 # Markdown files
 *.md 
