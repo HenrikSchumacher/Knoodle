@@ -11,6 +11,7 @@ key_roundtrip_probe
 inflate_check
 klut_check
 klut_bench
+klut_bench_boost
 plantri_check
 link_alex_probe
 link_inflate_check
