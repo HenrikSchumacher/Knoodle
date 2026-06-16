@@ -19,6 +19,8 @@ link_split_check
 vendor/plantri/plantri
 inflate_fail_*.tsv
 link_inflate_fail_*.tsv
+klut_bench_*.tsv
+klut_bench_pool*
 knoodlesimplify.log
 
 # private cluster config (site-specific; never commit)
