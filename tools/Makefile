@@ -1,4 +1,4 @@
-# Makefile for knoodletool
+# Makefile for knoodlesimplify and knoodledraw
 CXX ?= g++
 
 # Detect OS and set appropriate flags
@@ -38,6 +38,9 @@ endif
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
 
+# Shared header dependency
+SHARED_DEPS = knoodle_io.hpp ../Knoodle.hpp
+
 # Debug build flags (similar OS detection)
 ifeq ($(UNAME_S),Darwin)
     DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
@@ -59,25 +62,50 @@ else
                      -pthread
 endif
 
-knoodletool: main.cpp
-	@echo "=== Building KnoodleTool on $(UNAME_S) ==="
+all: knoodlesimplify knoodledraw knoodleidentify
+
+knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodlesimplify on $(UNAME_S) ==="
 	@echo "=== Compiler: $(CXX) ==="
-	@echo "=== Compiler flags: $(CXXFLAGS) ==="
-	@echo "=== Include paths: $(CPPFLAGS) ==="
-	@echo "=== Link flags: $(LDFLAGS) ==="
 	@echo ""
-	@echo "Compiling main.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) main.cpp $(LDFLAGS) -o $@
-	@echo "✓ KnoodleTool compiled successfully"
+	@echo "Compiling knoodlesimplify.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodlesimplify.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodlesimplify compiled successfully"
+
+knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodledraw on $(UNAME_S) ==="
+	@echo "=== Compiler: $(CXX) ==="
+	@echo ""
+	@echo "Compiling knoodledraw.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodledraw.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodledraw compiled successfully"
+
+knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
+	@echo "=== Building knoodleidentify on $(UNAME_S) ==="
+	@echo "=== Compiler: $(CXX) ==="
+	@echo ""
+	@echo "Compiling knoodleidentify.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
+	@echo "✓ knoodleidentify compiled successfully"
+
+# Tier 4 end-to-end pipeline test (test/klut_e2e.cpp). Same flags as the tools;
+# it shells out to the built knoodlesimplify / knoodleidentify binaries.
+klut_e2e: ../test/klut_e2e.cpp ../Knoodle.hpp
+	@echo "=== Building klut_e2e on $(UNAME_S) ==="
+	@echo "Compiling ../test/klut_e2e.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/klut_e2e.cpp $(LDFLAGS) -o ../test/klut_e2e
+	@echo "✓ klut_e2e compiled successfully"
 
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
-debug: knoodletool
+debug: all
 
-install: knoodletool
+install: all
 	install -d $(DESTDIR)$(BINDIR)
-	install -m 755 knoodletool $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodlesimplify $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodledraw $(DESTDIR)$(BINDIR)/
+	install -m 755 knoodleidentify $(DESTDIR)$(BINDIR)/
 
 clean:
-	rm -f knoodletool
+	rm -f knoodlesimplify knoodledraw knoodleidentify
 
-.PHONY: install clean debug
+.PHONY: all install clean debug
