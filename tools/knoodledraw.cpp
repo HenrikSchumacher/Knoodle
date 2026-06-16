@@ -73,6 +73,8 @@ struct Config
     std::optional<bool> filter_saturating_edges;
     std::optional<bool> randomize_virtual_edges;
     std::optional<bool> dual_simplex;
+
+    bool checkerboard_coloring = false;
 };
 
 enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3 };
@@ -120,6 +122,7 @@ void PrintUsage()
     std::cerr << "  --ascii                     Use plain ASCII output (default: Unicode box-drawing)\n";
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
+    std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -354,6 +357,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             if (!val) { std::cerr << "Error: Invalid y-rounding-radius value\n"; return std::nullopt; }
             config.y_rounding_radius = *val;
         }
+        // Checkerboard coloring
+        else if (arg == "--checkerboard-coloring" || arg == "--checkerboardcoloring")
+        {
+            config.checkerboard_coloring = true;
+        }
         // Highlight specification
         else if (arg.starts_with("--highlight="))
         {
@@ -586,8 +594,28 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                 if (hl_mask && mi < hl_mask->size()
                     && (*hl_mask)[mi] != HighlightType::None)
                 {
+                    auto ht = (*hl_mask)[mi];
+
+                    // Face highlight is a background color — compose it
+                    // with the foreground component color if available,
+                    // so arc labels in highlighted faces keep their color.
+                    if (ht == HighlightType::Face
+                        && comp_map && mi < comp_map->size()
+                        && (*comp_map)[mi] >= 0)
+                    {
+                        int lc = static_cast<int>((*comp_map)[mi]);
+                        int fg = COMPONENT_COLORS[lc % NUM_COMPONENT_COLORS];
+                        result += COLOR_FACE;
+                        result += "\033[38;5;";
+                        result += std::to_string(fg);
+                        result += "m";
+                        result += char_out;
+                        result += COLOR_RESET;
+                        continue;
+                    }
+
                     const char* color = "";
-                    switch ((*hl_mask)[mi])
+                    switch (ht)
                     {
                         case HighlightType::Arc:      color = COLOR_ARC;      break;
                         case HighlightType::Crossing: color = COLOR_CROSSING; break;
@@ -1985,7 +2013,7 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
     bool has_labels = config.label_crossings || config.label_arcs
                    || config.label_faces || config.label_components;
-    bool has_highlights = !config.highlight_specs.empty();
+    bool has_highlights = !config.highlight_specs.empty() || config.checkerboard_coloring;
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
@@ -2016,11 +2044,28 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
             // Parse highlight specs
             HighlightSet highlights;
-            if (has_highlights)
+            if (!config.highlight_specs.empty())
             {
                 highlights = ParseHighlightSpecs(
                     config.highlight_specs,
                     H.MaxArcCount(), H.MaxCrossingCount(), H.FaceCount());
+            }
+
+            // Add checkerboard face highlights
+            if (config.checkerboard_coloring)
+            {
+                PD_T pd_copy = summands[i];
+                auto coloring = pd_copy.CheckerBoardColoring();
+                if (coloring.Dimension(0) > 0)
+                {
+                    for (Int f = 0; f < coloring.Dimension(0); ++f)
+                    {
+                        if (coloring[f] == 1)
+                        {
+                            highlights.faces.insert(f);
+                        }
+                    }
+                }
             }
 
             // Build face map if needed (for face labels OR face highlights)
