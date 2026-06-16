@@ -19,5 +19,11 @@ Conventions:
 - [knoodleidentify-design.md](knoodleidentify-design.md) — design sketch for the
   third pipeline tool: `knoodlesimplify | knoodleidentify` → knot names per
   connect-sum summand.
+- [homfly-oracle.md](homfly-oracle.md) — vendored libhomfly as the HOMFLY oracle
+  for the correctness tests (no-Python default; Regina kept as optional
+  cross-check). Cross-validated 252/252 against Regina.
+- [inflate-check.md](inflate-check.md) — randomized stress test: inflate a knot
+  to ~100k crossings, Alexander tripwire per round, then Simplify must collapse
+  it back with HOMFLY/Alexander preserved.
 - [upstream-issues.md](upstream-issues.md) — bugs found in src/ to report to
   Henrik, with evidence.
