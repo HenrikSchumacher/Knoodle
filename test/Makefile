@@ -127,6 +127,20 @@ klut_bench: klut_bench.cpp ../Knoodle.hpp
 	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ klut_bench compiled successfully"
 
+# klut_bench_boost — klut_bench with boost::unordered_flat_map under both the
+# integer maps AND the CachedObject string->any cache (the ~+15% dependency-free
+# build). boost.unordered is header-only. TOOLS_USE_BOOST_UNORDERED is passed
+# EXPLICITLY: the -include of a Tensors header below front-runs Knoodle.hpp, so the
+# KNOODLE_USE_BOOST_UNORDERED -> TOOLS_USE_BOOST_UNORDERED cascade would otherwise
+# be defeated and boost would silently fall back to std. Verify after building:
+#   nm klut_bench_boost | c++filt | grep -c boost::unordered   (must be nonzero)
+klut_bench_boost: klut_bench.cpp ../Knoodle.hpp
+	@echo "=== Building klut_bench_boost on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK -DKNOODLE_USE_BOOST_UNORDERED \
+	    -DTOOLS_USE_BOOST_UNORDERED $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_bench_boost compiled successfully"
+
 # klut_check — exhaustive KLUT internal-consistency test. Same heavy config as
 # inflate_check (Alexander via UMFPACK + BLAS/LAPACK; links vendored libhomfly).
 klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
@@ -152,7 +166,7 @@ plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTR
 
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
-	       klut_check klut_bench plantri_check link_alex_probe link_inflate_check \
+	       klut_check klut_bench klut_bench_boost plantri_check link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
 .PHONY: all libhomfly clean
