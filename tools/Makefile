@@ -27,6 +27,15 @@ CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
            -I./../submodules/Tensors
 LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack
 
+# boost.unordered flat maps for Reapr/OrthoDraw containers + the Simplify object
+# cache: a measurable win on the small-diagram firehose (~+20-25% in klut_bench).
+# Header-only (no link step); declared as a dependency in the Homebrew formula.
+# Applied to the performance-critical tools (knoodlesimplify, knoodleidentify)
+# only -- knoodledraw is a debugging tool, so it stays dependency-free. The tools
+# build has no -include of a Tensors header, so this single define cascades to
+# TOOLS_USE_BOOST_UNORDERED on its own.
+BOOST_FLAGS = -DKNOODLE_USE_BOOST_UNORDERED
+
 # Version handling
 ifdef KNOODLE_VERSION
     CXXFLAGS += -DGIT_VERSION=\"$(KNOODLE_VERSION)\"
@@ -69,7 +78,7 @@ knoodlesimplify: knoodlesimplify.cpp $(SHARED_DEPS)
 	@echo "=== Compiler: $(CXX) ==="
 	@echo ""
 	@echo "Compiling knoodlesimplify.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodlesimplify.cpp $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $(BOOST_FLAGS) $(CPPFLAGS) knoodlesimplify.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodlesimplify compiled successfully"
 
 knoodledraw: knoodledraw.cpp $(SHARED_DEPS)
