@@ -360,6 +360,15 @@ struct Stats
     long minimal          = 0;   // diagrams found minimal (identify at own cx number)
     long minimal_not_key  = 0;   // (A) FAIL: a minimal diagram needed escalation, i.e.
                                  //     its MacLeod code is not a table key
+    // HOMFLY-vs-Identify speedup (knot diagrams; --klut with HOMFLY on). For EACH
+    // diagram we form the ratio (HOMFLY time)/(Identify time) -- node-speed-
+    // independent, since both run back-to-back on the same node -- and average
+    // those ratios over diagrams. We accumulate only the dimensionless ratios, not
+    // wall-seconds, so the heterogeneous cluster never compares times across nodes;
+    // the reducer adds ratio_sum and ratio_count and divides, giving the global
+    // mean per-diagram speedup = sum(ratio_sum)/sum(ratio_count).
+    double ratio_sum   = 0;      // sum over knot diagrams of (HOMFLY/Identify) time
+    long   ratio_count = 0;      // knot diagrams contributing a ratio
 };
 
 /// Masks to test for an n-crossing shadow: all 2^n, or a random K-sample.
@@ -557,6 +566,7 @@ int main(int argc, char* argv[])
     std::mt19937_64 rng(static_cast<std::uint64_t>(seed));
     Stats st;
     std::map<int, std::pair<long,long>> per_c;   // crossing -> (tested, changed)
+    std::map<int, std::pair<double,long>> ratio_c;  // crossing -> (sum HOMFLY/Identify, count)
     const auto t0 = Clock::now();
 
     bool stopped = false;   // diagram budget hit, or Ctrl-C
@@ -593,6 +603,9 @@ int main(int argc, char* argv[])
                 (is_link ? st.links : st.knots)++;
                 ++st.tested; ++v_tested;
 
+                // Per-diagram HOMFLY / Identify timing (knots, --klut + HOMFLY).
+                double diag_homfly = 0.0, diag_identify = 0.0;
+
                 // One Simplify, two invariants:
                 //  (1) component count (cheap, HOMFLY-free) — Simplify must not
                 //      change the number of link components (colors);
@@ -618,7 +631,10 @@ int main(int argc, char* argv[])
                         if (m.reduced_to_unknot)
                         {
                             bool okb = true;                 // whole link must be the unknot
-                            if (SublinkHomfly(pd, cols, okb) != unknot) { homfly_bug = true; }
+                            const auto th0 = Clock::now();
+                            const Polynomial hb_u = SublinkHomfly(pd, cols, okb);
+                            if (!is_link) { diag_homfly += Secs(th0, Clock::now()); }
+                            if (hb_u != unknot) { homfly_bug = true; }
                             if (!okb) { skip = true; }
                         }
                         else if (k >= 1 && k <= 16)
@@ -630,7 +646,9 @@ int main(int argc, char* argv[])
                                 for (int i = 0; i < k; ++i)
                                     if (bits & (std::uint32_t(1) << i)) subset.push_back(cols[i]);
                                 bool okb = true, oka = true;
+                                const auto th0 = Clock::now();
                                 Polynomial hb = SublinkHomfly(pd, subset, okb);
+                                if (!is_link) { diag_homfly += Secs(th0, Clock::now()); }
                                 Polynomial ha = SublinkHomfly(m.single_after, subset, oka);
                                 if (!okb || !oka) { skip = true; }
                                 else if (hb != ha) { homfly_bug = true; }
@@ -664,7 +682,9 @@ int main(int argc, char* argv[])
                 {
                     ki_work.Clear();
                     ki_work.Push(PD_T(pd));                 // copy; pd is still needed below
+                    const auto ti0 = Clock::now();
                     ki::IdentifyInto(*klut, ki_work, ki_temp, ki_reapr, ki_R, ki_params);
+                    diag_identify += Secs(ti0, Clock::now());
                     ++st.contract_knots;
 
                     bool classified = (ki_R.status == ki::IdentifyResult::Status::Knot)
@@ -719,6 +739,16 @@ int main(int argc, char* argv[])
                                     this_g, mask, tr.n_components);
                         ++dumped;
                     }
+                }
+
+                // Per-diagram HOMFLY/Identify speedup ratio (knots, both timed).
+                // Node-speed cancels within the ratio; we average ratios, never
+                // sum wall-seconds across the heterogeneous cluster.
+                if (!is_link && diag_homfly > 0.0 && diag_identify > 0.0)
+                {
+                    const double r = diag_homfly / diag_identify;
+                    st.ratio_sum += r; ++st.ratio_count;
+                    auto& rc = ratio_c[n]; rc.first += r; ++rc.second;
                 }
 
                 if (comp_bug || homfly_bug)
@@ -781,6 +811,21 @@ int main(int argc, char* argv[])
                   << "    MINIMAL-NOT-KEY (A fail): " << st.minimal_not_key
                   << "  (minimal diagrams absent from the table)\n";
 
+    // HOMFLY-vs-Identify speedup: mean of the per-diagram (HOMFLY/Identify) ratios.
+    // Per-diagram so node speed cancels; the per-crossing breakdown is the figure
+    // the paper wants (the speedup grows with crossing number).
+    if (klut_on && do_homfly && st.ratio_count > 0)
+    {
+        std::cout << "  HOMFLY/Identify speedup (mean per-diagram ratio, "
+                  << st.ratio_count << " knots): "
+                  << (st.ratio_sum / static_cast<double>(st.ratio_count)) << "x\n";
+        for (const auto& [c, rc] : ratio_c)
+            if (rc.second > 0)
+                std::cout << "    c=" << c << ": "
+                          << (rc.first / static_cast<double>(rc.second))
+                          << "x  (" << rc.second << " knots)\n";
+    }
+
     // Component/HOMFLY changes are simplification bugs; an unclassified diagram or
     // a minimal-not-key is a KLUT identify-contract violation. Any of them fails.
     const long bugs = st.comp_changed + st.changed;
@@ -803,8 +848,11 @@ int main(int argc, char* argv[])
     }
 
     // Machine-readable, sum-reducible summary (one line; tab-separated key=val).
-    // A reducer adds the integer fields across shards; `bugs` and exit code roll
-    // up with OR/＋. shard=res/mod identifies this job.
+    // A reducer ADDS the integer fields across shards; `bugs` and exit code roll
+    // up with OR/＋. shard=res/mod identifies this job. The HOMFLY/Identify speedup
+    // also reduces by addition: global mean = sum(ratio_sum)/sum(ratio_count) --
+    // a mean of per-diagram ratios, so heterogeneous node speeds never enter
+    // (we never emit or sum wall-seconds for the comparison).
     std::cout << "SUMMARY"
               << "\tshard="    << shard_res << "/" << shard_mod
               << "\tfrom="     << from_c << "\tto=" << to_c
@@ -821,6 +869,8 @@ int main(int argc, char* argv[])
               << "\tunclassified="   << st.unclassified
               << "\tminimal="        << st.minimal
               << "\tminimal_not_key="<< st.minimal_not_key
+              << "\tratio_sum="   << st.ratio_sum
+              << "\tratio_count=" << st.ratio_count
               << "\tseconds="  << Secs(t0, t1) << "\n";
     return (bugs == 0 && contract_fails == 0) ? 0 : 1;
 }
