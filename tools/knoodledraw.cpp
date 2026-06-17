@@ -23,10 +23,13 @@
 #include "knoodle_io.hpp"
 
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <limits>
 #include <map>
 #include <set>
+
+#include <unistd.h>   // isatty / fileno -- notice when reading from an interactive tty
 
 //==============================================================================
 // Configuration
@@ -2248,7 +2251,13 @@ int main(int argc, char* argv[])
 
     if (config.input_files.empty())
     {
-        // No input files — read from stdin (Unix filter mode)
+        // No input files — read from stdin (Unix filter mode). If stdin is an
+        // interactive terminal, say so, so a bare invocation does not look hung.
+        if (isatty(fileno(stdin)))
+        {
+            std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
+                         "Pipe a stream or pass a file; --help for usage.\n";
+        }
         success = ProcessStream(std::cin, "stdin", config, rng);
     }
     else
