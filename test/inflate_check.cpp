@@ -23,8 +23,7 @@
  * Build: see test/Makefile (target: inflate_check). Needs UMFPACK + Accelerate.
  */
 
-#define KNOODLE_USE_UMFPACK
-#include "../Knoodle.hpp"
+#include "../Knoodle.hpp"   // KNOODLE_USE_UMFPACK supplied by the Makefile (-D)
 
 extern "C" {
 #include "vendor/libhomfly/homfly.h"

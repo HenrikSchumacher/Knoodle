@@ -27,8 +27,7 @@
  * (target klut_check) — needs UMFPACK + BLAS/LAPACK and links vendored libhomfly.
  */
 
-#define KNOODLE_USE_UMFPACK
-#include "../Knoodle.hpp"
+#include "../Knoodle.hpp"   // KNOODLE_USE_UMFPACK supplied by the Makefile (-D)
 
 extern "C" {
 #include "vendor/libhomfly/homfly.h"
