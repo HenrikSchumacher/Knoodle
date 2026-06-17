@@ -20,6 +20,12 @@
  * SAME knot -- so Identify has real work to do (klut_e2e showed Reapr is a no-op
  * on already-minimal diagrams, which would make this measure nothing).
  *
+ * Alternate input (--polygon-edges=N): a firehose of fresh random equilateral
+ * N-gons from the progressive action-angle sampler, projected to PDs and
+ * Identified. Generation and classification are timed separately. This is the
+ * real polygonal-knot enumeration workload (mostly unknots, a tail of small
+ * knots, occasional >13-crossing diagrams that escalate or stay Unidentified).
+ *
  * Parallel scaling uses the REENTRANT path: subtables pre-loaded once
  * (LoadSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
  * thread-local buffer (FindID(buffer, c), NOT the shared-buffer FindID(pd)) over
@@ -324,6 +330,8 @@ int main(int argc, char* argv[])
     Int inflate_target = 0;      // --inflate=N: inflate inputs to ~N crossings
     ki::Size_T n0  = 1;          // --n0=N: initial Reapr embedding_trials in ki::Identify
     ki::Size_T cap_escalate = 256; // --escalate-cap=N: max escalation attempts per candidate
+    Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
+    std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string pool_file;       // --pool-file=PATH: load pool if it exists, else build + save
     std::vector<int> thread_counts = {1, 2, 4, 8};
 
@@ -341,6 +349,8 @@ int main(int argc, char* argv[])
         else if (a.rfind("--inflate=", 0) == 0)  inflate_target = std::stoll(v("--inflate="));
         else if (a.rfind("--n0=", 0) == 0)       n0 = static_cast<ki::Size_T>(std::stoull(v("--n0=")));
         else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
+        else if (a.rfind("--polygon-edges=", 0) == 0) polygon_edges = std::stoll(v("--polygon-edges="));
+        else if (a.rfind("--polygon-seed=", 0) == 0)  polygon_seed = std::stoull(v("--polygon-seed="));
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
@@ -358,6 +368,107 @@ int main(int argc, char* argv[])
     klut.LoadSubtables();
     const auto tL1 = Clock::now();
     std::cout << "  subtables loaded in " << Secs(tL0, tL1) << " s\n";
+
+    // Polygon-firehose mode: instead of the perturbed KLUT pool, generate fresh
+    // random equilateral polygons (single-component knots) with the progressive
+    // action-angle sampler, project each to a PD, and Identify it. Generation and
+    // classification are timed separately (generation is usually the cheap part).
+    // The pool is not used in this mode. Seedable for a reproducible diagram
+    // stream (the Reapr escalation inside Identify remains stochastic).
+    if (polygon_edges > 0)
+    {
+        using Sampler_T = Knoodle::ActionAngleSampler<Real, Int, Knoodle::PRNG_T, true>;
+        Sampler_T sampler{ Knoodle::PRNG_T(polygon_seed) };
+        Reapr_T reapr{};
+        PDC_T work, temp;
+        ki::IdentifyResult R;
+
+        double t_gen = 0, t_classify = 0;
+        std::size_t reapr_calls = 0;
+        std::size_t n_identified = 0, n_unident = 0, n_error = 0,
+                    n_unknot = 0, n_link = 0, n_invalid = 0;
+        Int gen_c_min = -1, gen_c_max = 0; double gen_c_sum = 0;
+        std::array<std::size_t, Klut::max_crossing_count + 1> hist{};  // identified-prime crossings
+
+        std::cout << "\n  polygon firehose: " << iters << " random "
+                  << polygon_edges << "-gons (seed " << polygon_seed << ")\n";
+
+        const auto P0 = Clock::now();
+        for (std::size_t i = 0; i < iters; ++i)
+        {
+            auto t0 = Clock::now();
+            auto L = sampler.RandomEquilateralLink<Real, Int, float>(Int(1), polygon_edges);
+            auto [pd, unlinks] = PD_T::FromLinkEmbedding(L);
+            (void)unlinks;
+            auto t1 = Clock::now();
+
+            const bool gen_ok = pd.ValidQ();
+            if (gen_ok)
+            {
+                const Int gc = pd.CrossingCount();
+                gen_c_min = (gen_c_min < 0) ? gc : std::min(gen_c_min, gc);
+                gen_c_max = std::max(gen_c_max, gc);
+                gen_c_sum += static_cast<double>(gc);
+                work.Clear();
+                work.Push(std::move(pd));
+                ki::IdentifyInto(klut, work, temp, reapr, R, idp);
+            }
+            auto t2 = Clock::now();
+
+            t_gen      += Secs(t0, t1);
+            t_classify += Secs(t1, t2);
+
+            if (!gen_ok) { ++n_invalid; continue; }
+            reapr_calls += static_cast<std::size_t>(R.reapr_calls);
+
+            if (R.status == ki::IdentifyResult::Status::LinkOutOfScope) { ++n_link; continue; }
+            if (R.summands.empty()) { ++n_unknot; continue; }
+
+            bool all_ident = true, any_unident = false, any_error = false;
+            for (const auto& sm : R.summands)
+            {
+                if (sm.kind == ki::Summand::Kind::Identified)
+                {
+                    if (sm.crossings >= Int(0) && sm.crossings <= Int(Klut::max_crossing_count))
+                        ++hist[static_cast<std::size_t>(sm.crossings)];
+                }
+                else { all_ident = false; }
+                if (sm.kind == ki::Summand::Kind::Unidentified) { any_unident = true; }
+                if (sm.kind == ki::Summand::Kind::Error)        { any_error = true; }
+            }
+            if      (all_ident)   { ++n_identified; }
+            else if (any_error)   { ++n_error; }
+            else if (any_unident) { ++n_unident; }
+        }
+        const auto P1 = Clock::now();
+        const double wall   = Secs(P0, P1);
+        const double tot    = t_gen + t_classify;
+        const std::size_t n_valid = iters - n_invalid;
+
+        std::cout << "  generated crossings: ";
+        if (gen_c_min < 0) { std::cout << "(none valid)"; }
+        else { std::cout << gen_c_min << ".." << gen_c_max << " (avg "
+                         << (gen_c_sum / static_cast<double>(n_valid ? n_valid : 1)) << ")"; }
+        std::cout << "\n  per-item timing (single thread, " << iters << " polygons):\n"
+                  << "    generate   " << (t_gen / iters * 1e9) << " ns/item   "
+                  << (100.0 * t_gen / tot) << " %\n"
+                  << "    classify   " << (t_classify / iters * 1e9) << " ns/item   "
+                  << (100.0 * t_classify / tot) << " %\n"
+                  << "  end-to-end: " << (wall / iters * 1e9) << " ns/item   "
+                  << (iters / wall) << " polygons/s\n"
+                  << "  escalation: " << (static_cast<double>(reapr_calls) / iters)
+                  << " reapr calls/item\n"
+                  << "  outcomes: identified " << n_identified
+                  << ", unidentified " << n_unident << ", error " << n_error
+                  << ", unknot " << n_unknot << ", link " << n_link
+                  << ", invalid " << n_invalid << "\n";
+        std::cout << "  identified-prime crossing histogram:";
+        bool any = false;
+        for (std::size_t c = 3; c < hist.size(); ++c)
+            if (hist[c]) { std::cout << "  " << c << "cx:" << hist[c]; any = true; }
+        std::cout << (any ? "" : "  (none)") << "\n";
+        return 0;
+    }
 
     // Build (or reload) the perturbed pool. With --pool-file=PATH, an existing
     // file is reloaded verbatim (reproducible failing set across runs); otherwise
