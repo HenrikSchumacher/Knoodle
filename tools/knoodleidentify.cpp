@@ -34,6 +34,8 @@
 #include <tuple>
 #include <vector>
 
+#include <unistd.h>   // isatty / fileno -- notice when reading from an interactive tty
+
 //==============================================================================
 // Configuration
 //==============================================================================
@@ -68,6 +70,11 @@ void PrintUsage()
         "\n"
         "Usage: knoodleidentify [options] [input_files...]\n"
         "\n"
+        "Examples:\n"
+        "  generator | knoodleidentify        # identify a piped stream of diagrams\n"
+        "  knoodleidentify diagrams.tsv       # identify diagrams from a file\n"
+        "  knoodleidentify                    # read diagrams from the terminal (Ctrl-D)\n"
+        "\n"
         "Reads RAW knot/link diagrams (PD codes or 3D embeddings, same formats as\n"
         "knoodlesimplify; 'k' separates diagrams) from stdin or the given files,\n"
         "runs the KLUT identify protocol on each (decompose, simplify, escalate\n"
@@ -80,7 +87,9 @@ void PrintUsage()
         "Default output (one line per knot) is a Wolfram Language association from\n"
         "each distinct knot summand to its multiplicity, e.g.\n"
         "  <| KnotSymbol[3,1,True,\"e/r\"] -> 2, KnotSymbol[5,1,True,\"m/mr\"] -> 1 |>\n"
-        "This parses directly via ToExpression. An unknot yields <||>.\n"
+        "This parses directly via ToExpression. An unknot yields <||>. A summand we\n"
+        "cannot place carries its PD code for offline analysis, e.g.\n"
+        "  <| Unidentified[15, {{1,2,3,4,-1}, ...}] -> 1 |>\n"
         "\n"
         "Options:\n"
         "  --data-dir=PATH     KLUT data directory containing Klut_Keys_NN.bin\n"
@@ -95,7 +104,8 @@ void PrintUsage()
         "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
         "  -h, --help          Show this help.\n"
         "\n"
-        "Knot symbols (default / --tsv):\n"
+        "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
+        "alternating flag, last is the symmetry coset:\n"
         "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
         "  Unidentified[N,PD]       N>13 crossings, over the table range; PD = signed\n"
         "                           PD code of the unresolved diagram (for analysis)\n"
@@ -104,8 +114,9 @@ void PrintUsage()
         "  Invalid[]                invalid diagram / internal error\n"
         "  (unknot summands are the connect-sum identity and are omitted)\n"
         "\n"
-        "Markers in --expanded mode: K[c,i,j,\"sym\"], Unknot, <unidentified:N>,\n"
-        "<notfound:N>, <link:N>, <invalid>.\n";
+        "Markers in --expanded mode (j is the same alternating flag, as 0/1):\n"
+        "  K[c,i,j,\"sym\"], Unknot, <unidentified:N PD=...>, <notfound:N PD=...>,\n"
+        "  <link:N>, <invalid>.\n";
 }
 
 //==============================================================================
@@ -639,6 +650,13 @@ int main(int argc, char* argv[])
 
     if (config.input_files.empty())
     {
+        // Unix filter: no files -> read stdin. If stdin is an interactive terminal
+        // (no pipe/redirect), say so, so a bare invocation does not just look hung.
+        if (isatty(fileno(stdin)))
+        {
+            Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
+                "Pipe a stream or pass a file; --help for usage.");
+        }
         success = ProcessStream(std::cin, "stdin", config, klut, names, reapr, stats, rng);
     }
     else
