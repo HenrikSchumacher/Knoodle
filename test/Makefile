@@ -193,10 +193,12 @@ $(PLANTRI): vendor/plantri/plantri.c
 	$(CC) -O2 -w -o $@ $<
 	@echo "✓ plantri compiled successfully"
 
-# plantri_check — exhaustive plantri-generated diagrams, HOMFLY-invariance under
-# Simplify as the oracle (same light config as homfly_check; no UMFPACK). Needs
-# the vendored plantri binary at runtime.
-plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
+# plantri_check — exhaustive plantri-generated diagrams: HOMFLY-invariance under
+# Simplify as the oracle, plus (with --klut) the KLUT identify-contract check
+# (ki::Identify A+B). Light config (no UMFPACK; ki::Identify's Reapr uses TV+MCF).
+# Needs the vendored plantri binary at runtime.
+plantri_check: plantri_check.cpp homfly_invariance.hpp ../tools/klut_identify.hpp \
+               $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
 	@echo "=== Building plantri_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
 	@echo "✓ plantri_check compiled successfully"
