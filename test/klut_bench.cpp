@@ -316,6 +316,38 @@ void ReportStages(const Stage& s, std::size_t iters, double wall)
               << (iters / wall) << " items/s\n";
 }
 
+// Map a --compaction= name to the OrthoDraw compaction method. This is a Reapr
+// setting which, per PDC::Simplify ("the options of the Reapr instance override
+// some of the options in args"), governs the embedding compaction inside
+// ki::Identify. Length_MCF (min-cost-flow) is the default; TopologicalNumbering
+// is the cheap alternative.
+PDC_T::Compaction_T ParseCompaction(const std::string& s, bool& ok)
+{
+    using C = PDC_T::Compaction_T;
+    ok = true;
+    if (s == "length-mcf" || s == "mcf" || s == "default")    return C::Length_MCF;
+    if (s == "topo" || s == "topological-numbering")          return C::TopologicalNumbering;
+    if (s == "topo-ordering" || s == "topological-ordering")  return C::TopologicalOrdering;
+    if (s == "length-clp" || s == "clp")                      return C::Length_CLP;
+    if (s == "area-clp" || s == "area-length-clp")            return C::AreaAndLength_CLP;
+    ok = false;
+    return C::Length_MCF;
+}
+
+const char* CompactionName(PDC_T::Compaction_T c)
+{
+    using C = PDC_T::Compaction_T;
+    switch (c)
+    {
+        case C::TopologicalNumbering: return "topo";
+        case C::TopologicalOrdering:  return "topo-ordering";
+        case C::Length_MCF:           return "length-mcf";
+        case C::Length_CLP:           return "length-clp";
+        case C::AreaAndLength_CLP:    return "area-clp";
+        default:                      return "unknown";
+    }
+}
+
 } // namespace
 
 int main(int argc, char* argv[])
@@ -332,6 +364,8 @@ int main(int argc, char* argv[])
     ki::Size_T cap_escalate = 256; // --escalate-cap=N: max escalation attempts per candidate
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
+    std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
+    int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 4)
     std::string pool_file;       // --pool-file=PATH: load pool if it exists, else build + save
     std::vector<int> thread_counts = {1, 2, 4, 8};
 
@@ -351,6 +385,8 @@ int main(int argc, char* argv[])
         else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
         else if (a.rfind("--polygon-edges=", 0) == 0) polygon_edges = std::stoll(v("--polygon-edges="));
         else if (a.rfind("--polygon-seed=", 0) == 0)  polygon_seed = std::stoull(v("--polygon-seed="));
+        else if (a.rfind("--compaction=", 0) == 0) compaction = v("--compaction=");
+        else if (a.rfind("--randomize-bends=", 0) == 0) randomize_bends = std::stoi(v("--randomize-bends="));
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
@@ -377,9 +413,16 @@ int main(int argc, char* argv[])
     // stream (the Reapr escalation inside Identify remains stochastic).
     if (polygon_edges > 0)
     {
+        bool comp_ok = true;
+        const auto comp = ParseCompaction(compaction, comp_ok);
+        if (!comp_ok) { std::cerr << "unknown --compaction=" << compaction << "\n"; return 2; }
+        Reapr_T::Settings_T rset{};
+        rset.ortho_draw_settings.compaction_method = comp;
+        if (randomize_bends >= 0) { rset.ortho_draw_settings.randomize_bends = randomize_bends; }
+
         using Sampler_T = Knoodle::ActionAngleSampler<Real, Int, Knoodle::PRNG_T, true>;
         Sampler_T sampler{ Knoodle::PRNG_T(polygon_seed) };
-        Reapr_T reapr{};
+        Reapr_T reapr{ rset };
         PDC_T work, temp;
         ki::IdentifyResult R;
 
@@ -391,7 +434,9 @@ int main(int argc, char* argv[])
         std::array<std::size_t, Klut::max_crossing_count + 1> hist{};  // identified-prime crossings
 
         std::cout << "\n  polygon firehose: " << iters << " random "
-                  << polygon_edges << "-gons (seed " << polygon_seed << ")\n";
+                  << polygon_edges << "-gons (seed " << polygon_seed
+                  << ", compaction=" << CompactionName(comp)
+                  << ", randomize_bends=" << rset.ortho_draw_settings.randomize_bends << ")\n";
 
         const auto P0 = Clock::now();
         for (std::size_t i = 0; i < iters; ++i)
@@ -445,17 +490,24 @@ int main(int argc, char* argv[])
         const double tot    = t_gen + t_classify;
         const std::size_t n_valid = iters - n_invalid;
 
+        const double classify_tput = (t_classify > 0) ? iters / t_classify : 0.0;
+        const double genclass_tput = (tot > 0)        ? iters / tot        : 0.0;
+
         std::cout << "  generated crossings: ";
         if (gen_c_min < 0) { std::cout << "(none valid)"; }
         else { std::cout << gen_c_min << ".." << gen_c_max << " (avg "
                          << (gen_c_sum / static_cast<double>(n_valid ? n_valid : 1)) << ")"; }
-        std::cout << "\n  per-item timing (single thread, " << iters << " polygons):\n"
+        std::cout << "\n  throughput (single thread, " << iters << " polygons):\n"
+                  << "    classify only        : " << classify_tput << " polygons/s\n"
+                  << "    generate + classify  : " << genclass_tput << " polygons/s\n"
+                  << "  average timing:\n"
                   << "    generate   " << (t_gen / iters * 1e9) << " ns/item   "
                   << (100.0 * t_gen / tot) << " %\n"
                   << "    classify   " << (t_classify / iters * 1e9) << " ns/item   "
                   << (100.0 * t_classify / tot) << " %\n"
-                  << "  end-to-end: " << (wall / iters * 1e9) << " ns/item   "
-                  << (iters / wall) << " polygons/s\n"
+                  << "    total      " << (tot / iters * 1e9) << " ns/item\n"
+                  << "  end-to-end (wall incl. overhead): " << (wall / iters * 1e9)
+                  << " ns/item   " << (iters / wall) << " polygons/s\n"
                   << "  escalation: " << (static_cast<double>(reapr_calls) / iters)
                   << " reapr calls/item\n"
                   << "  outcomes: identified " << n_identified
