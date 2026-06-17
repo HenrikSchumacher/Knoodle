@@ -97,8 +97,9 @@ void PrintUsage()
         "\n"
         "Knot symbols (default / --tsv):\n"
         "  KnotSymbol[c,i,a,\"sym\"]  identified knot; a (alternating) is True/False\n"
-        "  Unidentified[N]          N>13 crossings, over the table range\n"
-        "  NotFound[N]              <=13 yet unresolved after Reapr (suspicious!)\n"
+        "  Unidentified[N,PD]       N>13 crossings, over the table range; PD = signed\n"
+        "                           PD code of the unresolved diagram (for analysis)\n"
+        "  NotFound[N,PD]           <=13 yet unresolved after Reapr (suspicious!); PD too\n"
         "  Link[N]                  multi-component input (the table is knots-only)\n"
         "  Invalid[]                invalid diagram / internal error\n"
         "  (unknot summands are the connect-sum identity and are omitted)\n"
@@ -311,7 +312,31 @@ struct Summand
     bool        alternating = false; ///< j: alternating flag (0/1 -> False/True)
     std::string coset;               ///< "sym" *including* the surrounding quotes
     std::string raw_name;            ///< the original K[...] string
+
+    // Valid only when kind == OverRange / NotFound: the flattened signed PD code
+    // (5 cols/crossing) of the diagram we could not identify, so a failure is
+    // recoverable for offline analysis. PD code is standard and survives any size.
+    std::vector<Int> pd_code;
 };
+
+/// Format a flattened signed PD code as a Wolfram nested list { {a,b,c,d,e}, ... }.
+std::string PDCodeToWL(const std::vector<Int>& pd)
+{
+    std::string out = "{";
+    const std::size_t rows = pd.size() / 5;
+    for (std::size_t r = 0; r < rows; ++r)
+    {
+        out += (r ? ",{" : "{");
+        for (int j = 0; j < 5; ++j)
+        {
+            if (j) { out += ","; }
+            out += std::to_string(pd[5 * r + j]);
+        }
+        out += "}";
+    }
+    out += "}";
+    return out;
+}
 
 /**
  * @brief Parse a raw table name "K[c,i,j,\"sym\"]" into the fields of a Summand.
@@ -350,8 +375,14 @@ std::string WLSymbol(const Summand& s)
                    std::to_string(s.knot_index) + "," +
                    (s.alternating ? "True" : "False") + "," + s.coset + "]";
         case Kind::Unknot:    return "";
-        case Kind::OverRange: return "Unidentified[" + std::to_string(s.crossings) + "]";
-        case Kind::NotFound:  return "NotFound[" + std::to_string(s.crossings) + "]";
+        case Kind::OverRange: return s.pd_code.empty()
+                                     ? "Unidentified[" + std::to_string(s.crossings) + "]"
+                                     : "Unidentified[" + std::to_string(s.crossings) + ", "
+                                       + PDCodeToWL(s.pd_code) + "]";
+        case Kind::NotFound:  return s.pd_code.empty()
+                                     ? "NotFound[" + std::to_string(s.crossings) + "]"
+                                     : "NotFound[" + std::to_string(s.crossings) + ", "
+                                       + PDCodeToWL(s.pd_code) + "]";
         case Kind::Link:      return "Link[" + std::to_string(s.crossings) + "]";
         case Kind::Invalid:   return "Invalid[]";
     }
@@ -367,8 +398,10 @@ std::string ExpandedSymbol(const Summand& s)
     {
         case Kind::Identified: return s.raw_name;
         case Kind::Unknot:     return "Unknot";
-        case Kind::OverRange:  return "<unidentified:" + std::to_string(s.crossings) + ">";
-        case Kind::NotFound:   return "<notfound:" + std::to_string(s.crossings) + ">";
+        case Kind::OverRange:  return "<unidentified:" + std::to_string(s.crossings)
+                                    + (s.pd_code.empty() ? "" : " PD=" + PDCodeToWL(s.pd_code)) + ">";
+        case Kind::NotFound:   return "<notfound:" + std::to_string(s.crossings)
+                                    + (s.pd_code.empty() ? "" : " PD=" + PDCodeToWL(s.pd_code)) + ">";
         case Kind::Link:       return "<link:" + std::to_string(s.crossings) + ">";
         case Kind::Invalid:    return "<invalid>";
     }
@@ -395,8 +428,10 @@ bool SummandLess(const Summand& a, const Summand& b)
     const int ga = group(a);
     const int gb = group(b);
 
-    return std::tie(ga, a.crossings, a.knot_index, a.alternating, a.coset)
-         < std::tie(gb, b.crossings, b.knot_index, b.alternating, b.coset);
+    // pd_code last: distinct failed diagrams (same crossing count) stay distinct
+    // keys in the multiset rather than collapsing and losing one diagram's code.
+    return std::tie(ga, a.crossings, a.knot_index, a.alternating, a.coset, a.pd_code)
+         < std::tie(gb, b.crossings, b.knot_index, b.alternating, b.coset, b.pd_code);
 }
 
 /// Convert one Identify result-summand to a render Summand, resolving its name.
@@ -415,10 +450,12 @@ Summand ConvertSummand(const ki::Summand& rs,
             break;
         case ki::Summand::Kind::Unidentified:
             s.kind = Kind::OverRange;
+            s.pd_code = rs.pd_code;
             ++stats.over_range;
             break;
         case ki::Summand::Kind::Error:
             s.kind = Kind::NotFound;
+            s.pd_code = rs.pd_code;
             ++stats.not_found;
             break;
     }

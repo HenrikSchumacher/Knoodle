@@ -29,17 +29,21 @@ using Size_T  = Knoodle::Size_T;
 struct IdentifyParams
 {
     Size_T n0     = 1;    // initial embedding_trials for the Reapr escalation
-    Size_T cap    = 256;  // max escalation attempts per candidate (high; bug tripwire)
+    Size_T cap    = 2;    // max escalation rounds per candidate (tuned via klut_bench: a
+                          // high cap only burns time on genuinely irreducible diagrams)
+    Size_T rot    = 25;   // rotation_trials (reprojections) per embedding during escalation
     Int    max_cx = static_cast<Int>(Klut::max_crossing_count);  // 13
 };
 
 struct Summand
 {
     enum class Kind { Identified, Unidentified, Error };
-    Kind              kind = Kind::Error;
-    Klut::ID_T        id   = Klut::not_found;   // Identified: table id
-    Int               crossings = 0;           // Unidentified / Error
-    std::vector<Code> code;                    // Unidentified / Error: canonical MacLeod (lossless)
+    Kind             kind = Kind::Error;
+    Klut::ID_T       id   = Klut::not_found;   // Identified: table id
+    Int              crossings = 0;            // Unidentified / Error
+    std::vector<Int> pd_code;                  // Unidentified / Error: flattened signed PD code
+                                               // (5 cols/crossing) -- standard, lossless, for
+                                               // offline analysis of what we could not identify
 };
 
 struct IdentifyResult
@@ -107,10 +111,14 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     auto record_terminal = [&R, &q](const PD_T& D) {   // cap exhausted -> Unidentified / Error
         Summand s;
         s.crossings = D.CrossingCount();
-        if( D.ValidQ() && D.LinkComponentCount() == Int(1) && s.crossings <= Int(63) )  // UInt8 leap bound
+        if( D.ValidQ() && D.LinkComponentCount() == Int(1) )
         {
-            s.code.resize(static_cast<std::size_t>(s.crossings));
-            D.template WriteMacLeodCode<Code>(s.code.data());
+            PD_T pd(D);   // PDCode is non-const
+            auto code = pd.template PDCode<Int, {.signQ = true, .colorQ = false}>();
+            const Int c = pd.CrossingCount();
+            s.pd_code.reserve(static_cast<std::size_t>(5 * c));
+            for( Int i = 0; i < c; ++i )
+                for( int j = 0; j < 5; ++j ) { s.pd_code.push_back(code(i,j)); }
         }
         s.kind = (s.crossings > q.max_cx) ? Summand::Kind::Unidentified : Summand::Kind::Error;
         R.summands.push_back(std::move(s));
@@ -135,6 +143,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
         {
             PDC_T::Simplify_Args_T a{};
             a.embedding_trials = n;                // escalation: canonicalize default (immaterial; Reapr swamps)
+            a.rotation_trials  = q.rot;            // reprojections per embedding (tunable)
             ++R.reapr_calls;
             temp.Simplify(reapr, a);
 

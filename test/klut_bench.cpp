@@ -361,7 +361,8 @@ int main(int argc, char* argv[])
     std::size_t audit_n = 0;     // --audit=N: classify N outcomes (correct/wrong/unidentified/error)
     Int inflate_target = 0;      // --inflate=N: inflate inputs to ~N crossings
     ki::Size_T n0  = 1;          // --n0=N: initial Reapr embedding_trials in ki::Identify
-    ki::Size_T cap_escalate = 256; // --escalate-cap=N: max escalation attempts per candidate
+    ki::Size_T cap_escalate = ki::IdentifyParams{}.cap; // --escalate-cap=N: max escalation rounds
+    ki::Size_T rot_trials   = ki::IdentifyParams{}.rot; // --rot=N: reprojections per embedding
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
@@ -386,6 +387,7 @@ int main(int argc, char* argv[])
         else if (a.rfind("--inflate=", 0) == 0)  inflate_target = std::stoll(v("--inflate="));
         else if (a.rfind("--n0=", 0) == 0)       n0 = static_cast<ki::Size_T>(std::stoull(v("--n0=")));
         else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
+        else if (a.rfind("--rot=", 0) == 0) rot_trials = static_cast<ki::Size_T>(std::stoull(v("--rot=")));
         else if (a.rfind("--polygon-edges=", 0) == 0) polygon_edges = std::stoll(v("--polygon-edges="));
         else if (a.rfind("--polygon-seed=", 0) == 0)  polygon_seed = std::stoull(v("--polygon-seed="));
         else if (a.rfind("--compaction=", 0) == 0) compaction = v("--compaction=");
@@ -396,7 +398,7 @@ int main(int argc, char* argv[])
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
-    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate,
+    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate, .rot = rot_trials,
                                   .max_cx = static_cast<Int>(c_max) };
 
     std::cout << "klut_bench: KLUT Identify-path throughput\n"
@@ -450,7 +452,8 @@ int main(int argc, char* argv[])
                   << " tolerance=" << rset.tolerance
                   << " SSN_max_iter=" << rset.SSN_max_iter << "\n"
                   << "    identify: n0=" << static_cast<long long>(idp.n0)
-                  << " escalate-cap=" << static_cast<long long>(idp.cap) << "\n";
+                  << " escalate-cap=" << static_cast<long long>(idp.cap)
+                  << " rot=" << static_cast<long long>(idp.rot) << "\n";
 
         const auto P0 = Clock::now();
         for (std::size_t i = 0; i < iters; ++i)
