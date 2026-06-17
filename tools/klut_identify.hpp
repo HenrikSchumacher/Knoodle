@@ -31,7 +31,8 @@ struct IdentifyParams
     Size_T n0     = 1;    // initial embedding_trials for the Reapr escalation
     Size_T cap    = 2;    // max escalation rounds per candidate (tuned via klut_bench: a
                           // high cap only burns time on genuinely irreducible diagrams)
-    Size_T rot    = 25;   // rotation_trials (reprojections) per embedding during escalation
+    Size_T rot    = 5;    // rotation_trials (reprojections) per embedding during escalation
+                          // (tuned via klut_bench: ~all of rot=1's speed, 5x the margin)
     Int    max_cx = static_cast<Int>(Klut::max_crossing_count);  // 13
 };
 
