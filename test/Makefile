@@ -116,12 +116,12 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ link_split_check compiled successfully"
 
-# klut_bench — throughput benchmark for the KLUT identify path (construct ->
-# Simplify -> canonicalize -> lookup), single- and multi-threaded. See
-# docs/klut-simplify-perf.md. Note: with -include of a Tensors header (UMFPACK
-# build), the KNOODLE->TOOLS boost cascade is front-run, so pass
-# -DTOOLS_USE_BOOST_UNORDERED explicitly to actually enable boost's flat maps.
-klut_bench: klut_bench.cpp ../Knoodle.hpp
+# klut_bench — throughput benchmark for the KLUT Identify path (construct ->
+# ki::Identify), single- and multi-threaded. See docs/klut-simplify-perf.md.
+# Note: with -include of a Tensors header (UMFPACK build), the KNOODLE->TOOLS
+# boost cascade is front-run, so pass -DTOOLS_USE_BOOST_UNORDERED explicitly to
+# actually enable boost's flat maps.
+klut_bench: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_bench on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
 	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
@@ -134,7 +134,7 @@ klut_bench: klut_bench.cpp ../Knoodle.hpp
 # KNOODLE_USE_BOOST_UNORDERED -> TOOLS_USE_BOOST_UNORDERED cascade would otherwise
 # be defeated and boost would silently fall back to std. Verify after building:
 #   nm klut_bench_boost | c++filt | grep -c boost::unordered   (must be nonzero)
-klut_bench_boost: klut_bench.cpp ../Knoodle.hpp
+klut_bench_boost: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_bench_boost on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK -DKNOODLE_USE_BOOST_UNORDERED \
 	    -DTOOLS_USE_BOOST_UNORDERED $(KNOODLE_INC) $(UMFPACK_INC) \
@@ -170,7 +170,7 @@ component_check: component_check.cpp ../Knoodle.hpp
 # klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
 # single knots (perturbed), connect sums (multi-diagram PDC + single spliced
 # diagram), the unknot, and multi-component links. Same heavy config as klut_bench.
-klut_identify_check: klut_identify_check.cpp klut_identify.hpp ../Knoodle.hpp
+klut_identify_check: klut_identify_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_identify_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
 	    klut_identify_check.cpp $(UMFPACK_LDFLAGS) -o $@
@@ -180,7 +180,7 @@ klut_identify_check: klut_identify_check.cpp klut_identify.hpp ../Knoodle.hpp
 # random 2048-gon's unsimplified diagram (3348 crossings, embedded). Exercises
 # decomposition, Reapr escalation, and the Unidentified path on a realistic input.
 # Same heavy config as klut_identify_check.
-klut_identify_random_check: klut_identify_random_check.cpp klut_identify.hpp ../Knoodle.hpp
+klut_identify_random_check: klut_identify_random_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_identify_random_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
 	    klut_identify_random_check.cpp $(UMFPACK_LDFLAGS) -o $@

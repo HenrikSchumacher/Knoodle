@@ -15,7 +15,7 @@
 // either a regression, or an improvement (e.g. a previously-Unidentified summand
 // became identifiable) -- in which case update the golden below.
 #include "../Knoodle.hpp"
-#include "klut_identify.hpp"
+#include "../tools/klut_identify.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>

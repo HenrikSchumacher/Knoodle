@@ -1,36 +1,41 @@
 /**
  * @file klut_bench.cpp
- * @brief Throughput benchmark for the KLUT identify path, modeled on the
- *        polygonal-knot enumeration workload: a firehose of small, NON-minimal
- *        diagrams, each Simplified, canonicalized to a MacLeod key, and looked
- *        up (usually to be discarded as an already-known knot).
+ * @brief Throughput benchmark for the KLUT *Identify* path (klut_identify.hpp),
+ *        modeled on the polygonal-knot enumeration workload: a firehose of small,
+ *        NON-minimal diagrams, each handed to ki::Identify (decompose -> pass-only
+ *        Simplify -> direct lookup -> Reapr escalation on miss) and usually
+ *        resolved to an already-known knot.
  *
  * What it measures, per item, as separate stages:
  *   construct   - build a fresh PD_T from a stored signed PD code (stands in for
- *                 "build a diagram from the line-arrangement combinatorics")
- *   simplify    - PlanarDiagramComplex::Simplify (Reapr-based; the suspected
- *                 dominant cost -- the table only stores simplified diagrams)
- *   canonical   - PlanarDiagram::WriteMacLeodCode (canonical key computation)
- *   lookup      - Klut::FindID(key) = pack + one hash probe (expected ~free)
+ *                 "build a diagram from the line-arrangement combinatorics") and
+ *                 wrap it in a single-diagram PDC.
+ *   identify    - ki::Identify on that PDC: pass-only seed Simplify, direct table
+ *                 lookup, and Reapr escalation when the pass-fixpoint is a
+ *                 non-minimal <=13 diagram absent from the table. The escalation
+ *                 rate (reapr calls / item) is reported alongside.
  *
  * Inputs: KLUT minimal diagrams (reconstructed from the shipped key tables) are
  * perturbed by one Reapr embed+reproject into small non-minimal diagrams of the
- * SAME knot -- so Simplify has real work to do (klut_e2e showed Reapr is a no-op
+ * SAME knot -- so Identify has real work to do (klut_e2e showed Reapr is a no-op
  * on already-minimal diagrams, which would make this measure nothing).
  *
  * Parallel scaling uses the REENTRANT path: subtables pre-loaded once
- * (LoadSubtables, avoiding the lazy-load race), each thread with its own scratch
- * buffer calling FindID(buffer, c) (NOT the shared-buffer FindID(pd) overload),
- * over the shared read-only table.
+ * (LoadSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
+ * thread-local buffer (FindID(buffer, c), NOT the shared-buffer FindID(pd)) over
+ * the shared read-only table, and each worker thread owns its own Reapr.
  *
  * Build: test/Makefile target klut_bench (UMFPACK + Accelerate, like inflate_check).
  */
 
 #include "../Knoodle.hpp"
+#include "../tools/klut_identify.hpp"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -45,6 +50,7 @@ using Reapr_T = Knoodle::Reapr<Real, Int, float>;
 using Klut    = Knoodle::Klut;
 using Clock   = std::chrono::steady_clock;
 using CodeInt = Klut::CodeInt;
+namespace ki  = klut_identify;
 
 namespace {
 
@@ -144,7 +150,7 @@ std::vector<Item> BuildPool(const std::vector<PD_T>& minimals, Int cap,
 }
 
 // Inflate each minimal to >= target crossings by repeated Reapr reproject (same
-// knot throughout), to probe how Simplify behaves on LARGE inputs.
+// knot throughout), to probe how Identify behaves on LARGE inputs.
 std::vector<Item> BuildInflatedPool(const std::vector<PD_T>& minimals, Int target,
                                     std::uint64_t seed0, Klut& klut)
 {
@@ -184,7 +190,7 @@ std::vector<Item> BuildInflatedPool(const std::vector<PD_T>& minimals, Int targe
 // (OrthoDraw.hpp; InitializedRandomEngine uses std::random_device with no seed
 // hook), so the generated set is NOT reproducible from the benchmark side alone.
 // To get a reproducible failing set, save the pool once and reload it: same file
-// -> same diagrams -> same audit outcomes (Simplify itself stays stochastic, but
+// -> same diagrams -> same audit outcomes (Identify itself stays stochastic, but
 // the input population is pinned). Text format, one item per line:
 //   nc <tab> c_min <tab> src_id <tab> n_codes <tab> code...
 bool SavePool(const std::vector<Item>& pool, const std::string& path)
@@ -222,32 +228,30 @@ std::vector<Item> LoadPool(const std::string& path)
     return pool;
 }
 
-struct Stage { double construct = 0, simplify = 0, canonical = 0, lookup = 0; };
+struct Stage { double construct = 0, identify = 0; std::size_t reapr_calls = 0; };
 
-// Run `iters` identify chains over the pool (cycled), accumulating per-stage time.
-// Returns the stage totals; `found` counts lookups that resolved to a real id.
-Reapr_T MakeReapr(const PDC_T::Simplify_Args_T& args)
+// True iff Identify resolved `it` to exactly the source knot: a single Identified
+// summand at the source's crossing number and id.
+bool IdentifiedAsSource(const ki::IdentifyResult& r, const Item& it)
 {
-    return Reapr_T({
-        .permute_randomQ     = args.permute_randomQ,
-        .energy              = args.energy,
-        .ortho_draw_settings = {
-            .randomize_bends          = args.randomize_bends,
-            .randomize_virtual_edgesQ = args.randomize_virtual_edgesQ,
-            .compaction_method        = args.compaction_method
-        },
-        .scaling             = args.scaling
-    });
+    return r.status == ki::IdentifyResult::Status::Knot
+        && r.summands.size() == 1
+        && r.summands[0].kind == ki::Summand::Kind::Identified
+        && r.summands[0].crossings == it.c_min
+        && r.summands[0].id == it.src_id;
 }
 
+// Run `iters` identify chains over the pool (cycled), accumulating per-stage time
+// and the escalation count. Returns the stage totals; `correct` counts items that
+// resolved to the source knot. One Reapr is reused across all items (the realistic
+// reentrant firehose path) and is therefore thread-local to this chain.
 Stage RunChain(const std::vector<Item>& pool, Klut& klut, std::size_t iters,
                std::size_t start, std::size_t stride, std::atomic<std::size_t>* correct,
-               const PDC_T::Simplify_Args_T& args, bool reuse_reapr = false)
+               const ki::IdentifyParams& q)
 {
     Stage s;
-    std::array<CodeInt, Klut::max_crossing_count> buf{};
     std::size_t hits = 0;
-    Reapr_T reapr = MakeReapr(args);   // reused across items when reuse_reapr
+    Reapr_T reapr{};
     for (std::size_t i = 0; i < iters; ++i)
     {
         const Item& it = pool[(start + i * stride) % pool.size()];
@@ -255,79 +259,50 @@ Stage RunChain(const std::vector<Item>& pool, Klut& klut, std::size_t iters,
         auto t0 = Clock::now();
         PD_T pd = PD_T::FromSignedPDCode(it.code.data(),
                       static_cast<Int>(it.code.size() / 5), false, true);
+        PDC_T pdc{ std::move(pd) };
         auto t1 = Clock::now();
 
-        PDC_T pdc{ std::move(pd) };
-        if (reuse_reapr) { pdc.Simplify(reapr, args); } else { pdc.Simplify(args); }
-        PD_T simp = pdc.ToSingleDiagram();
+        auto r = ki::Identify(klut, std::move(pdc), reapr, q);
         auto t2 = Clock::now();
 
-        const Int c = simp.CrossingCount();
-        bool ok = simp.ValidQ() && c >= Int(3) && c <= Int(Klut::max_crossing_count);
-        if (ok) { simp.template WriteMacLeodCode<CodeInt>(buf.data()); }
-        auto t3 = Clock::now();
-
-        if (ok)
-        {
-            auto [cc, id] = klut.FindID(buf.data(), c);
-            (void)cc;
-            // Correct = identified as the same knot the perturbed diagram came
-            // from. A cheaper Simplify that under-reduces yields not_found or a
-            // >13 diagram (ok=false) -> counted wrong, exactly what we want to see.
-            if (id == it.src_id && id != Klut::not_found) { ++hits; }
-        }
-        auto t4 = Clock::now();
+        s.reapr_calls += static_cast<std::size_t>(r.reapr_calls);
+        if (IdentifiedAsSource(r, it)) { ++hits; }
 
         s.construct += Secs(t0, t1);
-        s.simplify  += Secs(t1, t2);
-        s.canonical += Secs(t2, t3);
-        s.lookup    += Secs(t3, t4);
+        s.identify  += Secs(t1, t2);
     }
     if (correct) { correct->fetch_add(hits, std::memory_order_relaxed); }
     return s;
 }
 
-// Named Simplify presets to sweep (cost vs. correctness). Defaults are the
-// knoodlesimplify path; the cheaper ones dial down the stochastic Reapr work.
-struct Preset { const char* name; PDC_T::Simplify_Args_T args; bool reuse = false; };
+// Escalation-schedule presets to sweep (cost vs. correctness): the initial Reapr
+// embedding_trials handed to ki::Identify before doubling. A larger n0 spends more
+// up front but may resolve a stubborn fixpoint in one escalation instead of two.
+struct Preset { const char* name; ki::IdentifyParams q; };
 
 std::vector<Preset> Presets()
 {
-    auto base = [] { return PDC_T::Simplify_Args_T{}; };
-    const auto TOPO = PDC_T::Compaction_T::TopologicalNumbering;
     std::vector<Preset> v;
-    { Preset p{"default", base(), false};                                    v.push_back(p); }
-    { auto a = base(); a.rotation_trials = 1;          Preset p{"rot=1", a, false};            v.push_back(p); }
-    { Preset p{"reuse-reapr", base(), true};                                 v.push_back(p); }
-    { auto a = base(); a.compaction_method = TOPO;     Preset p{"topo-compaction", a, false};  v.push_back(p); }
-    { auto a = base(); a.compaction_method = TOPO;     Preset p{"reuse+topo", a, true};        v.push_back(p); }
-    { auto a = base(); a.compaction_method = TOPO; a.rotation_trials = 1;
-                                                       Preset p{"reuse+topo+rot1", a, true};   v.push_back(p); }
-    { auto a = base(); a.compaction_method = TOPO; a.rerouteQ = false;
-                                                       Preset p{"reuse+topo,noreroute", a, true}; v.push_back(p); }
-    // Skip the per-pass ConditionalCompress (threshold=100 => never compress a
-    // <=100-crossing diagram); also try skipping the initial compress.
-    { auto a = base(); a.compression_threshold = 100;  Preset p{"thresh=100", a, false}; v.push_back(p); }
-    { auto a = base(); a.compression_threshold = 100; a.compress_initialQ = false;
-                                                       Preset p{"thresh=100,noinit", a, false}; v.push_back(p); }
-    { auto a = base(); a.compression_threshold = 100; a.compress_initialQ = false;
-      a.compaction_method = TOPO;                      Preset p{"reuse+topo+thresh100,noinit", a, true}; v.push_back(p); }
+    v.push_back(Preset{"n0=1",  ki::IdentifyParams{ .n0 = ki::Size_T(1) }});
+    v.push_back(Preset{"n0=2",  ki::IdentifyParams{ .n0 = ki::Size_T(2) }});
+    v.push_back(Preset{"n0=4",  ki::IdentifyParams{ .n0 = ki::Size_T(4) }});
+    v.push_back(Preset{"n0=8",  ki::IdentifyParams{ .n0 = ki::Size_T(8) }});
     return v;
 }
 
 void ReportStages(const Stage& s, std::size_t iters, double wall)
 {
-    const double total = s.construct + s.simplify + s.canonical + s.lookup;
+    const double total = s.construct + s.identify;
     auto line = [&](const char* name, double t) {
         std::cout << "    " << name << "  "
                   << (t / iters * 1e9) << " ns/item   "
                   << (100.0 * t / total) << " %\n";
     };
     std::cout << "  per-stage (single thread, " << iters << " items):\n";
-    line("construct ", s.construct);
-    line("simplify  ", s.simplify);
-    line("canonical ", s.canonical);
-    line("lookup    ", s.lookup);
+    line("construct", s.construct);
+    line("identify ", s.identify);
+    std::cout << "  escalation: " << (static_cast<double>(s.reapr_calls) / iters)
+              << " reapr calls/item\n";
     std::cout << "  end-to-end: " << (wall / iters * 1e9) << " ns/item   "
               << (iters / wall) << " items/s\n";
 }
@@ -342,11 +317,10 @@ int main(int argc, char* argv[])
     Int    cap     = 24;     // keep perturbed diagrams up to this many crossings
     std::size_t iters = 200000;
     std::size_t profile_n = 0;   // --profile=N: run only N chains, then exit (for `sample`)
-    std::size_t audit_n = 0;     // --audit=N: classify N outcomes (correct/wrong-knot/notfound/oor)
+    std::size_t audit_n = 0;     // --audit=N: classify N outcomes (correct/wrong/unidentified/error)
     Int inflate_target = 0;      // --inflate=N: inflate inputs to ~N crossings
-    Int  prof_ct = 0;            // --compress-threshold=N for the breakdown/profile path
-    bool prof_noinit = false;    // --no-compress-initial
-    bool prof_nopermute = false; // --no-permute: deterministic pass order (permute_randomQ=false)
+    ki::Size_T n0  = 1;          // --n0=N: initial Reapr embedding_trials in ki::Identify
+    ki::Size_T cap_escalate = 256; // --escalate-cap=N: max escalation attempts per candidate
     std::string pool_file;       // --pool-file=PATH: load pool if it exists, else build + save
     std::vector<int> thread_counts = {1, 2, 4, 8};
 
@@ -360,17 +334,20 @@ int main(int argc, char* argv[])
         else if (a.rfind("--cap=", 0) == 0)      cap = std::stoll(v("--cap="));
         else if (a.rfind("--iters=", 0) == 0)    iters = std::stoull(v("--iters="));
         else if (a.rfind("--profile=", 0) == 0)  profile_n = std::stoull(v("--profile="));
-        else if (a.rfind("--audit=", 0) == 0)     audit_n = std::stoull(v("--audit="));
-        else if (a.rfind("--inflate=", 0) == 0)   inflate_target = std::stoll(v("--inflate="));
-        else if (a.rfind("--compress-threshold=", 0) == 0) prof_ct = std::stoll(v("--compress-threshold="));
-        else if (a == "--no-compress-initial")    prof_noinit = true;
-        else if (a == "--no-permute")             prof_nopermute = true;
+        else if (a.rfind("--audit=", 0) == 0)    audit_n = std::stoull(v("--audit="));
+        else if (a.rfind("--inflate=", 0) == 0)  inflate_target = std::stoll(v("--inflate="));
+        else if (a.rfind("--n0=", 0) == 0)       n0 = static_cast<ki::Size_T>(std::stoull(v("--n0=")));
+        else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
-    std::cout << "klut_bench: KLUT identify-path throughput\n"
+    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate,
+                                  .max_cx = static_cast<Int>(c_max) };
+
+    std::cout << "klut_bench: KLUT Identify-path throughput\n"
               << "  klut-dir=" << klut_dir << "  c_max=" << c_max
-              << "  per_c=" << per_c << "  cap=" << cap << "  iters=" << iters << "\n\n";
+              << "  per_c=" << per_c << "  cap=" << cap << "  iters=" << iters
+              << "  n0=" << static_cast<long long>(n0) << "\n\n";
 
     // Build the table and pre-load (single-threaded) so parallel reads are safe.
     Klut klut{ std::filesystem::path(klut_dir), static_cast<Knoodle::Size_T>(c_max) };
@@ -413,43 +390,54 @@ int main(int argc, char* argv[])
     std::cout << "  pool: " << pool.size() << " diagrams, perturbed crossings "
               << nc_min << ".." << nc_max << " (avg " << (nc_sum / pool.size()) << ")\n\n";
 
-    PDC_T::Simplify_Args_T default_args{};
-    default_args.compression_threshold = prof_ct;
-    if (prof_noinit) { default_args.compress_initialQ = false; }
-    if (prof_nopermute) { default_args.permute_randomQ = false; }
-
     // Profiling mode: nothing but identify chains in a tight loop, so an external
-    // sampler (`sample <pid>`) sees a clean Simplify-dominated process.
+    // sampler (`sample <pid>`) sees a clean Identify-dominated process.
     if (profile_n > 0)
     {
         std::cout << "  profile mode: " << profile_n << " chains (sample me now)\n";
         std::atomic<std::size_t> c{0};
-        Stage ps = RunChain(pool, klut, profile_n, 0, 1, &c, default_args, false);
-        std::cout << "  done (" << ps.simplify << " s in simplify)\n";
+        Stage ps = RunChain(pool, klut, profile_n, 0, 1, &c, idp);
+        std::cout << "  done (" << ps.identify << " s in identify, "
+                  << ps.reapr_calls << " reapr calls)\n";
         return 0;
     }
 
-    // Audit mode: classify each identify outcome. The "correct%" column lumps
-    // together three very different misses:
-    //   WRONG-KNOT       - valid id but a DIFFERENT knot: a real Simplify
-    //                       correctness bug (must be zero).
-    //   not_found (<=13)  - a pass-reduction end-state with <=13 crossings whose
-    //                       key is NOT in the KLUT. The table is supposed to
-    //                       contain every pass-fixpoint key (Klutter records
-    //                       pass-fixpoints with embedding_trials=0), so this is a
-    //                       genuine TABLE GAP, not benign under-reduction.
-    //   out-of-range      - end-state reduced to >13 cx (beyond the table's range)
-    //                       or <3 / invalid: outside what the KLUT can key.
-    // Dumps the distinct inputs that EVER simplify to the wrong knot, and the
-    // missing <=13 end-states (their keys are the table gaps), for repro.
+    // Audit mode: classify each Identify outcome. A pool item is a perturbed copy
+    // of one prime KLUT minimal, so the only correct answer is a single Identified
+    // summand at the source (c_min, src_id). Everything else is a real failure:
+    //   WRONG KNOT     - a single valid id that is a DIFFERENT knot, OR an
+    //                    unexpected multi-summand split: a Simplify/Identify
+    //                    correctness bug (must be zero).
+    //   UNIDENTIFIED   - escalation cap exhausted on a >13-crossing end-state:
+    //                    Reapr never recovered a <=13 diagram. Under the corrected
+    //                    KLUT contract every prime knot <=13 has its minimal in the
+    //                    table, so this is an escalation FAILURE, not a table gap.
+    //   ERROR          - cap exhausted on a <=13 end-state whose key is absent: a
+    //                    table gap or a stuck pass-fixpoint (should be zero).
+    //   LINK / COMP-ERR- a single-component perturbation reported as a link or a
+    //                    component-count change: a decomposition bug.
+    // Dumps the distinct inputs that ever miss, by class, for repro.
     if (audit_n > 0)
     {
-        std::array<CodeInt, Klut::max_crossing_count> buf{};
-        std::size_t n_correct = 0, n_wrong = 0, n_notfound = 0, n_oor = 0, n_wrong_uniq = 0;
-        std::vector<char> wrong_seen(pool.size(), 0);
-        std::ofstream dump("klut_bench_wrongknot.tsv");
-        std::ofstream ndump("klut_bench_notfound.tsv");   // <=13 end-states missing from KLUT
-        std::size_t nf_dumped = 0; const std::size_t nf_cap = 500;
+        std::size_t n_correct = 0, n_wrong = 0, n_unident = 0, n_error = 0,
+                    n_link = 0, n_comperr = 0, n_unknot = 0;
+        std::size_t n_wrong_uniq = 0, n_unident_uniq = 0;
+        std::vector<char> wrong_seen(pool.size(), 0), unident_seen(pool.size(), 0);
+        std::ofstream wdump("klut_bench_wrongknot.tsv");
+        std::ofstream udump("klut_bench_unidentified.tsv");
+
+        auto dump_input = [](std::ofstream& os, const Item& it, const std::string& note) {
+            os << "# " << note << "  src_c_min=" << it.c_min
+               << " src_id=" << static_cast<long long>(it.src_id)
+               << " perturbed_c=" << it.nc << "\n";
+            const Int rows = static_cast<Int>(it.code.size() / 5);
+            for (Int r = 0; r < rows; ++r)
+                os << it.code[5*r] << '\t' << it.code[5*r+1] << '\t'
+                   << it.code[5*r+2] << '\t' << it.code[5*r+3] << '\t'
+                   << it.code[5*r+4] << '\n';
+        };
+
+        Reapr_T reapr{};
         for (std::size_t i = 0; i < audit_n; ++i)
         {
             const std::size_t idx = i % pool.size();
@@ -457,103 +445,88 @@ int main(int argc, char* argv[])
             PD_T pd = PD_T::FromSignedPDCode(it.code.data(),
                           static_cast<Int>(it.code.size() / 5), false, true);
             PDC_T pdc{ std::move(pd) };
-            pdc.Simplify(default_args);
-            PD_T simp = pdc.ToSingleDiagram();
-            const Int c = simp.CrossingCount();
-            if (!(simp.ValidQ() && c >= Int(3) && c <= Int(Klut::max_crossing_count)))
+            auto r = ki::Identify(klut, std::move(pdc), reapr, idp);
+
+            if (r.component_error) { ++n_comperr; }
+
+            if (r.status == ki::IdentifyResult::Status::LinkOutOfScope) { ++n_link; continue; }
+            if (r.summands.empty()) { ++n_unknot; continue; }  // reduced to the unknot (a knotted item should not)
+
+            if (IdentifiedAsSource(r, it)) { ++n_correct; continue; }
+
+            // A miss. Classify by the worst summand kind present (Error worst,
+            // then Unidentified, then a wrong-but-valid Identified / bad split).
+            bool has_error = false, has_unident = false, has_wrong = false;
+            for (const auto& s : r.summands)
             {
-                ++n_oor; continue;   // reduced to >13 (or <3 / invalid): under-reduction
+                if (s.kind == ki::Summand::Kind::Error)        { has_error = true; }
+                else if (s.kind == ki::Summand::Kind::Unidentified) { has_unident = true; }
+                else { has_wrong = true; }   // Identified, but not the lone source knot
             }
-            simp.template WriteMacLeodCode<CodeInt>(buf.data());
-            auto [cc, id] = klut.FindID(buf.data(), c);
-            (void)cc;
-            if (id == it.src_id) { ++n_correct; }
-            else if (id == Klut::not_found || id == Klut::error || id == Klut::invalid)
+            if (has_error)        { ++n_error; }
+            else if (has_unident)
             {
-                // A <=13-crossing Simplify end-state whose key is NOT in the KLUT.
-                // If the table covers all pass-reduction end-states, this is a gap.
-                // Dump the end-state diagram (its key is the missing one) + input.
-                ++n_notfound;
-                if (nf_dumped < nf_cap)
-                {
-                    ++nf_dumped;
-                    auto end_code = SignedPDCode(simp);
-                    ndump << "# src_id=" << it.src_id << " c_min=" << it.c_min
-                          << "  end_state_c=" << c << "  (perturbed " << it.nc << " cx)\n";
-                    ndump << "# end-state (missing key) PD:\n";
-                    const Int er = static_cast<Int>(end_code.size() / 5);
-                    for (Int r = 0; r < er; ++r)
-                        ndump << end_code[5*r] << '\t' << end_code[5*r+1] << '\t'
-                              << end_code[5*r+2] << '\t' << end_code[5*r+3] << '\t'
-                              << end_code[5*r+4] << '\n';
-                    ndump << "# input (perturbed) PD:\n";
-                    const Int ir = static_cast<Int>(it.code.size() / 5);
-                    for (Int r = 0; r < ir; ++r)
-                        ndump << it.code[5*r] << '\t' << it.code[5*r+1] << '\t'
-                              << it.code[5*r+2] << '\t' << it.code[5*r+3] << '\t'
-                              << it.code[5*r+4] << '\n';
-                }
+                ++n_unident;
+                if (!unident_seen[idx]) { unident_seen[idx] = 1; ++n_unident_uniq;
+                                          dump_input(udump, it, "UNIDENTIFIED"); }
             }
-            else                     // valid id, but a DIFFERENT knot: real bug
+            else if (has_wrong)
             {
                 ++n_wrong;
-                if (!wrong_seen[idx])
-                {
-                    wrong_seen[idx] = 1; ++n_wrong_uniq;
-                    dump << "# src_id=" << it.src_id << " c_min=" << it.c_min
-                         << "  got_id=" << id << " simp_c=" << c
-                         << "  (perturbed " << it.nc << " cx)\n";
-                    const Int rows = static_cast<Int>(it.code.size() / 5);
-                    for (Int r = 0; r < rows; ++r)
-                        dump << it.code[5*r] << '\t' << it.code[5*r+1] << '\t'
-                             << it.code[5*r+2] << '\t' << it.code[5*r+3] << '\t'
-                             << it.code[5*r+4] << '\n';
-                }
+                if (!wrong_seen[idx]) { wrong_seen[idx] = 1; ++n_wrong_uniq;
+                                        dump_input(wdump, it, "WRONG-KNOT"); }
             }
         }
         const double tot = static_cast<double>(audit_n);
         std::cout << "  audit (" << audit_n << " trials over " << pool.size()
-                  << " diagrams, default args, stochastic Simplify):\n"
-                  << "    correct (== source knot)        : " << n_correct
+                  << " diagrams, ki::Identify, stochastic Reapr):\n"
+                  << "    correct (== source knot)         : " << n_correct
                   << "  (" << 100.0 * n_correct / tot << "%)\n"
-                  << "    WRONG KNOT (valid id != source) : " << n_wrong
-                  << "   <- real Simplify failures; " << n_wrong_uniq
+                  << "    WRONG KNOT (valid id != source)  : " << n_wrong
+                  << "   <- real Identify failures; " << n_wrong_uniq
                   << " distinct inputs -> klut_bench_wrongknot.tsv\n"
-                  << "    not_found (<=13, non-minimal)   : " << n_notfound
-                  << "  (missing pass-fixpoint -- TABLE GAP; -> klut_bench_notfound.tsv)\n"
-                  << "    out-of-range (>13 cx / invalid) : " << n_oor
-                  << "  (end-state beyond table range)\n";
+                  << "    UNIDENTIFIED (>13 after escalate): " << n_unident
+                  << "   <- escalation never recovered <=13; " << n_unident_uniq
+                  << " distinct inputs -> klut_bench_unidentified.tsv\n"
+                  << "    ERROR (<=13 end-state, no key)   : " << n_error
+                  << "  (table gap / stuck fixpoint)\n"
+                  << "    link / component-error           : " << n_link
+                  << " / " << n_comperr << "  (single-knot input misreported)\n"
+                  << "    reduced-to-unknot                : " << n_unknot << "\n";
         return 0;
     }
 
-    // Single-thread: per-stage breakdown (default Simplify settings).
+    // Single-thread: per-stage breakdown (default escalation schedule).
     std::atomic<std::size_t> correct{0};
     const auto t0 = Clock::now();
-    Stage s = RunChain(pool, klut, iters, 0, 1, &correct, default_args);
+    Stage s = RunChain(pool, klut, iters, 0, 1, &correct, idp);
     const auto t1 = Clock::now();
     ReportStages(s, iters, Secs(t0, t1));
     std::cout << "  correct-identify rate: " << (100.0 * correct.load() / iters) << " %\n\n";
 
-    // Sweep Simplify presets: cost vs. correctness. The winner is the cheapest
-    // preset that keeps correctness ~100%.
-    std::cout << "  Simplify preset sweep (single thread, " << iters << " items):\n";
+    // Sweep escalation schedules: cost vs. correctness. The winner is the cheapest
+    // initial n0 that keeps correctness ~100%.
+    std::cout << "  escalation-schedule sweep (single thread, " << iters << " items):\n";
     std::cout << "    " << std::string(26, ' ')
-              << "ns/item    items/s    correct%\n";
+              << "ns/item    items/s    reapr/item  correct%\n";
     for (const auto& p : Presets())
     {
         std::atomic<std::size_t> c{0};
         const auto q0 = Clock::now();
-        RunChain(pool, klut, iters, 0, 1, &c, p.args, p.reuse);
+        Stage ss = RunChain(pool, klut, iters, 0, 1, &c, p.q);
         const auto q1 = Clock::now();
         const double w = Secs(q0, q1);
-        char buf[160];
-        std::snprintf(buf, sizeof buf, "    %-24s  %8.0f  %9.0f   %7.3f",
-                      p.name, w / iters * 1e9, iters / w, 100.0 * c.load() / iters);
+        char buf[200];
+        std::snprintf(buf, sizeof buf, "    %-24s  %8.0f  %9.0f   %9.4f   %7.3f",
+                      p.name, w / iters * 1e9, iters / w,
+                      static_cast<double>(ss.reapr_calls) / iters,
+                      100.0 * c.load() / iters);
         std::cout << buf << "\n";
     }
     std::cout << "\n";
 
-    // Parallel scaling.
+    // Parallel scaling. Each worker owns its own Reapr (RunChain constructs one);
+    // the table is shared read-only and looked up reentrantly.
     std::cout << "  parallel scaling (end-to-end items/s):\n";
     double base = 0;
     for (int T : thread_counts)
@@ -566,7 +539,7 @@ int main(int argc, char* argv[])
         for (int t = 0; t < T; ++t)
             ths.emplace_back([&, t] {
                 RunChain(pool, klut, per, static_cast<std::size_t>(t) * 7 + 1,
-                         static_cast<std::size_t>(T), &f, default_args);
+                         static_cast<std::size_t>(T), &f, idp);
             });
         for (auto& th : ths) { th.join(); }
         const auto p1 = Clock::now();

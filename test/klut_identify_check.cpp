@@ -9,7 +9,7 @@
 //   (3) the unknot            : -> Knot status, no summands.
 //   (4) a multi-component link : two different-colored knots -> LinkOutOfScope.
 #include "../Knoodle.hpp"
-#include "klut_identify.hpp"
+#include "../tools/klut_identify.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
