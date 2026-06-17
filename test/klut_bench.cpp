@@ -366,6 +366,9 @@ int main(int argc, char* argv[])
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
     int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 4)
+    double ssn_tolerance = -1;   // --ssn-tolerance=X: Reapr energy-min tolerance (>0 to override)
+    long   ssn_max_iter  = -1;   // --ssn-max-iter=N: Reapr energy-min max iterations (>=0 to override)
+    double scaling       = -1;   // --scaling=X: Reapr embedding scaling (>0 to override)
     std::string pool_file;       // --pool-file=PATH: load pool if it exists, else build + save
     std::vector<int> thread_counts = {1, 2, 4, 8};
 
@@ -387,6 +390,9 @@ int main(int argc, char* argv[])
         else if (a.rfind("--polygon-seed=", 0) == 0)  polygon_seed = std::stoull(v("--polygon-seed="));
         else if (a.rfind("--compaction=", 0) == 0) compaction = v("--compaction=");
         else if (a.rfind("--randomize-bends=", 0) == 0) randomize_bends = std::stoi(v("--randomize-bends="));
+        else if (a.rfind("--ssn-tolerance=", 0) == 0) ssn_tolerance = std::stod(v("--ssn-tolerance="));
+        else if (a.rfind("--ssn-max-iter=", 0) == 0)  ssn_max_iter = std::stol(v("--ssn-max-iter="));
+        else if (a.rfind("--scaling=", 0) == 0)       scaling = std::stod(v("--scaling="));
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
     }
 
@@ -419,6 +425,9 @@ int main(int argc, char* argv[])
         Reapr_T::Settings_T rset{};
         rset.ortho_draw_settings.compaction_method = comp;
         if (randomize_bends >= 0) { rset.ortho_draw_settings.randomize_bends = randomize_bends; }
+        if (ssn_tolerance > 0)    { rset.tolerance    = static_cast<Real>(ssn_tolerance); }
+        if (ssn_max_iter  >= 0)   { rset.SSN_max_iter  = static_cast<Knoodle::Size_T>(ssn_max_iter); }
+        if (scaling > 0)          { rset.scaling       = static_cast<Real>(scaling); }
 
         using Sampler_T = Knoodle::ActionAngleSampler<Real, Int, Knoodle::PRNG_T, true>;
         Sampler_T sampler{ Knoodle::PRNG_T(polygon_seed) };
@@ -434,9 +443,14 @@ int main(int argc, char* argv[])
         std::array<std::size_t, Klut::max_crossing_count + 1> hist{};  // identified-prime crossings
 
         std::cout << "\n  polygon firehose: " << iters << " random "
-                  << polygon_edges << "-gons (seed " << polygon_seed
-                  << ", compaction=" << CompactionName(comp)
-                  << ", randomize_bends=" << rset.ortho_draw_settings.randomize_bends << ")\n";
+                  << polygon_edges << "-gons (seed " << polygon_seed << ")\n"
+                  << "    reapr: compaction=" << CompactionName(comp)
+                  << " randomize_bends=" << rset.ortho_draw_settings.randomize_bends
+                  << " scaling=" << rset.scaling
+                  << " tolerance=" << rset.tolerance
+                  << " SSN_max_iter=" << rset.SSN_max_iter << "\n"
+                  << "    identify: n0=" << static_cast<long long>(idp.n0)
+                  << " escalate-cap=" << static_cast<long long>(idp.cap) << "\n";
 
         const auto P0 = Clock::now();
         for (std::size_t i = 0; i < iters; ++i)
