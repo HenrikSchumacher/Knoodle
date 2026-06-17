@@ -164,9 +164,15 @@ plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTR
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
 	@echo "✓ plantri_check compiled successfully"
 
+# cli_stdin_check — regression test for the interactive-stdin notice (isatty).
+# Pure-Python (stdlib only, no Regina/venv); needs the tools built in ../tools.
+cli_stdin_check:
+	@echo "=== Running cli_stdin_check (interactive-stdin notice) ==="
+	python3 cli_stdin_check.py
+
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
 	       klut_check klut_bench klut_bench_boost plantri_check link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
-.PHONY: all libhomfly clean
+.PHONY: all libhomfly clean cli_stdin_check
