@@ -176,6 +176,16 @@ klut_identify_check: klut_identify_check.cpp klut_identify.hpp ../Knoodle.hpp
 	    klut_identify_check.cpp $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ klut_identify_check compiled successfully"
 
+# klut_identify_random_check — characterization/stability test: Identify a fixed
+# random 2048-gon's unsimplified diagram (3348 crossings, embedded). Exercises
+# decomposition, Reapr escalation, and the Unidentified path on a realistic input.
+# Same heavy config as klut_identify_check.
+klut_identify_random_check: klut_identify_random_check.cpp klut_identify.hpp ../Knoodle.hpp
+	@echo "=== Building klut_identify_random_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_identify_random_check.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_identify_random_check compiled successfully"
+
 # Vendored plantri binary (the test shells out to it). Single .c file, C stdlib
 # only; -w because plantri's own source is not warning-clean and is unmodified.
 $(PLANTRI): vendor/plantri/plantri.c
@@ -194,7 +204,8 @@ plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTR
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
 	       klut_check klut_bench klut_bench_boost canon_check component_check \
-	       klut_identify_check plantri_check link_alex_probe link_inflate_check \
+	       klut_identify_check klut_identify_random_check \
+	       plantri_check link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
 .PHONY: all libhomfly clean

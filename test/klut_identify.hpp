@@ -48,6 +48,7 @@ struct IdentifyResult
     Status               status = Status::Knot;
     std::vector<Summand> summands;        // status==Knot && empty  =>  the unknot
     bool                 component_error = false;  // Simplify changed component count (a bug)
+    Size_T               reapr_calls = 0;          // escalation Simplify invocations (diagnostic)
 };
 
 namespace detail
@@ -128,6 +129,7 @@ Identify(Klut& table, PDC_T P, Reapr_T& reapr, IdentifyParams q = {})
         {
             PDC_T::Simplify_Args_T a{};
             a.embedding_trials = n;                // escalation: canonicalize default (immaterial; Reapr swamps)
+            ++R.reapr_calls;
             temp.Simplify(reapr, a);
 
             if( temp.ColorCount() != Int(1) )      // Simplify changed component count -> bug

@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 
     // ---- (1) single knots: perturb each minimal, expect its source id ----------
     {
-        long tested = 0, ok = 0;
+        long tested = 0, ok = 0, escalated = 0, total_reapr = 0;
         for (Int c = 3; c <= c_max; ++c)
             for (Int k = 0; k < per_c; ++k)
             {
@@ -109,6 +109,7 @@ int main(int argc, char** argv)
                 PDC_T pdc; pdc.Push(std::move(P));
                 auto r = ki::Identify(klut, std::move(pdc), reapr);
                 ++tested;
+                if (r.reapr_calls > 0) { ++escalated; total_reapr += static_cast<long>(r.reapr_calls); }
                 bool ai; auto ids = SortedIds(r, ai);
                 if (r.status == ki::IdentifyResult::Status::Knot && ai
                     && ids.size() == 1 && ids[0] == src) { ++ok; }
@@ -116,7 +117,9 @@ int main(int argc, char** argv)
         const bool pass = (ok == tested && tested > 0);
         if (!pass) ++fails;
         std::cout << "(1) single knots          : " << ok << "/" << tested
-                  << (pass ? "  PASS\n" : "  FAIL\n");
+                  << (pass ? "  PASS" : "  FAIL")
+                  << "  [escalated " << escalated << " (" << total_reapr << " reapr calls); "
+                  << (tested - escalated) << " hot-path]\n";
     }
 
     // ---- helper: identify a connect sum (multi-diagram PDC + single spliced PD) -
