@@ -243,8 +243,10 @@ bool IdentifiedAsSource(const ki::IdentifyResult& r, const Item& it)
 
 // Run `iters` identify chains over the pool (cycled), accumulating per-stage time
 // and the escalation count. Returns the stage totals; `correct` counts items that
-// resolved to the source knot. One Reapr is reused across all items (the realistic
-// reentrant firehose path) and is therefore thread-local to this chain.
+// resolved to the source knot. One Reapr and one set of scratch PDCs / result are
+// reused across all items via ki::IdentifyInto (the realistic reentrant firehose
+// path) and are therefore thread-local to this chain. The per-item input PD_T is
+// always freshly built (each pool item is a different diagram).
 Stage RunChain(const std::vector<Item>& pool, Klut& klut, std::size_t iters,
                std::size_t start, std::size_t stride, std::atomic<std::size_t>* correct,
                const ki::IdentifyParams& q)
@@ -252,22 +254,23 @@ Stage RunChain(const std::vector<Item>& pool, Klut& klut, std::size_t iters,
     Stage s;
     std::size_t hits = 0;
     Reapr_T reapr{};
+    PDC_T work, temp;            // scratch, reused across items
+    ki::IdentifyResult R;        // result, reused across items
     for (std::size_t i = 0; i < iters; ++i)
     {
         const Item& it = pool[(start + i * stride) % pool.size()];
+        const Int rows = static_cast<Int>(it.code.size() / 5);
 
         auto t0 = Clock::now();
-        PD_T pd = PD_T::FromSignedPDCode(it.code.data(),
-                      static_cast<Int>(it.code.size() / 5), false, true);
-        PDC_T pdc{ std::move(pd) };
+        work.Clear();
+        work.Push(PD_T::FromSignedPDCode(it.code.data(), rows, false, true));
         auto t1 = Clock::now();
 
-        auto r = ki::Identify(klut, std::move(pdc), reapr, q);
+        ki::IdentifyInto(klut, work, temp, reapr, R, q);
         auto t2 = Clock::now();
 
-        s.reapr_calls += static_cast<std::size_t>(r.reapr_calls);
-        if (IdentifiedAsSource(r, it)) { ++hits; }
-
+        s.reapr_calls += static_cast<std::size_t>(R.reapr_calls);
+        if (IdentifiedAsSource(R, it)) { ++hits; }
         s.construct += Secs(t0, t1);
         s.identify  += Secs(t1, t2);
     }

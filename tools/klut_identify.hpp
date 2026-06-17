@@ -73,21 +73,27 @@ namespace detail
     }
 }
 
-// Signature 1: caller supplies (and tunes) the Reapr.
-inline IdentifyResult
-Identify(Klut& table, PDC_T P, Reapr_T& reapr, IdentifyParams q = {})
+// Reusing core: the caller owns the scratch PDCs `work` (which holds the input
+// diagram(s) on entry) and `temp`, plus the result `R`; all three are reset here
+// and their heap capacity is reused across calls. This is the firehose path --
+// it amortizes the scratch/result allocations over many identifications. Diagrams
+// move between `work` and the one-candidate scratch `temp` via Pop()/Push() (no
+// copies); `temp` holds exactly one candidate at a time and is Simplified in
+// place during escalation. On return `work` and `temp` are empty (ready to reuse).
+inline void
+IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
+             IdentifyResult& R, IdentifyParams q = {})
 {
     using detail::Found; using detail::Lookup;
-    IdentifyResult R;
 
-    if( P.ColorCount() != Int(1) )                 // a link (or multi-component) -> out of scope
-    { R.status = IdentifyResult::Status::LinkOutOfScope; return R; }
+    R.summands.clear();                            // keep the vector's capacity
+    R.status          = IdentifyResult::Status::Knot;
+    R.component_error = false;
+    R.reapr_calls     = Size_T(0);
+    temp.Clear();
 
-    // The work-list IS a PDC; diagrams move between `work` and the one-candidate
-    // scratch `temp` via Pop()/Push() (no copies). `temp` holds exactly one
-    // candidate at a time and is Simplified in place during escalation.
-    PDC_T work = std::move(P);
-    PDC_T temp;
+    if( work.ColorCount() != Int(1) )              // a link (or multi-component) -> out of scope
+    { R.status = IdentifyResult::Status::LinkOutOfScope; work.Clear(); return; }
 
     // Seed: pass-only decomposition, canonicalize OFF (hot path).
     {
@@ -150,6 +156,18 @@ Identify(Klut& table, PDC_T P, Reapr_T& reapr, IdentifyParams q = {})
         record_terminal( temp.Diagram(0) );
         temp.Clear();
     }
+}
+
+// Signature 1: caller supplies (and tunes) the Reapr. Owning convenience wrapper
+// over IdentifyInto -- allocates fresh scratch per call. Use IdentifyInto in a
+// firehose loop to reuse scratch across calls.
+inline IdentifyResult
+Identify(Klut& table, PDC_T P, Reapr_T& reapr, IdentifyParams q = {})
+{
+    IdentifyResult R;
+    PDC_T work = std::move(P);
+    PDC_T temp;
+    IdentifyInto(table, work, temp, reapr, R, q);
     return R;
 }
 
