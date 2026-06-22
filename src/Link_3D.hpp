@@ -95,14 +95,14 @@ namespace Knoodle
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template< IntQ I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {}
         
         template<IntQ I>
         Link_3D( cptr<Real> V_coords_, cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
