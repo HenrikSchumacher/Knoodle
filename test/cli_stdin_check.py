@@ -29,8 +29,11 @@ TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 NOTICE = "reading diagrams from stdin"
 
 # (label, argv-after-binary) for each tool expected to emit the notice on a tty.
-# knoodledraw / knoodlesimplify (--streaming-mode) carry the same notice on main.
+# All three filters (knoodledraw, knoodlesimplify --streaming-mode, knoodleidentify)
+# carry the same interactive-stdin notice.
 TOOLS = [
+    ("knoodledraw", []),
+    ("knoodlesimplify", ["--streaming-mode"]),
     ("knoodleidentify", []),
 ]
 
