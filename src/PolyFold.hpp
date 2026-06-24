@@ -186,51 +186,54 @@ namespace Knoodle
             // https://patorjk.com/software/taag/#p=testall&f=Big%20Money-ne&t=PolyFold
             
 print(R"(
- .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--. 
+ .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
 / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
 \ \/\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ \/ /
- \/ /`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´\/ / 
- / /\   _  (`-´)                                                              _(`-´)     / /\ 
+ \/ /`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´\/ /
+ / /\   _  (`-´)                                                              _(`-´)     / /\
 / /\ \  \-.(OO )     .->      <-.        .->      <-.          .->      <-.  ( (OO ).-> / /\ \
 \ \/ /  _.´    \(`-´)----.  ,--. )   ,--.´  ,-.(`-´)-----.(`-´)----.  ,--. )  \    .´_  \ \/ /
- \/ /  (_...--´´( OO).-.  ` |  (`-´)(`-´)´.´  /(OO|(_\---´( OO).-.  ` |  (`-´)´`´-..__)  \/ / 
- / /\  |  |_.´ |( _) | |  | |  |OO )(OO \    /  / |  ´--. ( _) | |  | |  |OO )|  |  ` |  / /\ 
+ \/ /  (_...--´´( OO).-.  ` |  (`-´)(`-´)´.´  /(OO|(_\---´( OO).-.  ` |  (`-´)´`´-..__)  \/ /
+ / /\  |  |_.´ |( _) | |  | |  |OO )(OO \    /  / |  ´--. ( _) | |  | |  |OO )|  |  ` |  / /\
 / /\ \ |  .___.´ \|  |)|  |(|  ´__ | |  /   /)  \_)  .--´  \|  |)|  |(|  ´__ ||  |  / : / /\ \
 \ \/ / |  |       `  `-´  ´ |     |´ `-/   /`    `|  |_)    `  `-´  ´ |     |´|  `-´  / \ \/ /
  \/ /  `--´        `-----´  `-----´    `--´       `--´       `-----´  `-----´ `------´   \/ / 
- / /\.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./ /\ 
+ / /\.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./ /\
 / /\ \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \/\ \
 \ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´ /
- `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´ 
+ `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´
 )");
 
             try
             {
                 print("");
                 
-                HandleOptions( argc, argv );
+                bool runQ = HandleOptions( argc, argv );
                 
-                if constexpr ( Clisby_T::countersQ )
+                if( runQ )
                 {
-                    wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                    if constexpr ( Clisby_T::countersQ )
+                    {
+                        wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                    }
+                    
+                    if constexpr ( Clisby_T::witnessesQ )
+                    {
+                        wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
+                    }
+                    
+                    Initialize<0>();
+                    
+                    Run();
+                    
+                    print("Done.");
+                    valprint<30>("Time elapsed during burn-in",burn_in_time);
+                    valprint<30>("Time elapsed during sampling",total_sampling_time);
+                    valprint<30>("Time elapsed during analysis",total_analysis_time);
+                    valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                    print(std::string(26 + 24,'-'));
+                    valprint<30>("Time elapsed all together",total_timing);
                 }
-                
-                if constexpr ( Clisby_T::witnessesQ )
-                {
-                    wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
-                }
-                
-                Initialize<0>();
-                
-                Run();
-                
-                print("Done.");
-                valprint<30>("Time elapsed during burn-in",burn_in_time);
-                valprint<30>("Time elapsed during sampling",total_sampling_time);
-                valprint<30>("Time elapsed during analysis",total_analysis_time);
-                valprint<30>("Time elapsed during snapshots",total_snapshot_time);
-                print(std::string(26 + 24,'-'));
-                valprint<30>("Time elapsed all together",total_timing);
             }
             catch( const std::exception & e )
             {

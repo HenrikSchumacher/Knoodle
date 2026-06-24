@@ -1,6 +1,6 @@
 private:
 
-void HandleOptions( int argc, char** argv )
+bool HandleOptions( int argc, char** argv )
 {
     namespace po = boost::program_options;
     
@@ -67,7 +67,8 @@ void HandleOptions( int argc, char** argv )
         std::stringstream s;
         s << desc;
         print(s.str());
-        throw; // TODO: Need to find an elegant way to exit here.
+        
+        return false;
     }
     
     
@@ -367,4 +368,5 @@ void HandleOptions( int argc, char** argv )
         throw std::runtime_error("Not computing anything. Use the command line flags -c, -g, -M, -P, -a, -B, or -histograms to define outputs.");
     }
     
+    return true;
 }
