@@ -370,7 +370,7 @@ namespace Knoodle
             
             for( Int vertex = 0; vertex < n; ++vertex )
             {
-                const double angle = delta * vertex;
+                const double angle = delta * double(vertex);
                 
                 v[0] = radius * std::cos(angle);
                 v[1] = radius * std::sin(angle);

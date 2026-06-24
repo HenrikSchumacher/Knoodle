@@ -16,6 +16,7 @@ namespace Knoodle
             case DijkstraStrategy_T::Unidirectional : return "Unidirectional";
             case DijkstraStrategy_T::Alternating    : return "Alternating";
             case DijkstraStrategy_T::Bidirectional  : return "Bidirectional";
+            default                                 : return "Unknown";
         }
     }
     

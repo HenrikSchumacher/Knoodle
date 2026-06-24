@@ -354,6 +354,8 @@ namespace Knoodle
             s +=  "\n";
             s += line_prefix;
             s += "|>";
+            
+            return s;
         }
         
     public:

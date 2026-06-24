@@ -266,6 +266,10 @@ namespace Tools
                 {
                     return CharArray("LeftHanded").ToChars(begin,end);
                 }
+                default:
+                {
+                    return CharArray("Unknown").ToChars(begin,end);
+                }
             }
         }
     };
@@ -290,6 +294,10 @@ namespace Tools
                 case Knoodle::ArcState_T::Active:
                 {
                     return CharArray("Active").ToChars(begin,end);
+                }
+                default:
+                {
+                    return CharArray("Unknown").ToChars(begin,end);
                 }
             }
         }
