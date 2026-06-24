@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata from this file."
+title: Knoodle
+abstract: >-
+  A collection of tools for computational knot theory, including PlanarDiagram
+  (a class for manipulating planar diagrams, with rerouting of overstrands and
+  understrands), REAPR (a fast algorithm for simplifying knot diagrams),
+  ClisbyTree (fast generation of self-avoiding polygons in the pearl-necklace
+  model), and the KLUT knot-identification routines and command-line tools.
+type: software
+authors:
+  - family-names: Schumacher
+    given-names: Henrik
+  - family-names: Cantarella
+    given-names: Jason
+repository-code: "https://github.com/HenrikSchumacher/Knoodle"
+url: "https://github.com/HenrikSchumacher/Knoodle"
+license: MIT
+version: 1.0.0
+date-released: "2026-06-23"
+keywords:
+  - knot theory
+  - computational topology
+  - planar diagrams
+  - knot simplification
+  - self-avoiding polygons
+# When the ReAPR paper is published, uncomment and complete this block so that
+# "Cite this repository" and citation tools also surface the paper alongside the
+# software. Fill in the final title, author list, year, and DOI/journal.
+# references:
+#   - type: article
+#     title: "ReAPR: <final paper title>"
+#     authors:
+#       - family-names: Schumacher
+#         given-names: Henrik
+#       - family-names: Cantarella
+#         given-names: Jason
+#     year: 2026
+#     doi: "10.xxxxx/xxxxxx"
+#     # journal: "<journal or preprint server>"
