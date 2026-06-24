@@ -108,7 +108,7 @@ std::ofstream g_log_file;
  * @param log_filename The filename for the log file (used only in streaming mode).
  * @return true on success.
  */
-bool InitLogging(bool streaming_mode, const std::string& log_filename)
+[[maybe_unused]] bool InitLogging(bool streaming_mode, const std::string& log_filename)
 {
     if (streaming_mode)
     {
@@ -126,7 +126,7 @@ bool InitLogging(bool streaming_mode, const std::string& log_filename)
 /**
  * @brief Log a message to the appropriate stream.
  */
-void Log(const std::string& msg)
+[[maybe_unused]] void Log(const std::string& msg)
 {
     *g_log_stream << msg << "\n";
 }
@@ -146,7 +146,7 @@ void LogError(const std::string& msg)
 /**
  * @brief Convert a string to lowercase.
  */
-std::string ToLower(std::string_view s)
+[[maybe_unused]] std::string ToLower(std::string_view s)
 {
     std::string result(s);
     std::transform(result.begin(), result.end(), result.begin(),
@@ -242,7 +242,7 @@ bool ParseNumericLine(const std::string& line,
 // Energy Utilities
 //==============================================================================
 
-std::string EnergyName(Energy_T e)
+[[maybe_unused]] std::string EnergyName(Energy_T e)
 {
     switch (e)
     {
@@ -256,7 +256,7 @@ std::string EnergyName(Energy_T e)
     }
 }
 
-std::string ValidEnergies()
+[[maybe_unused]] std::string ValidEnergies()
 {
     return std::string("TV, ")
 #ifdef KNOODLE_USE_UMFPACK

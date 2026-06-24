@@ -12,6 +12,10 @@ inflate_check
 klut_check
 klut_bench
 klut_bench_boost
+canon_check
+component_check
+klut_identify_check
+klut_identify_random_check
 plantri_check
 link_alex_probe
 link_inflate_check

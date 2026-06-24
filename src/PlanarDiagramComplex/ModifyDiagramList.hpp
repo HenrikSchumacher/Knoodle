@@ -23,11 +23,16 @@ void Replace( const Int diagram_idx, PD_T && pd )
     ClearCache();
 }
 
-//void Pop()
-//{
-//    pd_list.pop_back();
-//    ClearCache();
-//}
+PD_T Pop()
+{
+    if( pd_list.empty() ) { return PD_T::InvalidDiagram(); }
+
+    PD_T pd = std::move(pd_list.back());
+    pd_list.pop_back();
+    ClearCache();
+
+    return pd;
+}
 
 void Clear()
 {

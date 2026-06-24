@@ -94,7 +94,7 @@ knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
 	@echo "=== Compiler: $(CXX) ==="
 	@echo ""
 	@echo "Compiling knoodleidentify.cpp..."
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $(BOOST_FLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodleidentify compiled successfully"
 
 # Tier 4 end-to-end pipeline test (test/klut_e2e.cpp). Same flags as the tools;

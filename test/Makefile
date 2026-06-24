@@ -116,12 +116,12 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 	    link_split_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ link_split_check compiled successfully"
 
-# klut_bench — throughput benchmark for the KLUT identify path (construct ->
-# Simplify -> canonicalize -> lookup), single- and multi-threaded. See
-# docs/klut-simplify-perf.md. Note: with -include of a Tensors header (UMFPACK
-# build), the KNOODLE->TOOLS boost cascade is front-run, so pass
-# -DTOOLS_USE_BOOST_UNORDERED explicitly to actually enable boost's flat maps.
-klut_bench: klut_bench.cpp ../Knoodle.hpp
+# klut_bench — throughput benchmark for the KLUT Identify path (construct ->
+# ki::Identify), single- and multi-threaded. See docs/klut-simplify-perf.md.
+# Note: with -include of a Tensors header (UMFPACK build), the KNOODLE->TOOLS
+# boost cascade is front-run, so pass -DTOOLS_USE_BOOST_UNORDERED explicitly to
+# actually enable boost's flat maps.
+klut_bench: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_bench on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
 	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
@@ -134,7 +134,7 @@ klut_bench: klut_bench.cpp ../Knoodle.hpp
 # KNOODLE_USE_BOOST_UNORDERED -> TOOLS_USE_BOOST_UNORDERED cascade would otherwise
 # be defeated and boost would silently fall back to std. Verify after building:
 #   nm klut_bench_boost | c++filt | grep -c boost::unordered   (must be nonzero)
-klut_bench_boost: klut_bench.cpp ../Knoodle.hpp
+klut_bench_boost: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
 	@echo "=== Building klut_bench_boost on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK -DKNOODLE_USE_BOOST_UNORDERED \
 	    -DTOOLS_USE_BOOST_UNORDERED $(KNOODLE_INC) $(UMFPACK_INC) \
@@ -149,6 +149,43 @@ klut_check: klut_check.cpp $(LIBHOMFLY_OBJ) ../Knoodle.hpp
 	    klut_check.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ klut_check compiled successfully"
 
+# canon_check — locks the identify hot-path optimization: declining the final
+# Canonicalize must NOT change the looked-up MacLeod code / KLUT id (i.e.
+# WriteMacLeodCode is canonical-by-construction). Reads data/Klut; same heavy
+# config as klut_bench. See docs/klut-identify-design.md.
+canon_check: canon_check.cpp ../Knoodle.hpp
+	@echo "=== Building canon_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    canon_check.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ canon_check compiled successfully"
+
+# component_check — regression guard for the CollapseArcRange unlink-loss bug
+# (Henrik's 5151f39). Embedded 8-crossing 2-component-unlink reproducer; default
+# Simplify must preserve the link-component count. Light config (no UMFPACK).
+component_check: component_check.cpp ../Knoodle.hpp
+	@echo "=== Building component_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
+	@echo "✓ component_check compiled successfully"
+
+# klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
+# single knots (perturbed), connect sums (multi-diagram PDC + single spliced
+# diagram), the unknot, and multi-component links. Same heavy config as klut_bench.
+klut_identify_check: klut_identify_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
+	@echo "=== Building klut_identify_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_identify_check.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_identify_check compiled successfully"
+
+# klut_identify_random_check — characterization/stability test: Identify a fixed
+# random 2048-gon's unsimplified diagram (3348 crossings, embedded). Exercises
+# decomposition, Reapr escalation, and the Unidentified path on a realistic input.
+# Same heavy config as klut_identify_check.
+klut_identify_random_check: klut_identify_random_check.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
+	@echo "=== Building klut_identify_random_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
+	    klut_identify_random_check.cpp $(UMFPACK_LDFLAGS) -o $@
+	@echo "✓ klut_identify_random_check compiled successfully"
+
 # Vendored plantri binary (the test shells out to it). Single .c file, C stdlib
 # only; -w because plantri's own source is not warning-clean and is unmodified.
 $(PLANTRI): vendor/plantri/plantri.c
@@ -156,10 +193,12 @@ $(PLANTRI): vendor/plantri/plantri.c
 	$(CC) -O2 -w -o $@ $<
 	@echo "✓ plantri compiled successfully"
 
-# plantri_check — exhaustive plantri-generated diagrams, HOMFLY-invariance under
-# Simplify as the oracle (same light config as homfly_check; no UMFPACK). Needs
-# the vendored plantri binary at runtime.
-plantri_check: plantri_check.cpp homfly_invariance.hpp $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
+# plantri_check — exhaustive plantri-generated diagrams: HOMFLY-invariance under
+# Simplify as the oracle, plus (with --klut) the KLUT identify-contract check
+# (ki::Identify A+B). Light config (no UMFPACK; ki::Identify's Reapr uses TV+MCF).
+# Needs the vendored plantri binary at runtime.
+plantri_check: plantri_check.cpp homfly_invariance.hpp ../tools/klut_identify.hpp \
+               $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
 	@echo "=== Building plantri_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
 	@echo "✓ plantri_check compiled successfully"
@@ -172,7 +211,9 @@ cli_stdin_check:
 
 clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
-	       klut_check klut_bench klut_bench_boost plantri_check link_alex_probe link_inflate_check \
+	       klut_check klut_bench klut_bench_boost canon_check component_check \
+	       klut_identify_check klut_identify_random_check \
+	       plantri_check link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
 .PHONY: all libhomfly clean cli_stdin_check

@@ -29,10 +29,12 @@ TOOLS_DIR = Path(__file__).resolve().parent.parent / "tools"
 NOTICE = "reading diagrams from stdin"
 
 # (label, argv-after-binary) for each tool expected to emit the notice on a tty.
-# knoodleidentify carries the same notice (tested on its own branch).
+# All three filters (knoodledraw, knoodlesimplify --streaming-mode, knoodleidentify)
+# carry the same interactive-stdin notice.
 TOOLS = [
     ("knoodledraw", []),
     ("knoodlesimplify", ["--streaming-mode"]),
+    ("knoodleidentify", []),
 ]
 
 TIMEOUT = 30  # seconds; a hang (no EOF handling) trips this and fails the case.
