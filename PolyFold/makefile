@@ -19,8 +19,13 @@ else
                -pthread -DPOLYFOLD_NO_QUATERNIONS
 endif
 
-CPPFLAGS = -I$(HOMEBREW_PREFIX)/include
-LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options
+CPPFLAGS = -I$(HOMEBREW_PREFIX)/include \
+           -I$(HOMEBREW_PREFIX)/include/suitesparse \
+           -I./../submodules/Min-Cost-Flow-Class/OPTUtils \
+           -I./../submodules/Min-Cost-Flow-Class/MCFClass \
+           -I./../submodules/Min-Cost-Flow-Class/MCFSimplex \
+           -I./../submodules/Tensors
+LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lboost_program_options -lumfpack
 
 # Version handling
 ifdef KNOODLE_VERSION
