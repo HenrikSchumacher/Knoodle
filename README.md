@@ -18,7 +18,7 @@ brew tap designbynumbers/cantarellalab
 brew install knoodle
 ```
 
-This will also install the command line tools _polyfold_ and _knoodletool_. Please contact us if you are interested and need support. 
+This will also install the command line tools _polyfold_ and _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_. Please contact us if you are interested and need support. 
 
 # PolyFold
 
