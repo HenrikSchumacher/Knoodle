@@ -203,7 +203,7 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
     if constexpr (debugQ) { wprint(tag()+": Debug mode active."); }
     
     // By intializing S here, it will have enough internal memory for all planar diagrams.
-    mref<PassSimplifier_T> S = PassSimplifier(args.strategy);
+    mref<PassSimplifier_T> S = GetPassSimplifier(args.strategy);
     
 #ifdef PD_COUNTERS
     S.ResetCounters();

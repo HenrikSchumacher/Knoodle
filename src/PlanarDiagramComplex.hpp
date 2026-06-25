@@ -615,28 +615,28 @@ namespace Knoodle
         }
 
 
-        mref<PassSimplifier_T> PassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
+        mref<PassSimplifier_T> GetPassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("PassSimplifier") )
+            if( !this->InCacheQ("GetPassSimplifier") )
             {
-                this->SetCache("PassSimplifier", PassSimplifier_T(*this,strategy));
+                this->SetCache("GetPassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<PassSimplifier_T>("PassSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("GetPassSimplifier").SetDijkstraStrategy(strategy);
         }
         
         PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return PassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
+            return GetPassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
         PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return PassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
+            return GetPassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
         }
        
     public:
