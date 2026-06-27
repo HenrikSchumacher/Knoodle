@@ -9,7 +9,7 @@ To make sure that all submodules are cloned, too, please clone by running the fo
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang, but installation has been recently tested on Ubuntu 24.04.3 LTS and WSL 2.6.3.0 (running in Windows 10). It should install on a wide variety of linux systems with the following commands: 
+The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
 brew install git-lfs
@@ -18,7 +18,21 @@ brew tap designbynumbers/cantarellalab
 brew install knoodle
 ```
 
-This will also install the command line tools _polyfold_ and _knoodletool_. Please contact us if you are interested and need support. 
+This will also install the command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_. On Linux and WSL2 the formula builds with Homebrew's gcc; on macOS it uses Apple Clang. The build compiles from source with CPU-specific optimizations and typically takes about 5–10 minutes.
+
+### Windows (WSL2)
+
+Knoodle installs under WSL2 using Linuxbrew, exactly as on native Linux. Use WSL 2 (not WSL 1), and a recent Ubuntu (24.04 recommended). No GitHub SSH key is required — the formula clones Knoodle's submodules over HTTPS automatically. The compile is template-heavy and memory-hungry, and WSL2 defaults to ~50% of host RAM, so on a modest machine the compiler may be killed mid-build (`internal compiler error: Killed (program cc1plus)`). If that happens, raise the limit by creating `C:\Users\<you>\.wslconfig` with:
+
+```
+[wsl2]
+memory=8GB
+swap=8GB
+```
+
+then run `wsl --shutdown` in Windows PowerShell, reopen your distro, and retry `brew install knoodle`.
+
+Please contact us if you are interested and need support. 
 
 # PolyFold
 
