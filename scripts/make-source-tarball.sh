@@ -83,11 +83,17 @@ printf '%s\n' "$VERSION" > "$STAGE/VERSION"
 # and gzip with -n so no timestamp is baked into the gzip header. Done with portable
 # primitives (touch / sorted find -T / gzip) so it works the same under GNU tar on the
 # CI runner and bsdtar on macOS -- avoiding GNU-only flags like --sort/--mtime.
+#
+# --no-recursion is essential: the find list already contains every directory AND
+# file, so tar must archive each listed path exactly once. Without it, tar recurses
+# into each listed directory and re-archives its contents -- duplicating every file
+# once per ancestor dir (bsdtar balloons a 34 MB tree to ~140 MB / 5x the entries;
+# GNU tar dedups, so the bug was invisible on the Linux runner). Both tars honor it.
 find "$STAGE" -exec touch -h -t 200001010000.00 {} +
 OUTDIR_ABS="$(cd "$OUTDIR" && pwd)"
 ( cd "$TMP" \
   && find "$NAME" -print0 | LC_ALL=C sort -z \
-     | tar --numeric-owner --owner=0 --group=0 --null -T - -cf - ) \
+     | tar --no-recursion --numeric-owner --owner=0 --group=0 --null -T - -cf - ) \
   | gzip -n -9 > "$OUTDIR_ABS/$NAME.tar.gz"
 
 echo "==> Wrote $OUTDIR/$NAME.tar.gz  ($(du -h "$OUTDIR/$NAME.tar.gz" | cut -f1))"
