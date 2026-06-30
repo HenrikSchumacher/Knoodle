@@ -1,0 +1,60 @@
+name: release-tarball
+
+# Build the self-contained vendored source tarball (recursive submodules baked in,
+# pcg-cpp vendored, KLUT data included, NO Git-LFS) via scripts/make-source-tarball.sh
+# and attach it to the GitHub release. Consumed by the designbynumbers/cantarellalab
+# Homebrew formula (which now fetches this asset instead of git-cloning) and by
+# air-gapped cluster builds (e.g. UGA Sapelo2).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build + upload the tarball for (e.g. v1.0.1)"
+        required: true
+
+permissions:
+  contents: write   # required to upload a release asset
+
+jobs:
+  tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag / version
+        id: v
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}"       >> "$GITHUB_OUTPUT"
+
+      - name: Check out the tag (recursive submodules + LFS)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.v.outputs.tag }}
+          submodules: recursive   # Tensors has nested submodules (Tools)
+          lfs: true               # smudge the KLUT data so it is baked in real
+
+      - name: Build vendored tarball
+        run: bash scripts/make-source-tarball.sh "${{ steps.v.outputs.version }}" .
+
+      - name: Checksum + summary
+        id: sum
+        run: |
+          F="knoodle-${{ steps.v.outputs.version }}-vendored.tar.gz"
+          SHA="$(sha256sum "$F" | cut -d' ' -f1)"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Vendored source tarball"
+            echo ""
+            echo "- file: \`$F\`"
+            echo "- sha256: \`$SHA\`  ← put this in the Homebrew formula"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ steps.v.outputs.tag }}" \
+            "knoodle-${{ steps.v.outputs.version }}-vendored.tar.gz" --clobber

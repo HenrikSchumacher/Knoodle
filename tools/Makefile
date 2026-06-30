@@ -44,7 +44,14 @@ LDFLAGS = -L$(HOMEBREW_PREFIX)/lib -lumfpack
 # TOOLS_USE_BOOST_UNORDERED on its own.
 BOOST_FLAGS = -DKNOODLE_USE_BOOST_UNORDERED
 
-# Version handling
+# Version handling. Priority: an explicit KNOODLE_VERSION, then a VERSION file at
+# the source-tree root (../VERSION) -- the vendored release tarball ships one so the
+# binaries self-describe even with no .git -- then git describe in a real checkout.
+ifndef KNOODLE_VERSION
+    ifneq ($(wildcard ../VERSION),)
+        KNOODLE_VERSION := $(shell cat ../VERSION)
+    endif
+endif
 ifdef KNOODLE_VERSION
     CXXFLAGS += -DGIT_VERSION=\"$(KNOODLE_VERSION)\"
 else
