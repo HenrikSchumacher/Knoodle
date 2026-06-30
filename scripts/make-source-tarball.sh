@@ -7,6 +7,15 @@
 #
 # Run from the root of a Knoodle checkout that has submodules initialized and Git-LFS
 # available. Usage: make-source-tarball.sh [version] [output-dir]
+#
+# Output is reproducible within a given tar implementation, but NOT byte-identical
+# across implementations: GNU tar and bsdtar emit different headers/padding for the
+# same content (verified -- no --format flag bridges them). The canonical release
+# asset is the one built by .github/workflows/release-tarball.yml, which always runs
+# GNU tar; the Homebrew formula pins that sha256. A local build (e.g. bsdtar on macOS)
+# is content-identical and builds fine -- ideal for offline/cluster use -- but will
+# have a different sha. For a byte-identical artifact, build with GNU tar (the runner,
+# a Linux container, or `brew install gnu-tar` -> gtar).
 set -euo pipefail
 
 VERSION="${1:-$(git describe --tags --always --dirty 2>/dev/null || echo unknown)}"
