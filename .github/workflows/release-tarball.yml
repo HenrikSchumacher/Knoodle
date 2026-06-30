@@ -30,7 +30,7 @@ jobs:
           echo "version=${TAG#v}"       >> "$GITHUB_OUTPUT"
 
       - name: Check out the tag (recursive submodules + LFS)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.v.outputs.tag }}
           submodules: recursive   # Tensors has nested submodules (Tools)
