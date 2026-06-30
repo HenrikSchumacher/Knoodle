@@ -9,10 +9,18 @@ ifeq ($(UNAME_S),Darwin)
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
 else ifeq ($(UNAME_S),Linux)
-    # Linux - use gcc for ecosystem compatibility
-    CXX = g++
+    # Linux - g++ by default for ecosystem compatibility; clang if the user
+    # overrides CXX (e.g. an HPC cluster where only clang dodges the gcc-13
+    # function_traits<bool*> bug, issue #15). ?= lets an env/command-line CXX
+    # through while keeping the gcc default.
+    CXX ?= g++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -pthread -DPOLYFOLD_NO_QUATERNIONS
+    # Knoodle's clang matrix path (src/AffineTransforms/ClangMatrix.hpp) needs
+    # the matrix-types extension; clang errors out without this flag.
+    ifneq ($(findstring clang,$(CXX)),)
+        CXXFLAGS += -fenable-matrix
+    endif
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \

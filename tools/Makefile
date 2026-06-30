@@ -9,10 +9,18 @@ ifeq ($(UNAME_S),Darwin)
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread
 else ifeq ($(UNAME_S),Linux)
-    # Linux - use gcc for ecosystem compatibility
-    CXX = g++
+    # Linux - g++ by default for ecosystem compatibility; clang if the user
+    # overrides CXX (e.g. an HPC cluster where only clang dodges the gcc-13
+    # function_traits<bool*> bug, issue #15). ?= lets an env/command-line CXX
+    # through while keeping the gcc default.
+    CXX ?= g++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -pthread
+    # Knoodle's clang matrix path (src/AffineTransforms/ClangMatrix.hpp) needs
+    # the matrix-types extension; clang errors out without this flag.
+    ifneq ($(findstring clang,$(CXX)),)
+        CXXFLAGS += -fenable-matrix
+    endif
 else
     # Fallback for other Unix systems
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
@@ -63,8 +71,13 @@ else ifeq ($(UNAME_S),Linux)
                          -I$(HOMEBREW_PREFIX)/opt/llvm/include/c++/v1 \
                          -I$(HOMEBREW_PREFIX)/include
     else
+        # Plain Linux clang/gcc (e.g. cluster clang module, not Homebrew llvm).
         DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
                          -pthread
+        # clang's matrix path (ClangMatrix.hpp) still needs the extension here.
+        ifneq ($(findstring clang,$(CXX)),)
+            DEBUG_CXXFLAGS += -fenable-matrix
+        endif
     endif
 else
     DEBUG_CXXFLAGS = -Wall -Wextra -std=c++20 -g -O0 -DDEBUG \
