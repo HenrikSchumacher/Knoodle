@@ -29,8 +29,6 @@
 #include <map>
 #include <set>
 
-#include <unistd.h>   // isatty / fileno -- notice when reading from an interactive tty
-
 //==============================================================================
 // Configuration
 //==============================================================================
@@ -2253,7 +2251,7 @@ int main(int argc, char* argv[])
     {
         // No input files — read from stdin (Unix filter mode). If stdin is an
         // interactive terminal, say so, so a bare invocation does not look hung.
-        if (isatty(fileno(stdin)))
+        if (StdinIsInteractive())
         {
             std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
                          "Pipe a stream or pass a file; --help for usage.\n";
