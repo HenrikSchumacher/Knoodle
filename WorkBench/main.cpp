@@ -1,3 +1,5 @@
+#define TOOLS_NO_RESTRICT
+
 #include "../Knoodle.hpp"
 
 using namespace Knoodle;
