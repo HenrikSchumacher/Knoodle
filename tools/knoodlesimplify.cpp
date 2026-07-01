@@ -34,8 +34,6 @@
 #include <cstdio>
 #include <filesystem>
 
-#include <unistd.h>   // isatty / fileno -- notice when reading from an interactive tty
-
 //==============================================================================
 // Configuration
 //==============================================================================
@@ -1033,7 +1031,7 @@ int main(int argc, char* argv[])
         // Read from stdin. In streaming mode Log is redirected to a file, so write
         // the interactive-tty notice straight to stderr (else a bare invocation of
         // `knoodlesimplify --streaming-mode` just looks hung).
-        if (isatty(fileno(stdin)))
+        if (StdinIsInteractive())
         {
             std::cerr << "knoodlesimplify: reading diagrams from stdin (Ctrl-D to end). "
                          "Pipe a stream or pass a file; --help for usage.\n";

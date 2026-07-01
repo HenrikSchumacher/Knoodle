@@ -34,8 +34,6 @@
 #include <tuple>
 #include <vector>
 
-#include <unistd.h>   // isatty / fileno -- notice when reading from an interactive tty
-
 //==============================================================================
 // Configuration
 //==============================================================================
@@ -652,7 +650,7 @@ int main(int argc, char* argv[])
     {
         // Unix filter: no files -> read stdin. If stdin is an interactive terminal
         // (no pipe/redirect), say so, so a bare invocation does not just look hung.
-        if (isatty(fileno(stdin)))
+        if (StdinIsInteractive())
         {
             Log("knoodleidentify: reading diagrams from stdin (Ctrl-D to end). "
                 "Pipe a stream or pass a file; --help for usage.");

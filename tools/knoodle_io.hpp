@@ -25,6 +25,15 @@
 #include <variant>
 #include <vector>
 
+// Interactive-terminal detection: POSIX isatty/fileno vs Windows _isatty/_fileno.
+// Centralized here so the three tools build unchanged on macOS, Linux, and Windows.
+#include <cstdio>       // stdin, fileno
+#ifdef _WIN32
+#  include <io.h>       // _isatty, _fileno
+#else
+#  include <unistd.h>   // isatty, fileno
+#endif
+
 //==============================================================================
 // Type Aliases
 //==============================================================================
@@ -40,6 +49,25 @@ using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;
 
 namespace {
+
+//==============================================================================
+// Terminal Utilities
+//==============================================================================
+
+/**
+ * @brief Is stdin connected to an interactive terminal?
+ *
+ * Wraps POSIX isatty/fileno and their Windows _isatty/_fileno equivalents so
+ * the tools' "reading from stdin…" hint behaves identically on both platforms.
+ */
+inline bool StdinIsInteractive()
+{
+#ifdef _WIN32
+    return _isatty(_fileno(stdin)) != 0;
+#else
+    return isatty(fileno(stdin)) != 0;
+#endif
+}
 
 //==============================================================================
 // Timing Utilities
