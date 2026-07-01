@@ -48,6 +48,7 @@ struct Config
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
+    bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
     bool label_arcs           = false;
@@ -267,6 +268,20 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--ascii")
         {
             config.ascii_mode = true;
+        }
+        // Output format: unicode (default), ascii, or wl (Wolfram geometry association)
+        else if (arg.starts_with("--format="))
+        {
+            std::string val(arg.substr(9));
+            if (val == "wl" || val == "wolfram") { config.wolfram_mode = true; }
+            else if (val == "ascii")             { config.ascii_mode = true; }
+            else if (val == "unicode")           { /* default (Unicode box-drawing) */ }
+            else
+            {
+                std::cerr << "Error: Unknown --format value: " << val << "\n";
+                std::cerr << "  Valid: unicode, ascii, wl\n";
+                return std::nullopt;
+            }
         }
         // Randomize projection
         else if (arg == "--randomize-projection")
@@ -2003,6 +2018,47 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
 //==============================================================================
 
 /**
+ * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
+ *        <| "BoundingBox"->{w,h}, "Arcs"->{ <|"Id"->a,"Component"->c,"Points"->{{x,y},..}|>, .. } |>
+ *
+ * Each arc is its routed polyline of integer grid points. The over/under gaps
+ * are already baked into ArcLines() (the under-strand is inset at each crossing),
+ * so rendering the polylines directly yields correct broken-under-strand
+ * crossings without needing separate crossing data. Parses via ToExpression.
+ */
+void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
+{
+    const auto& A_lines = H.ArcLines();
+    const Int*  comp    = pd.ArcLinkComponents().data();
+
+    out << "<|\"BoundingBox\"->{" << H.Width() << "," << H.Height() << "},\"Arcs\"->{";
+
+    bool first_arc = true;
+    for (Int a = 0; a < H.MaxArcCount(); ++a)
+    {
+        if (!H.EdgeActiveQ(a)) { continue; }
+
+        auto sublist = A_lines[a];
+        if (sublist.end() - sublist.begin() < 2) { continue; }
+
+        out << (first_arc ? "" : ",")
+            << "<|\"Id\"->" << a
+            << ",\"Component\"->" << comp[a]
+            << ",\"Points\"->{";
+        first_arc = false;
+
+        bool first_pt = true;
+        for (auto it = sublist.begin(); it != sublist.end(); ++it)
+        {
+            out << (first_pt ? "" : ",") << "{" << (*it)[0] << "," << (*it)[1] << "}";
+            first_pt = false;
+        }
+        out << "}|>";
+    }
+    out << "}|>\n";
+}
+
+/**
  * @brief Draw all summands of a knot to stdout.
  */
 bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
@@ -2018,12 +2074,19 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
-        if (i > 0)
+        if (i > 0 && !config.wolfram_mode)
         {
             std::cout << "s\n";
         }
 
         OrthoDraw_T H(summands[i], Int(-1), settings);
+
+        if (config.wolfram_mode)
+        {
+            EmitWolframGeometry(H, summands[i], std::cout);
+            continue;
+        }
+
         std::string diagram = H.DiagramString();
 
         // Virtual edges are drawn as '.' by DiagramString().
