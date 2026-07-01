@@ -17,6 +17,9 @@ component_check
 klut_identify_check
 klut_identify_random_check
 plantri_check
+make_bench_set
+klut_ivt_bench
+libhomfly_ivt_bench
 link_alex_probe
 link_inflate_check
 link_split_check
@@ -26,6 +29,9 @@ link_inflate_fail_*.tsv
 klut_bench_*.tsv
 klut_bench_pool*
 knoodlesimplify.log
+
+# invariant-throughput benchmark outputs (dataset + result TSVs)
+ivt_out/
 
 # private cluster config (site-specific; never commit)
 cluster/cluster.conf

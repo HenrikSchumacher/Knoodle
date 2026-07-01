@@ -197,11 +197,38 @@ $(PLANTRI): vendor/plantri/plantri.c
 # Simplify as the oracle, plus (with --klut) the KLUT identify-contract check
 # (ki::Identify A+B). Light config (no UMFPACK; ki::Identify's Reapr uses TV+MCF).
 # Needs the vendored plantri binary at runtime.
-plantri_check: plantri_check.cpp homfly_invariance.hpp ../tools/klut_identify.hpp \
+plantri_check: plantri_check.cpp plantri_gen.hpp homfly_invariance.hpp ../tools/klut_identify.hpp \
                $(LIBHOMFLY_OBJ) $(PLANTRI) ../Knoodle.hpp
 	@echo "=== Building plantri_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) plantri_check.cpp $(LIBHOMFLY_OBJ) -o $@
 	@echo "✓ plantri_check compiled successfully"
+
+# Invariant-throughput benchmark drivers (KLUT vs libhomfly vs Regina) over one
+# frozen dataset. See docs/klut-bench-ivt.md.
+#
+# klut_ivt_bench — KLUT driver. Light config like plantri_check (ki::Identify's
+# Reapr uses TopologicalNumbering + MCF; no UMFPACK/Alexander). Also the labeling
+# oracle: its result_key carries each diagram's reduced crossing number.
+klut_ivt_bench: klut_ivt_bench.cpp bench_io.hpp ../tools/klut_identify.hpp ../Knoodle.hpp
+	@echo "=== Building klut_ivt_bench on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) klut_ivt_bench.cpp -o $@
+	@echo "✓ klut_ivt_bench compiled successfully"
+
+# libhomfly_ivt_bench — libhomfly driver (HOMFLY on the raw diagram, no simplify).
+libhomfly_ivt_bench: libhomfly_ivt_bench.cpp bench_io.hpp homfly_invariance.hpp \
+                     $(LIBHOMFLY_OBJ) ../Knoodle.hpp
+	@echo "=== Building libhomfly_ivt_bench on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) libhomfly_ivt_bench.cpp $(LIBHOMFLY_OBJ) -o $@
+	@echo "✓ libhomfly_ivt_bench compiled successfully"
+
+# make_bench_set — build a frozen, reproducible knot-diagram dataset for the
+# invariant-throughput benchmark (KLUT vs libhomfly vs Regina). Light: only the
+# shared generator primitives (plantri_gen.hpp) + the vendored plantri binary at
+# runtime; no Knoodle core, no libhomfly, no UMFPACK. See docs/klut-bench-ivt.md.
+make_bench_set: make_bench_set.cpp plantri_gen.hpp $(PLANTRI)
+	@echo "=== Building make_bench_set on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) make_bench_set.cpp -o $@
+	@echo "✓ make_bench_set compiled successfully"
 
 # cli_stdin_check — regression test for the interactive-stdin notice (isatty).
 # Pure-Python (stdlib only, no Regina/venv); needs the tools built in ../tools.
@@ -213,7 +240,11 @@ clean:
 	rm -rf build homfly_check key_roundtrip_probe inflate_check \
 	       klut_check klut_bench klut_bench_boost canon_check component_check \
 	       klut_identify_check klut_identify_random_check \
-	       plantri_check link_alex_probe link_inflate_check \
+	       plantri_check make_bench_set klut_ivt_bench libhomfly_ivt_bench \
+	       link_alex_probe link_inflate_check \
 	       link_split_check $(PLANTRI)
 
-.PHONY: all libhomfly clean cli_stdin_check
+# Build the three invariant-throughput binaries (Regina driver is a Python script).
+ivt_bench: make_bench_set klut_ivt_bench libhomfly_ivt_bench
+
+.PHONY: all libhomfly clean cli_stdin_check ivt_bench
