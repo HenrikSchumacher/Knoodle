@@ -161,7 +161,7 @@ void RandomizeBends_impl(
 {
     using CrossingMatrix_T = PD_T::C_Arcs_T;
     
-    std::uniform_int_distribution<Int8> dice( -1, 1 );
+    std::uniform_int_distribution<int> dice( -1, 1 );
     
     const Int c_count = pd.MaxCrossingCount();
     
