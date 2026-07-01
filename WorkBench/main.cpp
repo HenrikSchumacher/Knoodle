@@ -5,6 +5,8 @@ using namespace Tools;
 
 using Int = Size_T;
 
+
+
 int main()
 {
     constexpr Int n = 10;
@@ -24,4 +26,7 @@ int main()
     
     // This is the supposedly problematic code.
     valprint("a",OutString::FromVector(a_ptr,n));
+    
+    
+    Check_is_pointer();
 }
