@@ -172,17 +172,18 @@ void RandomizeBends_impl(
         
         CrossingMatrix_T C = pd.CopyCrossing(c);
         
-        Turn_T x = 0;
+        int x = 0;
         
         // Quite a waste of random bits...
         for( int iter = 0; iter < iter_count; ++iter )
         {
             x += static_cast<Turn_T>(dice(random_engine));
         }
-        bends[C(Out,Left )] -= x;
-        bends[C(Out,Right)] -= x;
-        bends[C(In ,Left )] += x;
-        bends[C(In ,Right)] += x;
+        Turn_T y = static_cast<Turn_T>(x);
+        bends[C(Out,Left )] -= y;
+        bends[C(Out,Right)] -= y;
+        bends[C(In ,Left )] += y;
+        bends[C(In ,Right)] += y;
     }
 }
 
