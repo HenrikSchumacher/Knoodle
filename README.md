@@ -12,8 +12,6 @@ To make sure that all submodules are cloned, too, please clone by running the fo
 The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
-brew install git-lfs
-git-lfs install
 brew tap designbynumbers/cantarellalab
 brew install knoodle
 ```
