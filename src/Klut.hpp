@@ -7,13 +7,23 @@ namespace Knoodle
     class Klut
     {
     public:
-        
-        static constexpr Size_T max_crossing_count = 13;
-        
+
+        // We have one byte per crossing.
+        // We need to store a number in [0,...,n[ per crossing.
+        // And we need two extra bits for over/under and left/right-handed.
+        // So 1 byte per crossings allows us to go up to 63 crossings?
         using CodeInt = UInt8;
         
-        // Will work only up to 13-crossing knots!
-        using ID_T   = UInt16; // TODO: Is this big/small enough?
+//        // There are 9988 knots with 13 crossings.
+//        static constexpr Size_T max_crossing_count = 13;
+//        // So, an UInt16 should suffice for enumerating them.
+//        using ID_T   = UInt16;
+        
+        // There are 1388705 knots with 16 crossings.
+        static constexpr Size_T max_crossing_count = 16;
+        // So, an UInt32 should suffice for enumerating them.
+        using ID_T   = UInt32;
+        
         static constexpr ID_T not_found = std::numeric_limits<ID_T>::max();
         static constexpr ID_T error     = not_found - ID_T(1);
         static constexpr ID_T invalid   = not_found - ID_T(2);
