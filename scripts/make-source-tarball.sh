@@ -54,10 +54,16 @@ if [ "${keys_sz:-0}" -lt 1000000 ]; then
 fi
 
 # 3) Stage the build-relevant trees (validated minimal set) + the runtime KLUT.
+# This is an ALLOWLIST: only the trees named here ship. `test/` and `docs/` are
+# intentionally excluded -- test/ holds the whole testing process (correctness,
+# robustness, and performance/benchmark drivers) plus its OWN vendored, test-only
+# deps (test/vendor/libhomfly, test/vendor/plantri) and Python venv, none of which
+# belong in a lean point-release tarball. Keep test-only vendored deps under
+# test/vendor/, NEVER in the shipped deps/ tree, and do not add test/ or docs/ here.
 mkdir -p "$STAGE/data"
 cp -a PolyFold tools src legacy deps submodules "$STAGE"/
 cp -a data/Klut "$STAGE/data/"
-cp -a Knoodle.hpp Reapr_Legacy.hpp "$STAGE"/
+cp -a Knoodle.hpp Reapr_Legacy.hpp INSTALL_HPC_MODULES.sh "$STAGE"/
 
 # 4) Keep ONLY git-tracked files (allowlist, not denylist). cp -a stages the whole
 # working tree, so a dirty checkout could otherwise carry in untracked/ignored cruft
@@ -67,7 +73,7 @@ cp -a Knoodle.hpp Reapr_Legacy.hpp "$STAGE"/
 # (data/diagrams is never copied; the generated VERSION is added in step 4b, after.)
 TRACKED="$TMP/tracked.txt"
 {
-  git ls-files -- PolyFold tools src legacy deps Knoodle.hpp Reapr_Legacy.hpp data/Klut
+  git ls-files -- PolyFold tools src legacy deps Knoodle.hpp Reapr_Legacy.hpp INSTALL_HPC_MODULES.sh data/Klut
   # Each submodule lists its own tracked files; prefix with its path in the superproject.
   git submodule foreach --recursive --quiet 'git ls-files | sed "s#^#$displaypath/#"'
 } | LC_ALL=C sort -u > "$TRACKED"
