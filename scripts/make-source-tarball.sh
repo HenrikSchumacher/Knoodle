@@ -54,6 +54,12 @@ if [ "${keys_sz:-0}" -lt 1000000 ]; then
 fi
 
 # 3) Stage the build-relevant trees (validated minimal set) + the runtime KLUT.
+# This is an ALLOWLIST: only the trees named here ship. `test/` and `docs/` are
+# intentionally excluded -- test/ holds the whole testing process (correctness,
+# robustness, and performance/benchmark drivers) plus its OWN vendored, test-only
+# deps (test/vendor/libhomfly, test/vendor/plantri) and Python venv, none of which
+# belong in a lean point-release tarball. Keep test-only vendored deps under
+# test/vendor/, NEVER in the shipped deps/ tree, and do not add test/ or docs/ here.
 mkdir -p "$STAGE/data"
 cp -a PolyFold tools src legacy deps submodules "$STAGE"/
 cp -a data/Klut "$STAGE/data/"
