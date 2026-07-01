@@ -519,13 +519,6 @@ friend constexpr std::string ToString( cref<FromPDCode_TArgs_T> args )
         + " }";
 };
 
-template<FromPDCode_TArgs_T targs, IntQ T, IntQ ExtInt>
-static PD_T PDCodeSize(
-                       )
-{
-}
-                       
-
                        
 /*!@brief Loads a PlanarDiagram from a pd code. Between 4 and 7 numbers are expected per crossing. The template parameters control how many and how they are interpreted.
  *
@@ -590,7 +583,7 @@ static PD_T FromPDCode(
         
         if constexpr ( targs.signQ )
         {
-            state = X[4];
+            state = int_cast<T>(X[4]);
         }
         else
         {

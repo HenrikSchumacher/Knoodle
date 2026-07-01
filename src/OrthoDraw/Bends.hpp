@@ -161,6 +161,7 @@ void RandomizeBends_impl(
 {
     using CrossingMatrix_T = PD_T::C_Arcs_T;
     
+    // We use an `int` here and not Turn_T because has some specific requirements on the type. E.g., Int8 is not allowed. (But Turn_T will typically be a 32- or 64-bit integer.
     std::uniform_int_distribution<int> dice( -1, 1 );
     
     const Int c_count = pd.MaxCrossingCount();
@@ -171,26 +172,20 @@ void RandomizeBends_impl(
         
         CrossingMatrix_T C = pd.CopyCrossing(c);
         
+        int x = 0;
+        
+        // Quite a waste of random bits...
         for( int iter = 0; iter < iter_count; ++iter )
         {
-            Int8 x = dice(random_engine);
-            
-            if( x == Int8(0) )
-            {
-                continue;
-            }
-
-            if( x == Int8(1) )
-            {
-                --bends[C(Out,Left )]; --bends[C(Out,Right)];
-                ++bends[C(In ,Left )]; ++bends[C(In ,Right)];
-            }
-            else if( x == Int8(-2) )
-            {
-                ++bends[C(Out,Left )]; ++bends[C(Out,Right)];
-                --bends[C(In ,Left )]; --bends[C(In ,Right)];
-            }
+            x += dice(random_engine);
         }
+
+        Turn_T y = static_cast<Turn_T>(x);
+        
+        bends[C(Out,Left )] -= y;
+        bends[C(Out,Right)] -= y;
+        bends[C(In ,Left )] += y;
+        bends[C(In ,Right)] += y;
     }
 }
 

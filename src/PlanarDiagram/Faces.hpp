@@ -274,7 +274,7 @@ Tiny::VectorList_AoS<4,Int,Int> CrossingFaces() const
 }
 
 
-Tensor1<Int8,Int> CheckerBoardColoring()
+Tensor1<Int8,Int> CheckerBoardColoring() const
 {
     TOOLS_PTIMER(timer,MethodName("CheckerBoardColoring"));
     
@@ -302,7 +302,7 @@ Tensor1<Int8,Int> CheckerBoardColoring()
             }
             else
             {
-                color[E.head] = -color[E.tail];
+                color[E.head] = Int8(-color[E.tail]);
             }
         },
         MultiGraph_T::TrivialEdgeFunction      // postvisit
