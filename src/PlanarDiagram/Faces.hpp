@@ -58,7 +58,7 @@ TOOLS_FORCE_INLINE void TraverseFaceAtDarc( const Int da_0, ArcFun_T & arc_fun )
 {
     if( !ArcActiveQ(ArcOfDarc(da_0)) ) { return; }
     
-    Int * restrict dA_left_dA = COND(lutQ,ArcLeftDarcs().data(),nullptr);
+    Int * TOOLS_RESTRICT dA_left_dA = COND(lutQ,ArcLeftDarcs().data(),nullptr);
     
     Int da = da_0;
     do

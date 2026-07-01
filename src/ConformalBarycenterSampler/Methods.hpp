@@ -56,7 +56,7 @@ public:
  * @brief Reads an initial guess for the conformal barycenter (to be used in the optimization routine `Optimize`) from the buffer `w`.
  */
 
-void ReadShiftVector( const Real * restrict const w)
+void ReadShiftVector( const Real * const w)
 {
     w_.Read(w);
     
@@ -71,7 +71,7 @@ void ReadShiftVector( const Real * restrict const w)
 /*!@brief Writes the current shift vector (e.g., the conformal barycenter after the optimization has succeeded) to the buffer `w`.
  */
 
-void WriteShiftVector( Real * restrict w ) const
+void WriteShiftVector( Real * w ) const
 {
     w_.Write(w);
 }

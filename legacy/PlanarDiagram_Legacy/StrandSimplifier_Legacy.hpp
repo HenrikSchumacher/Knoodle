@@ -46,15 +46,15 @@ namespace Knoodle
         
     private:
         
-        PD_T & restrict pd;
+        PD_T & TOOLS_RESTRICT pd;
         
-        CrossingContainer_T      & restrict C_arcs;
-        CrossingStateContainer_T & restrict C_state;
+        CrossingContainer_T      & TOOLS_RESTRICT C_arcs;
+        CrossingStateContainer_T & TOOLS_RESTRICT C_state;
         
-        ArcContainer_T           & restrict A_cross;
-        ArcStateContainer_T      & restrict A_state;
+        ArcContainer_T           & TOOLS_RESTRICT A_cross;
+        ArcStateContainer_T      & TOOLS_RESTRICT A_state;
 
-        Tensor1<Int,Int>         & restrict D_mark2;
+        Tensor1<Int,Int>         & TOOLS_RESTRICT D_mark2;
         
     private:
         
@@ -67,7 +67,7 @@ namespace Knoodle
         // D_from[a] is the dual arc from which we visited dual arc a in the pass with mark D_mark[a].
         Tensor1<Int,Int> D_from;
         
-        Int * restrict dA_left;
+        Int * TOOLS_RESTRICT dA_left;
         
         Mark_T current_mark = 1; // We start with 1 so that we can store things in the sign bit of current_mark.
         Int a_ptr = 0;

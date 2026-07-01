@@ -17,7 +17,7 @@ Vector_T InitialEdgeVector( const Int i ) const
  */
 
 void ReadInitialEdgeVectors(
-    const Real * restrict const x, bool normalizeQ = true
+    const Real * const x, bool normalizeQ = true
 )
 {
     if( normalizeQ )
@@ -59,7 +59,7 @@ void RandomizeInitialEdgeVectors()
  * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form`, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j].
  */
 
-void WriteInitialEdgeVectors( Real * restrict const x )
+void WriteInitialEdgeVectors( Real * const x )
 {
     x_.Write(x);
 }
@@ -73,7 +73,7 @@ void WriteInitialEdgeVectors( Real * restrict const x )
 
 
 // Vertex positions
-void ReadInitialVertexCoordinates( const Real * restrict const p )
+void ReadInitialVertexCoordinates( const Real * const p )
 {
     TOOLS_MAKE_FP_FAST();
     
@@ -102,7 +102,7 @@ void ReadInitialVertexCoordinates( const Real * restrict const p )
  
  * @param mode Specify whether the output polygon `p` is to be centered to its center of mass and in which sense "mass" is operationalized.
  */
-void WriteInitialVertexCoordinates( Real * restrict const p, CentralizationMode_T mode )
+void WriteInitialVertexCoordinates( Real * const p, CentralizationMode_T mode )
 {
     writeCoordinates(x_,p,mode,true);
 }

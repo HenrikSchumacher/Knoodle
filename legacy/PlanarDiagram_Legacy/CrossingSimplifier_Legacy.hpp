@@ -31,13 +31,13 @@ namespace Knoodle
         
     private:
         
-        PD_T & restrict pd;
+        PD_T & TOOLS_RESTRICT pd;
         
-        CrossingContainer_T      & restrict C_arcs;
-        CrossingStateContainer_T & restrict C_state;
+        CrossingContainer_T      & TOOLS_RESTRICT C_arcs;
+        CrossingStateContainer_T & TOOLS_RESTRICT C_state;
         
-        ArcContainer_T           & restrict A_cross;
-        ArcStateContainer_T      & restrict A_state;
+        ArcContainer_T           & TOOLS_RESTRICT A_cross;
+        ArcStateContainer_T      & TOOLS_RESTRICT A_state;
         
     public:
         

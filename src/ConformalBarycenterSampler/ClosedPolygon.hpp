@@ -17,7 +17,7 @@ Vector_T EdgeVector( const Int i ) const
  * @param y Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge vector of the polygon is stored in `y[d * i + j].
  */
 
-void WriteEdgeVectors( Real * restrict const y ) const
+void WriteEdgeVectors( Real * const y ) const
 {
     y_.Write(y);
 }
@@ -32,7 +32,7 @@ void WriteEdgeVectors( Real * restrict const y ) const
  *
  * @param mode Specify whether the output polygon `q` is to be centered to its center of mass and in which sense "mass" is operationalized.
  */
-void WriteVertexCoordinates( Real * restrict const q, CentralizationMode_T mode, const bool wrap_aroundQ )
+void WriteVertexCoordinates( Real * const q, CentralizationMode_T mode, const bool wrap_aroundQ )
 {
     writeCoordinates(y_,q,mode,wrap_aroundQ);
 }

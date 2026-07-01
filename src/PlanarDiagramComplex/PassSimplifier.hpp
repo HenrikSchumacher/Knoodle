@@ -97,9 +97,9 @@ namespace Knoodle
         
     private:
 
-        PDC_T & restrict pdc;
+        PDC_T & TOOLS_RESTRICT pdc;
 
-        PD_T  * restrict pd = nullptr;
+        PD_T  * TOOLS_RESTRICT pd = nullptr;
 
         Int    max_crossing_count = 0;
         Int    max_arc_count      = 0;
@@ -117,7 +117,7 @@ namespace Knoodle
         
         ArcDataContainer_T D_data;  // Two Int per (dual) arc: The first one stores the current marker and some bits for left/right direction and one for traversal backward/forward direction.
         
-        Int * restrict dA_left;
+        Int * TOOLS_RESTRICT dA_left;
         
 //        Tensor1<Int,Int> path;
         Path_T  path_0;

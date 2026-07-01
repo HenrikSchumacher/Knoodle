@@ -67,15 +67,15 @@ namespace Knoodle
         
     private:
         
-        PDC_T & restrict pdc;
-        PD_T  & restrict pd;
+        PDC_T & TOOLS_RESTRICT pdc;
+        PD_T  & TOOLS_RESTRICT pd;
         
-        CrossingContainer_T      & restrict C_arcs;
-        CrossingStateContainer_T & restrict C_state;
+        CrossingContainer_T      & TOOLS_RESTRICT C_arcs;
+        CrossingStateContainer_T & TOOLS_RESTRICT C_state;
     
-        ArcContainer_T           & restrict A_cross;
-        ArcStateContainer_T      & restrict A_state;
-        ArcColorContainer_T      & restrict A_color;
+        ArcContainer_T           & TOOLS_RESTRICT A_cross;
+        ArcStateContainer_T      & TOOLS_RESTRICT A_state;
+        ArcColorContainer_T      & TOOLS_RESTRICT A_color;
         
         Settings_T settings;
         

@@ -124,8 +124,8 @@ namespace Knoodle
         }
         
         explicit ConformalBarycenterSampler(
-            const Real * restrict const r,
-            const Real * restrict const rho,
+            const Real * const r,
+            const Real * const rho,
             const Int edge_count,
             const Settings_T settings = Settings_T()
         )
@@ -326,7 +326,7 @@ namespace Knoodle
          * @param mode Specify whether the output polygon `p` will be be centered to its center of mass and in which sense "mass" is operationalized.
          */
         void WriteRandomOpenPolygon(
-            Real * restrict const p,
+            Real * const p,
             CentralizationMode_T mode
         )
         {
@@ -359,8 +359,8 @@ namespace Knoodle
          */
 
         void WriteRandomClosedPolygon(
-            Real * restrict const q,
-            Real & restrict       K,
+            Real * const q,
+            Real &       K,
             CentralizationMode_T  mode,
             const bool            wrap_aroundQ,
             const bool            quotient_space_weightQ = true
@@ -478,11 +478,11 @@ namespace Knoodle
          */
         
         void ComputeConformalCentralization(
-            const Real * restrict const x,
-                  Real * restrict const w,
-                  Real * restrict const y,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space
+            const Real * const x,
+                  Real * const w,
+                  Real * const y,
+                  Real &       K_edge_space,
+                  Real &       K_quot_space
         )
         {
             TOOLS_PTIMER(timer,MethodName("ComputeConformalCentralization"));
@@ -518,13 +518,13 @@ namespace Knoodle
     public:
 
         void ComputeConformalClosure(
-            const Real * restrict const p,
-                  Real * restrict const w,
-                  Real * restrict const q,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space,
-            CentralizationMode_T        mode,
-            const bool                  wrap_aroundQ
+            const Real * const   p,
+                  Real * const   w,
+                  Real * const   q,
+                  Real &         K_edge_space,
+                  Real &         K_quot_space,
+            CentralizationMode_T mode,
+            const bool           wrap_aroundQ
         ) const
         
         {
