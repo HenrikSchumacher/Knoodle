@@ -32,6 +32,8 @@ knoodlesimplify.log
 
 # invariant-throughput benchmark outputs (dataset + result TSVs)
 ivt_out/
+bench_data/
+bench_data_gen.log
 
 # private cluster config (site-specific; never commit)
 cluster/cluster.conf

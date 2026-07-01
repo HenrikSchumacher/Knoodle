@@ -22,10 +22,12 @@ def load_dataset(path):
     diagrams   : list of (nc, crossings), where crossings is a list of nc lists
                  [x0, x1, x2, x3, sign] (0-based signed PD, one per crossing).
     """
+    # Accepts one or more "count N" blocks, so per-crossing files concatenated
+    # with `cat` load as a single dataset (indices run globally across blocks).
     provenance = []
     diagrams = []
-    have_count = False
-    expected = None
+    any_count = False
+    expected = 0
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -35,11 +37,11 @@ def load_dataset(path):
                 provenance.append(line)
                 continue
             parts = line.split()
-            if not have_count:
-                if parts[0] != "count" or len(parts) < 2:
-                    raise ValueError(f"expected 'count N' before diagrams in {path}")
-                expected = int(parts[1])
-                have_count = True
+            if parts[0] == "count":
+                if len(parts) < 2:
+                    raise ValueError(f"bad 'count' line in {path}")
+                expected += int(parts[1])
+                any_count = True
                 continue
             nc = int(parts[0])
             ints = list(map(int, parts[1:]))
@@ -47,6 +49,6 @@ def load_dataset(path):
                 raise ValueError(f"malformed diagram line in {path}")
             crossings = [ints[5 * i : 5 * i + 5] for i in range(nc)]
             diagrams.append((nc, crossings))
-    if expected is not None and len(diagrams) != expected:
+    if any_count and len(diagrams) != expected:
         raise ValueError(f"diagram count mismatch in {path}: {len(diagrams)} != {expected}")
     return provenance, diagrams

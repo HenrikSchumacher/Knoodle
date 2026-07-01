@@ -6,16 +6,19 @@
  * Firehose model, done reproducibly:
  *   For each crossing number n in [c-min, c-max] (plantri vertex count V = n+2):
  *     1. Stream every quadrangulation out of the vendored `plantri` (PlantriStream)
- *        and dualize it to a 4-valent shadow (QuadToShadow).
- *     2. KNOTS-ONLY filter: keep a shadow iff it is single-component. Component
- *        count is a property of the shadow alone (the strand tracing goes straight
- *        through each crossing, independent of over/under), so AssignAndTrace(sh, 0)
- *        reports it with no sign choice.
- *     3. Seeded RESERVOIR sample (Algorithm R) of `per-crossing` knot-shadows from
- *        that exhaustive stream -- a uniform sample over the shadows at n, with no
- *        dependence on plantri's internal enumeration order (so neither "first N"
- *        nor a res/mod slice, both of which are structurally biased).
- *     4. For each retained shadow, draw `masks-per-shadow` iid Bernoulli(1/2)
+ *        and seeded RESERVOIR-sample (Algorithm R) `reservoir-mult * per-crossing`
+ *        RAW graphs -- a uniform sample over the shadows at n, with no dependence on
+ *        plantri's internal enumeration order (so neither "first N" nor a res/mod
+ *        slice, both of which are structurally biased). Dualization is DEFERRED:
+ *        QuadToShadow is std::map-heavy and the n=13 stream is ~1.4e9 graphs, so
+ *        the hot path is just a read + one PRNG draw per graph.
+ *     2. Dualize the survivors (QuadToShadow) and apply the KNOTS-ONLY filter: keep
+ *        a shadow iff it is single-component. Component count is a property of the
+ *        shadow alone (the strand tracing goes straight through each crossing,
+ *        independent of over/under), so AssignAndTrace(sh, 0) reports it with no
+ *        sign choice. Keep up to `per-crossing` knot-shadows (we over-sample raw
+ *        graphs because ~half of them dualize to multi-component links).
+ *     3. For each retained shadow, draw `masks-per-shadow` iid Bernoulli(1/2)
  *        over/under masks from the same seeded PRNG -> AssignAndTrace -> 5-column
  *        signed PD code.
  *
@@ -62,7 +65,8 @@ int main(int argc, char* argv[])
     std::string mode    = "everything";   // simple | no-r1 | everything
     std::string out_path;
     int  c_min = 3, c_max = 13;
-    std::size_t per_crossing    = 20000;  // reservoir size K per crossing number
+    std::size_t per_crossing    = 20000;  // target knot-shadows kept per crossing number
+    std::size_t reservoir_mult  = 3;      // raw-graph reservoir = mult * per_crossing (covers link drop)
     std::size_t masks_per_shadow = 1;     // iid sign assignments per retained shadow
     std::uint64_t seed = 20260701ULL;
 
@@ -76,6 +80,7 @@ int main(int argc, char* argv[])
         else if (a.rfind("--from-crossing=", 0) == 0)    c_min = std::stoi(val("--from-crossing="));
         else if (a.rfind("--up-to-crossing=", 0) == 0)   c_max = std::stoi(val("--up-to-crossing="));
         else if (a.rfind("--per-crossing=", 0) == 0)     per_crossing = std::stoull(val("--per-crossing="));
+        else if (a.rfind("--reservoir-mult=", 0) == 0)   reservoir_mult = std::stoull(val("--reservoir-mult="));
         else if (a.rfind("--masks-per-shadow=", 0) == 0) masks_per_shadow = std::stoull(val("--masks-per-shadow="));
         else if (a.rfind("--seed=", 0) == 0)             seed = std::stoull(val("--seed="));
         else if (a == "-h" || a == "--help")
@@ -85,7 +90,8 @@ int main(int argc, char* argv[])
                 "  --out=PATH                  output dataset file (required)\n"
                 "  --from-crossing=N           smallest crossing number (default 3)\n"
                 "  --up-to-crossing=N          largest crossing number (default 13)\n"
-                "  --per-crossing=K            reservoir size per crossing number (default 20000)\n"
+                "  --per-crossing=K            target knot-shadows kept per crossing number (default 20000)\n"
+                "  --reservoir-mult=M          raw-graph reservoir = M*K, covers the link drop (default 3)\n"
                 "  --masks-per-shadow=M        iid sign assignments per shadow (default 1)\n"
                 "  --seed=N                    master PRNG seed (default 20260701)\n"
                 "  --plantri-mode=MODE         simple | no-r1 | everything (default everything)\n"
@@ -125,45 +131,51 @@ int main(int argc, char* argv[])
         // output order for a fixed V is fixed.
         std::mt19937_64 rng(SplitMix64(seed + static_cast<std::uint64_t>(n)));
 
-        std::vector<Shadow> reservoir;
-        reservoir.reserve(per_crossing);
-        std::size_t graphs = 0, knot_shadows = 0;
+        // Reservoir-sample RAW graphs uniformly over the ENTIRE plantri stream
+        // (Algorithm R), then dualize + knots-only filter ONLY the survivors. The
+        // n=13 stream is ~1.4e9 graphs, and QuadToShadow is std::map-heavy, so we
+        // must keep it off the hot path: the per-graph cost here is just a read +
+        // one PRNG draw. We over-sample by `reservoir_mult` because ~half of the
+        // survivors will be links (dropped by the knots-only filter).
+        const std::size_t cap_res = reservoir_mult * per_crossing;
+        std::vector<Graph> reservoir;
+        reservoir.reserve(cap_res);
+        std::size_t graphs = 0;
 
         Graph g;
         while (stream.Next(g))
         {
-            ++graphs;
-            Shadow sh = QuadToShadow(g);
-            if (!sh.ok) { continue; }
-            if (static_cast<int>(sh.crossings.size()) != n) { continue; }  // sanity
-
-            // Knots-only: single-component shadows (sign-independent).
-            Traced probe = AssignAndTrace(sh, 0);
-            if (!probe.ok || probe.n_components != 1) { continue; }
-            ++knot_shadows;
-
-            // Reservoir sampling (Algorithm R) over the knot-shadow stream.
-            if (reservoir.size() < per_crossing)
+            if (reservoir.size() < cap_res)
             {
-                reservoir.push_back(std::move(sh));
+                reservoir.push_back(g);
             }
             else
             {
-                std::uniform_int_distribution<std::size_t> pick(0, knot_shadows - 1);
+                std::uniform_int_distribution<std::size_t> pick(0, graphs);  // item index = graphs
                 const std::size_t j = pick(rng);
-                if (j < per_crossing) { reservoir[j] = std::move(sh); }
+                if (j < cap_res) { reservoir[j] = g; }
             }
+            ++graphs;
         }
         stream.Close();
 
-        // Assign iid Bernoulli(1/2) over/under masks to the retained shadows.
+        // Dualize survivors; keep single-component (knot) shadows up to per_crossing
+        // and assign iid Bernoulli(1/2) over/under masks. Reservoir-slot order is
+        // uncorrelated with knot type, so the first per_crossing knots are a uniform
+        // sample of knot-shadows.
         const std::uint64_t mask_hi =
             (n >= 63) ? ~0ULL : ((std::uint64_t(1) << n) - 1);
         std::uniform_int_distribution<std::uint64_t> mask_dist(0, mask_hi);
 
-        std::size_t written = 0;
-        for (const Shadow& sh : reservoir)
+        std::size_t knot_shadows = 0, written = 0;
+        for (const Graph& gg : reservoir)
         {
+            if (knot_shadows >= per_crossing) { break; }
+            Shadow sh = QuadToShadow(gg);
+            if (!sh.ok || static_cast<int>(sh.crossings.size()) != n) { continue; }
+            Traced probe = AssignAndTrace(sh, 0);   // component count is sign-independent
+            if (!probe.ok || probe.n_components != 1) { continue; }
+            ++knot_shadows;
             for (std::size_t m = 0; m < masks_per_shadow; ++m)
             {
                 Traced tr = AssignAndTrace(sh, mask_dist(rng));
@@ -172,10 +184,16 @@ int main(int argc, char* argv[])
                 ++written;
             }
         }
+        if (knot_shadows < per_crossing && graphs > cap_res)
+        {
+            std::cerr << "  V=" << V << " (" << n << "cx): NOTE only " << knot_shadows
+                      << " knot-shadows from a full reservoir (raise --reservoir-mult "
+                         "for the full " << per_crossing << ")\n";
+        }
 
-        std::cerr << "  V=" << V << " (" << n << "cx): " << graphs << " graphs, "
-                  << knot_shadows << " knot-shadows, " << reservoir.size()
-                  << " sampled, " << written << " diagrams\n";
+        std::cerr << "  V=" << V << " (" << n << "cx): " << graphs << " graphs scanned, "
+                  << reservoir.size() << " in reservoir, " << knot_shadows
+                  << " knot-shadows kept, " << written << " diagrams\n";
     }
 
     std::ofstream out(out_path);
