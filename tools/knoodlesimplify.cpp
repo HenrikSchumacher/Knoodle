@@ -33,6 +33,7 @@
 
 #include <cstdio>
 #include <filesystem>
+#include <limits>
 
 //==============================================================================
 // Configuration
@@ -385,13 +386,27 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
 {
     SimplifiedKnot result;
 
+    // PDC-native format ('u <color>') can only represent a *colored* Anello:
+    // PD_T::InvalidQ() is true for a 0-crossing diagram with an uninitialized
+    // color, and WriteToFile silently skips invalid diagrams -- so an unknot
+    // summand with no known color (colorless input, e.g. a bare 's' line or
+    // an uncolored 4/5-column PD) would otherwise vanish from --format=pdc
+    // output entirely. A synthetic color from a high base (astronomically
+    // unlikely to collide with any real, user-supplied color) keeps it in
+    // the output instead; distinct summands get distinct synthetic colors.
+    Int next_synthetic_color = (std::numeric_limits<Int>::max)() / 2;
+    auto validColor = [&next_synthetic_color](Int color) -> Int
+    {
+        return (color == PD_T::Uninitialized) ? next_synthetic_color++ : color;
+    };
+
     // Unknot summands that arrived as bare 's' lines pass through.
     result.unknot_count += static_cast<Int>(input.unknot_colors.size());
     if (output_pdc)
     {
         for (Int color : input.unknot_colors)
         {
-            output_pdc->Push(PD_T::Unknot(color));
+            output_pdc->Push(PD_T::Unknot(validColor(color)));
         }
     }
 
@@ -449,7 +464,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
                         // Nothing (not even a trivial done-diagram) survived in
                         // pdc itself to read a color off of; fall back to the
                         // color the original, un-simplified summand carried.
-                        output_pdc->Push(PD_T::Unknot(pd_in.ArcColors()[0]));
+                        output_pdc->Push(PD_T::Unknot(validColor(pd_in.ArcColors()[0])));
                     }
                 }
                 else
@@ -457,7 +472,17 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
                     for (Int i = 0; i < pdc.DiagramCount(); ++i)
                     {
                         PD_T pd(pdc.Diagram(i));
-                        if (output_pdc) { output_pdc->Push(PD_T(pd)); }
+                        if (output_pdc)
+                        {
+                            if (pd.CrossingCount() == 0)
+                            {
+                                output_pdc->Push(PD_T::Unknot(validColor(pd.FirstColor())));
+                            }
+                            else
+                            {
+                                output_pdc->Push(PD_T(pd));
+                            }
+                        }
                         result.summands.push_back(std::move(pd));
                     }
                 }
