@@ -2022,7 +2022,7 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
  *        <| "BoundingBox"->{w,h},
  *           "Arcs"->{ <|"Id"->a,"Component"->c,"Points"->{{x,y},..}|>, .. },
  *           "Crossings"->{ <|"Id"->c,"Pos"->{x,y}|>, .. },
- *           "Faces"->{ <|"Id"->f,"Color"->±1,"Boundary"->{{x,y},..}|>, .. } |>
+ *           "Faces"->{ <|"Id"->f,"Exterior"->True|False,"Color"->±1,"Boundary"->{{x,y},..}|>, .. } |>
  *
  * Arcs: each is its routed polyline of integer grid points. The over/under gaps
  * are already baked into ArcLines() (the under-strand is inset at each
@@ -2032,7 +2032,9 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
  * Crossings: grid position of each active crossing (crossings are vertices
  * [0, MaxCrossingCount()) in VertexCoordinates()).
  *
- * Faces: boundary of every face except the exterior one, as a closed point
+ * Faces: boundary of EVERY face, including the exterior one (flagged
+ * "Exterior"->True; its boundary is the outer silhouette of the whole
+ * diagram, needed for exterior-face label placement), as a closed point
  * cycle, plus its two-coloring from CheckerBoardColoring(). Boundaries are
  * built from ArcVertices() (the RAW, un-gapped vertex-index path per arc) and
  * VertexCoordinates() rather than from ArcLines() -- ArcLines()'s under-strand
@@ -2097,10 +2099,9 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
     bool first_f = true;
     for (Int f = 0; f < H.FaceCount(); ++f)
     {
-        if (f == ext) { continue; }
-
         out << (first_f ? "" : ",")
             << "<|\"Id\"->" << f
+            << ",\"Exterior\"->" << (f == ext ? "True" : "False")
             << ",\"Color\"->" << (have_color ? int(coloring[f]) : 0)
             << ",\"Boundary\"->{";
         first_f = false;
