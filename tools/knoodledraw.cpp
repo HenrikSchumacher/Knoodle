@@ -48,6 +48,7 @@ struct Config
     std::vector<std::string> highlight_specs;  // raw "--highlight=..." values
     bool randomize_projection = false;
     bool ascii_mode           = false;
+    bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
     bool help_requested       = false;
     bool label_crossings      = false;
     bool label_arcs           = false;
@@ -267,6 +268,20 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--ascii")
         {
             config.ascii_mode = true;
+        }
+        // Output format: unicode (default), ascii, or wl (Wolfram geometry association)
+        else if (arg.starts_with("--format="))
+        {
+            std::string val(arg.substr(9));
+            if (val == "wl" || val == "wolfram") { config.wolfram_mode = true; }
+            else if (val == "ascii")             { config.ascii_mode = true; }
+            else if (val == "unicode")           { /* default (Unicode box-drawing) */ }
+            else
+            {
+                std::cerr << "Error: Unknown --format value: " << val << "\n";
+                std::cerr << "  Valid: unicode, ascii, wl\n";
+                return std::nullopt;
+            }
         }
         // Randomize projection
         else if (arg == "--randomize-projection")
@@ -2003,6 +2018,174 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
 //==============================================================================
 
 /**
+ * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
+ *        <| "BoundingBox"->{w,h},
+ *           "Arcs"->{ <|"Id"->a,"Component"->c,"Points"->{{x,y},..}|>, .. },
+ *           "Crossings"->{ <|"Id"->c,"Pos"->{x,y}|>, .. },
+ *           "Faces"->{ <|"Id"->f,"Color"->±1,"Boundary"->{{x,y},..}|>, .. } |>
+ *
+ * Arcs: each is its routed polyline of integer grid points. The over/under gaps
+ * are already baked into ArcLines() (the under-strand is inset at each
+ * crossing), so rendering the polylines directly yields correct
+ * broken-under-strand crossings.
+ *
+ * Crossings: grid position of each active crossing (crossings are vertices
+ * [0, MaxCrossingCount()) in VertexCoordinates()).
+ *
+ * Faces: boundary of every face except the exterior one, as a closed point
+ * cycle, plus its two-coloring from CheckerBoardColoring(). Boundaries are
+ * built from ArcVertices() (the RAW, un-gapped vertex-index path per arc) and
+ * VertexCoordinates() rather than from ArcLines() -- ArcLines()'s under-strand
+ * gap inset is correct for drawing broken strands, but would leave a notch in
+ * a filled face polygon at every crossing.
+ *
+ * Parses via ToExpression.
+ */
+void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
+{
+    const auto& A_lines  = H.ArcLines();
+    const auto& A_verts  = H.ArcVertices();
+    const auto& V_coords = H.VertexCoordinates();
+    const Int*  comp     = pd.ArcLinkComponents().data();
+
+    out << "<|\"BoundingBox\"->{" << H.Width() << "," << H.Height() << "},\"Arcs\"->{";
+
+    bool first_arc = true;
+    for (Int a = 0; a < H.MaxArcCount(); ++a)
+    {
+        if (!H.EdgeActiveQ(a)) { continue; }
+
+        auto sublist = A_lines[a];
+        if (sublist.end() - sublist.begin() < 2) { continue; }
+
+        out << (first_arc ? "" : ",")
+            << "<|\"Id\"->" << a
+            << ",\"Component\"->" << comp[a]
+            << ",\"Points\"->{";
+        first_arc = false;
+
+        bool first_pt = true;
+        for (auto it = sublist.begin(); it != sublist.end(); ++it)
+        {
+            out << (first_pt ? "" : ",") << "{" << (*it)[0] << "," << (*it)[1] << "}";
+            first_pt = false;
+        }
+        out << "}|>";
+    }
+    out << "},\"Crossings\"->{";
+
+    bool first_c = true;
+    for (Int c = 0; c < H.MaxCrossingCount(); ++c)
+    {
+        if (!pd.CrossingActiveQ(c)) { continue; }
+        out << (first_c ? "" : ",")
+            << "<|\"Id\"->" << c
+            << ",\"Pos\"->{" << V_coords(c,0) << "," << V_coords(c,1) << "}|>";
+        first_c = false;
+    }
+    out << "},\"Faces\"->{";
+
+    // CheckerBoardColoring() mutates cache state and needs a non-const PD_T, so
+    // work on a copy; face ids match H's (OrthoDraw is built directly from pd).
+    PD_T pd_copy = pd;
+    auto coloring = pd_copy.CheckerBoardColoring();
+    const bool have_color = (coloring.Dimension(0) == H.FaceCount());
+
+    const auto& F_dA = H.FaceDarcs();
+    const Int   ext  = H.ExteriorFace();
+
+    bool first_f = true;
+    for (Int f = 0; f < H.FaceCount(); ++f)
+    {
+        if (f == ext) { continue; }
+
+        out << (first_f ? "" : ",")
+            << "<|\"Id\"->" << f
+            << ",\"Color\"->" << (have_color ? int(coloring[f]) : 0)
+            << ",\"Boundary\"->{";
+        first_f = false;
+
+        std::vector<Int> darc_list(F_dA[f].begin(), F_dA[f].end());
+        const Int m = static_cast<Int>(darc_list.size());
+
+        bool first_pt = true;
+        Int  prev_end_vertex = Int(-1);   // vertex the previous darc's walk ended on
+
+        for (Int i = 0; i < m; ++i)
+        {
+            const Int da = darc_list[i];
+            const Int a  = da / Int(2);
+            const Int d  = da % Int(2);
+
+            auto vsub = A_verts[a];
+            std::vector<Int> vidx(vsub.begin(), vsub.end());
+            const Int n = static_cast<Int>(vidx.size());
+            if (n < 1) { continue; }
+
+            auto emit_vertex = [&](Int v)
+            {
+                out << (first_pt ? "" : ",")
+                    << "{" << V_coords(v,0) << "," << V_coords(v,1) << "}";
+                first_pt = false;
+            };
+
+            // Orient this arc's raw vertex path so it continues from wherever the
+            // previous darc's walk left off, verified by vertex-index equality --
+            // rather than trusting an inferred Tail/Head "forward means stored
+            // order" convention (that produced spurious jumps across faces in
+            // testing: a face's darc order need not alternate Tail/Head in a way
+            // that maps to a fixed forward/backward rule).
+            bool forwardQ;
+            if (prev_end_vertex >= Int(0))
+            {
+                if      (vidx.front() == prev_end_vertex) { forwardQ = true;  }
+                else if (vidx.back()  == prev_end_vertex) { forwardQ = false; }
+                else
+                {
+                    Knoodle::eprint("EmitWolframGeometry: face " + Knoodle::ToString(f)
+                         + " darc for arc " + Knoodle::ToString(a)
+                         + " does not connect to the previous vertex "
+                         + Knoodle::ToString(prev_end_vertex) + "; face boundary may be wrong.");
+                    forwardQ = (d == Int(PD_T::Tail));
+                }
+            }
+            else if (i + 1 < m)
+            {
+                // First darc of a multi-darc face: nothing to connect to yet, so
+                // orient by which endpoint is shared with the NEXT darc's arc.
+                auto vsub_next = A_verts[darc_list[i + 1] / Int(2)];
+                std::vector<Int> vnext(vsub_next.begin(), vsub_next.end());
+                auto sharesQ = [&](Int v) {
+                    return !vnext.empty() && (vnext.front() == v || vnext.back() == v);
+                };
+                if      (sharesQ(vidx.back()))  { forwardQ = true;  }
+                else if (sharesQ(vidx.front())) { forwardQ = false; }
+                else                            { forwardQ = (d == Int(PD_T::Tail)); } // shouldn't happen
+            }
+            else
+            {
+                // Single-darc face (one arc's own loop bounds it): direction is
+                // irrelevant to the resulting polygon.
+                forwardQ = (d == Int(PD_T::Tail));
+            }
+
+            if (forwardQ)
+            {
+                for (Int k = (first_pt ? 0 : 1); k < n; ++k) { emit_vertex(vidx[k]); }
+                prev_end_vertex = vidx[n - 1];
+            }
+            else
+            {
+                for (Int k = (first_pt ? n - 1 : n - 2); k >= 0; --k) { emit_vertex(vidx[k]); }
+                prev_end_vertex = vidx[0];
+            }
+        }
+        out << "}|>";
+    }
+    out << "}|>\n";
+}
+
+/**
  * @brief Draw all summands of a knot to stdout.
  */
 bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
@@ -2018,12 +2201,19 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
-        if (i > 0)
+        if (i > 0 && !config.wolfram_mode)
         {
             std::cout << "s\n";
         }
 
         OrthoDraw_T H(summands[i], Int(-1), settings);
+
+        if (config.wolfram_mode)
+        {
+            EmitWolframGeometry(H, summands[i], std::cout);
+            continue;
+        }
+
         std::string diagram = H.DiagramString();
 
         // Virtual edges are drawn as '.' by DiagramString().
