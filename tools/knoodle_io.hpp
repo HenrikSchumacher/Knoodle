@@ -106,10 +106,12 @@ struct InputKnot
     std::vector<Int>  crossing_counts;    ///< Crossing count per summand
     Int               total_crossings = 0;
 
-    /// Number of 's' markers with no crossing data following them.
-    /// knoodlesimplify emits an unknot summand as a bare 's' line
-    /// (a 0-crossing diagram), so these represent unknot summands.
-    Int               empty_summand_count = 0;
+    /// One entry per unknot (0-crossing) summand -- knoodlesimplify emits these
+    /// as bare 's' lines (color unknown, PD_T::Uninitialized here) in its usual
+    /// TSV output, or as 'u <color>' markers (color known) in PlanarDiagramComplex's
+    /// native WriteToFile/FromInString format (see ReadKnot's PDC-native
+    /// delegation). Old call sites that just want the count can use .size().
+    std::vector<Int>  unknot_colors;
 
     // For 3D geometry input
     bool              had_3d_geometry = false;
@@ -475,7 +477,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
         // (knoodlesimplify writes unknots as bare 's' lines).
         if (geometry_vertices.empty() && pd_crossing_count == 0)
         {
-            ++result.empty_summand_count;
+            result.unknot_colors.push_back(PD_T::Uninitialized);
             in_summand = false;
             return true;
         }
@@ -565,6 +567,62 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
             continue;
         }
 
+        // PlanarDiagramComplex's own native serialization -- 'u <color>' for a
+        // colored unknot summand, 's <flag>' for a proven-minimal-tagged
+        // summand (see src/PlanarDiagramComplex/{Write,Read}FromFile.hpp) --
+        // is detected here (distinguished from the bare 's' marker above by
+        // the trailing token) and delegated wholesale to PDC_T::FromInString
+        // rather than reimplemented: colors -- including for unknot summands,
+        // which the tools' own bare-'s' convention cannot represent -- round-
+        // trip exactly as Henrik's reader/writer pair already defines them.
+        if ((!cleaned.empty() && (cleaned[0] == 'u' || cleaned[0] == 'U')) ||
+            cleaned.starts_with("s ") || cleaned.starts_with("S "))
+        {
+            if (!finalize_summand()) return std::nullopt;
+
+            std::string pdc_text = cleaned + "\n";
+            std::string more_line;
+            bool saw_terminating_k = false;
+
+            while (std::getline(input, more_line))
+            {
+                std::string more_cleaned = CleanLine(more_line);
+                if (more_cleaned == "k" || more_cleaned == "K")
+                {
+                    saw_terminating_k = true;
+                    break;
+                }
+                if (more_cleaned.empty()) continue;
+                pdc_text += more_cleaned + "\n";
+            }
+
+            Tools::InString in_str(pdc_text);
+            PDC_T pdc = PDC_T::FromInString(in_str);
+
+            for (Int i = 0; i < pdc.DiagramCount(); ++i)
+            {
+                Knoodle::cref<PD_T> pd = pdc.Diagram(i);
+                if (pd.AnelloQ())
+                {
+                    result.unknot_colors.push_back(pd.FirstColor());
+                }
+                else
+                {
+                    result.summands.push_back(PD_T(pd));
+                }
+            }
+
+            // Equivalent richness to signed+colored PD code, for output-format
+            // decisions downstream (e.g. knoodlesimplify's colored_output).
+            detected_format = 7;
+            first_data_seen = true;
+            saw_content = true;
+            in_summand = false;
+
+            if (saw_terminating_k) { break; }
+            continue;
+        }
+
         // Parse as data line
         bool has_float = false;
 
@@ -635,7 +693,7 @@ std::optional<InputKnot> ReadKnot(std::istream& input,
 
     // Check if we got any data (a knot consisting only of unknot
     // summands — bare 's' lines — still counts as data)
-    if (result.summands.empty() && result.empty_summand_count == 0)
+    if (result.summands.empty() && result.unknot_colors.empty())
     {
         return std::nullopt;  // No data found
     }

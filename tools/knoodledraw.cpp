@@ -2199,17 +2199,20 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
 /**
  * @brief Draw all summands of a knot to stdout.
  *
- * empty_summand_count is the number of bare 's' (0-crossing, unknot) summands
- * that accompanied `summands` in the input -- ReadKnot() strips these out of
- * the PD_T vector entirely (there is nothing to build an OrthoDraw diagram
- * from), tracking only their count. In --format=wl mode we still owe the
+ * unknot_colors has one entry per bare unknot (0-crossing) summand that
+ * accompanied `summands` in the input -- ReadKnot() strips these out of the
+ * PD_T vector entirely (there is nothing to build an OrthoDraw diagram from),
+ * tracking only their color (PD_T::Uninitialized if unknown -- the plain
+ * bare-'s' TSV convention cannot represent one; a real color comes from the
+ * PDC-native 'u <color>' input format). In --format=wl mode we still owe the
  * caller one line per summand, trivial or not, so each is emitted as a
- * minimal <|"Unknot"->True|> marker after the drawn summands. Order relative
- * to the non-trivial summands isn't preserved by the parser (nor is it
- * topologically meaningful for a connect-sum/split decomposition).
+ * <|"Unknot"->True|> marker (plus "Component"->color when known) after the
+ * drawn summands. Order relative to the non-trivial summands isn't preserved
+ * by the parser (nor is it topologically meaningful for a connect-sum/split
+ * decomposition).
  */
 bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
-              Int empty_summand_count = 0)
+              const std::vector<Int>& unknot_colors = {})
 {
     OrthoDraw_T::Settings_T settings = BuildSettings(config);
 
@@ -2367,9 +2370,14 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 
     if (config.wolfram_mode)
     {
-        for (Int j = 0; j < empty_summand_count; ++j)
+        for (Int color : unknot_colors)
         {
-            std::cout << "<|\"Unknot\"->True|>\n";
+            std::cout << "<|\"Unknot\"->True";
+            if (color != PD_T::Uninitialized)
+            {
+                std::cout << ",\"Component\"->" << color;
+            }
+            std::cout << "|>\n";
         }
     }
 
@@ -2409,7 +2417,7 @@ bool ProcessStream(std::istream& input,
             std::cout << "k\n";
         }
 
-        if (!DrawKnot(input_knot->summands, config, input_knot->empty_summand_count)) return false;
+        if (!DrawKnot(input_knot->summands, config, input_knot->unknot_colors)) return false;
         any_drawn = true;
     }
 
@@ -2443,12 +2451,14 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
 
     // A trivial (0-crossing, unknot) diagram in the complex must NOT reach
     // OrthoDraw_T's constructor -- unlike the streaming/ReadKnot path (which
-    // already separates these into empty_summand_count before any diagram is
+    // already separates these into unknot_colors before any diagram is
     // built), pdc.Diagram(i) here can be trivial, and constructing an OrthoDraw
     // from a 0-crossing PlanarDiagram crashes. Filter it out here instead, the
-    // same way ReadKnot does.
+    // same way ReadKnot does -- and since .kndlxyz components are colored
+    // automatically (by component order), each trivial diagram's color is
+    // recorded rather than discarded.
     std::vector<PD_T> summands;
-    Int empty_summand_count = 0;
+    std::vector<Int>  unknot_colors;
     for (Int i = 0; i < pdc.DiagramCount(); ++i)
     {
         PD_T pd(pdc.Diagram(i));
@@ -2458,11 +2468,11 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         }
         else
         {
-            ++empty_summand_count;
+            unknot_colors.push_back(pd.FirstColor());
         }
     }
 
-    return DrawKnot(summands, config, empty_summand_count);
+    return DrawKnot(summands, config, unknot_colors);
 }
 
 } // anonymous namespace

@@ -364,7 +364,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
     SimplifiedKnot result;
 
     // Unknot summands that arrived as bare 's' lines pass through.
-    result.unknot_count += input.empty_summand_count;
+    result.unknot_count += static_cast<Int>(input.unknot_colors.size());
 
     {
         ScopedTimer timer(result.simplify_time);
