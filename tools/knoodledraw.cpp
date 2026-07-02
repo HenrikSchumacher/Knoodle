@@ -2430,13 +2430,28 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         return false;
     }
 
+    // A trivial (0-crossing, unknot) diagram in the complex must NOT reach
+    // OrthoDraw_T's constructor -- unlike the streaming/ReadKnot path (which
+    // already separates these into empty_summand_count before any diagram is
+    // built), pdc.Diagram(i) here can be trivial, and constructing an OrthoDraw
+    // from a 0-crossing PlanarDiagram crashes. Filter it out here instead, the
+    // same way ReadKnot does.
     std::vector<PD_T> summands;
+    Int empty_summand_count = 0;
     for (Int i = 0; i < pdc.DiagramCount(); ++i)
     {
-        summands.push_back(PD_T(pdc.Diagram(i)));
+        PD_T pd(pdc.Diagram(i));
+        if (pd.CrossingCount() > Int(0))
+        {
+            summands.push_back(std::move(pd));
+        }
+        else
+        {
+            ++empty_summand_count;
+        }
     }
 
-    return DrawKnot(summands, config);
+    return DrawKnot(summands, config, empty_summand_count);
 }
 
 } // anonymous namespace
