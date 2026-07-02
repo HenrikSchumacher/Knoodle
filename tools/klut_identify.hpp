@@ -97,6 +97,16 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     R.reapr_calls     = Size_T(0);
     temp.Clear();
 
+    // ColorCount()==0 means work arrived with no diagrams at all (e.g. a bare
+    // 's' unknot summand, which never reaches `work` in the first place --
+    // see knoodleidentify.cpp's ReadKnot/unknot_colors split) -- there is
+    // nothing to identify, but that is the unknot, not a link. Leave
+    // R.status at its default (Knot) and R.summands empty so the caller's
+    // own "no summands -> unknot" handling applies, instead of misreporting
+    // it as LinkOutOfScope alongside genuine multi-component (>=2 colors)
+    // input.
+    if( work.ColorCount() == Int(0) ) { work.Clear(); return; }
+
     if( work.ColorCount() != Int(1) )              // a link (or multi-component) -> out of scope
     { R.status = IdentifyResult::Status::LinkOutOfScope; work.Clear(); return; }
 
