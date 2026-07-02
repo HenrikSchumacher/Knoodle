@@ -59,6 +59,9 @@ struct Config
     // Output options
     std::optional<std::string> output_file;  ///< Single output file (if specified)
     bool quiet                = false;       ///< Suppress per-knot reports, show counter only
+    bool pdc_format           = false;       ///< --format=pdc: PlanarDiagramComplex's own
+                                              ///< native serialization (colors, including for
+                                              ///< unknot summands, round-trip exactly)
 
     // Derived state
     bool help_requested       = false;       ///< User requested help
@@ -324,6 +327,19 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.quiet = true;
         }
+        // Output format
+        else if (arg.starts_with("--format="))
+        {
+            std::string val(arg.substr(9));
+            if (val != "pdc")
+            {
+                std::cerr << "Error: Unknown --format value: " << val << "\n";
+                std::cerr << "  Valid: pdc (PlanarDiagramComplex's own native serialization,\n";
+                std::cerr << "         colors round-trip exactly, including for unknot summands)\n";
+                return std::nullopt;
+            }
+            config.pdc_format = true;
+        }
         // Unknown option
         else if (arg.starts_with("-"))
         {
@@ -357,14 +373,27 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
  *
  * @param input The input knot with its summands.
  * @param config Configuration options.
+ * @param output_pdc If non-null, every resulting diagram (trivial or not) is
+ *        ALSO pushed here, for --format=pdc output -- unlike `result`, which
+ *        the standard TSV writer treats losslessly only up to the point where
+ *        a summand becomes trivial (see knoodle_io.hpp's unknot_colors doc
+ *        comment), this preserves full color fidelity via
+ *        PlanarDiagramComplex's own native serialization.
  * @return The simplified knot with timing information.
  */
-SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
+SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T* output_pdc = nullptr)
 {
     SimplifiedKnot result;
 
     // Unknot summands that arrived as bare 's' lines pass through.
     result.unknot_count += static_cast<Int>(input.unknot_colors.size());
+    if (output_pdc)
+    {
+        for (Int color : input.unknot_colors)
+        {
+            output_pdc->Push(PD_T::Unknot(color));
+        }
+    }
 
     {
         ScopedTimer timer(result.simplify_time);
@@ -375,6 +404,7 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
             {
                 // No simplification - just copy the PD
                 PD_T pd(pd_in);
+                if (output_pdc) { output_pdc->Push(PD_T(pd)); }
                 result.summands.push_back(std::move(pd));
             }
             else
@@ -414,12 +444,21 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config)
                 if (pdc.DiagramCount() == 0)
                 {
                     ++result.unknot_count;
+                    if (output_pdc)
+                    {
+                        // Nothing (not even a trivial done-diagram) survived in
+                        // pdc itself to read a color off of; fall back to the
+                        // color the original, un-simplified summand carried.
+                        output_pdc->Push(PD_T::Unknot(pd_in.ArcColors()[0]));
+                    }
                 }
                 else
                 {
                     for (Int i = 0; i < pdc.DiagramCount(); ++i)
                     {
-                        result.summands.push_back(PD_T(pdc.Diagram(i)));
+                        PD_T pd(pdc.Diagram(i));
+                        if (output_pdc) { output_pdc->Push(PD_T(pd)); }
+                        result.summands.push_back(std::move(pd));
                     }
                 }
             }
@@ -505,6 +544,22 @@ void WriteKnot(SimplifiedKnot& knot, std::ostream& output,
             }
         }
     }
+}
+
+/**
+ * @brief Write a simplified knot, choosing --format=pdc (PlanarDiagramComplex's
+ *        own native serialization, full color fidelity) over the usual TSV
+ *        writer when output_pdc is non-null.
+ */
+bool WriteSimplified(SimplifiedKnot& knot, PDC_T* output_pdc, std::ostream& output,
+                      bool include_k_marker, bool colored_output)
+{
+    if (output_pdc)
+    {
+        return WritePdcNativeFormat(*output_pdc, output, include_k_marker);
+    }
+    WriteKnot(knot, output, include_k_marker, colored_output);
+    return true;
 }
 
 //==============================================================================
@@ -809,7 +864,8 @@ bool ProcessXYZFile(const std::string& filepath,
     }
 
     // Simplification phase
-    SimplifiedKnot simplified = SimplifyKnot(input_knot, config);
+    PDC_T output_pdc;
+    SimplifiedKnot simplified = SimplifyKnot(input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
     // Output phase (always 7-column / colored for .kndlxyz)
     Duration output_time{0};
@@ -819,8 +875,8 @@ bool ProcessXYZFile(const std::string& filepath,
 
         if (output_stream)
         {
-            WriteKnot(simplified, *output_stream,
-                      !first_knot_in_output, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
+                             !first_knot_in_output, true);
             first_knot_in_output = false;
         }
         else
@@ -835,7 +891,7 @@ bool ProcessXYZFile(const std::string& filepath,
                 return false;
             }
 
-            WriteKnot(simplified, file, true, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, true);
         }
     }
 
@@ -914,7 +970,8 @@ bool ProcessSource(std::istream& input,
         }
 
         // Simplification phase
-        SimplifiedKnot simplified = SimplifyKnot(*input_knot, config);
+        PDC_T output_pdc;
+        SimplifiedKnot simplified = SimplifyKnot(*input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
         // Determine output format based on input column count
         bool colored_output = (input_knot->input_column_count >= 6);
@@ -928,9 +985,9 @@ bool ProcessSource(std::istream& input,
             if (output_stream)
             {
                 // Writing to shared output stream
-                WriteKnot(simplified, *output_stream,
-                          !first_knot_in_output || !config.streaming_mode,
-                          colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, *output_stream,
+                                 !first_knot_in_output || !config.streaming_mode,
+                                 colored_output);
                 first_knot_in_output = false;
             }
             else if (!config.streaming_mode)
@@ -946,7 +1003,7 @@ bool ProcessSource(std::istream& input,
                     return false;
                 }
 
-                WriteKnot(simplified, file, true, colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, colored_output);
             }
         }
 

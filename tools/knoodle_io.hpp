@@ -12,9 +12,11 @@
 #include "../src/OrthoDraw.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -299,6 +301,52 @@ bool ParseNumericLine(const std::string& line,
     + "TV_CLP, "
 #endif
     + "TV_MCF";
+}
+
+//==============================================================================
+// PDC-Native Format I/O
+//==============================================================================
+
+/**
+ * @brief Write a PlanarDiagramComplex to an arbitrary output stream using its
+ *        own native serialization (PDC_T::WriteToFile -- 'u <color>' for
+ *        colored unknot summands, 's <flag>' + colored PD rows otherwise; see
+ *        src/PlanarDiagramComplex/WriteToFile.hpp).
+ *
+ * WriteToFile only writes to a real file, so this round-trips through a
+ * unique scratch file rather than reimplementing its logic -- callers (e.g.
+ * knoodlesimplify's --format=pdc) get Henrik's exact, unmodified output
+ * regardless of whether their own destination is a file or stdout.
+ */
+bool WritePdcNativeFormat(PDC_T& pdc, std::ostream& output, bool leading_kQ = true)
+{
+    static std::atomic<unsigned long long> counter{0};
+
+    auto scratch_path = std::filesystem::temp_directory_path() / (
+        "knoodle_pdc_"
+        + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())
+        + "_" + std::to_string(counter.fetch_add(1)) + ".tmp"
+    );
+
+    if (!pdc.WriteToFile(scratch_path, leading_kQ))
+    {
+        LogError("WritePdcNativeFormat: PlanarDiagramComplex::WriteToFile failed for "
+                 + scratch_path.string());
+        return false;
+    }
+
+    std::ifstream scratch(scratch_path);
+    if (!scratch)
+    {
+        LogError("WritePdcNativeFormat: failed to reopen scratch file " + scratch_path.string());
+        std::filesystem::remove(scratch_path);
+        return false;
+    }
+
+    output << scratch.rdbuf();
+    scratch.close();
+    std::filesystem::remove(scratch_path);
+    return true;
 }
 
 //==============================================================================
