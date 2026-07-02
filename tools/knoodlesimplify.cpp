@@ -665,72 +665,25 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     // --unite: connect-sum same-colored diagrams back together, so the
     // result is one diagram per physically split link component instead of
     // one per diagrammatically-prime factor -- e.g. for exporting a single
-    // PD code per component to KnotTheory/Regina. PDC::Unite/Union() itself
-    // has no color awareness -- it merges *every* non-trivial diagram in a
-    // PDC into one, unconditionally -- so grouping by color first (via
-    // SubcomplexByColor), uniting each group, then gathering the per-group
-    // results is what actually produces "one diagram per split component"
-    // rather than one diagram total.
+    // PD code per component to KnotTheory/Regina.
     //
-    // Unknots (0-crossing diagrams) need separate handling: SubcomplexByColor
-    // filters *arcs* by color, but an Anello has no arcs to filter, so it
-    // passes through EVERY existing Anello unconditionally regardless of the
-    // requested color (verified empirically -- grouping unknots through it
-    // duplicated them once per distinct color present). Since connect-summing
-    // anything with an unknot is a topological no-op, the correct handling is
-    // simpler anyway: a color that also has a non-trivial diagram absorbs
-    // (drops) that color's unknots; a color with ONLY unknots collapses to
-    // exactly one (unknot # unknot = unknot).
+    // PDC::Unite/Union() is NOT the right tool for this, despite the name:
+    // it just packs multiple diagrams' crossing/arc data into one PD_T's
+    // arrays side by side (offset indices), without actually splicing any
+    // arcs together -- the result is still, topologically, several
+    // disconnected diagram components bundled in one PD_T. Verified this the
+    // hard way: OrthoDraw correctly refuses it ("Input planar diagram has
+    // more than one diagram components", a crash prior to that check being
+    // hit defensively here). The real connect-sum operation is
+    // PDC::Connect()/ConnectedSum() (Connect.hpp) -- it groups by color, then
+    // performs actual arc surgery (PD_T::Connect(a,b)) between a
+    // representative diagram and every other same-colored one, and already
+    // handles Anelli exactly as intended (a color with any non-trivial
+    // diagram absorbs that color's unknots -- a no-op connect-sum; a color
+    // with only unknots keeps exactly one).
     if (config.unite)
     {
-        std::vector<PD_T> nontrivial;
-        Knoodle::SetContainer<Int> nontrivial_colors;
-        Knoodle::SetContainer<Int> unknot_only_colors;
-
-        for (Int i = 0; i < all_pdc.DiagramCount(); ++i)
-        {
-            PD_T pd(all_pdc.Diagram(i));
-            if (pd.CrossingCount() > 0)
-            {
-                nontrivial_colors.insert(pd.FirstColor());
-                nontrivial.push_back(std::move(pd));
-            }
-            else
-            {
-                unknot_only_colors.insert(pd.FirstColor());
-            }
-        }
-
-        // SubcomplexByColor's Anello quirk (above) can't manifest here --
-        // nontrivial_pdc contains no Anelli at all, so every diagram either
-        // fully matches a requested color (uniform per prime factor, since
-        // Split separates by color as well as topology) or is skipped
-        // entirely; no spurious partial-match Anelli can arise either.
-        PDC_T nontrivial_pdc;
-        for (PD_T& pd : nontrivial) { nontrivial_pdc.Push(std::move(pd)); }
-
-        std::vector<Int> colors(nontrivial_colors.begin(), nontrivial_colors.end());
-        std::sort(colors.begin(), colors.end());
-
-        PDC_T united_pdc;
-        for (Int color : colors)
-        {
-            PDC_T group = nontrivial_pdc.SubcomplexByColor(color);
-            group.Unite();
-            for (Int i = 0; i < group.DiagramCount(); ++i)
-            {
-                PD_T pd(group.Diagram(i));
-                if (!pd.InvalidQ()) { united_pdc.Push(std::move(pd)); }
-            }
-        }
-        for (Int color : unknot_only_colors)
-        {
-            if (!nontrivial_colors.contains(color))
-            {
-                united_pdc.Push(PD_T::Unknot(color));
-            }
-        }
-        all_pdc = std::move(united_pdc);
+        all_pdc.Connect();
     }
 
     // Derive result.summands/unknot_count (and output_pdc, if requested)
