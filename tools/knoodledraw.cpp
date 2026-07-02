@@ -2188,8 +2188,18 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
 
 /**
  * @brief Draw all summands of a knot to stdout.
+ *
+ * empty_summand_count is the number of bare 's' (0-crossing, unknot) summands
+ * that accompanied `summands` in the input -- ReadKnot() strips these out of
+ * the PD_T vector entirely (there is nothing to build an OrthoDraw diagram
+ * from), tracking only their count. In --format=wl mode we still owe the
+ * caller one line per summand, trivial or not, so each is emitted as a
+ * minimal <|"Unknot"->True|> marker after the drawn summands. Order relative
+ * to the non-trivial summands isn't preserved by the parser (nor is it
+ * topologically meaningful for a connect-sum/split decomposition).
  */
-bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
+bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
+              Int empty_summand_count = 0)
 {
     OrthoDraw_T::Settings_T settings = BuildSettings(config);
 
@@ -2344,6 +2354,15 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config)
 
         std::cout << diagram << "\n";
     }
+
+    if (config.wolfram_mode)
+    {
+        for (Int j = 0; j < empty_summand_count; ++j)
+        {
+            std::cout << "<|\"Unknot\"->True|>\n";
+        }
+    }
+
     return true;
 }
 
@@ -2380,7 +2399,7 @@ bool ProcessStream(std::istream& input,
             std::cout << "k\n";
         }
 
-        if (!DrawKnot(input_knot->summands, config)) return false;
+        if (!DrawKnot(input_knot->summands, config, input_knot->empty_summand_count)) return false;
         any_drawn = true;
     }
 
