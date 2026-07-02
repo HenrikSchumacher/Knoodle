@@ -45,6 +45,7 @@ using PD_T        = PDC_T::PD_T;
 using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
 using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
+using Reapr_T     = Knoodle::Reapr<Real, Int, float>;  // only used for RandomRotation()
 using Clock       = std::chrono::steady_clock;
 using Duration    = std::chrono::duration<double>;
 

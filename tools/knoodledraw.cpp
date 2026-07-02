@@ -2422,6 +2422,17 @@ bool ProcessStream(std::istream& input,
 bool ProcessXYZFile(const std::string& filepath, const Config& config)
 {
     LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
+
+    if (config.randomize_projection)
+    {
+        // Rotate the whole embedding at once (not each component independently,
+        // which would distort the link's actual geometric arrangement) with a
+        // proper random rotation -- the same mechanism already used elsewhere
+        // (PlanarDiagramComplex/Simplify.hpp: emb.Rotate(reapr.RandomRotation())).
+        Reapr_T reapr;
+        link.Rotate(reapr.RandomRotation());
+    }
+
     PDC_T pdc(std::move(link));
 
     if (pdc.DiagramCount() == 0)
