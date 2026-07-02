@@ -66,6 +66,7 @@ struct Config
     std::optional<Int> x_rounding_radius;
     std::optional<Int> y_rounding_radius;
     std::optional<int> randomize_bends;
+    std::optional<Int> exterior_face;  // which face OrthoDraw lays out as unbounded (nullopt = auto)
 
     // Boolean options (nullopt = use default/preset)
     std::optional<bool> redistribute_bends;
@@ -131,6 +132,8 @@ void PrintUsage()
     std::cerr << "  --compaction=METHOD         topo-number, topo-order, length-mcf (default),\n";
     std::cerr << "                              length-clp, area-clp\n";
     std::cerr << "  --randomize-bends=N         [experimental] Randomization rounds (default: 0)\n";
+    std::cerr << "  --exterior-face=N           Face to lay out as the unbounded exterior region\n";
+    std::cerr << "                              (0-based; default: auto, the largest face)\n";
     std::cerr << "\n";
     std::cerr << "Boolean tuning (--flag / --no-flag):\n";
     std::cerr << "  redistribute-bends (on)     Redistribute bends after optimization\n";
@@ -372,6 +375,13 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             auto val = ParsePositiveInt(arg.substr(20));
             if (!val) { std::cerr << "Error: Invalid y-rounding-radius value\n"; return std::nullopt; }
             config.y_rounding_radius = *val;
+        }
+        // Exterior face
+        else if (arg.starts_with("--exterior-face="))
+        {
+            auto val = ParseNonNegativeInt(arg.substr(16));
+            if (!val) { std::cerr << "Error: Invalid exterior-face value\n"; return std::nullopt; }
+            config.exterior_face = static_cast<Int>(*val);
         }
         // Checkerboard coloring
         else if (arg == "--checkerboard-coloring" || arg == "--checkerboardcoloring")
@@ -2217,7 +2227,7 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             std::cout << "s\n";
         }
 
-        OrthoDraw_T H(summands[i], Int(-1), settings);
+        OrthoDraw_T H(summands[i], config.exterior_face ? *config.exterior_face : Int(-1), settings);
 
         if (config.wolfram_mode)
         {
