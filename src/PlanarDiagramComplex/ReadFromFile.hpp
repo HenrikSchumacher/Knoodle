@@ -41,6 +41,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
     {
         if( s.CurrentChar() == 'u' )
         {
+            push_diagram();
             s.Skip(1);
             s.SkipWhiteSpace();
             s.Take(last_color_deactivated);
@@ -52,6 +53,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
         }
         else if( s.CurrentChar() == 's' )
         {
+            push_diagram();
             s.Skip(1);
             s.SkipWhiteSpace();
             s.Take(proven_minimalQ);
