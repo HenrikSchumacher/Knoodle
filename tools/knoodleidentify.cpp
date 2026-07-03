@@ -53,6 +53,7 @@ struct Config
     bool expanded       = false;             ///< '#'-joined per-summand output
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
+    bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
 };
@@ -100,6 +101,7 @@ void PrintUsage()
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
         "                      crossing_count, name (tab-separated).\n"
         "  --quiet             Suppress the stderr summary and per-summand warnings.\n"
+        "  --randomize-projection  Apply random shear to 3D geometry projection.\n"
         "  -h, --help          Show this help.\n"
         "\n"
         "Knot symbols (default / --tsv); c=crossings, i=index, the third field is the\n"
@@ -178,6 +180,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--quiet")
         {
             config.quiet = true;
+        }
+        else if (arg == "--randomize-projection")
+        {
+            config.randomize_projection = true;
         }
         else if (arg.starts_with("-") && arg.size() > 1)
         {
@@ -483,7 +489,7 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
     while (!reached_eof)
     {
-        auto input_knot = ReadKnot(input, false, rng, source_name, reached_eof);
+        auto input_knot = ReadKnot(input, config.randomize_projection, rng, source_name, reached_eof);
 
         if (!input_knot)
         {

@@ -441,6 +441,18 @@ PD_T CreateDiagramFrom3D(const std::vector<Real>& vertices,
 
     if (!pd.ValidQ())
     {
+        // FromKnotEmbedding returns an invalid pd alongside a populated
+        // `unlinks` color list precisely when every component turned out to
+        // have zero self-intersections (see PlanarDiagramComplex's own
+        // pair-consuming constructor, which treats this combination as "all
+        // trivial anelli", not an error). A single 3D curve is exactly one
+        // component, so unlinks.Size() > 0 here means "this curve is the
+        // unknot", not a real FindIntersections failure.
+        if (unlinks.Size() > 0)
+        {
+            return PD_T::Unknot(unlinks[0]);
+        }
+
         LogError("FromKnotEmbedding failed to create a valid diagram");
         return PD_T();
     }
