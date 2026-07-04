@@ -2030,14 +2030,18 @@ bool ValidateSettingsCombinations(const OrthoDraw_T::Settings_T& settings)
 /**
  * @brief Emit one diagram's OrthoDraw layout as a Wolfram Language association:
  *        <| "BoundingBox"->{w,h},
- *           "Arcs"->{ <|"Id"->a,"Component"->c,"Points"->{{x,y},..}|>, .. },
+ *           "Arcs"->{ <|"Id"->a,"Component"->c,"Color"->k,"Points"->{{x,y},..}|>, .. },
  *           "Crossings"->{ <|"Id"->c,"Pos"->{x,y}|>, .. },
  *           "Faces"->{ <|"Id"->f,"Exterior"->True|False,"Color"->±1,"Boundary"->{{x,y},..}|>, .. } |>
  *
  * Arcs: each is its routed polyline of integer grid points. The over/under gaps
  * are already baked into ArcLines() (the under-strand is inset at each
  * crossing), so rendering the polylines directly yields correct
- * broken-under-strand crossings.
+ * broken-under-strand crossings. "Component" is a per-summand topological
+ * renumbering (ArcLinkComponents, restarts at 0 each summand); "Color" is the
+ * raw wire color (ArcColors) identifying the physical link component across all
+ * summands of a drawing call (uncolored input defaults to 0; the key is present
+ * for any real color and omitted only for the Uninitialized sentinel).
  *
  * Crossings: grid position of each active crossing (crossings are vertices
  * [0, MaxCrossingCount()) in VertexCoordinates()).
@@ -2072,8 +2076,21 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
 
         out << (first_arc ? "" : ",")
             << "<|\"Id\"->" << a
-            << ",\"Component\"->" << comp[a]
-            << ",\"Points\"->{";
+            << ",\"Component\"->" << comp[a];
+        // Raw wire color (ArcColors) identifies which physical link component
+        // the arc belongs to -- unlike "Component" (ArcLinkComponents), a
+        // per-summand topological renumbering that restarts at 0 in every
+        // summand, so connect-sum factors of a one-component knot all read
+        // "Component"->0 yet share one wire color. Active arcs normally carry a
+        // real color (uncolored input still defaults to 0), so the key is
+        // effectively always present; the guard only suppresses the
+        // Uninitialized sentinel (-1) so it is never emitted as a bogus color
+        // class -- faces legitimately use -1 for their checkerboard sign.
+        // Absence of the key therefore means an older binary; downstream falls
+        // back to per-summand "Component" runs in that case.
+        const Int wire_color = pd.ArcColors()[a];
+        if (wire_color != PD_T::Uninitialized) { out << ",\"Color\"->" << wire_color; }
+        out << ",\"Points\"->{";
         first_arc = false;
 
         bool first_pt = true;
@@ -2375,7 +2392,12 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             std::cout << "<|\"Unknot\"->True";
             if (color != PD_T::Uninitialized)
             {
-                std::cout << ",\"Component\"->" << color;
+                // `color` here is the raw wire color, so emit it under "Color"
+                // too -- this makes the unknot marker agree with arc records on
+                // what "Color" means, while "Component" stays for older
+                // consumers that keyed off it.
+                std::cout << ",\"Component\"->" << color
+                          << ",\"Color\"->" << color;
             }
             std::cout << "|>\n";
         }
