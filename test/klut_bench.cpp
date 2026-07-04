@@ -363,6 +363,11 @@ int main(int argc, char* argv[])
     ki::Size_T n0  = 1;          // --n0=N: initial Reapr embedding_trials in ki::Identify
     ki::Size_T cap_escalate = ki::IdentifyParams{}.cap; // --escalate-cap=N: max escalation rounds
     ki::Size_T rot_trials   = ki::IdentifyParams{}.rot; // --rot=N: reprojections per embedding
+    ki::Size_T seed_local_opt = ki::IdentifyParams{}.seed_local_opt; // --seed-local-opt=N: seed
+                                                        // local_opt_level (0=off default,1=R1,2=R1+R2,
+                                                        // 4=all local). See klut_identify.hpp finding.
+    int seed_reroute = ki::IdentifyParams{}.seed_reroute ? 1 : 0; // --seed-reroute=0/1 (default 1);
+                                                        // 0 + --seed-local-opt=4 = local-only seed
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
@@ -388,6 +393,8 @@ int main(int argc, char* argv[])
         else if (a.rfind("--n0=", 0) == 0)       n0 = static_cast<ki::Size_T>(std::stoull(v("--n0=")));
         else if (a.rfind("--escalate-cap=", 0) == 0) cap_escalate = static_cast<ki::Size_T>(std::stoull(v("--escalate-cap=")));
         else if (a.rfind("--rot=", 0) == 0) rot_trials = static_cast<ki::Size_T>(std::stoull(v("--rot=")));
+        else if (a.rfind("--seed-local-opt=", 0) == 0) seed_local_opt = static_cast<ki::Size_T>(std::stoull(v("--seed-local-opt=")));
+        else if (a.rfind("--seed-reroute=", 0) == 0) seed_reroute = std::stoi(v("--seed-reroute="));
         else if (a.rfind("--polygon-edges=", 0) == 0) polygon_edges = std::stoll(v("--polygon-edges="));
         else if (a.rfind("--polygon-seed=", 0) == 0)  polygon_seed = std::stoull(v("--polygon-seed="));
         else if (a.rfind("--compaction=", 0) == 0) compaction = v("--compaction=");
@@ -399,12 +406,16 @@ int main(int argc, char* argv[])
     }
 
     const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate, .rot = rot_trials,
-                                  .max_cx = static_cast<Int>(c_max) };
+                                  .max_cx = static_cast<Int>(c_max),
+                                  .seed_local_opt = seed_local_opt,
+                                  .seed_reroute = (seed_reroute != 0) };
 
     std::cout << "klut_bench: KLUT Identify-path throughput\n"
               << "  klut-dir=" << klut_dir << "  c_max=" << c_max
               << "  per_c=" << per_c << "  cap=" << cap << "  iters=" << iters
-              << "  n0=" << static_cast<long long>(n0) << "\n\n";
+              << "  n0=" << static_cast<long long>(n0)
+              << "  seed-local-opt=" << static_cast<long long>(seed_local_opt)
+              << "  seed-reroute=" << seed_reroute << "\n\n";
 
     // Build the table and pre-load (single-threaded) so parallel reads are safe.
     Klut klut{ std::filesystem::path(klut_dir), static_cast<Knoodle::Size_T>(c_max) };
