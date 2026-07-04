@@ -173,11 +173,15 @@ void PrintUsage()
     Log("Simplification options:");
     Log("  -s=N, --simplify-level=N    Set simplification level:");
     Log("                                0          No simplification (PD code only)");
-    Log("                                3          Simplify3 (Reidemeister I + II)");
-    Log("                                4          Simplify4 (+ path rerouting)");
-    Log("                                5          Simplify5 (+ summand detection)");
+    Log("                              local-only diagnostic tiers (no rerouting):");
+    Log("                                1          Reidemeister I only");
+    Log("                                2          Reidemeister I + II");
+    Log("                                3          all local moves (incl. R_Ia/R_IIa)");
+    Log("                              production pipeline (no local pass; tuned):");
+    Log("                                4          path rerouting");
+    Log("                                5          rerouting + summand detection");
     Log("                                6+/max/full/reapr");
-    Log("                                           Full Reapr pipeline (default)");
+    Log("                                           full Reapr pipeline (default)");
     Log("  --max-reapr-attempts=K      Maximum iterations for Reapr (default: 25)");
     Log("  --no-compaction             Skip compaction in OrthoDraw (Reapr only)");
     Log("  --reapr-energy=E            Set Reapr energy function (Reapr only):");
@@ -540,6 +544,25 @@ PDC_T::Simplify_Args_T BuildSimplifyArgs(const Config& config)
     PDC_T::Simplify_Args_T args;
     args.splitQ = true;
 
+    // Coarse preset from --simplify-level. Two regimes:
+    //
+    //   Levels 1-3 are LOCAL-ONLY diagnostic tiers (no rerouting), driven by
+    //   local_opt_level -- the gate for the ArcSimplifier patterns
+    //   (ArcSimplifier<...,level>): 1 = Reidemeister I only, 2 = + Reidemeister
+    //   II, 4 = all local patterns (incl. assisted R_Ia/R_IIa). Useful for
+    //   benchmarking other simplifiers against a pure R1 / R1+R2 / full-local
+    //   pass.
+    //
+    //   Levels 4-6 are the tuned PRODUCTION pipeline (reroute/disconnect/Reapr)
+    //   and deliberately keep local_opt_level = 0: Henrik's performance testing
+    //   found the local pass does not help (slightly hurts) once rerouting is
+    //   engaged on large diagrams, so the default path leaves it off. Local and
+    //   reroute are orthogonal, so the 3->4 boundary is intentionally not a
+    //   strict superset.
+    args.local_opt_level = static_cast<Knoodle::UInt8>(
+        config.simplify_level == 1 ? 1 :
+        config.simplify_level == 2 ? 2 :
+        config.simplify_level == 3 ? 4 : 0);
     args.rerouteQ    = (config.simplify_level >= 4);
     args.disconnectQ = (config.simplify_level >= 5);
 
@@ -821,9 +844,11 @@ void WriteKnotReport(const InputKnot& input,
     // Simplification settings
     std::string level_str;
     if (config.simplify_level == 0) level_str = "None (PD code only)";
-    else if (config.simplify_level == 3) level_str = "Simplify3";
-    else if (config.simplify_level == 4) level_str = "Simplify4";
-    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else if (config.simplify_level == 1) level_str = "R1 only (local)";
+    else if (config.simplify_level == 2) level_str = "R1 + R2 (local)";
+    else if (config.simplify_level == 3) level_str = "All local Reidemeister moves";
+    else if (config.simplify_level == 4) level_str = "Path rerouting";
+    else if (config.simplify_level == 5) level_str = "Rerouting + summand detection";
     else
     {
         level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);
@@ -937,9 +962,11 @@ void WriteFinalReport(const ProcessingStats& stats, const Config& config)
     // Simplification settings
     std::string level_str;
     if (config.simplify_level == 0) level_str = "None (PD code only)";
-    else if (config.simplify_level == 3) level_str = "Simplify3";
-    else if (config.simplify_level == 4) level_str = "Simplify4";
-    else if (config.simplify_level == 5) level_str = "Simplify5";
+    else if (config.simplify_level == 1) level_str = "R1 only (local)";
+    else if (config.simplify_level == 2) level_str = "R1 + R2 (local)";
+    else if (config.simplify_level == 3) level_str = "All local Reidemeister moves";
+    else if (config.simplify_level == 4) level_str = "Path rerouting";
+    else if (config.simplify_level == 5) level_str = "Rerouting + summand detection";
     else
     {
         level_str = "Reapr (max attempts: " + std::to_string(config.max_reapr_attempts);

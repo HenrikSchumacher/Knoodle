@@ -34,6 +34,20 @@ struct IdentifyParams
     Size_T rot    = 5;    // rotation_trials (reprojections) per embedding during escalation
                           // (tuned via klut_bench: ~all of rot=1's speed, 5x the margin)
     Int    max_cx = static_cast<Int>(Klut::max_crossing_count);  // 13
+
+    // Experimental seed-Simplify knobs, kept for benchmarking (klut_bench's
+    // --seed-local-opt / --seed-reroute). Defaults reproduce the tuned hot path
+    // exactly, so leaving them here does NOT change Identify's behavior.
+    //
+    // Finding (2026-07, klut_bench): a local-only seed (seed_reroute=false,
+    // seed_local_opt=4) beats the reroute seed only on trivially small diagrams
+    // (~<=5 crossings: +15..32% at 3-4 crossings), and loses above that as local
+    // moves stall and force Reapr escalation. Not worth a size-adaptive branch --
+    // the reroute default (seed_local_opt=0, seed_reroute=true) stays.
+    Size_T seed_local_opt = 0;  // local_opt_level for the seed: 0=off (default), 1=R1,
+                                // 2=R1+R2, 4=all local patterns.
+    bool   seed_reroute = true; // rerouteQ for the seed. false + seed_local_opt>0 = a
+                                // local-only seed (no Dijkstra reroute).
 };
 
 struct Summand
@@ -115,6 +129,8 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
         PDC_T::Simplify_Args_T a{};
         a.embedding_trials = Size_T(0);
         a.canonicalizeQ    = false;
+        a.local_opt_level  = static_cast<Knoodle::UInt8>(q.seed_local_opt);  // default 0: no-op
+        a.rerouteQ         = q.seed_reroute;                                 // default true: no-op
         work.Simplify(reapr, a);
         if( work.ColorCount() != Int(1) ) { R.component_error = true; }  // pass-reduce must preserve components
     }
