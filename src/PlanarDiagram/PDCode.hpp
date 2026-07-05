@@ -5,7 +5,7 @@ struct PDCode_TArgs_T
 {
     bool signQ     = true;
     bool colorQ    = true;
-    bool farfalleQ = false;
+    bool farfalleQ = false; // Whether to convert anelli to farfalle.
 };
 
 friend constexpr std::string ToString( cref<PDCode_TArgs_T> args )

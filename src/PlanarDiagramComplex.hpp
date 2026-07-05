@@ -307,10 +307,23 @@ namespace Knoodle
         
     public:
         
-        Int CrossingCount() const
+        
+        Int TotalCrossingCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.CrossingCount(); }
+            return count;
+        }
+        
+        Int CrossingCount() const
+        {
+            return TotalCrossingCount();
+        }
+        
+        Int HighestCrossingCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.CrossingCount()); }
             return count;
         }
         
@@ -328,17 +341,25 @@ namespace Knoodle
             return count;
         }
         
-        Int ArcCount() const
+        
+        
+        Int TotalArcCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.ArcCount(); }
             return count;
         }
         
-        Int TotalMaxArcCount() const
+        Int ArcCount() const
+        {
+            return TotalArcCount();
+        }
+
+
+        Int HighestArcCount() const
         {
             Int count = 0;
-            for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.ArcCount()); }
             return count;
         }
         
@@ -346,6 +367,13 @@ namespace Knoodle
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count = Max(count,pd.MaxArcCount()); }
+            return count;
+        }
+        
+        Int TotalMaxArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
             return count;
         }
         

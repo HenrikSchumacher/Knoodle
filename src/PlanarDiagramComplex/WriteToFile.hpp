@@ -1,6 +1,6 @@
 public:
 
-bool WriteToFile( cref<std::filesystem::path> file, bool leading_kQ = true ) const
+bool WriteToFile( cref<std::filesystem::path> file, const bool leading_kQ = true ) const
 {
     std::ofstream stream;
 
@@ -12,14 +12,24 @@ bool WriteToFile( cref<std::filesystem::path> file, bool leading_kQ = true ) con
         return false;
     }
     
-    if( leading_kQ )
-    {
-        stream << 'k' << '\n';
-    }
-    
     OutString s;
+    bool succeededQ = WriteToOutString(s,leading_kQ);
+    stream << s;
+    
+    return succeededQ;
+}
+
+
+bool WriteToOutString( mref<Tools::OutString> s, const bool leading_kQ = true ) const
+{
+    if( leading_kQ ) { s.PutChars("k\n"); }
     
     const Size_T diagram_count = DiagramCount();
+    
+    constexpr Int code_width = PD_T::PDCodeWidth(true,true);
+    
+    // One buffer to be reused for all diagrams.
+    Tensor2<Int,Int> pd_code ( HighestCrossingCount(), code_width );
     
     for( Size_T i = 0; i < diagram_count; ++i )
     {
@@ -29,23 +39,19 @@ bool WriteToFile( cref<std::filesystem::path> file, bool leading_kQ = true ) con
         
         if( pd.AnelloQ() )
         {
-            stream << "u " << pd.FirstColor() << "\n";
+            s.PutWithPrefixAndSuffix("u ",pd.FirstColor(),"\n");
             continue;
         }
-
-        stream << "s " << pd.ProvenMinimalQ() << "\n";
-
-        auto pd_code = pd.template PDCode<Int,{.signQ = true, .colorQ = true, .farfalleQ = false}>();
         
-        s.Clear();
+        s.PutWithPrefixAndSuffix("s ",int(pd.ProvenMinimalQ()),"\n");
+        
+        pd.template WritePDCode<Int,{.signQ = true, .colorQ = true, .farfalleQ = false}>(pd_code.data());
 
         s.PutArray(
             pd_code.ReadAccess(), true,
             pd.CrossingCount(), "", "\n", "\n",
-            Int(7), "", "\t", ""
+            code_width, "", "\t", ""
         );
-        
-        stream << s;
     }
     
     return true;
