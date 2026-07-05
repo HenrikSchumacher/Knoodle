@@ -5,7 +5,7 @@ CXX ?= g++
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
     # macOS - use clang with matrix extensions
-    CXX = /opt/homebrew/Cellar/llvm@18/18.1.8/bin/clang++
+    CXX = clang++
     CXXFLAGS = -Wall -Wextra -std=c++20 -O3 -march=native -mtune=native \
                -fenable-matrix -pthread -DPOLYFOLD_NO_QUATERNIONS
 else ifeq ($(UNAME_S),Linux)
