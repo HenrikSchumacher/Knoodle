@@ -6,6 +6,7 @@ void Unite()
 PDC_T Union() const
 {
     Tensor1<Int,Size_T> crossing_ptr ( DiagramCount() + Int(1) );
+    crossing_ptr[0] = 0;
     
     const Size_T diagram_count = Size_T(DiagramCount());
     
@@ -18,7 +19,7 @@ PDC_T Union() const
     {
         mref<PD_T> pd = pd_list[idx];
         
-        crossing_ptr[idx+1] = crossing_ptr[idx] + pd.max_crossing_count;
+        crossing_ptr[idx+Size_T(1)] = crossing_ptr[idx] + pd.max_crossing_count;
         
         if( pd.InvalidQ() ) { continue; }
         

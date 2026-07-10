@@ -46,7 +46,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     
     if( s.FailedQ() )
     {
-        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
+        eprint(MethodName("ReadFromFile") + ": Reading file failed at position " + ToString(s.Position()) + " with character '" + s.CurrentChar() + "'. Returning invalid object.");
         return LinkEmbedding_T();
     }
     
