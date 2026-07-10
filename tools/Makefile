@@ -116,6 +116,13 @@ knoodleidentify: knoodleidentify.cpp $(SHARED_DEPS)
 	@echo "Compiling knoodleidentify.cpp..."
 	$(CXX) $(CXXFLAGS) $(BOOST_FLAGS) $(CPPFLAGS) knoodleidentify.cpp $(LDFLAGS) -o $@
 	@echo "✓ knoodleidentify compiled successfully"
+	@echo ""
+	@echo "NOTE: this is a *local* knoodleidentify build. It needs the ~23 MB KLUT"
+	@echo "      tables to identify knots. When run in-tree it finds them at"
+	@echo "      ../data/Klut automatically; a copy installed elsewhere (e.g. via"
+	@echo "      'make install', on a cluster) does NOT ship the tables, so point it"
+	@echo "      at them explicitly with --data-dir=PATH or \$$KNOODLE_KLUT_DIR."
+	@echo "      Most users should install via Homebrew, which wires this up for you."
 
 # Tier 4 end-to-end pipeline test (test/klut_e2e.cpp). Same flags as the tools;
 # it shells out to the built knoodlesimplify / knoodleidentify binaries.
@@ -133,6 +140,11 @@ install: all
 	install -m 755 knoodlesimplify $(DESTDIR)$(BINDIR)/
 	install -m 755 knoodledraw $(DESTDIR)$(BINDIR)/
 	install -m 755 knoodleidentify $(DESTDIR)$(BINDIR)/
+	@echo ""
+	@echo "NOTE: the KLUT tables were NOT installed. knoodleidentify installed to"
+	@echo "      $(DESTDIR)$(BINDIR) will look for them at ../share/knoodle/Klut"
+	@echo "      relative to the binary; if you did not put them there, run it with"
+	@echo "      --data-dir=PATH or \$$KNOODLE_KLUT_DIR pointing at a data/Klut dir."
 
 clean:
 	rm -f knoodlesimplify knoodledraw knoodleidentify

@@ -34,6 +34,18 @@
 #include <tuple>
 #include <vector>
 
+// Platform primitive for "path to my own executable" (std::filesystem has none).
+// These CLI tools target POSIX: macOS, Linux, and Linux-under-WSL2. Native Windows
+// is deliberately NOT special-cased -- we don't pull in <windows.h>. The only context
+// that runs the binary under native Windows is the Mathematica paclet, which always
+// passes --data-dir explicitly, so exe-relative discovery is never needed there;
+// SelfExecutablePath() just returns {} and resolution falls through to the overrides.
+#if defined(__APPLE__)
+    #include <mach-o/dyld.h>   // _NSGetExecutablePath
+    #include <cstdint>         // std::uint32_t
+#endif
+// Linux/WSL2 reads /proc/self/exe via std::filesystem::read_symlink -- no <unistd.h>.
+
 //==============================================================================
 // Configuration
 //==============================================================================
@@ -205,12 +217,56 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
 //==============================================================================
 
 /**
+ * @brief Absolute, canonical path to the running executable.
+ *
+ * std::filesystem has no portable "path to my own executable" primitive, and
+ * argv[0] is unreliable: when the tool is launched by bare name off $PATH (the
+ * normal installed case) argv[0] has no directory part, so canonicalizing it
+ * resolves against the CWD rather than the real binary. Ask the OS instead.
+ * Returns an empty path if the platform call fails.
+ */
+std::filesystem::path SelfExecutablePath()
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+
+#if defined(__APPLE__)
+    std::uint32_t size = 0;
+    _NSGetExecutablePath(nullptr, &size);          // query required buffer size
+    std::string buf(size, '\0');
+    if (_NSGetExecutablePath(buf.data(), &size) != 0) { return {}; }
+    // _NSGetExecutablePath may return a non-canonical path (symlinks, ..).
+    fs::path p = fs::weakly_canonical(fs::path(buf.c_str()), ec);
+    return ec ? fs::path(buf.c_str()) : p;
+#elif defined(__linux__)
+    // Native Linux and WSL2. read_symlink is pure std::filesystem, no <unistd.h>.
+    fs::path link = fs::read_symlink("/proc/self/exe", ec);
+    if (ec) { return {}; }
+    fs::path p = fs::weakly_canonical(link, ec);
+    return ec ? link : p;
+#else
+    // No exe-path primitive on this platform (e.g. native Windows). Resolution relies
+    // on --data-dir / $KNOODLE_KLUT_DIR instead; the paclet always supplies --data-dir.
+    (void)ec;
+    return {};
+#endif
+}
+
+/**
  * @brief Resolve the KLUT data directory.
  *
- * Order: --data-dir, $KNOODLE_KLUT_DIR, <exe_dir>/../data/Klut, ./data/Klut.
+ * Search order (first hit wins):
+ *   1. --data-dir=PATH                        (explicit override)
+ *   2. $KNOODLE_KLUT_DIR                       (explicit override)
+ *   3. <exe_dir>/../share/knoodle/Klut         (FHS install: bin/ <-> ../share/)
+ *   4. <exe_dir>/../data/Klut                  (in-tree build: tools/ <-> ../data/)
+ *   5. KNOODLE_KLUT_DIR compile-time default   (baked-in prefix, if defined)
+ *   6. ./data/Klut                             (CWD, dev convenience only)
+ *
+ * Candidates 3-4 are anchored to the *real* executable path, not argv[0] or the
+ * CWD, so a from-$PATH invocation of an installed binary resolves correctly.
  */
-std::optional<std::filesystem::path> ResolveDataDir(const Config& config,
-                                                    const char* argv0)
+std::optional<std::filesystem::path> ResolveDataDir(const Config& config)
 {
     namespace fs = std::filesystem;
 
@@ -227,14 +283,23 @@ std::optional<std::filesystem::path> ResolveDataDir(const Config& config,
             candidates.emplace_back(env);
         }
 
-        std::error_code ec;
-        fs::path exe = fs::weakly_canonical(fs::path(argv0), ec);
-        if (!ec && exe.has_parent_path())
+        fs::path exe = SelfExecutablePath();
+        if (!exe.empty() && exe.has_parent_path())
         {
-            // tools/ sits next to data/, so try <exe_dir>/../data/Klut
-            candidates.push_back(exe.parent_path().parent_path() / "data" / "Klut");
+            const fs::path exe_dir = exe.parent_path();
+            // Installed layout: <prefix>/bin/knoodleidentify next to
+            // <prefix>/share/knoodle/Klut (Homebrew keg, make install PREFIX=...).
+            candidates.push_back(exe_dir.parent_path() / "share" / "knoodle" / "Klut");
+            // In-tree build: tools/knoodleidentify next to <repo>/data/Klut.
+            candidates.push_back(exe_dir.parent_path() / "data" / "Klut");
         }
 
+#ifdef KNOODLE_KLUT_DIR
+        // Optional build-time default (e.g. -DKNOODLE_KLUT_DIR=/usr/local/share/...).
+        candidates.emplace_back(KNOODLE_KLUT_DIR);
+#endif
+
+        // Last-ditch dev convenience: relative to the current directory.
         candidates.push_back(fs::path("data") / "Klut");
     }
 
@@ -637,7 +702,7 @@ int main(int argc, char* argv[])
         return EXIT_SUCCESS;
     }
 
-    auto data_dir = ResolveDataDir(config, argv[0]);
+    auto data_dir = ResolveDataDir(config);
     if (!data_dir)
     {
         return EXIT_FAILURE;
