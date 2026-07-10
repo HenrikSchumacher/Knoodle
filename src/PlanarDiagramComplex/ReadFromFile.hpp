@@ -99,7 +99,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             
             clear(); // Needed to track `input_diagram_counter` and to reset `last_color_deactivated` and `mode`.
             
-            
+
             // We should now have `mode == ParsingMode_T::None`;
             
             continue;
