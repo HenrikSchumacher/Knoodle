@@ -24,7 +24,10 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    # ci-native-build is TEMPORARY: it lets the RHEL container legs (which skip on
+    # pull_request) run on this branch for pre-merge validation. Remove it before
+    # merging so only main triggers a full push run.
+    branches: [main, ci-native-build]
   pull_request:
   schedule:
     # 1st of each month, 06:00 UTC: catch breakage from a new runner image /
