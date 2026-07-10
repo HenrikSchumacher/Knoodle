@@ -24,10 +24,7 @@ name: ci
 
 on:
   push:
-    # ci-native-build is TEMPORARY: it lets the RHEL container legs (which skip on
-    # pull_request) run on this branch for pre-merge validation. Remove it before
-    # merging so only main triggers a full push run.
-    branches: [main, ci-native-build]
+    branches: [main]
   pull_request:
   schedule:
     # 1st of each month, 06:00 UTC: catch breakage from a new runner image /
@@ -112,11 +109,15 @@ jobs:
           - name: rockylinux:9 (clang)
             container: "rockylinux:9"
             cxx: "clang++ -DTOOLS_NO_RESTRICT"
+            # Rocky 9's Boost is 1.75 (< 1.81, no unordered_flat_map), so build the
+            # tools without the boost flat-map define -- as the Sapelo2 cluster does.
+            no_boost: "1"
     container:
       image: ${{ matrix.container }}
     env:
       HOMEBREW_PREFIX: /usr
       CI_CXX: ${{ matrix.cxx }}
+      CI_NO_BOOST: ${{ matrix.no_boost }}
     steps:
       - name: Install toolchain + deps (Fedora)
         if: startsWith(matrix.container, 'fedora')

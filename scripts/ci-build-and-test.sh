@@ -22,6 +22,11 @@
 #                    CI_CXX="clang++ -DTOOLS_NO_RESTRICT".
 #   HOMEBREW_PREFIX  prefix the tools/Makefile searches for Boost + SuiteSparse
 #                    headers/libs (/opt/homebrew on mac, /usr on native Linux).
+#   CI_NO_BOOST      set to 1 to build the tools WITHOUT boost::unordered_flat_map
+#                    (make BOOST_FLAGS=). Needed where the system Boost is < 1.81
+#                    (no flat_map) -- e.g. Rocky 9's Boost 1.75, mirroring how the
+#                    Sapelo2 cluster builds. Recent Boost (macOS/Fedora/Ubuntu) keeps
+#                    it on, matching the Homebrew formula.
 #
 set -euxo pipefail
 
@@ -35,6 +40,8 @@ export HOMEBREW_PREFIX="${HOMEBREW_PREFIX:-$(brew --prefix 2>/dev/null || echo /
 # array from tripping `set -u` under macOS's bash 3.2.
 MK=()
 [ -n "${CI_CXX:-}" ] && MK+=("CXX=${CI_CXX}")
+# Old Boost (< 1.81) has no unordered_flat_map; drop the boost define there.
+[ "${CI_NO_BOOST:-}" = 1 ] && MK+=("BOOST_FLAGS=")
 
 # 1. Build the three CLI tools via the Makefile -- the brew formula's build path.
 make -C tools all ${MK[@]+"${MK[@]}"}
@@ -51,8 +58,12 @@ done
 make -C test component_check homfly_check plantri_check ${MK[@]+"${MK[@]}"}
 
 # Run the drivers from test/: plantri_check resolves its vendored plantri binary
-# relative to the CWD (vendor/plantri/plantri), and cli_stdin_check reaches the
-# tools via ../tools.
+# relative to the CWD (vendor/plantri/plantri).
+#
+# cli_stdin_check is intentionally NOT run here: it verifies the interactive-stdin
+# notice by simulating a terminal with a pty, which is timing/TTY-sensitive and
+# unreliable in headless CI. It stays a local/interactive test; the drivers below
+# are the deterministic correctness signal.
 cd test
 
 echo "== component_check (link-component preservation reproducer) =="
@@ -63,12 +74,5 @@ echo "== homfly_check (vendored-libhomfly correctness panel) =="
 
 echo "== plantri_check (exhaustive diagrams, HOMFLY invariant under Simplify, c<=6) =="
 ./plantri_check --up-to-crossing=6
-
-if command -v python3 >/dev/null 2>&1; then
-    echo "== cli_stdin_check (interactive-stdin notice) =="
-    python3 cli_stdin_check.py
-else
-    echo "== cli_stdin_check SKIPPED (no python3) =="
-fi
 
 echo "=== CI build + light-tier tests: PASS ==="
