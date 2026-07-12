@@ -23,7 +23,7 @@ void LoadPlantriPDCodes(
     
     if( plantri_loadedQ )
     {
-        wprint(tag() + ": Platri data has already been loaded. Aborting.");
+        wprint(tag() + ": Plantri data has already been loaded. Aborting.");
         return;
     }
     
@@ -31,12 +31,13 @@ void LoadPlantriPDCodes(
     Size_T input_count = 0;
     
     {
-        Path_T file = PlantriPDCodeFile();
+        Path_T pd_code_file = PlantriPDCodeFile();
+        print(tag() + ": Loading plantri's pd codes from file \"" + pd_code_file.c_str() + "\"." );
         
-        Tools::InString s (file);
+        Tools::InString s (pd_code_file);
         if( s.EmptyQ() )
         {
-            eprint(tag() + ": File  " + file.string() + " is empty.");
+            eprint(tag() + ": File  " + pd_code_file.string() + " is empty.");
             return;
         }
         
@@ -54,8 +55,9 @@ void LoadPlantriPDCodes(
             s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
             if( s.FailedQ() )
             {
-                wprint(tag() + ": Reading pd code no. " + ToString(input_count) + " failed.");
-                break;
+                wprint(tag() + ": Reading pd code no. " + ToString(input_count) + " from file \"" + pd_code_file.c_str() + "\" failed. Current position = " + ToString(s.Position()) + "; current character code = " + ToString(static_cast<int>(s.CurrentChar())) + "."
+                );
+                return;
             }
             pd_code.Write(input.data(input_count));
             ++input_count;
@@ -193,7 +195,7 @@ void LoadPlantriPDCodes(
                 if( !lut.contains(key_1) )
                 {
                     const ID_T id = CreateBucket(key_1);
-                    Generate(R,id,crossing_count,embedding_trials,rotation_trials);
+                    (void)Generate(R,id,crossing_count,embedding_trials,rotation_trials);
                 }
                 else
                 {

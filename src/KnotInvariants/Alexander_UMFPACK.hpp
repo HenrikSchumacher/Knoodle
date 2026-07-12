@@ -22,7 +22,6 @@ namespace Knoodle
         
         using Int_UMF  = ToSigned<Int>;
 
-        
         using Complex = Scalar::Complex<Real>;
 
         using E_T     = Int64; // Integer for storing exponents.
@@ -91,8 +90,8 @@ namespace Knoodle
     public:
 
         template<typename ExtScal, IntQ ExtInt>
-        void Alexander(
-            cref<PD_T> pd,
+        int Alexander(
+            cref<PD_T>    pd,
             ExtScal       arg,
             mref<ExtScal> mantissa,
             mref<ExtInt>  exponent,
@@ -101,8 +100,8 @@ namespace Knoodle
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
-                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for which the Alexander polynomial is not defined. Aborting.");
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -115,10 +114,12 @@ namespace Knoodle
                 // Use dense code path.
                 Alexander_Strands<false>( pd, arg, mantissa, exponent, multiply_toQ );
             }
+            
+            return 0;
         }
         
         template<typename ExtScal, IntQ ExtInt>
-        void Alexander(
+        int Alexander(
             cref<PD_T>    pd,
             cptr<ExtScal> args,
             ExtInt        arg_count,
@@ -129,8 +130,8 @@ namespace Knoodle
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
-                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for which the Alexander polynomial is not defined. Aborting.");
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -147,6 +148,8 @@ namespace Knoodle
                     pd, args, arg_count, mantissas, exponents, multiply_toQ
                 );
             }
+            
+            return 0;
         }
         
         

@@ -1,5 +1,6 @@
 public:
 
+// TODO: This should be a member function of the class Subtable?
 template<IntQ Int>
 std::vector<std::string> SubtableNames( const Int n )
 {
@@ -32,6 +33,7 @@ std::vector<std::string> SubtableNames( const Int n )
 //    }
 //}
 
+// TODO: This should be a member function of the class Subtable?
 template<IntQ T = CodeInt, IntQ Int>
 Tensor2<T,Size_T> SubtableCodes( const Int n )
 {
@@ -58,6 +60,7 @@ Tensor2<T,Size_T> SubtableCodes( const Int n )
     return codes;
 }
 
+// TODO: This should be a member function of the class Subtable?
 template<IntQ Int>
 Tensor1<ID_T,Size_T> SubtableIDs( const Int n )
 {
@@ -83,6 +86,8 @@ Tensor1<ID_T,Size_T> SubtableIDs( const Int n )
     
     return ids;
 }
+
+// TODO: This should be a member function of the class Subtable?
 
 template<IntQ Int>
 void WriteSubtableToFile( cref<Path_T> file, const Int n )
@@ -116,11 +121,10 @@ void WriteSubtableToFile( cref<Path_T> file, const Int n )
     
     Tensor1<CodeInt,Size_T> code ( c );
     
-    // The longest name that I found has length 23.
-    // Codes how c_count entries with up to 3 digits.
+    // Codes have c_count entries with up to 3 digits.
     // We need another byte per entry for the separators `\t`.
     // We need another byte per code for '\n'.
-    OutString s ( subtable.lut.size() * (3 * c + 23 + 1) );
+    OutString s ( subtable.lut.size() * (3 * c + subtable.MaxNameSize() + 1) );
     
     for( const auto & [key,id] : subtable.lut )
     {

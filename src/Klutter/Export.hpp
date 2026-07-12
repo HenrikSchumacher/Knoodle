@@ -31,7 +31,7 @@ Path_T ExportValues() const
     
     for( ID_T id = 0; id < KnotTypeCount(); ++id )
     {
-        stream << names[id] << "\t" << buckets[id].size() << "\n";
+        stream << names[id] << '\t' << buckets[id].size() << '\n';
     }
     
     return file;

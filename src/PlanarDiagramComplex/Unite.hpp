@@ -7,7 +7,7 @@ PDC_T Union() const
 {
     Tensor1<Int,Size_T> crossing_ptr ( DiagramCount() + Int(1) );
     crossing_ptr[0] = 0;
-    
+
     const Size_T diagram_count = Size_T(DiagramCount());
     
     Int crossing_count = 0;
