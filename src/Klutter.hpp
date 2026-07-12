@@ -127,6 +127,16 @@ namespace Knoodle
             return lut.size();
         }
         
+        bool KnotInfoLoadedQ() const
+        {
+            return knot_info_loadedQ;
+        }
+        
+        bool PlantriLoadedQ() const
+        {
+            return plantri_loadedQ;
+        }
+        
         template<IntQ ExtInt>
         void WriteCodes( mptr<ExtInt> output ) const
         {

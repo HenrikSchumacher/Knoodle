@@ -91,7 +91,7 @@ namespace Knoodle
     public:
 
         template<typename ExtScal, IntQ ExtInt>
-        void Alexander(
+        int Alexander(
             cref<PD_T> pd,
             ExtScal       arg,
             mref<ExtScal> mantissa,
@@ -102,7 +102,7 @@ namespace Knoodle
             if( pd.LinkComponentCount() > Int(1) )
             {
                 eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -115,10 +115,12 @@ namespace Knoodle
                 // Use dense code path.
                 Alexander_Strands<false>( pd, arg, mantissa, exponent, multiply_toQ );
             }
+            
+            return 0;
         }
         
         template<typename ExtScal, IntQ ExtInt>
-        void Alexander(
+        int Alexander(
             cref<PD_T>    pd,
             cptr<ExtScal> args,
             ExtInt        arg_count,
@@ -130,7 +132,7 @@ namespace Knoodle
             if( pd.LinkComponentCount() > Int(1) )
             {
                 eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -147,6 +149,8 @@ namespace Knoodle
                     pd, args, arg_count, mantissas, exponents, multiply_toQ
                 );
             }
+            
+            return 0;
         }
         
         
