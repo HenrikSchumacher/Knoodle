@@ -25,8 +25,10 @@ void LoadKnotInfo(
     
     buckets.clear();
     names.clear();
+    max_name_size = 0;
     
     Path_T name_file = KnotInfoNameFile();
+    print(tag() + ": Loading KnotInfo's knot names from file \"" + name_file.c_str() + "\"." );
     
     std::ifstream name_stream ( name_file, std::ios::binary );
     if( !name_stream )
@@ -36,6 +38,7 @@ void LoadKnotInfo(
     }
     
     Path_T pd_code_file = KnotInfoPDCodeFile();
+    print(tag() + ": Loading KnotInfo's pd codes from file \"" + ToString(pd_code_file.c_str()) + "\"." );
     
     {
         Tools::InString s (pd_code_file);
@@ -47,19 +50,21 @@ void LoadKnotInfo(
         
         Tensor2<Int,Int> pd_code ( crossing_count, Int(4) );
         Name_T  name;
+        Size_T input_count = 0;
         
 //        tic("Reading inputs");
         while( name_stream && !s.EmptyQ() && !s.FailedQ() )
         {
             name_stream >> name;
+            max_name_size = std::max(max_name_size,name.size());
             names.push_back(name);
-            //        s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4),"{",",","}","{",",","}");
             s.TakeMatrixFunction(pd_code.WriteAccess(),crossing_count,Int(4), "","\n","\n", ""," ","");
             
             if( s.FailedQ() )
             {
-                wprint(tag() + ": Reading pd code no. " + ToString(buckets.size()) + " failed.");
-                break;
+                wprint(tag() + ": Reading pd code no. " + ToString(input_count) + " from file \"" + pd_code_file.c_str() + "\" failed. Current position = " + ToString(s.Position()) + "; current character code = " + ToString(static_cast<int>(s.CurrentChar())) + "."
+                );
+                return;
             }
             
 //            logvalprint("buckets.size()",buckets.size());
@@ -71,7 +76,15 @@ void LoadKnotInfo(
                 pd_code.data(), crossing_count
             );
             
+            if( pd.InvalidQ() )
+            {
+                eprint(tag() + ": Diagram no. " + ToString(input_count) + " is invalid. Aborting."
+                );
+                return;
+            }
+            
             CreateBucket(ToKey(pd));
+            ++input_count;
             
             if( s.EmptyQ() ) { break; }
             

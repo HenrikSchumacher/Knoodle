@@ -15,6 +15,7 @@ private:
     LUT_T lut;
     std::vector<Name_T> knot_names;
     
+    Size_T max_name_size = 0;
     bool loadedQ = false;
     bool failedQ = false;
     
@@ -71,6 +72,7 @@ private:
         // TODO: Check that c_count is small enough so that we can use bytes!
         lut.clear();
         knot_names.clear();
+        max_name_size = 0;
         
         std::ifstream v_stream ( v_file, std::ios::in );
         if( !v_stream )
@@ -100,6 +102,8 @@ private:
             Size_T knot_count;
             
             v_stream >> knot_name;
+            
+            max_name_size = std::max(max_name_size,knot_name.size());
             
             if( v_stream.eof() ) { break; }
             
@@ -155,6 +159,11 @@ public:
     {
         RequireTable();
         return knot_names.size();
+    }
+    
+    Size_T MaxNameSize() const
+    {
+        return max_name_size;
     }
     
     ID_T FindID( cref<Key_T> key )
