@@ -386,7 +386,7 @@ namespace Knoodle
             
             if( id < KnotTypeCount() )
             {
-                wprint("Trying to delete bucket " + ToString(id) + ", which belongs to a knot class.");
+                eprint("Trying to delete bucket " + ToString(id) + ", which belongs to a knot class.");
                 return;
             }
             
@@ -476,7 +476,7 @@ namespace Knoodle
                 logprint("AddedKey(" + std::string(ToString(key)) + "," + ToString(id) + ")");
             }
             
-            // TODO: Do we have to check the size of id?
+            // TODO: Do we have to check the size of key?
             if( CrossingCount(key) <= crossing_count )
             {
                 buckets[id].insert(key);
@@ -498,6 +498,8 @@ namespace Knoodle
 #include "Klutter/Key.hpp"
 #include "Klutter/Symmetry.hpp"
 #include "Klutter/KnotInfo.hpp"
+#include "Klutter/Generate.hpp"
+#include "Klutter/Generate2.hpp"
 #include "Klutter/Plantri.hpp"
 #include "Klutter/Export.hpp"
         

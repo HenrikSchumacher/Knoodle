@@ -195,7 +195,7 @@ void LoadPlantriPDCodes(
                 if( !lut.contains(key_1) )
                 {
                     const ID_T id = CreateBucket(key_1);
-                    Generate(R,id,crossing_count,embedding_trials,rotation_trials);
+                    (void)Generate(R,id,crossing_count,embedding_trials,rotation_trials);
                 }
                 else
                 {
