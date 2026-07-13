@@ -70,6 +70,32 @@ key_roundtrip_probe: key_roundtrip_probe.cpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) key_roundtrip_probe.cpp -o $@
 	@echo "✓ key_roundtrip_probe compiled successfully"
 
+LATTICE_HDRS = ../src/LatticeLink.hpp ../src/LatticeLink/Moves.hpp \
+    ../src/LatticeLink/RoundTrip.hpp ../src/LatticeLink/Gyradius.hpp \
+    ../src/LatticeLink/Objectives.hpp
+
+# lattice_bfacf_invariance — knot-type invariance of LatticeLink BFACF moves (step 2).
+# Runs many moves on a ReAPR lattice trefoil + unknot controls; asserts HOMFLY unchanged.
+# Needs libhomfly (light config, no UMFPACK).
+lattice_bfacf_invariance: lattice_bfacf_invariance.cpp $(LIBHOMFLY_OBJ) $(LATTICE_HDRS) ../Knoodle.hpp
+	@echo "=== Building lattice_bfacf_invariance on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) lattice_bfacf_invariance.cpp $(LIBHOMFLY_OBJ) -o $@
+	@echo "✓ lattice_bfacf_invariance compiled successfully"
+
+# lattice_bfacf_objective — objective-driven BFACF (step 3). MinLength annealing decongests
+# a ReAPR trefoil (knot type preserved); MaxRg2Banded grows R_g^2 within a length band.
+lattice_bfacf_objective: lattice_bfacf_objective.cpp $(LIBHOMFLY_OBJ) $(LATTICE_HDRS) ../Knoodle.hpp
+	@echo "=== Building lattice_bfacf_objective on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) lattice_bfacf_objective.cpp $(LIBHOMFLY_OBJ) -o $@
+	@echo "✓ lattice_bfacf_objective compiled successfully"
+
+# lattice_bfacf_bench — decongestion experiment on the adversarial confined lattice knot.
+# BFACF (pre/mid) x {MinLength,MaxRg2Banded} through P->E->[B]->R->P vs capped baseline.
+lattice_bfacf_bench: lattice_bfacf_bench.cpp $(LIBHOMFLY_OBJ) $(LATTICE_HDRS) ../Knoodle.hpp
+	@echo "=== Building lattice_bfacf_bench on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) lattice_bfacf_bench.cpp $(LIBHOMFLY_OBJ) -o $@
+	@echo "✓ lattice_bfacf_bench compiled successfully"
+
 # inflate_check needs the Alexander invariant (UMFPACK sparse solver) and
 # BLAS/LAPACK. On macOS that is Apple Accelerate; elsewhere use OpenBLAS and
 # adjust UMFPACK_LDFLAGS / the force-included header accordingly.
@@ -166,6 +192,15 @@ component_check: component_check.cpp ../Knoodle.hpp
 	@echo "=== Building component_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
 	@echo "✓ component_check compiled successfully"
+
+# lattice_roundtrip_check — LatticeLink round-trip + R_g accumulator checks (step 1 of the
+# BFACF preprocessing work). LinkEmbedding <-> LatticeLink identity up to collinear
+# re-welding, self-avoidance rejection, O(1) gyradius vs from-scratch. Light config (no libs).
+lattice_roundtrip_check: lattice_roundtrip_check.cpp ../src/LatticeLink.hpp \
+    ../src/LatticeLink/Gyradius.hpp ../src/LatticeLink/RoundTrip.hpp ../Knoodle.hpp
+	@echo "=== Building lattice_roundtrip_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) lattice_roundtrip_check.cpp -o $@
+	@echo "✓ lattice_roundtrip_check compiled successfully"
 
 # klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
 # single knots (perturbed), connect sums (multi-diagram PDC + single spliced
