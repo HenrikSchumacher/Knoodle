@@ -66,7 +66,22 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
     const Real h = static_cast<Real>(H.Height() * H.VerticalGridSize()  );
     
     const Real scale = settings.scaling * Min(w,h) / (L_max - L_min);
-    
+
+    // Raw-lattice mode: emit the integer lattice knot directly (see Settings_T::lattice_rawQ).
+    // x,y are grid-cell coords, z the level; everything doubled so half-grid midpoints stay
+    // integral. Otherwise the usual rescaling toward a unit cube.
+    const bool rawQ = settings.lattice_rawQ;
+    const Real gx   = static_cast<Real>(H.HorizontalGridSize());
+    const Real gy   = static_cast<Real>(H.VerticalGridSize());
+    auto mkpt = [&]( const Real x, const Real y, const Real lvl ) -> Point_T
+    {
+        if( rawQ )
+        {
+            return f( Point_T{ Real(2)*x/gx, Real(2)*y/gy, Real(2)*lvl } );
+        }
+        return f( Point_T{ x, y, scale*lvl } );
+    };
+
     const auto & lc_arcs = pd.LinkComponentArcs();
     const Int lc_count   = lc_arcs.SublistCount();
     
@@ -94,8 +109,8 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
         for( Int a : lc_arcs.Sublist(lc) )
         {
             const Int b = A_next_A[a];
-            const Real L_a = scale * L[a];
-            const Real L_b = scale * L[b];
+            const Real L_a = L[a];   // raw level; mkpt applies scale or the raw-lattice map
+            const Real L_b = L[b];
             
             const Int k_begin = A_V_ptr[a         ];
             const Int k_end   = A_V_ptr[a + Int(1)];
@@ -117,7 +132,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( f(Point_T{x,y,L_a}) );
+                V_agg.Push( mkpt(x,y,L_a) );
             }
             
             if( n % Int(2) )
@@ -129,7 +144,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                     const Int v = V[k_half];
                     const Real x = static_cast<Real>(V_coords(v,0));
                     const Real y = static_cast<Real>(V_coords(v,1));
-                    V_agg.Push( f(Point_T{x,y,L_a}) );
+                    V_agg.Push( mkpt(x,y,L_a) );
                 }
             }
             else
@@ -141,12 +156,12 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 
                 const Real x = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,0) + V_coords(v_1,0));
                 const Real y = Scalar::Half<Real> * static_cast<Real>(V_coords(v_0,1) + V_coords(v_1,1));
-                V_agg.Push( f(Point_T{x,y,L_a}) );
+                V_agg.Push( mkpt(x,y,L_a) );
                 
                 if( L_b != L_a )
                 {
                     // In the case of a jump we need a duplicate.
-                    V_agg.Push( f(Point_T{x,y,L_b}) );
+                    V_agg.Push( mkpt(x,y,L_b) );
                 }
             }
             
@@ -155,7 +170,7 @@ std::tuple<Tensor1<Int,Int>,Tensor1<Int,Int>,Tensor1<Point_T,Int>> Embedding_Ver
                 const Int v = V[k];
                 const Real x = static_cast<Real>(V_coords(v,0));
                 const Real y = static_cast<Real>(V_coords(v,1));
-                V_agg.Push( f(Point_T{x,y,L_b}) ); // Caution: Here we use the level of next arc's tail.
+                V_agg.Push( mkpt(x,y,L_b) ); // Caution: Here we use the level of next arc's tail.
             }
         }
         

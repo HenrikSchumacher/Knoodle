@@ -84,6 +84,11 @@ namespace Knoodle
             };
             
             Real   scaling             = Real(1);
+            // When true, Embedding emits the raw INTEGER lattice knot (x,y in grid-cell
+            // units, z in level units, both doubled so half-grid midpoints stay integral)
+            // instead of rescaling toward a unit cube. Intended for integer-level energies
+            // (TV/Height); lets LatticeLink ingest a ReAPR embedding directly. (branch: BFACF)
+            bool   lattice_rawQ        = false;
             Real   dirichlet_reg       = Real(0.00001);
             Real   bending_reg         = Real(0.00001);
             Real   backtracking_factor = Real(0.25);
