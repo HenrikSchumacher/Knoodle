@@ -101,23 +101,23 @@ Alexander_Strands_Normalization( cref<PD_T> pd ) const
         {
             const Multiplier_T unit;
             
-            const Multiplier_T a = Alexander_Strands_Det<sparseQ>( pd, Complex(1) );
+            const Multiplier_T a = Alexander_Strands_Det<sparseQ>( pd, Scal(1) );
             
             Multiplier_T factor ( unit / a );
             
             constexpr Real eval_0 = cSqrt(Real(2));
             Real eval = eval_0;
             Int sqrt_count = 1;
-            Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Complex(eval) );
+            Multiplier_T c = Alexander_Strands_Det<sparseQ>( pd, Scal(eval) );
             
-            while( c.Mantissa2() == Scalar::Zero<Complex> )
+            while( c.Mantissa2() == Scalar::Zero<Scal> )
             {
                 ++sqrt_count;
                 eval = std::sqrt(eval);
                 c = Alexander_Strands_Det<sparseQ>( pd, eval );
             }
             
-            Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Complex(Inv(eval)) );
+            Multiplier_T b = Alexander_Strands_Det<sparseQ>( pd, Scal(Inv(eval)) );
             
             const Multiplier_T d = b / c; // Should be a power of eval * eval.
             

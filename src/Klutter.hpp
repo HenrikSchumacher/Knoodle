@@ -46,10 +46,6 @@ namespace Knoodle
         Int crossing_count = 0;
         Size_T thread_count = 1;
         
-        // After sieving has finished, these two subsets contain all the Keys for diagrams that belong to a prime knot with crossing_count crossings.
-        KeySet_T unidentified_ralt_keys;
-        KeySet_T unidentified_nalt_keys;
-        
         LUT_T lut;
         std::vector<Name_T>   names;
         std::vector<KeySet_T> buckets;
@@ -496,7 +492,6 @@ namespace Knoodle
     public:
         
 #include "Klutter/Key.hpp"
-#include "Klutter/Symmetry.hpp"
 #include "Klutter/KnotInfo.hpp"
 #include "Klutter/Generate.hpp"
 #include "Klutter/Generate2.hpp"
