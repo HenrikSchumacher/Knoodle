@@ -48,8 +48,18 @@ using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
 using Energy_T    = PDC_T::Energy_T;
 using LinkEmb_T   = Knoodle::LinkEmbedding<Real, Int, float>;
 using Reapr_T     = Knoodle::Reapr<Real, Int, float>;  // only used for RandomRotation()
-using Clock       = std::chrono::steady_clock;
-using Duration    = std::chrono::duration<double>;
+
+// The timing aliases live in a named namespace rather than at global scope.
+// Apple's <MacTypes.h> (pulled in transitively by <Accelerate/Accelerate.h>,
+// which the UMFPACK/Alexander path force-includes) declares `typedef SInt32
+// Duration;` at global scope. A global `using Duration = ...` here is then a
+// conflicting typedef redefinition. Downstream tools that combine this shared
+// header with the Accelerate backend are the first TU to meet both, so keep
+// these two aliases scoped. The vocabulary aliases above stay global on purpose.
+namespace knoodle_io {
+    using Clock    = std::chrono::steady_clock;
+    using Duration = std::chrono::duration<double>;
+} // namespace knoodle_io
 
 namespace {
 
@@ -82,17 +92,17 @@ inline bool StdinIsInteractive()
 class ScopedTimer
 {
 public:
-    explicit ScopedTimer(Duration& target)
-        : target_(target), start_(Clock::now()) {}
+    explicit ScopedTimer(knoodle_io::Duration& target)
+        : target_(target), start_(knoodle_io::Clock::now()) {}
 
     ~ScopedTimer()
     {
-        target_ = Clock::now() - start_;
+        target_ = knoodle_io::Clock::now() - start_;
     }
 
 private:
-    Duration& target_;
-    Clock::time_point start_;
+    knoodle_io::Duration& target_;
+    knoodle_io::Clock::time_point start_;
 };
 
 //==============================================================================

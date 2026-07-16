@@ -41,6 +41,12 @@
 
 namespace {
 
+// The timing aliases moved into namespace knoodle_io (see knoodle_io.hpp) to
+// avoid a global-scope clash with Apple's <MacTypes.h> `Duration`. This tool
+// never pulls in the Accelerate backend, so bringing the alias local to this
+// anonymous namespace is safe and keeps the timing fields below unqualified.
+using knoodle_io::Duration;
+
 /**
  * @brief Configuration parsed from command-line arguments.
  */
