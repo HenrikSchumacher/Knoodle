@@ -16,6 +16,9 @@
 // Face-matrix Alexander: valid for multi-component links.
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
 
+// Prime knot identification from MacLeod codes.
+#include "src/PrimeKnotLookupTable.hpp"
+
 
 // Include our bridge header
 #include "bindings.h"
@@ -244,7 +247,11 @@ KnotAnalyzer::KnotAnalyzer(const std::vector<double>& coordinates, bool simplify
                         comp_analyzer.is_prime = true; // Components from DisconnectSummands are prime
                         comp_analyzer.is_composite = false;
                         comp_analyzer.prime_component_count = 1;
-                        
+
+                        // Keep the component's diagram so that methods like
+                        // macleod_code() and alexander() work on it.
+                        comp_analyzer.impl->pd = std::make_unique<PD_T>(std::move(comp));
+
                         prime_components.push_back(std::move(comp_analyzer));
                     }
                     break;
@@ -772,6 +779,48 @@ link_invariants(
         pd_out.clear();
     }
     return {mat, drop, pd_out};
+}
+
+// Prime knot identification via MacLeod code lookup tables
+class KnotLookupTableImpl {
+public:
+    PrimeKnotLookupTable table;
+
+    KnotLookupTableImpl(const std::string& path, int max_crossings)
+        : table(std::filesystem::path(path), static_cast<Size_T>(max_crossings)) {}
+};
+
+KnotLookupTable::KnotLookupTable(const std::string& path, int max_crossings)
+    : impl(std::make_shared<KnotLookupTableImpl>(path, max_crossings)) {}
+
+std::string KnotLookupTable::lookup(const std::vector<uint8_t>& macleod_code) const {
+    // One byte per crossing; codes longer than the library maximum cannot be
+    // in any table (and must not reach KeyFromMacLeodCode, whose key buffer
+    // holds only 16 bytes).
+    if (macleod_code.empty() ||
+        macleod_code.size() > PrimeKnotLookupTable::max_c_count) {
+        return "";
+    }
+
+    std::string name = impl->table.LookupName(
+        macleod_code.data(), static_cast<Int>(macleod_code.size()));
+
+    return (name == "NotFound") ? std::string() : name;
+}
+
+std::string KnotLookupTable::lookup(const KnotAnalyzer& analyzer) const {
+    // A fully simplified unknot has no active diagram left: its component is
+    // absorbed into unlink_count and link_component_count drops to 0. (Do not
+    // use is_unknot() here: it requires link_component_count == 1.)
+    if (analyzer.crossing_count == 0 &&
+        analyzer.link_component_count + analyzer.unlink_count == 1) {
+        return "0_1";
+    }
+    return lookup(analyzer.macleod_code());
+}
+
+int KnotLookupTable::max_crossings() const {
+    return static_cast<int>(impl->table.CrossingCount());
 }
 
 // MacLeod code methods

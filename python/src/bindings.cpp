@@ -194,6 +194,44 @@ PYBIND11_MODULE(_knoodle, m) {
           py::arg("coordinates"), py::arg("z"), py::arg("simplify") = true,
           "Compute Alexander polynomial at complex point z for given coordinates");
 
+    // Prime knot identification via MacLeod code lookup tables
+    py::class_<KnotLookupTable>(m, "KnotLookupTable")
+        .def(py::init<const std::string&, int>(),
+             py::arg("path"),
+             py::arg("max_crossings") = 13,
+             "Load prime-knot lookup tables from a directory containing "
+             "Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN = 03..max_crossings, "
+             "zero-padded; library maximum is 13)")
+        .def("lookup",
+             [](const KnotLookupTable& t, const std::vector<uint8_t>& code) -> py::object {
+                 std::string name = t.lookup(code);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("macleod_code"),
+             "Look up a short MacLeod code (bytes or list of ints, one byte per "
+             "crossing); returns the prime knot name, or None if not in the table")
+        .def("lookup",
+             [](const KnotLookupTable& t, py::bytes code) -> py::object {
+                 std::string s = code;
+                 std::vector<uint8_t> v(s.begin(), s.end());
+                 std::string name = t.lookup(v);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("macleod_code"))
+        .def("lookup",
+             [](const KnotLookupTable& t, const KnotAnalyzer& analyzer) -> py::object {
+                 std::string name = t.lookup(analyzer);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("analyzer"),
+             "Identify a KnotAnalyzer's (simplified, prime) diagram; returns the "
+             "knot name, '0_1' for the unknot, or None if not in the table")
+        .def_property_readonly("max_crossings", &KnotLookupTable::max_crossings,
+             "Highest crossing count the table was built for");
+
     // Multi-component link invariants (valid for links): determinant + linking.
     m.def("link_invariants", &link_invariants,
           py::arg("coordinates"), py::arg("edges"), py::arg("z"),

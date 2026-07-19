@@ -124,3 +124,29 @@ link_invariants(
     const std::vector<long>& edges,
     const std::complex<double>& z,
     bool simplify = true);
+
+// Forward declaration for the lookup table implementation
+class KnotLookupTableImpl;
+
+// Prime knot identification: looks up short MacLeod codes (as returned by
+// KnotAnalyzer::macleod_code) in tables loaded from a directory containing
+// Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN = 03..max_crossings,
+// zero-padded; the library maximum is 13 crossings).
+class KnotLookupTable {
+private:
+    std::shared_ptr<KnotLookupTableImpl> impl;
+
+public:
+    KnotLookupTable(const std::string& path, int max_crossings = 13);
+
+    // Returns the prime knot name, or "" if the code is not in the table.
+    // The code length must equal the crossing count (one byte per crossing).
+    std::string lookup(const std::vector<uint8_t>& macleod_code) const;
+
+    // Convenience: identify the analyzer's (simplified, prime) diagram.
+    // Returns "0_1" for the unknot, "" when not identified.
+    std::string lookup(const KnotAnalyzer& analyzer) const;
+
+    // Highest crossing count the table was built for.
+    int max_crossings() const;
+};
