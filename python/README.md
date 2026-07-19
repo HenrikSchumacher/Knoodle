@@ -114,26 +114,38 @@ tables). The table loads every `Klut_*` file it finds up to `max_crossings`.
 
 ### Generating the tables
 
-The lookup tables are **not shipped** with pyknoodle (they are large, and the
-13-crossing layer is expensive to build). This mirrors the C++ library, where
-`PrimeKnotLookupTable` is constructed from a caller-supplied directory. To
-build them yourself:
+The lookup tables are **not shipped** with pyknoodle (the high-crossing layers
+are expensive to build). This mirrors the C++ library, where
+`PrimeKnotLookupTable` is constructed from a caller-supplied directory. The
+`tablegen/` directory contains a complete generation pipeline:
 
-1. **Enumerate diagrams.** Generate 4-valent planar graphs with
-   [plantri](https://users.cecs.anu.edu.au/~bdm/plantri/) for each crossing
-   count.
-2. **Sieve minimal diagrams.** Feed the plantri output to Knoodle's
-   `PlantriSiever` (`src/PlantriSiever.hpp`), which enumerates the crossing-sign
-   assignments, simplifies each with REAPR, and collects the MacLeod codes of
-   the proven-minimal diagrams (including all four chirality/reversal variants).
-3. **Name the classes.** Match each code class to a knot name using a knot
-   census such as [SnapPy](https://snappy.computop.org/) or
-   [Regina](https://regina-normal.github.io/) (torus and other non-hyperbolic
-   knots need a small special case).
-4. **Emit the tables.** Write `Klut_Keys_NN.bin` (the concatenated `NN`-byte
-   codes, grouped by knot) and `Klut_Values_NN.tsv` (`name count` per line, in
-   the same order) into a directory, then pass that directory to
-   `KnotLookupTable`.
+1. **Enumerate shadows** (`tablegen/plantri_shadows.py`): runs
+   [plantri](https://users.cecs.anu.edu.au/~bdm/plantri/)
+   (`-q -c2m2 -d -E`, i.e. duals of arbitrary simple quadrangulations = prime
+   reduced shadows) and converts each single-component shadow to an unsigned
+   PD code.
+2. **Sieve minimal diagrams** (`knoodle.sieve_shadows`, modeled on
+   `src/PlantriSiever.hpp`): enumerates every over/under assignment,
+   simplifies with REAPR, and collects the MacLeod codes of diagrams that
+   stay at c crossings (all four chirality/reversal variants), with one
+   representative PD code each.
+3. **Name the knots** (`tablegen/name_knots.py`): identifies each
+   representative with [SnapPy](https://snappy.computop.org/); the
+   non-hyperbolic torus knots (and surviving hard unknots) are matched by
+   Alexander-polynomial invariants instead.
+4. **Emit and validate** (`tablegen/make_tables.py`): writes
+   `Klut_Keys_NN.bin` / `Klut_Values_NN.tsv` and checks the number of
+   distinct knots per crossing number against the knot census.
+
+Setup and run (SnapPy lives in a venv because conda's `python-snappy`
+compression package occupies the `snappy` module name):
+
+```bash
+python3 -m venv --system-site-packages python/tablegen/.venv
+python/tablegen/.venv/bin/pip install snappy
+python/tablegen/.venv/bin/python3 python/tablegen/make_tables.py \
+    --plantri /path/to/plantri --out /path/to/tables --max-crossings 10
+```
 
 `KnotLookupTable` raises a `RuntimeError` with these instructions if it is
 pointed at a directory containing no tables.

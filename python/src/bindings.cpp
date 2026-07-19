@@ -235,6 +235,36 @@ PYBIND11_MODULE(_knoodle, m) {
         .def_property_readonly("max_crossings", &KnotLookupTable::max_crossings,
              "Highest crossing count the table was built for");
 
+    // Knot-shadow sieve for lookup-table generation
+    m.def("sieve_shadows",
+          [](const std::vector<long>& shadows, int crossing_count,
+             int rattle_iter, int thread_count) {
+              auto result = sieve_shadows(shadows, crossing_count,
+                                          rattle_iter, thread_count);
+              auto convert = [](auto& entries) {
+                  py::list out;
+                  for (auto& [code, rep] : entries) {
+                      out.append(py::make_tuple(
+                          py::bytes(reinterpret_cast<const char*>(code.data()),
+                                    code.size()),
+                          py::cast(rep)));
+                  }
+                  return out;
+              };
+              return py::make_tuple(convert(result.first),
+                                    convert(result.second));
+          },
+          py::arg("shadows"), py::arg("crossing_count"),
+          py::arg("rattle_iter") = 25, py::arg("thread_count") = 0,
+          "Sieve knot shadows for lookup-table generation. shadows: flat "
+          "unsigned PD codes (4 ints per crossing) of single-component "
+          "shadows, all with crossing_count crossings. Enumerates every "
+          "over/under assignment, simplifies with REAPR's Rattle, and returns "
+          "(minimal, other): lists of (macleod_code bytes, c x 5 signed PD "
+          "code) for diagrams that stayed at c crossings, split by whether "
+          "minimality was proven. All four mirror/reversal transforms are "
+          "included. thread_count <= 0 uses all cores.");
+
     // Multi-component link invariants (valid for links): determinant + linking.
     m.def("link_invariants", &link_invariants,
           py::arg("coordinates"), py::arg("edges"), py::arg("z"),

@@ -19,6 +19,9 @@
 // Prime knot identification from MacLeod codes.
 #include "src/PrimeKnotLookupTable.hpp"
 
+// Classic Reapr (Rattle): used by the knot-shadow sieve.
+#include "src/Reapr.hpp"
+
 
 // Include our bridge header
 #include "bindings.h"
@@ -29,6 +32,7 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <thread>
 
 using namespace Knoodle;
 using namespace Tensors;
@@ -851,6 +855,145 @@ std::string KnotLookupTable::lookup(const KnotAnalyzer& analyzer) const {
 
 int KnotLookupTable::max_crossings() const {
     return static_cast<int>(impl->table.CrossingCount());
+}
+
+// Knot-shadow sieve for lookup-table generation, modeled on
+// PlantriSiever::LoadPDCodes, but keeping one representative signed PD code
+// per MacLeod code so the resulting knots can be identified downstream.
+std::pair<
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>,
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>>
+sieve_shadows(
+    const std::vector<long>& shadows,
+    int crossing_count,
+    int rattle_iter,
+    int thread_count)
+{
+    using Reapr_T = Reapr<Real, Int>;
+    using Key_T   = std::string;                    // crossing_count bytes
+    using Rep_T   = std::vector<std::vector<int>>;  // c x 5 signed PD code
+    using Map_T   = std::map<Key_T, Rep_T>;
+
+    if (crossing_count < 1 || crossing_count > 16) {
+        throw std::invalid_argument(
+            "sieve_shadows: crossing_count must be in [1, 16].");
+    }
+    const Int c = static_cast<Int>(crossing_count);
+    const size_t shadow_size =
+        size_t(4) * static_cast<size_t>(crossing_count);
+    if (shadows.empty() || (shadows.size() % shadow_size != 0)) {
+        throw std::invalid_argument(
+            "sieve_shadows: shadows length must be a positive multiple of "
+            "4 * crossing_count.");
+    }
+    const size_t shadow_count = shadows.size() / shadow_size;
+
+    size_t n_threads = (thread_count > 0)
+        ? static_cast<size_t>(thread_count)
+        : static_cast<size_t>(std::max(1u, std::thread::hardware_concurrency()));
+    n_threads = std::min(n_threads, shadow_count);
+
+    std::vector<Map_T> thread_minimal(n_threads);
+    std::vector<Map_T> thread_other(n_threads);
+
+    Reapr_T reapr;
+
+    ParallelDo(
+        [&](const Size_T thread)
+        {
+            Reapr_T local_reapr = reapr;
+            local_reapr.Reseed();
+
+            const size_t job_begin = (shadow_count * thread) / n_threads;
+            const size_t job_end = (shadow_count * (thread + 1)) / n_threads;
+            const UInt64 i_max = UInt64(1) << crossing_count;
+
+            typename PD_T::CrossingStateContainer_T C_state(c);
+
+            Map_T& local_minimal = thread_minimal[thread];
+            Map_T& local_other = thread_other[thread];
+
+            for (size_t job = job_begin; job < job_end; ++job) {
+                PD_T pd_0 = PD_T::FromUnsignedPDCode(
+                    &shadows[shadow_size * job], long(c), long(0), true, false);
+
+                if (pd_0.CrossingCount() != c) { continue; }  // invalid shadow
+
+                for (UInt64 i = 0; i < i_max; ++i) {
+                    for (Int j = 0; j < c; ++j) {
+                        C_state[j] = BooleanToCrossingState(get_bit(i, j));
+                    }
+
+                    PD_T pd(
+                        pd_0.Crossings().data(), C_state.data(),
+                        pd_0.Arcs().data(), pd_0.ArcStates().data(),
+                        c, Int(0), false);
+
+                    auto pd_list = local_reapr.Rattle(pd, rattle_iter);
+
+                    // Keep only diagrams Rattle could not reduce below c
+                    // crossings (candidates for minimal diagrams).
+                    if ((pd_list.size() != 1) ||
+                        (pd_list[0].CrossingCount() != c)) {
+                        continue;
+                    }
+                    const bool minimalQ = pd_list[0].ProvenMinimalQ();
+
+                    // As in PlantriSiever: record the four chirality/reversal
+                    // transforms of the _original_ diagram.
+                    for (bool mirrorQ : {false, true}) {
+                        for (bool reverseQ : {false, true}) {
+                            PD_T pd_1 = pd.CachelessCopy();
+                            pd_1.ChiralityTransform(mirrorQ, reverseQ);
+
+                            auto code = pd_1.template MacLeodCode<UInt8>();
+                            if (code.Size() != c) { continue; }  // not a knot
+
+                            Key_T key(reinterpret_cast<const char*>(code.data()),
+                                      static_cast<size_t>(c));
+                            Map_T& target = minimalQ ? local_minimal : local_other;
+                            if (target.count(key) == 0) {
+                                auto pdcode = pd_1.PDCode();
+                                Rep_T rep(static_cast<size_t>(c),
+                                          std::vector<int>(5));
+                                for (Int r = 0; r < c; ++r) {
+                                    for (Int s = 0; s < 5; ++s) {
+                                        rep[static_cast<size_t>(r)][static_cast<size_t>(s)]
+                                            = static_cast<int>(pdcode(r, s));
+                                    }
+                                }
+                                target.emplace(std::move(key), std::move(rep));
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        n_threads);
+
+    // Merge; codes proven minimal by any thread trump "other" entries.
+    Map_T minimal;
+    Map_T other;
+    for (auto& m : thread_minimal) { minimal.merge(m); }
+    for (auto& m : thread_other) {
+        for (auto& kv : m) {
+            if (minimal.count(kv.first) == 0) {
+                other.emplace(kv.first, std::move(kv.second));
+            }
+        }
+    }
+
+    auto to_output = [](Map_T& src) {
+        std::vector<std::pair<std::vector<uint8_t>, Rep_T>> out;
+        out.reserve(src.size());
+        for (auto& kv : src) {
+            std::vector<uint8_t> code(kv.first.begin(), kv.first.end());
+            out.emplace_back(std::move(code), std::move(kv.second));
+        }
+        return out;
+    };
+
+    return { to_output(minimal), to_output(other) };
 }
 
 // MacLeod code methods

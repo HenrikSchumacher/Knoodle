@@ -150,3 +150,26 @@ public:
     // Highest crossing count the table was built for.
     int max_crossings() const;
 };
+
+// Sieve knot shadows for lookup-table generation (models PlantriSiever).
+// For every shadow, all 2^c over/under assignments are simplified with
+// REAPR's Rattle; diagrams that stay at exactly c crossings are collected as
+// canonical MacLeod codes (including all four mirror/reversal transforms).
+// shadows: flat unsigned PD codes, 4 ints per crossing, arcs numbered along
+//          the traversal; every shadow must have exactly crossing_count
+//          crossings and one link component.
+// Returns (minimal, other):
+//   minimal: one entry per distinct proven-minimal MacLeod code, paired with
+//            the c x 5 signed PD code of a diagram realizing it (for knot
+//            identification).
+//   other:   MacLeod codes of surviving diagrams Rattle could not prove
+//            minimal (their PD codes are also provided).
+// thread_count <= 0 uses all hardware threads.
+std::pair<
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>,
+    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>>
+sieve_shadows(
+    const std::vector<long>& shadows,
+    int crossing_count,
+    int rattle_iter = 25,
+    int thread_count = 0);
