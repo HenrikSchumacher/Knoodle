@@ -159,12 +159,16 @@ else:
 # UMFPACK compatibility header for single-precision stubs
 umfpack_compat_header = os.path.join(current_script_dir, 'src', 'umfpack_compat.hpp')
 
+# Default Klut lookup-table directory (shipped in the repository via git LFS),
+# baked in so KnotLookupTable() works without arguments from anywhere.
+klut_default_dir = os.path.join(knoodle_base_dir, 'data', 'Klut')
+
 cpp_args = [
     '-std=c++20',
     '-fvisibility=hidden',
     '-g0',
-    '-DPOLYFOLD_NO_QUATERNIONS=1',
     '-DUSE_UMFPACK=1',  # Enable Alexander polynomial computation
+    f'-DKNOODLE_KLUT_DEFAULT="{klut_default_dir}"',
     '-Wno-deprecated-declarations',
     '-include', umfpack_compat_header,  # Include stubs for single-precision UMFPACK functions
 ]

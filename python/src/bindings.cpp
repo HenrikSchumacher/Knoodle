@@ -194,17 +194,17 @@ PYBIND11_MODULE(_knoodle, m) {
           py::arg("coordinates"), py::arg("z"), py::arg("simplify") = true,
           "Compute Alexander polynomial at complex point z for given coordinates");
 
-    // Prime knot identification via MacLeod code lookup tables
+    // Prime knot identification via the Klut MacLeod-code lookup tables
     py::class_<KnotLookupTable>(m, "KnotLookupTable")
         .def(py::init<const std::string&, int>(),
-             py::arg("path"),
+             py::arg("path") = std::string(),
              py::arg("max_crossings") = 13,
-             "Load prime-knot lookup tables from a directory containing "
+             "Load the Klut prime-knot lookup tables from a directory containing "
              "Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN = 03..max_crossings, "
-             "zero-padded; library maximum is 13). Loads up to the highest "
-             "crossing count present; raises RuntimeError (with generation "
-             "instructions) if the directory contains no tables. The tables are "
-             "not shipped with pyknoodle -- see the README to generate them.")
+             "zero-padded). Loads up to the highest crossing count present. "
+             "An empty path resolves automatically: $KNOODLE_KLUT_DIR, then the "
+             "repository's data/Klut (shipped via git LFS, through 13 crossings). "
+             "Raises RuntimeError if no tables are found (run 'git lfs pull').")
         .def("lookup",
              [](const KnotLookupTable& t, const std::vector<uint8_t>& code) -> py::object {
                  std::string name = t.lookup(code);
@@ -213,7 +213,11 @@ PYBIND11_MODULE(_knoodle, m) {
              },
              py::arg("macleod_code"),
              "Look up a short MacLeod code (bytes or list of ints, one byte per "
-             "crossing); returns the prime knot name, or None if not in the table")
+             "crossing); returns the prime knot name, or None if not in the table. "
+             "Names follow the KnotInfo convention: 'c_i' up to 10 crossings, "
+             "'ca_i'/'cn_i' (alternating/non-alternating) for 11 and up. Note the "
+             "two known divergences from SnapPy naming at 10 crossings (the "
+             "Perko-pair renumbering above 10_161 and the 10_83/10_86 swap).")
         .def("lookup",
              [](const KnotLookupTable& t, py::bytes code) -> py::object {
                  std::string s = code;
@@ -232,38 +236,34 @@ PYBIND11_MODULE(_knoodle, m) {
              py::arg("analyzer"),
              "Identify a KnotAnalyzer's (simplified, prime) diagram; returns the "
              "knot name, '0_1' for the unknot, or None if not in the table")
+        .def("lookup_raw",
+             [](const KnotLookupTable& t, const std::vector<uint8_t>& code) -> py::object {
+                 std::string name = t.lookup_raw(code);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("macleod_code"),
+             "Like lookup, but returns the raw KnotInfo-style table label "
+             "K[c,i,j,\"coset\"], which also distinguishes the chirality class "
+             "(coset of {e, m, r, mr}).")
+        .def("lookup_raw",
+             [](const KnotLookupTable& t, py::bytes code) -> py::object {
+                 std::string s = code;
+                 std::vector<uint8_t> v(s.begin(), s.end());
+                 std::string name = t.lookup_raw(v);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("macleod_code"))
+        .def("lookup_raw",
+             [](const KnotLookupTable& t, const KnotAnalyzer& analyzer) -> py::object {
+                 std::string name = t.lookup_raw(analyzer);
+                 return name.empty() ? py::object(py::none())
+                                     : py::object(py::cast(name));
+             },
+             py::arg("analyzer"))
         .def_property_readonly("max_crossings", &KnotLookupTable::max_crossings,
              "Highest crossing count the table was built for");
-
-    // Knot-shadow sieve for lookup-table generation
-    m.def("sieve_shadows",
-          [](const std::vector<long>& shadows, int crossing_count,
-             int rattle_iter, int thread_count) {
-              auto result = sieve_shadows(shadows, crossing_count,
-                                          rattle_iter, thread_count);
-              auto convert = [](auto& entries) {
-                  py::list out;
-                  for (auto& [code, rep] : entries) {
-                      out.append(py::make_tuple(
-                          py::bytes(reinterpret_cast<const char*>(code.data()),
-                                    code.size()),
-                          py::cast(rep)));
-                  }
-                  return out;
-              };
-              return py::make_tuple(convert(result.first),
-                                    convert(result.second));
-          },
-          py::arg("shadows"), py::arg("crossing_count"),
-          py::arg("rattle_iter") = 25, py::arg("thread_count") = 0,
-          "Sieve knot shadows for lookup-table generation. shadows: flat "
-          "unsigned PD codes (4 ints per crossing) of single-component "
-          "shadows, all with crossing_count crossings. Enumerates every "
-          "over/under assignment, simplifies with REAPR's Rattle, and returns "
-          "(minimal, other): lists of (macleod_code bytes, c x 5 signed PD "
-          "code) for diagrams that stayed at c crossings, split by whether "
-          "minimality was proven. All four mirror/reversal transforms are "
-          "included. thread_count <= 0 uses all cores.");
 
     // Multi-component link invariants (valid for links): determinant + linking.
     m.def("link_invariants", &link_invariants,

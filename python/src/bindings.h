@@ -129,47 +129,38 @@ link_invariants(
 class KnotLookupTableImpl;
 
 // Prime knot identification: looks up short MacLeod codes (as returned by
-// KnotAnalyzer::macleod_code) in tables loaded from a directory containing
-// Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN = 03..max_crossings,
-// zero-padded; the library maximum is 13 crossings).
+// KnotAnalyzer::macleod_code) in the Klut tables, loaded from a directory
+// containing Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN =
+// 03..max_crossings, zero-padded). The tables ship in the repository at
+// data/Klut (git LFS, through 13 crossings).
 class KnotLookupTable {
 private:
     std::shared_ptr<KnotLookupTableImpl> impl;
 
 public:
-    KnotLookupTable(const std::string& path, int max_crossings = 13);
+    // An empty path resolves the table directory automatically:
+    // $KNOODLE_KLUT_DIR, then the repository's data/Klut (baked in at build
+    // time), then ./data/Klut.
+    KnotLookupTable(const std::string& path = std::string(),
+                    int max_crossings = 13);
 
     // Returns the prime knot name, or "" if the code is not in the table.
     // The code length must equal the crossing count (one byte per crossing).
+    // Names are KnotInfo-convention short names: "c_i" up to 10 crossings,
+    // "ca_i" / "cn_i" (alternating / non-alternating) for 11 and up. Note
+    // the two known divergences from SnapPy naming at 10 crossings (the
+    // Perko-pair renumbering above 10_161 and the 10_83/10_86 swap).
     std::string lookup(const std::vector<uint8_t>& macleod_code) const;
 
     // Convenience: identify the analyzer's (simplified, prime) diagram.
     // Returns "0_1" for the unknot, "" when not identified.
     std::string lookup(const KnotAnalyzer& analyzer) const;
 
+    // Like lookup, but returns the raw KnotInfo-style table label
+    // K[c,i,j,"coset"], which also distinguishes the chirality class.
+    std::string lookup_raw(const std::vector<uint8_t>& macleod_code) const;
+    std::string lookup_raw(const KnotAnalyzer& analyzer) const;
+
     // Highest crossing count the table was built for.
     int max_crossings() const;
 };
-
-// Sieve knot shadows for lookup-table generation (models PlantriSiever).
-// For every shadow, all 2^c over/under assignments are simplified with
-// REAPR's Rattle; diagrams that stay at exactly c crossings are collected as
-// canonical MacLeod codes (including all four mirror/reversal transforms).
-// shadows: flat unsigned PD codes, 4 ints per crossing, arcs numbered along
-//          the traversal; every shadow must have exactly crossing_count
-//          crossings and one link component.
-// Returns (minimal, other):
-//   minimal: one entry per distinct proven-minimal MacLeod code, paired with
-//            the c x 5 signed PD code of a diagram realizing it (for knot
-//            identification).
-//   other:   MacLeod codes of surviving diagrams Rattle could not prove
-//            minimal (their PD codes are also provided).
-// thread_count <= 0 uses all hardware threads.
-std::pair<
-    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>,
-    std::vector<std::pair<std::vector<uint8_t>, std::vector<std::vector<int>>>>>
-sieve_shadows(
-    const std::vector<long>& shadows,
-    int crossing_count,
-    int rattle_iter = 25,
-    int thread_count = 0);
