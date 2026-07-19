@@ -276,6 +276,17 @@ def test_macleod_agreement_with_shipped_tables():
     print("  PASSED")
 
 
+def test_fp_environment_restored():
+    """Knoodle's AABBTree sets the FE_UPWARD rounding mode internally; the
+    bindings must restore the floating-point environment before returning
+    (a leak breaks numpy and every other float consumer in the process)."""
+    import ctypes
+    libm = ctypes.CDLL(None)
+    knoodle.KnotAnalyzer(make_torus_knot_coords(2, 3),
+                         simplify=True, simplify_level=5)
+    assert libm.fegetround() == 0, "rounding mode leaked (not FE_TONEAREST)"
+
+
 if __name__ == "__main__":
     test_figure_eight()
     test_5_1()
@@ -284,5 +295,6 @@ if __name__ == "__main__":
     test_batch_alexander()
     test_simplify_levels()
     test_invariants()
-    test_macleod_cross_class_agreement()
+    test_macleod_agreement_with_shipped_tables()
+    test_fp_environment_restored()
     print("\nALL TESTS PASSED!")
