@@ -5,6 +5,8 @@
 #include <memory>
 #include <complex>
 #include <map>
+#include <tuple>
+#include <utility>
 
 // Forward declaration for the implementation
 class KnotAnalyzerImpl;
@@ -97,3 +99,28 @@ bool is_unknot(const std::vector<double>& coordinates);
 // Alexander polynomial convenience functions
 AlexanderResult alexander(const std::vector<double>& coordinates, double t, bool simplify = true);
 AlexanderResult alexander(const std::vector<double>& coordinates, const std::complex<double>& z, bool simplify = true);
+
+// Multi-component link Alexander (face-matrix method; valid for links, unlike
+// the strand/UMFPACK method used by KnotAnalyzer::alexander).
+// coordinates: flat AoS xyz of all components concatenated.
+// edges: interleaved [tail,tip, tail,tip, ...] vertex-index pairs, one closing
+//        cycle per component (edges.size()/2 edges total).
+// Computes both link invariants from a single diagram build. Returns a tuple:
+//   (A, (f1, f2), pd)
+//   A  : full m x (m+2) Alexander face matrix at value z. Deleting the two
+//        ADJACENT face-columns f1, f2 gives an m x m matrix whose determinant
+//        = Delta(z) up to a unit, so |det| at z = -1 is the link determinant.
+//   pd : m x 5 PD code, rows [under_in, over, under_out, over_other, handedness];
+//        pairwise linking numbers = (1/2) * sum of handedness over crossings whose
+//        under and over strands lie on different components.
+// Empty A + (-1,-1) (pd may still be present) means no crossings after
+// simplification, a split diagram (where the determinant is 0 and F != m+2),
+// or a degenerate/failed diagram.
+std::tuple<std::vector<std::vector<std::complex<double>>>,
+           std::pair<int,int>,
+           std::vector<std::vector<int>>>
+link_invariants(
+    const std::vector<double>& coordinates,
+    const std::vector<long>& edges,
+    const std::complex<double>& z,
+    bool simplify = true);

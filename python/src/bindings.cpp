@@ -189,8 +189,20 @@ PYBIND11_MODULE(_knoodle, m) {
           py::arg("coordinates"), py::arg("t"), py::arg("simplify") = true,
           "Compute Alexander polynomial at point t for given coordinates");
 
-    m.def("alexander", 
+    m.def("alexander",
           py::overload_cast<const std::vector<double>&, const std::complex<double>&, bool>(&alexander),
           py::arg("coordinates"), py::arg("z"), py::arg("simplify") = true,
           "Compute Alexander polynomial at complex point z for given coordinates");
+
+    // Multi-component link invariants (valid for links): determinant + linking.
+    m.def("link_invariants", &link_invariants,
+          py::arg("coordinates"), py::arg("edges"), py::arg("z"),
+          py::arg("simplify") = true,
+          "Both link invariants from one diagram. coordinates: flat AoS xyz of all "
+          "components concatenated; edges: interleaved [tail,tip,...] vertex-index "
+          "pairs, one closing cycle per component. Returns (A, (f1,f2), pd): A is the "
+          "full m x (m+2) Alexander face matrix at z (delete adjacent columns f1,f2 "
+          "-> det = Delta(z), |det| at z=-1 is the determinant); pd is the m x 5 PD "
+          "code [under_in, over, under_out, over_other, handedness] for the pairwise "
+          "linking numbers.");
 }

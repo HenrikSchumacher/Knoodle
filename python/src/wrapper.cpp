@@ -1,14 +1,21 @@
 // Include minimal required headers from Knoodle
 #include "Knoodle.hpp"
+#ifdef __linux__
+#include "submodules/Tensors/OpenBLAS.hpp"
+#endif
 #include "src/PolyFold.hpp"
 
 // Conditionally include Alexander if UMFPACK is available
 #ifdef USE_UMFPACK
+#ifndef __linux__
 #include "submodules/Tensors/Accelerate.hpp"
+#endif
 #include "src/KnotInvariants/Alexander_UMFPACK.hpp"
 #endif
 
-#include "src/PrimeKnotLookupTable.hpp"
+// Face-matrix Alexander: valid for multi-component links.
+#include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
+
 
 // Include our bridge header
 #include "bindings.h"
@@ -18,6 +25,7 @@
 #include <sstream>
 #include <iostream>
 #include <memory>
+#include <random>
 
 using namespace Knoodle;
 using namespace Tensors;
@@ -592,6 +600,178 @@ AlexanderResult alexander(const std::vector<double>& coordinates, double t, bool
 AlexanderResult alexander(const std::vector<double>& coordinates, const std::complex<double>& z, bool simplify) {
     KnotAnalyzer analyzer(coordinates, simplify);
     return analyzer.alexander(z);
+}
+
+// Random rotation matrix, replicated from Reapr::RandomRotation: Rodrigues
+// rotation about a Gaussian-random axis by a uniform angle in [0, pi).
+static Tiny::Matrix<3,3,Real,Int> random_rotation(PRNG_T& engine)
+{
+    using Vector_T = Tiny::Vector<3,Real,Int>;
+    using Matrix_T = Tiny::Matrix<3,3,Real,Int>;
+
+    std::normal_distribution<Real> gaussian {Real(0), Real(1)};
+    std::uniform_real_distribution<Real> angle_dist {Real(0), Scalar::Pi<Real>};
+
+    Vector_T u;
+    Real u_squared;
+    do {
+        u[0] = gaussian(engine);
+        u[1] = gaussian(engine);
+        u[2] = gaussian(engine);
+        u_squared = u.NormSquared();
+    } while (u_squared <= Real(0));
+
+    u /= Sqrt(u_squared);
+
+    const Real angle = angle_dist(engine);
+    const Real cos = std::cos(angle);
+    const Real sin = std::sin(angle);
+    const Real d = Real(1) - cos;
+
+    Matrix_T A;
+
+    A[0][0] = u[0] * u[0] * d + cos       ;
+    A[0][1] = u[0] * u[1] * d - sin * u[2];
+    A[0][2] = u[0] * u[2] * d + sin * u[1];
+
+    A[1][0] = u[1] * u[0] * d + sin * u[2];
+    A[1][1] = u[1] * u[1] * d + cos       ;
+    A[1][2] = u[1] * u[2] * d - sin * u[0];
+
+    A[2][0] = u[2] * u[0] * d - sin * u[1];
+    A[2][1] = u[2] * u[1] * d + sin * u[0];
+    A[2][2] = u[2] * u[2] * d + cos       ;
+
+    return A;
+}
+
+// Both link invariants from a single diagram build (valid for links):
+//  - the full m x (m+2) Alexander face matrix at z (+ two adjacent faces to
+//    delete) for the determinant, and
+//  - the m x 5 PD code for the pairwise linking numbers.
+std::tuple<std::vector<std::vector<std::complex<double>>>,
+           std::pair<int,int>,
+           std::vector<std::vector<int>>>
+link_invariants(
+    const std::vector<double>& coordinates,
+    const std::vector<long>& edges,
+    const std::complex<double>& z,
+    bool simplify)
+{
+    std::vector<std::vector<std::complex<double>>> mat;
+    std::pair<int,int> drop(-1, -1);
+    std::vector<std::vector<int>> pd_out;
+    try {
+        // 'long' matches the element type of 'edges' so the Link constructor's
+        // ExtInt template parameter deduces consistently for both arguments.
+        const long n_edges = static_cast<long>(edges.size() / 2);
+
+        // Build the diagram as PlanarDiagram(x, edges, n) would, but retry
+        // with random rotations (as Reapr::Rattle does before re-projecting)
+        // when the plain z-projection is degenerate, e.g. for a component
+        // lying in a plane that contains the z-axis.
+        using Link_T = Link_2D<Real, Int, Real>;
+        Link_T L( edges.data(), n_edges );
+
+        static thread_local PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
+
+        constexpr int max_attempts = 10;
+        int err = -1;
+        for (int attempt = 0; attempt < max_attempts; ++attempt) {
+            if (attempt == 0) {
+                L.ReadVertexCoordinates( coordinates.data() );
+            } else {
+                // Link_2D's intersection error counters are never reset
+                // between FindIntersections calls, so each retry needs a
+                // fresh link, as Reapr::Rattle builds one per iteration.
+                L = Link_T( edges.data(), n_edges );
+                L.SetTransformationMatrix( random_rotation(random_engine) );
+                L.template ReadVertexCoordinates<true,true>( coordinates.data() );
+            }
+            err = L.template FindIntersections<false>();
+            if (err == 0) { break; }
+        }
+        if (err != 0) {
+            std::cerr << "link_invariants: FindIntersections failed after "
+                      << max_attempts << " projection attempts (error code "
+                      << err << ")." << std::endl;
+            return {mat, drop, pd_out};
+        }
+
+        PD_T pd( L );
+
+        if (simplify) {
+            // Simplify4 handles multi-component links and keeps the diagram
+            // whole. (Simplify5 is knot-only and would split off connect
+            // summands, which we would have to discard here.)
+            pd.Simplify4();
+        }
+
+        const Int m = pd.CrossingCount();
+        if (m == 0) {
+            return {mat, drop, pd_out};  // no crossings -> unknot/split unlink
+        }
+
+        // PD code (m x 5): [under_in, over, under_out, over_other, handedness].
+        auto pdcode = pd.PDCode();
+        const Int rows = pdcode.Dimension(0);
+        pd_out.assign(static_cast<size_t>(rows), std::vector<int>(5));
+        for (Int i = 0; i < rows; ++i) {
+            for (Int j = 0; j < 5; ++j) {
+                pd_out[static_cast<size_t>(i)][static_cast<size_t>(j)]
+                    = static_cast<int>(pdcode(i, j));
+            }
+        }
+
+        // The determinant recipe needs a connected diagram of the whole link:
+        // for a split diagram FaceCount != m+2, and split unknot components
+        // absorbed into UnlinkCount make the determinant 0 anyway. Return the
+        // PD code alone in that case.
+        if (pd.DiagramComponentCount() > Int(1) || pd.UnlinkCount() > Int(0)) {
+            return {mat, drop, pd_out};
+        }
+
+        const Int F = pd.FaceCount();
+        AlexanderFaceMatrix<Complex, Int, LInt> afm;
+        std::vector<Complex> buf(static_cast<size_t>(m) * static_cast<size_t>(F), Complex(0));
+        afm.template WriteDenseMatrix<true>(pd, static_cast<Complex>(z), buf.data());
+
+        // Two adjacent faces = right/left faces of the outgoing arc of the
+        // first active crossing (that arc borders exactly those two faces).
+        const auto & C_arcs  = pd.Crossings();
+        const auto & A_faces = pd.ArcFaces();
+        cptr<CrossingState_T> C_state = pd.CrossingStates().data();
+        const Int c_count = C_arcs.Dim(0);
+        Int d1 = -1, d2 = -1;
+        for (Int c = 0; c < c_count; ++c) {
+            const CrossingState_T s = C_state[c];
+            if (RightHandedQ(s) || LeftHandedQ(s)) {
+                const Int a_out = C_arcs(c, PD_T::Out, PD_T::Right);
+                d1 = A_faces(a_out, 0);
+                d2 = A_faces(a_out, 1);
+                break;
+            }
+        }
+        if (d1 < 0 || d2 < 0 || d1 == d2) {
+            return {mat, drop, pd_out};  // pd still usable for linking numbers
+        }
+
+        mat.assign(static_cast<size_t>(m),
+                   std::vector<std::complex<double>>(static_cast<size_t>(F)));
+        for (Int i = 0; i < m; ++i) {
+            for (Int j = 0; j < F; ++j) {
+                mat[static_cast<size_t>(i)][static_cast<size_t>(j)]
+                    = buf[static_cast<size_t>(i) * static_cast<size_t>(F) + static_cast<size_t>(j)];
+            }
+        }
+        drop = { static_cast<int>(d1), static_cast<int>(d2) };
+    } catch (const std::exception& e) {
+        std::cerr << "link_invariants error: " << e.what() << std::endl;
+        mat.clear();
+        drop = {-1, -1};
+        pd_out.clear();
+    }
+    return {mat, drop, pd_out};
 }
 
 // MacLeod code methods
