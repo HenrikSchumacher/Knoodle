@@ -5,22 +5,20 @@
 // TODO: Track the number of edges that cross the boundary of a box.
 // TODO: This will allow us to find connected sums.
 
+// TODO: We need colors here?
+
 namespace Knoodle
 {
-    template<typename Real_ = double, typename Int_ = Int64, typename BReal_ = Real_>
+    template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
     class alignas( ObjectAlignment ) Link_3D : public Link<Int_>
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        static_assert(FloatQ<BReal_>,"");
-        
     public:
         
         using Real  = Real_;
         using Int   = Int_;
         using BReal = BReal_;
         
-        // DEBUGGING
+        // Dor debugging.
         static constexpr Int i_0 = - 1;
         static constexpr Int j_0 = - 1;
         
@@ -37,7 +35,7 @@ namespace Knoodle
         using EContainer_T   = typename Tree_T::EContainer_T;
         using BContainer_T   = typename Tree_T::BContainer_T;
         
-        using BinaryMatrix_T   = Sparse::BinaryMatrixCSR<Int,Size_T>;
+        using BinaryMatrix_T = Sparse::BinaryMatrixCSR<Int,Size_T,Sequential>;
         
     protected:
         
@@ -87,7 +85,7 @@ namespace Knoodle
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
-        template<typename I>
+        template<IntQ I>
         explicit Link_3D( const I edge_count_ )
         :   Base_T   { int_cast<Int>(edge_count_) }
         ,   E_coords { this->EdgeCount()          }
@@ -95,36 +93,30 @@ namespace Knoodle
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
-        template< typename I>
+        template< IntQ I>
         Link_3D( cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
-        {
-            static_assert(IntQ<I>,"");
-        }
+        {}
         
-        template< typename I>
+        template<IntQ I>
         Link_3D( cptr<Real> V_coords_, cptr<Int> edges_, const I edge_count_ )
-        :   Base_T   { edges_, edge_count_     }
+        :   Base_T   { edges_, (I*)nullptr, edge_count_     }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
-            static_assert(IntQ<I>,"");
-            
-            ReadVertexCoordinates<false>(V_coords_);
+           ReadVertexCoordinates<false>(V_coords_);
         }
         
         
         // This constructor makes the link assume to be a simple cycle and that the vertices are sorted accordingly.
-        template< typename I>
+        template<IntQ I>
         Link_3D( cptr<Real> V_coords_, const I edge_count_ )
         :   Base_T   { edge_count_             }
         ,   E_coords { this->EdgeCount()       }
         ,   T        { this->EdgeCount()       }
         {
-            static_assert(IntQ<I>,"");
-            
             ReadVertexCoordinates<false>(V_coords_);
         }
         

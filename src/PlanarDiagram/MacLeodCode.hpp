@@ -10,7 +10,7 @@ void CheckMacLeodReturnType() const
     }
 }
 
-template<typename S, typename T = UInt>
+template<IntQ S, IntQ T = UInt>
 static void LongMacLeodCode_to_MacLeodCode(
     cptr<S> l_mac_leod, mptr<T> s_mac_leod, Int c_count
 )
@@ -20,10 +20,6 @@ static void LongMacLeodCode_to_MacLeodCode(
         + "," + TypeName<T>
         + ">");
     
-    static_assert(IntQ<S>,"");
-    static_assert(IntQ<T>,"");
-    
-    
     const T n = static_cast<T>(c_count);
     const T m = T(2) * n;
     
@@ -31,7 +27,7 @@ static void LongMacLeodCode_to_MacLeodCode(
     
     for( T a = 0; a < m; ++a )
     {
-        T code = static_cast<S>(l_mac_leod[a]); // TODO: Use int_cast?
+        T code = int_cast<T>(l_mac_leod[a]);
         T leap = (code >> 2);
         if( a + leap < m )
         {
@@ -41,7 +37,7 @@ static void LongMacLeodCode_to_MacLeodCode(
     }
 }
 
-template<typename S, typename T = UInt>
+template<IntQ S, IntQ T = UInt>
 static void MacLeodCode_to_LongMacLeodCode(
     cptr<S> s_mac_leod, mptr<T> l_mac_leod, Int c_count
 )
@@ -50,9 +46,6 @@ static void MacLeodCode_to_LongMacLeodCode(
         + "<" + TypeName<S>
         + "," + TypeName<T>
         + ">");
-    
-    static_assert(IntQ<S>,"");
-    static_assert(IntQ<T>,"");
     
     const T n = static_cast<T>(c_count);
     const T m = T(2) * n;
@@ -88,23 +81,20 @@ static void MacLeodCode_to_LongMacLeodCode(
 
 
 
-template<typename T = UInt>
+template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
     TOOLS_PTIMER(timer,ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">");
     
-    static_assert(IntQ<T>,"");
-    
     if( LinkComponentCount() > Int(1) )
     {
         eprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Not defined for links with multiple components. Aborting.");
-        
         return;
     }
 
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(ClassName()+"::WriteMacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return;
     }
 
@@ -115,22 +105,20 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
     LongMacLeodCode_to_MacLeodCode( l_mac_leod.data(), s_mac_leod, crossing_count );
 }
 
-template<typename T = UInt>
+template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
-    TOOLS_PTIMER(timer,ClassName()+"::MacLeodCode<"+TypeName<T>+">");
-    
-    static_assert(IntQ<T>,"");
+    TOOLS_PTIMER(timer,MethodName("MacLeodCode")+"<"+TypeName<T>+">");
     
     if( LinkComponentCount() > Int(1) )
     {
-        eprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: This diagram has several link components. And, you know, there can be only one.>");
+        eprint(MethodName("MacLeodCode")+"<"+TypeName<T>+">: This diagram has several link components. And, you know, there can be only one.>");
         return Tensor1<T,Int>();
     }
     
     if( !ValidQ() )
     {
-        wprint(ClassName()+"::MacLeodCode<"+TypeName<T>+">: Trying to compute MacLeod code of invalid PlanarDiagram. Returning empty vector.");
+        wprint(MethodName("MacLeodCode")+"<"+TypeName<T>+">: Trying to compute MacLeod code of invalid planar diagram. Returning empty vector.");
         return Tensor1<T,Int>();
     }
     
@@ -140,46 +128,38 @@ Tensor1<T,Int> MacLeodCode() const
     return s_mac_leod;
 }
 
-template<typename T, typename ExtInt2, typename ExtInt3>
-static PlanarDiagram FromMacLeodCode(
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
+static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
-    const ExtInt2 crossing_count_,
-    const ExtInt3 unlink_count_,
-    const bool    compressQ = false,
+    const ExtInt  crossing_count_,
+    const ExtInt2 color,
     const bool    proven_minimalQ_ = false
 )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodCode")
         + "<" + TypeName<T>
+        + "," + TypeName<ExtInt>
         + "," + TypeName<ExtInt2>
-        + "," + TypeName<ExtInt3>
         + ">");
-    
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt2>,"");
-    static_assert(IntQ<ExtInt3>,"");
     
     Int c_count = int_cast<Int>(crossing_count_);
     Int a_count = Int(2) * c_count;
     
     Tensor1<T,Int> l_mac_leod ( a_count );
-    
 
     // TODO: Can we out this step and reimplement FromMacLeodCode directly?
     MacLeodCode_to_LongMacLeodCode( s_mac_leod, l_mac_leod.data(), c_count );
 
-    return FromLongMacLeodCode(
-       l_mac_leod.data(), a_count, unlink_count_, proven_minimalQ_, compressQ
-    );
+    return FromLongMacLeodCode( l_mac_leod.data(), a_count, color, proven_minimalQ_ );
 }
 
 
-template<typename T, typename ExtInt>
-static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
+template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
+static PD_T FromMacLeodCode(
+    cref<Tensor1<T,ExtInt>> s_mac_leod, const ExtInt2 color, const bool proven_minimalQ_ = false
+)
 {
-    static_assert(IntQ<T>,"");
-    static_assert(IntQ<ExtInt>,"");
-    return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), Int(0), false, false );
+    return FromMacLeodCode( s_mac_leod.data(), s_mac_leod.Size(), color, proven_minimalQ_ );
 }
 
 
@@ -188,11 +168,9 @@ static PlanarDiagram FromMacLeodCode( cref<Tensor1<T,ExtInt>> s_mac_leod )
 
 
 
-//template<typename Int>
+//template<IntQ Int>
 //static Size_T MacLeod_DigitCountFromStringLength( Int string_length )
 //{
-//    static_assert(IntQ<Int>);
-//
 //    Size_T L   = ToSize_T(2) * ToSize_T(string_length);
 //    Size_T d   = 1;
 //    Size_T pow = 8;
@@ -221,7 +199,8 @@ std::string MacLeodString() const
     return s;
 }
 
-static PlanarDiagram FromMacLeodString( cref<std::string> s )
+template<IntQ ExtInt2>
+static PD_T FromMacLeodString( cref<std::string> s, const ExtInt2 color )
 {
     TOOLS_PTIMER(timer,MethodName("FromMacLeodString"));
     
@@ -241,5 +220,5 @@ static PlanarDiagram FromMacLeodString( cref<std::string> s )
 
     auto code = Binarizer::template FromString<UInt>(s,d);
     
-    return FromMacLeodCode(code);
+    return FromMacLeodCode(code,color);
 }

@@ -12,12 +12,9 @@ namespace Knoodle
     // TODO: Check against calling on trivial diagram.
     // TODO: Check against calling on multiple compenent diagram.
     
-    template<typename Scal_, typename Int_, typename LInt_>
+    template<typename Scal_, IntQ Int_, IntQ LInt_>
     class Alexander final
     {
-        static_assert(IntQ<Int_>,"");
-        static_assert(IntQ<LInt_>,"");
-        
     public:
         
         using Scal = Scal_;
@@ -25,8 +22,8 @@ namespace Knoodle
         using Int  = Int_;
         using LInt = LInt_;
         
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
         
         using Helper_T          = Tensor2<Scal,LInt>;
@@ -603,8 +600,6 @@ namespace Knoodle
                     Real log_det = 0;
                                         
                     DenseAlexanderMatrix( pd, args[idx], LU_buffer.data() );
-                    
-//                    valprint( "dense array", ArrayToString( LU_buffer.data(), {n,n} ) );
                     
                     // Factorize dense Alexander matrix.
                     

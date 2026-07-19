@@ -37,7 +37,7 @@ Int EdgeEdgeManhattanDistance(
         { E_V(e_1,Tail), E_V(e_1,Head) },
     };
     
-    // If the edges interect because their end vertices coincide (which can happen, e.g., if the PlanarDiagram had a Reidemeister I loop), then we have to report "no intersection"
+    // If the edges intesect because their end vertices coincide (which can happen, e.g., if the planar diagram had a Reidemeister I loop), then we have to report "no intersection"
     if(
        ( v[0][0] == v[1][0] )
        ||
@@ -66,17 +66,17 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
 {
     std::vector<std::array<Int,3>> agg;
 
-    // TODO: Better use TraverseAllFaces!
+    // TODO: Better use TraverseAllRegions!
     
     
-    // If we soften the virtual edges, then we should walk along the faces of the turn-nonregularized facs. Otherwise we risk detecting some intersections. (And the Manhattan distance won't work on the virtual edges are they might be diagonal.)
-    cref<RaggedList<Int,Int>> F_dE = FaceDedges(settings.soften_virtual_edgesQ);
+    // If we soften the virtual edges, then we should walk along the regions of the turn-nonregularized regions. Otherwise we risk detecting some intersections. (And the Manhattan distance won't work on the virtual edges are they might be diagonal.)
+    cref<RaggedList<Int,Int>> R_dE = RegionDedges(settings.soften_virtual_edgesQ);
     
-    const Int f_count = F_dE.SublistCount();
+    const Int r_count = R_dE.SublistCount();
     
-    for( Int f = 0; f < f_count; ++f )
+    for( Int r = 0; r < r_count; ++r )
     {
-        this->template FindIntersections<verboseQ>(coords,F_dE,agg,f);
+        this->template FindIntersections<verboseQ>(coords,R_dE,agg,r);
     }
     
     Tiny::VectorList_AoS<3,Int,Int> result ( int_cast<Int>( agg.size() ) );
@@ -85,30 +85,30 @@ Tiny::VectorList_AoS<3,Int,Int> FindAllIntersections(
     return result;
 }
 
-/*!@brief Cycles around the face ` f` and finds the first directed edge `de` that has at least one intersection with another edge. Then it returns the triple `{de,da,db}`, where `da` and `db` are the first edge and the last edge of the face that `de` intersects.
+/*!@brief Cycles around the region `r` and finds the first directed edge `de` that has at least one intersection with another edge. Then it returns the triple `{de,da,db}`, where `da` and `db` are the first edge and the last edge of the region that `de` intersects.
  *
  */
 
-// TODO: Make this independent of RequireFaces.
+// TODO: Make this independent of RequireRegions.
 
 template<bool verboseQ = false>
 void FindIntersections(
     cref<CoordsContainer_T> coords,
-    cref<RaggedList<Int,Int>> F_dE,
+    cref<RaggedList<Int,Int>> R_dE,
     mref<std::vector<std::array<Int,3>>> agg,
-    const Int f
+    const Int r
 )
 {
 //    print("===============================================");
     if constexpr ( verboseQ )
     {
-        print("FindIntersections("+ToString(f)+")");
+        print("FindIntersections("+ToString(r)+")");
     }
     
-    const Int face_begin = F_dE.Pointers()[f    ];
-    const Int face_end   = F_dE.Pointers()[f + 1];
+    const Int region_begin = R_dE.Pointers()[r    ];
+    const Int region_end     = R_dE.Pointers()[r + 1];
     
-    const Int n = face_end - face_begin;
+    const Int n = region_end - region_begin;
     
     
 //    TOOLS_DUMP(n);
@@ -118,11 +118,9 @@ void FindIntersections(
         return;
     }
     
-//    valprint("face", ArrayToString( &F_dE_idx[face_begin], {n} ) );
-    
     for( Int i = 0; i < n; ++i )
     {
-        const Int de_i = F_dE.Elements()[face_begin + i];
+        const Int de_i = R_dE.Elements()[region_begin + i];
         auto [e_i,d_i] = FromDarc(de_i);
         
         if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_i) )
@@ -144,7 +142,7 @@ void FindIntersections(
 //            TOOLS_DUMP(delta);
 //            TOOLS_DUMP(i + delta);
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
-            const Int de_j = F_dE.Elements()[face_begin + j];
+            const Int de_j = R_dE.Elements()[region_begin + j];
             
             if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_j) )
             {
@@ -183,7 +181,7 @@ void FindIntersections(
 //            TOOLS_DUMP(i + delta);
             
             Int j = (i + delta < n) ? (i + delta) : (i + delta - n);
-            const Int de_j = F_dE.Elements()[face_begin + j];
+            const Int de_j = R_dE.Elements()[region_begin + j];
             
             if( settings.soften_virtual_edgesQ && DedgeVirtualQ(de_j) )
             {
@@ -209,33 +207,8 @@ void FindIntersections(
         }
         
         std::array<Int,3> result = {de_i,da,db};
-        
-//        const Int a = da / 2;
-//        const Int b = db / 2;
-//        
-//        TOOLS_DUMP(de_i);
-//        TOOLS_DUMP(e_i);
-//        TOOLS_DUMP(da);
-//        TOOLS_DUMP(a);
-//        TOOLS_DUMP(db);
-//        TOOLS_DUMP(b);
-//        
-//        TOOLS_DUMP(FaceSize(f));
-//        
-//        TOOLS_DUMP(E_V(a,Tail));
-//        TOOLS_DUMP(E_V(a,Head));
-//        
-//        TOOLS_DUMP(E_V(b,Tail));
-//        TOOLS_DUMP(E_V(b,Head));
-//        
-//        valprint("X_0", ArrayToString(coords.data(E_V(a,Tail)),{2}));
-//        valprint("X_1", ArrayToString(coords.data(E_V(a,Head)),{2}));
-//        valprint("Y_0", ArrayToString(coords.data(E_V(b,Tail)),{2}));
-//        valprint("Y_1", ArrayToString(coords.data(E_V(b,Head)),{2}));
-//        
-//        TOOLS_DUMP(result);
-        
+    
         agg.push_back(std::move(result));
         
-    } // for( Int i = face_begin; i < face_end; ++i )
+    } // for( Int i = region_begin; i < region_end; ++i )
 }

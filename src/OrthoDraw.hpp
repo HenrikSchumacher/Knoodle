@@ -10,25 +10,20 @@
 //      "../submodules/Min-Cost-Flow-Class/OPTUtils/",
 //      "../submodules/Min-Cost-Flow-Class/MCFClass/",
 //      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
+
 namespace MCF
 {
-    #include "MCFSimplex.C"
-}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmisleading-indentation"
 
-// For this, the user has to put the following directory onto the search path:
-//      "../submodules/Min-Cost-Flow-Class/RelaxIV/
-#ifdef KNOODLE_USE_RELAXIV
-namespace RelaxIV
-{
-    using namespace MCF;
+    // TODO: MCFSimplex.C really does not like the -ffast-math flag. I get inconsistent results with his flag. I could use TOOLS_MAKE_FP_STRICT() here (which is #pragma float_control(precise, on) under clang). But that just suppressed compiler errors; the inconsistence still remains, even if I always place TOOLS_MAKE_FP_STRICT() before the load.
     
-    #include "RelaxIV.C"
+//    TOOLS_MAKE_FP_STRICT()
+    
+    #include "MCFSimplex.C"
+    
+#pragma clang diagnostic pop
 }
-#endif
-
-#ifdef KNOODLE_USE_OR
-#include "ortools/graph/min_cost_flow.h"
-#endif
 
 namespace Knoodle
 {
@@ -36,11 +31,11 @@ namespace Knoodle
     // TODO: Get/setters for all settings.
     
     template<class PD_T_>
-    class OrthoDraw final : CachedObject
+    class OrthoDraw final : CachedObject<1,0,0,0>
     {
     private:
         
-        using Base_T = CachedObject;
+        using Base_T = CachedObject<1,0,0,0>;
         
     public:
         
@@ -48,14 +43,13 @@ namespace Knoodle
         using Int        = PD_T::Int;
         
         // TODO: Are signed integers really necessary here?
-        static_assert(SignedIntQ<Int>,"");
+//        static_assert(SignedIntQ<Int>,"");
         
         using UInt       = UInt32;
         using Dir_T      = UInt8;
         using EdgeFlag_T = UInt8;
         using Turn_T     = ToSigned<Int>;
         using Cost_T     = ToSigned<Int>;
-        
         
         enum class VertexFlag_T : Int8
         {
@@ -70,8 +64,6 @@ namespace Knoodle
             Unknown         = -1
             , Bends_MCF     =  0
             , Bends_CLP     =  1
-            , Bends_RelaxIV =  2
-            , Bends_OR      =  3
         };
         
         enum class CompactionMethod_T : Int8
@@ -82,53 +74,53 @@ namespace Knoodle
             , Length_MCF           =  2
             , Length_CLP           =  3
             , AreaAndLength_CLP    =  4
-            , Length_RelaxIV       =  5
-            , Length_OR            =  6
         };
         
         struct Settings_T
         {
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
-            bool network_matrixQ                    = true;
             bool use_dual_simplexQ                  = false;
             int  randomize_bends                    = 0;
             bool redistribute_bendsQ                = true;
             bool turn_regularizeQ                   = true;
             bool soften_virtual_edgesQ              = false;
             bool randomize_virtual_edgesQ           = false;
-            bool saturate_facesQ                    = true;
-            bool saturate_exterior_faceQ            = true;
+            bool saturate_regionsQ                  = true;
+            bool saturate_exterior_regionQ          = true;
             bool filter_saturating_edgesQ           = true;
-            bool parallelizeQ                       = false;
             CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
             
             Int  x_grid_size                        = 20;
             Int  y_grid_size                        = 20;
-            
             Int  x_gap_size                         =  4;
             Int  y_gap_size                         =  4;
-            
             Int  x_rounding_radius                  =  4;
             Int  y_rounding_radius                  =  4;
-            
-            void PrintInfo() const
-            {
-                TOOLS_DDUMP(bend_method);
-                TOOLS_DDUMP(network_matrixQ);
-                TOOLS_DDUMP(redistribute_bendsQ);
-                TOOLS_DDUMP(use_dual_simplexQ);
-                TOOLS_DDUMP(turn_regularizeQ);
-                TOOLS_DDUMP(saturate_facesQ);
-                TOOLS_DDUMP(saturate_exterior_faceQ);
-                TOOLS_DDUMP(compaction_method);
-                
-                TOOLS_DDUMP(x_grid_size);
-                TOOLS_DDUMP(y_grid_size);
-                
-                TOOLS_DDUMP(x_gap_size);
-                TOOLS_DDUMP(y_gap_size);
-            }
         };
+        
+        friend std::string ToString( cref<Settings_T> args )
+        {
+            return std::string("{ ")
+                    +   ".bend_method = " + ToString(args.bend_method)
+                    + ", .use_dual_simplexQ = " + ToString(args.use_dual_simplexQ)
+                    + ", .randomize_bends = " + ToString(args.randomize_bends)
+                    + ", .redistribute_bendsQ = " + ToString(args.redistribute_bendsQ)
+                    + ", .turn_regularizeQ = " + ToString(args.turn_regularizeQ)
+                    + ", .soften_virtual_edgesQ = " + ToString(args.soften_virtual_edgesQ)
+                    + ", .randomize_virtual_edgesQ = " + ToString(args.randomize_virtual_edgesQ)
+                    + ", .saturate_regionsQ = " + ToString(args.saturate_regionsQ)
+                    + ", .saturate_exterior_regionQ = " + ToString(args.saturate_exterior_regionQ)
+                    + ", .filter_saturating_edgesQ = " + ToString(args.filter_saturating_edgesQ)
+//                    + ", .parallelizeQ = " + ToString(args.parallelizeQ)
+                    + ", .compaction_method = " + ToString(args.compaction_method)
+                    + ", .x_grid_size = " + ToString(args.x_grid_size)
+                    + ", .y_grid_size = " + ToString(args.y_grid_size)
+                    + ", .x_gap_size = " + ToString(args.x_gap_size)
+                    + ", .y_gap_size = " + ToString(args.y_gap_size)
+                    + ", .x_rounding_radius = " + ToString(args.x_rounding_radius)
+                    + ", .y_rounding_radius = " + ToString(args.y_rounding_radius)
+            + " }";
+        }
         
         using DiGraph_T             = MultiDiGraph<Int,Int>;
         using HeadTail_T            = DiGraph_T::HeadTail_T;
@@ -150,9 +142,9 @@ namespace Knoodle
         using COIN_Real  = double;
         using COIN_Int   = int;
         using COIN_LInt  = CoinBigIndex;
-        using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt>;
+        using COIN_Matrix_T = Sparse::MatrixCSR<COIN_Real,COIN_Int,COIN_LInt,Sequential>;
         using COIN_Agg_T = TripleAggregator<COIN_Int,COIN_Int,COIN_Real,COIN_LInt>;
-#endif
+#endif // KNOODLE_USE_CLP
         
         static constexpr Int Uninitialized = PD_T::Uninitialized;
         static constexpr Int MaxValidIndex = PD_T::MaxValidIndex;
@@ -162,10 +154,7 @@ namespace Knoodle
             return PD_T::ValidIndexQ(i);
         }
         
-        // TODO: Maybe replace by pcg32?
-        // TODO: However, it is used rather seldomly. We prefer our graph drawer to be deterministic.
-        
-        using PRNG_T = std::mt19937;
+        using PRNG_T = Knoodle::PRNG_T;
         
 #include "OrthoDraw/Constants.hpp"
         
@@ -189,17 +178,17 @@ namespace Knoodle
         // TODO: move constructor
         // TODO: move assignment
 
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         OrthoDraw(
             cref<PD_T> pd,
-            const ExtInt exterior_region_ = ExtInt(-1),
+            const ExtInt exterior_face_ = ExtInt(-1),
             Settings_T settings_ = Settings_T()
         )
         :   settings( settings_ )
         {
             if( !pd.ValidQ() ) { return; }
             
-            LoadPlanarDiagram( pd, exterior_region_ );
+            LoadPlanarDiagram( pd, exterior_face_ );
             
             if( settings.turn_regularizeQ )
             {
@@ -237,20 +226,6 @@ namespace Knoodle
                     break;
                 }
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-                case CompactionMethod_T::Length_RelaxIV:
-                {
-                    ComputeVertexCoordinates_Compaction_RelaxIV();
-                    break;
-                }
-#endif
-//#ifdef KNOODLE_USE_OR
-//                case CompactionMethod_T::Length_OR:
-//                {
-//                    ComputeVertexCoordinates_Compaction_OR();
-//                    break;
-//                }
-//#endif
                 default:
                 {
                     wprint(ClassName() + "(): Unknown compaction method " + ToString(settings.compaction_method) + ". Using default (CompactionMethod_T::Length_MCF).");
@@ -265,9 +240,9 @@ namespace Knoodle
         // Destructor (virtual because of inheritance)
         virtual ~OrthoDraw() override = default;
         // Copy constructor
-        OrthoDraw( const OrthoDraw & other ) = default;
+        OrthoDraw( const OrthoDraw & other ) = delete;              // Because of random_engine.
         // Copy assignment operator
-        OrthoDraw & operator=( const OrthoDraw & other ) = default;
+        OrthoDraw & operator=( const OrthoDraw & other ) = delete;  // Because of random_engine.
         // Move constructor
         OrthoDraw( OrthoDraw && other ) = default;
         // Move assignment operator
@@ -283,7 +258,7 @@ namespace Knoodle
         Int edge_count          = 0;
         Int virtual_edge_count  = 0;
         
-        Int exterior_region     = 0;
+        Int exterior_face       = 0;
         Int max_face_size       = 0;
         
         // Indices to the last active vertex and edge.
@@ -297,7 +272,7 @@ namespace Knoodle
         
         Tensor1<Turn_T,Int> A_bends;
 
-        RaggedList<Int,Int> R_dA;
+        RaggedList<Int,Int> F_dA;
         
         RaggedList<Int,Int> A_V;
         RaggedList<Int,Int> A_E;
@@ -325,6 +300,8 @@ namespace Knoodle
         
         mutable bool proven_turn_regularQ = false;
         
+        PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
+        
     public:
         
         /*!@brief Make room for more virtual edges.
@@ -337,7 +314,7 @@ namespace Knoodle
             // We do not change E_A. This way we still know how many nonvirtual edges we had in the beginning.
             
             const Int old_max_edge_count = E_V.Dim(0);
-            
+                     
             if( max_edge_count == old_max_edge_count) { return; };
             
             // Might or might not be necessary.
@@ -377,20 +354,14 @@ namespace Knoodle
 #ifdef KNOODLE_USE_CLP
 #include "OrthoDraw/Bends_CLP.hpp"
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-#include "OrthoDraw/Bends_RelaxIV.hpp"
-#endif
-#ifdef KNOODLE_USE_OR
-#include "OrthoDraw/Bends_OR.hpp"
-#endif
 
 #include "OrthoDraw/LoadPlanarDiagram.hpp"
 #include "OrthoDraw/Vertices.hpp"
 #include "OrthoDraw/Edges.hpp"
-#include "OrthoDraw/Faces.hpp"
+#include "OrthoDraw/Regions.hpp"
 #include "OrthoDraw/TurnRegularize.hpp"
         
-#include "OrthoDraw/SaturateFaces.hpp"
+#include "OrthoDraw/SaturateRegions.hpp"
 #include "OrthoDraw/ConstraintGraphs.hpp"
 #include "OrthoDraw/Compaction_TopologicalOrdering.hpp"
 #include "OrthoDraw/Compaction_TopologicalNumbering.hpp"
@@ -398,12 +369,6 @@ namespace Knoodle
 #ifdef KNOODLE_USE_CLP
 #include "OrthoDraw/Compaction_CLP.hpp"
 #endif
-#ifdef KNOODLE_USE_RELAXIV
-#include "OrthoDraw/Compaction_RelaxIV.hpp"
-#endif
-//#ifdef KNOODLE_USE_OR
-//#include "OrthoDraw/Compaction_OR.hpp"
-//#endif
         
 #include "OrthoDraw/PostProcessing.hpp"
 
@@ -508,19 +473,19 @@ namespace Knoodle
             return virtual_edges;
         }
         
-        Int ExteriorRegion() const
+        Int ExteriorFace() const
         {
-            return exterior_region;
+            return exterior_face;
         }
         
-        Int RegionCount() const
+        Int FaceCount() const
         {
-            return R_dA.SublistCount();
+            return F_dA.SublistCount();
         }
         
-        cref<RaggedList<Int,Int>> RegionDarcs() const
+        cref<RaggedList<Int,Int>> FaceDarcs() const
         {
-            return R_dA;
+            return F_dA;
         }
         
         
@@ -590,17 +555,6 @@ namespace Knoodle
         {
             return A_bends;
         }
-  
-        bool NetworkMatrixQ() const
-        {
-            return settings.network_matrixQ;
-        }
-
-        void SetNetworkMatrixQ( const bool val )
-        {
-            settings.network_matrixQ = val;
-        }
-        
         
         cref<Tensor1<Int,Int>> ArcNextArc() const
         {
@@ -617,8 +571,9 @@ namespace Knoodle
                 {
                     if( VertexActiveQ(c) )
                     {
-                        A_next_A(C_A(c,In,Left )) = C_A(c,Out,Right);
-                        A_next_A(C_A(c,In,Right)) = C_A(c,Out,Left );
+                        Tiny::Matrix<2,2,Int,Int> C ( C_A.data(c) );
+                        A_next_A(C[In][Left ]) = C[Out][Right];
+                        A_next_A(C[In][Right]) = C[Out][Left ];
                     }
                 }
                 this->SetCache(tag,std::move(A_next_A));
@@ -650,9 +605,14 @@ namespace Knoodle
         
     public:
         
-        void PrintSettings()
+        cref<Settings_T> Settings() const
         {
-            settings.PrintInfo();
+            return settings;
+        }
+        
+        void PrintSettings() const
+        {
+            logvalprint(MethodName("Settings()"), ToString(settings));
         }
         
         static std::string MethodName( const std::string & tag )

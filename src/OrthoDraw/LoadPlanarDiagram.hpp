@@ -3,12 +3,18 @@ private:
 template<bool debugQ = false, bool verboseQ = false>
 void LoadPlanarDiagram(
     cref<PD_T> pd,
-    const Int exterior_region_
+    const Int exterior_face_
 )
 {
-    std::string tag = MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">";
+    [[maybe_unused]] auto tag = [](){ return MethodName("LoadPlanarDiagram") + "<" + ToString(debugQ) + ","+ToString(verboseQ)+ "," + TypeName<Int> + ">"; };
     
-    TOOLS_PTIMER(timer,tag);
+    TOOLS_PTIMER(timer,tag());
+    
+    if( pd.DiagramComponentCount() > Int(1) )
+    {
+        eprint(tag() + ": Input planar diagram has more than one diagram components. Aborting.");
+        return;
+    }
     
 //    TOOLS_DUMP(ToUnderlying(settings.bend_method));
 //    TOOLS_DUMP(ToUnderlying(settings.compaction_method));
@@ -16,13 +22,13 @@ void LoadPlanarDiagram(
     C_A  = pd.Crossings(); // copy data
     A_C  = pd.Arcs();      // copy data
     
-    R_dA = pd.FaceDarcs();
+    F_dA = pd.FaceDarcs();
     
-    crossing_count = int_cast<Int>(pd.CrossingCount());
-    arc_count      = int_cast<Int>(pd.ArcCount());
+    crossing_count = pd.CrossingCount();
+    arc_count      = pd.ArcCount();
 
-    const Int C_count = C_A.Dim(0);
-    const Int A_count = A_C.Dim(0);
+    const Int C_count = pd.MaxCrossingCount();
+    const Int A_count = pd.MaxArcCount();
     
     if constexpr ( verboseQ )
     {
@@ -35,57 +41,50 @@ void LoadPlanarDiagram(
     
     // TODO: Allow more general bend sequences.
     
-    exterior_region = int_cast<Int>(exterior_region_);
+    exterior_face = int_cast<Int>(exterior_face_);
     
-    const Int maximum_region = int_cast<Int>(pd.MaximumFace());
+    const Int maximum_face = int_cast<Int>(pd.MaximumFace());
     
-    exterior_region = ((exterior_region < Int(0)) || (exterior_region >= R_dA.SublistCount()))
-                    ? maximum_region
-                    : exterior_region;
+    exterior_face = ((exterior_face < Int(0)) || (exterior_face >= F_dA.SublistCount()))
+                    ? maximum_face
+                    : exterior_face;
 
     // TODO: I have to filter out inactive crossings and inactive arcs!
     switch( settings.bend_method )
     {
         case BendMethod_T::Bends_MCF:
         {
-            A_bends = Bends_MCF(pd,exterior_region);
+            A_bends = Bends_MCF(pd,exterior_face);
             break;
         }
 #ifdef KNOODLE_USE_CLP
         case BendMethod_T::Bends_CLP:
         {
-            A_bends = Bends_CLP(pd,exterior_region);
-            break;
-        }
-#endif
-#ifdef KNOODLE_USE_RELAXIV
-        case BendMethod_T::Bends_RelaxIV:
-        {
-            A_bends = Bends_RelaxIV(pd,exterior_region);
+            A_bends = Bends_CLP(pd,exterior_face);
             break;
         }
 #endif
 #ifdef KNOODLE_USE_OR
         case BendMethod_T::Bends_OR:
         {
-            A_bends = Bends_OR(pd,exterior_region);
+            A_bends = Bends_OR(pd,exterior_face);
             break;
         }
 #endif
         default:
         {
-            wprint(ClassName() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
-            A_bends = Bends_MCF(pd,exterior_region);
+            wprint(tag() + "(): Unknown bend minimization method " + ToString(settings.bend_method) + ". Using default (BendMethod_T::Bends_MCF).");
+            A_bends = Bends_MCF(pd,exterior_face);
             break;
         }
     }
-
+    
     if( A_bends.Size() <= Int(0) )
     {
-        eprint(tag + ": Bend optimization failed. Aborting.");
+        eprint(tag() + ": Bend optimization failed. Aborting.");
         return;
     }
-
+    
     if( settings.randomize_bends > 0 )
     {
         RandomizeBends(pd,A_bends,settings.randomize_bends);
@@ -97,28 +96,27 @@ void LoadPlanarDiagram(
             RedistributeBends(pd,A_bends);
         }
     }
-
     
     // Compute maximum face size as that will be useful for later allocations.
     // This also gives us the opportunity to compute the total number of bends.
     max_face_size = 0;
     bend_count    = 0;
 
-    const Int r_count = R_dA.SublistCount();
+    const Int f_count = F_dA.SublistCount();
     
-    for( Int r = 0; r < r_count; ++r )
+    for( Int f = 0; f < f_count; ++f )
     {
-        Int r_size = R_dA.SublistSize(r);
+        Int f_size = F_dA.SublistSize(f);
         
-        for( auto da : R_dA.Sublist(r) )
+        for( auto da : F_dA.Sublist(f) )
         {
             auto [a,d]  = FromDarc(da);
             const Int b = int_cast<Int>(Abs(A_bends[a]));
             bend_count += b;
-            r_size     += b;
+            f_size     += b;
         }
         
-        max_face_size = Max( max_face_size, r_size );
+        max_face_size = Max( max_face_size, f_size );
     }
     
     // We walk through each undirected arc twice, therefore, we divide by 2.
@@ -193,9 +191,6 @@ void LoadPlanarDiagram(
             }
         }
     );
-    
-//    logvalprint("C_dir",ArrayToString(C_dir,{C_A.Dim(0)}));
-//    TOOLS_LOGDUMP(pd.CrossingStates())
 
     V_dE   = VertexContainer_T      ( V_count, Uninitialized );
     E_V    = EdgeContainer_T        ( E_count, Uninitialized );
@@ -246,7 +241,7 @@ void LoadPlanarDiagram(
             }
             default:
             {
-                eprint(tag + ": Invalid crossing state " + ToString(C_state[c]) +".");
+                eprint(tag() + ": Invalid crossing state " + ToString(C_state[c]) +".");
                 break;
             }
         }
@@ -393,28 +388,28 @@ void LoadPlanarDiagram(
     
     if( V_end != V_count )
     {
-        eprint(tag + ": V_end != V_count.");
+        eprint(tag() + ": V_end != V_count.");
         TOOLS_LOGDUMP(V_count);
         TOOLS_LOGDUMP(V_end);
     }
     
     if( E_end > E_count )
     {
-        eprint(tag + ": E_end > E_count.");
+        eprint(tag() + ": E_end > E_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(E_end);
     }
     
     if( A_V.SublistCount() != A_count )
     {
-        eprint(tag + ": A_V.SublistCount() != A_count.");
+        eprint(tag() + ": A_V.SublistCount() != A_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(A_V.SublistCount());
     }
     
     if( A_E.SublistCount() != A_count )
     {
-        eprint(tag + ": A_E.SublistCount() != A_count.");
+        eprint(tag() + ": A_E.SublistCount() != A_count.");
         TOOLS_LOGDUMP(E_count);
         TOOLS_LOGDUMP(A_E.SublistCount());
     }
@@ -451,7 +446,7 @@ void LoadPlanarDiagram(
 
         if( !this->template CheckEdgeDirections<verboseQ>() )
         {
-            eprint(tag + ": CheckEdgeDirections() failed.");
+            eprint(tag() + ": CheckEdgeDirections() failed.");
         }
     }
     
@@ -459,10 +454,7 @@ void LoadPlanarDiagram(
     ComputeEdgeLeftDedges();
 
     {
-        const Int da = R_dA.Elements()[
-            R_dA.Pointers()[exterior_region]
-        ];
-        
-        MarkFaceAsExterior( da );
+        const Int da = F_dA.Elements()[ F_dA.Pointers()[exterior_face] ];
+        MarkRegionAsExterior( da );
     }
 }

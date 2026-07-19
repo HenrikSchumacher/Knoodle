@@ -1,0 +1,116 @@
+void Unite()
+{
+    (*this) = this->Union();
+}
+
+PDC_T Union() const
+{
+    Tensor1<Int,Size_T> crossing_ptr ( DiagramCount() + Int(1) );
+    crossing_ptr[0] = 0;    // seed the prefix sum; else crossing_ptr[0] is read
+                            // uninitialized below (as at the sibling *_ptr sites)
+
+    const Size_T diagram_count = Size_T(DiagramCount());
+    
+    Int crossing_count = 0;
+    Int arc_count = 0;
+    
+    PD_List_T anelli;
+    
+    for( Size_T idx = 0; idx < diagram_count; ++idx )
+    {
+        mref<PD_T> pd = pd_list[idx];
+        
+        crossing_ptr[idx+1] = crossing_ptr[idx] + pd.max_crossing_count;
+        
+        if( pd.InvalidQ() ) { continue; }
+        
+        if( pd.AnelloQ() )
+        {
+            anelli.push_back( pd ); // make copies!
+            continue;
+        }
+        else
+        {
+            crossing_count += pd.CrossingCount();
+            arc_count      += pd.ArcCount();
+        }
+    }
+    
+    PD_T pd_union ( crossing_ptr.Last(), true );
+    
+    pd_union.crossing_count = crossing_count;
+    pd_union.arc_count      = arc_count;
+
+    for( Size_T idx = 0; idx < diagram_count; ++idx )
+    {
+        mref<PD_T> pd = pd_list[idx];
+        
+        if( pd.InvalidQ() || pd.AnelloQ() ) { continue; }
+
+        const Int C_pos = crossing_ptr[idx];
+        const Int A_pos = Int(2) * C_pos;
+
+        for( Int c = 0; c < pd.max_crossing_count; ++c )
+        {
+            const Int c_pos = C_pos + c;
+            pd_union.C_arcs(c_pos,Out,Left ) = pd.C_arcs(c,Out,Left ) + A_pos;
+            pd_union.C_arcs(c_pos,Out,Right) = pd.C_arcs(c,Out,Right) + A_pos;
+            pd_union.C_arcs(c_pos,In ,Left ) = pd.C_arcs(c,In ,Left ) + A_pos;
+            pd_union.C_arcs(c_pos,In ,Right) = pd.C_arcs(c,In ,Right) + A_pos;
+        }
+        pd.C_state.Write( pd_union.C_state.data(C_pos) );
+        
+        for( Int a = 0; a < pd.MaxArcCount(); ++a )
+        {
+            const Int a_pos = A_pos + a;
+            pd_union.A_cross(a_pos,Tail) = pd.A_cross(a,Tail) + C_pos;
+            pd_union.A_cross(a_pos,Head) = pd.A_cross(a,Head) + C_pos;
+        }
+        pd.A_state.Write( pd_union.A_state.data(A_pos) );
+        pd.A_color.Write( pd_union.A_color.data(A_pos) );
+    }
+    
+    PDC_T pdc_union ( std::move(pd_union) );
+
+    for( PD_T & pd : anelli )
+    {
+        pdc_union.pd_list.push_back( std::move(pd) );
+    }
+    
+    return pdc_union;
+}
+
+
+RaggedList<Int,Int> UnionArcMaps() const
+{
+    const Size_T diagram_count = Size_T(DiagramCount());
+    
+    RaggedList<Int,Int> arc_maps ( DiagramCount(), TotalMaxArcCount() );
+    
+    for( Size_T idx = 0; idx < diagram_count; ++idx )
+    {
+        mref<PD_T> pd = pd_list[idx];
+        
+        const Int A_pos = arc_maps.ElementCount();
+
+        for( Int a = 0; a < pd.MaxArcCount(); ++a )
+        {
+            arc_maps.Push( pd.ArcActiveQ(a) ? A_pos + a : Uninitialized );
+        }
+        
+        arc_maps.FinishSublist();
+    }
+
+    return arc_maps;
+}
+
+
+void AnelliToFarfalle()
+{
+    for( PD_T & pd : pd_list ) { pd.AnelloToFarfalla(); }
+}
+
+void FarfalleToAnelli()
+{
+    for( PD_T & pd : pd_list ) { pd.FarfallaToAnello(); }
+}

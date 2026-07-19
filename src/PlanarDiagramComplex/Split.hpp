@@ -17,6 +17,13 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     
     if( pd.InvalidQ() ) { return Size_T(0); }
     
+    if( pd.crossing_count <= Int(1) )
+    {
+        CreateUnlink(pd.last_color_deactivated);
+        pd = PD_T::InvalidDiagram();
+        return Size_T(1);
+    }
+    
     if( pd.proven_minimalQ )
     {
         if constexpr ( debugQ )
@@ -25,13 +32,6 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
         }
         
         pd_done.push_back( std::move(pd) );
-        pd = PD_T::InvalidDiagram();
-        return Size_T(1);
-    }
-    
-    if( pd.crossing_count <= Int(1) )
-    {
-        CreateUnlink(pd.last_color_deactivated);
         pd = PD_T::InvalidDiagram();
         return Size_T(1);
     }
@@ -83,8 +83,6 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
     const auto & lc_arcs = pd.LinkComponentArcs();
     
-    pd.C_scratch.Fill(Uninitialized);
-    
 #if defined(TENSORS_BOUND_CHECKS)
     // Use the containers to enable automatic bound checks.
     auto & dc_lc_ptr = A.Outer();
@@ -92,8 +90,12 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     
     auto & lc_arc_ptr = lc_arcs.Pointers();
     auto & lc_arc_idx = lc_arcs.Elements();
-    
-    auto & C_labels = pd.C_scratch;
+
+    #ifdef PD_ALLOCATE_SCRATCH
+        auto & C_labels = pd.C_scratch;
+    #else
+        Tensor1<Int,Int> C_labels ( pd.max_crossing_count );
+    #endif
 #else
     // Use pointers to make this potentially faster. (Well, the restrict keyword would not work anyways, as we do not funnel this through a function call.)
     cptr<Int> dc_lc_ptr = A.Outer().data();
@@ -102,9 +104,16 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
     cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
     
-    mptr<Int> C_labels = pd.C_scratch.data();
+    #ifdef PD_ALLOCATE_SCRATCH
+        mptr<Int> C_labels = pd.C_scratch.data();
+    #else
+        Tensor1<Int,Int> C_labels_buffer ( pd.max_crossing_count );
+        mptr<Int> C_labels = C_labels_buffer.data();
+    #endif
 #endif
     
+    fill_buffer( &C_labels[0], Uninitialized, pd.max_crossing_count );
+
     for( Int dc = 0; dc < dc_count; ++dc  )
     {
         const Int i_begin = dc_lc_ptr[dc    ];
@@ -140,11 +149,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
                 if constexpr (debugQ)
                 {
-                    if( a_counter >= pd_new.max_arc_count )
+                    if( a_counter >= pd_new.MaxArcCount() )
                     {
                         TOOLS_LOGDUMP(a_counter);
-                        TOOLS_LOGDUMP(pd_new.max_arc_count);
-                        pd_eprint("a_counter >= pd_new.max_arc_count");
+                        TOOLS_LOGDUMP(pd_new.MaxArcCount());
+                        pd_eprint("a_counter >= pd_new.MaxArcCount()");
                     }
                 }
                 
@@ -176,11 +185,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
 
                 if constexpr (debugQ)
                 {
-                    if( c_0_label >= pd_new.max_crossing_count )
+                    if( c_0_label >= pd_new.MaxCrossingCount() )
                     {
                         TOOLS_LOGDUMP(c_0_label);
-                        TOOLS_LOGDUMP(pd_new.max_crossing_count);
-                        pd_eprint("c_0_label >= pd_new.max_crossing_count");
+                        TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
+                        pd_eprint("c_0_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 
@@ -201,11 +210,11 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
                 
                 if constexpr (debugQ)
                 {
-                    if( c_1_label >= pd_new.max_crossing_count )
+                    if( c_1_label >= pd_new.MaxCrossingCount() )
                     {
                         TOOLS_LOGDUMP(c_1_label);
-                        TOOLS_LOGDUMP(pd_new.max_crossing_count);
-                        pd_eprint("c_1_label >= pd_new.max_crossing_count");
+                        TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
+                        pd_eprint("c_1_label >= pd_new.MaxCrossingCount()");
                     }
                 }
                 pd_new.C_arcs(c_1_label,In,side_1) = a_counter;
@@ -221,31 +230,31 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
         
         if constexpr (debugQ)
         {
-            if( pd_new.crossing_count <= Int(0) )
+            if( pd_new.CrossingCount() <= Int(0) )
             {
-                TOOLS_LOGDUMP(pd_new.crossing_count);
+                TOOLS_LOGDUMP(pd_new.CrossingCount());
                 pd_eprint("pd_new.crossing_count <= Int(0)");
             }
             
-            if( pd_new.crossing_count != pd_new.max_crossing_count )
+            if( pd_new.CrossingCount() != pd_new.max_crossing_count )
             {
-                TOOLS_LOGDUMP(pd_new.crossing_count);
-                TOOLS_LOGDUMP(pd_new.max_crossing_count);
+                TOOLS_LOGDUMP(pd_new.CrossingCount());
+                TOOLS_LOGDUMP(pd_new.MaxCrossingCount());
                 pd_eprint("pd_new.crossing_count != pd_new.max_crossing_count");
             }
             
-            if( pd_new.arc_count != pd_new.max_arc_count )
+            if( pd_new.ArcCount() != pd_new.MaxArcCount() )
             {
-                TOOLS_LOGDUMP(pd_new.arc_count);
-                TOOLS_LOGDUMP(pd_new.max_arc_count);
-                pd_eprint("pd_new.arc_count != pd_new.max_arc_count");
+                TOOLS_LOGDUMP(pd_new.ArcCount());
+                TOOLS_LOGDUMP(pd_new.MaxArcCount());
+                pd_eprint("pd_new.arc_count != pd_new.MaxArcCount()");
             }
             
-            if( pd_new.arc_count != Int(2) * pd_new.crossing_count )
+            if( pd_new.ArcCount() != Int(2) * pd_new.CrossingCount() )
             {
-                TOOLS_LOGDUMP(pd_new.arc_count);
-                TOOLS_LOGDUMP(2 * pd_new.crossing_count);
-                pd_eprint("pd_new.arc_count != Int(2) * pd_new.crossing_count");
+                TOOLS_LOGDUMP(pd_new.ArcCount());
+                TOOLS_LOGDUMP(2 * pd_new.CrossingCount());
+                pd_eprint("pd_new.ArcCount() != Int(2) * pd_new.CrossingCount()");
             }
             
             if( !pd_new.CheckAll() )
@@ -254,9 +263,9 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
             }
         }
         
-        PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.crossing_count) + " crossings.");
+        PD_PRINT(MethodName("Split") + ": Split off a diagram with " + ToString(pd_new.CrossingCount()) + " crossings.");
         
-        PD_ASSERT( pd_new.crossing_count > Int(0) );
+        PD_ASSERT( pd_new.CrossingCount() > Int(0) );
         
         if( pd_new.ValidQ() )
         {
@@ -298,4 +307,14 @@ Size_T Split()
     this->ClearCache();
     
     return split_count;
+}
+
+
+PDC_T Splitting() const
+{
+    PDC_T pdc_new (*this);
+    
+    pdc_new.Split();
+    
+    return pdc_new;
 }

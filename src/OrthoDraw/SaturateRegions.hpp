@@ -1,0 +1,748 @@
+// Book: Di Battista, Eades, Tamassia, Tollis - Graph Drawing
+// Algorithm 6.2 (p.185): Saturate-Face
+
+// Hashemi, Tahmasbi - A better heuristic for area-compaction of orthogonal representations
+
+// What the authors call _faces_ is called _regions_ here so that we do not confuse this with the faces of the planar diagram. The latter matter more to our users, so we should not confuse them!
+
+public:
+
+bool SaturateRegionsQ() const
+{
+    return settings.saturate_regionsQ;
+}
+
+void SetSaturateRegionsQ( const bool val )
+{
+    settings.saturate_regionsQ = val;
+}
+
+bool SaturateExteriorRegionQ() const
+{
+    return settings.saturate_exterior_regionQ;
+}
+
+void SetSaturateExteriorRegionQ( const bool val )
+{
+    settings.saturate_exterior_regionQ = val;
+}
+
+enum class Switch_T : UInt8
+{
+    None = 0,
+    s_S  = 4 * Tail + 2 * false + 1,
+    s_L  = 4 * Tail + 2 * true  + 1,
+    t_S  = 4 * Head + 2 * false + 1,
+    t_L  = 4 * Head + 2 * true  + 1
+};
+
+
+struct SwitchToChars
+{
+    using U = std::underlying_type_t<Switch_T>;
+    
+    static constexpr bool implementedQ = true;
+    
+    static constexpr Size_T char_count = 4;
+    
+    ToCharResult operator()( char * & begin, char * end, const Switch_T & s ) const
+    {
+        switch( s )
+        {
+            case Switch_T::s_S:  return CharArray("s_S").ToChars(begin,end);
+            case Switch_T::s_L:  return CharArray("s_L").ToChars(begin,end);
+            case Switch_T::t_S:  return CharArray("t_S").ToChars(begin,end);
+            case Switch_T::t_L:  return CharArray("t_L").ToChars(begin,end);
+            case Switch_T::None: return CharArray("None").ToChars(begin,end);
+        }
+    }
+};
+
+std::string friend ToString(  const Switch_T & s )
+{
+    switch( s )
+    {
+        case Switch_T::s_S:  return "s_S";
+        case Switch_T::s_L:  return "s_L";
+        case Switch_T::t_S:  return "s_L";
+        case Switch_T::t_L:  return "t_L";
+        case Switch_T::None: return "None";
+    }
+}
+
+
+template<bool GrQ>
+Switch_T SwitchType( const Int de ) const
+{
+    if constexpr ( GrQ )
+    {
+        return GrSwitchType(de);
+    }
+    else
+    {
+        return GlSwitchType(de);
+    }
+}
+
+private:
+
+Switch_T GlSwitchType( Int da ) const
+{
+    cptr<Turn_T> dE_turn = E_turn.data();
+    
+    auto [a,d] = FromDedge(da);
+    
+    Dir_T a_dir = E_dir[a];
+    
+    if(!d)
+    {
+        a_dir = (a_dir + Dir_T(2)) % Dir_T(4);
+    }
+    
+    if( dE_turn[da] == Turn_T(-1) )
+    {
+        if( a_dir == East )
+        {
+//              In H:               In G_l:
+//
+//                   r
+//              X-------->X         X<--------X
+//                  da    |                   ^
+//                        | db                |     (no switch)
+//                        |                   |
+//                        v                   |
+//                        X                   X
+            
+            return Switch_T::None;
+        }
+        else if( a_dir == North )
+        {
+//              In H:               In G_l:
+//                  db
+//              X-------->X     t_L X<--------X
+//              ^                   ^
+//              |                   |
+//           r  | da                |               (sink (t), (L)arge angle)
+//              |                   |
+//              X                   X
+//
+            return Switch_T::t_L;
+        }
+        else if( a_dir == West )
+        {
+//              In H:               In G_l:
+//              X                   X
+//              ^                   ^
+//              | db                |
+//              |                   |               (no switch)
+//              |   da              |
+//              X<------->X         X<--------X
+//
+//                  r
+            return Switch_T::None;
+        }
+        else if( a_dir == South )
+        {
+//              In H:               In G_l:
+//                        X                   X
+//                        |                   ^
+//                     da | r                 |
+//                        |                   |     (sourse (s), (L)arge angle)
+//                  db    v                   |
+//              X<--------X         X<--------X s_L
+
+            return Switch_T::s_L;
+        }
+        else
+        {
+            return Switch_T::None;
+        }
+    }
+    else if( dE_turn[da] == Turn_T(1) )
+    {
+        if( a_dir == East )
+        {
+//              In H:               In G_l:
+//
+//
+//                        X                   X
+//                        ^                   ^
+//                   r    | db                |     (source (s), (S)mall angle)
+//                        |                   |
+//                  da    |                s_S|
+//              X-------->X         X<--------X
+            
+            return Switch_T::s_S;
+        }
+        else if( a_dir == North )
+        {
+//              In H:               In G_l:
+//                  db
+//              X<--------X         X<--------X
+//                        ^                   ^
+//                        |                   |
+//                   r    | da                |     (no switch)
+//                        |                   |
+//                        X                   X
+//
+            return Switch_T::None;
+        }
+        else if( a_dir == West )
+        {
+//              In H:               In G_l:
+//              X<--------X         X<--------X
+//              |   da              ^t_S
+//              |                   |
+//           db |    r              |               (sink (t), (S)mall angle)
+//              v                   |
+//              X                   X
+//
+//                  r
+            return Switch_T::t_S;
+        }
+        else if( a_dir == South )
+        {
+//              In H:               In G_l:
+//              X                   X
+//              |                   ^
+//           da |    r              |
+//              |                   |               (no switch)
+//              v   db              |
+//              X-------->X         X<--------X
+
+            return Switch_T::None;
+        }
+        else
+        {
+            return Switch_T::None;
+        }
+    }
+    else if( dE_turn[da] == Turn_T(2) )
+    {
+        eprint(ClassName()+"::GlSwitchType: turn = 2; case not handled at the moment.");
+        return Switch_T::None;
+    }
+    else
+    {
+        return Switch_T::None;
+    }
+}
+
+
+Switch_T GrSwitchType( Int da ) const
+{
+    cptr<Turn_T> dE_turn = E_turn.data();
+    
+    // Int db = E_left_dE_reg.data()[da];
+    
+    auto [a,d] = FromDedge(da);
+    
+    Dir_T a_dir = E_dir[a];
+    
+    if(!d)
+    {
+        a_dir = (a_dir + Dir_T(2)) % Dir_T(4);
+    }
+    
+    if( dE_turn[da] == Turn_T(-1) )
+    {
+        if( a_dir == East )
+        {
+//              In H:               In G_r:
+//
+//                   r                         t_L
+//              X-------->X         X-------->X
+//                  da    |                   ^
+//                        | db                |     (sink (t), (L)arge angle)
+//                        |                   |
+//                        v                   |
+//                        X                   X
+            
+            return Switch_T::t_L;
+        }
+        else if( a_dir == North )
+        {
+//              In H:               In G_r:
+//                  db
+//              X-------->X         X-------->X
+//              ^                   ^
+//              |                   |
+//           r  | da                |               (no switch)
+//              |                   |
+//              X                   X
+//
+            return Switch_T::None;
+        }
+        else if( a_dir == West )
+        {
+//              In H:               In G_r:
+//              X                   X
+//              ^                   ^
+//              | db                |
+//              |                   |               (source (s), (L)arge angle)
+//              |   da              |
+//              X<------->X         X-------->X
+//                               s_L
+//                  r
+            return Switch_T::s_L;
+        }
+        else if( a_dir == South )
+        {
+//              In H:               In G_r:
+//                        X                   X
+//                        |                   ^
+//                     da | r                 |
+//                        |                   |     (no switch)
+//                  db    v                   |
+//              X<--------X         X-------->X
+
+            return Switch_T::None;
+        }
+        else
+        {
+            return Switch_T::None;
+        }
+    }
+    else if( dE_turn[da] == Turn_T(1) )
+    {
+        if( a_dir == East )
+        {
+//              In H:               In G_r:
+//
+//
+//                        X                   X
+//                        ^                   ^
+//                   r    | db                |     (no switch)
+//                        |                   |
+//                  da    |                   |
+//              X-------->X         X-------->X
+            
+            return Switch_T::None;
+        }
+        else if( a_dir == North )
+        {
+//              In H:               In G_r:
+//                  db
+//              X<--------X         X-------->X
+//                        ^                t_S^
+//                        |                   |
+//                   r    | da                |     (sink (t), (S)mall angle)
+//                        |                   |
+//                        X                   X
+//
+            return Switch_T::t_S;
+        }
+        else if( a_dir == West )
+        {
+//              In H:               In G_r:
+//              X<--------X         X<--------X
+//              |   da              ^
+//              |                   |
+//           db |    r              |               (no switch)
+//              v                   |
+//              X                   X
+//
+//                  r
+            return Switch_T::None;
+        }
+        else if( a_dir == South )
+        {
+//              In H:               In G_r:
+//              X                   X
+//              |                   ^
+//           da |    r              |
+//              |                   |               (source (s), (S)mall angle)
+//              v   db              |s_S
+//              X-------->X         X-------->X
+
+            return Switch_T::s_S;
+        }
+        else
+        {
+            return Switch_T::None;
+        }
+    }
+    else if( dE_turn[da] == Turn_T(2) )
+    {
+        eprint(ClassName()+"::GrSwitchType: turn = 2; case not handled at the moment.");
+        return Switch_T::None;
+    }
+    else
+    {
+        return Switch_T::None;
+    }
+}
+
+public:
+
+// This function exists only for debugging purposes.
+template<bool GrQ>
+RaggedList<UInt8,Int> RegionSwitchTypes()
+{
+    TOOLS_PTIMER(timer,ClassName()+"::RegionSwitchTypes<" + ToString(GrQ) + ">");
+    
+    RaggedList<UInt8,Int> F_types ( Int(2) * E_V.Dim(0), Int(2) * E_V.Dim(0) );
+
+    TraverseAllRegions(
+        []( const Int r ){ (void)r; },
+        [&F_types,this]( const Int r, const Int k, const Int de )
+        {
+            (void)r;
+            (void)k;
+            F_types.Push( ToUnderlying(SwitchType<GrQ>(de)) );
+        },
+        [&F_types]( const Int r )
+        {
+            (void)r;
+            F_types.FinishSublist();
+        },
+        false
+    );
+
+    return F_types;
+}
+
+
+template<bool GrQ, bool verboseQ = false>
+cref<EdgeContainer_T> SaturatingEdges() const
+{
+    if( !this->InCacheQ("SaturatingEdges<" + ToString(GrQ) + ">") )
+    {
+        this->template SaturateRegions<GrQ,verboseQ>();
+    }
+    
+    return this->template GetCache<EdgeContainer_T>("SaturatingEdges<" + ToString(GrQ) + ">");
+}
+
+
+template<bool GrQ, bool verboseQ = false>
+void SaturateRegions() const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::SaturateRegions<" + ToString(GrQ) + ">");
+    
+    Aggregator<std::array<Int,2>,Int> edge_agg (EdgeCount());
+    
+    // We make these buffers two steps longer to emulate a cyclic buffer.
+    Tensor1<Int,Int>      r_dE( max_face_size * Int(2) );
+    Tensor1<Switch_T,Int> r_S ( max_face_size * Int(2) );
+    
+    Int r_size = 0;
+    Int r_n = 0; // count of labels
+    
+    bool exteriorQ = false;
+    
+    TraverseAllRegions(
+        [&exteriorQ,&r_size,&r_n]( const Int r )
+        {
+            (void)r;
+            r_size = 0;
+            r_n = 0;
+            exteriorQ = false;
+        },
+        [&exteriorQ,&r_size,&r_n,&r_dE,&r_S,this](
+            const Int r, const Int k, const Int de
+        )
+        {
+            (void)r;
+            (void)k;
+            
+            exteriorQ = DedgeExteriorQ(de);
+            ++r_size;
+            
+            Switch_T s = this->template SwitchType<GrQ>(de);
+            if( s != Switch_T::None )
+            {
+                r_dE[r_n] = de;
+                r_S [r_n] = s;
+                ++r_n;
+            }
+        },
+        [&exteriorQ,&r_size,&r_n,&r_dE,&r_S,&edge_agg,this]( const Int r )
+        {
+            if( !settings.saturate_exterior_regionQ && exteriorQ ){ return; }
+            
+            // No saturating edges are needed in sufficiently small regions.
+            // BEWARE: This might exploit something specific to knot-diagrams!
+            if( settings.filter_saturating_edgesQ )
+            {
+                if( r_size <= Int(7) ) { return; }
+            }
+            
+            // Make a complete copy to emulate a cyclic list.
+            copy_buffer(&r_dE[0],&r_dE[r_n],r_n);
+            copy_buffer(&r_S [0],&r_S [r_n],r_n);
+
+            this->template SaturateRegion<GrQ,verboseQ>(r,r_dE,r_S,r_n,edge_agg);
+        },
+        false
+    );
+
+    EdgeContainer_T saturating_edges ( edge_agg.Size() );
+    saturating_edges.Read(&edge_agg[0][0]);
+    this->SetCache("SaturatingEdges<" + ToString(GrQ) + ">", std::move(saturating_edges));
+}
+
+
+// Not only do I need the saturating edges themselves.
+// I also need to know their next left edge and the edge whose next left edge they are.
+// From this I should be able to build the regions in Dv and Dh.
+
+template<bool GrQ, bool verboseQ>
+void SaturateRegion(
+    const Int                               r,
+    mref<Tensor1<Int,Int>>                  r_dE,
+    mref<Tensor1<Switch_T,Int>>             r_S,
+    mref<Int>                               r_n,
+    mref<Aggregator<std::array<Int,2>,Int>> edge_agg
+) const
+{
+    if constexpr ( !verboseQ ) { (void)r; }
+    
+    constexpr Switch_T s_L = Switch_T::s_L;
+    constexpr Switch_T t_L = Switch_T::t_L;
+    constexpr Switch_T s_S = Switch_T::s_S;
+    constexpr Switch_T t_S = Switch_T::t_S;
+    
+    if constexpr ( verboseQ )
+    {
+        valprint("region",r);
+        valprint("region size",r_n);
+
+        print( OutString::FromVector( r_dE.data(), r_n*Int(2) ) );
+
+        print( OutString::FromVector( r_S.data(), SwitchToChars(), r_n * Int(2) ) );
+    }
+        
+    bool recurseQ = false;
+    
+    auto update_buffer = [&r_n,&r_dE,&r_S]( const Int i_2 )
+    {
+        // Region has positions [0,1,2,...,i_0,i_1,i_2,...r_n + 2[, where
+        // i_1 = i_0 + 1 and i_2 = i_0 + 2.
+        //
+        // Positions i_0 and i_1 must go away.
+        
+        // First idea was this:
+        //      copy_buffer( &r_dE[i_2], &r_dE[i_0], r_n - i_0 );
+        //      copy_buffer( &r_S [i_2], &r_S [i_0], r_n - i_0 );
+        // (and then duplicated the beginning after the end).
+        
+        // Problem: We can have r_dE[0] == r_dE[i_1], i.e., we have to remove positions [1,...,i_0[ one step to the left and copy [i_2,...,i_2 + r_n - i_0[ to position i_1 instead. Or something like this.
+        // This is super error-prone, so I go for a full duplicate of the region:
+        
+        // Region has positions [0,1,2,...,i_0,i_1,i_2,...2 * r_n[.
+        
+        // We have r_dE[0] != r_dE[i_0], so i_0 <= r_n - 1.
+        // Thus, i_2 <= r_n + 1.
+        // Thus, i_2 + r_n - 2 <= 2 * r_n - 1.
+
+        // This region loses exactly two edges.
+        r_n -= Int(2);
+
+        // Take the valid part of the list and move it to the front.
+        // Since we guarantee to copy to the left, (0 < i_2), we can safely use std::copy.
+        std::copy( &r_dE[i_2], &r_dE[i_2+r_n], &r_dE[0] );
+        std::copy( &r_S [i_2], &r_S [i_2+r_n], &r_S [0] );
+
+        // Duplicate whole list to emulate cyclic buffer.
+        // We have guarantee of no overlap, so copy_buffer is safe.
+        copy_buffer( &r_dE[0], &r_dE[r_n], r_n );
+        copy_buffer( &r_S [0], &r_S [r_n], r_n );
+    };
+    
+    auto push = [&edge_agg]( const Int v_0, const Int v_1 )
+    {
+        if constexpr( verboseQ )
+        {
+            print("Pushing edge { " + ToString(v_0) + ", " + ToString(v_1) + " }.");
+        }
+        
+        edge_agg.Push({v_0,v_1});
+    };
+    
+    for( Int i_0 = 0; i_0 < r_n; ++i_0 )
+    {
+        const Int i_1 = i_0 + Int(1);
+        const Int i_2 = i_0 + Int(2);
+        
+        if( (r_S[i_0]==s_L) && (r_S[i_1]==t_S) && (r_S[i_2]==s_S) )
+        {
+            const Int de_0 = r_dE[i_2];
+            const Int de_1 = r_dE[i_0];
+            
+            const Int v_0 = E_V.data()[de_0];
+            const Int v_1 = E_V.data()[de_1];
+            
+            if constexpr( verboseQ )
+            {
+                print("Case a: {s_L,t_S,s_S}");
+                valprint("i_0",i_0);
+                print(
+                    "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
+                     "r_S[i_0] = " + ToString(r_S[i_0])
+                );
+                print(
+                    "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
+                     "r_S[i_1] = " + ToString(r_S[i_2])
+                );
+                print(
+                    "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
+                     "r_S[i_2] = " + ToString(r_S[i_2])
+                );
+            }
+            
+            if( settings.filter_saturating_edgesQ )
+            {
+                // BEWARE: Here we exploit that our orthogonal representation
+                // comes from a link diagram. Otherwise, we could have
+                // T-junctions like this:
+                //
+                //    +<--------------------------------------+
+                //    | \                                   / ^
+                //    |   \                               /   |
+                //    |     \             T             /     |
+                //    |       \           V           /       |
+                //    |         +-------->X-------->+         |
+                //    |         ^         |         |         |
+                //    |         |         |         |         |
+                //    |         |         |         |         |
+                //    v         |         |         |         |
+                //
+                // The two diagonal edges are essential, but
+                // they would be discarded by our check.
+                //
+                // Since we come from a knot diagram, the only
+                // possible T-junctions come from kitty corners and
+                // they look like this:
+                //                        ^
+                //                        |
+                //             r_0        |
+                //                        |
+                //    --------->+........>+<--------
+                //              |    e
+                //              |        r_1
+                //              |
+                //              |
+                //
+                // In particular, these T-junctions come in pairs and
+                // the one leg points to one side of the dotted edge e and
+                // the other leg points to the other side.
+                // So the maximal segment of e in region r_0 is definitely
+                // constrained.
+                
+                const bool essentialQ =
+                       DedgeUnconstrainedQ(de_0)
+                    || DedgeUnconstrainedQ(E_left_dE.data()[de_0])
+                    || DedgeUnconstrainedQ(de_1)
+                    || DedgeUnconstrainedQ(E_left_dE.data()[de_1]);
+                
+                if( essentialQ )
+                {
+                    push(v_0,v_1);
+                }
+                else
+                {
+                    if constexpr (verboseQ)
+                    {
+                        print("Discarding nonessential edge { " + ToString(v_0) + ", " + ToString(v_1) + " }.");
+                    }
+                }
+            }
+            else
+            {
+                push(v_0,v_1);
+            }
+            
+            if( r_n >= Int(4) )
+            {
+                update_buffer(i_2);
+                
+                recurseQ = true;
+                break;
+            }
+            else
+            {
+                return;
+            }
+        }
+        else if( (r_S[i_0]==t_L) && (r_S[i_1]==s_S) && (r_S[i_2]==t_S) )
+        {
+            const Int de_0 = r_dE[i_0];
+            const Int de_1 = r_dE[i_2];
+            
+            const Int v_0 = E_V.data()[de_0];
+            const Int v_1 = E_V.data()[de_1];
+            
+            if constexpr( verboseQ )
+            {
+                print("Case b: {t_L,s_S,t_S}");
+                valprint("i_0",i_0);
+                print(
+                    "r_dE[i_0] = " + ToString(r_dE[i_0]) + "; " +
+                     "r_S[i_0] = " + ToString(r_S[i_0])
+                );
+                print(
+                    "r_dE[i_1] = " + ToString(r_dE[i_1]) + "; " +
+                     "r_S[i_1] = " + ToString(r_S[i_1])
+                );
+                print(
+                    "r_dE[i_2] = " + ToString(r_dE[i_2]) + "; " +
+                     "r_S[i_2] = " + ToString(r_S[i_2])
+                );
+            }
+            
+            if( settings.filter_saturating_edgesQ )
+            {
+                // BEWARE: Here we exploit that out orthogonal representation
+                // comes from a link diagram. Otherwise, we could have
+                // dangerous T-junctions (see above).
+                
+                const bool essentialQ =
+                    DedgeUnconstrainedQ(de_0)
+                    || DedgeUnconstrainedQ(E_left_dE.data()[de_0])
+                    || DedgeUnconstrainedQ(de_1)
+                    || DedgeUnconstrainedQ(E_left_dE.data()[de_1]);
+                
+                if( essentialQ )
+                {
+                    push(v_0,v_1);
+                }
+                else
+                {
+                    if constexpr (verboseQ)
+                    {
+                        print("Discarding nonessential edge { " + ToString(v_0) + ", " + ToString(v_1) + " }.");
+                    }
+                }
+            }
+            else
+            {
+                push(v_0,v_1);
+            }
+
+            if( r_n >= Int(4) )
+            {
+                update_buffer(i_2);
+                
+                recurseQ = true;
+                break;
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+    
+    if ( recurseQ )
+    {
+        this->template SaturateRegion<GrQ,verboseQ>(r,r_dE,r_S,r_n,edge_agg);
+    }
+    else
+    {
+        if constexpr( verboseQ )
+        {
+            print(std::string("G") + (GrQ ? "r" : "l") + "Saturation of region " + ToString(r) + " completed.");
+        }
+    }
+}

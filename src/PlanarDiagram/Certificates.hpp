@@ -46,6 +46,30 @@ bool AlternatingAndLoopFreeQ() const
     return true;
 }
 
+bool IsthmusFreeQ() const
+{
+    TOOLS_PTIMER(timer,MethodName("IsthmusFreeQ"));
+    
+    auto & A_F = ArcFaces();
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        if( !CrossingActiveQ(c) ) { continue; }
+        
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
+        
+        if( (f_w == f_e) || (f_n == f_s) )
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 Tensor1<Int,Int> FindIsthmi() const
 {
     TOOLS_PTIMER(timer,MethodName("FindIsthmi"));
@@ -58,12 +82,10 @@ Tensor1<Int,Int> FindIsthmi() const
     {
         if( !CrossingActiveQ(c) ) { continue; }
         
-        const C_Arcs_T C = CopyCrossing(c);
-        
-        const Int f_w = A_F(C[Out][Left ],0);
-        const Int f_n = A_F(C[Out][Left ],1);
-        const Int f_e = A_F(C[In ][Right],1);
-        const Int f_s = A_F(C[In ][Right],0);
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
         
         if( (f_w == f_e) || (f_n == f_s) )
         {
@@ -74,4 +96,46 @@ Tensor1<Int,Int> FindIsthmi() const
     return agg.Disband();
 }
 
-// TODO: We need a function IsthmusFreeQ and ReducedQ().
+bool ReducedQ() const
+{
+    return LoopFreeQ() && IsthmusFreeQ();
+}
+
+
+bool MinimalQ() const
+{
+    return AlternatingAndLoopFreeQ() && IsthmusFreeQ();
+}
+
+bool CheckProvenMinimalQ() const
+{
+    if( proven_minimalQ )
+    {
+        PD_T pd = this->CachelessCopy();
+        
+        bool alternatingQ = AlternatingQ();
+        
+        if( !alternatingQ )
+        {
+            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not alternating.");
+        }
+        
+        bool loop_freeQ = LoopFreeQ();
+        
+        if( !loop_freeQ )
+        {
+            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not loop free.");
+        }
+        
+        bool isthmus_freeQ = IsthmusFreeQ();
+        
+        if( !isthmus_freeQ )
+        {
+            wprint(MethodName("CheckProvenMinimalQ") + ": Diagram is not isthmus free.");
+        }
+        
+        return alternatingQ && loop_freeQ && isthmus_freeQ;
+    }
+    
+    return true;
+}

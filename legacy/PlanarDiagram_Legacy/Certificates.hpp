@@ -1,0 +1,99 @@
+public:
+
+bool AlternatingQ() const
+{
+    for( Int a = 0; a < MaxArcCount(); ++a )
+    {
+        if( ArcActiveQ(a) && (ArcOverQ(a,Tail) == ArcOverQ(a,Head)) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool LoopFreeQ() const
+{
+    for( Int a = 0; a < MaxArcCount(); ++a )
+    {
+        if( ArcActiveQ(a) && (A_cross(a,Tail) == A_cross(a,Head)) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool AlternatingAndLoopFreeQ() const
+{
+    for( Int a = 0; a < MaxArcCount(); ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        
+        if( A_cross(a,Tail) == A_cross(a,Head) )
+        {
+            return false;
+        }
+        
+        if( ArcOverQ(a,Tail) == ArcOverQ(a,Head) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool IsthmusFreeQ() const
+{
+    TOOLS_PTIMER(timer,MethodName("IsthmusFreeQ"));
+    
+    auto & A_F = ArcFaces();
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        if( !CrossingActiveQ(c) ) { continue; }
+        
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
+        
+        if( (f_w == f_e) || (f_n == f_s) )
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+Tensor1<Int,Int> FindIsthmi() const
+{
+    TOOLS_PTIMER(timer,MethodName("FindIsthmi"));
+    
+    Aggregator<Int,Int> agg (1);
+    
+    auto & A_F = ArcFaces();
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        if( !CrossingActiveQ(c) ) { continue; }
+        
+        const Int f_w = A_F(C_arcs(c,Out,Left ),0);
+        const Int f_n = A_F(C_arcs(c,Out,Left ),1);
+        const Int f_e = A_F(C_arcs(c,In ,Right),1);
+        const Int f_s = A_F(C_arcs(c,In ,Right),0);
+        
+        if( (f_w == f_e) || (f_n == f_s) )
+        {
+            agg.Push(c);
+        }
+    }
+    
+    return agg.Disband();
+}
+
+// TODO: We need a function IsthmusFreeQ and ReducedQ().

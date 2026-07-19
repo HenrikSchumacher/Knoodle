@@ -20,16 +20,13 @@ namespace Knoodle
      */
     
     template<
-        typename Real_     = double,
-        typename Int_      = Int64,
+        FloatQ Real_       = double,
+        IntQ Int_          = Int64,
         typename Prng_T_   = Knoodle::PRNG_T,
         bool progressiveQ_ = true
     >
     class ActionAngleSampler
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real   = Real_;
@@ -41,9 +38,9 @@ namespace Knoodle
         
         struct Arg_T
         {
-            bool wrap_aroundQ     = false;
-            bool random_rotationQ = true;
-            bool centralizeQ      = true;
+            bool wrap_aroundQ   = false;
+            bool rotate_randomQ = true;
+            bool centralizeQ    = true;
         };
         
         using Vector_T = Tensors::Tiny::Vector<AmbDim,Real,Int>;
@@ -73,112 +70,13 @@ namespace Knoodle
         
         static constexpr Size_T max_trials = 1'000'000'000;
         
-    public:
-        
-        /*! @brief Generates a single closed, equilateral random polygon.
-         *
-         *  This is a port of the routine `plc_random_equilateral_closed_polygon` from the C library [plCurve](https://jasoncantarella.com/wordpress/software/plcurve) by Ted Ashton, Jason Cantarella, Harrison Chapman, and Tom Eddy.
-         *
-         *  @param p Buffer for vertex positions; assumed to be of size `(n + wrap_aroundQ) * 3`. Coordinates are stored in interleaved form, i.e. the coordinates of each vertex lie contiguously in memory.
-         *
-         *  @param n Number of edges.
-         *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.random_rotationQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
-         */
-        
-        Int WriteRandomEquilateralPolygon( mptr<Real> p, const Int n, cref<Arg_T> args )
-        {
-            TOOLS_PTIMER(timer,MethodName("WriteRandomEquilateralPolygon"));
-            
-            if( args.wrap_aroundQ )
-            {
-                if( args.random_rotationQ )
-                {
-                    if( args.centralizeQ )
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = true
-                        }>(p,n);
-                    }
-                    else // if( !args.centralizeQ )
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = false
-                        }>(p,n);
-                    }
-                }
-                else // if( !args.random_rotationQ )
-                {
-                    if( args.centralizeQ )
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = true
-                        }>(p,n);
-                    }
-                    else
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = false
-                        }>(p,n);
-                    }
-                }
-            }
-            else // if( !args.wrap_aroundQ )
-            {
-                if( args.random_rotationQ )
-                {
-                    if( args.centralizeQ )
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = true
-                        }>(p,n);
-                    }
-                    else
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = false
-                        }>(p,n);
-                    }
-                }
-                else // if( !args.random_rotationQ )
-                {
-                    if( args.centralizeQ )
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = true
-                        }>(p,n);
-                    }
-                    else
-                    {
-                        return this->template WriteRandomEquilateralPolygon_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = false
-                        }>(p,n);
-                    }
-                }
-            }
-        }
-        
     private:
         
         template<Arg_T args>
-        Int WriteRandomEquilateralPolygon_impl( mptr<Real> p, const Int n )
+        Size_T WriteRandomEquilateralPolygon_impl( mptr<Real> p, const Int n )
         {
+            TOOLS_MAKE_FP_FAST();
+            
             // We use the user-supplied buffer as scratch space for the diagonal lengths d.
             // We need n-1 entries.
             // We have at least 3 * n space at disposal.
@@ -242,10 +140,7 @@ namespace Knoodle
                         // Check condition (5).
                         rejectedQ = d[i-1] + d[i] < Real(1);
                         
-                        if( rejectedQ )
-                        {
-                            break;
-                        }
+                        if( rejectedQ ) { break; }
                     }
                 }
                 else
@@ -285,7 +180,7 @@ namespace Knoodle
             // Some buffer for the cross product in Rodrigues' formula.
             Vector_T v;
             
-            if constexpr ( args.random_rotationQ )
+            if constexpr ( args.rotate_randomQ )
             {
                 Real squared_norm;
                 do
@@ -419,18 +314,12 @@ namespace Knoodle
                 c /= Real(n);
                 // Now c contains the center of mass.
                 
-                for( Int i = 0; i < n; ++i )
+                // Do it backwards to exploit that some of the memory is still "warm".
+                for( Int i = n + args.wrap_aroundQ; i --> Int(0); )
                 {
                     p[3 * i + 0] -= c[0];
                     p[3 * i + 1] -= c[1];
                     p[3 * i + 2] -= c[2];
-                }
-                
-                if constexpr ( args.wrap_aroundQ )
-                {
-                    p[3 * n + 0] = -c[0];
-                    p[3 * n + 1] = -c[1];
-                    p[3 * n + 2] = -c[2];
                 }
             }
             
@@ -451,132 +340,194 @@ namespace Knoodle
          *
          * @param m Number of samples to generate.
          *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.random_rotationQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          *
-         * @param thread_count Number of threads to use. Best practice is to set this to the number of performance cores on your system.
          */
         
-        Int WriteRandomEquilateralPolygons(
-            mptr<Real> p, const Int m, const Int n, cref<Arg_T> args, Int thread_count = 1
+        Size_T WriteRandomEquilateralPolygons(
+            mptr<Real> p, const Int m, const Int n, cref<Arg_T> args
         )
         {
             TOOLS_PTIMER(timer,MethodName("WriteRandomEquilateralPolygons"));
             
             if( args.wrap_aroundQ )
             {
-                if( args.random_rotationQ )
+                if( args.rotate_randomQ )
                 {
                     if( args.centralizeQ )
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = true
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = true,
+                            .rotate_randomQ = true,
+                            .centralizeQ    = true
+                        }>(p,m,n);
                     }
                     else // if( !args.centralizeQ )
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = false
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = true,
+                            .rotate_randomQ = true,
+                            .centralizeQ    = false
+                        }>(p,m,n);
                     }
                 }
-                else // if( !args.random_rotationQ )
+                else // if( !args.rotate_randomQ )
                 {
                     if( args.centralizeQ )
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = true
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = true,
+                            .rotate_randomQ = false,
+                            .centralizeQ    = true
+                        }>(p,m,n);
                     }
                     else
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = true,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = false
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = true,
+                            .rotate_randomQ = false,
+                            .centralizeQ    = false
+                        }>(p,m,n);
                     }
                 }
             }
             else // if( !args.wrap_aroundQ )
             {
-                if( args.random_rotationQ )
+                if( args.rotate_randomQ )
                 {
                     if( args.centralizeQ )
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = true
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = false,
+                            .rotate_randomQ = true,
+                            .centralizeQ    = true
+                        }>(p,m,n);
                     }
                     else
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = true,
-                            .centralizeQ         = false
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = false,
+                            .rotate_randomQ = true,
+                            .centralizeQ    = false
+                        }>(p,m,n);
                     }
                 }
-                else // if( !args.random_rotationQ )
+                else // if( !args.rotate_randomQ )
                 {
                     if( args.centralizeQ )
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = true
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = false,
+                            .rotate_randomQ = false,
+                            .centralizeQ    = true
+                        }>(p,m,n);
                     }
                     else
                     {
                         return this->template WriteRandomEquilateralPolygons_impl<{
-                            .wrap_aroundQ        = false,
-                            .random_rotationQ    = false,
-                            .centralizeQ         = false
-                        }>(p,m,n,thread_count);
+                            .wrap_aroundQ   = false,
+                            .rotate_randomQ = false,
+                            .centralizeQ    = false
+                        }>(p,m,n);
                     }
                 }
             }
+        }
+        
+        
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
+        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+            cptr<Real2> component_centers,
+            cptr<Int2>  edge_counts,
+            const Int2  component_count
+        )
+        {
+            Tensor1<Int2,Int2> colors ( component_count );
+            Tensor1<Int2,Int2> component_ptr( component_count + Int(1) );
+            component_ptr[0] = 0;
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                colors[lc] = lc;
+                component_ptr[lc+1] = component_ptr[lc] + edge_counts[lc];
+            }
+            
+            Tensor2<Real2,Int2> v( component_ptr[component_count], Int2(3) );
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                const Int i_begin = component_ptr[lc    ];
+                const Int i_end   = component_ptr[lc + 1];
+                
+                WriteRandomEquilateralPolygon(
+                    v.data(i_begin), edge_counts[lc], {.wrap_aroundQ = false}
+                );
+                
+                if( component_centers != nullptr )
+                {
+                    Tiny::Vector<3,Real2,Int2> center ( &component_centers[Int2(3) * lc] );
+                    
+                    for( Int i = i_begin; i < i_end; ++i )
+                    {
+                        v(i,0) += center[0];
+                        v(i,1) += center[1];
+                        v(i,2) += center[2];
+                    }
+                }
+            }
+
+            LinkEmbedding<Real2,Int2,BReal2> L( std::move(component_ptr), std::move(colors) );
+            
+            L.ReadVertexCoordinates(v.data());
+            
+            return L;
+        }
+        
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
+        LinkEmbedding<Real2,Int2,BReal2> RandomEquilateralLink(
+            const Int component_count, const Int edge_count
+        )
+        {
+            Knoodle::Tensor1<Int,Int> edge_counts(component_count);
+            for( Int lc = 0; lc < component_count; ++lc )
+            {
+                edge_counts[lc] = edge_count;
+            }
+            
+            // We add zero vectors here. There should be more efficient ways to do this.
+            return RandomEquilateralLink<Real2,Int2,BReal2>(nullptr,edge_counts.data(),component_count);
+        }
+        
+    public:
+        
+        /*! @brief Generates a single closed, equilateral random polygon.
+         *
+         *  This is a port of the routine `plc_random_equilateral_closed_polygon` from the C library [plCurve](https://jasoncantarella.com/wordpress/software/plcurve) by Ted Ashton, Jason Cantarella, Harrison Chapman, and Tom Eddy.
+         *
+         *  @param p Buffer for vertex positions; assumed to be of size `(n + wrap_aroundQ) * 3`. Coordinates are stored in interleaved form, i.e. the coordinates of each vertex lie contiguously in memory.
+         *
+         *  @param n Number of edges.
+         *
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         */
+        
+        Size_T WriteRandomEquilateralPolygon( mptr<Real> p, const Int n, cref<Arg_T> args )
+        {
+            return WriteRandomEquilateralPolygons( p, Int(1), n, args );
         }
             
     private:
         
         template<Arg_T args>
-        Int WriteRandomEquilateralPolygons_impl(
-            mptr<Real> p, const Int m, const Int n, const Int thread_count
-        )
+        Size_T WriteRandomEquilateralPolygons_impl( mptr<Real> p, const Int m, const Int n )
         {
-            const Int trials = ParallelDoReduce(
-                [=]( const Int thread) -> Int
-                {
-                    const Int k_begin = JobPointer( m, thread_count, thread     );
-                    const Int k_end   = JobPointer( m, thread_count, thread + 1 );
-                    
-                    // Create a new instance of the class with its own random number generator.
-                    ActionAngleSampler C;
-                
-                    Int trials = 0;
-                    
-                    const Int step = AmbDim * (n + args.wrap_aroundQ);
-                    
-                    for( Int k = k_begin; k < k_end; ++k )
-                    {
-                        trials += C.template WriteRandomEquilateralPolygon_impl<args>(&p[step * k], n);
-                    }
-                    
-                    return trials;
-                },
-                AddReducer<Int,Int>(),
-                Scalar::Zero<Int>,
-                thread_count
-            );
+            Size_T trials = 0;
+            const Int step = AmbDim * (n + args.wrap_aroundQ);
+            
+            for( Int k = 0; k < m; ++ k )
+            {
+                trials += this->template WriteRandomEquilateralPolygon_impl<args>(&p[step * k], n);
+            }
 
             return trials;
         }

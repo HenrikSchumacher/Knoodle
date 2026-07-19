@@ -1,6 +1,7 @@
 private:
 
-/*! @brief Checks whether crossing `c` is active. In the affirmative case it to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, and (iii) deactivating the crossing `c`; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
+/*! @brief Checks whether crossing `c` is active. In the affirmative case it tries to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, and (iii) deactivating the crossing `c`; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
+ *  Since PlanarDiagram cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
  *
  * @param c The crossing to be resolved.
  *
@@ -35,8 +36,13 @@ bool ResolveCrossing_Private( const Int c )
         
         if( e_0 == e_2 )
         {
-            ++unlink_count;
-            DeactivateArc(e_0);
+//            ++unlink_count;
+//            DeactivateArc(e_0);
+            if constexpr( warningQ )
+            {
+                wprint(MethodName("") +": This procedure would create a trivial, disconnected unlink. Aborting.");
+            }
+            return false;
         }
         else
         {
@@ -45,8 +51,13 @@ bool ResolveCrossing_Private( const Int c )
         
         if( e_1 == e_3 )
         {
-            ++unlink_count;
-            DeactivateArc(e_1);
+//            ++unlink_count;
+//            DeactivateArc(e_1);
+            if constexpr( warningQ )
+            {
+                wprint(MethodName("") +": This procedure would create a trivial, disconnected unlink. Aborting.");
+            }
+            return false;
         }
         else
         {
@@ -76,7 +87,7 @@ bool ResolveCrossing_Private( const Int c )
     {
         if constexpr ( warningQ )
         {
-            wprint(ClassName()+"::ResolveCrossing_Private: Crossing " + CrossingString(c) + " was already deactivated.");
+            wprint(MethodName("ResolveCrossing_Private")+": Crossing " + CrossingString(c) + " was already deactivated.");
         }
         return false;
     }
@@ -86,7 +97,8 @@ bool ResolveCrossing_Private( const Int c )
 public:
 
 /*! @brief Checks whether crossing `c` is active. In the affirmative case it to resolves the crossing in an orientation-preserving way by (i) reconnecting the two incoming arcs to the corresponding tips of the outgoing arcs, (ii) deactivating the old outgoing arcs, (iii) deactivating the crossing `c`, and (iv)  clearing the internal cache; the return value will be `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
- * _Use this with extreme caution as this might invalidate some invariants of the PlanarDiagram class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
+ *  Since PlanarDiagram cannot handle trivial unlinks disconnected from the rest, the routine will also fail if this surgery ever leads to such trivial unlink.
+ *  _Use this with extreme caution as this might invalidate some invariants of the `PlanarDiagram` class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
  *
  * @param c The crossing to be resolved.
  *
@@ -98,10 +110,7 @@ bool ResolveCrossing( const Int c )
 {
     bool changedQ = this->template ResolveCrossing_Private<warningQ>(c);
     
-    if( changedQ )
-    {
-        this->ClearCache();
-    }
+    if( changedQ ) { this->ClearCache(); }
     
     return changedQ;
 }

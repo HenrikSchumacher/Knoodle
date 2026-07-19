@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Real_, typename Int_>
+    template<FloatQ Real_, IntQ Int_>
     class alignas( ObjectAlignment ) LinearHomotopy_3D final
     {
         
@@ -78,9 +78,6 @@ namespace Knoodle
         };
         
     protected:
-        
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
         
         cref<Link_T> L;
         

@@ -1,0 +1,361 @@
+#pragma once
+
+#ifdef KNOODLE_USE_UMFPACK
+#include "../submodules/Tensors/UMFPACK.hpp"
+#endif
+
+#ifdef KNOODLE_USE_CLP
+#include "../submodules/Tensors/Clp.hpp"
+#endif
+
+// For this, the user has to put the following directories onto the search path:
+//      "../submodules/Min-Cost-Flow-Class/OPTUtils/",
+//      "../submodules/Min-Cost-Flow-Class/MCFClass/",
+//      "../submodules/Min-Cost-Flow-Class/MCFSimplex/
+//#include "OrthoDraw.hpp"
+
+namespace Knoodle
+{
+    // TODO: Only process _active_ crossings and _active_ arcs!
+    // TODO: Add type checks everywhere.
+    
+    template<FloatQ Real_ = Real64, IntQ Int_ = Int64>
+    class Reapr_Legacy
+    {
+    public:
+        
+        using Real                = Real_;
+        using Int                 = Int_;
+
+#ifdef KNOODLE_USE_UMFPACK
+        using UMF_Int             = Int64;
+#endif
+        
+#ifdef KNOODLE_USE_CLP
+        using COIN_Real           = double;
+        using COIN_Int            = int;
+        using COIN_LInt           = CoinBigIndex;
+        static constexpr bool CLP_enabledQ = true;
+#else
+        static constexpr bool CLP_enabledQ = false;
+#endif
+        
+//        using Link_T              = Link_2D<Real,Int>;
+        using Link_T              = LinkEmbedding<Real,Int>;
+        using PD_T                = PlanarDiagram_Legacy<Int>;
+        using Point_T             = std::array<Real,3>;
+        using OrthoDraw_T         = OrthoDraw<PD_T>;
+        using OrthoDrawSettings_T = OrthoDraw_T::Settings_T;
+        using Embedding_T         = RaggedList<Point_T,Int>;
+
+        
+        using PRNG_T              = Knoodle::PRNG_T;
+        using Flag_T              = Scalar::Flag;
+        
+
+        enum class EnergyFlag_T : Int32
+        {
+            TV        = 0,
+            Dirichlet = 1,
+            Bending   = 2,
+            Height    = 3,
+            TV_CLP    = 4,
+            TV_MCF    = 5
+        };
+        
+        friend std::string ToString( EnergyFlag_T e )
+        {
+            switch(e)
+            {
+                case EnergyFlag_T::TV:        return "TV";
+                case EnergyFlag_T::Dirichlet: return "Dirichlet";
+                case EnergyFlag_T::Bending:   return "Bending";
+                case EnergyFlag_T::Height:    return "Height";
+                case EnergyFlag_T::TV_CLP:    return "TV_CLP";
+                case EnergyFlag_T::TV_MCF:    return "TV_MCF";
+                default:                      return "Unknown";
+            }
+        }
+
+        static constexpr Real jump = 1;
+
+    private:
+        
+        Real   scaling             = Real(1);
+        Real   dirichlet_reg       = Real(0.00001);
+        Real   bending_reg         = Real(0.00001);
+        Real   backtracking_factor = Real(0.25);
+        Real   armijo_slope        = Real(0.001);
+        Real   tolerance           = Real(0.00000001);
+        Size_T SSN_max_b_iter      = 20;
+        Size_T SSN_max_iter        = 1000;
+        Size_T SSN_iter            = 0;
+                
+        Real initial_time_step   = Real(1.0) / backtracking_factor;
+        
+        EnergyFlag_T en_flag     = EnergyFlag_T::TV;
+        
+        
+        bool permute_randomQ     = true;
+        OrthoDrawSettings_T ortho_draw_settings = {
+            .randomize_bends  = 4,
+            .randomize_virtual_edgesQ = true
+        };
+        
+        Size_T rattle_counter      = 0;
+        Real   rattle_timing       = 0;
+        
+        mutable PRNG_T random_engine { InitializedRandomEngine<PRNG_T>() };
+        
+    public:
+        
+        void Reseed()
+        {
+            random_engine = InitializedRandomEngine<PRNG_T>();
+        }
+        
+        void SetEnergyFlag( EnergyFlag_T flag )
+        {
+            en_flag = flag;
+        }
+
+        EnergyFlag_T EnergyFlag() const { return en_flag; }
+        
+        
+        Real Scaling() const { return scaling; }
+        
+        void SetScaling( Real val ) { scaling = val; }
+        
+        
+        bool PermuteRandomQ() const { return permute_randomQ; }
+        
+        void SetPermuteRandomQ( bool val ) { permute_randomQ = val; }
+
+        mref<OrthoDrawSettings_T> OrthoDrawSettings()
+        {
+            return ortho_draw_settings;
+        }
+        
+        cref<OrthoDrawSettings_T> OrthoDrawSettings() const
+        {
+            return ortho_draw_settings;
+        }
+        
+        void SetOrthoDrawSettings( OrthoDrawSettings_T & val )
+        {
+            ortho_draw_settings = val;
+        }
+        void SetOrthoDrawSettings( cref<OrthoDrawSettings_T> val )
+        {
+            ortho_draw_settings = val;
+        }
+        
+        
+    private:
+        
+        EnergyFlag_T EnergyFlag( mref<PD_T> pd ) const
+        {
+            const std::string tag = MethodName("EnergyFlag");
+            
+            return pd.GetCache(tag);
+        }
+        
+        bool EnergyFlagOutdatedQ( cref<PD_T> pd ) const
+        {
+            return EnergyFlag(pd) != en_flag;
+        }
+        
+        void SetEnergyFlag( mref<PD_T> pd )
+        {
+            const std::string tag = MethodName("EnergyFlag");
+            
+            return pd.SetCache(tag,en_flag);
+        }
+        
+        // TODO: Do we want more get-setters?
+        
+    public:
+        
+        void WriteFeasibleLevels( cref<PD_T> pd, mptr<Real> x )
+        {
+            
+            constexpr bool Tail  = PD_T::Tail;
+//            constexpr bool Head  = PD_T::Head;
+
+            constexpr bool Out   = PD_T::Out;
+//            constexpr bool In    = PD_T::In;
+            
+            constexpr bool Left  = PD_T::Left;
+            constexpr bool Right = PD_T::Right;
+            
+            const Int m        = pd.ArcCount();
+            auto & C_arcs      = pd.Crossings();
+            auto & A_cross     = pd.Arcs();
+            
+            const auto & lc_arcs  = pd.LinkComponentArcs();
+            const Int lc_count  = lc_arcs.SublistCount();
+            cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+//
+            Tensor1<bool,Int> visitedQ ( m, false );
+
+            // TODO: We need a feasible initialization of x!
+            
+            Real level = 0;
+            Int a      = 0;
+            Int b      = 0;
+            Real sign  = 1;
+            
+            for( Int lc = 0; lc < lc_count; ++lc )
+            {
+                const Int a_begin = lc_arc_ptr[lc         ];
+                const Int a_end   = lc_arc_ptr[lc + Int(1)];
+                
+                a = a_begin;
+                
+                // TODO: This might not work for multi-component links.
+                for( Int i = a_begin; i < a_end; ++i )
+                {
+                    Int c = A_cross(a,Tail);
+                    
+                    visitedQ[a] = true;
+                    
+                    Int a_0 = C_arcs(c,Out,Left );
+                    Int a_1 = C_arcs(c,Out,Right);
+                    
+                    if( a == a_0 )
+                    {
+                        b = a_1;
+                        sign =  Real(2);
+                    }
+                    else
+                    {
+                        b = a_0;
+                        sign = -Real(2);
+                    }
+                    
+                    if( visitedQ[b] )
+                    {
+                        level = x[b] + ( pd.CrossingLeftHandedQ(c) ? sign : -sign );
+                    }
+                    
+                    x[a] = level;
+                 
+                    a = pd.NextArc(a,PD_T::Head);
+                }
+            }
+        }
+
+#include "Reapr_Legacy/DirichletHessian.hpp"
+#include "Reapr_Legacy/BendingHessian.hpp"
+#include "Reapr_Legacy/LevelsConstraintMatrix.hpp"
+        
+#ifdef KNOODLE_USE_UMFPACK
+    #include "Reapr_Legacy/LevelsQP_SSN.hpp"
+#endif
+        
+#ifdef KNOODLE_USE_CLP
+    #include "Reapr_Legacy/LevelsLP_CLP.hpp"
+#endif
+        
+#include "Reapr_Legacy/LevelsLP_MCF.hpp"
+#include "Reapr_Legacy/LevelsMinHeight.hpp"
+#include "Reapr_Legacy/Embedding.hpp"
+#include "Reapr_Legacy/RandomRotation.hpp"
+#include "Reapr_Legacy/Rattle.hpp"
+#include "Reapr_Legacy/Generate.hpp"
+        
+    public:
+        
+        template<typename R = Real, typename I = Int, typename J = Int>
+        Sparse::MatrixCSR<R,I,J,Sequential> Hessian( cref<PD_T> pd ) const
+        {
+            switch ( en_flag )
+            {
+                case EnergyFlag_T::Bending:
+                {
+                    return this->BendingHessian<R,I,J>(pd);
+                }
+                case EnergyFlag_T::Dirichlet:
+                {
+                    return this->DirichletHessian<R,I,J>(pd);
+                }
+                default:
+                {
+                    wprint(MethodName("Hessian")+": Energy flag " + ToString(en_flag) + " is unknown or invalid for Hessian. Returning empty matrix");
+                    
+                    return Sparse::MatrixCSR<R,I,J,Sequential>();
+                }
+            }
+        }
+        
+        Tensor1<Real,Int> Levels( cref<PD_T> pd )
+        {
+            switch ( en_flag )
+            {
+                case EnergyFlag_T::TV:
+                {
+                    return LevelsLP_MCF(pd);
+                }
+                case EnergyFlag_T::TV_CLP:
+                {
+#ifdef KNOODLE_USE_CLP
+                    return LevelsLP_CLP(pd);
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::TV_CLP is only supported if compiled with Coin-or CLP support, which is deactivated. Using default (EnergyFlag_T::TV) instead. (No worries, it solves the same problem, but faster.)");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_CLP
+                }
+                case EnergyFlag_T::TV_MCF:
+                {
+                    return LevelsLP_MCF(pd);
+                }
+                case EnergyFlag_T::Bending:
+                {
+#ifdef KNOODLE_USE_UMFPACK
+                    return LevelsQP_SSN(pd);
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::Bending is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_UMFPACK
+                }
+                case EnergyFlag_T::Dirichlet:
+                {
+#ifdef KNOODLE_USE_UMFPACK
+                    return LevelsQP_SSN(pd);
+#else
+                    wprint(ClassName() + "(): EnergyFlag_T::Dirichlet is only supported if compiled with UMFPACK support, which is deactivated. Using default (EnergyFlag_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+#endif // KNOODLE_USE_UMFPACK
+                }
+                case EnergyFlag_T::Height:
+                {
+                    return LevelsMinHeight(pd);
+                }
+                default:
+                {
+                    wprint(ClassName() + "(): Unknown or unsupported energy flag " + ToString(en_flag) + ". Using default (EnergyFlag_T::TV) instead.");
+                    return LevelsLP_MCF(pd);
+                }
+            }
+        }
+        
+        
+    public:
+        
+        static std::string MethodName( const std::string & tag )
+        {
+            return ClassName() + "::" + tag;
+        }
+        
+        static std::string ClassName()
+        {
+            return std::string("Reapr_Legacy")
+            + "<" + TypeName<Real>
+            + "," + TypeName<Int>
+            + "," + TypeName<CodeInt>
+            + ">";
+        }
+        
+    }; // class Reapr_Legacy
+
+} // namespace Knoodle

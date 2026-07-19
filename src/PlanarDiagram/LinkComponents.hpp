@@ -3,6 +3,7 @@ public:
 Int LinkComponentCount() const
 {
     const std::string tag = "LinkComponentCount";
+//    TOOLS_PTIMER(timer,MethodName(tag));
     if(!this->InCacheQ(tag)){ ComputeLinkComponents(); }
     return this->template GetCache<Int>(tag);
 }
@@ -64,7 +65,6 @@ Int ArcDistance( const Int a_0, const Int a_1 ) const
     }
 }
 
-
 void RequireLinkComponents() const
 {
     if(
@@ -101,17 +101,18 @@ void ComputeLinkComponents() const
     // where c_0_visitedQ is true if c_0 is visited as tail for the second time
     // and   c_1_visitedQ is true if c_1 is visited as head for the second time.
     
-    ArcContainer_T      A_flags ( ArcCount() );
+    ArcContainer_T   A_flags ( ArcCount() );
     
     // Maybe not required, but it would be nice if each arc can tell in which component it lies.
-    Tensor1<Int,Int>    A_lc    ( max_arc_count, Uninitialized );
+    Tensor1<Int,Int> A_lc    ( max_arc_count, Uninitialized );
     
     // Also, each arc should know its position within the lc_arcs.
-    Tensor1<Int,Int>    A_pos   ( max_arc_count, Uninitialized );
+    Tensor1<Int,Int> A_pos   ( max_arc_count, Uninitialized );
     
-    this->template Traverse<true,false,0>(
-        []( const Int lc, const Int lc_begin )
+    this->template Traverse_ByNextArc<true,false,0>(
+        []( const Int a, const Int lc, const Int lc_begin )
         {
+            (void)a;
             (void)lc;
             (void)lc_begin;
         },
@@ -124,6 +125,8 @@ void ComputeLinkComponents() const
             (void)c_0;
             (void)c_1;
             
+            PD_ASSERT(a < A_lc.Dim(0));
+            PD_ASSERT(a_label < A_flags.Dim(0));
             A_lc[a]  = lc;
             A_pos[a] = a_label;
             lc_arcs.Push(a);
@@ -147,55 +150,54 @@ void ComputeLinkComponents() const
 }
 
 
-public:
 
-// TODO: Maybe this is redundant?
-template<typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T>
-void TraverseLinkComponentsWithCrossings(
-    LinkCompPre_T  && lc_pre,
-    ArcFun_T       && arc_fun,
-    LinkCompPost_T && lc_post
-) const
-{
-    if( !ValidQ() )
-    {
-        eprint(ClassName() + "TraverseLinkComponentsWithCrossings:: Trying to traverse an invalid PlanarDiagram. Aborting.");
-        return;
-    }
 
-    Int a_counter = 0;
-
-    const auto & lc_arcs = LinkComponentArcs();
-    const Int lc_count   = lc_arcs.SublistCount();
-    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
-    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
-    cptr<Int> A_flags    = ArcTraversalFlags().data();
-     
-    for( Int lc = 0; lc < lc_count; ++lc )
-    {
-        const Int k_begin = lc_arc_ptr[lc  ];
-        const Int k_end   = lc_arc_ptr[lc+1];
-
-        lc_pre( lc, lc_arc_idx[k_begin] );
-
-        for( Int k = k_begin; k < k_end; ++k )
-        {
-            const Int a_pos = a_counter++;
-            const Int a     = lc_arc_idx[k];
-            
-            const Int c_0 = A_cross(a,Tail);
-            const Int c_1 = A_cross(a,Head);
-
-            const Int flag_0 = A_flags[Int(2) * a + Int(0)];
-            const Int flag_1 = A_flags[Int(2) * a + Int(1)];
-            
-            arc_fun(
-                a, a_pos, lc,
-                c_0, (flag_0 >> 1), flag_0 & Int(1),
-                c_1, (flag_1 >> 1), flag_1 & Int(1)
-            );
-        }
-
-        lc_post( lc, lc_arc_idx[k_begin], lc_arc_idx[k_end] );
-    }
-}
+//template<typename LinkCompPre_T, typename ArcFun_T, typename LinkCompPost_T>
+//void TraverseLinkComponentsWithCrossings(
+//    LinkCompPre_T  && lc_pre,
+//    ArcFun_T       && arc_fun,
+//    LinkCompPost_T && lc_post
+//) const
+//{
+//    if( !ValidQ() )
+//    {
+//        eprint(MethodName("TraverseLinkComponentsWithCrossings") + ": Trying to traverse an invalid planar diagram. Aborting.");
+//        return;
+//    }
+//
+//    Int a_counter = 0;
+//
+//    const auto & lc_arcs = LinkComponentArcs();
+//    const Int lc_count   = lc_arcs.SublistCount();
+//    cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
+//    cptr<Int> lc_arc_idx = lc_arcs.Elements().data();
+//    cptr<Int> A_flags    = ArcTraversalFlags().data();
+//     
+//    for( Int lc = 0; lc < lc_count; ++lc )
+//    {
+//        const Int k_begin = lc_arc_ptr[lc  ];
+//        const Int k_end   = lc_arc_ptr[lc+1];
+//
+//        lc_pre( a, lc, lc_arc_idx[k_begin] );
+//
+//        for( Int k = k_begin; k < k_end; ++k )
+//        {
+//            const Int a_pos = a_counter++;
+//            const Int a     = lc_arc_idx[k];
+//            
+//            const Int c_0 = A_cross(a,Tail);
+//            const Int c_1 = A_cross(a,Head);
+//
+//            const Int flag_0 = A_flags[Int(2) * a + Int(0)];
+//            const Int flag_1 = A_flags[Int(2) * a + Int(1)];
+//            
+//            arc_fun(
+//                a, a_pos, lc,
+//                c_0, (flag_0 >> 1), flag_0 & Int(1),
+//                c_1, (flag_1 >> 1), flag_1 & Int(1)
+//            );
+//        }
+//
+//        lc_post( lc, lc_arc_idx[k_begin], lc_arc_idx[k_end] );
+//    }
+//}

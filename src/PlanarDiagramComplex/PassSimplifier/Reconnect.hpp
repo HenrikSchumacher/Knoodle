@@ -1,0 +1,150 @@
+private:
+
+template<bool headtail, bool deactivateQ = true>
+void Reconnect( const Int a, const Int b )
+{
+#ifdef PD_DEBUG
+    std::string tag  (MethodName("Reconnect")+"<" + (headtail ? "Head" : "Tail") +  ", " + BoolString(deactivateQ) + ">( " + ArcString(a) + ", " + ArcString(b) + " )" );
+#endif
+    
+//    PD_TIMER(timer,tag);
+    PD_PRINT(tag);
+    PD_ASSERT(a != b);
+    PD_ASSERT( ArcActiveQ(a) );
+    
+#ifdef PD_DEBUG
+    if( pd->A_color[a] != pd->A_color[b] )
+    {
+        wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+        TOOLS_LOGDUMP(ArcString(a));
+        TOOLS_LOGDUMP(ArcString(b));
+    }
+#endif
+    
+    const Int c = pd->A_cross(b,headtail);
+
+    const bool side = (pd->C_arcs(c,headtail,Right) == b);
+
+    /*! If headtail == Head && side == Right
+     *
+     *         ^       ^
+     *          \     /
+     *           \   /
+     *            \ /
+     *             X <----c
+     *            ^ ^
+     *           /   \  a
+     *          /     \
+     *         /       \
+     *
+     * da_left  = ToDarc(pd->C_arcs(c,In ,Left ),Tail)
+     * da_revr  = ToDarc(pd->C_arcs(c,Out,Right),Tail)
+     */
+    
+    /*! If headtail == Head && side == Left
+     *
+     *         ^       ^
+     *          \     /
+     *           \   /
+     *            \ /
+     *             X <----c
+     *            ^ ^
+     *        a  /   \
+     *          /     \
+     *         /       \
+     *
+     * da_left = ToDarc(pd->C_arcs(c,Out,Left ),Head)
+     * da_revr = ToDarc(pd->C_arcs(c,In ,Right),Head)
+     */
+    
+    /*! If headtail == Tail && side == Right
+     *
+     *         ^       ^
+     *          \     /
+     *           \   / a
+     *            \ /
+     *             X <----c
+     *            ^ ^
+     *           /   \
+     *          /     \
+     *         /       \
+     *
+     * da_left = ToDarc(pd->C_arcs(c,In ,Right),Tail)
+     * da_revr = ToDarc(pd->C_arcs(c,Out,Left ),Tail)
+     */
+    
+    /*! If headtail == Tail && side == Left
+     *
+     *         ^       ^
+     *          \     /
+     *        a  \   /
+     *            \ /
+     *             X <----c
+     *            ^ ^
+     *           /   \
+     *          /     \
+     *         /       \
+     *
+     * da_left = ToDarc(pd->C_arcs(c,Out,Right),Head)
+     * da_revr = ToDarc(pd->C_arcs(c,In ,Left ),Head)
+     */
+    
+    pd->A_cross(a,headtail) = c;
+    pd->C_arcs(c,headtail,side) = a;
+
+    if constexpr( lutQ )
+    {
+        const Int da      = ToDarc(a,headtail);
+        const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
+        const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+        
+        SetLeftDarc(da     ,da_left     );
+        SetLeftDarc(da_revr,ReverseDarc(da));
+    }
+    
+    if constexpr( deactivateQ )
+    {
+        DeactivateArc(b);
+    }
+}
+
+// The same as above, but without constexpr headtail and always deactivating.
+void Reconnect( const Int a, const bool headtail, const Int b )
+{
+#ifdef PD_DEBUG
+    std::string tag  (MethodName("Reconnect") + "( " + ArcString(a) + ", " + (headtail ? "Head" : "Tail") + ", "+ ArcString(b) + " )" );
+#endif
+    
+//    PD_TIMER(timer,tag);
+    PD_PRINT(tag);
+    PD_ASSERT(a != b);
+    PD_ASSERT( ArcActiveQ(a) );
+    
+#ifdef PD_DEBUG
+    if( pd->A_color[a] != pd->A_color[b] )
+    {
+        wprint(MethodName("Reconnect")+": Attempting to reconnect arcs of different colors.");
+        TOOLS_LOGDUMP(ArcString(a));
+        TOOLS_LOGDUMP(ArcString(b));
+    }
+#endif // PD_DEBUG
+    
+    const Int c = pd->A_cross(b,headtail);
+
+    const bool side = (pd->C_arcs(c,headtail,Right) == b);
+
+    pd->A_cross(a,headtail) = c;
+    pd->C_arcs(c,headtail,side) = a;
+
+    if constexpr( lutQ )
+    {
+        const Int da      = ToDarc(a,headtail);
+        const Int da_left = ToDarc(pd->C_arcs(c, side,!headtail),!side);
+        const Int da_revr = ToDarc(pd->C_arcs(c,!side, headtail),!side);
+        
+        SetLeftDarc(da     ,da_left     );
+        SetLeftDarc(da_revr,ReverseDarc(da));
+    }
+    
+    DeactivateArc(b);
+}

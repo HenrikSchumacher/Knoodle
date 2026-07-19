@@ -1,17 +1,18 @@
+public:
+
 // This rotation must be orientation preserving.
-template<typename R = Real, typename I = Int>
+template<FloatQ R = Real, IntQ I = Int>
 Tiny::Matrix<3,3,R,I> RandomRotation()
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
+    TOOLS_MAKE_FP_FAST();
     
-    using Vector_T = Tiny::Vector<3,R,I>;
-    using Matrix_T = Tiny::Matrix<3,3,R,I>;
+    using L_Vector_T = Tiny::Vector<3,R,I>;
+    using L_Matrix_T = Tiny::Matrix<3,3,R,I>;
     
     std::normal_distribution<R> gaussian {R(0),R(1)};
     std::uniform_real_distribution<R> angle_dist {R(0), Scalar::Pi<R>};
     
-    Vector_T u;
+    L_Vector_T u;
     R u_squared;
     do
     {
@@ -30,7 +31,7 @@ Tiny::Matrix<3,3,R,I> RandomRotation()
     const R cos = std::cos(angle);
     const R sin = std::sin(angle);
     
-    Matrix_T A;
+    L_Matrix_T A;
     
     const R d = Real(1) - cos;
     

@@ -1,12 +1,6 @@
-public:
-
-void SetBendingRegularization( const Real reg ) { bending_reg = reg; }
-
-Real BendingRegularization() const { return bending_reg; }
-
 private:
 
-template<typename R = Real, typename I = Int, typename J = Int>
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
 void BendingHessian_CollectTriples(
     cref<PD_T> pd,
     mref<TripleAggregator<I,I,R,J>> agg,
@@ -14,10 +8,6 @@ void BendingHessian_CollectTriples(
     const I col_offset
 ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     [[maybe_unused]] auto tag = [](){ return MethodName("BendingHessian_CollectTriples")
         + "<" + TypeName<R>
         + "," + TypeName<I>
@@ -50,7 +40,7 @@ void BendingHessian_CollectTriples(
     const Int lc_count   = lc_arcs.SublistCount();
     cptr<Int> lc_arc_ptr = lc_arcs.Pointers().data();
     
-    const R reg   = static_cast<R>(bending_reg);
+    const R reg   = static_cast<R>(settings.bending_reg);
     const R val_0 = R(2) + (R(2) + reg) * (R(2) + reg);
     const R val_1 = -R(4) - R(2) * reg;
     const R val_2 = R(1);
@@ -110,13 +100,9 @@ void BendingHessian_CollectTriples(
 
 public:
 
-template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> BendingHessian( cref<PD_T> pd ) const
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
+Sparse::MatrixCSR<R,I,J,Sequential> BendingHessian( cref<PD_T> pd ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     const I m = static_cast<I>(pd.ArcCount());
     
     TripleAggregator<I,I,R,J> agg( J(3) * static_cast<J>(m) );

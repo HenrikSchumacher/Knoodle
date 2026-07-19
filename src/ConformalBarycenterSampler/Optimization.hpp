@@ -12,7 +12,7 @@ private:
         iter = 0;
         
         Shift();
-        
+
         DifferentialAndHessian_Hyperbolic();
         
         SearchDirection_Hyperbolic();
@@ -29,23 +29,50 @@ private:
             SearchDirection_Hyperbolic();
         }
     }
-    
+
     Real Potential()
     {
-        const Real zz = Dot(z_,z_);
+        TOOLS_MAKE_FP_FAST();
         
-        const Real a = big_one + zz;
-        const Real c = (big_one-zz);
+        constexpr Real threshold = Frac<Real>(1,4096);
+        constexpr Real b = Frac<Real>(8,3);
         
-        const Real b = one/c;
-        
+        const Real tt = Dot(z_,z_);
+        const Real t  = Sqrt(tt);
+        auto e = z_ / t;
+
         Real value = 0;
         
-        for( Int i = 0; i < edge_count_; ++i )
+        if( t > threshold)
         {
-            Vector_T y_i (y_,i);
+            const Real c = Frac<Real>(1,1-tt);
             
-            value += r_[i] * std::log( std::abs( (a - two * Dot(y_i,z_) ) * b ) );
+            // TODO: Maybe we should use compensated summation here.
+            for( Int i = 0; i < edge_count_; ++i )
+            {
+                Vector_T y_i (y_,i);
+                
+                const Real a = Dot(y_i,e);
+
+                value += r_[i] * std::log( std::abs( (one - two * a * t + tt) * c) );
+            }
+        }
+        else
+        {
+            // TODO: Maybe we should use compensated summation here.
+            for( Int i = 0; i < edge_count_; ++i )
+            {
+                Vector_T y_i (y_,i);
+                
+                Real a [5];
+                a[1] = Dot(y_i,e);
+                a[2] = a[1] * a[1];
+                a[3] = a[2] * a[1];
+                a[4] = a[2] * a[2];
+                
+                // Taylor approximation at t = 0;
+                value += r_[i] * t * (-two * a[1] + t * (two - two * a[2] + t * (two * a[1] - b * a[3] + t * four * (a[2] - a[4]))));
+            }
         }
         
         return value * total_r_inv;
@@ -67,7 +94,7 @@ private:
         // Shift the point z_ along -w to get new updated point w
         InverseShift();
         
-        // Shift the input measure along w to 0 to simplify gradient, Hessian, and update computation .
+        // Shift the input measure along w to 0 to simplify gradient, Hessian, and update computation.
         Shift();
         
         const Real squared_residual_at_0 = squared_residual;
@@ -80,7 +107,7 @@ private:
             
             // Armijo condition for squared residual.
             
-            ArmijoQ = squared_residual - squared_residual_at_0 - Settings().Armijo_slope_factor * tau * slope < zero;
+            ArmijoQ = squared_residual < squared_residual_at_0 + Settings().Armijo_slope_factor * tau * slope;
             
             while( !ArmijoQ && (backtrackings < Settings().max_backtrackings) )
             {
@@ -89,7 +116,7 @@ private:
                 // Estimate step size from quadratic fit if applicable.
                 
                 const Real tau_1 = Settings().Armijo_shrink_factor * tau;
-                const Real tau_2 = - half * Settings().Armijo_slope_factor * tau * tau * slope / ( squared_residual  - squared_residual_at_0 - tau * slope );
+                const Real tau_2 = - half * Settings().Armijo_slope_factor * tau * tau * slope / ( (squared_residual  - squared_residual_at_0) - tau * slope );
                 
                 tau = std::max( tau_1, tau_2 );
                 
@@ -103,7 +130,7 @@ private:
                 
                 DifferentialAndHessian_Hyperbolic();
                 
-                ArmijoQ = squared_residual - squared_residual_at_0 - Settings().Armijo_slope_factor * tau * slope < 0;
+                ArmijoQ = squared_residual < squared_residual_at_0 + Settings().Armijo_slope_factor * tau * slope;
             }
         }
     }
@@ -136,8 +163,7 @@ private:
             
             Real phi_tau = Potential();
             
-            ArmijoQ = phi_tau /*- phi_0*/ - sigma * tau * Dphi_0 < 0;
-            
+            ArmijoQ = phi_tau  < /* phi_0 + */ sigma * tau * Dphi_0;
             
             while( !ArmijoQ && (backtrackings < Settings().max_backtrackings) )
             {
@@ -154,7 +180,7 @@ private:
                 
                 phi_tau = Potential();
                 
-                ArmijoQ = phi_tau  /*- phi_0*/ - sigma * tau * Dphi_0 < 0;
+                ArmijoQ = phi_tau  < /* phi_0*/ + sigma * tau * Dphi_0;
             }
         }
         
@@ -167,6 +193,8 @@ private:
     
     void DifferentialAndHessian_Hyperbolic()
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // CAUTION: We use a different sign convention as in the paper!
         // Assemble  F = -1/2 y * r.
         // Assemble DF_ = nabla F + regulatization:
@@ -176,26 +204,6 @@ private:
         {
             F_.SetZero();
             DF_.SetZero();
-
-            for( Int i = 0; i < edge_count_; ++i )
-            {
-                Vector_T y_i ( y_, i );
-                
-                const Real r_i = r_[i];
-
-                for( Int j = 0; j < AmbDim; ++j )
-                {
-                    const Real factor = r_i * y_i[j];
-
-                    F_[j] -= factor;
-
-                    for( Int k = j; k < AmbDim; ++k )
-                    {
-                        DF_[j][k] -= factor * y_i[k];
-                    }
-                }
-            }
-            
         }
         else
         {
@@ -217,24 +225,27 @@ private:
                     }
                 }
             }
+        }
+        
+        
+        // TODO: Maybe we should use compensated summation here.
+        
+        // ... and adding-in the other summands.
+        for( Int i = !zerofy_firstQ; i < edge_count_; ++i )
+        {
+            Vector_T y_i ( y_, i );
             
-            // ... and adding-in the other summands.
-            for( Int i = 1; i < edge_count_; ++i )
+            const Real r_i = r_[i];
+            
+            for( Int j = 0; j < AmbDim; ++j )
             {
-                Vector_T y_i ( y_, i );
+                const Real factor = r_i * y_i[j];
                 
-                const Real r_i = r_[i];
+                F_[j] -= factor;
                 
-                for( Int j = 0; j < AmbDim; ++j )
+                for( Int k = j; k < AmbDim; ++k )
                 {
-                    const Real factor = r_i * y_i[j];
-                    
-                    F_[j] -= factor;
-                    
-                    for( Int k = j; k < AmbDim; ++k )
-                    {
-                        DF_[j][k] -= factor * y_i[k];
-                    }
+                    DF_[j][k] -= factor * y_i[k];
                 }
             }
         }
@@ -260,7 +271,7 @@ private:
     void SearchDirection_Hyperbolic()
     {
         // Make decisions whether to continue.
-        if( residual < static_cast<Real>(100.) * Settings().tolerance )
+        if( residual < static_cast<Real>(128.) * Settings().tolerance )
         {
             // We have to compute eigenvalue _before_ we add the regularization.
             
@@ -271,15 +282,16 @@ private:
             if( q_Newton < one )
             {
                 //Kantorovich condition satisfied; this allows to compute an error estimator.
-                errorestimator = half * lambda_min * q_Newton;
+                error_estimator = half * lambda_min * q_Newton;
+                
                 //And we should deactivate line search. Otherwise, we may run into precision issues.
                 linesearchQ = false;
-                continueQ = (errorestimator > Settings().tolerance);
+                continueQ = (error_estimator > Settings().tolerance);
                 succeededQ = !continueQ;
             }
             else
             {
-                errorestimator = infty;
+                error_estimator = infty;
                 linesearchQ = Settings().Armijo_slope_factor > zero;
                 //There is no way to reduce the residual below machine epsilon. If the algorithm reaches here, the problem is probably too ill-conditioned to be solved in machine precision.
                 continueQ = residual > Settings().give_up_tolerance;
@@ -289,7 +301,7 @@ private:
         {
             q_Newton = big_one;
             lambda_min = eps;
-            errorestimator = infty;
+            error_estimator = infty;
             linesearchQ = Settings().Armijo_slope_factor > zero;
             continueQ = residual > std::max( Settings().give_up_tolerance, Settings().tolerance );
         }
@@ -303,7 +315,7 @@ private:
                 L[j][k] = DF_[j][k] + static_cast<Real>(j==k) * c;
             }
         }
-        
+
         L.Cholesky();
         
         L.CholeskySolve(F_,u_);
@@ -366,6 +378,8 @@ private:
     template< bool normalizeQ>
     void shift( const Real ww )
     {
+        TOOLS_MAKE_FP_FAST();
+        
         // This function is meant to reduce code duplication.
         // It is only meant to be called directly from Shift.
         
@@ -386,7 +400,7 @@ private:
             
             for( Int j = 0; j < AmbDim; ++j )
             {
-                z[j] = a * z[j] + b* w_[j];
+                z[j] = a * z[j] + b * w_[j];
             }
             
             if constexpr ( normalizeQ )
@@ -396,29 +410,4 @@ private:
             
             z.Write( y_, i );
         }
-        
-//        for( Int i = 0; i < edge_count_; ++i )
-//        {
-//            Vector_T x_i ( x_, i );
-//            
-//            const Real wx2 = two * Dot(w_,x_i);
-//            
-//            const Real d = one / ( one_plus_ww - wx2 );
-//
-//            const Real a = one_minus_ww * d;
-//            
-//            const Real b = (wx2 - two) * d;
-//            
-//            for( Int j = 0; j < AmbDim; ++j )
-//            {
-//                x_i[j] = a * x_i[j] + b* w_[j];
-//            }
-//            
-//            if constexpr ( normalizeQ )
-//            {
-//                x_i.Normalize();
-//            }
-//            
-//            x_i.Write( y_, i );
-//        }
     }

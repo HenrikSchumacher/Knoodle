@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Int_>
+    template<IntQ Int_>
     class alignas( ObjectAlignment ) MatrixQuadTree final
     {
 //        static_assert(SignedIntQ<Int_>,"");
@@ -52,12 +52,6 @@ namespace Knoodle
             
             ~Node()
             {
-//                logvalprint("Deleting node",id);
-//                logvalprint("this",this);
-//                logvalprint("c",ArrayToString(&c[0][0],{2,2}));
-//                logvalprint("box",ArrayToString(&box[0][0],{2,2}));
-//                logvalprint("touchedQ",touchedQ);
-                
                 if( c[1][1] != nullptr ) delete c[1][1];
                 if( c[1][0] != nullptr ) delete c[1][0];
                 if( c[0][1] != nullptr ) delete c[0][1];

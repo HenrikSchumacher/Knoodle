@@ -37,10 +37,6 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     
     TOOLS_PTIMER(timer,tag());
     
-    
-//    // DEBUGGING
-//    constexpr bool debugQ = true;
-    
     if constexpr ( debugQ )
     {
         wprint(tag() + ": Debug mode active.");
@@ -55,15 +51,21 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
     // We make copy so that we can manipulate it.
     ArcContainer_T dA_F_buffer = pd.ArcFaces();
     mptr<Int> dA_F       = dA_F_buffer.data();
-    const Int dA_count   = Int(2) * pd.max_arc_count;
+    const Int dA_count   = Int(2) * pd.MaxArcCount();
           Int F_count    = pd.FaceCount();   // Might be increased during this routine.
     
+#ifdef PD_ALLOCATE_SCRATCH
     // Using A_scratch for face flags. The array should be large anough for additional faces.
     static_assert( sizeof(Int) >= Size_T(2) * sizeof(bool) );
     mptr<bool> F_state = reinterpret_cast<bool *>(pd.A_scratch.data());
+#else
+    Tensor1<bool,Int> F_state_buffer( dA_count );
+    mptr<bool> F_state = F_state_buffer.data();
+#endif // PD_ALLOCATE_SCRATCH
+    
     fill_buffer( F_state, true, F_count );
     fill_buffer( &F_state[F_count], false, dA_count - F_count );
-  
+    
     Size_T f_max_size = ToSize_T(pd.MaxFaceSize());
     
     std::vector<Int> f_dA;
@@ -196,16 +198,16 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     TOOLS_LOGDUMP(da_0);
                     TOOLS_LOGDUMP(de);
                     TOOLS_LOGDUMP(dA_F[de]);
-                    TOOLS_LOGDUMP(dA_F[FlipDarc(de)]);
+                    TOOLS_LOGDUMP(dA_F[ReverseDarc(de)]);
                     
                     TOOLS_LOGDUMP(pd.ArcFaces());
                     TOOLS_LOGDUMP(F_count);
-                    logvalprint("F_state",ArrayToString(F_state,{Int(2) * pd.max_arc_count}));
+                    logvalprint("F_state",OutString::FromVector(F_state, Int(2) * pd.MaxArcCount() ));
                     
                     pd_eprint(MethodName("Disconnect") + ": End of error.");
                 }
                 
-                const Int g = dA_F[FlipDarc(de)];
+                const Int g = dA_F[ReverseDarc(de)];
                 f_dA.push_back(de);
                 f_F.push_back(g);
                 Increment(f_counts,g);
@@ -240,7 +242,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
         for( Int db : f_dA )
         {
             auto [b,d]  = FromDarc(db);
-            const Int g = dA_F[FlipDarc(db)];
+            const Int g = dA_F[ReverseDarc(db)];
             
             if constexpr ( debugQ )
             {
@@ -293,7 +295,7 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                     wprint(pd.ArcString(a) + " from the stack is not active. Maybe it should have been erased earlier? We pop it from stack now and continue.");
                     
                     TOOLS_LOGDUMP(dA_F[da]);
-                    TOOLS_LOGDUMP(dA_F[FlipDarc(da)]);
+                    TOOLS_LOGDUMP(dA_F[ReverseDarc(da)]);
                     TOOLS_LOGDUMP(stack);
                     TOOLS_LOGDUMP(f_F);
                     TOOLS_LOGDUMP(f_dA);
@@ -392,10 +394,10 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                         {
                             TOOLS_LOGDUMP(de);
                             TOOLS_LOGDUMP(dA_F[de]);
-                            TOOLS_LOGDUMP(dA_F[FlipDarc(de)]);
+                            TOOLS_LOGDUMP(dA_F[ReverseDarc(de)]);
                         }
                         
-                        const Int h = dA_F[FlipDarc(de)];
+                        const Int h = dA_F[ReverseDarc(de)];
                         
                         auto iterator = std::find(stack.begin(), stack.end(), std::pair{de,h} );
                         if( iterator != stack.end() )

@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    template<typename Int_>
+    template<IntQ Int_>
     class LoopRemover
     {
     public:

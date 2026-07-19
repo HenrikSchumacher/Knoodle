@@ -5,14 +5,9 @@ namespace Knoodle
     // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
     // TODO: ByteCount.
     
-    template<typename Real, typename Int, typename BReal> class Reapr2;
-    
-    template<typename PD_T> class OrthoDraw;
-    
-    template<typename Int_>
-    class alignas( ObjectAlignment ) PlanarDiagramComplex final : public CachedObject
+    template<IntQ Int_>
+    class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
-        static_assert(IntQ<Int_>,"");
 
     public:
 
@@ -21,26 +16,32 @@ namespace Knoodle
         using Int                   = Int_;
         using UInt                  = ToUnsigned<Int>;
         
-        using Base_T                = CachedObject;
+        using Base_T                = CachedObject<1,0,0,0>;
         using Class_T               = PlanarDiagramComplex<Int>;
-        using PD_T                  = PlanarDiagram2<Int>;
+        using PD_T                  = PlanarDiagram<Int>;
         using PDC_T                 = PlanarDiagramComplex<Int>;
         using PD_List_T             = std::vector<PD_T>;
         
-        using C_Arcs_T              = typename PD_T::C_Arcs_T;
-        using A_Cross_T             = typename PD_T::A_Cross_T;
-        using ArcContainer_T        = typename PD_T::ArcContainer_T;
-        using ColorCounts_T         = typename PD_T::ColorCounts_T;
+        using C_Arcs_T              = PD_T::C_Arcs_T;
+        using A_Cross_T             = PD_T::A_Cross_T;
+        using ArcContainer_T        = PD_T::ArcContainer_T;
+        using ColorCounts_T         = PD_T::ColorCounts_T;
         
-        using StrandSimplifier_T    = StrandSimplifier2<Int,true>;
-        using Dijkstra_T            = typename StrandSimplifier_T::Dijkstra_T;
+        using PassSimplifier_T      = PassSimplifier<Int>;
+        using Dijkstra_T            = PassSimplifier_T::Dijkstra_T;
         using OrthoDraw_T           = OrthoDraw<PD_T>;
-        using OrthoDrawSettings_T   = typename OrthoDraw_T::Settings_T;
-        using Compaction_T          = typename OrthoDraw_T::CompactionMethod_T;
-        using Reapr_T               = Reapr2<double,Int,float>;
-        using Energy_T              = typename Reapr_T::Energy_T;
-        using ReaprSettings_T       = typename Reapr_T::Settings_T;
+        using OrthoDrawSettings_T   = OrthoDraw_T::Settings_T;
+        using Compaction_T          = OrthoDraw_T::CompactionMethod_T;
+        using Reapr_T               = Reapr<double,Int,float>;
+        using Energy_T              = Reapr_T::Energy_T;
+        using ReaprSettings_T       = Reapr_T::Settings_T;
         using LinkEmbedding_T       = Reapr_T::LinkEmbedding_T;
+        
+        
+        using PDCode_TArgs_T        = PD_T::PDCode_TArgs_T;
+        using FromPDCode_TArgs_T    = PD_T::FromPDCode_TArgs_T;
+        
+        
 //        using LinkEmbedding_T       = LinkEmbedding<double,Int,float>;
         static constexpr bool Tail  = PD_T::Tail;
         static constexpr bool Head  = PD_T::Head;
@@ -54,19 +55,13 @@ namespace Knoodle
         
         friend class LoopRemover<Int>;
 //        friend class ArcCrawler<Int>;
-        friend class ArcSimplifier2<Int,0,true >;
-        friend class ArcSimplifier2<Int,1,true >;
-        friend class ArcSimplifier2<Int,2,true >;
-        friend class ArcSimplifier2<Int,3,true >;
-        friend class ArcSimplifier2<Int,4,true >;
-//        friend class ArcSimplifier2<Int,0,false>;
-//        friend class ArcSimplifier2<Int,1,false>;
-//        friend class ArcSimplifier2<Int,2,false>;
-//        friend class ArcSimplifier2<Int,3,false>;
-//        friend class ArcSimplifier2<Int,4,false>;
+        friend class ArcSimplifier<Int,0,true >;
+        friend class ArcSimplifier<Int,1,true >;
+        friend class ArcSimplifier<Int,2,true >;
+        friend class ArcSimplifier<Int,3,true >;
+        friend class ArcSimplifier<Int,4,true >;
         
-        friend class StrandSimplifier2<Int,true >;
-        friend class StrandSimplifier2<Int,false>;
+        friend class PassSimplifier<Int>;
         
     private:
         
@@ -74,9 +69,7 @@ namespace Knoodle
         mutable PD_List_T pd_list;
         mutable PD_List_T pd_todo;
         mutable PD_List_T pd_done;
-//
-//        ColorCounts_T colored_unlinkQ;
-        
+
         PD_T invalid_diagram { PD_T::InvalidDiagram() };
         
     public:
@@ -96,6 +89,7 @@ namespace Knoodle
  
         PlanarDiagramComplex( PD_T && pd, Tensor1<Int,Int> && unlink_colors )
         {
+            TOOLS_PTIMER(timer,ClassName()+"()");
             const bool validQ = pd.ValidQ();
             
             const Int unlink_count = unlink_colors.Size();
@@ -125,23 +119,51 @@ namespace Knoodle
         :   PlanarDiagramComplex( std::move(pd), Tensor1<Int,Int>() )
         {}
         
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> && L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( LinkEmbedding<Real,Int,BReal> & L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
+        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
+        {}
+        
+        template<typename Real, typename BReal>
+        explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> & K )
+        :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
+        {}
+        
 #include "PlanarDiagramComplex/Constructors.hpp"
 #include "PlanarDiagramComplex/Color.hpp"
 #include "PlanarDiagramComplex/RemoveLoops.hpp"
 #include "PlanarDiagramComplex/SimplifyLocal.hpp"
 #include "PlanarDiagramComplex/Split.hpp"
 #include "PlanarDiagramComplex/Disconnect.hpp"
+#include "PlanarDiagramComplex/Canonicalize.hpp"
 #include "PlanarDiagramComplex/Simplify.hpp"
+#include "PlanarDiagramComplex/Rerouting_Experimental.hpp"
 //#include "PlanarDiagramComplex/SimplifyLocal2.hpp" // Only for development and debugging.
-//#include "PlanarDiagramComplex/SimplifyLocal3.hpp" // Only for development and debugging.
 #include "PlanarDiagramComplex/LinkingNumber.hpp"
 #include "PlanarDiagramComplex/ModifyDiagramList.hpp"
 #include "PlanarDiagramComplex/ModifyDiagram.hpp"
-#include "PlanarDiagramComplex/Union.hpp"
+#include "PlanarDiagramComplex/Unite.hpp"
 #include "PlanarDiagramComplex/Checks.hpp"
 #include "PlanarDiagramComplex/Connect.hpp"
-            
+#include "PlanarDiagramComplex/Subcomplex.hpp"
+        
+#include "PlanarDiagramComplex/WriteToFile.hpp"
+#include "PlanarDiagramComplex/ReadFromFile.hpp"
+#include "PlanarDiagramComplex/PDCode.hpp"
+#include "PlanarDiagramComplex/JenkinsCode.hpp"
+        
 #include "PlanarDiagramComplex/SearchTrefoils.hpp"
+        
         
     public:
         
@@ -161,12 +183,54 @@ namespace Knoodle
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                eprint(MethodName("Diagram") + ": Index  i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + " . Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
             
             return pd_list[Size_T(i)];
+        }
+        
+        cref<PD_T> operator[]( Int i ) const
+        {
+            return Diagram(i);
+        }
+        
+        cref<PD_T> LastDiagram() const
+        {
+            if( !pd_list.empty() )
+            {
+                return pd_list.back();
+            }
+            else
+            {
+                eprint(MethodName("LastDiagram") + ": List of diagrams is empty. Returning invalid diagram.");
+                
+                return invalid_diagram;
+            }
+        }
+        
+        cref<PD_List_T> Diagrams() const
+        {
+            return pd_list;
+        }
+        
+        bool ValidQ() const
+        {
+            bool contains_validQ = false;
+            
+            for( PD_T & pd : pd_list )
+            {
+                contains_validQ = contains_validQ || pd.ValidQ();
+            }
+            
+            return (DiagramCount() > Int(0)) && contains_validQ;
+        }
+        
+        
+        bool InvalidQ() const
+        {
+            return !ValidQ();
         }
         
         void Compress()
@@ -186,6 +250,40 @@ namespace Knoodle
             this->ClearCache();
         }
         
+        /*!@brief Converts the complex to a single PlanarDiagram in which color information still persists, but is irrelevant for the topology. Also, anelli are transformed to farfalle in this process because a PlanarDiagram cannot represent diagrams that contain proper subdiagrams that are anelli. Use this to convert a PlanarDiagramComplex to a format that can be understood by other packages, e.g., Regina or SnapPea.
+         */
+        
+        PD_T ToSingleDiagram() const
+        {
+            if( InvalidQ() ) { return PD_T::InvalidDiagram(); }
+            
+            // We need to split first, otherwise, Connect() is not guaranteed to work.
+            PDC_T PDC = this->Splitting();
+            PDC.AnelliToFarfalle();
+            PDC.Connect();
+            
+            if( PDC.DiagramCount() > Int(1) )
+            {
+                eprint(MethodName("ToSingleDiagram") + ": Merged complex contains more than one diagram. Something must have gone wrong. Returning invalid complex.");
+                
+                return PD_T();
+            }
+            
+            return std::move(PDC.pd_list[0]);
+        }
+        
+        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
+         */
+
+        ToSigned<Int> Writhe() const
+        {
+            ToSigned<Int> writhe = 0;
+            
+            for( PD_T & pd : pd_list ) { writhe += pd.Writhe(); }
+            
+            return writhe;
+        }
+        
     private:
         
         mref<PD_T> Diagram_Private( Int i )
@@ -199,7 +297,7 @@ namespace Knoodle
             
             if( i >= DiagramCount() )
             {
-                eprint(MethodName("Diagram") + ": Index  i >= DiagramCount(). Returning invalid diagram.");
+                eprint(MethodName("Diagram") + ": Index i = " +ToString(i) + " is greater equal DiagramCount() = " + ToString(DiagramCount()) + ". Returning invalid diagram.");
                 
                 return invalid_diagram;
             }
@@ -209,10 +307,23 @@ namespace Knoodle
         
     public:
         
-        Int CrossingCount() const
+        
+        Int TotalCrossingCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.CrossingCount(); }
+            return count;
+        }
+        
+        Int CrossingCount() const
+        {
+            return TotalCrossingCount();
+        }
+        
+        Int HighestCrossingCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.CrossingCount()); }
             return count;
         }
         
@@ -230,17 +341,25 @@ namespace Knoodle
             return count;
         }
         
-        Int ArcCount() const
+        
+        
+        Int TotalArcCount() const
         {
             Int count = 0;
             for( const PD_T & pd : pd_list ) { count += pd.ArcCount(); }
             return count;
         }
         
-        Int TotalMaxArcCount() const
+        Int ArcCount() const
+        {
+            return TotalArcCount();
+        }
+
+
+        Int HighestArcCount() const
         {
             Int count = 0;
-            for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
+            for( const PD_T & pd : pd_list ) { count = Max(count,pd.ArcCount()); }
             return count;
         }
         
@@ -251,21 +370,27 @@ namespace Knoodle
             return count;
         }
         
+        Int TotalMaxArcCount() const
+        {
+            Int count = 0;
+            for( const PD_T & pd : pd_list ) { count += pd.MaxArcCount(); }
+            return count;
+        }
+        
         
     private:
 
         // We must be careful not to push to pd_list, because we may otherwise invalidate references to elements in pd_list; this would bork the simplification loops.
         void CreateUnlink( const Int color )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateUnlink"));
-
+            PD_TIMER(timer,MethodName("CreateUnlink"));
+            PD_VALPRINT("color",color);
             pd_done.push_back( PD_T::Unknot(color) );
         }
         
         void CreateUnlinkFromArc( PD_T & pd, const Int a )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateUnlinkFromArc"));
-            
+            PD_TIMER(timer,MethodName("CreateUnlinkFromArc"));
             PD_ASSERT( pd.ValidQ() );
             pd.template AssertArc<0>(a);
             CreateUnlink(pd.A_color[a]) ;
@@ -283,8 +408,10 @@ namespace Knoodle
             PD_T & pd, const Int a_0, const Int a_1, const CrossingState_T handedness
         )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateHopfLinkFromArcs"));
-            
+            PD_TIMER(timer,MethodName("CreateHopfLinkFromArcs"));
+            PD_VALPRINT("color_0",pd.A_color[a_0]);
+            PD_VALPRINT("color_1",pd.A_color[a_1]);
+            PD_VALPRINT("handedness",ToString(handedness));
             pd.template AssertArc<0>(a_0);
             pd.template AssertArc<0>(a_1);
             pd_done.push_back( PD_T::HopfLink(pd.A_color[a_0],pd.A_color[a_1],handedness) );
@@ -301,7 +428,9 @@ namespace Knoodle
          */
         void CreateTrefoilKnotFromArc( PD_T & pd, const Int a, const CrossingState_T handedness )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+            PD_TIMER(timer,MethodName("CreateTrefoilKnotFromArc"));
+            PD_VALPRINT("color",pd.A_color[a]);
+            PD_VALPRINT("handedness",ToString(handedness));
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::TrefoilKnot(pd.A_color[a],handedness) );
         }
@@ -314,8 +443,8 @@ namespace Knoodle
          */
         void CreateFigureEightKnotFromArc( PD_T & pd, const Int a )
         {
-//            TOOLS_PTIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
-            
+            PD_TIMER(timer,MethodName("CreateFigureEightKnotFromArc"));
+            PD_VALPRINT("color",pd.A_color[a]);
             pd.template AssertArc<0>(a);
             pd_done.push_back( PD_T::FigureEightKnot(pd.A_color[a]) );
         }
@@ -340,6 +469,9 @@ namespace Knoodle
         {
             if( pd.ValidQ() )
             {
+                // It is maybe a good idea to compress here so save memory.
+                if( pd.crossing_count < pd.max_crossing_count ) { pd.Compress(); }
+                
                 pd_done.push_back( std::move(pd) );
             }
             else
@@ -391,19 +523,20 @@ namespace Knoodle
             return PD_T::ArcOfDarc(da);
         }
         
-        static Int FlipDarc( const Int da )
+        static Int ReverseDarc( const Int da )
         {
-            return PD_T::FlipDarc(da);
+            return PD_T::ReverseDarc(da);
         }
         
         
         
         void SortByCrossingCount()
         {
-            // Sort big diagrams in front.
-            Sort(
-                &pd_list[0],
-                &pd_list[pd_list.size()],
+            if( DiagramCount() <= Int(0) ) { return; }
+            
+            std::sort(
+                pd_list.begin(),
+                pd_list.end(),
                 []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
                 {
                     return pd_0.CrossingCount() > pd_1.CrossingCount();
@@ -436,9 +569,9 @@ namespace Knoodle
                 
                 if( pd.InvalidQ() ) { continue; }
                 
-                if(  pd.proven_minimalQ )
+                if(  pd.ProvenMinimalQ() )
                 {
-                    if( pd.arc_count < pd.max_arc_count )
+                    if( pd.ArcCount() < pd.MaxArcCount() )
                     {
                         PushDiagramDone( pd.CreateCompressed() );
                     }
@@ -457,7 +590,7 @@ namespace Knoodle
                 {
                     old_counter = counter;
                     
-                    for( Int a = 0; a < pd.max_arc_count; ++a )
+                    for( Int a = 0; a < pd.MaxArcCount(); ++a )
                     {
                         if( pd.ArcActiveQ(a) )
                         {
@@ -478,7 +611,7 @@ namespace Knoodle
                     continue;
                 }
                 
-                if( pd.crossing_count < pd.max_crossing_count )
+                if( pd.CrossingCount() < pd.MaxCrossingCount() )
                 {
                     PushDiagramDone( pd.CreateCompressed() );
                     continue;
@@ -495,7 +628,7 @@ namespace Knoodle
             swap( pd_list, pd_done );
             
             // Sort big diagrams in front.
-            Sort(
+            std::sort(
                 &pd_list[0],
                 &pd_list[pd_list.size()],
                 []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
@@ -510,28 +643,28 @@ namespace Knoodle
         }
 
 
-        mref<StrandSimplifier_T> StrandSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
+        mref<PassSimplifier_T> GetPassSimplifier( const Dijkstra_T strategy = Dijkstra_T::Bidirectional )
         {
-            if( !this->InCacheQ("StrandSimplifier") )
+            if( !this->InCacheQ("GetPassSimplifier") )
             {
-                this->SetCache("StrandSimplifier", StrandSimplifier_T(*this,strategy));
+                this->SetCache("GetPassSimplifier", PassSimplifier_T(*this,strategy));
             }
 
-            return this->template GetCache<StrandSimplifier_T>("StrandSimplifier").SetDijkstraStrategy(strategy);
+            return this->template GetCache<PassSimplifier_T>("GetPassSimplifier").SetDijkstraStrategy(strategy);
         }
         
-        Tensor1<Int,Int> FindShortestPath(
+        PassSimplifier_T::Path_T FindShortestPath(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return StrandSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
+            return GetPassSimplifier(strategy).FindShortestPath( pd_list[idx], a, b, max_dist );
         }
         
-        Tensor1<Int,Int> FindShortestRerouting(
+        PassSimplifier_T::Path_T FindShortestRerouting(
             const Int idx, const Int a, const Int b, const Int max_dist, const Dijkstra_T strategy
         )
         {
-            return StrandSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
+            return GetPassSimplifier(strategy).FindShortestRerouting( pd_list[idx], a, b, max_dist );
         }
        
     public:

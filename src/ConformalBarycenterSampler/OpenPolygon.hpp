@@ -1,3 +1,5 @@
+public:
+
 // Edge vectors:
 
 Vector_T InitialEdgeVector( const Int i ) const
@@ -15,7 +17,7 @@ Vector_T InitialEdgeVector( const Int i ) const
  */
 
 void ReadInitialEdgeVectors(
-    const Real * restrict const x, bool normalizeQ = true
+    const Real * const x, bool normalizeQ = true
 )
 {
     if( normalizeQ )
@@ -23,9 +25,7 @@ void ReadInitialEdgeVectors(
         for( Int i = 0; i < edge_count_; ++i )
         {
             Vector_T x_i (x,i);
-            
             x_i.Normalize();
-            
             x_i.Write(x_,i);
         }
     }
@@ -48,7 +48,6 @@ void RandomizeInitialEdgeVectors()
         }
         
         x_i.Normalize();
-        
         x_i.Write(x_,i);
     }
 }
@@ -60,7 +59,7 @@ void RandomizeInitialEdgeVectors()
  * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form`, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j].
  */
 
-void WriteInitialEdgeVectors( Real * restrict const x )
+void WriteInitialEdgeVectors( Real * const x )
 {
     x_.Write(x);
 }
@@ -74,9 +73,10 @@ void WriteInitialEdgeVectors( Real * restrict const x )
 
 
 // Vertex positions
-
-void ReadInitialVertexPositions( const Real * restrict const p )
+void ReadInitialVertexCoordinates( const Real * const p )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     for( Int i = 0; i < edge_count_; ++i )
     {
         cptr<Real> u = &p[AmbDim * (i + 0) ];
@@ -90,7 +90,6 @@ void ReadInitialVertexPositions( const Real * restrict const p )
         }
 
         x_i.Normalize();
-        
         x_i.Write( x_, i );
     }
 }
@@ -99,52 +98,11 @@ void ReadInitialVertexPositions( const Real * restrict const p )
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
- * @param p Target array; assumed to be of size of at least `(n + 1) * d * (offset + 1)`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge of polygon number `offset` is stored in `p[d * i + j]`.
+ * @param p Target array; must have size at least `(n + 1) * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th vertex is stored in `p[d * i + j]`.
+ 
+ * @param mode Specify whether the output polygon `p` is to be centered to its center of mass and in which sense "mass" is operationalized.
  */
-
-void WriteInitialVertexPositions( Real * restrict const p )
+void WriteInitialVertexCoordinates( Real * const p, CentralizationMode_T mode )
 {
-    // We treat the edges as massless.
-    // All mass is concentrated in the vertices, and each vertex carries the same mass.
-    Vector_T barycenter        (zero);
-    Vector_T point_accumulator (zero);
-    
-    for( Int i = 0; i < edge_count_; ++i )
-    {
-        const Vector_T x_i ( x_, i );
-        
-        const Real r_i = r_[i];
-        
-        for( Int j = 0; j < AmbDim; ++j )
-        {
-            const Real delta = r_i * x_i[j];
-            
-            barycenter[j] += (point_accumulator[j] + delta);
-            
-            point_accumulator[j] += delta;
-        }
-    }
-    
-    barycenter *= Inv<Real>( edge_count_ + Int(1) );
-    
-    point_accumulator = barycenter;
-    
-    point_accumulator *= -one;
-    
-
-    point_accumulator.Write(p);
-    
-    for( Int i = 0; i < edge_count_; ++i )
-    {
-        const Vector_T x_i ( x_, i );
-        
-        const Real r_i = r_[i];
-        
-        for( Int j = 0; j < AmbDim; ++j )
-        {
-            point_accumulator[j] += r_i * x_i[j];
-        }
-        
-        point_accumulator.Write( &p[AmbDim * (i+1)] );
-    }
+    writeCoordinates(x_,p,mode,true);
 }

@@ -2,7 +2,7 @@ private:
 
 
 
-template<bool sparseQ, typename ExtScal, typename ExtInt>
+template<bool sparseQ, typename ExtScal, IntQ ExtInt>
 void Alexander_Strands(
     cref<PD_T>    pd,
     cptr<ExtScal> args,
@@ -34,7 +34,7 @@ void Alexander_Strands(
 }
 
     
-template<bool sparseQ, typename ExtScal, typename ExtInt>
+template<bool sparseQ, typename ExtScal, IntQ ExtInt>
 void Alexander_Strands(
     cref<PD_T>    pd,
     cref<ExtScal> arg,

@@ -2,12 +2,10 @@
 
 namespace Knoodle
 {
-    template<typename Int_ = Int64>
+    template<IntQ Int_ = Int64>
     class alignas( ObjectAlignment ) Link
     {
         // This implementation is single-threaded only so that many instances of this object can be used in parallel.
-        
-        static_assert(IntQ<Int_>,"");
 
     public:
         
@@ -21,7 +19,7 @@ namespace Knoodle
 
         Int edge_count = 0;
 
-        EdgeContainer_T edges;
+        EdgeContainer_T  edges;
         Tensor1<Int,Int> next_edge;
         Tensor1<Int,Int> edge_ptr;
 
@@ -29,7 +27,7 @@ namespace Knoodle
         
         Tensor1<Int,Int> component_ptr;
         Tensor1<Int,Int> component_color;
-        Tensor1<Int,Int> component_lookup;
+//        Tensor1<Int,Int> edge_component;
         
         bool cyclicQ      = false;
         bool preorderedQ  = false;
@@ -51,7 +49,7 @@ namespace Knoodle
         
     private:
         
-        /*! @brief This constructor only allocates the internal arrays. Only for internal use.
+        /*! @brief This constructor only allocates some internal arrays. Only for internal use.
          */
         
         template<typename I_0 >
@@ -60,10 +58,10 @@ namespace Knoodle
         ,   edges           { edge_count     }
         ,   next_edge       { edge_count     }
         ,   edge_ptr        { edge_count + 1 }
-        
-        ,   component_count { 1              }
-        ,   component_ptr   { 2              }
-        ,   component_lookup{ edge_count     }
+
+//        ,   component_count { 1              }
+//        ,   component_ptr   { 2              }
+//        ,   edge_component{ edge_count     }
         {
             (void)dummy;
         }
@@ -74,7 +72,7 @@ namespace Knoodle
         
         /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
-        template<typename I_0 >
+        template<IntQ I_0 >
         explicit Link( const I_0 edge_count_ )
         :   edge_count      { int_cast<Int>(edge_count_) }
         ,   edges           { edge_count            }
@@ -83,18 +81,15 @@ namespace Knoodle
         
         ,   component_count { Int(1)                }
         ,   component_ptr   { Int(2)                }
-        ,   component_lookup{ edge_count, Int(0)    }
+        ,   component_color { Int(1), Int(0)        }
         ,   cyclicQ         { true                  }
         ,   preorderedQ     { true                  }
         {
 //            TOOLS_PTIMER(timer,ClassName()+"( " + ToString(edge_count_) + " ) (cyclic)");
             
-            static_assert(IntQ<I_0>,"");
-            
             const Int n = edge_count;
             
             component_ptr[0] = 0;
-            
             component_ptr[1] = n;
             
             for( Int i = 0; i < n-1; ++i )
@@ -136,29 +131,17 @@ namespace Knoodle
             
             for( Int comp = 0; comp < component_count; ++comp )
             {
-                const Int v_begin = component_ptr[comp         ];
-                const Int v_end   = component_ptr[comp + Int(1)];
+                const Int e_begin = component_ptr[comp         ];
+                const Int e_end   = component_ptr[comp + Int(1)];
                 
-                const Int comp_size = v_end - v_begin;
+                const Int comp_size = e_end - e_begin;
                 
-                WriteCircleEdges(&edges(v_begin,0),v_begin,comp_size);
+                WriteCircleEdges(&edges(e_begin,0),e_begin,comp_size);
                 
-                for( Int v = v_begin; v < v_end; ++v )
+                for( Int e = e_begin; e < e_end; ++e )
                 {
-                    component_lookup[v] = comp;
-                    
-//                    // DEBUGGING
-//                    if( v != edges(v,0) )
-//                    {
-//                        eprint("!!!");
-//                        TOOLS_DDUMP(v);
-//                        TOOLS_DDUMP(edges(v,0));
-//                        TOOLS_DDUMP(edges(v,1));
-//                        
-//                        logvalprint("edges", ArrayToString(&edges(v_begin,0),{comp_size,Int(2)})
-//                        );
-//                    }
-                    next_edge[v] = edges(v,1);
+//                    edge_component[e] = comp;
+                    next_edge[e] = edges(e,1);
                 }
             }
         }
@@ -173,34 +156,28 @@ namespace Knoodle
          *
          */
         
-        template<typename I_0, typename I_1>
+        template<IntQ I_0, IntQ I_1>
         Link( cptr<I_0> edges_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
         :   Link( int_cast<Int>(edge_count_), true )
         {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-            
             ReadEdges( edges_, edge_colors_ );
         }
         
-        /*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
-         *
-         *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.
-         *
-         *  @param edge_heads_ Array of integers of length `edge_count_`. Entries are treated as heads of edges.
-         *
-         *  @param edge_count_ Number of edges.
-         */
-        
-        template<typename I_0, typename I_1>
-        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
-        :   Link( int_cast<Int>(edge_count_), true )
-        {
-            static_assert(IntQ<I_0>,"");
-            static_assert(IntQ<I_1>,"");
-            
-            ReadEdges( edge_tails_, edge_heads_, edge_colors_ );
-        }
+//        /*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
+//         *
+//         *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.
+//         *
+//         *  @param edge_heads_ Array of integers of length `edge_count_`. Entries are treated as heads of edges.
+//         *
+//         *  @param edge_count_ Number of edges.
+//         */
+//        
+//        template<IntQ I_0, IntQ I_1>
+//        Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, cptr<I_0> edge_colors_, const I_1 edge_count_ )
+//        :   Link( int_cast<Int>(edge_count_), true )
+//        {
+//            ReadEdges( edge_tails_, edge_heads_, edge_colors_ );
+//        }
 
     public:
         
@@ -216,16 +193,16 @@ namespace Knoodle
         }
         
         
-        /*! @brief Reads edges from the array `edges_`.
+        /*! @brief Reads edges from the array `edges_`. Precondition: The edges must be oriented consistently and they must form a graph in which each vertex has a unique income and a unique outgoing edge.
+         *
+         *  The edges will be reordered so that all edges belonging to a connected component lie consecutively and cyclically ordered in memory. This is imporatant for the working of the AABB tree.
          *
          *  @param edges_ Integer array of length `2 * EdgeCount()`.
          */
         
-        template<typename ExtInt>
+        template<IntQ ExtInt>
         void ReadEdges( cptr<ExtInt> edges_, cptr<ExtInt> edge_colors_ )
         {
-            static_assert(IntQ<ExtInt>,"");
-            
             [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
             
             TOOLS_PTIMER(timer,tag());
@@ -235,6 +212,8 @@ namespace Knoodle
             
             // using edges(...,0) temporarily as scratch space.
 //            mptr<Int> tail_of_edge = edges.data(0);
+            
+            mptr<Int> tail_to_edge = &edges(0,0);
 
             for( Int e = 0; e < edge_count; ++e )
             {
@@ -253,7 +232,8 @@ namespace Knoodle
                     error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
                 }
                 
-                edges(tail,0) = static_cast<Int>(tail);
+//                edges(tail,0) = static_cast<Int>(tail);
+                tail_to_edge[tail] = e;
             }
 
             for( Int e = 0; e < edge_count; ++e )
@@ -273,7 +253,7 @@ namespace Knoodle
                     error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
                 }
                 
-                next_edge[e] = edges(static_cast<Int>(head),0);
+                next_edge[e] = tail_to_edge[static_cast<Int>(head)];
             }
             
             FindComponents();
@@ -293,85 +273,84 @@ namespace Knoodle
             FinishPreparations(edge_colors_);
         }
 
-        /*! @brief Reads edges from the arrays `edge_tails_` and `edge_heads_`.
-         *
-         *  @param edge_tails_ Integer array of length `EdgeCount()` that contains the list of tails.
-         *
-         *  @param edge_heads_ Integer array of length `EdgeCount()` that contains the list of heads.
-         */
-        
-        template<typename ExtInt>
-        void ReadEdges(
-            cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_, cptr<ExtInt> edge_colors_
-        )
-        {
-            static_assert(IntQ<ExtInt>,"");
-            
-            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
-            
-            TOOLS_PTIMER(timer,tag());
-            
-            // Finding for each e its next e.
-            // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
-            
-            // using edges.data(0) temporarily as scratch space.
-            mptr<ExtInt> tail_of_edge = edges.data(0);
-            
-            for( Int e = 0; e < edge_count; ++e )
-            {
-                const ExtInt tail = edge_tails_[e];
-
-                if( !std::in_range<Int>(tail) )
-                {
-                    error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
-                }
-                if( std::cmp_less(tail, ExtInt(0)) )
-                {
-                    error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
-                }
-                if( std::cmp_greater_equal(tail,edge_count) )
-                {
-                    error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
-                }
-                
-                tail_of_edge[static_cast<Int>(tail)] = e;
-            }
-
-            for( Int e = 0; e < edge_count; ++e )
-            {
-                const ExtInt head = edge_heads_[e];
-                
-                if( !std::in_range<Int>(head) )
-                {
-                    error(tag()+": head tail is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
-                }
-                if( std::cmp_less(head, ExtInt(0)) )
-                {
-                    error(tag()+": tail < 0 (head = " + ToString(head) + ").");
-                }
-                if( std::cmp_greater_equal(head,edge_count) )
-                {
-                    error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
-                }
-
-                next_edge[e] = tail_of_edge[static_cast<Int>(head)];
-            }
-            
-            FindComponents();
-            
-            // using edge_ptr temporarily as scratch space.
-            cptr<Int> perm       = edge_ptr.data();
-            
-            // Reordering edges.
-            for( Int e = 0; e < edge_count; ++e )
-            {
-                const Int from = perm[e];
-                edges(e,0) = edge_tails_[from];
-                edges(e,1) = edge_heads_[from];
-            }
-            
-            FinishPreparations(edge_colors_);
-        }
+//        /*! @brief Reads edges from the arrays `edge_tails_` and `edge_heads_`.
+//         *
+//         *  @param edge_tails_ Integer array of length `EdgeCount()` that contains the list of tails.
+//         *
+//         *  @param edge_heads_ Integer array of length `EdgeCount()` that contains the list of heads.
+//         */
+//        
+//        // TODO: Scrutinize this!
+//        template<IntQ ExtInt>
+//        void ReadEdges(
+//            cptr<ExtInt> edge_tails_, cptr<ExtInt> edge_heads_, cptr<ExtInt> edge_colors_
+//        )
+//        {
+//            [[maybe_unused]] auto tag = [](){ return MethodName("ReadEdges");};
+//            
+//            TOOLS_PTIMER(timer,tag());
+//            
+//            // Finding for each e its next e.
+//            // Caution: Assuming here that link is correctly oriented and that it has no boundaries.
+//            
+//            // using edges.data(0) temporarily as scratch space.
+//            mptr<ExtInt> tail_of_edge = edges.data(0);
+//            
+//            for( Int e = 0; e < edge_count; ++e )
+//            {
+//                const ExtInt tail = edge_tails_[e];
+//
+//                if( !std::in_range<Int>(tail) )
+//                {
+//                    error(tag()+": index tail is out of range for type " + TypeName<Int> + " (tail = " + ToString(tail) + ").");
+//                }
+//                if( std::cmp_less(tail, ExtInt(0)) )
+//                {
+//                    error(tag()+": tail < 0 (tail = " + ToString(tail) + ").");
+//                }
+//                if( std::cmp_greater_equal(tail,edge_count) )
+//                {
+//                    error(tag()+": tail >= edge_count (tail = " + ToString(tail) + ", edge_count = " + ToString(edge_count) + ").");
+//                }
+//                
+//                tail_of_edge[static_cast<Int>(tail)] = e;
+//            }
+//
+//            for( Int e = 0; e < edge_count; ++e )
+//            {
+//                const ExtInt head = edge_heads_[e];
+//                
+//                if( !std::in_range<Int>(head) )
+//                {
+//                    error(tag()+": head tail is out of range for type " + TypeName<Int> + " (head = " + ToString(head) + ").");
+//                }
+//                if( std::cmp_less(head, ExtInt(0)) )
+//                {
+//                    error(tag()+": tail < 0 (head = " + ToString(head) + ").");
+//                }
+//                if( std::cmp_greater_equal(head,edge_count) )
+//                {
+//                    error(tag()+": head >= edge_count (head = " + ToString(head) + ", edge_count = " + ToString(edge_count) + ").");
+//                }
+//
+//                next_edge[e] = tail_of_edge[static_cast<Int>(head)];
+//            }
+//            
+//            FindComponents();
+//            
+//            // using edge_ptr temporarily as scratch space.
+//            cptr<Int> perm       = edge_ptr.data();
+//            
+//            // Reordering edges.
+//            for( Int e = 0; e < edge_count; ++e )
+//            {
+//                const Int from = perm[e];
+//                edges(e,0) = edge_tails_[from];
+//                edges(e,1) = edge_heads_[from];
+//            }
+//            
+//            FinishPreparations(edge_colors_);
+//        }
         
     protected:
         
@@ -418,8 +397,8 @@ namespace Knoodle
                             : Int(0);
         }
         
-        template<typename ExtInt>
-        void FinishPreparations( cref<ExtInt> edge_colors_ )
+        template<IntQ ExtInt>
+        void FinishPreparations( cptr<ExtInt> edge_colors_ )
         {
             TOOLS_PTIMER(timer,MethodName("FinishPreparations"));
             
@@ -443,62 +422,49 @@ namespace Knoodle
             
             if( edge_colors_ == nullptr )
             {
-                for( Int c =  0; c < component_count; ++ c )
+                for( Int lc =  0; lc < component_count; ++lc )
                 {
-                    const Int i_begin = component_ptr[c  ];
-                    const Int i_end   = component_ptr[c+1];
-                    
-                    component_color[c] = c;
-                    
-                    for( Int i = i_begin; i < i_end-1; ++i )
-                    {
-                        next_edge       [i  ] = i+1;
-                        edge_ptr        [i+1] = i  ;
-                        component_lookup[i  ] = c;
-                    }
-                    
-                    next_edge       [i_end-1] = i_begin;
-                    component_lookup[i_end-1] = c;
+                    component_color[lc] = lc;
                 }
             }
             else
             {
-                bool colors_okayQ = true;
-                
-                for( Int c =  0; c < component_count; ++ c )
+                for( Int lc =  0; lc < component_count; ++lc )
                 {
-                    const Int i_begin = component_ptr[c  ];
-                    const Int i_end   = component_ptr[c+1];
-                    
-                    Int c_color = static_cast<Int>(edge_colors_[perm[i_begin]]);
-                    
-                    component_color[c] = c_color;
-                    
-                    for( Int i = i_begin; i < i_end-1; ++i )
-                    {
-                        colors_okayQ = colors_okayQ && (c_color == edge_colors_[perm[i_begin]]);
-                        
-                        next_edge       [i  ] = i+1;
-                        edge_ptr        [i+1] = i  ;
-                        component_lookup[i  ] = c;
-                    }
-                    
-                    next_edge       [i_end-1] = i_begin;
-                    component_lookup[i_end-1] = c;
+                    const Int i_begin = component_ptr[lc];
+                    component_color[lc] = static_cast<Int>(edge_colors_[perm[i_begin]]);
                 }
+            }
+            
+            // We should not merge the above loop with the one below because we might need perm alias edge_ptr; and the loop below changes edge_ptr.
+            
+            for( Int lc =  0; lc < component_count; ++lc )
+            {
+                const Int i_begin = component_ptr[lc  ];
+                const Int i_end   = component_ptr[lc+1];
+                
+                for( Int i = i_begin; i < i_end-1; ++i )
+                {
+                    next_edge       [i  ] = i+1;
+                    edge_ptr        [i+1] = i  ;
+//                    edge_component[i  ] = lc;
+                }
+                
+                next_edge       [i_end-1] = i_begin;
+//                edge_component[i_end-1] = lc;
             }
         }
         
-        void ComputeComponentLookup()
-        {
-            for( Int c = 0; c < component_count; ++ c )
-            {
-                const Int begin = component_ptr[c  ];
-                const Int end   = component_ptr[c+1];
-                
-                std::fill( &component_lookup[begin], &component_lookup[end], c );
-            }
-        }
+//        void ComputeEdgeComponents()
+//        {
+//            for( Int lc = 0; lc < component_count; ++lc )
+//            {
+//                const Int begin = component_ptr[lc  ];
+//                const Int end   = component_ptr[lc+1];
+//                
+//                std::fill(&edge_component[begin],&edge_component[end],lc);
+//            }
+//        }
         
     public:
         
@@ -510,13 +476,13 @@ namespace Knoodle
             return static_cast<Int>(component_ptr.Size()-1);
         }
         
-        /*! @brief This returns the component in which vertex `i` lies.
-         */
-        
-        Int ComponentLookup( const Int i ) const
-        {
-            return (cyclicQ) ? Int(0) : component_lookup[i];
-        }
+////        /*! @brief This returns the component in which edge `e` lies.
+////         */
+////        
+//        Int EdgeComponent( const Int e ) const
+//        {
+//            return (cyclicQ) ? Int(0) : edge_component[e];
+//        }
         
         /*! @brief Returns the first vertex in component `c`.
          */
@@ -594,7 +560,7 @@ namespace Knoodle
         }
 
         
-        cref<Tensor1<Int,Int>> NextEdge() const
+        cref<Tensor1<Int,Int>> EdgeNextEdge() const
         {
             return next_edge;
         }
@@ -659,7 +625,7 @@ namespace Knoodle
             return edges;
         }
         
-        template<typename Int>
+        template<IntQ Int>
         static void WriteCircleEdges(
             mptr<Int> e_ptr, const Int first_edge, const Int n
         )
@@ -679,7 +645,7 @@ namespace Knoodle
         }
         
         
-//        template<typename Int>
+//        template<IntQ Int>
 //        static EdgeContainer_T CircleEdges( const Int n )
 //        {
 //            EdgeContainer_T edges ( n );

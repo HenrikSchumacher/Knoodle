@@ -2,6 +2,8 @@
 //##    Some Auxiliaries
 //###############################################
 
+public:
+
 struct DarcNode
 {
     Int tail = Uninitialized;
@@ -70,28 +72,34 @@ void DepthFirstSearch(
     
     cptr<Int> dA_C = A_cross.data();
     
-    mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
-    fill_buffer(C_flag,UInt8(0),max_crossing_count);
-    
     // C_flag[c] == 0 means undiscovered.
     // C_flag[c] == 1 means discovered, not visited.
     // C_flag[c] == 2 means discovered and pre-visited, not post-visited.
     // C_flag[c] == 3 means discovered and post-visited.
     
-//    TOOLS_DUMP(crossing_count);
     
+#ifdef PD_ALLOCATE_SCRATCH
+    mptr<UInt8> C_flag = reinterpret_cast<UInt8 *>(C_scratch.data());
+    fill_buffer(C_flag,UInt8(0),max_crossing_count);
+
     mptr<bool> A_visitedQ = reinterpret_cast<bool *>(A_scratch.data());
     fill_buffer(A_visitedQ,false,max_arc_count);
-
+#else
+    Tensor1<UInt8,Int> C_flag_buffer ( max_crossing_count, UInt8(0) );
+    mptr<UInt8> C_flag = C_flag_buffer.data();
+    Tensor1<bool ,Int> A_visitedQ_buffer ( max_arc_count, false );
+    mptr<bool> A_visitedQ = A_visitedQ_buffer.data();
+#endif
+    
     Stack<DarcNode,Int> stack ( max_arc_count );
 
     auto conditional_push = [A_visitedQ,C_flag,dA_C,&stack,&discover,&rediscover,this](
         const DarcNode & A, const Int db
     )
     {
-        AssertDarc<1>(db);
+        AssertDarc(db);
         // We never walk back the same arc.
-        if( this->ValidIndexQ(A.da) && (db == FlipDarc(A.da)) )
+        if( this->ValidIndexQ(A.da) && (db == ReverseDarc(A.da)) )
         {
             return;
         }
@@ -118,7 +126,7 @@ void DepthFirstSearch(
                 logprint("Discovering " + CrossingString(head) + " from " + DarcString(db) + "."
                 );
             }
-            discover( B );
+            std::invoke( discover, B );
             stack.Push( std::move(B) );
         }
         else
@@ -132,7 +140,7 @@ void DepthFirstSearch(
                     logprint("Rediscovering " + CrossingString(head) + " from " + DarcString(db) + "."
                     );
                 }
-                rediscover({A.head,db,head});
+                std::invoke( rediscover, DarcNode{A.head,db,head} );
             }
             else
             {
@@ -161,7 +169,7 @@ void DepthFirstSearch(
             {
                 logprint("Discovering " + CrossingString(c_0) + ", starting new spanning tree.");
             }
-            discover( A );
+            std::invoke( discover, A );
             stack.Push( std::move(A) );
         }
         
@@ -188,7 +196,7 @@ void DepthFirstSearch(
                 {
                     logprint("Pre-visiting " + CrossingString(c) + " along " + DarcString(A.da) + ".");
                 }
-                pre_visit( A );
+                std::invoke( pre_visit, A );
 
                 // We process the arcs in reverse order so that they appear in correct order on the stack.
                 
@@ -204,7 +212,7 @@ void DepthFirstSearch(
                 {
                     logprint("Post-visiting " + CrossingString(c) + " along  " + DarcString(A.da) + ".");
                 }
-                post_visit( A );
+                std::invoke( post_visit, A );
                 (void)stack.Pop();
             }
             else // if( C_flag[c] == UInt8(3) )
@@ -225,9 +233,9 @@ template<class PreVisitVertex_T>
 void DepthFirstSearch( PreVisitVertex_T && pre_visit ) const
 {
     DepthFirstSearch(
-        TrivialArcFunction,    //discover
-        TrivialArcFunction,    //rediscover
-        pre_visit,             // f( const DarcNode & da )
-        TrivialArcFunction     //postvisit
+        TrivialArcFunction,                         //discover
+        TrivialArcFunction,                         //rediscover
+        std::forward<PreVisitVertex_T>(pre_visit),  // f( const DarcNode & da )
+        TrivialArcFunction                          //postvisit
     );
 }

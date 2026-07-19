@@ -11,14 +11,8 @@ void ComputeSpanningForest()
     Tensor1<VInt,VInt>    V_parent_A      ( VertexCount() );
 
     DepthFirstSearch(
-        [&discovered_arcs]( cref<DedgeNode> E )
-        {
-            discovered_arcs.Push(E.de >> 1);
-        },
-        [&discovered_arcs]( cref<DedgeNode> E )
-        {
-            discovered_arcs.Push(E.de >> 1);
-        },
+        [&discovered_arcs]( cref<DedgeNode> E ) { discovered_arcs.Push(E.de >> 1); },
+        [&discovered_arcs]( cref<DedgeNode> E ) { discovered_arcs.Push(E.de >> 1); },
         [&V_pre,&V_parent_A,&roots]( cref<DedgeNode> E )
         {
             V_pre.Push(E.head);
@@ -29,10 +23,7 @@ void ComputeSpanningForest()
                 roots.Push(E.head);
             }
         },
-        [&V_post]( cref<DedgeNode> E )
-        {
-            V_post.Push(E.head);
-        }
+        [&V_post]( cref<DedgeNode> E ) { V_post.Push(E.head); }
     );
     
     this->template SetCache<false>( "DiagramComponentCount", roots.Size()               );

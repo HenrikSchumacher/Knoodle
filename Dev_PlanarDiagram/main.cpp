@@ -1,0 +1,222 @@
+#define TOOLS_USE_BOOST_UNORDERED
+//#define KNOODLE_USE_BOOST_PLANARITY
+
+//#define KNOODLE_USE_CLP
+
+//#define TENSORS_BOUND_CHECKS
+
+//#define TOOLS_ENABLE_PROFILER
+//#define PD_DEBUG
+//#define PD_VERBOSE
+//#define PD_COUNTERS
+
+
+#include "../Knoodle.hpp"
+
+using Real        = double;
+// integer type used, e.g., for indices
+using Int         = std::int64_t;
+//using Int         = std::uint32_t;
+//using Int         = std::uint64_t;
+//using Int         = std::uint16_t;
+
+using PDC_T       = Knoodle::PlanarDiagramComplex<Int>;
+using PD_T        = PDC_T::PD_T;
+using OrthoDraw_T = Knoodle::OrthoDraw<PD_T>;
+//using Reapr_T     = Knoodle::Reapr<Real,Int>;
+
+
+template<typename T>
+void valprint( std::string_view s, const T & val )
+{
+    Tools::valprint(s,val);
+}
+
+void print( std::string_view s )
+{
+    Tools::print(s);
+}
+
+void PrintInfo( const PDC_T & pdc )
+{
+    valprint( "CrossingCount()", pdc.CrossingCount() );
+    valprint( "MaxMaxCrossingCount()", pdc.MaxMaxCrossingCount() );
+    valprint( "TotalMaxCrossingCount()", pdc.TotalMaxCrossingCount() );
+    valprint( "DiagramCount()", pdc.DiagramCount() );
+    for( Int i = 0; i < pdc.DiagramCount(); ++i )
+    {
+        const PD_T & pd = pdc.Diagram(i);
+        
+        if( pd.ProvenUnknotQ() ) { continue; }
+        
+        print("Diagram(" + Tools::ToString(i) + ")");
+        valprint("\tValidQ()", pd.ValidQ());
+        valprint("\tCheckAll()", pd.CheckAll());
+        valprint("\tCrossingCount()", pd.CrossingCount());
+        valprint("\tMaxCrossingCount()", pd.MaxCrossingCount());
+        
+//        pd.PrintInfo();
+    }
+}
+
+template<typename T>
+std::string SizeInfo()
+{
+    return std::string("{ size = ") + Knoodle::ToString(sizeof(T)) + ", alignment = " + Knoodle::ToString(alignof(T)) + "}";
+}
+
+int main()
+{
+    TOOLS_DUMP(SizeInfo<PD_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::Base_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::CrossingContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::CrossingStateContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcStateContainer_T>());
+    TOOLS_DUMP(SizeInfo<PD_T::ArcColorContainer_T>());
+    
+    print("");
+    print("");
+    
+    std::filesystem::path in_path  = std::filesystem::path(__FILE__).parent_path();
+    valprint("Input  directory", in_path );
+//    std::filesystem::path out_path = in_path;
+    std::filesystem::path out_path = "/Volumes/RamDisk";
+    valprint("Output directory", out_path );
+    Knoodle::Profiler::Clear(out_path,false,false);
+    
+    print( "-=| An example program for Knoodle. |=-" );
+    print( "" );
+ 
+//    // Load a knot from file.
+//    std::vector<Int> pd_code;
+//    
+//    {
+//        std::string filename ( in_path / "../Example_Knoodle/ExampleKnot.tsv" );
+//        std::ifstream s ( filename );
+//        Int number;
+//        
+//        if(!s)
+//        {
+//            Tools::eprint( "File " + filename + " not found." );
+//            return EXIT_FAILURE;
+//        }
+//        
+//        while( s )
+//        {
+//            if( s >> number )
+//            {
+//                pd_code.push_back(number);
+//            }
+//        }
+//    }
+//    
+//    Int c_count = static_cast<Int>( pd_code.size()/5 );
+//    
+//    // Create an instance of PlanarDiagram.
+//    PDC_T pdc ( PD_T::FromSignedPDCode( &pd_code[0], c_count) );
+    
+//    const Int n = 1'000;
+//    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( n );
+//    Tensors::Tensor2<Real,Int> vertex_coordinates( n + 1, 3 );
+//    Real K = 0;
+//    // Sometimes we want to copy the the first vertex on wrap-around; sometimes we don't.
+//    // That's why WriteRandomClosedPolygon has flag `wrap_aroundQ` for that.
+//    S.WriteRandomClosedPolygon(
+//        vertex_coordinates.data(), K, true /* = with wrap-around*/
+//    );
+//    // FromKnotEmbedding reads only fromt he first n coordinates. We could also have assembled vertex_coordinates as a n x 3 array and havve called S.WriteRandomClosedPolygon(vertex_coordinates.data(), K, false /* = no wrap-around*/ ).
+//    PDC_T pdc = PDC_T::FromKnotEmbedding ( vertex_coordinates.data(), n );
+    
+    
+    const Int component_count = 8;
+    const Int edge_count      = 1200;
+    
+//    Knoodle::ActionAngleSampler<Real,Int> S;
+//    PDC_T pdc ( S.RandomEquilateralLink(component_count, edge_count) );
+    
+    Knoodle::ConformalBarycenterSampler<3,Real,Int> S ( edge_count );
+    PDC_T pdc ( S.RandomEquilateralLink(component_count).first );
+    
+
+    print("");
+    PrintInfo(pdc);
+    print("");
+
+    {
+        std::ofstream file ( out_path / "PDCode.tsv");
+        file << ToString( pdc.Diagram(0).PDCode() );
+    }
+    
+    print("");
+    PrintInfo(pdc);
+    print("");
+    
+    Tools::tic("Simplify() + Reapr");
+    try
+    {
+        pdc.Simplify({
+            .embedding_trials      = 1,
+            .rotation_trials       = 1
+        });
+    }
+    catch( const std::exception & e )
+    {
+        Knoodle::eprint(e.what());
+        exit(-1);
+    }
+    Tools::toc("Simplify() + Reapr");
+    
+    print("");
+    PrintInfo(pdc);
+    print("");
+    
+//    print("Unite()");
+//    pdc.Unite();
+//    
+//    print("");
+//    PrintInfo(pdc);
+//    print("");
+//    
+//    print("Split()");
+//    pdc.Split();
+//    
+//    print("");
+//    PrintInfo(pdc);
+//    print("");    
+//    pdc.DisconnectDiagrams();
+    
+    // Graphics settings for ASCII art. (Move on, nothing to see here.)
+    OrthoDraw_T::Settings_T plot_settings {
+        .x_grid_size              = 8,
+        .y_grid_size              = 4,
+        .x_gap_size               = 1,
+        .y_gap_size               = 1
+    };
+
+    std::string filename ( out_path / "Diagram_Simplified.txt" );
+    Tools::print( "Writing diagram(s) to file " + filename + "." );
+    std::ofstream out_file ( filename );
+    
+    for( Int i = 0; i < pdc.DiagramCount(); ++ i )
+    {
+        const PD_T & pd = pdc.Diagram(i);
+        
+        if( pd.ProvenUnknotQ() ) { continue; }
+        
+        Tools::print( "Connected component no. " + Tools::ToString(i) + ":" );
+        valprint("\tCrossingCount()", pd.CrossingCount());
+        // Create an orthogonal layout for the current knot diagram.
+        OrthoDraw_T H ( pd, Int(-1), plot_settings );
+//        Tools::print(H.DiagramString());
+        out_file << H.DiagramString() << "\n";
+        Tools::print("");
+    }
+    
+#ifdef PD_COUNTERS
+    TOOLS_DUMP(pdc.StrandSimplifier().RecordedDualArcs().size());
+    TOOLS_DUMP(pdc.StrandSimplifier().RecordedFaceSizes().size());
+#endif
+    
+    return EXIT_SUCCESS;
+}

@@ -4,6 +4,8 @@ public:
 
 Tensor1<Real,Int> LevelsQP_SSN( cref<PD_T> pd )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     auto x_mu = LevelsQP_SSN_LevelsAndLagrangeMultipliers(pd);
     
     // We have to read the levels values through pd.LinkComponentArcs().Elements()
@@ -36,6 +38,8 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     cref<PD_T> pd
 )
 {
+    TOOLS_MAKE_FP_FAST();
+    
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers"));
     
     const Int m = pd.ArcCount();
@@ -69,7 +73,7 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
     );
     
     // TODO: Is this a good value for the tolerance?
-    const Real threshold = Power(m * tolerance,2);
+    const Real threshold = Power(m * settings.tolerance,2);
     
     Size_T SSN_iter = 0;
 //    Real max_step_size = 0;
@@ -103,14 +107,14 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         );
         
         Real phi_tau;
-        Real tau    = initial_time_step;
-        int  SSN_b_iter = 0;
+        Real tau        = Frac<Real>(1,settings.backtracking_factor);
+        Size_T SSN_b_iter = 0;
         
         // Armijo line search.
         do{
             ++SSN_b_iter;
             
-            tau = backtracking_factor * tau;
+            tau = settings.backtracking_factor * tau;
             
             // x_tau = x + tau * u;
             combine_buffers3<Flag_T::Plus,Flag_T::Generic>(
@@ -139,12 +143,12 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
             // Now z = F(x_tau).
         }
         while(
-            (phi_tau > (Real(1) - armijo_slope * tau) * phi_0)
+            (phi_tau > (Real(1) - settings.armijo_slope * tau) * phi_0)
             &&
-            (SSN_b_iter < SSN_max_b_iter)
+            (SSN_b_iter < settings.SSN_max_b_iter)
         );
         
-        if( (phi_tau > (Real(1) - armijo_slope * tau) * phi_0) && (SSN_b_iter >= SSN_max_b_iter) )
+        if( (phi_tau > (Real(1) - settings.armijo_slope * tau) * phi_0) && (SSN_b_iter >= settings.SSN_max_b_iter) )
         {
             wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of backtrackings reached.");
             
@@ -160,9 +164,9 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
         
         swap( x, x_tau );
     }
-    while( (phi_0 > threshold) && (SSN_iter < SSN_max_iter) );
+    while( (phi_0 > threshold) && (SSN_iter < settings.SSN_max_iter) );
     
-    if( (phi_0 > threshold) && (SSN_iter >= SSN_max_iter))
+    if( (phi_0 > threshold) && (SSN_iter >= settings.SSN_max_iter))
     {
         wprint(MethodName("LevelsQP_SSN_LevelsAndLagrangeMultipliers")+": Maximal number of iterations reached without reaching the stopping criterion.");
     }
@@ -172,12 +176,10 @@ Tensor1<Real,Int> LevelsQP_SSN_LevelsAndLagrangeMultipliers(
 
 public:
 
-template<typename R = Real, typename I = Int, typename J = Int>
-Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
+Sparse::MatrixCSR<R,I,J,Sequential> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
+    TOOLS_MAKE_FP_FAST();
     
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_Matrix")+"<" + TypeName<R> + "," + TypeName<I> + "," + TypeName<J> + ">");
     
@@ -190,13 +192,13 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
     
     switch ( settings.energy )
     {
-        case EnergyFlag_T::Bending:
+        case Energy_T::Bending:
         {
             agg = Aggregator_T( J(3) * m + J(3) * n );
             BendingHessian_CollectTriples( pd, agg, I(0), I(0) );
             break;
         }
-        case EnergyFlag_T::Dirichlet:
+        case Energy_T::Dirichlet:
         {
             agg = Aggregator_T( J(2) * m + J(3) * n );
             DirichletHessian_CollectTriples( pd, agg, I(0), I(0) );
@@ -207,7 +209,7 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
             wprint(MethodName("LevelsQP_SSN_Matrix")+": Energy flag " + ToString(settings.energy) + " is unknown or invalid for LevelsQP_SSN_Matrix. Returning empty matrix." );
             
 
-            return Sparse::MatrixCSR<R,I,J>();
+            return Sparse::MatrixCSR<R,I,J,Sequential>();
         }
     }
     
@@ -218,25 +220,23 @@ Sparse::MatrixCSR<R,I,J> LevelsQP_SSN_Matrix( cref<PD_T> pd ) const
         agg.Push( i, i, Scalar::One<R> );
     }
     
-    Sparse::MatrixCSR<R,I,J> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
+    Sparse::MatrixCSR<R,I,J,Sequential> L ( agg, m+n, m+n, I(1), true, true ); // symmetrize
     
     return L;
 }
 
 // TODO: Test this!
 
-template<typename R = Real, typename I = Int, typename J = Int>
+template<FloatQ R = Real, IntQ I = Int, IntQ J = Int>
 void LevelsQP_SSN_WriteMatrixModifiedValues(
     cref<PD_T> pd,
-    mref<Sparse::MatrixCSR<R,I,J>> L,
+    mref<Sparse::MatrixCSR<R,I,J,Sequential>> L,
     cptr<R> y,
     mptr<R> mod_vals
 ) const
 {
-    static_assert(FloatQ<R>,"");
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
+    TOOLS_MAKE_FP_FAST();
+
     TOOLS_PTIMER(timer,MethodName("LevelsQP_SSN_WriteMatrixModifiedValues")
         + "<" + TypeName<R>
         + "," + TypeName<I>

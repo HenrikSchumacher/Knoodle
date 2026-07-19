@@ -3,91 +3,6 @@
 
 private:
 
-std::string PDCodeString( mref<PD_T> P ) const
-{
-    if( P.CrossingCount() <= 0 )
-    {
-        return std::string();
-    }
-    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
-    {
-        return std::string();
-    }
-    if( tally_F8Q && P.ProvenFigureEightQ() )
-    {
-        return std::string();
-    }
-    
-    auto pdcode = P.PDCode();
-    
-    cptr<Int> code = pdcode.data();
-    
-    std::string s;
-    s+= "\ns ";
-    s+= ToString(P.ProvenMinimalQ());
-    
-    const Int c_count = pdcode.Dim(0);
-    
-    for( Int c = 0; c < c_count; ++c )
-    {
-        s+= VectorString<5>(&code[5 * c + 0], "\n", "\t", "" );
-    }
-    
-    return s;
-}
-
-std::string GaussCodeString( mref<PD_T> P ) const
-{
-    if( P.CrossingCount() <= 0 )
-    {
-        return std::string();
-    }
-    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
-    {
-        return std::string();
-    }
-    if( tally_F8Q && P.ProvenFigureEightQ() )
-    {
-        return std::string();
-    }
-    
-    std::string s;
-    s+= "\ns ";
-    s+= ToString(P.ProvenMinimalQ());
-    s+= " | ";
-    auto gauss_code = P.ExtendedGaussCode();
-    
-    s+= VectorString( gauss_code.data(), "", " ", "", gauss_code.Size() );
-    
-    return s;
-}
-
-std::string MacLeodCodeString( mref<PD_T> P ) const
-{
-    if( P.CrossingCount() <= 0 )
-    {
-        return std::string();
-    }
-    if( tally_trefoilsQ && P.ProvenTrefoilQ() )
-    {
-        return std::string();
-    }
-    if( tally_F8Q && P.ProvenFigureEightQ() )
-    {
-        return std::string();
-    }
-    
-    std::string s;
-    s+= "\ns ";
-    s+= ToString(P.ProvenMinimalQ());
-    s+= " | ";
-    auto macleod_code = P.MacLeodCode();
-    
-    s+= VectorString( macleod_code.data(), "", " ", "", macleod_code.Size() );
-    
-    return s;
-}
-
 void WriteUnknots()
 {
     if( pdQ )
@@ -139,6 +54,8 @@ std::string FigureEightString() const
 template<Size_T t0, int my_verbosity>
 void Analyze( const LInt i )
 {
+    TOOLS_PTIMER(timer,MethodName("Analyze"));
+    
     constexpr Size_T t1 = t0 + 1;
     constexpr Size_T t2 = t0 + 2;
     
@@ -272,7 +189,7 @@ void Analyze( const LInt i )
         
         T_pd.Tic<V2Q>();
         // We delay the allocation until substantial parts of L have been deallocated.
-        PD_T PD ( L );
+        PDC_T PDC ( L );
         T_pd.Toc<V2Q>();
     
         // Delete remainder of L to make room for the simplification.
@@ -287,19 +204,22 @@ void Analyze( const LInt i )
         if constexpr ( V1Q )
         {
             log << ",\n" + ct_tabs<t1> + "\"PlanarDiagram\" -> <|";
-            kv<t2,0>("Byte Count (Before Simplification)", PD.ByteCount() );
-            kv<t2>("Crossing Count (Before Simplification)", PD.CrossingCount() );
+            kv<t2,0>("Byte Count (Before Simplification)", PDC.Diagram(0).ByteCount() );
+            kv<t2>("Crossing Count (Before Simplification)", PDC.Diagram(0).CrossingCount() );
             log << std::flush;
         }
         
-        std::vector<PD_T> pd_list;
+//        std::vector<PD_T> pd_list;
+//        
+//        T_simplify.Tic<V2Q>();
+//        PD.Simplify5( pd_list );
+//        pd_list.push_back(std::move(PD));
+//        T_simplify.Toc<V2Q>();
         
         T_simplify.Tic<V2Q>();
-        PD.Simplify5( pd_list );
-        pd_list.push_back(std::move(PD));
+        PDC.Simplify();
         T_simplify.Toc<V2Q>();
         
-
         Size_T byte_count  = 0;
         Int crossing_count = 0;
         
@@ -309,14 +229,14 @@ void Analyze( const LInt i )
             T_m_counter = 0;
             F8_counter  = 0;
             
-            for( auto & P : pd_list )
+            for( const PD_T & PD : PDC.Diagrams() )
             {
-                byte_count     += P.ByteCount();
-                crossing_count += P.CrossingCount();
+                byte_count     += PD.ByteCount();
+                crossing_count += PD.CrossingCount();
                 
-                if( tally_trefoilsQ && P.ProvenTrefoilQ() )
+                if( tally_trefoilsQ && PD.ProvenTrefoilQ() )
                 {
-                    if( P.CrossingRightHandedQ(Int(0)) )
+                    if( PD.CrossingRightHandedQ(Int(0)) )
                     {
                         ++T_p_counter;
                     }
@@ -325,7 +245,7 @@ void Analyze( const LInt i )
                         ++T_m_counter;
                     }
                 }
-                if( tally_F8Q && P.ProvenFigureEightQ() )
+                if( tally_F8Q && PD.ProvenFigureEightQ() )
                 {
                     ++F8_counter;
                 }
@@ -333,10 +253,10 @@ void Analyze( const LInt i )
         }
         else
         {
-            for( auto & P : pd_list )
+            for( const PD_T & PD : PDC.Diagrams() )
             {
-                byte_count     += P.ByteCount();
-                crossing_count += P.CrossingCount();
+                byte_count     += PD.ByteCount();
+                crossing_count += PD.CrossingCount();
             }
         }
                 
@@ -375,9 +295,30 @@ void Analyze( const LInt i )
                 {
                     pd_stream << FigureEightString();
                 }
-                for( auto & P : pd_list )
+                
+                for( auto & PD : PDC.Diagrams() )
                 {
-                    pd_stream << PDCodeString(P);
+                    if( PD.CrossingCount() <= 0 )
+                    {
+                        continue;
+                    }
+                    if( tally_trefoilsQ && PD.ProvenTrefoilQ() )
+                    {
+                        continue;
+                    }
+                    if( tally_F8Q && PD.ProvenFigureEightQ() )
+                    {
+                        continue;
+                    }
+                    
+                    auto code = PD.PDCode();
+                    
+                    pd_stream << "\ns ";
+                    pd_stream << ToString(PD.ProvenMinimalQ());
+                    pd_stream << "\n";
+                    pd_stream << OutString::FromMatrix<Format::Matrix::TSV>(
+                        code.ReadAccess(), code.Dim(0), code.Dim(1)
+                    );
                 }
                 
                 pd_stream << "\n";
@@ -404,10 +345,31 @@ void Analyze( const LInt i )
                 {
                     gauss_stream << FigureEightString();
                 }
-                for( auto & P : pd_list )
+                
+                for( auto & PD : PDC.Diagrams() )
                 {
-                    gauss_stream << GaussCodeString(P);
+                    if( PD.CrossingCount() <= 0 )
+                    {
+                        continue;
+                    }
+                    if( tally_trefoilsQ && PD.ProvenTrefoilQ() )
+                    {
+                        continue;
+                    }
+                    if( tally_F8Q && PD.ProvenFigureEightQ() )
+                    {
+                        continue;
+                    }
+                    
+                    auto code = PD.ExtendedGaussCode();
+                    gauss_stream << "\ns ";
+                    gauss_stream << ToString(PD.ProvenMinimalQ());
+                    gauss_stream << " | ";
+                    gauss_stream << OutString::FromArray(
+                        code.ReadAccess(), code.Size(), "", " ", ""
+                    );
                 }
+                
                 gauss_stream << "\n";
                 gauss_stream << std::flush;
                 if( !gauss_stream )
@@ -432,9 +394,29 @@ void Analyze( const LInt i )
                 {
                     macleod_stream << FigureEightString();
                 }
-                for( auto & P : pd_list )
+                
+                for( auto & PD : PDC.Diagrams() )
                 {
-                    macleod_stream << MacLeodCodeString(P);
+                    if( PD.CrossingCount() <= 0 )
+                    {
+                        continue;
+                    }
+                    if( tally_trefoilsQ && PD.ProvenTrefoilQ() )
+                    {
+                        continue;
+                    }
+                    if( tally_F8Q && PD.ProvenFigureEightQ() )
+                    {
+                        continue;
+                    }
+            
+                    auto code = PD.MacLeodCode();
+                    macleod_stream << "\ns ";
+                    macleod_stream << ToString(PD.ProvenMinimalQ());
+                    macleod_stream << " | ";
+                    macleod_stream << OutString::FromArray(
+                        code.ReadAccess(), code.Size(), "", " ", ""
+                    );
                 }
                 macleod_stream << "\n";
                 macleod_stream << std::flush;
@@ -454,9 +436,13 @@ void Analyze( const LInt i )
         if( force_deallocQ )
         {
             T_pd_dealloc.Tic<V2Q>();
-            PD = PD_T();
-            pd_list = std::vector<PD_T>();
+            PDC = PDC_T();
             T_pd_dealloc.Toc<V2Q>();
+            
+//            T_pd_dealloc.Tic<V2Q>();
+//            PD = PD_T();
+//            pd_list = std::vector<PD_T>();
+//            T_pd_dealloc.Toc<V2Q>();
             deallocation_time += T_pd_dealloc.Duration();
         }
     }

@@ -13,7 +13,7 @@ bool strands_same_o()
     
     // If no Reidemeister II move is possible, then we test whether the horizontal strand blocks a Reidemeister II move of the vertical strands. We call this a Reidemeister IIa move.
     
-    if constexpr( optimization_level < Int(4) ) { return false; }
+    if constexpr( optimization_level < UInt8(4) ) { return false; }
     
     PD_ASSERT(s_0 != s_1);
     PD_ASSERT(n_0 != n_1);

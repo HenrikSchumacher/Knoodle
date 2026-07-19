@@ -26,7 +26,7 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> LinkingNumbers() const
                     if( i != j )
                     {
                         const I val = static_cast<I>(ToUnderlying(pd.C_state[c]));
-                        AddTo( lut, {i,j}, val );
+                        Increment( lut, {i,j}, val );
                     }
                 }
             }
@@ -39,21 +39,18 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> LinkingNumbers() const
 }
 
 
-Sparse::MatrixCSR<ToSigned<Int>,Int,Int> LinkingMatrix( Int thread_count = 1 ) const
+Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> LinkingMatrix() const
 {
     TOOLS_PTIMER(timer,MethodName("LinkingMatrix"));
     
     using I = ToSigned<Int>;
-    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int>;
+    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential>;
     
     if( !this->InCacheQ("LinkingMatrix") )
     {
         auto lut = LinkingNumbers();
         
-        if( lut.empty() )
-        {
-            Matrix_T();
-        }
+        if( lut.empty() ) { Matrix_T(); }
         
         Tensor1<Int,Int> i ( lut.size() );
         Tensor1<Int,Int> j ( lut.size() );
@@ -62,8 +59,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int> LinkingMatrix( Int thread_count = 1 ) c
         Int k = 0;
         for( auto & x : lut )
         {
-            i[k] = x.first.i;
-            j[k] = x.first.j;
+            std::tie(i[k],j[k]) = x.first;
             a[k] = x.second;
             ++k;
         }
@@ -72,10 +68,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int> LinkingMatrix( Int thread_count = 1 ) c
         
         this->SetCache(
             "LinkingMatrix",
-            Matrix_T(
-                i.Size(), i.data(), j.data(), a.data(), n, n,
-                thread_count, false, true, false
-            )
+            Matrix_T( i.Size(), i.data(), j.data(), a.data(), n, n, Int(1), false, true, false )
         );
     }
     

@@ -6,19 +6,19 @@ ColorCounts_T ColorArcCounts() const
     
     for( const PD_T & pd : pd_list )
     {
-        if( pd.ValidQ() )
+        if( pd.InvalidQ() ) { continue; }
+
+        if( pd.AnelloQ() )
         {
-            const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
-            
-            for( auto [col,count] : pd_color_arc_counts )
-            {
-                AddTo(color_arc_counts, col, count);
-            }
-            
-            if( pd.ProvenUnknotQ() )
-            {
-                AddTo(color_arc_counts, pd.last_color_deactivated, Int(0));
-            }
+            Increment(color_arc_counts, pd.last_color_deactivated, Int(0));
+            continue;
+        }
+        
+        const ColorCounts_T & pd_color_arc_counts = pd.ColorArcCounts();
+        
+        for( auto [col,count] : pd_color_arc_counts )
+        {
+            Increment(color_arc_counts, col, count);
         }
     }
     
@@ -74,12 +74,12 @@ MatrixTripleContainer_T<Int,ToSigned<Int>> ColorIntersectionCounts() const
     return lut;
 }
 
-Sparse::MatrixCSR<ToSigned<Int>,Int,Int> ColorIntersectionMatrix( Int thread_count = 1 ) const
+Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential> ColorIntersectionMatrix() const
 {
     TOOLS_PTIMER(timer,MethodName("ColorIntersectionMatrix"));
     
     using I = ToSigned<Int>;
-    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int>;
+    using Matrix_T = Sparse::MatrixCSR<ToSigned<Int>,Int,Int,Sequential>;
     
     if( !this->InCacheQ("ColorIntersectionMatrix") )
     {
@@ -97,8 +97,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int> ColorIntersectionMatrix( Int thread_cou
         Int k = 0;
         for( auto & x : lut )
         {
-            i[k] = x.first.i;
-            j[k] = x.first.j;
+            std::tie(i[k],j[k]) = x.first;
             a[k] = x.second;
             ++k;
         }
@@ -107,10 +106,7 @@ Sparse::MatrixCSR<ToSigned<Int>,Int,Int> ColorIntersectionMatrix( Int thread_cou
         
         this->SetCache(
             "ColorIntersectionMatrix",
-            Matrix_T(
-                i.Size(), i.data(), j.data(), a.data(), n, n,
-                thread_count, false, true, false
-            )
+            Matrix_T( i.Size(), i.data(), j.data(), a.data(), n, n, Int(1), false, true, false )
         );
     }
     

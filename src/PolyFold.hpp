@@ -13,13 +13,11 @@
 
 namespace Knoodle
 {    
-    template<typename Real_, typename Int_, typename LInt_, typename BReal_ = Real_>
+    template<FloatQ Real_, IntQ Int_, IntQ LInt_, FloatQ BReal_ = Real_>
     class PolyFold final
     {
-        static_assert(FloatQ<Real_>,"");
 //        static_assert(SignedIntQ<Int_>,"");
 //        static_assert(SignedIntQ<LInt_>,"");
-        static_assert(FloatQ<BReal_>,"");
         
     public:
         
@@ -57,15 +55,19 @@ namespace Knoodle
         using PolygonContainer_T        = Tensor2<Real,Int>;
         using Vector_T                  = Tiny::Vector<AmbDim,Real,Int>;
 //        using Link_T                    = Link_2D<Real,Int,BReal>;
-        using Link_T                    = Knot_2D<Real,Int,BReal>;
-        using PD_T                      = PlanarDiagram<Int>;
-        using IntersectionFlagCounts_T  = typename Link_T::IntersectionFlagCounts_T;
+        using Link_T                    = KnotEmbedding<Real,Int,BReal>;
+//        using Link_T                    = LinkEmbedding<Real,Int,BReal>;
+//        using PD_T                      = PlanarDiagram<Int>;
+        
+        using PDC_T                     = PlanarDiagramComplex<Int>;
+        using PD_T                      = PDC_T::PD_T;
+        using IntersectionFlagCounts_T  = Link_T::IntersectionFlagCounts_T;
         using FoldFlagCounts_T          = Clisby_T::FoldFlagCounts_T;
-        using PRNG_T                    = typename Clisby_T::PRNG_T;
+        using PRNG_T                    = Clisby_T::PRNG_T;
         
         
-        using AngleRandomMethod_T       = typename Clisby_T::AngleRandomMethod_T;
-        using PivotRandomMethod_T       = typename Clisby_T::PivotRandomMethod_T;
+        using AngleRandomMethod_T       = Clisby_T::AngleRandomMethod_T;
+        using PivotRandomMethod_T       = Clisby_T::PivotRandomMethod_T;
         
         struct PRNG_State_T
         {
@@ -184,51 +186,54 @@ namespace Knoodle
             // https://patorjk.com/software/taag/#p=testall&f=Big%20Money-ne&t=PolyFold
             
 print(R"(
- .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--. 
+ .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
 / .. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \
 \ \/\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ \/ /
- \/ /`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´\/ / 
- / /\   _  (`-´)                                                              _(`-´)     / /\ 
+ \/ /`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´\/ /
+ / /\   _  (`-´)                                                              _(`-´)     / /\
 / /\ \  \-.(OO )     .->      <-.        .->      <-.          .->      <-.  ( (OO ).-> / /\ \
 \ \/ /  _.´    \(`-´)----.  ,--. )   ,--.´  ,-.(`-´)-----.(`-´)----.  ,--. )  \    .´_  \ \/ /
- \/ /  (_...--´´( OO).-.  ` |  (`-´)(`-´)´.´  /(OO|(_\---´( OO).-.  ` |  (`-´)´`´-..__)  \/ / 
- / /\  |  |_.´ |( _) | |  | |  |OO )(OO \    /  / |  ´--. ( _) | |  | |  |OO )|  |  ` |  / /\ 
+ \/ /  (_...--´´( OO).-.  ` |  (`-´)(`-´)´.´  /(OO|(_\---´( OO).-.  ` |  (`-´)´`´-..__)  \/ /
+ / /\  |  |_.´ |( _) | |  | |  |OO )(OO \    /  / |  ´--. ( _) | |  | |  |OO )|  |  ` |  / /\
 / /\ \ |  .___.´ \|  |)|  |(|  ´__ | |  /   /)  \_)  .--´  \|  |)|  |(|  ´__ ||  |  / : / /\ \
 \ \/ / |  |       `  `-´  ´ |     |´ `-/   /`    `|  |_)    `  `-´  ´ |     |´|  `-´  / \ \/ /
  \/ /  `--´        `-----´  `-----´    `--´       `--´       `-----´  `-----´ `------´   \/ / 
- / /\.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./ /\ 
+ / /\.--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--..--./ /\
 / /\ \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \/\ \
 \ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´\ `´ /
- `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´ 
+ `--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´`--´
 )");
 
             try
             {
                 print("");
                 
-                HandleOptions( argc, argv );
+                bool runQ = HandleOptions( argc, argv );
                 
-                if constexpr ( Clisby_T::countersQ )
+                if( runQ )
                 {
-                    wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                    if constexpr ( Clisby_T::countersQ )
+                    {
+                        wprint("\nOperation counters are active. You probably do not want to use this build in production!\n");
+                    }
+                    
+                    if constexpr ( Clisby_T::witnessesQ )
+                    {
+                        wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
+                    }
+                    
+                    Initialize<0>();
+                    
+                    Run();
+                    
+                    print("Done.");
+                    valprint<30>("Time elapsed during burn-in",burn_in_time);
+                    valprint<30>("Time elapsed during sampling",total_sampling_time);
+                    valprint<30>("Time elapsed during analysis",total_analysis_time);
+                    valprint<30>("Time elapsed during snapshots",total_snapshot_time);
+                    print(std::string(26 + 24,'-'));
+                    valprint<30>("Time elapsed all together",total_timing);
                 }
-                
-                if constexpr ( Clisby_T::witnessesQ )
-                {
-                    wprint("\nCollection of pivots and witnesses is active. You almost certainly do not want to use this build in production as it gathers A LOT of data!\n");
-                }
-                
-                Initialize<0>();
-                
-                Run();
-                
-                print("Done.");
-                valprint<30>("Time elapsed during burn-in",burn_in_time);
-                valprint<30>("Time elapsed during sampling",total_sampling_time);
-                valprint<30>("Time elapsed during analysis",total_analysis_time);
-                valprint<30>("Time elapsed during snapshots",total_snapshot_time);
-                print(std::string(26 + 24,'-'));
-                valprint<30>("Time elapsed all together",total_timing);
             }
             catch( const std::exception & e )
             {

@@ -1,0 +1,157 @@
+void Canonicalize()
+{
+    using MacLeod_T = Tensor1<UInt,Int>;
+    
+//    ColorCounts_T pdc_color_arc_counts = ColorArcCounts();
+    
+    // Sorting the unlinks to the end of the list.
+    // This makes sure that we can tell whether an unlink shall be discarded (if we have seen some arc of the same color or some other unlink of the same color).
+    SortByCrossingCount();
+    
+    SetContainer<Int> color_register;
+    
+    // TODO: Is this meaningful?
+//    Tensor1<Int,Int> mac_leod_buffer ( );
+    
+    for( PD_T & pd : pd_list )
+    {
+        if( pd.InvalidQ() ) { continue; };
+        
+        if( pd.ProvenUnknotQ() )
+        {
+            // We replace unknots that can be connected to arcs of the same color by invalid knots.
+            // They will be filtered out in the end.
+            // pd can be an anello or a farfalla.
+            
+            const Int color = pd.FirstColor();
+
+            if( !color_register.contains(color) )
+            {
+                // Because of the sorting, this must be the first unlink of that color and there cannot be any further diagrams with arcs of that color.
+                // So we need to keep this unlink.
+                color_register.insert(color);
+            }
+            else
+            {
+                // We have seen this color already, so we can drop this unlink.
+                pd = PD_T::InvalidDiagram();
+            }
+            continue;
+        };
+        
+        auto color_arc_counts = pd.ColorArcCounts(); // Make copy. We reuse the colors after canonicalization.
+        
+        // Register all colors of this diagram.
+        for( auto & x : color_arc_counts ) { color_register.insert(x.first); }
+        
+        if( pd.LinkComponentCount() != Int(1) ) { continue; }
+        if( pd.ColorCount() != Int(1) ) { continue; }
+        
+        
+        // TODO: Buffering the pd.MacLeodCode() codes into the cache might be unnecessary. We could also use C_scratch for that if we can make sure that pd.C_scratch is not overwritten in the meantime.
+        
+        // TODO: Buffering the pd.ColorArcCount() into cache might also be unnecessary; we only need only to compute and buffer pd.ColorCount() and pd.FirstColor(). We could store that in pd.A_scratch[0] -- unless we have an anello =(.
+
+        // The thing is: MacLeod code is not good at normalizing figure-eight knots.
+        if( pd.ProvenFigureEightQ() )
+        {
+            const Int color = color_arc_counts.begin()->first;
+            pd = PD_T::FigureEightKnot(color);
+            pd.SetCache("BufferedMacLeodCode",pd.MacLeodCode());
+            pd.SetCache("ColorArcCounts",std::move(color_arc_counts));
+            continue;
+        }
+        
+        // Maybe do this only for knots with less than 100 crossings?
+        const Int color = color_arc_counts.begin()->first;
+//        TOOLS_LOGDUMP(color);
+        MacLeod_T macleod = pd.MacLeodCode();
+        pd = PD_T::FromMacLeodCode(macleod,color,pd.ProvenMinimalQ());
+        pd.SetCache("BufferedMacLeodCode",std::move(macleod));
+        pd.SetCache("ColorArcCounts",std::move(color_arc_counts));
+        
+//        TOOLS_LOGDUMP(pd.A_color);
+//        logvalprint("pd.ColorArcCounts()",ToString(pd.ColorArcCounts()));
+    }
+    
+    
+    // TODO: Here we access cached quantities quite frequently, leading to many calls to GetCache. Is this a problem? Can we improve this?
+    std::sort(
+        pd_list.begin(),
+        pd_list.end(),
+        []( cref<PD_T> pd_0, cref<PD_T> pd_1 )
+        {
+            // TODO: Not sure whether this is my favorite ordering.
+            
+            // Make sure that the invalid diagrams are sorted to the very back.
+            const bool I_0 = pd_0.InvalidQ();
+            const bool I_1 = pd_1.InvalidQ();
+            
+            if( I_0 < I_1 ) { return true;  }
+            if( I_0 > I_1 ) { return false;  }
+            
+            if( I_0 ) { return false;}
+            
+            const Int C_0 = pd_0.CrossingCount();
+            const Int C_1 = pd_1.CrossingCount();
+            
+            if( C_0 > C_1 ) { return true;  }
+            if( C_0 < C_1 ) { return false; }
+            
+            const Int L_0 = pd_0.LinkComponentCount();
+            const Int L_1 = pd_1.LinkComponentCount();
+            
+            if( L_0 > L_1 ) { return true;  }
+            if( L_0 < L_1 ) { return false; }
+            
+            const Int color_count_0 = pd_0.ColorCount();
+            const Int color_count_1 = pd_1.ColorCount();
+            
+            if( color_count_0 > color_count_1 ) { return true;  }
+            if( color_count_0 < color_count_1 ) { return false; }
+            
+            if( color_count_0 != Int(1) ) { return false; }
+            
+            const Int color_0 = pd_0.ColorArcCounts().begin()->first;
+            const Int color_1 = pd_1.ColorArcCounts().begin()->first;
+            
+            if( color_0 > color_1 ) { return true;  }
+            if( color_0 < color_1 ) { return false; }
+            
+            if( L_0 != Int(1)) { return false; }
+            
+            auto & M_0 = pd_0.template GetCache<MacLeod_T>("BufferedMacLeodCode");
+            auto & M_1 = pd_1.template GetCache<MacLeod_T>("BufferedMacLeodCode");
+            
+            for( Int i = 0; i < C_0; ++i )
+            {
+                auto m_0 = M_0[i];
+                auto m_1 = M_1[i];
+                if( m_0 > m_1 ) { return true;  }
+                if( m_0 < m_1 ) { return false; }
+            }
+            
+            return false;
+        }
+    );
+    
+    // Drop the invalid diagrams at the back.
+    while( !pd_list.empty() )
+    {
+        if( pd_list.back().InvalidQ() )
+        {
+            pd_list.pop_back();
+        }
+        else
+        {
+            break;
+        }
+    }
+          
+    for( PD_T & pd : pd_list )
+    {
+        pd.ClearCache("BufferedMacLeodCode");
+    }
+    
+    this->ClearCache();
+}

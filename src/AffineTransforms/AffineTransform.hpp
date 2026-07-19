@@ -2,12 +2,9 @@
 
 namespace Knoodle
 {
-    template<int AmbDim_, typename Real_, typename Int_>
+    template<int AmbDim_, FloatQ Real_, IntQ Int_>
     class AffineTransform final
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real = Real_;
@@ -322,13 +319,36 @@ namespace Knoodle
             std::string line_prefix = std::string("")
         )
         {
-            std::string line_prefix_2 = line_prefix + "\t";
             std::string line_prefix_3 = line_prefix + "\t\t";
-            return std::string("<| ")
-                +  "\n" + line_prefix_2 + "\"A\""    + " -> " + ToString(f.A, line_prefix_3)
-                + ",\n" + line_prefix_2 + "\"b\""    + " -> " + ToString(f.b, line_prefix_3)
-                + ",\n" + line_prefix_2 + "\"Flag\"" + " -> " + ToString(ToUnderlying(f.flag))
-                +  "\n" + line_prefix + "|>";
+        
+            std::string s ("<| ");
+            s += "\n";
+            
+            s += line_prefix;
+            s += "\t";
+            s += "\"A\"";
+            s += " -> ";
+            s += ToString(f.A, line_prefix_3);
+            s += ",\n";
+            
+            s += line_prefix;
+            s += "\t";
+            s += "\"b\"";
+            s += " -> ";
+            s += ToString(f.b, line_prefix_3);
+            s += ",\n";
+            
+            s += line_prefix;
+            s += "\t";
+            s += "\"Flag\"";
+            s += " -> ";
+            s += ToString(ToUnderlying(f.flag));
+            
+            s +=  "\n";
+            s += line_prefix;
+            s += "|>";
+            
+            return s;
         }
         
     public:

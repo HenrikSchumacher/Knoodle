@@ -3,7 +3,7 @@
 namespace Knoodle
 {
     
-    template<typename Int_>
+    template<IntQ Int_>
     class alignas( ObjectAlignment ) MatrixQuadTree final
     {
 //        static_assert(SignedIntQ<Int_>,"");

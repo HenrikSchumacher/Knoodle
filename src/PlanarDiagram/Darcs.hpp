@@ -5,12 +5,17 @@ static constexpr Int ToDarc( const Int a, const HeadTail_T d )
     return Int(2) * a + d;
 }
 
+static Int ArcOfDarc( const Int da )
+{
+    return da / Int(2);
+}
+
 static constexpr std::pair<Int,HeadTail_T> FromDarc( Int da )
 {
     return std::pair( da / Int(2), da % Int(2) );
 }
 
-static constexpr Int FlipDarc( const Int da )
+static constexpr Int ReverseDarc( const Int da )
 {
     return da ^ Int(1);
 }
@@ -20,7 +25,7 @@ std::string DarcString( const Int da ) const
     auto [a,d] = FromDarc(da);
     
     return "darc " + Tools::ToString(da) + " = { "
-        + Tools::ToString(A_cross.data()[FlipDarc(da)]) + ", "
+        + Tools::ToString(A_cross.data()[ReverseDarc(da)]) + ", "
         + Tools::ToString(A_cross.data()[da]) + " } ("
         + ToString(A_state[a]) + ")";
 }
@@ -120,13 +125,14 @@ Int LeftDarc( const Int da ) const
     }
 }
 
+
 mref<ArcContainer_T> ArcLeftDarcs() const
 {
     // Return value needs to be mutable so that StrandSimplifier can update it.
     
     std::string tag ("ArcLeftDarcs");
     
-    if( !this->InCacheQ("ArcLeftDarcs") )
+    if( !this->InCacheQ(tag) )
     {
         TOOLS_PTIMER(timer,MethodName(tag));
         
@@ -138,10 +144,9 @@ mref<ArcContainer_T> ArcLeftDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arcs_T C = CopyCrossing(c);
                 const C_Arcs_T in_darcs {
-                    { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
-                    { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
+                    { ToDarc(C_arcs(c,Out,Left ),Tail), ToDarc(C_arcs(c,Out,Right),Tail) },
+                    { ToDarc(C_arcs(c,In ,Left ),Head), ToDarc(C_arcs(c,In ,Right),Head) }
                 };
                 
                 /* C[Out][Left ]         C[Out][Right]
@@ -155,11 +160,11 @@ mref<ArcContainer_T> ArcLeftDarcs() const
                  * C[In ][Left ]         C[In ][Right]
                  */
                 
-                dA_left[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[Out][Right] );
-                dA_left[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[In ][Right] );
-                dA_left[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[Out][Left ] );
-                dA_left[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[In ][Left ] );
-                
+                dA_left[ in_darcs[Out][Left ] ] = ReverseDarc( in_darcs[Out][Right] );
+                dA_left[ in_darcs[Out][Right] ] = ReverseDarc( in_darcs[In ][Right] );
+                dA_left[ in_darcs[In ][Left ] ] = ReverseDarc( in_darcs[Out][Left ] );
+                dA_left[ in_darcs[In ][Right] ] = ReverseDarc( in_darcs[In ][Left ] );
+
                 PD_ASSERT( dA_left[ in_darcs[Out][Left ] ] == LeftDarc( in_darcs[Out][Left ] ) );
                 PD_ASSERT( dA_left[ in_darcs[Out][Right] ] == LeftDarc( in_darcs[Out][Right] ) );
                 PD_ASSERT( dA_left[ in_darcs[In ][Left ] ] == LeftDarc( in_darcs[In ][Left ] ) );
@@ -174,11 +179,11 @@ mref<ArcContainer_T> ArcLeftDarcs() const
 }
 
 
-bool CheckLeftDarc() const
+bool CheckArcLeftDarcs() const
 {
-    [[maybe_unused]] auto tag = [](){ return MethodName("CheckLeftDarc"); };
+    std::string tag = MethodName("CheckArcLeftDarcs");
     
-    TOOLS_PTIMER(timer,tag());
+    TOOLS_PTIMER(timer,tag);
     
     mptr<Int> dA_left = ArcLeftDarcs().data();
     
@@ -199,7 +204,7 @@ bool CheckLeftDarc() const
             
             if( !passedQ )
             {
-                eprint(tag() + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
+                eprint(tag + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
                 
                 TOOLS_DUMP(a);
                 TOOLS_DUMP(da);
@@ -214,7 +219,7 @@ bool CheckLeftDarc() const
         }
     }
     
-    logprint(tag() + " passed.");
+    logprint(tag + " passed.");
     
     return true;
 }
@@ -312,6 +317,8 @@ mref<ArcContainer_T> ArcRightDarcs() const
     
     if( !this->InCacheQ(tag) )
     {
+        TOOLS_PTIMER(timer,MethodName(tag));
+        
         ArcContainer_T A_right_buffer ( max_arc_count );
         
         mptr<Int> dA_right = A_right_buffer.data();
@@ -320,10 +327,9 @@ mref<ArcContainer_T> ArcRightDarcs() const
         {
             if( CrossingActiveQ(c) )
             {
-                const C_Arcs_T C = CopyCrossing(c);
-                const C_Arcs_T in_darcs  {
-                    { ToDarc(C[Out][Left ],Tail), ToDarc(C[Out][Right],Tail) },
-                    { ToDarc(C[In ][Left ],Head), ToDarc(C[In ][Right],Head) }
+                const C_Arcs_T in_darcs {
+                    { ToDarc(C_arcs(c,Out,Left ),Tail), ToDarc(C_arcs(c,Out,Right),Tail) },
+                    { ToDarc(C_arcs(c,In ,Left ),Head), ToDarc(C_arcs(c,In ,Right),Head) }
                 };
                 
                 /* C[Out][Left ]         C[Out][Right]
@@ -337,10 +343,10 @@ mref<ArcContainer_T> ArcRightDarcs() const
                  * C[In ][Left ]         C[In ][Right]
                  */
 
-                dA_right[ in_darcs[Out][Left ] ] = FlipDarc( in_darcs[In ][Left ] );
-                dA_right[ in_darcs[Out][Right] ] = FlipDarc( in_darcs[Out][Left ] );
-                dA_right[ in_darcs[In ][Left ] ] = FlipDarc( in_darcs[In ][Right] );
-                dA_right[ in_darcs[In ][Right] ] = FlipDarc( in_darcs[Out][Right] );
+                dA_right[ in_darcs[Out][Left ] ] = ReverseDarc( in_darcs[In ][Left ] );
+                dA_right[ in_darcs[Out][Right] ] = ReverseDarc( in_darcs[Out][Left ] );
+                dA_right[ in_darcs[In ][Left ] ] = ReverseDarc( in_darcs[In ][Right] );
+                dA_right[ in_darcs[In ][Right] ] = ReverseDarc( in_darcs[Out][Right] );
                 
                 PD_ASSERT( dA_right[ in_darcs[Out][Left ] ] == RightDarc( in_darcs[Out][Left ] ) );
                 PD_ASSERT( dA_right[ in_darcs[Out][Right] ] == RightDarc( in_darcs[Out][Right] ) );
@@ -357,9 +363,9 @@ mref<ArcContainer_T> ArcRightDarcs() const
 
 bool CheckRightDarc() const
 {
-    std::string tag ("RightDarc");
+    std::string tag = MethodName("RightDarc");
     
-    TOOLS_PTIMER(timer,MethodName(tag));
+    TOOLS_PTIMER(timer,tag);
     
     cptr<Int> dA_right = ArcRightDarcs().data();
     
@@ -380,7 +386,7 @@ bool CheckRightDarc() const
             
             if( !passedQ )
             {
-                eprint(MethodName(tag) + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
+                eprint(tag + " failed at " + ArcString(a) + " ("  + (headtail ? "Head" : "Tail") + ").");
                 
                 TOOLS_DUMP(a);
                 TOOLS_DUMP(da);

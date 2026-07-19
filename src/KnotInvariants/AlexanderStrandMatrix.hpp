@@ -4,7 +4,7 @@ namespace Knoodle
 {
     // TODO: Some care has to be taken in cases where not all crossings or arcs are active.
     
-    template<typename Scal_, typename Int_, typename LInt_>
+    template<typename Scal_, IntQ Int_, IntQ LInt_>
     class AlexanderStrandMatrix final
     {
     public:
@@ -16,9 +16,9 @@ namespace Knoodle
         
         using Complex = Scalar::Complex<Real>;
 
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
-        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
         
         using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
@@ -233,6 +233,8 @@ namespace Knoodle
                 if( row_counter >= n ) { break; }
                 
                 const CrossingState_T s = C_state[c];
+
+                if( !ActiveQ(s) ) { break; }
 
                 mptr<Scal> row = &A[ n * row_counter ];
 

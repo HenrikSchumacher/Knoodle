@@ -29,7 +29,7 @@ Size_T RemoveLoops( mref<PD_T> pd )
     
     if( pd.ProvenMinimalQ() ) { return 0; };
  
-    for( Int a = 0; a < pd.max_arc_count; ++a )
+    for( Int a = 0; a < pd.MaxArcCount(); ++a )
     {
         if( !pd.ArcActiveQ(a) ) { continue; }
         

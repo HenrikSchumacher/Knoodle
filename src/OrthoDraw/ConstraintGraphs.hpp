@@ -48,6 +48,7 @@ void ComputeConstraintGraphs() const
     // We do this by finding vertices that have no edge to the west or south; then we can simply walk to the east or north, until we hit a vertex that has no edge in that direction.
     // We can skip all crossings, since crossings have valence 4 thus cannot be the start or end of any segment.
     // Thus, we start at v_0 = C_end.
+    
     for( Int v_0 = C_end; v_0 < V_end; ++v_0 )
     {
         if( !VertexActiveQ(v_0) ) { continue; }
@@ -229,8 +230,9 @@ void ComputeConstraintGraphs() const
 //        this->SetCache( "DhV_leftright_DvV", std::move(DhV_leftright_DvV) );
 //    }
     
+    
     // Collecting the saturating edges of Gl. They have zero costs.
-    if ( settings.saturate_facesQ )
+    if ( settings.saturate_regionsQ )
     {
         const EdgeContainer_T Gl_edges = this->template SaturatingEdges<0>();
         
@@ -258,7 +260,7 @@ void ComputeConstraintGraphs() const
     }
     
     // Collecting the saturating edges of Gr. They have zero costs.
-    if ( settings.saturate_facesQ )
+    if ( settings.saturate_regionsQ )
     {
         const EdgeContainer_T Gr_edges = this->template SaturatingEdges<1>();
         
@@ -282,14 +284,16 @@ void ComputeConstraintGraphs() const
             }
         }
     }
+    
+    PD_PRINT("Creating Dh");
 
     
     // We use Sparse::MatrixCSR to tally the duplicate edge in Dh.
     // The counts are stored in DhE_costs for the TopologicalTightening.
     {
         const Int n = DhV_E.SublistCount();
-
-        Sparse::MatrixCSR<Cost_T,Int,Int> A (DhE_agg,n,n,Int(1),true,0,true);
+        
+        Sparse::MatrixCSR<Cost_T,Int,Int,Sequential> A (DhE_agg,n,n,Int(1),true,0,true);
 
         if( n > Int(0) )
         {
@@ -327,12 +331,14 @@ void ComputeConstraintGraphs() const
         this->SetCache( "E_DhE", std::move(E_DhE) );
     }
     
+    PD_PRINT("Creating Dv");
+    
     // We use Sparse::MatrixCSR to tally the duplicate edge in Dv.
     // The counts are stored in DvE_costs for the TopologicalTightening.
     {
         const Int n = DvV_E.SublistCount();
         
-        Sparse::MatrixCSR<Cost_T,Int,Int> A (DvE_agg,n,n,Int(1),true,0,true);
+        Sparse::MatrixCSR<Cost_T,Int,Int,Sequential> A (DvE_agg,n,n,Int(1),true,0,true);
 
         if( n > Int(0) )
         {
@@ -370,6 +376,8 @@ void ComputeConstraintGraphs() const
         this->SetCache( "E_DvE", std::move(E_DvE) );
     }
     
+    PD_PRINT("GG");
+    
     // Not sure which of these I really need.
     this->SetCache( "E_DhV", std::move(E_DhV) );
     this->SetCache( "E_DvV", std::move(E_DvV) );
@@ -379,6 +387,8 @@ void ComputeConstraintGraphs() const
     
     this->SetCache( "DvV_V", std::move(DvV_V) );
     this->SetCache( "V_DvV", std::move(V_DvV) );
+    
+    PD_PRINT("HH");
 }
 
 
@@ -507,13 +517,13 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //
 //// Not what I need, I guess. This cycles around faces of the PD with the virtual edges added.
 //// But we need to cycle around faces in Dv and Dh to create the flow networks.
-//void ComputeFaceVHSegments() const
+//void ComputeRegionVHSegments() const
 //{
-//    TOOLS_PTIMER(timer,MethodName("ComputeFaceVHSegments"));
+//    TOOLS_PTIMER(timer,MethodName("ComputeRegionVHSegments"));
 //    
 //    const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
 //    
-//    Int f_count = FaceCount(soften_virtual_edgesQ);
+//    Int f_count = RegionCount(soften_virtual_edgesQ);
 //    
 //    RaggedList<Int,Int> F_DvV ( f_count, E_V.Dim(0) );
 //    RaggedList<Int,Int> F_DhV ( f_count, E_V.Dim(0) );
@@ -521,7 +531,7 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //    auto & E_DvV = EdgeToDvVertex();
 //    auto & E_DhV = EdgeToDhVertex();
 //    
-//    TraverseAllFaces(
+//    TraverseAllRegions(
 //        []( const Int f ){ (void)f; },
 //        [&E_DvV,&E_DhV,&F_DvV,&F_DhV,this](
 //            const Int f, const Int k, const Int de
@@ -560,38 +570,38 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceDvVertices() const
+//cref<RaggedList<Int,Int>> RegionDvVertices() const
 //{
-//    if( !this->InCacheQ("F_DvV") ) { ComputeFaceVHSegments(); }
+//    if( !this->InCacheQ("F_DvV") ) { ComputeRegionVHSegments(); }
 //    
 //    return this->GetCache<RaggedList<Int,Int>>("F_DvV");
 //}
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceDhVertices() const
+//cref<RaggedList<Int,Int>> RegionDhVertices() const
 //{
-//    if( !this->InCacheQ("F_DhV") ) { ComputeFaceVHSegments(); }
+//    if( !this->InCacheQ("F_DhV") ) { ComputeRegionVHSegments(); }
 //    
 //    return this->GetCache<RaggedList<Int,Int>>("F_DhV");
 //}
 //
 //// Not what I need, I guess as this does not respect saturating edges.
 //// TODO: Potential candidate for erasure.
-//cref<RaggedList<Int,Int>> FaceSegments() const
+//cref<RaggedList<Int,Int>> RegionSegments() const
 //{
-//    if( !this->InCacheQ("FaceSegments") )
+//    if( !this->InCacheQ("RegionSegments") )
 //    {
 //        const bool soften_virtual_edgesQ = settings.soften_virtual_edgesQ;
 //        
-//        RaggedList<Int,Int> F_segments ( FaceCount(soften_virtual_edgesQ), E_V.Dim(0) );
+//        RaggedList<Int,Int> F_segments ( RegionCount(soften_virtual_edgesQ), E_V.Dim(0) );
 //        
 //        auto & E_DvV = EdgeToDvVertex();
 //        auto & E_DhV = EdgeToDhVertex();
 //        
 //        const Int h = Dv().VertexCoordinates();
 //        
-//        TraverseAllFaces(
+//        TraverseAllRegions(
 //            []( const Int f ){ (void)f; },
 //            [&E_DvV,&E_DhV,&F_segments,h,this](
 //                const Int f, const Int k, const Int de
@@ -619,8 +629,8 @@ cref<RaggedList<Int,Int>> HorizontalSegmentVertices() const
 //            soften_virtual_edgesQ
 //        );
 //        
-//        this->SetCache( "FaceSegments", std::move(F_segments) );
+//        this->SetCache( "RegionSegments", std::move(F_segments) );
 //    }
 //    
-//    return this->GetCache<RaggedList<Int,Int>>("FaceSegments");
+//    return this->GetCache<RaggedList<Int,Int>>("RegionSegments");
 //}

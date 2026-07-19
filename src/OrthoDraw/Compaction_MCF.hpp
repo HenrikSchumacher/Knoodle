@@ -4,24 +4,8 @@ void ComputeVertexCoordinates_Compaction_MCF()
 {
     TOOLS_PTIMER(timer,MethodName("ComputeVertexCoordinates_Compaction_MCF"));
     
-    Tensor1<Int,Int> x;
-    Tensor1<Int,Int> y;
-    
-    ParallelDo(
-        [&x,&y,this](const Int thread)
-        {
-            if( thread == Int(0) )
-            {
-                x = Compaction_MCF( Dv(), DvEdgeCosts() );
-            }
-            else if( thread == Int(1) )
-            {
-                y = Compaction_MCF( Dh(), DhEdgeCosts() );
-            }
-        },
-        Int(2),
-        (settings.parallelizeQ ? Int(2) : (Int(1)))
-    );
+    Tensor1<Int,Int> x = Compaction_MCF( Dv(), DvEdgeCosts() );
+    Tensor1<Int,Int> y = Compaction_MCF( Dh(), DhEdgeCosts() );
     
     ComputeVertexCoordinates(x,y);
 }
@@ -63,7 +47,14 @@ Tensor1<Int,Int> Compaction_MCF( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>> ed
     Tensor1<R,I> costs     (m);
     Tensor1<R,I> demands   (n,R(0));
     
+//    TOOLS_LOGDUMP(n);
+//    TOOLS_LOGDUMP(m);
+    
+    // We use the edges of graph D, not of the OrthoDraw object itself. So we do not have to filter out deactivated edges.
     const auto & edges = D.Edges();
+    
+//    TOOLS_LOGDUMP(edges);
+//    TOOLS_LOGDUMP(E_flag);
     
     for( I e = 0; e < m; ++e )
     {
@@ -81,22 +72,33 @@ Tensor1<Int,Int> Compaction_MCF( cref<DiGraph_T> D, cref<Tensor1<Cost_T,Int>> ed
         demands[h] += primal_cost;
     }
 
+//    TOOLS_LOGDUMP(tails.MinMax());
+//    TOOLS_LOGDUMP(heads.MinMax());
+//    TOOLS_LOGDUMP(tails);
+//    TOOLS_LOGDUMP(heads);
+//    TOOLS_LOGDUMP(costs);
+//    TOOLS_LOGDUMP(capacities);
+//    TOOLS_LOGDUMP(demands);
+    
     MCFSimplex_T mcf (n,m);
     
-    mcf.LoadNet(
-        n, // maximal number of vertices
-        m, // maximal number of edges
-        n, // current number of vertices
-        m, // current number of edges
-        capacities.data(),
-        costs.data(),
-        demands.data(),
-        tails.data(),
-        heads.data()
-    );
-    
-    mcf.SolveMCF();
-
+    {
+        TOOLS_MAKE_FP_STRICT()
+        mcf.LoadNet(
+            n, // maximal number of vertices
+            m, // maximal number of edges
+            n, // current number of vertices
+            m, // current number of edges
+            capacities.data(),
+            costs.data(),
+            demands.data(),
+            tails.data(),
+            heads.data()
+        );
+        
+        mcf.SolveMCF();
+    }
+        
     Tensor1<R,Int> potentials (D.VertexCount());
 
     mcf.MCFGetPi(potentials.data());

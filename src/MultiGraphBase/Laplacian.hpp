@@ -2,7 +2,7 @@ template<
     bool undirQ, typename Scal = ToSigned<EInt>,
     typename ExtScal = Scal
 >
-Sparse::MatrixCSR<Scal,VInt,EInt> CreateLaplacian(
+Sparse::MatrixCSR<Scal,VInt,EInt,parQ> CreateLaplacian(
     const ExtScal * edge_weights = nullptr,
     const EInt      thread_count = EInt(1)
 ) const
@@ -20,7 +20,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateLaplacian(
     
     if( edge_weights == nullptr )
     {
-        ParallelDo(
+        Do<parQ>(
             [this,thread_count_,&agg]( const EInt thread )
             {
                 const EInt E_count = this->EdgeCount();
@@ -49,7 +49,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateLaplacian(
     }
     else
     {
-        ParallelDo(
+        Do<parQ>(
             [this,thread_count_,edge_weights,&agg]( const EInt thread )
             {
                 const EInt E_count = this->EdgeCount();
@@ -77,7 +77,7 @@ Sparse::MatrixCSR<Scal,VInt,EInt> CreateLaplacian(
         );
     }
     
-    return Sparse::MatrixCSR<Scal,VInt,EInt>(
+    return Sparse::MatrixCSR<Scal,VInt,EInt,parQ>(
         agg, vertex_count, vertex_count, thread_count, true, undirQ
     );
 }

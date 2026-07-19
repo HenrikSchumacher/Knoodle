@@ -3,6 +3,7 @@ public:
 void Push( PD_T && pd )
 {
     // TODO: Implement color checks.
+    // TODO: Check for unlink?
         
     pd_list.push_back( std::move(pd) );
     ClearCache();
@@ -14,10 +15,27 @@ void Replace( const Int diagram_idx, PD_T && pd )
     
     if( (diagram_idx < 0) || (diagram_idx >= DiagramCount() ) )
     {
-        wprint(MethodName("Replace") + ": Diagram index a = " + ToString(diagram_idx) + " is out of bounds. Doing nothing.");
+        wprint(MethodName("Replace") + ": Diagram index = " + ToString(diagram_idx) + " is out of bounds. Doing nothing.");
         return;
     }
         
     pd_list[diagram_idx] = std::move(pd);
+    ClearCache();
+}
+
+PD_T Pop()
+{
+    if( pd_list.empty() ) { return PD_T::InvalidDiagram(); }
+
+    PD_T pd = std::move(pd_list.back());
+    pd_list.pop_back();
+    ClearCache();
+
+    return pd;
+}
+
+void Clear()
+{
+    pd_list.clear();
     ClearCache();
 }

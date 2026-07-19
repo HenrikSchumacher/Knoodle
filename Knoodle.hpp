@@ -1,6 +1,21 @@
 #pragma once
 
+// Make sure to put the following files onto the search path:
+//      "./submodules/Min-Cost-Flow-Class/OPTUtils/",
+//      "./submodules/Min-Cost-Flow-Class/MCFClass/",
+//      "./submodules/Min-Cost-Flow-Class/MCFSimplex/
+
+
 #define KNOODLE_H
+
+#ifdef KNOODLE_USE_BOOST_UNORDERED
+    #ifndef TOOLS_USE_BOOST_UNORDERED
+        #define TOOLS_USE_BOOST_UNORDERED
+    #endif
+#endif
+
+
+#include <cfenv>
 
 #include "deps/pcg-cpp/include/pcg_random.hpp"
 
@@ -15,8 +30,6 @@ namespace Knoodle
     using Tools::ToString;
 }
 
-
-#include "src/Containers.hpp"
 #include "src/Types.hpp"
 #include "src/Debugging.hpp"
 
@@ -28,9 +41,8 @@ namespace Knoodle
 #include "src/Intersection.hpp"
 
 #include "src/PlanarLineSegmentIntersector.hpp"
-#include "src/Link_2D.hpp"
-#include "src/LinkEmbedding.hpp" // Meant to supercede the misnomer Link_2D.
-#include "src/Knot_2D.hpp"
+#include "src/LinkEmbedding.hpp"
+#include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
@@ -38,33 +50,22 @@ namespace Knoodle
 
 #include "src/Binarizer.hpp"
 
-#include "src/PlanarDiagram.hpp"
-
-#include "src/PlanarDiagram/CrossingSimplifier.hpp"
-#include "src/PlanarDiagram/ArcSimplifier.hpp"
-#include "src/PlanarDiagram/StrandSimplifier.hpp"
-
 namespace Knoodle
 {
-    template<typename Int> class PlanarDiagram2;
-    template<typename Int> class PlanarDiagramComplex;
+    template<IntQ Int> class PlanarDiagram;
+    template<IntQ Int> class PlanarDiagramComplex;
+    template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
+    template<typename PD_T> class OrthoDraw;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
-#include "src/PlanarDiagramComplex/ArcSimplifier2.hpp"
-#include "src/PlanarDiagramComplex/StrandSimplifier2.hpp"
+#include "src/PlanarDiagramComplex/ArcSimplifier.hpp"
+#include "src/PlanarDiagramComplex/PassSimplifier.hpp"
 
-#include "src/PlanarDiagram2.hpp"
+#include "src/PlanarDiagram.hpp"
 #include "src/PlanarDiagramComplex.hpp"
 #include "src/OrthoDraw.hpp"
-#include "src/Reapr2.hpp"
-
-//
-//#include "src/Seifert.hpp"    // TODO: Needs debugging.
-
-#include "src/Link_3D.hpp"
-
-#include "src/LinearHomotopy_3D.hpp"
+#include "src/Reapr.hpp"
 
 #include "src/KnotInvariants/AlexanderStrandMatrix.hpp"
 #include "src/KnotInvariants/AlexanderFaceMatrix.hpp"
@@ -72,8 +73,17 @@ namespace Knoodle
 //#include "src/Alexander.hpp"  // Uses my own Cholesky factorization.
                                 // Not favorable compared to Alexander_UMFPACK.hpp
 
-//#ifdef KNOODLE_USE_UMFPACK
-//#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
-//#endif
+#ifdef KNOODLE_USE_UMFPACK
+#include "src/KnotInvariants/Alexander_UMFPACK.hpp" // Improved version of the former.
+#endif
 
-//#include "src/KnotLookupTable.hpp"
+//
+//#include "src/Seifert.hpp"    // TODO: Needs debugging.
+
+#include "src/Link_3D.hpp"
+#include "src/LinearHomotopy_3D.hpp"
+
+#include "src/ActionAngleSampler.hpp"
+#include "src/ConformalBarycenterSampler.hpp"
+
+#include "src/Klut.hpp"

@@ -65,14 +65,9 @@ Tensor1<T,Int> LevelsLP_CLP( cref<PD_T> pd )
 
 public:
 
-template<
-    typename R = Real, typename I = COIN_Int, typename J = COIN_LInt
->
-Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
+template<FloatQ R = Real, IntQ I = COIN_Int, IntQ J = COIN_LInt>
+Sparse::MatrixCSR<R,I,J,Sequential> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
 {
-    static_assert(IntQ<I>,"");
-    static_assert(IntQ<J>,"");
-    
     std::string tag = ClassName() + "::LevelsLP_CLP_Matrix"
     + "<" + TypeName<R>
     + "," + TypeName<I>
@@ -88,7 +83,7 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
     if( !std::in_range<I>(max_index) )
     {
         eprint(tag + ": Type " + TypeName<I> + " is too small to store maximum index = " + ToString(max_index) + ". Aborting.");
-        return Sparse::MatrixCSR<Real,I,J>();
+        return Sparse::MatrixCSR<Real,I,J,Sequential>();
     }
     
     Size_T nnz = Size_T(7) * ToSize_T(pd.ArcCount()) + Size_T(1);
@@ -96,7 +91,7 @@ Sparse::MatrixCSR<R,I,J> LevelsLP_CLP_Matrix( cref<PD_T> pd ) const
     if( !std::in_range<J>(nnz) )
     {
         eprint(tag + ": Type " + TypeName<J> + " is too small to store number of nonzero elements = " + ToString(nnz) + ". Aborting.");
-        return Sparse::MatrixCSR<Real,I,J>();
+        return Sparse::MatrixCSR<Real,I,J,Sequential>();
     }
     
     cptr<Int>             C_arcs   = pd.Crossings().data();
@@ -245,4 +240,60 @@ Tensor1<R,I> LevelsLP_CLP_ObjectiveVector( cref<PD_T> pd ) const
     pd.ClearCache(MethodName("LevelsLP_ArcIndices"));
     
     return v;
+}
+
+cref<Tensor1<Int,Int>> LevelsLP_ArcIndices( cref<PD_T> pd ) const
+{
+    std::string tag (MethodName("LevelsLP_ArcIndices"));
+    
+    if(!pd.InCacheQ(tag))
+    {
+        const Int a_count = pd.MaxArcCount();
+        
+        Tensor1<Int,Int> A_idx ( a_count );
+        Permutation<Int,Sequential> perm;
+        
+        Int a_idx = 0;
+        
+        if( settings.permute_randomQ )
+        {
+            perm = Permutation<Int,Sequential>::RandomPermutation(
+               a_count, Int(1), random_engine
+            );
+            
+            cptr<Int> p = perm.GetPermutation().data();
+            
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = p[a_idx];
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        else
+        {
+            for( Int a = 0; a < a_count; ++a )
+            {
+                if( pd.ArcActiveQ(a) )
+                {
+                    A_idx(a) = a_idx;
+                    ++a_idx;
+                }
+                else
+                {
+                    A_idx(a) = PD_T::Uninitialized;
+                }
+            }
+        }
+        
+        pd.SetCache(tag,std::move(A_idx));
+    }
+    
+    return pd.template GetCache<Tensor1<Int,Int>>(tag);
 }

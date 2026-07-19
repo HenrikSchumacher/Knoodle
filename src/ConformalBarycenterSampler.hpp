@@ -20,16 +20,13 @@ namespace Knoodle
      */
     
     template<
-        Size_T  AmbDim_       = 3,
-        typename Real_        = double,
-        typename Int_         = Int64,
-        typename Prng_T_      = Knoodle::PRNG_T
+        Size_T  AmbDim_   = 3,
+        FloatQ Real_      = double,
+        IntQ Int_         = Int64,
+        typename Prng_T_  = Knoodle::PRNG_T
     >
     class ConformalBarycenterSampler
     {
-        static_assert(FloatQ<Real_>,"");
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Real   = Real_;
@@ -55,12 +52,12 @@ namespace Knoodle
         
         struct Settings_T
         {
-            Real tolerance            = std::pow(Scalar::eps<Real>,Frac<Real>(3,4));
+            Real tolerance            = std::pow(Scalar::eps<Real>,Frac<Real>(7,8));
             Real give_up_tolerance    = 128 * Scalar::eps<Real>;
-            Real regularization       = static_cast<Real>(0.01);
+            Real regularization       = static_cast<Real>(0.0078125);
             Int  max_iter             = 1000;
             
-            Real Armijo_slope_factor  = static_cast<Real>(0.01);
+            Real Armijo_slope_factor  = static_cast<Real>(0.0078125);
             Real Armijo_shrink_factor = static_cast<Real>(0.5);
             Int  max_backtrackings    = 20;
             
@@ -82,6 +79,18 @@ namespace Knoodle
                 valprint( "use_linesearch      ", use_linesearch      );
             }
         };
+        
+        /*!@brief This struct is used to control how the vertex coordinates output are centralized and in which why they are.
+         */
+        
+        enum struct CentralizationMode_T : UInt8
+        {
+            None            = 0,    // No centralization at all.
+            UnitOnPoints    = 1,    // Unit masses at the vertex positions.
+            UnitOnMidpoints = 2,    // Unit masses at edge midpoints.
+            UniformOnEdges  = 3     // Mass is smeared uniformly along polygon (normalized line element).
+        };
+        using M_T = CentralizationMode_T;
                 
         ConformalBarycenterSampler() = default;
         
@@ -96,7 +105,7 @@ namespace Knoodle
         ,   random_engine   { InitializedRandomEngine<Prng_T>() }
         ,   r_              { edge_count_, one                  }
         ,   rho_            { edge_count_, one                  }
-        ,   total_r_inv     { one                               }
+        ,   total_r_inv     { Frac<Real>(one, edge_count_ )     }
         {
             PrintWarnings();
             ComputeEdgeSpaceSamplingHelper();
@@ -104,21 +113,19 @@ namespace Knoodle
             
             if constexpr ( vectorizeQ )
             {
-                x_ = VectorList_T( edge_count_     );
-                y_ = VectorList_T( edge_count_     );
-                p_ = VectorList_T( edge_count_ + 1 );
+                x_ = VectorList_T( edge_count_ );
+                y_ = VectorList_T( edge_count_ );
             }
             else
             {
-                x_ = Matrix_T( edge_count_    , AmbDim );
-                y_ = Matrix_T( edge_count_    , AmbDim );
-                p_ = Matrix_T( edge_count_ + 1, AmbDim );
+                x_ = Matrix_T( edge_count_, AmbDim );
+                y_ = Matrix_T( edge_count_, AmbDim );
             }
         }
         
         explicit ConformalBarycenterSampler(
-            const Real * restrict const r,
-            const Real * restrict const rho,
+            const Real * const r,
+            const Real * const rho,
             const Int edge_count,
             const Settings_T settings = Settings_T()
         )
@@ -134,15 +141,13 @@ namespace Knoodle
             
             if constexpr ( vectorizeQ )
             {
-                x_ = VectorList_T( edge_count_     );
-                y_ = VectorList_T( edge_count_     );
-                p_ = VectorList_T( edge_count_ + 1 );
+                x_ = VectorList_T( edge_count_ );
+                y_ = VectorList_T( edge_count_ );
             }
             else
             {
-                x_ = Matrix_T( edge_count_    , AmbDim );
-                y_ = Matrix_T( edge_count_    , AmbDim );
-                p_ = Matrix_T( edge_count_ + 1, AmbDim );
+                x_ = Matrix_T( edge_count_, AmbDim );
+                y_ = Matrix_T( edge_count_, AmbDim );
             }
             
             ReadEdgeLengths(r);
@@ -176,10 +181,9 @@ namespace Knoodle
         
         VectorContainer_T y_;
         
-        /*!
-         * @brief The closed polyline's vertex coordinates.
-         */
-        VectorContainer_T p_;
+//        /*!@brief The closed polyline's vertex coordinates.
+//         */
+//        VectorContainer_T p_;
                 
         
         /*!@brief The edge lengths of the represented polygon.
@@ -241,7 +245,7 @@ namespace Knoodle
         
         Real lambda_min = eps;
         Real q_Newton = one;
-        Real errorestimator = infty;
+        Real error_estimator = infty;
         
         bool linesearchQ = true;    // Toggle line search.
         bool succeededQ  = false;   // Whether algorithm has succeded.
@@ -268,7 +272,7 @@ namespace Knoodle
     public:
         
 #include "ConformalBarycenterSampler/ClosedPolygon.hpp"
-#include "ConformalBarycenterSampler/CreatePolygon.hpp"
+#include "ConformalBarycenterSampler/Compute.hpp"
 #include "ConformalBarycenterSampler/Methods.hpp"
 #include "ConformalBarycenterSampler/OpenPolygon.hpp"
 #include "ConformalBarycenterSampler/Optimization.hpp"
@@ -278,20 +282,39 @@ namespace Knoodle
         
         /*!@brief Returns the current setting of the `CoBarS::SamplerBase` instance.
          */
-        
-        const Settings_T & Settings() const
-        {
-            return settings_;
-        }
+        const Settings_T & Settings() const { return settings_; }
         
         /*!@brief Returns the dimension of the ambient space.
          */
+        static constexpr Int AmbientDimension() { return AmbDim; }
         
-        static constexpr Int AmbientDimension()
+        /*!@brief Returns the number of edges.
+         */
+        Int EdgeCount() const { return edge_count_; }
+
+        /*!@brief Returns the list of edge lengths.
+         */
+        const Weights_T & EdgeLengths() const { return r_; }
+
+        /*!@brief Reads a new list of edge lengths from buffer `r`.
+         *
+         * @param r Buffer containing the new edge lengths; assumed to have length `this->EdgeCount()`.
+         */
+        void ReadEdgeLengths( const Real * const r )
         {
-            return AmbDim;
+            r_.Read(r);
+            total_r_inv = Inv( r_.Total() );
         }
-    
+
+        /*!@brief Returns the list of weights for the Riemannian metrics on the product of unit spheres.
+         */
+        const Weights_T & MetricWeights() const { return rho_; }
+
+        /*!@brief Reads a new list of edge weights for the Riemannian metric from buffer `rho`.
+         *
+         * @param rho Buffer containing the new weights; assumed to have length `this->EdgeCount()`.
+         */
+        void ReadMetricWeights( const Real * const rho ) { rho_.Read(rho); }
         
 
         /*!@brief Generates a random open polygon and writes its vertex positions to the buffer `p`.
@@ -299,12 +322,25 @@ namespace Knoodle
          * Let `n = this->EdgeCount()` and `d = this->AmbientDimension()`.
          *
          * @param p The output array for the open polygons; it is assumed to have size at least `(n + 1) * d`. The `j`-th coordinate of the `i`-vertex in the `k`-th polygon is stored in `p[d * i + j]`. The first vertex is duplicated and appended.
+         *
+         * @param mode Specify whether the output polygon `p` will be be centered to its center of mass and in which sense "mass" is operationalized.
          */
-        
-        void WriteRandomOpenPolygon( Real * restrict const p ) const
+        void WriteRandomOpenPolygon(
+            Real * const p,
+            CentralizationMode_T mode
+        )
         {
-            RandomizeInitialEdgeVectors();
-            WriteVertexPositions(p);
+            TOOLS_PTIMER(timer,MethodName("WriteRandomOpenPolygon"));
+//            RandomizeInitialEdgeVectors();
+//            WriteVertexCoordinates(p,mode);
+            
+            Real dummy_0;
+            Real dummy_1;
+            
+            Compute<0,0,0,1,0,0,0,0,0>(
+                nullptr, nullptr, nullptr, p, nullptr, nullptr, nullptr, dummy_0, dummy_1,
+                mode, M_T::None, false
+            );
         }
     
         /*!@brief Generates a random open polygon, closes it, and writes the relevant information to the supplied buffers.
@@ -315,38 +351,116 @@ namespace Knoodle
          *
          * @param K Where to store the sampling weight. The type of sampling weights is determined by the value of `quotient_space_Q` (see below).
          *
-         * @param quotient_space_Q If set to true (default), then the sampling weights of the polygon space modulo rotation group are returned; otherwise the sampling weights of the polygon space (rotation group not modded out) are returned.
+         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount()` + 1 vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
+         *
+         * @param mode Specify whether the output polygon `q` will be be centered to its center of mass and in which sense "mass" is operationalized.
+         *
+         *  @param quotient_space_weightQ If set to true (default), then the sampling weights of the polygon space modulo rotation group are returned; otherwise the sampling weights of the polygon space (rotation group not modded out) are returned.
          */
-        
+
         void WriteRandomClosedPolygon(
-            Real * restrict const q,
-            Real & restrict       K,
-            const bool quotient_space_Q = true
+            Real * const q,
+            Real &       K,
+            CentralizationMode_T  mode,
+            const bool            wrap_aroundQ,
+            const bool            quotient_space_weightQ = true
         )
         {
-            TOOLS_PTIMER(timer,MethodName("CreateRandomClosedPolygon"));
+            TOOLS_PTIMER(timer,MethodName("WriteRandomClosedPolygon"));
             
             Real dummy;
             
-            if( quotient_space_Q )
+            if( quotient_space_weightQ )
             {
-                CreatePolygon<0,0,0,0,0,0,1,0,1>(
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, dummy, K
+                Compute<0,0,0,0,0,0,1,0,1>(
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, dummy, K,
+                    M_T::None, mode, wrap_aroundQ
                 );
             }
             else
             {
-                CreatePolygon<0,0,0,0,0,0,1,1,0>(
-                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, K, dummy
+                Compute<0,0,0,0,0,0,1,1,0>(
+                    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, q, K, dummy,
+                    M_T::None, mode, wrap_aroundQ
                 );
             }
         }
         
+        
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
+        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
+            cptr<Real2> component_centers,
+            const Int2  component_count,
+            const bool  quotient_space_weightQ = true
+        )
+        {
+            Tensor1<Int2,Int2> colors ( component_count );
+            Tensor1<Int2,Int2> component_ptr( component_count + Int(1) );
+            component_ptr[0] = 0;
+            
+            Real K_prod = 1;
+            Real K;
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                colors[lc] = lc;
+                component_ptr[lc+1] = component_ptr[lc] + edge_count_;
+            }
+            
+            Tensor2<Real2,Int2> q ( component_ptr[component_count], Int2(3) );
+            
+            for( Int2 lc = 0; lc < component_count; ++lc )
+            {
+                const Int i_begin = component_ptr[lc    ];
+                const Int i_end   = component_ptr[lc + 1];
+                
+                WriteRandomClosedPolygon(
+                    q.data(i_begin), K, M_T::UniformOnEdges, false, quotient_space_weightQ
+                );
+                
+                K_prod *= K;
+                
+                if( component_centers != nullptr )
+                {
+                    Tiny::Vector<3,Real2,Int2> center ( &component_centers[Int2(3) * lc] );
+                    
+                    // TODO: We could merge this into WriteRandomEquilateralPolygon, I think.
+                    for( Int i = i_begin; i < i_end; ++i )
+                    {
+                        q(i,0) += center[0];
+                        q(i,1) += center[1];
+                        q(i,2) += center[2];
+                    }
+                }
+            }
+
+            LinkEmbedding<Real2,Int2,BReal2> link ( std::move(component_ptr), std::move(colors) );
+            
+            link.ReadVertexCoordinates(q.data());
+            
+            return {link,static_cast<Real2>(K_prod)};
+        }
+        
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
+        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralLink(
+            const Int2  component_count,
+            const bool  quotient_space_weightQ = true
+        )
+        {
+            return RandomEquilateralLink<Real2,Int2,BReal2>( nullptr, component_count, quotient_space_weightQ);
+        }
+        
+        template<FloatQ Real2 = Real, IntQ Int2 = Int, FloatQ BReal2 = float>
+        std::pair<LinkEmbedding<Real2,Int2,BReal2>,Real2> RandomEquilateralKnot(
+            const Int component_count
+        )
+        {
+            // We add zero vectors here. There should be more efficient ways to do this.
+            return RandomEquilateralLink<Real2,Int2,BReal2>(component_count,component_count);
+        }
+        
     
-    
-    
-        /*!
-         * @brief Reads a point cloud on the unit sphere from buffer `x`, computes its conformal centralization, and writes the relevant information to the supplied buffers (see below).
+        /*!@brief Reads a point cloud on the unit sphere from buffer `x`, computes its conformal centralization, and writes the relevant information to the supplied buffers (see below).
          *
          * Let `n = this->EdgeCount()` and `d = this->AmbientDimension()`.
          *
@@ -364,17 +478,18 @@ namespace Knoodle
          */
         
         void ComputeConformalCentralization(
-            const Real * restrict const x,
-                  Real * restrict const w,
-                  Real * restrict const y,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space
-        ) const
+            const Real * const x,
+                  Real * const w,
+                  Real * const y,
+                  Real &       K_edge_space,
+                  Real &       K_quot_space
+        )
         {
             TOOLS_PTIMER(timer,MethodName("ComputeConformalCentralization"));
             
-            CreatePolygon<1,0,0,0,1,1,0,1,1>(
-                x, nullptr, nullptr, nullptr, w, y, nullptr, K_edge_space, K_quot_space
+            Compute<1,0,0,0,1,1,0,1,1>(
+                x, nullptr, nullptr, nullptr, w, y, nullptr, K_edge_space, K_quot_space,
+                M_T::None, M_T::None, false
             );
         }
     
@@ -394,23 +509,33 @@ namespace Knoodle
          * @param K_edge_space The output for the reweighting factors of the point space (rotation group not modded out).
          *
          * @param K_quot_space The output for the reweighting factors of the point space modulo rotation group.
+         *
+         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount()` + 1 vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
+         *
+         * @param mode Specify whether the output polygon `q` will be be centered to its center of mass and in which sense "mass" is operationalized.
          */
         
     public:
 
         void ComputeConformalClosure(
-            const Real * restrict const p,
-                  Real * restrict const w,
-                  Real * restrict const q,
-                  Real & restrict       K_edge_space,
-                  Real & restrict       K_quot_space
+            const Real * const   p,
+                  Real * const   w,
+                  Real * const   q,
+                  Real &         K_edge_space,
+                  Real &         K_quot_space,
+            CentralizationMode_T mode,
+            const bool           wrap_aroundQ
         ) const
         
         {
             TOOLS_PTIMER(timer,MethodName("ComputeConformalClosure"));
+
+            // TODO: It would be meaningful to move the "center" of q to the "center" of p.
+            // TODO: If mode == None, then the first vertex of q should equal the first vertex of p.
             
-            CreatePolygon<0,0,1,0,1,0,1,1,1>(
-                nullptr, nullptr, p, nullptr, w, nullptr, q, K_edge_space, K_quot_space
+            Compute<0,0,1,0,1,0,1,1,1>(
+                nullptr, nullptr, p, nullptr, w, nullptr, q, K_edge_space, K_quot_space,
+                M_T::None, mode, wrap_aroundQ
             );
         }
     

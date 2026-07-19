@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
+/*!@brief The maximal number of arcs for which memory is allocated in the data structure.
  */
 
 Int MaxArcCount() const
@@ -8,7 +8,7 @@ Int MaxArcCount() const
     return max_arc_count;
 }
 
-/*! @brief Returns the number of arcs in the planar diagram.
+/*!@brief Returns the number of arcs in the planar diagram.
  */
 
 Int ArcCount() const
@@ -16,37 +16,20 @@ Int ArcCount() const
     return arc_count;
 }
 
-/*! @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
+/*!@brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
  * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way; note that we defined Booleans `Tail = 0` and `Head = 1` for easing the indexing:
  *
- *                          a
+ *                        a
  *    Arcs()(a,0) X -------------> X Arcs()(a,0)
- *          =                             =
- *    Arcs()(a,Tail)                Arcs()(a,Head)
+ *        ==                             ==
+ * Arcs()(a,Tail)                    Arcs()(a,Head)
  *
- * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
+ * This means that arc `a` leaves crossing `GetArc()(a,Tail)` and enters `GetArc()(a,Head)`.
  *
- * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Inactive`. This information is stored in the corresponding entry of `ArcStates()`.
- */
-
-cref<ArcContainer_T> Arcs()
-{
-    return A_cross;
-}
-
-/*! @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
- *
- * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
- *
- *                          a
- *       Arcs()(a,0) X -------------> X Arcs()(a,0)
- *            =                              =
- *      Arcs()(a,Tail)                 Arcs()(a,Head)
- *
- * This means that arc `a` leaves crossing `GetArc()(a,0)` and enters `GetArc()(a,1)`.
+ * Beware that an arc can have various states such as `CrossingState_T::Active` or `CrossingState_T::Deactivated`. This information is stored in the corresponding entry of `ArcStates()`.
  */
 
 cref<ArcContainer_T> Arcs() const
@@ -54,14 +37,11 @@ cref<ArcContainer_T> Arcs() const
     return A_cross;
 }
 
-/*! @brief Returns the states of the arcs.
+/*!@brief Returns the states of the arcs. The state encodes whether an edge is active and how its it is connected to the crossings at its head and tail.
  *
- *  The states that an arc can have are:
+ * Use the methods `ArcState_T::ActiveQ`, `ArcState_T::Side`, `ArcState_T::OverQ` to find out more about the states.
  *
- *  - `ArcState_T::Active`
- *  - `ArcState_T::Inactive`
- *
- * `CrossingState_T::Inactive` means that the arc has been deactivated by topological manipulations.
+ * The user is not supposed to manipulate the states.
  */
 
 cref<ArcStateContainer_T> ArcStates() const
@@ -69,12 +49,22 @@ cref<ArcStateContainer_T> ArcStates() const
     return A_state;
 }
 
+/*! @brief Returns the colors of the arcs. Each arc has a unique color which indicates to which link component the arc orginially belonged (before various simplification methods were applied).
+ */
+
+cref<ArcColorContainer_T> ArcColors() const
+{
+    return A_color;
+}
+
+#ifdef PD_ALLOCATE_SCRATCH
 /*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
  */
 cref<Tensor1<Int,Int>> ArcScratchBuffer() const
 {
     return A_scratch;
 }
+#endif // PD_ALLOCATE_SCRATCH
 
 A_Cross_T CopyArc( const Int a ) const
 {
@@ -86,12 +76,12 @@ ArcState_T ArcState( const Int a ) const
     return A_state[a];
 }
 
-/*! @brief Checks whether arc `a` is still active.
+/*!@brief Checks whether arc `a` is still active.
  */
 
 bool ArcActiveQ( const Int a ) const
 {
-    return Knoodle::ActiveQ(A_state[a]);
+    return ActiveQ(A_state[a]);
 }
 
 
@@ -100,7 +90,7 @@ std::string ArcString( const Int a ) const
     return "arc " +Tools::ToString(a) +" = { "
         + Tools::ToString(A_cross(a,Tail)) + ", "
         + Tools::ToString(A_cross(a,Head)) + " } ("
-        + Knoodle::ToString(A_state[a]) + ")";
+        + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
 Int CountActiveArcs() const
@@ -115,9 +105,10 @@ Int CountActiveArcs() const
     return counter;
 }
 
+
 private:
     
-/*! @brief Deactivates arc `a`. Only for internal use.
+/*!@brief Deactivates arc `a`. Only for internal use.
  */
 
 void DeactivateArc( const Int a )
@@ -127,6 +118,7 @@ void DeactivateArc( const Int a )
         PD_PRINT("Deactivating " + ArcString(a) + "." );
         
         --arc_count;
+        last_color_deactivated = A_color[a];
         A_state[a] = ArcState_T::Inactive;
     }
     else
@@ -138,7 +130,6 @@ void DeactivateArc( const Int a )
     
     PD_ASSERT( arc_count >= Int(0) );
 }
-
 
 public:
 
@@ -384,21 +375,38 @@ Int NextArc( const Int a, const bool headtail ) const
 
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
-    AssertArc(a);
-    AssertCrossing(c);
+    AssertArc<1>(a);
+    AssertCrossing<1>(c);
     PD_ASSERT( A_cross(a,headtail) == c );
     
     const bool side   = ArcSide(a,headtail,c);
     const Int  a_next = C_arcs(c,!headtail,!side);
-    AssertArc(a_next);
+    AssertArc<1>(a_next);
     
     return a_next;
+}
+
+
+template<bool headtail>
+bool CheckNextArc() const
+{
+    for( Int a = 0; a < max_arc_count; ++a )
+    {
+        if( !ArcActiveQ(a) ) { continue; }
+        
+        const Int a_next = NextArc(a,headtail);
+
+        if( A_cross(a_next,!headtail) != A_cross(a,headtail) ) { return false; }
+    }
+    return true;
 }
 
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");
+    
     TOOLS_PTIMER(timer,MethodName(tag));
+    
     if( !this->InCacheQ(tag) )
     {
         Tensor1<Int,Int> A_next ( max_arc_count, Uninitialized );
@@ -407,8 +415,8 @@ cref<Tensor1<Int,Int>> ArcNextArc() const
         {
             if( CrossingActiveQ(c) )
             {
-                A_next(C_arcs(c,In,Left )) = C_arcs(c,Out,Right);
-                A_next(C_arcs(c,In,Right)) = C_arcs(c,Out,Left );
+                A_next(C_arcs(c,In ,Left )) = C_arcs(c,Out,Right);
+                A_next(C_arcs(c,In ,Right)) = C_arcs(c,Out,Left );
             }
         }
         this->SetCache(tag,std::move(A_next));
@@ -424,14 +432,20 @@ bool CheckArcNextArc() const
     {
         if( !ArcActiveQ(a) ) { continue; }
         
-        if( next[a] != NextArc(a,Head) ) { return false; }
+        const Int a_next = next[a];
+
+        if( A_cross(a_next,Tail) != A_cross(a,Head) ) { return false; }
     }
+    
     return true;
 }
 
-Tensor1<Int,Int> ArcPrevArc() const
+
+cref<Tensor1<Int,Int>> ArcPrevArc() const
 {
     std::string tag ("ArcPrevArc");
+    
+    TOOLS_PTIMER(timer,MethodName(tag));
     
     if( !this->InCacheQ(tag) )
     {
@@ -441,8 +455,8 @@ Tensor1<Int,Int> ArcPrevArc() const
         {
             if( CrossingActiveQ(c) )
             {
-                A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In,Left );
-                A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In,Right);
+                A_prev(C_arcs(c,Out,Right)) = C_arcs(c,In ,Left );
+                A_prev(C_arcs(c,Out,Left )) = C_arcs(c,In ,Right);
             }
         }
         
@@ -460,7 +474,10 @@ bool CheckArcPrevArc() const
     {
         if( !ArcActiveQ(a) ) { continue; }
         
-        if( prev[a] != NextArc(a,Tail) ) { return false; }
+        const Int a_prev = prev[a];
+
+        if( A_cross(a_prev,Head) != A_cross(a,Tail) ) { return false; }
     }
+    
     return true;
 }

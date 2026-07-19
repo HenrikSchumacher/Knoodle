@@ -10,11 +10,9 @@
 namespace Knoodle
 {
     
-    template<typename Scal_, typename Int_>
+    template<typename Scal_, IntQ Int_>
     class Alexander_UMFPACK final
     {
-        static_assert(IntQ<Int_>,"");
-        
     public:
         
         using Scal    = Scal_;
@@ -31,9 +29,9 @@ namespace Knoodle
         
         using Multiplier_T = ProductAccumulator<Scal,E_T>;
         
-        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt>;
-        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt>;
-        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt>;
+        using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
+        using Pattern_T         = Sparse::MatrixCSR<Complex,Int,LInt,Sequential>;
+        using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
 
         using PD_T              = PlanarDiagram<Int>;
         using A_Cross_T         = typename PD_T::A_Cross_T;
@@ -92,19 +90,19 @@ namespace Knoodle
         
     public:
 
-        template<typename ExtScal, typename ExtInt>
-        void Alexander(
+        template<typename ExtScal, IntQ ExtInt>
+        int Alexander(
             cref<PD_T> pd,
-            ExtScal arg,
-            ExtScal mantissa,
-            ExtInt  exponent,
+            ExtScal       arg,
+            mref<ExtScal> mantissa,
+            mref<ExtInt>  exponent,
             bool multiply_toQ
         ) const
         {
             if( pd.LinkComponentCount() > Int(1) )
             {
                 eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -117,10 +115,12 @@ namespace Knoodle
                 // Use dense code path.
                 Alexander_Strands<false>( pd, arg, mantissa, exponent, multiply_toQ );
             }
+            
+            return 0;
         }
         
-        template<typename ExtScal, typename ExtInt>
-        void Alexander(
+        template<typename ExtScal, IntQ ExtInt>
+        int Alexander(
             cref<PD_T>    pd,
             cptr<ExtScal> args,
             ExtInt        arg_count,
@@ -132,7 +132,7 @@ namespace Knoodle
             if( pd.LinkComponentCount() > Int(1) )
             {
                 eprint(MethodName("Alexander") + ": Argument pd represents a multiple-component link for with the Alexander polynomial is not defined. Aborting.");
-                return;
+                return 1;
             }
             
             if( pd.CrossingCount() > sparsity_threshold + 1 )
@@ -149,6 +149,8 @@ namespace Knoodle
                     pd, args, arg_count, mantissas, exponents, multiply_toQ
                 );
             }
+            
+            return 0;
         }
         
         
