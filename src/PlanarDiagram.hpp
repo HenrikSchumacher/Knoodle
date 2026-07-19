@@ -10,18 +10,6 @@
 
 namespace Knoodle
 {
-    // TODO: Template this.
-    // bool fancy_arc_stateQ -- whether the flags other than an active bit ought to be used at all.s
-    
-//    template<IntQ Int_, bool mult_compQ_> class StrandSimplifier;
-//
-//    template<IntQ Int_, Size_T optimization_level, bool mult_compQ_>
-//    class ArcSimplifier;
-    
-    // TODO: SwitchCrossing should also correctly set the arc states.
-    
-    // TODO: Port the methods in Unported.hpp
-    // TODO: Port methods in Counters.hpp?
 
     template<IntQ Int_>
     class PlanarDiagram final : public CachedObject<1,0,0,0>

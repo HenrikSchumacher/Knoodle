@@ -50,10 +50,6 @@ namespace Knoodle
         
         static constexpr Int max_depth = 64;
         
-        static constexpr Real one     = 1;
-        static constexpr Real eps     = std::numeric_limits<Real>::epsilon();
-        static constexpr Real big_one = 1 + eps;
-        
         using Base_T::edges;
         using Base_T::next_edge;
         using Base_T::edge_ptr;
@@ -181,7 +177,7 @@ namespace Knoodle
         
         Vector3_T EdgeVector3( const Int e, const bool k ) const
         {
-            return Vector2_T( edge_coords.data(e,k) );
+            return Vector3_T( edge_coords.data(e,k) );
         }
         
         bool BoundingBoxedComputedQ()
@@ -403,15 +399,14 @@ namespace Knoodle
             Tensor2<Real,Int> v_coords( edge_count, AmbDim );
             
             WriteVertexCoordinates(v_coords.data());
-            
-            cref<Matrix3x3_T> R_new = Dot(A,R);
-            // We make it so that we can restore the original coordinates up to shift from R.
-            // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
+
             SetTransformationMatrix(A);
             
             this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
             
-            SetTransformationMatrix(R_new);
+            // We make it so that we can restore the original coordinates up to shift from R.
+            // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
+            SetTransformationMatrix(Dot(A,R));
         }
         
         void ComputeBoundingBoxes()

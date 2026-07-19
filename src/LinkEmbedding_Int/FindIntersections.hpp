@@ -7,7 +7,9 @@ public:
         
         return FindIntersections();
     }
-    
+
+
+    // TODO: Needs rewrite.
     template<bool verboseQ = true> // whether to print errors and warnings
     [[nodiscard]] int FindIntersections()
     {
@@ -21,9 +23,9 @@ public:
         
         RequireBoundingBoxes();
         
-        const Int degenerate_edge_count = DegenerateEdgeCount();
+        const Idx degenerate_edge_count = DegenerateEdgeCount();
         
-        if( degenerate_edge_count > Int(0) )
+        if( degenerate_edge_count > Idx(0) )
         {
             if constexpr ( verboseQ )
             {
@@ -110,14 +112,14 @@ public:
         // Check for integer overflow.
         if( std::cmp_greater(
                 Size_T(4) * intersections.size(),
-                std::numeric_limits<Int>::max()
+                std::numeric_limits<Idx>::max()
             )
         )
         {
-            eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
+            eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Idx> + "." );
         }
         
-        const Int intersection_count = static_cast<Int>(intersections.size());
+        const Idx intersection_count = static_cast<Idx>(intersections.size());
 
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -125,24 +127,24 @@ public:
         
         if( edge_intersections.Size() != edge_ptr.Last() )
         {
-            edge_intersections = Tensor1<Int, Int>( edge_ptr.Last() );
-            edge_times         = Tensor1<Real,Int>( edge_ptr.Last() );
-            edge_overQ         = Tensor1<bool,Int>( edge_ptr.Last() );
+            edge_intersections = Tensor1<Idx, Idx>( edge_ptr.Last() );
+            edge_times         = Tensor1<Real,Idx>( edge_ptr.Last() );
+            edge_overQ         = Tensor1<bool,Idx>( edge_ptr.Last() );
         }
 
         // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
         // To this end, we use (and modify!) edge_ctr so that edge_ctr[i] points AFTER the position to insert.
         
-        if( intersection_count <= Int(0) ) { return 0; }
+        if( intersection_count <= Idx(0) ) { return 0; }
         
-        for( Int k = intersection_count; k --> Int(0);  )
+        for( Idx k = intersection_count; k --> Idx(0);  )
         {
             Intersection_T & inter = intersections[static_cast<Size_T>(k)];
             
             // We have to write BEFORE the positions specified by edge_ctr (and decrease it for the next write;
 
-            const Int pos_0 = --edge_ctr[inter.edges[0]+1];
-            const Int pos_1 = --edge_ctr[inter.edges[1]+1];
+            const Idx pos_0 = --edge_ctr[inter.edges[0]+1];
+            const Idx pos_1 = --edge_ctr[inter.edges[1]+1];
 
             edge_intersections[pos_0] = k;
             edge_times        [pos_0] = inter.times[0];
@@ -154,18 +156,18 @@ public:
         }
 
         // Sort intersections edgewise w.r.t. edge_times.
-        ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
+        ThreeArraySort<Real,Idx,bool,Idx> sort ( intersection_count );
         
         Size_T close_counter = 0;
         
-        for( Int i = 0; i < edge_count; ++i )
+        for( Idx i = 0; i < edge_count; ++i )
         {
             // This is the range of data in edge_intersections/edge_times that belongs to edge i.
-            const Int k_begin = edge_ptr[i  ];
-            const Int k_end   = edge_ptr[i+1];
+            const Idx k_begin = edge_ptr[i  ];
+            const Idx k_end   = edge_ptr[i+1];
                  
             // We need to sort only if there are at least two intersections on that edge.
-            if( k_begin + Int(1) < k_end )
+            if( k_begin + Idx(1) < k_end )
             {
                 sort(
                     &edge_times[k_begin],
@@ -176,7 +178,7 @@ public:
                 
                 constexpr Real intersection_time_tolerance = 0.000000000001;
                 
-                for( Int l = k_begin + Int(1); l < k_end; ++l )
+                for( Idx l = k_begin + Idx(1); l < k_end; ++l )
                 {
                     const Real delta = edge_times[l] - edge_times[l-1];
                     
@@ -196,9 +198,9 @@ public:
                                 static_cast<Size_T>(edge_intersections[l  ])
                             ];
                             
-                            const Int j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
+                            const Idx j_0 = (inter_0.edges[0] == i) ? inter_0.edges[1] : inter_0.edges[0];
                             
-                            const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
+                            const Idx j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
                             wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
 //                        }
@@ -250,18 +252,18 @@ private:
     // Improved version of FindIntersectingEdges_DFS_impl_0; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
     void FindIntersectingEdges_DFS_ManualStack()
     {
-        const Int int_node_count = T.InternalNodeCount();
+        const Idx int_node_count = T.InternalNodeCount();
         
-        constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
-        constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
+        constexpr Idx stack_max_size = Idx(4) * max_depth + Idx(1);
+        constexpr Idx stack_limit    = Idx(4) * max_depth - Idx(4);
         
-        Int stack [stack_max_size][2];
-        Int stack_ptr = 0;
+        Idx stack [stack_max_size][2];
+        Idx stack_ptr = 0;
         stack[stack_ptr][0] = 0;  // Dummy node.
         stack[stack_ptr][1] = 0;  // Dummy node.
         
         // Helper routine to manage the pair_stack.
-        auto push = [&stack,&stack_ptr]( const Int i, const Int j )
+        auto push = [&stack,&stack_ptr]( const Idx i, const Idx j )
         {
             ++stack_ptr;
             stack[stack_ptr][0] = i;
@@ -269,7 +271,7 @@ private:
         };
         
         // Helper routine to manage the pair_stack.
-        auto conditional_push = [this,push]( const Int i, const Int j )
+        auto conditional_push = [this,push]( const Idx i, const Idx j )
         {
             if( this->BoxesIntersectQ(i,j) )
             {
@@ -289,7 +291,7 @@ private:
         {
             const bool overflowQ = (stack_ptr >= stack_limit);
             
-            if( (Int(0) < stack_ptr) && (!overflowQ) ) [[likely]]
+            if( (Idx(0) < stack_ptr) && (!overflowQ) ) [[likely]]
             {
                 return true;
             }
@@ -367,7 +369,7 @@ private:
     } // FindIntersectingEdges_DFS_ManualStack
 
 
-    void FindIntersectingEdges_DFS_Recursive( const Int i, const Int j )
+    void FindIntersectingEdges_DFS_Recursive( const Idx i, const Idx j )
     {
         const bool i_internalQ = T.InternalNodeQ(i);
         const bool j_internalQ = T.InternalNodeQ(j);
@@ -468,20 +470,20 @@ private:
 
 public:
 
-    bool BoxesIntersectQ( const Int i, const Int j ) const
+    bool BoxesIntersectQ( const Idx i, const Idx j ) const
     {
         return T.BoxesIntersectQ( box_coords.data(i), box_coords.data(j) );
     }
 
 protected:
 
-    void ComputeEdgeEdgeIntersection( const Int k, const Int l )
+    void ComputeEdgeEdgeIntersection( const Idx k, const Idx l )
 {
         // Only check for intersection of edge k and l if they are not equal and not direct neighbors.
         if( (l != k) && (l != NextEdge(k)) && (k != NextEdge(l)) )
         {
-//            constexpr Int k0 = 4453;
-//            constexpr Int l0 = 7619;
+//            constexpr Idx k0 = 4453;
+//            constexpr Idx l0 = 7619;
 //
 //            const bool verboseQ = (k == k0) && (l == l0);
 //
@@ -500,7 +502,7 @@ protected:
 
 
     template<bool verboseQ>
-    void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
+    void ComputeEdgeEdgeIntersection_impl( const Idx k, const Idx l )
     {
         using Sign_T = Intersection_T::Sign_T;
         

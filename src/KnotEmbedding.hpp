@@ -47,10 +47,6 @@ namespace Knoodle
         
         static constexpr Int max_depth = 64;
         
-        static constexpr Real one     = 1;
-        static constexpr Real eps     = std::numeric_limits<Real>::epsilon();
-        static constexpr Real big_one = 1 + eps;
-        
     protected:
         
         Int edge_count;
