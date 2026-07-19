@@ -201,7 +201,10 @@ PYBIND11_MODULE(_knoodle, m) {
              py::arg("max_crossings") = 13,
              "Load prime-knot lookup tables from a directory containing "
              "Klut_Keys_NN.bin / Klut_Values_NN.tsv files (NN = 03..max_crossings, "
-             "zero-padded; library maximum is 13)")
+             "zero-padded; library maximum is 13). Loads up to the highest "
+             "crossing count present; raises RuntimeError (with generation "
+             "instructions) if the directory contains no tables. The tables are "
+             "not shipped with pyknoodle -- see the README to generate them.")
         .def("lookup",
              [](const KnotLookupTable& t, const std::vector<uint8_t>& code) -> py::object {
                  std::string name = t.lookup(code);

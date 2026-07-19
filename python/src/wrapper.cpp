@@ -790,8 +790,38 @@ public:
         : table(std::filesystem::path(path), static_cast<Size_T>(max_crossings)) {}
 };
 
-KnotLookupTable::KnotLookupTable(const std::string& path, int max_crossings)
-    : impl(std::make_shared<KnotLookupTableImpl>(path, max_crossings)) {}
+KnotLookupTable::KnotLookupTable(const std::string& path, int max_crossings) {
+    namespace fs = std::filesystem;
+
+    const int limit = std::min(
+        max_crossings, static_cast<int>(PrimeKnotLookupTable::max_c_count));
+
+    // Probe which table files are present so we can load up to the highest
+    // available crossing count and give a clear error when there are none
+    // (the tables are not shipped with pyknoodle).
+    int highest_found = 0;
+    for (int c = 3; c <= limit; ++c) {
+        const std::string s = (c < 10 ? "0" : "") + std::to_string(c);
+        const fs::path k = fs::path(path) / ("Klut_Keys_" + s + ".bin");
+        const fs::path v = fs::path(path) / ("Klut_Values_" + s + ".tsv");
+        if (fs::exists(k) && fs::exists(v)) {
+            highest_found = c;
+        }
+    }
+
+    if (highest_found == 0) {
+        throw std::runtime_error(
+            "KnotLookupTable: no lookup tables (Klut_Keys_NN.bin / "
+            "Klut_Values_NN.tsv, NN = 03..13) found in '" + path + "'. "
+            "The tables are not shipped with pyknoodle. To generate them: "
+            "enumerate 4-valent planar graphs with plantri, sieve the minimal "
+            "diagrams with Knoodle's PlantriSiever, and name the resulting "
+            "classes with SnapPy or Regina; see the 'Knot identification' "
+            "section of python/README.md for details.");
+    }
+
+    impl = std::make_shared<KnotLookupTableImpl>(path, highest_found);
+}
 
 std::string KnotLookupTable::lookup(const std::vector<uint8_t>& macleod_code) const {
     // One byte per crossing; codes longer than the library maximum cannot be
