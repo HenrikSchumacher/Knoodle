@@ -97,11 +97,13 @@ import knoodle
 
 analyzer = knoodle.KnotAnalyzer(points)
 
-# Point this at a directory of Klut_Keys_NN.bin / Klut_Values_NN.tsv tables.
-table = knoodle.KnotLookupTable("/path/to/tables", max_crossings=13)
+# With no arguments the table loads the repository's data/Klut tables
+# ($KNOODLE_KLUT_DIR overrides, or pass an explicit directory).
+table = knoodle.KnotLookupTable()
 
 print(table.lookup(analyzer))           # e.g. "3_1", "0_1" for the unknot, or None
 print(table.lookup(analyzer.macleod_code()))  # look up a raw code (bytes or list of ints)
+print(table.lookup_raw(analyzer))       # e.g. 'K[3,1,1,"e/r"]' with the chirality coset
 
 # Composite knots: identify each prime factor
 for comp in analyzer.prime_components:
@@ -111,44 +113,33 @@ for comp in analyzer.prime_components:
 `lookup` returns the knot name, `"0_1"` for the unknot, or `None` when the
 code is not in the table (unknown knot, or crossing count above the loaded
 tables). The table loads every `Klut_*` file it finds up to `max_crossings`.
+`lookup_raw` returns the underlying table label `K[c,i,j,"coset"]`, which
+also distinguishes the chirality class (which coset of {e, m, r, mr} the
+diagram falls in).
 
-### Generating the tables
+### The tables
 
-The lookup tables are **not shipped** with pyknoodle (the high-crossing layers
-are expensive to build). This mirrors the C++ library, where
-`PrimeKnotLookupTable` is constructed from a caller-supplied directory. The
-`tablegen/` directory contains a complete generation pipeline:
+The tables ship with the repository at `data/Klut` (git LFS, crossing
+numbers 3 through 13, generated and validated upstream by the Klutter
+pipeline against KnotInfo). Run `git lfs pull` once to materialize them;
+`KnotLookupTable` raises a `RuntimeError` with that instruction if it finds
+no tables.
 
-1. **Enumerate shadows** (`tablegen/plantri_shadows.py`): runs
-   [plantri](https://users.cecs.anu.edu.au/~bdm/plantri/)
-   (`-q -c2m2 -d -E`, i.e. duals of arbitrary simple quadrangulations = prime
-   reduced shadows) and converts each single-component shadow to an unsigned
-   PD code.
-2. **Sieve minimal diagrams** (`knoodle.sieve_shadows`, modeled on
-   `src/PlantriSiever.hpp`): enumerates every over/under assignment,
-   simplifies with REAPR, and collects the MacLeod codes of diagrams that
-   stay at c crossings (all four chirality/reversal variants), with one
-   representative PD code each.
-3. **Name the knots** (`tablegen/name_knots.py`): identifies each
-   representative with [SnapPy](https://snappy.computop.org/); the
-   non-hyperbolic torus knots (and surviving hard unknots) are matched by
-   Alexander-polynomial invariants instead.
-4. **Emit and validate** (`tablegen/make_tables.py`): writes
-   `Klut_Keys_NN.bin` / `Klut_Values_NN.tsv` and checks the number of
-   distinct knots per crossing number against the knot census.
+### Name convention
 
-Setup and run (SnapPy lives in a venv because conda's `python-snappy`
-compression package occupies the `snappy` module name):
+Names follow **KnotInfo**: `c_i` up to 10 crossings, `ca_i` / `cn_i`
+(alternating / non-alternating) for 11 crossings and up. For users of the
+previous SnapPy-named tables, the two conventions agree on every knot
+except at 10 crossings:
 
-```bash
-python3 -m venv --system-site-packages python/tablegen/.venv
-python/tablegen/.venv/bin/pip install snappy
-python/tablegen/.venv/bin/python3 python/tablegen/make_tables.py \
-    --plantri /path/to/plantri --out /path/to/tables --max-crossings 10
-```
+| SnapPy (old tables) | KnotInfo (`lookup`) |
+|---|---|
+| `10_83` | `10_86` |
+| `10_86` | `10_83` |
+| `10_163` .. `10_166` | `10_162` .. `10_165` (Perko-pair renumbering) |
 
-`KnotLookupTable` raises a `RuntimeError` with these instructions if it is
-pointed at a directory containing no tables.
+This exact map is pinned by `test_lookup.py::test_cross_table_regression`,
+which checks all 8218 keys of the old tables against `data/Klut`.
 
 ## Troubleshooting
 
