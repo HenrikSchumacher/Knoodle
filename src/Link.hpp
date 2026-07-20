@@ -163,6 +163,8 @@ namespace Knoodle
             ReadEdges( edges_, edge_colors_ );
         }
         
+        // TODO: Make this available again. (Although barely needed.)
+        
 //        /*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
 //         *
 //         *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.

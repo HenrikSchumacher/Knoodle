@@ -140,14 +140,17 @@ namespace Knoodle
         ,   edge_coords { edge_count                                        }
         {}
         
-        // Provide lists of edge tails and edge tips to make the object figure out its topology.
-        template<IntQ I_0, IntQ I_1>
-        LinkEmbedding(
-            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
-        )
-        :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
-        ,   edge_coords { edge_count                                          }
-        {}
+        
+        // TODO: Make this available again. For that we have to make sure that the corresponding constructor of the Link class is intact.
+        
+//        // Provide lists of edge tails and edge tips to make the object figure out its topology.
+//        template<IntQ I_0, IntQ I_1>
+//        LinkEmbedding(
+//            cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
+//        )
+//        :   Base_T      { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
+//        ,   edge_coords { edge_count                                          }
+//        {}
         
     public:
 
