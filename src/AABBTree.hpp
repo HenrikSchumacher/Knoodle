@@ -111,16 +111,20 @@ namespace Knoodle
             
             constexpr Int d = AmbDim;
             
+            constexpr bool rounding_neededQ = SameQ<Real,double> && SameQ<BReal,float>;
+            // Real and BReal need to satisfy concept FloatQ.
+            // That means each of them is either float or double.
+            // Rounding is needed only if we convert from the higher precision (double) to the lower (float).
+            
             // We might round from double to float here. We have to guarantee that the boxes won't become smaller by this. This is why we set the rounding mode to "upwards".
-            if constexpr( change_rounding_modeQ )
+            if constexpr( rounding_neededQ && change_rounding_modeQ )
             {
-                #pragma STDC FENV_ACCESS ON
-                std::fesetround(FE_UPWARD);
-//                change_rounding_mode
+                ScopedRoundingMode mode (FE_UPWARD);
+                
                 auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
                 {
-                    Tiny::Vector<AmbDim,Real,Int> lo(p);
-                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    Vector_T lo(p);
+                    Vector_T hi(p);
                     
                     for( Int i = 1; i < point_count; ++i )
                     {
@@ -134,13 +138,6 @@ namespace Knoodle
                         b[    k] = -static_cast<BReal>(-lo[k]); // because of upward rounding mode
                         b[d + k] =  static_cast<BReal>( hi[k]);
                     }
-                    
-//                    // This would work, but it is much slower.
-//                    for( Int k = 0; k < AmbDim; ++k )
-//                    {
-//                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-//                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
-//                    }
                 };
 
                 // Compute bounding boxes of leave nodes (last row of tree).
@@ -158,15 +155,18 @@ namespace Knoodle
                     // Here is where the rounding takes place.
                     primitive_to_box( &P[inc * i], &B[BoxDim * N] );
                 }
-                
-                // end of #pragma STDC FENV_ACCESS ON
             }
             else
             {
+                TOOLS_MAKE_FP_STRICT()
+                
+                constexpr BReal down = std::numeric_limits<BReal>::lowest();
+                constexpr BReal up   = std::numeric_limits<BReal>::max();
+                
                 auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
                 {
-                    Tiny::Vector<AmbDim,Real,Int> lo(p);
-                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    Vector_T lo(p);
+                    Vector_T hi(p);
                     
                     for( Int i = 1; i < point_count; ++i )
                     {
@@ -174,11 +174,21 @@ namespace Knoodle
                         hi.ElementwiseMax(&p[dimP * i]);
                     }
                     
-                    // This would work, but it is much slower.
-                    for( Int k = 0; k < AmbDim; ++k )
+                    if constexpr ( rounding_neededQ )
                     {
-                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
+                        for( Int k = 0; k < AmbDim; ++k )
+                        {
+                            b[    k] = std::nextafter(static_cast<BReal>(lo[k]), down);
+                            b[d + k] = std::nextafter(static_cast<BReal>(hi[k]), up  );
+                        }
+                    }
+                    else
+                    {
+                        for( Int k = 0; k < AmbDim; ++k )
+                        {
+                            b[    k] = lo[k];
+                            b[d + k] = hi[k];
+                        }
                     }
                 };
 

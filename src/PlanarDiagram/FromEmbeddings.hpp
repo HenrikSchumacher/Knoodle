@@ -33,12 +33,12 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
 /*! @brief Construction from coordinates.
  */
 
-template<FloatQ Real, IntQ ExtInt>
+template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
 static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const ExtInt n )
 {
     TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
 
-    KnotEmbedding<Real,Int,Real> L ( n );
+    KnotEmbedding<Real,Int,BReal> L ( n );
 
     L.ReadVertexCoordinates(x);
 
