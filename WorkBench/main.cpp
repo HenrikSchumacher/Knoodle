@@ -39,11 +39,11 @@ int main()
     Vector3_T v = y_1 - y_0;
     Vector3_T p = y_1 - x_0;
     Vector3_T q = x_1 - y_0;
-//    
-//    TOOLS_DUMP(u);
-//    TOOLS_DUMP(v);
-//    TOOLS_DUMP(p);
-//    TOOLS_DUMP(q);
+    
+    TOOLS_DUMP(u);
+    TOOLS_DUMP(v);
+    TOOLS_DUMP(p);
+    TOOLS_DUMP(q);
     
     
     Prosector_T S;
@@ -55,41 +55,38 @@ int main()
     TOOLS_DUMP(S.Flag());
     Intersection_T xy_inter = S.ComputeIntersection();
     
-//    TOOLS_DUMP(xy_inter.flag);
-//    TOOLS_DUMP(xy_inter.edges[0]);
-//    TOOLS_DUMP(xy_inter.edges[1]);
-//    TOOLS_DUMP(xy_inter.times[0]);
-//    TOOLS_DUMP(xy_inter.times[1]);
-//    TOOLS_DUMP(xy_inter.times[0].ToDouble());
-//    TOOLS_DUMP(xy_inter.times[1].ToDouble());
-//    TOOLS_DUMP(xy_inter.handedness);
-//    
-//    print("\nIntersecting lines x and z.");
-//    S.LoadSegments(i, x_0, x_1, k, z_0, z_1);
-//    TOOLS_DUMP(S.IntersectionType());
-//    TOOLS_DUMP(S.Flag());
-//    Intersection_T xz_inter = S.ComputeIntersection();
-//    
-//    TOOLS_DUMP(xz_inter.flag);
-//    TOOLS_DUMP(xz_inter.edges[0]);
-//    TOOLS_DUMP(xz_inter.edges[1]);
-//    TOOLS_DUMP(xz_inter.times[0]);
-//    TOOLS_DUMP(xz_inter.times[1]);
-//    TOOLS_DUMP(xz_inter.times[0].ToDouble());
-//    TOOLS_DUMP(xz_inter.times[1].ToDouble());
-//    TOOLS_DUMP(xz_inter.handedness);
-//    
-//    print("");
-//    
-//    TOOLS_DUMP(xy_inter.times[0] < xz_inter.times[0]);
-//    TOOLS_DUMP(xy_inter.times[0] > xz_inter.times[0]);
-//    
-////    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,v));
-////    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,p));
-////    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,q));
-////    TOOLS_DUMP(Prosector_T::Det_Perturbed(v,p));
-////    TOOLS_DUMP(Prosector_T::Det_Perturbed(v,q));
-//    
-//    TOOLS_DUMP(p-v);
-//    TOOLS_DUMP(u-q);
+    TOOLS_DUMP(xy_inter.flag);
+    TOOLS_DUMP(xy_inter.edges[0]);
+    TOOLS_DUMP(xy_inter.edges[1]);
+    TOOLS_DUMP(xy_inter.times[0]);
+    TOOLS_DUMP(xy_inter.times[1]);
+    TOOLS_DUMP(xy_inter.times[0].ToDouble());
+    TOOLS_DUMP(xy_inter.times[1].ToDouble());
+    TOOLS_DUMP(xy_inter.handedness);
+    
+    print("\nIntersecting lines x and z.");
+    S.LoadSegments(i, x_0, x_1, k, z_0, z_1);
+    TOOLS_DUMP(S.IntersectionType());
+    TOOLS_DUMP(S.Flag());
+    Intersection_T xz_inter = S.ComputeIntersection();
+    
+    TOOLS_DUMP(xz_inter.flag);
+    TOOLS_DUMP(xz_inter.edges[0]);
+    TOOLS_DUMP(xz_inter.edges[1]);
+    TOOLS_DUMP(xz_inter.times[0]);
+    TOOLS_DUMP(xz_inter.times[1]);
+    TOOLS_DUMP(xz_inter.times[0].ToDouble());
+    TOOLS_DUMP(xz_inter.times[1].ToDouble());
+    TOOLS_DUMP(xz_inter.handedness);
+    
+    print("");
+    
+    TOOLS_DUMP(xy_inter.times[0] < xz_inter.times[0]);
+    TOOLS_DUMP(xy_inter.times[0] > xz_inter.times[0]);
+    
+//    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,v));
+//    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,p));
+//    TOOLS_DUMP(Prosector_T::Det_Perturbed(u,q));
+//    TOOLS_DUMP(Prosector_T::Det_Perturbed(v,p));
+//    TOOLS_DUMP(Prosector_T::Det_Perturbed(v,q));
 }

@@ -115,8 +115,9 @@ namespace Knoodle
             if constexpr( change_rounding_modeQ )
             {
                 #pragma STDC FENV_ACCESS ON
-                std::fesetround(FE_UPWARD);
-//                change_rounding_mode
+                RoundingModeBarrier round_up (FE_UPWARD);
+//                std::fesetround(FE_UPWARD);
+                
                 auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
                 {
                     Tiny::Vector<AmbDim,Real,Int> lo(p);
