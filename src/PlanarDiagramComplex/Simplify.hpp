@@ -402,17 +402,6 @@ Size_T Rattle(
     constexpr Size_T max_projection_iter = 10;
     bool progressQ = false;
     
-    // DEBUGGING
-    if( args.embedding_trials == Size_T(0) )
-    {
-        wprint(MethodName("Rattle") + ": Called with embedding_trials = 0.");
-    }
-    // DEBUGGING
-    if( args.rotation_trials == Size_T(0) )
-    {
-        wprint(MethodName("Rattle") + ": Called with rotation_trials = 0.");
-    }
-    
     for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
@@ -500,8 +489,6 @@ Size_T Rattle(
     //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here might be correct.
     if( pd_1.InvalidQ() )
     {
-        // DEBUGGING
-        wprint(MethodName("Rattle") + ": pd_1 is invalid. Returning early.");
         return pass_change_count + disconnect_count;
     }
     
