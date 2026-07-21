@@ -13,6 +13,9 @@ public:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
         
+        // DEBUGGING
+        print(MethodName("FindIntersections"));
+        
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.
@@ -250,8 +253,6 @@ private:
     // Improved version of FindIntersectingEdges_DFS_impl_0; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
     void FindIntersectingEdges_DFS_ManualStack()
     {
-        const Int int_node_count = T.InternalNodeCount();
-        
         constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
         constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
         
@@ -271,10 +272,7 @@ private:
         // Helper routine to manage the pair_stack.
         auto conditional_push = [this,push]( const Int i, const Int j )
         {
-            if( this->BoxesIntersectQ(i,j) )
-            {
-                push(i,j);
-            }
+            if( this->BoxesIntersectQ(i,j) ) { push(i,j); }
         };
 
         // Helper routine to manage the pair_stack.
@@ -311,8 +309,8 @@ private:
 
             auto [i,j] = pop();
             
-            const bool i_internalQ = (i < int_node_count);
-            const bool j_internalQ = (j < int_node_count);
+            const bool i_internalQ = T.InternalNodeQ(i);
+            const bool j_internalQ = T.InternalNodeQ(j);
             
             // Warning: This assumes that both children in a cluster tree are either defined or empty.
             
@@ -397,7 +395,7 @@ private:
                         FindIntersectingEdges_DFS_Recursive(L_i,R_i);
                     }
                 }
-                else
+                else // if( i != j )
                 {
                     const bool subdQ [2][2] = {
                         { BoxesIntersectQ(L_i,L_j), BoxesIntersectQ(L_i,R_j) },
@@ -442,7 +440,7 @@ private:
                         FindIntersectingEdges_DFS_Recursive(R_i,j);
                     }
                 }
-                else
+                else // if( i_internalQ )
                 {
                     //split cluster j
                     const bool subdQ [2] = {
@@ -547,8 +545,8 @@ protected:
             };
             
             // Tell edges k and l that they contain an additional crossing.
-            edge_ptr[k+1]++;
-            edge_ptr[l+1]++;
+            ++edge_ptr[k+1];
+            ++edge_ptr[l+1];
 
             if( h[0] < h[1] )
             {

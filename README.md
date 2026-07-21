@@ -5,22 +5,22 @@ A collection of tools for computational knot theory. _Knoodle_ includes, `Planar
 
 # Installation
 
-To make sure that all submodules are cloned, too, please clone by running the following in the command line:
+To use the Knoodle classes in your own programs, clone this repository. To make sure that all submodules are cloned, too, please clone by running the following in the command line:
 
     git clone --depth 1 --recurse-submodules --shallow-submodules git@github.com:HenrikSchumacher/Knoodle.git
 
-The library can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
+Knoodle's command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_ (but *not* the Knoodle headers themselves) can be installed via _homebrew_ on a wide variety of systems. The native platform is MacOS/Apple Clang. Installation is continuously tested via GitHub Actions on the `ubuntu-latest` and `macos-26` runners, and WSL2 uses the same Linuxbrew path as native Linux. It should install on a wide variety of linux systems with the following commands: 
 
 ```
 brew tap designbynumbers/cantarellalab
 brew install knoodle
 ```
 
-This will also install the command line tools _polyfold_, _knoodlesimplify_, _knoodledraw_, and _knoodleidentify_. On Linux and WSL2 the formula builds with Homebrew's gcc; on macOS it uses Apple Clang. The build compiles from source with CPU-specific optimizations and typically takes about 5–10 minutes.
+On Linux and WSL2 the formula builds with Homebrew's gcc; on macOS it uses Apple Clang. The build compiles from source with CPU-specific optimizations and typically takes several minutes.
 
 ### Windows (WSL2)
 
-Knoodle installs under WSL2 using Linuxbrew, exactly as on native Linux. Use WSL 2 (not WSL 1), and a recent Ubuntu (24.04 recommended). No GitHub SSH key is required — the formula clones Knoodle's submodules over HTTPS automatically. The compile is template-heavy and memory-hungry, and WSL2 defaults to ~50% of host RAM, so on a modest machine the compiler may be killed mid-build (`internal compiler error: Killed (program cc1plus)`). If that happens, raise the limit by creating `C:\Users\<you>\.wslconfig` with:
+The command line tools install under WSL2 using Linuxbrew, exactly as on native Linux. Use WSL 2 (not WSL 1), and a recent Ubuntu (24.04 recommended). The compile is template-heavy and memory-hungry, and WSL2 defaults to ~50% of host RAM, so on a modest machine the compiler may be killed mid-build (`internal compiler error: Killed (program cc1plus)`). If that happens, raise the limit by creating `C:\Users\<you>\.wslconfig` with:
 
 ```
 [wsl2]

@@ -29,8 +29,8 @@ namespace Knoodle
         using LinkEmbedding_T = LinkEmbedding_Int;
 
         
-        using Tree2_T         = AABBTree_Int<2,Int,Idx,SInt,false>;
-        using Tree3_T         = AABBTree_Int<3,Int,Idx,SInt,false>;
+        using Tree2_T         = AABBTree<2,Int,Idx,SInt,false>;
+        using Tree3_T         = AABBTree<3,Int,Idx,SInt,false>;
 
 //        using RealVector2_T   = Tiny::Vector<2,Real,Idx>;
         using RealVector3_T   = Tiny::Vector<3,Real,Idx>;

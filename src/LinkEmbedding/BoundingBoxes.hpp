@@ -23,16 +23,16 @@ void RequireBoundingBoxes()
 private:
 
 
-void ComputeBoundingBox( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
+void ComputeBoundingBox(
+    cptr<Real> v, const Int vertex_count,
+    mref<Vector3_T> lo, mref<Vector3_T> hi
+)
 {
     TOOLS_MAKE_FP_FAST();
     
-    // We assume that input is a link; thus
-    const Int vertex_count = edge_count;
-    
     lo.Read( v );
     hi.Read( v );
-    
+
     for( Int i = 1; i < vertex_count; ++i )
     {
         lo[0] = Min( lo[0], v[3 * i + 0] );
@@ -42,5 +42,7 @@ void ComputeBoundingBox( cptr<Real> v, mref<Vector3_T> lo, mref<Vector3_T> hi )
         hi[0] = Max( hi[0], v[3 * i + 0] );
         hi[1] = Max( hi[1], v[3 * i + 1] );
         hi[2] = Max( hi[2], v[3 * i + 2] );
+//        lo.ElementwiseMin( &v[3 * i] );
+//        hi.ElementwiseMax( &v[3 * i] );
     }
 }

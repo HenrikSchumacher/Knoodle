@@ -2,18 +2,36 @@
 
 namespace Knoodle
 {
-    
-    // A simple bounding volume hierarchy with static ordering.
-    // This is specifically written for line segment primitives for curves.
-    // It won't work with more general clouds of primitives.
+
+    /*!@brief A simple bounding volume hierarchy with static ordering. It works with both floating-point types and signed integral types.
+     *
+     *  This is specifically written for line segment primitives for curves. I may also deal with triangles or convex polytopes spanned by a few points, but that use case is not really intended. So we do not provide any guarantees.
+     *
+     *  @tparam AmbDim_ The ambient dimension, i.e., the dimension of the Euclidean space in which the tree is to be build.
+     *
+     *  @tparam Real_ The scalar type for the coordinates of points or primitives.
+     *
+     *  @tparam Int_ And integral type used for indices.
+     *
+     *  @tparam BReal_ The scalar type used for storing bounding volumes. If `Real_` is `double` one can safe a lot of memory here by using `float` as `BReal_. This won't worsen the accuracy of the computations in this class.
+     *
+     *  @tparam precompute_rangesQ_ If you make frequent use of `NodeBegin` and `NodeEnd`, then you might want to activate this to accelerate execution.
+     *
+     *  @tparam change_rounding_modeQ It only makes a difference when `Real_` is `double` and `BReal_` is float. If set to `true`, then the program alters the rounding mode of the CPU to accelerate computations. Since messing around with CPU flags is dangerous, we also provide as slightly an alternative; it is a bit slower, though.
+     */
     
     template<
-        int AmbDim_, FloatQ Real_, IntQ Int_, FloatQ BReal_ = Real_,
+        int AmbDim_, typename Real_, IntQ Int_, typename BReal_ = Real_,
         bool precompute_rangesQ_   = true,
         bool change_rounding_modeQ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
+        static_assert( (FloatQ<Real_> && FloatQ<BReal_>) || (SignedIntQ<Real_> && SignedIntQ<BReal_>) , "Either both types are floating-point types or both are signed integral types.");
+         
+        static_assert(!IntQ<Real_> || SameQ<Real_,BReal_>, "In the integal case, the types need to coincide.");
+        
+        static_assert( !(SameQ<Real_,float> && SameQ<Real_,double>) , "While it would technically work fine, there is no point in storing the bounding boxes with higher precision than the geometric primitives.");
         
     public:
         
@@ -82,24 +100,25 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Allocates and returns a container of type `BContainer_T` that is suitable to store the bounding boxes for all the nodes of the tree.
+         */
+        
         BContainer_T AllocateBoxes() const
         {
             return BContainer_T(NodeCount());
         }
         
-        // TODO: Transpose this in the description.
-        /*!
-         * @brief Computes the bounding boxes of the whole tree from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points.
+        /*!@brief Computes the bounding boxes of the whole tree from the coordinates of a list of primitives. Primitives are assumed to be the convex hull of finitely many points.
          *
          * @tparam point_count Number of points in the primitive.
          *
-         * @tparam dimP `dimP` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sound off, but our main use case is creating planar diagrams; here `dimP = 3` and `AmbDim = 2`.
+         * @tparam dimP `P` is assumed to have dimensions `prim_count x point_count x dimP`. Here we require that `dimP >= AmbDim`. This sounds odd, but our main use case is creating a planar diagrams; here `dimP = 3` and `AmbDim = 2`.
          *
-         * @tparam inc Normally, `inc` should not be changed. However, if one wants to handle edges of a polygon whose vertex coordinates are stored consecutively in `P` (with a dupplicate of the first vertex coordinate at the end of `P`, then one can set `inc` to `dimP` to to compute the bounding boxes without first makeing copies of the vertices in to a `EContainer_T`.
+         * @tparam inc Normally, `inc` should not be changed. However, if one wants to handle edges of a polygon whose vertex coordinates are stored consecutively in `P` (with a duplicate of the first vertex coordinate at the end of `P`, then one can set `inc` to `dimP` to compute the bounding boxes without first making copies of the vertices in a container of type `EContainer_T`.
          *
          * @param P Array that represents the primitive coordinates. It is assumed to have size `prim_count x point_count x dimP`.
          *
-         * @param B Represents the container for the boxes. It is assumed to be an 3D array of dimensions `prim_count x 2 x AmbDim`.
+         * @param B Represents the container for the boxes. It is assumed to be an 3D array of dimensions `prim_count x 2 x AmbDim`. Each box is stored in the format `{ { lo[0],...,lo[d-1]}, { hi[0],...,hi[d-1]} }`.
          */
         
         template<Int point_count, Int dimP, Int inc = point_count * dimP>
@@ -111,17 +130,22 @@ namespace Knoodle
             
             constexpr Int d = AmbDim;
             
-            // We might round from double to float here. We have to guarantee that the boxes won't become smaller by this. This is why we set the rounding mode to "upwards".
-            if constexpr( change_rounding_modeQ )
+            constexpr bool rounding_neededQ = SameQ<Real,double> && SameQ<BReal,float>;
+            // If Real and BReal are integral, then no rounding is needed.
+            // If both Real and BReal are floating-point types, then each of them is either float or double.
+            // Rounding is needed only if we convert from the higher precision (double) to the lower (float).
+
+            
+            // We might round from double to float here. We have to guarantee that the boxes won't become smaller by this. There are various ways to do that. The fastes way seems to change the rounding mode.
+            
+            if constexpr( rounding_neededQ && change_rounding_modeQ )
             {
-                #pragma STDC FENV_ACCESS ON
-                RoundingModeBarrier round_up (FE_UPWARD);
-//                std::fesetround(FE_UPWARD);
+                ScopedRoundingMode mode (FE_UPWARD);
                 
                 auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
                 {
-                    Tiny::Vector<AmbDim,Real,Int> lo(p);
-                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    Vector_T lo(p);
+                    Vector_T hi(p);
                     
                     for( Int i = 1; i < point_count; ++i )
                     {
@@ -135,13 +159,6 @@ namespace Knoodle
                         b[    k] = -static_cast<BReal>(-lo[k]); // because of upward rounding mode
                         b[d + k] =  static_cast<BReal>( hi[k]);
                     }
-                    
-//                    // This would work, but it is much slower.
-//                    for( Int k = 0; k < AmbDim; ++k )
-//                    {
-//                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-//                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
-//                    }
                 };
 
                 // Compute bounding boxes of leave nodes (last row of tree).
@@ -159,15 +176,18 @@ namespace Knoodle
                     // Here is where the rounding takes place.
                     primitive_to_box( &P[inc * i], &B[BoxDim * N] );
                 }
-                
-                // end of #pragma STDC FENV_ACCESS ON
             }
             else
             {
+                TOOLS_MAKE_FP_STRICT()
+                
+                constexpr BReal down = std::numeric_limits<BReal>::lowest();
+                constexpr BReal up   = std::numeric_limits<BReal>::max();
+                
                 auto primitive_to_box = []( cptr<Real> p, mptr<BReal> b )
                 {
-                    Tiny::Vector<AmbDim,Real,Int> lo(p);
-                    Tiny::Vector<AmbDim,Real,Int> hi(p);
+                    Vector_T lo(p);
+                    Vector_T hi(p);
                     
                     for( Int i = 1; i < point_count; ++i )
                     {
@@ -175,11 +195,22 @@ namespace Knoodle
                         hi.ElementwiseMax(&p[dimP * i]);
                     }
                     
-                    // This would work, but it is much slower.
-                    for( Int k = 0; k < AmbDim; ++k )
+                    if constexpr ( rounding_neededQ )
                     {
-                        b[    k] = PrevFloat(static_cast<BReal>(lo[k]));
-                        b[d + k] = NextFloat(static_cast<BReal>(hi[k]));
+                        for( Int k = 0; k < AmbDim; ++k )
+                        {
+                            // We artificially enlarge the boxes by the smallest possible offset.
+                            b[    k] = std::nextafter(static_cast<BReal>(lo[k]), down);
+                            b[d + k] = std::nextafter(static_cast<BReal>(hi[k]), up  );
+                        }
+                    }
+                    else
+                    {
+                        for( Int k = 0; k < AmbDim; ++k )
+                        {
+                            b[    k] = lo[k];
+                            b[d + k] = hi[k];
+                        }
                     }
                 };
 
@@ -211,6 +242,13 @@ namespace Knoodle
             
         }
         
+        /*! @brief Checks whether two bounding boxes intersect.
+         *
+         *  @param B_i Pointer to first box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *
+         *  @param B_j Pointer to second box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         */
+        
         static constexpr bool BoxesIntersectQ(
             const cptr<BReal> B_i, const cptr<BReal> B_j
         )
@@ -227,6 +265,17 @@ namespace Knoodle
             return true;
         }
         
+        /*! @brief Checks whether two bounding boxes intersect.
+         *
+         *  @param B_0 One instance of BContainer_T that stores multiple bounding boxes
+         *
+         *  @param i Index of a box in `B_0`.
+         *
+         *  @param B_1 One instance of BContainer_T that stores multiple bounding boxes
+         *
+         *  @param j Index of a box in `B_1`.
+         */
+        
         bool BoxesIntersectQ(
             cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j
         )
@@ -234,6 +283,13 @@ namespace Knoodle
             return BoxesIntersectQ( B_0.data(i), B_1.data(j) );
         }
         
+        
+        /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
+         *
+         *  @param B_i Pointer to first box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *
+         *  @param B_j Pointer to second box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         */
         
         static constexpr Real BoxBoxSquaredDistance(
             const cptr<Real> B_i, const cptr<Real> B_j
@@ -245,12 +301,6 @@ namespace Knoodle
             
             for( Int k = 0; k < AmbDim; ++k )
             {
-//                const Real x = Ramp(
-//                    Max( B_i[2 * k + 0], B_j[2 * k + 0] )
-//                    -
-//                    Min( B_i[2 * k + 1], B_j[2 * k + 1] )
-//                );
-                
                 const Real x = Ramp(
                     Max( B_i[AmbDim * 0 + k], B_j[AmbDim * 0 + k] )
                     -
@@ -261,6 +311,17 @@ namespace Knoodle
             }
             return d2;
         }
+        
+        /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
+         *
+         *  @param B_0 One instance of BContainer_T that stores multiple bounding boxes
+         *
+         *  @param i Index of a box in `B_0`.
+         *
+         *  @param B_1 One instance of BContainer_T that stores multiple bounding boxes
+         *
+         *  @param j Index of a box in `B_1`.
+         */
         
         static constexpr Real BoxBoxSquaredDistance(
             cref<BContainer_T> B_0, const Int i, cref<BContainer_T> B_1, const Int j

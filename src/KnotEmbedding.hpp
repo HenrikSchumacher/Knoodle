@@ -180,7 +180,7 @@ namespace Knoodle
             bounding_boxes_computedQ = false;
             intersections.clear();
             
-            ComputeBoundingBox( v, lo, hi );
+            ComputeBoundingBox( v, edge_count, lo, hi );
             
             constexpr Real margin = static_cast<Real>(1.01);
             constexpr Real two = 2;

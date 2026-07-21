@@ -207,8 +207,6 @@ namespace Knoodle
             
             Vector3_T lo;
             Vector3_T hi;
-
-//            ComputeBoundingBox( v, lo, hi );
             
             if constexpr ( shiftQ )
             {
