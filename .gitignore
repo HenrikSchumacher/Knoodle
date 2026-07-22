@@ -82,3 +82,4 @@ test/build/
 
 *.xcuserstate
 Knoodle.xcodeproj/xcuserdata/*
+doc/*
