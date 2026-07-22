@@ -2,19 +2,24 @@
 
 namespace Knoodle
 {
-    // TODO: Add color information!
+    /*!@brief This data type is mostly intended for reading in 3D vertex coordinates of a _link_, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`.
+     *
+     *  This class's main routine is `RequireIntersections`. It uses a static binary tree, high precision floating-point computations to compute the resulting planar diagram as exactly as possible.
+     *
+     * This implementation is single-threaded only so that many instances of this object can be used in parallel.
+     *
+     * Since computations are performed in finite floating-point arithmetic, this is not exact. But at least for random inputs, significant rounding errors (i.e., those that change topology) should be very, very seldom.
+     *
+     * @tparam Real_ The scalar type used for the coordinates of the link embedding. Best to use `double` here; `float` is not accurate enough.
+     *
+     * @tparam Int_ Integral type used for indices. Unsigned integers should work, too, but we give no guarantees. CAUTION: It must be big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet.
+     *
+     * @tparam BReal_ A floating-point type to store the boundaries of the bonding boxes of the internal tree. Relatively low precision does not harm here, so using `BReal_ = float` will save a lot of memory.
+     */
+    
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = float>
     class alignas( ObjectAlignment ) LinkEmbedding : public Link<Int_>
     {
-        // This data type is mostly intended to read in 3D vertex coordinates, to apply a planar projection and compute the crossings. Then it can be handed over to class PlanarDiagram. Hence, this class' main routine is RequireIntersections (using a static binary tree).
-        
-        
-        // This implementation is single-threaded only so that many instances of this object can be used in parallel.
-        
-        // TODO: Read  GeomView .vect files.
-        // TODO: Write GeomView .vect files.
-        
-        // TODO: Add value semantics.
         
     public:
         
@@ -30,6 +35,8 @@ namespace Knoodle
         
         using Vector2_T       = Tiny::Vector<2,Real,Int>;
         using Vector3_T       = Tiny::Vector<3,Real,Int>;
+        using Matrix3x3_T     = Tiny::Matrix<3,3,Real,Int>;
+        
         using E_T             = Tiny::Matrix<2,3,Real,Int>;
         
         using EContainer_T    = typename Tree3_T::EContainer_T;
@@ -41,8 +48,6 @@ namespace Knoodle
         using IntersectionFlagCounts_T = Tiny::Vector<9,Size_T,Int>;
         
         static constexpr Int AmbDim = 3;
-        
-        using Matrix3x3_T = Tiny::Matrix<AmbDim,AmbDim,Real,Int>;
         
     protected:
         
@@ -87,13 +92,14 @@ namespace Knoodle
         std::vector<Intersection_T> intersections;
         Tensor1<Int ,Int> edge_intersections;
         Tensor1<Real,Int> edge_times;
-        Tensor1<bool,Int> edge_overQ;
+        Tensor1<Int8,Int> edge_state;
         
         Vector3_T Sterbenz_shift {0};
         
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
 
+        Int intersection_count    = 0;
         Int intersection_count_3D = 0;
         
         bool intersections_computedQ  = false;
@@ -122,12 +128,17 @@ namespace Knoodle
         ,   edge_coords { edge_count                 }
         {}
         
+        /*! @brief Construction from a list of component pointers and a list of component colors. The inputs will be consumed.
+         */
+        
         LinkEmbedding( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Base_T      { std::move(component_ptr_), std::move(component_color_)  }
         ,   edge_coords { edge_count                                              }
         {}
         
-        // Provide a list of edges in interleaved form to make the object figure out its topology.
+        
+        /*! @brief Construction from a list of edges in interleaved form.
+         */
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding(
             cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
@@ -183,31 +194,6 @@ namespace Knoodle
             return Vector3_T( edge_coords.data(e,k) );
         }
         
-        bool BoundingBoxedComputedQ()
-        {
-            return bounding_boxes_computedQ;
-        }
-        
-        bool IntersectionsComputedQ()
-        {
-            return intersections_computedQ;
-        }
-        
-        void SetTransformationMatrix( cref<Matrix3x3_T> A )
-        {
-            R = A;
-        }
-        
-        void SetTransformationMatrix( Matrix3x3_T && A )
-        {
-            R = A;
-        }
-        
-        cref<Matrix3x3_T> TransformationMatrix() const
-        {
-            return R;
-        }
-        
         template<bool transformQ = false,bool shiftQ = true>
         void ReadVertexCoordinates( cptr<Real> v )
         {
@@ -246,17 +232,18 @@ namespace Knoodle
                     {
                         const Int j = i+1;
 
-                        mptr<Real> target_i = edge_coords.data(i,1);
-                        mptr<Real> target_j = &target_i[3];  // = edge_coords.data(j,0)
+                        cptr<Real> source   = &v[AmbDim * j];
+                        mptr<Real> target_i = edge_coords.data(i,Int(1));
+                        mptr<Real> target_j = &target_i[AmbDim];  // = edge_coords.data(j,0)
                         
                         if constexpr ( transformQ )
                         {
-                            y.Read( &v[3*j] );
+                            y.Read(source);
                             x = Dot(R,y);
                         }
                         else
                         {
-                            x.Read( &v[3*j] );
+                            x.Read(source);
                         }
                         
                         if constexpr ( shiftQ )
@@ -394,24 +381,6 @@ namespace Knoodle
             }
         }
         
-        template<bool shiftQ = true>
-        void Rotate( cref<Matrix3x3_T> A )
-        {
-            TOOLS_PTIMER(timer,MethodName("Rotate"));
-            
-            Tensor2<Real,Int> v_coords( edge_count, AmbDim );
-            
-            WriteVertexCoordinates(v_coords.data());
-
-            SetTransformationMatrix(A);
-            
-            this->template ReadVertexCoordinates<true,shiftQ>(v_coords.data());
-            
-            // We make it so that we can restore the original coordinates up to shift from R.
-            // That is: we rotate both the coordinates and R by A; then we set R to the rotated matrix.
-            SetTransformationMatrix(Dot(A,R));
-        }
-        
         void ComputeBoundingBoxes()
         {
         //    TOOLS_PTIMER(timer,MethodName("ComputeBoundingBoxes"));
@@ -428,6 +397,10 @@ namespace Knoodle
             edge_coords = EContainer_T();
             box_coords  = BContainer_T();
             bounding_boxes_computedQ = false;
+            
+            // Strictly speaking, this is not part of the tree, but it is not necessary anymore, once the intersections are computed (and sorted).
+            
+            edge_times = Tensor1<Real,Int>();
         }
 
     public:
@@ -449,7 +422,7 @@ namespace Knoodle
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
                 + edge_times.AllocatedByteCount()
-                + edge_overQ.AllocatedByteCount();
+                + edge_state.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -475,7 +448,7 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_overQ)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         

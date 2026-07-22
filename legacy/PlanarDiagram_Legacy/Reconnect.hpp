@@ -18,7 +18,6 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
 }
 
 
-
 /*!@brief Unplugs arc `a` from its head/tail and reconnects it to the head/tail of arc `b`, depending on the value of `headtail`. Depending on the value of `deactivateQ`, arc `b` will be deactivated or not. Mind that the other end of arc `b` might become dangling this way. It lies in the user's responsibility to take care of that.
  *
  * Arc `a` is assumed to be active, but the state of `b` can be anything.
@@ -28,11 +27,12 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
  *
  * @param b The arc to be disconnected and that is to "die" in this operator.
  *
- * @param headtail If `headtail` is `true` (of `Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails.
+ * @param headtail If `headtail` is `true` (`== Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails.
  *
  * @tparam deactivateQ If set to to `true` (default), then arc `b` will be deactivated after the reconnection process.
  *
- * @tparam assertQ If set to `false`, then some error messages in debug mode (macro `PD_DEBUG` is defined) will be suppressed. As no effect whatsover if `PD_DEBUG` is undefined.
+ * @tparam assertQ If set to `false`, then some error messages in debug mode (macro `PD_DEBUG` is defined) will be suppressed. Has no effect whatsover if `PD_DEBUG` is undefined.
+ *
  */
 
 template<bool deactivateQ = true, bool assertQ = true>

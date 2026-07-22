@@ -1,13 +1,13 @@
 public:
 
-static Sign_T Sign( const LInt z )
+static Sign_T Sign( const Int128 & z )
 {
-    return static_cast<Sign_T>(z > LInt{0}) - static_cast<Sign_T>(z < LInt{0});
+    return static_cast<Sign_T>(z > Int128{0}) - static_cast<Sign_T>(z < Int128{0});
 }
 
-static Sign_T Sign( const LLInt z )
+static Sign_T Sign( const Int256 & z )
 {
-    return static_cast<Sign_T>(z > LLInt{0}) - static_cast<Sign_T>(z < LLInt{0});
+    return static_cast<Sign_T>(z > Int256{0}) - static_cast<Sign_T>(z < Int256{0});
 }
 
 

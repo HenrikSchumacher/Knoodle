@@ -30,6 +30,9 @@ namespace Knoodle
     // TODO: What to do with multiple diagram components?
     // TODO: Get/setters for all settings.
     
+/*!@brief A class for drawing orthogonal layouts of planar diagrams.
+ */
+    
     template<class PD_T_>
     class OrthoDraw final : CachedObject<1,0,0,0>
     {
@@ -59,6 +62,7 @@ namespace Knoodle
             Corner      =  2
         };
 
+        /*!@brief Enum class for choosing the method for bend optimization in `OrthoDraw`. */
         enum class BendMethod_T : Int8
         {
             Unknown         = -1
@@ -66,6 +70,7 @@ namespace Knoodle
             , Bends_CLP     =  1
         };
         
+        /*!@brief Enum class for choosing the compaction method in `OrthoDraw`. */
         enum class CompactionMethod_T : Int8
         {
             Unknown                = -1
@@ -76,6 +81,7 @@ namespace Knoodle
             , AreaAndLength_CLP    =  4
         };
         
+        /*!@brief Control `struct` for holding settings of `OrthoDraw`. */
         struct Settings_T
         {
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;

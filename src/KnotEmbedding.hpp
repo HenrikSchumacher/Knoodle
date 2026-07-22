@@ -2,6 +2,21 @@
 
 namespace Knoodle
 {
+    /*!@brief This data type is mostly intended for reading in 3D vertex coordinates of a _knot_, applying a planar projection, and computing the crossings. Then it can be handed over to class `PlanarDiagram` or `PlanarDiagramComplex`. This class is very similar to `LinkEmbedding`, but with a few performance tweaks specifically for knots.
+     *
+     *  This class's main routine is `RequireIntersections`. It uses a static binary tree, high precision floating-point computations to compute the resulting planar diagram as exactly as possible.
+     *
+     * This implementation is single-threaded only so that many instances of this object can be used in parallel.
+     *
+     * Since computations are performed in finite floating-point arithmetic, this is not exact. But at least for random inputs, significant rounding errors (i.e., those that change topology) should be very, very seldom.
+     *
+     * @tparam Real_ The scalar type used for the coordinates of the link embedding. Best to use `double` here; `float` is not accurate enough.
+     *
+     * @tparam Int_ Integral type used for indices. Unsigned integers should work, too, but we give no guarantees. CAUTION: It must be big enough to hold the number of crossings that emerge after projecting the link to the x-y-plane. So `Int64` is probably the safest bet.
+     *
+     * @tparam BReal_ A floating-point type to store the boundaries of the bonding boxes of the internal tree. Relatively low precision does not harm here, so using `BReal_ = float` will save a lot of memory.
+     */
+    
     template<FloatQ Real_ = double, IntQ Int_ = Int64, FloatQ BReal_ = Real_>
     class alignas( ObjectAlignment ) KnotEmbedding final
     {
@@ -30,8 +45,9 @@ namespace Knoodle
 //        using Tree3_T        = AABBTree<3,Real,Int,BReal,false>;
         
         using Vector2_T      = Tiny::Vector<2,Real,Int>;
-        using Vector3_T      = Tiny::Vector<AmbDim,Real,Int>;
-        using E_T            = Tiny::Matrix<2,AmbDim,Real,Int>;
+        using Vector3_T      = Tiny::Vector<3,Real,Int>;
+        using Matrix3x3_T    = Tiny::Matrix<3,3,Real,Int>;
+        using E_T            = Tiny::Matrix<2,3,Real,Int>;
         
         using VContainer_T   = Tiny::VectorList_AoS<AmbDim,Real,Int>;
         using BContainer_T   = typename Tree2_T::BContainer_T;
@@ -67,7 +83,7 @@ namespace Knoodle
         std::vector<Intersection_T> intersections;
         Tensor1<Int ,Int> edge_intersections;
         Tensor1<Real,Int> edge_times;
-        Tensor1<bool,Int> edge_overQ;
+        Tensor1<Int8,Int> edge_state;
         Tensor1<Int,Int>  edge_ctr;
         
         Vector3_T Sterbenz_shift {0};
@@ -75,6 +91,7 @@ namespace Knoodle
         Intersector_T S;
         IntersectionFlagCounts_T intersection_flag_counts = {};
         
+        Int intersection_count    = 0;
         Int intersection_count_3D = 0;
         
         bool intersections_computedQ  = false;
@@ -169,12 +186,16 @@ namespace Knoodle
             return Vector3_T( vertex_coords.data(edge + k) );
         }
         
+        template<bool transformQ = false,bool shiftQ = true>
         void ReadVertexCoordinates( cptr<Real> v )
         {
-            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates"));
+            TOOLS_PTIMER(timer,MethodName("ReadVertexCoordinates")+"<" + ToString(transformQ) + "," + ToString(shiftQ) + ">");
             
             Vector3_T lo;
             Vector3_T hi;
+            
+            Vector3_T x;
+            Vector3_T y;
 
             intersections_computedQ  = false;
             bounding_boxes_computedQ = false;
@@ -182,24 +203,46 @@ namespace Knoodle
             
             ComputeBoundingBox( v, edge_count, lo, hi );
             
-            constexpr Real margin = static_cast<Real>(1.01);
-            constexpr Real two = 2;
-
-            Sterbenz_shift[0] = margin * ( hi[0] - two * lo[0] );
-            Sterbenz_shift[1] = margin * ( hi[1] - two * lo[1] );
-            Sterbenz_shift[2] = margin * ( hi[2] - two * lo[2] );
+            if constexpr ( shiftQ )
+            {
+                // Compute Sterbenz shift.
+                Sterbenz_shift[0] = std::fma(-Real(2), lo[0], hi[0]);
+                Sterbenz_shift[1] = std::fma(-Real(2), lo[1], hi[1]);
+                Sterbenz_shift[2] = std::fma(-Real(2), lo[2], hi[2]);
+            }
             
             for( Int edge = 0; edge < edge_count; ++edge )
             {
                 cptr<Real> source = &v[AmbDim * edge];
                 mptr<Real> target = vertex_coords.data(edge);
                 
-                target[0] = source[0] + Sterbenz_shift[0];
-                target[1] = source[1] + Sterbenz_shift[1];
-                target[2] = source[2] + Sterbenz_shift[2];
+                if constexpr ( transformQ )
+                {
+                    y.Read(source);
+                    x = Dot(R,y);
+                }
+                else
+                {
+                    x.Read(source);
+                }
+                
+                if constexpr ( shiftQ )
+                {
+                    x += Sterbenz_shift;
+                }
+
+                x.Write(target);
             }
 
+            // Copy the coordinates for the first vertex to the last's.
             copy_buffer<AmbDim>(vertex_coords.data(),vertex_coords.data(edge_count));
+        }
+        
+        void WriteVertexCoordinates( mptr<Real> v ) const
+        {
+            TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));
+            
+            copy_buffer(vertex_coords.data(),v,edge_count * AmbDim);
         }
         
         void ComputeBoundingBoxes()
@@ -237,7 +280,7 @@ namespace Knoodle
                 + box_coords.AllocatedByteCount()
                 + edge_intersections.AllocatedByteCount()
                 + edge_times.AllocatedByteCount()
-                + edge_overQ.AllocatedByteCount();
+                + edge_state.AllocatedByteCount();
         }
         
         Size_T ByteCount() const
@@ -258,7 +301,7 @@ namespace Knoodle
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_ctr)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_intersections)
                 + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_times)
-                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_overQ)
+                + (",\n" + ct_tabs<t1>) + TOOLS_MEM_DUMP_STRING(edge_state)
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         

@@ -190,7 +190,7 @@ int Generate2(
                 
                 Size_T projection_iter = 0;
                 int projection_flag = 0;
-                emb.Rotate( reapr.RandomRotation() );
+                emb.Transform( reapr.RandomRotation() );
                 projection_flag = emb.RequireIntersections();
                 
                 while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
@@ -198,7 +198,7 @@ int Generate2(
                     ++projection_iter;
                     // Rotate is a bit expensive do to an extra allocation and extra copying.
                     // But we land here really very, very, very seldomly.
-                    emb.Rotate( reapr.RandomRotation() );
+                    emb.Transform( reapr.RandomRotation() );
                     projection_flag = emb.RequireIntersections();
                 }
                 
@@ -303,7 +303,7 @@ ID_T Generate(
                 
                 Size_T projection_iter = 0;
                 int projection_flag = 0;
-                emb.Rotate( reapr.RandomRotation() );
+                emb.Transform( reapr.RandomRotation() );
                 projection_flag = emb.RequireIntersections();
                 
                 while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
@@ -311,7 +311,7 @@ ID_T Generate(
                     ++projection_iter;
                     // Rotate is a bit expensive do to an extra allocation and extra copying.
                     // But we land here really very, very, very seldomly.
-                    emb.Rotate( reapr.RandomRotation() );
+                    emb.Transform( reapr.RandomRotation() );
                     projection_flag = emb.RequireIntersections();
                 }
                 

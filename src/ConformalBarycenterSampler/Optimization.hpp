@@ -2,7 +2,7 @@ private:
 
 
     /*!
-     * @brief Runs Newton-like algorithm to find the conformal closure of the open polygon (loaded with ReadInitialEdgeVectors or generated with ReadInitialEdgeVectors). Afterwards, the resulting closed polygon can be accessed with routines *EdgeVectors. The conformal barycenter can be accessed with *ShiftVector.
+     * @brief Runs Newton-like algorithm to find the conformal closure of the open polygon (loaded with `ReadInitialEdgeVectors` or generated with `ReadInitialEdgeVectors`). Afterwards, the resulting closed polygon can be accessed with routines `EdgeVectors`. The conformal barycenter can be accessed with `ShiftVector`.
      */
 
     void Optimize()

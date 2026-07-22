@@ -1,5 +1,7 @@
 public:
 
+/*!@brief Attempt to disconnect as many conntect summands as possible and append them to the list. This routine works in-place. It returns the number of disconnets performed.*/
+
 Size_T Disconnect()
 {
     Size_T counter = 0;
@@ -447,12 +449,12 @@ Size_T Disconnect( PD_T & pd /*, const bool proven_loop_freeQ = false*/ )
                 ++change_counter;
                 f_counts[g]   -= I(1); // db does not belong to face f anymore.
                 
-                /*!@ Remove the loops that we might have created.
+                /*!@brief Remove the loops that we might have created.
                  * We can simply do do `remove_loop(da)` and `remove_loop(db)` without changing `f_counts` any further. To see this, we distinguish two (possibly nondisjoint) cases:
                  *
-                 *      Case B: If `da` is a loop after disconnecting, then `db` pointed into `da`, i.e., `db` was the last arc in the face to be considered anyways.
+                 *  - Case B: If `da` is a loop after disconnecting, then `db` pointed into `da`, i.e., `db` was the last arc in the face to be considered anyways.
                  *
-                 *      Case A: If `db` is a loop edge, it does not matter for face `f`, because `db` is not on the boundary of `f` anymore. In fact, the whole algorithm was designed to guarantee this.
+                 *  - Case A: If `db` is a loop edge, it does not matter for face `f`, because `db` is not on the boundary of `f` anymore. In fact, the whole algorithm was designed to guarantee this.
                  *
                  */
                  

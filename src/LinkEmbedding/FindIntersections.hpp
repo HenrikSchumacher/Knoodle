@@ -13,9 +13,6 @@ public:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersections"));
         
-        // DEBUGGING
-        print(MethodName("FindIntersections"));
-        
         // Here we do something strange:
         // We hand over edge_coords, a Tensor3 of size edge_count x 2 x 3
         // to a T which is a Tree2_T.
@@ -120,7 +117,7 @@ public:
             eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-        const Int intersection_count = static_cast<Int>(intersections.size());
+        intersection_count = static_cast<Int>(intersections.size());
 
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -128,9 +125,9 @@ public:
         
         if( edge_intersections.Size() != edge_ptr.Last() )
         {
-            edge_intersections = Tensor1<Int, Int>( edge_ptr.Last() );
-            edge_times         = Tensor1<Real,Int>( edge_ptr.Last() );
-            edge_overQ         = Tensor1<bool,Int>( edge_ptr.Last() );
+            edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
+            edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
+            edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
         }
 
         // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
@@ -149,15 +146,18 @@ public:
 
             edge_intersections[pos_0] = k;
             edge_times        [pos_0] = inter.times[0];
-            edge_overQ        [pos_0] = true;
-            
+            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+
             edge_intersections[pos_1] = k;
             edge_times        [pos_1] = inter.times[1];
-            edge_overQ        [pos_1] = false;
+            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
         }
+        
+        // We don't need this anymore.
+        intersections = std::vector<Intersection_T>();
 
         // Sort intersections edgewise w.r.t. edge_times.
-        ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
+        ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
         
         Size_T close_counter = 0;
         
@@ -173,7 +173,7 @@ public:
                 sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
-                    &edge_overQ[k_begin],
+                    &edge_state[k_begin],
                     k_end - k_begin
                 );
                 
@@ -203,7 +203,7 @@ public:
                             
                             const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
-                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
+                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
 //                        }
                     }
                 }
@@ -668,5 +668,3 @@ protected:
             }
         }
     }
-
-

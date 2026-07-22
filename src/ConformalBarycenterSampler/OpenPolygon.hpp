@@ -11,7 +11,7 @@ Vector_T InitialEdgeVector( const Int i ) const
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
- * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge vector of the polygon is stored in `x[d * i + j].
+ * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th edge vector of the polygon is stored in `x[d * i + j]`.
  *
  * @param normalizeQ Only if `normalizeQ` is set to true, the vectors get normalized. Otherwise, they are assumed to be already normalized.
  */
@@ -56,7 +56,7 @@ void RandomizeInitialEdgeVectors()
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *
- * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form`, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j].
+ * @param x Target array; assumed to be of size of at least `n * d`. The coordinates are stored in interleaved form, i.e., the `j`-th coordinate of the `i`-th unit edge vector of polygon number `offset` is stored in `x[d * i + j]`.
  */
 
 void WriteInitialEdgeVectors( Real * const x )

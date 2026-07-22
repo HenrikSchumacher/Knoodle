@@ -141,7 +141,7 @@ std::vector<Item> BuildPool(const std::vector<PD_T>& minimals, Int cap,
                 Knoodle::PRNG_T(SplitMix64(seed0 + static_cast<std::uint64_t>(
                     pool.size() * 131 + t)));
             auto emb = reapr.Embedding(m);
-            emb.Rotate(reapr.RandomRotation());
+            emb.Transform( reapr.RandomRotation() );
             auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
             if (!pd_new.ValidQ() || unlinks.Size() > Int(0)
                 || pd_new.LinkComponentCount() > Int(1)
@@ -176,7 +176,7 @@ std::vector<Item> BuildInflatedPool(const std::vector<PD_T>& minimals, Int targe
             reapr.RandomEngine() = Knoodle::PRNG_T(
                 SplitMix64(seed0 + static_cast<std::uint64_t>(pool.size() * 131 + round)));
             auto emb = reapr.Embedding(pd);
-            emb.Rotate(reapr.RandomRotation());
+            emb.Transform( reapr.RandomRotation() );
             auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
             if (!pd_new.ValidQ() || unlinks.Size() > Int(0)
                 || pd_new.LinkComponentCount() > Int(1)

@@ -23,7 +23,7 @@ public:
     
     double ToDouble() const
     {
-        return double{c_0};
+        return static_cast<double>(c_0);
     }
     
     Sign_T Sign() const

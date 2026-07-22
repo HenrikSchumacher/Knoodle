@@ -44,6 +44,8 @@ namespace Knoodle
 #include "src/LinkEmbedding.hpp"
 #include "src/KnotEmbedding.hpp" // Like LinkEmbedding, only for knots. A bit more efficient this way.
 
+#include "src/LinkEmbedding2.hpp"
+
 #include "src/MultiGraphBase.hpp"
 #include "src/MultiGraph.hpp"
 #include "src/MultiDiGraph.hpp"

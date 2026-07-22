@@ -35,14 +35,7 @@ void ComputeBoundingBox(
 
     for( Int i = 1; i < vertex_count; ++i )
     {
-        lo[0] = Min( lo[0], v[3 * i + 0] );
-        lo[1] = Min( lo[1], v[3 * i + 1] );
-        lo[2] = Min( lo[2], v[3 * i + 2] );
-        
-        hi[0] = Max( hi[0], v[3 * i + 0] );
-        hi[1] = Max( hi[1], v[3 * i + 1] );
-        hi[2] = Max( hi[2], v[3 * i + 2] );
-//        lo.ElementwiseMin( &v[3 * i] );
-//        hi.ElementwiseMax( &v[3 * i] );
+        lo.ElementwiseMin( &v[3 * i] );
+        hi.ElementwiseMax( &v[3 * i] );
     }
 }

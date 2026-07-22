@@ -13,6 +13,9 @@ namespace Knoodle
     // TODO: Only process _active_ crossings and _active_ arcs!
     // TODO: Add type checks everywhere.
     
+    /*!@brief A class for computing relatively simple 3D embeddings of planar diagrams.
+     */
+    
     template<FloatQ Real_ = Real64, IntQ Int_ = Int64, FloatQ BReal_ = Real32>
     class Reapr
     {
@@ -72,6 +75,9 @@ namespace Knoodle
                 default:                  return "Unknown";
             }
         }
+        
+        /*!@brief Control `struct` for holding settings of `Reapr`.
+         */
         
         struct Settings_T
         {

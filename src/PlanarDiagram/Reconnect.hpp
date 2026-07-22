@@ -31,7 +31,7 @@ void SetMatchingPortTo( const Int c, const bool io, const Int a, const Int b )
  *
  * @param b The arc to be disconnected and that is to "die" in this operation.
  *
- * @param headtail If `headtail` is `true` (of `Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails.
+ * @param headtail If `headtail` is `true` (of `Head`), then the reconnection will happen at the heads of `a` and `b`; otherwise it will happen at their `tails`.
  *
  * @tparam deactivateQ If set to to `true` (default), then arc `b` will be deactivated after the reconnection process.
  *

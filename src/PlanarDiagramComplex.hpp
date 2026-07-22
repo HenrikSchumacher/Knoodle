@@ -2,10 +2,12 @@
 
 namespace Knoodle
 {
-    // TODO: ArcSimplifier: Improve performance of local simplification at opt level 4.
-    // TODO: ByteCount.
+    /*!@brief A class for storing and manipulating several planar diagrams. Its `Simplify` routine attempts to compute a prime link decomposition. Edge colors are used to track how the links have to be glued back to one connected link diagram.
+     *
+     * @tparam Int_ Integral type used for all sorts of indices. Needs to be big enough to store the total number of arcs and then some. Best to give it 3-4 extra bits.
+     */
     
-    template<IntQ Int_>
+    template<IntQ Int_ = Int64>
     class PlanarDiagramComplex final : public CachedObject<1,0,0,0>
     {
 

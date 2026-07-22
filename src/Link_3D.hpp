@@ -30,6 +30,7 @@ namespace Knoodle
         using Base_T         = Link<Int>;
         using Tree_T         = AABBTree<3,Real,Int,BReal,false>;
         using Vector3_T      = Tiny::Vector<3,Real,Int>;
+        using Matrix3x3_T    = Tiny::Matrix<3,3,Real,Int>;
       
 //        using Vector3_T      = typename Tree_T::Vector_T;
         using EContainer_T   = typename Tree_T::EContainer_T;

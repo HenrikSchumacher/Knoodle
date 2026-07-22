@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Calls the corresponding routine on `Diagram(diagram_idx)`.
+/*!@brief UNSAFE. Calls the corresponding routine on `Diagram(diagram_idx)`.
  */
 
 template<bool silentQ = false>
@@ -25,7 +25,9 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
     return changedQ;
 }
 
-// As an exception, this is a relatively "safe" routine as we do not allow modification of any unvalid diagrams. (You might need to `Push` an unknot first.
+/*!@brief Yhis is a relatively "safe" routine as we do not allow modification of any unvalid diagrams. (You might need to `Push` an unknot first.
+ */
+
 template<bool silentQ = false>
 void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
 {
@@ -45,6 +47,9 @@ void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
     
     pd.RequireCrossingCount(min_crossing_count);
 }
+
+/*!@brief UNSAFE. A make a Reidemeister I move at an arc to create a new crossing.
+ */
 
 template<bool silentQ = false, bool assertsQ = true>
 Int CreateLoop(
@@ -70,6 +75,10 @@ Int CreateLoop(
     if( result != Uninitialized ) { ClearCache(); }
     return result;
 }
+
+
+/*!@brief UNSAFE. Cut the two arcs `a` and `b` and reconnect.
+ */
 
 template<bool silentQ = false, bool assertsQ = true>
 bool Connect( const Int diagram_idx, const Int a, const Int b )

@@ -340,7 +340,7 @@ namespace Knoodle
          *
          * @param m Number of samples to generate.
          *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}`. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          *
          */
         
@@ -508,7 +508,7 @@ namespace Knoodle
          *
          *  @param n Number of edges.
          *
-         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
+         * @param args Struct of further arguments: If `args.wrap_aroundQ` is set to `true`, then the first vertex is repeated at the end. If `args.rotate_randomQ` is set to `true`, then orientation of the polygon is randomized. If set to `false`, then the first edge always points to {1,0,0}, and the first triangle's normal will be `{0,0,1}`. If `args.centralizeQ` is set to true, then the random polygon is translated so that its center of mass lies at the origin.
          */
         
         Size_T WriteRandomEquilateralPolygon( mptr<Real> p, const Int n, cref<Arg_T> args )

@@ -19,14 +19,14 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
-    return PD_T::template FromLinkEmbedding_impl<Real,BReal>(
+    return FromLinkEmbedding_Raw(
         K.ComponentCount(),
         K.ComponentPointers().data(),
         comp_color.data(),
+        K.IntersectionCount(),
         K.EdgePointers().data(),
         K.EdgeIntersections().data(),
-        K.EdgeOverQ().data(),
-        K.Intersections()
+        K.EdgeStates().data()
     );
 }
 
@@ -34,9 +34,9 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
  */
 
 template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
-static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const ExtInt n )
+static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinates( cptr<Real> x, const ExtInt n )
 {
-    TOOLS_PTIMER(timer,MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
+    TOOLS_PTIMER(timer,MethodName("FromCoordinates") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+")");
 
     KnotEmbedding<Real,Int,BReal> L ( n );
 
@@ -46,7 +46,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const E
 
     if( err != 0 )
     {
-        eprint(MethodName("FromKnotEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(MethodName("FromCoordinates") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
@@ -56,14 +56,14 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( cptr<Real> x, const E
     Tensor1<Int,Int> comp_color(Int(1),Int(0));
 
     // We delay the allocation until substantial parts of L have been deallocated.
-    return PD_T::template FromLinkEmbedding_impl<Real,Real>(
+    return FromLinkEmbedding_Raw(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         comp_color.data(),
+        L.IntersectionCount(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
-        L.EdgeOverQ().data(),
-        L.Intersections()
+        L.EdgeStates().data()
     );
 }
 
@@ -85,14 +85,14 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
-    return PD_T::template FromLinkEmbedding_impl<Real,BReal>(
+    return FromLinkEmbedding_Raw(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.ComponentColors().data(),
+        L.IntersectionCount(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
-        L.EdgeOverQ().data(),
-        L.Intersections()
+        L.EdgeStates().data()
     );
 }
 
@@ -101,13 +101,13 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
  */
 
 template<FloatQ Real, IntQ ExtInt>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
+static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
     cptr<Real> x,
     cptr<ExtInt> edges,
     const ExtInt n
 )
 {
-    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+")");
+    TOOLS_PTIMER(timer,MethodName("FromCoordinatesAndEdges") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+")");
 
     using LinkEmbedding_T = LinkEmbedding<Real,Int,Real>;
     
@@ -121,7 +121,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 
     if( err != 0 )
     {
-        eprint(MethodName("FromLinkEmbedding") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        eprint(MethodName("FromCoordinatesAndEdges") + "("+TypeName<Real>+"*,"+TypeName<ExtInt>+"*,"+TypeName<ExtInt>+"): FindIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
         return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
     }
 
@@ -129,57 +129,56 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     L.DeleteTree();
 
     // We delay the allocation until substantial parts of L have been deallocated.
-    return PD_T::template FromLinkEmbedding_impl<Real,Real>(
+    return FromLinkEmbedding_Raw(
         L.ComponentCount(),
         L.ComponentPointers().data(),
         L.ComponentColors().data(),
+        L.IntersectionCount(),
         L.EdgePointers().data(),
         L.EdgeIntersections().data(),
-        L.EdgeOverQ().data(),
-        L.Intersections()
+        L.EdgeStates().data()
     );
 }
 
 
-private:
+public:
     
-// TODO: Get color information right!
-template<typename Real, typename BReal>
-static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
-    const Int  component_count,
-    cptr<Int>  component_ptr,
-    cptr<Int>  component_color,
-    cptr<Int>  edge_ptr,
-    cptr<Int>  edge_intersections,
-    cptr<bool> edge_overQ,
-    cref<std::vector<typename LinkEmbedding<Real,Int,BReal>::Intersection_T>> intersections
+/*@brief For internal use only. Users should not call this. Testing makes it necessary to make this public.
+ */
+
+template<IntQ ExtInt,IntQ ExtInt2>
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_Raw(
+    const ExtInt  component_count_,
+    cptr<ExtInt>  component_ptr,
+    cptr<ExtInt>  component_color,
+    const ExtInt  crossing_count_,
+    cptr<ExtInt>  edge_ptr,
+    cptr<ExtInt>  edge_intersections,
+    cptr<ExtInt2> edge_state
 )
 {
-    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding_impl") + "<"+TypeName<Real>+","+TypeName<BReal>+">");
+    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding_Raw"));
     // needs to know all member variables
     
-    static_assert(FloatQ<Real>,"");
-    static_assert(FloatQ<BReal>,"");
+    using Sign_T = Int8;
     
-    using Intersection_T = typename LinkEmbedding<Real,Int,BReal>::Intersection_T;
-    using Sign_T         = typename Intersection_T::Sign_T;
-    
-    const Int crossing_count = int_cast<Int>(intersections.size());
-    
-    if( component_count <= Int(0) )
+    if( component_count_ <= ExtInt(0) )
     {
         return { InvalidDiagram(), Tensor1<Int,Int>() };
     }
     
-    if( (crossing_count <= Int(0)) && (component_count >= Int(1)) )
+    if( (crossing_count_ <= ExtInt(0)) && (component_count_ >= ExtInt(1)) )
     {
-        return { InvalidDiagram(), Tensor1<Int,Int>(component_color,component_count) };
+        return { InvalidDiagram(), Tensor1<Int,Int>(component_color,component_count_) };
     }
+    
+    const Int component_count = int_cast<Int>( component_count_ );
+    const Int crossing_count  = int_cast<Int>( crossing_count_  );
     
     PD_T pd ( crossing_count, true );
     
     pd.crossing_count = crossing_count;
-    pd.arc_count      = Int(2) * crossing_count;
+    pd.arc_count      = Int(2) * pd.crossing_count;
     
 #ifdef PD_ALLOCATE_SCRATCH
     pd.C_scratch.Fill(Uninitialized);
@@ -207,7 +206,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
         const Int b_begin = edge_ptr[component_ptr[comp  ]];
         const Int b_end   = edge_ptr[component_ptr[comp+1]];
         
-        const Int color = (component_color == nullptr) ? comp : component_color[comp];
+        const Int color = (component_color == nullptr) ? comp : static_cast<Int>(component_color[comp]);
         
         if( b_begin == b_end )
         {
@@ -219,7 +218,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
         // If we arrive here, then there is definitely a crossing in the first edge.
         for( Int b = b_begin, a = b_end-Int(1); b < b_end; a = (b++) )
         {
-            const Int c_pos = edge_intersections[b];
+            const Int c_pos = static_cast<Int>(edge_intersections[b]);
             
             if( !ValidIndexQ(C_label[c_pos]) )
             {
@@ -228,16 +227,16 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding_impl(
             
             const Int c = C_label[c_pos];
             
-            const bool overQ = edge_overQ[b];
-            
-            cref<Intersection_T> inter = intersections[static_cast<Size_T>(c_pos)];
+            const int  state      = static_cast<int>(edge_state[b]);
+            const bool overQ      = state & 1;
+            Sign_T     handedness = static_cast<Sign_T>(state >> 1);
             
             pd.A_cross(a,Head) = c; // c is head of a
             pd.A_cross(b,Tail) = c; // c is tail of b
             
-            PD_ASSERT( (inter.handedness > Sign_T(0)) || (inter.handedness < Sign_T(0)) );
+            PD_ASSERT( (handedness > Sign_T(0)) || (handedness < Sign_T(0)) );
             
-            bool righthandedQ = inter.handedness > Sign_T(0);
+            bool righthandedQ = handedness > Sign_T(0);
             
             /*
              *

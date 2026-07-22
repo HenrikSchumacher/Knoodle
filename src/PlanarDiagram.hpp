@@ -10,8 +10,13 @@
 
 namespace Knoodle
 {
-
-    template<IntQ Int_>
+    /*!@brief A class for storing and manipulating planar diagrams
+     *
+     * @tparam Int_ Integral type used for all sorts of indices. Needs to be big enough to store the number of arcs and then some. Best to give it 3-4 extra bits.
+     *
+     */
+    
+    template<IntQ Int_ = Int64>
     class PlanarDiagram final : public CachedObject<1,0,0,0>
     {
         
@@ -70,7 +75,7 @@ namespace Knoodle
         
         static constexpr Int DoNotVisit = Uninitialized - Int(1);
         
-        // For the faces I need at least one invalid value that is different from `Uninitialized`. So we consider (Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
+        // For the faces I need at least one invalid value that is different from `Uninitialized`. So we consider `(Uninitialized - 1)` as another invalid index. If `Int` is unsigned, some special precaution has to be taken.
         
         static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
         

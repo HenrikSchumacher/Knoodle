@@ -163,7 +163,7 @@ bool RunTrial(PD_T start, const std::string& name, const Config& cfg,
 
         prev = pd;
         auto emb = reapr.Embedding(pd);
-        emb.Rotate(reapr.RandomRotation());
+        emb.Transform( reapr.RandomRotation() );
         auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
 
         if (!pd_new.ValidQ() || unlinks.Size() > Int(0)

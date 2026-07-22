@@ -58,6 +58,7 @@ cref<ArcColorContainer_T> ArcColors() const
 }
 
 #ifdef PD_ALLOCATE_SCRATCH
+
 /*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
  */
 cref<Tensor1<Int,Int>> ArcScratchBuffer() const

@@ -284,6 +284,8 @@ Size_T Split( PD_T && pd, mref<PDC_T::PD_List_T> pd_output, const bool proven_re
     return ToSize_T(dc_count);
 }
 
+/*!@brief Split off all connected components in each diagram and append them as new diagrams. This routine works in-place. Returns the number of splits performed.*/
+
 Size_T Split()
 {
     TOOLS_PTIMER(timer,MethodName("Split"));
@@ -309,6 +311,7 @@ Size_T Split()
     return split_count;
 }
 
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams are connected. */
 
 PDC_T Splitting() const
 {

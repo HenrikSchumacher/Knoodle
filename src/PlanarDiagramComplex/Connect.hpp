@@ -8,11 +8,14 @@ struct GlueData_T
     Int b   = Uninitialized; // arc of second diagram to be joined
 };
 
+/*!@brief Connect the diagrams to one big diagram (and possibly a few unlinks) according to their coloring. This routine works in-place.*/
 
 void Connect()
 {
     *this = this->ConnectedSum();
 }
+
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams (except for a few unlinks) are connected according to their coloring.*/
 
 PDC_T ConnectedSum() const
 {

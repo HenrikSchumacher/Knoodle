@@ -11,9 +11,9 @@ namespace Knoodle
      *
      *  @tparam Real_ The scalar type for the coordinates of points or primitives.
      *
-     *  @tparam Int_ And integral type used for indices.
+     *  @tparam Int_ An integral type used for indices.
      *
-     *  @tparam BReal_ The scalar type used for storing bounding volumes. If `Real_` is `double` one can safe a lot of memory here by using `float` as `BReal_. This won't worsen the accuracy of the computations in this class.
+     *  @tparam BReal_ The scalar type used for storing bounding volumes. If `Real_` is `double` one can safe a lot of memory here by using `float` as `BReal_`. This won't worsen the accuracy of the computations in this class.
      *
      *  @tparam precompute_rangesQ_ If you make frequent use of `NodeBegin` and `NodeEnd`, then you might want to activate this to accelerate execution.
      *
@@ -21,9 +21,12 @@ namespace Knoodle
      */
     
     template<
-        int AmbDim_, typename Real_, IntQ Int_, typename BReal_ = Real_,
-        bool precompute_rangesQ_   = true,
-        bool change_rounding_modeQ = true
+        int AmbDim_,
+        typename Real_,
+        IntQ     Int_,
+        typename BReal_ = Real_,
+        bool     precompute_rangesQ_   = true,
+        bool     change_rounding_modeQ = true
     >
     class alignas( ObjectAlignment ) AABBTree : public CompleteBinaryTree<Int_,precompute_rangesQ_>
     {
@@ -31,7 +34,7 @@ namespace Knoodle
          
         static_assert(!IntQ<Real_> || SameQ<Real_,BReal_>, "In the integal case, the types need to coincide.");
         
-        static_assert( !(SameQ<Real_,float> && SameQ<Real_,double>) , "While it would technically work fine, there is no point in storing the bounding boxes with higher precision than the geometric primitives.");
+        static_assert( !(SameQ<Real_,float> && SameQ<BReal_,double>) , "While it would technically work fine, there is no point in storing the bounding boxes with higher precision than the geometric primitives.");
         
     public:
         
@@ -244,9 +247,9 @@ namespace Knoodle
         
         /*! @brief Checks whether two bounding boxes intersect.
          *
-         *  @param B_i Pointer to first box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *  @param B_i Pointer to first box stored in the `format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          *
-         *  @param B_j Pointer to second box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *  @param B_j Pointer to second box stored in the `format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          */
         
         static constexpr bool BoxesIntersectQ(
@@ -267,11 +270,11 @@ namespace Knoodle
         
         /*! @brief Checks whether two bounding boxes intersect.
          *
-         *  @param B_0 One instance of BContainer_T that stores multiple bounding boxes
+         *  @param B_0 One instance of `BContainer_T` that stores multiple bounding boxes
          *
          *  @param i Index of a box in `B_0`.
          *
-         *  @param B_1 One instance of BContainer_T that stores multiple bounding boxes
+         *  @param B_1 One instance of `BContainer_T` that stores multiple bounding boxes
          *
          *  @param j Index of a box in `B_1`.
          */
@@ -286,9 +289,9 @@ namespace Knoodle
         
         /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
          *
-         *  @param B_i Pointer to first box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *  @param B_i Pointer to first box stored in the format `[ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          *
-         *  @param B_j Pointer to second box stored in the format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]
+         *  @param B_j Pointer to second box stored in the format `[ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          */
         
         static constexpr Real BoxBoxSquaredDistance(
@@ -314,11 +317,11 @@ namespace Knoodle
         
         /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
          *
-         *  @param B_0 One instance of BContainer_T that stores multiple bounding boxes
+         *  @param B_0 One instance of `BContainer_T` that stores multiple bounding boxes.
          *
          *  @param i Index of a box in `B_0`.
          *
-         *  @param B_1 One instance of BContainer_T that stores multiple bounding boxes
+         *  @param B_1 One instance of `BContainer_T` that stores multiple bounding boxes.
          *
          *  @param j Index of a box in `B_1`.
          */

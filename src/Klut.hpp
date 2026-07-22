@@ -2,8 +2,14 @@
 
 // TODO: Make example.
 
+
+
 namespace Knoodle
 {
+    /*!@brief A class to hold a prime knot table.
+     *
+     */
+    
     class Klut
     {
     public:

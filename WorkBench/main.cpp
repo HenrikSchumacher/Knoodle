@@ -6,18 +6,29 @@
 using namespace Knoodle;
 using namespace Tools;
 
-using Idx = Size_T;
+using Real  = Int32;
+using IReal = Int32;
+//using Real = Int64;
+using Int  = Size_T;
 
-using Prosector_T    = Prosector<Idx>;
+using Prosector_T    = Prosector<IReal,Int>;
 using Vector3_T      = Prosector_T::Vector3_T;
 using Intersection_T = Prosector_T::Intersection;
 using Flag_T         = Prosector_T::Flag_T;
 
 int main()
 {
-    Idx i = 0;
-    Idx j = 1;
-    Idx k = 2;
+    Prosector_T S;
+    
+    print(S.ClassName());
+    TOOLS_DUMP(TypeName<Prosector_T::Int>);
+    TOOLS_DUMP(TypeName<Prosector_T::LInt>);
+    TOOLS_DUMP(TypeName<Prosector_T::LLInt>);
+    print("");
+    
+    Int i = 0;
+    Int j = 1;
+    Int k = 2;
     
     Vector3_T x_0 {0, 1, 1};
     Vector3_T x_1 {12, 10, 4};
@@ -44,9 +55,6 @@ int main()
     TOOLS_DUMP(v);
     TOOLS_DUMP(p);
     TOOLS_DUMP(q);
-    
-    
-    Prosector_T S;
     
     print("\nIntersecting lines x and y.");
     S.LoadSegments(i, x_0, x_1, j, y_0, y_1);

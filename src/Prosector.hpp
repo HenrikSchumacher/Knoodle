@@ -2,37 +2,64 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 
+namespace Knoodle
+{
+    using Int128 = boost::multiprecision::int128_t;
+    using Int256 = boost::multiprecision::int256_t;
+    
+//    using Int128 = _BitInt(128);
+//    using Int256 = _BitInt(256);
+}
 
-//namespace Tools
-//{
-//    std::string ToString( cref<boost::multiprecision::int128_t> number )
-//    {
-//        std::stringstream s;
-//        s << number;
-//        return s.str();
-//    }
-//
-//    std::string ToString( cref<boost::multiprecision::int256_t> number )
-//    {
-//        std::stringstream s;
-//        s << number;
-//        return s.str();
-//    }
-//}
+namespace Tools
+{
+    
+    template<> constexpr const char * TypeName<Knoodle::Int128>  = "I128";
+    template<> constexpr const char * FullTypeName<Knoodle::Int128>  = "boost::multiprecision::int128_t";
+    
+    template<> constexpr const char * TypeName<Knoodle::Int256>  = "I256";
+    template<> constexpr const char * FullTypeName<Knoodle::Int256>  = "boost::multiprecision::int256_t";
+    
+    std::string ToString( cref<Knoodle::Int128> number )
+    {
+        std::stringstream s;
+        s << number;
+        return s.str();
+    }
+
+    std::string ToString( cref<Knoodle::Int256> number )
+    {
+        std::stringstream s;
+        s << number;
+        return s.str();
+    }
+}
 
 namespace Knoodle
 {
-
-    
-    
-    template<IntQ Idx_>
+    template<IntQ Int_, IntQ Idx_ = Int64>
     class Prosector final
     {
     public:
         
-        using Int    = std::int64_t;
-        using LInt   = boost::multiprecision::int128_t;
-        using LLInt  = boost::multiprecision::int256_t;
+        static_assert(SameQ<Int_,Int32> || SameQ<Int_,Int64>,"");
+        
+//        static constexpr Size_T bitlength = bitlength_;
+//        static_assert(bitlength <= Size_T(64),"");
+//        
+
+//        
+//        using Int    = std::conditional< bitlength <= Size_T(32), Int32, Int64>;
+//        using LInt   = std::conditional< bitlength <= Size_T(16), Int32,
+//                           std::conditional<bitlength <= Size_T(32), Int64, Int128 >
+//                       >;
+//        using LLInt  = std::conditional< bitlength <= Size_T(16), Int64,
+//                           std::conditional<bitlength <= Size_T(32), Int128, Int256>
+//                       >;
+        using Int    = Int_;
+        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,Int128>;
+        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int128,Int256>;
+        
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
@@ -139,7 +166,6 @@ namespace Knoodle
          */
         
     public:
-        
         
         void LoadSegments(
             const Idx k_, cptr<Int> x_0_, cptr<Int> x_1_,
@@ -339,7 +365,8 @@ namespace Knoodle
         static std::string ClassName()
         {
             return ct_string("Prosector")
-                + "<" + TypeName<Idx>
+                + "<" + TypeName<Int>
+                + "," + TypeName<Idx>
                 + ">";
         }
         

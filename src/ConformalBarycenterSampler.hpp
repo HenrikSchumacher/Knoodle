@@ -351,7 +351,7 @@ namespace Knoodle
          *
          * @param K Where to store the sampling weight. The type of sampling weights is determined by the value of `quotient_space_Q` (see below).
          *
-         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount()` + 1 vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
+         * @param wrap_aroundQ If set to yes, then the output polygon `q` will have `EdgeCount() + 1` vertex position, somewhat repeating the first one. (The difference between first and last vertex positions indicates the numerical error.)
          *
          * @param mode Specify whether the output polygon `q` will be be centered to its center of mass and in which sense "mass" is operationalized.
          *
@@ -466,11 +466,11 @@ namespace Knoodle
          *
          * This routine interprets `n` as the number of unit vectors per point cloud.
          *
-         * @param x The input array for the unit vectors of the uncentered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector of the `k`-th polygon is stored in `x[d * i + j].`
+         * @param x The input array for the unit vectors of the uncentered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector of the `k`-th polygon is stored in `x[d * i + j]`.
          *
          * @param w The output array for the conformal barycenter of the input point cloud; it is assumed to have size at least `d`.
          *
-         * @param y The output array for the unit vectors of the centered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector is stored in `y[d * i + j].`
+         * @param y The output array for the unit vectors of the centered point cloud; it is assumed to have size at least `n * d`. The `j`-coordinate of the `i`-th unit vector is stored in `y[d * i + j]`.
          *
          * @param K_edge_space The output for the reweighting factors of the point space (rotation group not modded out); it is assumed to have size at least `sample_count`.
          *
