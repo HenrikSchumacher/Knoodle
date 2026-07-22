@@ -55,7 +55,7 @@ cref<IntersectionFlagCounts_T> IntersectionFlagCounts() const
     return intersection_flag_counts;
 }
 
-bool BoundingBoxedComputedQ()
+bool BoundingBoxesComputedQ()
 {
     return bounding_boxes_computedQ;
 }

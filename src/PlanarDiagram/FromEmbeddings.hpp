@@ -96,6 +96,35 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding<Re
     );
 }
 
+/*!@brief Construction from `FromLinkEmbedding2` object. Returns a planar diagram and the number of unlinks found in the input.
+ */
+
+template<typename Real, typename IReal>
+static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding2<Real,Int,IReal>> L )
+{
+    using Link_T [[maybe_unused]] = LinkEmbedding2<Real,Int,IReal>;
+    
+    TOOLS_PTIMER(timer,MethodName("FromLinkEmbedding")+"("+Link_T::ClassName()+")");
+
+    int err = L.template RequireIntersections<true>();
+
+    if( err != 0 )
+    {
+        eprint(MethodName("FromLinkEmbedding") + "("+ Link_T::ClassName() +"): RequireIntersections reported error code " + ToString(err) + ". Returning invalid diagram.");
+        return { PD_T::InvalidDiagram(), Tensor1<Int,Int>() };
+    }
+    
+    return FromLinkEmbedding_Raw(
+        L.ComponentCount(),
+        L.ComponentPointers().data(),
+        L.ComponentColors().data(),
+        L.IntersectionCount(),
+        L.EdgePointers().data(),
+        L.EdgeIntersections().data(),
+        L.EdgeStates().data()
+    );
+}
+
 
 /*! @brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
  */

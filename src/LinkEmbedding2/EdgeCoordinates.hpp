@@ -19,7 +19,7 @@ cref<EContainer_T> EdgeCoordinates()
     return edge_coords;
 }
 
-cref<Real> EdgeData( const Int k, const Int l )
+cptr<IReal> EdgeData( const Int k, const Int l )
 {
     return edge_coords.data(k,l);
 }

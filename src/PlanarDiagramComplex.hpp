@@ -131,6 +131,16 @@ namespace Knoodle
         :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
         {}
         
+        template<typename Real, typename IReal>
+        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> && L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
+        template<typename Real, typename IReal>
+        explicit PlanarDiagramComplex( LinkEmbedding2<Real,Int,IReal> & L )
+        :   PlanarDiagramComplex( PD_T::FromLinkEmbedding(L) )
+        {}
+        
         template<typename Real, typename BReal>
         explicit PlanarDiagramComplex( KnotEmbedding<Real,Int,BReal> && K  )
         :   PlanarDiagramComplex( PD_T::FromKnotEmbedding(K) )
