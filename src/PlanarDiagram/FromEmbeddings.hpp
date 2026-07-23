@@ -192,7 +192,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromCoordinatesAndEdges(
 }
 
 template<FloatQ Real, IntQ ExtInt>
-[[deprected("This is a misnomer; renamed to `FromCoordinatesAndEdges`.")]]
+[[deprecated("This is a misnomer; renamed to `FromCoordinatesAndEdges`.")]]
 static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
     cptr<Real> x,
     cptr<ExtInt> edges,
