@@ -98,6 +98,13 @@ void Transform( cref<Matrix3x3_T> A )
     SetTransformationMatrix(Dot(A,R));
 }
 
+template<bool shiftQ = true>
+[[deprecated("This is a misnomer; changed name to `Transform`")]]
+void Rotate( cref<Matrix3x3_T> A )
+{
+    Transform(A);
+}
+
 
 private:
 
