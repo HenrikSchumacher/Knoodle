@@ -12,11 +12,13 @@ namespace Knoodle
      *
      * At the moment, this implementation is single-threaded only.
      *
-     * @param VInt_ Integral type for vertex indices.
+     * @tparam VInt_ Integral type for vertex indices.
      *
-     * @param EInt_ Integral type for edge indices.
+     * @tparam EInt_ Integral type for edge indices.
      *
-     * @param Sign_T_ Singed integral type to store signedness information.
+     * @tparam Sign_T_ Singed integral type to store signedness information.
+     *
+     * @tparam parQ_ Whether to use `Parallel_T::Sequential` or `Parallel_T::Parallel` mode. Parallelism is currently not supported. We keep this here for future use.
      */
     template<
         IntQ VInt_   = Int64,

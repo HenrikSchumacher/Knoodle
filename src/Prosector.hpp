@@ -54,9 +54,9 @@ namespace Knoodle
      *
      * The usage of the class is as follows: First one loads two line segments by calling `LoadLineSements`. Then one class `IntersectionType` to probe whether an intersection exists or whether something went wrong (see `Flag_T`). If the return value is `Flag_T::Intersection`, then one can call `ComputeIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
      *
-     * @param Int_ Signed integral type used for coordinates of points.
+     * @tparam Int_ Signed integral type used for coordinates of points.
      *
-     * @param Idx_ Integral type used for indices.
+     * @tparam Idx_ Integral type used for indices.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64>
     class Prosector final
