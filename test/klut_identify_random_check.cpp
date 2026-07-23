@@ -3405,7 +3405,7 @@ int main()
 
     const std::string dir = "../data/Klut";
     Klut klut{ std::filesystem::path(dir), static_cast<Knoodle::Size_T>(13) };
-    klut.RequireSubtables();
+    klut.LoadSubtables();
     ki::Reapr_T reapr{};
 
     std::vector<Int> code(PD, PD + (sizeof(PD) / sizeof(PD[0])));

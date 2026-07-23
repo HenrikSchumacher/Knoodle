@@ -27,7 +27,7 @@
  * knots, occasional >13-crossing diagrams that escalate or stay Unidentified).
  *
  * Parallel scaling uses the REENTRANT path: subtables pre-loaded once
- * (RequireSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
+ * (LoadSubtables, avoiding the lazy-load race); ki::Identify's lookups use a
  * thread-local buffer (FindID(buffer, c), NOT the shared-buffer FindID(pd)) over
  * the shared read-only table, and each worker thread owns its own Reapr.
  *
@@ -420,7 +420,7 @@ int main(int argc, char* argv[])
     // Build the table and pre-load (single-threaded) so parallel reads are safe.
     Klut klut{ std::filesystem::path(klut_dir), static_cast<Knoodle::Size_T>(c_max) };
     const auto tL0 = Clock::now();
-    klut.RequireSubtables();
+    klut.LoadSubtables();
     const auto tL1 = Clock::now();
     std::cout << "  subtables loaded in " << Secs(tL0, tL1) << " s\n";
 

@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     }
 
     Klut klut{ std::filesystem::path(g_dir), static_cast<Knoodle::Size_T>(c_max) };
-    klut.RequireSubtables();
+    klut.LoadSubtables();
     Reapr_T reapr{};
     auto idOf = [&](const Key& key) { auto [c, id] = klut.FindID(FromKey(key)); (void)c; return id; };
 
