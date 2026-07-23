@@ -51,15 +51,15 @@ namespace Knoodle
         using PRNG_T              = Knoodle::PRNG_T;
         using Flag_T              = Scalar::Flag;
         
-        
+        /*!@brief The objective function that is optimized to find the height values (i.e., the z-coordinates) of the graph embedding. */
         enum class Energy_T : Int8
         {
-            TV        = 0,
-            Dirichlet = 1,
-            Bending   = 2,
-            Height    = 3,
-            TV_CLP    = 4,
-            TV_MCF    = 5
+            TV        = 0 /**< Total variation, i.e., sum of absolute values of jump heights; use default algorithm */
+            , Dirichlet = 1 /**< Discrete Dirichlet energy, i.e., sum of squared of jump heights. */
+            , Bending   = 2 /**< Discrete bending energy, i.e., sum of squared second finite differences of heights. */
+            , Height    = 3 /**< Total height of diagram. */
+            , TV_CLP    = 4 /**< Total variation, i.e., sum of absolute values of jump heights; use CLP for optimization. */
+            , TV_MCF    = 5  /**< Total variation, i.e., sum of absolute values of jump heights; use MCFClass for optimization. */
         };
         
         friend std::string ToString( Energy_T e )
@@ -76,27 +76,26 @@ namespace Knoodle
             }
         }
         
-        /*!@brief Control `struct` for holding settings of `Reapr`.
+        /**@brief Control `struct` for holding settings of `Reapr`.
+         *
+         * Typically, one wants to change only the settings of `permute_randomQ`, `randomize_bends`, and `randomize_virtual_edgesQ` (to turn randomization on or off) or `energy` (for different ways to determine the z-coordinates of the embedding.
          */
-        
         struct Settings_T
         {
-            bool permute_randomQ       = true;
-            Energy_T energy            = Energy_T::TV;
-            
+            bool permute_randomQ       = true; /**< Randomly permute the crossings and arcs of the input diagram. Use this if you want to generate many diagrams that are as different as possible from each other. */
+            Energy_T energy            = Energy_T::TV; /**< Minimize this objective function to find the z-coordinates of the graph embedding. */
             OrthoDrawSettings_T ortho_draw_settings = {
                 .randomize_bends  = 4,
                 .randomize_virtual_edgesQ = true
-            };
-            
-            Real   scaling             = Real(1);
-            Real   dirichlet_reg       = Real(0.00001);
-            Real   bending_reg         = Real(0.00001);
-            Real   backtracking_factor = Real(0.25);
-            Real   armijo_slope        = Real(0.001);
-            Real   tolerance           = Real(0.00000001);
-            Size_T SSN_max_b_iter      = 20;
-            Size_T SSN_max_iter        = 1000;
+            }; /**< Use these options for `OrthoDraw` to determin the x- and y-coordinates of the graph embedding. */
+            Real   scaling             = Real(1); /**< Scaling applied to z-direction _after_ the z-coordinates are scaled so that the embedding is roughly as high as its maximal extension in x- and z-direction. */
+            Real   dirichlet_reg       = Real(0.00001); /**< Regularization parameter for the Dirichlet energy; only relevant if `Energy_T::Dirichlet` is used. */
+            Real   bending_reg         = Real(0.00001); /**< Regularization parameter for the Dirichlet energy; only relevant if `Energy_T::Bending` is used. */
+            Real   backtracking_factor = Real(0.25); /**< Scale stepsize by this in each step of the line search algorith. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
+            Real   armijo_slope        = Real(0.001); /**< Armijo parameter for the line search algorith. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
+            Real   tolerance           = Real(0.00000001); /**< Tolerance used for the stopping criterion of the semi-smooth Newton algorithm. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
+            Size_T SSN_max_b_iter      = 20; /**< Maximal number of backtracking steps per line search. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
+            Size_T SSN_max_iter        = 1000; /**< Maximal number of steps in the semi-smooth Newton algorithm. Only relevant if `Energy_T::Dirichlet` or `Energy_T::Bending` is used. */
         };
         
         friend std::string ToString( cref<Settings_T> args )
@@ -134,13 +133,14 @@ namespace Knoodle
         
     public:
         
+        /**@brief Initialize by an instance of `Settings_T` to configure the behavior. */
         Reapr( cref<Settings_T> settings_ = Settings_T() )
         : settings { settings_ }
         {}
         
         ~Reapr() = default;
         
-        // We redefine the copy constructor because of random_engine.
+        /**@brief We redefine the copy constructor because of `random_engine`; every instance of `Reapr` needs its own pseudorandom number generator. */
         Reapr( const Reapr & other )
         :   settings      { other.settings                    }
         ,   random_engine { InitializedRandomEngine<PRNG_T>() }
@@ -148,7 +148,7 @@ namespace Knoodle
         
     private:
         
-        
+        /**@brief Return the flag that signals which objective function to minimize. */
         Energy_T EnergyFlag( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -156,6 +156,7 @@ namespace Knoodle
             return pd.GetCache(tag);
         }
         
+        /**@brief Change the objective function. */
         void SetEnergyFlag( mref<PD_T> pd )
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -163,6 +164,7 @@ namespace Knoodle
             return pd.SetCache(tag,settings.energy);
         }
         
+        /**@brief Return the number of iterations used by the semi-smooth Newton method. */
         Size_T Iteration( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("Iteration");
@@ -181,11 +183,13 @@ namespace Knoodle
         
     public:
         
+        /**@brief Return the settings currently in use. */
         mref<Settings_T> Settings()
         {
             return settings;
         }
         
+        /**@brief Expose the pseudorandom number generator. */
         mref<PRNG_T> RandomEngine()
         {
             return random_engine;
@@ -291,6 +295,7 @@ namespace Knoodle
             }
         }
         
+        /**@brief Compute the z-coordinates of the graph embedding and return them in a linear buffer.  */
         Tensor1<Real,Int> Levels( cref<PD_T> pd )
         {
             switch ( settings.energy )

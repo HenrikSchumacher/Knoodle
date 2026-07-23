@@ -1,8 +1,7 @@
 public:
 
-// This type is used to represent polynomials of the form
-//  c[0] + c[1] * eps + c[2] * eps * eps.
-// These appear as numerators and denominators of intersection times with the perturbation technique.
+/*!@brief This type is used to represent polynomials of the form  `c_0 + c_1 * eps + c_3 * eps * eps * eps`. These appear as numerators and denominators of intersection times with the perturbation technique.
+ */
 struct Polynomial3 final
 {
 public:

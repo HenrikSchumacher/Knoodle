@@ -12,7 +12,6 @@ namespace Knoodle
     >
     class CompleteBinaryTree : public CachedObject<1,0,0,0>
     {
-//        static_assert(SignedIntQ<Int_>,"");
         
     public:
         
@@ -46,8 +45,6 @@ namespace Knoodle
             , end       { end_      }
             {}
         };
-        
-        // TODO: What to do if leaf_node_count_ == 0?
         
         explicit CompleteBinaryTree( const Int leaf_node_count_  )
         :         leaf_node_count { int_cast<Int>(leaf_node_count_)                                   }
@@ -121,7 +118,7 @@ namespace Knoodle
         Int int_node_count = 0;
 
         Int last_row_begin = 0;
-//        
+        
         Int offset = 0;
 
         Tiny::VectorList_AoS<2,Int,Int> N_ranges;
@@ -726,8 +723,8 @@ namespace Knoodle
             const Int start_node = Uninitialized
         )
         {
-            constexpr Int stack_max_size = 2 * max_depth + 1;
-            constexpr Int stack_limit    = stack_max_size - 2;
+            constexpr Int stack_max_size = Int(2) * max_depth + Int(1);
+            constexpr Int stack_limit    = stack_max_size - Int(2);
             
             Int stack [stack_max_size];
             Int stack_ptr = 0;

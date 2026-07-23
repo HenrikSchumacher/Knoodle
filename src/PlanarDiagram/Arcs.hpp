@@ -1,15 +1,13 @@
 public:
 
-/*!@brief The maximal number of arcs for which memory is allocated in the data structure.
- */
+/*!@brief The maximal number of arcs for which memory is allocated in the data structure.*/
 
 Int MaxArcCount() const
 {
     return max_arc_count;
 }
 
-/*!@brief Returns the number of arcs in the planar diagram.
- */
+/*!@brief Returns the number of arcs in the planar diagram.*/
 
 Int ArcCount() const
 {
@@ -72,20 +70,19 @@ A_Cross_T CopyArc( const Int a ) const
     return A_Cross_T( A_cross.data(a) );
 }
 
+/*!@brief Return arc state of arc `a`.*/
 ArcState_T ArcState( const Int a ) const
 {
     return A_state[a];
 }
 
-/*!@brief Checks whether arc `a` is still active.
- */
-
+/*!@brief Checks whether arc `a` is still active.*/
 bool ArcActiveQ( const Int a ) const
 {
     return ActiveQ(A_state[a]);
 }
 
-
+/*!@brief Return a string with the most essential information of arc `a`.*/
 std::string ArcString( const Int a ) const
 {
     return "arc " +Tools::ToString(a) +" = { "
@@ -94,6 +91,7 @@ std::string ArcString( const Int a ) const
         + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
+/*!@brief Return the number of active arcs.*/
 Int CountActiveArcs() const
 {
     Int counter = 0;
@@ -109,9 +107,7 @@ Int CountActiveArcs() const
 
 private:
     
-/*!@brief Deactivates arc `a`. Only for internal use.
- */
-
+/*!@brief Deactivates arc `a`. Only for internal use.*/
 void DeactivateArc( const Int a )
 {
     if( ArcActiveQ(a) )
@@ -140,7 +136,6 @@ public:
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcSide( const Int a, const bool headtail )  const
 {
     return ArcSide(a,headtail,A_cross(a,headtail));
@@ -154,7 +149,6 @@ bool ArcSide( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcSide( const Int a, const bool headtail, const Int c  )  const
 {
     return (C_arcs(c,headtail,Right) == a);
@@ -167,7 +161,6 @@ bool ArcSide( const Int a, const bool headtail, const Int c  )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcRightHandedQ( const Int a, const bool headtail )  const
 {
     return CrossingRightHandedQ(A_cross(a,headtail));
@@ -179,7 +172,6 @@ bool ArcRightHandedQ( const Int a, const bool headtail )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcLeftHandedQ( const Int a, const bool headtail )  const
 {
     return CrossingLeftHandedQ(A_cross(a,headtail));
@@ -192,7 +184,6 @@ bool ArcLeftHandedQ( const Int a, const bool headtail )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcUnderQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
@@ -207,7 +198,6 @@ bool ArcUnderQ( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
 {
     AssertArc(a);
@@ -275,7 +265,6 @@ bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcOverQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
@@ -291,7 +280,6 @@ bool ArcOverQ( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
 {
     AssertArc(a);
@@ -359,7 +347,6 @@ bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
  *
  * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
  */
-
 Int NextArc( const Int a, const bool headtail ) const
 {
     return NextArc(a,headtail,A_cross(a,headtail));
@@ -373,7 +360,6 @@ Int NextArc( const Int a, const bool headtail ) const
  *
  * @param c The index of the arc in question.
  */
-
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
     AssertArc<1>(a);
@@ -402,6 +388,8 @@ bool CheckNextArc() const
     return true;
 }
 
+/*!@brief Returns a buffer that contains the index of next arc following arc `a` at position `a`.
+ */
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");
@@ -441,7 +429,8 @@ bool CheckArcNextArc() const
     return true;
 }
 
-
+/*!@brief Returns a buffer that contains the index of previous arc following arc `a` at position `a`.
+ */
 cref<Tensor1<Int,Int>> ArcPrevArc() const
 {
     std::string tag ("ArcPrevArc");

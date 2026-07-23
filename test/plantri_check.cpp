@@ -559,7 +559,7 @@ int main(int argc, char* argv[])
     {
         klut = std::make_unique<Knoodle::Klut>(
             std::filesystem::path(klut_dir), Knoodle::Klut::max_crossing_count);
-        klut->LoadSubtables();                    // pre-load (single-threaded; no race)
+        klut->RequireSubtables();                    // pre-load (single-threaded; no race)
         ki_params.cap = static_cast<ki::Size_T>(contract_cap);
     }
 

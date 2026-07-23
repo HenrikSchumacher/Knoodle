@@ -13,7 +13,6 @@ namespace Knoodle
     /*!@brief A class for storing and manipulating planar diagrams
      *
      * @tparam Int_ Integral type used for all sorts of indices. Needs to be big enough to store the number of arcs and then some. Best to give it 3-4 extra bits.
-     *
      */
     
     template<IntQ Int_ = Int64>
@@ -30,6 +29,7 @@ namespace Knoodle
         
         using Base_T                    = CachedObject<1,0,0,0>;
         using Class_T                   = PlanarDiagram<Int>;
+        
         using PD_T                      = PlanarDiagram<Int>;
         using PD_List_T                 = std::vector<PD_T>;
         
@@ -79,6 +79,8 @@ namespace Knoodle
         
         static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
         
+        /*! @brief Check whether an index is valid.
+         */
         static constexpr bool ValidIndexQ( const Int i )
         {
 //            logprint("ValidIndexQ(" + ToString(i) + ")");
@@ -92,6 +94,8 @@ namespace Knoodle
             }
         }
         
+        /*! @brief Return the value that signals an uninitialized index.
+         */
         static constexpr Int UninitializedIndex()
         {
             return Uninitialized;
@@ -442,64 +446,70 @@ namespace Knoodle
         
     public:
         
+        /*! @brief The color of the last edge that was deactivated. For an unlink, it should return its color.*/
         Int LastColorDeactivated() const
         {
             return last_color_deactivated;
         }
         
+        /*! @brief Returns an internal flag that signals whether this diagram has been proven to be minimal. (Several routines terminate early if this returns true.) */
         bool ProvenMinimalQ() const
         {
             return proven_minimalQ;
         }
         
+        /*! @brief Whether this is an ring-shaped unlink. (Internally it consists of 0 arcs.) */
         bool AnelloQ() const
         {
             return (proven_minimalQ && (crossing_count <= Int(0)) && ValidIndexQ(last_color_deactivated));
         }
         
+        /*! @brief Whether this is an farfalla-shaped unlink. (Internally it consists of 1 crossing and two arcs.) */
         bool FarfallaQ() const
         {
             return (crossing_count == Int(1));
         }
         
+        /*! @brief Whether this is an an anello or a farfalla. */
         bool ProvenUnknotQ() const
         {
             return AnelloQ() || FarfallaQ();
         }
         
-
+        /*! @brief Whether this is a Hopf-link with two crossings. */
         bool ProvenHopfLinkQ() const
         {
             return proven_minimalQ && (crossing_count == Int(2)) && (LinkComponentCount() == Int(2));
         }
         
+        /*! @brief Whether this is a trefoil with three crossings. */
         bool ProvenTrefoilQ() const
         {
             return proven_minimalQ && (crossing_count == Int(3)) && (LinkComponentCount() == Int(1));
         }
         
+        /*! @brief Whether this is a figure-eight know with 4 crossings. */
         bool ProvenFigureEightQ() const
         {
             return proven_minimalQ && (crossing_count == Int(4)) && (LinkComponentCount() == Int(1));
         }
 
+        /*! @brief Returns true if the crossing count is 0 and if there is no valid color stored for the last deactivated arc.*/
         bool InvalidQ() const
         {
             return (crossing_count == Int(0)) && !ValidIndexQ(last_color_deactivated);
         }
         
+        /*! @brief Returns true if not invalid.*/
         bool ValidQ() const
         {
             return !InvalidQ();
         }
         
-
+        /*! @brief Move the internal search pointer to the first next inactive crossing and returns its index.*/
         Int NextInactiveCrossing() const
         {
-            if( crossing_count >= max_crossing_count )
-            {
-                return Uninitialized;
-            }
+            if( crossing_count >= max_crossing_count ) { return Uninitialized; }
             
             while( CrossingActiveQ(c_search_ptr) )
             {
@@ -511,12 +521,10 @@ namespace Knoodle
             return c_search_ptr;
         }
         
+        /*! @brief Move the internal search pointer to the first next inactive arc and returns its index.*/
         Int NextInactiveArc() const
         {
-            if( arc_count >= max_arc_count )
-            {
-                return Uninitialized;
-            }
+            if( arc_count >= max_arc_count ) { return Uninitialized; }
             
             while( ArcActiveQ(a_search_ptr) )
             {
@@ -530,9 +538,7 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Sets all entries of all deactivated crossings and arcs to `Uninitialized`.
-         */
-
+        /*!@brief Set all entries of all deactivated crossings and arcs to `Uninitialized`.*/
         void CleanseDeactivated()
         {
             for( Int c = 0; c < max_crossing_count; ++c )
@@ -552,9 +558,7 @@ namespace Knoodle
             }
         }
         
-        /*!@brief Computes the writhe = number of right-handed crossings - number of left-handed crossings.
-         */
-
+        /*!@brief Compute the writhe = number of right-handed crossings - number of left-handed crossings.*/
         ToSigned<Int> Writhe() const
         {
             ToSigned<Int> writhe = 0;
@@ -574,6 +578,7 @@ namespace Knoodle
             return writhe;
         }
 
+        /*!@brief Compute the Euler charactersitic of the planar diagram.*/
         Int EulerCharacteristic() const
         {
             TOOLS_PTIMER(timer,MethodName("EulerCharacteristic"));
@@ -601,8 +606,7 @@ namespace Knoodle
 //        }
         
 
-        
-        // Applies the transformation in-place.
+        /*!@brief Apply a reflection and/or reversal. This method works in-place.*/
         void ChiralityTransform( const bool mirrorQ, const bool reverseQ )
         {
             if( !mirrorQ && !reverseQ )
@@ -646,6 +650,7 @@ namespace Knoodle
             }
         }
         
+        /*!@brief Apply a reflection and/or reversal. This method works in-place.*/
         void ChiralityTransform( const Chiral::Group g )
         {
             using Chiral::Group;
@@ -660,7 +665,7 @@ namespace Knoodle
             }
         }
         
-        
+        /*!@brief Return the color of the active arc with lowest index. */
         Int FirstColor() const
         {
             if( InvalidQ() ) { return InvalidColor; }
@@ -700,8 +705,7 @@ namespace Knoodle
             logprint(MethodName("PrintInfo") + " -- end");
         }
 
-/*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.
-*/
+        /*!@brief A coarse estimator of heap-allocated memory in use for this class instance. Does not account for quantities stored in the class' cache.*/
         Size_T AllocatedByteCount() const
         {
             Size_T byte_count = C_arcs.AllocatedByteCount()
@@ -740,8 +744,7 @@ namespace Knoodle
                 ;
         }
         
-/*!@brief A coarse estimator of memory in use for this class instance. Does not account for quantities stored in the class' cache.
-*/
+        /*!@brief A coarse estimator of memory in use for this class instance. Does not account for quantities stored in the class' cache.*/
         Size_T ByteCount() const
         {
             return sizeof(PlanarDiagram) + AllocatedByteCount();
@@ -752,8 +755,7 @@ namespace Knoodle
             return ClassName() + "::" + tag;
         }
         
-/*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.
- */
+        /*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.*/
         
         static std::string ClassName()
         {
@@ -764,6 +766,3 @@ namespace Knoodle
     };
 
 } // namespace Knoodle
-
-
-

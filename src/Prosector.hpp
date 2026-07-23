@@ -37,7 +37,28 @@ namespace Tools
 
 namespace Knoodle
 {
-    template<IntQ Int_, IntQ Idx_ = Int64>
+    /*!@brief A class for computing intersections of 3D line segments after projecting them to the plane.
+     *
+     * This class is part of the pipeline to convert closed polygonal curves in 3-space to a planar diagrams. Users of `Knoodle` will typically not use it directly. This documentation is targeted at developers.
+     *
+     * This class uses integer arithmetic to allow for exact computations. A symbolic perturbation is employed to handle all degeneracies except line segments that intersect already in 3-space; these are beyond repair, of course.
+     *
+     * Instead of parallel projecting along the vector `{0,0,1}` to the x-y-plane, the projection is done parallel to the x-y-plane along the perturbed vector `{eps,eps * eps * eps,1}`, i.e., a point `{x[0],x[1],x[2]}` is mapped to `{x[0] - eps * x[3], x[1] - eps * eps * eps * x[3]}`.
+     * Since `{eps,eps * eps * eps,1}` is cubic in the symbolic parameter `eps`, there are only finitely many values of `eps` for which this projection results into degeneracies. Thus, it suffices to analyze the topoligical information in the limit eps -> 0+ (i.e., limit from the right). This handles the following degenerate cases consistently, as long as the line segments in 3-space are disjoint and have positive length:
+     *
+     *  - The projection of the two line segments have a line segment in common.
+     *
+     *  - An end point of a projected line segment lies on the other.
+     *
+     *  - A line segment is projected to a single point.
+     *
+     * The usage of the class is as follows: First one loads two line segments by calling `LoadLineSements`. Then one class `IntersectionType` to probe whether an intersection exists or whether something went wrong (see `Flag_T`). If the return value is `Flag_T::Intersection`, then one can call `ComputeIntersection` to get an instance of `struct` `Intersection` that contains the relevant information.
+     *
+     * @param Int_ Signed integral type used for coordinates of points.
+     *
+     * @param Idx_ Integral type used for indices.
+     */
+    template<SignedIntQ Int_, IntQ Idx_ = Int64>
     class Prosector final
     {
     public:
@@ -47,8 +68,7 @@ namespace Knoodle
 //        static constexpr Size_T bitlength = bitlength_;
 //        static_assert(bitlength <= Size_T(64),"");
 //        
-
-//        
+        
 //        using Int    = std::conditional< bitlength <= Size_T(32), Int32, Int64>;
 //        using LInt   = std::conditional< bitlength <= Size_T(16), Int32,
 //                           std::conditional<bitlength <= Size_T(32), Int64, Int128 >
@@ -56,8 +76,12 @@ namespace Knoodle
 //        using LLInt  = std::conditional< bitlength <= Size_T(16), Int64,
 //                           std::conditional<bitlength <= Size_T(32), Int128, Int256>
 //                       >;
+        
+        /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
+        /*!@brief Longer integral type used for internal computations.*/
         using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,Int128>;
+        /*!@brief Even longer integral type used for internal computations.*/
         using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int128,Int256>;
         
         using Idx    = Idx_;
@@ -67,12 +91,13 @@ namespace Knoodle
         using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
         using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
+        /*!@brief Flag that indicates whether an intersection was found or whether an error occurred.*/
         enum class Flag_T : int
         {
-            Uninitialized =  0,
-            Empty         =  2, // Empty intersection.
-            Intersection  =  1, // Nontrivial intersection found.
-            Error         = -1  // Lines must intersect in 3D; treat this as error.
+            Uninitialized =  0, /*!< Flag is uninitialized. */
+            Empty         =  2, /*!< Empty intersection. */
+            Intersection  =  1, /*!< Nontrivial intersection found. */
+            Error         = -1  /*!< Lines must intersect in 3D. */
         };
         
         friend std::string ToString( Flag_T f )
@@ -109,18 +134,18 @@ namespace Knoodle
         
     protected:
 
-        Vector3_T x_0;
-        Vector3_T x_1;
-        Vector3_T y_0;
-        Vector3_T y_1;
+        Vector3_T x_0_;
+        Vector3_T x_1_;
+        Vector3_T y_0_;
+        Vector3_T y_1_;
         
         Vector3_T u;
         Vector3_T v;
         Vector3_T p;
         Vector3_T q;
   
-        Idx k;
-        Idx l;
+        Idx k_;
+        Idx l_;
         
         Sign_T sign_uxp;
         Sign_T sign_uxq;
@@ -132,58 +157,44 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Return the current value of the internal state flag.*/
         Flag_T Flag() const
         {
             return flag;
         }
         
-        /**
-         * @brief Classify whether and how two oriented line segments in 3-space intersect when they are parallel projected to the x-y-plane.
+        /*!@brief Load two line segments.
          *
-         * This applies a symbolic perturbation technique. In fact, the projection is done parallel to the x-y-plane along the perturbed vector `{eps,eps * eps,1}`, i.e., a point `{x[0],x[1],x[2]}` is mapped to `{x[0] - eps * x[3], x[1] - eps * eps * x[3]}`, and the intersection is analyzed in the limit eps -> 0 from the right. This handles the following degenerate cases consistently, as long as the line segments  in 3-space are disjoint and have positive length:
-         *
-         *  - The projection of the two line segments have a line segment in common.
-         *
-         *  - An end point of a projected line segment lies on the other.
-         *
-         *  - A line segment is projected to a single point.
+         * @param k Index of the first line segment (in a upstream data structure).
          *
          * @param x_0 Start point of the first line segment; assumed to be a 3-vector.
          *
-         * @param x_1 end point of the first line segment; assumed to be a 3-vector.
+         * @param x_1 End point of the first line segment; assumed to be a 3-vector.
+         
+         * @param l Index of the second line segment (in a upstream data structure).
          *
          * @param y_0 Start point of the second line segment; assumed to be a 3-vector.
          *
-         * @param y_1 end point of the second line segment; assumed to be a 3-vector.
-         *
-         * @return `Flag_T f`, specified by the following:
-         *
-         * `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
-         *
-         * `f = Flag_T::Intersection` if and only if  the line segments have exactly one point in common after sufficiently small perturbation.
-         *
-         * `f = Flag_T::Error` if and only if the line segments have a point in common in 3-space or at least one of them has length 0.
+         * @param y_1 End point of the second line segment; assumed to be a 3-vector.
          */
         
-    public:
-        
-        void LoadSegments(
-            const Idx k_, cptr<Int> x_0_, cptr<Int> x_1_,
-            const Idx l_, cptr<Int> y_0_, cptr<Int> y_1_
+        void LoadLineSements(
+            const Idx k, cptr<Int> x_0, cptr<Int> x_1,
+            const Idx l, cptr<Int> y_0, cptr<Int> y_1
         )
         {
             flag = Flag_T::Uninitialized;
 
-            k = k_;
-            l = l_;
+            k_ = k;
+            l_ = l;
             
-            x_0.Read(x_0_);
-            x_1.Read(x_1_);
-            y_0.Read(y_0_);
-            y_1.Read(y_1_);
+            x_0_.Read(x_0);
+            x_1_.Read(x_1);
+            y_0_.Read(y_0);
+            y_1_.Read(y_1);
             
             
-            //  x_1     e     y_1
+            //  x_1_     e     y_1_
             //      X------>X
             //      ^^     ^^
             //      | \q p/ |
@@ -193,25 +204,37 @@ namespace Knoodle
             //      | /   \ |
             //      |/     \|
             //      X------>X
-            //  x_0     d     y_0
+            //  x_0_     d     y_0_
             
-            u = x_1 - x_0;
-            v = y_1 - y_0;
+            u = x_1_ - x_0_;
+            v = y_1_ - y_0_;
             
-            p = y_1 - x_0;
-            q = x_1 - y_0;
+            p = y_1_ - x_0_;
+            q = x_1_ - y_0_;
             
             // TODO: We could precompute the relevant cross products, Prosector::Cross(u,v), Prosector::Cross(u,p), Prosector::Cross(u,q), Prosector::Cross(v,p), Prosector::Cross(v,q). However, IntersectionType() needs to know only signs of DetSign_Perturbed(u,p), etc. and it might terminate with Flag_T::Empty, in which case we had done some computations in vein.
         }
         
         // Somewhat pointless.
-        void LoadSegments(
-            const Idx i_, cref<Vector3_T> x_0_, cref<Vector3_T> x_1_,
-            const Idx j_, cref<Vector3_T> y_0_, cref<Vector3_T> y_1_
+        void LoadLineSements(
+            const Idx i_, cref<Vector3_T> x_0, cref<Vector3_T> x_1,
+            const Idx j_, cref<Vector3_T> y_0, cref<Vector3_T> y_1
         )
         {
-            LoadSegments(i_, x_0_.data(), x_1_.data(), j_, y_0_.data(), y_1_.data());
+            LoadLineSements(i_, x_0.data(), x_1.data(), j_, y_0.data(), y_1.data());
         }
+        
+        
+        /*!@brief Classify whether and how two oriented line segments in 3-space intersect when they are projected to the x-y-plane.
+         *
+         * @return `Flag_T f`, specified by the following:
+         *
+         * - `f = Flag_T::Empty` if and only if the planar projections of the line segments do not intersect after sufficiently small perturbation.
+         *
+         * - `f = Flag_T::Intersection` if and only if  the line segments have exactly one point in common after sufficiently small perturbation.
+         *
+         * - `f = Flag_T::Error` if and only if the line segments have a point in common in 3-space or at least one of them has length 0.
+         */
 
         template<bool verboseQ = false>
         Flag_T IntersectionType()
@@ -222,24 +245,24 @@ namespace Knoodle
             }
             
             // Caution:
-            // We should have checked that x_0 != x_1 and y_0 != y_1 before we arrive here.
+            // We should have checked that x_0_ != x_1_ and y_0_ != y_1_ before we arrive here.
             // Otherwise this returns Error.
-            // Note: we could detect whether x_0 == x_1 or y_0 == y_1 also here, but this would lead to running these checks mutliple times. They should really carried out somewhere else.
+            // Note: we could detect whether x_0_ == x_1_ or y_0_ == y_1_ also here, but this would lead to running these checks mutliple times. They should really carried out somewhere else.
 
             sign_uxp = DetSign_Perturbed(u,p);
             if( sign_uxp == Sign_T(0) )
             {
-                // x_0 == x_1 or y_1 lies on the line through x_0 and x_1 in 3-space.
+                // x_0_ == x_1_ or y_1_ lies on the line through x_0_ and x_1_ in 3-space.
                 flag = Flag_T::Error;
                 return flag;
             }
             
-            // If we arrive here, then x_0 != x_1.
+            // If we arrive here, then x_0_ != x_1_.
             
             sign_uxq = DetSign_Perturbed(u,q);
             if( sign_uxq == Sign_T(0) )
             {
-                // y_0 lies on the line through x_0 and x_1 in 3-space.
+                // y_0_ lies on the line through x_0_ and x_1_ in 3-space.
                 flag = Flag_T::Error;
                 return flag;
             }
@@ -247,17 +270,17 @@ namespace Knoodle
             sign_vxp = DetSign_Perturbed(v,p);
             if( sign_vxp == Sign_T(0) )
             {
-                // y_0 == y_1 or x_0 lies on the line through y_0 and y_1 in 3-space.
+                // y_0_ == y_1_ or x_0_ lies on the line through y_0_ and y_1_ in 3-space.
                 flag = Flag_T::Error;
                 return flag;
             }
             
-            // If we arrive here, then y_0 != y_1.
+            // If we arrive here, then y_0_ != y_1_.
             
             sign_vxq = DetSign_Perturbed(v,q);
             if( sign_vxq == Sign_T(0) )
             {
-                // x_1 lies on the line through y_0 and y_1 in 3-space.
+                // x_1_ lies on the line through y_0_ and y_1_ in 3-space.
                 flag = Flag_T::Error;
                 return flag;
             }
@@ -267,14 +290,14 @@ namespace Knoodle
             
             if( sign_uxp != sign_uxq )
             {
-                // The points {y_0[0],y_0[1]} and {y_1[0],y_1[1]} lie on the same side of the line through {x_0[0],x_0[1]} and {x_1[0],x_1[1]} (after perturbation).
+                // The points {y_0_[0],y_0_[1]} and {y_1_[0],y_1_[1]} lie on the same side of the line through {x_0_[0],x_0_[1]} and {x_1_[0],x_1_[1]} (after perturbation).
                 flag = Flag_T::Empty;
                 return flag;
             }
             
             if( sign_vxp != sign_vxq )
             {
-                // The points {x_0[0],x_0[1]} and {x_1[0],x_1[1]} lie on the same side of the line through {y_0[0],y_0[1]} and {y_1[0],y_1[1]} (after perturbation).
+                // The points {x_0_[0],x_0_[1]} and {x_1_[0],x_1_[1]} lie on the same side of the line through {y_0_[0],y_0_[1]} and {y_1_[0],y_1_[1]} (after perturbation).
                 flag = Flag_T::Empty;
                 return flag;
             }
@@ -285,16 +308,20 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Compute the intersection (if the internal flag indicates that it exists).
+         *
+         * @return Instance of type `Intersection`, indicating which line segments intersect (by their index), which line segement is on top, time of intersection, and handedness of the resulting crossing.
+         */
         Intersection ComputeIntersection()
         {
             if( flag != Flag_T::Intersection )
             {
-                eprint(MethodName("ComputeIntersection") + ": trying to compute an nonexistent intersection.");
+                wprint(MethodName("ComputeIntersection") + ": trying to compute a nonexistent intersection.");
                 return Intersection::InvalidIntersection(flag);
             }
             
             // This post https://math.stackexchange.com/a/1008869/447001
-            // told me how to determine which edge ``goes over''.
+            // told me how to determine which edge "goes over".
             
             LVector3_T uxv = Prosector::Cross(u,v);
             
@@ -339,11 +366,11 @@ namespace Knoodle
             // First edge must go over.
             if( x_under_y_Q )
             {
-                return Intersection{ l, k, t_1, t_0, -sign_2, flag };
+                return Intersection{ l_, k_, t_1, t_0, -sign_2, flag };
             }
             else
             {
-                return Intersection{ k, l, t_0, t_1,  sign_2, flag };
+                return Intersection{ k_, l_, t_0, t_1,  sign_2, flag };
                 
             }
         }
@@ -351,11 +378,6 @@ namespace Knoodle
 #include "Prosector/Helpers.hpp"
         
     public:
-        
-//        cref<IntersectionFlagCounts_T> IntersectionCounts()
-//        {
-//            return intersection_counts;
-//        }
         
         static std::string MethodName( const std::string & tag )
         {

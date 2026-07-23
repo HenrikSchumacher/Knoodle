@@ -1,7 +1,6 @@
 public:
 
-/*!@brief Return the number of intersections.*/
-
+/*!@brief Return flag that signals whether the intersections after projecting to the x-y-plane have been loaded already.*/
 bool IntersectionsComputedQ() const
 {
     return intersections_computedQ;
@@ -278,7 +277,7 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
 
     using Flag_T = Prosector_T::Flag_T;
     
-    S.LoadSegments(
+    S.LoadLineSements(
         k, EdgeData(k,Int(0)), EdgeData(k,Int(1)),
         l, EdgeData(l,Int(0)), EdgeData(l,Int(1))
     );

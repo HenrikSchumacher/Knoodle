@@ -15,15 +15,14 @@ static Size_T CrossingCount( cref<Key_T> key )
     return MacLeodCodeLength(key);
 }
 
-// Beware: Background of s_mac_leod should be filled by 0.
+
 template<IntQ T>
 static void KeyToMacLeodCode( cref<Key_T> key, mptr<T> s_mac_leod )
 {
     cptr<CodeInt> ptr = reinterpret_cast<const CodeInt *>(&key[0]);
+    // Beware: Background of s_mac_leod should be filled by 0.
     copy_buffer( ptr, s_mac_leod, MacLeodCodeLength(key) );
 }
-
-
 
 
 template<IntQ T, IntQ ExtInt>

@@ -1,5 +1,7 @@
 public:
 
+/*!@brief Check whether the graph underlying the `PlanarDiagram` is indeed planar; if yes, it returns true.*/
+
 bool PlanarGraphQ() const
 {
     TOOLS_PTIMER(timer,MethodName("PlanarGraphQ"));

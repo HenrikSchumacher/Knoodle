@@ -5,6 +5,15 @@ namespace Knoodle
     // TODO: Make this ready for unsigned integers.
 
     
+    /*!@brief A class for undirected multi-graphs.
+     *
+     * @param VInt_ Integral type for vertex indices.
+     *
+     * @param EInt_ Integral type for edge indices.
+     *
+     * @param Sign_T_ Singed integral type to store signedness information.
+     */
+    
     template<
         typename VInt_   = Int64,
         typename EInt_   = VInt_,
@@ -138,6 +147,10 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Compute the undirected adjacency matrix.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> AdjacencyMatrix() const
         {
@@ -146,6 +159,10 @@ namespace Knoodle
             return this->template UndirectedAdjacencyMatrix<Scal>();
         }
         
+        /*!@brief Compute the graph Laplacian.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> Laplacian() const
         {

@@ -1,18 +1,16 @@
 public:
 
+/*!@brief Type to represent an intersection time as a rational function of the form
+ *
+ *      a[0] + a[1] * eps + a[2] * eps * eps
+ *     --------------------------------------
+ *      b[0] + b[1] * eps + b[2] * eps * eps
+ *
+ * This arises during calculation with perturbation.
+ * The values of intersection times are of secondary interest; what matters more is `operator<=>` because it allows sorting.
+ */
 class IntersectionTime final
 {
-public:
-    
-    // The intersection time is represented as a rational function of the form
-    //
-    //      a[0] + a[1] * eps + a[2] * eps * eps
-    //     --------------------------------------
-    //      b[0] + b[1] * eps + b[2] * eps * eps
-    //
-    // This arises during calculation with perturbation.
-    // The values of intersection times are of secondary interest; what matters more is that the relations < and > are declared and accurate.
-    
 private:
     
     Polynomial3 a;

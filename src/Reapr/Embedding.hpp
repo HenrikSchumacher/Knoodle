@@ -1,15 +1,18 @@
 public:
 
+/**@brief Compute and return an embedding of the planar diagram into 3-space. */
 LinkEmbedding_T Embedding( cref<PD_T> pd )
 {
     return Embedding(pd, [](Point_T && p) { return p; });
 }
 
+/**@brief Compute an embedding of the planar diagram into 3-space, apply the transformation matrix `A`, and return the resulting embedding. */
 LinkEmbedding_T Embedding( cref<PD_T> pd, Matrix_T && A )
 {
     return Embedding(pd, [&A](Point_T && p) { return Dot(A,p); });
 }
 
+/**@brief Compute an embedding of the planar diagram into 3-space, apply the transformation `f`, and return the resulting embedding. */
 template<typename Transformation_T>
 LinkEmbedding_T Embedding( cref<PD_T> pd, Transformation_T && f )
 {

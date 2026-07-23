@@ -144,9 +144,9 @@ public:
 
 /*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing at the indicated end.
  *
- * @param a The index of the arc in question.
+ * @param [in] a The index of the arc in question.
  *
- * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param [in] headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
 
 bool ArcSide( const Int a, const bool headtail )  const
@@ -156,11 +156,11 @@ bool ArcSide( const Int a, const bool headtail )  const
 
 /*!@brief This tells us whether arc `a` goes into a left or right slot of the crossing `c`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
  *
- * @param a The index of the arc in question.
+ * @param [in] a The index of the arc in question.
  *
- * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
+ * @param [in] headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  *
- * @param c The index of the arc in question.
+ * @param [in] c The index of the arc in question.
  */
 
 bool ArcSide( const Int a, const bool headtail, const Int c  )  const

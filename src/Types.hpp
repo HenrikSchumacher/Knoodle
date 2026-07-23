@@ -5,14 +5,16 @@ namespace Knoodle
     template<IntQ Int, typename Scal>
     using MatrixTripleContainer_T = AssociativeContainer<std::pair<Int,Int>, Scal>;
     
+    /**@brief The default pseudorandom number generator used in Knoodle, the _permuted congruential generator_ by M.E. O'Neill, see https://www.pcg-random.org.*/
     using PRNG_T = pcg64;
     
+    /**@brief The flag type used by `PlanarDiagram` to signal the state of a crossing.*/
     enum class CrossingState_T : Int8
     {
         // Important! Active values are the only odd ones.
-        RightHanded          =  1,
-        LeftHanded           = -1,
-        Inactive             =  0
+        RightHanded          =  1, /**< The crossing is active right-handed.*/
+        LeftHanded           = -1, /**< The crossing is active left-handed.*/
+        Inactive             =  0  /**< The crossing is inactive.*/
     };
     
     
@@ -83,11 +85,11 @@ namespace Knoodle
         return ( Sign(ToUnderlying(s_0)) == Sign(ToUnderlying(s_1)) );
     }
 
-        
+    /**@brief The flag type used by `PlanarDiagram` to signal the state of an arc.*/
     enum class ArcState_T : UInt8
     {
-        Active           =  1,
-        Inactive         =  0
+        Active           =  1, /**< The arc is active.*/
+        Inactive         =  0  /**< The arc is inactive.*/
     };
     
     inline constexpr bool ActiveQ( const ArcState_T & s )
@@ -116,8 +118,7 @@ namespace Knoodle
     }
     
     
-    /*!
-     * Deduces the handedness of a crossing from the entries `X[0]`, `X[1]`, `X[2]`, `X[3]` alone. This only works if every link component has more than two arcs and if all arcs in each component are numbered consecutively.
+    /*!@brief Deduces the handedness of a crossing from the entries `X[0]`, `X[1]`, `X[2]`, `X[3]` alone. This only works if every link component has more than two arcs and if all arcs in each component are numbered consecutively.
      */
     
     template<IntQ Int, IntQ Int_2>
@@ -208,7 +209,7 @@ namespace Knoodle
     }
     
     
-    /*!Reads in an unsigned PD code and tries to infer the handedness of crossings.
+    /*!@brief Reads in an unsigned PD code and tries to infer the handedness of crossings.
      *
      * The return value is a `Tensor2<Int,Int>` of size `crossing_count` x `5`; the last position is the signedness, encoded by `+1` for right-handed crossings and `-1` for left-handed crossongs.
      *
@@ -303,19 +304,24 @@ namespace Tools
         }
     };
     
+}
+
+namespace Knoodle
+{
     
-    
-    
+    /*!@brief Name space for things related to chirality transformations. */
     namespace Chiral
     {
+        /*!@brief The group of chiral transformations on links. */
         enum class Group : UInt8
         {
-            e  = (1 << 0),
-            m  = (1 << 1),
-            r  = (1 << 2),
-            mr = (1 << 3)
+            e  = (1 << 0), /**< Identity element. */
+            m  = (1 << 1), /**< Mirror reflection in ambient space. */
+            r  = (1 << 2), /**< Reversal of internal orientation of the link. */
+            mr = (1 << 3)  /**< Combined mirror refelction and reversal. */
         };
         
+        /*!@brief The cosets of the group of chiral transformations. */
         enum class Coset : UInt8
         {
             e        = ToUnderlying(Group::e),
@@ -452,6 +458,7 @@ namespace Tools
         }
     }
     
+    /*!@brief Return the coset obtained by applying the chirality transform `g` to the coset `c`. */
     Chiral::Coset ChiralityTransform( Chiral::Coset c, Chiral::Group g  )
     {
         using Chiral::Group;
@@ -484,6 +491,7 @@ namespace Tools
         }
     }
     
+    /*!@brief Return the coset obtained by applying the chirality transform defined by `mirrorQ` and `reverseQ` to the coset `c`. */
     Chiral::Coset ChiralityTransform( Chiral::Coset c, bool mirrorQ, bool reverseQ )
     {
         using Chiral::Group;

@@ -66,41 +66,59 @@ namespace Knoodle
         enum class BendMethod_T : Int8
         {
             Unknown         = -1
-            , Bends_MCF     =  0
-            , Bends_CLP     =  1
+            , Bends_MCF     =  0 /*!< Use MCFClas to minimize the number of bends. */
+            , Bends_CLP     =  1 /*!< Use CLP to minimize the number of bends. */
         };
         
         /*!@brief Enum class for choosing the compaction method in `OrthoDraw`. */
         enum class CompactionMethod_T : Int8
         {
             Unknown                = -1
-            , TopologicalNumbering =  0
-            , TopologicalOrdering  =  1
-            , Length_MCF           =  2
-            , Length_CLP           =  3
-            , AreaAndLength_CLP    =  4
+            , TopologicalNumbering =  0 /*!< Use a topological numbering (Kahn's algorithm). */
+            , TopologicalOrdering  =  1 /*!< Use a topological ordering (Kahn's algorithm). */
+            , Length_MCF           =  2 /*!< Use MCFClass to minimize length. */
+            , Length_CLP           =  3 /*!< Use CLP to minimize length. */
+            , AreaAndLength_CLP    =  4 /*!< Use CLP to minimize area and length. */
         };
         
         /*!@brief Control `struct` for holding settings of `OrthoDraw`. */
         struct Settings_T
         {
+            /*! The method to be used for bend minimization. */
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
+            /*! Whether to use the dual simplex algorithm. Only relevant when using CLP. */
             bool use_dual_simplexQ                  = false;
+            /*! After a minimal distribution of bends is found, randomly turn each crossing this many times. Each time, the crossing is turned by -90, 0, or +90 degrees with probability 1/3. */
             int  randomize_bends                    = 0;
+            /*! Try to balance the bends at each crossing. Does not change the number of bends. Only active if `randomize_bends = 0`. */
             bool redistribute_bendsQ                = true;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool turn_regularizeQ                   = true;
+            /*! Must be set to `false`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool soften_virtual_edgesQ              = false;
+            /*! Flip a coin to determine whether virtual edges (some invisible edges that have to be added to prevent self-intersections) are placed horizontally or vertically. */
             bool randomize_virtual_edgesQ           = false;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool saturate_regionsQ                  = true;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool saturate_exterior_regionQ          = true;
+            /*! Reduce the number of saturing edges by some ad hoc rules for small faces. */
             bool filter_saturating_edgesQ           = true;
+            /*! The method to be uses for compaction. */
             CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
             
+            
+            /*! The distance between two grid points in horizontal direction. */
             Int  x_grid_size                        = 20;
+            /*! The distance between two grid points in vertical direction. */
             Int  y_grid_size                        = 20;
+            /*! The size of gaps (when an arcs goes over another arc) in horizontal direction. */
             Int  x_gap_size                         =  4;
+            /*! The size of gaps (when an arcs goes over another arc) in vertical direction. */
             Int  y_gap_size                         =  4;
+            /*! The rounding "radius in x direction" used for bends. */
             Int  x_rounding_radius                  =  4;
+            /*! The rounding "radius in y direction" used for bends. */
             Int  y_rounding_radius                  =  4;
         };
         

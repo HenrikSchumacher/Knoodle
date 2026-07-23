@@ -11,9 +11,9 @@ namespace Knoodle
      *
      *  There are really only two cases in which this can go wrong:
      *
-     *      (i) If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used, though to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
+     *  -# If floating-point inputs are used, then the initial rounding (see `ComputeEdgeCoordinates`) to an integer grid can induce a bit of rounding error. Caution is used, though to mediate this: we try to use a relatively big scaling factor and we scale only by powers of 2 (which does not lead to rouding errors on its own, unless some inputs are really tiny or really so that we have overflow in the exponent). We intentionally do not translate the inputs to avoid catastrophic cancellation. Note that this means that the range of the employed integer type may be used in an optimal way. It is in the user's discretion to apply appropriate measures to "center" the inputs around 0. If `Real_ = double` and `IReal_ = int64_t`, then often the rounding error is 0. You can check with `RoundingError()` after the computations have finished.
      *
-     *      (ii) If after, the rounding procedire, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
+     *  -# If after, the rounding procedire, two non-neigboring line segments intersect nontrivially in 3-space, there is no way to perturb it in a topologically meaningful way. Then `RequireIntersections` aborts and returns a nonzero error flag.
      *
      * This implementation is single-threaded only so that many instances of this object can be used in parallel.
      *
@@ -190,26 +190,31 @@ namespace Knoodle
 
     public:
         
+        /*!@brief Return the ambient diemension (== 3).*/
         static constexpr Int AmbientDimension()
         {
             return 3;
         }
 
+        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
         Int CrossingCount() const
         {
             return int_cast<Int>( intersections.size() );
+        }
+        
+        
+        /*!@brief Return the number of crossings/interections in the x-y-Plane.*/
+        Int IntersectionCount() const
+        {
+            return intersection_count;
         }
 
         cref<Tensor1<Int,Int>> EdgePointers() const
         {
             return edge_ptr;
         }
-
-        Int IntersectionCount() const
-        {
-            return intersection_count;
-        }
         
+        /*!@brief Return the number of intersections in the 3-plane.*/
         Int IntersectionCount3D() const
         {
             return intersection_count_3D;

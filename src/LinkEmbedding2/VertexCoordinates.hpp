@@ -1,15 +1,23 @@
 public:
 
+/*!@brief Return flag that signals whether vertex coordinates have been loaded already.*/
 bool VertexCoordinatesLoadedQ() const
 {
     return vertex_coords_loadedQ;
 }
 
+/*!@brief Return the container of the vertex coordinates in the internal ordering and in interleaved for. The coordinates of the `k`-th component are stored in `VertexCoordinates()(i,j)` where `ComponentPointers()[k] <= i < ComponentPointers()[k+1]` and `0 <= j < 3`.*/
 cref<VContainer_T> VertexCoordinates() const
 {
     return vertex_coords;
 }
 
+/*!@brief Read vertex coordinates from external buffer `v` in external ordering defined by `Edges()`. More precisely, we have `VertexCoordinates()(i,j)` is read from `v[3 * Edges()(i,0) + j`.
+ *
+ * @param v Input buffer. It is assumed of have size `EdgeCount() * 3`.
+ *
+ * @tparam transformQ If set to `true`, the input vectors are multiplied by the matrix stored in `TransformationMatrix()`.
+ */
 template<bool transformQ = false>
 void ReadVertexCoordinates( cptr<Real> v )
 {
@@ -76,7 +84,10 @@ void ReadVertexCoordinates( cptr<Real> v )
     vertex_coords_loadedQ = true;
 }
 
-
+/*!@brief Load the matrix `A` into the internal transformation matrix and apply it to all vertex coordinates. Already computed bounding boxes and intersections will be erased.
+ *
+ * @param A Input matrix.
+ */
 void Transform( cref<Matrix3x3_T> A )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("Transform"); };
@@ -120,7 +131,10 @@ void Transform( cref<Matrix3x3_T> A )
     SetTransformationMatrix(Dot(A,R));
 }
 
-
+/*!@brief Write vertex coordinates to external buffer `v` in external ordering defined by `Edges()`. More precisely, we have `VertexCoordinates()(i,j)` is written to `v[3 * Edges()(i,0) + j`.
+ *
+ * @param v Outout buffer. It is assumed to have size `EdgeCount() * 3`..
+ */
 void WriteVertexCoordinates( mptr<Real> v ) const
 {
     TOOLS_PTIMER(timer,MethodName("WriteVertexCoordinates"));

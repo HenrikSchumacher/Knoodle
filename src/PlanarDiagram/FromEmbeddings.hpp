@@ -1,5 +1,7 @@
 
 /*!@brief Construction from `KnotEmbedding` object.
+ *
+ * @param K The input diagram.
  */
 
 template<FloatQ Real, FloatQ BReal>
@@ -30,7 +32,11 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromKnotEmbedding( mref<KnotEmbedding<Re
     );
 }
 
-/*! @brief Construction from coordinates.
+/*!@brief Construction from the coordinates of a polygonal curve in 3-space.
+ *
+ * @param x An array of size `n * 3` storing the coordinates of the curve. The curve is implicitly assumed to be closed, i.e., an edge from the last point to the first one is automatically added.
+ *
+ * @param n The number of vertices.
  */
 
 template<FloatQ Real, IntQ ExtInt, FloatQ BReal = float>
@@ -125,6 +131,15 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding2<R
     );
 }
 
+
+/*!@brief Construction from the coordinates of a polygonal curve in 3-space.
+ *
+ * @param x An array of size `n * 3` storing the coordinates of the curve.
+ *
+ * @param edges An array of size `n * 2` storing the indices of the edges in interleaved form. It is the user's responsibility to guarantee that these edges describe a one-dimensional simplicial complex in which each vertes has in-degree 1 and out-degree 1.
+ *
+ * @param n The number of vertices = the number of edges.
+ */
 
 /*! @brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
  */

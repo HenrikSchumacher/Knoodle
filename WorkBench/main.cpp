@@ -57,7 +57,7 @@ int main()
     TOOLS_DUMP(q);
     
     print("\nIntersecting lines x and y.");
-    S.LoadSegments(i, x_0, x_1, j, y_0, y_1);
+    S.LoadLineSements(i, x_0, x_1, j, y_0, y_1);
     
     TOOLS_DUMP(S.IntersectionType());
     TOOLS_DUMP(S.Flag());
@@ -73,7 +73,7 @@ int main()
     TOOLS_DUMP(xy_inter.handedness);
     
     print("\nIntersecting lines x and z.");
-    S.LoadSegments(i, x_0, x_1, k, z_0, z_1);
+    S.LoadLineSements(i, x_0, x_1, k, z_0, z_1);
     TOOLS_DUMP(S.IntersectionType());
     TOOLS_DUMP(S.Flag());
     Intersection_T xz_inter = S.ComputeIntersection();

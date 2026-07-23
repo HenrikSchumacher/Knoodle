@@ -1,6 +1,6 @@
 public:
 
-// This rotation must be orientation preserving.
+/**@brief Compute and return a pseudorandom, orientation-preserving rotation. */
 template<FloatQ R = Real, IntQ I = Int>
 Tiny::Matrix<3,3,R,I> RandomRotation()
 {
