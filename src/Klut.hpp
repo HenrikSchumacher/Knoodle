@@ -74,11 +74,13 @@ namespace Knoodle
         
         Klut() = default;
         
-        /*!@brief Initialize from path `data_directory_` and maximal number of crossings `crossing_count`.
+        /*!@brief Initialize from path `data_directory_` and maximal number of crossings `crossing_count`. The tables are lazy-loaded. Call `RequireSubtables` to actually load their content.
+         *
+         * The tables can be a bit big; so we hesitate to load them already by the constructor. Instead, we do lazy-loading: a subtable is loaded only the first time it is needed.  In principle, this allows one to inspect the files for the subtables through the class's interface (e.g., find out their file sizes) and take appropriate measures.
          *
          * @param data_directory_ A path to a directory containing files with names of the form `Klut_Keys_??.bin` and `Klut_Values_??.bin`. These files hold the relevant information of the lookup tables and thei content will be loaded.
          *
-         * @param crossing_count Load all tables for prime knots of up to this many crossings (if the corresponding files exist).
+         * @param crossing_count Provide tables for prime knots of up to this many crossings (if the corresponding files exist).
          */
         Klut(
             cref<Path_T> data_directory_,
@@ -104,7 +106,10 @@ namespace Knoodle
             return subtables.size() - Size_T(1);
         }
         
-        /*!@brief Ensure that all subtables are loaded. The table can be a bit big; so we hesitate to load them already by the constructor. This allows one, in principle, to inspect their sizes first.*/
+        /*!@brief Ensure that all subtables are loaded.
+         *
+         *  The user should make sure to call this before any concurrent calls from several threads arrive at this instance of `Klut`; otherwise the lazy loading might incur a data race.
+         */
         void RequireSubtables()
         {
             for( Size_T c = 3; c < subtables.size(); ++c )
