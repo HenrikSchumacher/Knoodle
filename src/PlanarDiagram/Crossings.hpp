@@ -1,25 +1,20 @@
 public:
     
-/*!
- * @brief The maximal number of crossings for which memory is allocated in the data structure.
- */
+/*!@brief Return the maximal number of crossings for which memory is allocated in the data structure.*/
 
 Int MaxCrossingCount() const
 {
     return max_crossing_count;
 }
 
-/*!
- * @brief The number of crossings in the planar diagram.
- */
+/*!@brief Return the number of crossings in the planar diagram.*/
 
 Int CrossingCount() const
 {
     return crossing_count;
 }
 
-/*!
- * @brief Returns the list of crossings in the internally used storage format as a reference to a `Tensor3` object, which is basically a heap-allocated array of dimension 3.
+/*!@brief Return the list of crossings in the internally used storage format as a reference to a `Tensor3` object, which is basically a heap-allocated array of dimension 3.
  *
  * The reference is constant because things can go wild  (segfaults, infinite loops) if we allow the user to mess with this data.
  *
@@ -45,8 +40,7 @@ cref<CrossingContainer_T> Crossings() const
     return C_arcs;
 }
 
-/*!
- * @brief Returns the states of the crossings.
+/*!@brief Return the states of the crossings.
  *
  *  The states that a crossing can have are:
  *
@@ -63,7 +57,7 @@ cref<CrossingStateContainer_T> CrossingStates() const
 }
 
 #ifdef PD_ALLOCATE_SCRATCH
-/*!@brief Returns the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use this with caution as its content depends heavily on which routines have been called before.
+/*!@brief Return the crossing scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use this with caution as its content depends heavily on which routines have been called before.
 */
 cref<Tensor1<Int,Int>> CrossingScratchBuffer() const
 {
@@ -81,9 +75,7 @@ CrossingState_T CrossingState( const Int c ) const
     return C_state[c];
 }
 
-/*!
- * @brief Checks whether crossing `c` is still active.
- */
+/*!@brief Check whether crossing `c` is still active.*/
 
 bool CrossingActiveQ( const Int c ) const
 {
@@ -182,11 +174,8 @@ void DeactivateCrossing( const Int c )
 
 public:
 
-/*!
- * @brief Returns the crossing you would get to by starting at crossing `c` and
- * leaving trough the arc specified by `io` and `side`.
- */
-
+/*!@brief Return the crossing you would get to by starting at crossing `c` and
+ * leaving trough the arc specified by `io` and `side`.*/
 Int NextCrossing( const Int c, bool io, bool side ) const
 {
     AssertCrossing(c);
@@ -205,8 +194,7 @@ Int NextCrossing( const Int c, bool io, bool side ) const
 
 private:
 
-// It is in the user's responsibility to correctly connect the arcs to these crossings.
-
+// It is in the caller's responsibility to correctly connect the arcs to these crossings.
 void RotateCrossing( const Int c, const bool dir )
 {
     PD_WPRINT( MethodName("RotateCrossing") +": This routine has not been tested, yet." );

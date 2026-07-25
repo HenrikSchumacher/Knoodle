@@ -214,7 +214,7 @@ namespace Knoodle
         
         void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
         {
-            // Writes the dense Alexander matrix to the provided buffer A.
+            // Write the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
             TOOLS_PTIMER(timer,MethodName("DenseAlexanderMatrix"));
             

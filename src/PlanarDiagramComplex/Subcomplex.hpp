@@ -1,5 +1,6 @@
 public:
 
+/*!@brief Extract a subcomplex of all arcs on with the supplied lambda function `pd_arc_selectQ` evaluates to `true`. */
 template<bool check_arc_selectorQ = true, typename PDArcSelectorFun_T>
 PDC_T Subcomplex( PDArcSelectorFun_T && pd_arc_selectQ ) const
 {
@@ -15,17 +16,21 @@ PDC_T Subcomplex( PDArcSelectorFun_T && pd_arc_selectQ ) const
         
         auto [pd_new,unlink_colors] = pd.template Subdiagram<check_arc_selectorQ>(arc_selectQ);
         
-        if( pd_new.ValidQ() ) { pdc.Push(std::move(pd_new)); }
+        if( pd_new.ValidQ() )
+        {
+            pdc.Push_Private(std::move(pd_new));
+        }
         
         for( Int color : unlink_colors )
         {
-            pdc.Push(PD_T::Unlink(color));
+            pdc.Push_Private(PD_T::Unlink(color));
         }
     }
     
     return pdc;
 }
 
+/*!@brief Extract the subcomplex of all arcs of color `color`. */
 template<bool check_arc_selectorQ = true>
 PDC_T SubcomplexByColor( const Int color ) const
 {
@@ -38,6 +43,7 @@ PDC_T SubcomplexByColor( const Int color ) const
     );
 }
 
+/*!@brief Extract the subcomplex of all arcs that have a color contained in the buffer `colors` of length `color_count`. */
 template<bool check_arc_selectorQ = true, IntQ ExtInt, IntQ ExtInt2>
 PDC_T SubcomplexByColors(
     cptr<ExtInt> colors, ExtInt2 color_count

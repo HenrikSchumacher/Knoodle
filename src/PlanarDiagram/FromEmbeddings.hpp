@@ -148,7 +148,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding( mref<LinkEmbedding2<R
  * @param n The number of vertices = the number of edges.
  */
 
-/*! @brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
+/*!@brief Construction from coordinates and edges. Returns a planar diagram and the number of unlinks found in the input.
  */
 
 template<FloatQ Real, IntQ ExtInt>
@@ -205,7 +205,7 @@ static std::pair<PD_T,Tensor1<Int,Int>> FromLinkEmbedding(
 
 public:
     
-/*@brief For internal use only. Users should not call this. Testing makes it necessary to make this public.
+/*!@brief For internal use only. Users should not call this. Testing makes it necessary to make this public.
  */
 
 template<IntQ ExtInt,IntQ ExtInt2>

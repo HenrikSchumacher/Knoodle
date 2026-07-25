@@ -53,7 +53,7 @@ void ComputeInitialShiftVector()
 public:
 
 /*!
- * @brief Reads an initial guess for the conformal barycenter (to be used in the optimization routine `Optimize`) from the buffer `w`.
+ * @brief Read an initial guess for the conformal barycenter (to be used in the optimization routine `Optimize`) from the buffer `w`.
  */
 
 void ReadShiftVector( const Real * const w)
@@ -68,7 +68,7 @@ void ReadShiftVector( const Real * const w)
 }
 
 
-/*!@brief Writes the current shift vector (e.g., the conformal barycenter after the optimization has succeeded) to the buffer `w`.
+/*!@brief Write the current shift vector (e.g., the conformal barycenter after the optimization has succeeded) to the buffer `w`.
  */
 
 void WriteShiftVector( Real * w ) const
@@ -99,9 +99,7 @@ Real ErrorEstimator() const
     return error_estimator;
 }
 
-/*!brief Returns the number of iterations the last call to `Optimize` needed.
- */
-
+/*!@brief Returns the number of iterations the last call to `Optimize` needed.*/
 Int IterationCount() const
 {
     return iter;

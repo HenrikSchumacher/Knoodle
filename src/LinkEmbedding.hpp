@@ -120,7 +120,7 @@ namespace Knoodle
         // Move assignment operator
         LinkEmbedding & operator=( LinkEmbedding && other ) = default;
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
         explicit LinkEmbedding( const I edge_count_ )
@@ -128,7 +128,7 @@ namespace Knoodle
         ,   edge_coords { edge_count                 }
         {}
         
-        /*! @brief Construction from a list of component pointers and a list of component colors. The inputs will be consumed.
+        /*!@brief Construction from a list of component pointers and a list of component colors. The inputs will be consumed.
          */
         
         LinkEmbedding( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
@@ -137,7 +137,7 @@ namespace Knoodle
         {}
         
         
-        /*! @brief Construction from a list of edges in interleaved form.
+        /*!@brief Construction from a list of edges in interleaved form.
          */
         template<IntQ I_0, IntQ I_1>
         LinkEmbedding(

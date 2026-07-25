@@ -76,7 +76,7 @@ namespace Knoodle
             }
         }
         
-        /**@brief Control `struct` for holding settings of `Reapr`.
+        /*!@brief Control `struct` for holding settings of `Reapr`.
          *
          * Typically, one wants to change only the settings of `permute_randomQ`, `randomize_bends`, and `randomize_virtual_edgesQ` (to turn randomization on or off) or `energy` (for different ways to determine the z-coordinates of the embedding.
          */
@@ -85,7 +85,7 @@ namespace Knoodle
             bool permute_randomQ       = true; /**< Randomly permute the crossings and arcs of the input diagram. Use this if you want to generate many diagrams that are as different as possible from each other. */
             Energy_T energy            = Energy_T::TV; /**< Minimize this objective function to find the z-coordinates of the graph embedding. */
             OrthoDrawSettings_T ortho_draw_settings = {
-                .randomize_bends  = 4,
+                .randomize_bends  = 2,
                 .randomize_virtual_edgesQ = true
             }; /**< Use these options for `OrthoDraw` to determin the x- and y-coordinates of the graph embedding. */
             Real   scaling             = Real(1); /**< Scaling applied to z-direction _after_ the z-coordinates are scaled so that the embedding is roughly as high as its maximal extension in x- and z-direction. */
@@ -133,14 +133,14 @@ namespace Knoodle
         
     public:
         
-        /**@brief Initialize by an instance of `Settings_T` to configure the behavior. */
+        /*!@brief Initialize by an instance of `Settings_T` to configure the behavior. */
         Reapr( cref<Settings_T> settings_ = Settings_T() )
         : settings { settings_ }
         {}
         
         ~Reapr() = default;
         
-        /**@brief We redefine the copy constructor because of `random_engine`; every instance of `Reapr` needs its own pseudorandom number generator. */
+        /*!@brief We redefine the copy constructor because of `random_engine`; every instance of `Reapr` needs its own pseudorandom number generator. */
         Reapr( const Reapr & other )
         :   settings      { other.settings                    }
         ,   random_engine { InitializedRandomEngine<PRNG_T>() }
@@ -148,7 +148,7 @@ namespace Knoodle
         
     private:
         
-        /**@brief Return the flag that signals which objective function to minimize. */
+        /*!@brief Return the flag that signals which objective function to minimize. */
         Energy_T EnergyFlag( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -156,7 +156,7 @@ namespace Knoodle
             return pd.GetCache(tag);
         }
         
-        /**@brief Change the objective function. */
+        /*!@briefChange the objective function. */
         void SetEnergyFlag( mref<PD_T> pd )
         {
             const std::string tag = MethodName("EnergyFlag");
@@ -164,7 +164,7 @@ namespace Knoodle
             return pd.SetCache(tag,settings.energy);
         }
         
-        /**@brief Return the number of iterations used by the semi-smooth Newton method. */
+        /*!@brief Return the number of iterations used by the semi-smooth Newton method. */
         Size_T Iteration( mref<PD_T> pd ) const
         {
             const std::string tag = MethodName("Iteration");
@@ -183,13 +183,13 @@ namespace Knoodle
         
     public:
         
-        /**@brief Return the settings currently in use. */
+        /*!@brief Return the settings currently in use. */
         mref<Settings_T> Settings()
         {
             return settings;
         }
         
-        /**@brief Expose the pseudorandom number generator. */
+        /*!@brief Expose the pseudorandom number generator. */
         mref<PRNG_T> RandomEngine()
         {
             return random_engine;
@@ -295,7 +295,7 @@ namespace Knoodle
             }
         }
         
-        /**@brief Compute the z-coordinates of the graph embedding and return them in a linear buffer.  */
+        /*!@brief Compute the z-coordinates of the graph embedding and return them in a linear buffer.  */
         Tensor1<Real,Int> Levels( cref<PD_T> pd )
         {
             switch ( settings.energy )

@@ -1,7 +1,6 @@
 public:
 
-/*!@brief Returns extended Gauss code. */
-
+/*!@brief Return extended Gauss code. */
 template<typename T = ToSigned<Int>>
 Tensor1<T,Int> ExtendedGaussCode()  const
 {
@@ -37,8 +36,7 @@ Tensor1<T,Int> ExtendedGaussCode()  const
     return code;
 }
 
-/*!@brief Writes extended Gauss code to buffer. */
-
+/*!@brief Write extended Gauss code to buffer. */
 template<typename T>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
@@ -76,7 +74,6 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 }
 
 /*!@brief Creates a new `PlanarDiagram` from an extended Gauss code. */
-
 template<SignedIntQ T, SignedIntQ ExtInt, SignedIntQ ExtInt2>
 static PD_T FromExtendedGaussCode(
     cptr<T>       gauss_code,

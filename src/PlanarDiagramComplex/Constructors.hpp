@@ -1,5 +1,6 @@
 public:
 
+/*!@brief Initialize with a single knot from MacLeod code `s_mac_leod` of length `crossing_count_` and color `color`.*/
 template<typename T, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
@@ -13,6 +14,7 @@ static PDC_T FromMacLeodCode(
     );
 }
 
+/*!@brief Initialize with a single knot from FromExtendedGaussCode code `gauss_code` of length `arc_count_` and color `color`.*/
 template<typename T, IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromExtendedGaussCode(
     cptr<T>       gauss_code,
@@ -26,18 +28,21 @@ static PDC_T FromExtendedGaussCode(
     );
 }
 
+/*!@brief Initialize with a single knot from the polygonal line with `n` edges and coordinates stored in the buffer `x` (interleaved layout).*/
 template<typename Real, IntQ ExtInt>
 static PDC_T FromCoordinates( cptr<Real> x, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinates(x,n) );
 }
 
+/*!@brief Initialize with a simplicial complex with `n` edges stored in the buffer `edges` (interleaved layout) and vertex coordinates stored in the buffer `x` (interleaved layout).*/
 template<typename Real, IntQ ExtInt>
 static PDC_T FromCoordinatesAndEdges( cptr<Real> x, cptr<ExtInt> edges, const ExtInt n )
 {
     return PDC_T( PD_T::FromCoordinatesAndEdges(x,edges,n) );
 }
 
+/*!@brief For internal use only. Users should not call this. Testing makes it necessary to make this public. */
 template<IntQ ExtInt, IntQ ExtInt2>
 static PDC_T FromLinkEmbedding_Raw(
     const ExtInt  component_count_,

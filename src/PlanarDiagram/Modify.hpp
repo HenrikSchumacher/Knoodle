@@ -1,10 +1,10 @@
 // CAUTION: The methods here may perform topological changes.
-// CAUTION: Therefore ought to be considered UNSAFE.
+// CAUTION: Therefore ought to be considered **UNSAFE.**
 
 public:
 
-/*! @brief Checks whether crossing `c` is active. In the affirmative case it flips the handedness of that crossing, clears the internal cache, and returns `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
- * _Use this with extreme caution as this might invalidate some invariants of the PlanarDiagram class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
+/*!@brief **UNSAFE.** Checks whether crossing `c` is active. In the affirmative case it flips the handedness of that crossing, clears the internal cache, and returns `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
+ *  _Use this with extreme caution as this might invalidate some invariants of the PlanarDiagram class._ _Never _ use it in productive code unless you really, really know what you are doing! This feature is highly experimental and we expose it only for debugging purposes and for experiments.
  *
  * @param c The crossing to be switched.
  *
@@ -14,6 +14,8 @@ public:
 template<bool silentQ = false>
 bool SwitchCrossing( const Int c )
 {
+    if( LockedQ() ) { LockMessage("SwitchCrossing"); return false; }
+    
     bool changedQ = this->template SwitchCrossing_Private<silentQ>(c);
     
     if( changedQ ) { this->ClearCache(); }
@@ -24,7 +26,7 @@ bool SwitchCrossing( const Int c )
 
 private:
 
-/*! @brief Checks whether crossing `c` is active. In the affirmative case it flips the handedness of that crossing and returns `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
+/*!@brief **UNSAFE.** Checks whether crossing `c` is active. In the affirmative case it flips the handedness of that crossing and returns `true`. Otherwise, this routine just returns `false` (keeping the internal cache as it was).
  *
  * @param c The crossing to be switched.
  *
@@ -51,7 +53,24 @@ bool SwitchCrossing_Private( const Int c )
 
 public:
 
+/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in an invalid state.
+ */
+
 std::tuple<Int,Int,Int> CreateCrossing(
+    const CrossingState_T handedness = CrossingState_T::RightHanded
+)
+{
+    if( LockedQ() ) { LockMessage("CreateCrossing"); return {Uninitialized,Uninitialized,Uninitialized}; }
+    
+    return CreateCrossing_Private(handedness);
+}
+
+private:
+
+/*!@brief **UNSAFE.** Creates a new active crossing and two new active arcs. Increments the respective counters. Neither the crossing nor the arcs are initialized, so the diagram will be in an invalid state.
+ */
+
+std::tuple<Int,Int,Int> CreateCrossing_Private(
     const CrossingState_T handedness = CrossingState_T::RightHanded
 )
 {
@@ -74,7 +93,9 @@ std::tuple<Int,Int,Int> CreateCrossing(
     return {c,a,b};
 }
 
-/*!@brief Creates a new loop on an arc. Returns the index of the new loop arc if successful. Returns `Uninitialized` otherwise.
+public:
+
+/*!@brief Creates a new loop on an arc. Returns the index of the new loop arc if successful. Returns `Uninitialized` otherwise. This may change the writhe but will keep the topology the same.
  *
  * @param a The arc to which we want to attach the loop
  *
@@ -129,7 +150,7 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
     
     RequireCrossingCount(CrossingCount()+Int(1));
     
-    auto [c,a_prev,a_next] = CreateCrossing(handedness);
+    auto [c,a_prev,a_next] = CreateCrossing_Private(handedness);
     
     A_color[a_prev]  = A_color[a];
     A_color[a_next]  = A_color[a];
@@ -161,13 +182,13 @@ Int CreateLoop( const Int a, const bool side, CrossingState_T handedness )
 }
 
 
-
-
-
+/*!@brief **UNSAFE.** Cut arcs `a` and `b` and reconnect the tail of `a` with the tip of `b` and the tail of `b` with the tip of `a`.*/
 template<bool silentQ = false, bool assertsQ = true>
 bool Connect( const Int a, const Int b )
 {
     [[maybe_unused]] auto tag = [](){ return MethodName("Connect"); };
+    
+    if( LockedQ() ) { LockMessage("Connect"); return false; } 
     
     TOOLS_PTIMER(timer,tag());
     
@@ -259,7 +280,7 @@ bool Connect( const Int a, const Int b )
 
 private:
 
-/*!@brief Swaps heads or tails of the arcs a and b. No checks are performed. This is why this is a private routine.
+/*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
  */
 
 void ArcSwap_Private( const Int a, const bool headtail, const Int b )
@@ -274,7 +295,7 @@ void ArcSwap_Private( const Int a, const bool headtail, const Int b )
     SetMatchingPortTo(c_b,headtail,b,a);
 }
 
-/*!@brief Swaps heads or tails of the arcs a and b. No checks are performed. This is why this is a private routine.
+/*!@brief **UNSAFE.** Swaps heads or tails of the arcs a and b. No checks are performed and we do not use the locking mechanism. This is why this is a private routine.
  */
 
 template<bool headtail>

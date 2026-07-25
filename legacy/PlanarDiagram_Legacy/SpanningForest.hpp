@@ -72,7 +72,7 @@ void ComputeSpanningForest()
 }
 
 
-/*! @brief Returns the list of crossings ordered in the way they are pre-visited by `DepthFirstSearch`.
+/*!@brief Return the list of crossings ordered in the way they are pre-visited by `DepthFirstSearch`.
  */
 
 Tensor1<Int,Int> CrossingPreOrdering()
@@ -86,7 +86,7 @@ Tensor1<Int,Int> CrossingPreOrdering()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-/*! @brief Returns the list of crossings ordered in the way they are post-visited by `DepthFirstSearch`.
+/*!@brief Return the list of crossings ordered in the way they are post-visited by `DepthFirstSearch`.
  */
 
 Tensor1<Int,Int> CrossingPostOrdering()
@@ -97,7 +97,7 @@ Tensor1<Int,Int> CrossingPostOrdering()
     return this->template GetCache<Tensor1<Int,Int>>(tag);
 }
 
-/*! @brief Returns a spanning forest in the following format: For every crossing `c` the entry `a = SpanningForestDarcs()[c]` is the _oriented_ arc of the spanning tree that points to `c`. If `c` is a root crossing, then `-1` is returned instead.
+/*!@brief Return a spanning forest in the following format: For every crossing `c` the entry `a = SpanningForestDarcs()[c]` is the _oriented_ arc of the spanning tree that points to `c`. If `c` is a root crossing, then `-1` is returned instead.
  */
 
 Tensor1<Int,Int> SpanningForestDarcs()

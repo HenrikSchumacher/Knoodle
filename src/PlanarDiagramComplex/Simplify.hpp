@@ -23,7 +23,7 @@ struct Simplify_Args_T
     Energy_T            energy                   = Energy_T::TV;
     double              scaling                  = 1.;
     
-    int                 randomize_bends          = 4;
+    int                 randomize_bends          = 2;
     bool                randomize_virtual_edgesQ = true;
     Compaction_T        compaction_method        = Compaction_T::Length_MCF;
     

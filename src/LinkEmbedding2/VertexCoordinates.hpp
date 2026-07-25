@@ -99,7 +99,6 @@ void Transform( cref<Matrix3x3_T> A )
         eprint(tag() + ": No vertex coordinates loaded, yet. Call ReadVertexCoordinates first.");
     }
     
-    vertex_coords_loadedQ    = false;
     edge_coords_computedQ    = false;
     intersections_computedQ  = false;
     bounding_boxes_computedQ = false;

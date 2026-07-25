@@ -1,6 +1,8 @@
 public:
 
-/*!@brief Check whether the graph underlying the `PlanarDiagram` is indeed planar; if yes, it returns true.*/
+/*!@brief Check whether the graph underlying the `PlanarDiagram` is indeed planar.
+ *
+ *  This uses the Boyer-Myrvold planarity test from boost. This will only be added to the class if preprocessor macro `KNOODLE_USE_BOOST_PLANARITY` is defined.*/
 
 bool PlanarGraphQ() const
 {

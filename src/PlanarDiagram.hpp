@@ -12,6 +12,19 @@ namespace Knoodle
 {
     /*!@brief A class for storing and manipulating planar diagrams
      *
+     * This class stores a conventional planar diagram with additional _color_ information for each arc. This color information is irrelevent for knots, but for links it is crucial for correctly tracing _disconnect_ operations, i.e., splitting connected sums. This color information persists through all safe operations (i.e., not marked as UNSAFE). Thus, to undo such a disconnect, one simply has to connect-sum all link components of the same color. Such decompositions are handled by `PlanarDiagramComplex`, which is an aggregate of one or more `PlanarDiagram`s.
+     *
+     * The diagram stored in an instance of `PlanarDiagram` can be connected or disconnected.
+     * An unlink in form of a loop with zero crossings can be representet by a special state of `PlanarDiagram`, which we call an _anello_.
+     *
+     * If no color information is submitted, the constructors will color the arcs automatically in a consistent way: each arc gets the color of its link component, and each link components gets its own color that is different from all others'.
+     *
+     * Some public class methods are marked as **UNSAFE** because they may alter the topological class of the represented link. For users who want to use modify a `PlanarDiagram` nonetheless, we provide a locking mechanism: Per default every new created diagram is _locked_. The state of the lock can be queried with `LockedQ()`. The user may use `Unlock()` to unlock and `Lock()` to lock again. Alternatively, a RAII-stylescoped lock can be obtain by initializing a `ScopedUnlock` object:
+     *
+     *     ScopedUnlock unlocker (pd);
+     *
+     * The lock will remain active for the life time of `unlocker` (unless it is altered by `Lock`/`Unlock` or by another instance `ScopedUnlock`. When destructed, `unlocker` resets the lock state of `pd` to the state it had when `unlocker` was created.
+     *
      * @tparam Int_ Integral type used for all sorts of indices. Needs to be big enough to store the number of arcs and then some. Best to give it 3-4 extra bits.
      */
     
@@ -24,24 +37,32 @@ namespace Knoodle
         static constexpr bool countQ = false;
         static constexpr bool debugQ = false;
         
+        /*!@brief Type used for indices of crossings and arcs.*/
         using Int                       = Int_;
+        /*!@brief The unsigned type corresponding to `Int`.*/
         using UInt                      = ToUnsigned<Int>;
         
         using Base_T                    = CachedObject<1,0,0,0>;
         using Class_T                   = PlanarDiagram<Int>;
         
+        /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T                      = PlanarDiagram<Int>;
         using PD_List_T                 = std::vector<PD_T>;
         
+        /*!@brief Container to store crossings. It essentially behaves like a tensor of dimensions `{CrossingCount(),2,2}`.*/
         using CrossingContainer_T       = Tiny::MatrixList_AoS<2,2,Int,Int>;
+        /*!@brief Container to store arcs. It essentially behaves like a matrix of dimensions `{ArcCount(),2}`.*/
         using ArcContainer_T            = Tiny::VectorList_AoS<2,  Int,Int>;
-        using ColorCounts_T             = AssociativeContainer<Int,Int>;
         
+        using ColorCounts_T             = AssociativeContainer<Int,Int>;
         using C_Arcs_T                  = Tiny::Matrix<2,2,Int,Int>;
         using A_Cross_T                 = Tiny::Vector<2,Int,Int>;
         
+        /*!@brief Container to store states of all crossings. It essentially behaves like a vector of length `CrossingCount()`.*/
         using CrossingStateContainer_T  = Tensor1<CrossingState_T,Int>;
+        /*!@brief Container to store states of all arcs. It essentially behaves like a vector of length `ArcCount()`.*/
         using ArcStateContainer_T       = Tensor1<ArcState_T,Int>;
+        /*!@brief Container to store colors of all arcs. It essentially behaves like a vector of length `ArcCount()`.*/
         using ArcColorContainer_T       = Tensor1<Int,Int>;
         
         using MultiGraph_T              = MultiGraph<Int,Int,Int8,Sequential>;
@@ -49,6 +70,7 @@ namespace Knoodle
         
         friend class PlanarDiagramComplex<Int>;
         
+        /*!@brief Alias for `PlanarDiagramComplex`.*/
         using PDC_T = PlanarDiagramComplex<Int>;
         
         friend class LoopRemover<Int>;
@@ -79,7 +101,7 @@ namespace Knoodle
         
         static constexpr Int MaxValidIndex = SignedIntQ<Int> ? std::numeric_limits<Int>::max() : std::numeric_limits<Int>::max() - Int(2);
         
-        /*! @brief Check whether an index is valid.
+        /*!@brief Check whether an index is valid.
          */
         static constexpr bool ValidIndexQ( const Int i )
         {
@@ -94,8 +116,7 @@ namespace Knoodle
             }
         }
         
-        /*! @brief Return the value that signals an uninitialized index.
-         */
+        /*!@brief Return the value that signals an uninitialized index.*/
         static constexpr Int UninitializedIndex()
         {
             return Uninitialized;
@@ -135,7 +156,10 @@ namespace Knoodle
         mutable Int last_color_deactivated = Uninitialized;
         mutable Int c_search_ptr = 0;
         mutable Int a_search_ptr = 0;
-        bool proven_minimalQ = false;
+        bool proven_minimalQ     = false;
+        
+        // No unsafe operations can be performed while this flag is set to `true`.
+        bool lockedQ             = true;
         
     public:
   
@@ -154,7 +178,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -180,7 +204,7 @@ namespace Knoodle
         }
         
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -268,7 +292,7 @@ namespace Knoodle
             
             if( compressQ )
             {
-                this->template Compress<true>();
+                this->template Compress_Private<true>();
             }
         }
         
@@ -326,19 +350,17 @@ namespace Knoodle
             
             if( compressQ )
             {
-                this->template Compress<true>();
+                this->template Compress_Private<true>();
             }
             else
             {
-                ComputeArcColors();
+                ComputeArcColors_Private();
             }
         }
         
         
         
-        /*! @brief Create a new planar diagram with the copied of this one, but with the internal buffers large enough for at least `new_max_crossing_count` crossings. Caches will be cleared.
-         */
-        
+        /*!@brief Create a new planar diagram with the copied of this one, but with the internal buffers large enough for at least `new_max_crossing_count` crossings. Caches will be cleared. */
         PD_T CreateEnlarged( const Int new_max_crossing_count ) const
         {
             // needs to know all member variables
@@ -379,7 +401,7 @@ namespace Knoodle
             return pd;
         }
         
-        /*! @brief Resize internal buffers to make room for at least `new_max_crossing_count` crossings. Caches will be cleared.
+        /*!@brief Resize internal buffers to make room for at least `new_max_crossing_count` crossings. Caches will be cleared.
          */
         void RequireCrossingCount( const Int new_max_crossing_count, bool doubleQ = true )
         {
@@ -390,8 +412,7 @@ namespace Knoodle
         }
         
         
-        /*! @brief Make a copy without copying cache and persistent cache.
-         */
+        /*!@brief Make a copy without copying cache. */
         PD_T CachelessCopy() const
         {
             return CreateEnlarged( max_crossing_count );
@@ -414,7 +435,6 @@ namespace Knoodle
 
 #include "PlanarDiagram/Compress.hpp"
 #include "PlanarDiagram/Reconnect.hpp"
-#include "PlanarDiagram/SwitchCrossing.hpp"
 #include "PlanarDiagram/Modify.hpp"
 
 #include "PlanarDiagram/PDCode.hpp"
@@ -440,73 +460,71 @@ namespace Knoodle
         
 #ifdef KNOODLE_USE_BOOST_PLANARITY
 #include "PlanarDiagram/Planarity.hpp"
-        
-        
 #endif
         
     public:
         
-        /*! @brief The color of the last edge that was deactivated. For an unlink, it should return its color.*/
+        /*!@brief The color of the last edge that was deactivated. For an unlink, it should return its color.*/
         Int LastColorDeactivated() const
         {
             return last_color_deactivated;
         }
         
-        /*! @brief Returns an internal flag that signals whether this diagram has been proven to be minimal. (Several routines terminate early if this returns true.) */
+        /*!@brief Return the internal flag that signals whether this diagram has been proven to be minimal. (Several routines terminate early if this returns true.) */
         bool ProvenMinimalQ() const
         {
             return proven_minimalQ;
         }
         
-        /*! @brief Whether this is an ring-shaped unlink. (Internally it consists of 0 arcs.) */
+        /*!@brief Whether this is an ring-shaped unlink. (Internally it consists of 0 arcs.) */
         bool AnelloQ() const
         {
             return (proven_minimalQ && (crossing_count <= Int(0)) && ValidIndexQ(last_color_deactivated));
         }
         
-        /*! @brief Whether this is an farfalla-shaped unlink. (Internally it consists of 1 crossing and two arcs.) */
+        /*!@brief Whether this is an farfalla-shaped unlink. (Internally it consists of 1 crossing and two arcs.) */
         bool FarfallaQ() const
         {
             return (crossing_count == Int(1));
         }
         
-        /*! @brief Whether this is an an anello or a farfalla. */
+        /*!@brief Whether this is an an anello or a farfalla. */
         bool ProvenUnknotQ() const
         {
             return AnelloQ() || FarfallaQ();
         }
         
-        /*! @brief Whether this is a Hopf-link with two crossings. */
+        /*!@brief Whether this is a Hopf-link with two crossings. */
         bool ProvenHopfLinkQ() const
         {
             return proven_minimalQ && (crossing_count == Int(2)) && (LinkComponentCount() == Int(2));
         }
         
-        /*! @brief Whether this is a trefoil with three crossings. */
+        /*!@brief Whether this is a trefoil with three crossings. */
         bool ProvenTrefoilQ() const
         {
             return proven_minimalQ && (crossing_count == Int(3)) && (LinkComponentCount() == Int(1));
         }
         
-        /*! @brief Whether this is a figure-eight know with 4 crossings. */
+        /*!@brief Whether this is a figure-eight know with 4 crossings. */
         bool ProvenFigureEightQ() const
         {
             return proven_minimalQ && (crossing_count == Int(4)) && (LinkComponentCount() == Int(1));
         }
 
-        /*! @brief Returns true if the crossing count is 0 and if there is no valid color stored for the last deactivated arc.*/
+        /*!@brief Return true if and only if the crossing count is 0 and if there is no valid color stored for the last deactivated arc.*/
         bool InvalidQ() const
         {
             return (crossing_count == Int(0)) && !ValidIndexQ(last_color_deactivated);
         }
         
-        /*! @brief Returns true if not invalid.*/
+        /*!@brief Return true if and only if not invalid.*/
         bool ValidQ() const
         {
             return !InvalidQ();
         }
         
-        /*! @brief Move the internal search pointer to the first next inactive crossing and returns its index.*/
+        /*!@brief Move the internal search pointer to the first next inactive crossing and returns its index.*/
         Int NextInactiveCrossing() const
         {
             if( crossing_count >= max_crossing_count ) { return Uninitialized; }
@@ -521,7 +539,7 @@ namespace Knoodle
             return c_search_ptr;
         }
         
-        /*! @brief Move the internal search pointer to the first next inactive arc and returns its index.*/
+        /*!@brief Move the internal search pointer to the first next inactive arc and returns its index.*/
         Int NextInactiveArc() const
         {
             if( arc_count >= max_arc_count ) { return Uninitialized; }
@@ -682,6 +700,31 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Return whether this diagram is _locked_. Public UNSAFE operations cannot be called while this is being locked to prohibit unintended modifications that break topological invariance.*/
+        bool LockedQ() const
+        {
+            return lockedQ;
+        }
+        
+        /*!@brief Unlock diagram to allow topological modifications.*/
+        void Unlock()
+        {
+            lockedQ = false;
+        }
+        
+        /*!@brief Lock diagram to prohibit topological modifications.*/
+        void Lock()
+        {
+            lockedQ = true;
+        }
+        
+        void LockMessage( const std::string & tag ) const
+        {
+            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Lock()` first.");
+        }
+        
+    public:
+        
         void PrintInfo() const
         {
             logprint(MethodName("PrintInfo") + " -- begin");
@@ -750,13 +793,13 @@ namespace Knoodle
             return sizeof(PlanarDiagram) + AllocatedByteCount();
         }
         
+        /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
         static std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        /*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        
+        /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
         static std::string ClassName()
         {
             return ct_string("PlanarDiagram")

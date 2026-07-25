@@ -146,7 +146,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -168,7 +168,7 @@ namespace Knoodle
         {}
         
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -216,7 +216,7 @@ namespace Knoodle
             arc_count      = CountActiveArcs();
         }
         
-        /*! @brief Make a copy without copying cache and persistent cache.
+        /*!@brief Make a copy without copying cache and persistent cache.
          */
         PD_T CachelessCopy() const
         {
@@ -293,7 +293,7 @@ namespace Knoodle
             );
         }
         
-        /*! @brief Construction from coordinates.
+        /*!@brief Construction from coordinates.
          */
         
         template<FloatQ Real, IntQ ExtInt>

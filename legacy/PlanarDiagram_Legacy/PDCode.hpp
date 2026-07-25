@@ -266,7 +266,7 @@ std::tuple<Tensor2<T,Int>,Tensor1<T,Int>,Tensor1<T,Int>> PDCodeWithLabels()
 
 public:
 
-/*! @brief Construction from PD codes and handedness of crossings.
+/*!@brief Construction from PD codes and handedness of crossings.
  *
  *  @param pd_codes Integer array of length `5 * crossing_count_`.
  *  There is one 5-tuple for each crossing.
@@ -299,7 +299,7 @@ static PD_T FromSignedPDCode(
     );
 }
 
-/*! @brief Construction from PD codes of crossings.
+/*!@brief Construction from PD codes of crossings.
  *
  *  The handedness of the crossing will be inferred from the PD codes. This does not always define a uniquely: A simple counterexample for uniqueness are the Hopf-links.
  *

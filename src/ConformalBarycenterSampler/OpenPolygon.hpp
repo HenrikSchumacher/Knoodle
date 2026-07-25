@@ -64,7 +64,7 @@ void WriteInitialEdgeVectors( Real * const x )
     x_.Write(x);
 }
 
-/*!@brief Reads the vertex positions of the open polygon from buffer `p`.
+/*!@brief Read the vertex positions of the open polygon from buffer `p`.
  *
  * Suppose that `n = this->EdgeCount()` is the number of edges and `d = this->AmbientDimension()` is the dimension of the ambient space.
  *

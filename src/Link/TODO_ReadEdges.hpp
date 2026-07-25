@@ -1,7 +1,7 @@
 //TODO: Make this available again. (Although barely needed.)
 
 
-/*! @brief Construct oriented `Link` from a list of tails and from a list of heads.
+/*!@brief Construct oriented `Link` from a list of tails and from a list of heads.
  *
  *  @param edge_tails_ Array of integers of length `edge_count_`. Entries are treated as tails of edges.
  *
@@ -21,7 +21,7 @@ Link( cptr<I_0> edge_tails_, cptr<I_0> edge_heads_, cptr<I_0> edge_colors_, cons
 //TODO: Make this available again. (Although barely needed.)
 
 
-/*! @brief Reads edges from the arrays `edge_tails_` and `edge_heads_`.
+/*!@brief Read edges from the arrays `edge_tails_` and `edge_heads_`.
  *
  *  @param edge_tails_ Integer array of length `EdgeCount()` that contains the list of tails.
  *

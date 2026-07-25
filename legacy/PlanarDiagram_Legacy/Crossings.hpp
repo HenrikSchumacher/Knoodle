@@ -10,7 +10,7 @@ CrossingState_T CrossingState( const Int c ) const
     return C_state[c];
 }
 
-/*! @brief Checks whether crossing `c` is still active.
+/*!@brief Checks whether crossing `c` is still active.
  */
 
 bool CrossingActiveQ( const Int c ) const

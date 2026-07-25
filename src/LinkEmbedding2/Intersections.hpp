@@ -259,21 +259,11 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
     
     if constexpr ( verboseQ )
     {
-        logprint(tag() + " in verbose mode.");
-        TOOLS_LOGDUMP(k);
-        TOOLS_LOGDUMP(l);
+        logprint(tag() + "( " + ToString(k) +" ," +  ToString(k) + " ).");
     }
 
     // At this point we assume that `k != l` and that they are also not direct neighbors.
     // Also, we may assume that neither edge is degenerate in 3-space.
-
-//    if constexpr ( verboseQ )
-//    {
-//        TOOLS_LOGDUMP(ToString(x_0));
-//        TOOLS_LOGDUMP(ToString(x_1));
-//        TOOLS_LOGDUMP(ToString(y_0));
-//        TOOLS_LOGDUMP(ToString(y_1));
-//    }
 
     using Flag_T = Prosector_T::Flag_T;
     
@@ -282,7 +272,7 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
         l, EdgeData(l,Int(0)), EdgeData(l,Int(1))
     );
 
-    Flag_T flag = S.template IntersectionType<verboseQ>();
+    Flag_T flag = S.IntersectionType();
 
     if constexpr ( verboseQ ) { TOOLS_LOGDUMP(flag); }
 
@@ -292,8 +282,9 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
         case Flag_T::Intersection:  break;
         case Flag_T::Error:
         {
-            wprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
+            eprint(tag() +": Edges " + ToString(k) + " and " + ToString(l) + " intersect in 3D.");
             // TODO: We need a check for overflow here.
+            
             ++intersection_count_3D;
             return;
         }
@@ -311,4 +302,3 @@ void ComputeEdgeEdgeIntersection_impl( const Int k, const Int l )
 
     intersections.push_back( S.ComputeIntersection() );
 }
-

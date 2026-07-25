@@ -5,10 +5,10 @@ namespace Knoodle
     template<IntQ Int, typename Scal>
     using MatrixTripleContainer_T = AssociativeContainer<std::pair<Int,Int>, Scal>;
     
-    /**@brief The default pseudorandom number generator used in Knoodle, the _permuted congruential generator_ by M.E. O'Neill, see https://www.pcg-random.org.*/
+    /*!@brief The default pseudorandom number generator used in Knoodle, the _permuted congruential generator_ by M.E. O'Neill, see https://www.pcg-random.org.*/
     using PRNG_T = pcg64;
     
-    /**@brief The flag type used by `PlanarDiagram` to signal the state of a crossing.*/
+    /*!@brief The flag type used by `PlanarDiagram` to signal the state of a crossing.*/
     enum class CrossingState_T : Int8
     {
         // Important! Active values are the only odd ones.
@@ -85,7 +85,7 @@ namespace Knoodle
         return ( Sign(ToUnderlying(s_0)) == Sign(ToUnderlying(s_1)) );
     }
 
-    /**@brief The flag type used by `PlanarDiagram` to signal the state of an arc.*/
+    /*!@brief The flag type used by `PlanarDiagram` to signal the state of an arc.*/
     enum class ArcState_T : UInt8
     {
         Active           =  1, /**< The arc is active.*/
@@ -209,7 +209,7 @@ namespace Knoodle
     }
     
     
-    /*!@brief Reads in an unsigned PD code and tries to infer the handedness of crossings.
+    /*!@brief Read in an unsigned PD code and tries to infer the handedness of crossings.
      *
      * The return value is a `Tensor2<Int,Int>` of size `crossing_count` x `5`; the last position is the signedness, encoded by `+1` for right-handed crossings and `-1` for left-handed crossongs.
      *

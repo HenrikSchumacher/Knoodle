@@ -7,10 +7,11 @@ namespace Knoodle
     using namespace Tools;
     using namespace Tensors;
     
-    /*!
-     * @brief Implements the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
+    /*!@brief An implementation of the _(Progressive) Action-Angle Method_. The main routines are `CreateRandomClosedPolygon` and `CreateRandomClosedPolygons` to generate one or many closed polygons with unit edge lengths.
      *
      * The class's only purpose is to initial the random number generator and to keep it alive during calls to `CreateRandomClosedPolygon`.
+     *
+     * @tparam AmbDim_ Dimension of the ambient Eulcidean space.
      *
      * @tparam Real_ A real floating point type used for corordinates.
      *
@@ -541,14 +542,14 @@ namespace Knoodle
     
         
     public:
-        /*! @brief Returns a string that identifies the class's method as specified by `tag`. */
+        /*!@brief Returns a string that identifies the class's method as specified by `tag`. */
         
         static std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        /*! @brief Returns a string that identifies the class. Good for debugging and printing messages. */
+        /*!@brief Returns a string that identifies the class. Good for debugging and printing messages. */
         
         static std::string ClassName()
         {

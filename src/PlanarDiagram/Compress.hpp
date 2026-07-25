@@ -1,21 +1,30 @@
 public:
 
-/*!
- * @brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
+/*!@brief Creates a copy of the planar diagram with all inactive crossings and arcs removed. Relabeling is done in order of traversal by routine `Traverse`.
+ */
+
+PD_T CreateCompressed()
+{
+    return this->template CreateCompressed_Private<false>();
+}
+
+private:
+
+/*!@brief Creates a copy of the planar diagram with all inactive crossings and arcs removed.
  *
  * Relabeling is done in order of traversal by routine `Traverse`.
  *
- * @tparam recolorQ Whether the arc colors shall be recomputed.
+ * @tparam recolorQ Whether the arc colors shall be recomputed. **UNSAFE** if set to true. Only intended for internal use.
  */
 
 template<bool recolorQ = false>
-PD_T CreateCompressed()
+PD_T CreateCompressed_Private()
 {
     // needs to know all member variables
     
     if( !ValidQ() ) { return InvalidDiagram(); }
     
-    auto tag = [](){ return MethodName("CreateCompressed")+"<" + ToString(recolorQ) + ">"; };
+    auto tag = [](){ return MethodName("CreateCompressed_Private")+"<" + ToString(recolorQ) + ">"; };
     
     TOOLS_PTIMER(timer,tag());
     
@@ -196,11 +205,24 @@ PD_T CreateCompressed()
     return pd;
 }
 
-template<bool recolorQ = false>
+public:
+
+/*!@brief Remove all inactive crossings and arcs, and reorder the remaining crossings arcs in canonical order. Relabeling is done in order of traversal by routine `Traverse`.
+ */
 void Compress()
 {
-    (*this) = this->template CreateCompressed<recolorQ>();
+    (*this) = this->template CreateCompressed_Private<false>();
 }
+
+private:
+
+template<bool recolorQ = false>
+void Compress_Private()
+{
+    (*this) = this->template CreateCompressed_Private<recolorQ>();
+}
+
+public:
 
 void ConditionalCompress()
 {

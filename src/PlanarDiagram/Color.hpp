@@ -1,5 +1,6 @@
 public:
 
+/*!@brief For each color lost how many arcs have this color.*/
 cref<ColorCounts_T> ColorArcCounts() const
 {
     if( !this->InCacheQ("ColorArcCounts") )
@@ -14,6 +15,7 @@ cref<ColorCounts_T> ColorArcCounts() const
     return this->template GetCache<ColorCounts_T>("ColorArcCounts");
 }
 
+/*!@brief The value of the highest color found in the diagram.*/
 Int MaxColor() const
 {
     if( InvalidQ() ) { return 0; }
@@ -39,9 +41,20 @@ Int MaxColor() const
 }
 
 
+/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.*/
 void ComputeArcColors()
 {
-    TOOLS_PTIMER(timer,MethodName("ColorArcCounts"));
+    if( LockedQ() ) { LockMessage("ComputeArcColors"); return; }
+    
+    ComputeArcColors_Private();
+}
+
+private:
+
+/*!@brief **UNSAFE.** (Re-)compute arc colors. This may break topological invariance.*/
+void ComputeArcColors_Private()
+{
+    TOOLS_PTIMER(timer,MethodName("ColorArcCounts_Private"));
     
     ColorCounts_T color_arc_counts;
     
@@ -85,12 +98,16 @@ void ComputeArcColors()
     this->template SetCache<false>("ColorArcCounts", std::move(color_arc_counts));
 }
 
+public:
+
+/*!@brief Return the number of colors in the diagram.*/
 Int ColorCount()  const
 {
     return int_cast<Int>(ColorArcCounts().size());
 }
 
 
+/*!@brief Check whether arc colors are meaningful, i.e., if for each arc's next arc has the same color.*/
 bool CheckArcColors() const
 {
     if( InvalidQ() )
@@ -162,7 +179,7 @@ static ColorCounts_T ArrayToColorCounts( cptr<ExtInt> a, ExtInt2 color_count )
     return counts;
 }
 
-
+/*!@brief Check whether the diagram contains an active arc with color specified `color` or wether it is an unlink of this color. */
 bool ContainsColor( Int color ) const
 {
     auto & color_counts = ColorArcCounts();
@@ -171,7 +188,8 @@ bool ContainsColor( Int color ) const
 }
 
 // TODO: There must be a more efficient way to do this!
-Int FindEdgeWithColor( Int color ) const
+/*!@brief Return the first active arc with color specified by `color`. */
+Int FindArcWithColor( Int color ) const
 {
     if( crossing_count <= Int(0) ) { return Uninitialized; }
    
@@ -186,7 +204,7 @@ Int FindEdgeWithColor( Int color ) const
         }
     }
     
-    eprint(MethodName("FindEdgeWithColor") + ": ContainsColor(color) reported that diagram contains an arc with color " + ToString(color) + ", but no such arc was found. Try to ClearCache() and do the query again.");
+    eprint(MethodName("FindArcWithColor") + ": ContainsColor(color) reported that diagram contains an arc with color " + ToString(color) + ", but no such arc was found. Try to ClearCache() and do the query again.");
     
     return Uninitialized;
 }

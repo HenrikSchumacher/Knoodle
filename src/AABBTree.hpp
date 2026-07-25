@@ -245,7 +245,7 @@ namespace Knoodle
             
         }
         
-        /*! @brief Checks whether two bounding boxes intersect.
+        /*!@brief Check whether two bounding boxes intersect.
          *
          *  @param B_i Pointer to first box stored in the `format [ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          *
@@ -268,7 +268,7 @@ namespace Knoodle
             return true;
         }
         
-        /*! @brief Checks whether two bounding boxes intersect.
+        /*!@brief Check whether two bounding boxes intersect.
          *
          *  @param B_0 One instance of `BContainer_T` that stores multiple bounding boxes
          *
@@ -287,7 +287,7 @@ namespace Knoodle
         }
         
         
-        /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
+        /*!@brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
          *
          *  @param B_i Pointer to first box stored in the format `[ lo[0],...,lo[d-1], hi[0],...,hi[d-1] ]`.
          *
@@ -315,7 +315,7 @@ namespace Knoodle
             return d2;
         }
         
-        /*! @brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
+        /*!@brief Compute the squared distance between two boxes. CAUTION: This may overflow if integral types are used. It is in the user's responsitbility to prevent this!
          *
          *  @param B_0 One instance of `BContainer_T` that stores multiple bounding boxes.
          *

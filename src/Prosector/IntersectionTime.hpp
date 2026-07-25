@@ -57,7 +57,7 @@ public:
         return a.ToDouble() / b.ToDouble();
     }
   
-    friend constexpr std::strong_ordering operator<=>(
+    friend std::strong_ordering operator<=>(
         cref<IntersectionTime> s, cref<IntersectionTime> t
     )
     {
@@ -98,16 +98,16 @@ public:
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
-        const LLInt s_a_3 {s.a.c_3};
-        const LLInt s_b_3 {s.b.c_3};
-        const LLInt t_a_3 {t.a.c_3};
-        const LLInt t_b_3 {t.b.c_3};
-        
         // Order 2
         lhs = s_a_1 * t_b_1;
         rhs = s_b_1 * t_a_1;
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
+        
+        const LLInt s_a_3 {s.a.c_3};
+        const LLInt s_b_3 {s.b.c_3};
+        const LLInt t_a_3 {t.a.c_3};
+        const LLInt t_b_3 {t.b.c_3};
         
         // Order 3
         lhs = s_a_0 * t_b_3 + s_a_3 * t_b_0;

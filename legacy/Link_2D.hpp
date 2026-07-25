@@ -117,7 +117,7 @@ namespace Knoodle
         // Move assignment operator
         Link_2D & operator=( Link_2D && other ) = default;
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
         explicit Link_2D( const I edge_count_ )

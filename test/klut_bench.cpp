@@ -371,7 +371,7 @@ int main(int argc, char* argv[])
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
-    int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 4)
+    int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 2)
     double ssn_tolerance = -1;   // --ssn-tolerance=X: Reapr energy-min tolerance (>0 to override)
     long   ssn_max_iter  = -1;   // --ssn-max-iter=N: Reapr energy-min max iterations (>=0 to override)
     double scaling       = -1;   // --scaling=X: Reapr embedding scaling (>0 to override)

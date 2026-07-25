@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Returns how many arcs there were in the original planar diagram, before any simplifications.
+/*!@brief Returns how many arcs there were in the original planar diagram, before any simplifications.
  */
 
 Int MaxArcCount() const
@@ -8,7 +8,7 @@ Int MaxArcCount() const
     return max_arc_count;
 }
 
-/*! @brief Returns the number of arcs in the planar diagram.
+/*!@brief Returns the number of arcs in the planar diagram.
  */
 
 Int ArcCount() const
@@ -16,7 +16,7 @@ Int ArcCount() const
     return arc_count;
 }
 
-/*! @brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
+/*!@brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
@@ -37,7 +37,7 @@ cref<ArcContainer_T> Arcs()
     return A_cross;
 }
 
-/*! @brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
+/*!@brief Returns the arcs that connect the crossings as a reference to a Tensor2 object.
  *
  * The `a`-th arc is stored in `Arcs()(a,i)`, `i = 0,1`, in the following way:
  *
@@ -54,7 +54,7 @@ cref<ArcContainer_T> Arcs() const
     return A_cross;
 }
 
-/*! @brief Returns the states of the arcs.
+/*!@brief Returns the states of the arcs.
  *
  *  The states that an arc can have are:
  *
@@ -86,7 +86,7 @@ ArcState_T ArcState( const Int a ) const
     return A_state[a];
 }
 
-/*! @brief Checks whether arc `a` is still active.
+/*!@brief Checks whether arc `a` is still active.
  */
 
 bool ArcActiveQ( const Int a ) const
@@ -117,7 +117,7 @@ Int CountActiveArcs() const
 
 private:
     
-/*! @brief Deactivates arc `a`. Only for internal use.
+/*!@brief Deactivates arc `a`. Only for internal use.
  */
 
 void DeactivateArc( const Int a )

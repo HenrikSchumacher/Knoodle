@@ -113,7 +113,7 @@ namespace Knoodle
         KnotEmbedding & operator=( KnotEmbedding && other ) = default;
         
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<typename I>
         explicit KnotEmbedding( const I edge_count_ )

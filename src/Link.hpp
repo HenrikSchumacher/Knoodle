@@ -2,7 +2,7 @@
 
 namespace Knoodle
 {
-    /*! @brief A class to compute and store the combinatorics of a link.
+    /*!@brief A class to compute and store the combinatorics of a link.
      *
      *  @tparam Int_ Integral type for storing indices.
      */
@@ -54,7 +54,7 @@ namespace Knoodle
         
     private:
         
-        /*! @brief This constructor only allocates some internal arrays. Only for internal use.
+        /*!@brief This constructor only allocates some internal arrays. Only for internal use.
          */
         
         template<typename I_0 >
@@ -69,7 +69,7 @@ namespace Knoodle
         
     public:
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I_0 >
         explicit Link( const I_0 edge_count_ )
@@ -103,7 +103,7 @@ namespace Knoodle
             next_edge[n-1] = 0;
         }
         
-        /*! @brief Initialize from component pointers and component colors. Inputs will be consumed.
+        /*!@brief Initialize from component pointers and component colors. Inputs will be consumed.
          *
          * @param component_ptr_ An array that indicates how many connected components there are which vertices are contained in each component. In the case of k components the array must have size `k+1`. The entries must be increasing integers starting at 0. Then the vertices of the i-th component are `component_ptr_[i],...,component_ptr_[i-1]-1`.
          *
@@ -148,7 +148,7 @@ namespace Knoodle
         }
         
 
-        /*! @brief Construct oriented `Link` from a list of oriented edges in interleaved form and a list of edge colors .
+        /*!@brief Construct oriented `Link` from a list of oriented edges in interleaved form and a list of edge colors .
          *
          *  @param edges_ Array of integers of length `2 * edge_count_`. Entries at odd positions are treated as tails; entries at even positions are treated as heads.
          *
@@ -178,7 +178,7 @@ namespace Knoodle
         }
         
         
-        /*! @brief Reads edges from the array `edges_`. Precondition: The edges must be oriented consistently and they must form a graph in which each vertex has a unique income and a unique outgoing edge.
+        /*!@brief Read edges from the array `edges_`. Precondition: The edges must be oriented consistently and they must form a graph in which each vertex has a unique income and a unique outgoing edge.
          *
          *  The edges will be reordered so that all edges belonging to a connected component lie consecutively and cyclically ordered in memory. This is imporatant for the working of the AABB tree.
          *
@@ -376,15 +376,13 @@ namespace Knoodle
         
     public:
         
-        /*! @brief Returns the number of components of the link.
-         */
-        
+        /*!@brief Return the number of components of the link. */
         Int ComponentCount() const
         {
             return static_cast<Int>(component_ptr.Size()-1);
         }
         
-////        /*! @brief This returns the component in which edge `e` lies.
+////        /*!@brief This returns the component in which edge `e` lies.
 ////         */
 ////        
 //        Int EdgeComponent( const Int e ) const
@@ -392,17 +390,13 @@ namespace Knoodle
 //            return (cyclicQ) ? Int(0) : edge_component[e];
 //        }
         
-        /*! @brief Returns the first vertex in component `c`.
-         */
-        
+        /*!@brief Return the first vertex in component `c`. */
         Int ComponentBegin( const Int c ) const
         {
             return component_ptr[c];
         }
                 
-        /*! @brief Returns the first vertex in component `c`.
-         */
-        
+        /*!@brief Return the first vertex in component `c`. */
         Int ComponentEnd( const Int c ) const
         {
             return component_ptr[c+1];
@@ -418,50 +412,38 @@ namespace Knoodle
             return component_color;
         }
         
-        /*! @brief Returns the number of vertices in component `c`.
-         */
-        
+        /*!@brief Return the number of vertices in component `c`.*/
         Int ComponentSize( const Int c ) const
         {
             return component_ptr[c+1] - component_ptr[c];
         }
         
-        /*! @brief Returns the total number of vertices.
-         */
-        
+        /*!@brief Return the total number of vertices.*/
         Int VertexCount() const
         {
             return edge_count;
         }
         
-        /*! @brief Returns the number of vertices in component `c`.
-         */
-        
+        /*!@brief Return the number of vertices in component `c`.*/
         Int VertexCount( const Int c ) const
         {
             return component_ptr[c+1] - component_ptr[c];
         }
         
-        /*! @brief Returns the total number of edges.
-         */
-        
+        /*!@brief Return the total number of edges. */
         Int EdgeCount() const
         {
             return edge_count;
         }
         
-        /*! @brief Returns the number of edges in component `c`.
-         */
-        
+        /*!@brief Return the number of edges in component `c`. */
         Int EdgeCount( const Int c ) const
         {
             return component_ptr[c+1] - component_ptr[c];
         }
         
         
-        /*! @brief Checks whether edges `i` and `j` are neighbors of each other.
-         */
-        
+        /*!@brief Check whether edges `i` and `j` are neighbors of each other. */
         bool EdgesAreNeighborsQ( const Int i, const Int j ) const
         {
             return (i == j) || (i == next_edge[j]) || (j == next_edge[i]);
@@ -474,7 +456,7 @@ namespace Knoodle
         }
         
         
-        /*! @brief Returns the edge that follows `i` when traversing `i`'s link component in positive orientation.
+        /*!@brief Return the edge that follows `i` when traversing `i`'s link component in positive orientation.
          */
         
         Int NextEdge( const Int i ) const
@@ -522,12 +504,11 @@ namespace Knoodle
 //        }
 
     
-        /*! @brief Returns a reference to the list of edges.
+        /*!@brief Return a reference to the list of edges.
          *
-         *  The tail of the edge `i` is given by `Edges()(i,0)`.
-         *  The head of the edge `i` is given by `Edges()(i,1)`.
+         *  - The tail of the edge `i` is given by `Edges()(i,0)`.
+         *  - The head of the edge `i` is given by `Edges()(i,1)`.
          */
-        
         cref<EdgeContainer_T> Edges() const
         {
             return edges;
@@ -565,16 +546,14 @@ namespace Knoodle
         
     public:
         
+        
         static std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        /*! @brief Returns the name of the class, including template parameters.
-         *
-         *  Used for logging, profiling, and error handling.
+        /*!@brief Return the name of the class, including template parameters. Used for logging, profiling, and error handling.
          */
-
         static std::string ClassName()
         {
             return ct_string("Link") + "<" + TypeName<Int> + ">";

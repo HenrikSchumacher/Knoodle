@@ -81,7 +81,6 @@ static void MacLeodCode_to_LongMacLeodCode(
 
 
 /*!@brief Write MacLeod code to buffer. */
-
 template<IntQ T = UInt>
 void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 {
@@ -107,7 +106,6 @@ void WriteMacLeodCode( mptr<T> s_mac_leod ) const
 }
 
 /*!@brief Return MacLeod code. */
-
 template<IntQ T = UInt>
 Tensor1<T,Int> MacLeodCode() const
 {
@@ -132,7 +130,6 @@ Tensor1<T,Int> MacLeodCode() const
 }
 
 /*!@brief Create a new `PlanarDiagram` from a MacLeod code. */
-
 template<IntQ T, IntQ ExtInt, IntQ ExtInt2>
 static PD_T FromMacLeodCode(
     cptr<T>       s_mac_leod,
