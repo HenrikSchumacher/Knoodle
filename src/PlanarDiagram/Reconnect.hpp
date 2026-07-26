@@ -1,3 +1,5 @@
+public:
+
 // TODO: Might be obsolete.
 template<bool io>
 void SetMatchingPortTo( const Int c, const Int a, const Int b )
