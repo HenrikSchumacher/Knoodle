@@ -25,15 +25,15 @@ public:
 //        return static_cast<double>(c_0);
 //    }
     
-    Sign_T Sign() const
+    friend Sign_T Sign( cref<Polynomial3> P )
     {
-        Sign_T sign = c_0.Sign();
+        Sign_T sign = Sign(P.c_0);
         if( sign != Sign_T(0) ) return sign;
         
-        sign = c_1.Sign();
+        sign = Sign(P.c_1);
         if( sign != Sign_T(0) ) return sign;
         
-        sign = c_3.Sign();
+        sign = Sign(P.c_3);
         if( sign != Sign_T(0) ) return sign;
         
         return Sign_T(0);
@@ -58,7 +58,7 @@ public:
     {
         std::stringstream s;
         
-        s << "Polynomial3{ " << P.c_0 << ", " << P.c_1 << ", " << P.c_3 << " }";
+        s << "Polynomial3{ " << ToString(P.c_0) << ", " << ToString(P.c_1) << ", " << ToString(P.c_3) << " }";
         
         return s.str();
     }

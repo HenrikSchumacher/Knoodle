@@ -1,6 +1,7 @@
 #pragma  once
 
-#include "Prosector2.hpp"
+//#include "Prosector2.hpp"
+#include "Prosector3.hpp"
 
 namespace Knoodle
 {
@@ -59,7 +60,7 @@ namespace Knoodle
         using EContainer_T    = typename Tree3_T::EContainer_T;
         using BContainer_T    = typename Tree2_T::BContainer_T;
          
-        using Prosector_T     = Prosector2<IReal,Int>;
+        using Prosector_T     = Prosector3<IReal,Int>;
         using Intersection_T  = Prosector_T::Intersection;
         using Time_T          = Prosector_T::IntersectionTime;
         

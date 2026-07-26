@@ -2,11 +2,11 @@
 
 // Boost: Rather slow, but maybe I missed something.
 #include <boost/multiprecision/cpp_int.hpp>
-namespace Knoodle
-{
-    using Int128  = boost::multiprecision::int128_t;
-    using Int256  = boost::multiprecision::int256_t;
-}
+//namespace Knoodle
+//{
+//    using Int128  = boost::multiprecision::int128_t;
+//    using Int256  = boost::multiprecision::int256_t;
+//}
 
 
 //// Wide integer class from https://github.com/ckormanyos/wide-integer
@@ -32,17 +32,17 @@ namespace Knoodle
 
 namespace Tools
 {
-    template<> constexpr const char * TypeName<Knoodle::Int128>  = "I128";
-    template<> constexpr const char * FullTypeName<Knoodle::Int128>  = "boost::multiprecision::int128_t";
+    template<> constexpr const char * TypeName<boost::multiprecision::int128_t>  = "Boost_I128";
+    template<> constexpr const char * FullTypeName<boost::multiprecision::int128_t>  = "boost::multiprecision::int128_t";
     
     namespace Scalar
     {
-        template<> constexpr bool RealQ<Knoodle::Int128> = true;
-        template<> constexpr bool ComplexQ<Knoodle::Int128> = false;
+        template<> constexpr bool RealQ<boost::multiprecision::int128_t> = true;
+        template<> constexpr bool ComplexQ<boost::multiprecision::int128_t> = false;
     }
     
     // String generator.
-    std::string ToString( cref<Knoodle::Int128> number )
+    std::string ToString( cref<boost::multiprecision::int128_t> number )
     {
         std::stringstream s;
         s << number;
@@ -50,13 +50,13 @@ namespace Tools
     }
 
     // String generator to make it work with OutString.
-    template<> struct ToChars<Knoodle::Int128>
+    template<> struct ToChars<boost::multiprecision::int128_t>
     {
         static constexpr bool implementedQ = true;
         
         static constexpr Size_T char_count = 40;
         
-        ToCharResult operator()( char * begin, char * end, const Knoodle::Int128 & x ) const
+        ToCharResult operator()( char * begin, char * end, const boost::multiprecision::int128_t & x ) const
         {
             std::string s = ToString(x);
             
@@ -75,17 +75,17 @@ namespace Tools
     };
     
     
-    template<> constexpr const char * TypeName<Knoodle::Int256>  = "I256";
-    template<> constexpr const char * FullTypeName<Knoodle::Int256>  = "boost::multiprecision::int256_t";
+    template<> constexpr const char * TypeName<boost::multiprecision::int256_t>  = "Boost_I256";
+    template<> constexpr const char * FullTypeName<boost::multiprecision::int256_t>  = "boost::multiprecision::int256_t";
     
     namespace Scalar
     {
-        template<> constexpr bool RealQ<Knoodle::Int256> = true;
-        template<> constexpr bool ComplexQ<Knoodle::Int256> = false;
+        template<> constexpr bool RealQ<boost::multiprecision::int256_t> = true;
+        template<> constexpr bool ComplexQ<boost::multiprecision::int256_t> = false;
     }
     
     // String generator.
-    std::string ToString( cref<Knoodle::Int256> number )
+    std::string ToString( cref<boost::multiprecision::int256_t> number )
     {
         std::stringstream s;
         s << number;
@@ -93,13 +93,13 @@ namespace Tools
     }
     
     // String generator to make it work with OutString.
-    template<> struct ToChars<Knoodle::Int256>
+    template<> struct ToChars<boost::multiprecision::int256_t>
     {
         static constexpr bool implementedQ = true;
         
         static constexpr Size_T char_count = 79;
         
-        ToCharResult operator()( char * begin, char * end, const Knoodle::Int256 & x ) const
+        ToCharResult operator()( char * begin, char * end, const boost::multiprecision::int256_t & x ) const
         {
             std::string s = ToString(x);
             

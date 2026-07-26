@@ -26,7 +26,7 @@ namespace Knoodle
      * @tparam Idx_ Integral type used for indices.
      */
     template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector final
+    class Prosector3 final
     {
     public:
         
@@ -47,21 +47,19 @@ namespace Knoodle
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
-        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,Int128>;
+        using LInt   = std::conditional_t<SameQ< Int,Int32>,WInt64,WInt128>;
         /*!@brief Even longer integral type used for internal computations.*/
-        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int128,Int256>;
-        
-//        /*!@brief Longer integral type used for internal computations.*/
-//        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int128,Int128>;
-//        /*!@brief Even longer integral type used for internal computations.*/
-//        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int256,Int256>;
+        using LLInt  = std::conditional_t<SameQ<LInt,WInt64>,WInt128,WInt256>;
         
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-//        using Prosector_T = Prosector<Idx>;
-        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
-        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
+        using Prosector_T = Prosector3<Idx>;
+//        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
+//        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
+        
+        using Vector3_T   = std::array<Int,3>;
+        using LVector3_T  = std::array<LInt,3>;
         
         /*!@brief Flag that indicates whether an intersection was found or whether an error occurred.*/
         enum class Flag_T : int
@@ -91,18 +89,18 @@ namespace Knoodle
 
         
         // Default constructor
-        Prosector() = default;
+        Prosector3() = default;
         // Default destructor
-        ~Prosector() = default;
+        ~Prosector3() = default;
         
         // Copy constructor
-        Prosector( const Prosector & other ) = default;
+        Prosector3( const Prosector3 & other ) = default;
         // Copy assignment operator
-        Prosector & operator=( const Prosector & other ) = default;
+        Prosector3 & operator=( const Prosector3 & other ) = default;
         // Move constructor
-        Prosector( Prosector && other ) = default;
+        Prosector3( Prosector3 && other ) = default;
         // Move assignment operator
-        Prosector & operator=( Prosector && other ) = default;
+        Prosector3 & operator=( Prosector3 && other ) = default;
         
     protected:
 
@@ -154,15 +152,32 @@ namespace Knoodle
             const Idx k, cptr<Int> x0, cptr<Int> x1, const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
+            print("Hello");
             flag = Flag_T::Uninitialized;
 
             k_ = k;
             l_ = l;
             
-            x_0.Read(x0);
-            x_1.Read(x1);
-            y_0.Read(y0);
-            y_1.Read(y1);
+            x_0[0] = x0[0];
+            x_0[1] = x0[1];
+            x_0[2] = x0[2];
+            
+            x_1[0] = x1[0];
+            x_1[1] = x1[1];
+            x_1[2] = x1[2];
+            
+            y_0[0] = y0[0];
+            y_0[1] = y0[1];
+            y_0[2] = y0[2];
+            
+            y_1[0] = y1[0];
+            y_1[1] = y1[1];
+            y_1[2] = y1[2];
+            
+//            x_0.Read(x0);
+//            x_1.Read(x1);
+//            y_0.Read(y0);
+//            y_1.Read(y1);
             
             
             //  x_1     e     y_1
@@ -177,10 +192,10 @@ namespace Knoodle
             //      X------>X
             //  x_0     d     y_0
 //            
-            Vector3_T u { x_1[0]-x_0[0], x_1[1]-x_0[1], x_1[2]-x_0[2] };
-            Vector3_T v { y_1[0]-y_0[0], y_1[1]-y_0[1], y_1[2]-y_0[2] };
-            Vector3_T p { y_1[0]-x_0[0], y_1[1]-x_0[1], y_1[2]-x_0[2] };
-            Vector3_T q { x_1[0]-y_0[0], x_1[1]-y_0[1], x_1[2]-y_0[2] };
+            Vector3_T u { x_1[0] - x_0[0], x_1[1] - x_0[1], x_1[2] - x_0[2] };
+            Vector3_T v { y_1[0] - y_0[0], y_1[1] - y_0[1], y_1[2] - y_0[2] };
+            Vector3_T p { y_1[0] - x_0[0], y_1[1] - x_0[1], y_1[2] - x_0[2] };
+//            Vector3_T q { x_1[0] - y_0[0], x_1[1] - y_0[1], x_1[2] - y_0[2] };
             
             // TODO: It should be possible to compute this with only 3 cross products.
             uxv = cross(u,v);   // Does not overflow.
@@ -189,14 +204,22 @@ namespace Knoodle
 //            uxq = Cross(u,q);   // Does not overflow.
             //   q ==   v -   p +   u
             // uxq == uxv - uxp + uxu
-            uxq = uxv - uxp;
+            // uxq =  uxv - uxp;
+            uxq[0] = uxv[0] - uxp[0];
+            uxq[1] = uxv[1] - uxp[1];
+            uxq[2] = uxv[2] - uxp[2];
 
             vxp = cross(v,p);   // Does not overflow.
 //            vxq = Cross(v,q);   // Does not overflow.
             //   q ==   v -   p +   u
             // vxq == vxv - vxp + vxu
-            vxq = -vxp - uxv;
+            // vxq = -vxp - uxv;
+            vxq[0] = -vxp[0] - uxv[0];
+            vxq[1] = -vxp[1] - uxv[1];
+            vxq[2] = -vxp[2] - uxv[2];
+            
 
+            TOOLS_DUMP(verboseQ);
             
             if constexpr ( verboseQ )
             {
@@ -211,13 +234,27 @@ namespace Knoodle
                 TOOLS_LOGDUMP(u);
                 TOOLS_LOGDUMP(v);
                 TOOLS_LOGDUMP(p);
-                TOOLS_LOGDUMP(q);
+//                TOOLS_LOGDUMP(q);
                 
-                TOOLS_LOGDUMP(uxv);
-                TOOLS_LOGDUMP(uxp);
-                TOOLS_LOGDUMP(uxq);
-                TOOLS_LOGDUMP(vxp);
-                TOOLS_LOGDUMP(vxq);
+                logvalprint("uxv[0]",uxv[0].ToNumber());
+                logvalprint("uxv[1]",uxv[1].ToNumber());
+                logvalprint("uxv[2]",uxv[2].ToNumber());
+                
+                logvalprint("uxp[0]",uxp[0].ToNumber());
+                logvalprint("uxp[1]",uxp[1].ToNumber());
+                logvalprint("uxp[2]",uxp[2].ToNumber());
+                
+                logvalprint("uxq[0]",uxq[0].ToNumber());
+                logvalprint("uxq[1]",uxq[1].ToNumber());
+                logvalprint("uxq[2]",uxq[2].ToNumber());
+                
+                logvalprint("vxp[0]",vxp[0].ToNumber());
+                logvalprint("vxp[1]",vxp[1].ToNumber());
+                logvalprint("vxp[2]",vxp[2].ToNumber());
+                
+                logvalprint("vxq[0]",vxq[0].ToNumber());
+                logvalprint("vxq[1]",vxq[1].ToNumber());
+                logvalprint("vxq[2]",vxq[2].ToNumber());
             }
         }
         
@@ -396,9 +433,13 @@ namespace Knoodle
 //                          + LLInt{y_1[1]-x_0[1]} * uxv[1]
 //                          + LLInt{y_1[2]-x_0[2]} * uxv[2];
             
-            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * LLInt{uxv[0]}
-                          + LLInt{y_1[1]-x_0[1]} * LLInt{uxv[1]}
-                          + LLInt{y_1[2]-x_0[2]} * LLInt{uxv[2]};
+//            LLInt det_3   = LLInt{y_1[0]-x_0[0]} * LLInt{uxv[0]}
+//                          + LLInt{y_1[1]-x_0[1]} * LLInt{uxv[1]}
+//                          + LLInt{y_1[2]-x_0[2]} * LLInt{uxv[2]};
+            
+            LLInt det_3 = long_mul(y_1[0]-x_0[0],uxv[0])
+                        + long_mul(y_1[1]-x_0[1],uxv[1])
+                        + long_mul(y_1[2]-x_0[2],uxv[2]);
             
 //            Vector3_T d = p - v; // == u - q
 //            LLInt det_3_d = LLInt{d[0]} * LLInt{uxv[0]}
@@ -417,7 +458,7 @@ namespace Knoodle
             }
                         
             Polynomial3 Q { uxv[2], uxv[0], uxv[1] };
-            Sign_T sign_2 = Q.Sign();
+            Sign_T sign_2 = Sign(Q);
             
             if( sign_2 == Sign_T(0) )
             {
@@ -456,12 +497,13 @@ namespace Knoodle
         
         static std::string ClassName()
         {
-            return ct_string("Prosector")
+            return ct_string("Prosector3")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
+                + "," + ToString(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector
+    }; // class Prosector3
     
 } // namespace Knoodle

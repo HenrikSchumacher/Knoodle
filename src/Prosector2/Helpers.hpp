@@ -1,11 +1,11 @@
 public:
 
-TOOLS_FORCE_INLINE static Sign_T Sign( const Int128 & z )
+TOOLS_FORCE_INLINE static Sign_T Sign( const boost::multiprecision::int128_t & z )
 {
     return static_cast<Sign_T>(z > 0) - static_cast<Sign_T>(z < 0);
 }
 
-TOOLS_FORCE_INLINE static Sign_T Sign( const Int256 & z )
+TOOLS_FORCE_INLINE static Sign_T Sign( const boost::multiprecision::int256_t & z )
 {
     return static_cast<Sign_T>(z > 0) - static_cast<Sign_T>(z < 0);
 }

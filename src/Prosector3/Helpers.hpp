@@ -1,11 +1,11 @@
 public:
 
-TOOLS_FORCE_INLINE static cref<LVector3_T> cross( cref<Vector3_T> a, cref<Vector3_T> b )
-{
+TOOLS_FORCE_INLINE static LVector3_T cross( cref<Vector3_T> a, cref<Vector3_T> b )
+{    
     return LVector3_T {
-        long_mul(a[1],b[2]) - long_mul(a[2],b[1]),
-        long_mul(a[2],b[0]) - long_mul(a[0],b[2]),
-        long_mul(a[0],b[1]) - long_mul(a[1],b[0])
+        long_det(a[1],a[2],b[1],b[2]),
+        long_det(a[2],a[0],b[2],b[0]),
+        long_det(a[0],a[1],b[0],b[1])
     };
 }
 
