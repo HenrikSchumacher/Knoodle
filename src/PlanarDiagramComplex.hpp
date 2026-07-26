@@ -62,7 +62,11 @@ namespace Knoodle
         friend class ArcSimplifier<Int,4,true >;
         
         friend class PassSimplifier<Int>;
-        
+
+        // Downstream middle-strand rerouting pass; see
+        // handoff/middle-strand-simplifier-friend-access/.
+        friend class MiddleStrandSimplifier<Int>;
+
     private:
         
         // Class data members

@@ -56,6 +56,12 @@ namespace Knoodle
     template<IntQ Int> class PlanarDiagramComplex;
     template<FloatQ Real, IntQ Int, FloatQ BReal> class Reapr;
     template<typename PD_T> class OrthoDraw;
+
+    // Defined downstream (middlestrands project), not in this tree. Declared
+    // here only so PlanarDiagram/PlanarDiagramComplex can befriend it; an
+    // undefined class template that is never instantiated costs nothing.
+    // See handoff/middle-strand-simplifier-friend-access/.
+    template<IntQ Int> class MiddleStrandSimplifier;
 }
 
 #include "src/PlanarDiagramComplex/LoopRemover.hpp"
