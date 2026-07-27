@@ -25,7 +25,7 @@ namespace Knoodle
      *
      * @tparam Idx_ Integral type used for indices.
      */
-    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
+    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false> // DEBUGGING (verboseQ)
     class Prosector3 final
     {
     public:
@@ -54,7 +54,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-        using Prosector_T = Prosector3<Idx>;
+        using Prosector_T = Prosector3<Int,Idx,verboseQ>;
 //        using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
 //        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
@@ -152,7 +152,6 @@ namespace Knoodle
             const Idx k, cptr<Int> x0, cptr<Int> x1, const Idx l, cptr<Int> y0, cptr<Int> y1
         )
         {
-            print("Hello");
             flag = Flag_T::Uninitialized;
 
             k_ = k;
@@ -218,8 +217,6 @@ namespace Knoodle
             vxq[1] = -vxp[1] - uxv[1];
             vxq[2] = -vxp[2] - uxv[2];
             
-
-            TOOLS_DUMP(verboseQ);
             
             if constexpr ( verboseQ )
             {
@@ -236,25 +233,25 @@ namespace Knoodle
                 TOOLS_LOGDUMP(p);
 //                TOOLS_LOGDUMP(q);
                 
-                logvalprint("uxv[0]",uxv[0].ToNumber());
-                logvalprint("uxv[1]",uxv[1].ToNumber());
-                logvalprint("uxv[2]",uxv[2].ToNumber());
+                logvalprint("uxv[0]",ToDouble(uxv[0]));
+                logvalprint("uxv[1]",ToDouble(uxv[1]));
+                logvalprint("uxv[2]",ToDouble(uxv[2]));
                 
-                logvalprint("uxp[0]",uxp[0].ToNumber());
-                logvalprint("uxp[1]",uxp[1].ToNumber());
-                logvalprint("uxp[2]",uxp[2].ToNumber());
+                logvalprint("uxp[0]",ToDouble(uxp[0]));
+                logvalprint("uxp[1]",ToDouble(uxp[1]));
+                logvalprint("uxp[2]",ToDouble(uxp[2]));
                 
-                logvalprint("uxq[0]",uxq[0].ToNumber());
-                logvalprint("uxq[1]",uxq[1].ToNumber());
-                logvalprint("uxq[2]",uxq[2].ToNumber());
+                logvalprint("uxq[0]",ToDouble(uxq[0]));
+                logvalprint("uxq[1]",ToDouble(uxq[1]));
+                logvalprint("uxq[2]",ToDouble(uxq[2]));
                 
-                logvalprint("vxp[0]",vxp[0].ToNumber());
-                logvalprint("vxp[1]",vxp[1].ToNumber());
-                logvalprint("vxp[2]",vxp[2].ToNumber());
+                logvalprint("vxp[0]",ToDouble(vxp[0]));
+                logvalprint("vxp[1]",ToDouble(vxp[1]));
+                logvalprint("vxp[2]",ToDouble(vxp[2]));
                 
-                logvalprint("vxq[0]",vxq[0].ToNumber());
-                logvalprint("vxq[1]",vxq[1].ToNumber());
-                logvalprint("vxq[2]",vxq[2].ToNumber());
+                logvalprint("vxq[0]",ToDouble(vxq[0]));
+                logvalprint("vxq[1]",ToDouble(vxq[1]));
+                logvalprint("vxq[2]",ToDouble(vxq[2]));
             }
         }
         

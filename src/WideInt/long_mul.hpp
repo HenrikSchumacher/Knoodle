@@ -1,6 +1,6 @@
 public:
     
-TOOLS_FORCE_INLINE friend constexpr Prod_T long_mul( cref<WideInt> a, cref<WideInt> b )
+TOOLS_FORCE_INLINE constexpr friend  Prod_T long_mul( cref<WideInt> a, cref<WideInt> b )
 {
     // See also https://stackoverflow.com/a/1815371/8248900.
     
@@ -38,7 +38,7 @@ TOOLS_FORCE_INLINE friend constexpr Prod_T long_mul( cref<WideInt> a, cref<WideI
 
 private:
 
-TOOLS_FORCE_INLINE friend constexpr Prod_T long_mul_1( cref<WideInt> a, cref<WideInt> b )
+TOOLS_FORCE_INLINE constexpr friend  Prod_T long_mul_1( cref<WideInt> a, cref<WideInt> b )
 {
     Prod_T r;
     const Comp_T X = As_Comp(a[0]) * As_Comp(b[0]);
@@ -47,7 +47,7 @@ TOOLS_FORCE_INLINE friend constexpr Prod_T long_mul_1( cref<WideInt> a, cref<Wid
     return r;
 }
 
-TOOLS_FORCE_INLINE friend constexpr Prod_T long_mul_2( cref<WideInt> a, cref<WideInt> b )
+TOOLS_FORCE_INLINE constexpr friend  Prod_T long_mul_2( cref<WideInt> a, cref<WideInt> b )
 {
     Prod_T r;
     Comp_T R_2;

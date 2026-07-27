@@ -116,4 +116,18 @@ namespace Tools
             }
         }
     };
+    
+}
+
+namespace Knoodle
+{
+    double ToDouble( cref<boost::multiprecision::int128_t> a )
+    {
+        return static_cast<double>(a);
+    }
+    
+    double ToDouble( cref<boost::multiprecision::int256_t> a )
+    {
+        return static_cast<double>(a);
+    }
 }

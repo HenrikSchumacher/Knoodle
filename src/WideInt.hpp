@@ -39,6 +39,9 @@ namespace Knoodle
         
         static_assert(comp_bit_count >= Size_T(2) * limb_bit_count,"");
         
+        /*!@ A std::bitset with the same width as the internal list of limbs. Used to accelerate bitwise operations.*/
+        using BitSet_T = std::bitset<bit_count>;
+        
         static constexpr Limb_T zero_limb = Limb_T{0};
         static constexpr Comp_T zero_comp = Comp_T{0};
         
@@ -79,7 +82,6 @@ namespace Knoodle
             return As_Comp(As_Limb(a));
         }
         
-        
         TOOLS_FORCE_INLINE static constexpr Limb_T Hi_Limb( cref<Comp_T> a )
         {
             // This automatically discards extra digits of Comp_t.
@@ -90,6 +92,18 @@ namespace Knoodle
         {
             // This automatically discards extra digits of Comp_t.
             return As_Limb(a);
+        }
+        
+        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( cref<This_T> a )
+        {
+            const BitSet_T * a_ptr = reinterpret_cast<const BitSet_T *>(&a.limbs[0]);
+            return *a_ptr;
+        }
+        
+        TOOLS_FORCE_INLINE constexpr friend const BitSet_T & As_BitSet( mref<This_T> a )
+        {
+            const BitSet_T * a_ptr = reinterpret_cast<BitSet_T *>(&a.limbs[0]);
+            return *a_ptr;
         }
         
     private:
@@ -106,13 +120,23 @@ namespace Knoodle
             // No need to fill up  with zeroes as WideInt is initialized by 0.
         }
         
+        constexpr explicit WideInt( cref<BitSet_T> a  )
+        {
+            copy_buffer<byte_count>(
+                reinterpret_cast<const std::byte *>(&a),
+                reinterpret_cast<      std::byte *>(&limbs[0])
+            );
+        }
+        
         constexpr explicit WideInt( cptr<Limb_T> a  )
         {
+            // CAUTION: We do _not_ use memcopy because that might not be portable.
             for( Size_T i = 0; i < limb_count; ++i )
             {
                 limbs[i] = a[i];
             }
         }
+        
         constexpr explicit WideInt( cptr<Limb_T> a, Size_T a_size )
         {
             if( a_size > limb_count )
@@ -186,7 +210,7 @@ namespace Knoodle
         }
         
         /*!@brief Preincrement.*/
-        constexpr This_T & operator++()
+        TOOLS_FORCE_INLINE constexpr This_T & operator++()
         {
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(max_limb + Limb_T(1)) == zero_limb,"");
@@ -201,7 +225,7 @@ namespace Knoodle
         }
         
         /*!@brief Predecrement.*/
-        constexpr This_T & operator--()
+        TOOLS_FORCE_INLINE constexpr This_T & operator--()
         {
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(zero_limb - Limb_T(1)) == max_limb,"");
@@ -216,20 +240,22 @@ namespace Knoodle
         }
         
         /*!@brief Negate this wide integer.*/
-        constexpr This_T & Negate()
+        TOOLS_FORCE_INLINE constexpr This_T & Negate()
         {
-            for( Size_T k = 0; k < limb_count; ++k )
-            {
-                limbs[k] ^= max_limb;
-            }
-            
+//            for( Size_T k = 0; k < limb_count; ++k )
+//            {
+////                limbs[k] ^= max_limb;
+//                limbs[k] = ~limbs[k];
+//            }
+
+            (*this) = ~(*this);
             ++(*this);
             
             return *this;
         }
         
         /*!@brief Return negative of this wide integer.*/
-        constexpr This_T operator-() const
+        TOOLS_FORCE_INLINE constexpr This_T operator-() const
         {
             This_T c { *this };
             (void)c.Negate();
@@ -238,41 +264,21 @@ namespace Knoodle
 
         
         /*!@brief Return the value of the sign but.*/
-        constexpr bool SignBit() const
+        TOOLS_FORCE_INLINE constexpr bool SignBit() const
         {
-//            using S = ToSigned<Limb_T>;
-//            S a = static_cast<S>(limbs[limb_count-Size_T(1)]);
-////            
-////            TOOLS_DUMP(a);
-////            TOOLS_DUMP(limb_count);
-////            TOOLS_DUMP(get_bit(limbs[limb_count-Size_T(1)],limb_bit_count-1));
-////            TOOLS_DUMP(get_bit(limbs[limb_count-Size_T(1)],0));
-////            TOOLS_DUMP(a < S(0));
-//            return a < S(0);
             return get_bit(limbs[limb_count-Size_T(1)],limb_bit_count-Size_T(1));
-//            return static_cast<Limb_T>( limbs[limb_count-Size_T(1)] & sign_mask ) != zero_limb;
         }
         
         /*!@brief Check whether this wide integer is negative.*/
-        constexpr bool NegativeQ() const
+        TOOLS_FORCE_INLINE constexpr bool NegativeQ() const
         {
             if( !signQ ) return false;
             
             return SignBit();
         }
         
-        /*!@brief Check whether this wide integer is zero.*/
-        constexpr bool ZeroQ() const
-        {
-            for( Size_T k = 0; k < limb_count; ++k )
-            {
-                if( limbs[k] != zero_limb ) { return false; }
-            }
-            return true;
-        }
-        
         /*!@brief Check whether this wide integer is positive. (This costs as much as `NegativeQ` and `ZeroQ` together, so it is relatively expensive.) */
-        constexpr bool PositiveQ() const
+        TOOLS_FORCE_INLINE constexpr bool PositiveQ() const
         {
             if constexpr ( signQ )
             {
@@ -286,7 +292,7 @@ namespace Knoodle
         
         /*!@brief Return the sign of  */
         template<SignedIntQ Sign_T = Int8>
-        constexpr friend Sign_T Sign( cref<This_T> a )
+        TOOLS_FORCE_INLINE constexpr friend Sign_T Sign( cref<This_T> a )
         {
             if constexpr ( signQ )
             {
@@ -298,22 +304,8 @@ namespace Knoodle
             return Sign_T(1);
         }
         
-        /*!@brief Test for equality.*/
-        constexpr friend bool operator==( const This_T & a, const This_T & b )
-        {
-            if( &a == &b ) { return true; }
-            
-            // For the equality operator it may be better to start at the bottom as leading bits are often 0.
-            for( Size_T i = 0; i < limb_count; ++i )
-            {
-                if( a[i] != b[i] ) { return false; }
-            }
-            
-            return true;
-        }
-        
         /*!@brief Comparison operator.*/
-        constexpr friend bool operator<( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator<( cref<This_T> a, cref<This_T> b )
         {
             if( a.SignBit() )
             {
@@ -339,82 +331,28 @@ namespace Knoodle
                     return (a - b).SignBit();
                 }
             }
-            
-//            if constexpr ( signQ )
-//            {
-//                if( a.SignBit() )
-//                {
-//                    if( b.SignBit() )
-//                    {
-//                        // If a and b have the same sign, then a - b cannot overflow.
-//                        return (a - b).SignBit();
-//                        
-////                        // Lexicographic ordering.
-////                        for( Size_T i = limb_count; i --> Size_T(0); )
-////                        {
-////                            if( a[i] < b[i] ) { return true; }
-////                            if( a[i] > b[i] ) { return false; }
-////                        }
-////                        return false;
-//                    }
-//                    else
-//                    {
-//                        return true;
-//                    }
-//                }
-//                else
-//                {
-//                    if( b.SignBit() )
-//                    {
-//                        return false;
-//                    }
-//                    else
-//                    {
-//                        // If a and b have the same sign, then a - b cannot overflow.
-//                        return (a - b).SignBit();
-//                        
-//                        // Lexicographic ordering.
-////                        for( Size_T i = limb_count; i --> Size_T(0); )
-////                        {
-////                            if( a[i] < b[i] ) { return true; }
-////                            if( a[i] > b[i] ) { return false; }
-////                        }
-////                        return false;
-//                    }
-//                }
-//            }
-//            else
-//            {
-//                // Lexicographic ordering.
-//                for( Size_T i = limb_count; i --> Size_T(0); )
-//                {
-//                    if( a[i] < b[i] ) { return true; }
-//                    if( a[i] > b[i] ) { return false; }
-//                }
-//                return false;
-//            }
         }
         
         /*!@brief Comparison operator.*/
-        constexpr friend bool operator>=( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator>=( cref<This_T> a, cref<This_T> b )
         {
             return !(a < b);
         }
         
         /*!@brief Comparison operator.*/
-        constexpr friend bool operator>( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator>( cref<This_T> a, cref<This_T> b )
         {
             return (b < a);
         }
         
         /*!@brief Comparison operator.*/
-        constexpr friend bool operator<=( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend bool operator<=( cref<This_T> a, cref<This_T> b )
         {
             return !(b < a);
         }
             
         /*!@brief Three-way comparison operator.*/
-        constexpr friend std::strong_ordering operator<=>( cref<This_T> a, cref<This_T> b )
+        TOOLS_FORCE_INLINE constexpr friend std::strong_ordering operator<=>( cref<This_T> a, cref<This_T> b )
         {
             if( a.SignBit() )
             {
@@ -440,9 +378,8 @@ namespace Knoodle
             return std::strong_ordering::greater;
         }
         
-        
-        
-        constexpr friend This_T operator+( cref<This_T> a, cref<This_T> b )
+        /*!@brief (Short) addition operator. The result is of the same type.*/
+        TOOLS_FORCE_INLINE constexpr friend This_T operator+( cref<This_T> a, cref<This_T> b )
         {
             This_T c {};
             Comp_T X = As_Comp(a[0]) + As_Comp(b[0]);
@@ -456,8 +393,9 @@ namespace Knoodle
             // Carry Hi_Comp(X) is silently lost.
             return c;
         }
-        
-        constexpr friend This_T operator-( cref<This_T> a, cref<This_T> b )
+
+        /*!@brief (Short) subtraction operator. The result is of the same type.*/
+        TOOLS_FORCE_INLINE constexpr friend This_T operator-( cref<This_T> a, cref<This_T> b )
         {
             This_T c {};
             // Using 2's complement representation.
@@ -473,22 +411,22 @@ namespace Knoodle
             // Carry Hi_Comp(X) is silently lost.
             return c;
         }
-        
+
         
         // TODO: constexpr friend This_T operator*( cref<This_T> a, cref<This_T> b )
-        
+
+#include "WideInt/bitwise.hpp"
 #include "WideInt/long_mul.hpp"
 #include "WideInt/long_fma.hpp"
         
     public:
         
-        TOOLS_FORCE_INLINE friend constexpr Prod_T long_det(
+        TOOLS_FORCE_INLINE constexpr friend Prod_T long_det(
             cref<WideInt> a, cref<WideInt> b, cref<WideInt> c, cref<WideInt> d
         )
         {
             return long_mul(a,d) - long_mul(b,c);
         }
-        
         
         
         template<IntQ T = signed __int128>
@@ -504,7 +442,7 @@ namespace Knoodle
             
             for( Size_T i = 0; i < limb_count; ++i )
             {
-                x |= static_cast<T>(b[i]) << s;
+                x |= static_cast<T>(b[i]) << s; // This shift should work with signed types.
                 s += 8 * sizeof(Limb_T);
             }
             
@@ -513,19 +451,47 @@ namespace Knoodle
             return x;
         }
         
+        friend double ToDouble( cref<WideInt> a )
+        {
+            WideInt b = a;
+            
+            bool negativeQ = b.NegativeQ();
+            
+            if( negativeQ ) { b.Negate(); }
+            
+            double x = 0;
+            Size_T s = 0;
+            
+            for( Size_T i = 0; i < limb_count; ++i )
+            {
+                x += static_cast<double>(b[i]) * std::pow(double(2),s);
+                s += Size_T(8) * sizeof(Limb_T);
+            }
+            
+            if( negativeQ ) { x = -x; }
+            
+            return x;
+        }
+        
+        /*!@ Fill the limb buffer with (pseudo)random numbers. With every call the function `fun` is required to generate number that is convertible to `Limb_T`*/
         template<typename RandomFunction_T>
-        void Randomize( mref<RandomFunction_T> fun )
+        TOOLS_FORCE_INLINE void Randomize( mref<RandomFunction_T> fun )
         {
             for( Size_T i = 0; i < limb_count; ++i )
             {
-                limbs[i] = fun();
+                limbs[i] = static_cast<Limb_T>(fun());
             }
         }
         
+//        friend std::string ToString( cref<This_T> c )
+//        {
+//            return
+//            ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
+//        }
+        
         friend std::string ToString( cref<This_T> c )
         {
-            return
-            ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
+            return ToString(ToDouble(c));
         }
         
         template<typename CharT,typename Traits>
@@ -659,11 +625,13 @@ namespace Tools
 
 namespace Knoodle
 {
+    TOOLS_FORCE_INLINE constexpr
     WInt128 long_det( cref<Int64> a, cref<Int64> b, cref<Int64> c, cref<Int64> d )
     {
         return long_det( WInt64(a), WInt64(b), WInt64(c), WInt64(d) );
     }
     
+    TOOLS_FORCE_INLINE constexpr
     WInt64 long_det( cref<Int32> a, cref<Int32> b, cref<Int32> c, cref<Int32> d )
     {
         return WInt64( Int64(a) * Int64(d) - Int64(b) * Int64(c));

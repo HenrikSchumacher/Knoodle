@@ -1,7 +1,7 @@
 public:
 
 TOOLS_FORCE_INLINE static LVector3_T cross( cref<Vector3_T> a, cref<Vector3_T> b )
-{    
+{
     return LVector3_T {
         long_det(a[1],a[2],b[1],b[2]),
         long_det(a[2],a[0],b[2],b[0]),
@@ -12,18 +12,13 @@ TOOLS_FORCE_INLINE static LVector3_T cross( cref<Vector3_T> a, cref<Vector3_T> b
 TOOLS_FORCE_INLINE static Sign_T Sign_Perturbed( cref<LVector3_T> cross_prod )
 {
     if constexpr ( verboseQ ) { logprint(MethodName("Sign_Perturbed")); }
-    Sign_T sign;
-    
-    sign = Sign(cross_prod[2]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
+    Sign_T s = Sign(cross_prod[2]);
+    if( s != Sign_T(0) ) { return s; }
     // In a generic situation, we will seldomly arrive at this point.
-    sign = Sign(cross_prod[0]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
-    sign = Sign(cross_prod[1]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
+    s = Sign(cross_prod[0]);
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign(cross_prod[1]);
+    if( s != Sign_T(0) ) { return s; }
     return Sign_T(0);
 }
 

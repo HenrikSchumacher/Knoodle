@@ -69,13 +69,13 @@ public:
         return (state == Int(-1));
     }
     
-    friend constexpr bool OppositeHandednessQ( CrossingState_T s_0, CrossingState_T s_1 )
+    constexpr friend  bool OppositeHandednessQ( CrossingState_T s_0, CrossingState_T s_1 )
     {
         // Careful, this evaluates to true if both are `Inactive`.
         return ( Sign(s_0.state) == -Sign(s_1.state) );
     }
     
-    friend constexpr bool SameHandednessQ( CrossingState_T s_0, CrossingState_T s_1 )
+    constexpr friend  bool SameHandednessQ( CrossingState_T s_0, CrossingState_T s_1 )
     {
         // Careful, this evaluates to true if both are `Inactive`.
         return ( Sign(s_0.state) == Sign(s_1.state) );
@@ -99,7 +99,7 @@ public:
         }
     }
     
-    friend constexpr Int ToUnderlying( CrossingState_T c_state )
+    constexpr friend  Int ToUnderlying( CrossingState_T c_state )
     {
         return c_state.state;
     }

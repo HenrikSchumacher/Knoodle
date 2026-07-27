@@ -25,7 +25,7 @@ namespace Knoodle
      *
      * @tparam Idx_ Integral type used for indices.
      */
-    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
+    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false> // DEBUGGING (verboseQ)
     class Prosector2 final
     {
     public:
@@ -59,7 +59,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-//        using Prosector_T = Prosector<Idx>;
+        using Prosector_T = Prosector2<Int,Idx,verboseQ>;
         using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
         using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
@@ -211,13 +211,27 @@ namespace Knoodle
                 TOOLS_LOGDUMP(u);
                 TOOLS_LOGDUMP(v);
                 TOOLS_LOGDUMP(p);
-                TOOLS_LOGDUMP(q);
+//                TOOLS_LOGDUMP(q);
                 
-                TOOLS_LOGDUMP(uxv);
-                TOOLS_LOGDUMP(uxp);
-                TOOLS_LOGDUMP(uxq);
-                TOOLS_LOGDUMP(vxp);
-                TOOLS_LOGDUMP(vxq);
+                logvalprint("uxv[0]",ToDouble(uxv[0]));
+                logvalprint("uxv[1]",ToDouble(uxv[1]));
+                logvalprint("uxv[2]",ToDouble(uxv[2]));
+                
+                logvalprint("uxp[0]",ToDouble(uxp[0]));
+                logvalprint("uxp[1]",ToDouble(uxp[1]));
+                logvalprint("uxp[2]",ToDouble(uxp[2]));
+                
+                logvalprint("uxq[0]",ToDouble(uxq[0]));
+                logvalprint("uxq[1]",ToDouble(uxq[1]));
+                logvalprint("uxq[2]",ToDouble(uxq[2]));
+                
+                logvalprint("vxp[0]",ToDouble(vxp[0]));
+                logvalprint("vxp[1]",ToDouble(vxp[1]));
+                logvalprint("vxp[2]",ToDouble(vxp[2]));
+                
+                logvalprint("vxq[0]",ToDouble(vxq[0]));
+                logvalprint("vxq[1]",ToDouble(vxq[1]));
+                logvalprint("vxq[2]",ToDouble(vxq[2]));
             }
         }
         
@@ -459,6 +473,7 @@ namespace Knoodle
             return ct_string("Prosector2")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
+                + "," + ToString(verboseQ)
                 + ">";
         }
         

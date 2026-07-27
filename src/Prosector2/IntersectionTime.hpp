@@ -45,10 +45,10 @@ public:
 //        :   IntersectionTime{ Polynomial3{a_0,a_1,a_2}, Polynomial3{b_0,b_1,b_2} }
 //        {}
     
-//    double ToDouble() const
-//    {
-//        return a.ToDouble() / b.ToDouble();
-//    }
+    friend double ToDouble( cref<IntersectionTime> t )
+    {
+        return ToDouble(t.a) / ToDouble(t.b);
+    }
   
     friend std::strong_ordering operator<=>(
         cref<IntersectionTime> s, cref<IntersectionTime> t

@@ -229,10 +229,10 @@ namespace Knoodle
         {
             Tensor1<double,Int> result ( edge_times.Size() );
             
-//            for( Int i = 0; i < edge_times.Size(); ++i )
-//            {
-//                result[i] = edge_times[i].ToDouble();
-//            }
+            for( Int i = 0; i < edge_times.Size(); ++i )
+            {
+                result[i] = ToDouble(edge_times[i]);
+            }
                 
             return result;
         }

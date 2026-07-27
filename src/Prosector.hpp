@@ -54,7 +54,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-//        using Prosector_T = Prosector<Idx>;
+        using Prosector_T = Prosector<Int,Idx,verboseQ>;
         using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
 //        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         

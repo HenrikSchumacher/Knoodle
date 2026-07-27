@@ -13,18 +13,13 @@ TOOLS_FORCE_INLINE static Sign_T Sign( const boost::multiprecision::int256_t & z
 TOOLS_FORCE_INLINE static Sign_T Sign_Perturbed( cref<LVector3_T> cross_prod )
 {
     if constexpr ( verboseQ ) { logprint(MethodName("Sign_Perturbed")); }
-    Sign_T sign;
-    
-    sign = Sign(cross_prod[2]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
+    Sign_T s = Sign(cross_prod[2]);
+    if( s != Sign_T(0) ) { return s; }
     // In a generic situation, we will seldomly arrive at this point.
-    sign = Sign(cross_prod[0]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
-    sign = Sign(cross_prod[1]);
-    if( sign != Sign_T(0) ) { return sign; }
-    
+    s = Sign(cross_prod[0]);
+    if( s != Sign_T(0) ) { return s; }
+    s = Sign(cross_prod[1]);
+    if( s != Sign_T(0) ) { return s; }
     return Sign_T(0);
 }
 

@@ -31,6 +31,27 @@ namespace Knoodle
     }
     
     template<Size_T limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+    double Test_Sign( Size_T n, Size_T reps, bool verboseQ = false )
+    {
+        using T  = WideInt <limb_count,Limb_T,Comp_T,signQ>;
+        using S  = CheckInt<limb_count,Limb_T,signQ>;
+        
+        PRNG_T engine = InitializedRandomEngine<PRNG_T>();
+        
+        std::uniform_int_distribution<Limb_T> dist (
+            std::numeric_limits<Limb_T>::lowest(), std::numeric_limits<Limb_T>::max()
+        );
+        
+        auto rand = [&engine,&dist](){ return dist(engine); };
+
+        return TestWideInt("Sign",
+            []( cref<T> a ) -> Int8 { return Sign<Int8>(a); },
+            []( cref<S> a ) -> Int8 { return Sign<Int8>(a); },
+            rand, n, reps, verboseQ
+        );
+    }
+    
+    template<Size_T limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
     double Test_Negate( Size_T n, Size_T reps, bool verboseQ = false )
     {
         using T  = WideInt <limb_count,Limb_T,Comp_T,signQ>;

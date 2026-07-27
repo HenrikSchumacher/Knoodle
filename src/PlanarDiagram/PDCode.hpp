@@ -8,7 +8,7 @@ struct PDCode_TArgs_T
     bool farfalleQ = false; /**< Whether anelli shall be converted to farfalla.*/
 };
 
-friend constexpr std::string ToString( cref<PDCode_TArgs_T> args )
+friend std::string ToString( cref<PDCode_TArgs_T> args )
 {
     return std::string("{ ")
         + "signQ = " + ToString(args.signQ)
@@ -508,7 +508,7 @@ struct FromPDCode_TArgs_T
     bool checksQ   = true;
 };
 
-friend constexpr std::string ToString( cref<FromPDCode_TArgs_T> args )
+friend  std::string ToString( cref<FromPDCode_TArgs_T> args )
 {
     return std::string("{ ")
         + "signQ = " + ToString(args.signQ)

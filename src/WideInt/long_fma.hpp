@@ -1,11 +1,37 @@
 public:
 
 
-TOOLS_FORCE_INLINE friend constexpr
+/*!@brief Long fused multiply-add routine that computes `r = a * b + c` and returns `r` in a `WideInt` twice as wide as the inputs.*/
+TOOLS_FORCE_INLINE constexpr friend
 Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 {
     // See also https://stackoverflow.com/a/1815371/8248900.
 
+    // We do not want to create a sign extension of a and b.
+    if constexpr ( signQ )
+    {
+        // TODO: The fact that the sign of c also needs to be flipped makes the idea of fma less attractive. fused multiply-subtract also did not work better than switching the sign of c.
+        
+        if( a.NegativeQ() )
+        {
+            if( b.NegativeQ() )
+            {
+                return long_fma(-a,-b,c);
+            }
+            else
+            {
+                return -long_fma(-a,b,-c);
+            }
+        }
+        else
+        {
+            if( b.NegativeQ() )
+            {
+                return -long_fma(a,-b,-c);
+            }
+        }
+    }
+    
     Prod_T r;
 
     for( Size_T i = 0; i < limb_count; ++i )
@@ -28,7 +54,7 @@ Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 
 
 
-TOOLS_FORCE_INLINE friend constexpr
+TOOLS_FORCE_INLINE constexpr friend
 Prod_T long_fma_1( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 {
     Prod_T r;
@@ -39,7 +65,7 @@ Prod_T long_fma_1( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 }
 
 
-TOOLS_FORCE_INLINE friend constexpr
+TOOLS_FORCE_INLINE constexpr friend 
 Prod_T long_fma_2( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 {
     Prod_T r;

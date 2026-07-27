@@ -520,4 +520,12 @@ namespace Knoodle
         }
     }
     
+    
+    
+    template<IntQ Int>
+    double ToDouble( cref<Int> a )
+    {
+        return static_cast<double>(a);
+    }
+    
 } // namespace Tools

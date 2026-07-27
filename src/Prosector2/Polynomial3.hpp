@@ -20,10 +20,16 @@ public:
     ,   c_3 { c_3_ }
     {}
     
-//    double ToDouble() const
-//    {
-//        return static_cast<double>(c_0);
-//    }
+    friend double ToDouble( cref<Polynomial3> P )
+    {
+        if constexpr ( IntQ<LInt> )
+        {
+            return static_cast<double>(P.c_0);
+        }
+        {
+            return ToDouble(P.c_0);
+        }
+    }
     
     Sign_T Sign() const
     {
