@@ -244,7 +244,7 @@ namespace Knoodle
             {
                 auto r_0 = long_fma(a,b,c);
                 S r;
-//                wide_convert(r_0,r);
+                wide_convert(r_0,r);
             
 //                S a_wint;
 //                S b_wint;

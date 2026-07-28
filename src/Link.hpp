@@ -547,16 +547,16 @@ namespace Knoodle
     public:
         
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
         /*!@brief Return the name of the class, including template parameters. Used for logging, profiling, and error handling.
          */
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Link") + "<" + TypeName<Int> + ">";
+            return std::string("Link") + "<" + TypeName<Int> + ">";
         }
     };
     

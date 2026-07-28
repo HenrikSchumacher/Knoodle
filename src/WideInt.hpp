@@ -511,10 +511,10 @@ namespace Knoodle
         static constexpr std::string ClassName()
         {
             return std::string("WideInt")
-            + "<" + to_ct_string(limb_count)
+            + "<" + ToString(limb_count)
             + "," + TypeName<Limb_T>
             + "," + TypeName<Comp_T>
-            + "," + to_ct_string(signQ)
+            + "," + ToString(signQ)
             + ">";
         }
     };
@@ -605,10 +605,6 @@ namespace Tools
     template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,bool signQ>
     struct TypeNameHelper<typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>>
     {
-        //        static constexpr std::string name()
-        //        {
-        //            return std::string("WI<") + std::string(to_ct_string(limb_count)) + "," + TypeName<Int64> + "," + TypeName<Int128> + ">";
-        //        }
         using Class_T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>;
         
         static constexpr std::string name()
@@ -616,56 +612,6 @@ namespace Tools
             return Class_T::ClassName();
         }
     };
-    
-//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T>
-//    struct TypeNameHelper<typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,false>>
-//    {
-//        static constexpr std::string name()
-//        {
-//            return std::string("WUI<") + std::string(to_ct_string(limb_count)) + "," + TypeName<Int64> + "," + TypeName<Int128> + ">";
-//        }
-//    };
-    
-    
-//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,
-//        typename T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>
-//    >
-//    template<> constexpr std::string TypeNameHelper<T>::name()
-//    {
-//        return std::string("WI<") + newTypeName<Int64> + std::string(",") + newTypeName<Int128> + ">";
-//    }
-    
-//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,
-//        typename T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>
-//    >
-//    template<>
-//    constexpr std::string TypeNameHelper<T>::name()
-//    {
-//        return "A";
-//    }
-    
-//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T>
-//    struct TypeNameHelper<
-//        typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>>
-//    >
-//    {
-//        static constexpr std::string name()
-//        {
-//            return = std::string("Int<")
-//            + std::string(to_ct_string(limb_count))
-//            + std::string(",")
-//            + newTypeName<Limb_T>()
-//            + std::string(",")
-//            //        + newTypeName<Comp_T>
-//            + std::string(to_ct_string(true))
-//            + std::string(">");
-//        }
-//    };
-//
-//    template<>
-//    constexpr std::string
-//    newTypeName<Int128> = std::string("Int<") + std::string(to_ct_string(128)) + std::string(">");
-
     
     namespace Scalar
     {

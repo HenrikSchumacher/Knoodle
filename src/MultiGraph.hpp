@@ -232,14 +232,14 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
                 
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("MultiGraph")
+            return std::string("MultiGraph")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
                 + "," + TypeName<Sign_T>

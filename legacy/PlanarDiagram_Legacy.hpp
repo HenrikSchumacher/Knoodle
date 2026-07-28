@@ -735,7 +735,7 @@ namespace Knoodle
             return sizeof(PD_T) + AllocatedByteCount();
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
@@ -743,9 +743,9 @@ namespace Knoodle
 /*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.
  */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("PlanarDiagram_Legacy")
+            return std::string("PlanarDiagram_Legacy")
                 + "<" + TypeName<Int>
                 + ">";
         } 

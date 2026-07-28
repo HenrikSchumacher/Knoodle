@@ -577,7 +577,7 @@ namespace Knoodle
             BreakEarly      = 2
         };
         
-        static std::string ToString( DFS mode )
+        static constexpr std::string ToString( DFS mode )
         {
             switch( mode )
             {
@@ -895,14 +895,14 @@ namespace Knoodle
             return sizeof(CompleteBinaryTree) + AllocatedByteCount();
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("CompleteBinaryTree")
+            return std::string("CompleteBinaryTree")
                 + "<" + TypeName<Int>
                 + "," + Tools::ToString(precompute_rangesQ)
                 + "," + Tools::ToString(use_manual_stackQ)

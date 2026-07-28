@@ -100,4 +100,8 @@ int main()
     TOOLS_DUMP(s0);
     TOOLS_DUMP(s1);
     TOOLS_DUMP(s2);
+    
+    constexpr std::string s  = ToString(124);
+    
+    TOOLS_DUMP(s);
 }

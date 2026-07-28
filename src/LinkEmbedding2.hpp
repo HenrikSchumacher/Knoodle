@@ -347,14 +347,14 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("LinkEmbedding2")
+            return std::string("LinkEmbedding2")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";
