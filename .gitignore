@@ -79,7 +79,10 @@ test/build/
 
 # Markdown files
 *.md 
-
-*.xcuserstate
-Knoodle.xcodeproj/xcuserdata/*
 doc/*
+
+# user-specific XCode data
+*.xcuserstate
+*.xcodeproj/xcuserdata/*
+*.xcworkspace/
+xcuserdata/
