@@ -93,10 +93,8 @@ namespace Knoodle
             
         }
         
-        
+        tic("Computing f");
         {
-            std::cout <<  "Computing f...\t\t";
-            TimeInterval timer (0);
             for( Size_T rep = 0; rep < reps; ++rep )
             {
                 for( Size_T i = 0; i < n; ++i )
@@ -119,18 +117,14 @@ namespace Knoodle
                     }
                 }
             }
-            
-            timer.Toc();
-            std::cout << timer.Duration() << std::endl;
         }
+        toc("Computing f");
         
-        
+        tic("Computing g");
         {
-            std::cout <<  "Computing g...\t\t";
-            TimeInterval timer (0);
             for( Size_T rep = 0; rep < reps; ++rep )
             {
-                for( Size_T i = 0; i < n; ++i )
+                for( int i = 0; i < n; ++i )
                 {
                     if constexpr (arity == 1 )
                     {
@@ -150,10 +144,8 @@ namespace Knoodle
                     }
                 }
             }
-            
-            timer.Toc();
-            std::cout << timer.Duration() << std::endl;
         }
+        toc("Computing g");
         
         Size_T success_count = 0;
         Size_T idx = static_cast<Size_T>(-1);

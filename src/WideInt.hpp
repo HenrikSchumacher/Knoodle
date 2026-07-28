@@ -14,30 +14,31 @@ namespace Knoodle
      * @tparam Comp_T_ The unsigned integral type used for computations. It needs to be at least twice as wide as `Limb_T`, and it should be the fastest type the processor has available.
      */
     
-    template<Size_T limb_count_, UnsignedIntQ Limb_T_, UnsignedIntQ Comp_T_, bool signQ>
+    template<int limb_count_, UnsignedIntQ Limb_T_, UnsignedIntQ Comp_T_, bool signQ>
     class WideInt
     {
     public:
         
         using Limb_T = Limb_T_;
         using Comp_T = Comp_T_;
+        using Idx    = std::int_fast32_t;
         
-        static constexpr Size_T limb_count = limb_count_;
+        static constexpr Idx limb_count = static_cast<Idx>(limb_count_);
         
-        using This_T     = WideInt<    limb_count,Limb_T,Comp_T,signQ>;
-        using Prod_T     = WideInt<2 * limb_count,Limb_T,Comp_T,signQ>;
+        using This_T     = WideInt<    limb_count_,Limb_T,Comp_T,signQ>;
+        using Prod_T     = WideInt<2 * limb_count_,Limb_T,Comp_T,signQ>;
         
-        using Signed_T   = WideInt<    limb_count,Limb_T,Comp_T,true>;
-        using Unsigned_T = WideInt<    limb_count,Limb_T,Comp_T,false>;
+        using Signed_T   = WideInt<    limb_count_,Limb_T,Comp_T,true>;
+        using Unsigned_T = WideInt<    limb_count_,Limb_T,Comp_T,false>;
         
-        static constexpr Size_T limb_byte_count = sizeof(Limb_T);
-        static constexpr Size_T comp_byte_count = sizeof(Comp_T);
-        static constexpr Size_T limb_bit_count  = limb_byte_count * CHAR_BIT;
-        static constexpr Size_T comp_bit_count  = comp_byte_count * CHAR_BIT;
-        static constexpr Size_T bit_count       = limb_count * limb_bit_count;
-        static constexpr Size_T byte_count      = limb_count * limb_byte_count;
+        static constexpr Idx limb_byte_count = sizeof(Limb_T);
+        static constexpr Idx comp_byte_count = sizeof(Comp_T);
+        static constexpr Idx limb_bit_count  = limb_byte_count * CHAR_BIT;
+        static constexpr Idx comp_bit_count  = comp_byte_count * CHAR_BIT;
+        static constexpr Idx bit_count       = limb_count * limb_bit_count;
+        static constexpr Idx byte_count      = limb_count * limb_byte_count;
         
-        static_assert(comp_bit_count >= Size_T(2) * limb_bit_count,"");
+        static_assert(comp_bit_count >= Idx(2) * limb_bit_count,"");
         
         /*!@ A std::bitset with the same width as the internal list of limbs. Used to accelerate bitwise operations.*/
         using BitSet_T = std::bitset<bit_count>;
@@ -66,7 +67,7 @@ namespace Knoodle
         
         TOOLS_FORCE_INLINE static constexpr Comp_T Hi_Comp( cref<Comp_T> a )
         {
-            if( comp_bit_count > Size_T(2) * limb_bit_count )
+            if( comp_bit_count > Idx(2) * limb_bit_count )
             {
                 // If Comp_T is too large, we might have to mask here.
                 return (a >> limb_bit_count) & lo_mask;
@@ -131,13 +132,13 @@ namespace Knoodle
         constexpr explicit WideInt( cptr<Limb_T> a  )
         {
             // CAUTION: We do _not_ use memcopy because that might not be portable.
-            for( Size_T i = 0; i < limb_count; ++i )
+            for( int i = 0; i < limb_count; ++i )
             {
                 limbs[i] = a[i];
             }
         }
         
-        constexpr explicit WideInt( cptr<Limb_T> a, Size_T a_size )
+        constexpr explicit WideInt( cptr<Limb_T> a, Idx a_size )
         {
             if( a_size > limb_count )
             {
@@ -146,7 +147,7 @@ namespace Knoodle
             }
             else
             {
-                for( Size_T i = 0; i < a_size; ++i )
+                for( int i = 0; i < a_size; ++i )
                 {
                     limbs[i] = a[i];
                 }
@@ -186,7 +187,7 @@ namespace Knoodle
         :   WideInt( &*a.begin(), a.size() )
         {}
         
-        template<Size_T m, typename ExtComp_T, typename Void = std::enable_if_t<m <= limb_count, void>>
+        template<int m, typename ExtComp_T, typename Void = std::enable_if_t<m <= limb_count, void>>
         constexpr explicit WideInt( cref<WideInt<m,Limb_T,ExtComp_T,signQ>> a )
         {
             copy_buffer<m>( &a.limbs[0], &limbs[0] );
@@ -215,7 +216,7 @@ namespace Knoodle
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(max_limb + Limb_T(1)) == zero_limb,"");
             
-            for( Size_T k = 0; k < limb_count; ++k )
+            for( Idx k = 0; k < limb_count; ++k )
             {
                 ++limbs[k];
                 if( limbs[k] != zero_limb ) { break; }
@@ -230,7 +231,7 @@ namespace Knoodle
             // Exploiting that Limb_T wraps around.
             static_assert(static_cast<Limb_T>(zero_limb - Limb_T(1)) == max_limb,"");
             
-            for( Size_T k = 0; k < limb_count; ++k )
+            for( int k = 0; k < limb_count; ++k )
             {
                 --limbs[k];
                 if( limbs[k] != max_limb ) { break; }
@@ -242,7 +243,7 @@ namespace Knoodle
         /*!@brief Negate this wide integer.*/
         TOOLS_FORCE_INLINE constexpr This_T & Negate()
         {
-//            for( Size_T k = 0; k < limb_count; ++k )
+//            for( Idx k = 0; k < limb_count; ++k )
 //            {
 ////                limbs[k] ^= max_limb;
 //                limbs[k] = ~limbs[k];
@@ -266,7 +267,7 @@ namespace Knoodle
         /*!@brief Return the value of the sign but.*/
         TOOLS_FORCE_INLINE constexpr bool SignBit() const
         {
-            return get_bit(limbs[limb_count-Size_T(1)],limb_bit_count-Size_T(1));
+            return get_bit(limbs[limb_count-Idx(1)],limb_bit_count-Idx(1));
         }
         
         /*!@brief Check whether this wide integer is negative.*/
@@ -385,7 +386,7 @@ namespace Knoodle
             Comp_T X = As_Comp(a[0]) + As_Comp(b[0]);
             c[0] = Lo_Limb(X);
             
-            for( Size_T k = 1; k < limb_count; ++k )
+            for( int k = 1; k < limb_count; ++k )
             {
                 X = As_Comp(a[k]) + As_Comp(b[k]) +  Hi_Comp(X);
                 c[k] = Lo_Limb(X);
@@ -402,7 +403,7 @@ namespace Knoodle
             Comp_T X = As_Comp(a[0]) + As_Comp(b[0] ^ max_limb) + Comp_T(1);
             c[0] = Lo_Limb(X);
             
-            for( Size_T k = 1; k < limb_count; ++k )
+            for( Idx k = 1; k < limb_count; ++k )
             {
                 // Using 2's complement representation.
                 X = As_Comp(a[k]) + As_Comp(b[k] ^ max_limb) +  Hi_Comp(X);
@@ -437,10 +438,10 @@ namespace Knoodle
             
             if( NegativeQ() ) { b.Negate(); }
             
-            T      x = 0;
-            Size_T s = 0;
+            T   x = 0;
+            Idx s = 0;
             
-            for( Size_T i = 0; i < limb_count; ++i )
+            for( Idx i = 0; i < limb_count; ++i )
             {
                 x |= static_cast<T>(b[i]) << s; // This shift should work with signed types.
                 s += 8 * sizeof(Limb_T);
@@ -460,12 +461,12 @@ namespace Knoodle
             if( negativeQ ) { b.Negate(); }
             
             double x = 0;
-            Size_T s = 0;
+            Idx    s = 0;
             
-            for( Size_T i = 0; i < limb_count; ++i )
+            for( Idx i = 0; i < limb_count; ++i )
             {
                 x += static_cast<double>(b[i]) * std::pow(double(2),s);
-                s += Size_T(8) * sizeof(Limb_T);
+                s += Idx(8) * sizeof(Limb_T);
             }
             
             if( negativeQ ) { x = -x; }
@@ -477,7 +478,7 @@ namespace Knoodle
         template<typename RandomFunction_T>
         TOOLS_FORCE_INLINE void Randomize( mref<RandomFunction_T> fun )
         {
-            for( Size_T i = 0; i < limb_count; ++i )
+            for( Idx i = 0; i < limb_count; ++i )
             {
                 limbs[i] = static_cast<Limb_T>(fun());
             }
@@ -502,72 +503,174 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("WideInt")
-            + "<" + ToString(limb_count)
+            return std::string("WideInt")
+            + "<" + to_ct_string(limb_count)
             + "," + TypeName<Limb_T>
             + "," + TypeName<Comp_T>
-            + "," + ToString(signQ)
+            + "," + to_ct_string(signQ)
             + ">";
         }
     };
     
     // Some convenience type cast.
 
+
+    using WInt8     = WideInt<1,UInt8,UInt16,true>;
+    using WUInt8    = WideInt<1,UInt8,UInt16,false>;
     
-    using WInt64   = WideInt<1,UInt64,unsigned __int128,true>;
-    using WInt128  = WideInt<2,UInt64,unsigned __int128,true>;
-    using WInt256  = WideInt<4,UInt64,unsigned __int128,true>;
-    using WInt512  = WideInt<8,UInt64,unsigned __int128,true>;
+    using WInt16    = WideInt<1,UInt16,UInt32,true>;
+    using WUInt16   = WideInt<1,UInt16,UInt32,false>;
     
-    using WUInt64  = WideInt<1,UInt64,unsigned __int128,false>;
-    using WUInt128 = WideInt<2,UInt64,unsigned __int128,false>;
-    using WUInt256 = WideInt<4,UInt64,unsigned __int128,false>;
-    using WUInt512 = WideInt<8,UInt64,unsigned __int128,false>;
+    using WInt32    = WideInt<1,UInt32,UInt64,true>;
+    using WUInt32   = WideInt<1,UInt32,UInt64,false>;
+    
+#ifdef TOOLS_INT128_AVAILABLE
+
+    using WInt64    = WideInt< 1,UInt64,UInt128,true>;
+    using WInt128   = WideInt< 2,UInt64,UInt128,true>;
+    using WInt256   = WideInt< 4,UInt64,UInt128,true>;
+    using WInt512   = WideInt< 8,UInt64,UInt128,true>;
+    using WInt1024  = WideInt<16,UInt64,UInt128,true>;
+    
+    using WUInt64   = WideInt< 1,UInt64,UInt128,false>;
+    using WUInt128  = WideInt< 2,UInt64,UInt128,false>;
+    using WUInt256  = WideInt< 4,UInt64,UInt128,false>;
+    using WUInt512  = WideInt< 8,UInt64,UInt128,false>;
+    using WUInt1024 = WideInt<16,UInt64,UInt128,false>;
+#else
+
+    using WInt64    = WideInt< 2,UInt32,UInt64,true>;
+    using WInt128   = WideInt< 4,UInt32,UInt64,true>;
+    using WInt256   = WideInt< 8,UInt32,UInt64,true>;
+    using WInt512   = WideInt<16,UInt32,UInt64,true>;
+    using WInt1024  = WideInt<32,UInt32,UInt64,true>;
+    
+    using WUInt64   = WideInt< 2,UInt32,UInt64,false>;
+    using WUInt128  = WideInt< 4,UInt32,UInt64,false>;
+    using WUInt256  = WideInt< 8,UInt32,UInt64,false>;
+    using WUInt512  = WideInt<16,UInt32,UInt64,false>;
+    using WUInt1024 = WideInt<32,UInt32,UInt64,false>;
+#endif
+
     
 } // namespace Knoodle
 
 
 namespace Tools
 {
-    template<> constexpr const char * TypeName<Knoodle::WInt64>   = "WInt64";
-    template<> constexpr const char * TypeName<Knoodle::WInt128>  = "WInt128";
-    template<> constexpr const char * TypeName<Knoodle::WInt256>  = "WInt256";
-    template<> constexpr const char * TypeName<Knoodle::WInt512>  = "WInt512";
+    //    template<> constexpr const char * TypeName<Knoodle::WInt64>    = "WInt64";
+    //    template<> constexpr const char * TypeName<Knoodle::WInt128>   = "WInt128";
+    //    template<> constexpr const char * TypeName<Knoodle::WInt256>   = "WInt256";
+    //    template<> constexpr const char * TypeName<Knoodle::WInt512>   = "WInt512";
+    //    template<> constexpr const char * TypeName<Knoodle::WInt1024>  = "WInt1024";
+    //
+    //    template<> constexpr const char * TypeName<Knoodle::WUInt64>   = "WUInt64";
+    //    template<> constexpr const char * TypeName<Knoodle::WUInt128>  = "WUInt128";
+    //    template<> constexpr const char * TypeName<Knoodle::WUInt256>  = "WUInt256";
+    //    template<> constexpr const char * TypeName<Knoodle::WUInt512>  = "WUInt512";
+    //    template<> constexpr const char * TypeName<Knoodle::WUInt1024> = "WUInt1024";
     
-    template<> constexpr const char * TypeName<Knoodle::WUInt64>  = "WUInt64";
-    template<> constexpr const char * TypeName<Knoodle::WUInt128> = "WUInt128";
-    template<> constexpr const char * TypeName<Knoodle::WUInt256> = "WUInt256";
-    template<> constexpr const char * TypeName<Knoodle::WUInt512> = "WUInt512";
+    
+    constexpr int const_evaluatedQ = -1;
+    
+    //    // default implementation
+    template<typename T>
+    struct TypeNameHelper
+    {
+        static constexpr std::string name() { return "UnknownType"; }
+    };
+    
+    
+    template<typename T>
+    constexpr const std::string newTypeName = TypeNameHelper<T>::name();
+    
+    
+    template<> constexpr std::string TypeNameHelper<Int64>::name()
+    {
+        return "Int64";
+    }
+    
+    template<> constexpr std::string TypeNameHelper<Int128>::name()
+    {
+        return "Int128";
+    }
+    
+    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,bool signQ>
+    struct TypeNameHelper<typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>>
+    {
+        //        static constexpr std::string name()
+        //        {
+        //            return std::string("WI<") + std::string(to_ct_string(limb_count)) + "," + TypeName<Int64> + "," + TypeName<Int128> + ">";
+        //        }
+        using Class_T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>;
+        
+        static constexpr std::string name()
+        {
+            return Class_T::ClassName();
+        }
+    };
+    
+//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T>
+//    struct TypeNameHelper<typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,false>>
+//    {
+//        static constexpr std::string name()
+//        {
+//            return std::string("WUI<") + std::string(to_ct_string(limb_count)) + "," + TypeName<Int64> + "," + TypeName<Int128> + ">";
+//        }
+//    };
+    
+    
+//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,
+//        typename T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>
+//    >
+//    template<> constexpr std::string TypeNameHelper<T>::name()
+//    {
+//        return std::string("WI<") + newTypeName<Int64> + std::string(",") + newTypeName<Int128> + ">";
+//    }
+    
+//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T,
+//        typename T = Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>
+//    >
+//    template<>
+//    constexpr std::string TypeNameHelper<T>::name()
+//    {
+//        return "A";
+//    }
+    
+//    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T>
+//    struct TypeNameHelper<
+//        typename Knoodle::WideInt<limb_count,Limb_T,Comp_T,true>>
+//    >
+//    {
+//        static constexpr std::string name()
+//        {
+//            return = std::string("Int<")
+//            + std::string(to_ct_string(limb_count))
+//            + std::string(",")
+//            + newTypeName<Limb_T>()
+//            + std::string(",")
+//            //        + newTypeName<Comp_T>
+//            + std::string(to_ct_string(true))
+//            + std::string(">");
+//        }
+//    };
+//
+//    template<>
+//    constexpr std::string
+//    newTypeName<Int128> = std::string("Int<") + std::string(to_ct_string(128)) + std::string(">");
+
     
     namespace Scalar
     {
-        template<> constexpr bool RealQ<Knoodle::WInt64>   = true;
-        template<> constexpr bool RealQ<Knoodle::WInt128>  = true;
-        template<> constexpr bool RealQ<Knoodle::WInt256>  = true;
-        template<> constexpr bool RealQ<Knoodle::WInt512>  = true;
-        
-        template<> constexpr bool RealQ<Knoodle::WUInt64>  = true;
-        template<> constexpr bool RealQ<Knoodle::WUInt128> = true;
-        template<> constexpr bool RealQ<Knoodle::WUInt256> = true;
-        template<> constexpr bool RealQ<Knoodle::WUInt512> = true;
-        
-        
-        template<> constexpr bool ComplexQ<Knoodle::WInt64>   = false;
-        template<> constexpr bool ComplexQ<Knoodle::WInt128>  = false;
-        template<> constexpr bool ComplexQ<Knoodle::WInt256>  = false;
-        template<> constexpr bool ComplexQ<Knoodle::WInt512>  = false;
-        
-        template<> constexpr bool ComplexQ<Knoodle::WUInt64>  = false;
-        template<> constexpr bool ComplexQ<Knoodle::WUInt128> = false;
-        template<> constexpr bool ComplexQ<Knoodle::WUInt256> = false;
-        template<> constexpr bool ComplexQ<Knoodle::WUInt512> = false;
+        template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+        constexpr bool RealQ<Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>> = true;
     }
     
     // String generator to make it work with OutString.

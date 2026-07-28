@@ -240,8 +240,35 @@ namespace Knoodle
         auto rand = [&engine,&dist](){ return dist(engine); };
 
         return TestWideInt("long_fma",
-            []( cref<T> a, cref<T> b, cref<T> c ) -> S { S r; wide_convert(long_fma(a,b,c),r); return r; },
-            []( cref<S> a, cref<S> b, cref<S> c ) -> S { return a * b + c; },
+            []( cref<T> a, cref<T> b, cref<T> c ) -> S
+            {
+                auto r_0 = long_fma(a,b,c);
+                S r;
+//                wide_convert(r_0,r);
+            
+//                S a_wint;
+//                S b_wint;
+//                wide_convert(a,a_wint);
+//                wide_convert(b,b_wint);
+//                TOOLS_DUMP(ToDouble(a));
+//                TOOLS_DUMP(static_cast<double>(a_wint));
+//                TOOLS_DUMP(a.NegativeQ());
+//                TOOLS_DUMP(a_wint < 0);
+//                TOOLS_DUMP(ToDouble(b));
+//                TOOLS_DUMP(static_cast<double>(b_wint));
+//                TOOLS_DUMP(b.NegativeQ());
+//                TOOLS_DUMP(b_wint < 0);
+//                TOOLS_DUMP(static_cast<double>(r));
+                return r;
+            },
+            []( cref<S> a, cref<S> b, cref<S> c ) -> S
+            {
+                S r_wint = a * b + c;
+//                TOOLS_DUMP(static_cast<double>(a));
+//                TOOLS_DUMP(static_cast<double>(b));
+//                TOOLS_DUMP(static_cast<double>(r_wint));
+                return r_wint;
+            },
             rand, n, reps, verboseQ
         );
     }

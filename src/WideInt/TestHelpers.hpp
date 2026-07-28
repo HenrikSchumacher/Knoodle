@@ -31,18 +31,18 @@ namespace Knoodle
     template<unsigned int bit_count, UnsignedIntQ Limb_T, bool signQ>
     using  cint = ::math::wide_integer::uintwide_t<bit_count,Limb_T,void,signQ>;
     
-    template<Size_T limb_count, UnsignedIntQ Limb_T, bool signQ>
+    template<int limb_count, UnsignedIntQ Limb_T, bool signQ>
     using CheckInt = cint<limb_count * sizeof(Limb_T) * CHAR_BIT,Limb_T,signQ>;
     
     
-    template<Size_T limb_count, unsigned int bit_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+    template<int limb_count, unsigned int bit_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
     void wide_convert(
         cref<WideInt<limb_count,Limb_T,Comp_T,signQ>> x,
         mref<cint<bit_count,Limb_T,signQ>> y
     )
     {
-        constexpr Size_T m = limb_count;
-        constexpr Size_T n = bit_count / (sizeof(Limb_T) * CHAR_BIT);
+        constexpr int m = limb_count;
+        constexpr int n = bit_count / (sizeof(Limb_T) * CHAR_BIT);
         
         static_assert(m <= n, "");
         using WInt = WideInt<m,Limb_T,Comp_T,signQ>;
@@ -58,18 +58,18 @@ namespace Knoodle
         }
     }
     
-    template<unsigned int bit_count, Size_T limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+    template<unsigned int bit_count, int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
     void wide_convert(
         cref<cint<bit_count,Limb_T,signQ>> x,
         mref<WideInt<limb_count,Limb_T,Comp_T,signQ>> y
     )
     {
-        constexpr Size_T m = bit_count / (sizeof(Limb_T) * CHAR_BIT);
-        constexpr Size_T n = limb_count;
+        constexpr int m = bit_count / (sizeof(Limb_T) * CHAR_BIT);
+        constexpr int n = limb_count;
         
         static_assert(m <= n, "");
         
-        using CInt = cint<n * (sizeof(Limb_T) * CHAR_BIT),Limb_T,signQ>;
+//        using CInt = cint<n * (sizeof(Limb_T) * CHAR_BIT),Limb_T,signQ>;
         using WInt = WideInt<m,Limb_T,Comp_T,signQ>;
         
         typename WInt::Limb_T * y_ptr = &y[0];
@@ -93,7 +93,7 @@ namespace Knoodle
         y = x;
     }
     
-    template<Size_T m, Size_T n, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+    template<int m, int n, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
     void wide_convert(
         cref<WideInt<m,Limb_T,Comp_T,signQ>> x,
         mref<WideInt<n,Limb_T,Comp_T,signQ>> y
@@ -112,8 +112,9 @@ namespace Knoodle
     
     template<unsigned int bit_count, UnsignedIntQ Limb_T, bool signQ, typename RandomFunction_T>
     void Randomize(
-                   cref<::math::wide_integer::uintwide_t<bit_count,Limb_T,void,signQ>> x, mref<RandomFunction_T> rand
-                   )
+        cref<::math::wide_integer::uintwide_t<bit_count,Limb_T,void,signQ>> x,
+        mref<RandomFunction_T> rand
+    )
     {
         auto x_rep = x.representation();
         for( unsigned int i = 0; i < x_rep.size(); ++i )
@@ -122,7 +123,7 @@ namespace Knoodle
         }
     }
     
-    template<Size_T limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ, typename RandomFunction_T>
+    template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ, typename RandomFunction_T>
     void Randomize( mref<WideInt<limb_count,Limb_T,Comp_T,signQ>> x, mref<RandomFunction_T> rand )
     {
         x.Randomize(rand);

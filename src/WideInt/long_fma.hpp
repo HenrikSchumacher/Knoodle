@@ -34,10 +34,10 @@ Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
     
     Prod_T r;
 
-    for( Size_T i = 0; i < limb_count; ++i )
+    for( Idx i = 0; i < limb_count; ++i )
     {
         Comp_T X (c[i]);
-        for( Size_T j = 0; j < limb_count; ++j )
+        for( Idx j = 0; j < limb_count; ++j )
         {
             // The following line cannot overflow because all 4 operands occupy only the lower half of a Comp_T. Let B = 2^LimbBitCount(). Then the operands are <= B-1.
             // So X <= (B-1) + (B-1) + (B-1) * (B-1) = (B+1) * (B-1) = B^2 - 1 <= 2^CompBitCount() - 1;
@@ -54,35 +54,35 @@ Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 
 
 
-TOOLS_FORCE_INLINE constexpr friend
-Prod_T long_fma_1( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
-{
-    Prod_T r;
-    const Comp_T X = As_Comp(a[0]) * As_Comp(b[0]) + As_Comp(c[0]);
-    r[0] = Lo_Limb(X);
-    r[1] = Hi_Limb(X);
-    return r;
-}
-
-
-TOOLS_FORCE_INLINE constexpr friend 
-Prod_T long_fma_2( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
-{
-    Prod_T r;
-    
-    Comp_T AB_00 = As_Comp(a[0]) * As_Comp(b[0]);
-    Comp_T AB_01 = As_Comp(a[0]) * As_Comp(b[1]);
-    Comp_T AB_10 = As_Comp(a[1]) * As_Comp(b[0]);
-    Comp_T AB_11 = As_Comp(a[1]) * As_Comp(b[1]);
-    
-    Comp_T X = AB_00 + As_Comp(c[0]);
-    r[0]     = Lo_Limb(X);
-    Comp_T Y = As_Comp(Hi_Comp(X) + AB_01 + As_Comp(c[1]));
-    Comp_T Z = As_Comp(Lo_Comp(Y) + AB_10);
-    r[1]     = Lo_Limb(Z);
-    Comp_T W = As_Comp(Hi_Comp(Z) + Hi_Comp(Y) + AB_11);
-    r[2]     = Lo_Limb(W);
-    r[3]     = Hi_Limb(W);
-
-    return r;
-}
+//TOOLS_FORCE_INLINE constexpr friend
+//Prod_T long_fma_1( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
+//{
+//    Prod_T r;
+//    const Comp_T X = As_Comp(a[0]) * As_Comp(b[0]) + As_Comp(c[0]);
+//    r[0] = Lo_Limb(X);
+//    r[1] = Hi_Limb(X);
+//    return r;
+//}
+//
+//
+//TOOLS_FORCE_INLINE constexpr friend 
+//Prod_T long_fma_2( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
+//{
+//    Prod_T r;
+//    
+//    Comp_T AB_00 = As_Comp(a[0]) * As_Comp(b[0]);
+//    Comp_T AB_01 = As_Comp(a[0]) * As_Comp(b[1]);
+//    Comp_T AB_10 = As_Comp(a[1]) * As_Comp(b[0]);
+//    Comp_T AB_11 = As_Comp(a[1]) * As_Comp(b[1]);
+//    
+//    Comp_T X = AB_00 + As_Comp(c[0]);
+//    r[0]     = Lo_Limb(X);
+//    Comp_T Y = As_Comp(Hi_Comp(X) + AB_01 + As_Comp(c[1]));
+//    Comp_T Z = As_Comp(Lo_Comp(Y) + AB_10);
+//    r[1]     = Lo_Limb(Z);
+//    Comp_T W = As_Comp(Hi_Comp(Z) + Hi_Comp(Y) + AB_11);
+//    r[2]     = Lo_Limb(W);
+//    r[3]     = Hi_Limb(W);
+//
+//    return r;
+//}

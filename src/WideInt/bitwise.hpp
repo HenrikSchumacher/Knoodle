@@ -8,7 +8,7 @@ TOOLS_FORCE_INLINE constexpr friend bool operator==( const This_T & a, const Thi
 //            if( &a == &b ) { return true; }
 //
 //            // For the equality operator it may be better to start at the bottom as leading bits are often 0.
-//            for( Size_T i = 0; i < limb_count; ++i )
+//            for( Idx i = 0; i < limb_count; ++i )
 //            {
 //                if( a[i] != b[i] ) { return false; }
 //            }
@@ -19,7 +19,7 @@ TOOLS_FORCE_INLINE constexpr friend bool operator==( const This_T & a, const Thi
 /*!@brief Check whether this wide integer is zero.*/
 TOOLS_FORCE_INLINE constexpr bool ZeroQ() const
 {
-//    for( Size_T k = 0; k < limb_count; ++k )
+//    for( Idx k = 0; k < limb_count; ++k )
 //    {
 //        if( limbs[k] != zero_limb ) { return false; }
 //    }
