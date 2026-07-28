@@ -565,19 +565,6 @@ namespace Knoodle
 
 namespace Tools
 {
-    //    template<> constexpr const char * TypeName<Knoodle::WInt64>    = "WInt64";
-    //    template<> constexpr const char * TypeName<Knoodle::WInt128>   = "WInt128";
-    //    template<> constexpr const char * TypeName<Knoodle::WInt256>   = "WInt256";
-    //    template<> constexpr const char * TypeName<Knoodle::WInt512>   = "WInt512";
-    //    template<> constexpr const char * TypeName<Knoodle::WInt1024>  = "WInt1024";
-    //
-    //    template<> constexpr const char * TypeName<Knoodle::WUInt64>   = "WUInt64";
-    //    template<> constexpr const char * TypeName<Knoodle::WUInt128>  = "WUInt128";
-    //    template<> constexpr const char * TypeName<Knoodle::WUInt256>  = "WUInt256";
-    //    template<> constexpr const char * TypeName<Knoodle::WUInt512>  = "WUInt512";
-    //    template<> constexpr const char * TypeName<Knoodle::WUInt1024> = "WUInt1024";
-    
-    
     constexpr int const_evaluatedQ = -1;
     
     //    // default implementation
@@ -617,6 +604,9 @@ namespace Tools
     {
         template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
         constexpr bool RealQ<Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>> = true;
+        
+        template<int limb_count, UnsignedIntQ Limb_T, UnsignedIntQ Comp_T, bool signQ>
+        constexpr bool ComplexQ<Knoodle::WideInt<limb_count,Limb_T,Comp_T,signQ>> = false;
     }
     
     // String generator to make it work with OutString.
