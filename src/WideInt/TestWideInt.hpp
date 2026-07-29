@@ -124,7 +124,7 @@ namespace Knoodle
         {
             for( Size_T rep = 0; rep < reps; ++rep )
             {
-                for( int i = 0; i < n; ++i )
+                for( Size_T i = 0; i < n; ++i )
                 {
                     if constexpr (arity == 1 )
                     {

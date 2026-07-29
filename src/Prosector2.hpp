@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Prosector2/Types.hpp"
+#include "WideInt/Boost_cpp_int.hpp"
 
 namespace Knoodle
 {

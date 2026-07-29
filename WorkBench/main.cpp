@@ -9,10 +9,32 @@
 #include "../Knoodle.hpp"
 //#include "../src/Prosector3.hpp"
 #include "../src/WideInt.hpp"
+#include "../src/WideInt/Boost_cpp_int.hpp"
 #include "../src/WideInt/Tests.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
+
+struct A
+{
+    int member = 0;
+    
+    constexpr A() {}
+    
+    constexpr A( int a )
+    :   member { a }
+    {}
+    
+    constexpr friend A operator+( const A & a, const A & b )
+    {
+        if( !std::is_constant_evaluated() )
+        {
+            eprint("!!!");
+        }
+        return A(a.member + b.member);
+    }
+};
+
 
 int main()
 {
@@ -24,9 +46,9 @@ int main()
         Size_T reps = 1;
         
         const Size_T limb_count = 2;
-        using Limb_T = UInt16;
-        using Comp_T = UInt32;
-        constexpr bool signQ = true;
+        using Limb_T = UInt64;
+        using Comp_T = UInt128;
+        constexpr bool signQ = false;
         
         bool verbosed = true;
         
@@ -41,7 +63,7 @@ int main()
 //        Test_Subtract     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
 //        Test_long_mul     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
         Test_long_fma     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
-//        Test_long_det     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+        Test_long_det     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
 
     }
     
@@ -90,18 +112,23 @@ int main()
 //    
 //    TOOLS_DUMP(ab_wint == r_wint);
     
-    TOOLS_DUMP( newTypeName<Int64> );
-    TOOLS_DUMP( newTypeName<Int128> );
     
-    auto & s0 = newTypeName<WideInt<2,UInt32,UInt128,true>>;
-    auto & s1 = newTypeName<WideInt<2,UInt64,UInt128,true>>;
-    auto & s2 = newTypeName<Knoodle::WUInt256>;
+    
+    
+//    TOOLS_DUMP( newTypeName<Int64> );
+//    TOOLS_DUMP( newTypeName<Int128> );
+//    
+//    auto & s0 = newTypeName<WideInt<2,UInt32,UInt128,true>>;
+//    auto & s1 = newTypeName<WideInt<2,UInt64,UInt128,true>>;
+//    auto & s2 = newTypeName<Knoodle::WUInt256>;
+//
+//    TOOLS_DUMP(s0);
+//    TOOLS_DUMP(s1);
+//    TOOLS_DUMP(s2);
+//    
+//    constexpr std::string s  = ToString(124);
+//    
+//    TOOLS_DUMP(s);
 
-    TOOLS_DUMP(s0);
-    TOOLS_DUMP(s1);
-    TOOLS_DUMP(s2);
-    
-    constexpr std::string s  = ToString(124);
-    
-    TOOLS_DUMP(s);
+    boost::multiprecision::int128_t z = 1;
 }

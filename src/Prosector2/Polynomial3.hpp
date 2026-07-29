@@ -27,7 +27,7 @@ public:
             return static_cast<double>(P.c_0);
         }
         {
-            return ToDouble(P.c_0);
+            return Tools::ToDouble(P.c_0);
         }
     }
     

@@ -198,6 +198,9 @@ private:
 void RotateCrossing( const Int c, const bool dir )
 {
     PD_WPRINT( MethodName("RotateCrossing") +": This routine has not been tested, yet." );
+    
+    const C_Arcs_T C = CopyCrossing(c); // We need a copy here.
+    
 /* Before:
  *
  *   C[Out][Left ] O       O C[Out][Right]
@@ -225,6 +228,10 @@ void RotateCrossing( const Int c, const bool dir )
  *                  /     v
  *   C[In ][Left ] O       O C[In ][Right]
  */
+//        C_arcs(c,Out,Left ) = C[Out][Right];
+//        C_arcs(c,Out,Right) = C[In ][Right];
+//        C_arcs(c,In ,Right) = C[In ][Left ];
+//        C_arcs(c,In ,Left ) = C[Out][Left ];
 
         const Int buffer = C_arcs(c,Out,Left );
         
@@ -247,6 +254,11 @@ void RotateCrossing( const Int c, const bool dir )
  *                  v     \
  *   C[In ][Left ] O       O C[In ][Right]
  */
+   
+//        C_arcs(c,Out,Left ) = C[In ][Left ];
+//        C_arcs(c,In ,Left ) = C[In ][Right];
+//        C_arcs(c,In ,Right) = C[Out][Right];
+//        C_arcs(c,Out,Right) = C[Out][Left ];
         
         const Int buffer = C_arcs(c,Out,Left );
         
@@ -256,3 +268,6 @@ void RotateCrossing( const Int c, const bool dir )
         C_arcs(c,Out,Right) = buffer;
     }
 }
+
+
+

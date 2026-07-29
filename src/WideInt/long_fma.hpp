@@ -6,7 +6,7 @@ TOOLS_FORCE_INLINE constexpr friend
 Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
 {
     // See also https://stackoverflow.com/a/1815371/8248900.
-
+    
     // We do not want to create a sign extension of a and b.
     if constexpr ( signQ )
     {
@@ -31,9 +31,9 @@ Prod_T long_fma( cref<WideInt> a, cref<WideInt> b, cref<WideInt> c )
             }
         }
     }
-    
-    Prod_T r;
 
+    Prod_T r;
+    
     for( Idx i = 0; i < limb_count; ++i )
     {
         Comp_T X (c[i]);

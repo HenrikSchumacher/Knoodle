@@ -109,7 +109,7 @@ namespace Knoodle
         
     private:
         
-        Limb_T limbs[limb_count] = {}; // Initialize by 0.
+        Limb_T limbs [limb_count] {{}}; // Initialize by 0.
         
     public:
         
@@ -123,8 +123,9 @@ namespace Knoodle
         
         constexpr explicit WideInt( cref<BitSet_T> a  )
         {
-            copy_buffer<byte_count>(
+            std::copy_n(
                 reinterpret_cast<const std::byte *>(&a),
+                byte_count,
                 reinterpret_cast<      std::byte *>(&limbs[0])
             );
         }
@@ -135,6 +136,12 @@ namespace Knoodle
             for( int i = 0; i < limb_count; ++i )
             {
                 limbs[i] = a[i];
+            }
+            
+            // DEBUGGING
+            if( !std::is_constant_evaluated() )
+            {
+                (*this) = This_T(1);
             }
         }
         
@@ -176,7 +183,7 @@ namespace Knoodle
         
         template<SignedIntQ Int>
         constexpr WideInt( Int a )
-        :   WideInt{ static_cast<ToUnsigned<Int>>(Abs(a)) }
+        :   WideInt{ static_cast<ToUnsigned<Int>>( a < Int(0) ? -a : a) }
         {
 //            print("WideInt{ static_cast<ToUnsigned<Int>>(Abs(a)) }");
             if( a < Int{0} ) { this->Negate(); }
@@ -190,7 +197,7 @@ namespace Knoodle
         template<int m, typename ExtComp_T, typename Void = std::enable_if_t<m <= limb_count, void>>
         constexpr explicit WideInt( cref<WideInt<m,Limb_T,ExtComp_T,signQ>> a )
         {
-            copy_buffer<m>( &a.limbs[0], &limbs[0] );
+            std::copy_n( &a.limbs[0], m, &limbs[0] );
             // No need to fill up  with zeroes as WideInt is initialized by 0.
         }
         
@@ -243,12 +250,6 @@ namespace Knoodle
         /*!@brief Negate this wide integer.*/
         TOOLS_FORCE_INLINE constexpr This_T & Negate()
         {
-//            for( Idx k = 0; k < limb_count; ++k )
-//            {
-////                limbs[k] ^= max_limb;
-//                limbs[k] = ~limbs[k];
-//            }
-
             (*this) = ~(*this);
             ++(*this);
             
@@ -391,8 +392,11 @@ namespace Knoodle
                 X = As_Comp(a[k]) + As_Comp(b[k]) +  Hi_Comp(X);
                 c[k] = Lo_Limb(X);
             }
-            // Carry Hi_Comp(X) is silently lost.
+            
+            // Carry Hi_Comp(X) is silently discarded.
+            
             return c;
+
         }
 
         /*!@brief (Short) subtraction operator. The result is of the same type.*/
@@ -476,24 +480,26 @@ namespace Knoodle
         
         /*!@ Fill the limb buffer with (pseudo)random numbers. With every call the function `fun` is required to generate number that is convertible to `Limb_T`*/
         template<typename RandomFunction_T>
-        TOOLS_FORCE_INLINE void Randomize( mref<RandomFunction_T> fun )
+        TOOLS_FORCE_INLINE This_T & Randomize( mref<RandomFunction_T> fun )
         {
             for( Idx i = 0; i < limb_count; ++i )
             {
                 limbs[i] = static_cast<Limb_T>(fun());
             }
+            
+            return *this;
+        }
+        
+        friend std::string ToString( cref<This_T> c )
+        {
+            return
+            ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
         }
         
 //        friend std::string ToString( cref<This_T> c )
 //        {
-//            return
-//            ClassName() + std::string(OutString::FromVector(&c.limbs[0],limb_count));
+//            return ToString(ToDouble(c));
 //        }
-        
-        friend std::string ToString( cref<This_T> c )
-        {
-            return ToString(ToDouble(c));
-        }
         
         template<typename CharT,typename Traits>
         std::stringstream & operator<<( mref<std::basic_ostream<CharT,Traits>&> s ) const
@@ -565,6 +571,24 @@ namespace Knoodle
 
 namespace Tools
 {
+    template<> constexpr const char * TypeName<Knoodle::WInt8>    = "WInt8";
+    template<> constexpr const char * TypeName<Knoodle::WInt16>    = "WInt16";
+    template<> constexpr const char * TypeName<Knoodle::WInt32>    = "WInt32";
+    template<> constexpr const char * TypeName<Knoodle::WInt64>    = "WInt64";
+    template<> constexpr const char * TypeName<Knoodle::WInt128>   = "WInt128";
+    template<> constexpr const char * TypeName<Knoodle::WInt256>   = "WInt256";
+    template<> constexpr const char * TypeName<Knoodle::WInt512>   = "WInt512";
+    template<> constexpr const char * TypeName<Knoodle::WInt1024>  = "WInt1024";
+    
+    template<> constexpr const char * TypeName<Knoodle::WUInt8>    = "WUInt8";
+    template<> constexpr const char * TypeName<Knoodle::WUInt16>   = "WUInt16";
+    template<> constexpr const char * TypeName<Knoodle::WUInt32>   = "WUInt32";
+    template<> constexpr const char * TypeName<Knoodle::WUInt64>   = "WUInt64";
+    template<> constexpr const char * TypeName<Knoodle::WUInt128>  = "WUInt128";
+    template<> constexpr const char * TypeName<Knoodle::WUInt256>  = "WUInt256";
+    template<> constexpr const char * TypeName<Knoodle::WUInt512>  = "WUInt512";
+    template<> constexpr const char * TypeName<Knoodle::WUInt1024> = "WUInt1024";
+    
     constexpr int const_evaluatedQ = -1;
     
     //    // default implementation

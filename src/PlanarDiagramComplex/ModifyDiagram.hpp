@@ -25,9 +25,7 @@ bool SwitchCrossing( const Int diagram_idx, const Int c )
     return changedQ;
 }
 
-/*!@brief This is a relatively "safe" routine as we do not allow modification of any invalid diagrams. (You might need to `Push` an unknot first.
- */
-
+/*!@brief This is a relatively "safe" routine as we do not allow modification of any invalid diagrams. (You might need to `Push` an unknot first.*/
 template<bool silentQ = false>
 void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
 {
@@ -48,9 +46,7 @@ void RequireCrossingCount( const Int diagram_idx, const Int min_crossing_count )
     pd.RequireCrossingCount(min_crossing_count);
 }
 
-/*!@brief A make a Reidemeister I move at an arc to create a new crossing.
- */
-
+/*!@brief A make a Reidemeister I move at an arc to create a new crossing.*/
 template<bool silentQ = false, bool assertsQ = true>
 Int CreateLoop(
     const Int diagram_idx,
@@ -98,4 +94,20 @@ bool Connect( const Int diagram_idx, const Int a, const Int b )
     const bool changedQ = pd.template Connect<silentQ,assertsQ>(a,b);
     if( changedQ ) { ClearCache(); }
     return changedQ;
+}
+
+public:
+
+/*!@brief **UNSAFE.** Reverse all arcs with color indicated by `color`. Returns the number of arcs reversed.*/
+Int ReverseColoredArcs( const Int color )
+{
+    if( LockedQ() ) { LockMessage("ReverseColoredArcs"); return Int(0); }
+    
+    Int counter= 0;
+    for( auto & pd : pd_list )
+    {
+        counter += pd.ReverseColoredArcs_Private(color);
+    }
+    
+    return counter;
 }
