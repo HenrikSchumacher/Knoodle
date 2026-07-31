@@ -1,6 +1,7 @@
 #pragma  once
 
-#include "Prosector2.hpp"
+//#include "Prosector2.hpp"
+#include "Prosector3.hpp"
 
 namespace Knoodle
 {
@@ -33,7 +34,7 @@ namespace Knoodle
                                 std::conditional_t<SameQ<Real_,Real32>, Int32, Real_>
                             >
     >
-    class alignas( ObjectAlignment ) LinkEmbedding2 : public Link<Int_>
+    class alignas( ObjectAlignment ) LinkEmbedding3 : public Link<Int_>
     {
         static_assert( FloatQ<Real_> || SignedIntQ<Real_>, "");
         
@@ -46,7 +47,7 @@ namespace Knoodle
         static constexpr Int AmbDim = 3;
         
         using Base_T          = Link<Int>;
-        using LinkEmbedding_T = LinkEmbedding2;
+        using LinkEmbedding_T = LinkEmbedding3;
 
         using Tree2_T         = AABBTree<2,IReal,Int,IReal,false>;
         using Tree3_T         = AABBTree<3,IReal,Int,IReal,false>;
@@ -59,7 +60,7 @@ namespace Knoodle
         using EContainer_T    = typename Tree3_T::EContainer_T;
         using BContainer_T    = typename Tree2_T::BContainer_T;
          
-        using Prosector_T     = Prosector2<IReal,Int>;
+        using Prosector_T     = Prosector3<IReal,Int>;
         using Intersection_T  = Prosector_T::Intersection;
         using Time_T          = Prosector_T::IntersectionTime;
         
@@ -133,34 +134,34 @@ namespace Knoodle
     public:
         
         // Default constructor
-        LinkEmbedding2() = default;
+        LinkEmbedding3() = default;
         // Destructor (virtual because of inheritance)
-        virtual ~LinkEmbedding2() = default;
+        virtual ~LinkEmbedding3() = default;
         // Copy constructor
-        LinkEmbedding2( const LinkEmbedding2 & other ) = default;
+        LinkEmbedding3( const LinkEmbedding3 & other ) = default;
         // Copy assignment operator
-        LinkEmbedding2 & operator=( const LinkEmbedding2 & other ) = default;
+        LinkEmbedding3 & operator=( const LinkEmbedding3 & other ) = default;
         // Move constructor
-        LinkEmbedding2( LinkEmbedding2 && other ) = default;
+        LinkEmbedding3( LinkEmbedding3 && other ) = default;
         // Move assignment operator
-        LinkEmbedding2 & operator=( LinkEmbedding2 && other ) = default;
+        LinkEmbedding3 & operator=( LinkEmbedding3 && other ) = default;
         
         /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
-        explicit LinkEmbedding2( const I edge_count_ )
+        explicit LinkEmbedding3( const I edge_count_ )
         :   Base_T        { int_cast<Int>(edge_count_) }
         ,   vertex_coords { edge_count                 }
         {}
         
-        LinkEmbedding2( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
+        LinkEmbedding3( Tensor1<Int,Int> && component_ptr_, Tensor1<Int,Int> && component_color_ )
         :   Base_T        { std::move(component_ptr_), std::move(component_color_)  }
         ,   vertex_coords { edge_count                                              }
         {}
         
         // Provide a list of edges in interleaved form to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
-        LinkEmbedding2(
+        LinkEmbedding3(
             cptr<I_0> edges_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
         :   Base_T        { edges_, edges_colors_, int_cast<Int>(edge_count_) }
@@ -169,7 +170,7 @@ namespace Knoodle
         
         // Provide lists of edge tails and edge tips to make the object figure out its topology.
         template<IntQ I_0, IntQ I_1>
-        LinkEmbedding2(
+        LinkEmbedding3(
             cptr<I_0> edge_tails_, cptr<I_0> edge_tips_, cptr<I_0> edges_colors_, const I_1 edge_count_
         )
         :   Base_T        { edge_tails_, edge_tips_, edges_colors_, edge_count_ }
@@ -325,7 +326,7 @@ namespace Knoodle
         
         Size_T ByteCount() const
         {
-            return sizeof(LinkEmbedding2) + AllocatedByteCount();
+            return sizeof(LinkEmbedding3) + AllocatedByteCount();
         }
         
         template<int t0>
@@ -354,13 +355,13 @@ namespace Knoodle
         
         static constexpr std::string ClassName()
         {
-            return std::string("LinkEmbedding2")
+            return std::string("LinkEmbedding3")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + ">";
         }
         
-    }; // LinkEmbedding2
+    }; // LinkEmbedding3
     
 } // namespace Knoodle
 

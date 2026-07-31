@@ -20,9 +20,15 @@ public:
     ,   c_3 { c_3_ }
     {}
     
-    double ToDouble() const
+    friend double ToDouble( cref<Polynomial3> P )
     {
-        return static_cast<double>(c_0);
+        if constexpr ( IntQ<LInt> )
+        {
+            return static_cast<double>(P.c_0);
+        }
+        {
+            return Tools::ToDouble(P.c_0);
+        }
     }
     
     Sign_T Sign() const

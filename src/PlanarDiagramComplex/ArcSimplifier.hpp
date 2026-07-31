@@ -264,18 +264,19 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("ArcSimplifier")
+            return std::string("ArcSimplifier")
                 + "<" + TypeName<Int>
                 + "," + ToString(optimization_level)
                 + "," + ToString(mult_compQ)
-                + "," + ToString(forwardQ) + ">";
+                + "," + ToString(forwardQ)
+                + ">";
         }
 
     }; // class ArcSimplifier

@@ -720,7 +720,7 @@ namespace Knoodle
         
         void LockMessage( const std::string & tag ) const
         {
-            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Lock()` first.");
+            wprint(MethodName(tag) + ": This method is considered **UNSAFE**, and the diagram is currently locked to prevent break of topological invariance. If you want to perform this operation anyways, call `Unlock()` first. (Don't forget to `Lock()` it again.)");
         }
         
     public:
@@ -794,15 +794,15 @@ namespace Knoodle
         }
         
         /*!@brief Return a string that identifies a class method specified by `tag`. Mostly used for logging and in error messages.*/
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
         /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.*/
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("PlanarDiagram")
+            return std::string("PlanarDiagram")
                 + "<" + TypeName<Int>
                 + ">";
         }

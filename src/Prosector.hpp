@@ -54,7 +54,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-//        using Prosector_T = Prosector<Idx>;
+        using Prosector_T = Prosector<Int,Idx,verboseQ>;
         using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
 //        using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
@@ -440,16 +440,17 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Prosector")
+            return std::string("Prosector")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
+                + "," + ToString(verboseQ)
                 + ">";
         }
         

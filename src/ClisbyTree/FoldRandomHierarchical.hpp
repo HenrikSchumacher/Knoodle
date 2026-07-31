@@ -7,7 +7,7 @@ enum class Traversal : std::int_fast8_t
     DFS = 1
 };
 
-static std::string ToString( Traversal traversal )
+static constexpr std::string ToString( Traversal traversal )
 {
     switch( traversal )
     {
@@ -24,7 +24,7 @@ enum class Direction : std::int_fast8_t
     LambdaCycle = 3
 };
 
-static std::string ToString( Direction dir )
+static constexpr std::string ToString( Direction dir )
 {
     switch( dir )
     {

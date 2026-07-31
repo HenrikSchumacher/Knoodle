@@ -25,7 +25,7 @@ public:
         // Make sure at the time of initialization that the denominator is >= 0!
         // This is important for later < and > comparisons.
         
-        if( denominator.Sign() < Sign_T(0) )
+        if( Sign(denominator) < Sign_T(0) )
         {
             a = -numerator;
             b = -denominator;
@@ -45,11 +45,13 @@ public:
 //        :   IntersectionTime{ Polynomial3{a_0,a_1,a_2}, Polynomial3{b_0,b_1,b_2} }
 //        {}
     
-//    double ToDouble() const
-//    {
-//        return a.ToDouble() / b.ToDouble();
-//    }
-  
+
+    friend double ToDouble( cref<IntersectionTime> t )
+    {
+        return ToDouble(t.a) / ToDouble(t.b);
+    }
+    
+    
     friend std::strong_ordering operator<=>(
         cref<IntersectionTime> s, cref<IntersectionTime> t
     )
@@ -67,58 +69,44 @@ public:
         LLInt lhs;
         LLInt rhs;
         
-        const LLInt s_a_0 {s.a.c_0};
-        const LLInt s_b_0 {s.b.c_0};
-        const LLInt t_a_0 {t.a.c_0};
-        const LLInt t_b_0 {t.b.c_0};
-        
         // Order 0
-        lhs = s_a_0 * t_b_0;
-        rhs = s_b_0 * t_a_0;
+        lhs = long_mul(s.a.c_0, t.b.c_0);
+        rhs = long_mul(s.b.c_0, t.a.c_0);
+        // TODO: Use <=> operator here.
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // For generic real inputs, it is very unlinkly that we arrive here.
         
-        const LLInt s_a_1 {s.a.c_1};
-        const LLInt s_b_1 {s.b.c_1};
-        const LLInt t_a_1 {t.a.c_1};
-        const LLInt t_b_1 {t.b.c_1};
-        
         // Order 1
-        lhs = s_a_0 * t_b_1 + s_a_1 * t_b_0;
-        rhs = s_b_0 * t_a_1 + s_b_1 * t_a_0;
+        lhs = long_mul(s.a.c_0, t.b.c_1) + long_mul(s.a.c_1, t.b.c_0);
+        rhs = long_mul(s.b.c_0, t.a.c_1) + long_mul(s.b.c_1, t.a.c_0);
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // Order 2
-        lhs = s_a_1 * t_b_1;
-        rhs = s_b_1 * t_a_1;
+        lhs = long_mul(s.a.c_1, t.b.c_1);
+        rhs = long_mul(s.b.c_1, t.a.c_1);
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
-
-        const LLInt s_a_3 {s.a.c_3};
-        const LLInt s_b_3 {s.b.c_3};
-        const LLInt t_a_3 {t.a.c_3};
-        const LLInt t_b_3 {t.b.c_3};
         
         // Order 3
-        lhs = s_a_0 * t_b_3 + s_a_3 * t_b_0;
-        rhs = s_b_0 * t_a_3 + s_b_3 * t_a_0;
+        lhs = long_mul(s.a.c_0, t.b.c_3) + long_mul(s.a.c_3, t.b.c_0);
+        rhs = long_mul(s.b.c_0, t.a.c_3) + long_mul(s.b.c_3, t.a.c_0);
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // Order 4
-        lhs = s_a_1 * t_b_3 + s_a_3 * t_b_1;
-        rhs = s_b_1 * t_a_3 + s_b_3 * t_a_1;
+        lhs = long_mul(s.a.c_1, t.b.c_3) + long_mul(s.a.c_3, t.b.c_1);
+        rhs = long_mul(s.b.c_1, t.a.c_3) + long_mul(s.b.c_3, t.a.c_1);
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         
         // Order 5 -- not existent.
         
         // Order 6
-        lhs = s_a_3 * t_b_3;
-        rhs = s_b_3 * t_a_3;
+        lhs = long_mul(s.a.c_3, t.b.c_3);
+        rhs = long_mul(s.b.c_3, t.a.c_3);
         if( lhs < rhs ) { return std::strong_ordering::less;    }
         if( lhs > rhs ) { return std::strong_ordering::greater; }
         

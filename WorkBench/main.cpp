@@ -1,195 +1,134 @@
-#define TOOLS_NO_RESTRICT
+//#define TOOLS_NO_RESTRICT
+
+#define TOOLS_AGGRESSIVE_INLINING
+//#define TOOLS_NO_INT128
+
+#define WIDE_INTEGER_HAS_LIMB_TYPE_UINT64
+#include "../experimental/wide-integer/math/wide_integer/uintwide_t.h"
 
 #include "../Knoodle.hpp"
 //#include "../src/Prosector3.hpp"
-#include "../src/Prosector3/WideInteger.hpp"
+#include "../src/WideInt.hpp"
+#include "../src/WideInt/Boost_cpp_int.hpp"
+#include "../src/WideInt/Tests.hpp"
 
 using namespace Knoodle;
 using namespace Tools;
 
-using Real  = Int64;
-using IReal = Int64;
-//using Real = Int64;
-//using Int  = Size_T;
+struct A
+{
+    int member = 0;
+    
+    constexpr A() {}
+    
+    constexpr A( int a )
+    :   member { a }
+    {}
+    
+    constexpr friend A operator+( const A & a, const A & b )
+    {
+        if( !std::is_constant_evaluated() )
+        {
+            eprint("!!!");
+        }
+        return A(a.member + b.member);
+    }
+};
 
-//using Prosector_T    = Prosector<IReal,Int>;
-//using Vector3_T      = Prosector_T::Vector3_T;
-//using Intersection_T = Prosector_T::Intersection;
-//using Flag_T         = Prosector_T::Flag_T;
-
-
-//WInt128 long_mul( Int64 a, Int64 b )
-//{
-//    return long_mul( WInt64{a}, WInt64{b} );
-//}
 
 int main()
 {
-    WInt32 z { Int32{1134134} };
-    WInt64 a { Int64{1212424234134134} };
-    WInt64 b { Int64{9236845324122124} };
+    {
+//        Size_T n    = 1024;
+//        Size_T reps = 1024 * 1024;
+        
+        Size_T n    = 1;
+        Size_T reps = 1;
+        
+        const Size_T limb_count = 2;
+        using Limb_T = UInt64;
+        using Comp_T = UInt128;
+        constexpr bool signQ = false;
+        
+        bool verbosed = true;
+        
+//        Test_NegativeQ    <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Sign         <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Negate       <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_less_small   <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_greater_small<limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_less         <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_greater      <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Add          <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_Subtract     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+//        Test_long_mul     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+        Test_long_fma     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+        Test_long_det     <limb_count,Limb_T,Comp_T,signQ>( n, reps, verbosed );
+
+    }
     
-    valprint("a",a);
-    valprint("b",b);
-    valprint("a + b",a + b);
-    
-    auto c = Knoodle::long_mul(a,b);
-    valprint("c",c);
-    
-    TOOLS_DUMP(TypeName<WInt64>);
-    TOOLS_DUMP(WInt64::ClassName());
-    
-    TOOLS_DUMP(TypeName<WInt128>);
-    TOOLS_DUMP(WInt128::ClassName());
-    
-    
-//    WInt128 c = long_mul(a,b);
-    
-    print("");
-    
-////    using Int  = Knoodle::UInteger<2,UInt32,UInt64>;
-////    using LInt = Knoodle::UInteger<4,UInt32,UInt64>;
+//    [[maybe_unused]] PRNG_T engine = InitializedRandomEngine<PRNG_T>();
 //    
-//    using Int  = Knoodle::WideInteger<2,UInt8,UInt16,false>;
-//    using LInt = Int::Prod_T;
-//    
-//    using EmulatedInt  = UInt16;
-//    using LEmulatedInt = UInt32;
-//    
-//    Size_T s [4] {0,8,16,24};
-//    
-////    using Int  = Knoodle::UInteger<2,UInt16,UInt32>;
-////    using LInt = Knoodle::UInteger<4,UInt16,UInt32>;
-////    Size_T s [4] {0,16,32,48};
-//    
-////        using Int  = Knoodle::UInteger<2,UInt32,UInt64>;
-////        using LInt = Knoodle::UInteger<4,UInt32,UInt64>;
-////        Size_T s [4] {0,32,64,96};
-//    
-//    TOOLS_DUMP(sizeof(Int::Limb_T));
-//    TOOLS_DUMP(Int::limb_bit_count);
-//    TOOLS_DUMP(Int::lo_mask);
-//    TOOLS_DUMP(Int::hi_mask);
-//    
-//    Int  a{Int::Limb_T(255),Int::Limb_T(2)};
-//    valprint("a",a);
-//    EmulatedInt A = EmulatedInt(EmulatedInt(a[1]) << s[1])
-//                  + EmulatedInt(EmulatedInt(a[0]) << s[0]);
-//    TOOLS_DUMP(A);
-//    
-//    Int  b{Int::Limb_T(255),Int::Limb_T(256)};
-//    valprint("b",b);
-//    EmulatedInt B = EmulatedInt(EmulatedInt(b[1]) << s[1])
-//                  + EmulatedInt(EmulatedInt(b[0]) << s[0]);
-//    TOOLS_DUMP(B);
-//    
-//    LInt c = long_mul(a,b);
-//    valprint("c",c);
-//    LEmulatedInt C = LEmulatedInt(LEmulatedInt(c[3]) << s[3])
-//                   + LEmulatedInt(LEmulatedInt(c[2]) << s[2])
-//                   + LEmulatedInt(LEmulatedInt(c[1]) << s[1])
-//                   + LEmulatedInt(LEmulatedInt(c[0]) << s[0]);
-//    TOOLS_DUMP(C);
-//    TOOLS_DUMP(static_cast<LEmulatedInt>(A * B));
-//    
-//    print("\n");
-//    Int d = a + b;
-//    TOOLS_DUMP(d);
-//    EmulatedInt D = (EmulatedInt(EmulatedInt(d[1]) << s[1]) + EmulatedInt(EmulatedInt(d[0]) << s[0]));
-//    TOOLS_DUMP(D);
-//    TOOLS_DUMP(static_cast<EmulatedInt>(A + B));
-//    
-//    
-//    Int e = a - b;
-//    TOOLS_DUMP(e);
-//    EmulatedInt E = EmulatedInt(EmulatedInt(e[1]) << s[1])
-//                  + EmulatedInt(EmulatedInt(e[0]) << s[0]);
-//    TOOLS_DUMP(E);
-//    TOOLS_DUMP(static_cast<EmulatedInt>(A - B));
-    
-    
-    
-    
-//    Prosector_T S;
+//    std::uniform_int_distribution<WInt64::Limb_T> dist (
+//        std::numeric_limits<WInt64::Limb_T>::lowest(),
+//        std::numeric_limits<WInt64::Limb_T>::max()
+//    );
 //
-//    print(S.ClassName());
-//    TOOLS_DUMP(TypeName<Prosector_T::Int>);
-//    TOOLS_DUMP(TypeName<Prosector_T::LInt>);
-//    TOOLS_DUMP(TypeName<Prosector_T::LLInt>);
+//    ToSigned<WInt64::Limb_T> a_raw = static_cast<ToSigned<WInt64::Limb_T>>(dist(engine));
+//    ToSigned<WInt64::Limb_T> b_raw = static_cast<ToSigned<WInt64::Limb_T>>(dist(engine));
+//    
+////    ToSigned<WInt64::Limb_T> a_raw = 600;
+////    ToSigned<WInt64::Limb_T> b_raw = -120;
+//    
+//    WInt64 a = WInt64(a_raw);
+//    WInt64 b = WInt64(b_raw);
+//    TOOLS_DUMP(a_raw);
+//    TOOLS_DUMP(a[0]);
+//    TOOLS_DUMP(a);
+////    TOOLS_DUMP(-a);
+//    
+//    TOOLS_DUMP(b_raw);
+//    TOOLS_DUMP(b[0]);
+//    TOOLS_DUMP(b);
+////    TOOLS_DUMP(-b);
+//    
+//    wint128 a_wint (a_raw);
+//    wint128 b_wint (b_raw);
+//    
+//    WInt128 ab = long_mul(a,b);
+//    wint128 ab_wint = a_wint * b_wint;
+//    wint128 r_wint;
+//    wide_convert(ab, r_wint);
+//    
+////    double a = ToDouble(long_mul(WInt64(u[1]),WInt64(v[2])));
+////    double b = double(u[1]) * double(v[2]);
+//    TOOLS_DUMP(ab[0]);
+//    TOOLS_DUMP(ab[1]);
+//    TOOLS_DUMP(ToDouble(ab));
+//    TOOLS_DUMP(ToString(ab_wint));
+//    TOOLS_DUMP(ToString(r_wint));
+//    TOOLS_DUMP(static_cast<double>(ab_wint));
+//    TOOLS_DUMP(static_cast<double>(r_wint));
+//    
+//    TOOLS_DUMP(ab_wint == r_wint);
+    
+    
+    
+    
+//    TOOLS_DUMP( newTypeName<Int64> );
+//    TOOLS_DUMP( newTypeName<Int128> );
+//    
+//    auto & s0 = newTypeName<WideInt<2,UInt32,UInt128,true>>;
+//    auto & s1 = newTypeName<WideInt<2,UInt64,UInt128,true>>;
+//    auto & s2 = newTypeName<Knoodle::WUInt256>;
 //
-//    TOOLS_DUMP(Scalar::RealQ<Prosector_T::Int>);
-//    TOOLS_DUMP(Scalar::RealQ<Prosector_T::LInt>);
-//    TOOLS_DUMP(Scalar::RealQ<Prosector_T::LLInt>);
-//    TOOLS_DUMP(sizeof(Prosector_T::Int));
-//    TOOLS_DUMP(sizeof(Prosector_T::LInt));
-//    TOOLS_DUMP(sizeof(Prosector_T::LLInt));
-//    TOOLS_DUMP(sizeof(Prosector_T::IntersectionTime));
-//    TOOLS_DUMP(sizeof(Prosector_T::IntersectionTime)/sizeof(double));
-//    TOOLS_DUMP(sizeof(Prosector_T::Intersection)/sizeof(Knoodle::Intersection<>));
-//    TOOLS_DUMP(sizeof(_BitInt(128)));
-//    Int i = 0;
-//    Int j = 1;
-//    Int k = 2;
+//    TOOLS_DUMP(s0);
+//    TOOLS_DUMP(s1);
+//    TOOLS_DUMP(s2);
 //    
-//    Vector3_T x_0 {0, 1, 1};
-//    Vector3_T x_1 {12, 10, 4};
-//    Vector3_T y_0 {0, -4, -1};
-//    Vector3_T y_1 {8, 12, 1};
-//    Vector3_T z_0 {0, 12, 3};
-//    Vector3_T z_1 {8, -4, 5};
+//    constexpr std::string s  = ToString(124);
 //    
-//    TOOLS_DUMP(x_0);
-//    TOOLS_DUMP(x_1);
-//    TOOLS_DUMP(y_0);
-//    TOOLS_DUMP(y_1);
-//    TOOLS_DUMP(z_0);
-//    TOOLS_DUMP(z_1);
-//    
-//    print("");
-//    
-//    Vector3_T u = x_1 - x_0;
-//    Vector3_T v = y_1 - y_0;
-//    Vector3_T p = y_1 - x_0;
-//    Vector3_T q = x_1 - y_0;
-//    
-//    TOOLS_DUMP(u);
-//    TOOLS_DUMP(v);
-//    TOOLS_DUMP(p);
-//    TOOLS_DUMP(q);
-//    
-//    print("\nIntersecting lines x and y.");
-//    S.LoadLineSements(i, x_0, x_1, j, y_0, y_1);
-//    
-//    TOOLS_DUMP(S.IntersectionType());
-//    TOOLS_DUMP(S.Flag());
-//    Intersection_T xy_inter = S.ComputeIntersection();
-//    
-//    TOOLS_DUMP(xy_inter.flag);
-//    TOOLS_DUMP(xy_inter.edges[0]);
-//    TOOLS_DUMP(xy_inter.edges[1]);
-//    TOOLS_DUMP(xy_inter.times[0]);
-//    TOOLS_DUMP(xy_inter.times[1]);
-//    TOOLS_DUMP(xy_inter.times[0].ToDouble());
-//    TOOLS_DUMP(xy_inter.times[1].ToDouble());
-//    TOOLS_DUMP(xy_inter.handedness);
-//    
-//    print("\nIntersecting lines x and z.");
-//    S.LoadLineSements(i, x_0, x_1, k, z_0, z_1);
-//    TOOLS_DUMP(S.IntersectionType());
-//    TOOLS_DUMP(S.Flag());
-//    Intersection_T xz_inter = S.ComputeIntersection();
-//    
-//    TOOLS_DUMP(xz_inter.flag);
-//    TOOLS_DUMP(xz_inter.edges[0]);
-//    TOOLS_DUMP(xz_inter.edges[1]);
-//    TOOLS_DUMP(xz_inter.times[0]);
-//    TOOLS_DUMP(xz_inter.times[1]);
-//    TOOLS_DUMP(xz_inter.times[0].ToDouble());
-//    TOOLS_DUMP(xz_inter.times[1].ToDouble());
-//    TOOLS_DUMP(xz_inter.handedness);
-//    
-//    print("");
-//    
-//    TOOLS_DUMP(xy_inter.times[0] < xz_inter.times[0]);
-//    TOOLS_DUMP(xy_inter.times[0] > xz_inter.times[0]);
+//    TOOLS_DUMP(s);
+
+    boost::multiprecision::int128_t z = 1;
 }

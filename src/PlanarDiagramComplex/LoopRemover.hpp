@@ -143,9 +143,9 @@ namespace Knoodle
     /*!@brief Return a string that identifies this class with type information. Mostly used for logging and in error messages.
     */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("LoopRemover")
+            return std::string("LoopRemover")
                 + "<" + TypeName<Int>
                 + ">";
         }

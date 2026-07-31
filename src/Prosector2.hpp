@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Prosector2/Types.hpp"
+#include "WideInt/Boost_cpp_int.hpp"
 
 namespace Knoodle
 {
@@ -25,8 +25,8 @@ namespace Knoodle
      *
      * @tparam Idx_ Integral type used for indices.
      */
-    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
-    class Prosector final
+    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false> // DEBUGGING (verboseQ)
+    class Prosector2 final
     {
     public:
         
@@ -47,9 +47,9 @@ namespace Knoodle
         /*!@brief Integral type used for coordinates.*/
         using Int    = Int_;
         /*!@brief Longer integral type used for internal computations.*/
-        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,Int128>;
+        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int64 ,boost::multiprecision::int128_t>;
         /*!@brief Even longer integral type used for internal computations.*/
-        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,Int128,Int256>;
+        using LLInt  = std::conditional_t<SameQ<LInt,Int64>,boost::multiprecision::int128_t,boost::multiprecision::int256_t>;
         
 //        /*!@brief Longer integral type used for internal computations.*/
 //        using LInt   = std::conditional_t<SameQ< Int,Int32>,Int128,Int128>;
@@ -59,7 +59,7 @@ namespace Knoodle
         using Idx    = Idx_;
         using Sign_T = FastInt8; // Solely for signs.
         
-//        using Prosector_T = Prosector<Idx>;
+        using Prosector_T = Prosector2<Int,Idx,verboseQ>;
         using Vector3_T   = Tiny::Vector<3,Int ,Idx>;
         using LVector3_T  = Tiny::Vector<3,LInt,Idx>;
         
@@ -91,18 +91,18 @@ namespace Knoodle
 
         
         // Default constructor
-        Prosector() = default;
+        Prosector2() = default;
         // Default destructor
-        ~Prosector() = default;
+        ~Prosector2() = default;
         
         // Copy constructor
-        Prosector( const Prosector & other ) = default;
+        Prosector2( const Prosector2 & other ) = default;
         // Copy assignment operator
-        Prosector & operator=( const Prosector & other ) = default;
+        Prosector2 & operator=( const Prosector2 & other ) = default;
         // Move constructor
-        Prosector( Prosector && other ) = default;
+        Prosector2( Prosector2 && other ) = default;
         // Move assignment operator
-        Prosector & operator=( Prosector && other ) = default;
+        Prosector2 & operator=( Prosector2 && other ) = default;
         
     protected:
 
@@ -211,13 +211,27 @@ namespace Knoodle
                 TOOLS_LOGDUMP(u);
                 TOOLS_LOGDUMP(v);
                 TOOLS_LOGDUMP(p);
-                TOOLS_LOGDUMP(q);
+//                TOOLS_LOGDUMP(q);
                 
-                TOOLS_LOGDUMP(uxv);
-                TOOLS_LOGDUMP(uxp);
-                TOOLS_LOGDUMP(uxq);
-                TOOLS_LOGDUMP(vxp);
-                TOOLS_LOGDUMP(vxq);
+                logvalprint("uxv[0]",ToDouble(uxv[0]));
+                logvalprint("uxv[1]",ToDouble(uxv[1]));
+                logvalprint("uxv[2]",ToDouble(uxv[2]));
+                
+                logvalprint("uxp[0]",ToDouble(uxp[0]));
+                logvalprint("uxp[1]",ToDouble(uxp[1]));
+                logvalprint("uxp[2]",ToDouble(uxp[2]));
+                
+                logvalprint("uxq[0]",ToDouble(uxq[0]));
+                logvalprint("uxq[1]",ToDouble(uxq[1]));
+                logvalprint("uxq[2]",ToDouble(uxq[2]));
+                
+                logvalprint("vxp[0]",ToDouble(vxp[0]));
+                logvalprint("vxp[1]",ToDouble(vxp[1]));
+                logvalprint("vxp[2]",ToDouble(vxp[2]));
+                
+                logvalprint("vxq[0]",ToDouble(vxq[0]));
+                logvalprint("vxq[1]",ToDouble(vxq[1]));
+                logvalprint("vxq[2]",ToDouble(vxq[2]));
             }
         }
         
@@ -449,19 +463,20 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Prosector")
+            return std::string("Prosector2")
                 + "<" + TypeName<Int>
                 + "," + TypeName<Idx>
+                + "," + ToString(verboseQ)
                 + ">";
         }
         
-    }; // class Prosector
+    }; // class Prosector2
     
 } // namespace Knoodle

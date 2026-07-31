@@ -2,34 +2,6 @@
 
 // Boost: Rather slow, but maybe I missed something.
 #include <boost/multiprecision/cpp_int.hpp>
-//namespace Knoodle
-//{
-//    using Int128  = boost::multiprecision::int128_t;
-//    using Int256  = boost::multiprecision::int256_t;
-//}
-
-
-//// Wide integer class from https://github.com/ckormanyos/wide-integer
-//// Only fast if WIDE_INTEGER_HAS_LIMB_TYPE_UINT64 is defined.
-//#define WIDE_INTEGER_DISABLE_TRIVIAL_COPY_AND_STD_LAYOUT_CHECKS
-//#define WIDE_INTEGER_HAS_LIMB_TYPE_UINT64
-//#include "../../experimental/wide-integer/math/wide_integer/uintwide_t.h"
-//namespace Knoodle
-//{
-//    // TODO: This has to_chars and from_chars.
-//    using Int128  = ::math::wide_integer::int128_t;
-//    using Int256  = ::math::wide_integer::int256_t;
-//}
-
-
-//// Faster than boost.
-////#include "Integer.hpp"
-//namespace Knoodle
-//{
-//    using Int128  = JIO::Integer<16, true>;
-//    using Int256  = JIO::Integer<32, true>;
-//}
-
 namespace Tools
 {
     template<> constexpr const char * TypeName<boost::multiprecision::int128_t>  = "Boost_I128";
@@ -41,9 +13,9 @@ namespace Tools
         template<> constexpr bool ComplexQ<boost::multiprecision::int128_t> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int128_t> number )
+    double ToDouble( cref<boost::multiprecision::int128_t> a )
     {
-        static_cast<double>(number);
+        return static_cast<double>(a);
     }
     
     // String generator.
@@ -89,9 +61,9 @@ namespace Tools
         template<> constexpr bool ComplexQ<boost::multiprecision::int256_t> = false;
     }
     
-    double ToDouble( cref<boost::multiprecision::int256_t> number )
+    double ToDouble( cref<boost::multiprecision::int256_t> a )
     {
-        static_cast<double>(number);
+        return static_cast<double>(a);
     }
     
     // String generator.
@@ -127,17 +99,11 @@ namespace Tools
         }
     };
     
-}
+} // namespace Tools
 
 namespace Knoodle
 {
-    double ToDouble( cref<boost::multiprecision::int128_t> a )
-    {
-        return static_cast<double>(a);
-    }
     
-    double ToDouble( cref<boost::multiprecision::int256_t> a )
-    {
-        return static_cast<double>(a);
-    }
-}
+
+    
+} // namespace Knoodle

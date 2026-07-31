@@ -310,3 +310,94 @@ void ArcSwap_Private( const Int a, const Int b )
     this->template SetMatchingPortTo<headtail>(c_a,a,b);
     this->template SetMatchingPortTo<headtail>(c_b,b,a);
 }
+
+
+public:
+
+/*!@brief **UNSAFE.** Reverse all arcs with color indicated by `color`. Returns the number of arcs reversed.*/
+Int ReverseColoredArcs( const Int color )
+{
+    if( LockedQ() ) { LockMessage("ReverseColoredArcs"); return Int(0); }
+    
+    return ReverseColoredArcs_Private(color);
+}
+
+private:
+
+/*!@brief **UNSAFE.** Reverse all arcs with color indicated by `color`. Returns the number of arcs reversed.*/
+Int ReverseColoredArcs_Private( const Int color )
+{
+    Int counter = 0;
+    
+    if ( InvalidQ() ) { return counter; }
+    
+    for( Int c = 0; c < max_crossing_count; ++c )
+    {
+        if( !CrossingActiveQ(c) ) { continue; }
+        
+        const C_Arcs_T C = CopyCrossing(c); // We need a copy here.
+        
+        const Int a = C[Out][Left ];
+        const Int b = C[Out][Right];
+        
+        const Int a_color = A_color[a];
+        const Int b_color = A_color[b];
+        
+        if( a_color == color )
+        {
+            if( b_color == color )
+            {
+                C_arcs(c,Out,Left ) = C[In ][Right];
+                C_arcs(c,Out,Right) = C[In ][Left ];
+                C_arcs(c,In ,Left ) = C[Out][Right];
+                C_arcs(c,In ,Right) = C[Out][Left ];
+                
+                std::swap( A_cross(a,Tail), A_cross(a,Head) );
+                if( a != b )
+                {
+                    counter += Int(2);
+                    std::swap( A_cross(b,Tail), A_cross(b,Head) );
+                }
+                else
+                {
+                    ++counter;
+                }
+            }
+            else // if( b_color != color )
+            {
+                counter += Int(1);
+                C_arcs(c,Out,Left ) = C[Out][Right];
+                C_arcs(c,Out,Right) = C[In ][Right];
+                C_arcs(c,In ,Right) = C[In ][Left ];
+                C_arcs(c,In ,Left ) = C[Out][Left ];
+                this->template SwitchCrossing_Private<true>(c);
+                std::swap( A_cross(a,Tail),  A_cross(a,Head) );
+                // Leave b as is.
+            }
+        }
+        else
+        {
+            if( b_color == color )
+            {
+                counter += Int(1);
+                C_arcs(c,Out,Left ) = C[In ][Left ];
+                C_arcs(c,Out,Right) = C[Out][Left ];
+                C_arcs(c,In ,Right) = C[Out][Right];
+                C_arcs(c,In ,Left ) = C[In ][Right];
+                this->template SwitchCrossing_Private<true>(c);
+                // Leave a as is.
+                std::swap( A_cross(b,Tail),  A_cross(b,Head) );
+            }
+            else
+            {
+                // Leave a as is.
+                // Leave b as is.
+                // Leave c as is.
+            }
+        }
+    }
+    
+    this->ClearCache();
+    
+    return counter;
+}

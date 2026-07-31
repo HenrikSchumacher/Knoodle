@@ -20,22 +20,15 @@ public:
     ,   c_3 { c_3_ }
     {}
     
-//    double ToDouble() const
-//    {
-//        return static_cast<double>(c_0);
-//    }
-    
-    Sign_T Sign() const
+    friend Sign_T Sign( cref<Polynomial3> P)
     {
-        Sign_T sign = c_0.Sign();
-        if( sign != Sign_T(0) ) return sign;
-        
-        sign = c_1.Sign();
-        if( sign != Sign_T(0) ) return sign;
-        
-        sign = c_3.Sign();
-        if( sign != Sign_T(0) ) return sign;
-        
+        Sign_T s;
+        s = Sign(P.c_0);
+        if( s != Sign_T(0) ) { return s; }
+        s = Sign(P.c_1);
+        if( s != Sign_T(0) ) { return s; }
+        s = Sign(P.c_3);
+        if( s != Sign_T(0) ) { return s; }
         return Sign_T(0);
     }
     
@@ -52,6 +45,18 @@ public:
     friend Polynomial3 operator-( cref<Polynomial3> P )
     {
         return Polynomial3{ -P.c_0, -P.c_1, -P.c_3 };
+    }
+    
+    
+    friend double ToDouble( cref<Polynomial3> P )
+    {
+        if constexpr ( IntQ<LInt> )
+        {
+            return static_cast<double>(P.c_0);
+        }
+        {
+            return ToDouble(P.c_0);
+        }
     }
     
     friend std::string ToString( cref<Polynomial3> P )

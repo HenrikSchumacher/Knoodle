@@ -103,8 +103,7 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Allocates and returns a container of type `BContainer_T` that is suitable to store the bounding boxes for all the nodes of the tree.
-         */
+        /*!@brief Allocates and returns a container of type `BContainer_T` that is suitable to store the bounding boxes for all the nodes of the tree. */
         
         BContainer_T AllocateBoxes() const
         {
@@ -347,19 +346,19 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("AABBTree")
-            + "<" + ToString(AmbDim)
+            return std::string("AABBTree")
+            + "<" + Tools::ToString(AmbDim)
             + "," + TypeName<Real>
             + "," + TypeName<Int>
             + "," + TypeName<BReal>
-            + "," + ToString(precompute_rangesQ)
+            + "," + Tools::ToString(precompute_rangesQ)
             + ">";
         }
 

@@ -544,16 +544,19 @@ namespace Knoodle
     public:
         /*!@brief Returns a string that identifies the class's method as specified by `tag`. */
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
         /*!@brief Returns a string that identifies the class. Good for debugging and printing messages. */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return std::string("ConformalBarycenterSampler<") + TypeName<Real> + "," + TypeName<Int>  +  ">";
+            return std::string("ConformalBarycenterSampler")
+                 + "<" + TypeName<Real>
+                 + "," + TypeName<Int>
+                 + ">";
         }
         
     }; // ConformalBarycenterSampler
