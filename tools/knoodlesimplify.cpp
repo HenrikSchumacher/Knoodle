@@ -655,6 +655,31 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
 
     const PDC_T::Simplify_Args_T args = BuildSimplifyArgs(config);
 
+    // 4- and 5-column PD codes carry no colors, so every arc arrives as
+    // PD_T::Uninitialized. Simplification then splits the diagram into summands,
+    // and the record of WHICH summands were once a single closed curve -- the
+    // thing that distinguishes a connected sum from a split link -- exists
+    // nowhere but the colors. Assign them up front, per link component, so that
+    // record survives the split and can be written out below. Colored input
+    // (6/7-column, PDC-native) and 3D input (colored by FromCoordinates) already
+    // carry meaningful colors and must keep them.
+    const bool assign_colors = (input.input_column_count == 4)
+                            || (input.input_column_count == 5);
+
+    auto colorize = [assign_colors](PD_T&& pd) -> PD_T
+    {
+        if (assign_colors)
+        {
+            // ComputeArcColors() is lock-guarded: it can change arc colors, which
+            // in general breaks the class's invariants. Here it only fills in
+            // colors that were never set, on a diagram we own outright.
+            pd.Unlock();
+            pd.ComputeArcColors();
+            pd.Lock();
+        }
+        return std::move(pd);
+    };
+
     {
         ScopedTimer timer(result.simplify_time);
 
@@ -663,12 +688,12 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
             if (config.simplify_level == 0)
             {
                 // No simplification - just copy the PD
-                all_pdc.Push(PD_T(pd_in));
+                all_pdc.Push(colorize(PD_T(pd_in)));
             }
             else
             {
                 // Use PlanarDiagramComplex for all simplification levels
-                PD_T pd_copy(pd_in);
+                PD_T pd_copy = colorize(PD_T(pd_in));
                 PDC_T pdc(std::move(pd_copy));
 
                 pdc.Simplify(args);
@@ -1255,8 +1280,19 @@ bool ProcessSource(std::istream& input,
         PDC_T output_pdc;
         SimplifiedKnot simplified = SimplifyKnot(*input_knot, config, config.pdc_format ? &output_pdc : nullptr);
 
-        // Determine output format based on input column count
-        bool colored_output = (input_knot->input_column_count >= 6);
+        // Determine output format based on input column count.
+        //
+        // Colors are also written whenever the result has more than one summand,
+        // even for uncolored input. Splitting a diagram is exactly when the color
+        // stops being redundant: it is the only thing recording that two summands
+        // were once one closed curve (a connected sum) rather than two (a split
+        // link), and a consumer such as `knoodledraw --embedding` cannot rebuild
+        // the correct link type without it. SimplifyKnot has already given
+        // uncolored input real per-link-component colors for this purpose.
+        const bool split_into_summands =
+            (simplified.summands.size() + static_cast<std::size_t>(simplified.unknot_count)) > 1;
+
+        bool colored_output = (input_knot->input_column_count >= 6) || split_into_summands;
 
         // Output phase
         Duration output_time{0};
