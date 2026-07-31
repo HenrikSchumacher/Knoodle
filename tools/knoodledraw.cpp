@@ -49,6 +49,7 @@ struct Config
     bool randomize_projection = false;
     bool ascii_mode           = false;
     bool wolfram_mode         = false;  // --format=wl : emit WL geometry association
+    bool embedding_mode       = false;  // --embedding : emit a 3D embedding, not a 2D drawing
     bool help_requested       = false;
     bool label_crossings      = false;
     bool label_arcs           = false;
@@ -57,6 +58,10 @@ struct Config
 
     // Quality preset
     std::optional<std::string> quality_preset;  // "fast", "default", "best", "best-clp"
+
+    // Reapr tuning, --embedding only (spelled as in knoodlesimplify)
+    std::optional<Energy_T> reapr_energy;
+    std::optional<double>   reapr_scaling;
 
     // Algorithm selection
     std::optional<OrthoDraw_T::BendMethod_T>      bend_method;
@@ -127,6 +132,19 @@ void PrintUsage()
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
     std::cerr << "\n";
+    std::cerr << "3D embedding output:\n";
+    std::cerr << "  --embedding                 Emit a 3D embedding instead of a 2D drawing.\n";
+    std::cerr << "                              Output is .kndlxyz (blank-line-separated components,\n";
+    std::cerr << "                              '#color N' headers), or a WL association with\n";
+    std::cerr << "                              --format=wl. The emitted curves have the same link\n";
+    std::cerr << "                              type as the input diagram: connect-sum summands are\n";
+    std::cerr << "                              rejoined, split pieces are translated apart.\n";
+    std::cerr << "  --reapr-energy=E            tv (default), dirichlet, bending, height,\n";
+    std::cerr << "                              tv_clp, tv_mcf\n";
+    std::cerr << "  --reapr-scaling=X           3D grid scaling in Reapr (default: 1.0)\n";
+    std::cerr << "                              Note: the layout/label/highlight flags above are\n";
+    std::cerr << "                              2D-only and do not apply to --embedding.\n";
+    std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
     std::cerr << "  --compaction=METHOD         topo-number, topo-order, length-mcf (default),\n";
@@ -163,6 +181,8 @@ void PrintUsage()
     std::cerr << "  knoodledraw diagram.tsv\n";
     std::cerr << "  knoodledraw --quality=fast --ascii diagram.tsv\n";
     std::cerr << "  knoodledraw --quality=debug --ascii diagram.tsv\n";
+    std::cerr << "  knoodledraw --embedding diagram.tsv > link.kndlxyz\n";
+    std::cerr << "  knoodledraw --embedding --format=wl diagram.tsv\n";
 }
 
 /**
@@ -283,6 +303,38 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
             {
                 std::cerr << "Error: Unknown --format value: " << val << "\n";
                 std::cerr << "  Valid: unicode, ascii, wl\n";
+                return std::nullopt;
+            }
+        }
+        // 3D embedding output (orthogonal to --format: --embedding picks WHAT is
+        // computed, --format picks how it is serialized)
+        else if (arg == "--embedding")
+        {
+            config.embedding_mode = true;
+        }
+        // Reapr energy flag (--embedding only); spelled as in knoodlesimplify
+        else if (arg.starts_with("--reapr-energy="))
+        {
+            std::string val = ToLower(std::string(arg.substr(15)));
+            if      (val == "tv")        { config.reapr_energy = Energy_T::TV;        }
+            else if (val == "dirichlet") { config.reapr_energy = Energy_T::Dirichlet; }
+            else if (val == "bending")   { config.reapr_energy = Energy_T::Bending;   }
+            else if (val == "height")    { config.reapr_energy = Energy_T::Height;    }
+            else if (val == "tv_clp")    { config.reapr_energy = Energy_T::TV_CLP;    }
+            else if (val == "tv_mcf")    { config.reapr_energy = Energy_T::TV_MCF;    }
+            else
+            {
+                std::cerr << "Error: Unknown --reapr-energy value: " << val << "\n";
+                std::cerr << "  Valid: tv, dirichlet, bending, height, tv_clp, tv_mcf\n";
+                return std::nullopt;
+            }
+        }
+        else if (arg.starts_with("--reapr-scaling="))
+        {
+            try { config.reapr_scaling = std::stod(std::string(arg.substr(16))); }
+            catch (const std::exception&)
+            {
+                std::cerr << "Error: Invalid --reapr-scaling value\n";
                 return std::nullopt;
             }
         }
@@ -2213,6 +2265,343 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
     out << "}|>\n";
 }
 
+//==============================================================================
+// 3D Embedding (--embedding)
+//==============================================================================
+
+/**
+ * @brief Reapr settings for --embedding, from the --reapr-* flags.
+ *
+ * The 2D layout knobs (--quality, --x-grid-size, bend/compaction methods, ...)
+ * deliberately do NOT feed in here: they tune the ASCII drawing, whereas the
+ * OrthoDraw pass inside Reapr is an intermediate step whose defaults
+ * (randomize_bends = 2, randomize_virtual_edgesQ = true) are chosen for
+ * embedding quality. --help says so.
+ */
+Reapr_T::Settings_T BuildReaprSettings(const Config& config)
+{
+    Reapr_T::Settings_T settings;
+    if (config.reapr_energy)  { settings.energy  = *config.reapr_energy; }
+    if (config.reapr_scaling) { settings.scaling = static_cast<Real>(*config.reapr_scaling); }
+    return settings;
+}
+
+/// One embedded split piece, with the x-offset that keeps it clear of its neighbors.
+struct EmbeddedPiece
+{
+    LinkEmb_T emb;
+    Real      x_shift = 0;
+};
+
+/// Extent of an embedding along x, as (min,max); (0,0) for an empty embedding.
+std::pair<Real,Real> EmbeddingXSpan(const LinkEmb_T& emb)
+{
+    const Int n = emb.EdgeCount();
+    if (n <= Int(0)) { return {Real(0), Real(0)}; }
+
+    const auto& coords = emb.EdgeCoordinates();
+
+    Real lo = (std::numeric_limits<Real>::max)();
+    Real hi = std::numeric_limits<Real>::lowest();
+
+    for (Int e = 0; e < n; ++e)
+    {
+        const Real x = coords(e, Int(0), Int(0));
+        lo = std::min(lo, x);
+        hi = std::max(hi, x);
+    }
+    return {lo, hi};
+}
+
+/**
+ * @brief Assemble a knot's summands into split pieces whose link type matches the
+ *        input diagram, and embed each piece in 3-space.
+ *
+ * The goal is that the emitted curves have precisely the link type of the input
+ * diagram. Two things stand between the summand list and that goal:
+ *
+ * 1. A connected sum arrives as several summands that were once ONE closed
+ *    curve, cut apart. Emitting them as separate loops would turn it into a
+ *    split link. ConnectedSum() rejoins them -- it glues same-colored arcs
+ *    across diagrams by surgery (PlanarDiagramComplex/Connect.hpp), colors being
+ *    exactly the record of which link component a summand came from. Summands
+ *    with disjoint colors are left as separate diagrams: genuinely split.
+ *
+ * 2. Reapr::Embedding() refuses a diagram with DiagramComponentCount() > 1, so
+ *    each split piece has to be handed over on its own.
+ *
+ * `coloredQ` says whether the input actually carried arc colors. It must, or
+ * step 1 is unsafe: A_color initializes to PD_T::Uninitialized
+ * (PlanarDiagram.hpp:198) and FromPDCode only writes it when the code has color
+ * columns, so for 4/5-column input EVERY arc reads back the same Uninitialized
+ * "color" and ConnectedSum() would fuse unrelated pieces into a bogus connected
+ * sum. Uncolored input is therefore taken at face value: its diagram components
+ * are genuine split pieces, which is sound because a connected sum written as a
+ * plain PD code is a *connected* diagram.
+ */
+std::vector<EmbeddedPiece> BuildEmbedding(const std::vector<PD_T>& summands,
+                                          const std::vector<Int>& unknot_colors,
+                                          bool coloredQ,
+                                          const Config& config)
+{
+    PDC_T pdc;
+
+    // Push() is lock-guarded (it cannot verify that the caller's colors are
+    // consistent) and is a no-op on a locked complex. Assembling the summands
+    // that ReadKnot just handed us is exactly the sanctioned use: they came from
+    // one diagram and already carry mutually consistent colors.
+    pdc.Unlock();
+
+    for (const PD_T& pd : summands) { pdc.Push(PD_T(pd)); }
+
+    // A 0-crossing unknot with an uninitialized color is PD_T::InvalidQ() and
+    // would be dropped on the floor, so colorless unknot summands (a bare 's'
+    // line) get a synthetic color from a high base, as knoodlesimplify does.
+    Int next_synthetic_color = (std::numeric_limits<Int>::max)() / 2;
+    for (Int color : unknot_colors)
+    {
+        pdc.Push(PD_T::Unknot(color == PD_T::Uninitialized ? next_synthetic_color++
+                                                           : color));
+    }
+
+    pdc.Lock();
+
+    // Split first -- Connect() is only guaranteed to work on split input
+    // (PlanarDiagramComplex.hpp:317), and splitting is also what separates a
+    // disconnected PD code into its genuine split pieces.
+    pdc = pdc.Splitting();
+
+    // An anello (0-crossing unknot) has no diagram to lay out, so Reapr returns
+    // an empty embedding for it. AnelliToFarfalle turns each into a 1-crossing
+    // kink -- still an unknot, but now something OrthoDraw and Reapr can handle,
+    // so unknot components survive into the output instead of vanishing.
+    pdc.AnelliToFarfalle();
+
+    if (coloredQ)
+    {
+        pdc.Connect();
+        // Connect() unites everything into a single PlanarDiagram that may still
+        // hold several diagram components; re-split so each piece is one Reapr
+        // will accept.
+        pdc = pdc.Splitting();
+    }
+
+    Reapr_T reapr(BuildReaprSettings(config));
+
+    std::vector<EmbeddedPiece> pieces;
+
+    for (Int i = 0; i < pdc.DiagramCount(); ++i)
+    {
+        const PD_T& pd = pdc.Diagram(i);
+        if (!pd.ValidQ() || pd.CrossingCount() <= Int(0)) { continue; }
+
+        // Rotate the embedding into general position, the same way
+        // PlanarDiagramComplex/Simplify.hpp does before reprojecting one.
+        // Reapr's raw output takes x and y straight off the OrthoDraw grid, so
+        // the over/under "jump" it inserts at each crossing is an exactly
+        // vertical edge -- which projects to a POINT. FindIntersections then
+        // rejects the whole embedding ("Detected N degenerate edges"), meaning
+        // an unrotated emission could not be read back by Knoodle itself.
+        // (Reapr already randomizes by default via permute_randomQ, so this
+        // costs no determinism that was on offer.)
+        LinkEmb_T emb = reapr.Embedding(pd, reapr.RandomRotation());
+        if (!emb.ValidQ() || emb.EdgeCount() <= Int(0)) { continue; }
+
+        pieces.push_back(EmbeddedPiece{std::move(emb), Real(0)});
+    }
+
+    return pieces;
+}
+
+/**
+ * @brief Lay pieces out along x so their bounding boxes are disjoint.
+ *
+ * Split pieces must not interpenetrate: two loops that pass through each other's
+ * bounding boxes may be linked, which would change the link type of the output.
+ * `x_cursor` runs across the whole output stream, so pieces from different input
+ * knots are kept apart too.
+ */
+void PlacePieces(std::vector<EmbeddedPiece>& pieces, Real& x_cursor)
+{
+    std::vector<std::pair<Real,Real>> spans;
+    spans.reserve(pieces.size());
+
+    Real widest = 0;
+    for (const EmbeddedPiece& p : pieces)
+    {
+        spans.push_back(EmbeddingXSpan(p.emb));
+        widest = std::max(widest, spans.back().second - spans.back().first);
+    }
+
+    const Real gap = (widest > Real(0)) ? Real(0.25) * widest : Real(1);
+
+    for (std::size_t i = 0; i < pieces.size(); ++i)
+    {
+        pieces[i].x_shift = x_cursor - spans[i].first;
+        x_cursor += (spans[i].second - spans[i].first) + gap;
+    }
+}
+
+/// One closed curve of the output: where its vertices live, and its wire color.
+struct EmittedComponent
+{
+    const EmbeddedPiece* piece   = nullptr;
+    Int                  i_begin = 0;
+    Int                  i_end   = 0;
+    Int                  color   = 0;
+};
+
+/**
+ * @brief Flatten all pieces into one list of closed curves, ordered by color.
+ *
+ * The .kndlxyz format records a component's identity by its POSITION -- its
+ * reader hands out colors as iota over the components it finds
+ * (LinkEmbedding/ReadFromFile.hpp) -- so emitting in color order is what keeps
+ * component identity meaningful across a write/read round trip. The WL output
+ * carries "Color" explicitly and does not depend on the order, but uses the same
+ * one so the two serializations agree.
+ */
+std::vector<EmittedComponent> CollectComponents(const std::vector<EmbeddedPiece>& pieces)
+{
+    std::vector<EmittedComponent> comps;
+
+    for (const EmbeddedPiece& p : pieces)
+    {
+        const auto& ptr    = p.emb.ComponentPointers();
+        const auto& colors = p.emb.ComponentColors();
+
+        for (Int lc = 0; lc < p.emb.ComponentCount(); ++lc)
+        {
+            const Int i_begin = ptr[lc];
+            const Int i_end   = ptr[lc + Int(1)];
+            if (i_end <= i_begin) { continue; }
+
+            comps.push_back(EmittedComponent{&p, i_begin, i_end, colors[lc]});
+        }
+    }
+
+    std::stable_sort(comps.begin(), comps.end(),
+                     [](const EmittedComponent& a, const EmittedComponent& b)
+                     { return a.color < b.color; });
+
+    return comps;
+}
+
+/**
+ * @brief Emit pieces as .kndlxyz: one blank-line-separated block of x/y/z rows
+ *        per link component, in component-numbering (= color) order.
+ *
+ * No '#color' headers, deliberately. LinkEmbedding::WriteToFile writes them
+ * under colorQ, but LinkEmbedding::FromInString cannot parse them -- it reads
+ * three Reals per line and fails on the '#' (its source carries a "TODO: Check
+ * and read color"). Emitting them would produce a file that Knoodle's own reader
+ * rejects, breaking `knoodledraw --embedding | knoodlesimplify`.
+ */
+void EmitEmbeddingXYZ(const std::vector<EmbeddedPiece>& pieces, std::ostream& out)
+{
+    const auto old_flags = out.flags();
+    const auto old_prec  = out.precision();
+    out << std::setprecision(17);
+
+    bool first_component = true;
+
+    for (const EmittedComponent& c : CollectComponents(pieces))
+    {
+        const auto& coords = c.piece->emb.EdgeCoordinates();
+
+        if (!first_component) { out << "\n"; }
+        first_component = false;
+
+        for (Int i = c.i_begin; i < c.i_end; ++i)
+        {
+            out << (coords(i,Int(0),Int(0)) + c.piece->x_shift) << "\t"
+                << coords(i,Int(0),Int(1))                      << "\t"
+                << coords(i,Int(0),Int(2))                      << "\n";
+        }
+    }
+
+    out.flags(old_flags);
+    out.precision(old_prec);
+}
+
+/**
+ * @brief Emit pieces as one Wolfram Language association per input knot:
+ *        <| "Components" -> { <|"Color"->k,"Closed"->True,"Points"->{{x,y,z},..}|>, .. } |>
+ *
+ * Every closed curve of the link appears as one entry, carrying the wire color
+ * that identifies its physical link component -- so the paclet can map Color
+ * over a palette and get a correctly colored 3D graphic. Split pieces are
+ * already translated apart in the coordinates, so the flat component list needs
+ * no piece structure of its own.
+ *
+ * Reals are emitted in fixed notation on purpose: ToExpression does not accept
+ * C-style exponents ("1.5e+01"), and Reapr's coordinates are grid-derived and
+ * modest, so fixed never runs long.
+ */
+void EmitWolframEmbedding(const std::vector<EmbeddedPiece>& pieces, std::ostream& out)
+{
+    const auto old_flags = out.flags();
+    const auto old_prec  = out.precision();
+    out << std::fixed << std::setprecision(12);
+
+    out << "<|\"Components\"->{";
+
+    bool first_component = true;
+
+    for (const EmittedComponent& c : CollectComponents(pieces))
+    {
+        const auto& coords = c.piece->emb.EdgeCoordinates();
+
+        out << (first_component ? "" : ",")
+            << "<|\"Color\"->" << c.color
+            << ",\"Closed\"->True,\"Points\"->{";
+        first_component = false;
+
+        for (Int i = c.i_begin; i < c.i_end; ++i)
+        {
+            out << ((i > c.i_begin) ? "," : "")
+                << "{" << (coords(i,Int(0),Int(0)) + c.piece->x_shift)
+                << ","  << coords(i,Int(0),Int(1))
+                << ","  << coords(i,Int(0),Int(2)) << "}";
+        }
+        out << "}|>";
+    }
+
+    out << "}|>\n";
+
+    out.flags(old_flags);
+    out.precision(old_prec);
+}
+
+/**
+ * @brief Embed one knot and write it to stdout in the selected serialization.
+ */
+bool EmbedKnot(const std::vector<PD_T>& summands,
+               const std::vector<Int>& unknot_colors,
+               bool coloredQ,
+               const Config& config,
+               Real& x_cursor)
+{
+    std::vector<EmbeddedPiece> pieces =
+        BuildEmbedding(summands, unknot_colors, coloredQ, config);
+
+    if (pieces.empty())
+    {
+        std::cerr << "Warning: --embedding produced no geometry for this diagram.\n";
+        // An empty diagram is not a failure of the run; --format=wl still owes
+        // the caller one association per knot so the stream stays line-aligned.
+        if (config.wolfram_mode) { std::cout << "<|\"Components\"->{}|>\n"; }
+        return true;
+    }
+
+    PlacePieces(pieces, x_cursor);
+
+    if (config.wolfram_mode) { EmitWolframEmbedding(pieces, std::cout); }
+    else                     { EmitEmbeddingXYZ(pieces, std::cout);     }
+
+    return true;
+}
+
 /**
  * @brief Draw all summands of a knot to stdout.
  *
@@ -2416,7 +2805,8 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 bool ProcessStream(std::istream& input,
                    const std::string& source_name,
                    const Config& config,
-                   Knoodle::PRNG_T& rng)
+                   Knoodle::PRNG_T& rng,
+                   Real& x_cursor)
 {
     bool reached_eof = false;
     bool any_drawn = false;
@@ -2434,6 +2824,26 @@ bool ProcessStream(std::istream& input,
             return false;  // Parse error
         }
 
+        if (config.embedding_mode)
+        {
+            // .kndlxyz has no "next link" marker, so successive knots are
+            // emitted as further components of one embedding; the shared
+            // x_cursor keeps them from overlapping in space, which would
+            // otherwise link curves that the input never linked.
+            if (any_drawn && !config.wolfram_mode) { std::cout << "\n"; }
+
+            // Colors survive only in the 6/7-column PD formats, in
+            // PlanarDiagramComplex's native format (reported as 7), and in 3D
+            // input (whose components are colored by order). See BuildEmbedding.
+            const int  cols     = input_knot->input_column_count;
+            const bool coloredQ = (cols == 3 || cols == 6 || cols == 7);
+
+            if (!EmbedKnot(input_knot->summands, input_knot->unknot_colors,
+                           coloredQ, config, x_cursor)) return false;
+            any_drawn = true;
+            continue;
+        }
+
         if (any_drawn)
         {
             std::cout << "k\n";
@@ -2449,7 +2859,7 @@ bool ProcessStream(std::istream& input,
 /**
  * @brief Process a .kndlxyz file (multi-component 3D link embedding).
  */
-bool ProcessXYZFile(const std::string& filepath, const Config& config)
+bool ProcessXYZFile(const std::string& filepath, const Config& config, Real& x_cursor)
 {
     LinkEmb_T link = LinkEmb_T::ReadFromFile(std::filesystem::path(filepath));
 
@@ -2494,6 +2904,13 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
         }
     }
 
+    // .kndlxyz components are colored automatically (by component order), so the
+    // connect-sum rejoining in BuildEmbedding is always safe on this path.
+    if (config.embedding_mode)
+    {
+        return EmbedKnot(summands, unknot_colors, /*coloredQ=*/true, config, x_cursor);
+    }
+
     return DrawKnot(summands, config, unknot_colors);
 }
 
@@ -2525,6 +2942,10 @@ int main(int argc, char* argv[])
 
     bool success = true;
 
+    // Runs across the whole output so that pieces from different knots and
+    // different files never overlap in space (--embedding only).
+    Real x_cursor = 0;
+
     if (config.input_files.empty())
     {
         // No input files — read from stdin (Unix filter mode). If stdin is an
@@ -2534,7 +2955,7 @@ int main(int argc, char* argv[])
             std::cerr << "knoodledraw: reading diagrams from stdin (Ctrl-D to end). "
                          "Pipe a stream or pass a file; --help for usage.\n";
         }
-        success = ProcessStream(std::cin, "stdin", config, rng);
+        success = ProcessStream(std::cin, "stdin", config, rng, x_cursor);
     }
     else
     {
@@ -2545,14 +2966,24 @@ int main(int argc, char* argv[])
         {
             if (!first_file)
             {
-                std::cout << "k\n";
+                // In --embedding mode every file's geometry joins one .kndlxyz
+                // stream (kept disjoint by x_cursor), so a 'k' separator -- which
+                // that format has no notion of -- must not be emitted.
+                if (config.embedding_mode)
+                {
+                    if (!config.wolfram_mode) { std::cout << "\n"; }
+                }
+                else
+                {
+                    std::cout << "k\n";
+                }
             }
 
             // Route .kndlxyz files to the specialized handler
             std::filesystem::path fpath(filename);
             if (fpath.extension() == ".kndlxyz")
             {
-                if (!ProcessXYZFile(filename, config))
+                if (!ProcessXYZFile(filename, config, x_cursor))
                 {
                     success = false;
                 }
@@ -2571,7 +3002,7 @@ int main(int argc, char* argv[])
                 continue;
             }
 
-            if (!ProcessStream(file, filename, config, rng))
+            if (!ProcessStream(file, filename, config, rng, x_cursor))
             {
                 success = false;
             }
