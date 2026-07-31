@@ -31,6 +31,8 @@ void MovingEdgeCollisions( const Int i, const Int j )
         return;
     }
 
+    ++test_counter;
+    
     Vector3_T t_list;
     
     Tiny::Matrix<2,3,Real,Int> E_0_i ( E_0.data(i) );

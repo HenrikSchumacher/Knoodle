@@ -209,12 +209,13 @@ namespace Knoodle
             return T;
         }
         
+        /*!@brief Return the number of edges in the piecewise linear curve(s).*/
         Int EdgeCount() const
         {
             return L.EdgeCount();
         }
         
-        /*!@brief Return a list with all collision times in the interval `[T_0,T_1]`.*/
+        /*!@brief Return a list with all collision xtimes in the interval `[T_0,T_1]`.*/
         Tensor1<Real,Int> ExportCollisionTimes()
         {
             RequireCollisions();
@@ -384,7 +385,7 @@ namespace Knoodle
             collisions.clear();
             test_counter    = 0;
             first_collision = 0;
-            time = Scalar::Infty<Real>;
+            time = T_1;
             collisions_computedQ = false;
         }
         
