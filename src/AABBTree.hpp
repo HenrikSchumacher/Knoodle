@@ -103,8 +103,7 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Allocates and returns a container of type `BContainer_T` that is suitable to store the bounding boxes for all the nodes of the tree.
-         */
+        /*!@brief Allocates and returns a container of type `BContainer_T` that is suitable to store the bounding boxes for all the nodes of the tree. */
         
         BContainer_T AllocateBoxes() const
         {
