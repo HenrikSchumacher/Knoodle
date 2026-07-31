@@ -242,7 +242,7 @@ namespace Knoodle
                 
                 next_edge[e] = tail_to_edge[static_cast<Int>(head)];
             }
-            
+
             FindComponents();
 
             // using edge_ptr temporarily as scratch space.
@@ -256,7 +256,7 @@ namespace Knoodle
                 edges(e,0) = edges_[from  ];
                 edges(e,1) = edges_[from+1];
             }
-            
+
             FinishPreparations(edge_colors_);
         }
         

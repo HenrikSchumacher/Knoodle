@@ -174,7 +174,6 @@ namespace Knoodle
         {
             L.template ReadVertexCoordinates<false>( P_0, E_0_buffer );
             L.template ReadVertexCoordinates<false>( P_1, E_1_buffer );
-
             
             L.Tree().template ComputeBoundingBoxes<2,3>( E_0.data(), B_0_buffer.data() );
             L.Tree().template ComputeBoundingBoxes<2,3>( E_1.data(), B_1_buffer.data() );

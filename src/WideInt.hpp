@@ -137,12 +137,6 @@ namespace Knoodle
             {
                 limbs[i] = a[i];
             }
-            
-            // DEBUGGING
-            if( !std::is_constant_evaluated() )
-            {
-                (*this) = This_T(1);
-            }
         }
         
         constexpr explicit WideInt( cptr<Limb_T> a, Idx a_size )

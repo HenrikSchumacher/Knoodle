@@ -25,7 +25,7 @@ namespace Knoodle
      *
      * @tparam Idx_ Integral type used for indices.
      */
-    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false> // DEBUGGING (verboseQ)
+    template<SignedIntQ Int_, IntQ Idx_ = Int64, bool verboseQ = false>
     class Prosector2 final
     {
     public:
