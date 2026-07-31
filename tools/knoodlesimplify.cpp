@@ -639,6 +639,14 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     // regardless of whether --format=pdc was also requested.
     PDC_T all_pdc;
 
+    // Push()/Clear() are lock-guarded: on a locked complex they do nothing and
+    // warn, because they cannot verify that the caller's arc colors stay
+    // consistent. Assembling diagrams we own and have already colored ourselves
+    // is the sanctioned use, so unlock for the duration. Without this every
+    // Push() below silently fails, all_pdc stays empty, and the tool reports
+    // every input -- trefoil included -- as a 0-crossing unknot.
+    all_pdc.Unlock();
+
     // Unknot summands that arrived as bare 's' lines pass through.
     for (Int color : input.unknot_colors)
     {
@@ -721,7 +729,9 @@ SimplifiedKnot SimplifyKnot(const InputKnot& input, const Config& config, PDC_T*
     {
         PD_T pd(all_pdc.Diagram(i));
 
-        if (output_pdc) { output_pdc->Push(PD_T(pd)); }
+        // Same lock caveat as all_pdc above; the caller hands us a fresh
+        // (locked) complex, so unlock before the first Push into it.
+        if (output_pdc) { output_pdc->Unlock(); output_pdc->Push(PD_T(pd)); }
 
         if (pd.CrossingCount() == 0)
         {

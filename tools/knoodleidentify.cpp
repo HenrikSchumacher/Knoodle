@@ -568,6 +568,11 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         // single diagram; if pre-split summands arrive, Identify re-decomposes
         // their union. Bare unknot summands carry no diagram and are the identity.
         ki::PDC_T pdc;
+        // Push() is lock-guarded and silently does nothing on a locked complex,
+        // which would leave pdc empty and make every input look like an unknot.
+        // Feeding it diagrams that ReadKnot just produced from one input record
+        // is the sanctioned use, so unlock for the duration.
+        pdc.Unlock();
         for (PD_T& pd : input_knot->summands)
         {
             if (pd.ValidQ()) { pdc.Push(std::move(pd)); }
