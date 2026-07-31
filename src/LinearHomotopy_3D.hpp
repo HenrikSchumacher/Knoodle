@@ -2,6 +2,11 @@
 
 namespace Knoodle
 {
+    /*!@brief **EXPERIMENTAL** This loads two sets of vertex coordinates for a `Link_3D` and provides means to check whether the linear homotopy between the two arising link embeddings is an isotopy. The main routine is `RequireCollisions`.
+     *
+     * CAUTION: This uses computations in double precision and root finding of a certain polynomial of order 3. This may have severe accuracy issues, e.g., when the distance between the line segments of the same edge at time `T_0` and `T_1` are large compared to the lengths of these line segments. For example, I experimenced this when checking large updates of a gradient flow of a very finely sampled polygon (`edge_count` much greater than 10000). Therefore, this class is tagged **EXPERIMENTAL**.
+     *
+     * */
     
     template<FloatQ Real_, IntQ Int_>
     class alignas( ObjectAlignment ) LinearHomotopy_3D final
@@ -112,7 +117,8 @@ namespace Knoodle
         std::vector<Collision_T> collisions;
         
         Size_T test_counter;
-
+        Real time = Scalar::Infty<Real>;
+        bool collisions_computedQ = false;
         
 //###################################################################################
 //####         Constructors                                                      ####
@@ -201,8 +207,10 @@ namespace Knoodle
         }
         
         
-        Tensor1<Real,Int> ExportCollisionTimes() const
+        Tensor1<Real,Int> ExportCollisionTimes()
         {
+            RequireCollisions();
+            
             const Int n = int_cast<Int>(collisions.size());
             
             Tensor1<Real,Int> times ( n );
@@ -215,8 +223,10 @@ namespace Knoodle
             return times;
         }
         
-        Tensor2<Real,Int> ExportCollisionParameters() const
+        Tensor2<Real,Int> ExportCollisionParameters()
         {
+            RequireCollisions();
+            
             const Int n = int_cast<Int>(collisions.size());
             
             Tensor2<Real,Int> times ( n, 2 );
@@ -230,8 +240,10 @@ namespace Knoodle
             return times;
         }
         
-        Tensor2<Real,Int> ExportCollisionPoints() const
+        Tensor2<Real,Int> ExportCollisionPoints()
         {
+            RequireCollisions();
+            
             const Int n = int_cast<Int>(collisions.size());
             
             Tensor2<Real,Int> points ( n, Int(3) );
@@ -243,8 +255,26 @@ namespace Knoodle
             return points;
         }
         
-        Tensor1<Int,Int> ExportCollisionFlags() const
+        Tensor2<Int,Int> ExportCollisionEdgePairs()
         {
+            RequireCollisions();
+            
+            const Int n = int_cast<Int>(collisions.size());
+            
+            Tensor2<Int,Int> edge_pairs ( n, Int(2) );
+            
+            for( Int k = 0; k < n; ++k )
+            {
+                edge_pairs(k,0) = collisions[k].i;
+                edge_pairs(k,1) = collisions[k].j;
+            }
+            return edge_pairs;
+        }
+        
+        Tensor1<Int,Int> ExportCollisionFlags()
+        {
+            RequireCollisions();
+            
             const Int n = int_cast<Int>(collisions.size());
             
             Tensor1<Int,Int> times ( n );
@@ -257,7 +287,29 @@ namespace Knoodle
             return times;
         }
         
+//###################################################################################
+//####         Access                                                           ####
+//###################################################################################
         
+        cref<EContainer_T> EdgeData0() const
+        {
+            return E_0;
+        }
+        
+        cref<EContainer_T> EdgeData1() const
+        {
+            return E_1;
+        }
+        
+        cref<BContainer_T> BoundingBoxes0() const
+        {
+            return B_0;
+        }
+        
+        cref<BContainer_T> BoundingBoxes1() const
+        {
+            return B_1;
+        }
 
         
 //###################################################################################
@@ -269,27 +321,36 @@ namespace Knoodle
         void ClearCollisionData()
         {
             collisions.clear();
-            
             test_counter = 0;
+            time = Scalar::Infty<Real>;
+            collisions_computedQ = false;
         }
         
-        Size_T CollisionCount() const
+        Size_T CollisionCount()
         {
+            RequireCollisions();
+            
             return collisions.size();
         }
         
-        Size_T CollisionTestCount() const
+        Size_T CollisionTestCount()
         {
+            RequireCollisions();
+            
             return int_cast<Int>(test_counter);
         }
         
-        cref<Collision_T> GetCollision( const Int k ) const
+        cref<Collision_T> GetCollision( const Int k )
         {
+            RequireCollisions();
+            
             return collisions[k];
         }
         
-        void WriteCollisionTriples( mptr<Real> triples ) const
+        void WriteCollisionTriples( mptr<Real> triples )
         {
+            RequireCollisions();
+            
             // Suppose the homotopy is parameterized by X : [T_0,T_1] x [0,1] -> R^3.
             
             // This function exports all triples (t,x,y) such that X(t,x) = X(t,y).
@@ -327,19 +388,21 @@ namespace Knoodle
         }
         
         
-        Real CollisionTime() const
+        Real CollisionTime()
         {
             TOOLS_MAKE_FP_STRICT()
             
-            const Size_T k_count = CollisionCount();
-         
-            Real time = Scalar::Infty<Real>;
-
-            for( Size_T k = 0; k < k_count; ++k )
-            {
-                time = Min( time, collisions[k].time );
-            }
-            
+            RequireCollisions();
+//            
+//            const Size_T k_count = CollisionCount();
+//         
+//            Real time = Scalar::Infty<Real>;
+//
+//            for( Size_T k = 0; k < k_count; ++k )
+//            {
+//                time = Min( time, collisions[k].time );
+//            }
+//            
             return time;
         }
         

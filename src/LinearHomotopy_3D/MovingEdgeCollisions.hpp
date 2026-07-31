@@ -417,6 +417,7 @@ public:
                     eprint( ClassName()+"::MovingEdgeCollisions: Collision between edges " + ToString(i) + " and " + ToString(j) + " is degenerate." );
                 }
                 
+                time = Min( time, t );
                 collisions.emplace_back( t, inter, z, i, j, sign );
                 
                 if constexpr ( i_0 >= Int(0) && j_0 >= Int(0) )
