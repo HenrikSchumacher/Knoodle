@@ -4,6 +4,13 @@
 
 namespace Knoodle
 {
+    // https://math.stackexchange.com/a/4498570/447001
+    
+    // "Geometry and the imagination" pp 14-15, Hilbert, David, 1862-1943, author; Cohn-Vossen, S. (Stephan), 1902-1936, author; Nemenyi, P., translator
+    //
+    // "Thus three skew straight lines always define a hyperboloid of one sheet, except in the case where they are all parallel to one plane (but not to each other). In this case they determine a new type of second-order surface, called the hyperbolic paraboloid, which does not include any surface of revolution as a special case."
+    
+    
     /*!@brief **EXPERIMENTAL.** A class for computing intersections of 3D line segments after projecting them to the plane.
      *
      * This class is part of the pipeline to convert closed polygonal curves in 3-space to a planar diagrams. Users of `Knoodle` will typically not use it directly. This documentation is targeted at developers.
