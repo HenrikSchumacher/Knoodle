@@ -4,9 +4,8 @@ namespace Knoodle
 {
     /*!@brief **EXPERIMENTAL** This loads two sets of vertex coordinates for a `Link_3D` and provides means to check whether the linear homotopy between the two arising link embeddings is an isotopy. The main routine is `RequireCollisions`.
      *
-     * CAUTION: This uses computations in double precision and root finding of a certain polynomial of order 3. This may have severe accuracy issues, e.g., when the distance between the line segments of the same edge at time `T_0` and `T_1` are large compared to the lengths of these line segments. For example, I experimenced this when checking large updates of a gradient flow of a very finely sampled polygon (`edge_count` much greater than 10000). Therefore, this class is tagged **EXPERIMENTAL**.
-     *
-     * */
+     * CAUTION: This uses computations in double precision and root finding of a polynomials of order 3. This may have severe accuracy issues, e.g., when the distance between the line segments of the same edge at time `T_0` and `T_1` are large compared to the lengths of these line segments. For example, I experimenced this when checking large updates of a gradient flow of a very finely sampled polygon (`edge_count` much greater than 10000). Therefore, this class is tagged **EXPERIMENTAL**.
+     */
     
     template<FloatQ Real_, IntQ Int_>
     class alignas( ObjectAlignment ) LinearHomotopy_3D final
@@ -117,6 +116,7 @@ namespace Knoodle
         std::vector<Collision_T> collisions;
         
         Size_T test_counter;
+        Size_T first_collision = 0;
         Real time = Scalar::Infty<Real>;
         bool collisions_computedQ = false;
         
@@ -126,8 +126,8 @@ namespace Knoodle
         
     public:
         
-        // Initialization from precomputed edge coordinates and bounding boxes.
-        // This is useful when handling piecewise-linear homotopies, because this data can be reused.
+        /*!@brief Initialization from precomputed edge coordinates and bounding boxes. This is useful when handling piecewise-linear homotopies, because this data can be reused.
+         */
         LinearHomotopy_3D(
             mref<Link_T> L_,
             const Real T_0_, cref<EContainer_T> E_0_, cref<BContainer_T> B_0_,
@@ -144,7 +144,15 @@ namespace Knoodle
         ,   B_1     { B_1_      }
         {}
         
-        // Initialization by times and vertex positions.
+        /*!@brief Initialization from times and vertex positions.
+         *
+         * Denote the piecewise-linear interpolations of `P_0` and `P_1` by \f$f_0 \colon M \to R^3\f$ and \f$f_1 \colon M \to R^3\f$, where \f$M\f$ is some closed one-dimensional manifold. Then the homotopy presented by this objects is the following:
+         * \f\[
+         *      H \colon [T_0,T_1] \times M \to R^3,
+         *      \quad
+         *      H(t,x) = \frac{t - T_0}{T_1 - T_0} \, f_0(x) + \frac{T_1 - t}{T_1 - T_0} \, f_1(x).
+         *   \f\]
+         */
         LinearHomotopy_3D(
             mref<Link_T> L_,
             const Real T_0_, cptr<Real> P_0,
@@ -206,7 +214,7 @@ namespace Knoodle
             return L.EdgeCount();
         }
         
-        
+        /*!@brief Return a list with all collision times in the interval `[T_0,T_1]`.*/
         Tensor1<Real,Int> ExportCollisionTimes()
         {
             RequireCollisions();
@@ -223,6 +231,51 @@ namespace Knoodle
             return times;
         }
         
+        
+        /*!@brief Return the initial time `T_0` of the homotopy.*/
+        Real InitialTime() const { return T_0; }
+        
+        /*!@brief Return the final time `T_1` of the homotopy.*/
+        Real FinalTime() const { return T_1; }
+
+        /*!@brief Return the internal list of collisions.*/
+        std::vector<Collision_T> Collisions()
+        {
+            RequireCollisions();
+
+            return collisions;
+        }
+
+        /*!@brief Return the earliest collision time in the interval `[T_0,T_1]`.*/
+        Real EarliestCollisionTime()
+        {
+            RequireCollisions();
+
+            return time;
+        }
+        
+        [[deprecated("Superseded by EarliestCollisionIndex because in makes the intention clearer.")]]
+        /*!@brief Return the earliest collision time in the interval `[T_0,T_1]`.*/
+        Real CollisionTime()
+        {
+            RequireCollisions();
+
+            return time;
+        }
+        
+        /*!@brief Return the position of the position with the earliest collision time in the list `Collisions()`.*/
+        Int EarliestCollisionIndex()
+        {
+            RequireCollisions();
+
+            return first_collision;
+        }
+        
+        
+        /*!@brief Return the a list containing for each collision parameters `{x,y}` of collision _relative to the corresponding edges.
+         *
+         * I.e., if `x = 0`, `y = 0.5`, then the point of collision is the left end point of the first edge and the midpoint of the second edge.
+         * */
         Tensor2<Real,Int> ExportCollisionParameters()
         {
             RequireCollisions();
@@ -240,6 +293,7 @@ namespace Knoodle
             return times;
         }
         
+        /*!@brief Return the a list containing for each collision the collision point in 3-space.*/
         Tensor2<Real,Int> ExportCollisionPoints()
         {
             RequireCollisions();
@@ -255,6 +309,7 @@ namespace Knoodle
             return points;
         }
         
+        /*!@brief Return the a list containing for each collision the pairs corresponding edge indices  `{i,j}`.*/
         Tensor2<Int,Int> ExportCollisionEdgePairs()
         {
             RequireCollisions();
@@ -271,6 +326,7 @@ namespace Knoodle
             return edge_pairs;
         }
         
+        /*!@brief Return the a list containing for each collision the flag raised by the collision finder.*/
         Tensor1<Int,Int> ExportCollisionFlags()
         {
             RequireCollisions();
@@ -291,21 +347,25 @@ namespace Knoodle
 //####         Access                                                           ####
 //###################################################################################
         
+        /*!@brief Return the data of the line segments at time `T_0`.*/
         cref<EContainer_T> EdgeData0() const
         {
             return E_0;
         }
         
+        /*!@brief Return the data of the line segments at time `T_1`.*/
         cref<EContainer_T> EdgeData1() const
         {
             return E_1;
         }
         
+        /*!@brief Return bounding boxes at time `T_0`.*/
         cref<BContainer_T> BoundingBoxes0() const
         {
             return B_0;
         }
         
+        /*!@brief Return bounding boxes at time `T_1`.*/
         cref<BContainer_T> BoundingBoxes1() const
         {
             return B_1;
@@ -318,14 +378,17 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Erase data of the collisions computed so that a new call to `RequireCollisions` will recompute them.*/
         void ClearCollisionData()
         {
             collisions.clear();
-            test_counter = 0;
+            test_counter    = 0;
+            first_collision = 0;
             time = Scalar::Infty<Real>;
             collisions_computedQ = false;
         }
         
+        /*!@brief Return the number of collisions in the time interval `[T_0,T_1]`.*/
         Size_T CollisionCount()
         {
             RequireCollisions();
@@ -347,6 +410,8 @@ namespace Knoodle
             return collisions[k];
         }
         
+        
+        
         void WriteCollisionTriples( mptr<Real> triples )
         {
             RequireCollisions();
@@ -363,7 +428,7 @@ namespace Knoodle
             {
                 cref<Collision_T> C = collisions[k];
                 
-                triples[3 * k + 0] = T_0 + DeltaT * C.time;
+                triples[3 * k + 0] = C.time;
                 triples[3 * k + 1] = Delta_x * ( C.i + C.z[0] );
                 triples[3 * k + 2] = Delta_x * ( C.j + C.z[1] );
             }
@@ -388,30 +453,8 @@ namespace Knoodle
         }
         
         
-        Real CollisionTime()
-        {
-            TOOLS_MAKE_FP_STRICT()
-            
-            RequireCollisions();
-//            
-//            const Size_T k_count = CollisionCount();
-//         
-//            Real time = Scalar::Infty<Real>;
-//
-//            for( Size_T k = 0; k < k_count; ++k )
-//            {
-//                time = Min( time, collisions[k].time );
-//            }
-//            
-            return time;
-        }
-        
-        
     private:
         
-
-        
-            
 /// TODO: Check triangles.
 /// Loop over all edges between i and j.
 ///     - Compute the average of the vertices and inter and store it in center.

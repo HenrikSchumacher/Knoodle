@@ -81,9 +81,11 @@ test/build/
 *.md 
 
 doc/*
+doc.html
 
 *.xcuserstate
 *.xcodeproj/xcuserdata/*
 *.xcuserstate
 *.xcworkspace/
 xcuserdata/
+
