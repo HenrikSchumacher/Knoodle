@@ -4,7 +4,7 @@ public:
  *
  * @param file The file to write to.
  *
- * @param color Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot.
+ * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot.
  *
  */
 bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) const
@@ -27,13 +27,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 
     const Int comp_count = component_ptr.Dim(0) - 1;
 
-    OutString s = ToOutString(color);
-    
-    if( s.FailedQ() )
-    {
-        eprint(MethodName("WriteToFile") + ": Failed to create OutString. Aborting.");
-        return false;
-    };
+    OutString s = ToOutString(colorQ);
     
     stream << s;
     
@@ -49,9 +43,7 @@ bool WriteToFile( cref<std::filesystem::path> file, const bool colorQ = true ) c
 
 /*!@brief Create an `OutString` object and write the vertex coordinates of the link to it. The vertex coordinates of each link component are written in `x y z` lines in the order they appear in the link component. Link components are separated by blank lines.
  *
- * @param file The file to write to.
- *
- * @param color Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot. CAUTION: If this is a multiple-component link and if several components have the same color, then not writing the colors leads to a loss/change of some important topological information. We provide this option only to allow export for downstream application that cannot handle the `#color` statement and that do not treat it as comment.
+ * @param colorQ Whether the colors of the link components shall be exported in the format `#color <int>` at the start of each component. In any case, the output should be compatible with KnotPlot. CAUTION: If this is a multiple-component link and if several components have the same color, then not writing the colors leads to a loss/change of some important topological information. We provide this option only to allow export for downstream application that cannot handle the `#color` statement and that do not treat it as comment.
  *
  */
 
