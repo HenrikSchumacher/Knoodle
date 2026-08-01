@@ -49,7 +49,7 @@ namespace Knoodle
 
         
         static constexpr Int AmbDim = 3;
-        static constexpr Int InvalidColor = PlanarDiagram::InvalidColor;
+        static constexpr Int InvalidColor = PlanarDiagram<Int>::InvalidColor;
         
     protected:
         
