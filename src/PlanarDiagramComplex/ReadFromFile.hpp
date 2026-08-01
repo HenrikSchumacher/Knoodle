@@ -144,7 +144,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             break;
         }
         
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with a xf.
         for( int i = 0; i < 6; ++i )
         {
             s.Take(x);

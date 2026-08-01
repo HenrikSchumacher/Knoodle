@@ -28,9 +28,9 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
 
     while( !s.EmptyQ() && !s.FailedQ() )
     {
-        if( s.CurrentChar() == '\n' )
+        if( s.NewlineQ() )
         {
-            s.Skip(Size_T(1));
+            s.SkipNewline();
             component_ptr_agg.push_back(vertex_counter);
             continue;
         }
@@ -43,8 +43,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
             // `component_ptr_agg` has one entry per component started  so far plus one for the leading `0`. So this is the number of the current component.
             const Size_T lc = component_ptr_agg.size() - Size_T(1);
 
-            // Cool, I didn't know that `std::string_view::starts_with` was a thing.
-            if( s.View().starts_with("#color") )
+            if( s.StartsWithQ("#color") )
             {
                 s.Skip(Size_T(6));
 
@@ -75,6 +74,8 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
                 if( color_agg.size() <= lc )
                 {
                     // std::vector::resize only reallocates if lc + Size_T(1) exceeds capacity.
+                    // So the if-guard should not be absolutely nececessary.
+                    
                     // What is an invalid color is dictated by the class `PlanarDiagram<Int>`.
                     color_agg.resize(lc + Size_T(1),InvalidColor);
                 }
@@ -82,8 +83,8 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
                 color_agg[lc] = color;
             }
 
-            // Skip whatever is left of the line, plus its newline.
-            s.SkipToLineEnd();
+            // Skip whatever is left of the line, plus its newline. May also stop and buffer end without raising the failure flag.
+            s.SkipLine();
 
             continue;
         }
@@ -99,12 +100,9 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         v_coords.push_back(x);
         ++vertex_counter;
 
-        // We have to be careful here, because the last line may easily end with or without an '\n'.
-        if( s.EmptyQ() ) { break; }
-
-        s.SkipChar('\n');
-        
-        // s.SkipChar('\n') could be relaxed to `s.SkipToLineEnd()`; this would allow to read in files in which the coordinates are followed by some kind of comment or addition attributes (vertex normal, or some scalar value).
+        // Skip whatever is left of the line plus its newline character sequence (allowing, e.g., that user put comments on the end of each line with vertex coordinates.
+        // Stop also at buffer end without raising the failure flag.
+        s.SkipLine();
     }
 
     if( s.FailedQ() )

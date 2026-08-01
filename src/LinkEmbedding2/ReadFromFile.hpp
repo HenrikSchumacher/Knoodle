@@ -11,17 +11,17 @@ static LinkEmbedding_T ReadFromFile( cref<std::filesystem::path> file )
 // TODO: Check and read color.
 static LinkEmbedding_T FromInString( mref<Tools::InString> s )
 {
-    Int counter = 0;
+    Int vertex_counter = 0;
     std::vector<Real> v_coords;
     std::vector<Int> component_ptr_agg;
     component_ptr_agg.push_back(Int(0));
     
     while( !s.EmptyQ() && !s.FailedQ() )
     {
-        if( s.CurrentChar() == '\n' )
+        if( s.NewlineQ() )
         {
-            s.Skip(1);
-            component_ptr_agg.push_back(counter);
+            s.SkipNewline();
+            component_ptr_agg.push_back(vertex_counter);
             continue;
         }
         
@@ -34,12 +34,12 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
         s.SkipWhiteSpace();
         s.Take(x);
         v_coords.push_back(x);
-        ++counter;
+        ++vertex_counter;
         
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with a newline sequence.
         if( s.EmptyQ() ) { break; }
         
-        s.SkipChar('\n');
+        s.SkipNewline();
     }
     
     if( s.FailedQ() )
@@ -48,7 +48,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s )
         return LinkEmbedding_T();
     }
     
-    component_ptr_agg.push_back(counter);
+    component_ptr_agg.push_back(vertex_counter);
     
     LinkEmbedding_T link (
         Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
