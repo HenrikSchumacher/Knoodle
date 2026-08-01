@@ -448,6 +448,55 @@
 			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
 			remoteInfo = Scratch;
 		};
+		AF5F7458301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD9EA0929337F7E00FC8A85;
+			remoteInfo = QRAlgorithm;
+		};
+		AF5F745A301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF8BDDDF295A1FBD001D8CCF;
+			remoteInfo = Example_SparseCholesky;
+		};
+		AF5F745C301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF9A9286298E5BF600242813;
+			remoteInfo = UnitTests;
+		};
+		AF5F745E301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFFAC624298ECE5800A2CF4B;
+			remoteInfo = Unit_Test_SpMM;
+		};
+		AF5F7460301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF5D050B2B52F09000E946CA;
+			remoteInfo = DenseBLAS;
+		};
+		AF5F7462301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AFD4A1572C58C94200510A91;
+			remoteInfo = Experiment_SpMM;
+		};
+		AF5F7464301DB6A10039777C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AF7C6C152C5E903800EA899D;
+			remoteInfo = Scratch;
+		};
 		AF7C85DE300FCCA4008DD093 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AF7C7FAB300FCC47008DD093 /* Tensors.xcodeproj */;
@@ -1479,6 +1528,7 @@
 		AF5B87F32BAE053100CB5CAF /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		AF5EADD53014F44400F7E87C /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF5F6ABC301684CA00AD10EA /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
+		AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
 		AF5FF6AD2DD27DCA0076AB0E /* Dev_CLP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Dev_CLP; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF6C85DC2E29315B0051B919 /* WorkBench */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = WorkBench; sourceTree = BUILT_PRODUCTS_DIR; };
 		AF7C7FAB300FCC47008DD093 /* Tensors.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Tensors.xcodeproj; sourceTree = "<group>"; };
@@ -1772,6 +1822,20 @@
 				AF5F711530168B8100AD10EA /* DenseBLAS */,
 				AF5F711730168B8100AD10EA /* Experiment_SpMM */,
 				AF5F711930168B8100AD10EA /* Scratch */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AF5F6E11301C9FDE0039777C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AF5F7459301DB6A10039777C /* QRAlgorithm */,
+				AF5F745B301DB6A10039777C /* Example_SparseCholesky */,
+				AF5F745D301DB6A10039777C /* UnitTests */,
+				AF5F745F301DB6A10039777C /* Unit_Test_SpMM */,
+				AF5F7461301DB6A10039777C /* DenseBLAS */,
+				AF5F7463301DB6A10039777C /* Experiment_SpMM */,
+				AF5F7465301DB6A10039777C /* Scratch */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2288,8 +2352,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = AFD3C72D3018C32B00DFA94A /* Products */;
-					ProjectRef = AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */;
+					ProductGroup = AF7C7FB0300FCC47008DD093 /* Products */;
+					ProjectRef = AF7C7FAB300FCC47008DD093 /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AF5F6AC1301684CA00AD10EA /* Products */;
@@ -2302,6 +2366,10 @@
 				{
 					ProductGroup = AFCAB7C12FFA21BA002EACA7 /* Products */;
 					ProjectRef = AFCAB7BC2FFA21BA002EACA7 /* Tensors.xcodeproj */;
+				},
+				{
+					ProductGroup = AF5F6E11301C9FDE0039777C /* Products */;
+					ProjectRef = AF5F6E0C301C9FDE0039777C /* Tensors.xcodeproj */;
 				},
 				{
 					ProductGroup = AF3C1CD32FEC34F8000094CE /* Products */;
@@ -2396,8 +2464,8 @@
 					ProjectRef = AFFAEBA630010A640048B9A3 /* Tensors.xcodeproj */;
 				},
 				{
-					ProductGroup = AF7C7FB0300FCC47008DD093 /* Products */;
-					ProjectRef = AF7C7FAB300FCC47008DD093 /* Tensors.xcodeproj */;
+					ProductGroup = AFD3C72D3018C32B00DFA94A /* Products */;
+					ProjectRef = AFD3C7283018C32B00DFA94A /* Tensors.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -2855,6 +2923,55 @@
 			fileType = "compiled.mach-o.executable";
 			path = Scratch;
 			remoteRef = AF5F711830168B8100AD10EA /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F7459301DB6A10039777C /* QRAlgorithm */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = QRAlgorithm;
+			remoteRef = AF5F7458301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F745B301DB6A10039777C /* Example_SparseCholesky */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Example_SparseCholesky;
+			remoteRef = AF5F745A301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F745D301DB6A10039777C /* UnitTests */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = UnitTests;
+			remoteRef = AF5F745C301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F745F301DB6A10039777C /* Unit_Test_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Unit_Test_SpMM;
+			remoteRef = AF5F745E301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F7461301DB6A10039777C /* DenseBLAS */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = DenseBLAS;
+			remoteRef = AF5F7460301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F7463301DB6A10039777C /* Experiment_SpMM */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Experiment_SpMM;
+			remoteRef = AF5F7462301DB6A10039777C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AF5F7465301DB6A10039777C /* Scratch */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = Scratch;
+			remoteRef = AF5F7464301DB6A10039777C /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AF7C85DF300FCCA4008DD093 /* QRAlgorithm */ = {

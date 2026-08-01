@@ -9,21 +9,15 @@ static LinkEmbedding_T ReadFromFile(
     return FromInString(s, Sterbenz_shiftQ);
 }
 
-/*!@brief Read an embedding from `s`: one `x y z` line per vertex, components
+// TODO: Once we have agreed on a good default behavior for a missing #color attribute, we need to document it.
+
+/*!@brief Read an embedding from `InString` `s`: one `x y z` line per vertex, components
  * separated by blank lines, each component optionally preceded by a
  * `#color <int>` line.
- *
- * The `#color` header is what `WriteToFile( ..., colorQ = true )` emits. Reading
- * it back here is what makes that writer's output round-trip; before, any file
- * written with `colorQ = true` was rejected by this parser, because the leading
- * '#' is not the start of a `Real`. Lines beginning with '#' that are not
- * `#color` are treated as comments and skipped, so hand-annotated files stay
- * readable. A component with no `#color` header keeps the old default: its own
- * index, i.e. the `iota` colors this routine used to hand out unconditionally.
  */
 static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shiftQ = true )
 {
-    Int counter = 0;
+    Int vertex_counter = 0;
     std::vector<Real> v_coords;
     std::vector<Int> component_ptr_agg;
     component_ptr_agg.push_back(Int(0));
@@ -36,19 +30,21 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     {
         if( s.CurrentChar() == '\n' )
         {
-            s.Skip(1);
-            component_ptr_agg.push_back(counter);
+            s.Skip(Size_T(1));
+            component_ptr_agg.push_back(vertex_counter);
             continue;
         }
 
         if( s.CurrentChar() == '#' )
         {
             // A '#color <int>' line declares the color of the component that
-            // follows it; component_ptr_agg has one entry per component started
-            // so far, so its last index is the component about to be read.
-            const std::string_view line = s.View();
+            // follows it.
+            
+            // `component_ptr_agg` has one entry per component started  so far plus one for the leading `0`. So this is the number of the current component.
+            const Size_T lc = component_ptr_agg.size() - Size_T(1);
 
-            if( line.starts_with("#color") )
+            // Cool, I didn't know that `std::string_view::starts_with` was a thing.
+            if( s.View().starts_with("#color") )
             {
                 s.Skip(Size_T(6));
 
@@ -63,23 +59,31 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
 
                 Int color = 0;
                 s.Take(color);
-
+ 
                 if( s.FailedQ() )
                 {
-                    eprint(MethodName("FromInString") + ": Malformed '#color' line. Returning invalid object.");
+                    eprint(MethodName("FromInString") + ": Malformed '#color' line for link component no. " + ToString(lc) + ". Returning invalid object.");
                     return LinkEmbedding_T();
                 }
-
-                const Size_T lc = component_ptr_agg.size() - Size_T(1);
-
-                if( color_agg.size() <= lc ) { color_agg.resize(lc + Size_T(1),Int(-1)); }
+                
+                if( color == InvalidColor )
+                {
+                    eprint(MethodName("FromInString") + ": Invalid color for link component no. " + ToString(lc) + ". Returning invalid object.");
+                    return LinkEmbedding_T();
+                }
+                
+                if( color_agg.size() <= lc )
+                {
+                    // std::vector::resize only reallocates if lc + Size_T(1) exceeds capacity.
+                    // What is an invalid color is dictated by the class `PlanarDiagram<Int>`.
+                    color_agg.resize(lc + Size_T(1),InvalidColor);
+                }
 
                 color_agg[lc] = color;
             }
 
             // Skip whatever is left of the line, plus its newline.
-            while( !s.EmptyQ() && (s.CurrentChar() != '\n') ) { s.Skip(Size_T(1)); }
-            if( !s.EmptyQ() ) { s.Skip(Size_T(1)); }
+            s.SkipToLineEnd();
 
             continue;
         }
@@ -93,12 +97,14 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         s.SkipWhiteSpace();
         s.Take(x);
         v_coords.push_back(x);
-        ++counter;
+        ++vertex_counter;
 
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with or without an '\n'.
         if( s.EmptyQ() ) { break; }
 
         s.SkipChar('\n');
+        
+        // s.SkipChar('\n') could be relaxed to `s.SkipToLineEnd()`; this would allow to read in files in which the coordinates are followed by some kind of comment or addition attributes (vertex normal, or some scalar value).
     }
 
     if( s.FailedQ() )
@@ -107,7 +113,7 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         return LinkEmbedding_T();
     }
 
-    component_ptr_agg.push_back(counter);
+    component_ptr_agg.push_back(vertex_counter);
 
     const Size_T comp_count = component_ptr_agg.size() - Size_T(1);
 
@@ -115,8 +121,19 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
 
     for( Size_T lc = 0; lc < comp_count; ++lc )
     {
-        const bool declaredQ = (lc < color_agg.size()) && (color_agg[lc] >= Int(0));
+        // The check color_agg[lc] >= Int(0) does not work if `Int` is an unsigned type.
+        // const bool declaredQ = (lc < color_agg.size()) && (color_agg[lc] >= Int(0));
 
+        // What is an invalid color is dictated by the class `PlanarDiagram<Int>`.
+        const bool declaredQ = (lc < color_agg.size()) && (color_agg[lc] != InvalidColor);
+        
+        // I don't know whether I like this default behavior.
+        // If the #color attribute is present for every link component, then this will simply read in the colors. Fine.
+        // If no #color keywords have appeared, then a new color is assigned to each link component,starting from `0` and going up to `comp_count - 1`. That is the old behavior; it is meaningful and it reflects best what the user expects. Plus it this should make this import format compatible with KnotPlot's outputs. (I am not 100% sure about floating-point numbers in scientific form.)
+        // But if the #color attribute misses only for _some_ link components and if it is specified for others, then just using the number of the link component as color is dangerous: this color may coincide with some of the user-defined colors. This forces `PlanarDiagramComplex` to interpret these two components as a connected sum. So this behavior might affect the topology of the resulting link in an unintended/unexpected way. For example, the user might expect that the present specified color is used until it is changed.
+        // I don't know yet, what exact default behavior we should use here. I think it is important to have a simple rule that meets the users expectations. This must not be a foot gun. This is part of the reason why I had not implemented the color import, yet: I simply was not sure what exactly to do here.
+        // Thinking of this, the best action might be to require that the #color attribute appears either for all link components or for none.
+        
         component_color[int_cast<Int>(lc)] =
             declaredQ ? color_agg[lc] : int_cast<Int>(lc);
     }
@@ -137,76 +154,3 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
     
     return link;
 }
-
-//// TODO: Check and read color.
-//static LinkEmbedding_T ReadFromFile2(
-//    cref<std::filesystem::path> file, bool Sterbenz_shiftQ = true
-//)
-//{
-//    std::ifstream stream ( file );
-//    
-//    if( !stream )
-//    {
-//        eprint(MethodName("ReadFromFile") + ": Opening file " + file.string() + " failed. Returning invalid object.");
-//        return LinkEmbedding_T();
-//    }
-//    
-//    Int counter = 0;
-//    std::vector<Real> v_coordinates;
-//    std::vector<Int> component_ptr_agg;
-//    component_ptr_agg.push_back(Int(0));
-//    
-//    std::string line;
-//    std::string token;
-//    
-//    bool failedQ = false;
-//    
-//    while( std::getline(stream,line) )
-//    {
-//        if( line.size() == Size_T(0) )
-//        {
-//            component_ptr_agg.push_back(counter);
-//            continue;
-//        }
-//        
-//        std::stringstream s (line);
-//
-//        // TODO: Use std::from_chars here
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        if( !(s >> std::ws) ) { failedQ = true; break; }
-//        
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        if( !(s >> std::ws) ) { failedQ = true; break; }
-//        
-//        if( !(s >> token) ) { failedQ = true; break; }
-//        v_coordinates.push_back(std::stod(token));
-//        
-//        ++counter;
-//    }
-//    
-//    if( failedQ )
-//    {
-//        eprint(MethodName("ReadFromFile") + ": Reading file failed. Returning invalid object.");
-//        return LinkEmbedding_T();
-//    }
-//    
-//    component_ptr_agg.push_back(counter);
-//    
-//    LinkEmbedding_T link (
-//        Tensor1<Int,Int>( &component_ptr_agg[0], int_cast<Int>(component_ptr_agg.size())),
-//        iota<Int,Int>(component_ptr_agg.size()-Size_T(1))
-//    );
-//    
-//    if( Sterbenz_shiftQ )
-//    {
-//        link.template ReadVertexCoordinates<false,true>(&v_coordinates[0]);
-//    }
-//    else
-//    {
-//        link.template ReadVertexCoordinates<false,false>(&v_coordinates[0]);
-//    }
-//    
-//    return link;
-//}
