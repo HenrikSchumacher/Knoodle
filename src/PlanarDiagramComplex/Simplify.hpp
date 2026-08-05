@@ -316,11 +316,11 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
             {
                 if( pd.DiagramComponentCount() <= Int(1) )
                 {
-                    this->template Rattle<debugQ,targs>( S, reapr, std::move(pd), args );
+                    change_count += this->template Rattle<debugQ,targs>( S, reapr, std::move(pd), args );
                 }
                 else
                 {
-                    // We are not allowed to split; so we cannot do better than pushing this onto the "done pile.
+                    // We are not allowed to split; so we cannot do better than pushing this onto the "done" pile.
                     PushDiagramDone( std::move(pd) );
                 }
             }
@@ -390,10 +390,17 @@ Size_T Rattle(
         if( pd.DiagramComponentCount() != Int(1) ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int(1)."); }
         if( !pd.CheckAll() ) { pd_eprint(tag() + ": !pd.CheckAll()."); }
     }
+    
+    if( pd.InvalidQ() ) { return 0; }
 
-    // TODO: For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
-    // TODO: It would be great if we did not have to erase, e.g., the face information.
-    // TODO: However, typically, we will use args.permute_randomQ == true anyways, and then it does not matter.
+    // We are paranoid here. Rattle should actually not be called if we do not want any reapr trials at all.
+    if( (args.embedding_trials == Size_T(0)) || (args.rotation_trials == Size_T(0)) )
+    {
+        PushDiagramDone( std::move(pd) );
+        return 0;
+    }
+    
+    // For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
     if( !args.permute_randomQ ) { pd.Compress(); }
     
     PD_T pd_1;
@@ -429,6 +436,8 @@ Size_T Rattle(
             {
                 eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
                 
+                // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
+                PushDiagramDone( std::move(pd) );
                 return Size_T(0);
             }
             
@@ -470,23 +479,16 @@ Size_T Rattle(
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
-            
-//            // No progress, but we can at least change pd to have a new chance next time.
-//            if( pd_1.CrossingCount() == pd.CrossingCount() )
-//            {
-//                pd = std::move(pd_1);
-//            }
         }
         
         // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
         if( progressQ ) { break; }
     }
     
-    // TODO: Can pd_1.InvalidQ() ever happen? Shall this ever happen?
-    // There are a few ways this can happen:
-    //  1. args.embedding_trials == 0 or args.rotation_trials == 0. But then we should at least do PushDiagramDone( std::move(pd) ), no?
+    // There are a few ways in which pd_1.InvalidQ() == true can happen:
+    //  1. args.embedding_trials == 0 or args.rotation_trials == 0. But this is ruled out by an if statement above.
     //  2. pdc_new.pd_list[0] was invalid. This can happen, for example, if the generated link embedding is a multiple "eight" that can be recognized only as unlink when looking from the side. Indeed, quitting here might be correct.
-    //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here might be correct.
+    //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here is correct, too.
     if( pd_1.InvalidQ() )
     {
         return pass_change_count + disconnect_count;
