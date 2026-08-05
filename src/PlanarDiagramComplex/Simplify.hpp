@@ -372,6 +372,100 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 
 
 
+/*!@brief Write everything needed to reproduce a `Rattle` projection failure.
+ *
+ * When `FindIntersections` keeps failing, `Rattle` gives up and returns a diagram
+ * it has told the caller not to trust. The state that would explain *why* -- the
+ * intermediate diagram and the 3D embedding whose projection went degenerate --
+ * is local to this function and is destroyed on return, so a user's bug report
+ * can only ever be the message above. That is not enough to reproduce: these
+ * failures are intermittent (order one run in ten), depend on the random
+ * embedding, and the interesting settings are not visible from the command line.
+ *
+ * So dump them. The diagram goes out as a signed, colored pd code that the CLI
+ * tools read back directly, and the embedding through `LinkEmbedding::WriteToFile`
+ * at full precision, so the exact geometry can be reloaded and re-projected.
+ *
+ * Costs nothing on the happy path -- it is only ever reached after the failure
+ * has already been reported. Best-effort: any I/O problem is ignored rather than
+ * turned into a second failure. Writes at most `max_dumps` bundles per process so
+ * a long batch run cannot fill a disk, and honours `KNOODLE_DUMP_DIR` for the
+ * destination (default: the working directory).
+ */
+void DumpRattleFailure(
+    cref<PD_T> pd, mref<LinkEmbedding_T> emb, mref<Reapr_T> reapr,
+    cref<Simplify_Args_T> args, const int projection_flag
+)
+{
+    static constexpr int max_dumps = 8;
+    static std::atomic<int> dump_counter { 0 };
+
+    const int n = dump_counter.fetch_add(1);
+    if( n >= max_dumps ) { return; }
+
+    try
+    {
+        std::filesystem::path dir { "." };
+        if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
+
+        const std::string stem = "rattle-failure-" + ToString(n);
+        const std::filesystem::path base = dir / stem;
+
+        // 1. The context, in one readable file.
+        {
+            std::ofstream s ( base.string() + ".txt" );
+            s << "Rattle projection failure\n"
+              << "=========================\n\n"
+              << "FindIntersections returned status flag " << projection_flag
+              << " for every one of the random rotations tried, so Rattle gave up\n"
+              << "and returned an invalid diagram.\n\n"
+              << "Files in this bundle:\n"
+              << "  " << stem << ".pd.tsv   the diagram being simplified (signed, colored pd code)\n"
+              << "  " << stem << ".xyz      the 3D embedding whose projection failed\n\n"
+              << "The .xyz carries '#color' headers, which is what separates the link's\n"
+              << "components -- they cannot be dropped without fusing the components into\n"
+              << "one polyline. LinkEmbedding::FromInString reads them; note that some\n"
+              << "knoodlesimplify builds cannot yet parse '#color' on input.\n\n"
+              << "diagram:\n"
+              << "  crossings          = " << pd.CrossingCount() << "\n"
+              << "  arcs               = " << pd.ArcCount() << "\n"
+              << "  link components    = " << pd.LinkComponentCount() << "\n"
+              << "  diagram components = " << pd.DiagramComponentCount() << "\n\n"
+              << "embedding:\n"
+              << "  edges              = " << emb.EdgeCount() << "\n\n"
+              << "Simplify args:\n  " << ToString(args) << "\n\n"
+              << "Reapr settings:\n  " << ToString(reapr.Settings()) << "\n";
+        }
+
+        // 2. The diagram, in a form the CLI tools can read straight back.
+        {
+            std::ofstream s ( base.string() + ".pd.tsv" );
+            auto code = pd.template PDCode<Int>();
+            const Int rows = code.Dimension(0);
+            const Int cols = code.Dimension(1);
+            for( Int i = 0; i < rows; ++i )
+            {
+                for( Int j = 0; j < cols; ++j )
+                {
+                    if( j > Int(0) ) { s << "\t"; }
+                    s << code(i,j);
+                }
+                s << "\n";
+            }
+        }
+
+        // 3. The exact geometry, at full precision, so it can be re-projected.
+        (void)emb.WriteToFile( base.string() + ".xyz", true );
+
+        wprint( MethodName("Rattle") + ": wrote a failure bundle to "
+              + base.string() + ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+    }
+    catch( ... )
+    {
+        // Diagnostics must never make a bad situation worse.
+    }
+}
+
 template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 Size_T Rattle(
     mref<PassSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
@@ -428,7 +522,9 @@ Size_T Rattle(
             if( projection_flag != 0 )
             {
                 eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
-                
+
+                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
+
                 return Size_T(0);
             }
             
