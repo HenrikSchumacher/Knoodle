@@ -234,14 +234,11 @@ private:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
         
-//        S = Intersector_T();
-//        
         intersection_count_3D = 0;
-        
-        edge_ptr.Fill(0);
+        edge_ptr.SetZero();
+        intersection_flag_counts.SetZero();
         
         // Last time I checked the _ManualStack version was 5% faster.
-        
         FindIntersectingEdges_DFS_ManualStack();
 //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
