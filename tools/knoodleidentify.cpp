@@ -775,6 +775,24 @@ int main(int argc, char* argv[])
         std::cerr << "\nknoodleidentify: " << ErrorSummary()
                   << " during this run -- the identifications above are UNRELIABLE"
                      " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodleidentify", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
         return EXIT_FAILURE;
     }
 

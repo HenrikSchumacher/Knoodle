@@ -65,6 +65,14 @@ int main()
 
             Check(ErrorsSeen(), "ErrorsSeen() is true once the library errored");
 
+            // The report quotes what the library actually said, so the text must
+            // be retained, not just tallied.
+            Check(tap.Messages().size() == 2, "both error lines are retained");
+            Check(tap.Messages().at(0).find("a genuine library error") != std::string::npos,
+                  "retained text is the error message itself");
+            Check(tap.Messages().at(0).starts_with("ERROR:"),
+                  "retained line keeps its ERROR: prefix");
+
             counted = tap.Count();
             g_cerr_tap = nullptr;
         }

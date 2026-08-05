@@ -1574,6 +1574,47 @@ int main(int argc, char* argv[])
         std::cerr << notice;
         if (g_log_stream != &std::cerr) { *g_log_stream << notice; }
 
+        // Drop everything needed to reproduce into one forwardable file. The
+        // Simplify args matter most: the failures we have chased so far only
+        // appear at high --max-reapr-attempts / --reapr-rotation-trials, and a
+        // pasted stderr tail never carries them.
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        std::string inputs;
+        if (config.streaming_mode)
+        {
+            inputs = "  (stdin, --streaming-mode)\n";
+        }
+        for (const auto& f : config.input_files)
+        {
+            std::error_code ec;
+            const auto size = std::filesystem::file_size(f, ec);
+            inputs += "  " + f + (ec ? "  (size unknown)"
+                                     : "  (" + std::to_string(size) + " bytes)") + "\n";
+        }
+
+        const auto report = WriteDiagnosticReport("knoodlesimplify", {
+            { "command line",     "  " + invocation + "\n" },
+            { "input files",      inputs },
+            { "simplify options", "  " + ToString(BuildSimplifyArgs(config)) + "\n" },
+            { "what to send",
+              "  This file, plus the input file(s) listed above.\n"
+              "  The failing intermediate diagram and its 3D embedding live inside\n"
+              "  the library and are not reachable from here; if a core-side dump is\n"
+              "  available in your version, its files will be named alongside this one.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
         return EXIT_FAILURE;
     }
 

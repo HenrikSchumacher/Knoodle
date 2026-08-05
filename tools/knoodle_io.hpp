@@ -20,6 +20,9 @@
 #include <fstream>
 #include <streambuf>
 #include <system_error>
+#include <utility>
+
+#include <sys/utsname.h>   // runtime machine identity for the failure report
 #include <iomanip>
 #include <iostream>
 #include <optional>
@@ -194,12 +197,20 @@ public:
 
     long Count() const { return buf_.errors; }
 
+    /// The error lines themselves, for the diagnostic report (bounded, so a
+    /// pathological run cannot eat memory).
+    const std::vector<std::string>& Messages() const { return buf_.messages; }
+
 private:
     class Buf : public std::streambuf
     {
     public:
-        std::streambuf* sink   = nullptr;
-        long            errors = 0;
+        std::streambuf*          sink   = nullptr;
+        long                     errors = 0;
+        std::vector<std::string> messages;
+
+        static constexpr std::size_t max_messages   = 50;
+        static constexpr std::size_t max_line_bytes = 2000;
 
     protected:
         int overflow(int c) override
@@ -209,11 +220,17 @@ private:
             if (sink) { sink->sputc(ch); }
             if (ch == '\n')
             {
-                if (line_.starts_with("ERROR:")) { ++errors; }
+                if (line_.starts_with("ERROR:"))
+                {
+                    ++errors;
+                    if (messages.size() < max_messages) { messages.push_back(line_); }
+                }
                 line_.clear();
             }
-            else if (line_.size() < 16)   // only the prefix is ever inspected
+            else if (line_.size() < max_line_bytes)
             {
+                // Whole line retained now (not just the prefix) so the report can
+                // quote what the library actually said.
                 line_.push_back(ch);
             }
             return c;
@@ -251,6 +268,141 @@ CerrErrorTap* g_cerr_tap = nullptr;
     const long lib = (g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0;
     return std::to_string(lib) + " library error(s), "
          + std::to_string(g_tool_error_count) + " tool error(s)";
+}
+
+//==============================================================================
+// Diagnostic report
+//==============================================================================
+//
+// When a run fails there is usually nobody watching, and a bug report reaches us
+// as a pasted stderr tail with the interesting parts missing (which build? which
+// options? which diagram?). So on failure the tools drop a single self-contained
+// file next to the output, and print its path. The aim is that forwarding that
+// one file is enough for us to reproduce, without a round trip asking for the
+// version and the input.
+//
+// Build identity is recorded twice on purpose. The COMPILE-TIME target says what
+// the binary was built for; the RUNTIME uname says what it is executing on. They
+// differ for an x86_64 build under Rosetta on Apple silicon -- and since the
+// degeneracy this was written for turns on exact floating-point coincidence,
+// that distinction is exactly the sort of thing that decides whether a failure
+// reproduces.
+
+/// Compile-time build identity.
+[[maybe_unused]] std::string BuildIdentity()
+{
+    std::string s;
+
+#if defined(GIT_VERSION)
+    {
+        // The Makefile's -DGIT_VERSION=\"...\" leaves literal quotes in the
+        // value; strip them so the most-read line of the report is clean.
+        std::string v = GIT_VERSION;
+        std::erase(v, '"');
+        s += "  knoodle version : " + v + "\n";
+    }
+#else
+    s += "  knoodle version : (not compiled in)\n";
+#endif
+
+#if   defined(__aarch64__) || defined(__arm64__)
+    s += "  built for arch  : arm64\n";
+#elif defined(__x86_64__)
+    s += "  built for arch  : x86_64\n";
+#else
+    s += "  built for arch  : (unknown)\n";
+#endif
+
+#if   defined(__APPLE__)
+    s += "  built for OS    : macOS\n";
+#elif defined(__linux__)
+    s += "  built for OS    : Linux\n";
+#else
+    s += "  built for OS    : (unknown)\n";
+#endif
+
+#if defined(__VERSION__)
+    s += "  compiler        : " __VERSION__ "\n";
+#endif
+
+    s += "  built           : " __DATE__ " " __TIME__ "\n";
+    return s;
+}
+
+/// Runtime machine identity (see BuildIdentity for why both are recorded).
+[[maybe_unused]] std::string RuntimeIdentity()
+{
+    std::string s;
+    struct utsname u;
+    if (uname(&u) == 0)
+    {
+        s += std::string("  running on      : ") + u.sysname + " " + u.release
+           + " (" + u.machine + ")\n";
+    }
+    else
+    {
+        s += "  running on      : (uname failed)\n";
+    }
+    return s;
+}
+
+/**
+ * @brief Write a self-contained failure report the user can forward verbatim.
+ *
+ * @param tool        Tool name, used for the filename and the header.
+ * @param sections    Ordered (title, body) pairs: the caller's options, input
+ *                    description, parsed diagram, and so on.
+ * @return The path written, or an empty path if it could not be written.
+ *
+ * Never throws and never fails the run further: this is best-effort diagnostics
+ * on a path that is already failing.
+ */
+[[maybe_unused]] std::filesystem::path WriteDiagnosticReport(
+    const std::string& tool,
+    const std::vector<std::pair<std::string,std::string>>& sections)
+{
+    const std::filesystem::path path = tool + "-error-report.txt";
+
+    std::ofstream out(path);
+    if (!out) { return {}; }
+
+    out << "================================================================\n"
+        << tool << " error report\n"
+        << "================================================================\n\n"
+        << "Something went wrong that makes this run's output untrustworthy.\n"
+        << "Please send this whole file with your bug report -- it contains the\n"
+        << "build, the options, and the input needed to reproduce.\n\n"
+        << "-- build ------------------------------------------------------\n"
+        << BuildIdentity()
+        << RuntimeIdentity()
+        << "\n";
+
+    out << "-- errors reported --------------------------------------------\n";
+    if ((g_cerr_tap != nullptr) && !g_cerr_tap->Messages().empty())
+    {
+        for (const auto& m : g_cerr_tap->Messages()) { out << "  " << m << "\n"; }
+        const long extra = g_cerr_tap->Count()
+                         - static_cast<long>(g_cerr_tap->Messages().size());
+        if (extra > 0) { out << "  ... and " << extra << " more\n"; }
+    }
+    else
+    {
+        out << "  (no library errors; the failure was reported by the tool itself --\n"
+               "   see the tool's own message on stderr, e.g. a malformed input line)\n";
+    }
+    out << "  (" << ErrorSummary() << ")\n\n";
+
+    for (const auto& [title, body] : sections)
+    {
+        out << "-- " << title << " "
+            << std::string(std::max<std::size_t>(4, 62 - title.size()), '-') << "\n"
+            << body;
+        if (!body.empty() && body.back() != '\n') { out << "\n"; }
+        out << "\n";
+    }
+
+    out.flush();
+    return out ? path : std::filesystem::path{};
 }
 
 //==============================================================================
