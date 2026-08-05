@@ -2505,6 +2505,13 @@ bool ProcessXYZFile(const std::string& filepath, const Config& config)
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so a diagram the
+    // core has disclaimed cannot be drawn and reported as a success. knoodledraw
+    // writes only to stdout, so unlike knoodlesimplify there is no file to
+    // withhold -- the nonzero exit and the notice below are the whole contract.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -2580,6 +2587,14 @@ int main(int argc, char* argv[])
                 first_file = false;
             }
         }
+    }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodledraw: " << ErrorSummary()
+                  << " during this run -- the drawing above is UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+        return EXIT_FAILURE;
     }
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;

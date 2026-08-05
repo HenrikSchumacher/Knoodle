@@ -18,6 +18,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <streambuf>
+#include <system_error>
 #include <iomanip>
 #include <iostream>
 #include <optional>
@@ -144,6 +146,184 @@ std::ostream* g_log_stream = &std::cerr;
 /// Log file for streaming mode
 std::ofstream g_log_file;
 
+//==============================================================================
+// Error detection (fail loudly rather than emit silently-wrong output)
+//==============================================================================
+//
+// The core library reports unrecoverable trouble by calling Tools' eprint() and
+// carrying on with a diagram it has already told you not to trust -- e.g.
+// PlanarDiagramComplex::Rattle, when FindIntersections keeps failing:
+//
+//   ERROR: ...Rattle: ...returned invalid status flag for 10 random rotation
+//          matrices. Something must be wrong. Returning an invalid diagram.
+//          Check your results carefully.
+//
+// PlanarDiagramComplex's writers then *skip* invalid diagrams silently, so the
+// run finishes, writes a short file, and (before this change) exited 0. That is
+// the worst possible outcome: corrupt output indistinguishable from success.
+//
+// There is no error counter in Tools to query, and eprint() is not a hook we can
+// register with, but it does write every message to std::cerr with a fixed
+// "ERROR: " prefix. So we tap std::cerr, pass everything through untouched, and
+// count matching lines. Tools serializes its own prints behind cerr_mutex, so
+// the counting stays coherent for library output; our own LogError bumps the
+// counter directly, since in streaming mode it goes to the log file, not cerr.
+
+/// Number of errors reported by this tool's own LogError.
+long g_tool_error_count = 0;
+
+/// Counts "ERROR: " lines written to std::cerr (i.e. Tools' eprint) while
+/// forwarding every byte to the original stream. RAII: restores cerr on scope
+/// exit. One instance at a time, installed in main().
+class CerrErrorTap
+{
+public:
+    CerrErrorTap()
+    {
+        buf_.sink = std::cerr.rdbuf();
+        std::cerr.rdbuf(&buf_);
+    }
+
+    ~CerrErrorTap()
+    {
+        std::cerr.rdbuf(buf_.sink);
+    }
+
+    CerrErrorTap(const CerrErrorTap&)            = delete;
+    CerrErrorTap& operator=(const CerrErrorTap&) = delete;
+
+    long Count() const { return buf_.errors; }
+
+private:
+    class Buf : public std::streambuf
+    {
+    public:
+        std::streambuf* sink   = nullptr;
+        long            errors = 0;
+
+    protected:
+        int overflow(int c) override
+        {
+            if (c == traits_type::eof()) { return traits_type::not_eof(c); }
+            const char ch = static_cast<char>(c);
+            if (sink) { sink->sputc(ch); }
+            if (ch == '\n')
+            {
+                if (line_.starts_with("ERROR:")) { ++errors; }
+                line_.clear();
+            }
+            else if (line_.size() < 16)   // only the prefix is ever inspected
+            {
+                line_.push_back(ch);
+            }
+            return c;
+        }
+
+        int sync() override { return sink ? sink->pubsync() : 0; }
+
+    private:
+        std::string line_;
+    };
+
+    Buf buf_;
+};
+
+/// The single tap installed by main(), if any. Tools query it via ErrorsSeen().
+CerrErrorTap* g_cerr_tap = nullptr;
+
+/// Total errors so far, library + tool. Snapshot this before writing an output
+/// unit and compare after, to decide whether that unit is trustworthy.
+[[maybe_unused]] long ErrorTotal()
+{
+    return g_tool_error_count
+         + ((g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0);
+}
+
+/// True if the library or this tool has reported any error during this run.
+[[maybe_unused]] bool ErrorsSeen()
+{
+    return ErrorTotal() > 0;
+}
+
+/// Human-readable tally, for the failure message.
+[[maybe_unused]] std::string ErrorSummary()
+{
+    const long lib = (g_cerr_tap != nullptr) ? g_cerr_tap->Count() : 0;
+    return std::to_string(lib) + " library error(s), "
+         + std::to_string(g_tool_error_count) + " tool error(s)";
+}
+
+//==============================================================================
+// Atomic file output
+//==============================================================================
+
+/**
+ * @brief An output file that only becomes visible if the run succeeds.
+ *
+ * Writes go to "<path>.partial"; Commit() renames it into place, and anything
+ * else (explicit Abort, or destruction without Commit) removes it. This is what
+ * lets us honour "refuse to produce file output" even though results are written
+ * incrementally, knot by knot, long before we know whether the run went wrong.
+ *
+ * Note this cannot apply to stdout (--streaming-mode): bytes already written to
+ * a pipe cannot be recalled, so there the contract is only the nonzero exit.
+ */
+class AtomicOutFile
+{
+public:
+    explicit AtomicOutFile(const std::filesystem::path& final_path)
+    :   final_path_ { final_path }
+    ,   temp_path_  { final_path.string() + ".partial" }
+    {
+        stream_.open(temp_path_);
+    }
+
+    ~AtomicOutFile()
+    {
+        if (!committed_) { Abort(); }
+    }
+
+    AtomicOutFile(const AtomicOutFile&)            = delete;
+    AtomicOutFile& operator=(const AtomicOutFile&) = delete;
+
+    bool Good() const { return static_cast<bool>(stream_); }
+
+    std::ofstream& Stream() { return stream_; }
+
+    /// Move the finished file into place. Returns false if the rename failed.
+    bool Commit()
+    {
+        if (committed_) { return true; }
+        stream_.flush();
+        stream_.close();
+        std::error_code ec;
+        std::filesystem::rename(temp_path_, final_path_, ec);
+        if (ec)
+        {
+            std::filesystem::remove(temp_path_, ec);
+            return false;
+        }
+        committed_ = true;
+        return true;
+    }
+
+    /// Discard the partial file, leaving any previous output file untouched.
+    void Abort()
+    {
+        stream_.close();
+        std::error_code ec;
+        std::filesystem::remove(temp_path_, ec);
+    }
+
+    const std::filesystem::path& FinalPath() const { return final_path_; }
+
+private:
+    std::filesystem::path final_path_;
+    std::filesystem::path temp_path_;
+    std::ofstream         stream_;
+    bool                  committed_ = false;
+};
+
 /**
  * @brief Initialize logging based on mode.
  *
@@ -179,6 +359,8 @@ std::ofstream g_log_file;
  */
 void LogError(const std::string& msg)
 {
+    ++g_tool_error_count;   // see ErrorsSeen(): in streaming mode this line goes
+                            // to the log file, so the tap on cerr won't see it.
     *g_log_stream << "Error: " << msg << "\n";
 }
 
