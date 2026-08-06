@@ -405,7 +405,9 @@ void DumpRattleFailure(
 
     try
     {
-        std::filesystem::path dir { "." };
+        // Using the same path as the log file per default.
+        std::filesystem::path dir { Tools::Profiler::log_file.parent_path() };
+        
         if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
 
         const std::string stem = "rattle-failure-" + ToString(n);
@@ -431,6 +433,8 @@ void DumpRattleFailure(
               << "  arcs               = " << pd.ArcCount() << "\n"
               << "  link components    = " << pd.LinkComponentCount() << "\n"
               << "  diagram components = " << pd.DiagramComponentCount() << "\n\n"
+              << "Transformation matrix = " << ToString(emb.TransformationMatrix()) << "\n"
+              << "Sterbenz shift = " << ToString(emb.SterbenzShift()) << "\n"
               << "embedding:\n"
               << "  edges              = " << emb.EdgeCount() << "\n\n"
               << "Simplify args:\n  " << ToString(args) << "\n\n"
@@ -441,17 +445,9 @@ void DumpRattleFailure(
         {
             std::ofstream s ( base.string() + ".pd.tsv" );
             auto code = pd.template PDCode<Int>();
-            const Int rows = code.Dimension(0);
-            const Int cols = code.Dimension(1);
-            for( Int i = 0; i < rows; ++i )
-            {
-                for( Int j = 0; j < cols; ++j )
-                {
-                    if( j > Int(0) ) { s << "\t"; }
-                    s << code(i,j);
-                }
-                s << "\n";
-            }
+            s << OutString::FromMatrix<Format::Matrix::TSV>(
+                code.ReadAccess(), code.Dim(0), code.Dim(1)
+            );
         }
 
         // 3. The exact geometry, at full precision, so it can be re-projected.
@@ -519,8 +515,13 @@ Size_T Rattle(
             emb.Transform( reapr.RandomRotation() );
             projection_flag = emb.RequireIntersections();
             
-            while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
+            while( projection_flag!=0 )
             {
+                // Report issues to file.
+                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
+                
+                if( projection_iter >= max_projection_iter ) { break; }
+                
                 ++projection_iter;
                 emb.Transform( reapr.RandomRotation() );
                 projection_flag = emb.RequireIntersections();
@@ -530,9 +531,6 @@ Size_T Rattle(
             {
                 eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
 
-                // Report issues to file.
-                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
-                
                 // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
                 PushDiagramDone( std::move(pd) );
                 return Size_T(0);
