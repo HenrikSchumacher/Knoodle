@@ -406,6 +406,7 @@ void DumpRattleFailure(
     try
     {
         // Using the same path as the log file per default.
+        // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
         std::filesystem::path dir { Tools::Profiler::log_file.parent_path() };
         
         if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
@@ -499,32 +500,39 @@ Size_T Rattle(
     Size_T disconnect_count  = 0;
     
     constexpr Size_T max_projection_iter = 10;
+    const bool rotateQ = args.rotation_trials > Size_T(0);
     bool progressQ = false;
+    
+    Tensor2<typename LinkEmbedding_T::Real,Int> x;
     
     for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
         // However, this will help only if args.permute_randomQ == false.
         // And it makes sense to do this only if args.permute_randomQ == false and if args.randomize_bends != 0 or args.randomize_virtual_edgesQ == true.
-        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+//        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+        
+        LinkEmbedding_T emb = rotateQ ? reapr.Embedding(pd) : reapr.Embedding(pd,reapr.RandomRotation());
+        
+        if( rotateQ )
+        {
+            x.template RequireSize<false>(emb.EdgeCount(), Int(3));
+            emb.WriteVertexCoordinates(x.data());
+        }
         
         for( Size_T rot = 0; rot < args.rotation_trials; ++rot )
         {
-            Size_T projection_iter = 0;
             int projection_flag = 0;
-            emb.Transform( reapr.RandomRotation() );
-            projection_flag = emb.RequireIntersections();
             
-            while( projection_flag!=0 )
+            for( Size_T pr_iter = 0; pr_iter < max_projection_iter; ++pr_iter )
             {
-                // Report issues to file.
-                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
-                
-                if( projection_iter >= max_projection_iter ) { break; }
-                
-                ++projection_iter;
-                emb.Transform( reapr.RandomRotation() );
+                emb.SetTransformationMatrix(reapr.RandomRotation());
+                emb.template ReadVertexCoordinates<true>(x.data());
                 projection_flag = emb.RequireIntersections();
+                
+                if( projection_flag == 0 ) { break; }
+                
+                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
             }
             
             if( projection_flag != 0 )
