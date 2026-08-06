@@ -96,6 +96,16 @@ error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) error_tap_check.cpp -o $@
 	@echo "✓ error_tap_check compiled successfully"
 
+# intersection_flag_reset_check — pins that LinkEmbedding's intersection flag
+# counters describe one projection, not the embedding's lifetime. Needs the src
+# header as an explicit dep: this is a src-only change, and without it make would
+# not rebuild and the test would appear to pass against unfixed code.
+intersection_flag_reset_check: intersection_flag_reset_check.cpp ../Knoodle.hpp \
+                               ../src/LinkEmbedding/FindIntersections.hpp
+	@echo "=== Building intersection_flag_reset_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) intersection_flag_reset_check.cpp -o $@
+	@echo "✓ intersection_flag_reset_check compiled successfully"
+
 # reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
 # degeneracy that makes Rattle bail after 10 failed random rotations.
 reapr_corner_probe: reapr_corner_probe.cpp ../Knoodle.hpp
