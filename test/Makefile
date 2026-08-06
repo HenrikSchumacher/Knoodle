@@ -96,6 +96,19 @@ error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) error_tap_check.cpp -o $@
 	@echo "✓ error_tap_check compiled successfully"
 
+# embedding_inflation_check — pins that re-aiming a projection is a rigid motion:
+# it must not walk the embedding's coordinates away from the origin as the trial
+# counts grow. The src headers are explicit deps because the behaviour under test
+# lives entirely in src/; without them make would not rebuild for a src-only
+# change and the test would appear to pass against unfixed code.
+embedding_inflation_check: embedding_inflation_check.cpp ../Knoodle.hpp \
+                           ../src/PlanarDiagramComplex/Simplify.hpp \
+                           ../src/Reapr/Embedding.hpp \
+                           ../src/LinkEmbedding.hpp
+	@echo "=== Building embedding_inflation_check on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) embedding_inflation_check.cpp -o $@
+	@echo "✓ embedding_inflation_check compiled successfully"
+
 # reapr_corner_probe — reproduce/diagnose the FindIntersections CornerCorner
 # degeneracy that makes Rattle bail after 10 failed random rotations.
 reapr_corner_probe: reapr_corner_probe.cpp ../Knoodle.hpp
