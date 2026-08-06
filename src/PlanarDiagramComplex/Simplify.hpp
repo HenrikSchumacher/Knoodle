@@ -372,6 +372,97 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 
 
 
+/*!@brief Write everything needed to reproduce a `Rattle` projection failure.
+ *
+ * When `FindIntersections` keeps failing, `Rattle` gives up and returns a diagram
+ * it has told the caller not to trust. The state that would explain *why* -- the
+ * intermediate diagram and the 3D embedding whose projection went degenerate --
+ * is local to this function and is destroyed on return, so a user's bug report
+ * can only ever be the message above. That is not enough to reproduce: these
+ * failures are intermittent (order one run in ten), depend on the random
+ * embedding, and the interesting settings are not visible from the command line.
+ *
+ * So dump them. The diagram goes out as a signed, colored pd code that the CLI
+ * tools read back directly, and the embedding through `LinkEmbedding::WriteToFile`
+ * at full precision, so the exact geometry can be reloaded and re-projected.
+ *
+ * Costs nothing on the happy path -- it is only ever reached after the failure
+ * has already been reported. Best-effort: any I/O problem is ignored rather than
+ * turned into a second failure. Writes at most `max_dumps` bundles per process so
+ * a long batch run cannot fill a disk, and honours `KNOODLE_DUMP_DIR` for the
+ * destination (default: the working directory).
+ */
+void DumpRattleFailure(
+    cref<PD_T> pd, mref<LinkEmbedding_T> emb, mref<Reapr_T> reapr,
+    cref<Simplify_Args_T> args, const int projection_flag
+)
+{
+    static constexpr int max_dumps = 8;
+    static std::atomic<int> dump_counter { 0 };
+
+    const int n = dump_counter.fetch_add(1);
+    if( n >= max_dumps ) { return; }
+
+    try
+    {
+        // Using the same path as the log file per default.
+        // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
+        std::filesystem::path dir { Tools::Profiler::log_file.parent_path() };
+        
+        if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
+
+        const std::string stem = "rattle-failure-" + ToString(n);
+        const std::filesystem::path base = dir / stem;
+
+        // 1. The context, in one readable file.
+        {
+            std::ofstream s ( base.string() + ".txt" );
+            s << "Rattle projection failure\n"
+              << "=========================\n\n"
+              << "FindIntersections returned status flag " << projection_flag
+              << " for every one of the random rotations tried, so Rattle gave up\n"
+              << "and returned an invalid diagram.\n\n"
+              << "Files in this bundle:\n"
+              << "  " << stem << ".pd.tsv   the diagram being simplified (signed, colored pd code)\n"
+              << "  " << stem << ".xyz      the 3D embedding whose projection failed\n\n"
+              << "The .xyz carries '#color' headers, which is what separates the link's\n"
+              << "components -- they cannot be dropped without fusing the components into\n"
+              << "one polyline. LinkEmbedding::FromInString reads them; note that some\n"
+              << "knoodlesimplify builds cannot yet parse '#color' on input.\n\n"
+              << "diagram:\n"
+              << "  crossings          = " << pd.CrossingCount() << "\n"
+              << "  arcs               = " << pd.ArcCount() << "\n"
+              << "  link components    = " << pd.LinkComponentCount() << "\n"
+              << "  diagram components = " << pd.DiagramComponentCount() << "\n\n"
+              << "Transformation matrix = " << ToString(emb.TransformationMatrix()) << "\n"
+              << "Sterbenz shift = " << ToString(emb.SterbenzShift()) << "\n"
+              << "embedding:\n"
+              << "  edges              = " << emb.EdgeCount() << "\n\n"
+              << "Simplify args:\n  " << ToString(args) << "\n\n"
+              << "Reapr settings:\n  " << ToString(reapr.Settings()) << "\n";
+        }
+
+        // 2. The diagram, in a form the CLI tools can read straight back.
+        {
+            std::ofstream s ( base.string() + ".pd.tsv" );
+            auto code = pd.template PDCode<Int>();
+            s << OutString::FromMatrix<Format::Matrix::TSV>(
+                code.ReadAccess(), code.Dim(0), code.Dim(1)
+            );
+        }
+
+        // 3. The exact geometry, at full precision, so it can be re-projected.
+        (void)emb.WriteToFile( base.string() + ".xyz", true );
+
+        wprint( MethodName("Rattle") + ": wrote a failure bundle to "
+              + base.string() + ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+    }
+    catch( ... )
+    {
+        // Diagnostics must never make a bad situation worse.
+    }
+}
+
 template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 Size_T Rattle(
     mref<PassSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
@@ -409,33 +500,45 @@ Size_T Rattle(
     Size_T disconnect_count  = 0;
     
     constexpr Size_T max_projection_iter = 10;
+    const bool rotateQ = args.rotation_trials > Size_T(0);
     bool progressQ = false;
+    
+    Tensor2<typename LinkEmbedding_T::Real,Int> x;
     
     for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
         // However, this will help only if args.permute_randomQ == false.
         // And it makes sense to do this only if args.permute_randomQ == false and if args.randomize_bends != 0 or args.randomize_virtual_edgesQ == true.
-        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+//        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+        
+        LinkEmbedding_T emb = rotateQ ? reapr.Embedding(pd) : reapr.Embedding(pd,reapr.RandomRotation());
+        
+        if( rotateQ )
+        {
+            x.template RequireSize<false>(emb.EdgeCount(), Int(3));
+            emb.WriteVertexCoordinates(x.data());
+        }
         
         for( Size_T rot = 0; rot < args.rotation_trials; ++rot )
         {
-            Size_T projection_iter = 0;
             int projection_flag = 0;
-            emb.Transform( reapr.RandomRotation() );
-            projection_flag = emb.RequireIntersections();
             
-            while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
+            for( Size_T pr_iter = 0; pr_iter < max_projection_iter; ++pr_iter )
             {
-                ++projection_iter;
-                emb.Transform( reapr.RandomRotation() );
+                emb.SetTransformationMatrix(reapr.RandomRotation());
+                emb.template ReadVertexCoordinates<true>(x.data());
                 projection_flag = emb.RequireIntersections();
+                
+                if( projection_flag == 0 ) { break; }
+                
+                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
             }
             
             if( projection_flag != 0 )
             {
                 eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
-                
+
                 // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
                 PushDiagramDone( std::move(pd) );
                 return Size_T(0);
