@@ -65,7 +65,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
 
     s.SkipWhiteSpace();
     // `k` and `l` indicate the start of a new knot or link when many links are stored in the same string. We merely need to skip the first occurrence.
-    if( (s.CurrentChar() == 'k') || (s.CurrentChar() == 'l') ) { s.Skip(1); }
+    if( (s.CurrentChar() == 'k') || (s.CurrentChar() == 'l') ) { s.Skip(Size_T(1)); }
     s.SkipWhiteSpace();
 
     while( !s.EmptyQ() && !s.FailedQ() )
@@ -115,7 +115,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
                 break;
             }
             
-            s.Skip(1);
+            s.Skip(Size_T(1));
             s.SkipWhiteSpace();
             s.Take(proven_minimalQ);
             s.SkipWhiteSpace();
@@ -144,7 +144,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             break;
         }
         
-        // We have to be careful here, because the last line may easily end with an '\n'.
+        // We have to be careful here, because the last line may easily end with a xf.
         for( int i = 0; i < 6; ++i )
         {
             s.Take(x);

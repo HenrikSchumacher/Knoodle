@@ -28,6 +28,10 @@ namespace Knoodle
     using namespace Tools;
     
     using Tools::ToString;
+    
+    // Forward declarions
+    template<IntQ> class PlanarDiagram;
+    template<IntQ> class PlanarDiagramComplex;
 }
 
 #include "src/Types.hpp"

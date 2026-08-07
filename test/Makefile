@@ -191,6 +191,15 @@ component_check: component_check.cpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) component_check.cpp -o $@
 	@echo "✓ component_check compiled successfully"
 
+# link_color_roundtrip — regression guard for LinkEmbedding's colored .kndlxyz
+# round trip: WriteToFile(colorQ=true) emits "#color <int>" headers that
+# FromInString used to reject, so the writer produced files its own reader could
+# not read. Light config (no UMFPACK).
+link_color_roundtrip: link_color_roundtrip.cpp ../Knoodle.hpp
+	@echo "=== Building link_color_roundtrip on $(UNAME_S) ==="
+	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) link_color_roundtrip.cpp -o $@
+	@echo "✓ link_color_roundtrip compiled successfully"
+
 # klut_identify_check — PR test for the Identify routine (test/klut_identify.hpp):
 # single knots (perturbed), connect sums (multi-diagram PDC + single spliced
 # diagram), the unknot, and multi-component links. Same heavy config as klut_bench.
