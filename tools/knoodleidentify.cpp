@@ -804,13 +804,11 @@ int main(int argc, char* argv[])
                       << " -- please send it with any bug report.\n";
         }
 
-        ReportDiagnosticBundles(diag_dir, bundles_before, "knoodleidentify", true);
-        CleanupDiagnosticDir();
+        FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", true);
         return EXIT_FAILURE;
     }
 
-    ReportDiagnosticBundles(diag_dir, bundles_before, "knoodleidentify", !success);
-    CleanupDiagnosticDir();
+    FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

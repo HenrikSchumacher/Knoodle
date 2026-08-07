@@ -549,6 +549,33 @@ bool g_diagnostic_dir_is_temp = false;
     std::cerr << "  (run log: " << g_log_path.string() << ")\n";
 }
 
+/**
+ * @brief Drop the streaming-mode log when the run went cleanly.
+ *
+ * In streaming mode the log always has content -- it carries the per-knot report
+ * that would otherwise corrupt stdout -- so the per-process temp directory would
+ * never be empty and never be removed. A caller that runs the tool thousands of
+ * times (the paclet does) would accumulate one directory per run.
+ *
+ * On a clean run that report is reproducible by running the tool again, so it is
+ * not worth a directory each time. On a failing run it is evidence and is kept.
+ *
+ * Only ever touches a log inside a directory we created ourselves: if the user
+ * pointed KNOODLE_DUMP_DIR somewhere, they asked for the file to be there.
+ */
+[[maybe_unused]] void DiscardLogIfClean(bool run_failed)
+{
+    if (run_failed || !g_diagnostic_dir_is_temp || g_log_path.empty()) { return; }
+
+    // Nothing may write to the log after this point.
+    g_log_stream = &std::cerr;
+    g_log_file.close();
+
+    std::error_code ec;
+    std::filesystem::remove(g_log_path, ec);
+    if (!ec) { g_log_path.clear(); }
+}
+
 /// Remove the per-process temp directory if we made one and nothing used it.
 /// Keeps rule 2 from leaving an empty directory behind on every clean run.
 [[maybe_unused]] void CleanupDiagnosticDir()
@@ -567,6 +594,25 @@ bool g_diagnostic_dir_is_temp = false;
     {
         fs::remove(g_diagnostic_dir, ec);
     }
+}
+
+/**
+ * @brief Everything that has to happen on the way out, in the right order.
+ *
+ * Report bundles first (while they are all still there), then drop the log if
+ * the run was clean, then report the log only if it survived, then remove the
+ * directory if that left it empty.
+ */
+[[maybe_unused]] void FinishDiagnostics(
+    const std::filesystem::path& dir,
+    const std::set<std::string>& before,
+    const std::string& tool,
+    bool run_failed)
+{
+    ReportDiagnosticBundles(dir, before, tool, run_failed);
+    DiscardLogIfClean(run_failed);
+    ReportLogLocation();
+    CleanupDiagnosticDir();
 }
 
 /**

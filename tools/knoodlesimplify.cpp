@@ -1624,9 +1624,7 @@ int main(int argc, char* argv[])
                       << " -- please send it with any bug report.\n";
         }
 
-        ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", true);
-        ReportLogLocation();
-        CleanupDiagnosticDir();
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
 
         return EXIT_FAILURE;
     }
@@ -1634,15 +1632,11 @@ int main(int argc, char* argv[])
     if (output_file && !output_file->Commit())
     {
         LogError("Failed to move output into place: " + output_file->FinalPath().string());
-        ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", true);
-        ReportLogLocation();
-        CleanupDiagnosticDir();
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
         return EXIT_FAILURE;
     }
 
-    ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", !success);
-    ReportLogLocation();
-    CleanupDiagnosticDir();
+    FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
