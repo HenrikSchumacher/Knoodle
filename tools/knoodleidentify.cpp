@@ -693,6 +693,13 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so an identification
+    // made from a diagram the core has disclaimed cannot be reported as success.
+    // knoodleidentify writes only to stdout, so the nonzero exit and the notice
+    // below are the whole contract -- there is no file to withhold.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
     {
@@ -761,6 +768,32 @@ int main(int argc, char* argv[])
             std::to_string(stats.over_range) + " over table range, " +
             std::to_string(stats.links) + " links, " +
             std::to_string(stats.invalid) + " invalid)");
+    }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodleidentify: " << ErrorSummary()
+                  << " during this run -- the identifications above are UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodleidentify", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+        return EXIT_FAILURE;
     }
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -1191,14 +1191,30 @@ bool ProcessXYZFile(const std::string& filepath,
             std::filesystem::path input_path(filepath);
             std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-            std::ofstream file(output_path);
-            if (!file)
+            // Staged: committed only if nothing went wrong producing this knot.
+            const long errors_before = ErrorTotal();
+
+            AtomicOutFile file(output_path);
+            if (!file.Good())
             {
                 LogError("Failed to open " + output_path.string() + " for writing");
                 return false;
             }
 
-            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, true);
+            WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, true);
+
+            if (ErrorTotal() != errors_before)
+            {
+                file.Abort();
+                *g_log_stream << "Refusing to write " << output_path.string()
+                              << ": the library reported an error while producing it.\n";
+                return false;
+            }
+            if (!file.Commit())
+            {
+                LogError("Failed to move output into place: " + output_path.string());
+                return false;
+            }
         }
     }
 
@@ -1310,18 +1326,34 @@ bool ProcessSource(std::istream& input,
             }
             else if (!config.streaming_mode)
             {
-                // Per-file output
+                // Per-file output. Staged, and committed only if nothing went
+                // wrong while producing this knot (see AtomicOutFile).
                 std::filesystem::path input_path(source_name);
                 std::filesystem::path output_path = GetSimplifiedFilename(input_path);
 
-                std::ofstream file(output_path);
-                if (!file)
+                const long errors_before = ErrorTotal();
+
+                AtomicOutFile file(output_path);
+                if (!file.Good())
                 {
                     LogError("Failed to open " + output_path.string() + " for writing");
                     return false;
                 }
 
-                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file, true, colored_output);
+                WriteSimplified(simplified, config.pdc_format ? &output_pdc : nullptr, file.Stream(), true, colored_output);
+
+                if (ErrorTotal() != errors_before)
+                {
+                    file.Abort();
+                    *g_log_stream << "Refusing to write " << output_path.string()
+                                  << ": the library reported an error while producing it.\n";
+                    return false;
+                }
+                if (!file.Commit())
+                {
+                    LogError("Failed to move output into place: " + output_path.string());
+                    return false;
+                }
             }
         }
 
@@ -1362,6 +1394,13 @@ bool ProcessSource(std::istream& input,
 
 int main(int argc, char* argv[])
 {
+    // Watch std::cerr for the library's "ERROR: " lines for the whole run. Must
+    // outlive every write below, since the commit decision at the end depends on
+    // what it counted. See knoodle_io.hpp for why tapping the stream is the only
+    // handle we have on Tools' eprint.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     // Parse command line
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
@@ -1390,8 +1429,14 @@ int main(int argc, char* argv[])
     ProcessingStats stats;
     bool first_knot_in_output = true;
 
-    // Prepare output stream if single output file specified
-    std::ofstream output_file;
+    // Prepare output stream if single output file specified.
+    //
+    // The file is staged as "<name>.partial" and only renamed into place if the
+    // run finishes without the library or this tool reporting an error -- see
+    // AtomicOutFile and the commit decision at the end of main(). Results are
+    // written knot by knot, long before we know whether a later knot will fail,
+    // so staging is the only way to honour "no output on error".
+    std::optional<AtomicOutFile> output_file;
     std::ostream* output_stream = nullptr;
 
     if (config.streaming_mode)
@@ -1401,13 +1446,13 @@ int main(int argc, char* argv[])
     }
     else if (config.output_file)
     {
-        output_file.open(*config.output_file);
-        if (!output_file)
+        output_file.emplace(*config.output_file);
+        if (!output_file->Good())
         {
             LogError("Failed to open output file: " + *config.output_file);
             return EXIT_FAILURE;
         }
-        output_stream = &output_file;
+        output_stream = &output_file->Stream();
     }
 
     // Process inputs
@@ -1493,6 +1538,90 @@ int main(int argc, char* argv[])
     if (stats.total_knots > 1)
     {
         WriteFinalReport(stats, config);
+    }
+
+    // Fail loudly. The core library signals unrecoverable trouble by calling
+    // eprint and then handing back a diagram it has already disclaimed ("Returning
+    // an invalid diagram. Check your results carefully."), and the PDC writers skip
+    // invalid diagrams silently -- so without this the run would write a quietly
+    // truncated file and exit 0. Refuse the output instead, and say why.
+    if (ErrorsSeen())
+    {
+        std::string notice;
+        if (output_file)
+        {
+            output_file->Abort();
+            notice = "\nRefusing to write " + output_file->FinalPath().string()
+                   + ": " + ErrorSummary() + " during this run.\n"
+                     "The output would be unreliable (the library discards diagrams it"
+                     " has flagged as invalid), so no file was produced.\n";
+        }
+        else if (config.streaming_mode)
+        {
+            // Already-piped bytes cannot be recalled; the exit code is the contract.
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run -- output already written to stdout is"
+                     " UNRELIABLE and should be discarded.\n";
+        }
+        else
+        {
+            notice = "\nknoodlesimplify: " + ErrorSummary()
+                   + " during this run; per-file outputs were withheld.\n";
+        }
+
+        // Always reach the terminal. In streaming mode g_log_stream is the log
+        // FILE, which is precisely where someone piping output would never look.
+        std::cerr << notice;
+        if (g_log_stream != &std::cerr) { *g_log_stream << notice; }
+
+        // Drop everything needed to reproduce into one forwardable file. The
+        // Simplify args matter most: the failures we have chased so far only
+        // appear at high --max-reapr-attempts / --reapr-rotation-trials, and a
+        // pasted stderr tail never carries them.
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        std::string inputs;
+        if (config.streaming_mode)
+        {
+            inputs = "  (stdin, --streaming-mode)\n";
+        }
+        for (const auto& f : config.input_files)
+        {
+            std::error_code ec;
+            const auto size = std::filesystem::file_size(f, ec);
+            inputs += "  " + f + (ec ? "  (size unknown)"
+                                     : "  (" + std::to_string(size) + " bytes)") + "\n";
+        }
+
+        const auto report = WriteDiagnosticReport("knoodlesimplify", {
+            { "command line",     "  " + invocation + "\n" },
+            { "input files",      inputs },
+            { "simplify options", "  " + ToString(BuildSimplifyArgs(config)) + "\n" },
+            { "what to send",
+              "  This file, plus the input file(s) listed above.\n"
+              "  The failing intermediate diagram and its 3D embedding live inside\n"
+              "  the library and are not reachable from here; if a core-side dump is\n"
+              "  available in your version, its files will be named alongside this one.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        return EXIT_FAILURE;
+    }
+
+    if (output_file && !output_file->Commit())
+    {
+        LogError("Failed to move output into place: " + output_file->FinalPath().string());
+        return EXIT_FAILURE;
     }
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
