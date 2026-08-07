@@ -70,6 +70,7 @@ int main()
     const std::filesystem::path uncolored = dir / "knoodle_link_color_roundtrip_u.kndlxyz";
     const std::filesystem::path commented = dir / "knoodle_link_color_roundtrip_x.kndlxyz";
     const std::filesystem::path blanks    = dir / "knoodle_link_color_roundtrip_b.kndlxyz";
+    const std::filesystem::path mixed     = dir / "knoodle_link_color_roundtrip_m.kndlxyz";
 
     Link_T src = MakeTwoComponentLink();
 
@@ -163,7 +164,44 @@ int main()
         }
     }
 
-    for (const auto& p : {colored, uncolored, commented, blanks})
+    // A '#color' tag on some components but not others is malformed. An untagged
+    // component takes its index as its color, which can silently collide with a
+    // color declared for another component -- an untagged component 0 beside a
+    // '#color 0' component 1 used to yield the colors `0 0`. There is no reading
+    // of such a file that is obviously the intended one, so it is refused.
+    std::cout << "=== mixed '#color' tagging is rejected ===\n";
+    {
+        // Exactly the layout WriteToFile emits: coordinate lines joined by '\n',
+        // components separated by a blank line.
+        const std::string c0  = "0 0 0\n1 0 0\n0 1 0";
+        const std::string c1  = "5 5 1\n6 5 1\n5 6 1";
+        const std::string sep = "\n\n";
+
+        auto read_back = [&](const std::string& body)
+        {
+            { std::ofstream f (mixed); f << body; }
+            return Link_T::ReadFromFile(mixed);
+        };
+
+        check(!read_back(c0 + sep + "#color 0\n" + c1).ValidQ(),
+              "first component untagged, second tagged -> rejected");
+
+        check(!read_back("#color 0\n" + c0 + sep + c1).ValidQ(),
+              "first component tagged, second untagged -> rejected");
+
+        // The two uniform cases stay legal.
+        check(read_back("#color 7\n" + c0 + sep + "#color 3\n" + c1).ValidQ(),
+              "all components tagged -> accepted");
+
+        check(read_back(c0 + sep + c1).ValidQ(),
+              "no component tagged -> accepted");
+
+        // A lone component is uniform either way.
+        check(read_back("#color 9\n" + c0).ValidQ(), "single tagged component -> accepted");
+        check(read_back(c0).ValidQ(),                "single untagged component -> accepted");
+    }
+
+    for (const auto& p : {colored, uncolored, commented, blanks, mixed})
     {
         std::error_code ec;
         std::filesystem::remove(p, ec);
