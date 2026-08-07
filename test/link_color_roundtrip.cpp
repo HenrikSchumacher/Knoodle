@@ -69,6 +69,7 @@ int main()
     const std::filesystem::path colored   = dir / "knoodle_link_color_roundtrip_c.kndlxyz";
     const std::filesystem::path uncolored = dir / "knoodle_link_color_roundtrip_u.kndlxyz";
     const std::filesystem::path commented = dir / "knoodle_link_color_roundtrip_x.kndlxyz";
+    const std::filesystem::path blanks    = dir / "knoodle_link_color_roundtrip_b.kndlxyz";
 
     Link_T src = MakeTwoComponentLink();
 
@@ -131,7 +132,38 @@ int main()
         else { check(false, "'#color 42' is honored"); }
     }
 
-    for (const auto& p : {colored, uncolored, commented})
+    // A blank line ends a component. Two in a row, or one at either end of the
+    // file, used to end a component that had not started -- manufacturing an
+    // empty phantom component the user cannot see anywhere in the file. Easy to
+    // trip by hand, and invisible until something downstream counts components.
+    std::cout << "=== stray blank lines do not manufacture components ===\n";
+    {
+        const std::string c0  = "0 0 0\n1 0 0\n0 1 0";
+        const std::string c1  = "5 5 1\n6 5 1\n5 6 1";
+        const std::string two = c0 + "\n\n" + c1;
+
+        auto read_back = [&](const std::string& body)
+        {
+            { std::ofstream f (blanks); f << body; }
+            return Link_T::ReadFromFile(blanks);
+        };
+
+        for (const auto& [body, what] : {
+                 std::pair{two,                std::string("no stray blank lines")},
+                 std::pair{two + "\n",         std::string("trailing newline")},
+                 std::pair{two + "\n\n",       std::string("trailing blank line")},
+                 std::pair{"\n" + two,         std::string("leading blank line")},
+                 std::pair{c0 + "\n\n\n" + c1, std::string("two blank lines between components")},
+             })
+        {
+            Link_T back = read_back(body);
+            check(back.ValidQ() && (back.ComponentCount() == Int(2))
+                                && (back.EdgeCount() == Int(6)),
+                  what + " -> 2 components, 6 vertices");
+        }
+    }
+
+    for (const auto& p : {colored, uncolored, commented, blanks})
     {
         std::error_code ec;
         std::filesystem::remove(p, ec);

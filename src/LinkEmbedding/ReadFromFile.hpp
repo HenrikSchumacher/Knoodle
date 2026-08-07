@@ -31,7 +31,16 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         if( s.NewlineQ() )
         {
             s.SkipNewline();
-            component_ptr_agg.push_back(vertex_counter);
+
+            // A blank line ends the current component -- but only if that
+            // component actually collected vertices. Pushing unconditionally
+            // manufactures empty phantom components from a leading blank line,
+            // a trailing one, or two blank lines in a row, none of which the
+            // user can see in the file.
+            if( vertex_counter > component_ptr_agg.back() )
+            {
+                component_ptr_agg.push_back(vertex_counter);
+            }
             continue;
         }
 
@@ -111,7 +120,11 @@ static LinkEmbedding_T FromInString( mref<Tools::InString> s, bool Sterbenz_shif
         return LinkEmbedding_T();
     }
 
-    component_ptr_agg.push_back(vertex_counter);
+    // Close the final component, unless a trailing blank line already did.
+    if( vertex_counter > component_ptr_agg.back() )
+    {
+        component_ptr_agg.push_back(vertex_counter);
+    }
 
     const Size_T comp_count = component_ptr_agg.size() - Size_T(1);
 
