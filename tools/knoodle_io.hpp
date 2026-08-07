@@ -153,6 +153,10 @@ std::ostream* g_log_stream = &std::cerr;
 /// Log file for streaming mode
 std::ofstream g_log_file;
 
+/// Where that log file ended up, so we can tell the user (rule 3). Empty unless
+/// streaming mode actually opened one.
+std::filesystem::path g_log_path;
+
 //==============================================================================
 // Error detection (fail loudly rather than emit silently-wrong output)
 //==============================================================================
@@ -524,6 +528,27 @@ bool g_diagnostic_dir_is_temp = false;
     }
 }
 
+/**
+ * @brief Tell the user where the streaming-mode log went, if it has content.
+ *
+ * Rule 3 applied to the log: in streaming mode it is the only record of what
+ * happened, and it no longer sits in the working directory. Silent when the log
+ * is empty, so a clean run of a tool the paclet drives thousands of times says
+ * nothing at all.
+ */
+[[maybe_unused]] void ReportLogLocation()
+{
+    if (g_log_path.empty()) { return; }
+
+    g_log_file.flush();
+
+    std::error_code ec;
+    const auto size = std::filesystem::file_size(g_log_path, ec);
+    if (ec || size == 0) { return; }
+
+    std::cerr << "  (run log: " << g_log_path.string() << ")\n";
+}
+
 /// Remove the per-process temp directory if we made one and nothing used it.
 /// Keeps rule 2 from leaving an empty directory behind on every clean run.
 [[maybe_unused]] void CleanupDiagnosticDir()
@@ -532,6 +557,10 @@ bool g_diagnostic_dir_is_temp = false;
 
     // Only ever remove a directory we created ourselves.
     if (!g_diagnostic_dir_is_temp || g_diagnostic_dir.empty()) { return; }
+
+    // The log lives in here too; close it first so the emptiness test is honest
+    // and Windows will let the directory go.
+    if (g_log_file.is_open()) { g_log_file.flush(); }
 
     std::error_code ec;
     if (fs::is_empty(g_diagnostic_dir, ec) && !ec)
@@ -689,10 +718,20 @@ private:
 {
     if (streaming_mode)
     {
-        g_log_file.open(log_filename);
+        // Same three rules as the failure report and the library's bundles: in
+        // streaming mode this used to be a bare relative path, i.e. the working
+        // directory of whatever process happens to be driving us. Call
+        // ChooseDiagnosticDir before this; the fallback keeps the old behaviour
+        // if some caller has not.
+        const std::filesystem::path dir =
+            g_diagnostic_dir.empty() ? std::filesystem::path(".") : g_diagnostic_dir;
+
+        g_log_path = dir / log_filename;
+
+        g_log_file.open(g_log_path);
         if (!g_log_file)
         {
-            std::cerr << "Error: Failed to open " << log_filename << " for writing.\n";
+            std::cerr << "Error: Failed to open " << g_log_path.string() << " for writing.\n";
             return false;
         }
         g_log_stream = &g_log_file;

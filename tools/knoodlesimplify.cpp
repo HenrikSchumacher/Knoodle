@@ -1417,6 +1417,15 @@ int main(int argc, char* argv[])
     }
 
     // Initialize logging
+    // Decide where diagnostics go before anything else can write one: the log
+    // opens in InitLogging just below, and the library reads KNOODLE_DUMP_DIR at
+    // the moment Rattle's projection fails (its default is the user's home
+    // directory). Alongside the output file when we have one, else a per-process
+    // temp directory. Snapshot what is already there so we only report our own.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     if (!InitLogging(config.streaming_mode, "knoodlesimplify.log"))
     {
         return EXIT_FAILURE;
@@ -1454,15 +1463,6 @@ int main(int argc, char* argv[])
         }
         output_stream = &output_file->Stream();
     }
-
-    // Decide where diagnostics go before anything can call into Simplify: the
-    // library reads KNOODLE_DUMP_DIR at the moment Rattle's projection fails, and
-    // its default is the user's home directory. Alongside the output file when we
-    // have one, else a per-process temp directory (streaming means we are likely
-    // a subshell). Snapshot what is already there so we only report our own.
-    const std::filesystem::path diag_dir =
-        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
-    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
     // Process inputs
     bool success = true;
@@ -1625,6 +1625,7 @@ int main(int argc, char* argv[])
         }
 
         ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", true);
+        ReportLogLocation();
         CleanupDiagnosticDir();
 
         return EXIT_FAILURE;
@@ -1634,11 +1635,13 @@ int main(int argc, char* argv[])
     {
         LogError("Failed to move output into place: " + output_file->FinalPath().string());
         ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", true);
+        ReportLogLocation();
         CleanupDiagnosticDir();
         return EXIT_FAILURE;
     }
 
     ReportDiagnosticBundles(diag_dir, bundles_before, "knoodlesimplify", !success);
+    ReportLogLocation();
     CleanupDiagnosticDir();
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
