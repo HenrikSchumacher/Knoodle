@@ -104,7 +104,8 @@ error_tap_check: error_tap_check.cpp ../tools/knoodle_io.hpp ../Knoodle.hpp
 embedding_inflation_check: embedding_inflation_check.cpp ../Knoodle.hpp \
                            ../src/PlanarDiagramComplex/Simplify.hpp \
                            ../src/Reapr/Embedding.hpp \
-                           ../src/LinkEmbedding.hpp
+                           ../src/LinkEmbedding.hpp \
+                           ../src/LinkEmbedding/Helpers.hpp
 	@echo "=== Building embedding_inflation_check on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) $(KNOODLE_INC) embedding_inflation_check.cpp -o $@
 	@echo "✓ embedding_inflation_check compiled successfully"

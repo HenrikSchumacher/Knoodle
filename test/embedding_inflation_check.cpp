@@ -64,11 +64,11 @@
  *  3. Simplify still returns a valid complex, link components intact, when
  *     driven through Rattle at high embedding and rotation trial counts.
  *
- * LinkEmbedding::Transform still behaves as described: the fix routed Rattle
- * around it rather than changing it, so repeated Transform remains the wrong way
- * to re-aim a projection. Run this test with --transform to print the violation
- * directly; that mode is a bug-report repro and is not part of the pass/fail
- * result.
+ *  4. The same invariant for LinkEmbedding::Transform, the in-place spelling of
+ *     the same rotation. 00a8407 routed Rattle around Transform rather than
+ *     changing it, so this check failed until Transform was made to remove the
+ *     shift its coordinates already carry before rotating. Run with --transform
+ *     to print the walk.
  *
  * Provenance: the first diagrams seen to trip this in the wild were Nathan's
  * "congruence" examples. They are not needed to observe it -- the mechanism
@@ -115,6 +115,11 @@ constexpr int kRotationTrials  = 256;
 // ~2e-15 over 4096 rotations; a compounding shift violates this by nineteen
 // orders of magnitude.
 constexpr Real kCentroidTol = 1e-12;
+
+// Repeated LinkEmbedding::Transform. Against the unfixed version this many calls
+// walk ||c|| off by three to four orders of magnitude; it typically breaks the
+// tolerance above within one or two.
+constexpr int kTransformRotations = 200;
 
 // An 8-crossing connected diagram of the 2-component unlink, borrowed from
 // component_check.cpp where it is already a known-good fixture.
@@ -210,29 +215,40 @@ Reapr_T MakeReapr( const PDC_T::Simplify_Args_T & sargs )
     });
 }
 
-// Bug-report repro, not part of the pass/fail result: show that a loop of
-// Transform calls does not conserve the centre of mass.
-void ShowTransformViolation( PD_T & pd, Reapr_T & reapr )
+// Repeated LinkEmbedding::Transform must conserve the centre of mass too: it is
+// the in-place spelling of the same rotation, and a rotation about the origin
+// cannot move ||c||. Returns the worst relative deviation; `trace` prints the
+// walk, which is what a bug report wants to see.
+Real TransformCentroidDrift( PD_T & pd, Reapr_T & reapr, const bool trace )
 {
     Knoodle::Tensor2<Real,Int> scratch;
     auto emb = reapr.Embedding(pd);
 
-    std::printf("\nLinkEmbedding::Transform, repeated (bug-report repro):\n");
-    std::printf("  %6s  %16s  %12s\n", "rot", "||c||", "rel. change");
-
     const Real c0 = CentroidNorm(emb, scratch);
-    std::printf("  %6d  %16.6g  %12s\n", 0, c0, "-");
+    if( c0 <= Real(0) ) { return Real(0); }
 
-    for( int k = 1; k <= 200; ++k )
+    if( trace )
+    {
+        std::printf("\nLinkEmbedding::Transform, repeated:\n");
+        std::printf("  %6s  %16s  %12s\n", "rot", "||c||", "rel. change");
+        std::printf("  %6d  %16.6g  %12s\n", 0, c0, "-");
+    }
+
+    Real worst = Real(0);
+    for( int k = 1; k <= kTransformRotations; ++k )
     {
         emb.Transform( reapr.RandomRotation() );
-        if( k <= 3 || k == 10 || k == 50 || k == 100 || k == 200 )
+
+        const Real c   = CentroidNorm(emb, scratch);
+        const Real dev = std::abs(c - c0) / c0;
+        worst = std::max(worst, dev);
+
+        if( trace && (k <= 3 || k == 10 || k == 50 || k == 100 || k == kTransformRotations) )
         {
-            const Real c = CentroidNorm(emb, scratch);
-            std::printf("  %6d  %16.6g  %12.3g\n", k, c, std::abs(c - c0) / c0);
+            std::printf("  %6d  %16.6g  %12.3g\n", k, c, dev);
         }
     }
-    std::printf("  (a rotation about the origin must conserve ||c||)\n");
+    return worst;
 }
 
 } // namespace
@@ -380,7 +396,15 @@ int main( int argc, char ** argv )
           "link components survive Rattle at high trial counts ("
           + std::to_string(static_cast<long long>(components_before)) + ")");
 
-    if( show_transform ) { ShowTransformViolation(pd, reapr); }
+    // ---------------------------------------------------------------------
+    // 4. The same invariant for the in-place spelling. Transform is advertised
+    //    as a rotation, so it must not move the centre of mass either.
+    // ---------------------------------------------------------------------
+    const Real transform_dev = TransformCentroidDrift(pd, reapr, show_transform);
+    std::cout << "  worst |d||c||| / ||c|| over " << kTransformRotations
+              << " Transform calls = " << transform_dev << "\n";
+    Check(transform_dev <= kCentroidTol,
+          "repeated Transform conserves the centre of mass");
 
     std::cout << (failures == 0
                   ? "PASS: re-aiming a projection is a rigid motion\n"
