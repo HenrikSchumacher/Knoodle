@@ -37,9 +37,13 @@
 #include <cstdio>       // stdin, fileno
 #ifdef _WIN32
 #  include <io.h>       // _isatty, _fileno
+#  include <process.h>  // _getpid
+#  include <stdlib.h>   // _putenv_s
 #else
-#  include <unistd.h>   // isatty, fileno
+#  include <unistd.h>   // isatty, fileno, getpid
 #endif
+
+#include <set>          // bundle bookkeeping in the diagnostics helpers
 
 //==============================================================================
 // Type Aliases
@@ -346,6 +350,196 @@ CerrErrorTap* g_cerr_tap = nullptr;
     return s;
 }
 
+/// Process id, for a per-run directory name. POSIX `getpid` vs Windows
+/// `_getpid`, same split as the isatty handling above.
+inline long long CurrentProcessId()
+{
+#ifdef _WIN32
+    return static_cast<long long>(_getpid());
+#else
+    return static_cast<long long>(getpid());
+#endif
+}
+
+/// Set an environment variable for this process. POSIX `setenv` vs Windows
+/// `_putenv_s`; the library reads `KNOODLE_DUMP_DIR` with plain `std::getenv`,
+/// so either is fine on the reading side.
+inline void SetEnvVar(const char* name, const std::string& value)
+{
+#ifdef _WIN32
+    _putenv_s(name, value.c_str());
+#else
+    ::setenv(name, value.c_str(), 1);
+#endif
+}
+
+/// Where this run puts anything a user might need to forward to us: the failure
+/// report written here, and the bundles the core library drops when Rattle's
+/// projection fails (see PlanarDiagramComplex/Simplify.hpp, DumpRattleFailure).
+/// Set once by ChooseDiagnosticDir; empty until then.
+std::filesystem::path g_diagnostic_dir;
+
+/// True only when we created g_diagnostic_dir ourselves as a per-process temp
+/// directory, i.e. when it is ours to remove again. Comparing paths after the
+/// fact is not reliable -- std::filesystem::temp_directory_path() keeps its
+/// trailing separator on macOS, so parent_path() never compares equal to it.
+bool g_diagnostic_dir_is_temp = false;
+
+/**
+ * @brief Decide where this run's diagnostic artifacts belong, and tell the
+ *        library about it.
+ *
+ * Three rules:
+ *
+ *  1. Writing output to a file -> that file's own directory. If the run fails,
+ *     the user finds the diagnostics sitting where they expected their result,
+ *     rather than having to be told where to look.
+ *  2. Streaming to stdout -> a per-process directory under the system temp
+ *     directory. Streaming means we are probably a subshell of something else
+ *     (the Mathematica paclet works this way), so the working directory is not
+ *     ours to litter and may not even be writable. The risk accepted here is
+ *     that the system may purge the temp directory before anyone collects the
+ *     bundle.
+ *  3. Either way the user is told, by ReportDiagnosticBundles below.
+ *
+ * An explicit `KNOODLE_DUMP_DIR` from the environment always wins: someone who
+ * has chosen a location has out-ranked all of the above.
+ *
+ * The library reads `KNOODLE_DUMP_DIR` at the point of failure, so this must run
+ * before any call into Simplify.
+ *
+ * @return The directory chosen. Best-effort: on any filesystem error this falls
+ *         back to the current directory, which is the historical behaviour.
+ */
+[[maybe_unused]] std::filesystem::path ChooseDiagnosticDir(
+    const std::string& tool,
+    bool streaming_mode,
+    const std::optional<std::string>& output_file)
+{
+    namespace fs = std::filesystem;
+
+    std::error_code ec;
+
+    if (const char* forced = std::getenv("KNOODLE_DUMP_DIR"))
+    {
+        if (*forced != '\0') { g_diagnostic_dir = fs::path(forced); return g_diagnostic_dir; }
+    }
+
+    fs::path dir;
+
+    if (!streaming_mode && output_file.has_value())
+    {
+        // Rule 1. parent_path() is empty for a bare filename, which means "here".
+        dir = fs::path(*output_file).parent_path();
+        if (dir.empty()) { dir = fs::path("."); }
+    }
+    else
+    {
+        // Rule 2. Per-process, so two concurrent runs cannot overwrite each
+        // other's bundles -- the library numbers them from zero in every process.
+        dir = fs::temp_directory_path(ec);
+        if (ec) { dir = fs::path("."); }
+        else
+        {
+            dir /= ("knoodle-" + tool + "-" + std::to_string(CurrentProcessId()));
+            fs::create_directories(dir, ec);
+            if (ec) { dir = fs::path("."); }
+            else    { g_diagnostic_dir_is_temp = true; }
+        }
+    }
+
+    g_diagnostic_dir = dir;
+
+    // The library only consults the environment, so this is how it learns.
+    SetEnvVar("KNOODLE_DUMP_DIR", dir.string());
+
+    return dir;
+}
+
+/// Names of the library's bundle files currently in `dir`. Used to tell this
+/// run's bundles apart from ones an earlier run left behind.
+[[maybe_unused]] std::set<std::string> ListDiagnosticBundles(
+    const std::filesystem::path& dir)
+{
+    namespace fs = std::filesystem;
+
+    std::set<std::string> out;
+    std::error_code ec;
+
+    for (fs::directory_iterator it(dir, ec), end; !ec && it != end; it.increment(ec))
+    {
+        const std::string name = it->path().filename().string();
+        if (name.rfind("rattle-failure-", 0) == 0) { out.insert(name); }
+    }
+    return out;
+}
+
+/**
+ * @brief Tell the user about any bundle this run produced, and what it is for.
+ *
+ * Deliberately conditional on whether the run actually failed. Since PR #26 the
+ * library dumps on the FIRST failed projection rather than after Rattle has
+ * exhausted its retries, and Rattle normally recovers on the next rotation --
+ * so a completely successful run can leave a bundle behind. Telling such a user
+ * to file a bug report would be wrong and would bury us in noise.
+ *
+ * Writes to std::cerr directly rather than through eprint: this is information,
+ * not an error, and eprint would be counted by the cerr tap and turn a healthy
+ * run into a nonzero exit.
+ */
+[[maybe_unused]] void ReportDiagnosticBundles(
+    const std::filesystem::path& dir,
+    const std::set<std::string>& before,
+    const std::string& tool,
+    bool run_failed)
+{
+    std::set<std::string> now = ListDiagnosticBundles(dir);
+
+    std::vector<std::string> fresh;
+    for (const auto& n : now)
+    {
+        if (before.find(n) == before.end()) { fresh.push_back(n); }
+    }
+    if (fresh.empty()) { return; }
+
+    std::cerr << tool << ": wrote " << fresh.size()
+              << " diagnostic file(s) to " << dir.string() << "\n";
+    for (const auto& n : fresh) { std::cerr << "    " << n << "\n"; }
+
+    if (run_failed)
+    {
+        std::cerr <<
+            "  These describe the failure above. Please attach them to a report at\n"
+            "  https://github.com/HenrikSchumacher/Knoodle/issues -- they contain the\n"
+            "  exact diagram and geometry needed to reproduce it.\n";
+    }
+    else
+    {
+        std::cerr <<
+            "  This run SUCCEEDED and its output is valid: the projection step hit a\n"
+            "  degenerate viewing angle, and Knoodle retried and recovered. The files\n"
+            "  are kept because that case is still worth fixing -- sending them to\n"
+            "  https://github.com/HenrikSchumacher/Knoodle/issues helps us make it stop\n"
+            "  happening at all.\n";
+    }
+}
+
+/// Remove the per-process temp directory if we made one and nothing used it.
+/// Keeps rule 2 from leaving an empty directory behind on every clean run.
+[[maybe_unused]] void CleanupDiagnosticDir()
+{
+    namespace fs = std::filesystem;
+
+    // Only ever remove a directory we created ourselves.
+    if (!g_diagnostic_dir_is_temp || g_diagnostic_dir.empty()) { return; }
+
+    std::error_code ec;
+    if (fs::is_empty(g_diagnostic_dir, ec) && !ec)
+    {
+        fs::remove(g_diagnostic_dir, ec);
+    }
+}
+
 /**
  * @brief Write a self-contained failure report the user can forward verbatim.
  *
@@ -354,6 +548,11 @@ CerrErrorTap* g_cerr_tap = nullptr;
  *                    description, parsed diagram, and so on.
  * @return The path written, or an empty path if it could not be written.
  *
+ * Goes in the same directory as the library's bundles (see ChooseDiagnosticDir),
+ * so everything a user needs to send is in one place. Previously this was a bare
+ * relative path, i.e. the working directory, which for a streaming run inside
+ * another process is nobody's idea of a useful location.
+ *
  * Never throws and never fails the run further: this is best-effort diagnostics
  * on a path that is already failing.
  */
@@ -361,7 +560,10 @@ CerrErrorTap* g_cerr_tap = nullptr;
     const std::string& tool,
     const std::vector<std::pair<std::string,std::string>>& sections)
 {
-    const std::filesystem::path path = tool + "-error-report.txt";
+    const std::filesystem::path dir =
+        g_diagnostic_dir.empty() ? std::filesystem::path(".") : g_diagnostic_dir;
+
+    const std::filesystem::path path = dir / (tool + "-error-report.txt");
 
     std::ofstream out(path);
     if (!out) { return {}; }
