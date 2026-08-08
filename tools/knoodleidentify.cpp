@@ -720,6 +720,16 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    // knoodleidentify always writes its results to stdout, so rule 1 (put the
+    // diagnostics beside the output file) never applies -- it is rule 2 every
+    // time: a per-process directory under the system temp dir. This has to
+    // happen before any call into Simplify, because ki::Identify escalates with
+    // embedding_trials > 0 (klut_identify.hpp) and can therefore reach Rattle,
+    // whose failure bundles would otherwise land in the user's home directory.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
     auto names = LoadNames(*data_dir, config.max_crossings);
 
@@ -793,8 +803,12 @@ int main(int argc, char* argv[])
             std::cerr << "Wrote a diagnostic report to " << report.string()
                       << " -- please send it with any bug report.\n";
         }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", true);
         return EXIT_FAILURE;
     }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

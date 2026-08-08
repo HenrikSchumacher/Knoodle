@@ -1417,6 +1417,15 @@ int main(int argc, char* argv[])
     }
 
     // Initialize logging
+    // Decide where diagnostics go before anything else can write one: the log
+    // opens in InitLogging just below, and the library reads KNOODLE_DUMP_DIR at
+    // the moment Rattle's projection fails (its default is the user's home
+    // directory). Alongside the output file when we have one, else a per-process
+    // temp directory. Snapshot what is already there so we only report our own.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodlesimplify", config.streaming_mode, config.output_file);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
+
     if (!InitLogging(config.streaming_mode, "knoodlesimplify.log"))
     {
         return EXIT_FAILURE;
@@ -1615,14 +1624,19 @@ int main(int argc, char* argv[])
                       << " -- please send it with any bug report.\n";
         }
 
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
+
         return EXIT_FAILURE;
     }
 
     if (output_file && !output_file->Commit())
     {
         LogError("Failed to move output into place: " + output_file->FinalPath().string());
+        FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", true);
         return EXIT_FAILURE;
     }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodlesimplify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
