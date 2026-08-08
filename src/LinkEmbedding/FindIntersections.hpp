@@ -117,7 +117,7 @@ public:
             eprint(MethodName("FindIntersections")+": More intersections found than can be handled by integer type " + TypeName<Int> + "." );
         }
         
-        const Int intersection_count = static_cast<Int>(intersections.size());
+        intersection_count = static_cast<Int>(intersections.size());
 
         // We are going to use edge_ptr for the assembly; because we are going to modify it, we need a copy.
         edge_ctr.template RequireSize<false>( edge_ptr.Size() );
@@ -125,9 +125,9 @@ public:
         
         if( edge_intersections.Size() != edge_ptr.Last() )
         {
-            edge_intersections = Tensor1<Int, Int>( edge_ptr.Last() );
-            edge_times         = Tensor1<Real,Int>( edge_ptr.Last() );
-            edge_overQ         = Tensor1<bool,Int>( edge_ptr.Last() );
+            edge_intersections = Tensor1<Int, Size_T>( edge_ptr.Last() );
+            edge_times         = Tensor1<Real,Size_T>( edge_ptr.Last() );
+            edge_state         = Tensor1<Int8,Size_T>( edge_ptr.Last() );
         }
 
         // We are going to fill edge_intersections so that data of the i-th edge lies in edge_intersections[edge_ptr[i]],..,edge_intersections[edge_ptr[i+1]].
@@ -146,15 +146,18 @@ public:
 
             edge_intersections[pos_0] = k;
             edge_times        [pos_0] = inter.times[0];
-            edge_overQ        [pos_0] = true;
-            
+            edge_state        [pos_0] = static_cast<Int8>(inter.handedness << 1) | 1;
+
             edge_intersections[pos_1] = k;
             edge_times        [pos_1] = inter.times[1];
-            edge_overQ        [pos_1] = false;
+            edge_state        [pos_1] = static_cast<Int8>(inter.handedness << 1) | 0;
         }
+        
+        // We don't need this anymore.
+        intersections = std::vector<Intersection_T>();
 
         // Sort intersections edgewise w.r.t. edge_times.
-        ThreeArraySort<Real,Int,bool,Int> sort ( intersection_count );
+        ThreeArraySort<Real,Int,Int8,Int> sort ( intersection_count );
         
         Size_T close_counter = 0;
         
@@ -170,7 +173,7 @@ public:
                 sort(
                     &edge_times[k_begin],
                     &edge_intersections[k_begin],
-                    &edge_overQ[k_begin],
+                    &edge_state[k_begin],
                     k_end - k_begin
                 );
                 
@@ -200,7 +203,7 @@ public:
                             
                             const Int j_1 = (inter_1.edges[0] == i) ? inter_1.edges[1] : inter_1.edges[0];
                             
-                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + (edge_overQ[l-1] ? "over" : "under") + ") and " + ToString(j_1) + " (" + (edge_overQ[l] ? "over" : "under") + ")." );
+                            wprint(ClassName()+"::FindIntersections: Detected tiny difference of intersection times = " + ToString(delta) + " < " + ToString(intersection_time_tolerance)+ " = intersection_time_tolerance for intersections of line segment " + ToString(i) + " with line segments " + ToString(j_0) + " (" + ((edge_state[l-1] & 1) ? "over" : "under") + ") and " + ToString(j_1) + " (" + ((edge_state[l] & 1) ? "over" : "under") + ")." );
 //                        }
                     }
                 }
@@ -231,14 +234,11 @@ private:
     {
         TOOLS_PTIMER(timer,MethodName("FindIntersectingEdges_DFS"));
         
-//        S = Intersector_T();
-//        
         intersection_count_3D = 0;
-        
-        edge_ptr.Fill(0);
+        edge_ptr.SetZero();
+        intersection_flag_counts.SetZero();
         
         // Last time I checked the _ManualStack version was 5% faster.
-        
         FindIntersectingEdges_DFS_ManualStack();
 //        FindIntersectingEdges_DFS_Recursive(T.Root(),T.Root());
         
@@ -250,8 +250,6 @@ private:
     // Improved version of FindIntersectingEdges_DFS_impl_0; we do the box-box checks of all the children at once; this saves us a couple of cache misses.
     void FindIntersectingEdges_DFS_ManualStack()
     {
-        const Int int_node_count = T.InternalNodeCount();
-        
         constexpr Int stack_max_size = Int(4) * max_depth + Int(1);
         constexpr Int stack_limit    = Int(4) * max_depth - Int(4);
         
@@ -271,10 +269,7 @@ private:
         // Helper routine to manage the pair_stack.
         auto conditional_push = [this,push]( const Int i, const Int j )
         {
-            if( this->BoxesIntersectQ(i,j) )
-            {
-                push(i,j);
-            }
+            if( this->BoxesIntersectQ(i,j) ) { push(i,j); }
         };
 
         // Helper routine to manage the pair_stack.
@@ -311,8 +306,8 @@ private:
 
             auto [i,j] = pop();
             
-            const bool i_internalQ = (i < int_node_count);
-            const bool j_internalQ = (j < int_node_count);
+            const bool i_internalQ = T.InternalNodeQ(i);
+            const bool j_internalQ = T.InternalNodeQ(j);
             
             // Warning: This assumes that both children in a cluster tree are either defined or empty.
             
@@ -397,7 +392,7 @@ private:
                         FindIntersectingEdges_DFS_Recursive(L_i,R_i);
                     }
                 }
-                else
+                else // if( i != j )
                 {
                     const bool subdQ [2][2] = {
                         { BoxesIntersectQ(L_i,L_j), BoxesIntersectQ(L_i,R_j) },
@@ -442,7 +437,7 @@ private:
                         FindIntersectingEdges_DFS_Recursive(R_i,j);
                     }
                 }
-                else
+                else // if( i_internalQ )
                 {
                     //split cluster j
                     const bool subdQ [2] = {
@@ -542,13 +537,13 @@ protected:
             
             // Compute heights at the intersection.
             const Real h[2] = {
-                x[0][2] * (one - t[0]) + t[0] * x[1][2],
-                y[0][2] * (one - t[1]) + t[1] * y[1][2]
+                x[0][2] * (Real(1) - t[0]) + t[0] * x[1][2],
+                y[0][2] * (Real(1) - t[1]) + t[1] * y[1][2]
             };
             
             // Tell edges k and l that they contain an additional crossing.
-            edge_ptr[k+1]++;
-            edge_ptr[l+1]++;
+            ++edge_ptr[k+1];
+            ++edge_ptr[l+1];
 
             if( h[0] < h[1] )
             {
@@ -670,5 +665,3 @@ protected:
             }
         }
     }
-
-

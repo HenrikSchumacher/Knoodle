@@ -221,7 +221,7 @@ private:
 
 public:
     
-/*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
+/*!@brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow!
  *
  *  @param a_first The first arc of the input strand.
  *

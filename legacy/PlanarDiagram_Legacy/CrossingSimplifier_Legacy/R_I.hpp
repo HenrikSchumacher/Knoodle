@@ -1,4 +1,4 @@
-/*! @brief Checks whether a Reidemeister I move can be made at crossing `c`,
+/*!@brief Checks whether a Reidemeister I move can be made at crossing `c`,
  *  then applies it (if possible), and returns a Boolean that indicates whether
  *  a change has been made or not.
  */

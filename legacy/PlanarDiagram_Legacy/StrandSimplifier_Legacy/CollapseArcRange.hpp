@@ -2,11 +2,11 @@ private:
     
 /*!@brief Collapse the strand made by the arcs `a_begin, pd.NextArc(a_begin,Head),...,a_end` to a single arc. Finally, we reconnect the head of arc `a_begin` to the head of `a_end` and deactivate `a_end`. All the crossings from the head of `a_begin` up to the tail of `a_end`. This routine must only be called, if some precautions have be carried out: all arcs that crossed this strand have to reconnected or deactivated.
  *
- * @param a_begin First arc on strand to be collapsed.
+ * @param [in] a_begin First arc on strand to be collapsed.
  *
- * @param a_end Last arc on strand to be collapsed.
+ * @param [in] a_end Last arc on strand to be collapsed.
  *
- * @param arc_count_ An upper bound for the number of arcs on the strand from `a_begin` to `a_end`. This merely serves as fallback to prevent infinite loops.
+ * @param [in] arc_count_ An upper bound for the number of arcs on the strand from `a_begin` to `a_end`. This merely serves as fallback to prevent infinite loops.
  */
 
 void CollapseArcRange(

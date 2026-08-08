@@ -15,10 +15,6 @@ namespace MCF
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmisleading-indentation"
-
-    // TODO: MCFSimplex.C really does not like the -ffast-math flag. I get inconsistent results with his flag. I could use TOOLS_MAKE_FP_STRICT() here (which is #pragma float_control(precise, on) under clang). But that just suppressed compiler errors; the inconsistence still remains, even if I always place TOOLS_MAKE_FP_STRICT() before the load.
-    
-//    TOOLS_MAKE_FP_STRICT()
     
     #include "MCFSimplex.C"
     
@@ -27,8 +23,23 @@ namespace MCF
 
 namespace Knoodle
 {
-    // TODO: What to do with multiple diagram components?
-    // TODO: Get/setters for all settings.
+/*!@brief A class for drawing orthogonal layouts of _connected_ planar diagrams.
+ *
+ * The constructor does all the work, so only very few class methods will be needed in practive. Configure the class by  a `struct` `Settings_T` sent to the constructor. After the constructor has terminated, all relevant data is computed. Retrieve the diagram information needed for drawing by calling `ArcLines()` or `ArcSplines()`. The coordinates of all vertices can be accessed also by `VertexCoordinates()`.
+ *
+ * Nomenclature:
+ * - The active _crossings_ of the input diagram are also vertices of the class instance; their indices remain the same. Inactive crossings are ignored. Further vertices for the bends on the arcs are appended.
+ *
+ * - Each active _arc_ of the input diagram is subdivided into several straight edges, interleaved by new corner vertices. Inactive arcs are ignored.
+ *
+ * - A _vertex_ can be a crossing of the original diagram or a corner vertice introduced by the bend of an arc.
+ *
+ * - A _face_ has the same meaning as in the input planar diagram: it is formed by directed arcs by cycling counterclockwise. They are computed once and fixed by the constructor.
+ *
+ * - A _region_ is formed by directed edges by cycling counterclockwise. Since (directed) edges are added, e.g., also by a process called `turn regularization`, a face may consist of several regions.
+ *
+ * @tparam PD_T_ The type parameter for the input planar diagram. At the moment, only really `PlanarDiagram<Int>` for some integer type `Int` works here.
+ */
     
     template<class PD_T_>
     class OrthoDraw final : CachedObject<1,0,0,0>
@@ -39,62 +50,91 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Alias for `PlanarDiagram`.*/
         using PD_T       = PD_T_;
+        /*!@brief Integral type used for all sorts of indices.*/
         using Int        = PD_T::Int;
         
         // TODO: Are signed integers really necessary here?
 //        static_assert(SignedIntQ<Int>,"");
         
+        /*!@brief Unsigned integral type.*/
         using UInt       = UInt32;
+        /*!@brief Type indicating the direction of each directed edge (i.e., north, east, south, west).*/
         using Dir_T      = UInt8;
+        /*!@brief Type used for indicated the state of edges.*/
         using EdgeFlag_T = UInt8;
+        /*!@brief Integral type counting the number of turns per arc.*/
         using Turn_T     = ToSigned<Int>;
+        /*!@brief Arithmetic type used for cost computations.*/
         using Cost_T     = ToSigned<Int>;
         
+        /*!@brief Enum class for storing vertex state. */
         enum class VertexFlag_T : Int8
         {
-            Inactive    =  0,
-            RightHanded =  1,
-            LeftHanded  = -1,
-            Corner      =  2
+            Inactive    =  0, /**< Vertex is inactive.*/
+            RightHanded =  1, /**< Vertex is a crossing of the planar diagram and right-handed.*/
+            LeftHanded  = -1, /**< Vertex is a crossing of the planar diagram and left-handed.*/
+            Corner      =  2  /**< Vertex is corner point, not a crossing.*/
         };
 
+        /*!@brief Enum class for choosing the method for bend optimization in `OrthoDraw`. */
         enum class BendMethod_T : Int8
         {
             Unknown         = -1
-            , Bends_MCF     =  0
-            , Bends_CLP     =  1
+            , Bends_MCF     =  0 /**< Use MCFClas to minimize the number of bends. */
+            , Bends_CLP     =  1 /**< Use CLP to minimize the number of bends. */
         };
         
+        /*!@brief Enum class for choosing the compaction method in `OrthoDraw`. */
         enum class CompactionMethod_T : Int8
         {
             Unknown                = -1
-            , TopologicalNumbering =  0
-            , TopologicalOrdering  =  1
-            , Length_MCF           =  2
-            , Length_CLP           =  3
-            , AreaAndLength_CLP    =  4
+            , TopologicalNumbering =  0 /**< Use a topological numbering (Kahn's algorithm). */
+            , TopologicalOrdering  =  1 /**< Use a topological ordering (Kahn's algorithm). */
+            , Length_MCF           =  2 /**< Use MCFClass to minimize length. */
+            , Length_CLP           =  3 /**< Use CLP to minimize length. */
+            , AreaAndLength_CLP    =  4 /**< Use CLP to minimize area and length. */
         };
         
+        /*!@brief Control `struct` for holding settings of `OrthoDraw`. */
         struct Settings_T
         {
+            /*! The method to be used for bend minimization. */
             BendMethod_T  bend_method               = BendMethod_T::Bends_MCF;
+            /*! Whether to use the dual simplex algorithm. Only relevant when using CLP. */
             bool use_dual_simplexQ                  = false;
+            /*! After a minimal distribution of bends is found, randomly turn each crossing this many times. Each time, the crossing is turned by -90, 0, or +90 degrees with probability 1/3. */
             int  randomize_bends                    = 0;
+            /*! Try to balance the bends at each crossing. Does not change the number of bends. Only active if `randomize_bends = 0`. */
             bool redistribute_bendsQ                = true;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool turn_regularizeQ                   = true;
+            /*! Must be set to `false`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool soften_virtual_edgesQ              = false;
+            /*! Flip a coin to determine whether virtual edges (some invisible edges that have to be added to prevent self-intersections) are placed horizontally or vertically. */
             bool randomize_virtual_edgesQ           = false;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool saturate_regionsQ                  = true;
+            /*! Must be set to `true`, otherwise the resulting layout is not guaranteed to be embeddded. */
             bool saturate_exterior_regionQ          = true;
+            /*! Reduce the number of saturing edges by some ad hoc rules for small faces. */
             bool filter_saturating_edgesQ           = true;
+            /*! The method to be uses for compaction. */
             CompactionMethod_T compaction_method    = CompactionMethod_T::Length_MCF;
             
+            
+            /*! The distance between two grid points in horizontal direction. */
             Int  x_grid_size                        = 20;
+            /*! The distance between two grid points in vertical direction. */
             Int  y_grid_size                        = 20;
+            /*! The size of gaps (when an arcs goes over another arc) in horizontal direction. */
             Int  x_gap_size                         =  4;
+            /*! The size of gaps (when an arcs goes over another arc) in vertical direction. */
             Int  y_gap_size                         =  4;
+            /*! The rounding "radius in x direction" used for bends. */
             Int  x_rounding_radius                  =  4;
+            /*! The rounding "radius in y direction" used for bends. */
             Int  y_rounding_radius                  =  4;
         };
         
@@ -124,17 +164,23 @@ namespace Knoodle
         
         using DiGraph_T             = MultiDiGraph<Int,Int>;
         using HeadTail_T            = DiGraph_T::HeadTail_T;
+        /*!@brief A container for the vertices.*/
         using VertexContainer_T     = Tiny::VectorList_AoS<4,Int,Int>;
+        /*!@brief A container for the edges.*/
         using EdgeContainer_T       = DiGraph_T::EdgeContainer_T;
+        /*!@brief A container for the turns of the directed edges.*/
         using EdgeTurnContainer_T   = Tiny::VectorList_AoS<2,Turn_T,Int>;
+        /*!@brief A container for coordinates.*/
         using CoordsContainer_T     = Tiny::VectorList_AoS<2,Int,Int>;
+        /*!@brief A container for the `VertexFlag_T` of each vertex.*/
         using VertexFlagContainer_T = Tensor1<VertexFlag_T,Int>;
+        /*!@brief A container for the `EdgeFlag_T` of each edge.*/
         using EdgeFlagContainer_T   = Tiny::VectorList_AoS<2,EdgeFlag_T,Int>;
         using Vector_T              = Tiny::Vector<2,Int,Int>;
-//        using PD_T                  = PlanarDiagram<Int>;
         using CrossingContainer_T   = PD_T::CrossingContainer_T;
         using ArcContainer_T        = PD_T::ArcContainer_T;
         
+        /*!@brief A container holding the lines or splines for each arc. Technically, it holds a list of points for each arc.*/
         using ArcSplineContainer_T  = RaggedList<std::array<Int,2>,Int>;
         
         
@@ -178,7 +224,15 @@ namespace Knoodle
         // TODO: move constructor
         // TODO: move assignment
 
-        template<IntQ ExtInt>
+        /*!@brief Construct for `PlanarDiagram` pd.
+         *
+         * @param pd Instance of `PlanarDiagram` whose orthogonal layout is to be computed.
+         *
+         * @param exterior_face_ The index of the face that is to be made the exterior region in the diagram. If a negative value is supplied, then a face with maximum number of arcs will be made the exterior face.
+         *
+         * @param settings_ The settings to be used for the layout.
+         */
+        template<SignedIntQ ExtInt = ToSigned<Int>>
         OrthoDraw(
             cref<PD_T> pd,
             const ExtInt exterior_face_ = ExtInt(-1),
@@ -304,9 +358,7 @@ namespace Knoodle
         
     public:
         
-        /*!@brief Make room for more virtual edges.
-         */
-        
+        /*!@brief Make room for more virtual edges. */
         void Resize( const Int max_edge_count_ )
         {
             const Int max_edge_count = Max(Int(0), max_edge_count_ );
@@ -383,83 +435,97 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Return number of crossings. */
         Int CrossingCount() const
         {
             return crossing_count;
         }
         
+        /*!@brief Return how much space is reserved for crossings. */
         Int MaxCrossingCount() const
         {
             return C_A.Dim(0);
         }
         
+        /*!@brief Expose the container that holds the crossings, read only. */
         cref<CrossingContainer_T> Crossings() const
         {
             return C_A;
         }
         
+        /*!@brief Return number of arcs. */
         Int ArcCount() const
         {
             return arc_count;
         }
         
+        /*!@brief Return how much space is reserved for arcs. */
         Int MaxArcCount() const
         {
             return A_C.Dim(0);
         }
         
+        /*!@brief Expose the container that holds the arcs, read only. */
         cref<ArcContainer_T> Arcs() const
         {
             return A_C;
         }
         
+        /*!@brief Return number of vertex. (Every crossing is a vertex, but not every vertex is a crossing.*/
         Int VertexCount() const
         {
             return vertex_count;
         }
         
+        /*!@brief Return how much space is reserved for vertices. */
         Int MaxVertexCount() const
         {
             return V_dE.Dim(0);
         }
         
+        /*!@brief Expose the container that holds the vertex flags, read only. */
         cref<VertexFlagContainer_T> VertexFlags() const
         {
             return V_flag;
         }
         
-        
+        /*!@brief Return a list that contains all deges (= directed edges) for each vertex, read only. */
         cref<VertexContainer_T> VertexDedges() const
         {
             return V_dE;
         }
         
-        
+        /*!@brief Return the number of edges. (Every arc is an edge, but not every edge is an arc.*/
         Int EdgeCount() const
         {
             return edge_count;
         }
         
+        /*!@brief Return how much space is reserved for edges. */
         Int MaxEdgeCount() const
         {
             return E_V.Dim(0);
         }
         
+        /*!@brief Expose the container that holds the edges, read only. */
         cref<EdgeContainer_T> Edges() const
         {
             return E_V;
         }
         
+        /*!@brief Expose the container that holds the edge flags. */
         cref<EdgeFlagContainer_T> EdgeFlags() const
         {
             return E_flag;
         }
                 
+        /*!@brief Return the number of virtual edges. (Virtual edges are invisible edges that are added by turn regularization.)*/
         Int VirtualEdgeCount() const
         {
             return virtual_edge_count;
         }
         
+        /*!@brief Return the virtual edges. */
         EdgeContainer_T VirtualEdges() const
         {
             EdgeContainer_T virtual_edges ( virtual_edge_count );
@@ -473,47 +539,55 @@ namespace Knoodle
             return virtual_edges;
         }
         
+        /*!@brief Return index of exterior face. */
         Int ExteriorFace() const
         {
             return exterior_face;
         }
         
+        /*!@brief Return the number of faces.*/
         Int FaceCount() const
         {
             return F_dA.SublistCount();
         }
         
+        /*!@brief Expose the darcs (= directed arcs) per each face in counterclockwise order.*/
         cref<RaggedList<Int,Int>> FaceDarcs() const
         {
             return F_dA;
         }
         
-        
+        /*!@brief Expose the arc per each face in counterclockwise order.*/
         cref<Tensor1<Int,Int>> EdgeArcs() const
         {
             return E_A;
         }
 
+        /*!@brief Expose the vertices per arc.*/
         cref<RaggedList<Int,Int>> ArcVertices() const
         {
             return A_V;
         }
         
+        /*!@brief Expose the edges per arc.*/
         cref<RaggedList<Int,Int>> ArcEdges() const
         {
             return A_E;
         }
         
+        /*!@brief Expose the container holding the number of turns on each edge. Edge `e` has two turns: one for the forward edge (`EdgeTurns()(e,1)`) and one for the backward edge (`EdgeTurns()(e,0)`).*/
         cref<EdgeTurnContainer_T> EdgeTurns() const
         {
             return E_turn;
         }
         
+        /*!@brief Return the number of turns of directed edge `de`.*/
         Turn_T EdgeTurn( const Int de ) const
         {
             return E_turn.data()[de];
         }
 
+        /*!@brief Return the number of turns of edge `e` in direction `d` (`1` means forward, `0` means forward).*/
         Turn_T EdgeTurn( const Int e, const bool d )  const
         {
             return E_turn(e,d);
@@ -546,16 +620,19 @@ namespace Knoodle
             return E_dir;
         }
         
+        /*!@brief Return the total number of bends.*/
         Int BendCount() const
         {
             return bend_count;
         }
         
+        /*!@brief Expose the total number of bends.*/
         cref<Tensor1<Turn_T,Int>> Bends() const
         {
             return A_bends;
         }
         
+        /*!@brief Return an array that holds at position `a` the arc next to arc `a`.*/
         cref<Tensor1<Int,Int>> ArcNextArc() const
         {
             std::string tag ("ArcNextArc");
@@ -615,12 +692,12 @@ namespace Knoodle
             logvalprint(MethodName("Settings()"), ToString(settings));
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
             return std::string("OrthoDraw<") + PD_T::ClassName() + ">";
         }

@@ -270,7 +270,7 @@ bool RerouteToPath( const Int a_first, mref<Int> a_last )
     return true;
 }
 
-/*! @brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
+/*!@brief We move from one and `a` of a strand in direction `headtail` until path `p` starts to branch off from it.
  */
 
 template<bool headtail>
@@ -301,7 +301,7 @@ void WalkToBranch( mref<Int> a, mref<Int> p ) const
 }
 
 
-/*! @brief Attempts to reroute the strand to a shortest path. It is typically not safe to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct marking of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
+/*!@brief Attempts to reroute the strand to a shortest path. It is typically not safe to call this function without the invariants guaranteed by `SimplifyStrands`. Some of the invariants are correct marking of the arcs and crossings in the current strand and the absense of possible Reidemeister I and II moves along that strand.
  *  This is why we make this function private.
  *
  *  This implicitly _assumes_ that we can travel from `a_first` to `a_last` by `NextArc(-,Head)`. Otherwise, the behavior is undefined.

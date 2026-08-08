@@ -1,23 +1,24 @@
 public:
 
-
-
-
+/*!@brief Return an invalid diagram.*/
 static PD_T InvalidDiagram()
 {
     return PD_T();
 }
 
+/*!@brief Return an anello of color specified by `color`.*/
 static PD_T Unknot( const Int color )
 {
     return Anello(color);
 }
 
+/*!@brief Return an anello of color specified by `color`.*/
 static PD_T Unlink( const Int color )
 {
     return Anello(color);
 }
 
+/*!@brief Return an anello of color specified by `color`.*/
 static PD_T Anello( const Int color )
 {
     // needs to know all member variables
@@ -29,6 +30,7 @@ static PD_T Anello( const Int color )
     return pd;
 }
 
+/*!@brief Return a farfalla of color specified by `color`.*/
 static PD_T Farfalla( const Int color )
 {
     // needs to know all member variables
@@ -53,6 +55,7 @@ static PD_T Farfalla( const Int color )
     return pd;
 }
 
+/*!@brief Return a standardized Hopf link of color specified by `color_0` and `color_1` and with handedness specified by `handedness`.*/
 static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_T handedness )
 {
     // needs to know all member variables
@@ -79,6 +82,7 @@ static PD_T HopfLink( const Int color_0, const Int color_1, const CrossingState_
     return pd;
 }
 
+/*!@brief Return a standardized trefoil knot of color specified by `color` and with handedness specified by `handedness`.*/
 static PD_T TrefoilKnot( const Int color, const CrossingState_T handedness )
 {
     // needs to know all member variables
@@ -101,6 +105,7 @@ static PD_T TrefoilKnot( const Int color, const CrossingState_T handedness )
     return pd;
 }
 
+/*!@brief Return a standardized figure-eight knot of color specified by `color`.*/
 static PD_T FigureEightKnot( const Int color )
 {
     // needs to know all member variables
@@ -127,12 +132,13 @@ static PD_T FigureEightKnot( const Int color )
 }
 
 
-
+/*!@brief If an anello, convert in-place to a farfalla.*/
 void AnelloToFarfalla()
 {
     if( AnelloQ() ) { (*this) = Farfalla(FirstColor()); }
 }
 
+/*!@brief If a farfalla, convert in-place to an anello.*/
 void FarfallaToAnello()
 {
     if( FarfallaQ() ) { (*this) = Anello(FirstColor()); }

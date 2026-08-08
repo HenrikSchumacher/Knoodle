@@ -117,7 +117,7 @@ namespace Knoodle
         // Move assignment operator
         Link_2D & operator=( Link_2D && other ) = default;
         
-        /*! @brief Calling this constructor makes the object assume that it represents a cyclic polyline.
+        /*!@brief Calling this constructor makes the object assume that it represents a cyclic polyline.
          */
         template<IntQ I>
         explicit Link_2D( const I edge_count_ )
@@ -207,8 +207,6 @@ namespace Knoodle
             
             Vector3_T lo;
             Vector3_T hi;
-
-//            ComputeBoundingBox( v, lo, hi );
             
             if constexpr ( shiftQ )
             {
@@ -502,14 +500,14 @@ namespace Knoodle
                 + ( "\n" + ct_tabs<t0> + "|>");
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Link_2D")
+            return std::string("Link_2D")
                 + "<" + TypeName<Real>
                 + "," + TypeName<Int>
                 + "," + TypeName<BReal>

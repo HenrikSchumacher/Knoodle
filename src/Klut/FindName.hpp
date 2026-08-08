@@ -53,13 +53,14 @@ std::string FindName( cptr<T> s_mac_leod, Int n )
     return FindName_impl<false>( MacLeodCodeToKey(s_mac_leod,c), c );
 }
 
+/*!@brief Return the name of the knot class belonging to the MacLeodCode `s_mac_leod`; returns `std::string("NotFound")` if it is not found in the lookup table.*/
 template<typename T, IntQ Int>
 std::string FindName( cref<Tensor1<T,Int>> s_mac_leod )
 {
     return FindName( &s_mac_leod[0], static_cast<Size_T>(s_mac_leod.Size()) );
 }
 
-
+/*!@brief Return the name of the knot class belonging to the MacLeodCode `s_mac_leod`; returns `std::string("NotFound")` if it is not found in the lookup table.*/
 template<typename T, IntQ Int>
 std::string FindName( cref<std::vector<T,Int>> s_mac_leod )
 {
@@ -71,6 +72,7 @@ std::string FindName( std::string_view s_mac_leod )
     return FindName( &s_mac_leod[0], s_mac_leod.size() );
 }
 
+/*!@brief Return the name of the knot class belonging to the `PlanarDiagram` `pd`; returns `std::string("NotFound")` if it is not found in the lookup table.*/
 template<IntQ Int>
 std::string FindName( cref<PlanarDiagram<Int>> pd )
 {

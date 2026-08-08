@@ -24,12 +24,10 @@ namespace Knoodle
         
         using SparseMatrix_T    = Sparse::MatrixCSR<Scal,Int,LInt,Sequential>;
         using BinaryMatrix_T    = Sparse::BinaryMatrixCSR<Int,LInt,Sequential>;
-        
+        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt,Sequential>;
+        using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         
         using Helper_T          = Tensor2<Scal,LInt>;
-        
-        using Factorization_T   = Sparse::CholeskyDecomposition<Scal,Int,LInt>;
-        using Factorization_Ptr = std::shared_ptr<Factorization_T>;
         using PD_T              = PlanarDiagram<Int>;
         using Aggregator_T      = TripleAggregator<Int,Int,Scal,LInt>;
         
@@ -216,7 +214,7 @@ namespace Knoodle
         
         void DenseAlexanderMatrix( cref<PD_T> pd, const Scal t, mptr<Scal> A ) const
         {
-            // Writes the dense Alexander matrix to the provided buffer A.
+            // Write the dense Alexander matrix to the provided buffer A.
             // User is responsible for making sure that the buffer is large enough.
             TOOLS_PTIMER(timer,MethodName("DenseAlexanderMatrix"));
             
@@ -628,14 +626,14 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("Alexander")
+            return std::string("Alexander")
                 + "<" + TypeName<Scal>
                 + "," + TypeName<Int>
                 + "," + TypeName<LInt>

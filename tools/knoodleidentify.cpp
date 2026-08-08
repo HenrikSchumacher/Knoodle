@@ -568,6 +568,11 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         // single diagram; if pre-split summands arrive, Identify re-decomposes
         // their union. Bare unknot summands carry no diagram and are the identity.
         ki::PDC_T pdc;
+        // Push() is lock-guarded and silently does nothing on a locked complex,
+        // which would leave pdc empty and make every input look like an unknot.
+        // Feeding it diagrams that ReadKnot just produced from one input record
+        // is the sanctioned use, so unlock for the duration.
+        pdc.Unlock();
         for (PD_T& pd : input_knot->summands)
         {
             if (pd.ValidQ()) { pdc.Push(std::move(pd)); }
@@ -688,6 +693,13 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
 
 int main(int argc, char* argv[])
 {
+    // Count the library's "ERROR: " lines for the whole run, so an identification
+    // made from a diagram the core has disclaimed cannot be reported as success.
+    // knoodleidentify writes only to stdout, so the nonzero exit and the notice
+    // below are the whole contract -- there is no file to withhold.
+    CerrErrorTap cerr_tap;
+    g_cerr_tap = &cerr_tap;
+
     auto config_opt = ParseArguments(argc, argv);
     if (!config_opt)
     {
@@ -707,6 +719,16 @@ int main(int argc, char* argv[])
     {
         return EXIT_FAILURE;
     }
+
+    // knoodleidentify always writes its results to stdout, so rule 1 (put the
+    // diagnostics beside the output file) never applies -- it is rule 2 every
+    // time: a per-process directory under the system temp dir. This has to
+    // happen before any call into Simplify, because ki::Identify escalates with
+    // embedding_trials > 0 (klut_identify.hpp) and can therefore reach Rattle,
+    // whose failure bundles would otherwise land in the user's home directory.
+    const std::filesystem::path diag_dir =
+        ChooseDiagnosticDir("knoodleidentify", /*streaming_mode=*/true, std::nullopt);
+    const std::set<std::string> bundles_before = ListDiagnosticBundles(diag_dir);
 
     Klut klut(*data_dir, static_cast<Knoodle::Size_T>(config.max_crossings));
     auto names = LoadNames(*data_dir, config.max_crossings);
@@ -757,6 +779,36 @@ int main(int argc, char* argv[])
             std::to_string(stats.links) + " links, " +
             std::to_string(stats.invalid) + " invalid)");
     }
+
+    if (ErrorsSeen())
+    {
+        std::cerr << "\nknoodleidentify: " << ErrorSummary()
+                  << " during this run -- the identifications above are UNRELIABLE"
+                     " (the library discards diagrams it has flagged as invalid).\n";
+
+        std::string invocation;
+        for (int i = 0; i < argc; ++i)
+        {
+            invocation += (i ? " " : "");
+            invocation += argv[i];
+        }
+
+        const auto report = WriteDiagnosticReport("knoodleidentify", {
+            { "command line", "  " + invocation + "\n" },
+            { "what to send", "  This file, plus the input that produced it.\n" },
+        });
+
+        if (!report.empty())
+        {
+            std::cerr << "Wrote a diagnostic report to " << report.string()
+                      << " -- please send it with any bug report.\n";
+        }
+
+        FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", true);
+        return EXIT_FAILURE;
+    }
+
+    FinishDiagnostics(diag_dir, bundles_before, "knoodleidentify", !success);
 
     return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }

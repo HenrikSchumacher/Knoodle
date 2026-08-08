@@ -1,7 +1,7 @@
 public:
 
 /*!
- * @brief Returns an array that tells every arc to which over-strand it belongs.
+ * @brief Return an array that tells every arc to which over-strand it belongs.
  *
  *  More precisely, arc `a` belongs to over-strand number `ArcOverStrands()[a]`.
  *
@@ -14,7 +14,7 @@ Tensor1<Int,Int> ArcOverStrands() const
 }
 
 /*!
- * @brief Returns an array that tells every arc to which under-strand it belongs.
+ * @brief Return an array that tells every arc to which under-strand it belongs.
  *
  *  More precisely, arc `a` belongs to under-strand number `ArcUnderStrands()[a]`.
  *
@@ -57,7 +57,7 @@ public:
 
 
 /*!
- * @brief Returns an array of that tells every crossing which over-strand end or start in is.
+ * @brief Return an array of that tells every crossing which over-strand end or start in is.
  *
  *  More precisely, crossing `c` has the outgoing over-strands `CrossingOverStrands()(c,0,0)` and `CrossingOverStrands()(c,0,1)`
  *  and the incoming over-strands `CrossingOverStrands()(c,1,0)` and `CrossingOverStrands()(c,1,1)`.
@@ -72,7 +72,7 @@ Tensor3<Int,Int> CrossingOverStrands() const
 }
 
 /*!
- * @brief Returns an array of that tells every crossing which under-strand end or start in is.
+ * @brief Return an array of that tells every crossing which under-strand end or start in is.
  *
  *  More precisely, crossing `c` has the outgoing under-strands `CrossingUnderStrands()(c,0,0)` and `CrossingUnderStrands()(c,0,1)`
  *  and the incoming under-strands `CrossingUnderStrands()(c,1,0)` and `CrossingUnderStrands()(c,1,1)`.

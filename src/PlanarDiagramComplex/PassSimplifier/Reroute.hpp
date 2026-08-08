@@ -304,7 +304,7 @@ bool Reroute( mref<Pass_T> pass, mref<Path_T> path )
     return true;
 }
 
-/*! @brief We move from one end `a` of a pass in direction `headtail` until path `p` starts to branch off from it.
+/*!@brief We move from one end `a` of a pass in direction `headtail` until path `p` starts to branch off from it.
  */
 
 template<bool headtail>

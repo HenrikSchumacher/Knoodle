@@ -1,6 +1,6 @@
 public:
 
-/*! @brief Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
+/*!@brief Attempts to find the shortest path between the faces created by merging the two faces of arc`a` and the faces created by merging the two faces of arc `b`.
  *
  *  @param a The one end arc of the shortest path we are looking for.
  *
@@ -22,7 +22,7 @@ Path_T FindShortestPath( mref<PD_T> pd_input, const Int a, const Int b, const In
     return successQ ? p : Path_T();
 }
 
-/*! @brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
+/*!@brief Attempts to find the arcs that make up a minimally rerouted strand. This routine is only meant for the visualization of a few paths. Don't use this in production as this is quite slow! (It has to find and mark a the currect path between `a` and `b`, if existent.
  *
  *  @param a The first arc of the input strand.
  *

@@ -53,7 +53,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
         
         if( pd.ValidQ() )
         {
-            pdc.Push(std::move(pd));
+            pdc.Push_Private(std::move(pd));
         }
         else
         {
@@ -94,7 +94,7 @@ static PDC_T FromInString( mref<Tools::InString> s )
             }
             else
             {
-                pdc.Push(PD_T::Unknot(last_color_deactivated));
+                pdc.Push_Private(PD_T::Unknot(last_color_deactivated));
             }
             
             clear(); // Needed to track `input_diagram_counter` and to reset `last_color_deactivated` and `mode`.

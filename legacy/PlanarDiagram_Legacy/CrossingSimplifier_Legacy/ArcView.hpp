@@ -190,7 +190,7 @@ void Reconnect( ArcView & A, ArcView & B )
 
 
 /*!
- * @brief Returns the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
+ * @brief Return the ArcView object next to ArcView object `A`, i.e., the ArcView object reached by going straight through the crossing at the head/tail of `A`.
  */
 
 ArcView NextArc( const ArcView & A, const bool headtail )

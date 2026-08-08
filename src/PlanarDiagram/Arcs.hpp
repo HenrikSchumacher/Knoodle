@@ -1,22 +1,20 @@
 public:
 
-/*!@brief The maximal number of arcs for which memory is allocated in the data structure.
- */
+/*!@brief The maximal number of arcs for which memory is allocated in the data structure.*/
 
 Int MaxArcCount() const
 {
     return max_arc_count;
 }
 
-/*!@brief Returns the number of arcs in the planar diagram.
- */
+/*!@brief Return the number of arcs in the planar diagram.*/
 
 Int ArcCount() const
 {
     return arc_count;
 }
 
-/*!@brief Returns the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix.
+/*!@brief Expose the arcs that connect the crossings as a reference to a constant `Tensor2` object, which is basically a heap-allocated matrix. Read only.
  *
  * This reference is constant because things can go wild (segfaults, infinite loops) if we allow the user to mess with this data.
  *
@@ -37,7 +35,7 @@ cref<ArcContainer_T> Arcs() const
     return A_cross;
 }
 
-/*!@brief Returns the states of the arcs. The state encodes whether an edge is active and how its it is connected to the crossings at its head and tail.
+/*!@brief Expose the state flags of the arcs, read only. The state encodes whether an edge is active and how its it is connected to the crossings at its head and tail.
  *
  * Use the methods `ArcState_T::ActiveQ`, `ArcState_T::Side`, `ArcState_T::OverQ` to find out more about the states.
  *
@@ -49,16 +47,16 @@ cref<ArcStateContainer_T> ArcStates() const
     return A_state;
 }
 
-/*! @brief Returns the colors of the arcs. Each arc has a unique color which indicates to which link component the arc orginially belonged (before various simplification methods were applied).
+/*!@brief Expose the colors of the arcs, read only. Each arc has a unique color which indicates to which link component the arc orginially belonged (before various simplification methods were applied).
  */
-
 cref<ArcColorContainer_T> ArcColors() const
 {
     return A_color;
 }
 
 #ifdef PD_ALLOCATE_SCRATCH
-/*!@brief Returns the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines.  Use with caution as its content depends heavily on which routines have been called before.
+
+/*!@brief Expose the arc scratch buffer that is used for a couple of algorithms, in particular by transversal routines. Use with caution as its content depends heavily on which routines have been called before.
  */
 cref<Tensor1<Int,Int>> ArcScratchBuffer() const
 {
@@ -71,20 +69,19 @@ A_Cross_T CopyArc( const Int a ) const
     return A_Cross_T( A_cross.data(a) );
 }
 
+/*!@brief Return arc state of arc `a`.*/
 ArcState_T ArcState( const Int a ) const
 {
     return A_state[a];
 }
 
-/*!@brief Checks whether arc `a` is still active.
- */
-
+/*!@brief Check whether arc `a` is still active.*/
 bool ArcActiveQ( const Int a ) const
 {
     return ActiveQ(A_state[a]);
 }
 
-
+/*!@brief Return a string with the most essential information of arc `a`.*/
 std::string ArcString( const Int a ) const
 {
     return "arc " +Tools::ToString(a) +" = { "
@@ -93,6 +90,7 @@ std::string ArcString( const Int a ) const
         + ToString(A_state[a]) + ", color = " + ToString(A_color[a]) + ")";
 }
 
+/*!@brief Return the number of active arcs.*/
 Int CountActiveArcs() const
 {
     Int counter = 0;
@@ -108,9 +106,7 @@ Int CountActiveArcs() const
 
 private:
     
-/*!@brief Deactivates arc `a`. Only for internal use.
- */
-
+/*!@brief Deactivates arc `a`. Only for internal use.*/
 void DeactivateArc( const Int a )
 {
     if( ArcActiveQ(a) )
@@ -139,7 +135,6 @@ public:
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcSide( const Int a, const bool headtail )  const
 {
     return ArcSide(a,headtail,A_cross(a,headtail));
@@ -153,7 +148,6 @@ bool ArcSide( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcSide( const Int a, const bool headtail, const Int c  )  const
 {
     return (C_arcs(c,headtail,Right) == a);
@@ -166,7 +160,6 @@ bool ArcSide( const Int a, const bool headtail, const Int c  )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcRightHandedQ( const Int a, const bool headtail )  const
 {
     return CrossingRightHandedQ(A_cross(a,headtail));
@@ -178,7 +171,6 @@ bool ArcRightHandedQ( const Int a, const bool headtail )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcLeftHandedQ( const Int a, const bool headtail )  const
 {
     return CrossingLeftHandedQ(A_cross(a,headtail));
@@ -191,7 +183,6 @@ bool ArcLeftHandedQ( const Int a, const bool headtail )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcUnderQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
@@ -206,7 +197,6 @@ bool ArcUnderQ( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
 {
     AssertArc(a);
@@ -274,7 +264,6 @@ bool ArcUnderQ( const Int a, const bool headtail, const Int c )  const
  *
  * @param headtail Boolean that indicates whether the relation should be computed for the crossing at the head of `a` (`headtail == true`) or at the tail (`headtail == false`).
  */
-
 bool ArcOverQ( const Int a, const bool headtail )  const
 {
     AssertArc(a);
@@ -290,7 +279,6 @@ bool ArcOverQ( const Int a, const bool headtail )  const
  *
  * @param c The index of the arc in question.
  */
-
 bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
 {
     AssertArc(a);
@@ -352,19 +340,18 @@ bool ArcOverQ( const Int a, const bool headtail, const Int c )  const
      */
 }
 
-/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
+/*!@brief Return the arc next to arc `a`, i.e., the arc reached by going straight through the crossing at the head/tail of `a`.
  *
  * @param a The index of the arc in question.
  *
  * @param headtail Boolean that indicates the travel diretion" `headtail == true` means forward and `headtail == false` means backward.
  */
-
 Int NextArc( const Int a, const bool headtail ) const
 {
     return NextArc(a,headtail,A_cross(a,headtail));
 }
 
-/*!@brief Returns the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
+/*!@brief Return the arc next to arc `a`, i.e., the arc reached by going straight through the crossing `c` at the head/tail of `a`. Warning: This really assumes that `c` is the end point at the end indicated by `headtail`. This function is meant to save a look-up if `c` is already known.
  *
  * @param a The index of the arc in question.
  *
@@ -372,7 +359,6 @@ Int NextArc( const Int a, const bool headtail ) const
  *
  * @param c The index of the arc in question.
  */
-
 Int NextArc( const Int a, const bool headtail, const Int c ) const
 {
     AssertArc<1>(a);
@@ -401,6 +387,8 @@ bool CheckNextArc() const
     return true;
 }
 
+/*!@brief Return a buffer that contains the index of next arc following arc `a` at position `a`.
+ */
 cref<Tensor1<Int,Int>> ArcNextArc() const
 {
     std::string tag ("ArcNextArc");
@@ -440,7 +428,8 @@ bool CheckArcNextArc() const
     return true;
 }
 
-
+/*!@brief Return a buffer that contains the index of previous arc following arc `a` at position `a`.
+ */
 cref<Tensor1<Int,Int>> ArcPrevArc() const
 {
     std::string tag ("ArcPrevArc");

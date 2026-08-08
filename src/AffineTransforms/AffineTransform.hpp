@@ -353,9 +353,9 @@ namespace Knoodle
         
     public:
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("AffineTransform")
+            return std::string("AffineTransform")
                 + "<" + ToString(AmbDim)
                 + "," + TypeName<Real>
                 + "," + TypeName<Int>

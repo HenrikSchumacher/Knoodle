@@ -44,7 +44,7 @@ bool RandomReflectionFlag( Real P )
 //##    Angles
 //###########################################################
 
-std::string ToString( const AngleRandomMethod_T method )
+constexpr std::string ToString( const AngleRandomMethod_T method )
 {
     switch( method )
     {
@@ -108,7 +108,7 @@ Real RandomAngle()
 //###########################################################
 
 
-std::string ToString( const PivotRandomMethod_T method )
+constexpr std::string ToString( const PivotRandomMethod_T method )
 {
     switch( method )
     {
