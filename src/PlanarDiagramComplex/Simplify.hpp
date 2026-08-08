@@ -407,7 +407,7 @@ void DumpRattleFailure(
     {
         // Using the same path as the log file per default.
         // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
-        std::filesystem::path dir { Tools::Profiler::log_file.parent_path() };
+        std::filesystem::path dir { Logger::File().parent_path() };
         
         if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
 
