@@ -1,0 +1,11 @@
+[package]
+name = "fst_bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+fst = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
