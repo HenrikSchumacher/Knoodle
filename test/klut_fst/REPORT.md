@@ -126,6 +126,54 @@ from 2.31 to 1.75 B/key. That is the first empirical data point for the
 invariant-cascade architecture (DESIGN-CONTEXT idea 3): invariants belong in
 the output/exception ledger, not in the key string.
 
+## Round 2: front-coded blocks (fcb_bench.cpp, same day)
+
+The structure pitched in round 1, implemented in dependency-free C++ (plus
+optional per-block zstd): keys sorted, fixed-size blocks, first key whole,
+later keys as (LCP, suffix); a sampled index (first key + offset per block);
+query = binary search the index, decode one block linearly with early exit.
+IDs are a flat uint16 array in key order (33,814 < 2¹⁶), 2.00 B/key, listed
+separately below. All variants verified over all 1,536,686 keys;
+10,000/10,000 perturbed keys miss (membership intact).
+
+13 crossings, selected rows (full sweep in the tool's output):
+
+| variant   | block | keys B/key | total B/key | query    |
+|-----------|------:|-----------:|------------:|---------:|
+| fcb-byte  | 64    | 7.33       | 9.33        | 418 ns   |
+| fcb-6bit  | 16    | 6.37       | 8.37        | 286 ns   |
+| fcb-6bit  | 64    | 5.33       | 7.33        | 447 ns   |
+| fcb-6bit  | 256   | 5.07       | 7.07        | 1.3 µs   |
+| zstd-raw  | 1024  | 2.89       | 4.89        | 21 µs    |
+| zstd-fc   | 256   | 2.84       | 4.84        | 4.1 µs   |
+| zstd-fc   | 1024  | 2.44       | 4.44        | 14 µs    |
+
+(zstd variants: per-block zstd-19 with a 110 KB ZDICT-trained dictionary,
+decompressed per query; `zstd-fc` compresses the front-coded payload,
+`zstd-raw` the raw block keys. Dictionary + index counted in "keys".)
+
+Takeaways:
+
+- **Plain front coding beats the FST with ~150 lines of dependency-free
+  C++**: fcb-6bit B=64 = 7.33 B/key at 447 ns (FST: 8.91 at 417 ns), and
+  B=16 = 8.37 B/key at 286 ns — *faster* than the FST.
+- **Per-block zstd closes most of the gap to the global-zstd ceiling**:
+  keys-side 2.44 B/key at B=1024 vs the 2.11 non-queryable bound. The
+  queryable structure basically achieves the compressor's view of the data.
+- **The ID array now dominates** (2.00 of 4.44 B/key at the small end).
+  Unconditional ID entropy is log₂ 33814 = 15.05 bits = 1.88 B — raw
+  uint16 is within 6% of optimal, so only *context* helps: v2-conditioned
+  ranks (−3.64 bits, → ~1.43 B/key + a rank↔ID table) or a fuller
+  invariant cascade. This is where the addendum's value-side v2 plugs in.
+- Query cost scales with block size (decompression dominates); even the
+  21 µs worst case matches the NVMe-probe floor, and the 4 µs sweet spot
+  (zstd-fc B=256, 4.84 B/key total) is well under it.
+
+Updated RAM ladder for 13 crossings: shipped 84.2 MB → FST 13.7 MB →
+fcb-6bit/64 11.3 MB → zstd-fc/256 7.4 MB (→ ~6.6 MB with v2-ranked IDs).
+Extrapolated to 16 crossings (~6·10⁸ keys, B/key creeping up with key
+length): roughly 3–4 GB for zstd-fc/256 vs ~6 GB FST vs ~33 GB shipped.
+
 ## Reproducing
 
 ```sh
