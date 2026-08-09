@@ -141,7 +141,7 @@ std::vector<Item> BuildPool(const std::vector<PD_T>& minimals, Int cap,
                 Knoodle::PRNG_T(SplitMix64(seed0 + static_cast<std::uint64_t>(
                     pool.size() * 131 + t)));
             auto emb = reapr.Embedding(m);
-            emb.Rotate(reapr.RandomRotation());
+            emb.Transform( reapr.RandomRotation() );
             auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
             if (!pd_new.ValidQ() || unlinks.Size() > Int(0)
                 || pd_new.LinkComponentCount() > Int(1)
@@ -176,7 +176,7 @@ std::vector<Item> BuildInflatedPool(const std::vector<PD_T>& minimals, Int targe
             reapr.RandomEngine() = Knoodle::PRNG_T(
                 SplitMix64(seed0 + static_cast<std::uint64_t>(pool.size() * 131 + round)));
             auto emb = reapr.Embedding(pd);
-            emb.Rotate(reapr.RandomRotation());
+            emb.Transform( reapr.RandomRotation() );
             auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
             if (!pd_new.ValidQ() || unlinks.Size() > Int(0)
                 || pd_new.LinkComponentCount() > Int(1)
@@ -371,7 +371,7 @@ int main(int argc, char* argv[])
     Int polygon_edges = 0;       // --polygon-edges=N: random-polygon firehose mode (N-gon knots)
     std::uint64_t polygon_seed = 20260617ULL; // --polygon-seed=N: action-angle sampler seed
     std::string compaction = "length-mcf"; // --compaction=NAME: Reapr compaction method
-    int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 4)
+    int randomize_bends = -1;    // --randomize-bends=N: Reapr bend-layout trials (-1=keep default 2)
     double ssn_tolerance = -1;   // --ssn-tolerance=X: Reapr energy-min tolerance (>0 to override)
     long   ssn_max_iter  = -1;   // --ssn-max-iter=N: Reapr energy-min max iterations (>=0 to override)
     double scaling       = -1;   // --scaling=X: Reapr embedding scaling (>0 to override)

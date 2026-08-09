@@ -96,7 +96,7 @@ int main(int argc, char** argv)
             // perturb into a non-minimal diagram of the same knot
             reapr.RandomEngine() = Knoodle::PRNG_T(mix(static_cast<std::uint64_t>(c * 1000 + k)));
             auto emb = reapr.Embedding(m);
-            emb.Rotate(reapr.RandomRotation());
+            emb.Transform( reapr.RandomRotation() );
             auto [P, unlinks] = PD_T::FromLinkEmbedding(emb);
             if (!P.ValidQ() || unlinks.Size() > Int(0)
                 || P.LinkComponentCount() > Int(1)

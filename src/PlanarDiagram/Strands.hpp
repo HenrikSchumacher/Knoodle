@@ -1,33 +1,30 @@
 public:
 
-/*!@brief Returns a RaggedList that contains the arcs that belong to every overstrand. The arcs are ordered as they are traversed in forward direction.
+/*!@brief Return a RaggedList that contains the arcs that belong to every overstrand. The arcs are ordered as they are traversed in forward direction.
  */
-
 RaggedList<Int,Int> OverStrandArcs() const
 {
     return this->StrandArcs<true>();
 }
 
-/*!@brief Returns an array that tells every arc to which over-strand it belongs.
+/*!@brief Return an array that tells every arc to which over-strand it belongs.
  *
  *  More precisely, arc `a` belongs to over-strand number `ArcOverStrands()[a]`.
  *  (An overstrand is a maximal consecutive sequence of arcs that pass over.)
  */
-
 Tensor1<Int,Int> ArcOverStrands() const
 {
     return this->ArcStrands<true>();
 }
 
-/*!@brief Returns a RaggedList that contains the arcs that belong to every understrand. The arcs are ordered as they are traversed in forward direction.
+/*!@brief Return a RaggedList that contains the arcs that belong to every understrand. The arcs are ordered as they are traversed in forward direction.
  */
-
 RaggedList<Int,Int> UnderStrandArcs() const
 {
     return this->StrandArcs<false>();
 }
 
-/*!@brief Returns an array that tells every arc to which under-strand it belongs.
+/*!@brief Return an array that tells every arc to which under-strand it belongs.
  *
  *  More precisely, arc `a` belongs to under-strand number `ArcUnderStrands()[a]`.
  *
@@ -95,13 +92,11 @@ Tensor1<Int,Int> ArcStrands() const
 public:
 
 
-/*!
- * @brief Returns an array of that tells every crossing which over-strand end or start in is.
+/*!@brief Return an array of that tells every crossing which over-strand end or start in is.
  *
- *  More precisely, crossing `c` has the outgoing over-strands `CrossingOverStrands()(c,0,0)` and `CrossingOverStrands()(c,0,1)`
- *  and the incoming over-strands `CrossingOverStrands()(c,1,0)` and `CrossingOverStrands()(c,1,1)`.
+ * More precisely, crossing `c` has the outgoing over-strands `CrossingOverStrands()(c,0,0)` and `CrossingOverStrands()(c,0,1)` and the incoming over-strands `CrossingOverStrands()(c,1,0)` and `CrossingOverStrands()(c,1,1)`.
  *
- *  (An over-strand is a maximal consecutive sequence of arcs that pass over.)
+ * (An over-strand is a maximal consecutive sequence of arcs that pass over.)
  */
 
 
@@ -111,12 +106,11 @@ CrossingContainer_T CrossingOverStrands() const
 }
 
 /*!
- * @brief Returns an array of that tells every crossing which under-strand end or start in is.
+ * @brief Return an array of that tells every crossing which under-strand end or start in is.
  *
- *  More precisely, crossing `c` has the outgoing under-strands `CrossingUnderStrands()(c,0,0)` and `CrossingUnderStrands()(c,0,1)`
- *  and the incoming under-strands `CrossingUnderStrands()(c,1,0)` and `CrossingUnderStrands()(c,1,1)`.
+ * More precisely, crossing `c` has the outgoing under-strands `CrossingUnderStrands()(c,0,0)` and `CrossingUnderStrands()(c,0,1)` and the incoming under-strands `CrossingUnderStrands()(c,1,0)` and `CrossingUnderStrands()(c,1,1)`.
  *
- *  (An under-strand is a maximal consecutive sequence of arcs that pass under.)
+ * (An under-strand is a maximal consecutive sequence of arcs that pass under.)
  */
 
 CrossingContainer_T CrossingUnderStrands() const

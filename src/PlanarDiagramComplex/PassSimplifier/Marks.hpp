@@ -5,7 +5,6 @@ static constexpr Int  max_mark = static_cast<Int>(std::numeric_limits<Int>::max(
 static constexpr bool LeftToRight = 1;
 static constexpr bool RightToLeft = 0;
 
-//DEBUGGING
 public:
 
 void MarkCrossing( const Int c, const Int mark )

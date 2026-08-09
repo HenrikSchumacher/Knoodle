@@ -4,6 +4,17 @@ namespace Knoodle
 {
     // TODO: Make this ready for unsigned integers.
 
+    /*!@brief A class for directed multi-graphs.
+     *
+     * @tparam VInt_ Integral type for vertex indices.
+     *
+     * @tparam EInt_ Integral type for edge indices.
+     *
+     * @tparam Sign_T_ Singed integral type to store signedness information.
+     *
+     * @tparam parQ_ Whether to use `Parallel_T::Sequential` or `Parallel_T::Parallel` mode. Parallelism is currently not supported. We keep this here for future use.
+     */
+    
     template<
         typename VInt_   = Int64,
         typename EInt_   = VInt_,
@@ -130,12 +141,20 @@ namespace Knoodle
         
     public:
         
+        /*!@brief Compute the signed adjacency matrix.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> AdjacencyMatrix() const
         {
             return this->template DirectedAdjacencyMatrix<Scal>();
         }
         
+        /*!@brief Compute the graph Laplacian.
+         *
+         * @tparam Scal Signed integral type used for the entries of the matrix.
+         */
         template<typename Scal = ToSigned<EInt>>
         cref<Sparse::MatrixCSR<Scal,VInt,EInt,parQ>> Laplacian() const
         {
@@ -150,11 +169,13 @@ namespace Knoodle
         }
         
         
+        /*!@brief Return internal flag that signals whether the graph has been proven to be acyclic.*/
         bool ProvenAcyclicQ() const
         {
             return proven_acyclicQ;
         }
         
+        /*!@brief Return internal flag that signals whether the graph has been proven to be cyclic.*/
         bool ProvenCyclicQ() const
         {
             return proven_cyclicQ;
@@ -165,14 +186,14 @@ namespace Knoodle
         
     public:
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
                 
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("MultiDiGraph")
+            return std::string("MultiDiGraph")
                 + "<" + TypeName<VInt>
                 + "," + TypeName<EInt>
                 + "," + TypeName<Sign_T>

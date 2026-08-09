@@ -239,7 +239,6 @@ Size_T Split( mref<PD_List_T> pd_list )
             }
         }
         
-        //DEBUGGING
         if( pd.MaxCrossingCount() != c_counter )
         {
             wprint(MethodName("Split") + ": pd.MaxCrossingCount() != c_counter.");

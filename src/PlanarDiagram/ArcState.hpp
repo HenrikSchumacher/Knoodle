@@ -328,17 +328,17 @@ public:
         return std::format("{:08b}", a_state.state);
     }
     
-    friend constexpr Int ToUnderlying( ArcState_T a_state )
+    constexpr friend Int ToUnderlying( ArcState_T a_state )
     {
         return a_state.state;
     }
     
-    friend constexpr bool operator==( ArcState_T a_state, ArcState_T b_state )
+    constexpr friend bool operator==( ArcState_T a_state, ArcState_T b_state )
     {
         return (a_state.state == b_state.state);
     }
     
-    friend constexpr bool operator!=( ArcState_T a_state, ArcState_T b_state )
+    constexpr friend bool operator!=( ArcState_T a_state, ArcState_T b_state )
     {
         return (a_state.state != b_state.state);
     }

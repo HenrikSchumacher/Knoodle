@@ -2,7 +2,6 @@ private:
 
 // Common implementation of
 //
-// -    ,
 // - WriteRandomClosedPolygon,
 // - ComputeConformalCentralization,
 

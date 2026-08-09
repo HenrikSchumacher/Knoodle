@@ -1,5 +1,7 @@
 public:
 
+/*!@brief Controls `struct` to hold the settings for the `Simplify` routine of `PlanarDiagramComplex`. */
+
 struct Simplify_Args_T
 {
     bool                compress_initialQ        = true;
@@ -21,7 +23,7 @@ struct Simplify_Args_T
     Energy_T            energy                   = Energy_T::TV;
     double              scaling                  = 1.;
     
-    int                 randomize_bends          = 4;
+    int                 randomize_bends          = 2;
     bool                randomize_virtual_edgesQ = true;
     Compaction_T        compaction_method        = Compaction_T::Length_MCF;
     
@@ -314,11 +316,11 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
             {
                 if( pd.DiagramComponentCount() <= Int(1) )
                 {
-                    this->template Rattle<debugQ,targs>( S, reapr, std::move(pd), args );
+                    change_count += this->template Rattle<debugQ,targs>( S, reapr, std::move(pd), args );
                 }
                 else
                 {
-                    // We are not allowed to split; so we cannot do better than pushing this onto the "done pile.
+                    // We are not allowed to split; so we cannot do better than pushing this onto the "done" pile.
                     PushDiagramDone( std::move(pd) );
                 }
             }
@@ -370,6 +372,97 @@ Size_T Simplify_impl( mref<Reapr_T> reapr, cref<Simplify_Args_T> args )
 
 
 
+/*!@brief Write everything needed to reproduce a `Rattle` projection failure.
+ *
+ * When `FindIntersections` keeps failing, `Rattle` gives up and returns a diagram
+ * it has told the caller not to trust. The state that would explain *why* -- the
+ * intermediate diagram and the 3D embedding whose projection went degenerate --
+ * is local to this function and is destroyed on return, so a user's bug report
+ * can only ever be the message above. That is not enough to reproduce: these
+ * failures are intermittent (order one run in ten), depend on the random
+ * embedding, and the interesting settings are not visible from the command line.
+ *
+ * So dump them. The diagram goes out as a signed, colored pd code that the CLI
+ * tools read back directly, and the embedding through `LinkEmbedding::WriteToFile`
+ * at full precision, so the exact geometry can be reloaded and re-projected.
+ *
+ * Costs nothing on the happy path -- it is only ever reached after the failure
+ * has already been reported. Best-effort: any I/O problem is ignored rather than
+ * turned into a second failure. Writes at most `max_dumps` bundles per process so
+ * a long batch run cannot fill a disk, and honours `KNOODLE_DUMP_DIR` for the
+ * destination (default: the working directory).
+ */
+void DumpRattleFailure(
+    cref<PD_T> pd, mref<LinkEmbedding_T> emb, mref<Reapr_T> reapr,
+    cref<Simplify_Args_T> args, const int projection_flag
+)
+{
+    static constexpr int max_dumps = 8;
+    static std::atomic<int> dump_counter { 0 };
+
+    const int n = dump_counter.fetch_add(1);
+    if( n >= max_dumps ) { return; }
+
+    try
+    {
+        // Using the same path as the log file per default.
+        // Log file writes to user's home directory per default because working directories for libraries may be unpredictable.
+        std::filesystem::path dir { Logger::File().parent_path() };
+        
+        if( const char * d = std::getenv("KNOODLE_DUMP_DIR") ) { dir = d; }
+
+        const std::string stem = "rattle-failure-" + ToString(n);
+        const std::filesystem::path base = dir / stem;
+
+        // 1. The context, in one readable file.
+        {
+            std::ofstream s ( base.string() + ".txt" );
+            s << "Rattle projection failure\n"
+              << "=========================\n\n"
+              << "FindIntersections returned status flag " << projection_flag
+              << " for every one of the random rotations tried, so Rattle gave up\n"
+              << "and returned an invalid diagram.\n\n"
+              << "Files in this bundle:\n"
+              << "  " << stem << ".pd.tsv   the diagram being simplified (signed, colored pd code)\n"
+              << "  " << stem << ".xyz      the 3D embedding whose projection failed\n\n"
+              << "The .xyz carries '#color' headers, which is what separates the link's\n"
+              << "components -- they cannot be dropped without fusing the components into\n"
+              << "one polyline. LinkEmbedding::FromInString reads them; note that some\n"
+              << "knoodlesimplify builds cannot yet parse '#color' on input.\n\n"
+              << "diagram:\n"
+              << "  crossings          = " << pd.CrossingCount() << "\n"
+              << "  arcs               = " << pd.ArcCount() << "\n"
+              << "  link components    = " << pd.LinkComponentCount() << "\n"
+              << "  diagram components = " << pd.DiagramComponentCount() << "\n\n"
+              << "Transformation matrix = " << ToString(emb.TransformationMatrix()) << "\n"
+              << "Sterbenz shift = " << ToString(emb.SterbenzShift()) << "\n"
+              << "embedding:\n"
+              << "  edges              = " << emb.EdgeCount() << "\n\n"
+              << "Simplify args:\n  " << ToString(args) << "\n\n"
+              << "Reapr settings:\n  " << ToString(reapr.Settings()) << "\n";
+        }
+
+        // 2. The diagram, in a form the CLI tools can read straight back.
+        {
+            std::ofstream s ( base.string() + ".pd.tsv" );
+            auto code = pd.template PDCode<Int>();
+            s << OutString::FromMatrix<Format::Matrix::TSV>(
+                code.ReadAccess(), code.Dim(0), code.Dim(1)
+            );
+        }
+
+        // 3. The exact geometry, at full precision, so it can be re-projected.
+        (void)emb.WriteToFile( base.string() + ".xyz", true );
+
+        wprint( MethodName("Rattle") + ": wrote a failure bundle to "
+              + base.string() + ".{txt,pd.tsv,xyz} -- please attach these to any bug report." );
+    }
+    catch( ... )
+    {
+        // Diagnostics must never make a bad situation worse.
+    }
+}
+
 template<bool debugQ, PassSimplifier_T::SimplifyPasses_TArgs targs>
 Size_T Rattle(
     mref<PassSimplifier_T> S, mref<Reapr_T> reapr, PD_T && pd, cref<Simplify_Args_T> args
@@ -388,10 +481,17 @@ Size_T Rattle(
         if( pd.DiagramComponentCount() != Int(1) ) { pd_eprint(tag() + ": pd.DiagramComponentCount() != Int(1)."); }
         if( !pd.CheckAll() ) { pd_eprint(tag() + ": !pd.CheckAll()."); }
     }
+    
+    if( pd.InvalidQ() ) { return 0; }
 
-    // TODO: For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
-    // TODO: It would be great if we did not have to erase, e.g., the face information.
-    // TODO: However, typically, we will use args.permute_randomQ == true anyways, and then it does not matter.
+    // We are paranoid here. Rattle should actually not be called if we do not want any reapr trials at all.
+    if( (args.embedding_trials == Size_T(0)) || (args.rotation_trials == Size_T(0)) )
+    {
+        PushDiagramDone( std::move(pd) );
+        return 0;
+    }
+    
+    // For some reason, reapr.Embedding(pd) will break if args.permute_randomQ == false and args.compressQ == false. So, let's compress here.
     if( !args.permute_randomQ ) { pd.Compress(); }
     
     PD_T pd_1;
@@ -400,46 +500,47 @@ Size_T Rattle(
     Size_T disconnect_count  = 0;
     
     constexpr Size_T max_projection_iter = 10;
+    const bool rotateQ = args.rotation_trials > Size_T(0);
     bool progressQ = false;
     
-    // DEBUGGING
-    if( args.embedding_trials == Size_T(0) )
-    {
-        wprint(MethodName("Rattle") + ": Called with embedding_trials = 0.");
-    }
-    // DEBUGGING
-    if( args.rotation_trials == Size_T(0) )
-    {
-        wprint(MethodName("Rattle") + ": Called with rotation_trials = 0.");
-    }
+    Tensor2<typename LinkEmbedding_T::Real,Int> x;
     
     for( Size_T iter = 0; iter < args.embedding_trials; ++iter )
     {
         // We want to exploit here that some information needed for OrthoDraw is already cached.
         // However, this will help only if args.permute_randomQ == false.
         // And it makes sense to do this only if args.permute_randomQ == false and if args.randomize_bends != 0 or args.randomize_virtual_edgesQ == true.
-        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+//        LinkEmbedding_T emb = reapr.Embedding(pd,reapr.RandomRotation());
+        
+        LinkEmbedding_T emb = rotateQ ? reapr.Embedding(pd) : reapr.Embedding(pd,reapr.RandomRotation());
+        
+        if( rotateQ )
+        {
+            x.template RequireSize<false>(emb.EdgeCount(), Int(3));
+            emb.WriteVertexCoordinates(x.data());
+        }
         
         for( Size_T rot = 0; rot < args.rotation_trials; ++rot )
         {
-            Size_T projection_iter = 0;
             int projection_flag = 0;
-            emb.Rotate( reapr.RandomRotation() );
-            projection_flag = emb.RequireIntersections();
             
-            while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
+            for( Size_T pr_iter = 0; pr_iter < max_projection_iter; ++pr_iter )
             {
-                ++projection_iter;
-                // Rotate is a bit expensive do to an extra allocation and extra copying.
-                // But we land here really very, very, very seldomly.
-                emb.Rotate( reapr.RandomRotation() );
+                emb.SetTransformationMatrix(reapr.RandomRotation());
+                emb.template ReadVertexCoordinates<true>(x.data());
                 projection_flag = emb.RequireIntersections();
+                
+                if( projection_flag == 0 ) { break; }
+                
+                DumpRattleFailure( pd, emb, reapr, args, projection_flag );
             }
             
             if( projection_flag != 0 )
             {
                 eprint(MethodName("Rattle") + ": " + emb.MethodName("FindIntersections")+ " returned invalid status flag for " + ToString(max_projection_iter) + " random rotation matrices. Something must be wrong. Returning an invalid diagram. Check your results carefully.");
-                
+
+                // Although we did not succeed in simplifying this, we need to push it to the list of diagrams that are "done"; otherwise we would lose it.
+                PushDiagramDone( std::move(pd) );
                 return Size_T(0);
             }
             
@@ -481,27 +582,18 @@ Size_T Rattle(
             
             // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
             if( progressQ ) { break; }
-            
-//            // No progress, but we can at least change pd to have a new chance next time.
-//            if( pd_1.CrossingCount() == pd.CrossingCount() )
-//            {
-//                pd = std::move(pd_1);
-//            }
         }
         
         // Caution: We must stop entirely as soon we made any progress, as pd_done might have been altered.
         if( progressQ ) { break; }
     }
     
-    // TODO: Can pd_1.InvalidQ() ever happen? Shall this ever happen?
-    // There are a few ways this can happen:
-    //  1. args.embedding_trials == 0 or args.rotation_trials == 0. But then we should at least do PushDiagramDone( std::move(pd) ), no?
+    // There are a few ways in which pd_1.InvalidQ() == true can happen:
+    //  1. args.embedding_trials == 0 or args.rotation_trials == 0. But this is ruled out by an if statement above.
     //  2. pdc_new.pd_list[0] was invalid. This can happen, for example, if the generated link embedding is a multiple "eight" that can be recognized only as unlink when looking from the side. Indeed, quitting here might be correct.
-    //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here might be correct.
+    //  3. SimplifyDiagrammatically made it invalid. But then it will have pushed something to "done" or "todo". So, quitting here is correct, too.
     if( pd_1.InvalidQ() )
     {
-        // DEBUGGING
-        wprint(MethodName("Rattle") + ": pd_1 is invalid. Returning early.");
         return pass_change_count + disconnect_count;
     }
     

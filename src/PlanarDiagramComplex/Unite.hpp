@@ -1,7 +1,11 @@
+/*!@brief Merge all diagrams into a `PlanarDiagram`. This routine works in-place.*/
+
 void Unite()
 {
     (*this) = this->Union();
 }
+
+/*!@brief Return a new `PlanarDiagramComplex` in which all diagrams are united in a single `PlanarDiagram`. */
 
 PDC_T Union() const
 {

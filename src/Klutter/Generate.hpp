@@ -67,7 +67,8 @@ GenerateFlag Generate(
                 
                 Size_T projection_iter = 0;
                 int projection_flag = 0;
-                emb.Rotate( reapr.RandomRotation() );
+                // TODO: Fix the precision issue caused by successive rotations.
+                emb.Transform( reapr.RandomRotation() );
                 projection_flag = emb.RequireIntersections();
                 
                 while( (projection_flag!=0) && (projection_iter < max_projection_iter) )
@@ -75,7 +76,8 @@ GenerateFlag Generate(
                     ++projection_iter;
                     // Rotate is a bit expensive do to an extra allocation and extra copying.
                     // But we land here really very, very, very seldomly.
-                    emb.Rotate( reapr.RandomRotation() );
+                    // TODO: Fix the precision issue caused by successive rotations.
+                    emb.Transform( reapr.RandomRotation() );
                     projection_flag = emb.RequireIntersections();
                 }
                 

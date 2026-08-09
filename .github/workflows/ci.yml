@@ -1,0 +1,150 @@
+name: ci
+
+# Build the Knoodle command-line tools from the Makefile and run the light-tier
+# internal tests, across the same platforms the designbynumbers/cantarellalab
+# Homebrew formula targets -- but with NATIVE toolchains (brew-deps-only / apt /
+# dnf) instead of `brew install knoodle`. The point is to catch portability
+# breakage HERE, in the source repo, before it reaches a downstream tap PR. The
+# brew formula's own CI keeps the packaging-specific checks (e.g. the KLUT landing
+# in the right pkgshare); this repo just proves "the tools build and the internal
+# tests pass" on each platform.
+#
+# Compiler mapping (chosen to dodge HenrikSchumacher/Knoodle#15, the gcc-13/14
+# function_traits<bool*> bug):
+#   * macOS         -> Apple clang (the tools/Makefile Darwin path)
+#   * ubuntu-latest -> clang + -DTOOLS_NO_RESTRICT (the cluster/paclet path;
+#                      Ubuntu's system gcc would hit #15)
+#   * fedora:latest -> gcc-15 (recent gcc, the working brew-on-Linux config)
+#   * rockylinux:9  -> clang (Rocky's system gcc is 11; distro clang builds fine),
+#                      Sapelo2-cluster (Rocky 9.x) proxy
+#
+# Light tier only: the three tools + --help smoke, then the self-contained test
+# drivers that need no Git-LFS data and no UMFPACK/BLAS (see
+# scripts/ci-build-and-test.sh). The heavy UMFPACK/KLUT tier is out of scope.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 1st of each month, 06:00 UTC: catch breakage from a new runner image /
+    # toolchain even with no pushes (mirrors the tap's monthly cron).
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Host runners: macOS (Apple clang) + Ubuntu (clang). Runs on every PR.
+  native:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos-26 (Apple clang)
+            os: macos-26
+          # macOS 15 / Clang 17 lacks floating-point std::from_chars, so the build
+          # is expected to fail. Informational tripwire (does not fail the run); it
+          # goes green if the upstream code ever gains a fallback. Mirrors the tap's
+          # macos-15 experimental leg.
+          - name: macos-15 (tripwire, expected fail)
+            os: macos-15
+            experimental: true
+          - name: ubuntu-latest (clang)
+            os: ubuntu-latest
+            cxx: "clang++ -DTOOLS_NO_RESTRICT"
+            homebrew_prefix: /usr
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental == true }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Fetch submodules (ssh->https, no LFS)
+        # .gitmodules uses git@github.com: SSH URLs and Tensors nests Tools, so
+        # rewrite to https and init recursively. No LFS: the light tier needs no
+        # KLUT data.
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - name: Install deps (macOS -- Boost + SuiteSparse)
+        if: runner.os == 'macOS'
+        run: brew install boost suite-sparse
+
+      - name: Install deps (Ubuntu -- clang + Boost + SuiteSparse)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang make libboost-dev libsuitesparse-dev python3
+
+      - name: Build tools + run light-tier tests
+        env:
+          CI_CXX: ${{ matrix.cxx }}
+          HOMEBREW_PREFIX: ${{ matrix.homebrew_prefix }}
+        run: bash scripts/ci-build-and-test.sh
+
+  # RHEL-family coverage (no native Fedora/RHEL runner exists), as containers on
+  # ubuntu-latest -- fedora:latest for recent gcc, rockylinux:9 as the Sapelo2
+  # cluster proxy. Skipped on pull_request to keep PR CI fast (each does a full dnf
+  # toolchain install); push/cron/dispatch coverage is enough since we bump on main.
+  rpm:
+    name: ${{ matrix.name }}
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: fedora:latest (gcc)
+            container: "fedora:latest"
+            cxx: "g++"
+          - name: rockylinux:9 (clang)
+            container: "rockylinux:9"
+            cxx: "clang++ -DTOOLS_NO_RESTRICT"
+            # Rocky 9's Boost is 1.75 (< 1.81, no unordered_flat_map), so build the
+            # tools without the boost flat-map define -- as the Sapelo2 cluster does.
+            no_boost: "1"
+    container:
+      image: ${{ matrix.container }}
+    env:
+      HOMEBREW_PREFIX: /usr
+      CI_CXX: ${{ matrix.cxx }}
+      CI_NO_BOOST: ${{ matrix.no_boost }}
+    steps:
+      - name: Install toolchain + deps (Fedora)
+        if: startsWith(matrix.container, 'fedora')
+        # gcc-c++ (gcc 15), make, git (for checkout + submodules), Boost +
+        # SuiteSparse (umfpack.h under /usr/include/suitesparse), python3.
+        run: |
+          dnf -y install gcc-c++ make git boost-devel suitesparse-devel \
+                         python3 findutils
+
+      - name: Install toolchain + deps (Rocky 9)
+        if: startsWith(matrix.container, 'rockylinux')
+        # SuiteSparse lives in EPEL/CRB on Rocky, so enable them first. Build with
+        # distro clang (system gcc is 11).
+        run: |
+          dnf -y install epel-release dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install clang make git boost-devel suitesparse-devel \
+                         python3 findutils
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Fetch submodules (ssh->https, no LFS)
+        run: |
+          git config --global --add safe.directory '*'
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - name: Build tools + run light-tier tests
+        run: bash scripts/ci-build-and-test.sh

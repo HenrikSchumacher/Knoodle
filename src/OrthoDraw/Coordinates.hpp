@@ -1,5 +1,6 @@
 public:
 
+/*!@brief Return the height of the layout.*/
 Int Height() const
 {
     if( !this->InCacheQ("Height") )
@@ -12,6 +13,7 @@ Int Height() const
     }
 }
 
+/*!@brief Return the width of the layout.*/
 Int Width() const
 {
     if( !this->InCacheQ("Width") )
@@ -24,12 +26,13 @@ Int Width() const
     }
 }
 
+/*!@brief Return the area of the layout, i.e., the product of `Width` and `Height`.*/
 Int Area() const
 {
     return Width() * Height();
 }
 
-
+/*!@brief Return the over all length of the diagram, i.e., the sum of a all edge lengths.*/
 Int Length() const
 {
     if( !this->InCacheQ("Length") )
@@ -41,7 +44,8 @@ Int Length() const
         return this->GetCache<Int>("Length");
     }
 }
-    
+ 
+/*!@brief Expose the container holding the vertex coordinates.*/
 mref<CoordsContainer_T> VertexCoordinates() const
 {
     if( !this->InCacheQ("VertexCoordinates") )
@@ -60,7 +64,7 @@ mref<CoordsContainer_T> VertexCoordinates() const
     return this->GetCache<CoordsContainer_T>("VertexCoordinates");
 }
 
-
+/*!@brief Compute the vertex coordinates and store them in the supplied buffers `x` and `y`.*/
 void ComputeVertexCoordinates(
     mref<Tensor1<Int,Int>> x, mref<Tensor1<Int,Int>> y
 )  const
@@ -150,6 +154,7 @@ void ComputeVertexCoordinates(
     }
 }
 
+/*!@brief Return a string with diagram in ASCII.*/
 std::string DiagramString() const
 {
     const CoordsContainer_T & V_coords = VertexCoordinates();
@@ -295,6 +300,7 @@ std::string DiagramString() const
     return s;
 }
 
+/*!@brief Return the polygonal lines for each arc.*/
 cref<ArcSplineContainer_T> ArcLines()
 {
     TOOLS_PTIMER(timer,ClassName()+"::ArcLines");
@@ -396,6 +402,7 @@ cref<ArcSplineContainer_T> ArcLines()
     return this->GetCache<ArcSplineContainer_T>("ArcLines");
 }
 
+/*!@brief Return the splines for each arc (only the control points are returned).*/
 cref<ArcSplineContainer_T> ArcSplines()
 {
     TOOLS_PTIMER(timer,ClassName()+"::ArcSplines");
@@ -552,5 +559,3 @@ cref<ArcSplineContainer_T> ArcSplines()
     
     return this->GetCache<ArcSplineContainer_T>("ArcSplines");
 }
-
-

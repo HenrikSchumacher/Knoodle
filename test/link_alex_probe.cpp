@@ -79,7 +79,7 @@ PD_T Reproject(const PD_T& pd, Reapr_T& reapr, std::uint64_t seed)
 {
     reapr.RandomEngine() = Knoodle::PRNG_T(seed);
     auto emb = reapr.Embedding(pd);
-    emb.Rotate(reapr.RandomRotation());
+    emb.Transform( reapr.RandomRotation() );
     auto [pd_new, unlinks] = PD_T::FromLinkEmbedding(emb);
     if (!pd_new.ValidQ()) { return PD_T::InvalidDiagram(); }
     return pd_new;

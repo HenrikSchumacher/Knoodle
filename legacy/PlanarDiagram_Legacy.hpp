@@ -146,7 +146,7 @@ namespace Knoodle
  
     private:
         
-        /*! @brief This constructor is supposed to only allocate and initialize all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate and initialize all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -168,7 +168,7 @@ namespace Knoodle
         {}
         
         
-        /*! @brief This constructor is supposed to only allocate all relevant buffers.
+        /*!@brief This constructor is supposed to only allocate all relevant buffers.
          *  Data has to be filled in manually. Only for internal use.
          */
         
@@ -216,7 +216,7 @@ namespace Knoodle
             arc_count      = CountActiveArcs();
         }
         
-        /*! @brief Make a copy without copying cache and persistent cache.
+        /*!@brief Make a copy without copying cache and persistent cache.
          */
         PD_T CachelessCopy() const
         {
@@ -293,7 +293,7 @@ namespace Knoodle
             );
         }
         
-        /*! @brief Construction from coordinates.
+        /*!@brief Construction from coordinates.
          */
         
         template<FloatQ Real, IntQ ExtInt>
@@ -735,7 +735,7 @@ namespace Knoodle
             return sizeof(PD_T) + AllocatedByteCount();
         }
         
-        static std::string MethodName( const std::string & tag )
+        static constexpr std::string MethodName( const std::string & tag )
         {
             return ClassName() + "::" + tag;
         }
@@ -743,9 +743,9 @@ namespace Knoodle
 /*!@brief Returns a string that identifies this class with type information. Mostly used for logging and in error messages.
  */
         
-        static std::string ClassName()
+        static constexpr std::string ClassName()
         {
-            return ct_string("PlanarDiagram_Legacy")
+            return std::string("PlanarDiagram_Legacy")
                 + "<" + TypeName<Int>
                 + ">";
         } 

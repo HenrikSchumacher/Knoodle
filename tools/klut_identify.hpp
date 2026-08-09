@@ -109,6 +109,16 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     R.status          = IdentifyResult::Status::Knot;
     R.component_error = false;
     R.reapr_calls     = Size_T(0);
+
+    // Push()/Pop()/Clear() are lock-guarded: on a locked complex they do nothing
+    // and warn, because they cannot verify that arc colors stay consistent
+    // across the edit. Moving whole diagrams between two complexes we own keeps
+    // each diagram's colors intact, so it is the sanctioned use -- and without
+    // unlocking, the `while (work.DiagramCount() > 0)` drain loop below never
+    // makes progress and spins forever.
+    work.Unlock();
+    temp.Unlock();
+
     temp.Clear();
 
     // ColorCount()==0 means work arrived with no diagrams at all (e.g. a bare

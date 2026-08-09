@@ -1,41 +1,5 @@
 public:
 
-template<typename T = ToSigned<Int>>
-Tensor1<T,Int> ExtendedGaussCode()  const
-{
-    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">");
-    
-    static_assert( SignedIntQ<T>, "" );
-    
-    Tensor1<T,Int> code;
-    
-    if( !ValidQ() )
-    {
-        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid diagram. Returning empty vector.");
-        
-        return code;
-    }
-    
-    if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
-    {
-        error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
-    }
-    
-    if( LinkComponentCount() > Int(1) )
-    {
-        eprint(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components.");
-        
-        return Tensor1<T,Int>();
-    }
-    
-    code = Tensor1<T,Int>( arc_count );
-    
-    this->WriteExtendedGaussCode(code.data());
-
-    return code;
-}
-
-
 template<typename T>
 void WriteExtendedGaussCode( mptr<T> gauss_code )  const
 {
@@ -70,6 +34,42 @@ void WriteExtendedGaussCode( mptr<T> gauss_code )  const
                 : ( ArcOverQ(a,Tail)          ? c_pos : -c_pos );
         }
     );
+}
+
+
+template<typename T = ToSigned<Int>>
+Tensor1<T,Int> ExtendedGaussCode()  const
+{
+    TOOLS_PTIMER(timer,ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">");
+    
+    static_assert( SignedIntQ<T>, "" );
+    
+    Tensor1<T,Int> code;
+    
+    if( !ValidQ() )
+    {
+        wprint( ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Trying to compute extended Gauss code of invalid diagram. Returning empty vector.");
+        
+        return code;
+    }
+    
+    if( std::cmp_greater( crossing_count + Int(1), std::numeric_limits<T>::max() ) )
+    {
+        error(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Requested type " + TypeName<T> + " cannot store extended Gauss code for this diagram.");
+    }
+    
+    if( LinkComponentCount() > Int(1) )
+    {
+        eprint(ClassName()+"::ExtendedGaussCode<"+TypeName<T>+">: Not defined for links with multiple components.");
+        
+        return Tensor1<T,Int>();
+    }
+    
+    code = Tensor1<T,Int>( arc_count );
+    
+    this->WriteExtendedGaussCode(code.data());
+
+    return code;
 }
 
 
