@@ -174,6 +174,32 @@ fcb-6bit/64 11.3 MB → zstd-fc/256 7.4 MB (→ ~6.6 MB with v2-ranked IDs).
 Extrapolated to 16 crossings (~6·10⁸ keys, B/key creeping up with key
 length): roughly 3–4 GB for zstd-fc/256 vs ~6 GB FST vs ~33 GB shipped.
 
+## Addendum: libhomfly speed at table scale (homfly_time_probe.cpp)
+
+Question (JHC): how fast is libhomfly on these diagrams — i.e. could HOMFLY
+itself be a query-time cascade feature? Timed the test suite's oracle path
+(FromMacLeodCode → ToJenkinsCodeString → `homfly_str`) on 3,000 random keys
+per crossing number, vendored libhomfly objects from `make -C test libhomfly`:
+
+| crossings | reconstruct+jenkins (median) | libhomfly median | p95 | max |
+|-----------|-----------------------------:|-----------------:|----:|----:|
+| 11        | 1.5 µs                       | 33.8 µs | 74.3 µs | 199 µs |
+| 12        | 1.4 µs                       | 32.7 µs | 43.2 µs |  50 µs |
+| 13        | 1.5 µs                       | 36.9 µs | 49.3 µs |  88 µs |
+
+libhomfly is ~35–40 µs per diagram at this scale, flat in crossing number
+(fixed setup dominates; the exponential regime hasn't started by 13), with
+a thin tail (max < 0.2 ms). For calibration: one HOMFLY ≈ one NVMe probe
+≈ 100× a v2 evaluation ≈ 400× an FCB lookup — affordable once per
+*identify* call (Simplify/Reapr dwarf it), pricey per *table probe*.
+
+Cascade relevance: HOMFLY separates nearly all types ≤13 (only mutant
+classes collide), so H(type | HOMFLY) ≈ 0 — used as context it would erase
+almost the entire 2.00 B/key ID array, leaving membership + a tiny mutant
+exception table. The unmeasured number is exactly how many bits it leaves
+(one HOMFLY per 33,814 type representatives ≈ 20 CPU-minutes to compute);
+that plus determinant/signature sizing is the natural idea-3 measurement.
+
 ## Reproducing
 
 ```sh
