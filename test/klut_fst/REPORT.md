@@ -200,6 +200,42 @@ exception table. The unmeasured number is exactly how many bits it leaves
 (one HOMFLY per 33,814 type representatives ≈ 20 CPU-minutes to compute);
 that plus determinant/signature sizing is the natural idea-3 measurement.
 
+## Addendum: H(type | HOMFLY) — the cascade endgame number
+
+One HOMFLY per type representative (33,814 diagrams, 8 sharded
+`homfly_reps_probe` processes, ~3 min wall) grouped by polynomial
+(`homfly_entropy.py`):
+
+- **16,260 distinct polynomials** over 33,814 type names — a 2.08× collapse.
+- Key-weighted residual: **0.947 bits/key** (vs 15.05 unconditional, 11.41
+  after v2). A concrete exception ledger at ceil(log₂ k) bits per key in a
+  size-k class costs **0.125 B/key**; 33.7% of keys need zero bits.
+- Class-size census: 4,876 singletons, 8,761 pairs, then a thin tail to
+  k=20 (five knots × 4 cosets sharing one polynomial — a mutant cluster:
+  13_326/348/510/524/2783).
+
+The structure of the collisions matters: they are overwhelmingly
+{e,r} / {m,mr} pairs of the *same* knot index — non-invertible knots whose
+reverse is a distinct oriented type. HOMFLY is blind to orientation
+reversal (as are Jones/Alexander/…), so **no polynomial-invariant cascade
+stage can split these**; the ~1 bit/key is irreducible within that family,
+not a deficiency of HOMFLY specifically. True multi-index mutant clusters
+are rarer (the k≥4-with-distinct-indices classes).
+
+Cascade accounting for the zstd-fc/256 structure: keys 2.84 + ID residual
+~0.13 + per-*type* side tables (class→members, polynomial-hash→class:
+~16k entries, type-scale, negligible per key) ≈ **3.0 B/key total**, vs
+4.84 with raw uint16 IDs — i.e. HOMFLY-as-context erases ~85% of the ID
+cost, bounded only by reversal-blindness.
+
+Query-cost note (JHC): the identify fast path deliberately runs
+pass-Simplify only (no Reapr — too slow), so a 37 µs HOMFLY would be the
+*dominant* per-probe cost (lookups are 0.1–4 µs). But HOMFLY is an
+invariant: it needs computing **once per input summand**, not once per
+probe, and is reusable across every retry/escalation probe of that summand.
+Amortized that way it sits well under the pass-Simplify budget; it should
+be measured against klut_bench's fast-path throughput before committing.
+
 ## Reproducing
 
 ```sh
