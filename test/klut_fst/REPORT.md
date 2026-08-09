@@ -90,6 +90,42 @@ type ID at the earliest deciding prefix — bought little here because the
 deciding prefix is late (mean LCP 7/13 across *all* neighbors, including
 same-type ones).
 
+## Addendum: v2-invariant prefix (JHC follow-up, same day)
+
+Question: does prefixing each key with its v2 invariant (Casson / Conway a₂,
+constant on every key of a type by invariance) help the FST? The
+`knoodleinvariants` v2 tool computed v2 for all 1,536,686 keys (via
+`keys_to_pd.cpp` reconstruction, ~1 min); `augment_v2.py` then built a 2×2
+experiment — {plain, v2-prefixed} × {original IDs, IDs renumbered in key
+order} — to separate key-side from output-side effects.
+
+Validation bonus: v2 is constant on all 33,814 types (30 distinct values,
+range −8..21), cross-checking both the table and the v2 implementation.
+
+| variant                        | forward B/key | best B/key |
+|--------------------------------|--------------:|-----------:|
+| plain (round-1 baseline)       | 9.35          | 8.91       |
+| plain + ID remap               | 9.37          | 8.98       |
+| v2 prefix                      | 11.60         | 10.37      |
+| v2 prefix + ID remap           | 11.33         | 10.57      |
+
+**The v2 prefix makes the FST ~24% larger, and the ID remap is pure noise.**
+Both facts have the same explanation: the FST's size lives almost entirely in
+unshared key *tails* (output bytes are negligible — that's what the remap
+control shows). Prefixing by v2 re-partitions the sorted stream into 30
+buckets, and since same-type keys are *scattered* across MacLeod lex space
+(~45 keys/type, not neighbors), bucketing separates former lexicographic
+neighbors: mean neighbor LCP of the MacLeod part drops from 7.03 to 5.11
+bytes. Two extra unshared symbols × ~1.2 B/transition ≈ the +2.2 B/key
+observed.
+
+Where v2 *does* pay: on the **value side**. Knowing v2 at query time is
+worth 3.64 bits/key of the type ID (key-weighted log₂(types per v2 bucket)
+= 11.41 vs 15.05 unconditional), dropping the structureless retrieval floor
+from 2.31 to 1.75 B/key. That is the first empirical data point for the
+invariant-cascade architecture (DESIGN-CONTEXT idea 3): invariants belong in
+the output/exception ledger, not in the key string.
+
 ## Reproducing
 
 ```sh
