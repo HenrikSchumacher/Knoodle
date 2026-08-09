@@ -1,5 +1,4 @@
 #define TOOLS_USE_BOOST_UNORDERED
-#define TOOLS_ENABLE_PROFILER
     
 #include "../Knoodle.hpp"
 
@@ -79,7 +78,7 @@ int main()
     
     Tools::print( "" );
     Tools::print( "== Demonstration of Simplify ==" );
-    Tools::print( "Simplify applies pass moves to the ." );
+    Tools::print( "Simplify applies pass moves to the diagram." );
     {
         std::string filename ( path / "Diagram_Simplify5.txt" );
         Tools::print( "Writing diagrams to file " + filename + "." );

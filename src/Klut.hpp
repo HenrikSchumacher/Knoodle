@@ -26,7 +26,7 @@ namespace Knoodle
 //        using ID_T   = UInt16;
         
         // There are 1388705 knots with 16 crossings.
-        static constexpr Size_T max_crossing_count = 16;
+        static constexpr Size_T max_crossing_count = 13;
         // So, an UInt32 should suffice for enumerating them.
         
         /*!@brief An integral type to store IDs for all knot classes in the lookup table.*/
