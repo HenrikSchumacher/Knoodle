@@ -4,6 +4,46 @@ Branch `klut-fst-experiment`, 2026-08-09. Runs the ROUND-1 experiment from
 `handoff/klut-fst-compression/`: build a minimal acyclic subsequential FST
 over the (MacLeod code → knot-type ID) map of the 13-crossing KLUT table and
 measure bytes/key and query time against the shipped representation.
+The arc grew into a full design study; conclusions first, measurements below.
+
+## Conclusions (end of arc, 2026-08-09)
+
+**Recommended architecture** — two independent compressions plus type-scale
+side tables:
+
+1. *Keys*: front-coded blocks of sorted MacLeod codes (first key whole,
+   rest as LCP+suffix; sampled first-key index; binary search + linear
+   decode). Optional per-block zstd-19 with a shared trained dictionary.
+2. *Values*: store rank-within-Alexander-bucket instead of the global type
+   ID; **one** generic unit-circle |Δ| evaluation at query time names the
+   bucket (it fully saturates the Δ-partition at 13 crossings).
+3. *Type-scale tables* (bucket members, fingerprint→class, ID→name): free —
+   they scale with types (33.8k), not keys (1.5M), a ratio that improves to
+   ~430:1 at 16 crossings.
+
+**Totals at 13 crossings** (1,536,686 keys; all measured): **5.9 MB** RAM
+(keys 4.36 + IDs 0.71 + side tables 0.14 + names 0.68) vs 84.2 MB shipped —
+14×. On-disk ≈ RAM (flat arrays; the structure is its serialization) vs
+20.7 MB shipped. Dependency-free variant (no zstd): 9.7 MB, ~450 ns
+lookups. Projection at 16 crossings: ~2.4 GB vs ~33 GB shipped.
+
+**Runtime deps**: dictionary *training* + compression are build-time only;
+queries need only zstd *decompression* — vendor the BSD single-file
+decompress-only amalgamation (libhomfly/plantri precedent), and tag the
+key-encoding per subtable so small tables ship plain front coding (no
+decoder at all) and only 15/16 use the zstd layer.
+
+**Dead ends, measured**: minimal FSTs (9 B/key — format overhead eats the
+prefix sharing; dominated by plain front coding on both axes); v2 as key
+prefix (+24% — de-clusters lex neighbors); |Δ(2)| as a feature (±t^k unit
+drift, varies within 989 types); HOMFLY on the hot path (28 µs → 5.9× on
+knot-dense streams; fine once-per-summand on unknot-dominated streams).
+
+**Open items**: (a) in-process one-point Δ timing on the probe path (UMFPACK
+~6 µs now; a hot dense ~12×12 complex LU should be sub-µs — Henrik's
+territory); (b) re-verify one-point saturation + re-measure bucket entropies
+on the 14–16 type tables at build time; (c) JHC filing the upstream
+knoodleinvariants note asking for |t|=1 alexanderval support.
 
 ## Setup
 

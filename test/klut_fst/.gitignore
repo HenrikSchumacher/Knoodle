@@ -1,3 +1,7 @@
 klut_hash_probe
 keys_to_pd
+fcb_bench
+homfly_time_probe
+homfly_reps_probe
+alex_circle_probe
 fst_bench/target/
