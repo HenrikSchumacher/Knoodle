@@ -66,8 +66,9 @@ struct Config
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
     bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
-    ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;  ///< Reapr escalation rounds per candidate
-    ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;  ///< reprojections per embedding
+    ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;      ///< Reapr escalation rounds per candidate
+    Int        escalation_band   = ki::IdentifyParams{}.deep_cx;  ///< deep rounds only while stalled <= this
+    ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;      ///< reprojections per embedding
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
 };
@@ -110,13 +111,16 @@ void PrintUsage()
         "                      else data/Klut next to this executable's parent,\n"
         "                      else ./data/Klut.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
-        "  --escalation-rounds=N  Reapr escalation rounds per candidate before\n"
-        "                      giving up (default 2, tuned for throughput).\n"
-        "                      Raise for coverage on hard diagrams: each round\n"
-        "                      doubles embedding trials, so misses on knots that\n"
-        "                      ARE in the table decay quickly with N; rounds only\n"
-        "                      burn time on genuinely irreducible (>13-crossing)\n"
-        "                      diagrams.\n"
+        "  --escalation-rounds=N  Max Reapr escalation rounds per candidate\n"
+        "                      (default 4). Each round doubles embedding trials.\n"
+        "                      The first 2 rounds always run; deeper rounds are\n"
+        "                      banded (see --escalation-band), so a high N does\n"
+        "                      not tax genuinely irreducible diagrams.\n"
+        "  --escalation-band=C Rounds beyond the first 2 run only while the\n"
+        "                      stalled diagram has <= C crossings (default 16 =\n"
+        "                      table range + 3): a fixpoint near table range\n"
+        "                      plausibly hides a table knot, one far above it\n"
+        "                      does not. Set large to disable banding.\n"
         "  --rotation-trials=N Reprojections per embedding during escalation\n"
         "                      (default 5).\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
@@ -189,6 +193,17 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
                 return config;
             }
             config.escalation_rounds = static_cast<ki::Size_T>(*parsed);
+        }
+        else if (arg.starts_with("--escalation-band="))
+        {
+            auto parsed = ParseInt(arg.substr(18));
+            if (!parsed || *parsed < 0)
+            {
+                LogError("Invalid --escalation-band (expected >= 0)");
+                config.help_requested = true;
+                return config;
+            }
+            config.escalation_band = *parsed;
         }
         else if (arg.starts_with("--rotation-trials="))
         {
@@ -614,8 +629,9 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
             (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
 
         ki::IdentifyParams params;
-        params.cap = config.escalation_rounds;
-        params.rot = config.rotation_trials;
+        params.cap     = config.escalation_rounds;
+        params.deep_cx = config.escalation_band;
+        params.rot     = config.rotation_trials;
 
         ki::IdentifyResult res =
             ki::Identify(klut, std::move(pdc), reapr, params);
