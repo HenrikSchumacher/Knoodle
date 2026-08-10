@@ -154,7 +154,9 @@ namespace Knoodle
             {
                 Int da = *darc_it;
                 Int a = da / Int(2);
-                Int d = da % Int(2);  // 0 = Tail (forward), 1 = Head (backward)
+                Int d = da % Int(2);  // PD_T convention: Tail = 0 (darc runs
+                                      // against arc orientation), Head = 1
+                                      // (along it); face lies LEFT of the darc
 
                 if (!H.EdgeActiveQ(a)) continue;
 
@@ -183,9 +185,12 @@ namespace Knoodle
                 else if (x1 < x0) seg_dir = 2; // West
                 else               seg_dir = 3; // South
 
-                // Step perpendicular toward face interior
-                // d=0 (face is RIGHT of forward): step (seg_dir + 3) % 4
-                // d=1 (face is LEFT  of forward): step (seg_dir + 1) % 4
+                // Step perpendicular toward face interior. seg_dir follows the
+                // arc's stored (forward) orientation, and the face lies left
+                // of the darc:
+                // d=1 (Head, darc forward):  face left of forward  -> +1
+                // d=0 (Tail, darc backward): face left of backward
+                //                            = right of forward    -> +3
                 int face_dir = (d == 0) ? (seg_dir + 3) % 4 : (seg_dir + 1) % 4;
 
                 Int sx = mx + step_dx[face_dir];

@@ -27,3 +27,7 @@ Conventions:
   it back with HOMFLY/Alexander preserved.
 - [upstream-issues.md](upstream-issues.md) — bugs found in src/ to report to
   Henrik, with evidence.
+- [move-descriptor.md](move-descriptor.md) — draft v0 convention for
+  combinatorial move descriptors and trace streams (darc-named faces, no
+  global face numbering); shared contract between the knoodledraw pass-move
+  overlay mode and the future knoodleprove replay pipeline.
