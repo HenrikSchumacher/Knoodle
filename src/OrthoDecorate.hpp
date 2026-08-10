@@ -64,9 +64,18 @@ namespace Knoodle
         // Rasterize arc polylines onto the occupied grid
         //======================================================================
 
+        // NOTE: We deliberately do NOT use ArcLines() here. ArcLines() shortens
+        // an arc's endpoints by x_gap_size/y_gap_size wherever the arc goes
+        // *under* a crossing (that is how the drawing shows the strand
+        // interruption). For face walls those gaps are corridors of free cells
+        // that connect the faces on either side of the understrand, so the
+        // flood fill would leak through every under-crossing. The vertex chain
+        // ArcVertices() + VertexCoordinates() is the true, gapless geometry.
+
         void RasterizeArcs() const
         {
-            auto & A_lines = const_cast<OrthoDraw_T &>(H).ArcLines();
+            const auto & A_V      = H.ArcVertices();
+            const auto & V_coords = H.VertexCoordinates();
 
             Int a_count = H.MaxArcCount();
 
@@ -74,21 +83,21 @@ namespace Knoodle
             {
                 if (!H.EdgeActiveQ(a)) continue;
 
-                auto sublist = A_lines[a];
+                auto sublist = A_V.Sublist(a);
                 auto it = sublist.begin();
                 auto end = sublist.end();
 
                 if (it == end) continue;
 
-                Int px = (*it)[0];
-                Int py = (*it)[1];
+                Int px = V_coords(*it, 0);
+                Int py = V_coords(*it, 1);
                 MarkOccupied(px, py);
                 ++it;
 
                 for (; it != end; ++it)
                 {
-                    Int qx = (*it)[0];
-                    Int qy = (*it)[1];
+                    Int qx = V_coords(*it, 0);
+                    Int qy = V_coords(*it, 1);
 
                     // Walk axis-aligned segment from (px,py) to (qx,qy)
                     if (px == qx)
@@ -135,8 +144,9 @@ namespace Knoodle
             static const Int step_dx[] = {1, 0, -1, 0};
             static const Int step_dy[] = {0, 1, 0, -1};
 
-            const auto & F_dA = H.FaceDarcs();
-            auto & A_lines = const_cast<OrthoDraw_T &>(H).ArcLines();
+            const auto & F_dA     = H.FaceDarcs();
+            const auto & A_V      = H.ArcVertices();
+            const auto & V_coords = H.VertexCoordinates();
 
             auto darcs = F_dA[face_id];
 
@@ -148,19 +158,19 @@ namespace Knoodle
 
                 if (!H.EdgeActiveQ(a)) continue;
 
-                auto sublist = A_lines[a];
+                auto sublist = A_V.Sublist(a);
                 Int point_count = static_cast<Int>(sublist.end() - sublist.begin());
                 if (point_count < 2) continue;
 
-                // Pick the middle segment of the polyline
+                // Pick the middle segment of the vertex chain
                 Int mid = point_count / 2;
                 auto it0 = sublist.begin();
                 auto it1 = sublist.begin();
                 std::advance(it0, mid - 1);
                 std::advance(it1, mid);
 
-                Int x0 = (*it0)[0], y0 = (*it0)[1];
-                Int x1 = (*it1)[0], y1 = (*it1)[1];
+                Int x0 = V_coords(*it0, 0), y0 = V_coords(*it0, 1);
+                Int x1 = V_coords(*it1, 0), y1 = V_coords(*it1, 1);
 
                 // Segment midpoint
                 Int mx = (x0 + x1) / 2;
@@ -253,12 +263,36 @@ namespace Knoodle
             RasterizeArcs();
 
             // Seed and flood-fill each face
+            const Int ext_f = H.ExteriorFace();
+
             for (Int f = 0; f < H.FaceCount(); ++f)
             {
+                if (f == ext_f) continue;  // handled below
+
                 Int seed_x = -1, seed_y = -1;
                 if (FindFaceSeed(f, seed_x, seed_y))
                 {
                     FloodFillFace(f, seed_x, seed_y);
+                }
+            }
+
+            // The exterior face surrounds the drawing, so FindFaceSeed's
+            // perpendicular step exits the grid for it. Instead: clipped to
+            // the grid, every connected component of the exterior touches the
+            // boundary ring (a pocket that didn't would be walled in, i.e., a
+            // bounded face). So flood from every free ring cell. Column
+            // n_x - 1 is the newline column, already marked occupied.
+            for (Int y = 0; y < n_y; ++y)
+            {
+                for (Int x = 0; x < n_x - 1; ++x)
+                {
+                    bool on_ring = (x == 0) || (x == n_x - 2)
+                                || (y == 0) || (y == n_y - 1);
+
+                    if (on_ring && face_map[GridIndex(x, y)] == Int(-1))
+                    {
+                        FloodFillFace(ext_f, x, y);
+                    }
                 }
             }
 
@@ -488,7 +522,6 @@ namespace Knoodle
             Int start_idx = GridIndex(start[0], start[1]);
             Int goal_idx  = GridIndex(goal[0], goal[1]);
 
-            Int start_cost = df.max_dist - DistanceAt(df, start[0], start[1]);
             g_score[static_cast<std::size_t>(start_idx)] = Int(0);
 
             Int h_start = std::abs(goal[0] - start[0]) + std::abs(goal[1] - start[1]);
