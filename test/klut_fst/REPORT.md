@@ -276,6 +276,42 @@ bytes cheap) and HOMFLY-context IDs only for the 15/16 subtables (bytes
 expensive, probes of big knots rare in enumeration workloads). The
 middle option remains v2-only context (µs-scale, IDs → 1.43 B/key).
 
+## Addendum: determinant + Alexander evaluations (the cheap-invariant ladder)
+
+JHC's question: determinant / other alexanderval values are much faster than
+libhomfly — do they recover most of the ID savings, especially combined with
+v2? Ran `alexanderval --at=-1,2` over ALL 1.5M reconstructed keys (36 s wall;
+~11 µs/eval through the CLI including parse — the in-process cost of a 13×13
+strand-matrix LU should be far lower, unmeasured), then per-type constancy +
+residual-bits analysis (`alex_entropy.py`):
+
+- **Determinant: constant on all 33,814 types** (as guaranteed: |Δ(−1)| is
+  unit-stable), 286 distinct values.
+- **|Δ(2)|: NOT usable — varies within 989 types.** Empirical confirmation
+  of the ±t^k unit problem: at t=2 the modulus drifts by powers of 2 across
+  diagrams of the same knot. Only |t|=1 evaluations are diagram-stable, and
+  on the reals that means t=−1 alone. (Complex unit-circle evaluations would
+  be stable and are the natural extension if more bits are wanted.)
+
+Key-weighted residual bits (unconditional 15.05):
+
+| feature set   | residual bits | buckets | ~ID B/key |
+|---------------|--------------:|--------:|----------:|
+| v2            | 11.41         | 30      | 1.43      |
+| det           | 7.37          | 286     | 0.92      |
+| **v2 + det**  | **5.78**      | 1,128   | **0.72**  |
+| HOMFLY        | 0.95          | 16,260  | 0.13      |
+| HOMFLY + det  | 0.95          | 16,260  | 0.13      |
+
+Notes: det alone beats v2 alone by 4 bits; jointly they are near-additive
+(9.27 of a possible 3.64+7.67 = 11.31 — mild overlap). det adds *nothing*
+to HOMFLY, as it must (the determinant is a HOMFLY specialization) — a nice
+internal consistency check. With v2+det context, the zstd-fc/256 structure
+lands at 2.84 + ~0.72 ≈ **3.6 B/key total** at a per-probe invariant cost
+plausibly in single-digit µs in-process (vs 28 µs HOMFLY for 3.0 B/key).
+The remaining step to close the design: an in-process timing of det+v2 on
+the probe path (the alexanderval CLI number is an upper bound only).
+
 ## Reproducing
 
 ```sh
