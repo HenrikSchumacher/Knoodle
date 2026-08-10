@@ -12,7 +12,9 @@ proof. Companion to the OrthoDecorate work on branch `orthodecorate`.
 1. **Descriptors are PD-level combinatorics.** A move is described against a
    specific PD snapshot using arc/darc references only — never OrthoDraw grid
    coordinates, bend vertices, or any other per-layout geometry. Geometry is
-   re-derived by each renderer.
+   re-derived by each renderer. (One principled exception: a `redraw` step
+   carries *witness* geometry — the 3D embedding and rotation that certify
+   the isotopy. That is part of the move's mathematical content, not layout.)
 2. **Local conventions, no global enumeration.** Nothing in the format depends
    on the *order* in which any algorithm enumerates faces (or anything else).
    Faces are named by darcs (below). The only conventions a consumer must
@@ -165,11 +167,68 @@ through face `L(9) = {2,9}`. Checks: `L(3) = L(7)` ✓, `L(9) = R(3)` ✓.
   checkable, proof-grade.
 - `kind=split parent=<sid>` — a summand-splitting event (connect-sum or
   split-link separation). Structural, checkable.
-- `kind=redraw` — a re-embedding step (Reapr). **Not locally checkable**: it
-  is a link-type-preserving jump, not a certificate. Traces containing
-  `redraw` steps are visual *narratives*; a proof-grade trace contains only
-  the checkable kinds. Renderers must visibly distinguish the two (this is a
-  contract, so that "knoodleprove" never silently overclaims).
+- `kind=redraw` — a re-embedding step (Reapr). Fully specified below; with
+  its payload it is **computationally checkable** (a heavier verification
+  kernel than the combinatorial kinds, but not a trust-me jump).
+
+## Step kind: `redraw` (Reapr re-embedding)
+
+A Reapr step replaces the diagram by re-embedding it in 3-space and choosing
+a better projection. Recorded naively ("the diagram changed, trust me") it
+would be unverifiable. Instead the record carries the witness of the isotopy:
+
+```
+#move kind=redraw rot=<r00,r01,r02,r10,r11,r12,r20,r21,r22>
+#embedding rows=<n>
+<n rows of 3-column float coordinates, existing embedding TSV conventions>
+<5-column signed PD rows of the before-diagram>
+<blank line>
+```
+
+- **`#embedding`**: the 3D polygonal embedding `E` the step used, in the
+  same 3-column TSV format the tools already read and write (component
+  conventions included — `knoodledraw --embedding` output is the reference).
+  Floats are printed with round-trip precision (`%.17g`).
+- **`rot`**: a rotation matrix `R` (row-major, orthonormal with `det = +1`
+  within a stated tolerance; verifiers check this). The new view is `R·E`.
+- The projection convention (which axis is the viewing direction, larger
+  coordinate on top) is **whatever `PD_T::FromCoordinates` /
+  `LinkEmbedding` implement** (`src/PlanarDiagram/FromEmbeddings.hpp`) —
+  cited as normative rather than restated here, so this spec cannot drift
+  from the code.
+
+### Verification contract
+
+1. `project(E)` reproduces **this record's PD snapshot exactly** (the
+   recorder must emit as its before-snapshot the PD that `FromCoordinates`
+   returns for `E`, so equality is literal, not up-to-relabeling).
+2. `project(R·E)` reproduces the **next record's PD snapshot exactly**
+   (same recorder-side rule for the after-snapshot).
+3. `R` is orthonormal, `det(R) = +1` (tolerance stated in the trace header
+   once fixed).
+
+Check 1 and 2 are runnable today: `knoodlesimplify -s=0` is precisely the
+embedding→PD converter with no simplification. Rigid rotation preserves
+link type by theorem, so a `redraw` passing these checks is verified —
+the trust base is `FromCoordinates` itself (plus float projection
+robustness) rather than the `LeftDarc` walk, which is why proof-grade and
+redraw-grade remain *labelled distinctly* even though both are checkable.
+
+### Animation recipe (what the payload buys)
+
+1. **Lift**: interpolate the z-coordinate (viewing-axis coordinate) from 0
+   to its value in `E`. The projected diagram is constant throughout (x,y
+   fixed, over/under order fixed for every t > 0), so the viewer watches the
+   before-diagram inflate into 3D without any combinatorial event.
+2. **Rotate**: follow the geodesic from identity to `R` in SO(3). The
+   projected diagram morphs continuously — the tangencies and triple points
+   the camera sweeps through are exactly the Reidemeister moves of the
+   isotopy, happening on screen.
+3. **Flatten**: interpolate the new viewing-axis coordinate of `R·E` to 0,
+   landing on the after-diagram.
+
+Endpoints are pinned by the verification contract; the interior of the
+movie is honest by construction (a rigid rotation of a fixed curve).
 
 ## Annotations
 
@@ -215,3 +274,15 @@ and any seeded choice an emitter makes must be recorded in the stream.
 - Landing/departure flank when an anchor crossing is itself removed by the
   move (can a pass move's anchors be R1-collapsed in the same step in
   middlepass? If so the descriptor needs a compound kind or a step split).
+- `redraw` instrumentation: whether Reapr exposes (or can be made to expose,
+  via the same one-callback hook) the embedding `E` and rotation `R` at the
+  moment it commits to a projection — and whether its projection step is
+  exactly one rotation or a compound (if compound, record the composition or
+  one step per rotation).
+- `redraw` for links: component correspondence between embedding strands and
+  PD components across the step (the `#color` machinery from the color
+  roundtrip work is the likely vehicle).
+- Numeric tolerances: for the `R ∈ SO(3)` check, and how close to a
+  degenerate projection the recorded `E`/`R` may legally sit (verifier
+  should probably re-run `FindIntersections` and demand a clean pass, which
+  `-s=0` already does).
