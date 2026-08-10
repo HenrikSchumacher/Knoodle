@@ -72,6 +72,7 @@ A trace is a text stream extending the existing knoodle TSV streaming format
 
 ```
 #step n=<k> summand=<sid>
+#view exterior=<da>           (optional, recommended; see Layout transitions)
 #move <descriptor>            (absent on terminal records)
 #faces <annotation>           (optional)
 <5-column signed PD rows, one per line>
@@ -230,6 +231,53 @@ redraw-grade remain *labelled distinctly* even though both are checkable.
 Endpoints are pinned by the verification contract; the interior of the
 movie is honest by construction (a rigid rotation of a fixed curve).
 
+## Layout transitions: tension morphs (renderer guidance)
+
+Two drawings of the *same* PD snapshot arise all over this pipeline: after a
+pass move is shown inside the frozen before-layout (strand swapped for its
+routed corridor), that drawing and the fresh OrthoDraw layout of the
+after-diagram are two drawings of one diagram; likewise the raw projection
+at the end of a `redraw`'s flatten phase vs. the tidy layout of the same
+diagram; likewise any deliberate re-layout. Naively these are hard cuts.
+They can instead be animated continuously and injectively:
+
+1. **Common refinement.** Both drawings realize the same combinatorial map
+   (same snapshot), differing only in bend/subdivision vertices per arc —
+   take the common refinement of the arc subdivisions.
+2. **Compatible triangulations.** Triangulate the two realizations
+   compatibly (same triangulation graph validly embedded in both; Steiner
+   points as needed — Aronov–Seidel–Souvaine, O(n²) Steiner worst case,
+   irrelevant at watchable diagram sizes). Watch for angle-π polygon
+   vertices from collinear bend chains in orthogonal layouts.
+3. **Tension coordinates.** Fix the exterior face as a large square in both.
+   For each drawing, express every interior vertex as a positive
+   convex combination of its neighbors (possible for any embedded
+   triangulation with convex boundary, e.g. mean-value coordinates —
+   Floater).
+4. **Interpolate tensions, not positions.** Linearly interpolate the two
+   weight sets and solve the sparse linear system per frame. Every
+   intermediate is a valid planar embedding — no triangle ever flips
+   (Floater–Gotsman / Surazhsky–Gotsman injective-morphing theorems).
+
+**What the trace must guarantee** for this to work: both endpoint drawings
+use the *same* exterior face, embedded as the convex boundary. Hence
+`#view exterior=<da>` — the face `L(da)` that renderers must pass to
+OrthoDraw as its exterior-face argument (the constructor takes it).
+
+**Exterior stability across steps.** For combinatorial kinds the descriptor
+itself is the correspondence map across the step (it names exactly the
+arcs/faces it touches), so "the exterior face is unchanged by the move" is
+well-defined and checkable: recommended practice is to name the exterior in
+consecutive records by a surviving darc (one not in `strand`/`cross`/the
+move's args). A step that *must* change the exterior face (the move consumes
+it) is a **seam**: renderers fall back to a cut there, and recorders should
+choose exteriors to make seams rare — a single compatible choice threaded
+through the whole sequence is the ideal. Across `redraw` there is no
+combinatorial correspondence (the witness is geometric), so
+exterior-continuity is not defined there; the lift/rotate/flatten animation
+covers that transition instead, plus one tension morph from the raw
+projection layout to the tidy layout on the far side.
+
 ## Annotations
 
 - `#faces f<min_darc>=<da,da,...>; ...` — the face table as boundary darc
@@ -286,3 +334,12 @@ and any seeded choice an emitter makes must be recorded in the stream.
   degenerate projection the recorded `E`/`R` may legally sit (verifier
   should probably re-run `FindIntersections` and demand a clean pass, which
   `-s=0` already does).
+- Exterior-face seams: whether a recorder can always thread one compatible
+  exterior choice through a whole Simplify run (does any move sequence
+  *force* consuming every candidate exterior?), and — if seams prove
+  unavoidable — whether to animate them as sphere re-rooting (project to
+  S², rotate the chosen face through infinity) rather than cutting. Parked:
+  seams are believed rare under a careful choice, so cuts suffice for now.
+- Compatible-triangulation details for step 2 of the tension morph
+  (Steiner-point placement realizing one triangulation graph in both
+  orthogonal layouts; angle-π bend-chain vertices).
