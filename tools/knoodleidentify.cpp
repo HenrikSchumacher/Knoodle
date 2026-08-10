@@ -66,6 +66,8 @@ struct Config
     bool tsv            = false;             ///< Per-summand TSV output
     bool quiet          = false;             ///< Suppress stderr summary/warnings
     bool randomize_projection = false;       ///< Apply random shear to 3D geometry projection
+    ki::Size_T escalation_rounds = ki::IdentifyParams{}.cap;  ///< Reapr escalation rounds per candidate
+    ki::Size_T rotation_trials   = ki::IdentifyParams{}.rot;  ///< reprojections per embedding
     std::vector<std::string> input_files;    ///< Input file paths (empty = stdin)
     bool help_requested = false;
 };
@@ -108,6 +110,15 @@ void PrintUsage()
         "                      else data/Klut next to this executable's parent,\n"
         "                      else ./data/Klut.\n"
         "  --max-crossings=N   Use subtables up to N crossings (3-13, default 13).\n"
+        "  --escalation-rounds=N  Reapr escalation rounds per candidate before\n"
+        "                      giving up (default 2, tuned for throughput).\n"
+        "                      Raise for coverage on hard diagrams: each round\n"
+        "                      doubles embedding trials, so misses on knots that\n"
+        "                      ARE in the table decay quickly with N; rounds only\n"
+        "                      burn time on genuinely irreducible (>13-crossing)\n"
+        "                      diagrams.\n"
+        "  --rotation-trials=N Reprojections per embedding during escalation\n"
+        "                      (default 5).\n"
         "  --expanded          One line per knot, summands joined by ' # ' (uses\n"
         "                      the raw K[...] table names).\n"
         "  --tsv               Per-summand output: knot_index, summand_index,\n"
@@ -167,6 +178,28 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg.starts_with("--data-dir="))
         {
             config.data_dir = std::string(arg.substr(11));
+        }
+        else if (arg.starts_with("--escalation-rounds="))
+        {
+            auto parsed = ParseInt(arg.substr(20));
+            if (!parsed || *parsed < 1 || *parsed > 64)
+            {
+                LogError("Invalid --escalation-rounds (expected 1-64)");
+                config.help_requested = true;
+                return config;
+            }
+            config.escalation_rounds = static_cast<ki::Size_T>(*parsed);
+        }
+        else if (arg.starts_with("--rotation-trials="))
+        {
+            auto parsed = ParseInt(arg.substr(18));
+            if (!parsed || *parsed < 1 || *parsed > 1024)
+            {
+                LogError("Invalid --rotation-trials (expected 1-1024)");
+                config.help_requested = true;
+                return config;
+            }
+            config.rotation_trials = static_cast<ki::Size_T>(*parsed);
         }
         else if (arg.starts_with("--max-crossings="))
         {
@@ -580,7 +613,12 @@ bool ProcessStream(std::istream& input, const std::string& source_name,
         const Int input_crossings =
             (pdc.DiagramCount() > Int(0)) ? pdc.CrossingCount() : Int(0);
 
-        ki::IdentifyResult res = ki::Identify(klut, std::move(pdc), reapr);
+        ki::IdentifyParams params;
+        params.cap = config.escalation_rounds;
+        params.rot = config.rotation_trials;
+
+        ki::IdentifyResult res =
+            ki::Identify(klut, std::move(pdc), reapr, params);
 
         std::vector<Summand> summands;
 
