@@ -22,12 +22,14 @@
 
 #include "knoodle_io.hpp"
 
+#include <charconv>     // ParsePassMove
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <limits>
 #include <map>
 #include <set>
+#include <string_view>  // ParsePassMove
 
 //==============================================================================
 // Configuration
@@ -78,9 +80,13 @@ struct Config
     std::optional<bool> dual_simplex;
 
     bool checkerboard_coloring = false;
+
+    // Pass-move overlay (docs/move-descriptor.md): descriptor text from
+    // --move=..., e.g. "kind=pass strand=11 depart=7 cross=7:u land=1".
+    std::optional<std::string> move_spec;
 };
 
-enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3 };
+enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3, Pass = 4 };
 
 struct HighlightSet {
     std::set<Int> arcs;
@@ -126,6 +132,11 @@ void PrintUsage()
     std::cerr << "  --highlight=ELEMENTS        Highlight elements (a=arc, c=crossing, f=face)\n";
     std::cerr << "                              e.g. --highlight=\"a0,c3,f2\"; multiple flags allowed\n";
     std::cerr << "  --checkerboard-coloring     Highlight alternating faces (checkerboard pattern)\n";
+    std::cerr << "  --move=DESCRIPTOR           Overlay a pass move (docs/move-descriptor.md):\n";
+    std::cerr << "                              \"strand=DA[,DA..] depart=DA [cross=DA:u|o,..] land=DA\"\n";
+    std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
+    std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
+    std::cerr << "                              descriptors report the failed check and exit nonzero\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -393,6 +404,11 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         {
             config.highlight_specs.emplace_back(arg.substr(12));
         }
+        // Pass-move overlay descriptor
+        else if (arg.starts_with("--move="))
+        {
+            config.move_spec = arg.substr(7);
+        }
         // Short combinable flags: -c, -a, -f, -caf, -ac, etc.
         else if (arg.starts_with("-") && !arg.starts_with("--") && arg.size() > 1)
         {
@@ -544,6 +560,7 @@ std::string UnicodeifyDiagram(const std::string& ascii,
     static const char* COLOR_ARC      = "\033[38;5;111m";  // blue-warmer
     static const char* COLOR_CROSSING = "\033[38;5;203m";  // red
     static const char* COLOR_FACE     = "\033[48;5;234m";  // bg-dim
+    static const char* COLOR_PASS     = "\033[38;5;220m";  // gold (pass-move overlay)
     static const char* COLOR_RESET    = "\033[0m";
 
     // Component palette (Modus Vivendi distinct colors)
@@ -578,6 +595,16 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                 case '^': char_out = "\xe2\x86\x91"; break; // ↑ U+2191
                 case 'v': char_out = "\xe2\x86\x93"; break; // ↓ U+2193
                 case '.': char_out = "\xc2\xb7";     break; // · U+00B7
+
+                // Pass-move overlay strokes (heavy box drawing, stamped by
+                // StampPassOverlay; never emitted by DiagramString itself)
+                case '=': char_out = "\xe2\x94\x81"; break; // ━ U+2501
+                case ';': char_out = "\xe2\x94\x83"; break; // ┃ U+2503
+                case '{': char_out = "\xe2\x94\x97"; break; // ┗ U+2517 (N+E)
+                case '}': char_out = "\xe2\x94\x9b"; break; // ┛ U+251B (N+W)
+                case '[': char_out = "\xe2\x94\x8f"; break; // ┏ U+250F (S+E)
+                case ']': char_out = "\xe2\x94\x93"; break; // ┓ U+2513 (S+W)
+                case '*': char_out = "\xe2\x97\x8f"; break; // ● U+25CF (junction)
 
                 case '+':
                 {
@@ -646,6 +673,7 @@ std::string UnicodeifyDiagram(const std::string& ascii,
                         case HighlightType::Arc:      color = COLOR_ARC;      break;
                         case HighlightType::Crossing: color = COLOR_CROSSING; break;
                         case HighlightType::Face:     color = COLOR_FACE;     break;
+                        case HighlightType::Pass:     color = COLOR_PASS;     break;
                         default: break;
                     }
                     result += color;
@@ -2213,6 +2241,192 @@ void EmitWolframGeometry(OrthoDraw_T& H, const PD_T& pd, std::ostream& out)
     out << "}|>\n";
 }
 
+//==============================================================================
+// Pass-Move Overlay (--move=..., docs/move-descriptor.md)
+//==============================================================================
+
+using Deco_T = Knoodle::OrthoDecorate<PD_T>;
+
+/**
+ * @brief Parse a pass-move descriptor per docs/move-descriptor.md.
+ *
+ * Accepts the payload of a `#move` header line (a leading "#move" token and
+ * a "kind=pass" token are both optional; any other kind is an error):
+ *
+ *     [#move] [kind=pass] strand=DA[,DA...] depart=DA
+ *             [cross=DA:u|o[,DA:u|o...]] land=DA
+ *
+ * All references are darcs (da = 2*arc + d, Tail=0/Head=1) against the
+ * diagram being drawn. Returns false with a message in `err` on bad syntax.
+ */
+bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
+                   std::string& err)
+{
+    bool have_strand = false, have_depart = false, have_land = false;
+
+    auto parse_int = [&](std::string_view tok, Int& out) -> bool
+    {
+        std::int64_t v = 0;
+        auto [p, ec] = std::from_chars(tok.data(), tok.data() + tok.size(), v);
+        if (ec != std::errc{} || p != tok.data() + tok.size()) return false;
+        out = static_cast<Int>(v);
+        return true;
+    };
+
+    auto for_each_item = [](std::string_view list, auto&& f) -> bool
+    {
+        while (!list.empty())
+        {
+            auto comma = list.find(',');
+            std::string_view item = list.substr(0, comma);
+            if (!f(item)) return false;
+            if (comma == std::string_view::npos) break;
+            list.remove_prefix(comma + 1);
+        }
+        return true;
+    };
+
+    std::istringstream iss(spec);
+    std::string tok;
+    while (iss >> tok)
+    {
+        if (tok == "#move") continue;
+
+        auto eq = tok.find('=');
+        if (eq == std::string::npos)
+        {
+            err = "expected key=value, got '" + tok + "'";
+            return false;
+        }
+        std::string key = tok.substr(0, eq);
+        std::string val = tok.substr(eq + 1);
+
+        if (key == "kind")
+        {
+            if (val != "pass")
+            {
+                err = "only kind=pass is supported (got kind=" + val + ")";
+                return false;
+            }
+        }
+        else if (key == "strand")
+        {
+            have_strand = true;
+            if (!for_each_item(val, [&](std::string_view item)
+                {
+                    Int da;
+                    if (!parse_int(item, da)) return false;
+                    mv.strand.push_back(da);
+                    return true;
+                }))
+            {
+                err = "bad strand darc list '" + val + "'";
+                return false;
+            }
+        }
+        else if (key == "depart")
+        {
+            have_depart = true;
+            if (!parse_int(val, mv.depart))
+            {
+                err = "bad depart darc '" + val + "'";
+                return false;
+            }
+        }
+        else if (key == "cross")
+        {
+            if (!for_each_item(val, [&](std::string_view item)
+                {
+                    auto colon = item.find(':');
+                    if (colon == std::string_view::npos) return false;
+                    Int da;
+                    if (!parse_int(item.substr(0, colon), da)) return false;
+                    std::string_view tag = item.substr(colon + 1);
+                    if (tag != "u" && tag != "o") return false;
+                    mv.cross.push_back(da);
+                    mv.over.push_back(tag == "o");
+                    return true;
+                }))
+            {
+                err = "bad cross list '" + val + "' (want DA:u or DA:o)";
+                return false;
+            }
+        }
+        else if (key == "land")
+        {
+            have_land = true;
+            if (!parse_int(val, mv.land))
+            {
+                err = "bad land darc '" + val + "'";
+                return false;
+            }
+        }
+        else
+        {
+            err = "unknown key '" + key + "'";
+            return false;
+        }
+    }
+
+    if (!have_strand || !have_depart || !have_land)
+    {
+        err = "descriptor needs strand=, depart= and land=";
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Stamp a rendered pass route into the ASCII diagram + highlight mask.
+ *
+ * Overlay strokes use placeholder characters that UnicodeifyDiagram maps to
+ * heavy box-drawing glyphs (=;{}[]* — in --ascii mode they are printed as
+ * is). CrossUnder cells keep the crossed arc's own glyph and color (the
+ * corridor visibly breaks); Anchor cells keep their glyph but get crossing
+ * emphasis.
+ */
+void StampPassOverlay(std::string& diagram, std::vector<HighlightType>& mask,
+                      Int n_x, Int n_y,
+                      const std::vector<Deco_T::OverlayCell_T>& cells)
+{
+    if (mask.empty())
+    {
+        mask.assign(static_cast<std::size_t>(n_x * n_y), HighlightType::None);
+    }
+
+    for (const auto& cell : cells)
+    {
+        if (cell.x < 0 || cell.x >= n_x - 1 || cell.y < 0 || cell.y >= n_y)
+            continue;
+
+        auto idx = static_cast<std::size_t>(
+            (n_y - Int(1) - cell.y) * n_x + cell.x);
+        if (idx >= diagram.size() || idx >= mask.size()) continue;
+
+        char ch = 0;
+        switch (cell.kind)
+        {
+            case Deco_T::OverlayKind::Horizontal: ch = '='; break;
+            case Deco_T::OverlayKind::Vertical:   ch = ';'; break;
+            case Deco_T::OverlayKind::CornerNE:   ch = '{'; break;
+            case Deco_T::OverlayKind::CornerNW:   ch = '}'; break;
+            case Deco_T::OverlayKind::CornerSE:   ch = '['; break;
+            case Deco_T::OverlayKind::CornerSW:   ch = ']'; break;
+            case Deco_T::OverlayKind::Junction:   ch = '*'; break;
+            case Deco_T::OverlayKind::CrossOverH: ch = '='; break;
+            case Deco_T::OverlayKind::CrossOverV: ch = ';'; break;
+            case Deco_T::OverlayKind::CrossUnder:
+                continue;  // arc's glyph and color stay: corridor breaks
+            case Deco_T::OverlayKind::Anchor:
+                mask[idx] = HighlightType::Crossing;
+                continue;  // emphasis only, glyph unchanged
+        }
+
+        diagram[idx] = ch;
+        mask[idx]    = HighlightType::Pass;
+    }
+}
+
 /**
  * @brief Draw all summands of a knot to stdout.
  *
@@ -2239,6 +2453,23 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
     bool has_labels = config.label_crossings || config.label_arcs
                    || config.label_faces || config.label_components;
     bool has_highlights = !config.highlight_specs.empty() || config.checkerboard_coloring;
+
+    // Pass-move overlay: parse the descriptor once; it is then tried against
+    // each summand (darc references only validate on the one it belongs to).
+    Deco_T::PassMove_T move;
+    bool move_requested = config.move_spec.has_value();
+    bool move_applied   = false;
+    std::string move_why;
+
+    if (move_requested)
+    {
+        std::string perr;
+        if (!ParsePassMove(*config.move_spec, move, perr))
+        {
+            std::cerr << "knoodledraw: bad --move descriptor: " << perr << "\n";
+            return false;
+        }
+    }
 
     for (std::size_t i = 0; i < summands.size(); ++i)
     {
@@ -2369,6 +2600,31 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             }
         }
 
+        // Pass-move overlay: stamped after labels so the corridor wins any
+        // cell conflicts. The descriptor is tried on every summand; its darc
+        // references only validate on the summand they belong to.
+        if (move_requested)
+        {
+            if (n_x == 0)
+            {
+                n_x = H.Width()  * config.x_grid_size + 2;
+                n_y = H.Height() * config.y_grid_size + 1;
+            }
+
+            Deco_T deco(H);
+            auto pass_route = deco.RoutePassMove(move);
+            if (pass_route.validQ)
+            {
+                StampPassOverlay(diagram, mask, n_x, n_y,
+                                 deco.RenderPassRoute(pass_route));
+                move_applied = true;
+            }
+            else
+            {
+                move_why = pass_route.why;
+            }
+        }
+
         if (!config.ascii_mode)
         {
             const std::vector<HighlightType>* m_ptr =
@@ -2401,6 +2657,16 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
             }
             std::cout << "|>\n";
         }
+    }
+
+    // Fail loud if a requested pass-move overlay applied to no summand: a
+    // rejected descriptor is exactly what this mode exists to diagnose.
+    if (move_requested && !move_applied)
+    {
+        std::cerr << "knoodledraw: --move descriptor rejected: "
+                  << (move_why.empty() ? "no drawable summands" : move_why)
+                  << "\n";
+        return false;
     }
 
     return true;

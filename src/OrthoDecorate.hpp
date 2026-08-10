@@ -8,6 +8,8 @@
 #include <cmath>     // std::hypot, std::abs
 #include <utility>   // std::swap
 #include <vector>
+#include <string>    // PassRoute_T::why
+#include <cstdint>   // OverlayKind underlying type
 
 namespace Knoodle
 {
@@ -926,6 +928,7 @@ namespace Knoodle
             Point_T           tail_anchor;  // grid cell of the tail anchor crossing
             Point_T           head_anchor;  // grid cell of the head anchor crossing
             bool              validQ = false;
+            std::string       why;          // human-readable reason when !validQ
         };
 
         // Validate a pass-move descriptor (the local checks of the spec) and
@@ -937,36 +940,64 @@ namespace Knoodle
         {
             PassRoute_T result;
 
+            auto fail = [&](std::string msg) -> PassRoute_T &
+            {
+                result.why = std::move(msg);
+                return result;
+            };
+
             const std::size_t m = mv.strand.size();
             const std::size_t k = mv.cross.size();
 
             // -- Shape and tag checks (spec check 5: all tags equal) --------
-            if (m == 0) return result;
-            if (mv.over.size() != k) return result;
+            if (m == 0) return fail("empty strand");
+            if (mv.over.size() != k)
+            {
+                return fail("cross and over lists differ in length");
+            }
             for (std::size_t i = 1; i < k; ++i)
             {
-                if (mv.over[i] != mv.over[0]) return result;
+                if (mv.over[i] != mv.over[0])
+                {
+                    return fail("over/under tags are not all equal (check 5)");
+                }
             }
 
             // -- Arc activity; strand arcs distinct; cross arcs not in strand
             //    (spec check 1) ---------------------------------------------
             for (Int da : mv.strand)
             {
-                if (LeftFace(da) < 0) return result;  // inactive or bogus
+                if (LeftFace(da) < 0)
+                {
+                    return fail("strand darc " + std::to_string(da)
+                        + " is inactive or out of range");
+                }
             }
             for (std::size_t i = 0; i < m; ++i)
             {
                 for (std::size_t j = i + 1; j < m; ++j)
                 {
-                    if (mv.strand[i] / 2 == mv.strand[j] / 2) return result;
+                    if (mv.strand[i] / 2 == mv.strand[j] / 2)
+                    {
+                        return fail("strand repeats arc "
+                            + std::to_string(mv.strand[i] / 2) + " (check 1)");
+                    }
                 }
             }
             for (Int dc : mv.cross)
             {
-                if (LeftFace(dc) < 0) return result;
+                if (LeftFace(dc) < 0)
+                {
+                    return fail("crossed darc " + std::to_string(dc)
+                        + " is inactive or out of range");
+                }
                 for (Int ds : mv.strand)
                 {
-                    if (dc / 2 == ds / 2) return result;
+                    if (dc / 2 == ds / 2)
+                    {
+                        return fail("crossed darc " + std::to_string(dc)
+                            + " lies on the strand itself (check 1)");
+                    }
                 }
             }
 
@@ -977,7 +1008,9 @@ namespace Knoodle
             {
                 if (DarcHeadCell(mv.strand[i]) != DarcTailCell(mv.strand[i + 1]))
                 {
-                    return result;
+                    return fail("strand darcs " + std::to_string(mv.strand[i])
+                        + " and " + std::to_string(mv.strand[i + 1])
+                        + " are not consecutive (check 1)");
                 }
             }
 
@@ -988,29 +1021,147 @@ namespace Knoodle
             //    Darcs re-derives this, but failing early is clearer) --------
             const Int F_dep  = LeftFace(mv.depart);
             const Int F_land = LeftFace(mv.land);
-            if (F_dep < 0 || F_land < 0) return result;
+            if (F_dep < 0)  return fail("depart darc is inactive or out of range");
+            if (F_land < 0) return fail("land darc is inactive or out of range");
 
             if (k > 0)
             {
-                if (LeftFace(mv.cross.front()) != F_dep) return result;
-                if (RightFace(mv.cross.back()) != F_land) return result;
+                if (LeftFace(mv.cross.front()) != F_dep)
+                {
+                    return fail("L(cross[0]) != L(depart) (check 2)");
+                }
+                if (RightFace(mv.cross.back()) != F_land)
+                {
+                    return fail("L(land) != R(cross[last]) (check 3)");
+                }
             }
-            else if (F_dep != F_land) return result;
+            else if (F_dep != F_land)
+            {
+                return fail("no crossings but L(depart) != L(land) (check 3)");
+            }
 
             // -- Junctions: the depart/land faces must be quadrants at the
             //    respective anchor crossings (spec check 4); the junction
             //    cell is the anchor's diagonal neighbor in that face. -------
             Point_T start, goal;
-            if (!JunctionCell(result.tail_anchor, F_dep,  start)) return result;
-            if (!JunctionCell(result.head_anchor, F_land, goal))  return result;
+            if (!JunctionCell(result.tail_anchor, F_dep, start))
+            {
+                return fail("depart face is not a quadrant at the tail anchor"
+                    " (check 4)");
+            }
+            if (!JunctionCell(result.head_anchor, F_land, goal))
+            {
+                return fail("land face is not a quadrant at the head anchor"
+                    " (check 4)");
+            }
 
             // -- Route ------------------------------------------------------
             result.route = RouteAcrossDarcs(start, goal, mv.cross);
-            if (!result.route.validQ) return result;
+            if (!result.route.validQ)
+            {
+                return fail("face chain validated but geometric routing failed"
+                    " (empty portal or disconnected face region)");
+            }
 
             result.over   = mv.over;
             result.validQ = true;
             return result;
+        }
+
+        //======================================================================
+        // Phase 4 — Public API: overlay generation
+        //
+        // Classify each cell of a routed pass move into renderer-agnostic
+        // glyph kinds. Renderers (ASCII, Unicode box art, SVG, ...) map the
+        // kinds to their own strokes; nothing here is terminal-specific.
+        //======================================================================
+
+        // Compass naming: a corner's two arms. N = +y (screen up), E = +x.
+        enum class OverlayKind : std::uint8_t
+        {
+            Horizontal,   // corridor runs E-W through this cell
+            Vertical,     // corridor runs N-S
+            CornerNE,     // arms N+E   (box glyph:  up-and-right)
+            CornerNW,     // arms N+W
+            CornerSE,     // arms S+E
+            CornerSW,     // arms S+W
+            Junction,     // corridor endpoint beside an anchor crossing
+            CrossOverH,   // corridor passes OVER the crossed arc, running E-W
+            CrossOverV,   // corridor passes OVER the crossed arc, running N-S
+            CrossUnder,   // corridor passes UNDER: the arc's own glyph stays
+            Anchor        // anchor crossing cell (color/emphasis only)
+        };
+
+        struct OverlayCell_T
+        {
+            Int x;
+            Int y;
+            OverlayKind kind;
+        };
+
+        std::vector<OverlayCell_T> RenderPassRoute(const PassRoute_T & pr) const
+        {
+            std::vector<OverlayCell_T> cells;
+
+            if (!pr.validQ) return cells;
+
+            const Path_T & p = pr.route.path;
+            const auto & xi  = pr.route.crossing_indices;
+
+            for (std::size_t i = 0; i < p.size(); ++i)
+            {
+                // Crossing cell?
+                std::size_t j = 0;
+                bool crossingQ = false;
+                for (; j < xi.size(); ++j)
+                {
+                    if (xi[j] == static_cast<Int>(i)) { crossingQ = true; break; }
+                }
+
+                // Arms toward path neighbors (N = +y).
+                bool n = false, e = false, s = false, w = false;
+                auto arm = [&](std::size_t o)
+                {
+                    Int dx = p[o][0] - p[i][0];
+                    Int dy = p[o][1] - p[i][1];
+                    n |= (dy > 0); s |= (dy < 0);
+                    e |= (dx > 0); w |= (dx < 0);
+                };
+                if (i > 0)            arm(i - 1);
+                if (i + 1 < p.size()) arm(i + 1);
+
+                OverlayKind kind;
+
+                if (crossingQ)
+                {
+                    // Portal crossings are perpendicular, hence straight.
+                    if (!pr.over[j]) { kind = OverlayKind::CrossUnder; }
+                    else
+                    {
+                        kind = (e || w) ? OverlayKind::CrossOverH
+                                        : OverlayKind::CrossOverV;
+                    }
+                }
+                else if (i == 0 || i + 1 == p.size())
+                {
+                    kind = OverlayKind::Junction;
+                }
+                else if (e && w) { kind = OverlayKind::Horizontal; }
+                else if (n && s) { kind = OverlayKind::Vertical; }
+                else if (n && e) { kind = OverlayKind::CornerNE; }
+                else if (n && w) { kind = OverlayKind::CornerNW; }
+                else if (s && e) { kind = OverlayKind::CornerSE; }
+                else             { kind = OverlayKind::CornerSW; }
+
+                cells.push_back(OverlayCell_T{ p[i][0], p[i][1], kind });
+            }
+
+            cells.push_back(OverlayCell_T{
+                pr.tail_anchor[0], pr.tail_anchor[1], OverlayKind::Anchor });
+            cells.push_back(OverlayCell_T{
+                pr.head_anchor[0], pr.head_anchor[1], OverlayKind::Anchor });
+
+            return cells;
         }
 
         //======================================================================

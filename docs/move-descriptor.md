@@ -318,6 +318,13 @@ and any seeded choice an emitter makes must be recorded in the stream.
   emitted by middlestrands) — it is the shakedown cruise for this spec.
   Nothing gets proposed to Henrik (the eventual one-callback instrumentation
   hook in Simplify) until the format has survived that use.
+- **Implemented today**: `knoodledraw --move="strand=... depart=...
+  cross=...:u land=..."` accepts exactly the `pass` payload grammar (the
+  `#move` and `kind=pass` tokens optional) and overlays the corridor on the
+  drawing — heavy gold strokes, corridor visibly broken at under-crossings,
+  anchors emphasized in red. A rejected descriptor prints which spec check
+  failed and exits nonzero. In-stream `#move` records await the trace-record
+  reader.
 
 ## Open questions
 
