@@ -5,6 +5,9 @@
 #include <algorithm> // std::min, std::max
 #include <limits>
 #include <unordered_map>
+#include <cmath>     // std::hypot, std::abs
+#include <utility>   // std::swap
+#include <vector>
 
 namespace Knoodle
 {
@@ -46,6 +49,10 @@ namespace Knoodle
         };
         mutable std::unordered_map<Int, DistanceField> dist_cache;
 
+        // Lazy darc -> face lookup (PD face indices, same numbering as F_dA)
+        mutable bool             darc_faces_ready = false;
+        mutable Tensor1<Int,Int> dA_F;
+
         //======================================================================
         // Grid indexing
         //======================================================================
@@ -72,58 +79,68 @@ namespace Knoodle
         // flood fill would leak through every under-crossing. The vertex chain
         // ArcVertices() + VertexCoordinates() is the true, gapless geometry.
 
-        void RasterizeArcs() const
+        // Walk the rasterized cells of arc `a` tail-to-head, calling
+        // f(x, y, dir, interiorQ) once per cell. `dir` (0=E,1=N,2=W,3=S) is
+        // the direction of the axis-aligned segment the cell lies on;
+        // `interiorQ` is false for polyline vertex cells (arc endpoints and
+        // bends), where the perpendicular is ambiguous.
+        template<typename F>
+        void TraverseArcCells(Int a, F && f) const
         {
+            static const Int step_dx[] = {1, 0, -1, 0};
+            static const Int step_dy[] = {0, 1, 0, -1};
+
             const auto & A_V      = H.ArcVertices();
             const auto & V_coords = H.VertexCoordinates();
 
+            auto sublist = A_V.Sublist(a);
+            auto it  = sublist.begin();
+            auto end = sublist.end();
+
+            if (it == end) return;
+
+            Int px = V_coords(*it, 0);
+            Int py = V_coords(*it, 1);
+            ++it;
+
+            bool first = true;
+
+            for (; it != end; ++it)
+            {
+                Int qx = V_coords(*it, 0);
+                Int qy = V_coords(*it, 1);
+
+                if (px == qx && py == qy) continue;
+
+                int dir = (qx > px) ? 0 : (qy > py) ? 1 : (qx < px) ? 2 : 3;
+
+                if (first) { f(px, py, dir, false); first = false; }
+
+                Int steps = std::abs(qx - px) + std::abs(qy - py);
+
+                for (Int s = 1; s < steps; ++s)
+                {
+                    f(px + s * step_dx[dir], py + s * step_dy[dir], dir, true);
+                }
+
+                // Segment far endpoint: an arc endpoint or a bend
+                f(qx, qy, dir, false);
+
+                px = qx;
+                py = qy;
+            }
+        }
+
+        void RasterizeArcs() const
+        {
             Int a_count = H.MaxArcCount();
 
             for (Int a = 0; a < a_count; ++a)
             {
                 if (!H.EdgeActiveQ(a)) continue;
 
-                auto sublist = A_V.Sublist(a);
-                auto it = sublist.begin();
-                auto end = sublist.end();
-
-                if (it == end) continue;
-
-                Int px = V_coords(*it, 0);
-                Int py = V_coords(*it, 1);
-                MarkOccupied(px, py);
-                ++it;
-
-                for (; it != end; ++it)
-                {
-                    Int qx = V_coords(*it, 0);
-                    Int qy = V_coords(*it, 1);
-
-                    // Walk axis-aligned segment from (px,py) to (qx,qy)
-                    if (px == qx)
-                    {
-                        // Vertical segment
-                        Int lo = std::min(py, qy);
-                        Int hi = std::max(py, qy);
-                        for (Int y = lo; y <= hi; ++y)
-                        {
-                            MarkOccupied(px, y);
-                        }
-                    }
-                    else
-                    {
-                        // Horizontal segment
-                        Int lo = std::min(px, qx);
-                        Int hi = std::max(px, qx);
-                        for (Int x = lo; x <= hi; ++x)
-                        {
-                            MarkOccupied(x, py);
-                        }
-                    }
-
-                    px = qx;
-                    py = qy;
-                }
+                TraverseArcCells(a,
+                    [this](Int x, Int y, int, bool) { MarkOccupied(x, y); });
             }
         }
 
@@ -428,6 +445,25 @@ namespace Knoodle
         // Look up L∞ distance for an original-grid cell
         //======================================================================
 
+        void RequireDarcFaces() const
+        {
+            if (darc_faces_ready) return;
+
+            const auto & F_dA = H.FaceDarcs();
+
+            dA_F = Tensor1<Int,Int>(Int(2) * H.MaxArcCount(), Int(-1));
+
+            for (Int f = 0; f < H.FaceCount(); ++f)
+            {
+                for (auto da : F_dA[f])
+                {
+                    dA_F[da] = f;
+                }
+            }
+
+            darc_faces_ready = true;
+        }
+
         Int DistanceAt(const DistanceField & df, Int x, Int y) const
         {
             Int sx = (x - df.x0) * stretch_x;
@@ -596,6 +632,211 @@ namespace Knoodle
 
             std::reverse(path.begin(), path.end());
             return path;
+        }
+
+        //======================================================================
+        // Phase 2 — Public API: darc-level face lookup
+        //
+        // PD_T convention (see docs/move-descriptor.md): darc da = 2a + d,
+        // Tail = 0, Head = 1; every face lies on the LEFT of its boundary
+        // darcs. Face indices follow F_dA's numbering (= pd.FaceDarcs()).
+        //======================================================================
+
+        Int LeftFace(Int da) const
+        {
+            RequireDarcFaces();
+
+            if (da < 0 || da >= dA_F.Dim(0)) return Int(-1);
+            return dA_F[da];
+        }
+
+        Int RightFace(Int da) const
+        {
+            return LeftFace(da ^ Int(1));
+        }
+
+        //======================================================================
+        // Phase 2 — Public API: portals
+        //======================================================================
+
+        struct PortalPoint_T
+        {
+            Point_T on_arc;  // cell of the crossed arc
+            Point_T left;    // free perpendicular neighbor in LeftFace(da)
+            Point_T right;   // free perpendicular neighbor in RightFace(da)
+        };
+
+        // All grid positions where a route may cross the arc of darc `da`
+        // from its left face into its right face: interior (non-bend,
+        // non-endpoint) arc cells whose two perpendicular neighbors are free
+        // and lie in L(da) / R(da) respectively. Crossings are perpendicular
+        // to the arc by construction.
+        std::vector<PortalPoint_T> Portal(Int da) const
+        {
+            RequireFaceMap();
+
+            static const Int step_dx[] = {1, 0, -1, 0};
+            static const Int step_dy[] = {0, 1, 0, -1};
+
+            std::vector<PortalPoint_T> portal;
+
+            const Int a = da / Int(2);
+            const Int d = da % Int(2);
+
+            if (a < 0 || a >= H.MaxArcCount() || !H.EdgeActiveQ(a))
+            {
+                return portal;
+            }
+
+            const Int fl = LeftFace(da);
+            const Int fr = RightFace(da);
+
+            TraverseArcCells(a,
+                [&](Int x, Int y, int dir, bool interiorQ)
+                {
+                    if (!interiorQ) return;
+
+                    // Left of the tail->head walk = dir rotated CCW. A Tail
+                    // darc runs against the arc's orientation, so its left
+                    // and right swap.
+                    int l_dir = (dir + 1) % 4;
+                    int r_dir = (dir + 3) % 4;
+                    if (d == Int(0)) std::swap(l_dir, r_dir);
+
+                    Point_T l { x + step_dx[l_dir], y + step_dy[l_dir] };
+                    Point_T r { x + step_dx[r_dir], y + step_dy[r_dir] };
+
+                    // FaceAt is -2 on occupied and -1 off-grid/unassigned,
+                    // so these checks also reject non-free cells.
+                    if (FaceAt(l[0], l[1]) != fl) return;
+                    if (FaceAt(r[0], r[1]) != fr) return;
+
+                    portal.push_back(PortalPoint_T{ {x, y}, l, r });
+                });
+
+            return portal;
+        }
+
+        //======================================================================
+        // Phase 2 — Public API: multi-face routing
+        //======================================================================
+
+        struct MultiRoute_T
+        {
+            Path_T path;                        // full polyline incl. crossing cells
+            std::vector<Int> crossing_indices;  // path[crossing_indices[i]] crosses darcs[i]
+            bool validQ = false;
+        };
+
+        // Route from `start` to `goal`, crossing exactly the arcs of `darcs`
+        // in order, each from its left face into its right face (the
+        // descriptor convention of docs/move-descriptor.md). The face
+        // sequence is derived, never supplied: F_0 = face of `start`, which
+        // must equal L(darcs[0]); thereafter L(darcs[i]) must equal
+        // R(darcs[i-1]); and `goal` must lie in R(darcs[k-1]).
+        //
+        // Waypoints are chosen greedily with a one-portal look-ahead (score =
+        // distance from previous exit + distance toward the next portal's
+        // middle, final goal for the last); each leg is clearance-maximizing
+        // A* via RouteThroughFace. Deterministic: ties break to the first
+        // minimal portal point.
+        //
+        // Known limitation: if the face sequence revisits a face, legs are
+        // still routed independently and may cross each other; callers that
+        // need an embedded (simple) corridor must check for that.
+        MultiRoute_T RouteAcrossDarcs(
+            Point_T start, Point_T goal, const std::vector<Int> & darcs
+        ) const
+        {
+            RequireFaceMap();
+
+            MultiRoute_T result;
+
+            const std::size_t k = darcs.size();
+
+            // Derive and validate the face sequence.
+            std::vector<Int> F(k + 1);
+
+            F[0] = FaceAt(start[0], start[1]);
+            if (F[0] < 0) return result;
+
+            for (std::size_t i = 0; i < k; ++i)
+            {
+                if (LeftFace(darcs[i]) != F[i]) return result;
+                F[i + 1] = RightFace(darcs[i]);
+                if (F[i + 1] < 0) return result;
+            }
+
+            if (FaceAt(goal[0], goal[1]) != F[k]) return result;
+
+            // Compute all portals up front (needed for look-ahead).
+            std::vector<std::vector<PortalPoint_T>> portals(k);
+            for (std::size_t i = 0; i < k; ++i)
+            {
+                portals[i] = Portal(darcs[i]);
+                if (portals[i].empty()) return result;
+            }
+
+            auto dist = [](Point_T p, Point_T q) -> double
+            {
+                return std::hypot(
+                    static_cast<double>(p[0] - q[0]),
+                    static_cast<double>(p[1] - q[1]));
+            };
+
+            // Greedy waypoint selection with one-portal look-ahead.
+            std::vector<PortalPoint_T> chosen(k);
+            Point_T prev = start;
+
+            for (std::size_t i = 0; i < k; ++i)
+            {
+                Point_T target = (i + 1 < k)
+                    ? portals[i + 1][portals[i + 1].size() / 2].on_arc
+                    : goal;
+
+                std::size_t best = 0;
+                double best_score = std::numeric_limits<double>::infinity();
+
+                for (std::size_t j = 0; j < portals[i].size(); ++j)
+                {
+                    const PortalPoint_T & p = portals[i][j];
+                    double score = dist(prev, p.on_arc) + dist(p.on_arc, target);
+                    if (score < best_score)
+                    {
+                        best_score = score;
+                        best = j;
+                    }
+                }
+
+                chosen[i] = portals[i][best];
+                prev = chosen[i].right;
+            }
+
+            // Route the legs and assemble.
+            auto append_leg = [&](Int face, Point_T from, Point_T to) -> bool
+            {
+                Path_T leg = RouteThroughFace(face, from, to);
+                if (leg.empty()) return false;
+                result.path.insert(result.path.end(), leg.begin(), leg.end());
+                return true;
+            };
+
+            Point_T at = start;
+            for (std::size_t i = 0; i < k; ++i)
+            {
+                if (!append_leg(F[i], at, chosen[i].left)) return result;
+
+                result.crossing_indices.push_back(
+                    static_cast<Int>(result.path.size()));
+                result.path.push_back(chosen[i].on_arc);
+
+                at = chosen[i].right;
+            }
+
+            if (!append_leg(F[k], at, goal)) return result;
+
+            result.validQ = true;
+            return result;
         }
 
         //======================================================================

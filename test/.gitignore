@@ -32,3 +32,4 @@ knoodlesimplify.log
 # private cluster config (site-specific; never commit)
 cluster/cluster.conf
 cluster/*.local
+orthodecorate_check

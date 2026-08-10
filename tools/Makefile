@@ -132,6 +132,14 @@ klut_e2e: ../test/klut_e2e.cpp ../Knoodle.hpp
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/klut_e2e.cpp $(LDFLAGS) -o ../test/klut_e2e
 	@echo "✓ klut_e2e compiled successfully"
 
+# OrthoDecorate regression test (test/orthodecorate_check.cpp): face map,
+# distance transform, portals, multi-face routing. Self-contained; exit 0 = pass.
+orthodecorate_check: ../test/orthodecorate_check.cpp ../Knoodle.hpp ../src/OrthoDecorate.hpp
+	@echo "=== Building orthodecorate_check on $(UNAME_S) ==="
+	@echo "Compiling ../test/orthodecorate_check.cpp..."
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) ../test/orthodecorate_check.cpp $(LDFLAGS) -o ../test/orthodecorate_check
+	@echo "✓ orthodecorate_check compiled successfully"
+
 debug: CXXFLAGS = $(DEBUG_CXXFLAGS)
 debug: all
 
