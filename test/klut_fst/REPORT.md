@@ -312,6 +312,43 @@ plausibly in single-digit µs in-process (vs 28 µs HOMFLY for 3.0 B/key).
 The remaining step to close the design: an in-process timing of det+v2 on
 the probe path (the alexanderval CLI number is an upper bound only).
 
+## Addendum: unit-circle Alexander — one point saturates the ceiling
+
+The ceiling measurement for JHC's upstream ask (alexanderval should grow
+|t|=1 support): `alex_circle_probe.cpp` reuses `test/link_alexander.hpp`
+(log₁₀|det M(t)| at 5 irrational-angle unit-circle points, UMFPACK) on one
+representative per type. 33,814/33,814 evaluated, 0 failures; constancy
+spot-checked on a second key of 672 types, 0 mismatches; 27.8 µs/diagram
+for the 5-point batch as-is.
+
+| context                  | residual bits | buckets |
+|--------------------------|--------------:|--------:|
+| circle ×1                | 3.399         | 5,009   |
+| circle ×2 … ×5           | 3.399         | 5,009   |
+| circle ×5 + det + v2     | 3.399         | 5,009   |
+| HOMFLY                   | 0.947         | 16,260  |
+
+Three findings:
+
+1. **A single generic unit-circle point already realizes the full
+   Alexander-polynomial partition.** Points 2–5 add zero buckets, and det
+   and v2 (both functions of Δ) add zero on top — the 13-crossing Alexander
+   polynomials are small-integer objects, and one transcendental-angle
+   evaluation separates every pair that Δ separates at all. The upstream
+   feature can be ONE evaluation, not a sweep.
+2. **The Alexander ceiling is 3.40 bits/key** (~0.42 B/key stored). The gap
+   to HOMFLY's 0.95 is structural: Δ is blind to BOTH mirror and reversal
+   (Δ(K) = Δ(mK) = Δ(rK)), so all four cosets of every chiral knot share a
+   bucket — 5,009 Alexander classes vs 16,260 HOMFLY classes (~3.2×) is
+   exactly the chirality information Δ cannot carry, plus the genuinely
+   Alexander-degenerate families (e.g. Δ=1 knots).
+3. **Design consequence**: keys (zstd-fc/256, 2.84) + one-circle-point IDs
+   (~0.43) ≈ **3.3 B/key total** — within 0.3 B/key of the full HOMFLY
+   endgame (3.0) at Alexander prices. The current UMFPACK path costs ~6 µs
+   per point; a hand-tuned dense 12×12 complex determinant (Henrik-style)
+   should land well under 1 µs, making this affordable even on the
+   knot-dense pool workload where HOMFLY's 28 µs was a 6× disaster.
+
 ## Reproducing
 
 ```sh
