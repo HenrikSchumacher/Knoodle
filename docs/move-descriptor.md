@@ -323,8 +323,16 @@ and any seeded choice an emitter makes must be recorded in the stream.
   `#move` and `kind=pass` tokens optional) and overlays the corridor on the
   drawing — heavy gold strokes, corridor visibly broken at under-crossings,
   anchors emphasized in red. A rejected descriptor prints which spec check
-  failed and exits nonzero. In-stream `#move` records await the trace-record
-  reader.
+  failed and exits nonzero.
+- **Also implemented**: `knoodledraw --trace` reads a trace stream of this
+  spec's records and renders each snapshot under its echoed headers:
+  `#move kind=pass` becomes the corridor overlay on that record's diagram,
+  `#view exterior=<da>` pins OrthoDraw's exterior face to `L(da)` (via
+  `ArcFaces`), `#embedding` blocks are skipped with a note (animating the
+  redraw witness is a later backend's job), and other kinds/`#faces` lines
+  are echoed unrendered. Malformed records and rejected descriptors abort
+  with a line-numbered message and nonzero exit. Example stream:
+  `test/trace_example.txt`.
 
 ## Open questions
 

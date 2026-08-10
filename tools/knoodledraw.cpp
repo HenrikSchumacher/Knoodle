@@ -84,6 +84,10 @@ struct Config
     // Pass-move overlay (docs/move-descriptor.md): descriptor text from
     // --move=..., e.g. "kind=pass strand=11 depart=7 cross=7:u land=1".
     std::optional<std::string> move_spec;
+
+    // Trace mode (--trace): input is a move-trace stream of
+    // #step/#move/#view-headed PD records per docs/move-descriptor.md.
+    bool trace_mode = false;
 };
 
 enum class HighlightType : uint8_t { None = 0, Arc = 1, Crossing = 2, Face = 3, Pass = 4 };
@@ -137,6 +141,9 @@ void PrintUsage()
     std::cerr << "                              darc DA = 2*arc+d (Tail=0/Head=1); corridor drawn in\n";
     std::cerr << "                              heavy gold strokes, anchors in red; rejected\n";
     std::cerr << "                              descriptors report the failed check and exit nonzero\n";
+    std::cerr << "  --trace                     Input is a move-trace stream (#step/#move/#view headed\n";
+    std::cerr << "                              PD records, docs/move-descriptor.md): each record is\n";
+    std::cerr << "                              drawn under its echoed headers, pass moves as overlays\n";
     std::cerr << "\n";
     std::cerr << "Algorithm options:\n";
     std::cerr << "  --bend-method=METHOD        mcf (default), clp\n";
@@ -282,6 +289,10 @@ std::optional<Config> ParseArguments(int argc, char* argv[])
         else if (arg == "--ascii")
         {
             config.ascii_mode = true;
+        }
+        else if (arg == "--trace")
+        {
+            config.trace_mode = true;
         }
         // Output format: unicode (default), ascii, or wl (Wolfram geometry association)
         else if (arg.starts_with("--format="))
@@ -2673,6 +2684,216 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
 }
 
 //==============================================================================
+// Trace Streams (--trace, docs/move-descriptor.md)
+//==============================================================================
+
+/**
+ * @brief Render a move-trace stream: a sequence of records, each a block of
+ * `#`-headed lines followed by a 5-column signed PD snapshot, ended by a
+ * blank line.
+ *
+ * Every header line is echoed above its drawing (the trace is
+ * self-captioning). A `#move kind=pass ...` header becomes a corridor
+ * overlay on that record's snapshot — the descriptor applies to the diagram
+ * in the SAME record, per the spec, so no lookahead is needed. A
+ * `#view exterior=<da>` header pins OrthoDraw's exterior face to L(da),
+ * resolved via ArcFaces. `#embedding` blocks (redraw witnesses) are skipped
+ * with a note; other kinds and `#faces` annotations are echoed unrendered.
+ *
+ * Fail-loud: malformed records, unresolvable `#view` darcs, and rejected
+ * pass descriptors abort with a message and nonzero exit.
+ */
+bool ProcessTraceStream(std::istream& input, const Config& config)
+{
+    std::string line;
+    std::size_t line_no = 0;
+    std::size_t records_drawn = 0;
+
+    std::vector<std::string> headers;
+    std::optional<std::string> move_payload;
+    std::optional<Int> exterior_da;
+    std::vector<Int> code;
+    bool in_record = false;
+
+    auto fail = [&](const std::string& msg) -> bool
+    {
+        std::cerr << "knoodledraw: trace line " << line_no << ": " << msg << "\n";
+        return false;
+    };
+
+    auto parse_int = [](std::string_view tok, Int& out) -> bool
+    {
+        std::int64_t v = 0;
+        auto [p, ec] = std::from_chars(tok.data(), tok.data() + tok.size(), v);
+        if (ec != std::errc{} || p != tok.data() + tok.size()) return false;
+        out = static_cast<Int>(v);
+        return true;
+    };
+
+    // Render and reset the record being accumulated. Returns false on error.
+    auto flush = [&]() -> bool
+    {
+        if (!in_record) return true;
+
+        for (const auto& h : headers) std::cout << h << "\n";
+
+        if (code.empty())
+        {
+            std::cout << "(0-crossing summand: nothing to draw)\n\n";
+        }
+        else
+        {
+            const Int n = static_cast<Int>(code.size()) / Int(5);
+            PD_T dia = PD_T::FromSignedPDCode(code.data(), n);
+
+            if (dia.CrossingCount() <= Int(0))
+            {
+                return fail("PD snapshot did not parse into a valid diagram");
+            }
+
+            Config rc = config;
+
+            if (move_payload
+                && move_payload->find("kind=pass") != std::string::npos)
+            {
+                rc.move_spec = *move_payload;
+            }
+
+            if (exterior_da)
+            {
+                const Int da = *exterior_da;
+                const Int a  = da / Int(2);
+                if (da < 0 || a >= dia.MaxArcCount())
+                {
+                    return fail("#view exterior darc " + std::to_string(da)
+                        + " is out of range");
+                }
+                // ArcFaces()(a,d) = face left of darc 2a+d
+                rc.exterior_face = dia.ArcFaces()(a, da % Int(2));
+            }
+
+            std::vector<PD_T> summands;
+            summands.push_back(std::move(dia));
+            if (!DrawKnot(summands, rc)) return false;
+        }
+
+        headers.clear();
+        move_payload.reset();
+        exterior_da.reset();
+        code.clear();
+        in_record = false;
+        ++records_drawn;
+        return true;
+    };
+
+    while (std::getline(input, line))
+    {
+        ++line_no;
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' '))
+        {
+            line.pop_back();
+        }
+
+        if (line.empty())
+        {
+            if (!flush()) return false;
+            continue;
+        }
+
+        if (line[0] == '#')
+        {
+            if (line.starts_with("#trace"))
+            {
+                if (line.find("v=0") == std::string::npos)
+                {
+                    std::cerr << "knoodledraw: warning: trace version is not"
+                                 " v=0; parsing anyway\n";
+                }
+                continue;  // stream-level header, not part of a record
+            }
+
+            in_record = true;
+
+            if (line.starts_with("#embedding"))
+            {
+                // `#embedding rows=<n>`: a redraw witness. Skip its rows;
+                // rendering the lift/rotate/flatten animation is a later
+                // backend's job.
+                auto pos = line.find("rows=");
+                Int rows = 0;
+                if (pos == std::string::npos
+                    || !parse_int(std::string_view(line).substr(pos + 5), rows)
+                    || rows < 0)
+                {
+                    return fail("bad #embedding header '" + line + "'");
+                }
+                for (Int r = 0; r < rows; ++r)
+                {
+                    ++line_no;
+                    if (!std::getline(input, line))
+                    {
+                        return fail("EOF inside #embedding block");
+                    }
+                }
+                headers.push_back("#embedding (" + std::to_string(rows)
+                    + " rows, not rendered)");
+                continue;
+            }
+
+            headers.push_back(line);
+
+            if (line.starts_with("#move "))
+            {
+                move_payload = line.substr(6);
+            }
+            else if (line.starts_with("#view "))
+            {
+                auto pos = line.find("exterior=");
+                Int da;
+                if (pos == std::string::npos
+                    || !parse_int(std::string_view(line).substr(pos + 9), da))
+                {
+                    return fail("bad #view header '" + line + "'");
+                }
+                exterior_da = da;
+            }
+            continue;
+        }
+
+        // A 5-column signed PD row.
+        {
+            in_record = true;
+            std::istringstream iss(line);
+            std::string tok;
+            int count = 0;
+            while (iss >> tok)
+            {
+                Int v;
+                if (!parse_int(tok, v))
+                {
+                    return fail("bad PD entry '" + tok + "'");
+                }
+                code.push_back(v);
+                ++count;
+            }
+            if (count != 5)
+            {
+                return fail("PD row has " + std::to_string(count)
+                    + " columns, want 5");
+            }
+        }
+    }
+
+    if (!flush()) return false;
+
+    if (records_drawn == 0)
+    {
+        std::cerr << "knoodledraw: warning: trace stream contained no records\n";
+    }
+    return true;
+}
+
+//==============================================================================
 // Stream Processing
 //==============================================================================
 
@@ -2684,6 +2905,11 @@ bool ProcessStream(std::istream& input,
                    const Config& config,
                    Knoodle::PRNG_T& rng)
 {
+    if (config.trace_mode)
+    {
+        return ProcessTraceStream(input, config);
+    }
+
     bool reached_eof = false;
     bool any_drawn = false;
 
