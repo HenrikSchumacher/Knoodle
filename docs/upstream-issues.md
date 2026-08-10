@@ -5,9 +5,10 @@ before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
 ## 3. `ArcFaces()` doc comment states the opposite of the implemented convention
 
-**Status:** filed 2026-08-10 — PR #29
-(https://github.com/HenrikSchumacher/Knoodle/pull/29, branch
-`fix-arcfaces-doc-comment` off origin/main, comment-only change).
+**Status:** fixed upstream — PR #29
+(https://github.com/HenrikSchumacher/Knoodle/pull/29) MERGED by Henrik
+2026-08-10, same day it was filed. `Faces.hpp:34` on main now states the
+left-face convention correctly.
 **Severity:** documentation only — but this is exactly the comment an API
 consumer reads to learn which slot is which face, and it is wrong. Filed
 promptly because the planned Doxygen/GitHub-Pages docs site would harvest

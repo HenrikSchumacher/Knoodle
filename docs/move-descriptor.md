@@ -50,9 +50,9 @@ These are Knoodle's existing conventions; we cite them rather than invent:
   `LeftDarc(da)` (`Darcs.hpp:48`); the traversal is `TraverseFaceAtDarc`
   (`Faces.hpp`). The O(1) lookup is `ArcFaces()(a,d)` = the face **left of
   darc `2a + d`** (the convention stated inside `ComputeFaces` and verified
-  against `FaceDarcs()` on the trefoil; NB the doc comment at `ArcFaces()`
-  itself, `Faces.hpp:34`, states the opposite and is wrong — see
-  [upstream-issues.md](upstream-issues.md) issue 3).
+  against `FaceDarcs()` on the trefoil; the doc comment at `ArcFaces()`
+  itself used to state the opposite — fixed upstream via PR #29, merged
+  2026-08-10; see [upstream-issues.md](upstream-issues.md) issue 3).
 
 ### Naming faces
 
