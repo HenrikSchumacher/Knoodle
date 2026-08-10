@@ -5,9 +5,13 @@ before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
 ## 3. `ArcFaces()` doc comment states the opposite of the implemented convention
 
-**Status:** found 2026-08-10 (building the pass-move descriptor machinery).
+**Status:** filed 2026-08-10 — PR #29
+(https://github.com/HenrikSchumacher/Knoodle/pull/29, branch
+`fix-arcfaces-doc-comment` off origin/main, comment-only change).
 **Severity:** documentation only — but this is exactly the comment an API
-consumer reads to learn which slot is which face, and it is wrong.
+consumer reads to learn which slot is which face, and it is wrong. Filed
+promptly because the planned Doxygen/GitHub-Pages docs site would harvest
+it into a silently-wrong API-reference page.
 
 `src/PlanarDiagram/Faces.hpp:34` (doc comment on `ArcFaces()`):
 
