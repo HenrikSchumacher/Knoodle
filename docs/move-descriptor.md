@@ -169,6 +169,65 @@ tail/head anchors ✓. Check 4 has teeth here: the superficially similar
 `cross=3:u land=9` satisfies the chain rule, but `L(9) = {2,9}` is not
 incident to the head anchor (crossing 0), so it is not a legal landing.
 
+## Conformance tiers: well-formed vs sound
+
+Two distinct predicates apply to a record, and tools split along them:
+
+- **Well-formed** (= renderable): the descriptor passes its kind's local
+  checks against the snapshot. Renderers (knoodledraw) draw ANY well-formed
+  record — explicitly including moves that are topologically infeasible.
+  An infeasible move is not meaningless or un-renderable; it is *wrong*,
+  and a drawing of it is often exactly the picture one needs (e.g. showing
+  WHY a candidate was rejected). Rendering never claims soundness.
+- **Sound** (= proof-grade): the step additionally carries whatever
+  witness its kind requires, and the witness checks out. Only verifiers
+  (knoodleprove) demand this, and only for records that advance the
+  diagram. For `redraw` the witness is the embedding+rotation (above); for
+  `middlepass` it is quotient-simplicity of the corridor plus the §G
+  feasibility witness (below).
+
+## Step kind: `middlepass`
+
+Middlestrands' `MiddleStrandSimplifier` moves (see
+`handoff/middlepass-descriptor-emission/`): identical grammar and checks
+1–4 as `pass`, but the over/under tags are **per-crossing** — check 5 is
+dropped. This is the majority move class in practice (67% of applied moves
+in the first shakedown), not an edge case.
+
+```
+#move kind=middlepass strand=... depart=DA cross=DA:u|o,... land=DA
+```
+
+Well-formedness = checks 1–4. Soundness additionally requires (verifier
+tier, not rendering):
+
+- **quotient-simplicity** of the corridor: deleting the strand merges the
+  two flank faces of each strand arc; the corridor must not revisit a
+  *class* of that quotient (union-find over flank-face pairs; middlestrands
+  will contribute the spec text and reference check);
+- the **§G feasibility witness**: header lines `#feas ...` / `#fvar ...`
+  carrying the disk and the piece-class labelling, verified by the
+  check-don't-solve contract V0–V5 proposed in
+  `ROUND-1-RESPONSE-ADDENDUM-feasibility-witness.md`. These header names
+  are RESERVED here; the normative text lands after the witness emitter
+  exists and real payloads have been validated against it (same shakedown
+  discipline as the grammar itself).
+
+Emitter guidance: recommended canonical `depart`/`land` darcs are the
+strand-flank darcs at the anchors (they pin the emerging flank even when a
+face touches an anchor twice); any darc naming the correct face is legal.
+
+## Candidate records and comments
+
+- A record may carry the header `#candidate` (no arguments): its `#move`
+  was **evaluated but not applied**. The diagram does not advance — the
+  next record of the summand has the same snapshot. Renderers draw
+  candidate records exactly like applied ones (that is their purpose:
+  pictures of rejected moves); verifiers exclude them from the proof chain
+  and impose no soundness requirement on them.
+- `#comment <free text>` headers are echoed verbatim by renderers and
+  ignored by verifiers: telemetry, rejection reasons, implication chains.
+
 ## Other step kinds (reserved, args to be specified when instrumented)
 
 - `kind=r1`, `kind=r2`, `kind=r3` — Reidemeister moves; small darc-based arg

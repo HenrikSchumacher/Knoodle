@@ -2314,9 +2314,12 @@ bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
 
         if (key == "kind")
         {
-            if (val != "pass")
+            if (val == "pass")            { mv.middlepassQ = false; }
+            else if (val == "middlepass") { mv.middlepassQ = true;  }
+            else
             {
-                err = "only kind=pass is supported (got kind=" + val + ")";
+                err = "unsupported kind=" + val
+                    + " (want pass or middlepass)";
                 return false;
             }
         }
@@ -2385,6 +2388,69 @@ bool ParsePassMove(const std::string& spec, Deco_T::PassMove_T& mv,
         return false;
     }
     return true;
+}
+
+/**
+ * @brief Pad the drawing canvas (diagram string + parallel cell maps) by
+ * `m` blank cells on every side, updating n_x/n_y.
+ *
+ * OrthoDecorate is given a margin so corridors through the drawn exterior
+ * face can route AROUND the diagram (the unpadded exterior clip is
+ * disconnected corner pockets); its route coordinates include that margin,
+ * so the canvas must grow to match before stamping.
+ */
+void PadCanvas(std::string& diagram, std::vector<HighlightType>& mask,
+               std::vector<Int>& comp_map, Int& n_x, Int& n_y, Int m)
+{
+    const Int old_nx = n_x, old_ny = n_y;
+    const Int new_nx = n_x + 2 * m, new_ny = n_y + 2 * m;
+
+    std::vector<std::string> lines;
+    {
+        std::istringstream iss(diagram);
+        std::string line;
+        while (std::getline(iss, line)) lines.push_back(line);
+    }
+    lines.resize(static_cast<std::size_t>(old_ny));
+
+    const std::string blank(static_cast<std::size_t>(new_nx - 1), ' ');
+    std::string out;
+    out.reserve(static_cast<std::size_t>(new_nx * new_ny));
+
+    for (Int r = 0; r < m; ++r) { out += blank; out += '\n'; }
+    for (Int r = 0; r < old_ny; ++r)
+    {
+        std::string& row = lines[static_cast<std::size_t>(r)];
+        row.resize(static_cast<std::size_t>(old_nx - 1), ' ');
+        out.append(static_cast<std::size_t>(m), ' ');
+        out += row;
+        out.append(static_cast<std::size_t>(m), ' ');
+        out += '\n';
+    }
+    for (Int r = 0; r < m; ++r) { out += blank; out += '\n'; }
+
+    auto pad_map = [&](auto& map, auto fill)
+    {
+        if (map.empty()) return;
+        std::decay_t<decltype(map)> padded(
+            static_cast<std::size_t>(new_nx * new_ny), fill);
+        for (Int r = 0; r < old_ny; ++r)
+        {
+            for (Int c = 0; c < old_nx - 1; ++c)
+            {
+                padded[static_cast<std::size_t>((r + m) * new_nx + (c + m))] =
+                    map[static_cast<std::size_t>(r * old_nx + c)];
+            }
+        }
+        map = std::move(padded);
+    };
+
+    pad_map(mask, HighlightType::None);
+    pad_map(comp_map, Int(-1));
+
+    diagram = std::move(out);
+    n_x = new_nx;
+    n_y = new_ny;
 }
 
 /**
@@ -2622,10 +2688,15 @@ bool DrawKnot(const std::vector<PD_T>& summands, const Config& config,
                 n_y = H.Height() * config.y_grid_size + 1;
             }
 
-            Deco_T deco(H);
+            // Margin lets corridors through the drawn exterior face route
+            // around the diagram (see PadCanvas).
+            constexpr Int move_margin = 2;
+
+            Deco_T deco(H, move_margin);
             auto pass_route = deco.RoutePassMove(move);
             if (pass_route.validQ)
             {
+                PadCanvas(diagram, mask, component_map, n_x, n_y, move_margin);
                 StampPassOverlay(diagram, mask, n_x, n_y,
                                  deco.RenderPassRoute(pass_route));
                 move_applied = true;
@@ -2754,7 +2825,8 @@ bool ProcessTraceStream(std::istream& input, const Config& config)
             Config rc = config;
 
             if (move_payload
-                && move_payload->find("kind=pass") != std::string::npos)
+                && (move_payload->find("kind=pass") != std::string::npos
+                    || move_payload->find("kind=middlepass") != std::string::npos))
             {
                 rc.move_spec = *move_payload;
             }

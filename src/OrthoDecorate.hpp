@@ -28,8 +28,9 @@ namespace Knoodle
 
         OrthoDraw_T & H;    // Reference to computed OrthoDraw (non-const: ArcLines() caches lazily)
 
-        Int n_x;            // grid width:  Width()  * x_grid_size + 2
-        Int n_y;            // grid height: Height() * y_grid_size + 1
+        Int margin;         // free ring around the drawing (see constructor)
+        Int n_x;            // grid width:  Width()  * x_grid_size + 2 + 2*margin
+        Int n_y;            // grid height: Height() * y_grid_size + 1 + 2*margin
         Int x_grid_size;
         Int y_grid_size;
         Int stretch_x;      // lcm / x_grid_size
@@ -101,16 +102,16 @@ namespace Knoodle
 
             if (it == end) return;
 
-            Int px = V_coords(*it, 0);
-            Int py = V_coords(*it, 1);
+            Int px = V_coords(*it, 0) + margin;
+            Int py = V_coords(*it, 1) + margin;
             ++it;
 
             bool first = true;
 
             for (; it != end; ++it)
             {
-                Int qx = V_coords(*it, 0);
-                Int qy = V_coords(*it, 1);
+                Int qx = V_coords(*it, 0) + margin;
+                Int qy = V_coords(*it, 1) + margin;
 
                 if (px == qx && py == qy) continue;
 
@@ -190,8 +191,8 @@ namespace Knoodle
                 std::advance(it0, mid - 1);
                 std::advance(it1, mid);
 
-                Int x0 = V_coords(*it0, 0), y0 = V_coords(*it0, 1);
-                Int x1 = V_coords(*it1, 0), y1 = V_coords(*it1, 1);
+                Int x0 = V_coords(*it0, 0) + margin, y0 = V_coords(*it0, 1) + margin;
+                Int x1 = V_coords(*it1, 0) + margin, y1 = V_coords(*it1, 1) + margin;
 
                 // Segment midpoint
                 Int mx = (x0 + x1) / 2;
@@ -478,7 +479,7 @@ namespace Knoodle
             auto sublist = A_V.Sublist(a);
             auto it = headQ ? sublist.end() - 1 : sublist.begin();
 
-            return Point_T{ V_coords(*it, 0), V_coords(*it, 1) };
+            return Point_T{ V_coords(*it, 0) + margin, V_coords(*it, 1) + margin };
         }
 
         // Tail end of a darc: where its traversal starts. A Head darc (d=1)
@@ -544,10 +545,22 @@ namespace Knoodle
         // Constructor
         //======================================================================
 
-        OrthoDecorate(OrthoDraw_T & H_)
+        // `margin_` adds a ring of free cells around the drawing. The drawing
+        // itself spans the whole unpadded grid, so the exterior face's
+        // in-grid clip is generally DISCONNECTED corner pockets — any
+        // corridor routed through the drawn exterior face then fails. With a
+        // margin the exterior clip contains a connected ring and such
+        // corridors route around the diagram, which is also how they look on
+        // paper. All grid coordinates produced by this class (face map,
+        // portals, routes, overlays) include the margin offset; renderers
+        // pad their canvas by Margin() or subtract it.
+        OrthoDecorate(OrthoDraw_T & H_, Int margin_ = Int(0))
         : H         { H_ }
-        , n_x       { H_.Width()  * H_.Settings().x_grid_size + Int(2) }
-        , n_y       { H_.Height() * H_.Settings().y_grid_size + Int(1) }
+        , margin    { std::max(Int(0), margin_) }
+        , n_x       { H_.Width()  * H_.Settings().x_grid_size + Int(2)
+                      + Int(2) * margin }
+        , n_y       { H_.Height() * H_.Settings().y_grid_size + Int(1)
+                      + Int(2) * margin }
         , x_grid_size { H_.Settings().x_grid_size }
         , y_grid_size { H_.Settings().y_grid_size }
         , stretch_x { static_cast<Int>(std::lcm(
@@ -789,6 +802,7 @@ namespace Knoodle
             Path_T path;                        // full polyline incl. crossing cells
             std::vector<Int> crossing_indices;  // path[crossing_indices[i]] crosses darcs[i]
             bool validQ = false;
+            std::string why;                    // failure detail when !validQ
         };
 
         // Route from `start` to `goal`, crossing exactly the arcs of `darcs`
@@ -815,29 +829,53 @@ namespace Knoodle
 
             MultiRoute_T result;
 
+            auto fail = [&](std::string msg) -> MultiRoute_T &
+            {
+                result.why = std::move(msg);
+                return result;
+            };
+
             const std::size_t k = darcs.size();
 
             // Derive and validate the face sequence.
             std::vector<Int> F(k + 1);
 
             F[0] = FaceAt(start[0], start[1]);
-            if (F[0] < 0) return result;
+            if (F[0] < 0) return fail("start cell is not in a face");
 
             for (std::size_t i = 0; i < k; ++i)
             {
-                if (LeftFace(darcs[i]) != F[i]) return result;
+                if (LeftFace(darcs[i]) != F[i])
+                {
+                    return fail("chain break at cross[" + std::to_string(i)
+                        + "]: L(" + std::to_string(darcs[i]) + ") != face "
+                        + std::to_string(F[i]));
+                }
                 F[i + 1] = RightFace(darcs[i]);
-                if (F[i + 1] < 0) return result;
+                if (F[i + 1] < 0)
+                {
+                    return fail("darc " + std::to_string(darcs[i])
+                        + " has no right face");
+                }
             }
 
-            if (FaceAt(goal[0], goal[1]) != F[k]) return result;
+            if (FaceAt(goal[0], goal[1]) != F[k])
+            {
+                return fail("goal cell is not in the final face "
+                    + std::to_string(F[k]));
+            }
 
             // Compute all portals up front (needed for look-ahead).
             std::vector<std::vector<PortalPoint_T>> portals(k);
             for (std::size_t i = 0; i < k; ++i)
             {
                 portals[i] = Portal(darcs[i]);
-                if (portals[i].empty()) return result;
+                if (portals[i].empty())
+                {
+                    return fail("empty portal for cross[" + std::to_string(i)
+                        + "] (darc " + std::to_string(darcs[i]) + ", arc "
+                        + std::to_string(darcs[i] / 2) + ")");
+                }
             }
 
             auto dist = [](Point_T p, Point_T q) -> double
@@ -879,7 +917,16 @@ namespace Knoodle
             auto append_leg = [&](Int face, Point_T from, Point_T to) -> bool
             {
                 Path_T leg = RouteThroughFace(face, from, to);
-                if (leg.empty()) return false;
+                if (leg.empty())
+                {
+                    result.why = "A* found no path in face "
+                        + std::to_string(face) + " from ("
+                        + std::to_string(from[0]) + ","
+                        + std::to_string(from[1]) + ") to ("
+                        + std::to_string(to[0]) + ","
+                        + std::to_string(to[1]) + ")";
+                    return false;
+                }
                 result.path.insert(result.path.end(), leg.begin(), leg.end());
                 return true;
             };
@@ -919,6 +966,14 @@ namespace Knoodle
             std::vector<Int>  cross;   // darcs crossed, each left -> right
             std::vector<bool> over;    // per crossing: new strand passes over?
             Int               land;    // darc: L(land) = corridor's last face
+
+            // kind=middlepass (middlestrands' MiddleStrandSimplifier moves):
+            // identical grammar and checks, except the over/under tags are
+            // per-crossing (spec check 5 is dropped). Well-formedness only —
+            // soundness of a middlepass move additionally needs the
+            // quotient-simplicity / feasibility-witness checks, which are a
+            // VERIFIER concern, not a rendering concern.
+            bool middlepassQ = false;
         };
 
         struct PassRoute_T
@@ -955,11 +1010,15 @@ namespace Knoodle
             {
                 return fail("cross and over lists differ in length");
             }
-            for (std::size_t i = 1; i < k; ++i)
+            if (!mv.middlepassQ)
             {
-                if (mv.over[i] != mv.over[0])
+                for (std::size_t i = 1; i < k; ++i)
                 {
-                    return fail("over/under tags are not all equal (check 5)");
+                    if (mv.over[i] != mv.over[0])
+                    {
+                        return fail("over/under tags are not all equal"
+                            " (check 5; use kind=middlepass for mixed tags)");
+                    }
                 }
             }
 
@@ -1059,8 +1118,8 @@ namespace Knoodle
             result.route = RouteAcrossDarcs(start, goal, mv.cross);
             if (!result.route.validQ)
             {
-                return fail("face chain validated but geometric routing failed"
-                    " (empty portal or disconnected face region)");
+                return fail("face chain validated but geometric routing"
+                    " failed: " + result.route.why);
             }
 
             result.over   = mv.over;
@@ -1177,6 +1236,10 @@ namespace Knoodle
 
         Int StretchX() const { return stretch_x; }
         Int StretchY() const { return stretch_y; }
+
+        // Free-ring width around the drawing; all coordinates this class
+        // emits are offset by it (drawing coords = grid coords - Margin()).
+        Int Margin() const { return margin; }
 
         //======================================================================
         // Public API: Access underlying OrthoDraw

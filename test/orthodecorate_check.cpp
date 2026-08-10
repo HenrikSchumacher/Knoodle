@@ -307,6 +307,32 @@ static int run_pass_tests(Int xg, Int yg)
     // Face-revisiting corridor: f3 -> f2 -> f3 crossing arc 1 twice.
     expect({ {11}, 7, {3, 2}, {false, false}, 11 }, true, 2, "face-revisit");
 
+    // kind=middlepass: the same mixed-tag corridor must be ACCEPTED once
+    // per-crossing tags are declared (check 5 dropped).
+    {
+        Deco_T::PassMove_T mp{ {11}, 7, {3, 2}, {false, true}, 11 };
+        mp.middlepassQ = true;
+        expect(mp, true, 2, "middlepass-mixed");
+    }
+
+    // Margin regression (the mv0009 bug class): the doc-example corridor
+    // must route no matter WHICH face OrthoDraw draws as the exterior —
+    // with a margin, a corridor through the drawn exterior goes around
+    // the diagram instead of failing in a disconnected clip.
+    for (Int ext = 0; ext < 5; ++ext)
+    {
+        OrthoDraw_T Hx(diagram, ext, settings);
+        Deco_T dx(Hx, Int(2));
+        auto pr = dx.RoutePassMove({ {11}, 7, {7}, {false}, 1 });
+        if (!pr.validQ)
+        {
+            std::printf("  exterior=%lld: REJECTED (%s)\n",
+                (long long)ext, pr.why.c_str());
+            ok = false;
+        }
+    }
+    std::printf("  exterior-independence sweep: 5 exteriors\n");
+
     // Rejections:
     expect({ {11}, 7, {3, 2}, {false, true}, 11 }, false, 0, "mixed-tags");
     expect({ {11}, 7, {11}, {false}, 10 },         false, 0, "cross-own-strand");
