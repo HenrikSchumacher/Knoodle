@@ -48,6 +48,14 @@ struct IdentifyParams
                                 // 2=R1+R2, 4=all local patterns.
     bool   seed_reroute = true; // rerouteQ for the seed. false + seed_local_opt>0 = a
                                 // local-only seed (no Dijkstra reroute).
+
+    // Experimental (klut_bench --homfly): called once per candidate, right before
+    // its first in-range (3..max_cx) table probe, with the pass-reduced diagram.
+    // Models a query-time invariant computation (e.g. HOMFLY-as-ID-context for a
+    // compressed table). Plain function pointer + context so this header stays
+    // <functional>-free; null (the default) is a no-op on the hot path.
+    void (*probe_hook)(const PD_T&, void*) = nullptr;
+    void*  probe_ctx = nullptr;
 };
 
 struct Summand
@@ -164,12 +172,20 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
     while( work.DiagramCount() > Int(0) )
     {
         temp.Push( work.Pop() );                   // MOVE one candidate into temp
-        bool done = false;
+        bool done   = false;
+        bool probed = false;   // probe_hook fired for this candidate (once per summand)
+
+        auto fire_probe = [&q, &probed](const PD_T& D) {
+            if( q.probe_hook != nullptr && !probed
+                && D.CrossingCount() >= Int(3) && D.CrossingCount() <= q.max_cx )
+            { q.probe_hook(D, q.probe_ctx); probed = true; }
+        };
 
         // (1) cheap path: look up the pass-reduced (un-canonicalized) candidate.
         {
             const PD_T& D = temp.Diagram(0);
             if( !D.ValidQ() || D.CrossingCount() == Int(0) ) { temp.Clear(); continue; }  // unknot/invalid -> drop
+            fire_probe(D);
             auto [c, id] = Lookup(table, D, q.max_cx);
             if( Found(id) ) { R.summands.push_back(Summand{Summand::Kind::Identified, id, c, {}}); temp.Clear(); continue; }
         }
@@ -192,6 +208,7 @@ IdentifyInto(Klut& table, PDC_T& work, PDC_T& temp, Reapr_T& reapr,
 
             const PD_T& D = temp.Diagram(0);
             if( D.CrossingCount() == Int(0) ) { done = true; break; }   // reduced away -> drop
+            fire_probe(D);   // candidate entered probe range only after escalation
             auto [c, id] = Lookup(table, D, q.max_cx);
             if( Found(id) ) { R.summands.push_back(Summand{Summand::Kind::Identified, id, c, {}}); done = true; break; }
             if( n < Size_T(64) ) { n *= Size_T(2); }  // escalate (schedule to be tuned via klut_bench)

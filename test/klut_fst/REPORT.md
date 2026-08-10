@@ -236,6 +236,46 @@ probe, and is reusable across every retry/escalation probe of that summand.
 Amortized that way it sits well under the pass-Simplify budget; it should
 be measured against klut_bench's fast-path throughput before committing.
 
+## Addendum: HOMFLY-per-summand cost on the real Identify path (klut_bench --homfly)
+
+JHC's question: the identify fast path is pass-Simplify-only (no Reapr — too
+slow); what does one probe-time HOMFLY per summand actually do to klut_bench
+throughput? Implemented as an opt-in `probe_hook` in `IdentifyParams`
+(klut_identify.hpp) firing once per summand at its first in-range table
+probe — exactly where a cascade would compute it — plus a `--homfly` flag in
+klut_bench (linked against the vendored libhomfly; single-threaded sections
+only, since libhomfly has global state). Same pool file / same seed for both
+runs; outcome counts and correct-rate identical with the hook on.
+
+Pool mode (50k items, every item a perturbed 3–13cx knot → ~1 probe/item):
+
+|                    | baseline | --homfly | ratio |
+|--------------------|---------:|---------:|------:|
+| identify ns/item   | 5,106    | 33,627   | 6.6×  |
+| end-to-end items/s | 171,825  | 29,000   | 5.9×  |
+
+HOMFLY = 28.0 µs/call, 83% of identify time. **Confirms "too slow" for
+knot-dense streams.**
+
+Polygon firehose (20k random 64-gons, avg 43 crossings, 82% unknots):
+
+|                       | baseline | --homfly | ratio |
+|-----------------------|---------:|---------:|------:|
+| classify ns/item      | 3,571    | 5,368    | 1.50× |
+| gen+classify polys/s  | 62,558   | 56,216   | 1.11× |
+
+Only 19.3% of items ever probe (unknots reduce away and skip the hook), and
+those probes are mostly 3–5 crossing knots, so the per-call cost drops to
+8.8 µs. **The realistic enumeration workload pays 11% end-to-end.**
+
+Reading: HOMFLY-as-ID-context costs a 6× slowdown exactly on table-dense
+workloads (the ones KLUT exists for), so it is not a free lunch for the
+14–16 design; but on unknot-dominated enumeration it is nearly free. A
+plausible split: raw uint16 IDs for the small subtables (probes frequent,
+bytes cheap) and HOMFLY-context IDs only for the 15/16 subtables (bytes
+expensive, probes of big knots rare in enumeration workloads). The
+middle option remains v2-only context (µs-scale, IDs → 1.43 B/key).
+
 ## Reproducing
 
 ```sh

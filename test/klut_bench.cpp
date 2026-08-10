@@ -37,6 +37,13 @@
 #include "../Knoodle.hpp"
 #include "../tools/klut_identify.hpp"
 
+// Vendored libhomfly, for --homfly (one HOMFLY per summand at probe time --
+// the invariant-cascade cost experiment). Global state: single-threaded only.
+extern "C" {
+#include "vendor/libhomfly/homfly.h"
+}
+extern "C" void knoodle_gc_free_all(void);
+
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -63,6 +70,29 @@ namespace {
 double Secs(Clock::time_point a, Clock::time_point b)
 {
     return std::chrono::duration<double>(b - a).count();
+}
+
+// --homfly: probe-time HOMFLY cost accounting. The hook runs once per summand
+// on the pass-reduced diagram right before its first table probe (see
+// klut_identify.hpp probe_hook) -- exactly where a cascade would compute it.
+struct HomflyProbeStats
+{
+    std::size_t calls = 0;
+    double      secs  = 0;
+};
+
+void HomflyProbe(const ki::PD_T& D, void* ctx)
+{
+    auto* st = static_cast<HomflyProbeStats*>(ctx);
+    const auto h0 = std::chrono::steady_clock::now();
+    std::string jenkins ( D.ToJenkinsCodeString() );
+    std::vector<char> buf(jenkins.begin(), jenkins.end());
+    buf.push_back('\0');
+    char* out = homfly_str(buf.data());
+    if (out != nullptr && out[0] == '\x7f') { std::abort(); }  // keep the call alive
+    knoodle_gc_free_all();
+    st->secs += std::chrono::duration<double>(std::chrono::steady_clock::now() - h0).count();
+    ++st->calls;
 }
 
 std::uint64_t SplitMix64(std::uint64_t x)
@@ -376,6 +406,7 @@ int main(int argc, char* argv[])
     long   ssn_max_iter  = -1;   // --ssn-max-iter=N: Reapr energy-min max iterations (>=0 to override)
     double scaling       = -1;   // --scaling=X: Reapr embedding scaling (>0 to override)
     std::string pool_file;       // --pool-file=PATH: load pool if it exists, else build + save
+    bool use_homfly = false;     // --homfly: one probe-time HOMFLY per summand (cascade cost)
     std::vector<int> thread_counts = {1, 2, 4, 8};
 
     for (int i = 1; i < argc; ++i)
@@ -403,12 +434,19 @@ int main(int argc, char* argv[])
         else if (a.rfind("--ssn-max-iter=", 0) == 0)  ssn_max_iter = std::stol(v("--ssn-max-iter="));
         else if (a.rfind("--scaling=", 0) == 0)       scaling = std::stod(v("--scaling="));
         else if (a.rfind("--pool-file=", 0) == 0) pool_file = v("--pool-file=");
+        else if (a == "--homfly") use_homfly = true;
     }
 
-    const ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate, .rot = rot_trials,
-                                  .max_cx = static_cast<Int>(c_max),
-                                  .seed_local_opt = seed_local_opt,
-                                  .seed_reroute = (seed_reroute != 0) };
+    ki::IdentifyParams idp{ .n0 = n0, .cap = cap_escalate, .rot = rot_trials,
+                            .max_cx = static_cast<Int>(c_max),
+                            .seed_local_opt = seed_local_opt,
+                            .seed_reroute = (seed_reroute != 0) };
+    HomflyProbeStats homfly_stats;
+    if (use_homfly)
+    {
+        idp.probe_hook = &HomflyProbe;   // libhomfly has global state:
+        idp.probe_ctx  = &homfly_stats;  // single-threaded sections only
+    }
 
     std::cout << "klut_bench: KLUT Identify-path throughput\n"
               << "  klut-dir=" << klut_dir << "  c_max=" << c_max
@@ -547,6 +585,16 @@ int main(int argc, char* argv[])
         for (std::size_t c = 3; c < hist.size(); ++c)
             if (hist[c]) { std::cout << "  " << c << "cx:" << hist[c]; any = true; }
         std::cout << (any ? "" : "  (none)") << "\n";
+        if (use_homfly && homfly_stats.calls > 0)
+        {
+            std::cout << "  homfly probes (once per summand, at first table probe):\n"
+                      << "    " << homfly_stats.calls << " calls ("
+                      << (static_cast<double>(homfly_stats.calls) / iters) << " /item), "
+                      << (homfly_stats.secs / homfly_stats.calls * 1e6) << " us/call\n"
+                      << "    " << (homfly_stats.secs / iters * 1e9) << " ns/item = "
+                      << (t_classify > 0 ? 100.0 * homfly_stats.secs / t_classify : 0.0)
+                      << " % of classify time\n";
+        }
         return 0;
     }
 
@@ -697,6 +745,20 @@ int main(int argc, char* argv[])
     const auto t1 = Clock::now();
     ReportStages(s, iters, Secs(t0, t1));
     std::cout << "  correct-identify rate: " << (100.0 * correct.load() / iters) << " %\n\n";
+
+    if (use_homfly)
+    {
+        const double frac = (s.identify > 0) ? 100.0 * homfly_stats.secs / s.identify : 0.0;
+        std::cout << "  homfly probes (once per summand, at first table probe):\n"
+                  << "    " << homfly_stats.calls << " calls ("
+                  << (static_cast<double>(homfly_stats.calls) / iters) << " /item), "
+                  << (homfly_stats.secs / homfly_stats.calls * 1e6) << " us/call\n"
+                  << "    " << (homfly_stats.secs / iters * 1e9) << " ns/item = "
+                  << frac << " % of identify time\n"
+                  << "  (--homfly: presets sweep and parallel scaling skipped;"
+                  << " libhomfly is single-threaded)\n";
+        return 0;
+    }
 
     // Sweep escalation schedules: cost vs. correctness. The winner is the cheapest
     // initial n0 that keeps correctness ~100%.

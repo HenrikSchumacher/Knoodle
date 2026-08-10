@@ -145,10 +145,10 @@ link_split_check: link_split_check.cpp link_alexander.hpp homfly_invariance.hpp 
 # Note: with -include of a Tensors header (UMFPACK build), the KNOODLE->TOOLS
 # boost cascade is front-run, so pass -DTOOLS_USE_BOOST_UNORDERED explicitly to
 # actually enable boost's flat maps.
-klut_bench: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp
+klut_bench: klut_bench.cpp ../tools/klut_identify.hpp ../Knoodle.hpp $(LIBHOMFLY_OBJ)
 	@echo "=== Building klut_bench on $(UNAME_S) ==="
 	$(CXX) $(CXXFLAGS) -DKNOODLE_USE_UMFPACK $(KNOODLE_INC) $(UMFPACK_INC) \
-	    klut_bench.cpp $(UMFPACK_LDFLAGS) -o $@
+	    klut_bench.cpp $(LIBHOMFLY_OBJ) $(UMFPACK_LDFLAGS) -o $@
 	@echo "✓ klut_bench compiled successfully"
 
 # klut_bench_boost — klut_bench with boost::unordered_flat_map under both the
