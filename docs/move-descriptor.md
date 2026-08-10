@@ -48,8 +48,11 @@ These are Knoodle's existing conventions; we cite them rather than invent:
   the face lies on the **left** of each of its darcs
   (`src/PlanarDiagram/Faces.hpp:25`). The next-darc map of the walk is
   `LeftDarc(da)` (`Darcs.hpp:48`); the traversal is `TraverseFaceAtDarc`
-  (`Faces.hpp`). `ArcFaces()(a,1)` is the face right of the forward darc
-  (`Faces.hpp:34`).
+  (`Faces.hpp`). The O(1) lookup is `ArcFaces()(a,d)` = the face **left of
+  darc `2a + d`** (the convention stated inside `ComputeFaces` and verified
+  against `FaceDarcs()` on the trefoil; NB the doc comment at `ArcFaces()`
+  itself, `Faces.hpp:34`, states the opposite and is wrong — see
+  [upstream-issues.md](upstream-issues.md) issue 3).
 
 ### Naming faces
 
@@ -152,14 +155,19 @@ boundary darc cycles `{0,4,8}`, `{1,6}`, `{2,9}`, `{3,11,7}`, `{5,10}`.
 An illustrative (not necessarily simplifying) descriptor:
 
 ```
-#move kind=pass strand=11 depart=7 cross=3:u land=9
+#move kind=pass strand=11 depart=7 cross=7:u land=1
 ```
 
 reads: reroute the strand consisting of arc 5 (traversed along its
-orientation: darc 11 = 2·5 + Head), leaving its tail anchor through face `L(7)` =
-`{3,11,7}`, passing **under** arc 1 by crossing darc 3 (stepping from
-`L(3) = {3,11,7}` to `R(3) = L(2) = {2,9}`), and reaching the head anchor
-through face `L(9) = {2,9}`. Checks: `L(3) = L(7)` ✓, `L(9) = R(3)` ✓.
+orientation: darc 11 = 2·5 + Head; it runs from crossing 2 to crossing 0),
+leaving its tail anchor through face `L(7)` = `{3,11,7}`, passing **under**
+arc 3 by crossing darc 7 (stepping from `L(7) = {3,11,7}` to
+`R(7) = L(6) = {1,6}`), and reaching the head anchor through face
+`L(1) = {1,6}`. Checks: `L(cross₁) = L(depart)` ✓ (both name `{3,11,7}`),
+`L(land) = R(cross₁)` ✓, and the depart/land faces are quadrants at the
+tail/head anchors ✓. Check 4 has teeth here: the superficially similar
+`cross=3:u land=9` satisfies the chain rule, but `L(9) = {2,9}` is not
+incident to the head anchor (crossing 0), so it is not a legal landing.
 
 ## Other step kinds (reserved, args to be specified when instrumented)
 

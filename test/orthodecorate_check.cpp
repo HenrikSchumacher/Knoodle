@@ -218,6 +218,107 @@ static int run_case(const char * name, std::vector<Int> pd, Int n,
     return ok ? 0 : 1;
 }
 
+// Phase 3: pass-move descriptors on the trefoil (the worked example of
+// docs/move-descriptor.md plus rejection cases). Face cycles, from
+// FaceDarcs: f0{0,4,8} (exterior), f1{1,6}, f2{2,9}, f3{3,11,7}, f4{5,10}.
+static int run_pass_tests(Int xg, Int yg)
+{
+    std::printf("=== trefoil pass moves (grid %lld x %lld) ===\n",
+        (long long)xg, (long long)yg);
+
+    std::vector<Int> trefoil = {
+        0, 4, 1, 3, 1,
+        2, 0, 3, 5, 1,
+        4, 2, 5, 1, 1,
+    };
+    PD_T diagram = PD_T::FromSignedPDCode(trefoil.data(), Int(3));
+
+    OrthoDraw_T::Settings_T settings{};
+    settings.x_grid_size = xg;
+    settings.y_grid_size = yg;
+    OrthoDraw_T H(diagram, Int(-1), settings);
+    Deco_T deco(H);
+
+    bool ok = true;
+
+    auto integrity = [&](const Deco_T::MultiRoute_T & mr) -> bool
+    {
+        for (std::size_t i = 1; i < mr.path.size(); ++i)
+        {
+            Int dx = mr.path[i][0] - mr.path[i-1][0];
+            Int dy = mr.path[i][1] - mr.path[i-1][1];
+            if (std::abs(dx) + std::abs(dy) != 1) return false;
+        }
+        std::size_t ci = 0;
+        for (std::size_t i = 0; i < mr.path.size(); ++i)
+        {
+            bool occ = deco.OccupiedQ(mr.path[i][0], mr.path[i][1]);
+            bool is_x = (ci < mr.crossing_indices.size()
+                && mr.crossing_indices[ci] == static_cast<Int>(i));
+            if (occ != is_x) return false;
+            if (is_x) ++ci;
+        }
+        return true;
+    };
+
+    auto expect = [&](const Deco_T::PassMove_T & mv, bool should_pass,
+                      std::size_t n_cross, const char * name)
+    {
+        auto pr = deco.RoutePassMove(mv);
+        if (pr.validQ != should_pass)
+        {
+            std::printf("  pass %s: expected %s, got %s\n", name,
+                should_pass ? "VALID" : "REJECT",
+                pr.validQ ? "VALID" : "REJECT");
+            ok = false;
+            return;
+        }
+        if (!pr.validQ) { std::printf("  pass %s: rejected OK\n", name); return; }
+
+        bool good = integrity(pr.route)
+            && pr.route.crossing_indices.size() == n_cross
+            && pr.over.size() == n_cross
+            && deco.OccupiedQ(pr.tail_anchor[0], pr.tail_anchor[1])
+            && deco.OccupiedQ(pr.head_anchor[0], pr.head_anchor[1]);
+
+        if (!good)
+        {
+            std::printf("  pass %s: VALID but integrity failed\n", name);
+            ok = false;
+            return;
+        }
+        std::printf("  pass %s: %zu points, %zu crossings OK\n",
+            name, pr.route.path.size(), n_cross);
+    };
+
+    // The spec's worked example: reroute arc 5 (darc 11, runs c2 -> c0),
+    // leave through L(7)=f3, cross arc 3 under (darc 7: f3 -> f1), land
+    // through L(1)=f1.
+    expect({ {11}, 7, {7}, {false}, 1 }, true, 1, "doc-example");
+
+    // The doc's cautionary variant: chain rule holds (f3 -> f2 via darc 3,
+    // land L(9)=f2) but f2 is not a quadrant at the head anchor c0 — spec
+    // check 4 must reject it.
+    expect({ {11}, 7, {3}, {false}, 9 }, false, 0, "land-not-at-anchor");
+
+    // Two-arc strand (arcs 5 then 0), corridor f3 -> f1 crossing arc 3.
+    expect({ {11, 1}, 7, {7}, {false}, 1 }, true, 1, "two-arc-strand");
+
+    // Face-revisiting corridor: f3 -> f2 -> f3 crossing arc 1 twice.
+    expect({ {11}, 7, {3, 2}, {false, false}, 11 }, true, 2, "face-revisit");
+
+    // Rejections:
+    expect({ {11}, 7, {3, 2}, {false, true}, 11 }, false, 0, "mixed-tags");
+    expect({ {11}, 7, {11}, {false}, 10 },         false, 0, "cross-own-strand");
+    expect({ {11, 3}, 7, {7}, {false}, 1 },        false, 0, "broken-strand");
+    expect({ {}, 7, {}, {}, 7 },                   false, 0, "empty-strand");
+    expect({ {11}, 7, {2}, {false}, 3 },           false, 0, "wrong-chain-start");
+    expect({ {11}, 9, {}, {}, 9 },                 false, 0, "depart-not-at-anchor");
+
+    std::printf(ok ? "CASE OK\n" : "CASE FAILED\n");
+    return ok ? 0 : 1;
+}
+
 int main()
 {
     // Right-hand trefoil (3_1), 0-based arcs, 5-col signed PD rows
@@ -240,6 +341,8 @@ int main()
     rc |= run_case("trefoil, drawing grid", trefoil, 3, 20, 20);
     rc |= run_case("fig8, tight grid",      fig8,    4, 4, 2);
     rc |= run_case("fig8, drawing grid",    fig8,    4, 20, 20);
+    rc |= run_pass_tests(4, 2);
+    rc |= run_pass_tests(20, 20);
 
     std::printf(rc == 0 ? "PROBE OK\n" : "PROBE FAILED\n");
     return rc;

@@ -464,6 +464,67 @@ namespace Knoodle
             darc_faces_ready = true;
         }
 
+        //======================================================================
+        // Darc endpoint cells (arc-end vertex cells, oriented by the darc)
+        //======================================================================
+
+        Point_T ArcEndCell(Int a, bool headQ) const
+        {
+            const auto & A_V      = H.ArcVertices();
+            const auto & V_coords = H.VertexCoordinates();
+
+            auto sublist = A_V.Sublist(a);
+            auto it = headQ ? sublist.end() - 1 : sublist.begin();
+
+            return Point_T{ V_coords(*it, 0), V_coords(*it, 1) };
+        }
+
+        // Tail end of a darc: where its traversal starts. A Head darc (d=1)
+        // runs tail->head of the arc, a Tail darc (d=0) head->tail.
+        Point_T DarcTailCell(Int da) const
+        {
+            return ArcEndCell(da / Int(2), (da % Int(2)) == Int(0));
+        }
+
+        Point_T DarcHeadCell(Int da) const
+        {
+            return ArcEndCell(da / Int(2), (da % Int(2)) == Int(1));
+        }
+
+        //======================================================================
+        // Junction placement. The corridor attaches at an anchor crossing;
+        // the descriptor's depart/land face says through which of the four
+        // quadrant faces around that crossing it leaves/arrives. In the grid,
+        // a crossing cell's 4-neighbors are the four incident arc stubs
+        // (occupied), and its diagonal neighbors are the quadrant corner
+        // cells — so the junction is the diagonal neighbor of the anchor
+        // cell lying in face `f`. Fails iff `f` is not a free quadrant there
+        // (the operational form of spec check 4). If the same face occupies
+        // two quadrants, the first in fixed scan order (NE, NW, SW, SE) wins
+        // — deterministic; flank disambiguation is an open spec question.
+        //======================================================================
+
+        bool JunctionCell(Point_T anchor, Int f, Point_T & out) const
+        {
+            RequireFaceMap();
+
+            static const Int diag_dx[] = {1, -1, -1,  1};
+            static const Int diag_dy[] = {1,  1, -1, -1};
+
+            for (int q = 0; q < 4; ++q)
+            {
+                Point_T c { anchor[0] + diag_dx[q], anchor[1] + diag_dy[q] };
+
+                if (FaceAt(c[0], c[1]) == f)
+                {
+                    out = c;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         Int DistanceAt(const DistanceField & df, Int x, Int y) const
         {
             Int sx = (x - df.x0) * stretch_x;
@@ -835,6 +896,119 @@ namespace Knoodle
 
             if (!append_leg(F[k], at, goal)) return result;
 
+            result.validQ = true;
+            return result;
+        }
+
+        //======================================================================
+        // Phase 3 — Public API: pass-move descriptors
+        //
+        // Mirrors the `pass` grammar of docs/move-descriptor.md:
+        //   #move kind=pass strand=... depart=... cross=...:u|o,... land=...
+        // All references are darcs against the PD snapshot this layout was
+        // built from. RoutePassMove runs the spec's local validation checks
+        // and realizes the corridor geometrically.
+        //======================================================================
+
+        struct PassMove_T
+        {
+            std::vector<Int>  strand;  // darcs of the rerouted strand, traversal order
+            Int               depart;  // darc: L(depart) = corridor's first face
+            std::vector<Int>  cross;   // darcs crossed, each left -> right
+            std::vector<bool> over;    // per crossing: new strand passes over?
+            Int               land;    // darc: L(land) = corridor's last face
+        };
+
+        struct PassRoute_T
+        {
+            MultiRoute_T      route;        // corridor incl. crossing cells
+            std::vector<bool> over;         // per crossing (copied from the move)
+            Point_T           tail_anchor;  // grid cell of the tail anchor crossing
+            Point_T           head_anchor;  // grid cell of the head anchor crossing
+            bool              validQ = false;
+        };
+
+        // Validate a pass-move descriptor (the local checks of the spec) and
+        // route its corridor. The corridor starts in the quadrant of face
+        // L(depart) at the tail anchor crossing and ends in the quadrant of
+        // face L(land) at the head anchor crossing — the new strand attaches
+        // exactly where the old one did.
+        PassRoute_T RoutePassMove(const PassMove_T & mv) const
+        {
+            PassRoute_T result;
+
+            const std::size_t m = mv.strand.size();
+            const std::size_t k = mv.cross.size();
+
+            // -- Shape and tag checks (spec check 5: all tags equal) --------
+            if (m == 0) return result;
+            if (mv.over.size() != k) return result;
+            for (std::size_t i = 1; i < k; ++i)
+            {
+                if (mv.over[i] != mv.over[0]) return result;
+            }
+
+            // -- Arc activity; strand arcs distinct; cross arcs not in strand
+            //    (spec check 1) ---------------------------------------------
+            for (Int da : mv.strand)
+            {
+                if (LeftFace(da) < 0) return result;  // inactive or bogus
+            }
+            for (std::size_t i = 0; i < m; ++i)
+            {
+                for (std::size_t j = i + 1; j < m; ++j)
+                {
+                    if (mv.strand[i] / 2 == mv.strand[j] / 2) return result;
+                }
+            }
+            for (Int dc : mv.cross)
+            {
+                if (LeftFace(dc) < 0) return result;
+                for (Int ds : mv.strand)
+                {
+                    if (dc / 2 == ds / 2) return result;
+                }
+            }
+
+            // -- Strand consecutiveness, checked geometrically: the head-end
+            //    vertex cell of each darc must be the tail-end vertex cell of
+            //    the next (vertex cells are unique per diagram crossing) -----
+            for (std::size_t i = 0; i + 1 < m; ++i)
+            {
+                if (DarcHeadCell(mv.strand[i]) != DarcTailCell(mv.strand[i + 1]))
+                {
+                    return result;
+                }
+            }
+
+            result.tail_anchor = DarcTailCell(mv.strand.front());
+            result.head_anchor = DarcHeadCell(mv.strand.back());
+
+            // -- Combinatorial face chain (spec checks 2 and 3; RouteAcross-
+            //    Darcs re-derives this, but failing early is clearer) --------
+            const Int F_dep  = LeftFace(mv.depart);
+            const Int F_land = LeftFace(mv.land);
+            if (F_dep < 0 || F_land < 0) return result;
+
+            if (k > 0)
+            {
+                if (LeftFace(mv.cross.front()) != F_dep) return result;
+                if (RightFace(mv.cross.back()) != F_land) return result;
+            }
+            else if (F_dep != F_land) return result;
+
+            // -- Junctions: the depart/land faces must be quadrants at the
+            //    respective anchor crossings (spec check 4); the junction
+            //    cell is the anchor's diagonal neighbor in that face. -------
+            Point_T start, goal;
+            if (!JunctionCell(result.tail_anchor, F_dep,  start)) return result;
+            if (!JunctionCell(result.head_anchor, F_land, goal))  return result;
+
+            // -- Route ------------------------------------------------------
+            result.route = RouteAcrossDarcs(start, goal, mv.cross);
+            if (!result.route.validQ) return result;
+
+            result.over   = mv.over;
             result.validQ = true;
             return result;
         }

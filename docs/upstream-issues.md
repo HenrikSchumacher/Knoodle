@@ -3,6 +3,36 @@
 Bugs we've found reading/using the core library. Each needs a minimal repro
 before filing. Status: `found` → `confirmed` → `filed` → `fixed upstream`.
 
+## 3. `ArcFaces()` doc comment states the opposite of the implemented convention
+
+**Status:** found 2026-08-10 (building the pass-move descriptor machinery).
+**Severity:** documentation only — but this is exactly the comment an API
+consumer reads to learn which slot is which face, and it is wrong.
+
+`src/PlanarDiagram/Faces.hpp:34` (doc comment on `ArcFaces()`):
+
+> The convention is that `ArcFaces()(a,1)` is the face to the _right_ of the
+> forward arc `ToDarc(a,Head)`.
+
+But the implementation convention, per the comment inside `ComputeFaces`
+(same file, "Convention: _Right_ face first ... This way the directed arc
+`da = 2 * a + d` has its left face in `dA_f[da]`") and per the data, is:
+
+> `ArcFaces()(a,d)` is the face to the **left** of the darc `2a + d` —
+> i.e. `(a,1)` is the **left** face of the forward darc, `(a,0)` its right
+> face (= left of the backward darc).
+
+**Evidence (right-hand trefoil `[[0,4,1,3,+],[2,0,3,5,+],[4,2,5,1,+]]`):**
+`FaceDarcs()` reports the face with boundary cycle `{3,11,7}` — which by the
+face-on-left rule (`Faces.hpp:25`) lies LEFT of darc `11 = ToDarc(5,Head)` —
+while `ArcFaces()(5,1)` returns exactly that face and `ArcFaces()(5,0)`
+returns the face `{5,10}`. So slot 1 is the left face of the forward darc,
+contradicting the `ArcFaces()` doc comment (and agreeing with the
+`ComputeFaces` comment).
+
+**Fix:** flip the sentence at `Faces.hpp:34` (or reword to match
+`ComputeFaces`). No code change.
+
 ## 2. `Alexander_UMFPACK::Alexander` (single-value overload) takes outputs by value
 
 **Status:** found 2026-06-13 (writing `test/inflate_check.cpp`).
